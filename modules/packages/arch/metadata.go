@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/packages"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -129,11 +130,10 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	}
 
 	var p *Package
-	files := make([]string, 0, 10)
-
-	// bound the accumulated file list: empty tar entries are tiny and highly compressible,
-	// so a small package could otherwise amplify into a huge stored/indexed file list (DoS)
-	fileNameBytes := 0
+	// bound the accumulated file list: empty tar entries are tiny and highly compressible, so a small
+	// package could otherwise amplify into a huge stored/indexed file list (DoS). The bound lives in the
+	// shared packages helper so every parser can enforce it the same way.
+	files := packages.NewBoundedFileList(maxFileEntries, maxFileNameBytes)
 
 	tr := tar.NewReader(inner)
 	for {
@@ -156,11 +156,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				return nil, err
 			}
 		} else if !strings.HasPrefix(filename, ".") {
-			fileNameBytes += len(hd.Name)
-			if len(files) >= maxFileEntries || fileNameBytes > maxFileNameBytes {
-				return nil, util.NewInvalidArgumentErrorf("arch package contains too many file entries")
+			if err := files.Add(hd.Name); err != nil {
+				return nil, err
 			}
-			files = append(files, hd.Name)
 		}
 	}
 
@@ -168,7 +166,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 		return nil, ErrMissingPKGINFOFile
 	}
 
-	p.FileMetadata.Files = files
+	p.FileMetadata.Files = files.Files()
 	p.FileCompressionExtension = compressionType
 
 	return p, nil

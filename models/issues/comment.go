@@ -635,22 +635,8 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
 		for i := range attachments {
-			// reject foreign or already-linked attachments: a known UUID could otherwise
-			// re-link (and expose) another repo's private attachment
-			if attachments[i].RepoID == 0 && attachments[i].CreatedUnix < repo_model.LegacyAttachmentMissingRepoIDCutoff {
-				attachments[i].RepoID = issue.RepoID
-				if err := repo_model.UpdateAttachmentByUUID(ctx, attachments[i], "repo_id"); err != nil {
-					return fmt.Errorf("update attachment repo_id [id: %d]: %w", attachments[i].ID, err)
-				}
-			}
-			if attachments[i].RepoID != issue.RepoID {
-				return util.NewPermissionDeniedErrorf("attachment belongs to a different repository")
-			}
-			if attachments[i].IssueID != 0 && attachments[i].IssueID != c.IssueID {
-				return util.NewPermissionDeniedErrorf("attachment is already linked to another issue")
-			}
-			if attachments[i].ReleaseID != 0 {
-				return util.NewPermissionDeniedErrorf("attachment is already linked to a release")
+			if err := validateAttachmentForIssue(ctx, issue, attachments[i]); err != nil {
+				return err
 			}
 			attachments[i].IssueID = c.IssueID
 			attachments[i].CommentID = c.ID

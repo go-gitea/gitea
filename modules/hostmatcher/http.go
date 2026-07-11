@@ -5,10 +5,12 @@ package hostmatcher
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -65,6 +67,31 @@ func NewDialContext(usage string, allowList, blockList *HostMatchList, proxy *ur
 	}
 }
 
+// AllowListOrExternal returns value, or the built-in "external" set when value is empty. An empty
+// host-match list disables the allow-list check entirely (allow any host, including loopback/private),
+// so a caller building an SSRF-protected client must apply this fallback rather than pass an empty
+// allow-list string through.
+func AllowListOrExternal(value string) string {
+	if value == "" {
+		return MatchBuiltinExternal
+	}
+	return value
+}
+
+// NewHTTPTransport builds an http.Transport whose request target is validated against the allow/block
+// lists on BOTH the direct-dial path (DialContext) and the proxy path (Proxy). Pairing the two is the
+// whole point: NewDialContext alone validates only the proxy's own address, leaving a configured proxy
+// free to dial an otherwise-forbidden target (SSRF). base is the underlying proxy selector (e.g.
+// proxy.Proxy()); proxyURLFixed is the fixed proxy address the dialer must always permit; tlsConfig may
+// be nil. blockList may be nil for callers that only maintain an allow-list.
+func NewHTTPTransport(usage string, allowList, blockList *HostMatchList, base func(*http.Request) (*url.URL, error), proxyURLFixed *url.URL, tlsConfig *tls.Config) *http.Transport {
+	return &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Proxy:           NewProxyFunc(usage, allowList, blockList, base),
+		DialContext:     NewDialContext(usage, allowList, blockList, proxyURLFixed),
+	}
+}
+
 // NewProxyFunc wraps a base proxy selector so a request whose target host is not allowed is refused
 // before a proxy is used. Otherwise a configured proxy would dial on the target's behalf while the
 // DialContext check only validates the proxy address, leaving the real target unconfined (SSRF).
@@ -91,6 +118,11 @@ func checkProxyTarget(usage string, allowList, blockList *HostMatchList, hostPor
 	host := hostPort
 	if h, _, err := net.SplitHostPort(hostPort); err == nil {
 		host = h
+	} else if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		// a bracketed IPv6 literal without a port (e.g. "[::1]") reaches here; ParseIP/LookupIP
+		// do not accept the brackets, so strip them before matching, otherwise the allow/block
+		// lists silently fail to match this target.
+		host = host[1 : len(host)-1]
 	}
 	var ips []net.IP
 	if ip := net.ParseIP(host); ip != nil {

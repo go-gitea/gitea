@@ -133,18 +133,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 			ctx.APIError(http.StatusForbidden, "the authenticating token has no scope")
 			return
 		}
-		requested := scope.StringSlice()
-		scopes := make([]auth_model.AccessTokenScope, 0, len(requested))
-		for _, s := range requested {
-			sc := auth_model.AccessTokenScope(s)
-			// public-only is a restriction, not a grantable permission: a child token may always be
-			// public-only, so it must not be required to be present on the parent by the subset check.
-			if sc == auth_model.AccessTokenScopePublicOnly {
-				continue
-			}
-			scopes = append(scopes, sc)
-		}
-		hasScope, err := apiTokenScope.HasScope(scopes...)
+		hasScope, err := apiTokenScope.CanCreateChildScope(scope)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

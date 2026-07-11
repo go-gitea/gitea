@@ -26,17 +26,15 @@ var (
 	nonceStore     = openid.NewSimpleNonceStore()
 	discoveryCache = newTimedDiscoveryCache(24 * time.Hour)
 
-	// openIDInstance does discovery/verification via an external-only client, so a user-supplied
-	// OpenID identifier can't reach internal/loopback/reserved addresses. Lazy: reads proxy/settings once.
+	// openIDInstance does discovery/verification via an SSRF-protected client, so a user-supplied
+	// OpenID identifier can't reach internal/loopback/reserved addresses. It honors the operator's
+	// [security] ALLOWED_HOST_LIST (empty defaults to "external"), matching the avatar/webhook/migration
+	// clients, and validates the proxy path too. Lazy: reads proxy/settings once.
 	openIDInstance = sync.OnceValue(func() *openid.OpenID {
-		// the proxy path must enforce the same allow-list, else a configured proxy would fetch the target
-		allowList := hostmatcher.ParseHostMatchList("openid", hostmatcher.MatchBuiltinExternal)
+		allowList := hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", hostmatcher.AllowListOrExternal(setting.Security.AllowedHostList))
 		return openid.NewOpenID(&http.Client{
-			Timeout: 30 * time.Second,
-			Transport: &http.Transport{
-				Proxy:       hostmatcher.NewProxyFunc("openid", allowList, nil, proxy.Proxy()),
-				DialContext: hostmatcher.NewDialContext("openid", allowList, nil, setting.Proxy.ProxyURLFixed),
-			},
+			Timeout:   30 * time.Second,
+			Transport: hostmatcher.NewHTTPTransport("openid", allowList, nil, proxy.Proxy(), setting.Proxy.ProxyURLFixed, nil),
 		})
 	})
 )

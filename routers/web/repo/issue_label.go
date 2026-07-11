@@ -181,10 +181,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 	case "attach", "detach", "toggle", "toggle-alt":
 		// scope the label to this repo (or its org) so a foreign label ID is 404, not an oracle
 		labelID := ctx.FormInt64("id")
-		label, err := issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, labelID)
-		if err != nil && issues_model.IsErrRepoLabelNotExist(err) && ctx.Repo.Owner.IsOrganization() {
-			label, err = issues_model.GetLabelInOrgByID(ctx, ctx.Repo.Owner.ID, labelID)
-		}
+		label, err := issues_model.GetLabelInRepoOrOrgByID(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner.ID, ctx.Repo.Owner.IsOrganization(), labelID)
 		if err != nil {
 			ctx.ServerError("GetLabelByID", err)
 			return

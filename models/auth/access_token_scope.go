@@ -304,6 +304,23 @@ func (s AccessTokenScope) PublicOnly() (bool, error) {
 	return bitmap.hasScope(AccessTokenScopePublicOnly)
 }
 
+// CanCreateChildScope reports whether a request authenticated by the parent scope may mint a token
+// carrying the child scope. It rejects any grantable scope the parent does not hold, closing the
+// scope-escalation path. public-only is a restriction rather than a grantable permission, so it is
+// ignored here (a child may always be public-only); EnforcePublicOnlyFrom handles carrying it down.
+func (parent AccessTokenScope) CanCreateChildScope(child AccessTokenScope) (bool, error) {
+	requested := child.StringSlice()
+	scopes := make([]AccessTokenScope, 0, len(requested))
+	for _, s := range requested {
+		sc := AccessTokenScope(s)
+		if sc == AccessTokenScopePublicOnly {
+			continue
+		}
+		scopes = append(scopes, sc)
+	}
+	return parent.HasScope(scopes...)
+}
+
 // EnforcePublicOnlyFrom adds the public-only restriction to s when the authorizing parent scope is
 // public-only, so a public-only token cannot mint a child token that drops the restriction.
 func (s AccessTokenScope) EnforcePublicOnlyFrom(parent AccessTokenScope) (AccessTokenScope, error) {

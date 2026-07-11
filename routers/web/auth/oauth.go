@@ -299,10 +299,11 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 }
 
 // oauth2AvatarAllowList parses the host allow-list applied to avatar fetches from the global
-// [security] ALLOWED_HOST_LIST. An empty setting yields an empty list, which the dialer treats as
-// "any external host".
+// [security] ALLOWED_HOST_LIST, defaulting an empty setting to the built-in "external" set. An empty
+// host-match list would otherwise disable the allow-list check entirely and permit any host, including
+// loopback/private addresses (SSRF).
 func oauth2AvatarAllowList() *hostmatcher.HostMatchList {
-	return hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Security.AllowedHostList)
+	return hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", hostmatcher.AllowListOrExternal(setting.Security.AllowedHostList))
 }
 
 // oauth2AvatarHTTPClient builds the SSRF-protected client for avatar fetches. It is constructed per call
@@ -310,11 +311,8 @@ func oauth2AvatarAllowList() *hostmatcher.HostMatchList {
 func oauth2AvatarHTTPClient() *http.Client {
 	allowList := oauth2AvatarAllowList()
 	return &http.Client{
-		Timeout: 30 * time.Second,
-		Transport: &http.Transport{
-			Proxy:       hostmatcher.NewProxyFunc("oauth2-avatar", allowList, nil, proxy.Proxy()),
-			DialContext: hostmatcher.NewDialContext("oauth2-avatar", allowList, nil, setting.Proxy.ProxyURLFixed),
-		},
+		Timeout:   30 * time.Second,
+		Transport: hostmatcher.NewHTTPTransport("oauth2-avatar", allowList, nil, proxy.Proxy(), setting.Proxy.ProxyURLFixed, nil),
 	}
 }
 

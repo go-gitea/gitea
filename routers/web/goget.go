@@ -111,7 +111,7 @@ func goGetDefaultBranch(ctx *context.Context, repo *repo_model.Repository) strin
 		return def
 	}
 	// a public-only token may only reach genuinely public resources (a public repo under a public owner)
-	if goGetPublicOnlyToken(ctx) && (repo.IsPrivate || !repo.Owner.Visibility.IsPublic()) {
+	if context.TokenIsPublicOnly(ctx) && (repo.IsPrivate || !repo.Owner.Visibility.IsPublic()) {
 		return def
 	}
 	// the caller must be able to read the code and see the owner: a limited/private owner hides its repos
@@ -136,17 +136,4 @@ func goGetTokenCanReadRepo(ctx *context.Context) bool {
 	}
 	has, err := scope.HasScope(auth_model.AccessTokenScopeReadRepository)
 	return err == nil && has
-}
-
-// goGetPublicOnlyToken reports whether the request is authenticated by a public-only API token.
-func goGetPublicOnlyToken(ctx *context.Context) bool {
-	if ctx.Data["IsApiToken"] != true {
-		return false
-	}
-	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-	if !ok {
-		return false
-	}
-	publicOnly, _ := scope.PublicOnly()
-	return publicOnly
 }

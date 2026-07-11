@@ -263,6 +263,28 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 	return err
 }
 
+// validateAttachmentForIssue rejects a foreign or already-linked attachment before it is linked to
+// issue: a known UUID could otherwise re-link (and expose) another repo's private attachment. A
+// legacy attachment predating repo_id-on-upload is adopted into the issue's repo.
+func validateAttachmentForIssue(ctx context.Context, issue *Issue, attachment *repo_model.Attachment) error {
+	if attachment.RepoID == 0 && attachment.CreatedUnix < repo_model.LegacyAttachmentMissingRepoIDCutoff {
+		attachment.RepoID = issue.RepoID
+		if err := repo_model.UpdateAttachmentByUUID(ctx, attachment, "repo_id"); err != nil {
+			return fmt.Errorf("update attachment repo_id [id: %d]: %w", attachment.ID, err)
+		}
+	}
+	if attachment.RepoID != issue.RepoID {
+		return util.NewPermissionDeniedErrorf("attachment belongs to a different repository")
+	}
+	if attachment.IssueID != 0 && attachment.IssueID != issue.ID {
+		return util.NewPermissionDeniedErrorf("attachment is already linked to another issue")
+	}
+	if attachment.ReleaseID != 0 {
+		return util.NewPermissionDeniedErrorf("attachment is already linked to a release")
+	}
+	return nil
+}
+
 // UpdateIssueAttachments update attachments by UUIDs for the issue
 func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) (err error) {
 	if len(uuids) == 0 {
@@ -278,22 +300,8 @@ func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) 
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
 		for i := range attachments {
-			// reject foreign or already-linked attachments: a known UUID could otherwise
-			// re-link (and expose) another repo's private attachment
-			if attachments[i].RepoID == 0 && attachments[i].CreatedUnix < repo_model.LegacyAttachmentMissingRepoIDCutoff {
-				attachments[i].RepoID = issue.RepoID
-				if err := repo_model.UpdateAttachmentByUUID(ctx, attachments[i], "repo_id"); err != nil {
-					return fmt.Errorf("update attachment repo_id [id: %d]: %w", attachments[i].ID, err)
-				}
-			}
-			if attachments[i].RepoID != issue.RepoID {
-				return util.NewPermissionDeniedErrorf("attachment belongs to a different repository")
-			}
-			if attachments[i].IssueID != 0 && attachments[i].IssueID != issueID {
-				return util.NewPermissionDeniedErrorf("attachment is already linked to another issue")
-			}
-			if attachments[i].ReleaseID != 0 {
-				return util.NewPermissionDeniedErrorf("attachment is already linked to a release")
+			if err := validateAttachmentForIssue(ctx, issue, attachments[i]); err != nil {
+				return err
 			}
 			attachments[i].IssueID = issueID
 			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {

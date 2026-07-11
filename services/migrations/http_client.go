@@ -19,13 +19,10 @@ func NewMigrationHTTPClient() *http.Client {
 	}
 }
 
-// NewMigrationHTTPTransport returns a HTTP transport for migration
+// NewMigrationHTTPTransport returns a HTTP transport for migration. The target is validated against the
+// allow/block lists on both the direct-dial and proxy paths, so a configured proxy cannot be used to
+// reach an otherwise-forbidden target (SSRF).
 func NewMigrationHTTPTransport() *http.Transport {
-	return &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
-		// validate the target against the allow/block lists before a configured proxy dials it, otherwise
-		// the DialContext check below only sees the proxy address and the real target stays unconfined
-		Proxy:       hostmatcher.NewProxyFunc("migration", allowList, blockList, proxy.Proxy()),
-		DialContext: hostmatcher.NewDialContext("migration", allowList, blockList, setting.Proxy.ProxyURLFixed),
-	}
+	return hostmatcher.NewHTTPTransport("migration", allowList, blockList, proxy.Proxy(), setting.Proxy.ProxyURLFixed,
+		&tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify})
 }

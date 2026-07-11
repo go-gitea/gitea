@@ -79,13 +79,27 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	// a public-only token authenticating this request must not mint a token that drops the restriction
+	// a token-authenticated request must not mint a token with a broader scope than its own, nor
+	// drop the public-only restriction. Web routes accept basic-auth PATs/OAuth tokens too, so this
+	// must mirror the REST API guard in routers/api/v1/user/app.go.
 	if ctx.Data["IsApiToken"] == true {
-		if apiTokenScope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope); ok {
-			if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
-				ctx.ServerError("EnforcePublicOnlyFrom", err)
-				return
-			}
+		apiTokenScope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+		if !ok {
+			ctx.HTTPError(http.StatusForbidden, "the authenticating token has no scope")
+			return
+		}
+		hasScope, err := apiTokenScope.CanCreateChildScope(t.Scope)
+		if err != nil {
+			ctx.ServerError("CanCreateChildScope", err)
+			return
+		}
+		if !hasScope {
+			ctx.HTTPError(http.StatusForbidden, "cannot create an access token with a broader scope than the authenticating token")
+			return
+		}
+		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
+			ctx.ServerError("EnforcePublicOnlyFrom", err)
+			return
 		}
 	}
 
