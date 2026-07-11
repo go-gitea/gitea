@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -447,21 +448,23 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		stepStates[v.Id] = v
 	}
 
-	return db.WithTx2(ctx, func(ctx context.Context) (*ActionTask, error) {
+	// Only one request can update the task because the final state needs to be calculated with all job states.
+	// Otherwise, concurrent requests with transaction will make the SQL read stale job state and result in wrong final state.
+	taskID := state.Id
+	task := &ActionTask{}
+	err := globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-%d", taskID), func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
-
-		task := &ActionTask{}
-		if has, err := e.ID(state.Id).Get(task); err != nil {
-			return nil, err
+		if has, err := e.ID(taskID).Get(task); err != nil {
+			return err
 		} else if !has {
-			return nil, util.ErrNotExist
+			return util.ErrNotExist
 		} else if runnerID != task.RunnerID {
-			return nil, errors.New("invalid runner for task")
+			return errors.New("invalid runner for task")
 		}
 
 		if task.Status.IsDone() {
 			// the state is final, do nothing
-			return task, nil
+			return nil
 		}
 
 		// state.Result is not unspecified means the task is finished
@@ -474,7 +477,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 			task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
 			if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
-				return nil, err
+				return err
 			}
 			if _, err := UpdateRunJob(ctx, &ActionRunJob{
 				ID:      task.JobID,
@@ -482,18 +485,18 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 				Status:  task.Status,
 				Stopped: task.Stopped,
 			}, nil, "status", "stopped"); err != nil {
-				return nil, err
+				return err
 			}
 		} else {
 			// Force update ActionTask.Updated to avoid the task being judged as a zombie task
 			task.Updated = timeutil.TimeStampNow()
 			if err := UpdateTask(ctx, task, "updated"); err != nil {
-				return nil, err
+				return err
 			}
 		}
 
 		if err := task.LoadAttributes(ctx); err != nil {
-			return nil, err
+			return err
 		}
 
 		for _, step := range task.Steps {
@@ -511,12 +514,12 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 				step.Status = StatusRunning
 			}
 			if _, err := e.ID(step.ID).Update(step); err != nil {
-				return nil, err
+				return err
 			}
 		}
-
-		return task, nil
+		return nil
 	})
+	return task, err
 }
 
 func StopTask(ctx context.Context, taskID int64, status Status) error {
