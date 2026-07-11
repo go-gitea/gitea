@@ -120,6 +120,9 @@ function initActionRunsList(el: HTMLElement) {
       for (const newItem of newEl.querySelectorAll(':scope > .item')) {
         const oldItem = el.querySelector(`#${newItem.id}`);
         if (!oldItem) continue;
+
+        // If the end user is operating the row, then don't refresh its content.
+        // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
         if (oldItem.querySelector('.ui.dropdown.active')) continue;
 
         const protectedElems = protectMorphElements(newItem);

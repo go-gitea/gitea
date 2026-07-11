@@ -601,6 +601,9 @@ func (data *actionRunListData) fillRefreshMeta(ctx *context.Context) bool {
 	if len(data.ActionRuns) == 0 {
 		data.RefreshIntervalMs = 0
 	}
+	// Only refresh the items on the current page, do not keep loading "new" items.
+	// Otherwise, when end users are browsing the list page, they will just keep seeing "new" items coming in
+	// and "old" items disappearing, they won't be able to focus on an item that they are interested in, which is a bad user experience.
 	data.RefreshLink = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "run_ids", strings.Join(base.Int64sToStrings(actionRunIDs), ","))
 	return true
 }

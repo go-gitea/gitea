@@ -58,13 +58,13 @@ test('protectMorphElements', () => {
   const el = createElementFromHTML('<div><span data-morph-protect="">foo</span></div>');
   const protectedElems = protectMorphElements(el);
 
-  const id = el.querySelector('span')!.getAttribute('data-morph-protect');
-  expect(id).toBeTruthy();
-  expect(el.outerHTML).toEqual(`<div><span data-morph-protect="${id}">foo</span></div>`);
-
-  el.querySelector('span')!.textContent = 'bar';
-  el.querySelector('span')!.classList.add('new-class');
-  expect(el.outerHTML).toEqual(`<div><span data-morph-protect="${id}" class="new-class">bar</span></div>`);
+  const span = el.querySelector('span')!;
+  const spanMorphProtectId = span.getAttribute('data-morph-protect');
+  expect(spanMorphProtectId).toBeTruthy();
+  expect(el.outerHTML).toEqual(`<div><span data-morph-protect="${spanMorphProtectId}">foo</span></div>`);
+  span.textContent = 'bar';
+  span.classList.add('new-class');
+  expect(el.outerHTML).toEqual(`<div><span data-morph-protect="${spanMorphProtectId}" class="new-class">bar</span></div>`);
 
   recoverMorphElements(el, protectedElems);
   expect(el.outerHTML).toEqual('<div><span data-morph-protect="">foo</span></div>');
