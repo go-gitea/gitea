@@ -14,12 +14,12 @@ var Webhook = struct {
 	QueueLength     int
 	DeliverTimeout  int
 	SkipTLSVerify   bool
+	AllowedHostList string
 	Types           []string
 	PagingNum       int
 	ProxyURL        string
 	ProxyURLFixed   *url.URL
 	ProxyHosts      []string
-	AllowedHostList string
 }{
 	QueueLength:    1000,
 	DeliverTimeout: 5,

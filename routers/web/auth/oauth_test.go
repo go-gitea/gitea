@@ -99,10 +99,7 @@ func TestOAuth2AvatarClientBlocksLoopback(t *testing.T) {
 }
 
 func TestOAuth2AvatarAllowListRestricts(t *testing.T) {
-	defer test.MockVariableValue(&setting.Security.AllowedHostList)()
-
-	// a configured allow-list must actually narrow reachable hosts below "all external"
-	setting.Security.AllowedHostList = "avatars.example.com"
+	defer test.MockVariableValue(&setting.Security.AllowedHostList, "avatars.example.com")()
 	allowList := oauth2AvatarAllowList()
 	assert.True(t, allowList.MatchHostName("avatars.example.com"), "the configured host must be allowed")
 	assert.False(t, allowList.MatchHostName("8.8.8.8"), "an unrelated external host must be rejected")
