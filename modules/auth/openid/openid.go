@@ -31,7 +31,7 @@ var (
 	// [security] ALLOWED_HOST_LIST (empty defaults to "external"), matching the avatar/webhook/migration
 	// clients, and validates the proxy path too. Lazy: reads proxy/settings once.
 	openIDInstance = sync.OnceValue(func() *openid.OpenID {
-		allowList := hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", hostmatcher.AllowListOrExternal(setting.Security.AllowedHostList))
+		allowList := hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Security.AllowedHostList)
 		return openid.NewOpenID(&http.Client{
 			Timeout:   30 * time.Second,
 			Transport: hostmatcher.NewHTTPTransport("openid", allowList, nil, proxy.Proxy(), setting.Proxy.ProxyURLFixed, nil),

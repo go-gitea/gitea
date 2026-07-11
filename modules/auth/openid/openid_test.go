@@ -9,11 +9,17 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"gitea.dev/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestOpenIDDiscoveryBlocksInternalHost(t *testing.T) {
+	// production loads [security] ALLOWED_HOST_LIST with a default of "external"; the unit test does not
+	// load settings, so set it here — an empty allow-list would permit any host and defeat the check.
+	setting.Security.AllowedHostList = "external"
+
 	var reached atomic.Bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reached.Store(true)

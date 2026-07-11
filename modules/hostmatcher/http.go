@@ -67,17 +67,6 @@ func NewDialContext(usage string, allowList, blockList *HostMatchList, proxy *ur
 	}
 }
 
-// AllowListOrExternal returns value, or the built-in "external" set when value is empty. An empty
-// host-match list disables the allow-list check entirely (allow any host, including loopback/private),
-// so a caller building an SSRF-protected client must apply this fallback rather than pass an empty
-// allow-list string through.
-func AllowListOrExternal(value string) string {
-	if value == "" {
-		return MatchBuiltinExternal
-	}
-	return value
-}
-
 // NewHTTPTransport builds an http.Transport whose request target is validated against the allow/block
 // lists on BOTH the direct-dial path (DialContext) and the proxy path (Proxy). Pairing the two is the
 // whole point: NewDialContext alone validates only the proxy's own address, leaving a configured proxy

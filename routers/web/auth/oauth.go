@@ -303,7 +303,7 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 // host-match list would otherwise disable the allow-list check entirely and permit any host, including
 // loopback/private addresses (SSRF).
 func oauth2AvatarAllowList() *hostmatcher.HostMatchList {
-	return hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", hostmatcher.AllowListOrExternal(setting.Security.AllowedHostList))
+	return hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Security.AllowedHostList)
 }
 
 // oauth2AvatarHTTPClient builds the SSRF-protected client for avatar fetches. It is constructed per call
