@@ -87,15 +87,14 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 }
 
 func checkByAllowBlockList(hostName string, addrList []net.IP) error {
-	var ipAllowed bool
+	ipAllowed := len(addrList) > 0
 	var ipBlocked bool
 	for _, addr := range addrList {
-		ipAllowed = ipAllowed || allowList.MatchIPAddr(addr)
+		ipAllowed = ipAllowed && allowList.MatchIPAddr(addr)
 		ipBlocked = ipBlocked || blockList.MatchIPAddr(addr)
 	}
-	var blockedError error
 	if blockList.MatchHostName(hostName) || ipBlocked {
-		blockedError = &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
+		return &git.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
 	}
 	// if we have an allow-list, check the allow-list before return to get the more accurate error
 	if !allowList.IsEmpty() {
@@ -104,7 +103,7 @@ func checkByAllowBlockList(hostName string, addrList []net.IP) error {
 		}
 	}
 	// otherwise, we always follow the blocked list
-	return blockedError
+	return nil
 }
 
 // MigrateRepository migrate repository according MigrateOptions
@@ -524,9 +523,10 @@ func Init() error {
 	if setting.Migrations.AllowLocalNetworks {
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
+	} else {
+		blockList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
+		blockList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
 	}
-	// TODO: at the moment, if ALLOW_LOCALNETWORKS=false, ALLOWED_DOMAINS=domain.com, and domain.com has IP 127.0.0.1, then it's still allowed.
-	// if we want to block such case, the private&loopback should be added to the blockList when ALLOW_LOCALNETWORKS=false
 
 	return nil
 }
