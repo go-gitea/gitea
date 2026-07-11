@@ -186,11 +186,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		label, err = issues_model.GetLabelInOrgByID(ctx, ctx.Repo.Owner.ID, labelID)
 	}
 	if err != nil {
-		if issues_model.IsErrRepoLabelNotExist(err) || issues_model.IsErrOrgLabelNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
