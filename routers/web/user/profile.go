@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
@@ -170,6 +171,14 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+		// a public-only API token must not surface private activity, even for its own owner
+		if showPrivate && ctx.Data["IsApiToken"] == true {
+			if scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope); ok {
+				if publicOnly, _ := scope.PublicOnly(); publicOnly {
+					showPrivate = false
+				}
+			}
+		}
 		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,

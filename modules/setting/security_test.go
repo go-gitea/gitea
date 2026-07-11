@@ -6,6 +6,8 @@ package setting
 import (
 	"testing"
 
+	"gitea.dev/modules/hostmatcher"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,5 +20,6 @@ CONTENT_SECURITY_POLICY_GENERAL = "script-src *; foo"`)
 	loadSecurityFrom(cfg)
 	assert.Equal(t, "DENY", Security.XFrameOptions)
 	assert.Equal(t, "unset", Security.XContentTypeOptions)
-	assert.Equal(t, `"script-src *`, Security.ContentSecurityPolicyGeneral) // holy shit ini package bug
+	assert.Equal(t, `"script-src *`, Security.ContentSecurityPolicyGeneral)     // holy shit ini package bug
+	assert.Equal(t, hostmatcher.MatchBuiltinExternal, Security.AllowedHostList) // default to external hostlist
 }

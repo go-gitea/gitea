@@ -178,10 +178,16 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	label, err := issues_model.GetLabelByID(ctx, ctx.PathParamInt64("id"))
+	// the label must belong to this repo (or its owning org); otherwise a foreign label ID
+	// is rejected the same way as a nonexistent one, closing a cross-repo enumeration oracle
+	labelID := ctx.PathParamInt64("id")
+	label, err := issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, labelID)
+	if err != nil && issues_model.IsErrRepoLabelNotExist(err) && ctx.Repo.Owner.IsOrganization() {
+		label, err = issues_model.GetLabelInOrgByID(ctx, ctx.Repo.Owner.ID, labelID)
+	}
 	if err != nil {
-		if issues_model.IsErrLabelNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		if issues_model.IsErrRepoLabelNotExist(err) || issues_model.IsErrOrgLabelNotExist(err) {
+			ctx.APIErrorNotFound()
 		} else {
 			ctx.APIErrorInternal(err)
 		}

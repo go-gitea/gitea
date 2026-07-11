@@ -79,6 +79,16 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
+	// a public-only token authenticating this request must not mint a token that drops the restriction
+	if ctx.Data["IsApiToken"] == true {
+		if apiTokenScope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope); ok {
+			if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
+				ctx.ServerError("EnforcePublicOnlyFrom", err)
+				return
+			}
+		}
+	}
+
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		ctx.ServerError("NewAccessToken", err)
 		return

@@ -372,3 +372,49 @@ func testAPIActionsListRepoWorkflows(t *testing.T) {
 		assert.NotNil(t, run.TriggerActor, "trigger_actor should be populated")
 	}
 }
+
+// TestAPIOrgActionsRunsAccessControl ensures the org-level Actions run/job listing does not
+// leak runs/jobs from repos the caller cannot access.
+func TestAPIOrgActionsRunsAccessControl(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// org3 has action run 802 (and its jobs) in the private repo5; user28 is an org3 member
+	// (teams 12/13) with no access to repo5.
+	token := getUserToken(t, "user28", auth_model.AccessTokenScopeReadOrganization)
+
+	req := NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	runs := new(api.ActionWorkflowRunsResponse)
+	DecodeJSON(t, resp, runs)
+	for _, r := range runs.Entries {
+		assert.NotEqual(t, int64(802), r.ID, "must not leak a run from an inaccessible repo")
+	}
+
+	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	jobs := new(api.ActionWorkflowJobsResponse)
+	DecodeJSON(t, resp, jobs)
+	for _, j := range jobs.Entries {
+		assert.NotEqual(t, int64(802), j.RunID, "must not leak a job from an inaccessible repo run")
+	}
+
+	// user1 is a site admin: it normally bypasses the per-repo access filter, but a public-only token
+	// must stay confined to public repos, so the run/job in the private repo5 must not be listed.
+	adminPublicOnly := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
+
+	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(adminPublicOnly)
+	resp = MakeRequest(t, req, http.StatusOK)
+	runs = new(api.ActionWorkflowRunsResponse)
+	DecodeJSON(t, resp, runs)
+	for _, r := range runs.Entries {
+		assert.NotEqual(t, int64(802), r.ID, "a public-only admin token must not list a private repo's run")
+	}
+
+	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(adminPublicOnly)
+	resp = MakeRequest(t, req, http.StatusOK)
+	jobs = new(api.ActionWorkflowJobsResponse)
+	DecodeJSON(t, resp, jobs)
+	for _, j := range jobs.Entries {
+		assert.NotEqual(t, int64(802), j.RunID, "a public-only admin token must not list a private repo's job")
+	}
+}

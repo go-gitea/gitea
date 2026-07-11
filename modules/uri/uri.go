@@ -23,13 +23,24 @@ func (e ErrURISchemeNotSupported) Error() string {
 
 // Open open a local file or a remote file
 func Open(uriStr string) (io.ReadCloser, error) {
+	return OpenWithClient(uriStr, http.DefaultClient)
+}
+
+// OpenWithClient opens a local file or a remote file, using the given HTTP client
+// for http/https URLs. Callers that must confine remote access (e.g. to defeat
+// SSRF via redirects) should pass a client whose transport validates the peer at
+// dial time.
+func OpenWithClient(uriStr string, client *http.Client) (io.ReadCloser, error) {
 	u, err := url.Parse(uriStr)
 	if err != nil {
 		return nil, err
 	}
 	switch strings.ToLower(u.Scheme) {
 	case "http", "https":
-		f, err := http.Get(uriStr)
+		if client == nil {
+			client = http.DefaultClient
+		}
+		f, err := client.Get(uriStr)
 		if err != nil {
 			return nil, err
 		}

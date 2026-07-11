@@ -126,6 +126,40 @@ func CreateAccessToken(ctx *context.APIContext) {
 	}
 	t.Scope = scope
 
+	// a token-authenticated request must not mint a token with a broader scope than its own
+	if ctx.Data["IsApiToken"] == true {
+		apiTokenScope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+		if !ok {
+			ctx.APIError(http.StatusForbidden, "the authenticating token has no scope")
+			return
+		}
+		requested := scope.StringSlice()
+		scopes := make([]auth_model.AccessTokenScope, 0, len(requested))
+		for _, s := range requested {
+			sc := auth_model.AccessTokenScope(s)
+			// public-only is a restriction, not a grantable permission: a child token may always be
+			// public-only, so it must not be required to be present on the parent by the subset check.
+			if sc == auth_model.AccessTokenScopePublicOnly {
+				continue
+			}
+			scopes = append(scopes, sc)
+		}
+		hasScope, err := apiTokenScope.HasScope(scopes...)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !hasScope {
+			ctx.APIError(http.StatusForbidden, "cannot create an access token with a broader scope than the authenticating token")
+			return
+		}
+		// a public-only token must not mint a token that drops the public-only restriction
+		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		ctx.APIErrorInternal(err)
 		return

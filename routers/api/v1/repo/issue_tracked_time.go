@@ -221,7 +221,12 @@ func AddTime(ctx *context.APIContext) {
 			// allow only RepoAdmin, Admin and User to add time
 			user, err = user_model.GetUserByName(ctx, form.User)
 			if err != nil {
-				ctx.APIErrorInternal(err)
+				if user_model.IsErrUserNotExist(err) {
+					ctx.APIError(http.StatusNotFound, err.Error())
+				} else {
+					ctx.APIErrorInternal(err)
+				}
+				return
 			}
 		}
 	}

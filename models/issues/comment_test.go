@@ -49,8 +49,10 @@ func Test_UpdateCommentAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
 	attachment := repo_model.Attachment{
-		Name: "test.txt",
+		RepoID: issue.RepoID, // must match the comment's repo, else the cross-repo guard rejects it
+		Name:   "test.txt",
 	}
 	assert.NoError(t, db.Insert(t.Context(), &attachment))
 

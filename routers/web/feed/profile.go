@@ -7,6 +7,7 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/renderhelper"
 	"gitea.dev/modules/markup/markdown"
@@ -39,6 +40,15 @@ func showUserFeed(ctx *context.Context, formatType string) {
 			return
 		}
 		includePrivate = isOrgMember
+	}
+
+	// a public-only API token must not surface private activity, even for its own owner
+	if includePrivate && ctx.Data["IsApiToken"] == true {
+		if scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope); ok {
+			if publicOnly, _ := scope.PublicOnly(); publicOnly {
+				includePrivate = false
+			}
+		}
 	}
 
 	actions, _, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{

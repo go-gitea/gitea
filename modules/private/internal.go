@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -53,12 +54,42 @@ func dialContextInternalAPI(ctx context.Context, network, address string) (conn 
 	return conn, nil
 }
 
+// internalAPISkipTLSVerify allows the self-signed local cert only for a unix socket or a
+// loopback LOCAL_ROOT_URL; a non-loopback target must verify, else the token is MITM-able.
+func internalAPISkipTLSVerify(protocol setting.Scheme, localURL string) bool {
+	if protocol == setting.HTTPUnix {
+		return true
+	}
+	u, err := url.Parse(localURL)
+	if err != nil {
+		return false
+	}
+	host := u.Hostname()
+	if host == "localhost" {
+		return true
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return ip.IsLoopback()
+	}
+	return false
+}
+
+// internalAPIServerName is the TLS ServerName for the internal API transport. When verification is
+// enabled (a non-loopback LOCAL_ROOT_URL) the certificate must match the host actually dialed, which is
+// the LOCAL_ROOT_URL host, not the public setting.Domain. It falls back to setting.Domain if unparseable.
+func internalAPIServerName(localURL string) string {
+	if u, err := url.Parse(localURL); err == nil && u.Hostname() != "" {
+		return u.Hostname()
+	}
+	return setting.Domain
+}
+
 var internalAPITransport = sync.OnceValue(func() http.RoundTripper {
 	return &http.Transport{
 		DialContext: dialContextInternalAPI,
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			ServerName:         setting.Domain,
+			InsecureSkipVerify: internalAPISkipTLSVerify(setting.Protocol, setting.LocalURL),
+			ServerName:         internalAPIServerName(setting.LocalURL),
 		},
 	}
 })

@@ -23,7 +23,9 @@ func NewMigrationHTTPClient() *http.Client {
 func NewMigrationHTTPTransport() *http.Transport {
 	return &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
-		Proxy:           proxy.Proxy(),
-		DialContext:     hostmatcher.NewDialContext("migration", allowList, blockList, setting.Proxy.ProxyURLFixed),
+		// validate the target against the allow/block lists before a configured proxy dials it, otherwise
+		// the DialContext check below only sees the proxy address and the real target stays unconfined
+		Proxy:       hostmatcher.NewProxyFunc("migration", allowList, blockList, proxy.Proxy()),
+		DialContext: hostmatcher.NewDialContext("migration", allowList, blockList, setting.Proxy.ProxyURLFixed),
 	}
 }

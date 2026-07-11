@@ -8,10 +8,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+	"strconv"
 	"testing"
+
+	"gitea.dev/modules/util"
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/ulikunitz/xz"
 )
 
@@ -166,4 +170,31 @@ func TestParsePackageInfo(t *testing.T) {
 		assert.ElementsMatch(t, []string{"cmake"}, p.FileMetadata.MakeDepends)
 		assert.ElementsMatch(t, []string{"usr/bin/paket1"}, p.FileMetadata.Backup)
 	})
+}
+
+// TestParsePackageTooManyFiles ensures the accumulated file list is bounded to prevent
+// metadata amplification from a package with a huge number of (tiny) file entries.
+func TestParsePackageTooManyFiles(t *testing.T) {
+	old := maxFileEntries
+	maxFileEntries = 3
+	defer func() { maxFileEntries = old }()
+
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gw)
+	writeEntry := func(name string, content []byte) {
+		require.NoError(t, tw.WriteHeader(&tar.Header{Name: name, Mode: 0o600, Size: int64(len(content))}))
+		_, err := tw.Write(content)
+		require.NoError(t, err)
+	}
+	writeEntry(".PKGINFO", createPKGINFOContent(packageName, packageVersion))
+	for i := 0; i <= maxFileEntries; i++ {
+		writeEntry("file"+strconv.Itoa(i), []byte{})
+	}
+	require.NoError(t, tw.Close())
+	require.NoError(t, gw.Close())
+
+	p, err := ParsePackage(&buf)
+	assert.Nil(t, p)
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
 }

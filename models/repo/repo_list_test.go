@@ -466,3 +466,21 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 		})
 	}
 }
+
+func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	// user2 is on org3's owner team, so it can access org3's private repo3 (which has the actions unit)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// org3 is a public org owning repo3 (private) and repo32 (public), both with the actions unit
+	const orgID = 3
+
+	all, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, false))
+	require.NoError(t, err)
+	assert.Contains(t, all, int64(3), "without public-only the private repo's actions are listed")
+
+	publicOnly, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, true))
+	require.NoError(t, err)
+	assert.NotContains(t, publicOnly, int64(3), "a public-only token must not list a private repo's actions")
+	assert.Contains(t, publicOnly, int64(32), "a public repo under a public owner stays listed")
+}

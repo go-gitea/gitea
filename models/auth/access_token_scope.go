@@ -304,6 +304,19 @@ func (s AccessTokenScope) PublicOnly() (bool, error) {
 	return bitmap.hasScope(AccessTokenScopePublicOnly)
 }
 
+// EnforcePublicOnlyFrom adds the public-only restriction to s when the authorizing parent scope is
+// public-only, so a public-only token cannot mint a child token that drops the restriction.
+func (s AccessTokenScope) EnforcePublicOnlyFrom(parent AccessTokenScope) (AccessTokenScope, error) {
+	publicOnly, err := parent.PublicOnly()
+	if err != nil {
+		return "", err
+	}
+	if !publicOnly {
+		return s, nil
+	}
+	return AccessTokenScope(string(s) + "," + string(AccessTokenScopePublicOnly)).Normalize()
+}
+
 // HasScope returns true if the string has the given scope
 func (s AccessTokenScope) HasScope(scopes ...AccessTokenScope) (bool, error) {
 	bitmap, err := s.parse()

@@ -9,11 +9,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/42wim/sshsig"
 	"github.com/stretchr/testify/assert"
@@ -473,10 +475,28 @@ func runErr(t *testing.T, stdin []byte, args ...string) {
 	}
 }
 
-func Test_PublicKeysAreExternallyManaged(t *testing.T) {
+func TestPublicKeysAreExternallyManaged(t *testing.T) {
 	key1 := unittest.AssertExistsAndLoadBean(t, &PublicKey{ID: 1})
 	externals, err := PublicKeysAreExternallyManaged(t.Context(), []*PublicKey{key1})
 	assert.NoError(t, err)
 	assert.Len(t, externals, 1)
 	assert.False(t, externals[0])
+}
+
+// TestCheckPublicKeyStringOversized tests if oversized SSH2 public key strings are rejected before triggering costly operations.
+func TestCheckPublicKeyStringOversized(t *testing.T) {
+	stats := &runtime.MemStats{}
+	var b strings.Builder
+	b.WriteString("---- BEGIN SSH2 PUBLIC KEY ----\n")
+	for b.Len() <= maxKeyStringLength {
+		b.WriteString(strings.Repeat("a", 100) + "\n")
+	}
+	b.WriteString("---- END SSH2 PUBLIC KEY ----\n")
+	runtime.ReadMemStats(stats)
+	allocsBase := stats.TotalAlloc / 1024 / 1024
+	_, err := CheckPublicKeyString(b.String())
+	runtime.ReadMemStats(stats)
+	allocsAfterParse := stats.TotalAlloc / 1024 / 1024
+	assert.ErrorIs(t, err, util.ErrInvalidArgument)
+	assert.InDelta(t, allocsBase, allocsAfterParse, 1.0)
 }

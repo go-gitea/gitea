@@ -46,6 +46,11 @@ var (
 	namePattern = regexp.MustCompile(`\A[a-zA-Z0-9@._+-]+\z`)
 	// (epoch:pkgver-pkgrel)
 	versionPattern = regexp.MustCompile(`\A(?:\d:)?[\w.+~]+(?:-[-\w.+~]+)?\z`)
+
+	// caps on the accumulated package file list (vars so tests can lower them); far above
+	// any legitimate package, but low enough to stop metadata amplification
+	maxFileEntries   = 100000
+	maxFileNameBytes = 16 << 20
 )
 
 type Package struct {
@@ -126,6 +131,10 @@ func ParsePackage(r io.Reader) (*Package, error) {
 	var p *Package
 	files := make([]string, 0, 10)
 
+	// bound the accumulated file list: empty tar entries are tiny and highly compressible,
+	// so a small package could otherwise amplify into a huge stored/indexed file list (DoS)
+	fileNameBytes := 0
+
 	tr := tar.NewReader(inner)
 	for {
 		hd, err := tr.Next()
@@ -147,6 +156,10 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				return nil, err
 			}
 		} else if !strings.HasPrefix(filename, ".") {
+			fileNameBytes += len(hd.Name)
+			if len(files) >= maxFileEntries || fileNameBytes > maxFileNameBytes {
+				return nil, util.NewInvalidArgumentErrorf("arch package contains too many file entries")
+			}
 			files = append(files, hd.Name)
 		}
 	}

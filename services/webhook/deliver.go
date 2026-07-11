@@ -308,12 +308,7 @@ func webhookProxy(allowList *hostmatcher.HostMatchList) func(req *http.Request) 
 // Init starts the hooks delivery thread
 func Init() error {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
-
-	allowedHostListValue := setting.Webhook.AllowedHostList
-	if allowedHostListValue == "" {
-		allowedHostListValue = hostmatcher.MatchBuiltinExternal
-	}
-	allowedHostMatcher := hostmatcher.ParseHostMatchList("webhook.ALLOWED_HOST_LIST", allowedHostListValue)
+	allowedHostMatcher := hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Security.AllowedHostList)
 
 	webhookHTTPClient = &http.Client{
 		Timeout: timeout,

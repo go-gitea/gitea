@@ -9,6 +9,7 @@ import (
 	"compress/gzip"
 	"io"
 	"testing"
+	"time"
 
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/zstd"
@@ -230,5 +231,29 @@ func TestValidateDistributionOrComponent(t *testing.T) {
 	}
 	for _, name := range good {
 		assert.True(t, IsValidDistributionOrComponent(name), "good=%q", name)
+	}
+}
+
+// TestParseControlFileDescriptionComplexity guards against super-linear time when a control
+// file has a large multi-line Description (previously accumulated with O(n^2) string +=).
+func TestParseControlFileDescriptionComplexity(t *testing.T) {
+	var buf bytes.Buffer
+	buf.WriteString("Package: testpkg\nVersion: 1.0\nArchitecture: amd64\nDescription: start\n")
+	const nLines = 300000
+	for range nLines {
+		buf.WriteString(" continuation line\n")
+	}
+
+	done := make(chan struct{})
+	go func() {
+		p, err := ParseControlFile(&buf)
+		assert.NoError(t, err)
+		assert.NotNil(t, p)
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(10 * time.Second):
+		t.Fatal("ParseControlFile did not complete in time; Description accumulation is not linear")
 	}
 }

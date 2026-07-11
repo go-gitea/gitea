@@ -755,6 +755,37 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 	))
 }
 
+// PublicRepoUnderPublicOwnerCond restricts to public repos whose owner is publicly visible: the
+// "genuinely public" set a public-only token or an anonymous caller may see (a public repo under a
+// limited/private owner is not publicly reachable and must be excluded).
+func PublicRepoUnderPublicOwnerCond() builder.Cond {
+	return builder.And(
+		builder.Eq{"`repository`.is_private": false},
+		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePublic})),
+	)
+}
+
+// UserActionsAccessibleOwnerRepoCond builds the condition selecting repositories under the given owner
+// whose Actions the user can see. When publicOnly is set (a public-only token), results are limited to
+// public repos under a public owner, matching the confinement applied to direct repo access.
+func UserActionsAccessibleOwnerRepoCond(ownerID int64, user *user_model.User, publicOnly bool) builder.Cond {
+	cond := builder.NewCond().And(
+		builder.Eq{"owner_id": ownerID},
+		AccessibleRepositoryCondition(user, unit.TypeActions),
+	)
+	if publicOnly {
+		cond = cond.And(PublicRepoUnderPublicOwnerCond())
+	}
+	return cond
+}
+
+// FindUserActionsAccessibleOwnerRepoIDsSubQuery returns a subquery selecting the repository IDs the user
+// can see for the given owner. Callers embed it in an `IN (...)` condition so that a large owner does not
+// materialize every repo ID into the SQL statement, which could exceed database parameter limits.
+func FindUserActionsAccessibleOwnerRepoIDsSubQuery(ownerID int64, user *user_model.User, publicOnly bool) *builder.Builder {
+	return builder.Select("id").From("repository").Where(UserActionsAccessibleOwnerRepoCond(ownerID, user, publicOnly))
+}
+
 // GetUserRepositories returns a list of repositories of given user.
 func GetUserRepositories(ctx context.Context, opts SearchRepoOptions) (RepositoryList, int64, error) {
 	if len(opts.OrderBy) == 0 {

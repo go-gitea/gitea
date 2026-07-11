@@ -4,6 +4,7 @@
 package context
 
 import (
+	"context"
 	"net/http"
 	"slices"
 
@@ -11,6 +12,22 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 )
+
+// publicOnlyTokenDeniedRepo reports whether a public-only API token must be denied access to
+// repo. A public-only token may only reach genuinely public resources, so it is denied for
+// private repos and for repos owned by a non-public (limited or private) owner.
+func publicOnlyTokenDeniedRepo(ctx context.Context, repo *repo_model.Repository) bool {
+	if repo == nil {
+		return false
+	}
+	if repo.IsPrivate {
+		return true
+	}
+	if err := repo.LoadOwner(ctx); err != nil || repo.Owner == nil {
+		return true // fail closed if the owner visibility can't be determined
+	}
+	return !repo.Owner.Visibility.IsPublic()
+}
 
 // CheckTokenScopes checks whether the authenticated API token contains any of the given scopes.
 func CheckTokenScopes(ctx *Context, repo *repo_model.Repository, scopes ...auth_model.AccessTokenScope) {
@@ -29,7 +46,7 @@ func CheckTokenScopes(ctx *Context, repo *repo_model.Repository, scopes ...auth_
 		return
 	}
 
-	if publicOnly && repo != nil && repo.IsPrivate {
+	if publicOnly && publicOnlyTokenDeniedRepo(ctx, repo) {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}

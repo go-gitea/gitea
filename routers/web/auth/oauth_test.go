@@ -4,15 +4,21 @@
 package auth
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/hostmatcher"
+	"gitea.dev/modules/setting"
 	"gitea.dev/services/oauth2_provider"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider.OIDCToken {
@@ -72,4 +78,46 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)
 	assert.Equal(t, user.IsActive, oidcToken.EmailVerified)
+}
+
+func TestOAuth2AvatarClientBlocksLoopback(t *testing.T) {
+	var hit atomic.Bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hit.Store(true)
+		_, _ = w.Write([]byte("img"))
+	}))
+	defer srv.Close()
+
+	// the httptest server binds a loopback address, which the SSRF-protected dialer must refuse
+	resp, err := oauth2AvatarHTTPClient().Get(srv.URL)
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+	require.Error(t, err)
+	assert.False(t, hit.Load(), "avatar client must refuse to dial a loopback address")
+}
+
+func TestOAuth2AvatarAllowListRestricts(t *testing.T) {
+	defer func(v string) { setting.Security.AllowedHostList = v }(setting.Security.AllowedHostList)
+
+	// a configured allow-list must actually narrow reachable hosts below "all external"
+	setting.Security.AllowedHostList = "avatars.example.com"
+	allowList := oauth2AvatarAllowList()
+	assert.True(t, allowList.MatchHostName("avatars.example.com"), "the configured host must be allowed")
+	assert.False(t, allowList.MatchHostName("8.8.8.8"), "an unrelated external host must be rejected")
+
+	// the default `external` allow-list still permits external hosts
+	setting.Security.AllowedHostList = hostmatcher.MatchBuiltinExternal
+	assert.True(t, oauth2AvatarAllowList().MatchHostName("8.8.8.8"), "default allow-list permits external hosts")
+}
+
+func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
+	// external-only allow-list must reject link-local cloud metadata (169.254.169.254) at dial time
+	resp, err := oauth2AvatarHTTPClient().Get("http://169.254.169.254/latest/meta-data/")
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "can only call allowed HTTP servers",
+		"avatar client must refuse a link-local cloud-metadata address")
 }

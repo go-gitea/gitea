@@ -60,6 +60,13 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		opts.Statuses = append(opts.Statuses, values...)
 	}
 
+	// for owner-scoped listing, restrict to repos whose actions the caller can read so a
+	// bare org member cannot enumerate jobs of repos they have no access to. A site admin may skip the
+	// access filter, but a public-only token must stay confined to public repos even for an admin.
+	if opts.OwnerID > 0 && (ctx.Doer == nil || !ctx.Doer.IsAdmin || ctx.PublicOnly) {
+		opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer, ctx.PublicOnly)
+	}
+
 	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -180,6 +187,13 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 		opts.CommitSHA = headSHA
 	}
 	excludePullRequests := ctx.FormBool("exclude_pull_requests")
+
+	// for owner-scoped listing, restrict to repos whose actions the caller can read so a
+	// bare org member cannot enumerate runs of repos they have no access to. A site admin may skip the
+	// access filter, but a public-only token must stay confined to public repos even for an admin.
+	if opts.OwnerID > 0 && (ctx.Doer == nil || !ctx.Doer.IsAdmin || ctx.PublicOnly) {
+		opts.AccessibleRepoIDsSubQuery = repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(opts.OwnerID, ctx.Doer, ctx.PublicOnly)
+	}
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {

@@ -19,9 +19,11 @@ import (
 	user_model "gitea.dev/models/user"
 	auth_module "gitea.dev/modules/auth"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/hostmatcher"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	source_service "gitea.dev/services/auth/source"
@@ -296,7 +298,25 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-var oauth2AvatarHTTPClient = &http.Client{Timeout: 30 * time.Second}
+// oauth2AvatarAllowList parses the host allow-list applied to avatar fetches from the global
+// [security] ALLOWED_HOST_LIST. An empty setting yields an empty list, which the dialer treats as
+// "any external host".
+func oauth2AvatarAllowList() *hostmatcher.HostMatchList {
+	return hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Security.AllowedHostList)
+}
+
+// oauth2AvatarHTTPClient builds the SSRF-protected client for avatar fetches. It is constructed per call
+// so a changed allowlist takes effect (avatar fetches are infrequent, so this is not a hot path).
+func oauth2AvatarHTTPClient() *http.Client {
+	allowList := oauth2AvatarAllowList()
+	return &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			Proxy:       hostmatcher.NewProxyFunc("oauth2-avatar", allowList, nil, proxy.Proxy()),
+			DialContext: hostmatcher.NewDialContext("oauth2-avatar", allowList, nil, setting.Proxy.ProxyURLFixed),
+		},
+	}
+}
 
 func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_model.User) {
 	if !setting.OAuth2Client.UpdateAvatar || len(avatarURL) == 0 {
@@ -310,7 +330,7 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_mo
 	// Some hosts (e.g. Wikimedia) reject Go's default User-Agent.
 	req.Header.Set("User-Agent", "Gitea "+setting.AppVer)
 
-	resp, err := oauth2AvatarHTTPClient.Do(req)
+	resp, err := oauth2AvatarHTTPClient().Do(req)
 	if err != nil {
 		log.Warn("fetch %q failed: %v", avatarURL, err)
 		return
@@ -373,7 +393,10 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			ctx.ServerError("GetExternalLogin", err)
 			return
 		}
-		isDisabledByAutoSync := hasExt && extLogin.RefreshToken == ""
+		// the cron clears all three token fields when it disables a user, so require the
+		// full signature; a RefreshToken alone is empty for many normal logins (e.g. GitHub
+		// or OIDC without offline_access), which would otherwise reactivate admin-disabled users
+		isDisabledByAutoSync := hasExt && extLogin.AccessToken == "" && extLogin.RefreshToken == "" && extLogin.ExpiresAt.IsZero()
 		if isDisabledByAutoSync {
 			opts.IsActive = optional.Some(true)
 		}
