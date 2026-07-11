@@ -8,14 +8,13 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	"strconv"
 	"testing"
 
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
 	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/ulikunitz/xz"
 )
 
@@ -175,26 +174,21 @@ func TestParsePackageInfo(t *testing.T) {
 // TestParsePackageTooManyFiles ensures the accumulated file list is bounded to prevent
 // metadata amplification from a package with a huge number of (tiny) file entries.
 func TestParsePackageTooManyFiles(t *testing.T) {
-	old := maxFileEntries
-	maxFileEntries = 3
-	defer func() { maxFileEntries = old }()
+	defer test.MockVariableValue(&maxFileEntries, 3)()
+	buf := test.WriteTarCompression(func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }, map[string]string{
+		"file1":    "content1",
+		".PKGINFO": string(createPKGINFOContent(packageName, packageVersion)),
+	})
+	_, err := ParsePackage(buf)
+	assert.NoError(t, err)
 
-	var buf bytes.Buffer
-	gw := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gw)
-	writeEntry := func(name string, content []byte) {
-		require.NoError(t, tw.WriteHeader(&tar.Header{Name: name, Mode: 0o600, Size: int64(len(content))}))
-		_, err := tw.Write(content)
-		require.NoError(t, err)
-	}
-	writeEntry(".PKGINFO", createPKGINFOContent(packageName, packageVersion))
-	for i := 0; i <= maxFileEntries; i++ {
-		writeEntry("file"+strconv.Itoa(i), []byte{})
-	}
-	require.NoError(t, tw.Close())
-	require.NoError(t, gw.Close())
-
-	p, err := ParsePackage(&buf)
-	assert.Nil(t, p)
+	buf = test.WriteTarCompression(func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }, map[string]string{
+		"file1":    "content1",
+		"file2":    "content2",
+		"file3":    "content3",
+		"file4":    "content4",
+		".PKGINFO": string(createPKGINFOContent(packageName, packageVersion)),
+	})
+	_, err = ParsePackage(buf)
 	assert.ErrorIs(t, err, util.ErrInvalidArgument)
 }
