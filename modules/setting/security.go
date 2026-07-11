@@ -24,6 +24,7 @@ var Security = struct {
 }{
 	XFrameOptions:       "SAMEORIGIN",
 	XContentTypeOptions: "nosniff",
+	AllowedHostList:     "external",
 }
 
 var (
@@ -199,5 +200,4 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {
 		log.Warn("Enabling Query API Auth tokens is not recommended. DISABLE_QUERY_AUTH_TOKEN will default to true in gitea 1.23 and will be removed in gitea 1.24.")
 	}
-	Security.AllowedHostList = sec.Key("ALLOWED_HOST_LIST").MustString("external")
 }
