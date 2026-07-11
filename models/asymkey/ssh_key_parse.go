@@ -39,7 +39,7 @@ const ssh2keyStart = "---- BEGIN SSH2 PUBLIC KEY ----"
 // maxKeyStringLength bounds accepted SSH public key input.
 // The longest RSA key ssh-keygen allows to generate is 16384 bits, so we set the conservative limit as 4 times that and reject
 // longer ones
-const maxKeyStringLength = 65535
+const maxKeyStringLength = 65536
 
 func extractTypeFromBase64Key(key string) (string, error) {
 	b, err := base64.StdEncoding.DecodeString(key)
