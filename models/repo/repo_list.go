@@ -310,11 +310,17 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 }
 
 // userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
+// A team grants the unit either through an explicit team_unit row (access_mode > none) or by being an
+// admin/owner team (team.authorize >= admin), which grants every unit regardless of team_unit rows —
+// mirroring the HasAdminAccess() short-circuit in access.GetIndividualUserRepoPermission.
 func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
-		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
-		Where(builder.Eq{"`team_unit`.`type`": unitType}).
-		And(builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)})
+		Join("INNER", "team", "`team`.id = `team_repo`.team_id").
+		Join("LEFT", "team_unit", builder.Expr("`team_unit`.team_id = `team_repo`.team_id AND `team_unit`.`type` = ?", unitType)).
+		Where(builder.Or(
+			builder.Gte{"`team`.authorize": int(perm.AccessModeAdmin)},
+			builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)},
+		))
 }
 
 // userOrgTeamUnitRepoCond returns a condition to select repo ids where user's teams can access the special unit.
@@ -326,7 +332,7 @@ func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType unit.Type) bui
 func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
-			And(builder.Eq{"`team_unit`.org_id": orgID}),
+			And(builder.Eq{"`team`.org_id": orgID}),
 	)
 }
 
@@ -765,33 +771,15 @@ func PublicRepoUnderPublicOwnerCond() builder.Cond {
 	)
 }
 
-// userOrgTeamAdminRepoBuilder returns repo ids under orgs where the user is in a team with admin (or
-// owner) authorization. Such a team grants access to every unit — including Actions — regardless of the
-// per-unit team_unit rows, matching the runtime permission in access.getUserRepoPermission, which
-// short-circuits to full access for a team with HasAdminAccess().
-func userOrgTeamAdminRepoBuilder(userID int64) *builder.Builder {
-	return builder.Select("`team_repo`.repo_id").
-		From("team_repo").
-		Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id").
-		Join("INNER", "team", "`team`.id = `team_repo`.team_id").
-		Where(builder.Eq{"`team_user`.uid": userID}).
-		And(builder.Gte{"`team`.authorize": int(perm.AccessModeAdmin)})
-}
-
-// UserActionsAccessibleOwnerRepoCond builds the condition selecting repositories under the given owner
-// whose Actions the user can see. When publicOnly is set (a public-only token), results are limited to
-// public repos under a public owner, matching the confinement applied to direct repo access.
+// UserActionsAccessibleOwnerRepoCond builds the condition selecting repositories owned by ownerID
+// (the org or user whose repos are being listed, not a permission level) whose Actions the given user
+// can read. Admin/owner-team access is handled inside AccessibleRepositoryCondition. When publicOnly is
+// set (a public-only token), results are further limited to public repos under a public owner, matching
+// the confinement applied to direct repo access.
 func UserActionsAccessibleOwnerRepoCond(ownerID int64, user *user_model.User, publicOnly bool) builder.Cond {
-	accessCond := AccessibleRepositoryCondition(user, unit.TypeActions)
-	if user != nil {
-		// AccessibleRepositoryCondition(..., TypeActions) only matches an explicit Actions team_unit row,
-		// so add repos reachable through an admin/owner team (which grants all units) to avoid hiding
-		// runs from an admin-team member who has no dedicated Actions unit row.
-		accessCond = builder.Or(accessCond, builder.In("`repository`.id", userOrgTeamAdminRepoBuilder(user.ID)))
-	}
 	cond := builder.NewCond().And(
 		builder.Eq{"owner_id": ownerID},
-		accessCond,
+		AccessibleRepositoryCondition(user, unit.TypeActions),
 	)
 	if publicOnly {
 		cond = cond.And(PublicRepoUnderPublicOwnerCond())
