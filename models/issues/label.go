@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
+	"github.com/pkg/errors"
 	"xorm.io/builder"
 )
 
@@ -25,12 +26,6 @@ import (
 type ErrRepoLabelNotExist struct {
 	LabelID int64
 	RepoID  int64
-}
-
-// IsErrRepoLabelNotExist checks if an error is a RepoErrLabelNotExist.
-func IsErrRepoLabelNotExist(err error) bool {
-	_, ok := err.(ErrRepoLabelNotExist)
-	return ok
 }
 
 func (err ErrRepoLabelNotExist) Error() string {
@@ -318,7 +313,7 @@ func GetLabelInRepoByName(ctx context.Context, repoID int64, labelName string) (
 // indistinguishable from a nonexistent one (no cross-repo enumeration oracle).
 func GetLabelInRepoOrOrgByID(ctx context.Context, repoID, ownerID int64, ownerIsOrg bool, labelID int64) (*Label, error) {
 	label, err := GetLabelInRepoByID(ctx, repoID, labelID)
-	if err != nil && IsErrRepoLabelNotExist(err) && ownerIsOrg {
+	if err != nil && errors.Is(err, util.ErrNotExist) && ownerIsOrg {
 		return GetLabelInOrgByID(ctx, ownerID, labelID)
 	}
 	return label, err
