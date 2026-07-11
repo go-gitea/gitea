@@ -311,7 +311,7 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 					} else {
 						// use the migration client so the fetch (including any redirect) is
 						// validated against the migration host allow/block list
-						resp, err := NewMigrationHTTPClient().Get(*asset.DownloadURL)
+						resp, err := getMigrationHTTPClient().Get(*asset.DownloadURL)
 						if err != nil {
 							return err
 						}
@@ -454,7 +454,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe.
 		// Use the migration client so an http(s) PatchURL (and any redirect it follows) is
 		// validated against the migration host allow/block list at dial time.
-		resp, err := NewMigrationHTTPClient().Get(u)
+		resp, err := getMigrationHTTPClient().Get(u)
 		if err != nil {
 			return err
 		}

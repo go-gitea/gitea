@@ -528,5 +528,9 @@ func Init() error {
 		blockList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
 	}
 
+	// build the shared client from the freshly parsed lists so download paths reuse one connection pool
+	// instead of creating a client (and pool) per request
+	migrationHTTPClient = NewMigrationHTTPClient()
+
 	return nil
 }

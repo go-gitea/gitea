@@ -12,11 +12,26 @@ import (
 	"gitea.dev/modules/setting"
 )
 
+// migrationHTTPClient is the shared migration client. Callers that would otherwise build a client per
+// request use it (via getMigrationHTTPClient) so a single connection pool is reused across downloads —
+// e.g. many release assets from the same host — instead of a fresh pool and TLS handshake each time. It
+// is (re)built by Init whenever the allow/block lists change.
+var migrationHTTPClient *http.Client
+
 // NewMigrationHTTPClient returns a HTTP client for migration
 func NewMigrationHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: NewMigrationHTTPTransport(),
 	}
+}
+
+// getMigrationHTTPClient returns the shared migration client, falling back to a fresh one when Init has
+// not run yet so no request escapes the SSRF-validated transport.
+func getMigrationHTTPClient() *http.Client {
+	if migrationHTTPClient != nil {
+		return migrationHTTPClient
+	}
+	return NewMigrationHTTPClient()
 }
 
 // NewMigrationHTTPTransport returns a HTTP transport for migration. The target is validated against the
