@@ -27,6 +27,8 @@ import (
 func TestOAuth2AvatarFromPicture(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.OAuth2Client.UpdateAvatar, true)()
+	// the SSRF-protected avatar client blocks loopback by default; allow the loopback mock server here
+	defer test.MockVariableValue(&setting.Security.AllowedHostList, "loopback,external")()
 
 	mockServer := createOAuth2MockProvider()
 	defer mockServer.Close()
