@@ -13,7 +13,7 @@ type onceValueResult[T any] struct {
 	panic any
 }
 
-// OnceValue is similar to Golang's "sync.OnceValue", this one is reset-able
+// OnceValue is similar to Golang's "sync.OnceValue", but can be reset.
 type OnceValue[T any] struct {
 	Func func() T
 	mu   sync.Mutex

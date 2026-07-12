@@ -20,11 +20,9 @@ import (
 // httpClient returns an HTTP client that honors Gitea's proxy configuration.
 var httpClient = util.OnceValue[*http.Client]{
 	Func: func() *http.Client {
-		return &http.Client{
-			Transport: &http.Transport{
-				Proxy: proxy.Proxy(),
-			},
-		}
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.Proxy = proxy.Proxy()
+		return &http.Client{Transport: transport}
 	},
 }
 
