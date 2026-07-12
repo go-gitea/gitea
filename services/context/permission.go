@@ -13,6 +13,15 @@ import (
 	"gitea.dev/models/unit"
 )
 
+// isOwnerHidden reports whether repo's owner is not publicly visible (a limited or private owner), so
+// the owner's repositories must be hidden from callers that may only reach genuinely public resources.
+func isOwnerHidden(ctx context.Context, repo *repo_model.Repository) bool {
+	if err := repo.LoadOwner(ctx); err != nil || repo.Owner == nil {
+		return true // fail closed if the owner visibility can't be determined
+	}
+	return !repo.Owner.Visibility.IsPublic()
+}
+
 // publicOnlyTokenDeniedRepo reports whether a public-only API token must be denied access to
 // repo. A public-only token may only reach genuinely public resources, so it is denied for
 // private repos and for repos owned by a non-public (limited or private) owner.
@@ -20,13 +29,7 @@ func publicOnlyTokenDeniedRepo(ctx context.Context, repo *repo_model.Repository)
 	if repo == nil {
 		return false
 	}
-	if repo.IsPrivate {
-		return true
-	}
-	if err := repo.LoadOwner(ctx); err != nil || repo.Owner == nil {
-		return true // fail closed if the owner visibility can't be determined
-	}
-	return !repo.Owner.Visibility.IsPublic()
+	return repo.IsPrivate || isOwnerHidden(ctx, repo)
 }
 
 // TokenIsPublicOnly reports whether the request is authenticated by a public-only API token. A
