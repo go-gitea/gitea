@@ -577,36 +577,6 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		return "", fmt.Errorf("the PR[%d] was not checked for safety", pr.Number)
 	}
 
-	// Anonymous function to download the patch file (allows us to use defer)
-	err = func() error {
-		// if the patchURL is empty there is nothing to download
-		if pr.PatchURL == "" {
-			return nil
-		}
-
-		// SECURITY: We will assume that the pr.PatchURL has been checked
-		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
-		ret, err := uri.Open(pr.PatchURL) // TODO: This probably needs to use the downloader as there may be rate limiting issues here
-		if err != nil {
-			return err
-		}
-		defer ret.Close()
-
-		f, err := gitrepo.CreateRepoFile(ctx, g.repo, fmt.Sprintf("pulls/%d.patch", pr.Number))
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		// TODO: Should there be limits on the size of this file?
-		_, err = io.Copy(f, ret)
-
-		return err
-	}()
-	if err != nil {
-		return "", err
-	}
-
 	head = "unknown repository"
 	if pr.IsForkPullRequest() && pr.State != "closed" {
 		// OK we want to fetch the current head as a branch from its CloneURL

@@ -229,17 +229,8 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 		// If there is a head or a patch file, and it is readable, grab info
 		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
 		if err != nil {
-			// Head File does not exist, try the patch
-			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
-			if err == nil {
-				// Recreate pull head in files for next time
-				if err := gitrepo.UpdateRef(ctx, ctx.Repo.Repository, pull.GetGitHeadRefName(), commitSHA); err != nil {
-					log.Error("Could not write head file", err)
-				}
-			} else {
-				// There is no history available
-				log.Trace("No history file available for PR %d", pull.Index)
-			}
+			// There is no history available
+			log.Trace("No history available for PR %d", pull.Index)
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
