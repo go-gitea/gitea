@@ -29,14 +29,17 @@
 							}}
 						{{end}}
 					</div>
-					<div class="ui segment detail">
+					<div class="ui segment detail comment-container">
 						<div class="flex-left-right tw-mb-2">
 							<h4 class="release-list-title tw-break-anywhere">
 								{{if $.PageIsSingleTag}}{{$release.Title}}{{else}}<a class="muted" href="{{$.RepoLink}}/releases/tag/{{$release.TagName | PathEscapeSegments}}">{{$release.Title}}</a>{{end}}
 								{{template "repo/commit_statuses" dict "Status" $info.CommitStatus "Statuses" $info.CommitStatuses "AdditionalClasses" "tw-flex"}}
 								{{template "repo/release/label" (dict "Release" $release)}}
 							</h4>
-							<div>
+							<div class="tw-flex tw-items-center tw-gap-2">
+								{{if not $.Repository.IsArchived}}
+									{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID)}}
+								{{end}}
 								{{if and $.CanCreateRelease (not $.PageIsSingleTag)}}
 									<a class="muted" data-tooltip-content="{{ctx.Locale.Tr "repo.release.edit"}}" href="{{$.RepoLink}}/releases/edit/{{$release.TagName | PathEscapeSegments}}" rel="nofollow">
 										{{svg "octicon-pencil"}}
@@ -107,6 +110,9 @@
 								{{end}}
 							</ul>
 						</details>
+						{{if $info.Reactions}}
+							{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID) "Reactions" ($info.Reactions.GroupByType)}}
+						{{end}}
 					</div>
 				</li>
 			{{end}}
