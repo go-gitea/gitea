@@ -1489,6 +1489,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/releases/attachments/{uuid}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
 		m.Get("/releases/download/{vTag}/{fileName}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.RedirectDownload)
 		m.Group("/releases", func() {
+			m.Post("/{id}/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeReleaseReaction)
+		}, reqSignIn, context.RepoMustNotBeArchived())
+		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind(forms.NewReleaseForm{}), repo.NewReleasePost)
 			m.Get("/edit/*", repo.EditRelease)

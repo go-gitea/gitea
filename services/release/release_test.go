@@ -11,6 +11,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -386,4 +387,30 @@ func TestCreateNewTag(t *testing.T) {
 
 	assert.NoError(t, CreateNewTag(t.Context(), user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
+}
+
+func TestCreateReleaseReaction(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1, RepoID: repo.ID})
+
+	// Setup setting reactions list
+	oldReactions := setting.UI.Reactions
+	oldReactionsLookup := setting.UI.ReactionsLookup
+	setting.UI.Reactions = []string{"heart"}
+	setting.UI.ReactionsLookup = make(container.Set[string])
+	setting.UI.ReactionsLookup.Add("heart")
+	defer func() {
+		setting.UI.Reactions = oldReactions
+		setting.UI.ReactionsLookup = oldReactionsLookup
+	}()
+
+	reaction, err := CreateReleaseReaction(t.Context(), user, release, "heart")
+	assert.NoError(t, err)
+	assert.NotNil(t, reaction)
+	assert.Equal(t, "heart", reaction.Type)
+	assert.Equal(t, user.ID, reaction.UserID)
+	assert.Equal(t, release.ID, reaction.ReleaseID)
 }
