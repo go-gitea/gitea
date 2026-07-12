@@ -158,7 +158,7 @@ func FindReleaseReactionsWithOpts(ctx context.Context, opts FindReleaseReactions
 // FindReactionsForReleases finds reactions for a slice of releases
 func FindReactionsForReleases(ctx context.Context, releases []*Release) (map[int64]ReleaseReactionList, error) {
 	if len(releases) == 0 {
-		return nil, nil
+		return make(map[int64]ReleaseReactionList), nil
 	}
 	releaseIDs := make([]int64, len(releases))
 	for i, r := range releases {
