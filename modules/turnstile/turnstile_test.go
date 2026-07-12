@@ -24,13 +24,13 @@ func TestHTTPClientHonorsProxy(t *testing.T) {
 	defer test.MockVariableValue(&setting.Proxy.ProxyURL, proxyURL.String())()
 	defer test.MockVariableValue(&setting.Proxy.ProxyURLFixed, proxyURL)()
 	defer test.MockVariableValue(&setting.Proxy.ProxyHosts, []string{"**"})()
-
-	transport, ok := httpClient().Transport.(*http.Transport)
+	httpClient.Reset()
+	transport, ok := httpClient.Value().Transport.(*http.Transport)
 	require.True(t, ok)
 	require.NotNil(t, transport.Proxy)
 
 	// The Turnstile verification request must be routed through the configured proxy.
-	req := httptest.NewRequest(http.MethodPost, "https://challenges.cloudflare.com/turnstile/v0/siteverify", nil)
+	req := httptest.NewRequest(http.MethodPost, "https://any.example.com", nil)
 	got, err := transport.Proxy(req)
 	require.NoError(t, err)
 	require.NotNil(t, got)
