@@ -40,6 +40,7 @@ var timeStrGlobalVars = sync.OnceValue(func() *timeStrGlobalVarsType {
 })
 
 func TimeEstimateParse(timeStr string) (int64, error) {
+	timeStr = strings.TrimSpace(timeStr)
 	if timeStr == "" {
 		return 0, nil
 	}
