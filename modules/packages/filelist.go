@@ -23,10 +23,10 @@ func NewBoundedFileList(maxFiles, maxNameBytes int) *BoundedFileList {
 // Add appends name, returning util.ErrInvalidArgument once the entry count or accumulated byte length
 // would exceed the configured cap.
 func (b *BoundedFileList) Add(name string) error {
-	b.nameBytes += len(name)
-	if len(b.files) >= b.maxFiles || b.nameBytes > b.maxBytes {
+	if len(b.files) >= b.maxFiles || b.nameBytes+len(name) > b.maxBytes {
 		return util.NewInvalidArgumentErrorf("package contains too many file entries")
 	}
+	b.nameBytes += len(name)
 	b.files = append(b.files, name)
 	return nil
 }

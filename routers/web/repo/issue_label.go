@@ -183,7 +183,11 @@ func UpdateIssueLabel(ctx *context.Context) {
 		labelID := ctx.FormInt64("id")
 		label, err := issues_model.GetLabelInRepoOrOrgByID(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner.ID, ctx.Repo.Owner.IsOrganization(), labelID)
 		if err != nil {
-			ctx.ServerError("GetLabelByID", err)
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.HTTPError(http.StatusNotFound, "GetLabelByID")
+			} else {
+				ctx.ServerError("GetLabelByID", err)
+			}
 			return
 		}
 

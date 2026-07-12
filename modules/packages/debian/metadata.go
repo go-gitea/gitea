@@ -193,6 +193,9 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 		control.WriteString(line)
 		control.WriteByte('\n')
 
+		// a leading space or tab marks a folded continuation line that belongs to the previous field
+		// (identified by key), not a new "Key: value" pair; only the multi-line fields append here.
+		// Continuation lines may themselves contain a colon, so they must not be re-split on ":".
 		if line[0] == ' ' || line[0] == '\t' {
 			switch key {
 			case "Description":
