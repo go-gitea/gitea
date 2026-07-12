@@ -669,8 +669,11 @@ func (c *Comment) LoadAssigneeUserAndTeam(ctx context.Context) error {
 
 		if c.Issue.Repo.Owner.IsOrganization() {
 			c.AssigneeTeam, err = organization.GetTeamByID(ctx, c.AssigneeTeamID)
-			if err != nil && !organization.IsErrTeamNotExist(err) {
-				return err
+			if err != nil {
+				if !organization.IsErrTeamNotExist(err) {
+					return err
+				}
+				c.AssigneeTeam = organization.NewGhostTeam()
 			}
 		}
 	}

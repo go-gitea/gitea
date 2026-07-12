@@ -92,6 +92,28 @@ func (t *Team) IsPublic() bool  { return t.Visibility.IsPublic() }
 func (t *Team) IsLimited() bool { return t.Visibility.IsLimited() }
 func (t *Team) IsPrivate() bool { return t.Visibility.IsPrivate() }
 
+// GhostTeamID is the team ID of the fake team for a team that has been deleted.
+const GhostTeamID int64 = -1
+
+// GhostTeamName is the name of the fake team for a team that has been deleted.
+const GhostTeamName = "Ghost"
+
+// NewGhostTeam creates and returns a fake team for a team that has been deleted.
+func NewGhostTeam() *Team {
+	return &Team{
+		ID:   GhostTeamID,
+		Name: GhostTeamName,
+	}
+}
+
+// IsGhost checks if the team is the fake team for a deleted team.
+func (t *Team) IsGhost() bool {
+	if t == nil {
+		return false
+	}
+	return t.ID == GhostTeamID && t.Name == GhostTeamName
+}
+
 // CanNonMemberReadMeta reports whether a non-member, non-owner doer may read
 // the team's metadata, based on the team's visibility tier and the parent org's
 // visibility. Privileged callers (site admins, org owners, team members) are

@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -43,6 +44,29 @@ func TestCreateComment(t *testing.T) {
 
 	updatedIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue.ID})
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
+}
+
+// Regression test: LoadAssigneeUserAndTeam previously left AssigneeTeam nil when the
+// assigned team had been deleted, unlike the parallel Assignee (user) case which falls
+// back to a Ghost user. Deleted team assignments should be just as consistently
+// represented as deleted user assignments.
+func TestLoadAssigneeUserAndTeam_DeletedTeamBecomesGhostTeam(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// issue 15 belongs to repo 5, which is owned by org3 (user id 3, an organization)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 15})
+
+	const deletedTeamID = 999999
+	comment := &issues_model.Comment{
+		Type:           issues_model.CommentTypeAssignees,
+		IssueID:        issue.ID,
+		AssigneeTeamID: deletedTeamID,
+	}
+
+	assert.NoError(t, comment.LoadAssigneeUserAndTeam(t.Context()))
+	assert.NotNil(t, comment.AssigneeTeam)
+	assert.True(t, comment.AssigneeTeam.IsGhost())
+	assert.Equal(t, organization.GhostTeamID, comment.AssigneeTeam.ID)
 }
 
 func Test_UpdateCommentAttachment(t *testing.T) {
