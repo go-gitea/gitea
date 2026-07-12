@@ -384,16 +384,14 @@ func TestAPIOrgActionsRunsAccessControl(t *testing.T) {
 
 	req := NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
-	runs := new(api.ActionWorkflowRunsResponse)
-	DecodeJSON(t, resp, runs)
+	runs := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
 	for _, r := range runs.Entries {
 		assert.NotEqual(t, int64(802), r.ID, "must not leak a run from an inaccessible repo")
 	}
 
 	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
-	jobs := new(api.ActionWorkflowJobsResponse)
-	DecodeJSON(t, resp, jobs)
+	jobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
 	for _, j := range jobs.Entries {
 		assert.NotEqual(t, int64(802), j.RunID, "must not leak a job from an inaccessible repo run")
 	}
@@ -404,17 +402,15 @@ func TestAPIOrgActionsRunsAccessControl(t *testing.T) {
 
 	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/runs").AddTokenAuth(adminPublicOnly)
 	resp = MakeRequest(t, req, http.StatusOK)
-	runs = new(api.ActionWorkflowRunsResponse)
-	DecodeJSON(t, resp, runs)
-	for _, r := range runs.Entries {
+	adminRuns := DecodeJSON(t, resp, &api.ActionWorkflowRunsResponse{})
+	for _, r := range adminRuns.Entries {
 		assert.NotEqual(t, int64(802), r.ID, "a public-only admin token must not list a private repo's run")
 	}
 
 	req = NewRequest(t, "GET", "/api/v1/orgs/org3/actions/jobs").AddTokenAuth(adminPublicOnly)
 	resp = MakeRequest(t, req, http.StatusOK)
-	jobs = new(api.ActionWorkflowJobsResponse)
-	DecodeJSON(t, resp, jobs)
-	for _, j := range jobs.Entries {
+	adminJobs := DecodeJSON(t, resp, &api.ActionWorkflowJobsResponse{})
+	for _, j := range adminJobs.Entries {
 		assert.NotEqual(t, int64(802), j.RunID, "a public-only admin token must not list a private repo's job")
 	}
 }
