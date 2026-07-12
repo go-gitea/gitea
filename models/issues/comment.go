@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/references"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/translation"
@@ -777,8 +778,7 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 }
 
 func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
-	if c.AssigneeID > 0 {
-		// it guarantees LoadAssigneeUserAndTeam has been called, and c.Assignee is Ghost user but not nil if the user doesn't exist
+	if c.Assignee != nil {
 		if c.RemovedAssignee {
 			if c.PosterID == c.AssigneeID {
 				return locale.Tr("repo.issues.review.remove_review_request_self", createdStr)
@@ -787,14 +787,20 @@ func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdSt
 		}
 		return locale.Tr("repo.issues.review.add_review_request", c.Assignee.GetDisplayName(), createdStr)
 	}
-	teamName := "Ghost Team"
 	if c.AssigneeTeam != nil {
-		teamName = c.AssigneeTeam.Name
+		if c.RemovedAssignee {
+			return locale.Tr("repo.issues.review.remove_review_request", c.AssigneeTeam.Name, createdStr)
+		}
+		return locale.Tr("repo.issues.review.add_review_request", c.AssigneeTeam.Name, createdStr)
 	}
+
+	// impossible fallback
+	assigneePrompt := fmt.Sprintf("(AssigneeID=%d, AssigneeTeamID=%d)", c.AssigneeID, c.AssigneeTeam.ID)
+	setting.PanicInDevOrTesting("unknown timeline pull request review event comment: id=%d, %s", c.ID, assigneePrompt)
 	if c.RemovedAssignee {
-		return locale.Tr("repo.issues.review.remove_review_request", teamName, createdStr)
+		return locale.Tr("repo.issues.review.remove_review_request", assigneePrompt, createdStr)
 	}
-	return locale.Tr("repo.issues.review.add_review_request", teamName, createdStr)
+	return locale.Tr("repo.issues.review.add_review_request", assigneePrompt, createdStr)
 }
 
 // CreateComment creates comment with context

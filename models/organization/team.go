@@ -98,9 +98,8 @@ const (
 	ghostTeamName = "(deleted team)"
 )
 
-// newGhostTeam creates and returns a fake team for a team that has been deleted.
 func newGhostTeam() *Team {
-	return &Team{ID: ghostTeamID, Name: ghostTeamName}
+	return &Team{ID: ghostTeamID, Name: ghostTeamName, LowerName: ghostTeamName}
 }
 
 // CanNonMemberReadMeta reports whether a non-member, non-owner doer may read
