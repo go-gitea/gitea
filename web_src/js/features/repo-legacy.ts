@@ -71,6 +71,8 @@ export function initRepository() {
     initRepoIssueCommentDelete();
     initRepoIssueCodeCommentCancel();
     initCompReactionSelector();
+  } else if (pageContent.matches('.page-content.repository.releases')) {
+    initCompReactionSelector();
   }
 
   initUnicodeEscapeButton();

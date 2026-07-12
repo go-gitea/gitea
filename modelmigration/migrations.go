@@ -414,6 +414,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
+
 		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
 
 		newMigration(343, "Add max_parallel column to action_run_job", v1_28.AddMaxParallelToActionRunJob),
