@@ -147,6 +147,12 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				return nil, err
 			}
 		} else if !strings.HasPrefix(filename, ".") {
+			// the file list is emitted one path per line into the pacman
+			// files database, so a name carrying a newline would smuggle
+			// extra entries into that index; drop such members.
+			if strings.ContainsAny(hd.Name, "\n\r") {
+				continue
+			}
 			files = append(files, hd.Name)
 		}
 	}
