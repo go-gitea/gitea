@@ -6,6 +6,24 @@ If you discover a security issue, please bring it to their attention right away!
 
 Previous vulnerabilities are listed at https://about.gitea.com/security.
 
+## Supported Versions
+
+We only provide security fixes for the two most recent minor release lines:
+
+- the version currently under development on the `main` branch, and
+- the latest published release line.
+
+For example, while `1.28` is being developed on `main`, the `1.27.x` release
+line receives security fixes. Older release lines (`1.26.x` and earlier) are no
+longer supported; please upgrade to a supported version to receive security
+updates.
+
+We do not issue security fixes or publish advisories for unsupported versions.
+Reports must always be filed against a supported version; before reporting,
+verify that the issue reproduces on a supported version. Any report that only
+affects a version outside the supported range will be closed as out of scope
+(for example, a report that only reproduces on `1.25.3` or any earlier release).
+
 ## Reporting a Vulnerability
 
 Please **DO NOT** file a public issue, instead send your report privately to `security@gitea.io`.
