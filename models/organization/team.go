@@ -6,6 +6,7 @@ package organization
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -92,26 +93,14 @@ func (t *Team) IsPublic() bool  { return t.Visibility.IsPublic() }
 func (t *Team) IsLimited() bool { return t.Visibility.IsLimited() }
 func (t *Team) IsPrivate() bool { return t.Visibility.IsPrivate() }
 
-// GhostTeamID is the team ID of the fake team for a team that has been deleted.
-const GhostTeamID int64 = -1
+const (
+	ghostTeamID   = -1
+	ghostTeamName = "(deleted team)"
+)
 
-// GhostTeamName is the name of the fake team for a team that has been deleted.
-const GhostTeamName = "Ghost"
-
-// NewGhostTeam creates and returns a fake team for a team that has been deleted.
-func NewGhostTeam() *Team {
-	return &Team{
-		ID:   GhostTeamID,
-		Name: GhostTeamName,
-	}
-}
-
-// IsGhost checks if the team is the fake team for a deleted team.
-func (t *Team) IsGhost() bool {
-	if t == nil {
-		return false
-	}
-	return t.ID == GhostTeamID && t.Name == GhostTeamName
+// newGhostTeam creates and returns a fake team for a team that has been deleted.
+func newGhostTeam() *Team {
+	return &Team{ID: ghostTeamID, Name: ghostTeamName}
 }
 
 // CanNonMemberReadMeta reports whether a non-member, non-owner doer may read
@@ -290,6 +279,17 @@ func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
+}
+
+func GetPossibleTeamByID(ctx context.Context, teamID int64) (int64, *Team, error) {
+	t, err := GetTeamByID(ctx, teamID)
+	if errors.Is(err, util.ErrNotExist) {
+		t = newGhostTeam()
+		return t.ID, t, nil
+	} else if err != nil {
+		return 0, nil, err
+	}
+	return t.ID, t, nil
 }
 
 // IncrTeamRepoNum increases the number of repos for the given team by 1

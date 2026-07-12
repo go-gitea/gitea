@@ -643,38 +643,17 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 }
 
 // LoadAssigneeUserAndTeam if comment.Type is CommentTypeAssignees, then load assignees
-func (c *Comment) LoadAssigneeUserAndTeam(ctx context.Context) error {
-	var err error
-
+func (c *Comment) LoadAssigneeUserAndTeam(ctx context.Context) (err error) {
 	if c.AssigneeID > 0 && c.Assignee == nil {
-		c.Assignee, err = user_model.GetUserByID(ctx, c.AssigneeID)
+		_, c.Assignee, err = user_model.GetPossibleUserByID(ctx, c.AssigneeID)
 		if err != nil {
-			if !user_model.IsErrUserNotExist(err) {
-				return err
-			}
-			c.Assignee = user_model.NewGhostUser()
-		}
-	} else if c.AssigneeTeamID > 0 && c.AssigneeTeam == nil {
-		if err = c.LoadIssue(ctx); err != nil {
 			return err
 		}
-
-		if err = c.Issue.LoadRepo(ctx); err != nil {
+	}
+	if c.AssigneeTeamID > 0 && c.AssigneeTeam == nil {
+		_, c.AssigneeTeam, err = organization.GetPossibleTeamByID(ctx, c.AssigneeTeamID)
+		if err != nil {
 			return err
-		}
-
-		if err = c.Issue.Repo.LoadOwner(ctx); err != nil {
-			return err
-		}
-
-		if c.Issue.Repo.Owner.IsOrganization() {
-			c.AssigneeTeam, err = organization.GetTeamByID(ctx, c.AssigneeTeamID)
-			if err != nil {
-				if !organization.IsErrTeamNotExist(err) {
-					return err
-				}
-				c.AssigneeTeam = organization.NewGhostTeam()
-			}
 		}
 	}
 	return nil
