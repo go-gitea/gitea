@@ -245,11 +245,19 @@ func TestPullView_CodeOwner(t *testing.T) {
 			hasCodeownerReviews := issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.False(t, hasCodeownerReviews)
 
+			// exercise the real merge-time gate, not just the helper: the persisted
+			// protection rule must block the merge on the missing code owner review
+			err = pull_service.CheckPullBranchProtections(t.Context(), pr, false)
+			assert.ErrorContains(t, err, "code owner")
+
 			_, _, err = issues_model.SubmitReview(t.Context(), user8, pr.Issue, issues_model.ReviewTypeApprove, "Very good", resp.Commit.SHA, false, make([]string, 0))
 			assert.NoError(t, err)
 
 			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.True(t, hasCodeownerReviews)
+
+			// and once the code owner has approved, the merge gate no longer blocks
+			assert.NoError(t, pull_service.CheckPullBranchProtections(t.Context(), pr, false))
 		})
 
 		t.Run("Forked Repo Pull Request", func(t *testing.T) {

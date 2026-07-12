@@ -1071,7 +1071,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 
 	data.isBlockedByCodeowners = !issue_service.HasAllRequiredCodeownerReviews(ctx, pb, pull)
 	if data.isBlockedByCodeowners {
-		data.infoProtectionBlockers.AddErrorItem(svg.RenderHTML("octicon-x"), ctx.Locale.Tr("repo.pulls.blocked_by_codeowners"))
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_codeowners"))
 	}
 
 	data.isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
