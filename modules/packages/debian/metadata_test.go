@@ -232,3 +232,15 @@ func TestValidateDistributionOrComponent(t *testing.T) {
 		assert.True(t, IsValidDistributionOrComponent(name), "good=%q", name)
 	}
 }
+
+// TestParseControlFileMultilineDescription verifies a multi-line Description is assembled in order
+// (the parser accumulates it in a strings.Builder); it guards the assembled value, not its timing.
+func TestParseControlFileMultilineDescription(t *testing.T) {
+	var buf bytes.Buffer
+	buf.WriteString("Package: testpkg\nVersion: 1.0\nArchitecture: amd64\nDescription: short summary\n more details\n even more\n")
+
+	p, err := ParseControlFile(&buf)
+	assert.NoError(t, err)
+	assert.NotNil(t, p)
+	assert.Equal(t, "short summary more details even more", p.Metadata.Description)
+}
