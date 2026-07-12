@@ -500,6 +500,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}
 
+	addSettingsScopedWorkflowsRoutes := func() {
+		m.Group("/scoped-workflows", func() {
+			m.Get("", shared_actions.ScopedWorkflows)
+			m.Post("/add", shared_actions.ScopedWorkflowAdd)
+			m.Post("/required", shared_actions.ScopedWorkflowSetRequired)
+			m.Post("/remove", shared_actions.ScopedWorkflowRemove)
+		})
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
@@ -643,7 +652,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/webauthn", func() {
 				m.Post("/request_register", web.Bind(forms.WebauthnRegistrationForm{}), security.WebAuthnRegister)
 				m.Post("/register", security.WebauthnRegisterPost)
-				m.Post("/delete", web.Bind(forms.WebauthnDeleteForm{}), security.WebauthnDelete)
+				m.Post("/delete", security.WebauthnDelete)
 			})
 			m.Group("/openid", func() {
 				m.Post("", web.Bind(forms.AddOpenIDForm{}), security.OpenIDPost)
@@ -702,6 +711,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			addSettingsScopedWorkflowsRoutes()
 		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
@@ -865,6 +875,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsRunnersRoutes()
 			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 			addSettingsVariablesRoutes()
+			addSettingsScopedWorkflowsRoutes()
 		})
 	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
@@ -1022,6 +1033,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
+					addSettingsScopedWorkflowsRoutes()
 				}, actions.MustEnableActions)
 
 				m.Post("/rename", web.Bind(forms.RenameOrgForm{}), org.SettingsRenamePost)
@@ -1269,9 +1281,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
-			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
-			Post(reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+		m.PathGroup("/compare/*", func(g *web.RouterPathGroup) {
+			g.MatchPath("GET", "/<basehead:*>.diff", repo.MustBeNotEmpty, repo.DownloadCompareDiff)
+			g.MatchPath("GET", "/<basehead:*>.patch", repo.MustBeNotEmpty, repo.DownloadComparePatch)
+			g.MatchPath("GET", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+			g.MatchPath("POST", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+		})
 		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo code: find, compare, list
@@ -1476,15 +1491,13 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind(forms.NewReleaseForm{}), repo.NewReleasePost)
+			m.Get("/edit/*", repo.EditRelease)
+			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
 			m.Post("/generate-notes", web.Bind(forms.GenerateReleaseNotesForm{}), repo.GenerateReleaseNotes)
 			m.Post("/delete", repo.DeleteRelease)
 			m.Post("/attachments", repo.UploadReleaseAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter)
-		m.Group("/releases", func() {
-			m.Get("/edit/*", repo.EditRelease)
-			m.Post("/edit/*", web.Bind(forms.EditReleaseForm{}), repo.EditReleasePost)
-		}, reqSignIn, context.RepoMustNotBeArchived(), reqRepoReleaseWriter, repo.CommitInfoCache)
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 	// end "/{username}/{reponame}": repo releases
 

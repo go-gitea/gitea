@@ -7,8 +7,8 @@ import (
 	"context"
 
 	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -17,14 +17,14 @@ import (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository, oldCommits []*user_model.UserCommit, repoTrustModel repo_model.TrustModelType) ([]*asymkey_model.SignCommit, error) {
+func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository, oldCommits []*gituser.UserCommit, repoTrustModel repo_model.TrustModelType) ([]*asymkey_model.SignCommit, error) {
 	newCommits := make([]*asymkey_model.SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
 	emails := make(container.Set[string])
 	for _, c := range oldCommits {
-		if c.Committer != nil {
-			emails.Add(c.Committer.Email)
+		if c.GitCommit.Committer != nil {
+			emails.Add(c.GitCommit.Committer.Email)
 		}
 	}
 
@@ -34,10 +34,10 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 	}
 
 	for _, c := range oldCommits {
-		committerUser := emailUsers.GetByEmail(c.Committer.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
+		committerUser := emailUsers.GetByEmail(c.GitCommit.Committer.Email) // FIXME: why GetUserCommitsByGitCommits uses "Author", but ParseCommitsWithSignature uses "Committer"?
 		signCommit := &asymkey_model.SignCommit{
 			UserCommit:   c,
-			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.Commit, committerUser),
+			Verification: asymkey_service.ParseCommitWithSignatureCommitter(ctx, c.GitCommit, committerUser),
 		}
 
 		isOwnerMemberCollaborator := func(user *user_model.User) (bool, error) {
@@ -52,15 +52,15 @@ func ParseCommitsWithSignature(ctx context.Context, repo *repo_model.Repository,
 }
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
-	validatedCommits, err := user_model.ValidateCommitsWithEmails(ctx, commits)
+func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo_model.Repository, currentRef git.RefName) ([]*git_model.SignCommitWithStatuses, error) {
+	userCommits, err := gituser.GetUserCommitsByGitCommits(ctx, commits, repo.Link(), currentRef)
 	if err != nil {
 		return nil, err
 	}
 	signedCommits, err := ParseCommitsWithSignature(
 		ctx,
 		repo,
-		validatedCommits,
+		userCommits,
 		repo.GetTrustModel(),
 	)
 	if err != nil {
@@ -71,20 +71,27 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
 func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
-	newCommits := make([]*git_model.SignCommitWithStatuses, 0, len(oldCommits))
+	if len(oldCommits) == 0 {
+		return nil, nil
+	}
 
+	commitIDs := make([]string, 0, len(oldCommits))
 	for _, c := range oldCommits {
-		commit := &git_model.SignCommitWithStatuses{
-			SignCommit: c,
-		}
-		statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.ID.String(), db.ListOptionsAll)
-		if err != nil {
-			return nil, err
-		}
+		commitIDs = append(commitIDs, c.GitCommit.ID.String())
+	}
+	statusMap, err := git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, repo.ID, commitIDs)
+	if err != nil {
+		return nil, err
+	}
 
-		commit.Statuses = statuses
-		commit.Status = git_model.CalcCommitStatus(statuses)
-		newCommits = append(newCommits, commit)
+	newCommits := make([]*git_model.SignCommitWithStatuses, 0, len(oldCommits))
+	for _, c := range oldCommits {
+		statuses := statusMap[c.GitCommit.ID.String()]
+		newCommits = append(newCommits, &git_model.SignCommitWithStatuses{
+			SignCommit: c,
+			Statuses:   statuses,
+			Status:     git_model.CalcCommitStatus(statuses),
+		})
 	}
 	return newCommits, nil
 }

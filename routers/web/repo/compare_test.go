@@ -9,8 +9,8 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/gituser"
 	issues_model "gitea.dev/models/issues"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	git_service "gitea.dev/services/git"
@@ -52,8 +52,8 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	mockCommit := func(msg string) *git_model.SignCommitWithStatuses {
 		return &git_model.SignCommitWithStatuses{
 			SignCommit: &asymkey_model.SignCommit{
-				UserCommit: &user_model.UserCommit{
-					Commit: &git.Commit{
+				UserCommit: &gituser.UserCommit{
+					GitCommit: &git.Commit{
 						CommitMessage: git.CommitMessage{MessageRaw: msg},
 					},
 				},
@@ -68,6 +68,10 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 
 	title, content = prepareNewPullRequestTitleContent(ci, nil, setting.RepoPRTitleSourceFirstCommit)
 	assert.Equal(t, "Head branch", title)
+	assert.Empty(t, content)
+
+	title, content = prepareNewPullRequestTitleContent(ci, nil, setting.RepoPRTitleSourceBranchName)
+	assert.Equal(t, "head-branch", title)
 	assert.Empty(t, content)
 
 	// single commit

@@ -285,9 +285,7 @@ func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
 }
 
 func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountData) error {
-	return updateSession(ctx, nil, map[string]any{
-		"linkAccountData": linkAccountData,
-	})
+	return ctx.Session.Set("linkAccountData", linkAccountData)
 }
 
 func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.User) {
@@ -364,9 +362,21 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	opts := &user_service.UpdateOptions{}
 
-	// Reactivate user if they are deactivated
+	// HINT: OAUTH-AUTO-SYNC-USER-ACTIVATION: see services/auth/source/oauth2/source_sync.go
+	// Reactivate user only if they were disabled by the OAuth2 auto sync cron (invalid_grant),
+	// which clears AccessToken/RefreshToken/ExpiresAt on the ExternalLoginUser row
+	// An admin-disabled user has no such signature, so we leave IsActive alone
+	// and let verifyAuthWithOptions route them through the prohibit-login / activate page.
 	if !u.IsActive {
-		opts.IsActive = optional.Some(true)
+		extLogin, hasExt, err := user_model.GetExternalLogin(ctx, authSource.ID, gothUser.UserID)
+		if err != nil {
+			ctx.ServerError("GetExternalLogin", err)
+			return
+		}
+		isDisabledByAutoSync := hasExt && extLogin.RefreshToken == ""
+		if isDisabledByAutoSync {
+			opts.IsActive = optional.Some(true)
+		}
 	}
 
 	if oauth2Source.GroupTeamMap != "" || oauth2Source.GroupTeamMapRemoval {
@@ -397,7 +407,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
-		if err := updateSession(ctx, nil, map[string]any{
+		if err := regenerateSession(ctx, nil, map[string]any{
 			session.KeyUID:                  u.ID,
 			session.KeyUname:                u.Name,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
@@ -422,7 +432,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		}
 	}
 
-	if err := updateSession(ctx, nil, map[string]any{
+	if err := regenerateSession(ctx, nil, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": false,
@@ -491,13 +501,7 @@ func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, requ
 		}
 	}
 
-	user := &user_model.User{
-		LoginName:   gothUser.UserID,
-		LoginType:   auth.OAuth2,
-		LoginSource: authSource.ID,
-	}
-
-	hasUser, err := user_model.GetIndividualUser(ctx, user)
+	user, hasUser, err := user_model.GetIndividualUserByLoginSource(ctx, auth.OAuth2, authSource.ID, gothUser.UserID)
 	if err != nil {
 		return nil, goth.User{}, err
 	}

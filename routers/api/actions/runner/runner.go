@@ -69,7 +69,7 @@ func (s *Service) Register(
 	}
 
 	labels := req.Msg.Labels
-	hasCancellingSupport, _ := runnerRequestHasCancellingCapability(req.Msg)
+	hasCancellingSupport := slices.Contains(req.Msg.GetCapabilities(), runnerCapabilityCancelling)
 
 	// create new runner
 	name := util.EllipsisDisplayString(req.Msg.Name, 255)
@@ -116,26 +116,11 @@ func (s *Service) Register(
 // state and will run post-step cleanup before finalizing the task.
 const runnerCapabilityCancelling = "cancelling"
 
-type capabilityGetter interface {
-	GetCapabilities() []string
-}
-
 type declareRequest interface {
 	proto.Message
 	GetVersion() string
 	GetLabels() []string
-}
-
-func runnerRequestHasCancellingCapability(req proto.Message) (bool, bool) {
-	if req == nil {
-		return false, false
-	}
-
-	if typedReq, ok := any(req).(capabilityGetter); ok {
-		return slices.Contains(typedReq.GetCapabilities(), runnerCapabilityCancelling), true
-	}
-
-	return false, false
+	GetCapabilities() []string
 }
 
 func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declareRequest) []string {
@@ -143,8 +128,8 @@ func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declare
 	runner.Version = req.GetVersion()
 
 	cols := []string{"agent_labels", "version"}
-	hasCancellingSupport, capabilityStateKnown := runnerRequestHasCancellingCapability(req)
-	if capabilityStateKnown && runner.HasCancellingSupport != hasCancellingSupport {
+	hasCancellingSupport := slices.Contains(req.GetCapabilities(), runnerCapabilityCancelling)
+	if runner.HasCancellingSupport != hasCancellingSupport {
 		runner.HasCancellingSupport = hasCancellingSupport
 		cols = append(cols, "has_cancelling_support")
 	}
@@ -161,7 +146,7 @@ func (s *Service) Declare(
 		return nil, status.Errorf(codes.Internal, "update runner: %v", err)
 	}
 
-	return connect.NewResponse(&runnerv1.DeclareResponse{
+	resp := connect.NewResponse(&runnerv1.DeclareResponse{
 		Runner: &runnerv1.Runner{
 			Id:      runner.ID,
 			Uuid:    runner.UUID,
@@ -170,7 +155,11 @@ func (s *Service) Declare(
 			Version: runner.Version,
 			Labels:  runner.AgentLabels,
 		},
-	}), nil
+	})
+	// Capabilities are communicated via headers to avoid a hard dependency on a proto bump.
+	// Older runners ignore unknown headers; newer runners can use this for feature negotiation.
+	resp.Header().Set("X-Gitea-Actions-Capabilities", actions_model.RunnerCapabilities())
+	return resp, nil
 }
 
 // FetchTask assigns a task to the runner
@@ -205,9 +194,15 @@ func (s *Service) FetchTask(
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks that haven't been assigned.
 		// try to pick a task for the runner that send the request.
-		if t, ok, err := actions_service.PickTask(ctx, freshRunner); err != nil {
+		if t, ok, throttled, err := actions_service.TryPickTask(ctx, freshRunner); err != nil {
 			log.Error("pick task failed: %v", err)
 			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
+		} else if throttled {
+			// Concurrency limit reached: don't advance the runner's tasks version,
+			// so it retries on its next poll instead of sleeping until the next bump.
+			latestVersion = tasksVersion
+			//  A steady stream here means MAX_CONCURRENT_TASK_PICKS is too low for the fleet.
+			log.Debug("task pick throttled for runner %q (id %d); it will retry on its next poll", freshRunner.Name, freshRunner.ID)
 		} else if ok {
 			task = t
 		}

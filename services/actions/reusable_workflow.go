@@ -6,16 +6,20 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
@@ -57,6 +61,11 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 			return nil, 0, "", err
 		}
 		if !ok {
+			if run.IsScopedRun {
+				// A scoped workflow's cross-repo "uses:" is resolved with the consuming repo's read permission,
+				// so the referenced repo must be readable by every consumer. Make that explicit in the failure.
+				return nil, 0, "", fmt.Errorf("no permission to read reusable workflow %s/%s: a scoped workflow's cross-repo \"uses:\" is resolved with the consuming repository %q read permission", ref.Owner, ref.Repo, run.Repo.RelativePath())
+			}
 			return nil, 0, "", fmt.Errorf("no permission to read reusable workflow from %s/%s", ref.Owner, ref.Repo)
 		}
 		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, repo, ref.Ref, ref.Path)
@@ -149,10 +158,10 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		return fmt.Errorf("parse caller job %d: %w", caller.ID, err)
 	}
 
-	// 3. Load called-workflow source.
-	ref, err := jobparser.ParseUses(parsedJob.Uses)
+	// 3. Resolve `uses` and load called-workflow source.
+	ref, err := ResolveUses(ctx, parsedJob.Uses)
 	if err != nil {
-		return fmt.Errorf("parse uses %q: %w", parsedJob.Uses, err)
+		return fmt.Errorf("resolve uses %q: %w", parsedJob.Uses, err)
 	}
 	content, contentSourceRepoID, contentSourceCommitSHA, err := loadReusableWorkflowSource(ctx, run, caller, ref)
 	if err != nil {
@@ -322,6 +331,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			AttemptJobID:            attemptJobID,
 			Needs:                   needs,
 			RunsOn:                  parsedChild.RunsOn(),
+			ContinueOnError:         parsedChild.GetContinueOnError(),
 			Status:                  actions_model.StatusBlocked,
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    sourceRepoID,
@@ -339,4 +349,29 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		}
 	}
 	return nil
+}
+
+// ResolveUses normalizes and parses a reusable workflow `uses:` value.
+// It first rewrites an absolute URL pointing to this instance into the cross-repo form (rejecting external URLs),
+// then validates the syntax via jobparser.ParseUses.
+func ResolveUses(ctx context.Context, uses string) (*jobparser.UsesRef, error) {
+	// Rewrite a local-instance URL to the equivalent cross-repo form "owner/repo/.gitea/workflows/file.yml@ref".
+	if strings.HasPrefix(uses, "http://") || strings.HasPrefix(uses, "https://") {
+		// ParseGiteaSiteURL returns nil for URLs that do not belong to this instance.
+		gsu := httplib.ParseGiteaSiteURL(ctx, uses)
+		if gsu == nil {
+			return nil, fmt.Errorf("unsupported reusable workflow URL %q: an absolute URL must point to this Gitea instance (%s)", uses, setting.AppURL)
+		}
+		// RoutePath is the instance-relative path (AppSubURL already stripped), e.g. "/owner/repo/.gitea/workflows/file.yml@ref".
+		uses = strings.TrimPrefix(gsu.RoutePath, "/")
+	}
+	ref, err := jobparser.ParseUses(uses)
+	if err != nil {
+		return nil, err
+	}
+	// jobparser only validates syntax; enforce the (instance-configurable) directory allowlist here.
+	if !actions_module.IsWorkflowOrScopedWorkflow(ref.Path) {
+		return nil, fmt.Errorf(`"uses:" path %q must be under a configured workflow directory (WORKFLOW_DIRS or SCOPED_WORKFLOW_DIRS)`, ref.Path)
+	}
+	return ref, nil
 }

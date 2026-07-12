@@ -71,7 +71,8 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 }
 
 func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, gitRepo gitrepo.Repository, timeout time.Duration) error {
-	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+	// Never follow HTTP redirects, see cmdFetch in runSync.
+	cmd := gitcmd.NewCommand("remote", "prune").AddConfig("http.followRedirects", "false").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
 	stdout, _, pruneErr := gitrepo.RunCmdString(ctx, gitRepo, cmd)
 	if pruneErr != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
@@ -119,7 +120,9 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("fetch", "--tags")
+		// Never follow HTTP redirects: a mirror remote that later starts redirecting to an
+		// otherwise-blocked address would be an SSRF/exfiltration vector on scheduled syncs.
+		cmd := gitcmd.NewCommand("fetch", "--tags").AddConfig("http.followRedirects", "false")
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
@@ -172,9 +175,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
-		lfsClient := lfs.NewClient(endpoint, migrations.NewMigrationHTTPTransport())
-		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
+		lfsClient, err := lfs.NewClientFromEndpoint(remoteURL.String(), m.LFSEndpoint, migrations.NewMigrationHTTPTransport())
+		if err != nil {
+			log.Error("SyncMirrors [repo: %-v]: failed to initialize LFS client: %v", m.Repo.FullName(), err)
+		} else if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo.FullName(), err)
 		}
 	}
@@ -199,7 +203,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		return gitcmd.NewCommand("remote", "update", "--prune").
+		// Never follow HTTP redirects, see cmdFetch above.
+		return gitcmd.NewCommand("remote", "update", "--prune").AddConfig("http.followRedirects", "false").
 			AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
 	}
 
@@ -289,7 +294,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("SyncMirrors [repo_id: %v]: unable to GetMirrorByRepoID: %v", repoID, err)
 		return false
 	}
-	repo := m.GetRepository(ctx) // force load repository of mirror
+	m.GetRepository(ctx) // force load repository of mirror
 
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
 	defer finished()
@@ -355,41 +360,27 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			continue
 		}
 
-		// Push commits
-		oldCommitID, err := gitrepo.GetFullCommitID(ctx, repo, result.OldCommitID)
+		oldCommitID, newCommitID := result.OldCommitID, result.NewCommitID
+		commits, err := gitRepo.CommitsBetween(newCommitID, oldCommitID, setting.UI.FeedMaxCommitNum)
 		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID[%s]: %v", m.Repo, result.OldCommitID, err)
+			log.Error("SyncMirrors [repo: %-v]: unable to get CommitsBetween [new_commit_id: %s, old_commit_id: %s]: %v", m.Repo, newCommitID, oldCommitID, err)
 			continue
 		}
-		newCommitID, err := gitrepo.GetFullCommitID(ctx, repo, result.NewCommitID)
-		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID [%s]: %v", m.Repo, result.NewCommitID, err)
-			continue
-		}
-		commits, err := gitRepo.CommitsBetweenIDs(newCommitID, oldCommitID)
-		if err != nil {
-			log.Error("SyncMirrors [repo: %-v]: unable to get CommitsBetweenIDs [new_commit_id: %s, old_commit_id: %s]: %v", m.Repo, newCommitID, oldCommitID, err)
-			continue
-		}
-
 		theCommits := repo_module.GitToPushCommits(commits)
-		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
-			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
-		}
 
-		newCommit, err := gitRepo.GetCommit(newCommitID)
+		newCommit, err := gitRepo.GetCommit(newCommitID.String())
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get commit %s: %v", m.Repo, newCommitID, err)
 			continue
 		}
 
 		theCommits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
-		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
+		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID.String(), newCommitID.String())
 
 		notify_service.SyncPushCommits(ctx, m.Repo.MustOwner(ctx), m.Repo, &repo_module.PushUpdateOptions{
 			RefFullName: result.RefName,
-			OldCommitID: oldCommitID,
-			NewCommitID: newCommitID,
+			OldCommitID: oldCommitID.String(),
+			NewCommitID: newCommitID.String(),
 		}, theCommits)
 	}
 	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)

@@ -1,6 +1,6 @@
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
-import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
+import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
 import {errorMessage, errorName} from '../modules/errors.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
@@ -114,7 +114,7 @@ function buildFetchActionUrl(el: HTMLElement, opt: FetchActionOpts) {
     const u = new URL(url, window.location.href);
     if (name && !u.searchParams.has(name)) {
       u.searchParams.set(name, val);
-      url = u.toString();
+      url = u.href;
     }
   }
   return url;
@@ -330,17 +330,10 @@ function initFetchActionTriggerEvery(el: HTMLElement, trigger: string) {
 
   const num = parseInt(match[1], 10), unit = match[2];
   const intervalMs = unit === 's' ? num * 1000 : num;
-  const fn = async () => {
-    try {
-      await performFetchActionTrigger(el, 'every');
-    } finally {
-      // only continue if the element is still in the document
-      if (document.contains(el)) {
-        setTimeout(fn, intervalMs);
-      }
-    }
-  };
-  setTimeout(fn, intervalMs);
+  activePageTimerRefresh({
+    interval: () => document.contains(el) ? intervalMs : 0, // only continue if the element is still in the document
+    async callback() { await performFetchActionTrigger(el, 'every') },
+  });
 }
 
 function initFetchActionTrigger(el: HTMLElement) {

@@ -369,7 +369,9 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	// 2. The Actions Bot user has been explicitly granted access and repository is private
 	// 3. The repository is public (handled by botPerm above)
 
-	if taskRepo.IsPrivate {
+	// Fork PRs are never allowed cross-repo access to other private repositories,
+	// matching the discriminator enforced by checkSameOwnerCrossRepoAccess above.
+	if taskRepo.IsPrivate && !task.IsForkPullRequest {
 		actionsUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 		if actionsUnit.ActionsConfig().IsCollaborativeOwner(taskRepo.OwnerID) {
 			return maxPerm, nil
@@ -567,9 +569,9 @@ func HasAccessUnit(ctx context.Context, user *user_model.User, repo *repo_model.
 
 // CanBeAssigned return true if user can be assigned to issue or pull requests in repo
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
-func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.Repository, _ bool) (bool, error) {
+func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (bool, error) {
 	if user.IsOrganization() {
-		return false, fmt.Errorf("organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
+		return false, util.NewInvalidArgumentErrorf("organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
 	perm, err := GetIndividualUserRepoPermission(ctx, repo, user)
 	if err != nil {

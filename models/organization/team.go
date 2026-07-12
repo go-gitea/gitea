@@ -6,6 +6,7 @@ package organization
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -14,6 +15,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -81,9 +83,45 @@ type Team struct {
 	Members                 []*user_model.User `xorm:"-"`
 	NumRepos                int
 	NumMembers              int
-	Units                   []*TeamUnit `xorm:"-"`
-	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
-	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
+	Units                   []*TeamUnit         `xorm:"-"`
+	IncludesAllRepositories bool                `xorm:"NOT NULL DEFAULT false"`
+	CanCreateOrgRepo        bool                `xorm:"NOT NULL DEFAULT false"`
+	Visibility              structs.VisibleType `xorm:"NOT NULL DEFAULT 2"`
+}
+
+func (t *Team) IsPublic() bool  { return t.Visibility.IsPublic() }
+func (t *Team) IsLimited() bool { return t.Visibility.IsLimited() }
+func (t *Team) IsPrivate() bool { return t.Visibility.IsPrivate() }
+
+const (
+	ghostTeamID   = -1
+	ghostTeamName = "(deleted team)"
+)
+
+func newGhostTeam() *Team {
+	return &Team{ID: ghostTeamID, Name: ghostTeamName, LowerName: ghostTeamName}
+}
+
+// CanNonMemberReadMeta reports whether a non-member, non-owner doer may read
+// the team's metadata, based on the team's visibility tier and the parent org's
+// visibility. Privileged callers (site admins, org owners, team members) are
+// decided by the caller before reaching here.
+func (t *Team) CanNonMemberReadMeta(ctx context.Context, org, doer *user_model.User) (bool, error) {
+	switch t.Visibility {
+	case structs.VisibleTypePublic:
+		return HasOrgOrUserVisible(ctx, org, doer), nil
+	case structs.VisibleTypeLimited:
+		return IsOrganizationMember(ctx, t.OrgID, doer.ID)
+	default:
+		return false, nil
+	}
+}
+
+func NormalizeTeamVisibility(s string) structs.VisibleType {
+	if vt, ok := structs.VisibilityModes[s]; ok {
+		return vt
+	}
+	return structs.VisibleTypePrivate
 }
 
 func init() {
@@ -240,6 +278,17 @@ func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
+}
+
+func GetPossibleTeamByID(ctx context.Context, teamID int64) (int64, *Team, error) {
+	t, err := GetTeamByID(ctx, teamID)
+	if errors.Is(err, util.ErrNotExist) {
+		t = newGhostTeam()
+		return t.ID, t, nil
+	} else if err != nil {
+		return 0, nil, err
+	}
+	return t.ID, t, nil
 }
 
 // IncrTeamRepoNum increases the number of repos for the given team by 1

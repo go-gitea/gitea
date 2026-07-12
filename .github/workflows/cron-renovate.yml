@@ -20,13 +20,13 @@ jobs:
     if: github.repository == 'go-gitea/gitea' # prevent running on forks
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: renovatebot/github-action@693b9ef15eec82123529a37c782242f091365961 # v46.1.14
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: renovatebot/github-action@dd5302ec17783b2fc721b19ae7209b57b1587765 # v46.1.17
         with:
           renovate-version: ${{ env.RENOVATE_VERSION }}
           configurationFile: renovate.json5
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
           RENOVATE_BINARY_SOURCE: install # auto-install go/node toolchains needed by post-upgrade tasks.
-          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg)$"]'
+          RENOVATE_ALLOWED_POST_UPGRADE_COMMANDS: '["^make (tidy|svg|generate-codemirror-languages)$"]'
           RENOVATE_REPOSITORIES: '["go-gitea/gitea"]'

@@ -55,11 +55,7 @@ func Users(ctx *context.Context) {
 		statusFilterMap[filterKey] = paramVal
 	}
 
-	sortType := ctx.FormString("sort")
-	if sortType == "" {
-		sortType = UserSearchDefaultAdminSort
-		ctx.SetFormString("sort", sortType)
-	}
+	sortType := ctx.FormString("sort", UserSearchDefaultAdminSort)
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
 		"StatusFilterMap": statusFilterMap,
 		"SortType":        sortType,
@@ -78,6 +74,7 @@ func Users(ctx *context.Context) {
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
 		IncludeReserved:    true, // administrator needs to list all accounts include reserved, bot, remote ones
+		OrderBy:            db.SearchOrderBy(sortType),
 	}, tplUsers)
 }
 
@@ -453,27 +450,9 @@ func EditUserPost(ctx *context.Context) {
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	if form.Reset2FA {
-		tf, err := auth.GetTwoFactorByUID(ctx, u.ID)
-		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("auth.GetTwoFactorByUID", err)
+		if _, _, err := auth.DisableTwoFactor(ctx, u.ID); err != nil {
+			ctx.ServerError("auth.DisableTwoFactor", err)
 			return
-		} else if tf != nil {
-			if err := auth.DeleteTwoFactorByID(ctx, tf.ID, u.ID); err != nil {
-				ctx.ServerError("auth.DeleteTwoFactorByID", err)
-				return
-			}
-		}
-
-		wn, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
-		if err != nil {
-			ctx.ServerError("auth.GetTwoFactorByUID", err)
-			return
-		}
-		for _, cred := range wn {
-			if _, err := auth.DeleteCredential(ctx, cred.ID, u.ID); err != nil {
-				ctx.ServerError("auth.DeleteCredential", err)
-				return
-			}
 		}
 	}
 

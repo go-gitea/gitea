@@ -49,7 +49,7 @@ jobs:
       e2e: ${{ steps.changes.outputs.e2e }}
       shell: ${{ steps.changes.outputs.shell }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: changes
         with:
@@ -64,6 +64,11 @@ jobs:
               - ".golangci.yml"
               - ".editorconfig"
               - "options/locale/locale_en-US.json"
+              - "models/fixtures/**"
+              - "tests/*.ini.tmpl"
+              - "tests/gitea-repositories-meta/**"
+              - "tests/testdata/**"
+              - "tools/test-integration.sh"
 
             frontend:
               - "*.ts"

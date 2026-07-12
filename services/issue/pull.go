@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -27,6 +28,10 @@ type ReviewRequestNotifier struct {
 }
 
 var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
+
+// codeOwnerMatchBudget caps the total wall-clock time spent evaluating all
+// CODEOWNERS rules against all changed files for a single PR.
+const codeOwnerMatchBudget = 2 * time.Second
 
 func IsCodeOwnerFile(f string) bool {
 	return slices.Contains(codeOwnerFiles, f)
@@ -106,9 +111,18 @@ func getMatchingCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *is
 
 	matchingRules := make([]*issues_model.CodeOwnerRule, 0)
 
+	// Bound the total time spent matching rules×files. The per-rule MatchTimeout
+	// only caps a single match; without an aggregate budget a crafted CODEOWNERS
+	// plus a PR touching many files could still exhaust CPU inside this loop.
+	matchDeadline := time.Now().Add(codeOwnerMatchBudget)
+ruleLoop:
 	for _, rule := range rules {
 		for _, f := range changedFiles {
-			matched, _ := rule.Rule.MatchString(f)
+			if time.Now().After(matchDeadline) {
+				log.Warn("CODEOWNERS matching for PR %s#%d exceeded its time budget; some rules were not evaluated", pr.BaseRepo.FullName(), pr.ID)
+				break ruleLoop
+			}
+			matched, _ := rule.Rule.MatchString(f) // err only happens when timeouts, any error can be considered as not matched
 			if (matched && !rule.Negative) || (!matched && rule.Negative) {
 				matchingRules = append(matchingRules, rule)
 				break

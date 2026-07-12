@@ -159,15 +159,6 @@ ISO-8859-1`, commitFromReader.Signature.Payload)
 	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
-func TestCommitMessageSanitizesInvalidUTF8(t *testing.T) {
-	commit := &Commit{
-		CommitMessage: CommitMessage{MessageRaw: "title \xff\n\n\n\nbody \xff\n\n\n"},
-	}
-	assert.Equal(t, "title ÿ", commit.MessageTitle())
-	assert.Equal(t, "body ÿ", commit.MessageBody())
-	assert.Equal(t, "title ÿ\n\n\n\nbody ÿ\n\n\n", commit.MessageUTF8())
-}
-
 func TestHasPreviousCommit(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
@@ -207,4 +198,11 @@ func Test_GetCommitBranchStart(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, startCommitID)
 	assert.Equal(t, "95bb4d39648ee7e325106df01a621c530863a653", startCommitID)
+}
+
+func TestIsStringLikelyCommitID(t *testing.T) {
+	assert.True(t, IsStringLikelyCommitID(nil, "abc", 3))
+	assert.False(t, IsStringLikelyCommitID(nil, "abc", 4))
+	assert.True(t, IsStringLikelyCommitID(nil, strings.Repeat("a", 64), 4))
+	assert.False(t, IsStringLikelyCommitID(nil, strings.Repeat("a", 65), 4))
 }

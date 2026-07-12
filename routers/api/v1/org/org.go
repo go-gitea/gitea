@@ -145,8 +145,15 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op := api.OrganizationPermissions{}
 
+	// A public-only token must not disclose membership/permission details of a
+	// non-public org, even for the token owner's own private orgs.
+	if ctx.PublicOnly && !o.Visibility.IsPublic() {
+		ctx.APIErrorNotFound()
+		return
+	}
+
 	if !organization.HasOrgOrUserVisible(ctx, o, ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -256,7 +263,7 @@ func Create(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateOrgOption)
 	if !ctx.Doer.CanCreateOrganization() {
-		ctx.APIError(http.StatusForbidden, nil)
+		ctx.APIError(http.StatusForbidden, "not allowed to create org")
 		return
 	}
 
@@ -282,7 +289,7 @@ func Create(ctx *context.APIContext) {
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -312,7 +319,7 @@ func Get(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -355,7 +362,7 @@ func Rename(ctx *context.APIContext) {
 	orgUser := ctx.Org.Organization.AsUser()
 	if err := user_service.RenameUser(ctx, orgUser, form.NewName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -394,7 +401,7 @@ func Edit(ctx *context.APIContext) {
 
 	if err := org.UpdateOrgEmailAddress(ctx, ctx.Org.Organization, form.Email); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)

@@ -1,4 +1,8 @@
 {{template "base/head" .}}
+
+{{$showCreateWorkflowBadge := Iif .WorkflowBadge true false}}
+{{$showEnableDisableWorkflow := and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
+
 <div class="page-content repository actions">
 	{{template "repo/header" .}}
 	<div class="ui container">
@@ -10,17 +14,35 @@
 				<div class="ui fluid vertical menu">
 					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
-						<a class="item flex-text-block {{if eq .Entry.Name $.CurWorkflow}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
-							<span class="gt-ellipsis">{{.DisplayName}}</span>
+						<a class="item flex-text-block {{if and (eq .Entry.Name $.CurWorkflow) (not $.CurWorkflowScopedRepoID)}}active{{end}}" href="?workflow={{.Entry.Name}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
+							<span class="gt-ellipsis" data-tooltip-content="{{.DisplayName}}">{{.DisplayName}}</span>
 
 							{{if .ErrMsg}}
-								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
+								<span class="flex-text-inline tw-shrink-0" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
 							{{end}}
 
 							{{if $.ActionsConfig.IsWorkflowDisabled .Entry.Name}}
-								<div class="ui red label">{{ctx.Locale.Tr "disabled"}}</div>
+								<div class="ui red label tw-shrink-0">{{ctx.Locale.Tr "disabled"}}</div>
 							{{end}}
 						</a>
+					{{end}}
+					{{range .ScopedWorkflowGroups}}
+						<details class="item scoped-workflow-group"{{if .IsActive}} open{{end}}>
+							<summary>
+								<span class="gt-ellipsis tw-min-w-0" data-tooltip-content="{{.SourceRepoName}}">{{if .FromInstance}}{{.SourceRepoName}}{{else}}{{.SourceRepoShortName}}{{end}}</span>
+								<span class="ui label">{{if .FromInstance}}{{ctx.Locale.Tr "actions.workflow.scope_global"}}{{else}}{{ctx.Locale.Tr "actions.workflow.scope_owner"}}{{end}}</span>
+							</summary>
+							{{range .Workflows}}
+								<a class="item flex-text-block {{if and (eq .EntryName $.CurWorkflow) (eq .SourceRepoID $.CurWorkflowScopedRepoID)}}active{{end}}" href="?workflow={{.EntryName}}&scoped_workflow_source_repo_id={{.SourceRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
+									<span class="gt-ellipsis tw-min-w-0" data-tooltip-content="{{.EntryName}}">{{.DisplayName}}</span>
+									{{if .Required}}
+										<span class="ui label">{{ctx.Locale.Tr "actions.workflow.required"}}</span>
+									{{else if .Disabled}}
+										<span class="ui red label">{{ctx.Locale.Tr "disabled"}}</span>
+									{{end}}
+								</a>
+							{{end}}
+						</details>
 					{{end}}
 					{{if .OtherWorkflows}}
 						<details class="item"{{if not $.CurWorkflowIsListed}} open{{end}}>
@@ -33,7 +55,7 @@
 							<div class="menu items-full-width">
 								{{range .OtherWorkflows}}
 									<a class="item {{if eq . $.CurWorkflow}}active{{end}}" href="?workflow={{.}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
-										<span class="gt-ellipsis">{{.}}</span>
+										<span class="gt-ellipsis" data-tooltip-content="{{.}}">{{.}}</span>
 									</a>
 								{{end}}
 							</div>
@@ -54,11 +76,11 @@
 									<i class="icon">{{svg "octicon-search"}}</i>
 									<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.actor"}}">
 								</div>
-								<a class="item{{if not $.CurActor}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&status={{$.CurStatus}}&branch={{$.CurBranch}}&actor=0">
+								<a class="item{{if not $.CurActor}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&status={{$.CurStatus}}&branch={{$.CurBranch}}&actor=0">
 									{{ctx.Locale.Tr "actions.runs.actors_no_select"}}
 								</a>
 								{{range .Actors}}
-									<a class="item{{if eq .ID $.CurActor}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{.ID}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
+									<a class="item{{if eq .ID $.CurActor}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{.ID}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
 										{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
 									</a>
 								{{end}}
@@ -73,12 +95,15 @@
 									<i class="icon">{{svg "octicon-search"}}</i>
 									<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.status"}}">
 								</div>
-								<a class="item{{if not $.CurStatus}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&branch={{$.CurBranch}}&status=0">
+								<a class="item{{if not $.CurStatus}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&branch={{$.CurBranch}}&status=0">
 									{{ctx.Locale.Tr "actions.runs.status_no_select"}}
 								</a>
 								{{range .StatusInfoList}}
-									<a class="item{{if eq .Status $.CurStatus}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}&branch={{$.CurBranch}}">
-										{{.DisplayedStatus}}
+									<a class="item{{if eq .Status $.CurStatus}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{.Status}}&branch={{$.CurBranch}}">
+										<span class="flex-text-inline tw-gap-2">
+											{{template "repo/icons/action_status" (dict "Status" .StatusName)}}
+											{{.DisplayedStatus}}
+										</span>
 									</a>
 								{{end}}
 							</div>
@@ -92,24 +117,31 @@
 									<i class="icon">{{svg "octicon-search"}}</i>
 									<input type="text" placeholder="{{ctx.Locale.Tr "actions.runs.branch"}}">
 								</div>
-								<a class="item{{if not $.CurBranch}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
+								<a class="item{{if not $.CurBranch}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
 									{{ctx.Locale.Tr "actions.runs.branches_no_select"}}
 								</a>
 								{{range .RunBranches}}
-									<a class="item{{if eq . $.CurBranch}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{.}}">
+									<a class="item{{if eq . $.CurBranch}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{.}}">
 										{{.}}
 									</a>
 								{{end}}
 							</div>
 						</div>
 
-						{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
+						{{if or $showCreateWorkflowBadge $showEnableDisableWorkflow}}
 						<button class="ui jump dropdown btn interact-bg tw-p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
-								<a class="item link-action" data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&actor={{.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
-									{{if .CurWorkflowDisabled}}{{ctx.Locale.Tr "actions.workflow.enable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{end}}
+								{{if $showCreateWorkflowBadge}}
+								<div class="item show-modal" data-modal="#workflow-status-badge-modal">
+									{{ctx.Locale.Tr "actions.workflow.create_status_badge"}}
+								</div>
+								{{end}}
+								{{if $showEnableDisableWorkflow}}
+								<a class="item {{if .CurWorkflowRequired}}disabled{{else}}link-action{{end}}"{{if not .CurWorkflowRequired}} data-url="{{$.Link}}/{{if .CurWorkflowDisabled}}enable{{else}}disable{{end}}?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}"{{end}}>
+									{{if .CurWorkflowRequired}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{else if .CurWorkflowDisabled}}{{ctx.Locale.Tr "actions.workflow.enable"}}{{else}}{{ctx.Locale.Tr "actions.workflow.disable"}}{{end}}
 								</a>
+								{{end}}
 							</div>
 						</button>
 						{{end}}
@@ -130,4 +162,53 @@
 		{{end}}
 	</div>
 </div>
+
+{{if $showCreateWorkflowBadge}}
+<div id="workflow-status-badge-modal" class="ui tiny modal">
+	<div class="header">{{ctx.Locale.Tr "actions.workflow.status_badge"}}</div>
+	<div class="content">
+		<div class="ui form" data-global-init="initWorkflowBadgeForm"
+				data-badge-url="{{.WorkflowBadge.BadgeURL}}"
+				data-workflow-url="{{.WorkflowBadge.WorkflowURL}}"
+				data-workflow-display-name="{{.WorkflowBadge.DisplayName}}"
+		>
+			<div class="field">
+				<img data-workflow-badge-image src="{{.WorkflowBadge.BadgeURL}}" alt="{{.CurWorkflow}}">
+			</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "actions.runs.branch"}}</label>
+				<div class="ui selection dropdown">
+					<input type="hidden" data-workflow-badge-branch value="{{.Repository.DefaultBranch}}">
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="text">{{.Repository.DefaultBranch}}</div>
+					<div class="menu">
+						<div class="item selected" data-value="{{.Repository.DefaultBranch}}">{{.Repository.DefaultBranch}}</div>
+						{{range $branchName := .RunBranches}}
+							{{if ne $branchName $.Repository.DefaultBranch}}
+								<div class="item" data-value="{{$branchName}}">{{$branchName}}</div>
+							{{end}}
+						{{end}}
+					</div>
+				</div>
+			</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "actions.workflow.status_badge_url"}}</label>
+				<div class="ui action input">
+					<input id="workflow-badge-url" readonly autofocus>
+					<button class="ui icon button" data-tooltip-content="{{ctx.Locale.Tr "copy"}}" data-clipboard-target="#workflow-badge-url">{{svg "octicon-copy" 14}}</button>
+				</div>
+			</div>
+			<div class="field">
+				<label>Markdown</label>
+				<textarea id="workflow-badge-markdown" rows="2" readonly></textarea>
+			</div>
+			<div class="field">
+				<label>HTML</label>
+				<textarea id="workflow-badge-html" rows="2" readonly></textarea>
+			</div>
+		</div>
+	</div>
+</div>
+{{end}}
+
 {{template "base/footer" .}}

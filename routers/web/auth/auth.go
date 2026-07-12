@@ -118,7 +118,7 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
-	if err := updateSession(ctx, nil, map[string]any{
+	if err := regenerateSession(ctx, nil, map[string]any{
 		session.KeyUID:                  u.ID,
 		session.KeyUname:                u.Name,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
@@ -357,7 +357,7 @@ func SignInPost(ctx *context.Context) {
 		// User will need to use WebAuthn, save data
 		updates["totpEnrolled"] = u.ID
 	}
-	if err := updateSession(ctx, nil, updates); err != nil {
+	if err := regenerateSession(ctx, nil, updates); err != nil {
 		ctx.ServerError("UserSignIn: Unable to update session", err)
 		return
 	}
@@ -398,7 +398,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		return
 	}
 
-	if err := updateSession(ctx, []string{
+	if err := regenerateSession(ctx, []string{
 		// Delete the openid, 2fa and link_account data
 		"openid_verified_uri",
 		"openid_signin_remember",
@@ -627,14 +627,19 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		if possibleLinkAccountData != nil && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			switch setting.OAuth2Client.AccountLinking {
 			case setting.OAuth2AccountLinkingAuto:
-				var user *user_model.User
-				user = &user_model.User{Name: u.Name}
-				hasUser, err := user_model.GetIndividualUser(ctx, user)
-				if !hasUser || err != nil {
-					user = &user_model.User{Email: u.Email}
-					hasUser, err = user_model.GetIndividualUser(ctx, user)
-					if !hasUser || err != nil {
-						ctx.ServerError("UserLinkAccount", err)
+				user, err := user_model.GetIndividualUserByName(ctx, u.Name)
+				if err != nil {
+					if !user_model.IsErrUserNotExist(err) {
+						ctx.ServerError("GetIndividualUserByName", err)
+						return false
+					}
+					user, err = user_model.GetIndividualUserByPrimaryEmail(ctx, u.Email)
+					if err != nil {
+						if !user_model.IsErrUserNotExist(err) {
+							ctx.ServerError("GetIndividualUserByPrimaryEmail", err)
+						} else {
+							ctx.NotFound(err)
+						}
 						return false
 					}
 				}
@@ -879,7 +884,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	log.Trace("User activated: %s", user.Name)
 
-	if err := updateSession(ctx, nil, map[string]any{
+	if err := regenerateSession(ctx, nil, map[string]any{
 		"uid":   user.ID,
 		"uname": user.Name,
 	}); err != nil {
@@ -931,7 +936,7 @@ func ActivateEmail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
-func updateSession(ctx *context.Context, deletes []string, updates map[string]any) error {
+func regenerateSession(ctx *context.Context, deletes []string, updates map[string]any) error {
 	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
 		return fmt.Errorf("regenerate session: %w", err)
 	}

@@ -61,13 +61,7 @@ func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *us
 		}
 	}
 
-	user := &user_model.User{
-		LoginName:   u.ExternalID,
-		LoginType:   auth.OAuth2,
-		LoginSource: u.LoginSourceID,
-	}
-
-	hasUser, err := user_model.GetIndividualUser(ctx, user)
+	user, hasUser, err := user_model.GetIndividualUserByLoginSource(ctx, auth.OAuth2, u.LoginSourceID, u.ExternalID)
 	if err != nil {
 		return err
 	}
@@ -77,19 +71,17 @@ func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *us
 	// recognizes them as a valid user, they will be able to login
 	// via their provider and reactivate their account.
 	if shouldDisable {
-		log.Info("SyncExternalUsers[%s] disabling user %d", source.AuthSource.Name, user.ID)
-
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			if hasUser {
+				log.Info("SyncExternalUsers[%s] disabling user %d", source.AuthSource.Name, user.ID)
 				user.IsActive = false
-				err := user_model.UpdateUserCols(ctx, user, "is_active")
-				if err != nil {
+				if err := user_model.UpdateUserCols(ctx, user, "is_active"); err != nil {
 					return err
 				}
 			}
 
-			// Delete stored tokens, since they are invalid. This
-			// also provents us from checking this in subsequent runs.
+			// HINT: OAUTH-AUTO-SYNC-USER-ACTIVATION
+			// Delete stored tokens, since they are invalid. This also prevents us from checking this in subsequent runs.
 			u.AccessToken = ""
 			u.RefreshToken = ""
 			u.ExpiresAt = time.Time{}

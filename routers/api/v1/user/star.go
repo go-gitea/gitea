@@ -24,6 +24,7 @@ func getStarredRepos(ctx *context.APIContext, user *user_model.User, private boo
 		ListOptions:    utils.GetListOptions(ctx),
 		StarrerID:      user.ID,
 		IncludePrivate: private,
+		Actor:          user,
 	}
 	opts.ApplyPublicOnly(ctx.PublicOnly)
 
@@ -32,13 +33,16 @@ func getStarredRepos(ctx *context.APIContext, user *user_model.User, private boo
 		return nil, err
 	}
 
-	repos := make([]*api.Repository, len(starredRepos))
-	for i, starred := range starredRepos {
+	repos := make([]*api.Repository, 0, len(starredRepos))
+	for _, starred := range starredRepos {
 		permission, err := access_model.GetIndividualUserRepoPermission(ctx, starred, user)
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = convert.ToRepo(ctx, starred, permission)
+		if !permission.HasAnyUnitAccessOrPublicAccess() {
+			continue
+		}
+		repos = append(repos, convert.ToRepo(ctx, starred, permission))
 	}
 	return repos, nil
 }
@@ -174,7 +178,7 @@ func Star(ctx *context.APIContext) {
 	err := repo_model.StarRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

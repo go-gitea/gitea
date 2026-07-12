@@ -11,17 +11,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/util"
 )
-
-type CommitMessage struct {
-	MessageRaw   string
-	messageUTF8  *string
-	messageTitle *string
-	messageBody  *string
-}
 
 // Commit represents a git commit.
 type Commit struct {
@@ -42,30 +34,6 @@ type Commit struct {
 type CommitSignature struct {
 	Signature string
 	Payload   string
-}
-
-func (c *CommitMessage) MessageUTF8() string {
-	if c.messageUTF8 == nil {
-		bs := charset.ToUTF8(util.UnsafeStringToBytes(c.MessageRaw), charset.ConvertOpts{ErrorReplacement: []byte{'?'}})
-		c.messageUTF8 = new(util.UnsafeBytesToString(bs))
-	}
-	return *c.messageUTF8
-}
-
-func (c *CommitMessage) MessageTitle() string {
-	if c.messageTitle == nil {
-		s, _, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
-		c.messageTitle = new(strings.TrimSpace(s))
-	}
-	return *c.messageTitle
-}
-
-func (c *CommitMessage) MessageBody() string {
-	if c.messageBody == nil {
-		_, s, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
-		c.messageBody = new(strings.TrimSpace(s))
-	}
-	return *c.messageBody
 }
 
 // ParentID returns oid of n-th parent (0-based index).
@@ -162,13 +130,9 @@ func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
 }
 
-// CommitsBeforeUntil returns the commits between commitID to current revision
-func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
-	endCommit, err := c.repo.GetCommit(commitID)
-	if err != nil {
-		return nil, err
-	}
-	return c.repo.CommitsBetween(c, endCommit)
+// CommitsBeforeUntil returns the commits in range "[cur, ref)"
+func (c *Commit) CommitsBeforeUntil(ref RefName) ([]*Commit, error) {
+	return c.repo.CommitsBetween(c.ID.RefName(), ref, -1)
 }
 
 // SearchCommitsOptions specify the parameters for SearchCommits
@@ -289,11 +253,15 @@ func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) boo
 	if len(s) < minLen || len(s) > maxLen {
 		return false
 	}
+	return isStringLowerHex(s)
+}
+
+func isStringLowerHex(s string) bool {
 	for _, c := range s {
 		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
 		if !isHex {
 			return false
 		}
 	}
-	return true
+	return len(s) > 0 // it accepts odd length because "shorten commit id" can be 7-chars
 }

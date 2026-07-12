@@ -59,9 +59,9 @@ type Branch struct {
 }
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
-func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch optional.Option[bool], keyword string, page, pageSize int) (*Branch, []*Branch, int64, error) {
-	defaultDBBranch, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
-	if err != nil {
+func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch optional.Option[bool], keyword string, page, pageSize int) (defaultBranchOptional *Branch, _ []*Branch, _ int64, _ error) {
+	defaultDBBranchOptional, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return nil, nil, 0, err
 	}
 
@@ -108,13 +108,14 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		branches = append(branches, branch)
 	}
 
-	// Always add the default branch
-	log.Debug("loadOneBranch: load default: '%s'", defaultDBBranch.Name)
-	defaultBranch, err := loadOneBranch(ctx, repo, defaultDBBranch, &rules, repoIDToRepo, repoIDToGitRepo)
-	if err != nil {
-		return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
+	if defaultDBBranchOptional != nil {
+		// Always add the default branch
+		defaultBranchOptional, err = loadOneBranch(ctx, repo, defaultDBBranchOptional, &rules, repoIDToRepo, repoIDToGitRepo)
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("loadOneBranch: %v", err)
+		}
 	}
-	return defaultBranch, branches, totalNumOfBranches, nil
+	return defaultBranchOptional, branches, totalNumOfBranches, nil
 }
 
 func getDivergenceCacheKey(repoID int64, branchName string) string {
@@ -640,7 +641,7 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 
 func deleteBranchSuccessPostProcess(doer *user_model.User, repo *repo_model.Repository, branchName string, branchCommit *git.Commit) {
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-	if err := PushUpdate(
+	if err := PushUpdates(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.RefNameFromBranch(branchName),
 			OldCommitID:  branchCommit.ID.String(),

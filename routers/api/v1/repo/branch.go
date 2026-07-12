@@ -64,7 +64,7 @@ func GetBranch(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !exist {
-		ctx.APIErrorNotFound(err)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -153,11 +153,11 @@ func DeleteBranch(ctx *context.APIContext) {
 	if err := repo_service.DeleteBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound()
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
-			ctx.APIError(http.StatusForbidden, errors.New("can not delete default or pull request target branch"))
+			ctx.APIError(http.StatusForbidden, "can not delete default or pull request target branch")
 		case errors.Is(err, git_model.ErrBranchIsProtected):
-			ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
+			ctx.APIError(http.StatusForbidden, "branch protected")
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -446,9 +446,9 @@ func UpdateBranch(ctx *context.APIContext) {
 	if err := repo_service.UpdateBranch(ctx, repo, ctx.Repo.GitRepo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
 		switch {
 		case git_model.IsErrBranchNotExist(err):
-			ctx.APIErrorNotFound(err)
+			ctx.APIErrorNotFound()
 		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		case git.IsErrPushRejected(err):
 			rej := err.(*git.ErrPushRejected)
 			ctx.APIError(http.StatusForbidden, rej.Message)
@@ -684,7 +684,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	whitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -693,7 +693,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	forcePushAllowlistUsers, err := user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -702,7 +702,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	mergeWhitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -711,7 +711,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	approvalsWhitelistUsers, err := user_model.GetUserIDsByNames(ctx, form.ApprovalsWhitelistUsernames, false)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)
@@ -722,7 +722,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		bypassAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.BypassAllowlistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -734,7 +734,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -743,7 +743,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		forcePushAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.ForcePushAllowlistTeams, false)
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -752,7 +752,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		mergeWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.MergeWhitelistTeams, false)
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -761,7 +761,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		approvalsWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.ApprovalsWhitelistTeams, false)
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -771,7 +771,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 			bypassAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.BypassAllowlistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return
 				}
 				ctx.APIErrorInternal(err)
@@ -1004,7 +1004,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -1017,7 +1017,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		forcePushAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -1030,7 +1030,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		mergeWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -1043,7 +1043,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		approvalsWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.ApprovalsWhitelistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -1056,7 +1056,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		bypassAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.BypassAllowlistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+				ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 				return
 			}
 			ctx.APIErrorInternal(err)
@@ -1072,7 +1072,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			whitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.PushWhitelistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return
 				}
 				ctx.APIErrorInternal(err)
@@ -1085,7 +1085,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			forcePushAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.ForcePushAllowlistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return
 				}
 				ctx.APIErrorInternal(err)
@@ -1098,7 +1098,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			mergeWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.MergeWhitelistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return
 				}
 				ctx.APIErrorInternal(err)
@@ -1111,7 +1111,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			approvalsWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.ApprovalsWhitelistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return
 				}
 				ctx.APIErrorInternal(err)
@@ -1124,7 +1124,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 			bypassAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.BypassAllowlistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusUnprocessableEntity, err)
+					ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 					return
 				}
 				ctx.APIErrorInternal(err)
@@ -1336,10 +1336,13 @@ func MergeUpstream(ctx *context.APIContext) {
 	mergeStyle, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, form.Branch, form.FfOnly)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		} else if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
+			return
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.APIError(http.StatusForbidden, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)

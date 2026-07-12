@@ -5,19 +5,26 @@ package v1_27
 
 import (
 	"gitea.dev/models/db"
-
-	"xorm.io/xorm"
+	"gitea.dev/modules/timeutil"
 )
 
-// AddBlockOnCodeownerReviews adds block on codeowner reviews branch protection
-func AddBlockOnCodeownerReviews(x db.EngineMigration) error {
-	type ProtectedBranch struct {
-		BlockOnCodeownerReviews bool `xorm:"NOT NULL DEFAULT false"`
+func AddActionRunJobSummaryTable(x db.EngineMigration) error {
+	type ActionRunJobSummary struct {
+		ID int64 `xorm:"pk autoincr"`
+
+		RepoID       int64 `xorm:"UNIQUE(summary_key)"`
+		RunID        int64 `xorm:"UNIQUE(summary_key)"`
+		RunAttemptID int64 `xorm:"UNIQUE(summary_key) NOT NULL DEFAULT 0"`
+		JobID        int64 `xorm:"UNIQUE(summary_key)"`
+		StepIndex    int64 `xorm:"UNIQUE(summary_key)"`
+
+		Content     string `xorm:"LONGTEXT"`
+		ContentType string `xorm:"VARCHAR(255) NOT NULL DEFAULT 'text/markdown'"`
+		ContentSize int64  `xorm:"NOT NULL DEFAULT 0"`
+
+		Created timeutil.TimeStamp `xorm:"created"`
+		Updated timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(ProtectedBranch))
-	return err
+	return x.Sync(new(ActionRunJobSummary))
 }

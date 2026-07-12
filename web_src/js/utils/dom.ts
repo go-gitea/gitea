@@ -9,8 +9,8 @@ type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
-  if (typeof el === 'string' || el instanceof String) {
-    el = document.querySelectorAll(el as string);
+  if (typeof el === 'string') {
+    el = document.querySelectorAll(el);
   }
   if (el instanceof Node) {
     func(el, ...args);
@@ -267,9 +267,14 @@ export function isElemVisible(el: HTMLElement): boolean {
 
 export function createElementFromHTML<T extends Element>(htmlString: string): T {
   htmlString = htmlString.trim();
+  const isLetter = (code: number) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+  const startsWithTag = (s: string, tag: string) => {
+    return s.startsWith('<') &&
+      s.substring(1, 1 + tag.length).toLowerCase() === tag.toLowerCase() &&
+      !isLetter(s[1 + tag.length].charCodeAt(0));
+  };
   // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
-  // eslint-disable-next-line github/unescaped-html-literal
-  if (htmlString.startsWith('<tr')) {
+  if (startsWithTag(htmlString, 'tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
     return container.querySelector<T>('tr')!;
@@ -333,4 +338,76 @@ export function isPlainClick(e: MouseEvent) {
 let elemIdCounter = 0;
 export function generateElemId(prefix: string = ''): string {
   return `${prefix}${elemIdCounter++}`;
+}
+
+export type ActivePageTimerOptions = {
+  once?: boolean;
+  interval: () => number; // if it returns 0, the timer is stopped
+  callback: () => Promise<void>;
+};
+
+export class ActivePageTimer {
+  private readonly opts: ActivePageTimerOptions;
+  private readonly onVisibilityChange: () => void;
+
+  private sysTimerId?: number;
+  private startTime?: number;
+
+  constructor(opts: ActivePageTimerOptions) {
+    this.opts = opts;
+    this.onVisibilityChange = () => {
+      if (!this.startTime) return;
+      const interval = this.opts.interval();
+      if (document.hidden) {
+        this.clearSysTimer();
+      } else if (interval) {
+        this.startSysTimer(interval);
+      }
+    };
+  }
+
+  private async handler() {
+    this.clear();
+    await this.opts.callback();
+    if (!this.opts.once) this.start();
+  }
+
+  start() {
+    const interval = this.opts.interval();
+    if (!interval) return;
+    if (this.sysTimerId) return;
+    if (!this.startTime) {
+      this.startTime = Date.now();
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (!document.hidden) this.startSysTimer(interval);
+  }
+
+  private startSysTimer(interval: number) {
+    const remaining = interval - (Date.now() - this.startTime!);
+    if (remaining <= 0) {
+      this.handler();
+    } else {
+      this.sysTimerId = window.setTimeout(() => this.handler(), remaining);
+    }
+  }
+
+  private clearSysTimer() {
+    if (!this.sysTimerId) return;
+    window.clearTimeout(this.sysTimerId);
+    this.sysTimerId = undefined;
+  }
+
+  clear() {
+    if (!this.startTime) return;
+    this.startTime = undefined;
+    this.clearSysTimer();
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+  }
+}
+
+export function activePageTimerRefresh(opts: ActivePageTimerOptions): ActivePageTimer {
+  const timer = new ActivePageTimer(opts);
+  timer.start();
+  return timer;
 }
