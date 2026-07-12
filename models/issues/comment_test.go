@@ -45,6 +45,19 @@ func TestCreateComment(t *testing.T) {
 	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
+func TestLoadAssigneeUserAndTeam_DeletedTeamBecomesGhostTeam(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 15})
+	comment := &issues_model.Comment{
+		Type:           issues_model.CommentTypeAssignees,
+		IssueID:        issue.ID,
+		AssigneeTeamID: 999999, // non-existing team ID
+	}
+	assert.NoError(t, comment.LoadAssigneeUserAndTeam(t.Context()))
+	assert.NotNil(t, comment.AssigneeTeam)
+	assert.EqualValues(t, -1, comment.AssigneeTeam.ID)
+}
+
 func Test_UpdateCommentAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
