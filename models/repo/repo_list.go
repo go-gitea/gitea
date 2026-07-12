@@ -775,11 +775,11 @@ func PublicRepoUnderPublicOwnerCond() builder.Cond {
 // It is used to list an org/user's Actions runs and jobs (see the callers in routers/api/v1/shared).
 //   - owner_id = ownerID: only that owner's repos.
 //   - AccessibleRepositoryCondition(user, TypeActions): only repos whose Actions the user can read
-//     (admin and owner-team access is handled inside it).
+//     (admin/owner teams are handled inside it; a site admin is not, callers must skip the filter for one).
 //   - publicOnly (a public-only token): additionally limit to public repos under a public owner.
 func UserActionsAccessibleOwnerRepoCond(ownerID int64, user *user_model.User, publicOnly bool) builder.Cond {
 	cond := builder.NewCond().And(
-		builder.Eq{"owner_id": ownerID},
+		builder.Eq{"`repository`.owner_id": ownerID},
 		AccessibleRepositoryCondition(user, unit.TypeActions),
 	)
 	if publicOnly {
