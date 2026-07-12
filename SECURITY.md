@@ -26,7 +26,7 @@ affects a version outside the supported range will be closed as out of scope
 
 ## Reporting a Vulnerability
 
-Please **DO NOT** file a public issue, instead send your report privately to `security@gitea.io`.
+Please **DO NOT** file a public issue. Instead, report the vulnerability privately by opening a [GitHub security advisory](https://github.com/go-gitea/gitea/security/advisories/new), or optionally by sending your report to `security@gitea.io`.
 
 ## Protecting Security Information
 
