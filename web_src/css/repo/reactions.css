@@ -9,6 +9,10 @@
   padding-bottom: 8px;
 }
 
+.releases .comment-container .bottom-reactions {
+  margin: 1.25rem 0 0.5rem;
+}
+
 .bottom-reactions .ui.label {
   padding: 2px 6px;
   font-weight: var(--font-weight-normal);
