@@ -144,6 +144,10 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 		return true
 	}
 
+	// OfficialOnly is intentionally false here: a code owner's approval satisfies this gate
+	// even if it wouldn't count as an "official" review toward RequiredApprovals (e.g. the
+	// owner lacks write access, or isn't on the approvals whitelist). Unlike the other
+	// branch-protection checks below, this one only cares whether a listed code owner approved.
 	approvingReviews, err := issues_model.FindLatestReviews(ctx, issues_model.FindReviewOptions{
 		Types:        []issues_model.ReviewType{issues_model.ReviewTypeApprove, issues_model.ReviewTypeReject},
 		IssueID:      pr.IssueID,
