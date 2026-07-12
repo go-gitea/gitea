@@ -773,9 +773,21 @@ func PublicRepoUnderPublicOwnerCond() builder.Cond {
 
 // UserActionsAccessibleOwnerRepoCond builds the condition selecting repositories owned by ownerID
 // (the org or user whose repos are being listed, not a permission level) whose Actions the given user
-// can read. Admin/owner-team access is handled inside AccessibleRepositoryCondition. When publicOnly is
-// set (a public-only token), results are further limited to public repos under a public owner, matching
-// the confinement applied to direct repo access.
+// can read. It AND-s two independent restrictions, both load-bearing:
+//
+//   - owner_id = ownerID scopes the result to this owner. AccessibleRepositoryCondition on its own
+//     matches every repo across the whole instance whose Actions the user can read, so it does not
+//     confine results to ownerID by itself. This cond is a reusable building block used both embedded
+//     beside the owner-scoped JOIN in FindRunJobOptions/FindRunOptions and as a standalone repo-ID
+//     query (see FindUserActionsAccessibleOwnerRepoIDsSubQuery and the direct callers/tests). In the
+//     standalone case this clause is the only thing keeping the result from spilling into the user's
+//     accessible repos under other owners; keeping it here also avoids evaluating the access condition
+//     against every repository instance-wide.
+//   - AccessibleRepositoryCondition(user, TypeActions) enforces the per-repo Actions read permission;
+//     admin and owner-team access is handled inside it.
+//
+// When publicOnly is set (a public-only token), results are further limited to public repos under a
+// public owner, matching the confinement applied to direct repo access.
 func UserActionsAccessibleOwnerRepoCond(ownerID int64, user *user_model.User, publicOnly bool) builder.Cond {
 	cond := builder.NewCond().And(
 		builder.Eq{"owner_id": ownerID},
