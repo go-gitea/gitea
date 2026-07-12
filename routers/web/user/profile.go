@@ -192,27 +192,15 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 		// when the user opted in to showing private contributions, tell viewers
 		// how many actions per day they cannot see (counts only, no details),
-		// interleaved chronologically with the visible entries
-		if !showPrivate && !ctx.ContextUser.IsOrganization() &&
-			ctx.ContextUser.ShowPrivateActivity &&
+		// interleaved chronologically with the visible entries; gated on the
+		// heatmap being enabled since these counts mirror it
+		if !showPrivate && setting.Service.EnableUserHeatmap &&
+			!ctx.ContextUser.IsOrganization() && ctx.ContextUser.ShowPrivateActivity &&
 			activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
-			rollups, err := activities_model.FindHiddenUserActivityRollups(ctx, feedsOpts, items)
+			feedRollups, err := feed_service.BuildHiddenActivityRollups(ctx, feedsOpts, items)
 			if err != nil {
-				ctx.ServerError("FindHiddenUserActivityRollups", err)
+				ctx.ServerError("BuildHiddenActivityRollups", err)
 				return
-			}
-			// key i holds the rollups rendered after the i-th feed entry, key -1
-			// those rendered before the first one; both lists are newest first
-			feedRollups := make(map[int][]*activities_model.HiddenActivityRollup)
-			ri := 0
-			for i, item := range items {
-				for ri < len(rollups) && rollups[ri].Time > item.CreatedUnix {
-					feedRollups[i-1] = append(feedRollups[i-1], rollups[ri])
-					ri++
-				}
-			}
-			for ; ri < len(rollups); ri++ {
-				feedRollups[len(items)-1] = append(feedRollups[len(items)-1], rollups[ri])
 			}
 			if len(feedRollups) > 0 {
 				ctx.Data["FeedRollups"] = feedRollups

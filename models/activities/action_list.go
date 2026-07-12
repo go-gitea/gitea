@@ -297,27 +297,42 @@ type HiddenActivityRollup struct {
 	Count       int64
 }
 
-// dayStartOf returns the start of ts's day in the server timezone; when a DST
-// transition removes midnight, the day starts right after the gap instead of
-// resolving into the previous day
+// dayStartOf returns the first instant of ts's civil day in the server
+// timezone. It handles DST transitions both ways: when a spring-forward gap
+// removes midnight the day starts right after the gap, and when a fall-back
+// repeats midnight the earlier occurrence is used, so the returned start is
+// never later than an action on its own day.
 func dayStartOf(ts timeutil.TimeStamp) timeutil.TimeStamp {
-	day := ts.FormatInLocation("2006-01-02", setting.DefaultUILocation)
-	tt := ts.AsTimeInLocation(setting.DefaultUILocation)
-	start := time.Date(tt.Year(), tt.Month(), tt.Day(), 0, 0, 0, 0, setting.DefaultUILocation)
-	for timeutil.TimeStamp(start.Unix()).FormatInLocation("2006-01-02", setting.DefaultUILocation) != day {
+	loc := setting.DefaultUILocation
+	day := ts.FormatInLocation("2006-01-02", loc)
+	tt := ts.AsTimeInLocation(loc)
+	start := time.Date(tt.Year(), tt.Month(), tt.Day(), 0, 0, 0, 0, loc)
+	// spring-forward: time.Date can resolve a removed midnight onto the previous
+	// day, so walk forward until we are back on ts's day
+	for timeutil.TimeStamp(start.Unix()).FormatInLocation("2006-01-02", loc) != day {
 		start = start.Add(time.Hour)
+	}
+	// fall-back: if an earlier real instant still maps to the same day, midnight
+	// happened twice; step back to the earliest one
+	for prev := start.Add(-time.Hour); timeutil.TimeStamp(prev.Unix()).FormatInLocation("2006-01-02", loc) == day; prev = prev.Add(-time.Hour) {
+		start = prev
 	}
 	return timeutil.TimeStamp(start.Unix())
 }
 
 func dayBoundsOf(ts timeutil.TimeStamp) (dayStart, nextDayStart timeutil.TimeStamp) {
 	dayStart = dayStartOf(ts)
-	// a day is 23-25h long, so 26h past its start is always inside the next day
-	return dayStart, dayStartOf(dayStart.Add(26 * 60 * 60))
+	// reference the next day at noon, which no DST transition moves to another
+	// civil day, then snap to its start; a fixed hour offset would be wrong for
+	// the 26-27h days that timezone jumps larger than an hour produce
+	tt := dayStart.AsTimeInLocation(setting.DefaultUILocation)
+	nextNoon := time.Date(tt.Year(), tt.Month(), tt.Day(), 12, 0, 0, 0, setting.DefaultUILocation).AddDate(0, 0, 1)
+	return dayStart, dayStartOf(timeutil.TimeStamp(nextNoon.Unix()))
 }
 
-// FindHiddenUserActivityRollups groups the requested user's own actions that the
-// actor cannot see into per-day rollups (newest first, days per the server's
+// FindHiddenUserActivityRollups groups the requested user's own private-repository
+// actions (which the profile feed hides from other viewers) into per-day rollups
+// (newest first, days per the server's
 // default timezone like FeedDateCond), within the time span covered by the given
 // feed page. Page spans are snapped to whole days so that a page boundary never
 // reveals how hidden actions interleave with visible ones inside a day: a day's
@@ -338,9 +353,13 @@ func FindHiddenUserActivityRollups(ctx context.Context, opts GetFeedsOptions, pa
 		return nil, err
 	}
 
+	// count the user's own private-repository actions: the profile feed never
+	// shows a private action to another viewer (it always sets IncludePrivate
+	// false), so these are exactly the contributions hidden behind the rollup.
+	// visibleCond is still used below to align page spans with the visible feed
 	cond := builder.Eq{"user_id": opts.RequestedUser.ID, "act_user_id": opts.RequestedUser.ID}.
 		And(FeedDateCond(opts)).
-		And(builder.Not{visibleCond})
+		And(builder.Eq{"`action`.is_private": true, "`action`.is_deleted": false})
 
 	// reports whether a visible action exists in [dayStart, before), i.e. whether
 	// the day of `before` continues on later feed pages, and if so the oldest such
@@ -398,14 +417,12 @@ func FindHiddenUserActivityRollups(ctx context.Context, opts GetFeedsOptions, pa
 		}
 	}
 
-	groupBy := "created_unix / 900 * 900"
-	groupByName := "timestamp" // mssql does not allow grouping by alias
-	switch {
-	case setting.Database.Type.IsMySQL():
-		groupBy = "created_unix DIV 900 * 900"
-	case setting.Database.Type.IsMSSQL():
-		groupByName = groupBy
-	}
+	// bound the scan to the heatmap's window like getUserHeatmapData: older
+	// hidden days are not part of the heatmap totals anyway, and this stops a
+	// sparse visible feed from aggregating the user's whole history onto one page
+	cond = cond.And(builder.Gt{"`action`.created_unix": int64(timeutil.TimeStampNow()) - (366+7)*86400})
+
+	groupBy, groupByName := heatmapGroupBy()
 
 	// aggregate like the heatmap does: 15-minute buckets bound the result size
 	// regardless of how many hidden actions exist, and cannot straddle a day
