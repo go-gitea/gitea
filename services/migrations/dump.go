@@ -288,6 +288,7 @@ func (g *RepositoryDumper) CreateLabels(_ context.Context, labels ...*base.Label
 // CreateReleases creates releases
 func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.Release) error {
 	if g.opts.ReleaseAssets {
+		httpClient := NewMigrationHTTPClient()
 		for _, release := range releases {
 			attachDir := filepath.Join("release_assets", uuid.New().String())
 			if err := os.MkdirAll(filepath.Join(g.baseDir, attachDir), os.ModePerm); err != nil {
@@ -297,25 +298,26 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 				// we cannot use asset.Name because it might contains special characters.
 				attachLocalPath := filepath.Join(attachDir, uuid.New().String())
 
-				// SECURITY: We cannot check the DownloadURL and DownloadFunc are safe here
-				// ... we must assume that they are safe and simply download the attachment
+				// SECURITY: Prefer DownloadFunc and fall back to a migration-filtered HTTP client.
 				// download attachment
 				err := func(attachPath string) error {
 					var rc io.ReadCloser
 					var err error
-					if asset.DownloadURL == nil {
+					if asset.DownloadFunc != nil {
 						rc, err = asset.DownloadFunc()
 						if err != nil {
 							return err
 						}
 						defer rc.Close()
-					} else {
-						resp, err := http.Get(*asset.DownloadURL)
+					} else if asset.DownloadURL != nil {
+						resp, err := httpClient.Get(*asset.DownloadURL)
 						if err != nil {
 							return err
 						}
 						defer resp.Body.Close()
 						rc = resp.Body
+					} else {
+						return errors.New("missing download URL and download function")
 					}
 
 					fw, err := os.Create(attachPath)
