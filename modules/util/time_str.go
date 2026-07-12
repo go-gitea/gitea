@@ -51,7 +51,13 @@ func TimeEstimateParse(timeStr string) (int64, error) {
 	if matches[0][0] != 0 || matches[len(matches)-1][1] != len(timeStr) {
 		return 0, fmt.Errorf("invalid time string: %s", timeStr)
 	}
+	prevEnd := 0
 	for _, match := range matches {
+		// only whitespace may separate two units, otherwise the string contains invalid content like "1h x 2m"
+		if strings.TrimSpace(timeStr[prevEnd:match[0]]) != "" {
+			return 0, fmt.Errorf("invalid time string: %s", timeStr)
+		}
+		prevEnd = match[1]
 		amount, err := strconv.ParseInt(timeStr[match[2]:match[3]], 10, 64)
 		if err != nil {
 			return 0, fmt.Errorf("invalid time string: %v", err)
