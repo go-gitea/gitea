@@ -11,6 +11,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -137,6 +138,43 @@ func testGitPush(t *testing.T, u *url.URL) {
 
 			return pushed, deleted
 		})
+	})
+}
+
+func TestGitPushVisibilityOption(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
+			Name:          "repo-visibility-option",
+			AutoInit:      false,
+			DefaultBranch: "master",
+			IsPrivate:     false,
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, repo)
+
+		gitPath := t.TempDir()
+		doGitInitTestRepository(gitPath)(t)
+
+		oldPath, oldUser := u.Path, u.User
+		defer func() { u.Path, u.User = oldPath, oldUser }()
+		u.Path = repo.FullName() + ".git"
+		u.User = url.UserPassword(user.LowerName, userPassword)
+		doGitAddRemote(gitPath, "origin", u)(t)
+
+		// The first push into an empty repository is a "push-to-create", so the
+		// repo.private push option is honored to set the initial visibility.
+		doGitPushTestRepository(gitPath, "origin", "master", "-o", "repo.private=true")(t)
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.True(t, repo.IsPrivate, "repo.private option should apply on push-to-create")
+
+		// The repository is now populated; a later push must NOT silently flip
+		// visibility, otherwise a repo admin could change it bypassing the audit
+		// trail, webhooks, and notifications a proper settings change would fire.
+		doGitCreateBranch(gitPath, "branch2")(t)
+		doGitPushTestRepository(gitPath, "origin", "branch2", "-o", "repo.private=false")(t)
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.True(t, repo.IsPrivate, "repo.private option must be ignored on an existing repository")
 	})
 }
 
