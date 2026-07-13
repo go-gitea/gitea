@@ -151,7 +151,7 @@ function fillTemplate(text: string, ...values: number[]): string {
 function updateLoadProgress(loadedFiles: number, totalFiles: number) {
   const el = document.querySelector('#diff-load-progress');
   if (!el) return;
-  el.textContent = fillTemplate(el.getAttribute('data-text-loaded') ?? '', loadedFiles, totalFiles);
+  el.textContent = fillTemplate(el.getAttribute('data-text-too-many-files') ?? '', loadedFiles, totalFiles);
 }
 
 function updateShowMoreButton(matchingBelow: number) {

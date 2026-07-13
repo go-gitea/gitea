@@ -228,15 +228,14 @@
 				{{end}}
 
 				{{if .Diff.IsIncomplete}}
-					<div class="diff-file-box file-content tw-mt-2" id="diff-incomplete">
-						<h4 class="ui top attached header tw-font-normal flex-left-right">
-							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
-							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true"
-								data-text-default="{{ctx.Locale.Tr "repo.diff.show_more"}}"
-								data-text-matching="{{ctx.Locale.Tr "repo.diff.show_more_matching"}}"
-							>{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
-						</h4>
-						<div id="diff-load-progress" class="tw-text-text-light-2 tw-p-2" data-text-loaded="{{ctx.Locale.Tr "repo.diff.files_loaded"}}">{{ctx.Locale.Tr "repo.diff.files_loaded" (len .Diff.Files) .DiffShortStat.NumFiles}}</div>
+					<div class="ui segment flex-left-right" id="diff-incomplete">
+						<span id="diff-load-progress" class="tw-text-text-light-2" data-text-too-many-files="{{ctx.Locale.Tr "repo.diff.too_many_files"}}">
+							{{ctx.Locale.Tr "repo.diff.too_many_files" (len .Diff.Files) .DiffShortStat.NumFiles}}
+						</span>
+						<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true"
+							data-text-default="{{ctx.Locale.Tr "repo.diff.show_more"}}"
+							data-text-matching="{{ctx.Locale.Tr "repo.diff.show_more_matching"}}"
+						>{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
 					</div>
 				{{end}}
 				</div>
