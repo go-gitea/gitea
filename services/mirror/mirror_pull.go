@@ -116,6 +116,15 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		log.Error("SyncMirrors [repo: %-v]: GetRemoteURL Error %v", m.Repo, remoteErr)
 		return nil, false
 	}
+	// re-validate on every sync: the host may now resolve to an internal IP (rebinding) or the
+	// allow/block list may have changed. ssh/file are skipped (not an HTTP SSRF vector).
+	switch remoteURL.URL.Scheme {
+	case "http", "https", "git":
+		if allowErr := migrations.IsMigrateURLAllowed(remoteURL.String(), m.Repo.MustOwner(ctx)); allowErr != nil {
+			log.Error("SyncMirrors [repo: %-v]: remote URL is not allowed: %v", m.Repo, allowErr)
+			return nil, false
+		}
+	}
 	envs := proxy.EnvWithProxy(remoteURL.URL)
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
