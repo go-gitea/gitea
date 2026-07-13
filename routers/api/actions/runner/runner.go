@@ -194,9 +194,15 @@ func (s *Service) FetchTask(
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks that haven't been assigned.
 		// try to pick a task for the runner that send the request.
-		if t, ok, err := actions_service.PickTask(ctx, freshRunner); err != nil {
+		if t, ok, throttled, err := actions_service.TryPickTask(ctx, freshRunner); err != nil {
 			log.Error("pick task failed: %v", err)
 			return nil, status.Errorf(codes.Internal, "pick task: %v", err)
+		} else if throttled {
+			// Concurrency limit reached: don't advance the runner's tasks version,
+			// so it retries on its next poll instead of sleeping until the next bump.
+			latestVersion = tasksVersion
+			//  A steady stream here means MAX_CONCURRENT_TASK_PICKS is too low for the fleet.
+			log.Debug("task pick throttled for runner %q (id %d); it will retry on its next poll", freshRunner.Name, freshRunner.ID)
 		} else if ok {
 			task = t
 		}

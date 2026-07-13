@@ -170,6 +170,10 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+		// a public-only API token must not surface private activity, even for its own owner
+		if showPrivate && context.TokenIsPublicOnly(ctx) {
+			showPrivate = false
+		}
 		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
