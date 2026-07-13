@@ -195,4 +195,11 @@ func TestAPIAddTrackedTimes(t *testing.T) {
 	assert.EqualValues(t, 33, apiNewTime.Time)
 	assert.Equal(t, user2.ID, apiNewTime.UserID)
 	assert.EqualValues(t, 947688818, apiNewTime.Created.Unix())
+
+	// adding time for a nonexistent user must return 404, not panic with a 500
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.AddTimeOption{
+		Time: 33,
+		User: "nonexistentuser",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }
