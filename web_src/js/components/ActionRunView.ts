@@ -1,5 +1,5 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
-import {renderAnsi} from '../render/ansi.ts';
+import {renderAnsiInto} from '../render/ansi.ts';
 import {reactive} from 'vue';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {IntervalId} from '../types.ts';
@@ -80,10 +80,10 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   if (label) {
     logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
     const msgSpan = document.createElement('span');
-    msgSpan.innerHTML = ` ${renderAnsi(msgContent.trimStart())}`;
+    renderAnsiInto(msgSpan, ` ${msgContent.trimStart()}`);
     logMsg.append(msgSpan);
   } else {
-    logMsg.innerHTML = renderAnsi(msgContent);
+    renderAnsiInto(logMsg, msgContent);
   }
   return logMsg;
 }
@@ -107,6 +107,7 @@ export function buildJobsByParentJobID(jobs: ActionsJob[]): Map<number, ActionsJ
 export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
+    index: 0,
     link: '',
     viewLink: '',
     title: '',
@@ -120,6 +121,7 @@ export function createEmptyActionsRun(): ActionsRun {
     done: false,
     workflowID: '',
     workflowLink: '',
+    canViewWorkflowFile: true,
     isSchedule: false,
     runAttempt: 0,
     attempts: [],

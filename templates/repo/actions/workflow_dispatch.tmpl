@@ -7,7 +7,7 @@
 </div>
 <div id="runWorkflowDispatchModal" class="ui tiny modal">
 	<div class="content">
-		<form id="runWorkflowDispatchForm" class="ui form ignore-dirty" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}" method="post">
+		<form id="runWorkflowDispatchForm" class="ui form ignore-dirty" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}" method="post">
 			<div class="ui inline field required tw-flex tw-items-center">
 				<span class="ui inline required field">
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
@@ -15,7 +15,7 @@
 				<div class="ui inline field dropdown button select-branch branch-selector-dropdown ellipsis-text-items">
 					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}"
 								data-fetch-trigger="change" data-fetch-sync="$body #runWorkflowDispatchModalInputs"
-								data-fetch-url="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}"
+								data-fetch-url="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}"
 					>
 					{{svg "octicon-git-branch" 14}}
 					<div class="default text">{{index .Branches 0}}</div>

@@ -1,7 +1,39 @@
 import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {html} from '../utils/html.ts';
+import {GET} from '../modules/fetch.ts';
+import {activePageTimerRefresh, createElementFromHTML, protectMorphElements, recoverMorphElements} from '../utils/dom.ts';
+import {Idiomorph} from 'idiomorph';
 
-export function initRepositoryActionView() {
+export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
+  const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
+  badgeURLParsed.searchParams.set('branch', branch);
+
+  const badgeURL = badgeURLParsed.href;
+  const workflowURL = form.getAttribute('data-workflow-url')!;
+  const displayName = form.getAttribute('data-workflow-display-name')!;
+  const markdownAltText = displayName.replaceAll(/[\\[\]]/g, (c) => `\\${c}`);
+
+  form.querySelector<HTMLImageElement>('[data-workflow-badge-image]')!.src = badgeURL;
+  form.querySelector<HTMLInputElement>('#workflow-badge-url')!.value = badgeURL;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-markdown')!.value = `[![${markdownAltText}](${badgeURL})](${workflowURL})`;
+  form.querySelector<HTMLTextAreaElement>('#workflow-badge-html')!.value = html`<a href="${workflowURL}"><img src="${badgeURL}" alt="${displayName}"></a>`;
+}
+
+function initWorkflowBadgeForm(form: HTMLElement): void {
+  const branchInput = form.querySelector<HTMLInputElement>('[data-workflow-badge-branch]')!;
+  branchInput.addEventListener('change', () => updateWorkflowBadgeFields(form, branchInput.value));
+  updateWorkflowBadgeFields(form, branchInput.value);
+}
+
+export function initRepositoryActions() {
+  registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
+  initRepositoryActionsView();
+  registerGlobalInitFunc('initActionRunsList', initActionRunsList);
+}
+
+function initRepositoryActionsView() {
   const el = document.querySelector('#repo-action-view');
   if (!el) return;
 
@@ -59,6 +91,7 @@ export function initRepositoryActionView() {
       logsAlwaysAutoScroll: el.getAttribute('data-locale-logs-always-auto-scroll'),
       logsAlwaysExpandRunning: el.getAttribute('data-locale-logs-always-expand-running'),
       workflowFile: el.getAttribute('data-locale-workflow-file'),
+      workflowFileNoPermission: el.getAttribute('data-locale-workflow-file-no-permission'),
       runDetails: el.getAttribute('data-locale-run-details'),
       workflowDependencies: el.getAttribute('data-locale-workflow-dependencies'),
       graphJobsCount1: el.getAttribute('data-locale-graph-jobs-count-1'),
@@ -73,4 +106,29 @@ export function initRepositoryActionView() {
     },
   });
   view.mount(el);
+}
+
+function initActionRunsList(el: HTMLElement) {
+  activePageTimerRefresh({
+    interval: () => Number(el.getAttribute('data-action-runs-refresh-interval')),
+    async callback() {
+      const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
+      if (!resp.ok || resp.status !== 200) return;
+
+      const newEl = createElementFromHTML(await resp.text());
+      for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
+      for (const newItem of newEl.querySelectorAll(':scope > .item')) {
+        const oldItem = el.querySelector(`#${newItem.id}`);
+        if (!oldItem) continue;
+
+        // If the end user is operating the row, then don't refresh its content.
+        // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
+        if (oldItem.querySelector('.ui.dropdown.active')) continue;
+
+        const protectedElems = protectMorphElements(newItem);
+        Idiomorph.morph(oldItem, newItem, {morphStyle: 'outerHTML'});
+        recoverMorphElements(el.querySelector(`#${newItem.id}`)!, protectedElems);
+      }
+    },
+  });
 }

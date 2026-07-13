@@ -802,16 +802,6 @@
         },
         "description": "MarkupRender is a rendered markup document"
       },
-      "MergeUpstreamRequest": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/MergeUpstreamRequest"
-            }
-          }
-        },
-        "description": ""
-      },
       "MergeUpstreamResponse": {
         "content": {
           "application/json": {
@@ -844,16 +834,6 @@
           }
         },
         "description": "MilestoneList"
-      },
-      "NodeInfo": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/NodeInfo"
-            }
-          }
-        },
-        "description": "NodeInfo"
       },
       "Note": {
         "content": {
@@ -1128,16 +1108,6 @@
         },
         "description": "ReactionList"
       },
-      "Reference": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Reference"
-            }
-          }
-        },
-        "description": "Reference"
-      },
       "ReferenceList": {
         "content": {
           "application/json": {
@@ -1287,16 +1257,6 @@
         },
         "description": "SearchResults"
       },
-      "Secret": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Secret"
-            }
-          }
-        },
-        "description": "Secret"
-      },
       "SecretList": {
         "content": {
           "application/json": {
@@ -1319,16 +1279,6 @@
           }
         },
         "description": "ServerVersion"
-      },
-      "StopWatch": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/StopWatch"
-            }
-          }
-        },
-        "description": "StopWatch"
       },
       "StopWatchList": {
         "content": {
@@ -1695,19 +1645,6 @@
       },
       "notFound": {
         "description": "APINotFound is a not found empty response"
-      },
-      "parameterBodies": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/LockIssueOption"
-            }
-          }
-        },
-        "description": "parameterBodies"
-      },
-      "redirect": {
-        "description": "APIRedirect is a redirect response"
       },
       "repoArchivedError": {
         "description": "APIRepoArchivedError is an error that is raised when an archived repo should be modified",
@@ -2563,7 +2500,7 @@
                 "$ref": "#/components/schemas/RepoWritePermission"
               }
             ],
-            "description": "Permission level to grant the collaborator\nread RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin"
+            "description": "Permission level to grant the collaborator"
           }
         },
         "type": "object",
@@ -2713,6 +2650,7 @@
             "x-go-name": "DownloadURL"
           },
           "created_at": {
+            "description": "Created is the time when the attachment was uploaded",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -2862,9 +2800,8 @@
             "x-go-name": "BlockOnRejectedReviews"
           },
           "branch_name": {
-            "deprecated": true,
-            "description": "Deprecated: true",
             "type": "string",
+            "x-deprecated": true,
             "x-go-name": "BranchName"
           },
           "bypass_allowlist_teams": {
@@ -3196,7 +3133,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State is the overall combined status state\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped"
+            "description": "State is the overall combined status state"
           },
           "statuses": {
             "description": "Statuses contains all individual commit statuses",
@@ -3302,6 +3239,7 @@
             "$ref": "#/components/schemas/User"
           },
           "created": {
+            "description": "Created is the time when the commit was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -3368,11 +3306,13 @@
         "description": "CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE",
         "properties": {
           "author": {
+            "description": "Author is the author date for the commit",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Author"
           },
           "committer": {
+            "description": "Committer is the committer date for the commit",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Committer"
@@ -3384,6 +3324,7 @@
       "CommitMeta": {
         "properties": {
           "created": {
+            "description": "Created is the time when the commit was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -3462,7 +3403,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped"
+            "description": "State represents the status state (pending, success, error, failure)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",
@@ -3504,6 +3445,7 @@
             "x-go-name": "Date"
           },
           "email": {
+            "description": "Email is the person's email address",
             "format": "email",
             "type": "string",
             "x-go-name": "Email"
@@ -3754,9 +3696,8 @@
             "x-go-name": "BlockOnRejectedReviews"
           },
           "branch_name": {
-            "deprecated": true,
-            "description": "Deprecated: true",
             "type": "string",
+            "x-deprecated": true,
             "x-go-name": "BranchName"
           },
           "bypass_allowlist_teams": {
@@ -3910,10 +3851,10 @@
             "x-go-name": "BranchName"
           },
           "old_branch_name": {
-            "deprecated": true,
-            "description": "Deprecated: true\nName of the old branch to create from",
+            "description": "Name of the old branch to create from",
             "type": "string",
             "uniqueItems": true,
+            "x-deprecated": true,
             "x-go-name": "OldBranchName"
           },
           "old_ref_name": {
@@ -4036,6 +3977,7 @@
         "properties": {
           "active": {
             "default": false,
+            "description": "Whether the webhook should be active upon creation",
             "type": "boolean",
             "x-go-name": "Active"
           },
@@ -4066,6 +4008,7 @@
             "x-go-name": "Name"
           },
           "type": {
+            "description": "The type of the webhook to create",
             "enum": [
               "dingtalk",
               "discord",
@@ -4101,6 +4044,7 @@
         "description": "CreateIssueCommentOption options for creating a comment on an issue",
         "properties": {
           "body": {
+            "description": "Body is the comment text content",
             "type": "string",
             "x-go-name": "Body"
           }
@@ -4231,6 +4175,7 @@
             "x-go-name": "IsArchived"
           },
           "name": {
+            "description": "Name is the display name for the new label",
             "type": "string",
             "x-go-name": "Name"
           }
@@ -4251,12 +4196,18 @@
             "x-go-name": "Description"
           },
           "due_on": {
+            "description": "Deadline is the due date for the milestone",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Deadline"
           },
           "state": {
-            "$ref": "#/components/schemas/StateType"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StateType"
+              }
+            ],
+            "description": "State indicates the initial state of the milestone"
           },
           "title": {
             "description": "Title is the title of the new milestone",
@@ -4356,7 +4307,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "possible values are `public` (default), `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "possible values are `public` (default), `limited` or `private`"
           },
           "website": {
             "description": "The website URL of the organization",
@@ -4636,7 +4587,7 @@
                 "$ref": "#/components/schemas/ObjectFormatName"
               }
             ],
-            "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256"
+            "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)"
           },
           "private": {
             "description": "Whether the repository is private",
@@ -4690,7 +4641,7 @@
                 "$ref": "#/components/schemas/CommitStatusState"
               }
             ],
-            "description": "State represents the status state to set (pending, success, error, failure)\npending CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped is for when CommitStatus is Skipped"
+            "description": "State represents the status state to set (pending, success, error, failure)"
           },
           "target_url": {
             "description": "TargetURL is the URL to link to for more details",
@@ -4711,6 +4662,7 @@
             "x-go-name": "Message"
           },
           "tag_name": {
+            "description": "The name of the tag to create",
             "type": "string",
             "x-go-name": "TagName"
           },
@@ -4780,13 +4732,15 @@
             "$ref": "#/components/schemas/RepoWritePermission"
           },
           "units": {
+            "deprecated": true,
+            "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
             "example": [
               "repo.actions",
+              "repo.packages",
               "repo.code",
               "repo.issues",
               "repo.ext_issues",
               "repo.wiki",
-              "repo.ext_wiki",
               "repo.pulls",
               "repo.releases",
               "repo.projects",
@@ -4796,13 +4750,25 @@
               "type": "string"
             },
             "type": "array",
+            "x-deprecated": true,
             "x-go-name": "Units"
           },
           "units_map": {
             "additionalProperties": {
               "type": "string"
             },
-            "example": "{\"repo.actions\",\"repo.packages\",\"repo.code\":\"read\",\"repo.issues\":\"write\",\"repo.ext_issues\":\"none\",\"repo.wiki\":\"admin\",\"repo.pulls\":\"owner\",\"repo.releases\":\"none\",\"repo.projects\":\"none\",\"repo.ext_wiki\":\"none\"}",
+            "example": {
+              "repo.actions": "read",
+              "repo.code": "read",
+              "repo.ext_issues": "none",
+              "repo.ext_wiki": "none",
+              "repo.issues": "write",
+              "repo.packages": "read",
+              "repo.projects": "none",
+              "repo.pulls": "owner",
+              "repo.releases": "none",
+              "repo.wiki": "admin"
+            },
             "type": "object",
             "x-go-name": "UnitsMap"
           },
@@ -4812,7 +4778,7 @@
                 "$ref": "#/components/schemas/TeamVisibility"
               }
             ],
-            "description": "Team visibility within the organization. Defaults to \"private\".\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
+            "description": "Team visibility within the organization. Defaults to \"private\"."
           }
         },
         "required": [
@@ -4831,7 +4797,6 @@
             "x-go-name": "Created"
           },
           "email": {
-            "format": "email",
             "type": "string",
             "x-go-name": "Email"
           },
@@ -4883,7 +4848,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "User visibility level: public, limited, or private"
           }
         },
         "required": [
@@ -5079,6 +5044,7 @@
         "description": "DeployKey a deploy key",
         "properties": {
           "created_at": {
+            "description": "Created is the time when the deploy key was added",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -5413,6 +5379,7 @@
         "description": "EditIssueCommentOption options for editing a comment",
         "properties": {
           "body": {
+            "description": "Body is the updated comment text content",
             "type": "string",
             "x-go-name": "Body"
           }
@@ -5585,7 +5552,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "possible values are `public`, `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "possible values are `public`, `limited` or `private`"
           },
           "website": {
             "description": "The website URL of the organization",
@@ -5967,6 +5934,8 @@
             "$ref": "#/components/schemas/RepoWritePermission"
           },
           "units": {
+            "deprecated": true,
+            "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
             "example": [
               "repo.code",
               "repo.issues",
@@ -5981,6 +5950,7 @@
               "type": "string"
             },
             "type": "array",
+            "x-deprecated": true,
             "x-go-name": "Units"
           },
           "units_map": {
@@ -6006,7 +5976,7 @@
                 "$ref": "#/components/schemas/TeamVisibility"
               }
             ],
-            "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
+            "description": "Team visibility within the organization. When omitted, visibility is\nleft unchanged."
           }
         },
         "required": [
@@ -6049,6 +6019,7 @@
             "x-go-name": "Description"
           },
           "email": {
+            "description": "The email address of the user",
             "format": "email",
             "type": "string",
             "x-go-name": "Email"
@@ -6096,6 +6067,7 @@
             "x-go-name": "Restricted"
           },
           "source_id": {
+            "description": "The authentication source ID to associate with the user",
             "format": "int64",
             "type": "integer",
             "x-go-name": "SourceID"
@@ -6106,7 +6078,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "User visibility level: public, limited, or private"
           },
           "website": {
             "description": "The user's personal website URL",
@@ -6125,6 +6097,7 @@
         "description": "Email an email address belonging to a user",
         "properties": {
           "email": {
+            "description": "The email address",
             "format": "email",
             "type": "string",
             "x-go-name": "Email"
@@ -6204,6 +6177,7 @@
             "$ref": "#/components/schemas/CommitUser"
           },
           "created": {
+            "description": "Created is the time when the commit was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -6346,6 +6320,7 @@
             "x-go-name": "CanSign"
           },
           "created_at": {
+            "description": "The date and time when the GPG key was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -6359,6 +6334,7 @@
             "x-go-name": "Emails"
           },
           "expires_at": {
+            "description": "The date and time when the GPG key expires",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Expires"
@@ -6851,6 +6827,7 @@
             "x-go-name": "Config"
           },
           "created_at": {
+            "description": "The date and time when the webhook was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -6880,6 +6857,7 @@
             "x-go-name": "Type"
           },
           "updated_at": {
+            "description": "The date and time when the webhook was last updated",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Updated"
@@ -6892,6 +6870,7 @@
         "description": "Identity for a person's identity like an author or committer",
         "properties": {
           "email": {
+            "description": "Email is the person's email address",
             "format": "email",
             "type": "string",
             "x-go-name": "Email"
@@ -7426,9 +7405,9 @@
             "type": "string"
           },
           "Wiki": {
-            "deprecated": true,
-            "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
-            "type": "boolean"
+            "description": "Is it a wiki page? (use mode=wiki instead)",
+            "type": "boolean",
+            "x-deprecated": true
           }
         },
         "type": "object",
@@ -7454,9 +7433,9 @@
             "type": "string"
           },
           "Wiki": {
-            "deprecated": true,
-            "description": "Is it a wiki page? (use mode=wiki instead)\n\nDeprecated: true",
-            "type": "boolean"
+            "description": "Is it a wiki page? (use mode=wiki instead)",
+            "type": "boolean",
+            "x-deprecated": true
           }
         },
         "type": "object",
@@ -7698,7 +7677,7 @@
                 "$ref": "#/components/schemas/StateType"
               }
             ],
-            "description": "State indicates if the milestone is open or closed\nopen StateOpen pr is opened\nclosed StateClosed pr is closed"
+            "description": "State indicates if the milestone is open or closed"
           },
           "title": {
             "description": "Title is the title of the milestone",
@@ -7724,142 +7703,6 @@
           "pull_requests": {
             "type": "boolean",
             "x-go-name": "PullRequests"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfo": {
-        "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
-        "properties": {
-          "metadata": {
-            "description": "Metadata contains free form key value pairs for software specific values",
-            "type": "object",
-            "x-go-name": "Metadata"
-          },
-          "openRegistrations": {
-            "description": "OpenRegistrations indicates if new user registrations are accepted",
-            "type": "boolean",
-            "x-go-name": "OpenRegistrations"
-          },
-          "protocols": {
-            "description": "Protocols lists the protocols supported by this server",
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "x-go-name": "Protocols"
-          },
-          "services": {
-            "$ref": "#/components/schemas/NodeInfoServices"
-          },
-          "software": {
-            "$ref": "#/components/schemas/NodeInfoSoftware"
-          },
-          "usage": {
-            "$ref": "#/components/schemas/NodeInfoUsage"
-          },
-          "version": {
-            "description": "Version specifies the schema version",
-            "type": "string",
-            "x-go-name": "Version"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfoServices": {
-        "description": "NodeInfoServices contains the third party sites this server can connect to via their application API",
-        "properties": {
-          "inbound": {
-            "description": "Inbound lists services that can deliver content to this server",
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "x-go-name": "Inbound"
-          },
-          "outbound": {
-            "description": "Outbound lists services this server can deliver content to",
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "x-go-name": "Outbound"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfoSoftware": {
-        "description": "NodeInfoSoftware contains Metadata about server software in use",
-        "properties": {
-          "homepage": {
-            "description": "Homepage is the URL to the homepage of this server software",
-            "type": "string",
-            "x-go-name": "Homepage"
-          },
-          "name": {
-            "description": "Name is the canonical name of this server software",
-            "type": "string",
-            "x-go-name": "Name"
-          },
-          "repository": {
-            "description": "Repository is the URL to the source code repository",
-            "type": "string",
-            "x-go-name": "Repository"
-          },
-          "version": {
-            "description": "Version is the version of this server software",
-            "type": "string",
-            "x-go-name": "Version"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfoUsage": {
-        "description": "NodeInfoUsage contains usage statistics for this server",
-        "properties": {
-          "localComments": {
-            "description": "LocalComments is the total amount of comments made by users local to this server",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "LocalComments"
-          },
-          "localPosts": {
-            "description": "LocalPosts is the total amount of posts made by users local to this server",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "LocalPosts"
-          },
-          "users": {
-            "$ref": "#/components/schemas/NodeInfoUsageUsers"
-          }
-        },
-        "type": "object",
-        "x-go-package": "gitea.dev/modules/structs"
-      },
-      "NodeInfoUsageUsers": {
-        "description": "NodeInfoUsageUsers contains statistics about the users of this server",
-        "properties": {
-          "activeHalfyear": {
-            "description": "ActiveHalfyear is the amount of users that signed in at least once in the last 180 days",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "ActiveHalfyear"
-          },
-          "activeMonth": {
-            "description": "ActiveMonth is the amount of users that signed in at least once in the last 30 days",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "ActiveMonth"
-          },
-          "total": {
-            "description": "Total is the total amount of users on this server",
-            "format": "int64",
-            "type": "integer",
-            "x-go-name": "Total"
           }
         },
         "type": "object",
@@ -7915,7 +7758,7 @@
             "x-go-name": "LatestCommentURL"
           },
           "state": {
-            "description": "State indicates the current state of the notification subject\nopen NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged is a merged pull request",
+            "description": "State indicates the current state of the notification subject",
             "enum": [
               "open",
               "closed",
@@ -7931,7 +7774,7 @@
             "x-go-name": "Title"
           },
           "type": {
-            "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
+            "description": "Type indicates the type of the notification subject",
             "enum": [
               "Issue",
               "Pull",
@@ -7939,7 +7782,7 @@
               "Repository"
             ],
             "type": "string",
-            "x-go-enum-desc": "Issue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
+            "x-go-enum-desc": "Issue NotifySubjectIssue an issue is subject of a notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
             "x-go-name": "Type"
           },
           "url": {
@@ -8109,7 +7952,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "The visibility level of the organization (public, limited, private)\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "The visibility level of the organization (public, limited, private)"
           },
           "website": {
             "description": "The website URL of the organization",
@@ -8187,6 +8030,7 @@
         "description": "Package represents a package",
         "properties": {
           "created_at": {
+            "description": "The date and time when the package was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "CreatedAt"
@@ -8319,6 +8163,7 @@
             "x-go-name": "Removed"
           },
           "timestamp": {
+            "description": "The timestamp when the commit was made",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Timestamp"
@@ -8472,6 +8317,7 @@
         "description": "PublicKey publickey is a user key to push code to repository",
         "properties": {
           "created_at": {
+            "description": "Created is the time when the key was added",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -8714,7 +8560,7 @@
                 "$ref": "#/components/schemas/StateType"
               }
             ],
-            "description": "The current state of the pull request\nopen StateOpen pr is opened\nclosed StateClosed pr is closed"
+            "description": "The current state of the pull request"
           },
           "title": {
             "description": "The title of the pull request",
@@ -9049,6 +8895,7 @@
             "x-go-name": "Reaction"
           },
           "created_at": {
+            "description": "The date and time when the reaction was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -9232,7 +9079,7 @@
                 "$ref": "#/components/schemas/AccessLevelName"
               }
             ],
-            "description": "Permission level of the collaborator\nnone AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner"
+            "description": "Permission level of the collaborator"
           },
           "role_name": {
             "description": "RoleName is the name of the permission role",
@@ -9539,7 +9386,7 @@
                 "$ref": "#/components/schemas/ObjectFormatName"
               }
             ],
-            "description": "ObjectFormatName of the underlying git repository\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256"
+            "description": "ObjectFormatName of the underlying git repository"
           },
           "open_issues_count": {
             "format": "int64",
@@ -9751,6 +9598,7 @@
         "description": "StopWatch represent a running stopwatch",
         "properties": {
           "created": {
+            "description": "Created is the time when the stopwatch was started",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -9846,6 +9694,7 @@
         "description": "TagProtection represents a tag protection",
         "properties": {
           "created_at": {
+            "description": "The date and time when the tag protection was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -9862,6 +9711,7 @@
             "x-go-name": "NamePattern"
           },
           "updated_at": {
+            "description": "The date and time when the tag protection was last updated",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Updated"
@@ -9922,6 +9772,8 @@
             "$ref": "#/components/schemas/AccessLevelName"
           },
           "units": {
+            "deprecated": true,
+            "description": "Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.",
             "example": [
               "repo.code",
               "repo.issues",
@@ -9936,6 +9788,7 @@
               "type": "string"
             },
             "type": "array",
+            "x-deprecated": true,
             "x-go-name": "Units"
           },
           "units_map": {
@@ -9961,7 +9814,7 @@
                 "$ref": "#/components/schemas/TeamVisibility"
               }
             ],
-            "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser.\npublic TeamVisibilityPublic\nlimited TeamVisibilityLimited\nprivate TeamVisibilityPrivate"
+            "description": "Team visibility within the organization. \"private\" teams are only\nlistable by members and org owners; \"limited\" teams are listable by\nany organization member; \"public\" teams are listable by any signed-in\nuser."
           }
         },
         "type": "object",
@@ -10493,7 +10346,7 @@
                 "$ref": "#/components/schemas/UserVisibility"
               }
             ],
-            "description": "User visibility level option: public, limited, private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate"
+            "description": "User visibility level option: public, limited, private"
           },
           "website": {
             "description": "the user's website",
@@ -17101,7 +16954,7 @@
             "$ref": "#/components/responses/notFound"
           }
         },
-        "summary": "List an repo's actions secrets",
+        "summary": "List a repo's actions secrets",
         "tags": [
           "repository"
         ]
@@ -17759,6 +17612,15 @@
             "schema": {
               "type": "boolean"
             }
+          },
+          {
+            "description": "For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.",
+            "in": "query",
+            "name": "scoped_workflow_source_repo_id",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
           }
         ],
         "requestBody": {
@@ -17932,6 +17794,15 @@
             "name": "exclude_pull_requests",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "description": "For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.",
+            "in": "query",
+            "name": "scoped_workflow_source_repo_id",
+            "schema": {
+              "format": "int64",
+              "type": "integer"
             }
           },
           {
@@ -19490,7 +19361,7 @@
             }
           },
           {
-            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.",
+            "description": "compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs (including branch names that contain slashes), optionally with a `^` or `~N` revision suffix.",
             "in": "path",
             "name": "basehead",
             "required": true,
@@ -19514,6 +19385,9 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/Compare"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
           },
           "404": {
             "$ref": "#/components/responses/notFound"

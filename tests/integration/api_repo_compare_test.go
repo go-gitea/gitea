@@ -45,6 +45,40 @@ func TestAPICompareBranches(t *testing.T) {
 			assert.Len(t, apiResp.Commits, 1)
 		})
 
+		t.Run("CompareWithRefSuffix", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			// remove-files-b^ is the parent of the tip, so the range drops the tip and ends at that parent
+			const parentSHA = "b67e43a07d48243a5f670ace063acd5e13f719df"
+			req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b^").AddTokenAuth(token2)
+			resp := MakeRequest(t, req, http.StatusOK)
+			apiResp := DecodeJSON(t, resp, &api.Compare{})
+			assert.Equal(t, 1, apiResp.TotalCommits)
+			assert.Len(t, apiResp.Commits, 1)
+			assert.Equal(t, parentSHA, apiResp.Commits[0].SHA)
+
+			// the same suffix on the direct ".." comparison resolves to the same commit
+			req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv..remove-files-b^").AddTokenAuth(token2)
+			resp = MakeRequest(t, req, http.StatusOK)
+			apiResp = DecodeJSON(t, resp, &api.Compare{})
+			assert.Equal(t, 1, apiResp.TotalCommits)
+			assert.Equal(t, parentSHA, apiResp.Commits[0].SHA)
+
+			req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv~1...add-csv").AddTokenAuth(token2)
+			resp = MakeRequest(t, req, http.StatusOK)
+			apiResp = DecodeJSON(t, resp, &api.Compare{})
+			assert.Equal(t, 1, apiResp.TotalCommits)
+			assert.Len(t, apiResp.Commits, 1)
+
+			// a valid but unresolvable suffix is not found, while an unsupported suffix (^{...}) is a bad request
+			req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b~50").AddTokenAuth(token2)
+			MakeRequest(t, req, http.StatusNotFound)
+			req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv...remove-files-b^{/Add}").AddTokenAuth(token2)
+			MakeRequest(t, req, http.StatusBadRequest)
+			req = NewRequestf(t, "GET", "/api/v1/repos/user2/repo20/compare/add-csv^{/Add}...remove-files-b").AddTokenAuth(token2)
+			MakeRequest(t, req, http.StatusBadRequest)
+		})
+
 		t.Run("CompareForkOnlyCommit", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 

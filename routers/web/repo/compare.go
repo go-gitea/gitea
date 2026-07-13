@@ -208,11 +208,6 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	// 1 Parse compare router param
 	compareReq := common.ParseCompareRouterParam(compareParam)
 
-	// remove the check when we support compare with carets
-	if compareReq.BaseOriRefSuffix != "" {
-		return util.NewInvalidArgumentErrorf("unsupported comparison syntax: ref with suffix")
-	}
-
 	// 2 get repository and owner for head
 	headOwner, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
 	if err != nil {
@@ -241,18 +236,18 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx))
 	headRefName := util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch)
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefName)
-	if baseRef == "" {
-		return util.NewNotExistErrorf("no base ref: %s", baseRefName)
+	baseRef, err := common.ResolveRefWithSuffix(ctx.Repo.GitRepo, baseRefName, compareReq.BaseOriRefSuffix)
+	if err != nil {
+		return err
 	}
 	headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
 	if err != nil {
 		return err
 	}
 
-	headRef := headGitRepo.UnstableGuessRefByShortName(headRefName)
-	if headRef == "" {
-		return util.NewNotExistErrorf("no head ref: %s", headRefName)
+	headRef, err := common.ResolveRefWithSuffix(headGitRepo, headRefName, compareReq.HeadOriRefSuffix)
+	if err != nil {
+		return err
 	}
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName
@@ -388,7 +383,9 @@ func autoTitleFromBranchName(name string) string {
 
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses, defaultTitleSource string) (title, content string) {
 	useFirstCommitAsTitle := len(commits) == 1 || (defaultTitleSource == setting.RepoPRTitleSourceFirstCommit && len(commits) > 0)
-	if useFirstCommitAsTitle {
+	if defaultTitleSource == setting.RepoPRTitleSourceBranchName {
+		title = ci.HeadRef.ShortName()
+	} else if useFirstCommitAsTitle {
 		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
 		c := commits[len(commits)-1]
 		title = c.UserCommit.GitCommit.MessageTitle()
