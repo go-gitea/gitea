@@ -48,6 +48,8 @@ export function initStopwatch() {
 
   let pollerStarted = false;
   onUserEvent('stopwatches', (msg) => updateStopwatchData(msg.data));
+  // On each (re)connect, reconcile stopwatch state from the server to recover any push dropped during the connect gap.
+  onUserEvent('ws-connected', () => { updateStopwatch() }); // no await
   onUserEvent('push-unavailable', () => {
     if (pollerStarted) return;
     pollerStarted = true;

@@ -11,6 +11,15 @@ let fallbackSignalled = false;
 let sharedWorker: SharedWorker | null = null;
 
 function dispatch(msg: UserEventMessage) {
+  if (msg.type === 'ws-connected') {
+    // A fresh connection may have missed pushes, so drop the dedup state:
+    // otherwise a later push whose value matches a pre-reconnect one would be
+    // suppressed. Then let subscribers reconcile from the server.
+    lastPayload.clear();
+    const set = subscribers.get(msg.type);
+    if (set) for (const cb of set) cb(msg);
+    return;
+  }
   const serialized = JSON.stringify(msg);
   if (lastPayload.get(msg.type) === serialized) return;
   lastPayload.set(msg.type, serialized);

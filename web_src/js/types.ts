@@ -81,7 +81,8 @@ export const serverEventTypes = ['notification-count', 'stopwatches', 'logout'] 
 
 export type UserEventMessage =
   ServerEventMessage |
-  {type: 'push-unavailable'};
+  {type: 'push-unavailable'} |
+  {type: 'ws-connected'};
 
 export type UserEventType = UserEventMessage['type'];
 
