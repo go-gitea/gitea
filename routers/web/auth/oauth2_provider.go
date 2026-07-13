@@ -98,6 +98,19 @@ func InfoOAuth(ctx *context.Context) {
 		return
 	}
 
+	// enforce the same user scope the REST API requires before returning identity
+	// claims; OIDC access tokens map to the "all" scope, so standard OIDC clients
+	// are unaffected and only explicitly-restricted tokens are rejected
+	tokenScope, _ := ctx.Data["ApiTokenScope"].(auth.AccessTokenScope)
+	if allowed, err := tokenScope.HasScope(auth.AccessTokenScopeReadUser); err != nil {
+		ctx.ServerError("HasScope", err)
+		return
+	} else if !allowed {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea OAuth2"`)
+		ctx.PlainText(http.StatusForbidden, "token does not have required scope: read:user")
+		return
+	}
+
 	response := &userInfoResponse{
 		Sub:               strconv.FormatInt(ctx.Doer.ID, 10),
 		Name:              ctx.Doer.DisplayName(),
