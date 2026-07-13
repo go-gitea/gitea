@@ -4,13 +4,23 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.27.0-rc0](https://github.com/go-gitea/gitea/releases/tag/v1.27.0-rc0) - 2026-06-28
+## [1.27.0](https://github.com/go-gitea/gitea/releases/tag/v1.27.0) - 2026-07-13
 
 * BREAKING
   * Feat(actions)!: improve support for reusable workflows (#37478)
   * Use Content-Security-Policy: script nonce (#37232)
 
 * SECURITY
+  * Fix: various security fixes (#38406) (#38426)
+  * Fix(security): harden access checks and migration validation (#38324) (#38400)
+  * Fix: enforce public-only token scope and harden push options / locale parsing (#38323) (#38399)
+  * Fix(pull): re-evaluate review official flag on target branch change (#38319) (#38402)
+  * Fix(api): stop leaking private repo metadata after access revocation (#38321) (#38390)
+  * Fix(lfs): require proof of possession for cross-repo objects (#38322) (#38389)
+  * Fix(mirror): disable HTTP redirects on pull mirror sync (#38320) (#38367)
+  * Fix: golang html template url escaping (#38363) (#38369)
+  * Fix(release): validate web attachment renames against allowed types (#38314) (#38328)
+  * Fix(release): gate draft release attachments on web download endpoints (#38318) (#38325)
   * Fix(deps): update module github.com/go-git/go-git/v5 to v5.19.1 [security] (#37786)
   * Fix(oauth): restrict introspection to the token's client (#38042)
   * Fix(api): don't expose private org membership via public_members (#38145)
@@ -44,6 +54,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Feat(ssh): auto generate additional ssh keys (#33974)
 
 * ENHANCEMENTS
+  * Enhance(actions): only create filtered-out workflow commit status for required contexts (#38371) (#38385)
   * Enhance: allow builtin default git config options to be overridden (#38172)
   * Enhance: allow MathML core elements (#38034)
   * Enhance(markup): improve issue title rendering (#37908)
@@ -71,12 +82,34 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add API endpoint to reply to pull request review comments (#36683)
 
 * PERFORMANCE
+  * Perf(actions): debounce runner heartbeat writes and throttle task picks (#38281) (#38368)
   * Perf(web): sort the action_run query by a repo-scoped index when possible (#38155)
   * Perf: Various performance regression fixes (#38078)
   * Perf: extend action `c_u` index to include `created_unix` for faster dashboard feeds (#38076)
   * Batch-load related data in actions run, job, and task API endpoints (#37032)
 
 * BUGFIXES
+  * Fix(util): reject invalid characters between time-estimate units (#38416) (#38423)
+  * Fix: represent a deleted assignee team as a Ghost team (#38413) (#38419)
+  * Fix(turnstile): route CAPTCHA verification through the configured proxy (#38412) (#38420)
+  * Fix: refresh pull request merge box when the commit status is pending (#38410) (#38411)
+  * Fix: actions task state concurrent update (#38405) (#38409)
+  * Fix(actions): keep workflow run trailing on one row with long branch names (#38382) (#38403)
+  * Fix(web): use locale-aware date formatting for contribution calendar tooltips (#38398) (#38401)
+  * Fix: co-author detection (#38392) (#38397)
+  * Fix: incorrect co-author detection on commit page (#38386) (#38387)
+  * Fix(ui): restore commits table column widths (#38379) (#38383)
+  * Fix: minio init check (#38355) (#38361)
+  * Fix: org project view assignee list (#38357) (#38360)
+  * Fix(actions): release claimed task if context is cancelled during `FetchTask` (#38343) (#38347)
+  * Fix(actions): make runner list pagination order deterministic (#38313) (#38327)
+  * Fix: Improve since/until when counting commits for X-Total-Count (#38243) (#38304)
+  * Fix(actions): prevent chevron overlap with log text when timestamps are enabled (#38227) (#38307)
+  * Fix(workflows): branch protection status checks fail when workflow uses on: paths filter (#38237) (#38302)
+  * Fix(oauth2): persist linkAccountData during auto-link 2FA flow (#38274) (#38295)
+  * Fix(actions): allow Actions bot to push to protected branches (#38284) (#38293)
+  * Fix(actions): include all aggregable run statuses in status filter (#38280) (#38287)
+  * Fix(archiver): use serializable repo-archive queue payload (#38273) (#38283)
   * Fix: update npm dependencies, fix misc issues (#38257)
   * Fix(api): respect since/until when counting commits for X-Total-Count (#38204)
   * Fix: codemirror regressions (#38248)
@@ -134,6 +167,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Refactor flash message and remove SanitizeHTML template func (#37179)
 
 * TESTING
+  * Test(e2e): fix race in pdf file render test (#38380) (#38381)
+  * Test: compare key file contents instead of `FileInfo` in `TestInitKeys` (#38330) (#38331)
   * Test: speed up two tests (#37905)
   * Test: Fix random failure test (#37887)
   * Test: fix flaky `issue-comment` close test (#37880)
