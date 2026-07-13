@@ -99,6 +99,10 @@ type FindRunJobOptions struct {
 	UpdatedBefore    timeutil.TimeStamp
 	ConcurrencyGroup string
 	OrderBy          db.SearchOrderBy
+	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
+	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
+	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
+	AccessibleRepoIDsSubQuery *builder.Builder
 }
 
 var JobOrderByMap = map[string]map[string]db.SearchOrderBy{
@@ -131,6 +135,9 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 			panic("Invalid FindRunJobOptions: repo_id is required")
 		}
 		cond = cond.And(builder.Eq{"`action_run_job`.concurrency_group": opts.ConcurrencyGroup})
+	}
+	if opts.AccessibleRepoIDsSubQuery != nil {
+		cond = cond.And(builder.In("`action_run_job`.repo_id", opts.AccessibleRepoIDsSubQuery))
 	}
 	return cond
 }

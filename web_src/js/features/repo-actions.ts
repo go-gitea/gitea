@@ -2,6 +2,9 @@ import {createApp} from 'vue';
 import RepoActionView from '../components/RepoActionView.vue';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 import {html} from '../utils/html.ts';
+import {GET} from '../modules/fetch.ts';
+import {activePageTimerRefresh, createElementFromHTML, protectMorphElements, recoverMorphElements} from '../utils/dom.ts';
+import {Idiomorph} from 'idiomorph';
 
 export function updateWorkflowBadgeFields(form: HTMLElement, branch: string): void {
   const badgeURLParsed = new URL(form.getAttribute('data-badge-url')!);
@@ -27,6 +30,7 @@ function initWorkflowBadgeForm(form: HTMLElement): void {
 export function initRepositoryActions() {
   registerGlobalInitFunc('initWorkflowBadgeForm', initWorkflowBadgeForm);
   initRepositoryActionsView();
+  registerGlobalInitFunc('initActionRunsList', initActionRunsList);
 }
 
 function initRepositoryActionsView() {
@@ -102,4 +106,29 @@ function initRepositoryActionsView() {
     },
   });
   view.mount(el);
+}
+
+function initActionRunsList(el: HTMLElement) {
+  activePageTimerRefresh({
+    interval: () => Number(el.getAttribute('data-action-runs-refresh-interval')),
+    async callback() {
+      const resp = await GET(el.getAttribute('data-action-runs-refresh-link')!);
+      if (!resp.ok || resp.status !== 200) return;
+
+      const newEl = createElementFromHTML(await resp.text());
+      for (const attr of newEl.attributes) el.setAttribute(attr.name, attr.value);
+      for (const newItem of newEl.querySelectorAll(':scope > .item')) {
+        const oldItem = el.querySelector(`#${newItem.id}`);
+        if (!oldItem) continue;
+
+        // If the end user is operating the row, then don't refresh its content.
+        // Otherwise, there will be more edge cases and inconsistencies, e.g.: dropdown still shows old items but the icon has changed.
+        if (oldItem.querySelector('.ui.dropdown.active')) continue;
+
+        const protectedElems = protectMorphElements(newItem);
+        Idiomorph.morph(oldItem, newItem, {morphStyle: 'outerHTML'});
+        recoverMorphElements(el.querySelector(`#${newItem.id}`)!, protectedElems);
+      }
+    },
+  });
 }
