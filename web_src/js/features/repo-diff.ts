@@ -13,6 +13,7 @@ import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {performFetchActionTrigger} from './common-fetch-action.ts';
+import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -149,9 +150,10 @@ function initDiffHeaderPopup() {
   }
 }
 
-// Will be called when the show more (files) button has been pressed
+// Will be called when the show more (files) button has loaded more files
 function onShowMoreFiles() {
-  // TODO: replace these calls with the "observer.ts" methods
+  applyFiltersToFileBoxes(diffTreeStore());
+  // TODO: replace these calls with the "data-global-init" methods
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   initImageDiff();

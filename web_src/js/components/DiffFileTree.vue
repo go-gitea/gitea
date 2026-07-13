@@ -29,15 +29,9 @@ function clearSearch() {
   store.filenameFilterQuery = '';
 }
 
-let fileBoxesObserver: MutationObserver;
-
 onMounted(() => {
   store.fileTreeIsVisible = localUserSettings.getBoolean(LOCAL_STORAGE_KEY, true);
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
-
-  fileBoxesObserver = new MutationObserver(() => applyFiltersToFileBoxes(store));
-  fileBoxesObserver.observe(document.querySelector('#diff-file-boxes')!, {childList: true});
-
   hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
 });
@@ -45,7 +39,6 @@ onMounted(() => {
 onUnmounted(() => {
   document.querySelector('.diff-toggle-file-tree-button')!.removeEventListener('click', toggleVisibility);
   window.removeEventListener('hashchange', hashChangeListener);
-  fileBoxesObserver.disconnect();
 });
 
 function hashChangeListener() {
