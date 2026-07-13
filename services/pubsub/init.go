@@ -10,8 +10,8 @@ import (
 )
 
 // Init replaces DefaultBroker according to setting.Websocket. Called from
-// routers/init.go before websocket_service.Init so subscribers wire up to the
-// configured backend.
+// websocket.Init before the notifier is registered so subscribers wire up to
+// the configured backend.
 func Init() error {
 	switch setting.Websocket.PubsubType {
 	case setting.PubsubTypeMemory:
