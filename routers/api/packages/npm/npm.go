@@ -333,9 +333,16 @@ func ListPackageTags(ctx *context.Context) {
 func AddPackageTag(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
 
-	body, err := io.ReadAll(ctx.Req.Body)
+	// the dist-tag body is only a quoted version string; bound it to avoid an unbounded
+	// read that could exhaust memory
+	const maxDistTagBodySize = 4 * 1024
+	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, maxDistTagBodySize+1))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(body) > maxDistTagBodySize {
+		apiError(ctx, http.StatusRequestEntityTooLarge, errors.New("request body too large"))
 		return
 	}
 	version := strings.Trim(string(body), "\"") // is as "version" in the body
