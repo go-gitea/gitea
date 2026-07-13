@@ -6,6 +6,7 @@ package v1_28
 import (
 	"testing"
 
+	"gitea.dev/models/db"
 	"gitea.dev/models/migrations/migrationtest"
 
 	"github.com/stretchr/testify/assert"
@@ -19,12 +20,6 @@ func Test_AddActionRunJobMatchingSchema(t *testing.T) {
 		Status  int      `xorm:"index"`
 		Updated int64
 	}
-	type ActionRunJobLabel struct {
-		ID    int64  `xorm:"pk autoincr"`
-		JobID int64  `xorm:"UNIQUE(job_label) NOT NULL"`
-		Label string `xorm:"UNIQUE(job_label) INDEX VARCHAR(255) NOT NULL"`
-	}
-
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(ActionRunJob))
 	defer deferable()
 	if x == nil || t.Failed() {
@@ -48,6 +43,27 @@ func Test_AddActionRunJobMatchingSchema(t *testing.T) {
 
 	require.NoError(t, AddActionRunJobMatchingSchema(x))
 
+	want := map[int64][]string{
+		jobs[0].ID: {"self-hosted", "ubuntu-latest"},
+		jobs[1].ID: {"linux"},
+		jobs[4].ID: {"windows"},
+	}
+	assert.Equal(t, want, readJobLabels(t, x))
+
+	// The backfill commits per page, so a failure partway through leaves earlier pages
+	// committed while the migration stays unrecorded and re-runs from the start. Re-running
+	// it must not trip UNIQUE(job_label), or the migration could never complete.
+	require.NoError(t, AddActionRunJobMatchingSchema(x))
+	assert.Equal(t, want, readJobLabels(t, x))
+}
+
+func readJobLabels(t *testing.T, x db.EngineMigration) map[int64][]string {
+	t.Helper()
+	type ActionRunJobLabel struct {
+		ID    int64  `xorm:"pk autoincr"`
+		JobID int64  `xorm:"UNIQUE(job_label) NOT NULL"`
+		Label string `xorm:"UNIQUE(job_label) INDEX VARCHAR(255) NOT NULL"`
+	}
 	var labels []ActionRunJobLabel
 	require.NoError(t, x.OrderBy("job_id, label").Find(&labels))
 
@@ -55,9 +71,5 @@ func Test_AddActionRunJobMatchingSchema(t *testing.T) {
 	for _, l := range labels {
 		got[l.JobID] = append(got[l.JobID], l.Label)
 	}
-	assert.Equal(t, map[int64][]string{
-		jobs[0].ID: {"self-hosted", "ubuntu-latest"},
-		jobs[1].ID: {"linux"},
-		jobs[4].ID: {"windows"},
-	}, got)
+	return got
 }

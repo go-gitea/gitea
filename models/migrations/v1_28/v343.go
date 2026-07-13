@@ -71,9 +71,11 @@ func AddActionRunJobMatchingSchema(x db.EngineMigration) error {
 			break
 		}
 
+		jobIDs := make([]int64, 0, len(jobs))
 		var labels []ActionRunJobLabel
 		for _, job := range jobs {
 			lastID = job.ID
+			jobIDs = append(jobIDs, job.ID)
 			// Same empty-label skip and dedup as InsertActionRunJobLabels in models/actions/run_job_label.go.
 			seen := make(map[string]struct{}, len(job.RunsOn))
 			for _, label := range job.RunsOn {
@@ -86,6 +88,16 @@ func AddActionRunJobMatchingSchema(x db.EngineMigration) error {
 				seen[label] = struct{}{}
 				labels = append(labels, ActionRunJobLabel{JobID: job.ID, Label: label})
 			}
+		}
+
+		// Clear any rows this page already has before re-inserting them. The backfill
+		// commits per page, so a failure (or a crash) partway through leaves earlier
+		// pages committed while the migration itself is not recorded as done: the next
+		// startup re-runs it from the first page. Without this delete those pages would
+		// insert their labels a second time and trip UNIQUE(job_label), leaving the
+		// migration permanently unable to complete.
+		if _, err := sess.In("job_id", jobIDs).Delete(new(ActionRunJobLabel)); err != nil {
+			return err
 		}
 
 		if len(labels) > 0 {
