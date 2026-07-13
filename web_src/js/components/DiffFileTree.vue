@@ -20,6 +20,7 @@ const filterFilesClearLabel = el.getAttribute('data-text-filter-files-clear')!;
 
 const visibleTreeItems = computed(() => filterDiffTree(store)?.Children ?? []);
 
+// FIXME: debound or throttle this so we don't run it on every keystroke
 watch(
   () => [store.filenameFilterQuery, store.activeExtensions] as const,
   () => applyFiltersToFileBoxes(store),

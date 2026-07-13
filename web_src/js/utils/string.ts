@@ -5,6 +5,7 @@ export function cutString(s: string, sep: string): [string, string, boolean] {
 }
 
 export function trPrintf(s: string, ...args: any[]) {
+  // TODO: refactor legacy ".replace('%[1]d')" and ".replace('%s')" calls to this function
   let curIdx = 0;
   return s.replace(/%%|%(?:\[([1-9]\d*)\])?([sd])/g, (match, indexed: string) => {
     if (match === '%%') return '%';
