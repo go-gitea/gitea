@@ -350,8 +350,9 @@ func SignInPost(ctx *context.Context) {
 
 	updates := map[string]any{
 		// User will need to use 2FA TOTP or WebAuthn, save data
-		"twofaUid":      u.ID,
-		"twofaRemember": form.Remember,
+		"twofaUid":              u.ID,
+		"twofaRemember":         form.Remember,
+		session.KeySignInMethod: session.SignInMethodPassword,
 	}
 	if hasTOTPtwofa {
 		// User will need to use WebAuthn, save data
@@ -398,6 +399,12 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		return
 	}
 
+	// Preserve method set earlier (e.g. password or OAuth2 before 2FA); default to password.
+	signInMethod := session.SignInMethodPassword
+	if method, ok := ctx.Session.Get(session.KeySignInMethod).(string); ok && method != "" {
+		signInMethod = method
+	}
+
 	if err := regenerateSession(ctx, []string{
 		// Delete the openid, 2fa and link_account data
 		"openid_verified_uri",
@@ -412,6 +419,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		session.KeyUID:                  u.ID,
 		session.KeyUname:                u.Name,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+		session.KeySignInMethod:         signInMethod,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
@@ -484,18 +492,28 @@ func SignOut(ctx *context.Context) {
 }
 
 func buildSignOutRedirectURL(ctx *context.Context) string {
-	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
+	if ctx.Doer != nil && shouldRedirectToOIDCEndSession(ctx) {
 		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
 			return s
 		}
 	}
 
 	// The assumption is: if reverse proxy auth is enabled, then the users should only sign-in via reverse proxy auth.
-	// TODO: in the future, if we need to distinguish different sign-in methods, we need to save the sign-in method in session and check here
 	if setting.Service.EnableReverseProxyAuth && setting.ReverseProxyLogoutRedirect != "" {
 		return setting.ReverseProxyLogoutRedirect
 	}
 	return setting.AppSubURL + "/"
+}
+
+// shouldRedirectToOIDCEndSession reports whether this session should end at the
+// OIDC provider. Prefer the session sign-in method so an OAuth2-linked account
+// that signed in with a password does not hit end_session_endpoint.
+func shouldRedirectToOIDCEndSession(ctx *context.Context) bool {
+	if method, ok := ctx.Session.Get(session.KeySignInMethod).(string); ok && method != "" {
+		return method == session.SignInMethodOAuth2
+	}
+	// Sessions created before sign-in method tracking keep the previous behavior.
+	return ctx.Doer.LoginType == auth.OAuth2
 }
 
 func prepareSignUpPageData(ctx *context.Context) bool {

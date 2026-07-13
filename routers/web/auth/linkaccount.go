@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -171,9 +172,10 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 
 	if err := regenerateSession(ctx, nil, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
-		"twofaUid":      u.ID,
-		"twofaRemember": remember,
-		"linkAccount":   true,
+		"twofaUid":              u.ID,
+		"twofaRemember":         remember,
+		"linkAccount":           true,
+		session.KeySignInMethod: session.SignInMethodOAuth2,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
