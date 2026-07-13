@@ -36,10 +36,19 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
 }
 
 function initRepoPullMergeBoxRefresh(el: Element) {
+  // The merge box has complex buttons & form, if the user has interacted with any element, don't refresh.
+  // Otherwise, the user won't be able to merge or schedule a merge (auto-merge) when the PR status is not ready.
+  let interacted = false;
+  const interactionEvents = ['focusin', 'mousedown', 'click', 'keydown', 'input'];
+  for (const event of interactionEvents) {
+    el.addEventListener(event, () => { interacted = true }, {capture: true});
+  }
+
   activePageTimerRefresh({
     once: true, // on successful refresh, the data-global-init will re-initialize the element
-    interval: () => Number(el.getAttribute('data-pull-merge-box-reloading-interval')),
+    interval: () => interacted ? 0 : Number(el.getAttribute('data-pull-merge-box-reloading-interval')),
     async callback() {
+      if (interacted) return;
       const pullLink = el.getAttribute('data-pull-link')!;
       const resp = await GET(`${pullLink}/merge_box`);
       if (!resp.ok) return;
