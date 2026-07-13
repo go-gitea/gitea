@@ -7,11 +7,11 @@ import {diffTreeStore, getDiffTreeExtensionStats} from '../modules/diff-file.ts'
 
 const treeEl = document.querySelector('#diff-file-tree')!;
 const locale = {
-  filter_by_file_extension: treeEl.getAttribute('data-filter-by-file-extension')!,
-  file_extensions: treeEl.getAttribute('data-file-extensions')!,
-  no_file_extension: treeEl.getAttribute('data-no-file-extension')!,
-  select_all: treeEl.getAttribute('data-select-all-file-extensions')!,
-  select_none: treeEl.getAttribute('data-select-none-file-extensions')!,
+  filter_by_file_extension: treeEl.getAttribute('data-text-filter-by-file-extension')!,
+  file_extensions: treeEl.getAttribute('data-text-file-extensions')!,
+  no_file_extension: treeEl.getAttribute('data-text-no-file-extension')!,
+  select_all: treeEl.getAttribute('data-text-select-all-file-extensions')!,
+  select_none: treeEl.getAttribute('data-text-select-none-file-extensions')!,
 };
 
 const store = diffTreeStore();

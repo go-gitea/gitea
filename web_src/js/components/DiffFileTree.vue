@@ -14,9 +14,9 @@ const store = diffTreeStore();
 
 const el = document.querySelector<HTMLElement>('#diff-file-tree')!;
 
-const filterFilesPlaceholder = el.getAttribute('data-filter-files')!;
-const filterFilesNoResults = el.getAttribute('data-filter-files-no-results')!;
-const filterFilesClearLabel = el.getAttribute('data-filter-files-clear')!;
+const filterFilesPlaceholder = el.getAttribute('data-text-filter-files')!;
+const filterFilesNoResults = el.getAttribute('data-text-filter-files-no-results')!;
+const filterFilesClearLabel = el.getAttribute('data-text-filter-files-clear')!;
 
 const visibleTreeItems = computed(() => filterDiffTree(store)?.Children ?? []);
 
