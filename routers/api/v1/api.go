@@ -99,6 +99,7 @@ import (
 	_ "gitea.dev/routers/api/v1/swagger" // for swagger generation
 
 	"gitea.com/go-chi/binding"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
@@ -290,7 +291,9 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryPackage:
-				if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+				// a public-only token must not reach limited-visibility owners either,
+				// matching the org/user public-only enforcement above
+				if ctx.Package != nil && !ctx.Package.Owner.Visibility.IsPublic() {
 					ctx.APIError(http.StatusForbidden, "token scope is limited to public packages")
 					return
 				}
@@ -949,6 +952,9 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Router {
 	m := web.NewRouter()
+
+	// redirect HEAD requests to GET if no HEAD handler is defined (RFC 9110 §9.3.2)
+	m.BeforeRouting(chi_middleware.GetHead)
 
 	if setting.CORSConfig.Enabled {
 		m.BeforeRouting(cors.Handler(cors.Options{

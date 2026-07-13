@@ -61,6 +61,41 @@ func TestAPIPullUpdate(t *testing.T) {
 	})
 }
 
+// TestAPIPullUpdatePublicOnlyToken verifies that a public-only API token cannot
+// update (push into) a PR whose head repo is private, even when the base repo
+// named in the route is public.
+func TestAPIPullUpdatePublicOnlyToken(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+		pr := createOutdatedPR(t, user, org26)
+		require.NoError(t, pr.LoadBaseRepo(t.Context()))
+		require.NoError(t, pr.LoadHeadRepo(t.Context()))
+		require.NoError(t, pr.LoadIssue(t.Context()))
+
+		// make the head repo private while the base repo stays public
+		require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(),
+			&repo_model.Repository{ID: pr.HeadRepo.ID, IsPrivate: true}, "is_private"))
+
+		// a public-only write token must be refused (404), not perform the push
+		publicOnlyToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopePublicOnly)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(publicOnlyToken)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// the head branch must still be outdated (no push happened)
+		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		assert.Equal(t, 1, diffCount.Behind)
+
+		// a normal write token still works, proving the guard is scope-specific
+		token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository)
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+	})
+}
+
 func updateRepoPullRequestConfig(t *testing.T, repoID int64, update func(*repo_model.PullRequestsConfig)) {
 	t.Helper()
 

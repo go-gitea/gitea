@@ -49,9 +49,10 @@ type APIContext struct {
 }
 
 // TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
-// A public-only token cannot reach a private repo; any other token is unrestricted by this check.
+// A public-only token cannot reach a private repo or a repo owned by a non-public (limited or
+// private) owner; any other token is unrestricted by this check.
 func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
-	return repo == nil || !ctx.PublicOnly || !repo.IsPrivate
+	return !ctx.PublicOnly || !publicOnlyTokenDeniedRepo(ctx, repo)
 }
 
 func init() {
@@ -103,10 +104,6 @@ type APINotFound struct{}
 // APIConflict is a conflict empty response
 // swagger:response conflict
 type APIConflict struct{}
-
-// APIRedirect is a redirect response
-// swagger:response redirect
-type APIRedirect struct{}
 
 // APIString is a string response
 // swagger:response string

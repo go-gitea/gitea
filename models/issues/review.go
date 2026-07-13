@@ -324,6 +324,59 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	return slices.Contains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil
 }
 
+// RecalculateReviewsOfficial re-evaluates the "official" flag of the latest approve
+// and reject reviews of an issue against its pull request's current base branch.
+// It must be called whenever the target branch changes, otherwise an approval that
+// was official on the previous (possibly unprotected) branch would keep satisfying
+// the new branch's protection rules.
+func RecalculateReviewsOfficial(ctx context.Context, issue *Issue) error {
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return err
+	}
+
+	// Clearing and restoring the official flags must happen atomically, otherwise a
+	// failure in between would leave the reviews without any official flag set.
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Only the latest approve/reject review of each reviewer counts as official, so
+		// clear the flag on all of them first and restore it only where it still applies.
+		if _, err := db.GetEngine(ctx).
+			Where("issue_id = ?", issue.ID).
+			In("type", ReviewTypeApprove, ReviewTypeReject).
+			Cols("official").
+			Update(&Review{Official: false}); err != nil {
+			return err
+		}
+
+		reviews, err := FindLatestReviews(ctx, FindReviewOptions{
+			Types:   []ReviewType{ReviewTypeApprove, ReviewTypeReject},
+			IssueID: issue.ID,
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, review := range reviews {
+			if err := review.LoadReviewer(ctx); err != nil {
+				return err
+			}
+			if review.Reviewer == nil {
+				continue
+			}
+			official, err := IsOfficialReviewer(ctx, issue, review.Reviewer)
+			if err != nil {
+				return err
+			}
+			if official {
+				if _, err := db.GetEngine(ctx).ID(review.ID).Cols("official").Update(&Review{Official: true}); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+}
+
 // CreateReview creates a new review based on opts
 func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Review, error) {
