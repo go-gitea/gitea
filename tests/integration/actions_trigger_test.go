@@ -166,6 +166,14 @@ jobs:
 		assert.Equal(t, addFileToForkedResp.Commit.SHA, actionRun.CommitSHA)
 		assert.Equal(t, actions_module.GithubEventPullRequestTarget, actionRun.TriggerEvent)
 
+		// require the workflow's status check on the base branch, so a filtered-out run posts a skipped status to satisfy it
+		require.NoError(t, git_model.UpdateProtectBranch(t.Context(), baseRepo, &git_model.ProtectedBranch{
+			RepoID:              baseRepo.ID,
+			RuleName:            "main",
+			EnableStatusCheck:   true,
+			StatusCheckContexts: []string{"*"},
+		}, git_model.WhitelistOptions{}))
+
 		// add another file whose name cannot match the specified path
 		addFileToForkedResp, err = files_service.ChangeRepoFiles(t.Context(), forkedRepo, user4, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
@@ -215,8 +223,68 @@ jobs:
 		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
 
-		// the new pull request cannot trigger actions, so there is still only 1 record
+		// the new pull request is filtered by paths, so no run is created; a skipped commit status is posted instead
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
+		assertSkippedCommitStatusExists(t, baseRepo.ID, addFileToForkedResp.Commit.SHA, "pull_request_target")
+
+		// delete the branch protection rule: with nothing required, a filtered-out run must post no skipped status
+		pb, err := git_model.GetProtectedBranchRuleByName(t.Context(), baseRepo.ID, "main")
+		require.NoError(t, err)
+		require.NotNil(t, pb)
+		require.NoError(t, git_model.DeleteProtectedBranch(t.Context(), baseRepo, pb.ID))
+
+		// add another file whose name cannot match the specified path
+		addFileToForkedResp, err = files_service.ChangeRepoFiles(t.Context(), forkedRepo, user4, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "bar.txt",
+					ContentReader: strings.NewReader("bar"),
+				},
+			},
+			Message:   "add bar.txt",
+			OldBranch: "main",
+			NewBranch: "fork-branch-3",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user4.Name,
+				GitUserEmail: user4.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user4.Name,
+				GitUserEmail: user4.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addFileToForkedResp)
+
+		// create Pull
+		pullIssue = &issues_model.Issue{
+			RepoID:   baseRepo.ID,
+			Title:    "A mismatched path with no required status check posts no skipped status",
+			PosterID: user4.ID,
+			Poster:   user4,
+			IsPull:   true,
+		}
+		pullRequest = &issues_model.PullRequest{
+			HeadRepoID: forkedRepo.ID,
+			BaseRepoID: baseRepo.ID,
+			HeadBranch: "fork-branch-3",
+			BaseBranch: "main",
+			HeadRepo:   forkedRepo,
+			BaseRepo:   baseRepo,
+			Type:       issues_model.PullRequestGitea,
+		}
+		prOpts = &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
+		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		assert.NoError(t, err)
+
+		// filtered by paths and no required status check remains, so no run and no skipped commit status
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
+		assertNoSkippedCommitStatusExists(t, baseRepo.ID, addFileToForkedResp.Commit.SHA, "pull_request_target")
 	})
 }
 
@@ -338,6 +406,10 @@ jobs:
 		})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addFileToBranchResp)
+		// the push to test-skip-ci is filtered by branches, so no run is created;
+		// its context is not a required status check either, so no skipped commit status is posted.
+		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+		assertNoSkippedCommitStatusExists(t, repo.ID, addFileToBranchResp.Commit.SHA, "push")
 
 		resp := testPullCreate(t, session, "user2", "skip-ci", true, "master", "test-skip-ci", "[skip ci] test-skip-ci")
 
@@ -345,7 +417,7 @@ jobs:
 		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/skip-ci/pulls/[0-9]*$", url)
 
-		// the pr title contains a configured skip-ci string, so there is still only 1 record
+		// the pr title contains a configured skip-ci string, so no run and no skipped status are created
 		assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 	})
 }
@@ -1878,4 +1950,30 @@ jobs:
 		session.MakeRequest(t, req, http.StatusOK)
 		runner.fetchNoTask(t)
 	})
+}
+
+// assertSkippedCommitStatusExists asserts that a filtered-out required workflow posted a skipped commit status on sha
+func assertSkippedCommitStatusExists(t *testing.T, repoID int64, sha, eventSuffix string) {
+	t.Helper()
+	assert.Truef(t, hasSkippedCommitStatus(t, repoID, sha, eventSuffix), "missing skipped commit status with event %q on %s", eventSuffix, sha)
+}
+
+// assertNoSkippedCommitStatusExists asserts that no skipped commit status for the given event was posted on sha,
+// e.g. a filtered-out workflow whose context is not a required status check must not leave one behind.
+func assertNoSkippedCommitStatusExists(t *testing.T, repoID int64, sha, eventSuffix string) {
+	t.Helper()
+	assert.Falsef(t, hasSkippedCommitStatus(t, repoID, sha, eventSuffix), "unexpected skipped commit status with event %q on %s", eventSuffix, sha)
+}
+
+// hasSkippedCommitStatus reports whether a skipped commit status for the given event was posted on sha.
+func hasSkippedCommitStatus(t *testing.T, repoID int64, sha, eventSuffix string) bool {
+	t.Helper()
+	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repoID, sha, db.ListOptionsAll)
+	require.NoError(t, err)
+	for _, s := range statuses {
+		if s.State == commitstatus.CommitStatusSkipped && strings.Contains(s.Context, "("+eventSuffix+")") {
+			return true
+		}
+	}
+	return false
 }

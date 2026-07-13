@@ -1,4 +1,3 @@
-import arrayFunc from 'eslint-plugin-array-func';
 import comments from '@eslint-community/eslint-plugin-eslint-comments';
 import globals from 'globals';
 import importPlugin from 'eslint-plugin-import-x';
@@ -62,7 +61,6 @@ export default defineConfig([
       '@eslint-community/eslint-comments': comments,
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
-      'array-func': arrayFunc,
       'gitea': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
       'import-x': importPlugin,
       regexp,
@@ -275,12 +273,6 @@ export default defineConfig([
       '@typescript-eslint/unified-signatures': [2],
       'accessor-pairs': [2],
       'array-callback-return': [2, {checkForEach: true}],
-      'array-func/avoid-reverse': [2],
-      'array-func/from-map': [2],
-      'array-func/no-unnecessary-this-arg': [2],
-      'array-func/prefer-array-from': [2],
-      'array-func/prefer-flat-map': [0], // handled by unicorn/prefer-array-flat-map
-      'array-func/prefer-flat': [0], // handled by unicorn/prefer-array-flat
       'arrow-body-style': [0],
       'block-scoped-var': [2],
       'camelcase': [0],
@@ -774,6 +766,7 @@ export default defineConfig([
       'unicorn/no-array-sort-for-min-max': [2],
       'unicorn/no-array-splice': [0],
       'unicorn/no-asterisk-prefix-in-documentation-comments': [0],
+      'unicorn/no-async-promise-finally': [2],
       'unicorn/no-await-expression-member': [0],
       'unicorn/no-await-in-promise-methods': [2],
       'unicorn/no-blob-to-file': [2],
@@ -850,9 +843,11 @@ export default defineConfig([
       'unicorn/no-uncalled-method': [2],
       'unicorn/no-undeclared-class-members': [2],
       'unicorn/no-unnecessary-array-flat-depth': [2],
+      'unicorn/no-unnecessary-array-flat-map': [2],
       'unicorn/no-unnecessary-array-splice-count': [2],
       'unicorn/no-unnecessary-await': [2],
       'unicorn/no-unnecessary-boolean-comparison': [2],
+      'unicorn/no-unnecessary-fetch-options': [0],
       'unicorn/no-unnecessary-global-this': [0],
       'unicorn/no-unnecessary-nested-ternary': [2],
       'unicorn/no-unnecessary-polyfills': [2],
@@ -865,6 +860,7 @@ export default defineConfig([
       'unicorn/no-unreadable-object-destructuring': [0],
       'unicorn/no-unsafe-buffer-conversion': [2],
       'unicorn/no-unsafe-dom-html': [0],
+      'unicorn/no-unsafe-promise-all-settled-values': [2],
       'unicorn/no-unsafe-property-key': [0],
       'unicorn/no-unsafe-string-replacement': [0],
       'unicorn/no-unused-array-method-return': [2],
@@ -894,6 +890,7 @@ export default defineConfig([
       'unicorn/number-literal-case': [0],
       'unicorn/numeric-separators-style': [0],
       'unicorn/operator-assignment': [2],
+      'unicorn/prefer-abort-signal-any': [2],
       'unicorn/prefer-abort-signal-timeout': [2],
       'unicorn/prefer-add-event-listener': [2],
       'unicorn/prefer-add-event-listener-options': [2],
@@ -903,6 +900,7 @@ export default defineConfig([
       'unicorn/prefer-array-flat-map': [2],
       'unicorn/prefer-array-from-async': [2],
       'unicorn/prefer-array-from-map': [2],
+      'unicorn/prefer-array-from-range': [2],
       'unicorn/prefer-array-index-of': [2],
       'unicorn/prefer-array-iterable-methods': [2],
       'unicorn/prefer-array-last-methods': [2],
@@ -912,6 +910,7 @@ export default defineConfig([
       'unicorn/prefer-await': [2],
       'unicorn/prefer-bigint-literals': [2],
       'unicorn/prefer-blob-reading-methods': [2],
+      'unicorn/prefer-block-statement-over-iife': [2],
       'unicorn/prefer-boolean-return': [2],
       'unicorn/prefer-class-fields': [2],
       'unicorn/prefer-classlist-toggle': [2],
@@ -935,6 +934,7 @@ export default defineConfig([
       'unicorn/prefer-get-or-insert-computed': [2],
       'unicorn/prefer-global-number-constants': [2],
       'unicorn/prefer-global-this': [0],
+      'unicorn/prefer-group-by': [2],
       'unicorn/prefer-has-check': [2],
       'unicorn/prefer-hoisting-branch-code': [2],
       'unicorn/prefer-https': [0], // false-positives on namespace and schema URIs
@@ -944,6 +944,7 @@ export default defineConfig([
       'unicorn/prefer-includes-over-repeated-comparisons': [0], // too opinionated
       'unicorn/prefer-iterable-in-constructor': [2],
       'unicorn/prefer-iterator-concat': [0], // too opinionated
+      'unicorn/prefer-iterator-helpers': [2],
       'unicorn/prefer-iterator-to-array': [2],
       'unicorn/prefer-iterator-to-array-at-end': [2],
       'unicorn/prefer-keyboard-event-key': [2],
@@ -988,6 +989,7 @@ export default defineConfig([
       'unicorn/prefer-short-arrow-method': [2],
       'unicorn/prefer-simple-condition-first': [0],
       'unicorn/prefer-simple-sort-comparator': [2],
+      'unicorn/prefer-simplified-conditions': [2],
       'unicorn/prefer-single-array-predicate': [2],
       'unicorn/prefer-single-call': [2],
       'unicorn/prefer-single-object-destructuring': [2],

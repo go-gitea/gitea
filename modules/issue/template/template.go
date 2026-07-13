@@ -167,7 +167,7 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 
 	options, ok := field.Attributes["options"].([]any)
 	if !ok || len(options) == 0 {
-		return position.Errorf("'options' is required and should be a array")
+		return position.Errorf("'options' is required and should be an array")
 	}
 
 	for optIdx, option := range options {
@@ -270,7 +270,7 @@ func validateDropdownDefault(position errorPosition, attributes map[string]any) 
 	options, ok := attributes["options"].([]any)
 	if !ok {
 		// should not happen
-		return position.Errorf("'options' is required and should be a array")
+		return position.Errorf("'options' is required and should be an array")
 	}
 	if defaultValue < 0 || defaultValue >= len(options) {
 		return position.Errorf("the value of 'default' is out of range")

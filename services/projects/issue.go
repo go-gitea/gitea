@@ -13,8 +13,9 @@ import (
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
+
+	"xorm.io/builder"
 )
 
 // MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
@@ -100,28 +101,15 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 	})
 }
 
-func LoadIssuesAssigneesForProject(ctx context.Context, issuesMap map[int64]issues_model.IssueList) ([]*user_model.User, error) {
-	var issueList issues_model.IssueList
-	for _, colIssues := range issuesMap {
-		issueList = append(issueList, colIssues...)
-	}
-	err := issueList.LoadAssignees(ctx)
+func LoadIssuesAssigneesForProject(ctx context.Context, projectID int64) (users []*user_model.User, _ error) {
+	sub := builder.Select("distinct issue_assignees.assignee_id").
+		From("project_issue").Join("INNER", "issue_assignees", "project_issue.issue_id=issue_assignees.issue_id").
+		Where(builder.Eq{"project_issue.project_id": projectID})
+	err := db.GetEngine(ctx).Table("`user`").Where(builder.In("id", sub)).Find(&users)
 	if err != nil {
 		return nil, err
 	}
-	users := make([]*user_model.User, 0, len(issueList))
-	usersAdded := container.Set[int64]{}
-	for _, issue := range issueList {
-		for _, assignee := range issue.Assignees {
-			if !usersAdded.Contains(assignee.ID) {
-				usersAdded.Add(assignee.ID)
-				users = append(users, assignee)
-			}
-		}
-	}
-	slices.SortFunc(users, func(a, b *user_model.User) int {
-		return strings.Compare(a.Name, b.Name)
-	})
+	slices.SortFunc(users, func(a, b *user_model.User) int { return strings.Compare(a.Name, b.Name) })
 	return users, nil
 }
 

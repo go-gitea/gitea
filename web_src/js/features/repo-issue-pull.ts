@@ -1,7 +1,7 @@
 import {createApp} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {createElementFromHTML} from '../utils/dom.ts';
+import {createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
@@ -35,46 +35,31 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   view.mount(el); // TODO: can unmount when reloaded?
 }
 
+function initRepoPullMergeBoxRefresh(el: Element) {
+  // The merge box has complex buttons & form, if the user has interacted with any element, don't refresh.
+  // Otherwise, the user won't be able to merge or schedule a merge (auto-merge) when the PR status is not ready.
+  let interacted = false;
+  const interactionEvents = ['focusin', 'mousedown', 'click', 'keydown', 'input'];
+  for (const event of interactionEvents) {
+    el.addEventListener(event, () => { interacted = true }, {capture: true});
+  }
+
+  activePageTimerRefresh({
+    once: true, // on successful refresh, the data-global-init will re-initialize the element
+    interval: () => interacted ? 0 : Number(el.getAttribute('data-pull-merge-box-reloading-interval')),
+    async callback() {
+      if (interacted) return;
+      const pullLink = el.getAttribute('data-pull-link')!;
+      const resp = await GET(`${pullLink}/merge_box`);
+      if (!resp.ok) return;
+      const newEl = createElementFromHTML(await resp.text());
+      el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
+    },
+  });
+}
+
 export function initRepoPullMergeBox(el: HTMLElement) {
   registerGlobalEventFunc('click', 'onCommitStatusChecksToggle', onCommitStatusChecksToggle);
   initRepoPullRequestMergeForm(el);
-
-  const reloadingIntervalValue = el.getAttribute('data-pull-merge-box-reloading-interval');
-  if (!reloadingIntervalValue) return;
-
-  const reloadingInterval = parseInt(reloadingIntervalValue);
-  const pullLink = el.getAttribute('data-pull-link');
-  let timerId: number | null;
-
-  let reloadMergeBox: () => Promise<void>;
-  const stopReloading = () => {
-    if (!timerId) return;
-    clearTimeout(timerId);
-    timerId = null;
-  };
-  const startReloading = () => {
-    if (timerId) return;
-    setTimeout(reloadMergeBox, reloadingInterval);
-  };
-  const onVisibilityChange = () => {
-    if (document.hidden) {
-      stopReloading();
-    } else {
-      startReloading();
-    }
-  };
-  reloadMergeBox = async () => {
-    const resp = await GET(`${pullLink}/merge_box`);
-    stopReloading();
-    if (!resp.ok) {
-      startReloading();
-      return;
-    }
-    document.removeEventListener('visibilitychange', onVisibilityChange);
-    const newElem = createElementFromHTML(await resp.text());
-    el.replaceWith(newElem);
-  };
-
-  document.addEventListener('visibilitychange', onVisibilityChange);
-  startReloading();
+  initRepoPullMergeBoxRefresh(el);
 }
