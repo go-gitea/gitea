@@ -1,4 +1,4 @@
-import {trPrintf} from './string.ts';
+import {cutString, trPrintf} from './string.ts';
 
 test('cutString', () => {
   let [before, after, ok] = cutString('a = b = c', '=');

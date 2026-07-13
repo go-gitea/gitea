@@ -2,7 +2,7 @@ import {reactive} from 'vue';
 import type {Reactive} from 'vue';
 import {extname} from '../utils.ts';
 import {toggleElem} from '../utils/dom.ts';
-import {trPrintf} from "../utils/string.ts";
+import {trPrintf} from '../utils/string.ts';
 
 const {pageData} = window.config;
 
