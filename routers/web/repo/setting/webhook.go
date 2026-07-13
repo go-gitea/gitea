@@ -696,8 +696,9 @@ func TestWebhook(ctx *context.Context) {
 	}
 
 	commitID := commit.ID.String()
+	ref := git.RefName(git.BranchPrefix + ctx.Repo.Repository.DefaultBranch)
 	p := &api.PushPayload{
-		Ref:          git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Ref:          string(ref),
 		Before:       commitID,
 		After:        commitID,
 		CompareURL:   setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
@@ -708,8 +709,8 @@ func TestWebhook(ctx *context.Context) {
 		Pusher:       apiUser,
 		Sender:       apiUser,
 	}
-	if err := webhook_service.PrepareWebhook(ctx, w, webhook_module.HookEventPush, p); err != nil {
-		ctx.Flash.Error("PrepareWebhook: " + err.Error())
+	if err := webhook_service.PrepareTestWebhook(ctx, w, webhook_module.HookEventPush, p); err != nil {
+		ctx.Flash.Error("PrepareTestWebhook: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
