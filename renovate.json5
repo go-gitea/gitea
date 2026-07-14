@@ -40,6 +40,10 @@
       "allowedVersions": "^3", // need to migrate
     },
     {
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "^6", // typescript-eslint is not yet compatible with typescript 7
+    },
+    {
       "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/azcore"],
       "allowedVersions": "<1.21.0", // v1.21.0+ uses API version unsupported by Azurite in CI
     },
