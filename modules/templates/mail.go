@@ -127,9 +127,7 @@ func newMailRenderer() (*MailRender, error) {
 			for i, name := range names {
 				names[i] = strings.TrimSuffix(name, ".tmpl")
 			}
-			renderer.TemplateNames = slices.DeleteFunc(slices.Clone(names), func(name string) bool {
-				return strings.HasPrefix(name, "mail/base/")
-			})
+			renderer.TemplateNames = names
 			return names, nil
 		},
 		readTemplateContent: func(name string) ([]byte, error) {
