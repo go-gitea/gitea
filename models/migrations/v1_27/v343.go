@@ -4,19 +4,39 @@
 package v1_27
 
 import (
+	"context"
+
 	"gitea.dev/models/db"
-	"gitea.dev/modules/timeutil"
+
+	"xorm.io/xorm/schemas"
 )
 
-func AddReleaseReactionTable(x db.EngineMigration) error {
-	type ReleaseReaction struct {
-		ID               int64              `xorm:"pk autoincr"`
-		Type             string             `xorm:"INDEX UNIQUE(s) NOT NULL"`
-		ReleaseID        int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
-		UserID           int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
-		OriginalAuthorID int64              `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
-		OriginalAuthor   string             `xorm:"INDEX UNIQUE(s)"`
-		CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
+func AddReleaseIDToReaction(x db.EngineMigration) error {
+	type Reaction struct {
+		ReleaseID int64 `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
 	}
-	return x.Sync(new(ReleaseReaction))
+	if err := x.Sync(new(Reaction)); err != nil {
+		return err
+	}
+
+	// Drop index s if it exists, then recreate it.
+	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "reaction")
+	if err != nil {
+		return err
+	}
+	for _, idx := range indexes {
+		if idx.Name == "s" {
+			if _, err := x.Exec(x.Dialect().DropIndexSQL("reaction", idx)); err != nil {
+				return err
+			}
+			break
+		}
+	}
+
+	newIndex := schemas.NewIndex("s", schemas.UniqueType)
+	newIndex.AddColumn("type", "issue_id", "comment_id", "release_id", "user_id", "original_author_id", "original_author")
+	if _, err := x.Exec(x.Dialect().CreateIndexSQL("reaction", newIndex)); err != nil {
+		return err
+	}
+	return nil
 }

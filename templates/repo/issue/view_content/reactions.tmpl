@@ -11,7 +11,7 @@
 		<span class="reaction-count">{{len $value}}</span>
 	</a>
 {{end}}
-{{if AllowedReactions}}
+{{if and AllowedReactions (not .HideAddReaction)}}
 	{{template "repo/issue/view_content/add_reaction" dict "ActionURL" .ActionURL}}
 {{end}}
 </div>

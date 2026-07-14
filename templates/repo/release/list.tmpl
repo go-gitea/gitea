@@ -111,7 +111,7 @@
 							</ul>
 						</details>
 						{{if $info.Reactions}}
-							{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID) "Reactions" ($info.Reactions.GroupByType)}}
+							{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/releases/%d/reactions" $.RepoLink $release.ID) "Reactions" ($info.Reactions.GroupByType) "HideAddReaction" true}}
 						{{end}}
 					</div>
 				</li>

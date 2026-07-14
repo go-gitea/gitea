@@ -75,7 +75,7 @@ type ReleaseInfo struct {
 	Release        *repo_model.Release
 	CommitStatus   *git_model.CommitStatus
 	CommitStatuses []*git_model.CommitStatus
-	Reactions      repo_model.ReleaseReactionList
+	Reactions      repo_model.ReactionList
 }
 
 func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions) ([]*ReleaseInfo, error) {
@@ -93,16 +93,14 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 	}
 
 	// Bulk-load reactions for all releases.
-	var reactionsMap map[int64]repo_model.ReleaseReactionList
+	var reactionsMap map[int64]repo_model.ReactionList
 	if len(releases) > 0 {
 		reactionsMap, err = repo_model.FindReactionsForReleases(ctx, releases)
 		if err != nil {
 			return nil, err
 		}
-		for _, relReactions := range reactionsMap {
-			if _, err = relReactions.LoadUsers(ctx, ctx.Repo.Repository); err != nil {
-				return nil, err
-			}
+		if _, err = repo_model.LoadUsersMap(ctx, ctx.Repo.Repository, reactionsMap); err != nil {
+			return nil, err
 		}
 	}
 
@@ -728,17 +726,17 @@ func ChangeReleaseReaction(ctx *context.Context) {
 	case "react":
 		reaction, err := release_service.CreateReleaseReaction(ctx, ctx.Doer, rel, form.Content)
 		if err != nil {
-			if errors.Is(err, user_model.ErrBlockedUser) {
+			if repo_model.IsErrForbiddenReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
 				ctx.ServerError("ChangeReleaseReaction", err)
 				return
 			}
-			ctx.ServerError("CreateReleaseReaction", err)
-			return
+			log.Info("CreateReleaseReaction: %s", err)
+			break
 		}
 
 		log.Trace("Reaction for release created: %d/%d/%d", ctx.Repo.Repository.ID, rel.ID, reaction.ID)
 	case "unreact":
-		if err := repo_model.DeleteReleaseReaction(ctx, &repo_model.ReleaseReactionOptions{
+		if err := repo_model.DeleteReaction(ctx, &repo_model.ReactionOptions{
 			DoerID:    ctx.Doer.ID,
 			ReleaseID: rel.ID,
 			Type:      form.Content,
@@ -753,7 +751,7 @@ func ChangeReleaseReaction(ctx *context.Context) {
 		return
 	}
 
-	reactions, _, err := repo_model.FindReleaseReactionsWithOpts(ctx, repo_model.FindReleaseReactionsOptions{
+	reactions, _, err := repo_model.FindReactions(ctx, repo_model.FindReactionsOptions{
 		ReleaseID: rel.ID,
 	})
 	if err != nil {

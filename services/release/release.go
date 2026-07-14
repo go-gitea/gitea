@@ -411,6 +411,10 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		return fmt.Errorf("LoadAttributes: %w", err)
 	}
 
+	if _, err := db.GetEngine(ctx).Delete(&repo_model.Reaction{ReleaseID: rel.ID}); err != nil {
+		return fmt.Errorf("DeleteReleaseReactions: %w", err)
+	}
+
 	if err := repo_model.DeleteAttachmentsByRelease(ctx, rel.ID); err != nil {
 		return fmt.Errorf("DeleteAttachments: %w", err)
 	}

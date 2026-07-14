@@ -420,7 +420,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
-		newMigration(343, "Add release_reaction table", v1_27.AddReleaseReactionTable),
+		newMigration(343, "Add release_id to reaction table", v1_27.AddReleaseIDToReaction),
 	}
 	return preparedMigrations
 }
