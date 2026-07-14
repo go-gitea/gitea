@@ -27,7 +27,7 @@ export function initAdminCommon(): void {
   registerGlobalInitFunc('initRunnerBulkToolbar', initAdminRunnerBulk);
 }
 
-function initAdminRunnerBulk(toolbar: HTMLElement) {
+export function initAdminRunnerBulk(toolbar: HTMLElement) {
   const actionButtons = toolbar.querySelectorAll<HTMLButtonElement>('.runner-bulk-action');
   const formRunnerIds = toolbar.querySelector<HTMLInputElement>('form input[name="ids"]')!;
   const rowCheckboxes = document.querySelectorAll<HTMLInputElement>('.runner-bulk-select');
@@ -36,6 +36,7 @@ function initAdminRunnerBulk(toolbar: HTMLElement) {
 
   const refresh = () => {
     const checked = Array.from(rowCheckboxes).filter((c) => c.checked);
+    formRunnerIds.value = checked.map((c) => c.getAttribute('data-runner-id')!).join(',');
     toggleElem(toolbar, checked.length > 0);
     for (const btn of actionButtons) {
       btn.querySelector<HTMLElement>('.runner-bulk-count')!.textContent = `(${checked.length})`;
@@ -50,15 +51,6 @@ function initAdminRunnerBulk(toolbar: HTMLElement) {
   });
   for (const cb of rowCheckboxes) cb.addEventListener('change', refresh);
   refresh();
-
-  const collectSelectedIds = () => {
-    const ids = [];
-    for (const cb of rowCheckboxes) {
-      if (cb.checked) ids.push(cb.getAttribute('data-runner-id')!);
-    }
-    return ids.join(',');
-  };
-  formRunnerIds.value = collectSelectedIds();
 }
 
 function initAdminUser() {
