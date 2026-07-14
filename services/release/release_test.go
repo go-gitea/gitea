@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -413,4 +414,46 @@ func TestCreateReleaseReaction(t *testing.T) {
 	assert.Equal(t, "heart", reaction.Type)
 	assert.Equal(t, user.ID, reaction.UserID)
 	assert.Equal(t, release.ID, reaction.ReleaseID)
+
+	// Blocked user should not be able to react
+	assert.NoError(t, db.Insert(t.Context(), &user_model.Blocking{BlockerID: repo.OwnerID, BlockeeID: user.ID}))
+	_, err = CreateReleaseReaction(t.Context(), user, release, "heart")
+	assert.ErrorIs(t, err, user_model.ErrBlockedUser)
+}
+
+func TestDeleteReleaseByID(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1, RepoID: repo.ID})
+
+	// Setup setting reactions list
+	oldReactions := setting.UI.Reactions
+	oldReactionsLookup := setting.UI.ReactionsLookup
+	setting.UI.Reactions = []string{"heart"}
+	setting.UI.ReactionsLookup = make(container.Set[string])
+	setting.UI.ReactionsLookup.Add("heart")
+	defer func() {
+		setting.UI.Reactions = oldReactions
+		setting.UI.ReactionsLookup = oldReactionsLookup
+	}()
+
+	reaction, err := CreateReleaseReaction(t.Context(), user, release, "heart")
+	assert.NoError(t, err)
+	assert.NotNil(t, reaction)
+
+	// Verify reaction exists
+	reactions, countBefore, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: release.ID})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), countBefore)
+	assert.Len(t, reactions, 1)
+
+	// Delete release
+	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, release, user, true))
+
+	// Verify reaction is deleted
+	_, countAfter, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: release.ID})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), countAfter)
 }

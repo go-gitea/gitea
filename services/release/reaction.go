@@ -11,7 +11,7 @@ import (
 )
 
 // CreateReleaseReaction creates a reaction on a release.
-func CreateReleaseReaction(ctx context.Context, doer *user_model.User, rel *repo_model.Release, content string) (*repo_model.ReleaseReaction, error) {
+func CreateReleaseReaction(ctx context.Context, doer *user_model.User, rel *repo_model.Release, content string) (*repo_model.Reaction, error) {
 	if err := rel.LoadAttributes(ctx); err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func CreateReleaseReaction(ctx context.Context, doer *user_model.User, rel *repo
 		return nil, user_model.ErrBlockedUser
 	}
 
-	return repo_model.CreateReleaseReaction(ctx, &repo_model.ReleaseReactionOptions{
+	return repo_model.CreateReaction(ctx, &repo_model.ReactionOptions{
 		Type:      content,
 		DoerID:    doer.ID,
 		ReleaseID: rel.ID,
