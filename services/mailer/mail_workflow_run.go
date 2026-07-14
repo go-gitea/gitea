@@ -69,15 +69,6 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		}
 	}
 
-	var subjectTrString string
-	switch run.Status {
-	case actions_model.StatusFailure:
-		subjectTrString = "mail.repo.actions.run.failed"
-	case actions_model.StatusCancelled:
-		subjectTrString = "mail.repo.actions.run.cancelled"
-	case actions_model.StatusSuccess:
-		subjectTrString = "mail.repo.actions.run.succeeded"
-	}
 	displayName := fromDisplayName(sender)
 	messageID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
 	metadataHeaders := generateMetadataHeaders(repo)
@@ -143,7 +134,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 				Attempt:     job.Attempt,
 			})
 		}
-		subject := fmt.Sprintf("[%s] %s: %s - %s (%s)", repo.FullName(), locale.TrString(subjectTrString), run.WorkflowID, run.PrettyRef(), base.ShortSha(run.CommitSHA))
+		subject := fmt.Sprintf("[%s] %s: %s (%s - %s)", repo.FullName(), run.Status.LocaleString(locale), run.WorkflowID, run.PrettyRef(), base.ShortSha(run.CommitSHA))
 		var mailBody bytes.Buffer
 		if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplWorkflowRun), map[string]any{
 			"Subject":       subject,
