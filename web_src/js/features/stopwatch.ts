@@ -70,13 +70,18 @@ async function updateStopwatchWithCallback(callback: (timeout: number) => void, 
 }
 
 async function updateStopwatch() {
-  const response = await GET(`${appSubUrl}/user/stopwatches`);
-  if (!response.ok) {
-    console.error('Failed to fetch stopwatch data');
+  try {
+    const response = await GET(`${appSubUrl}/user/stopwatches`);
+    if (!response.ok) {
+      console.error('Failed to fetch stopwatch data');
+      return false;
+    }
+    const data = await response.json();
+    return updateStopwatchData(data);
+  } catch (error) {
+    console.error(error);
     return false;
   }
-  const data = await response.json();
-  return updateStopwatchData(data);
 }
 
 function updateStopwatchData(data: Array<StopwatchData>) {
