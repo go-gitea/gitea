@@ -163,3 +163,22 @@ func assertPublicActivitiesOnly(t *testing.T, activities []api.Activity) {
 		}
 	}
 }
+
+// TestAPIRepoLimitedOwnerPublicOnly ensures a public-only token cannot reach a public repo
+// owned by a limited-visibility owner (which is not reachable anonymously).
+func TestAPIRepoLimitedOwnerPublicOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// limited_org (limited visibility) owns the non-private repo public_repo_on_limited_org
+	const url = "/api/v1/repos/limited_org/public_repo_on_limited_org"
+
+	// a public-only token is confined to genuinely public resources
+	publicOnlyToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
+	req := NewRequest(t, "GET", url).AddTokenAuth(publicOnlyToken)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// a normal token can still reach the limited owner's public repo
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+	req = NewRequest(t, "GET", url).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+}

@@ -6,6 +6,7 @@ package organization
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -91,6 +92,15 @@ type Team struct {
 func (t *Team) IsPublic() bool  { return t.Visibility.IsPublic() }
 func (t *Team) IsLimited() bool { return t.Visibility.IsLimited() }
 func (t *Team) IsPrivate() bool { return t.Visibility.IsPrivate() }
+
+const (
+	ghostTeamID   = -1
+	ghostTeamName = "(deleted team)"
+)
+
+func newGhostTeam() *Team {
+	return &Team{ID: ghostTeamID, Name: ghostTeamName, LowerName: ghostTeamName}
+}
 
 // CanNonMemberReadMeta reports whether a non-member, non-owner doer may read
 // the team's metadata, based on the team's visibility tier and the parent org's
@@ -268,6 +278,17 @@ func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
+}
+
+func GetPossibleTeamByID(ctx context.Context, teamID int64) (int64, *Team, error) {
+	t, err := GetTeamByID(ctx, teamID)
+	if errors.Is(err, util.ErrNotExist) {
+		t = newGhostTeam()
+		return t.ID, t, nil
+	} else if err != nil {
+		return 0, nil, err
+	}
+	return t.ID, t, nil
 }
 
 // IncrTeamRepoNum increases the number of repos for the given team by 1
