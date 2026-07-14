@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
@@ -391,6 +392,13 @@ func Home(ctx *context.Context) {
 		return
 	}
 	if redirectSrcToRaw(ctx) {
+		return
+	}
+
+	// a scoped or public-only API token authenticating this web request must still satisfy
+	// the repository read scope before private repo content is served
+	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	if ctx.Written() {
 		return
 	}
 

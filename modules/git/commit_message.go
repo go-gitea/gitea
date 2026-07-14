@@ -10,16 +10,22 @@ import (
 	"sync"
 
 	"gitea.dev/modules/charset"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/util"
 )
 
 // CoAuthoredByTrailer is the canonical token for the `Co-authored-by:` git trailer.
 const CoAuthoredByTrailer = "Co-authored-by"
 
+const (
+	commitIdentityRoleAuthor    = 1
+	commitIdentityRoleCommitter = 2
+	commitIdentityRoleCoAuthor  = 3
+)
+
 type CommitIdentity struct {
 	Name  string
 	Email string
+	role  int
 }
 
 // CommitMessageTrailerValues keys are all in lower-case
@@ -33,7 +39,9 @@ type CommitMessage struct {
 
 	trailerValues CommitMessageTrailerValues
 
-	allParticipants []*CommitIdentity
+	allParticipants      []*CommitIdentity
+	committerCoAuthorIdx int
+	committerCoAuthor    *CommitIdentity
 }
 
 func (c *CommitMessage) MessageUTF8() string {
@@ -105,43 +113,57 @@ func (c *Commit) AllParticipantIdentities() []*CommitIdentity {
 		return c.allParticipants
 	}
 
-	exclude := container.Set[string]{}
-	c.allParticipants = append(c.allParticipants, &CommitIdentity{Name: c.Author.Name, Email: c.Author.Email})
-	exclude.Add(strings.ToLower(c.Author.Email))
-
-	addParticipant := func(name, email string) {
+	exclude := map[string]int{}
+	addParticipant := func(name, email string, role int) (existingRole int) {
 		if name == "" && email == "" {
-			return
+			return 0
 		}
 		emailLower := strings.ToLower(email)
-		if emailLower != "" && exclude.Contains(emailLower) {
-			return
+		if existingRole = exclude[emailLower]; emailLower != "" && existingRole != 0 {
+			return existingRole
 		}
-		c.allParticipants = append(c.allParticipants, &CommitIdentity{Name: name, Email: email})
-		exclude.Add(emailLower)
+		c.allParticipants = append(c.allParticipants, &CommitIdentity{Name: name, Email: email, role: role})
+		exclude[emailLower] = role
+		return 0
 	}
-	addParticipant(c.Committer.Name, c.Committer.Email)
+
+	c.committerCoAuthorIdx = -1
+	addParticipant(c.Author.Name, c.Author.Email, commitIdentityRoleAuthor)
+	addParticipant(c.Committer.Name, c.Committer.Email, commitIdentityRoleCommitter)
 	for _, coAuthorValue := range c.MessageTrailer()["co-authored-by"] {
 		addr, err := mail.ParseAddress(coAuthorValue)
+		coAuthorName, coAuthorEmail := coAuthorValue, ""
 		if err == nil {
-			addParticipant(addr.Name, addr.Address)
-		} else {
-			addParticipant(coAuthorValue, "")
+			coAuthorName, coAuthorEmail = addr.Name, addr.Address
+		}
+		existingRole := addParticipant(coAuthorName, coAuthorEmail, commitIdentityRoleCoAuthor)
+		if existingRole == commitIdentityRoleCommitter && c.committerCoAuthorIdx == -1 {
+			c.committerCoAuthorIdx = len(c.allParticipants)
+			c.committerCoAuthor = &CommitIdentity{coAuthorName, coAuthorEmail, commitIdentityRoleCoAuthor}
 		}
 	}
 	return c.allParticipants
 }
 
-// CoAuthorIdentities returns the commit's co-authors: the participants without the
-// author and the committer, which are already displayed separately. This avoids
-// surfacing the committer as a "co-author" (see issue #38384).
-func (c *Commit) CoAuthorIdentities() []*CommitIdentity {
-	var ret []*CommitIdentity
-	for _, p := range c.AllParticipantIdentities()[1:] { // index 0 is always the author
-		if c.Committer.Email != "" && strings.EqualFold(p.Email, c.Committer.Email) {
-			continue
-		}
-		ret = append(ret, p)
+// CoAuthorIdentities returns co-author identities defined by "Co-authored-by:" in the git message trailer
+// Only the commit's author is excluded. If committer is declared as co-author, it will be included in the result.
+// * Author & Co-author: they changed the code (attribution)
+// * Committer: they submitted the commit but didn't change the code (e.g.: maintainer signed a commit)
+// So, a committer can also be a co-author if they changed the code.
+func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
+	all := c.AllParticipantIdentities()
+	if len(all) <= 1 {
+		return nil // no co-author list
 	}
-	return ret
+	if all[1].role != commitIdentityRoleCommitter {
+		return all[1:] // no committer, so all after author are co-authors
+	}
+	if c.committerCoAuthorIdx == -1 {
+		return all[2:] // the committer is not in the co-author list, so just return the co-author list
+	}
+	// the committer is in the co-author list but de-duplicated, so include them as co-author again
+	coAuthors = append(coAuthors, all[2:c.committerCoAuthorIdx]...)
+	coAuthors = append(coAuthors, c.committerCoAuthor)
+	coAuthors = append(coAuthors, all[c.committerCoAuthorIdx:]...)
+	return coAuthors
 }
