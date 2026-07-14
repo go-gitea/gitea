@@ -23,16 +23,10 @@ import (
 
 const tplWorkflowRun templates.TplName = "mail/repo/actions/workflow_run"
 
-type convertedWorkflowJob struct {
-	HTMLURL string
-	Name    string
-	Status  actions_model.Status
-	Attempt int64
-}
-
 type workflowRunMailJob struct {
 	HTMLURL     string
 	Name        string
+	Status      actions_model.Status
 	StatusIcon  string
 	StatusClass string
 	StatusText  string
@@ -86,18 +80,22 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		return si < sj
 	})
 
-	convertedJobs := make([]convertedWorkflowJob, 0, len(jobs))
+	// StatusText is filled per recipient language below, the rest is locale-independent
+	mailJobs := make([]workflowRunMailJob, 0, len(jobs))
 	for _, job := range jobs {
-		converted0, err := convert.ToActionWorkflowJob(ctx, repo, nil, job)
+		converted, err := convert.ToActionWorkflowJob(ctx, repo, nil, job)
 		if err != nil {
 			log.Error("convert.ToActionWorkflowJob: %v", err)
 			continue
 		}
-		convertedJobs = append(convertedJobs, convertedWorkflowJob{
-			HTMLURL: converted0.HTMLURL,
-			Name:    converted0.Name,
-			Status:  job.Status,
-			Attempt: converted0.RunAttempt,
+		icon, class := workflowRunJobStatusPresentation(job.Status)
+		mailJobs = append(mailJobs, workflowRunMailJob{
+			HTMLURL:     converted.HTMLURL,
+			Name:        converted.Name,
+			Status:      job.Status,
+			StatusIcon:  icon,
+			StatusClass: class,
+			Attempt:     converted.RunAttempt,
 		})
 	}
 
@@ -122,17 +120,8 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		case actions_model.StatusCancelled:
 			runStatusTrString = "mail.repo.actions.jobs.all_cancelled"
 		}
-		mailJobs := make([]workflowRunMailJob, 0, len(convertedJobs))
-		for _, job := range convertedJobs {
-			icon, class := workflowRunJobStatusPresentation(job.Status)
-			mailJobs = append(mailJobs, workflowRunMailJob{
-				HTMLURL:     job.HTMLURL,
-				Name:        job.Name,
-				StatusIcon:  icon,
-				StatusClass: class,
-				StatusText:  job.Status.LocaleString(locale),
-				Attempt:     job.Attempt,
-			})
+		for i := range mailJobs {
+			mailJobs[i].StatusText = mailJobs[i].Status.LocaleString(locale)
 		}
 		subject := fmt.Sprintf("[%s] %s: %s (%s - %s)", repo.FullName(), run.Status.LocaleString(locale), run.WorkflowID, run.PrettyRef(), base.ShortSha(run.CommitSHA))
 		var mailBody bytes.Buffer
