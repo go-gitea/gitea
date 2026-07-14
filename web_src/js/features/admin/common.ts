@@ -27,7 +27,7 @@ export function initAdminCommon(): void {
   registerGlobalInitFunc('initRunnerBulkToolbar', initAdminRunnerBulk);
 }
 
-export function initAdminRunnerBulk(toolbar: HTMLElement) {
+function initAdminRunnerBulk(toolbar: HTMLElement) {
   const actionButtons = toolbar.querySelectorAll<HTMLButtonElement>('.runner-bulk-action');
   const formRunnerIds = toolbar.querySelector<HTMLInputElement>('form input[name="ids"]')!;
   const rowCheckboxes = document.querySelectorAll<HTMLInputElement>('.runner-bulk-select');
