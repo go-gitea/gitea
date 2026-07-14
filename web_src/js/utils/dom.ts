@@ -9,8 +9,8 @@ type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
-  if (typeof el === 'string' || el instanceof String) {
-    el = document.querySelectorAll(el as string);
+  if (typeof el === 'string') {
+    el = document.querySelectorAll(el);
   }
   if (el instanceof Node) {
     func(el, ...args);
@@ -338,4 +338,99 @@ export function isPlainClick(e: MouseEvent) {
 let elemIdCounter = 0;
 export function generateElemId(prefix: string = ''): string {
   return `${prefix}${elemIdCounter++}`;
+}
+
+export type ActivePageTimerOptions = {
+  once?: boolean;
+  interval: () => number; // if it returns 0, the timer is stopped
+  callback: () => Promise<void>;
+};
+
+export class ActivePageTimer {
+  private readonly opts: ActivePageTimerOptions;
+  private readonly onVisibilityChange: () => void;
+
+  private sysTimerId?: number;
+  private startTime?: number;
+
+  constructor(opts: ActivePageTimerOptions) {
+    this.opts = opts;
+    this.onVisibilityChange = () => {
+      if (!this.startTime) return;
+      const interval = this.opts.interval();
+      if (document.hidden) {
+        this.clearSysTimer();
+      } else if (interval) {
+        this.startSysTimer(interval);
+      }
+    };
+  }
+
+  private async handler() {
+    this.clear();
+    await this.opts.callback();
+    if (!this.opts.once) this.start();
+  }
+
+  start() {
+    const interval = this.opts.interval();
+    if (!interval) return;
+    if (this.sysTimerId) return;
+    if (!this.startTime) {
+      this.startTime = Date.now();
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
+    if (!document.hidden) this.startSysTimer(interval);
+  }
+
+  private startSysTimer(interval: number) {
+    const remaining = interval - (Date.now() - this.startTime!);
+    if (remaining <= 0) {
+      this.handler();
+    } else {
+      this.sysTimerId = window.setTimeout(() => this.handler(), remaining);
+    }
+  }
+
+  private clearSysTimer() {
+    if (!this.sysTimerId) return;
+    window.clearTimeout(this.sysTimerId);
+    this.sysTimerId = undefined;
+  }
+
+  clear() {
+    if (!this.startTime) return;
+    this.startTime = undefined;
+    this.clearSysTimer();
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+  }
+}
+
+export function activePageTimerRefresh(opts: ActivePageTimerOptions): ActivePageTimer {
+  const timer = new ActivePageTimer(opts);
+  timer.start();
+  return timer;
+}
+
+type ProtectedMorphElements = Record<string, string>;
+
+export function protectMorphElements(el: Element): ProtectedMorphElements {
+  // Some components like Dropdown manage their internal states and styles.
+  // If morph changes any style or layout, then the Dropdown will stop working.
+  // So, protect such fragile components ahead, then morph, then recover.
+  const ret: ProtectedMorphElements = {};
+  for (const it of el.querySelectorAll('.ui.dropdown, [data-morph-protect]')) {
+    const id = generateElemId();
+    ret[id] = it.outerHTML;
+    it.setAttribute('data-morph-protect', id);
+  }
+  return ret;
+}
+
+export function recoverMorphElements(el: Element, protectedElems: ProtectedMorphElements) {
+  for (const [id, html] of Object.entries(protectedElems)) {
+    const it = el.querySelector(`[data-morph-protect="${CSS.escape(id)}"]`);
+    if (!it) continue;
+    it.outerHTML = html;
+  }
 }

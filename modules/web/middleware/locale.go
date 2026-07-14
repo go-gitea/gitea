@@ -12,6 +12,24 @@ import (
 	"golang.org/x/text/language"
 )
 
+// maxAcceptLanguageLen bounds the Accept-Language header before it reaches
+// language.ParseAcceptLanguage. That parser has quadratic-time behavior on long
+// malformed inputs, and its built-in guard only counts "-" separators while the
+// scanner treats "_" as an alias for "-", so a "_"-heavy header slips past the
+// guard and burns CPU. Only the leading (highest-priority) languages are used, so
+// truncating a longer header is safe.
+const maxAcceptLanguageLen = 200
+
+// parseAcceptLanguage parses the Accept-Language header after bounding its length
+// to avoid a quadratic-time DoS on attacker-controlled input.
+func parseAcceptLanguage(header string) []language.Tag {
+	if len(header) > maxAcceptLanguageLen {
+		header = header[:maxAcceptLanguageLen]
+	}
+	tags, _, _ := language.ParseAcceptLanguage(header)
+	return tags
+}
+
 // Locale handle locale
 func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 	// 1. Check URL arguments.
@@ -35,7 +53,7 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 	// 3. Get language information from 'Accept-Language'.
 	// The first element in the list is chosen to be the default language automatically.
 	if len(lang) == 0 {
-		tags, _, _ := language.ParseAcceptLanguage(req.Header.Get("Accept-Language"))
+		tags := parseAcceptLanguage(req.Header.Get("Accept-Language"))
 		tag := translation.Match(tags...)
 		lang = tag.String()
 	}

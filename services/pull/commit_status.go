@@ -8,11 +8,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
+	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
@@ -69,10 +73,24 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus,
 func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
-		return false, fmt.Errorf("GetLatestCommitStatus: %w", err)
+		return false, fmt.Errorf("GetFirstMatchProtectedBranchRule: %w", err)
 	}
-	if pb == nil || !pb.EnableStatusCheck {
+	if pb == nil {
 		return true, nil
+	}
+	if !pb.EnableStatusCheck {
+		// The branch's own status check is off, but required scoped checks (mandated by the owner or instance admin) still gate the merge.
+		if err := pr.LoadBaseRepo(ctx); err != nil {
+			return false, err
+		}
+		required, err := EffectiveRequiredContexts(ctx, pr.BaseRepo, pb)
+		if err != nil {
+			return false, err
+		}
+		if len(required) == 0 {
+			// With none in effect there is nothing to enforce, so don't block
+			return true, nil
+		}
 	}
 
 	state, err := GetPullRequestCommitStatusState(ctx, pr)
@@ -130,10 +148,54 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	if err != nil {
 		return "", fmt.Errorf("LoadProtectedBranch: %w", err)
 	}
-	var requiredContexts []string
-	if pb != nil {
-		requiredContexts = pb.StatusCheckContexts
+	requiredContexts, err := EffectiveRequiredContexts(ctx, pr.BaseRepo, pb)
+	if err != nil {
+		return "", err
 	}
 
 	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts), nil
+}
+
+// EffectiveRequiredContexts returns the required status-check contexts to enforce, drawn from:
+//  1. every required scoped workflow's status-check patterns effective for the repo (always)
+//  2. each given protected branch rule's own configured contexts, only when that rule's status check is enabled
+//
+// Passing no rule or a single nil rule yields nothing, not even scoped patterns.
+// A single rule yields that rule's effective contexts.
+// Passing several rules unions their effective contexts; this is used when the governing rule is not yet known.
+func EffectiveRequiredContexts(ctx context.Context, repo *repo_model.Repository, pbs ...*git_model.ProtectedBranch) ([]string, error) {
+	// No protection rule in effect: nothing is required.
+	if len(pbs) == 0 || (len(pbs) == 1 && pbs[0] == nil) {
+		return nil, nil
+	}
+
+	sources, err := actions_model.GetEffectiveScopedWorkflowSources(ctx, repo.OwnerID)
+	if err != nil {
+		return nil, fmt.Errorf("GetEffectiveScopedWorkflowSources: %w", err)
+	}
+
+	required := make(container.Set[string])
+
+	// Every required scoped workflow's admin-authored status-check patterns, matched must-present-and-pass:
+	// a required scoped check that posts no matching status blocks the merge.
+	for _, source := range sources {
+		for _, cfg := range source.WorkflowConfigs {
+			if !cfg.Required {
+				continue
+			}
+			required.AddMultiple(cfg.Patterns...)
+		}
+	}
+
+	// Union the configured contexts of every rule whose own status check is enabled (a disabled rule contributes none)
+	for _, pb := range pbs {
+		if pb == nil || !pb.EnableStatusCheck {
+			continue
+		}
+		required.AddMultiple(pb.StatusCheckContexts...)
+	}
+
+	values := required.Values()
+	slices.Sort(values) // stable output
+	return values, nil
 }

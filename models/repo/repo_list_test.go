@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
@@ -465,4 +466,51 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 			assert.Equal(t, int64(testCase.count), count)
 		})
 	}
+}
+
+func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	// user2 is on org3's owner team, so it can access org3's private repo3 (which has the actions unit)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// org3 is a public org owning repo3 (private) and repo32 (public), both with the actions unit
+	const orgID = 3
+
+	all, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, false))
+	require.NoError(t, err)
+	assert.Contains(t, all, int64(3), "without public-only the private repo's actions are listed")
+
+	publicOnly, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, true))
+	require.NoError(t, err)
+	assert.NotContains(t, publicOnly, int64(3), "a public-only token must not list a private repo's actions")
+	assert.Contains(t, publicOnly, int64(32), "a public repo under a public owner stays listed")
+}
+
+// TestUserOrgUnitRepoCondTeamAuthorize pins the team.authorize behavior of userOrgTeamUnitRepoBuilder
+// (exercised through UserOrgUnitRepoCond): an admin/owner team grants every unit even without an explicit
+// team_unit row, while a non-admin team only grants a unit it has an explicit row for. This guards both
+// directions — hiding repos from admin-team members, and over-broadening a plain team's access.
+func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	accessibleRepoIDs := func(userID, orgID int64, unitType unit.Type) []int64 {
+		ids, err := repo_model.SearchRepositoryIDsByCondition(t.Context(),
+			repo_model.UserOrgUnitRepoCond("`repository`.id", userID, orgID, unitType))
+		require.NoError(t, err)
+		return ids
+	}
+
+	// Case A: user18 is only on org17's owner team (team5, authorize=owner), linked to the private repo24
+	// but with no Actions team_unit row. The owner authorize must still grant it, mirroring the runtime
+	// HasAdminAccess() short-circuit in access.GetIndividualUserRepoPermission.
+	assert.Contains(t, accessibleRepoIDs(18, 17, unit.TypeActions), int64(24),
+		"an owner team grants a unit it has no explicit team_unit row for")
+
+	// Cases B and C share one subject so the team_unit row is the only difference: user4 is only on org3's
+	// write team (team2, authorize=write, non-admin), linked to the private repo3. team2 has an explicit
+	// Projects row but none for Actions.
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3),
+		"a non-admin team grants a unit it has an explicit team_unit row for")
+	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3),
+		"a non-admin team must NOT grant a unit it has no team_unit row for")
 }

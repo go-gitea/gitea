@@ -99,6 +99,7 @@ import (
 	_ "gitea.dev/routers/api/v1/swagger" // for swagger generation
 
 	"gitea.com/go-chi/binding"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
@@ -290,7 +291,9 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryPackage:
-				if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+				// a public-only token must not reach limited-visibility owners either,
+				// matching the org/user public-only enforcement above
+				if ctx.Package != nil && !ctx.Package.Owner.Visibility.IsPublic() {
 					ctx.APIError(http.StatusForbidden, "token scope is limited to public packages")
 					return
 				}
@@ -949,6 +952,9 @@ func checkDeprecatedAuthMethods(ctx *context.APIContext) {
 // Routes registers all v1 APIs routes to web application.
 func Routes() *web.Router {
 	m := web.NewRouter()
+
+	// redirect HEAD requests to GET if no HEAD handler is defined (RFC 9110 §9.3.2)
+	m.BeforeRouting(chi_middleware.GetHead)
 
 	if setting.CORSConfig.Enabled {
 		m.BeforeRouting(cors.Handler(cors.Options{
@@ -1719,7 +1725,7 @@ func Routes() *web.Router {
 				m.Get("", reqToken(), org.ListMembers)
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
-			})
+			}, reqOrgVisible())
 			addActionsRoutes(
 				m,
 				reqOrgMembership(),
@@ -1731,7 +1737,7 @@ func Routes() *web.Router {
 				m.Combo("/{username}").Get(org.IsPublicMember).
 					Put(reqToken(), reqOrgMembership(), org.PublicizeMember).
 					Delete(reqToken(), reqOrgMembership(), org.ConcealMember)
-			})
+			}, reqOrgVisible())
 			m.Group("/teams", func() {
 				m.Get("", org.ListTeams)
 				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)

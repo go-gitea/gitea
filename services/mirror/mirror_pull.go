@@ -71,7 +71,8 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 }
 
 func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, gitRepo gitrepo.Repository, timeout time.Duration) error {
-	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+	// Never follow HTTP redirects, see cmdFetch in runSync.
+	cmd := gitcmd.NewCommand("remote", "prune").AddConfig("http.followRedirects", "false").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
 	stdout, _, pruneErr := gitrepo.RunCmdString(ctx, gitRepo, cmd)
 	if pruneErr != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
@@ -114,12 +115,23 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		log.Error("SyncMirrors [repo: %-v]: GetRemoteURL Error %v", m.Repo, remoteErr)
 		return nil, false
 	}
+	// re-validate on every sync: the host may now resolve to an internal IP (rebinding) or the
+	// allow/block list may have changed. ssh/file are skipped (not an HTTP SSRF vector).
+	switch remoteURL.URL.Scheme {
+	case "http", "https", "git":
+		if allowErr := migrations.IsMigrateURLAllowed(remoteURL.String(), m.Repo.MustOwner(ctx)); allowErr != nil {
+			log.Error("SyncMirrors [repo: %-v]: remote URL is not allowed: %v", m.Repo, allowErr)
+			return nil, false
+		}
+	}
 	envs := proxy.EnvWithProxy(remoteURL.URL)
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("fetch", "--tags")
+		// Never follow HTTP redirects: a mirror remote that later starts redirecting to an
+		// otherwise-blocked address would be an SSRF/exfiltration vector on scheduled syncs.
+		cmd := gitcmd.NewCommand("fetch", "--tags").AddConfig("http.followRedirects", "false")
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
@@ -200,7 +212,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		return gitcmd.NewCommand("remote", "update", "--prune").
+		// Never follow HTTP redirects, see cmdFetch above.
+		return gitcmd.NewCommand("remote", "update", "--prune").AddConfig("http.followRedirects", "false").
 			AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
 	}
 
