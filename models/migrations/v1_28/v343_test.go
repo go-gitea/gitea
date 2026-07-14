@@ -1,13 +1,12 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_27
+package v1_28
 
 import (
 	"testing"
 
 	"gitea.dev/models/migrations/migrationtest"
-
 	"github.com/stretchr/testify/require"
 )
 
