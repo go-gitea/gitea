@@ -1,4 +1,4 @@
-// Package setting registers repository settings routes.
+// Package setting registers organization settings routes.
 // Modified to add Actions settings page. Modified by LAC | Ludwig investing
 package setting
 
@@ -7,24 +7,22 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Routes registers repository settings routes.
+// Routes registers organization settings routes.
 // Modified to add Actions settings page. Modified by LAC | Ludwig investing
 func Routes() *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Get("/", func(ctx *context.Context) {
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/options")
+		ctx.Redirect(ctx.Org.OrgLink + "/settings/options")
 	})
 	r.Get("/options", Options)
 	r.Post("/options", OptionsPost)
-	r.Get("/collaboration", Collaboration)
-	r.Post("/collaboration", CollaborationPost)
-	r.Get("/branches", Branches)
-	r.Post("/branches", BranchesPost)
+	r.Get("/members", Members)
+	r.Post("/members", MembersPost)
+	r.Get("/teams", Teams)
+	r.Post("/teams", TeamsPost)
 	r.Get("/webhooks", Webhooks)
 	r.Post("/webhooks", WebhooksPost)
-	r.Get("/deploy-keys", DeployKeys)
-	r.Post("/deploy-keys", DeployKeysPost)
 	r.Get("/secrets", Secrets)
 	r.Post("/secrets", SecretsPost)
 	r.Get("/actions", ActionsSettings)          // Added for Actions permissions. Modified by LAC | Ludwig investing

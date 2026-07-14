@@ -1,4 +1,4 @@
-// Package setting provides web handlers for repository settings.
+// Package setting provides web handlers for organization settings.
 // Handlers for Actions permissions settings page. Modified by LAC | Ludwig investing
 package setting
 
@@ -7,16 +7,16 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-// ActionsSettings renders the repository Actions permissions settings page.
+// ActionsSettings renders the organization Actions permissions settings page.
 // Added to support configurable permissions. Modified by LAC | Ludwig investing
 func ActionsSettings(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.actions")
+	ctx.Data["Title"] = ctx.Tr("org.actions")
 	ctx.Data["PageIsSettingsActions"] = true
 
-	repo := ctx.Repo.Repository
-	perms, err := actions.GetRepoActionsPermissions(ctx, repo.ID)
+	org := ctx.Org.Organization
+	perms, err := actions.GetOrgActionsPermissions(ctx, org.ID)
 	if err != nil {
-		ctx.ServerError("GetRepoActionsPermissions", err)
+		ctx.ServerError("GetOrgActionsPermissions", err)
 		return
 	}
 	if perms != nil {
@@ -29,25 +29,25 @@ func ActionsSettings(ctx *context.Context) {
 	} else {
 		ctx.Data["Permissions"] = getDefaultPermissionsMap()
 	}
-	ctx.HTML(200, "repo/settings/actions")
+	ctx.HTML(200, "org/settings/actions")
 }
 
-// ActionsSettingsPost handles the form submission to update repo actions permissions.
+// ActionsSettingsPost handles the form submission to update org actions permissions.
 // Added to support configurable permissions. Modified by LAC | Ludwig investing
 func ActionsSettingsPost(ctx *context.Context) {
-	repo := ctx.Repo.Repository
+	org := ctx.Org.Organization
 	perms := make(map[actions.Scope]actions.Permission)
 	for _, scope := range actions.AllScopes {
 		val := ctx.Req.FormValue("permissions[" + string(scope) + "]")
 		perms[scope] = actions.PermissionFromString(val)
 	}
-	err := actions.UpdateRepoActionsPermissions(ctx, repo.ID, perms)
+	err := actions.UpdateOrgActionsPermissions(ctx, org.ID, perms)
 	if err != nil {
-		ctx.ServerError("UpdateRepoActionsPermissions", err)
+		ctx.ServerError("UpdateOrgActionsPermissions", err)
 		return
 	}
-	ctx.Flash.Success(ctx.Tr("repo.settings.actions.updated"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions")
+	ctx.Flash.Success(ctx.Tr("org.settings.actions.updated"))
+	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
 }
 
 func getDefaultPermissionsMap() map[actions.Scope]actions.Permission {

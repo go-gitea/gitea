@@ -1,13 +1,37 @@
-{{template "org/settings/layout_head" (dict "pageClass" "organization settings actions")}}
-	<div class="org-setting-content">
-	{{if eq .PageType "runners"}}
-		{{template "shared/actions/runner_list" .}}
-	{{else if eq .PageType "secrets"}}
-		{{template "shared/secrets/add_list" .}}
-	{{else if eq .PageType "variables"}}
-		{{template "shared/variables/variable_list" .}}
-	{{else if eq .PageType "scoped-workflows"}}
-		{{template "shared/actions/scoped_workflows" .}}
-	{{end}}
-	</div>
-{{template "org/settings/layout_footer" .}}
+{{template "base/head" .}}
+<div class="page-content org settings actions">
+    {{template "org/settings/navbar" .}}
+    <div class="ui container">
+        <h2>{{.Title}}</h2>
+        <form class="ui form" method="post" action="{{.Link}}">
+            {{.CsrfTokenHtml}}
+            <h3>Default permissions for repositories</h3>
+            <table class="ui table">
+                <thead>
+                    <tr>
+                        <th>Scope</th>
+                        <th>Permission</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range $scope, $perm := .Permissions}}
+                    <tr>
+                        <td>{{$scope}}</td>
+                        <td>
+                            <select name="permissions[{{$scope}}]">
+                                <option value="none" {{if eq $perm.String "none"}}selected{{end}}>None</option>
+                                <option value="read" {{if eq $perm.String "read"}}selected{{end}}>Read</option>
+                                <option value="write" {{if eq $perm.String "write"}}selected{{end}}>Write</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+            <button class="ui primary button" type="submit">Save</button>
+        </form>
+        <h3>Cross-repository access</h3>
+        <!-- TODO: implement cross-repo access UI -->
+    </div>
+</div>
+{{template "base/footer" .}}
