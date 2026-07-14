@@ -6,9 +6,9 @@
     "pnpm": ">= 11.0.0"
   },
   "dependencies": {
-    "@citation-js/core": "0.8.1",
-    "@citation-js/plugin-bibtex": "0.8.1",
-    "@citation-js/plugin-csl": "0.8.1",
+    "@citation-js/core": "0.7.21",
+    "@citation-js/plugin-bibtex": "0.7.21",
+    "@citation-js/plugin-csl": "0.7.22",
     "@citation-js/plugin-software-formats": "0.6.2",
     "@codemirror/autocomplete": "6.20.3",
     "@codemirror/commands": "6.10.4",
