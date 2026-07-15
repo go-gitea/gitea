@@ -744,7 +744,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	var beforeCommit *git.Commit
 	if isSingleCommit {
-		beforeCommit, err = afterCommit.Parent(0)
+		beforeCommit, err = afterCommit.Parent(ctx.Repo.GitRepo, 0)
 		if err != nil {
 			ctx.ServerError("afterCommit.Parent", err)
 			return
@@ -1377,7 +1377,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+		if template, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}
 	}

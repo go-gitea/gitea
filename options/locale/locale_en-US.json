@@ -2267,7 +2267,6 @@
   "repo.settings.webhook_deletion_success": "The webhook has been removed.",
   "repo.settings.webhook.test_delivery": "Test Push Event",
   "repo.settings.webhook.test_delivery_desc": "Test this webhook with a fake push event.",
-  "repo.settings.webhook.test_delivery_desc_disabled": "To test this webhook with a fake event, activate it.",
   "repo.settings.webhook.request": "Request",
   "repo.settings.webhook.response": "Response",
   "repo.settings.webhook.headers": "Headers",

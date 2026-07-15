@@ -125,7 +125,7 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
 	branchCommit, _ := gitRepo.GetBranchCommit(ref)
-	lastCommit, _ = branchCommit.GetCommitByPath("README.md")
+	lastCommit, _ = branchCommit.GetCommitByPath(gitRepo, "README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
@@ -136,7 +136,7 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
 	tagCommit, _ := gitRepo.GetTagCommit(ref)
-	lastCommit, _ = tagCommit.GetCommitByPath("README.md")
+	lastCommit, _ = tagCommit.GetCommitByPath(gitRepo, "README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 

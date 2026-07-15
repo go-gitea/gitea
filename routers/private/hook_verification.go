@@ -64,7 +64,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	return cmd.WithEnv(env).
 		WithDir(repo.Path).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			commit, err := git.CommitFromReader(repo, commitID, stdoutReader)
+			commit, err := git.CommitFromReader(commitID, stdoutReader)
 			if err != nil {
 				return err
 			}

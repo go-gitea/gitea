@@ -48,11 +48,12 @@ data 12
 			commit, err := gitRepo.GetBranchCommit("master")
 			require.NoError(t, err)
 
-			entries, err := commit.ListEntries()
+			entries, err := commit.Tree().ListEntries(t.Context(), gitRepo)
 			require.NoError(t, err)
 
 			ctx, _ := contexttest.MockContext(t, "/")
 			ctx.Repo.Commit = commit
+			ctx.Repo.GitRepo = gitRepo
 			foundDir, foundReadme, err := findReadmeFileInEntries(ctx, "", entries, true)
 			require.NoError(t, err)
 			require.NotNil(t, foundReadme)
@@ -62,7 +63,7 @@ data 12
 			assert.True(t, foundReadme.IsLink())
 
 			// Verify that it can follow the link
-			res, err := git.EntryFollowLinks(commit, path.Join(foundDir, foundReadme.Name()), foundReadme)
+			res, err := git.EntryFollowLinks(t.Context(), gitRepo, commit, path.Join(foundDir, foundReadme.Name()), foundReadme)
 			require.NoError(t, err)
 			assert.Equal(t, "target.md", res.TargetFullPath)
 		})

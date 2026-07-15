@@ -13,7 +13,6 @@ import (
 	"strconv"
 
 	"gitea.dev/models/gituser"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
@@ -51,13 +50,13 @@ func RefBlame(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return
 	}
 
-	blob := entry.Blob()
+	blob := entry.Blob(ctx.Repo.GitRepo)
 	fileSize := blob.Size()
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
@@ -81,7 +80,7 @@ func RefBlame(ctx *context.Context) {
 	}
 
 	bypassBlameIgnore, _ := strconv.ParseBool(ctx.FormString("bypass-blame-ignore"))
-	result, err := performBlame(ctx, ctx.Repo.Repository, ctx.Repo.Commit, ctx.Repo.TreePath, bypassBlameIgnore)
+	result, err := performBlame(ctx, bypassBlameIgnore)
 	if err != nil {
 		ctx.NotFound(err)
 		return
@@ -106,10 +105,14 @@ type blameResult struct {
 	FaultyIgnoreRevsFile bool
 }
 
-func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
+func performBlame(ctx *context.Context, bypassBlameIgnore bool) (*blameResult, error) {
+	repo := ctx.Repo.Repository
+	gitRepo := ctx.Repo.GitRepo
+	commit := ctx.Repo.Commit
+	file := ctx.Repo.TreePath
 	objectFormat := ctx.Repo.GetObjectFormat()
 
-	blameReader, err := gitrepo.CreateBlameReader(ctx, objectFormat, repo, commit, file, bypassBlameIgnore)
+	blameReader, err := gitrepo.CreateBlameReader(ctx, objectFormat, repo, gitRepo, commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +128,7 @@ func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git
 		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
 			// try again without ignored revs
 
-			blameReader, err = gitrepo.CreateBlameReader(ctx, objectFormat, repo, commit, file, true)
+			blameReader, err = gitrepo.CreateBlameReader(ctx, objectFormat, repo, gitRepo, commit, file, true)
 			if err != nil {
 				return nil, err
 			}
