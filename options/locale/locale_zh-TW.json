@@ -1952,7 +1952,6 @@
   "repo.settings.webhook_deletion": "移除 Webhook",
   "repo.settings.webhook_deletion_desc": "移除 Webhook 將刪除它的設定及傳送記錄，是否繼續？",
   "repo.settings.webhook_deletion_success": "Webhook 已移除。",
-  "repo.settings.webhook.test_delivery_desc_disabled": "要使用假事件測試此 Webhook，請啟用它。",
   "repo.settings.webhook.request": "請求",
   "repo.settings.webhook.response": "回應",
   "repo.settings.webhook.headers": "標頭",
