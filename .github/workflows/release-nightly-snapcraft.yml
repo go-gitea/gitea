@@ -28,8 +28,6 @@ jobs:
       - uses: snapcore/action-build@3bdaa03e1ba6bf59a65f84a751d943d549a54e79 # v1.3.0
         id: build
       - name: Publish snap
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         run: |
           for attempt in 1 2 3 4 5; do
             snapcraft upload "${{ steps.build.outputs.snap }}" --release latest/edge && exit 0
@@ -37,3 +35,5 @@ jobs:
             sleep 15
           done
           exit 1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
