@@ -22,6 +22,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/analyze"
 	"gitea.dev/modules/base"
@@ -77,7 +78,8 @@ type DiffLine struct {
 	Match       int // the diff matched index. -1: no match. 0: plain and no need to match. >0: for add/del, "Lines" slice index of the other side
 	Type        DiffLineType
 	Content     string
-	Comments    issues_model.CommentList // related PR code comments
+	CommitComments repo_model.CommitCommentList // related commit comments (non-PR)
+	Comments       issues_model.CommentList // related PR code comments
 	SectionInfo *DiffLineSectionInfo
 }
 
@@ -624,6 +626,32 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 	}
 	return nil
 }
+
+// LoadCommitComments loads commit comments into each diff line
+func (diff *Diff) LoadCommitComments(ctx context.Context, repoID int64, commitSHA string) error {
+	allComments, err := repo_model.FindCommitCommentsForDiff(ctx, repoID, commitSHA)
+	if err != nil {
+		return err
+	}
+	for _, file := range diff.Files {
+		if lineCommits, ok := allComments[file.Name]; ok {
+			for _, section := range file.Sections {
+				for _, line := range section.Lines {
+					comments := lineCommits[int64(line.LeftIdx*-1)]
+					comments = append(comments, lineCommits[int64(line.RightIdx)]...)
+					if len(comments) > 0 {
+						sort.SliceStable(comments, func(i, j int) bool {
+							return comments[i].CreatedUnix < comments[j].CreatedUnix
+						})
+						line.CommitComments = comments
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
 
 const cmdDiffHead = "diff --git "
 

@@ -1,0 +1,35 @@
+{{$root := or $.root $}}
+{{range .comments}}
+
+{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
+<div class="comment" id="{{.HashTag}}">
+	<div class="tw-mt-2 tw-mr-4">
+		{{template "shared/user/avatarlink" dict "user" .Poster}}
+	</div>
+	<div class="content comment-container">
+		<div class="comment-header avatar-content-left-arrow">
+			<div class="comment-header-left">
+				<span class="tw-text-text-light muted-links">
+					{{template "shared/user/namelink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
+				</span>
+			</div>
+			<div class="comment-header-right">
+				{{if and $root.SignedUserID (not $root.Repository.IsArchived)}}
+					{{template "repo/issue/view_content/context_menu" dict "item" . "delete" false "issue" false "diff" true "IsCommentPoster" (and $root.IsSigned (eq $root.SignedUserID .PosterID))}}
+				{{end}}
+			</div>
+		</div>
+		<div class="ui attached segment comment-body">
+			<div class="render-content markup" {{if or $root.IsAdmin (and $root.IsSigned (eq $root.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
+			{{if .RenderedContent}}
+				{{.RenderedContent}}
+			{{else}}
+				<span class="no-content">{{ctx.Locale.Tr "repo.issues.no_content"}}</span>
+			{{end}}
+			</div>
+			<div id="{{.HashTag}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
+		</div>
+	</div>
+</div>
+{{end}}

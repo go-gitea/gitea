@@ -1,0 +1,23 @@
+{{$root := or .root $}}
+{{if len .comments}}
+	{{$comment := index .comments 0}}
+	<div class="conversation-holder" data-path="{{$comment.TreePath}}" data-side="{{if lt $comment.Line 0}}left{{else}}right{{end}}" data-idx="{{$comment.UnsignedLine}}">
+		<div id="code-comments-{{$comment.ID}}" class="field comment-code-cloud">
+			<div class="comment-list">
+				<div class="ui comments">
+					{{template "repo/diff/commit_comments" dict "root" $root "comments" .comments}}
+				</div>
+			</div>
+			<div class="flex-text-block tw-mt-2 tw-flex-wrap tw-justify-end">
+				{{if and $root.SignedUserID (not $root.Repository.IsArchived)}}
+					<button class="comment-form-reply ui primary icon tiny button">
+						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
+					</button>
+				{{end}}
+			</div>
+			{{template "repo/diff/commit_comment_form" dict "root" $root "hidden" true}}
+		</div>
+	</div>
+{{else}}
+	{{template "repo/diff/conversation_outdated"}}
+{{end}}

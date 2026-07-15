@@ -426,6 +426,13 @@ func Diff(ctx *context.Context) {
 		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
 
+	// Load commit comments into the diff
+	if diff != nil {
+		if err := diff.LoadCommitComments(ctx, ctx.Repo.Repository.ID, commitID); err != nil {
+			log.Error("LoadCommitComments: %v", err)
+		}
+	}
+
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
