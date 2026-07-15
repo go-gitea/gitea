@@ -68,10 +68,9 @@
 		<ul>
 		{{$repoURL := $.Comment.Issue.PullRequest.BaseRepo.HTMLURL}}
 		{{range $commit := $.Comment.Commits}}
+			{{$gitCommit := $commit.UserCommit.GitCommit}}
 			<li>
-				<a href="{{$repoURL}}/commit/{{$commit.ID}}">
-					{{ShortSha $commit.ID.String}}
-				</a>  -  {{$commit.MessageTitle}}
+				<a href="{{$repoURL}}/commit/{{$gitCommit.ID}}">{{ShortSha $gitCommit.ID.String}}</a> - {{$gitCommit.MessageTitle}}
 			</li>
 		{{end}}
 		</ul>

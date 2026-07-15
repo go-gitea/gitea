@@ -20,7 +20,7 @@ func TestSubTree_Issue29101(t *testing.T) {
 
 	// old code could produce a different error if called multiple times
 	for range 10 {
-		_, err = commit.SubTree("file1.txt")
+		_, err = commit.SubTree(t.Context(), repo, "file1.txt")
 		assert.Error(t, err)
 		assert.True(t, IsErrNotExist(err))
 	}

@@ -61,7 +61,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 			return nil
 		}
 
-		blob, err := commit.GetBlobByPath(path)
+		blob, err := commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, path)
 		if err != nil {
 			return nil
 		}
@@ -773,7 +773,7 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.ServerError("GetCommit", err)
 		return
 	}
-	blob, err := commit.Tree.GetBlobByPath(filePath)
+	blob, err := commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, filePath)
 	if err != nil {
 		ctx.ServerError("GetBlobByPath", err)
 		return
