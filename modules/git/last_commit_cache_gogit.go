@@ -13,26 +13,26 @@ import (
 )
 
 // CacheCommit will cache the commit from the gitRepository
-func (c *Commit) CacheCommit(ctx context.Context) error {
-	if c.repo.LastCommitCache == nil {
+func (c *Commit) CacheCommit(ctx context.Context, gitRepo *Repository) error {
+	if gitRepo.LastCommitCache == nil {
 		return nil
 	}
-	commitNodeIndex, _ := c.repo.CommitNodeIndex()
+	commitNodeIndex, _ := gitRepo.CommitNodeIndex()
 
 	index, err := commitNodeIndex.Get(plumbing.Hash(c.ID.RawValue()))
 	if err != nil {
 		return err
 	}
 
-	return c.recursiveCache(ctx, index, &c.Tree, "", 1)
+	return c.recursiveCache(ctx, gitRepo, index, c.Tree(), "", 1)
 }
 
-func (c *Commit) recursiveCache(ctx context.Context, index cgobject.CommitNode, tree *Tree, treePath string, level int) error {
+func (c *Commit) recursiveCache(ctx context.Context, gitRepo *Repository, index cgobject.CommitNode, tree *Tree, treePath string, level int) error {
 	if level == 0 {
 		return nil
 	}
 
-	entries, err := tree.ListEntries()
+	entries, err := tree.ListEntries(ctx, gitRepo)
 	if err != nil {
 		return err
 	}
@@ -44,18 +44,18 @@ func (c *Commit) recursiveCache(ctx context.Context, index cgobject.CommitNode, 
 		entryMap[entry.Name()] = entry
 	}
 
-	commits, err := GetLastCommitForPaths(ctx, c.repo.LastCommitCache, index, treePath, entryPaths)
+	commits, err := getLastCommitForPathsByCommitNode(ctx, gitRepo, index, treePath, entryPaths)
 	if err != nil {
 		return err
 	}
 
 	for entry := range commits {
 		if entryMap[entry].IsDir() {
-			subTree, err := tree.SubTree(entry)
+			subTree, err := tree.SubTree(ctx, gitRepo, entry)
 			if err != nil {
 				return err
 			}
-			if err := c.recursiveCache(ctx, index, subTree, entry, level-1); err != nil {
+			if err := c.recursiveCache(ctx, gitRepo, index, subTree, entry, level-1); err != nil {
 				return err
 			}
 		}

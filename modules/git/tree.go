@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -14,23 +15,15 @@ import (
 type TreeCommon struct {
 	ID         ObjectID
 	ResolvedID ObjectID
-
-	repo  *Repository
-	ptree *Tree // parent tree
 }
 
 // NewTree create a new tree according the repository and tree id
-func NewTree(repo *Repository, id ObjectID) *Tree {
-	return &Tree{
-		TreeCommon: TreeCommon{
-			ID:   id,
-			repo: repo,
-		},
-	}
+func NewTree(id ObjectID) *Tree {
+	return &Tree{TreeCommon: TreeCommon{ID: id}}
 }
 
 // SubTree get a subtree by the sub dir path
-func (t *Tree) SubTree(rpath string) (*Tree, error) {
+func (t *Tree) SubTree(ctx context.Context, gitRepo *Repository, rpath string) (*Tree, error) {
 	if len(rpath) == 0 {
 		return t, nil
 	}
@@ -43,16 +36,15 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 		te  *TreeEntry
 	)
 	for _, name := range paths {
-		te, err = p.GetTreeEntryByPath(name)
+		te, err = p.GetTreeEntryByPath(ctx, gitRepo, name)
 		if err != nil {
 			return nil, err
 		}
 
-		g, err = t.repo.getTree(te.ID)
+		g, err = gitRepo.getTree(te.ID)
 		if err != nil {
 			return nil, err
 		}
-		g.ptree = p
 		p = g
 	}
 	return g, nil

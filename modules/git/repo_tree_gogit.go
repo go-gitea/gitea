@@ -25,7 +25,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		return nil, err
 	}
 
-	tree := NewTree(repo, id)
+	tree := NewTree(id)
 	tree.resolvedGogitTreeObject = gogitTree
 	return tree, nil
 }

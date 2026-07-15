@@ -78,7 +78,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 		// With basic theme (default for folders), we get octicon icons without IDs
 		return template.HTML(`<span>octicon-file-directory-open-fill(16/)</span>`)
 	}
-	treeNodes, err := GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "", "")
+	treeNodes, err := GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, "", "")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
@@ -90,7 +90,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 		},
 	}, treeNodes)
 
-	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "", "docs/README.md")
+	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, "", "docs/README.md")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{
@@ -110,7 +110,7 @@ func TestGetTreeViewNodes(t *testing.T) {
 		},
 	}, treeNodes)
 
-	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "docs", "README.md")
+	treeNodes, err = GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, "docs", "README.md")
 	assert.NoError(t, err)
 	assert.Equal(t, []*TreeViewNode{
 		{

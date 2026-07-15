@@ -257,7 +257,7 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 		}, err)
 		return
 	}
-	rpath, entries, err := actions.ListWorkflows(commit)
+	rpath, entries, err := actions.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
 		return
@@ -1414,7 +1414,7 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 		}, err)
 		return
 	}
-	rpath, entries, err := actions.ListScopedWorkflows(commit)
+	rpath, entries, err := actions.ListScopedWorkflows(ctx, sourceGitRepo, commit)
 	if err != nil {
 		ctx.ServerError("ListScopedWorkflows", err)
 		return

@@ -43,7 +43,7 @@ type GetContentsOrListOptions struct {
 // GetContentsOrList gets the metadata of a file's contents (*ContentsResponse) if treePath not a tree
 // directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
 func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, opts GetContentsOrListOptions) (ret api.ContentsExtResponse, _ error) {
-	entry, err := prepareGetContentsEntry(refCommit, &opts.TreePath)
+	entry, err := prepareGetContentsEntry(ctx, gitRepo, refCommit, &opts.TreePath)
 	if repo.IsEmpty && opts.TreePath == "" {
 		return api.ContentsExtResponse{DirContents: make([]*api.ContentsResponse, 0)}, nil
 	}
@@ -58,11 +58,11 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 
 	// list directory contents
-	gitTree, err := refCommit.Commit.SubTree(opts.TreePath)
+	gitTree, err := refCommit.Commit.SubTree(ctx, gitRepo, opts.TreePath)
 	if err != nil {
 		return ret, err
 	}
-	entries, err := gitTree.ListEntries()
+	entries, err := gitTree.ListEntries(ctx, gitRepo)
 	if err != nil {
 		return ret, err
 	}
@@ -96,7 +96,7 @@ func GetObjectTypeFromTreeEntry(entry *git.TreeEntry) ContentType {
 	}
 }
 
-func prepareGetContentsEntry(refCommit *utils.RefCommit, treePath *string) (*git.TreeEntry, error) {
+func prepareGetContentsEntry(ctx context.Context, gitRepo *git.Repository, refCommit *utils.RefCommit, treePath *string) (*git.TreeEntry, error) {
 	// Check that the path given in opts.treePath is valid (not a git path)
 	cleanTreePath := CleanGitTreePath(*treePath)
 	if cleanTreePath == "" && *treePath != "" {
@@ -110,12 +110,12 @@ func prepareGetContentsEntry(refCommit *utils.RefCommit, treePath *string) (*git
 		return nil, util.NewNotExistErrorf("no commit found for the ref [ref: %s]", refCommit.RefName)
 	}
 
-	return refCommit.Commit.GetTreeEntryByPath(*treePath)
+	return refCommit.Commit.GetTreeEntryByPath(ctx, gitRepo, *treePath)
 }
 
 // GetFileContents gets the metadata on a file's contents. Ref can be a branch, commit or tag
 func GetFileContents(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, opts GetContentsOrListOptions) (*api.ContentsResponse, error) {
-	entry, err := prepareGetContentsEntry(refCommit, &opts.TreePath)
+	entry, err := prepareGetContentsEntry(ctx, gitRepo, refCommit, &opts.TreePath)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 		Name: entry.Name(),
 		Path: opts.TreePath,
 		SHA:  entry.ID.String(),
-		Size: entry.Size(),
+		Size: entry.GetSize(ctx, gitRepo),
 		URL:  &selfURLString,
 		Links: &api.FileLinksResponse{
 			Self: &selfURLString,
@@ -162,7 +162,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 			return nil, err
 		}
 
-		lastCommit, err := refCommit.Commit.GetCommitByPath(opts.TreePath)
+		lastCommit, err := refCommit.Commit.GetCommitByPath(gitRepo, opts.TreePath)
 		if err != nil {
 			return nil, err
 		}
@@ -205,14 +205,14 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 	} else if entry.IsLink() {
 		contentsResponse.Type = string(ContentTypeLink)
 		// The target of a symlink file is the content of the file
-		targetFromContent, err := entry.Blob().GetBlobContent(1024)
+		targetFromContent, err := entry.Blob(gitRepo).GetBlobContent(1024)
 		if err != nil {
 			return nil, err
 		}
 		contentsResponse.Target = &targetFromContent
 	} else if entry.IsSubModule() {
 		contentsResponse.Type = string(ContentTypeSubmodule)
-		submodule, err := commit.GetSubModule(opts.TreePath)
+		submodule, err := commit.GetSubModule(ctx, gitRepo, opts.TreePath)
 		if err != nil {
 			return nil, err
 		}

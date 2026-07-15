@@ -7,6 +7,7 @@ package languagestats
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"gitea.dev/modules/analyze"
@@ -19,7 +20,7 @@ import (
 )
 
 // GetLanguageStats calculates language stats for git repository at specified commit
-func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, error) {
+func GetLanguageStats(ctx context.Context, repo *git.Repository, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
 	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
@@ -43,7 +44,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		return nil, git.ErrNotExist{ID: commitID}
 	}
 
-	commit, err := git.CommitFromReader(repo, sha, io.LimitReader(batchReader, commitInfo.Size))
+	commit, err := git.CommitFromReader(sha, io.LimitReader(batchReader, commitInfo.Size))
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, err
@@ -52,9 +53,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		return nil, err
 	}
 
-	tree := commit.Tree
-
-	entries, err := tree.ListEntriesRecursiveWithSize()
+	entries, err := commit.Tree().ListEntriesRecursiveWithSize(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -81,13 +80,15 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		select {
 		case <-repo.Ctx.Done():
 			return sizes, repo.Ctx.Err()
+		case <-ctx.Done():
+			return sizes, ctx.Err()
 		default:
 		}
 
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 
-		if f.Size() == 0 {
+		if f.GetSize(ctx, repo) == 0 {
 			continue
 		}
 
@@ -124,7 +125,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 				}
 
 				// this language will always be added to the size
-				sizes[language] += f.Size()
+				sizes[language] += f.GetSize(ctx, repo)
 				continue
 			}
 		}
@@ -138,7 +139,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 
 		// If content can not be read or file is too big just do detection by filename
 
-		if f.Size() <= bigFileSize {
+		if f.GetSize(ctx, repo) <= bigFileSize {
 			info, _, err := batch.QueryContent(f.ID.String())
 			if err != nil {
 				return nil, err
@@ -192,10 +193,10 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 			includedLanguage[language] = included
 		}
 		if included || isDetectable.ValueOrDefault(false) {
-			sizes[language] += f.Size()
+			sizes[language] += f.GetSize(ctx, repo)
 		} else if len(sizes) == 0 && (firstExcludedLanguage == "" || firstExcludedLanguage == language) {
 			firstExcludedLanguage = language
-			firstExcludedLanguageSize += f.Size()
+			firstExcludedLanguageSize += f.GetSize(ctx, repo)
 		}
 	}
 
