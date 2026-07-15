@@ -12,7 +12,7 @@
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "enabled": true,
-    "semanticCommitType": "fix",
+    "semanticCommitType": "fix", // overrides packageRules
   },
   "customManagers": [
     {
