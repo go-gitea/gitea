@@ -1812,7 +1812,6 @@
   "repo.settings.webhook_deletion": "Noņemt tīmekļa āķi",
   "repo.settings.webhook_deletion_desc": "Noņemot tīmekļa āķi, tiks dzēsti visi tā iestatījumi un piegādes vēsture. Vai turpināt?",
   "repo.settings.webhook_deletion_success": "Tīmekļa āķis tika noņemts.",
-  "repo.settings.webhook.test_delivery_desc_disabled": "Lai pārbaudītu šo tīmekļa āķi ar neīstu notikumu, tas ir jāiespējo.",
   "repo.settings.webhook.request": "Pieprasījums",
   "repo.settings.webhook.response": "Atbilde",
   "repo.settings.webhook.headers": "Galvenes",
