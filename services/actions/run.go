@@ -236,7 +236,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 						return fmt.Errorf("skip caller %d: %w", runJob.ID, err)
 					}
 				}
-				hasWaitingCallerJobs = true
+				hasWaitingCallerJobs = hasWaitingCallerJobs || shouldStart
 			}
 
 			runJobs = append(runJobs, runJob)
