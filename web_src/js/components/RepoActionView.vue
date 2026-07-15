@@ -225,7 +225,7 @@ onBeforeUnmount(() => {
             <button
               v-if="item.job.isReusableCaller"
               type="button"
-              class="item job-brief-item caller-row-toggle"
+              class="item caller-row-toggle"
               :class="{'selected': props.jobId === item.job.id}"
               :style="{paddingLeft: `${10 + item.depth * 16}px`}"
               @click="toggleExpandedJob(item.job.id)"
@@ -240,7 +240,7 @@ onBeforeUnmount(() => {
             </button>
             <a
               v-else
-              class="item job-brief-item silenced"
+              class="item silenced"
               :class="{'selected': props.jobId === item.job.id}"
               :style="{paddingLeft: `${10 + item.depth * 16}px`}"
               :href="item.job.link"
@@ -455,9 +455,11 @@ onBeforeUnmount(() => {
 }
 
 .caller-row-toggle {
+  width: 100%;
   border: none;
   background: transparent;
   color: inherit;
+  line-height: inherit; /* buttons don't inherit line-height; match the <a> rows' row height */
   cursor: pointer;
   text-align: inherit;
 }
@@ -487,13 +489,13 @@ onBeforeUnmount(() => {
 }
 
 .action-view-sidebar-list > .item:hover .job-rerun-button,
-.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button {
+.action-view-sidebar-list > .item:focus .job-rerun-button {
   display: inline-flex;
 }
 
 /* only swap out the duration when a re-run button exists to take its place */
 .action-view-sidebar-list > .item:hover .job-rerun-button ~ .job-duration,
-.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button ~ .job-duration {
+.action-view-sidebar-list > .item:focus .job-rerun-button ~ .job-duration {
   display: none;
 }
 
