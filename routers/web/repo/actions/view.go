@@ -32,6 +32,7 @@ import (
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/storage"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
@@ -752,6 +753,8 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
 	if run.NeedApproval {
 		resp.State.CurrentJob.Detail = ctx.Locale.TrString("actions.need_approval_desc")
+	} else if detail := describePendingJobDetail(ctx, current, jobs); detail != "" {
+		resp.State.CurrentJob.Detail = detail
 	}
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
@@ -764,6 +767,78 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 		resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, steps...)
 		resp.Logs.StepsLog = append(resp.Logs.StepsLog, logs...)
 	}
+}
+
+// describePendingJobDetail explains why a blocked or waiting job has not started
+// yet, so the user can tell whether it is waiting on its dependencies or on an
+// available runner. It returns an empty string when the job is not pending or the
+// cause can't be determined (the caller keeps the generic status label then).
+func describePendingJobDetail(ctx *context_module.Context, current *actions_model.ActionRunJob, jobs []*actions_model.ActionRunJob) string {
+	switch {
+	case current.Status.IsBlocked():
+		// A blocked job is held back by the jobs listed in its `needs`.
+		if pending := pendingNeeds(current, jobs); len(pending) > 0 {
+			return ctx.Locale.TrString("actions.runs.waiting_for_dependent_jobs", strings.Join(pending, ", "))
+		}
+	case current.Status.IsWaiting():
+		// A waiting job has no runner to pick it up yet. A busy runner is still
+		// "online", so distinguish three cases: no runner online at all, online
+		// runners but none match the labels, and a matching runner that is busy.
+		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
+			RepoID:        current.RepoID,
+			IsOnline:      optional.Some(true),
+			WithAvailable: true,
+		})
+		if err != nil {
+			log.Error("FindRunners for job %d: %v", current.ID, err)
+			return ""
+		}
+		hasOnlineRunner, hasMatchingRunner := false, false
+		for _, runner := range runners {
+			if runner.IsDisabled {
+				continue
+			}
+			hasOnlineRunner = true
+			if runner.CanMatchLabels(current.RunsOn) {
+				hasMatchingRunner = true
+				break
+			}
+		}
+		switch {
+		case !hasOnlineRunner:
+			return ctx.Locale.TrString("actions.runs.no_runner_online")
+		case !hasMatchingRunner:
+			return ctx.Locale.TrString("actions.runs.no_matching_online_runner_helper", strings.Join(current.RunsOn, ", "))
+		default:
+			// A matching runner exists but hasn't claimed the job, so it is busy.
+			return ctx.Locale.TrString("actions.runs.waiting_for_available_runner")
+		}
+	}
+	return ""
+}
+
+// pendingNeeds returns the `needs` keys of jobs the given job depends on that
+// have not finished yet, scoped to the same parent job (matrix expansions of a
+// need are all required to be done). Unresolved needs are treated as pending.
+func pendingNeeds(current *actions_model.ActionRunJob, jobs []*actions_model.ActionRunJob) []string {
+	var pending []string
+	for _, need := range current.Needs {
+		found, allDone := false, true
+		for _, job := range jobs {
+			if job.ParentJobID != current.ParentJobID || job.JobID != need {
+				continue
+			}
+			found = true
+			if !job.Status.IsDone() {
+				allDone = false
+				break
+			}
+		}
+		if !found || !allDone {
+			pending = append(pending, need)
+		}
+	}
+	return pending
 }
 
 func convertToViewModel(ctx context.Context, locale translation.Locale, cursors []LogCursor, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
