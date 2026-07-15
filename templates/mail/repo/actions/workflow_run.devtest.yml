@@ -10,25 +10,29 @@ Run:
 
 Jobs:
   - Name: Job-Name-1
-    StatusIcon: "✔"
+    StatusIcon: status-success.png
+    StatusIconAlt: "✔"
     StatusClass: status-success
     StatusText: Success
     Attempt: 1
     HTMLURL: http://localhost/job/1
   - Name: Job-Name-2
-    StatusIcon: "×"
+    StatusIcon: status-failure.png
+    StatusIconAlt: "×"
     StatusClass: status-failure
     StatusText: Failure
     Attempt: 2
     HTMLURL: http://localhost/job/2
   - Name: Job-Name-3
-    StatusIcon: "⊘"
+    StatusIcon: status-cancelled.png
+    StatusIconAlt: "⊘"
     StatusClass: ""
     StatusText: Canceled
     Attempt: 1
     HTMLURL: http://localhost/job/3
   - Name: Job-Name-4
-    StatusIcon: "–"
+    StatusIcon: status-skipped.png
+    StatusIconAlt: "–"
     StatusClass: ""
     StatusText: Skipped
     Attempt: 1

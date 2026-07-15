@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
@@ -44,12 +45,26 @@ func MailPreviewRender(ctx *context.Context) {
 		return
 	}
 	body := mailBody.String()
+	// emulate mail clients, which resolve "cid:" URIs to the mail's inline attachments
+	body = strings.ReplaceAll(body, `src="cid:`, `src="`+setting.AppSubURL+`/devtest/mail-preview-embed/`)
 	// a page can force "color-scheme" on an embedded document but never "prefers-color-scheme"
 	if scheme := ctx.FormString("scheme"); scheme == "light" || scheme == "dark" {
 		body = mailDarkSchemeQuery.ReplaceAllString(body, util.Iif(scheme == "dark", "@media all", "@media not all"))
 		body = strings.Replace(body, "</head>", fmt.Sprintf("<style>:root {color-scheme: %s}</style></head>", scheme), 1)
 	}
+	// fragment templates like "mail/base/head" would be sniffed as text/plain otherwise
+	ctx.Resp.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = ctx.Resp.Write([]byte(body))
+}
+
+func MailPreviewEmbed(ctx *context.Context) {
+	content, err := mailer.LoadMailIcon(ctx.PathParam("*"))
+	if err != nil {
+		ctx.NotFound(err)
+		return
+	}
+	ctx.Resp.Header().Set("Content-Type", "image/png")
+	_, _ = ctx.Resp.Write(content)
 }
 
 func prepareMailPreviewRender(ctx *context.Context, tmplName string) {

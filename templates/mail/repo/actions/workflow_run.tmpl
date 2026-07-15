@@ -25,7 +25,7 @@
 	<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="job-table" style="width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 30px;">
 	{{range $job := .Jobs}}
 		<tr class="job-row">
-			<td class="{{$job.StatusClass}}" width="24" style="width: 24px; padding: 6px 8px 6px 12px; font-family: Menlo, Consolas, monospace; font-size: 20px; line-height: 1; font-weight: bold; text-align: center;">{{$job.StatusIcon}}</td>
+			<td class="{{$job.StatusClass}}" width="24" style="width: 24px; padding: 6px 8px 6px 12px; line-height: 1; font-weight: bold; text-align: center;"><img src="cid:{{$job.StatusIcon}}" width="16" height="16" alt="{{$job.StatusIconAlt}}" style="vertical-align: middle;"></td>
 			<td class="{{$job.StatusClass}}" style="padding: 6px 8px 6px 0; white-space: nowrap;">{{$job.StatusText}}</td>
 			<td width="100%" style="width: 100%; padding: 6px 12px 6px 0;">
 				<a href="{{$job.HTMLURL}}" style="text-decoration: none; font-weight: bold;">{{$job.Name}}</a>

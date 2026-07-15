@@ -16,19 +16,24 @@ func TestWorkflowRunJobStatusPresentation(t *testing.T) {
 	cases := []struct {
 		status actions_model.Status
 		icon   string
+		alt    string
 		class  string
 	}{
-		{actions_model.StatusSuccess, "✔", "status-success"},
-		{actions_model.StatusFailure, "×", "status-failure"},
-		{actions_model.StatusCancelled, "⊘", ""},
-		{actions_model.StatusSkipped, "–", ""},
-		{actions_model.StatusUnknown, "×", "status-failure"},
+		{actions_model.StatusSuccess, "status-success.png", "✔", "status-success"},
+		{actions_model.StatusFailure, "status-failure.png", "×", "status-failure"},
+		{actions_model.StatusCancelled, "status-cancelled.png", "⊘", ""},
+		{actions_model.StatusSkipped, "status-skipped.png", "–", ""},
+		{actions_model.StatusUnknown, "status-failure.png", "×", "status-failure"},
 	}
 	for _, c := range cases {
 		t.Run(c.status.String(), func(t *testing.T) {
-			icon, class := workflowRunJobStatusPresentation(c.status)
+			icon, alt, class := workflowRunJobStatusPresentation(c.status)
 			assert.Equal(t, c.icon, icon)
+			assert.Equal(t, c.alt, alt)
 			assert.Equal(t, c.class, class)
+			content, err := LoadMailIcon(icon)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, content)
 		})
 	}
 }
