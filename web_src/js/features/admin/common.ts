@@ -36,6 +36,7 @@ function initAdminRunnerBulk(toolbar: HTMLElement) {
 
   const refresh = () => {
     const checked = Array.from(rowCheckboxes).filter((c) => c.checked);
+    formRunnerIds.value = checked.map((c) => c.getAttribute('data-runner-id')!).join(',');
     toggleElem(toolbar, checked.length > 0);
     for (const btn of actionButtons) {
       btn.querySelector<HTMLElement>('.runner-bulk-count')!.textContent = `(${checked.length})`;
@@ -50,15 +51,6 @@ function initAdminRunnerBulk(toolbar: HTMLElement) {
   });
   for (const cb of rowCheckboxes) cb.addEventListener('change', refresh);
   refresh();
-
-  const collectSelectedIds = () => {
-    const ids = [];
-    for (const cb of rowCheckboxes) {
-      if (cb.checked) ids.push(cb.getAttribute('data-runner-id')!);
-    }
-    return ids.join(',');
-  };
-  formRunnerIds.value = collectSelectedIds();
 }
 
 function initAdminUser() {
