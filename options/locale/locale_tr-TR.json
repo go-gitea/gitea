@@ -2204,7 +2204,6 @@
   "repo.settings.webhook_deletion_success": "Web isteği silindi.",
   "repo.settings.webhook.test_delivery": "İtme Olayını Sına",
   "repo.settings.webhook.test_delivery_desc": "Bu web istemcisini sahte bir itme olayıyla sınayın.",
-  "repo.settings.webhook.test_delivery_desc_disabled": "Bu web istemcisini sahte bir olayla denemek için etkinleştirin.",
   "repo.settings.webhook.request": "İstekler",
   "repo.settings.webhook.response": "Cevaplar",
   "repo.settings.webhook.headers": "Başlıklar",
