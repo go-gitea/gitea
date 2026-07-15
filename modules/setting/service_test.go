@@ -102,6 +102,14 @@ ALLOWED_USER_VISIBILITY_MODES = limited,private
 		},
 		`
 [service]
+DEFAULT_USER_VISIBILITY = my_type
+`: func() {
+			assert.Equal(t, "public", Service.DefaultUserVisibility)
+			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
+			assert.Equal(t, []string{"public", "limited", "private"}, Service.AllowedUserVisibilityModes)
+		},
+		`
+[service]
 DEFAULT_USER_VISIBILITY = public
 ALLOWED_USER_VISIBILITY_MODES = public, limit, privated
 `: func() {

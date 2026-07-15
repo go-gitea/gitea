@@ -239,7 +239,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").String()
 	if Service.DefaultUserVisibility == "" {
 		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
-	} else if !Service.AllowedUserVisibilityModesSlice[structs.VisibilityModes[structs.UserVisibility(Service.DefaultUserVisibility)]] {
+	} else if vt, ok := structs.VisibilityModes[structs.UserVisibility(Service.DefaultUserVisibility)]; !ok || !Service.AllowedUserVisibilityModesSlice[vt] {
 		log.Warn("DEFAULT_USER_VISIBILITY %s is wrong or not in ALLOWED_USER_VISIBILITY_MODES, using first allowed", Service.DefaultUserVisibility)
 		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
 	}

@@ -235,9 +235,10 @@ func SettingsRenamePost(ctx *context.Context) {
 
 // SettingsChangeVisibilityPost response for change organization visibility
 func SettingsChangeVisibilityPost(ctx *context.Context) {
-	visibility, ok := structs.VisibilityModes[structs.UserVisibility(ctx.FormString("visibility"))]
+	visibilityStr := ctx.FormString("visibility")
+	visibility, ok := structs.VisibilityModes[structs.UserVisibility(visibilityStr)]
 	if !ok {
-		ctx.Flash.Error(ctx.Tr("invalid_data", visibility))
+		ctx.Flash.Error(ctx.Tr("invalid_data", visibilityStr))
 		ctx.JSONRedirect(setting.AppSubURL + "/org/" + url.PathEscape(ctx.Org.Organization.Name) + "/settings")
 		return
 	}
