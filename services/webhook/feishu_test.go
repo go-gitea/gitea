@@ -243,7 +243,7 @@ func TestFeishuJSONPayload(t *testing.T) {
 		RepoID:     3,
 		IsActive:   true,
 		Type:       webhook_module.FEISHU,
-		URL:        "https://feishu.example.com/",
+		URL:        "https://feishu.example.com",
 		Meta:       `{"app_id":"app_id","app_secret":"app_secret"}`,
 		HTTPMethod: "POST",
 		Secret:     "secret",
@@ -264,7 +264,7 @@ func TestFeishuJSONPayload(t *testing.T) {
 	// The framework request validates the app credentials against the token
 	// endpoint instead, which is what the user observes in the delivery log.
 	assert.Equal(t, "POST", req.Method)
-	assert.Equal(t, "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal/", req.URL.String())
+	assert.Equal(t, "https://feishu.example.com/open-apis/auth/v3/tenant_access_token/internal/", req.URL.String())
 	assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
 	assert.JSONEq(t, `{"app_id":"app_id","app_secret":"app_secret"}`, string(reqBody))
 }
