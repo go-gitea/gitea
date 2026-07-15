@@ -3608,6 +3608,21 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "ConvertUserTypeOption": {
+        "description": "ConvertUserTypeOption options when converting a user between individual and bot",
+        "properties": {
+          "user_type": {
+            "description": "The target user type: \"individual\" or \"bot\"",
+            "type": "string",
+            "x-go-name": "UserType"
+          }
+        },
+        "required": [
+          "user_type"
+        ],
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "CreateAccessTokenOption": {
         "description": "CreateAccessTokenOption options when create access token",
         "properties": {
@@ -11793,6 +11808,48 @@
           }
         },
         "summary": "Add a badge to a user",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/users/{username}/convert-type": {
+      "post": {
+        "operationId": "adminConvertUserType",
+        "parameters": [
+          {
+            "description": "username of the user to convert",
+            "in": "path",
+            "name": "username",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertUserTypeOption"
+              }
+            }
+          },
+          "required": true,
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "204": {
+            "$ref": "#/components/responses/empty"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/components/responses/validationError"
+          }
+        },
+        "summary": "Convert a user between the individual and bot types",
         "tags": [
           "admin"
         ]

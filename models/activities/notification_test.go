@@ -10,6 +10,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
@@ -29,6 +30,32 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 
 	notf = unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, IssueID: issue.ID})
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
+}
+
+func TestCreateOrUpdateIssueNotificationsSkipsBots(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	user.Type = user_model.UserTypeBot
+	assert.NoError(t, user_model.UpdateUserCols(t.Context(), user, "type"))
+
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0))
+
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 1, IssueID: issue.ID})
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: user.ID, IssueID: issue.ID})
+}
+
+func TestCreateRepoTransferNotificationSkipsBot(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	newOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	newOwner.Type = user_model.UserTypeBot
+	assert.NoError(t, user_model.UpdateUserCols(t.Context(), newOwner, "type"))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	assert.NoError(t, activities_model.CreateRepoTransferNotification(t.Context(), doer, newOwner, repo))
+
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: newOwner.ID, RepoID: repo.ID, Source: activities_model.NotificationSourceRepository})
 }
 
 func TestNotificationsForUser(t *testing.T) {

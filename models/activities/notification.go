@@ -126,6 +126,9 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 				return err
 			}
 			for i := range users {
+				if users[i].IsTypeBot() {
+					continue
+				}
 				notify = append(notify, &Notification{
 					UserID:    i,
 					RepoID:    repo.ID,
@@ -135,6 +138,9 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 				})
 			}
 		} else {
+			if newOwner.IsTypeBot() {
+				return nil
+			}
 			notify = []*Notification{{
 				UserID:    newOwner.ID,
 				RepoID:    repo.ID,
@@ -144,6 +150,9 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 			}}
 		}
 
+		if len(notify) == 0 {
+			return nil
+		}
 		return db.Insert(ctx, notify)
 	})
 }
@@ -414,5 +423,11 @@ func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, curr
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).
 		Cols("status", "updated_by", "updated_unix").
 		Update(n)
+	return err
+}
+
+// DeleteNotificationsByUserID deletes all notifications for a user.
+func DeleteNotificationsByUserID(ctx context.Context, userID int64) error {
+	_, err := db.GetEngine(ctx).Where("user_id = ?", userID).Delete(new(Notification))
 	return err
 }

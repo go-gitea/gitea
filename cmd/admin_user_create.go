@@ -105,13 +105,9 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	// duplicate setting loading should be safe at the moment, but it should be refactored & improved in the future.
 	setting.LoadSettings()
 
-	userTypes := map[string]user_model.UserType{
-		"individual": user_model.UserTypeIndividual,
-		"bot":        user_model.UserTypeBot,
-	}
-	userType, ok := userTypes[c.String("user-type")]
-	if !ok {
-		return fmt.Errorf("invalid user type: %s", c.String("user-type"))
+	userType, err := parseUserType(c.String("user-type"))
+	if err != nil {
+		return err
 	}
 	if userType != user_model.UserTypeIndividual {
 		// Some other commands like "change-password" also only support individual users.

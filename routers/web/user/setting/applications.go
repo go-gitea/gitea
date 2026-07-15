@@ -6,7 +6,6 @@ package setting
 
 import (
 	"net/http"
-	"strings"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -39,15 +38,7 @@ func ApplicationsPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	_ = ctx.Req.ParseForm()
-	var scopeNames []string
-	const accessTokenScopePrefix = "scope-"
-	for k, v := range ctx.Req.Form {
-		if strings.HasPrefix(k, accessTokenScopePrefix) {
-			scopeNames = append(scopeNames, v...)
-		}
-	}
-
-	scope, err := auth_model.AccessTokenScope(strings.Join(scopeNames, ",")).Normalize()
+	scope, err := auth_model.AccessTokenScopeFromForm(ctx.Req.Form).Normalize()
 	if err != nil {
 		ctx.ServerError("GetScope", err)
 		return

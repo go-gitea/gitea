@@ -86,6 +86,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.Data["login_type"] = "0-0"
+	ctx.Data["UserType"] = "individual"
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive: optional.Some(true),
@@ -118,6 +119,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["Sources"] = sources
 
 	ctx.Data["CanSendEmail"] = setting.MailService != nil
+	ctx.Data["UserType"] = form.UserType
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplUserNew)
@@ -134,6 +136,26 @@ func NewUserPost(ctx *context.Context) {
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
 		IsActive:   optional.Some(true),
 		Visibility: &form.Visibility,
+	}
+
+	// Bot users are created as local accounts without a password or auth source,
+	// matching the behavior of the "gitea admin user create --user-type bot" command.
+	if form.UserType == "bot" {
+		if form.Password != "" {
+			ctx.Data["Err_Password"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.users.bot_no_password"), tplUserNew, &form)
+			return
+		}
+		u.Type = user_model.UserTypeBot
+		u.Passwd = ""
+		if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
+			handleAdminCreateUserError(ctx, err, form)
+			return
+		}
+		log.Trace("Bot account created by admin (%s): %s", ctx.Doer.Name, u.Name)
+		ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
+		return
 	}
 
 	if len(form.LoginType) > 0 {
@@ -170,28 +192,7 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
-		switch {
-		case user_model.IsErrUserAlreadyExist(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.username_been_taken"), tplUserNew, &form)
-		case user_model.IsErrEmailAlreadyUsed(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserNew, &form)
-		case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, &form)
-		case db.IsErrNameReserved(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tplUserNew, &form)
-		case db.IsErrNamePatternNotAllowed(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplUserNew, &form)
-		case db.IsErrNameCharsNotAllowed(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tplUserNew, &form)
-		default:
-			ctx.ServerError("CreateUser", err)
-		}
+		handleAdminCreateUserError(ctx, err, form)
 		return
 	}
 
@@ -208,6 +209,32 @@ func NewUserPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
+}
+
+// handleAdminCreateUserError renders the new-user page with a field-specific error message
+func handleAdminCreateUserError(ctx *context.Context, err error, form *forms.AdminCreateUserForm) {
+	switch {
+	case user_model.IsErrUserAlreadyExist(err):
+		ctx.Data["Err_UserName"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.username_been_taken"), tplUserNew, form)
+	case user_model.IsErrEmailAlreadyUsed(err):
+		ctx.Data["Err_Email"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserNew, form)
+	case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
+		ctx.Data["Err_Email"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, form)
+	case db.IsErrNameReserved(err):
+		ctx.Data["Err_UserName"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tplUserNew, form)
+	case db.IsErrNamePatternNotAllowed(err):
+		ctx.Data["Err_UserName"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplUserNew, form)
+	case db.IsErrNameCharsNotAllowed(err):
+		ctx.Data["Err_UserName"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tplUserNew, form)
+	default:
+		ctx.ServerError("CreateUser", err)
+	}
 }
 
 func prepareUserInfo(ctx *context.Context) *user_model.User {
@@ -302,7 +329,103 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
 	ctx.Data["OrgsTotal"] = len(orgs)
 
+	// Bot users cannot sign in to generate their own tokens, so admins manage them here.
+	if u.IsTypeBot() {
+		tokens, err := db.Find[auth.AccessToken](ctx, auth.ListAccessTokensOptions{UserID: u.ID})
+		if err != nil {
+			ctx.ServerError("ListAccessTokens", err)
+			return
+		}
+		ctx.Data["Tokens"] = tokens
+		ctx.Data["AccessTokenScopePublicOnly"] = auth.AccessTokenScopePublicOnly
+		ctx.Data["TokenCategories"] = auth.GetAccessTokenCategories()
+	}
+
 	ctx.HTML(http.StatusOK, tplUserView)
+}
+
+// NewBotTokenPost creates an access token for a bot user on behalf of an admin
+func NewBotTokenPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewAccessTokenForm)
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	redirect := setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10)
+	if !u.IsTypeBot() {
+		ctx.Flash.Error(ctx.Tr("admin.users.bot_token_only"))
+		ctx.Redirect(redirect)
+		return
+	}
+
+	_ = ctx.Req.ParseForm()
+	scope, err := auth.AccessTokenScopeFromForm(ctx.Req.Form).Normalize()
+	if err != nil {
+		ctx.ServerError("GetScope", err)
+		return
+	}
+	if !scope.HasPermissionScope() {
+		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
+		ctx.Redirect(redirect)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
+		ctx.Redirect(redirect)
+		return
+	}
+
+	t := &auth.AccessToken{
+		UID:   u.ID,
+		Name:  form.Name,
+		Scope: scope,
+	}
+
+	exist, err := auth.AccessTokenByNameExists(ctx, t)
+	if err != nil {
+		ctx.ServerError("AccessTokenByNameExists", err)
+		return
+	}
+	if exist {
+		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", t.Name))
+		ctx.Redirect(redirect)
+		return
+	}
+
+	if err := auth.NewAccessToken(ctx, t); err != nil {
+		ctx.ServerError("NewAccessToken", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
+	ctx.Flash.Info(t.Token)
+	ctx.Redirect(redirect)
+}
+
+// DeleteBotToken deletes an access token of a bot user on behalf of an admin
+func DeleteBotToken(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	uid := u.ID
+	redirect := setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(uid, 10)
+	// only bot tokens are managed here; regular users manage their own tokens
+	if !u.IsTypeBot() {
+		ctx.Flash.Error(ctx.Tr("admin.users.bot_token_only"))
+		ctx.JSONRedirect(redirect)
+		return
+	}
+
+	if err := auth.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), uid); err != nil {
+		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
+	}
+	ctx.JSONRedirect(redirect)
 }
 
 func editUserCommon(ctx *context.Context) {
@@ -383,6 +506,15 @@ func EditUserPost(ctx *context.Context) {
 		authSource, _ := strconv.ParseInt(fields[1], 10, 64)
 
 		authOpts.LoginSource = optional.Some(authSource)
+	}
+
+	// Bot accounts cannot sign in interactively, so they are local accounts with no
+	// password or auth source (matching the CLI behavior). This must run after the
+	// auth-source fields above so it overrides whatever the (hidden) form submitted.
+	if u.IsTypeBot() {
+		authOpts.Password = optional.None[string]()
+		authOpts.LoginSource = optional.Some(int64(0))
+		authOpts.LoginName = optional.Some("")
 	}
 
 	if err := user_service.UpdateAuth(ctx, u, authOpts); err != nil {
@@ -498,6 +630,44 @@ func DeleteUser(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users")
+}
+
+// ConvertUserType converts a user between the individual and bot types.
+func ConvertUserType(ctx *context.Context) {
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
+		return
+	}
+
+	redirect := setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")) + "/edit"
+
+	var targetType user_model.UserType
+	switch ctx.FormString("user_type") {
+	case "bot":
+		targetType = user_model.UserTypeBot
+	case "individual":
+		targetType = user_model.UserTypeIndividual
+	default:
+		ctx.Flash.Error(ctx.Tr("admin.users.user_type.invalid"))
+		ctx.Redirect(redirect)
+		return
+	}
+
+	if targetType == u.Type {
+		ctx.Redirect(redirect)
+		return
+	}
+
+	if err := user_service.ConvertUserType(ctx, u, targetType); err != nil {
+		ctx.Flash.Error(err.Error())
+		ctx.Redirect(redirect)
+		return
+	}
+
+	log.Trace("Account type converted by admin (%s): %s", ctx.Doer.Name, u.Name)
+	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
+	ctx.Redirect(redirect)
 }
 
 // AvatarPost response for change user's avatar request

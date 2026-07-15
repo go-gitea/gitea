@@ -64,6 +64,11 @@ func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) (*user_model.User,
 			return nil, err
 		}
 		user = r.newUser(req)
+	} else if !user.IsIndividual() {
+		// only individual users may sign in; bot/organization accounts must not
+		// be authenticated through reverse proxy headers
+		log.Trace("ReverseProxy Authorization: user %q is not an individual, ignoring", username)
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 	return user, nil
 }
@@ -96,6 +101,12 @@ func (r *ReverseProxy) getUserFromAuthEmail(req *http.Request) *user_model.User 
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByEmail: %v", err)
 		}
+		return nil
+	}
+	if !user.IsIndividual() {
+		// only individual users may sign in; bot/organization accounts must not
+		// be authenticated through reverse proxy headers
+		log.Trace("ReverseProxy Authorization: user with email %q is not an individual, ignoring", email)
 		return nil
 	}
 	return user
