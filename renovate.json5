@@ -27,7 +27,7 @@
   "packageRules": [
     {
       "matchPackageNames": ["*"],
-      "semanticCommitType": "chore", // dep updates are rarely fixes for gitea itself
+      "semanticCommitType": "chore", // dep updates are rarely fixes for gitea
     },
     {
       "groupName": "action dependencies",
