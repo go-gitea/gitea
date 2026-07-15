@@ -1950,7 +1950,6 @@
   "repo.settings.webhook_deletion": "Odstranit webový háček",
   "repo.settings.webhook_deletion_desc": "Odstranění webového háčku smaže jeho nastavení a historii doručení. Pokračovat?",
   "repo.settings.webhook_deletion_success": "Webový háček byl smazán.",
-  "repo.settings.webhook.test_delivery_desc_disabled": "Chcete-li tento webový háček otestovat s falešnou událostí, aktivujte ho.",
   "repo.settings.webhook.request": "Požadavek",
   "repo.settings.webhook.response": "Odpověď",
   "repo.settings.webhook.headers": "Hlavičky",
