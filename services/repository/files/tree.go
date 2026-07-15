@@ -22,30 +22,15 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// ErrSHANotFound represents a "SHADoesNotMatch" kind of error.
-type ErrSHANotFound struct {
-	SHA string
-}
-
-func (err ErrSHANotFound) Error() string {
-	return fmt.Sprintf("sha not found [%s]", err.SHA)
-}
-
-func (err ErrSHANotFound) Unwrap() error {
-	return util.ErrNotExist
-}
-
-// GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
+// GetTreeBySHA get the GitTreeResponse of a repository using a sha hash (id of a commit or a tree)
 func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
 	gitTree, err := gitRepo.GetTree(sha)
-	if err != nil || gitTree == nil {
-		return nil, ErrSHANotFound{ // TODO: this error has never been catch outside of this function
-			SHA: sha,
-		}
+	if err != nil {
+		return nil, util.NewInvalidArgumentErrorf("sha not found [%s]", sha)
 	}
 	tree := new(api.GitTreeResponse)
-	tree.SHA = gitTree.ResolvedID.String()
-	tree.URL = repo.APIURL() + "/git/trees/" + url.PathEscape(tree.SHA)
+	tree.SHA = gitTree.ID.String() // always return the real tree id to end users, but not the commit's id if sha is a commit
+	tree.URL = repo.APIURL(ctx) + "/git/trees/" + url.PathEscape(tree.SHA)
 	var entries git.Entries
 	if recursive {
 		entries, err = gitTree.ListEntriesRecursiveWithSize(ctx, gitRepo)

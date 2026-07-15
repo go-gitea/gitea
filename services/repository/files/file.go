@@ -80,7 +80,7 @@ func GetFileCommitResponse(repo *repo_model.Repository, gitRepo *git.Repository,
 	commitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()))
 	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + url.PathEscape(commit.TreeID.String()))
 	parents := make([]*api.CommitMeta, commit.ParentCount())
-	for i := 0; i <= commit.ParentCount(); i++ {
+	for i := 0; i < commit.ParentCount(); i++ {
 		if parent, err := commit.Parent(gitRepo, i); err == nil && parent != nil {
 			parentCommitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + url.PathEscape(parent.ID.String()))
 			parents[i] = &api.CommitMeta{

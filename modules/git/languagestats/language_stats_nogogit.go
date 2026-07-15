@@ -23,7 +23,7 @@ import (
 func GetLanguageStats(ctx context.Context, repo *git.Repository, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}

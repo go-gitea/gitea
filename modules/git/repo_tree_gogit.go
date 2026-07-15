@@ -25,7 +25,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		return nil, err
 	}
 
-	tree := NewTree(id)
+	tree := newTree(id)
 	tree.resolvedGogitTreeObject = gogitTree
 	return tree, nil
 }
@@ -53,7 +53,6 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	resolvedID := id
 	commitObject, err := repo.gogitRepo.CommitObject(plumbing.Hash(id.RawValue()))
 	if err == nil {
 		id = ParseGogitHash(commitObject.TreeHash)
@@ -62,6 +61,5 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	treeObject.ResolvedID = resolvedID
 	return treeObject, nil
 }

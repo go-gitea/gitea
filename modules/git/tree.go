@@ -13,12 +13,10 @@ import (
 )
 
 type TreeCommon struct {
-	ID         ObjectID
-	ResolvedID ObjectID
+	ID ObjectID
 }
 
-// NewTree create a new tree according the repository and tree id
-func NewTree(id ObjectID) *Tree {
+func newTree(id ObjectID) *Tree {
 	return &Tree{TreeCommon: TreeCommon{ID: id}}
 }
 

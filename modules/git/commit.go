@@ -74,7 +74,7 @@ func (c *Commit) GetCommitByPath(gitRepo *Repository, relpath string) (*Commit, 
 
 func (c *Commit) Tree() *Tree {
 	if c.treeCache == nil {
-		c.treeCache = NewTree(c.TreeID)
+		c.treeCache = newTree(c.TreeID)
 	}
 	return c.treeCache
 }
