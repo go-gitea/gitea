@@ -1753,7 +1753,6 @@
   "repo.settings.webhook_deletion": "Eliminar Webhook",
   "repo.settings.webhook_deletion_desc": "Eliminar un webhook borra sus ajustes e historial de entrega. ¿Continuar?",
   "repo.settings.webhook_deletion_success": "El webhook ha sido eliminado.",
-  "repo.settings.webhook.test_delivery_desc_disabled": "Para probar este webhook con un evento falso, actívalo.",
   "repo.settings.webhook.request": "Petición",
   "repo.settings.webhook.response": "Respuesta",
   "repo.settings.webhook.headers": "Encabezado",
