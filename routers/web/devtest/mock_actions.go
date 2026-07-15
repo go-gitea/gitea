@@ -383,7 +383,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		//   cross_caller      (caller, cross-repo, expanded)
 		//     └ external_job  (regular)
 		//   build (linux|windows|macos)       (regular matrix; graph folds into one "build" node)
-		//   build-call (linux|windows|macos)  (caller matrix, each calls build.yml; should fold like "build")
+		//   build-call (linux|windows|macos)  (caller matrix, each calls build.yml; folds into one "build-call" node like "build")
 		//   final             (regular, needs local_caller + cross_caller)
 		const (
 			prepareID     = int64(400)
@@ -400,8 +400,9 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			buildWindowsID = int64(411)
 			buildMacosID   = int64(412)
 
-			// Caller matrix set – each matrix leg calls a reusable workflow. #38466: these are NOT
-			// folded into one "build-call" node the way the regular "build" matrix above is.
+			// Caller matrix set – each matrix leg calls the same reusable workflow. #38466: like the
+			// regular "build" matrix above, these fold into one "build-call" node. Matrix legs share a
+			// single JobID, so the legs below use JobID "build-call" and differ only by their name suffix.
 			buildCallLinuxID    = int64(420)
 			buildCallWindowsID  = int64(421)
 			buildCallMacosID    = int64(422)
@@ -449,24 +450,26 @@ func MockActionsRunsJobs(ctx *context.Context) {
 				ParentJobID: crossCallerID,
 			},
 
-			// Regular matrix "build" – these fold into one matrix node in the graph.
+			// Regular matrix "build" – these fold into one matrix node in the graph. The matrix legs
+			// share a single JobID ("build"); the " (variant)" name suffix distinguishes the legs.
 			{
-				ID: buildLinuxID, Link: jobLink(buildLinuxID), JobID: "build_linux", Name: "build (linux)",
+				ID: buildLinuxID, Link: jobLink(buildLinuxID), JobID: "build", Name: "build (linux)",
 				Status: actions_model.StatusSuccess.String(), Duration: "1m", Needs: []string{"prepare"},
 			},
 			{
-				ID: buildWindowsID, Link: jobLink(buildWindowsID), JobID: "build_windows", Name: "build (windows)",
+				ID: buildWindowsID, Link: jobLink(buildWindowsID), JobID: "build", Name: "build (windows)",
 				Status: actions_model.StatusSuccess.String(), Duration: "2m", Needs: []string{"prepare"},
 			},
 			{
-				ID: buildMacosID, Link: jobLink(buildMacosID), JobID: "build_macos", Name: "build (macos)",
+				ID: buildMacosID, Link: jobLink(buildMacosID), JobID: "build", Name: "build (macos)",
 				Status: actions_model.StatusSuccess.String(), Duration: "90s", Needs: []string{"prepare"},
 			},
 
-			// Caller matrix "build-call" – each leg calls a reusable workflow. #38466: unlike the
-			// regular "build" matrix above, these are rendered as separate nodes instead of grouped.
+			// Caller matrix "build-call" – each leg calls the same reusable workflow. #38466: like the
+			// regular "build" matrix above, these fold into one node. The matrix legs share a single
+			// JobID ("build-call"); the " (variant)" name suffix distinguishes the legs.
 			{
-				ID: buildCallLinuxID, Link: jobLink(buildCallLinuxID), JobID: "build_call_linux", Name: "build-call (linux)",
+				ID: buildCallLinuxID, Link: jobLink(buildCallLinuxID), JobID: "build-call", Name: "build-call (linux)",
 				Status: actions_model.StatusSuccess.String(), Duration: "1m", Needs: []string{"prepare"},
 				IsReusableCaller: true, CallUses: "./.gitea/workflows/build.yml",
 			},
@@ -475,7 +478,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 				Status: actions_model.StatusSuccess.String(), Duration: "1m", ParentJobID: buildCallLinuxID,
 			},
 			{
-				ID: buildCallWindowsID, Link: jobLink(buildCallWindowsID), JobID: "build_call_windows", Name: "build-call (windows)",
+				ID: buildCallWindowsID, Link: jobLink(buildCallWindowsID), JobID: "build-call", Name: "build-call (windows)",
 				Status: actions_model.StatusSuccess.String(), Duration: "2m", Needs: []string{"prepare"},
 				IsReusableCaller: true, CallUses: "./.gitea/workflows/build.yml",
 			},
@@ -484,7 +487,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 				Status: actions_model.StatusSuccess.String(), Duration: "2m", ParentJobID: buildCallWindowsID,
 			},
 			{
-				ID: buildCallMacosID, Link: jobLink(buildCallMacosID), JobID: "build_call_macos", Name: "build-call (macos)",
+				ID: buildCallMacosID, Link: jobLink(buildCallMacosID), JobID: "build-call", Name: "build-call (macos)",
 				Status: actions_model.StatusSuccess.String(), Duration: "90s", Needs: []string{"prepare"},
 				IsReusableCaller: true, CallUses: "./.gitea/workflows/build.yml",
 			},
