@@ -41,7 +41,7 @@
     },
     {
       "matchPackageNames": ["@citation-js/core", "@citation-js/plugin-bibtex", "@citation-js/plugin-csl"],
-      "allowedVersions": "<0.8", // 0.8 pulls in node-fetch v3 which does not bundle cleanly, see https://github.com/citation-js/citation-js/pull/277
+      "allowedVersions": "<0.8", // https://github.com/citation-js/citation-js/pull/277
     },
     {
       "matchPackageNames": ["typescript"],
