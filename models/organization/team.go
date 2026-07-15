@@ -117,8 +117,8 @@ func (t *Team) CanNonMemberReadMeta(ctx context.Context, org, doer *user_model.U
 	}
 }
 
-func NormalizeTeamVisibility(s string) structs.VisibleType {
-	if vt, ok := structs.VisibilityModes[s]; ok {
+func NormalizeTeamVisibility[T ~string](v T) structs.VisibleType {
+	if vt, ok := structs.VisibilityModes[structs.UserVisibility(v)]; ok {
 		return vt
 	}
 	return structs.VisibleTypePrivate

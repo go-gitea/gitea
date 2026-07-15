@@ -121,7 +121,7 @@ func CreateUser(ctx *context.APIContext) {
 	}
 
 	if form.Visibility != "" {
-		visibility := api.VisibilityModes[string(form.Visibility)]
+		visibility := api.VisibilityModes[form.Visibility]
 		overwriteDefault.Visibility = &visibility
 	}
 
@@ -237,7 +237,7 @@ func EditUser(ctx *context.APIContext) {
 		Description:             optional.FromPtr(form.Description),
 		IsActive:                optional.FromPtr(form.Active),
 		IsAdmin:                 user_service.UpdateOptionFieldFromPtr(form.Admin),
-		Visibility:              optional.FromMapLookup(api.VisibilityModes, string(form.Visibility)),
+		Visibility:              optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		AllowGitHook:            optional.FromPtr(form.AllowGitHook),
 		AllowImportLocal:        optional.FromPtr(form.AllowImportLocal),
 		MaxRepoCreation:         optional.FromPtr(form.MaxRepoCreation),
@@ -469,7 +469,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	var visible []api.VisibleType
 	visibilityParam := ctx.FormString("visibility")
-	if visibility, ok := api.VisibilityModes[visibilityParam]; ok {
+	if visibility, ok := api.VisibilityModes[api.UserVisibility(visibilityParam)]; ok {
 		visible = []api.VisibleType{visibility}
 	} else if visibilityParam != "" {
 		ctx.APIError(http.StatusUnprocessableEntity, "invalid visibility")

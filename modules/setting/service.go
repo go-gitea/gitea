@@ -222,7 +222,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 		Service.AllowedUserVisibilityModes = []string{}
 		Service.AllowedUserVisibilityModesSlice = []bool{false, false, false}
 		for _, sMode := range modes {
-			if tp, ok := structs.VisibilityModes[sMode]; ok { // remove unsupported modes
+			if tp, ok := structs.VisibilityModes[structs.UserVisibility(sMode)]; ok { // remove unsupported modes
 				Service.AllowedUserVisibilityModes = append(Service.AllowedUserVisibilityModes, sMode)
 				Service.AllowedUserVisibilityModesSlice[tp] = true
 			} else {
@@ -239,13 +239,13 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").String()
 	if Service.DefaultUserVisibility == "" {
 		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
-	} else if !Service.AllowedUserVisibilityModesSlice[structs.VisibilityModes[Service.DefaultUserVisibility]] {
+	} else if !Service.AllowedUserVisibilityModesSlice[structs.VisibilityModes[structs.UserVisibility(Service.DefaultUserVisibility)]] {
 		log.Warn("DEFAULT_USER_VISIBILITY %s is wrong or not in ALLOWED_USER_VISIBILITY_MODES, using first allowed", Service.DefaultUserVisibility)
 		Service.DefaultUserVisibility = Service.AllowedUserVisibilityModes[0]
 	}
-	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
-	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
-	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
+	Service.DefaultUserVisibilityMode = structs.VisibilityModes[structs.UserVisibility(Service.DefaultUserVisibility)]
+	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.VisibilityModeKeys())
+	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[structs.UserVisibility(Service.DefaultOrgVisibility)]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 	sec.Key("VALID_SITE_URL_SCHEMES").MustString("http,https")

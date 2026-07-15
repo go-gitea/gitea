@@ -18,10 +18,10 @@ const (
 )
 
 // VisibilityModes is a map of Visibility types
-var VisibilityModes = map[string]VisibleType{
-	"public":  VisibleTypePublic,
-	"limited": VisibleTypeLimited,
-	"private": VisibleTypePrivate,
+var VisibilityModes = map[UserVisibility]VisibleType{
+	UserVisibilityPublic:  VisibleTypePublic,
+	UserVisibilityLimited: VisibleTypeLimited,
+	UserVisibilityPrivate: VisibleTypePrivate,
 }
 
 // IsPublic returns true if VisibleType is public
@@ -43,16 +43,16 @@ func (vt VisibleType) IsPrivate() bool {
 func (vt VisibleType) String() string {
 	for k, v := range VisibilityModes {
 		if vt == v {
-			return k
+			return string(k)
 		}
 	}
 	return ""
 }
 
-// ExtractKeysFromMapString provides a slice of keys from map
-func ExtractKeysFromMapString(in map[string]VisibleType) (keys []string) {
-	for k := range in {
-		keys = append(keys, k)
+// VisibilityModeKeys returns the visibility mode names (public, limited, private)
+func VisibilityModeKeys() (keys []string) {
+	for k := range VisibilityModes {
+		keys = append(keys, string(k))
 	}
 	return keys
 }
