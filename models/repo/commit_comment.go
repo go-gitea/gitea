@@ -4,14 +4,15 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // CommitComment represents a comment on a line of code in a commit diff.
@@ -79,7 +80,7 @@ func (l CommitCommentList) LoadPosters(ctx context.Context) error {
 	return nil
 }
 
-var ErrInvalidCommitCommentLine = structs.ErrInvalidArgument{Argument: "line", Message: "line must be non-zero, negative for left side or positive for right side"}
+var ErrInvalidCommitCommentLine = util.ErrInvalidArgument
 
 func CreateCommitComment(ctx context.Context, doerID int64, repoID int64, commitSHA string, treePath string, line int64, content string, patch string) (*CommitComment, error) {
 	if line == 0 {

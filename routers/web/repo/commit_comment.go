@@ -13,7 +13,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
@@ -67,14 +66,6 @@ func CreateCommitComment(ctx *context.Context) {
 
 	var patch string
 	gitRepo := ctx.Repo.GitRepo
-	gitRepoStore := ctx.Repo.Repository
-	if ctx.Data["PageIsWiki"] != nil {
-		var err error
-		gitRepoStore = ctx.Repo.Repository.WikiStorageRepo()
-		gitRepo, _ = gitrepo.RepositoryFromRequestContextOrOpen(ctx, gitRepoStore)
-	} else {
-		gitRepo = ctx.Repo.GitRepo
-	}
 
 	if gitRepo != nil {
 		patch, _ = git.GetFileDiffCutAroundLine(
@@ -114,12 +105,12 @@ func DeleteCommitComment(ctx *context.Context) {
 
 	comment, err := repo_model.FindCommitCommentByID(ctx, commentID)
 	if err != nil {
-		ctx.NotFound("FindCommitCommentByID", err)
+		ctx.NotFound(err)
 		return
 	}
 
 	if comment.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound("comment's repoID is incorrect", fmt.Errorf("comment's repoID is incorrect"))
+		ctx.NotFound(fmt.Errorf("commit comment repoID mismatch"))
 		return
 	}
 

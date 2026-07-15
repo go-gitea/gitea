@@ -6,8 +6,6 @@ package v1_27
 import (
 	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
 func AddCommitCommentTable(x db.EngineMigration) error {
