@@ -1164,7 +1164,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1344,7 +1344,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1475,7 +1475,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1672,7 +1672,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
 	})
 }
 
