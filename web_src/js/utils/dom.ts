@@ -411,3 +411,26 @@ export function activePageTimerRefresh(opts: ActivePageTimerOptions): ActivePage
   timer.start();
   return timer;
 }
+
+type ProtectedMorphElements = Record<string, string>;
+
+export function protectMorphElements(el: Element): ProtectedMorphElements {
+  // Some components like Dropdown manage their internal states and styles.
+  // If morph changes any style or layout, then the Dropdown will stop working.
+  // So, protect such fragile components ahead, then morph, then recover.
+  const ret: ProtectedMorphElements = {};
+  for (const it of el.querySelectorAll('.ui.dropdown, [data-morph-protect]')) {
+    const id = generateElemId();
+    ret[id] = it.outerHTML;
+    it.setAttribute('data-morph-protect', id);
+  }
+  return ret;
+}
+
+export function recoverMorphElements(el: Element, protectedElems: ProtectedMorphElements) {
+  for (const [id, html] of Object.entries(protectedElems)) {
+    const it = el.querySelector(`[data-morph-protect="${CSS.escape(id)}"]`);
+    if (!it) continue;
+    it.outerHTML = html;
+  }
+}

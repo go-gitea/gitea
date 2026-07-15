@@ -20,7 +20,7 @@ import (
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/structs"
 
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"golang.org/x/oauth2"
 )
 
@@ -329,7 +329,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 		r.Published = rel.PublishedAt.Time
 	}
 
-	httpClient := NewMigrationHTTPClient()
+	httpClient := newMigrationHTTPClient()
 
 	for _, asset := range rel.Assets {
 		assetID := asset.GetID() // Don't optimize this, for closure we need a local variable TODO: no need to do so in new Golang

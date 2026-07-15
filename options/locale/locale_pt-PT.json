@@ -2251,7 +2251,6 @@
   "repo.settings.webhook_deletion_success": "O automatismo web foi removido.",
   "repo.settings.webhook.test_delivery": "Testar o envio",
   "repo.settings.webhook.test_delivery_desc": "Testar este automatismo web com um evento de envio falso.",
-  "repo.settings.webhook.test_delivery_desc_disabled": "Para testar este automatismo web com um evento falso, habilite-o.",
   "repo.settings.webhook.request": "Pedido",
   "repo.settings.webhook.response": "Resposta",
   "repo.settings.webhook.headers": "Cabeçalhos",
