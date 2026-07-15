@@ -40,6 +40,10 @@
       "allowedVersions": "^3", // need to migrate
     },
     {
+      "matchPackageNames": ["@citation-js/core", "@citation-js/plugin-bibtex", "@citation-js/plugin-csl"],
+      "allowedVersions": "<0.8", // https://github.com/citation-js/citation-js/pull/277
+    },
+    {
       "matchPackageNames": ["typescript"],
       "allowedVersions": "^6", // typescript-eslint is not yet compatible with typescript 7
     },
