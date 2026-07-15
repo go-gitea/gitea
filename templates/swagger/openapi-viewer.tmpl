@@ -4,13 +4,17 @@
 		{{ctx.HeadMetaContentSecurityPolicy}}
 		<title>Gitea API</title>
 		<link rel="stylesheet" href="{{ctx.CurrentWebTheme.PublicAssetURI}}">
-		{{/* HINT: SWAGGER-CSS-IMPORT: load swagger styles ahead to avoid flicker (e.g. the swagger-back-link) */}}
+		{{/* HINT: SWAGGER-CSS-IMPORT: load swagger styles ahead to avoid flicker (e.g. the swagger-page-links) */}}
 		{{AssetCSSLinks "web_src/js/swagger.ts" "web_src/css/swagger-standalone.css"}}
 	</head>
 	<body>
 		{{/* TODO: add Help & Glossary to help users understand the API, and explain some concepts like "Owner" */}}
-		<a class="swagger-back-link" href="{{AppSubUrl}}/">{{svg "octicon-reply"}}{{ctx.Locale.Tr "return_to_gitea"}}</a>
-		<div id="swagger-ui" data-source="{{AppSubUrl}}/swagger.v1.json"></div>
+		<div class="swagger-page-links">
+			<a href="{{AppSubUrl}}/openapi3.v1.json" download>{{svg "octicon-download"}}OpenAPI</a>
+			<a href="{{AppSubUrl}}/swagger.v1.json" download>{{svg "octicon-download"}}Swagger</a>
+			<a href="{{AppSubUrl}}/">{{svg "octicon-reply"}}{{ctx.Locale.Tr "return_to_gitea"}}</a>
+		</div>
+		<div id="swagger-ui" data-source="{{AppSubUrl}}/openapi3.v1.json"></div>
 		<footer class="page-footer"></footer>
 		{{ctx.ScriptImport "web_src/js/swagger.ts" "module"}}
 	</body>
