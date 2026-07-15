@@ -216,12 +216,25 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 
 			// expand reusable caller
 			if isReusableWorkflowCaller && runJob.Status == actions_model.StatusWaiting {
-				if err := expandReusableWorkflowCaller(ctx, run, runAttempt, runJob, vars); err != nil {
-					return fmt.Errorf("inline trigger caller %d ready: %w", runJob.ID, err)
+				// A no-needs caller is expanded inline here, so evaluate its own `if:` first.
+				// (A caller with needs is Blocked and gets its `if:` evaluated by the job emitter instead.)
+				shouldStart, err := evaluateJobIf(ctx, run, runAttempt, runJob, vars, true)
+				if err != nil {
+					return fmt.Errorf("evaluate caller %d if: %w", runJob.ID, err)
 				}
-				// refresh the caller status
-				if err := actions_model.RefreshReusableCallerStatus(ctx, runJob); err != nil {
-					return fmt.Errorf("refresh caller %d status: %w", runJob.ID, err)
+				if shouldStart {
+					if err := expandReusableWorkflowCaller(ctx, run, runAttempt, runJob, vars); err != nil {
+						return fmt.Errorf("inline trigger caller %d ready: %w", runJob.ID, err)
+					}
+					// refresh the caller status
+					if err := actions_model.RefreshReusableCallerStatus(ctx, runJob); err != nil {
+						return fmt.Errorf("refresh caller %d status: %w", runJob.ID, err)
+					}
+				} else {
+					runJob.Status = actions_model.StatusSkipped
+					if _, err := actions_model.UpdateRunJob(ctx, runJob, nil, "status"); err != nil {
+						return fmt.Errorf("skip caller %d: %w", runJob.ID, err)
+					}
 				}
 				hasWaitingCallerJobs = true
 			}
