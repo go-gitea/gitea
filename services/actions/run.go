@@ -60,7 +60,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 // The title will be cut off at 255 characters if it's longer than 255 characters.
 func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte, vars map[string]string, inputs map[string]any, wfRawConcurrency *act_model.RawConcurrency) error {
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
-	var hasWaitingCallerJobs bool
+	var needPostCommitEmit bool
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -236,7 +236,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 						return fmt.Errorf("skip caller %d: %w", runJob.ID, err)
 					}
 				}
-				hasWaitingCallerJobs = hasWaitingCallerJobs || shouldStart
+				// A processed caller always needs a resolver pass:
+				//   - if the caller is expanded, resolve its children jobs;
+				//   - if the caller is skipped, propagate its state to its dependents
+				needPostCommitEmit = true
 			}
 
 			runJobs = append(runJobs, runJob)
@@ -262,8 +265,8 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
-	// Post-commit kick for expanded callers: let job_emitter resolve its child jobs
-	if hasWaitingCallerJobs {
+	// Post-commit kick: let the job emitter resolve jobs if needed
+	if needPostCommitEmit {
 		if err := EmitJobsIfReadyByRun(run.ID); err != nil {
 			log.Error("emit run %d after InsertRun: %v", run.ID, err)
 		}
