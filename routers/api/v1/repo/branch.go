@@ -798,6 +798,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		RequiredApprovals:             requiredApprovals,
 		BlockOnRejectedReviews:        form.BlockOnRejectedReviews,
 		BlockOnOfficialReviewRequests: form.BlockOnOfficialReviewRequests,
+		BlockOnCodeownerReviews:       form.BlockOnCodeownerReviews,
 		DismissStaleApprovals:         form.DismissStaleApprovals,
 		IgnoreStaleApprovals:          form.IgnoreStaleApprovals,
 		RequireSignedCommits:          form.RequireSignedCommits,
@@ -964,6 +965,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 	if form.BlockOnOfficialReviewRequests != nil {
 		protectBranch.BlockOnOfficialReviewRequests = *form.BlockOnOfficialReviewRequests
+	}
+
+	if form.BlockOnCodeownerReviews != nil {
+		protectBranch.BlockOnCodeownerReviews = *form.BlockOnCodeownerReviews
 	}
 
 	if form.DismissStaleApprovals != nil {
