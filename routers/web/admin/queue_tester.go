@@ -56,6 +56,7 @@ func initTestQueueOnce() {
 			for {
 				select {
 				case <-ctx.Done():
+					return
 				case <-time.After(500 * time.Millisecond):
 					if adding {
 						if testQueue.GetQueueItemNumber() == qs.Length {
