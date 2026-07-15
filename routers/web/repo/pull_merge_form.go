@@ -17,6 +17,16 @@ import (
 	pull_service "gitea.dev/services/pull"
 )
 
+// joinSquashMergeMessage joins the squash commit messages with the merge body
+// (Reviewed-on/Reviewed-by trailers) using a newline separator, so the trailers
+// are not appended to the last line of the commit messages.
+func joinSquashMergeMessage(commitMessages, mergeBody string) string {
+	if commitMessages != "" && mergeBody != "" {
+		return commitMessages + "\n" + mergeBody
+	}
+	return commitMessages + mergeBody
+}
+
 func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	if pull.HasMerged || prInfo.issue.IsClosed {
@@ -78,6 +88,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		defaultSquashMergeCommitMessages = pull_service.GetSquashMergeCommitMessages(ctx, pull)
 	}
 
+	defaultSquashMergeMessage := joinSquashMergeMessage(defaultSquashMergeCommitMessages, defaultSquashMergeBody)
+
 	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
 	mergeFormProps := map[string]any{
 		"baseLink":                       prInfo.issue.Link(),
@@ -138,7 +150,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"allowed":               prConfig.AllowSquash,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.squash_merge_pull_request"),
 				"mergeTitleFieldText":   defaultSquashMergeTitle,
-				"mergeMessageFieldText": defaultSquashMergeCommitMessages + defaultSquashMergeBody,
+				"mergeMessageFieldText": defaultSquashMergeMessage,
 				"hideAutoMerge":         generalHideAutoMerge,
 			},
 			map[string]any{
