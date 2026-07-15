@@ -29,5 +29,5 @@ func CacheRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		gitRepo.LastCommitCache = git.NewLastCommitCache(commitsCount, repo.FullName(), gitRepo, cache.GetCache())
 	}
 
-	return commit.CacheCommit(ctx)
+	return commit.CacheCommit(ctx, gitRepo)
 }

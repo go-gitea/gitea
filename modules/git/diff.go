@@ -75,7 +75,7 @@ func getRepoRawDiffForFileCmd(_ context.Context, repo *Repository, startCommit, 
 		} else if commit.ParentCount() == 0 {
 			cmd.AddArguments("show").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
-			c, err := commit.Parent(0)
+			c, err := commit.Parent(repo, 0)
 			if err != nil {
 				return nil, err
 			}
@@ -90,7 +90,7 @@ func getRepoRawDiffForFileCmd(_ context.Context, repo *Repository, startCommit, 
 		} else if commit.ParentCount() == 0 {
 			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
-			c, err := commit.Parent(0)
+			c, err := commit.Parent(repo, 0)
 			if err != nil {
 				return nil, err
 			}

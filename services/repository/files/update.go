@@ -219,7 +219,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		}
 
 		for _, file := range opts.Files {
-			if err = handleCheckErrors(file, commit, opts); err != nil {
+			if err = handleCheckErrors(ctx, file, t.gitRepo, commit, opts); err != nil {
 				return nil, err
 			}
 		}
@@ -361,12 +361,12 @@ func (err ErrSHAOrCommitIDNotProvided) Error() string {
 }
 
 // handles the check for various issues for ChangeRepoFiles
-func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
+func handleCheckErrors(ctx context.Context, file *ChangeRepoFile, gitRepo *git.Repository, commit *git.Commit, opts *ChangeRepoFilesOptions) error {
 	// check old entry (fromTreePath/fromEntry)
 	if file.Operation == "update" || file.Operation == "upload" || file.Operation == "delete" || file.Operation == "rename" {
 		var fromEntryIDString string
 		{
-			fromEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
+			fromEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, file.Options.fromTreePath)
 			if file.Operation == "upload" && git.IsErrNotExist(err) {
 				fromEntry = nil
 			} else if err != nil {
@@ -391,7 +391,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 			// If a lastCommitID given doesn't match the branch head's commitID throw
 			// an error, but only if we aren't creating a new branch.
 			if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
-				if changed, err := commit.FileChangedSinceCommit(file.Options.treePath, opts.LastCommitID); err != nil {
+				if changed, err := commit.FileChangedSinceCommit(gitRepo, file.Options.treePath, opts.LastCommitID); err != nil {
 					return err
 				} else if changed {
 					return ErrCommitIDDoesNotMatch{
@@ -417,7 +417,7 @@ func handleCheckErrors(file *ChangeRepoFile, commit *git.Commit, opts *ChangeRep
 		subTreePath := ""
 		for index, part := range treePathParts {
 			subTreePath = path.Join(subTreePath, part)
-			entry, err := commit.GetTreeEntryByPath(subTreePath)
+			entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, subTreePath)
 			if err != nil {
 				if git.IsErrNotExist(err) {
 					// Means there is no item with that name, so we're good
@@ -596,7 +596,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 	if err != nil {
 		return nil, err
 	}
-	oldEntry, err := commit.GetTreeEntryByPath(file.Options.fromTreePath)
+	oldEntry, err := commit.GetTreeEntryByPath(ctx, t.gitRepo, file.Options.fromTreePath)
 	if err != nil {
 		return nil, err
 	}
@@ -619,7 +619,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 	}
 
 	oldEntryBlobPointerBy := func(f func(r io.Reader) (lfs.Pointer, error)) (lfsPointer lfs.Pointer, err error) {
-		r, err := oldEntry.Blob().DataAsync()
+		r, err := oldEntry.Blob(t.gitRepo).DataAsync()
 		if err != nil {
 			return lfsPointer, err
 		}
@@ -645,7 +645,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 		if err != nil {
 			return nil, err
 		}
-		ret.LfsContent, err = oldEntry.Blob().DataAsync()
+		ret.LfsContent, err = oldEntry.Blob(t.gitRepo).DataAsync()
 		if err != nil {
 			return nil, err
 		}
