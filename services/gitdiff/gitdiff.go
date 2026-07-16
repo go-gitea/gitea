@@ -477,17 +477,17 @@ type DiffLimitedContent struct {
 }
 
 // GetTailSectionAndLimitedContent creates a fake DiffLineSection if the last section is not the end of the file
-func (diffFile *DiffFile) GetTailSectionAndLimitedContent(leftCommit, rightCommit *git.Commit) (_ *DiffSection, diffLimitedContent DiffLimitedContent) {
+func (diffFile *DiffFile) GetTailSectionAndLimitedContent(ctx context.Context, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (_ *DiffSection, diffLimitedContent DiffLimitedContent) {
 	var leftLineCount, rightLineCount int
 	diffLimitedContent = DiffLimitedContent{}
 	if diffFile.IsBin || diffFile.IsLFSFile {
 		return nil, diffLimitedContent
 	}
 	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
-		leftLineCount, diffLimitedContent.LeftContent = getCommitFileLineCountAndLimitedContent(leftCommit, diffFile.OldName)
+		leftLineCount, diffLimitedContent.LeftContent = getCommitFileLineCountAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName)
 	}
 	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
-		rightLineCount, diffLimitedContent.RightContent = getCommitFileLineCountAndLimitedContent(rightCommit, diffFile.OldName)
+		rightLineCount, diffLimitedContent.RightContent = getCommitFileLineCountAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName)
 	}
 	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
 		return nil, diffLimitedContent
@@ -577,8 +577,8 @@ func (l *limitByteWriter) Write(p []byte) (n int, err error) {
 	return l.buf.Write(p)
 }
 
-func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string) (lineCount int, limitWriter *limitByteWriter) {
-	blob, err := commit.GetBlobByPath(filePath)
+func getCommitFileLineCountAndLimitedContent(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, filePath string) (lineCount int, limitWriter *limitByteWriter) {
+	blob, err := commit.GetBlobByPath(ctx, gitRepo, filePath)
 	if err != nil {
 		return 0, nil
 	}
@@ -1256,7 +1256,7 @@ func guessBeforeCommitForDiff(gitRepo *git.Repository, beforeCommitID string, af
 		actualBeforeCommitID = commitObjectFormat.EmptyTree()
 	} else {
 		if isBeforeCommitIDEmpty {
-			actualBeforeCommit, err = afterCommit.Parent(0)
+			actualBeforeCommit, err = afterCommit.Parent(gitRepo, 0)
 		} else {
 			actualBeforeCommit, err = gitRepo.GetCommit(beforeCommitID)
 		}
@@ -1360,7 +1360,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 
 		// Populate Submodule URLs
 		if diffFile.SubmoduleDiffInfo != nil {
-			diffFile.SubmoduleDiffInfo.PopulateURL(repoLink, diffFile, beforeCommit, afterCommit)
+			diffFile.SubmoduleDiffInfo.PopulateURL(ctx, repoLink, gitRepo, diffFile, beforeCommit, afterCommit)
 		}
 
 		if !isVendored.Has() {
@@ -1372,7 +1372,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
 		}
 		diffFile.IsGenerated = isGenerated.Value()
-		tailSection, limitedContent := diffFile.GetTailSectionAndLimitedContent(beforeCommit, afterCommit)
+		tailSection, limitedContent := diffFile.GetTailSectionAndLimitedContent(ctx, gitRepo, beforeCommit, afterCommit)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
@@ -1542,18 +1542,18 @@ func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) 
 }
 
 // GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line
-func GeneratePatchForUnchangedLine(gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
+func GeneratePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
 		return "", fmt.Errorf("GetCommit: %w", err)
 	}
 
-	entry, err := commit.GetTreeEntryByPath(treePath)
+	entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, treePath)
 	if err != nil {
 		return "", fmt.Errorf("GetTreeEntryByPath: %w", err)
 	}
 
-	blob := entry.Blob()
+	blob := entry.Blob(gitRepo)
 	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return "", fmt.Errorf("DataAsync: %w", err)

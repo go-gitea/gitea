@@ -60,7 +60,7 @@ func LoadParsedScopedWorkflows(ctx context.Context, sourceRepo *repo_model.Repos
 	if err != nil {
 		return "", nil, fmt.Errorf("get source commit %s: %w", sha, err)
 	}
-	parsed, err = actions_module.ParseScopedWorkflows(sourceCommit)
+	parsed, err = actions_module.ParseScopedWorkflows(ctx, sourceGitRepo, sourceCommit)
 	if err != nil {
 		return "", nil, err
 	}

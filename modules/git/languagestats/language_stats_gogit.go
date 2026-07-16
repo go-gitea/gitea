@@ -7,6 +7,7 @@ package languagestats
 
 import (
 	"bytes"
+	"context"
 	"io"
 
 	"gitea.dev/modules/analyze"
@@ -21,7 +22,7 @@ import (
 )
 
 // GetLanguageStats calculates language stats for git repository at specified commit
-func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]int64, error) {
+func GetLanguageStats(_ context.Context, repo *git_module.Repository, commitID string) (map[string]int64, error) {
 	r, err := git.PlainOpen(repo.Path)
 	if err != nil {
 		return nil, err

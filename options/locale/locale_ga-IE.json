@@ -2251,7 +2251,6 @@
   "repo.settings.webhook_deletion_success": "Tá an Crúca Gréasán bainte amach.",
   "repo.settings.webhook.test_delivery": "Imeacht Brúigh Tástála",
   "repo.settings.webhook.test_delivery_desc": "Déan tástáil ar an webhook seo le teagmhas brú bréige.",
-  "repo.settings.webhook.test_delivery_desc_disabled": "Chun an Crúca Gréasán seo a thástáil le himeacht bhréige, gníomhachtaigh é.",
   "repo.settings.webhook.request": "Iarratas",
   "repo.settings.webhook.response": "Freagra",
   "repo.settings.webhook.headers": "Ceanntásca",

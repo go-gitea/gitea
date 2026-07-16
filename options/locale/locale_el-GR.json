@@ -1781,7 +1781,6 @@
   "repo.settings.webhook_deletion": "Αφαίρεση Webhook",
   "repo.settings.webhook_deletion_desc": "Η αφαίρεση ενός webhook διαγράφει τις ρυθμίσεις και το ιστορικό παραδόσεων. Συνέχεια;",
   "repo.settings.webhook_deletion_success": "Το webhook έχει αφαιρεθεί.",
-  "repo.settings.webhook.test_delivery_desc_disabled": "Για να δοκιμάσετε αυτό το webhook με μια ψεύτικη κλήση, ενεργοποιήστε το.",
   "repo.settings.webhook.request": "Αίτημα",
   "repo.settings.webhook.response": "Απάντηση",
   "repo.settings.webhook.headers": "Κεφαλίδες",

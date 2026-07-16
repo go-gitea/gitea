@@ -216,10 +216,7 @@ onBeforeUnmount(() => {
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.allJobs }}</div>
         <div class="flex-items-block action-view-sidebar-list">
-          <div
-            class="item job-brief-item"
-            :class="{'selected': props.jobId === item.job.id}"
-            :style="{paddingLeft: `${10 + item.depth * 16}px`}"
+          <template
             v-for="item in visibleJobListItems"
             :key="item.job.id"
           >
@@ -228,7 +225,9 @@ onBeforeUnmount(() => {
             <button
               v-if="item.job.isReusableCaller"
               type="button"
-              class="tw-contents caller-row-toggle"
+              class="item caller-row-toggle"
+              :class="{'selected': props.jobId === item.job.id}"
+              :style="{paddingLeft: `${10 + item.depth * 16}px`}"
               @click="toggleExpandedJob(item.job.id)"
               :title="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
               :aria-label="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
@@ -239,13 +238,19 @@ onBeforeUnmount(() => {
               <span class="job-duration">{{ item.job.duration }}</span>
               <SvgIcon name="octicon-chevron-down" :size="14" class="job-brief-toggle-icon" :class="{'collapsed': isJobCollapsed(item.job.id)}"/>
             </button>
-            <a v-else class="tw-contents silenced" :href="item.job.link">
+            <a
+              v-else
+              class="item silenced"
+              :class="{'selected': props.jobId === item.job.id}"
+              :style="{paddingLeft: `${10 + item.depth * 16}px`}"
+              :href="item.job.link"
+            >
               <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
               <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
               <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
               <span class="job-duration">{{ item.job.duration }}</span>
             </a>
-          </div>
+          </template>
         </div>
 
         <!-- artifacts list -->
@@ -450,10 +455,11 @@ onBeforeUnmount(() => {
 }
 
 .caller-row-toggle {
+  width: 100%;
   border: none;
-  padding: 0;
   background: transparent;
   color: inherit;
+  line-height: inherit; /* buttons don't inherit line-height; match the <a> rows' row height */
   cursor: pointer;
   text-align: inherit;
 }
@@ -483,13 +489,13 @@ onBeforeUnmount(() => {
 }
 
 .action-view-sidebar-list > .item:hover .job-rerun-button,
-.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button {
+.action-view-sidebar-list > .item:focus .job-rerun-button {
   display: inline-flex;
 }
 
 /* only swap out the duration when a re-run button exists to take its place */
 .action-view-sidebar-list > .item:hover .job-rerun-button ~ .job-duration,
-.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button ~ .job-duration {
+.action-view-sidebar-list > .item:focus .job-rerun-button ~ .job-duration {
   display: none;
 }
 
