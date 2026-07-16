@@ -3306,7 +3306,6 @@
   "admin.config.default_enable_timetracking": "Enable Time Tracking by Default",
   "admin.config.default_allow_only_contributors_to_track_time": "Let Only Contributors Track Time",
   "admin.config.no_reply_address": "Hidden Email Domain",
-  "admin.config.default_visibility_organization": "Default visibility for new Organizations",
   "admin.config.default_enable_dependencies": "Enable Issue Dependencies by Default",
   "admin.config.webhook_config": "Webhook Configuration",
   "admin.config.queue_length": "Queue Length",
