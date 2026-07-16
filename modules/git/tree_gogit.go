@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"io"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -20,9 +21,9 @@ type Tree struct {
 	resolvedGogitTreeObject *object.Tree
 }
 
-func (t *Tree) gogitTreeObject() (_ *object.Tree, err error) {
+func (t *Tree) gogitTreeObject(gitRepo *Repository) (_ *object.Tree, err error) {
 	if t.resolvedGogitTreeObject == nil {
-		t.resolvedGogitTreeObject, err = t.repo.gogitRepo.TreeObject(plumbing.Hash(t.ID.RawValue()))
+		t.resolvedGogitTreeObject, err = gitRepo.gogitRepo.TreeObject(plumbing.Hash(t.ID.RawValue()))
 		if err != nil {
 			return nil, err
 		}
@@ -31,8 +32,8 @@ func (t *Tree) gogitTreeObject() (_ *object.Tree, err error) {
 }
 
 // ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries() (Entries, error) {
-	gogitTree, err := t.gogitTreeObject()
+func (t *Tree) ListEntries(_ context.Context, gitRepo *Repository) (Entries, error) {
+	gogitTree, err := t.gogitTreeObject(gitRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -50,8 +51,8 @@ func (t *Tree) ListEntries() (Entries, error) {
 }
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees
-func (t *Tree) ListEntriesRecursiveWithSize() (entries Entries, _ error) {
-	gogitTree, err := t.gogitTreeObject()
+func (t *Tree) ListEntriesRecursiveWithSize(_ context.Context, gitRepo *Repository) (entries Entries, _ error) {
+	gogitTree, err := t.gogitTreeObject(gitRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +77,6 @@ func (t *Tree) ListEntriesRecursiveWithSize() (entries Entries, _ error) {
 }
 
 // ListEntriesRecursiveFast is the alias of ListEntriesRecursiveWithSize for the gogit version
-func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
-	return t.ListEntriesRecursiveWithSize()
+func (t *Tree) ListEntriesRecursiveFast(ctx context.Context, gitRepo *Repository) (Entries, error) {
+	return t.ListEntriesRecursiveWithSize(ctx, gitRepo)
 }

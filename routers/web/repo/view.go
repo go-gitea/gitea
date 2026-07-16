@@ -260,7 +260,7 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	fileIcons := map[string]template.HTML{}
 	for _, f := range files {
 		fullPath := path.Join(ctx.Repo.TreePath, f.Entry.Name())
-		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx.Repo.Commit, fullPath, f.Entry)
+		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, fullPath, f.Entry)
 		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	}
 	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
@@ -269,7 +269,7 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 }
 
 func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.SubTree", err)
 		return nil
@@ -280,7 +280,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LastCommitLoaderURL"] = lastCommitLoaderURL + "?refSubUrl=" + url.QueryEscape(ctx.Repo.RefTypeNameSubURL())
 
 	// Get current entry user currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return nil
@@ -291,7 +291,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	allEntries, err := tree.ListEntries()
+	allEntries, err := tree.ListEntries(ctx, ctx.Repo.GitRepo)
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
 		return nil
@@ -305,7 +305,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.RepoLink, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.RepoLink, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
@@ -328,6 +328,9 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	}
 
 	ctx.Data["Files"] = files
+	ctx.Data["GetSubJumpablePathName"] = func(entry *git.TreeEntry) string {
+		return entry.GetSubJumpablePathName(ctx, ctx.Repo.GitRepo)
+	}
 	prepareDirectoryFileIcons(ctx, files)
 	for _, f := range files {
 		if f.Commit == nil {

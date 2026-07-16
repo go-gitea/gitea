@@ -19,7 +19,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
 	if err != nil {
 		ctx.ServerError("GetTreeEntryByPath", err)
 		return
@@ -28,7 +28,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	oldContent, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize)
+	oldContent, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(setting.UI.MaxDisplayFileSize)
 	if err != nil {
 		ctx.ServerError("GetBlobContent", err)
 		return

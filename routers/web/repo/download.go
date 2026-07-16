@@ -67,7 +67,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 }
 
 func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -89,7 +89,7 @@ func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
 	}
 	lastModified := &latestCommit.Committer.When
 
-	return entry.Blob(), lastModified
+	return entry.Blob(ctx.Repo.GitRepo), lastModified
 }
 
 // SingleDownload download a file by repos path

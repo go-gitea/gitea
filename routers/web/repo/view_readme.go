@@ -66,9 +66,9 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 	for _, entry := range entries {
 		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
 			fullPath := path.Join(parentDir, entry.Name())
-			if readmeFiles[i] == nil || base.NaturalSortCompare(readmeFiles[i].Name(), entry.Blob().Name()) < 0 {
+			if readmeFiles[i] == nil || base.NaturalSortCompare(readmeFiles[i].Name(), entry.Blob(ctx.Repo.GitRepo).Name()) < 0 {
 				if entry.IsLink() {
-					res, err := git.EntryFollowLinks(ctx.Repo.Commit, fullPath, entry)
+					res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, fullPath, entry)
 					if err == nil && (res.TargetEntry.IsExecutable() || res.TargetEntry.IsRegular()) {
 						readmeFiles[i] = entry
 					}
@@ -92,12 +92,12 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 			if subTreeEntry == nil {
 				continue
 			}
-			subTree := subTreeEntry.Tree()
+			subTree := subTreeEntry.Tree(ctx.Repo.GitRepo)
 			if subTree == nil {
 				// this should be impossible; if subTreeEntry exists so should this.
 				continue
 			}
-			childEntries, err := subTree.ListEntries()
+			childEntries, err := subTree.ListEntries(ctx, ctx.Repo.GitRepo)
 			if err != nil {
 				return "", nil, err
 			}
@@ -145,7 +145,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	readmeFullPath := path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())
 	readmeTargetEntry := readmeFile
 	if readmeFile.IsLink() {
-		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, readmeFullPath, readmeFile); err == nil {
+		if res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, readmeFullPath, readmeFile); err == nil {
 			readmeTargetEntry = res.TargetEntry
 		} else {
 			readmeTargetEntry = nil // if we cannot resolve the symlink, we cannot render the readme, ignore the error
@@ -160,7 +160,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	ctx.Data["ReadmeExist"] = true
 	ctx.Data["FileIsSymlink"] = readmeFile.IsLink()
 
-	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, readmeTargetEntry.Blob())
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, readmeTargetEntry.Blob(ctx.Repo.GitRepo))
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return

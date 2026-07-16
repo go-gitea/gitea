@@ -149,5 +149,5 @@ func (repo *Repository) WriteTree() (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewTree(repo, id), nil
+	return newTree(id), nil
 }
