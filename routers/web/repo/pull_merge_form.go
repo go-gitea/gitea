@@ -64,17 +64,23 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		hasPendingPullRequestMergeTip = ctx.Locale.Tr("repo.pulls.auto_merge_has_pending_schedule", pendingPullRequestMerge.Doer.Name, createdPRMergeStr)
 	}
 
-	defaultMergeTitle, defaultMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		log.Error("GetDefaultMergeMessage for style %s failed, error: %v", mergeStyle, err)
-	}
-	defaultSquashMergeTitle, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		log.Error("GetDefaultMergeMessage for squash failed, error: %v", err)
-	}
-	defaultSquashMergeCommitMessages, err := pull_service.GetSquashMergeCommitMessages(ctx, pull)
-	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		log.Error("GetSquashMergeCommitMessages failed, error: %v", err)
+	var defaultMergeTitle, defaultMergeBody string
+	var defaultSquashMergeTitle, defaultSquashMergeBody string
+	var defaultSquashMergeCommitMessages string
+	if !prInfo.IsPullRequestBroken {
+		var err error
+		defaultMergeTitle, defaultMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			log.Error("GetDefaultMergeMessage for style %s failed, error: %v", mergeStyle, err)
+		}
+		defaultSquashMergeTitle, defaultSquashMergeBody, err = pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			log.Error("GetDefaultMergeMessage for squash failed, error: %v", err)
+		}
+		defaultSquashMergeCommitMessages, err = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+		if err != nil && !errors.Is(err, util.ErrNotExist) {
+			log.Error("GetSquashMergeCommitMessages failed, error: %v", err)
+		}
 	}
 
 	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers

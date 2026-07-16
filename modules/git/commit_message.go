@@ -77,6 +77,8 @@ func (c *CommitMessage) MessageTrailer() CommitMessageTrailerValues {
 }
 
 var commitMessageTrailerSplit = sync.OnceValue(func() *regexp.Regexp {
+	// https://git-scm.com/docs/git-interpret-trailers
+	// TODO: the regexp is not able to perfectly parse the all kinds of trailers, for example: it doesn't support "split over multiple lines"
 	// the sep is either something like "\n---\n" or "\n\n" in the body, or at the start of the body like "---\n"
 	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n-{3,}\n+|\n\n)(?P<trailer>(?:[A-Za-z0-9][-A-Za-z0-9]*:[^\n]*\n?)*\n*)$`)
 })
@@ -96,9 +98,9 @@ func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 // CommitMessageMerge merges two commit messages with their trailers
 func CommitMessageMerge(m1, m2 string) string {
 	c1, s1, t1 := CommitMessageSplitTrailer(m1)
-	c2, _, t2 := CommitMessageSplitTrailer(m2)
+	c2, s2, t2 := CommitMessageSplitTrailer(m2)
 	c1, s1, t1 = strings.TrimSpace(c1), strings.TrimSpace(s1), strings.TrimSpace(t1)
-	c2, t2 = strings.TrimSpace(c2), strings.TrimSpace(t2)
+	c2, s2, t2 = strings.TrimSpace(c2), strings.TrimSpace(s2), strings.TrimSpace(t2)
 	out := strings.Builder{}
 	if c1 != "" && c2 != "" {
 		out.WriteString(c1)
@@ -110,9 +112,10 @@ func CommitMessageMerge(m1, m2 string) string {
 		out.WriteString(c2)
 	}
 	if t1 != "" || t2 != "" {
+		sep := util.Iif(t1 == "", s2, s1)
 		if c1 != "" || c2 != "" {
 			out.WriteString("\n")
-			out.WriteString(s1)
+			out.WriteString(sep)
 			out.WriteString("\n")
 		}
 		if t1 != "" {
