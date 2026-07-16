@@ -15,12 +15,35 @@
 		<h1>
 			{{ctx.RenderUtils.RenderIssueTitle .Issue.Title $.Repository}}
 			<span class="index">#{{.Issue.Index}}</span>
+			{{if $canEditIssueTitle}}
+			<button id="issue-title-edit-show" class="btn interact-fg issue-title-edit-pencil" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.edit"}}">{{svg "octicon-pencil" 16}}</button>
+			{{end}}
 		</h1>
 		<div class="issue-title-buttons">
-			{{if $canEditIssueTitle}}
-			<button id="issue-title-edit-show" class="ui small basic button">{{ctx.Locale.Tr "repo.issues.edit"}}</button>
-			{{end}}
-			{{if not .Issue.IsPull}}
+			{{if .Issue.IsPull}}
+			<div class="issue-title-code">
+				<button class="ui compact primary button js-btn-pull-code-panel">
+					{{svg "octicon-code" 16}}
+					<span>{{ctx.Locale.Tr "repo.code"}}</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				</button>
+				<div class="pull-code-panel-popup tippy-target">
+					<div class="flex-text-block clone-panel-field tw-font-semibold">{{svg "octicon-terminal"}} {{ctx.Locale.Tr "repo.pulls.checkout_tea_title"}}</div>
+					<div class="clone-panel-field">
+						<div class="ui input tiny action tw-w-full">
+							<input class="js-pull-checkout-url tw-font-mono" value="tea pr checkout {{.Issue.Index}}" readonly>
+							<div class="ui small compact icon button" data-clipboard-target=".js-pull-checkout-url" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}">
+								{{svg "octicon-copy" 14}}
+							</div>
+						</div>
+					</div>
+					<div class="clone-panel-field pull-code-panel-desc">
+						{{ctx.Locale.Tr "repo.pulls.checkout_tea_desc"}}
+						<a href="https://gitea.com/gitea/tea" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "repo.pulls.checkout_tea_learn_more"}}</a>
+					</div>
+				</div>
+			</div>
+			{{else}}
 			<a role="button" class="ui small primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 			{{end}}
 		</div>

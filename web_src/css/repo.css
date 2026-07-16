@@ -371,6 +371,25 @@ td .commit-summary {
   color: var(--color-text-light-2);
 }
 
+.issue-title-edit-pencil {
+  padding: 4px;
+  vertical-align: middle;
+  color: var(--color-text-light-2);
+}
+
+.issue-title-code {
+  position: relative;
+}
+
+.pull-code-panel-popup {
+  min-width: 320px;
+}
+
+.pull-code-panel-desc {
+  color: var(--color-text-light-2);
+  font-size: 0.9em;
+}
+
 .issue-title .label {
   margin-right: 10px;
 }

@@ -146,8 +146,21 @@ function initClonePanelButton(btn: HTMLButtonElement) {
   });
 }
 
+function initPullCodePanelButton(btn: HTMLButtonElement) {
+  const elPanel = btn.nextElementSibling!;
+  createTippy(btn, {
+    content: elPanel,
+    trigger: 'click',
+    placement: 'bottom-end',
+    interactive: true,
+    hideOnClick: true,
+    arrow: false,
+  });
+}
+
 export function initRepoCloneButtons() {
   queryElems(document, '.js-btn-clone-panel', initClonePanelButton);
+  queryElems(document, '.js-btn-pull-code-panel', initPullCodePanelButton);
   queryElems(document, '.clone-buttons-combo', initCloneSchemeUrlSelection);
 }
 
