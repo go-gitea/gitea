@@ -24,7 +24,7 @@ func TestCoerceDispatchInputTypes(t *testing.T) {
 		// dispatch callbacks fill booleans as strconv.FormatBool(...) strings
 		"build_server": "true",
 		"dry_run":      "false",
-		// a JSON API request may already send a native bool
+		// already-native booleans are passed through unchanged (coercion is idempotent)
 		"already_bool": true,
 		// non-boolean inputs must be left untouched
 		"version": "1.2.3",
