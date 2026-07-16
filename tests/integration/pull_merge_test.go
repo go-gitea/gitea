@@ -1321,7 +1321,8 @@ Co-authored-by: user4 <user4@example.com>
 				pullIndex, err := strconv.ParseInt(elems[4], 10, 64)
 				assert.NoError(t, err)
 				pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: pullIndex})
-				squashMergeCommitMessage := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				squashMergeCommitMessage, err := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)
 			})
 		}
