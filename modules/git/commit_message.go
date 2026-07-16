@@ -99,8 +99,8 @@ func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 func CommitMessageMerge(m1, m2 string) string {
 	c1, s1, t1 := CommitMessageSplitTrailer(m1)
 	c2, s2, t2 := CommitMessageSplitTrailer(m2)
-	c1, s1, t1 = strings.TrimSpace(c1), strings.TrimSpace(s1), strings.TrimSpace(t1)
-	c2, s2, t2 = strings.TrimSpace(c2), strings.TrimSpace(s2), strings.TrimSpace(t2)
+	c1, t1 = strings.TrimSpace(c1), strings.TrimSpace(t1)
+	c2, t2 = strings.TrimSpace(c2), strings.TrimSpace(t2)
 	out := strings.Builder{}
 	if c1 != "" && c2 != "" {
 		out.WriteString(c1)
@@ -114,9 +114,7 @@ func CommitMessageMerge(m1, m2 string) string {
 	if t1 != "" || t2 != "" {
 		sep := util.Iif(t1 == "", s2, s1)
 		if c1 != "" || c2 != "" {
-			out.WriteString("\n")
 			out.WriteString(sep)
-			out.WriteString("\n")
 		}
 		if t1 != "" {
 			out.WriteString(t1)
