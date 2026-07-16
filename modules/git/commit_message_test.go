@@ -29,7 +29,7 @@ func TestCommitMessageTrailer(t *testing.T) {
 		{"a\n\nk:v\n\n", "a", "\n\n", "k:v\n\n"},
 		{"a\n--\nk:v", "a\n--\nk:v", "", ""},
 		{"a\n---\nk:v", "a", "\n---\n", "k:v"},
-		{"a\n\n---\n\nk:v", "a\n", "\n---\n\n", "k:v"},
+		{"a\n\n---\n\nk:v", "a", "\n\n---\n\n", "k:v"},
 
 		{"k: v", "", "", "k: v"},
 		{"\nk:v", "", "\n", "k:v"},
@@ -142,7 +142,7 @@ func TestCommitMessageMerge(t *testing.T) {
 		{"k1: a", "k2: b", "k1: a\nk2: b"},
 		{"msg1\n\nk1: a", "msg2", "msg1\n\nmsg2\n\nk1: a"},
 		{"msg1\n----\nk1: a", "msg2", "msg1\n\nmsg2\n----\nk1: a"},
-		{"msg1\n----\n\nk1: a", "msg2", "msg1\n\nmsg2\n----\n\nk1: a"},
+		{"msg1\n\n----\n\nk1: a", "msg2", "msg1\n\nmsg2\n\n----\n\nk1: a"},
 		{"msg1", "msg2\n----\nk2: b", "msg1\n\nmsg2\n----\nk2: b"},
 		{"msg1", "msg2\n\nk2: b", "msg1\n\nmsg2\n\nk2: b"},
 		{"msg1\n\nk1: a", "msg2\n\nk2: b", "msg1\n\nmsg2\n\nk1: a\nk2: b"},

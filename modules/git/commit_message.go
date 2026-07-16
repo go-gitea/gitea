@@ -81,7 +81,7 @@ var commitMessageTrailerSplit = sync.OnceValue(func() *regexp.Regexp {
 	// TODO: the regexp is not able to perfectly parse the all kinds of trailers, for example: it doesn't support "split over multiple lines"
 	// It was just copied from legacy code, it is not exactly the same as how Git parses the trailer or not quite right in some cases.
 	// Here, just assume that the sep is either something like "\n---\n" or "\n\n" in the body, or at the start of the body like "---\n"
-	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n-{3,}\n+|\n\n)(?P<trailer>(?:[A-Za-z0-9][-A-Za-z0-9]*:[^\n]*\n?)*\n*)$`)
+	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-A-Za-z0-9]*:[^\n]*\n?)*\n*)$`)
 })
 
 // CommitMessageSplitTrailer tries to split the message by the trailer separator
