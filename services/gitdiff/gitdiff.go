@@ -1407,10 +1407,12 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 	if setting.Git.DisableDiffHighlight || len(rawContent) > MaxFullFileHighlightSizeLimit {
 		return nil
 	}
-	// HINT: GIT-DIFF-HIGHLIGHT-LINE-NUMBER: it should handle all CR(\r) before highlight to make line numbers match
-	rawContent = bytes.ReplaceAll(rawContent, []byte("\r\n"), []byte("\n"))
-	rawContent = bytes.ReplaceAll(rawContent, []byte("\r"), []byte("␍"))
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
+	// HINT: GIT-DIFF-HIGHLIGHT-LINE-NUMBER: it should handle all CR(\r) before highlight to make line numbers match
+	if strings.Contains(content, "\r") {
+		content = strings.ReplaceAll(content, "\r\n", "\n")
+		content = strings.ReplaceAll(content, "\r", "␍")
+	}
 	lexer := highlight.DetectChromaLexerByFileName(name, lang)
 	highlightedNewContent := highlight.RenderCodeByLexer(lexer, content)
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
