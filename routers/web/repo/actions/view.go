@@ -716,9 +716,10 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	resp.Artifacts = make([]*ArtifactsViewItem, 0, len(arts))
 	for _, art := range arts {
 		resp.Artifacts = append(resp.Artifacts, &ArtifactsViewItem{
-			Name:   art.ArtifactName,
-			Size:   art.FileSize,
-			Status: util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
+			Name:        art.ArtifactName,
+			Size:        art.FileSize,
+			Status:      util.Iif(art.Status == actions_model.ArtifactStatusExpired, "expired", "completed"),
+			ExpiresUnix: int64(art.ExpiredUnix),
 		})
 	}
 }
