@@ -10,8 +10,8 @@
 	<body>
 		{{/* TODO: add Help & Glossary to help users understand the API, and explain some concepts like "Owner" */}}
 		<div class="swagger-page-links">
-			<a href="{{AppSubUrl}}/openapi3.v1.json">{{svg "octicon-file-code"}}OpenAPI</a>
-			<a href="{{AppSubUrl}}/swagger.v1.json">{{svg "octicon-file-code"}}Swagger</a>
+			<a href="{{AppSubUrl}}/openapi3.v1.json" target="_blank">{{svg "octicon-file-code"}}OpenAPI JSON</a>
+			<a href="{{AppSubUrl}}/swagger.v1.json" target="_blank">{{svg "octicon-file-code"}}Swagger JSON</a>
 			<a href="{{AppSubUrl}}/">{{svg "octicon-reply"}}{{ctx.Locale.Tr "return_to_gitea"}}</a>
 		</div>
 		<div id="swagger-ui" data-source="{{AppSubUrl}}/openapi3.v1.json"></div>
