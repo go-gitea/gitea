@@ -211,7 +211,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		return nil, err
 	}
 
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
+	fileCommitResponse, _ := GetFileCommitResponse(repo, gitRepo, commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(ctx, commit)
 	fileResponse := &structs.FileResponse{
 		Commit:       fileCommitResponse,

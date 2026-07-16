@@ -61,7 +61,7 @@ empty commit`
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
 
-	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
+	commitFromReader, err := CommitFromReader(sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
@@ -89,7 +89,7 @@ committer silverwind <me@silverwind.io> 1563741793 +0200
 empty commit`, commitFromReader.Signature.Payload)
 	assert.Equal(t, "silverwind <me@silverwind.io>", commitFromReader.Author.String())
 
-	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
+	commitFromReader2, err := CommitFromReader(sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage.MessageRaw += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
@@ -125,7 +125,7 @@ ISO-8859-1`
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
 
-	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
+	commitFromReader, err := CommitFromReader(sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
@@ -152,7 +152,7 @@ encoding ISO-8859-1
 ISO-8859-1`, commitFromReader.Signature.Payload)
 	assert.Equal(t, "KN4CK3R <admin@oldschoolhack.me>", commitFromReader.Author.String())
 
-	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
+	commitFromReader2, err := CommitFromReader(sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage.MessageRaw += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
@@ -172,15 +172,15 @@ func TestHasPreviousCommit(t *testing.T) {
 	parentSHA := MustIDFromString("8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2")
 	notParentSHA := MustIDFromString("2839944139e0de9737a044f78b0e4b40d989a9e3")
 
-	haz, err := commit.HasPreviousCommit(parentSHA)
+	haz, err := commit.HasPreviousCommit(t.Context(), repo, parentSHA)
 	assert.NoError(t, err)
 	assert.True(t, haz)
 
-	hazNot, err := commit.HasPreviousCommit(notParentSHA)
+	hazNot, err := commit.HasPreviousCommit(t.Context(), repo, notParentSHA)
 	assert.NoError(t, err)
 	assert.False(t, hazNot)
 
-	selfNot, err := commit.HasPreviousCommit(commit.ID)
+	selfNot, err := commit.HasPreviousCommit(t.Context(), repo, commit.ID)
 	assert.NoError(t, err)
 	assert.False(t, selfNot)
 }

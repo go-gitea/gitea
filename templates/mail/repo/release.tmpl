@@ -29,26 +29,26 @@
 		---
 		<br>
 		{{.locale.Tr "mail.release.downloads"}}
-		<ul>
-			{{if not .DisableDownloadSourceArchives}}
-			<li>
-				<a href="{{.Release.Repo.HTMLURL}}/archive/{{.Release.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.zip"}}</strong></a>
-			</li>
-			<li>
-				<a href="{{.Release.Repo.HTMLURL}}/archive/{{.Release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.targz"}}</strong></a>
-			</li>
-			{{end}}
-			{{if .Release.Attachments}}
-				{{range .Release.Attachments}}
-					<li>
-						<a target="_blank" href="{{.DownloadURL}}">
-							<strong>{{.Name}} ({{.Size | FileSize}})</strong>
-						</a>
-					</li>
-				{{end}}
-			{{end}}
-		</ul>
 	</p>
+	<ul>
+		{{if not .DisableDownloadSourceArchives}}
+		<li>
+			<a href="{{.Release.Repo.HTMLURL}}/archive/{{.Release.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.zip"}}</strong></a>
+		</li>
+		<li>
+			<a href="{{.Release.Repo.HTMLURL}}/archive/{{.Release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.targz"}}</strong></a>
+		</li>
+		{{end}}
+		{{if .Release.Attachments}}
+			{{range .Release.Attachments}}
+				<li>
+					<a target="_blank" href="{{.DownloadURL}}">
+						<strong>{{.Name}} ({{.Size | FileSize}})</strong>
+					</a>
+				</li>
+			{{end}}
+		{{end}}
+	</ul>
 	<div style="font-size:small; color:#666;">
 		<p>
 			---

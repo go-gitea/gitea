@@ -206,7 +206,7 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflows []WorkflowInfo, curWorkflowID string) {
 	curWorkflowID = ctx.FormString("workflow")
 
-	_, entries, err := actions.ListWorkflows(commit)
+	_, entries, err := actions.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
 		return nil, ""
@@ -215,7 +215,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 	workflows = make([]WorkflowInfo, 0, len(entries))
 	for _, entry := range entries {
 		workflow := WorkflowInfo{EntryName: entry.Name()}
-		content, err := actions.GetContentFromEntry(entry)
+		content, err := actions.GetContentFromEntry(ctx.Repo.GitRepo, entry)
 		if err != nil {
 			ctx.ServerError("GetContentFromEntry", err)
 			return nil, ""
