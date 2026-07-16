@@ -18,10 +18,10 @@ const (
 )
 
 // VisibilityModes is a map of Visibility types
-var VisibilityModes = map[UserVisibility]VisibleType{
-	UserVisibilityPublic:  VisibleTypePublic,
-	UserVisibilityLimited: VisibleTypeLimited,
-	UserVisibilityPrivate: VisibleTypePrivate,
+var VisibilityModes = map[VisibilityString]VisibleType{
+	VisibilityStringPublic:  VisibleTypePublic,
+	VisibilityStringLimited: VisibleTypeLimited,
+	VisibilityStringPrivate: VisibleTypePrivate,
 }
 
 // IsPublic returns true if VisibleType is public
@@ -57,13 +57,13 @@ func VisibilityModeKeys() (keys []string) {
 	return keys
 }
 
-// UserVisibility defines the visibility level of a user or organization as
-// rendered in API payloads. The DB representation is VisibleType (int).
-// swagger:enum UserVisibility
-type UserVisibility string
+// VisibilityString defines the visibility level of a user/organization/team as
+// rendered in API and config payloads. The DB representation is VisibleType (int).
+// swagger:enum VisibilityString
+type VisibilityString string
 
 const (
-	UserVisibilityPublic  UserVisibility = "public"
-	UserVisibilityLimited UserVisibility = "limited"
-	UserVisibilityPrivate UserVisibility = "private"
+	VisibilityStringPublic  VisibilityString = "public"
+	VisibilityStringLimited VisibilityString = "limited"
+	VisibilityStringPrivate VisibilityString = "private"
 )

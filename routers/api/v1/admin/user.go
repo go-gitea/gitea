@@ -469,7 +469,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	var visible []api.VisibleType
 	visibilityParam := ctx.FormString("visibility")
-	if visibility, ok := api.VisibilityModes[api.UserVisibility(visibilityParam)]; ok {
+	if visibility, ok := api.VisibilityModes[api.VisibilityString(visibilityParam)]; ok {
 		visible = []api.VisibleType{visibility}
 	} else if visibilityParam != "" {
 		ctx.APIError(http.StatusUnprocessableEntity, "invalid visibility")

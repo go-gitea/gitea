@@ -216,21 +216,21 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
 
 	Service.AllowedUserVisibilityModesSlice = AllowedVisibility{false, false, false}
-	var allowedUserVisibilityModes []structs.UserVisibility
+	var allowedUserVisibilityModes []structs.VisibilityString
 	for _, allowedMode := range sec.Key("ALLOWED_USER_VISIBILITY_MODES").Strings(",") {
-		if tp, ok := structs.VisibilityModes[structs.UserVisibility(allowedMode)]; ok { // remove unsupported modes
-			allowedUserVisibilityModes = append(allowedUserVisibilityModes, structs.UserVisibility(allowedMode))
+		if tp, ok := structs.VisibilityModes[structs.VisibilityString(allowedMode)]; ok { // remove unsupported modes
+			allowedUserVisibilityModes = append(allowedUserVisibilityModes, structs.VisibilityString(allowedMode))
 			Service.AllowedUserVisibilityModesSlice[tp] = true
 		} else {
 			log.Warn("ALLOWED_USER_VISIBILITY_MODES %s is unsupported", allowedMode)
 		}
 	}
 	if len(allowedUserVisibilityModes) == 0 {
-		allowedUserVisibilityModes = []structs.UserVisibility{structs.UserVisibilityPublic, structs.UserVisibilityLimited, structs.UserVisibilityPrivate}
+		allowedUserVisibilityModes = []structs.VisibilityString{structs.VisibilityStringPublic, structs.VisibilityStringLimited, structs.VisibilityStringPrivate}
 		Service.AllowedUserVisibilityModesSlice = AllowedVisibility{true, true, true}
 	}
 
-	defaultUserVisibility := structs.UserVisibility(sec.Key("DEFAULT_USER_VISIBILITY").String())
+	defaultUserVisibility := structs.VisibilityString(sec.Key("DEFAULT_USER_VISIBILITY").String())
 	if defaultUserVisibility == "" {
 		defaultUserVisibility = allowedUserVisibilityModes[0]
 	} else if vt, ok := structs.VisibilityModes[defaultUserVisibility]; !ok || !Service.AllowedUserVisibilityModesSlice[vt] {
@@ -239,7 +239,7 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	}
 	Service.DefaultUserVisibilityMode = structs.VisibilityModes[defaultUserVisibility]
 
-	defaultOrgVisibility := structs.UserVisibility(sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.VisibilityModeKeys()))
+	defaultOrgVisibility := structs.VisibilityString(sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.VisibilityModeKeys()))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[defaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 
