@@ -264,7 +264,7 @@ func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest,
 	}
 
 	if mergeStyle != repo_model.MergeStyleFastForwardOnly {
-		if _, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo); err != nil {
+		if _, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo, pr.BaseBranch, pr.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}
