@@ -272,10 +272,9 @@ AACAX/AKARNTyAAoAAA=`
 				t.Run("NoArchOnly", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
-					// Regression test for #38456: a repository that only contains
-					// noarch packages has no per-architecture index, but apk always
-					// requests the index for its own architecture (e.g. x86_64). That
-					// request must fall back to the noarch index instead of 404ing.
+					// A repository that only contains noarch packages has no per-architecture index,
+					// but apk always requests the index for its own architecture (e.g. x86_64). 
+					// That request must fall back to the noarch index instead of 404ing.
 					noarchRepository := repository + "-noarchonly"
 
 					req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s/%s", rootURL, branch, noarchRepository), bytes.NewReader(noarchContent)).
