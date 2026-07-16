@@ -39,6 +39,19 @@ const (
 	tplSettingsLabels templates.TplName = "org/settings/labels"
 )
 
+func canManageOrgDangerZone(ctx *context.Context) bool {
+	if ctx.Doer == nil {
+		return false
+	}
+	if ctx.Doer.IsAdmin {
+		return true
+	}
+	if ctx.Org.IsOwner {
+		return !setting.IsOrgFeatureDisabled(setting.OrgFeatureDangerZone)
+	}
+	return false
+}
+
 // Settings render the main settings page
 func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
@@ -47,6 +60,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
 	ctx.Data["ContextUser"] = ctx.ContextUser
+	ctx.Data["canManageOrgDangerZone"] = canManageOrgDangerZone(ctx)
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
@@ -63,6 +77,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
+	ctx.Data["CanManageOrgDangerZone"] = canManageOrgDangerZone(ctx)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsOptions)
@@ -125,6 +140,11 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 
 // SettingsDeleteOrgPost response for deleting an organization
 func SettingsDeleteOrgPost(ctx *context.Context) {
+	if !canManageOrgDangerZone(ctx) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	if ctx.Org.Organization.Name != ctx.FormString("org_name") {
 		ctx.JSONError(ctx.Tr("form.enterred_invalid_org_name"))
 		return
@@ -198,6 +218,11 @@ func Labels(ctx *context.Context) {
 
 // SettingsRenamePost response for renaming organization
 func SettingsRenamePost(ctx *context.Context) {
+	if !canManageOrgDangerZone(ctx) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	form := web.GetForm(ctx).(*forms.RenameOrgForm)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
@@ -235,6 +260,11 @@ func SettingsRenamePost(ctx *context.Context) {
 
 // SettingsChangeVisibilityPost response for change organization visibility
 func SettingsChangeVisibilityPost(ctx *context.Context) {
+	if !canManageOrgDangerZone(ctx) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	visibility, ok := structs.VisibilityModes[ctx.FormString("visibility")]
 	if !ok {
 		ctx.Flash.Error(ctx.Tr("invalid_data", visibility))

@@ -14,6 +14,7 @@ var Admin struct {
 	DefaultEmailNotification    string
 	UserDisabledFeatures        container.Set[string]
 	ExternalUserDisableFeatures container.Set[string]
+	OrgDisabledFeatures         container.Set[string]
 }
 
 var validUserFeatures = container.SetOf(
@@ -26,12 +27,21 @@ var validUserFeatures = container.SetOf(
 	UserFeatureChangeFullName,
 )
 
+var validOrgFeatures = container.SetOf(
+	OrgFeatureDangerZone,
+)
+
+func IsOrgFeatureDisabled(feature string) bool {
+	return Admin.OrgDisabledFeatures.Contains(feature)
+}
+
 func loadAdminFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("admin")
 	Admin.DisableRegularOrgCreation = sec.Key("DISABLE_REGULAR_ORG_CREATION").MustBool(false)
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
 	Admin.UserDisabledFeatures = container.SetOf(sec.Key("USER_DISABLED_FEATURES").Strings(",")...)
 	Admin.ExternalUserDisableFeatures = container.SetOf(sec.Key("EXTERNAL_USER_DISABLE_FEATURES").Strings(",")...).Union(Admin.UserDisabledFeatures)
+	Admin.OrgDisabledFeatures = container.SetOf(sec.Key("ORG_DISABLED_FEATURES").Strings(",")...)
 
 	for feature := range Admin.UserDisabledFeatures {
 		if !validUserFeatures.Contains(feature) {
@@ -41,6 +51,11 @@ func loadAdminFrom(rootCfg ConfigProvider) {
 	for feature := range Admin.ExternalUserDisableFeatures {
 		if !validUserFeatures.Contains(feature) && !Admin.UserDisabledFeatures.Contains(feature) {
 			log.Warn("EXTERNAL_USER_DISABLE_FEATURES contains unknown feature %q", feature)
+		}
+	}
+	for feature := range Admin.OrgDisabledFeatures {
+		if !validOrgFeatures.Contains(feature) {
+			log.Warn("ORG_DISABLED_FEATURES contains unknown feature %q", feature)
 		}
 	}
 }
@@ -53,4 +68,6 @@ const (
 	UserFeatureManageCredentials = "manage_credentials"
 	UserFeatureChangeUsername    = "change_username"
 	UserFeatureChangeFullName    = "change_full_name"
+
+	OrgFeatureDangerZone = "danger_zone"
 )
