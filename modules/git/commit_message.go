@@ -95,40 +95,31 @@ func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 	return v[re.SubexpIndex("content")], v[re.SubexpIndex("sep")], v[re.SubexpIndex("trailer")]
 }
 
+// commitMessageTrailerSep normalizes a separator, git only parses trailers in the last paragraph
+func commitMessageTrailerSep(sep string) string {
+	if dashRule := strings.Trim(sep, "\n"); dashRule != "" {
+		return "\n\n" + dashRule + "\n\n"
+	}
+	return "\n\n"
+}
+
+// joinNonEmpty only uses the separator when both parts are present
+func joinNonEmpty(sep, part1, part2 string) string {
+	if part1 != "" && part2 != "" {
+		return part1 + sep + part2
+	}
+	return part1 + part2
+}
+
 // CommitMessageMerge merges two commit messages with their trailers
 func CommitMessageMerge(m1, m2 string) string {
 	c1, s1, t1 := CommitMessageSplitTrailer(m1)
 	c2, s2, t2 := CommitMessageSplitTrailer(m2)
-	c1, s1, t1 = strings.TrimSpace(c1), strings.TrimSpace(s1), strings.TrimSpace(t1)
-	c2, s2, t2 = strings.TrimSpace(c2), strings.TrimSpace(s2), strings.TrimSpace(t2)
-	out := strings.Builder{}
-	if c1 != "" && c2 != "" {
-		out.WriteString(c1)
-		out.WriteString("\n\n")
-		out.WriteString(c2)
-	} else if c1 != "" {
-		out.WriteString(c1)
-	} else if c2 != "" {
-		out.WriteString(c2)
-	}
-	if t1 != "" || t2 != "" {
-		sep := util.Iif(t1 == "", s2, s1)
-		if c1 != "" || c2 != "" {
-			out.WriteString("\n")
-			out.WriteString(sep)
-			out.WriteString("\n")
-		}
-		if t1 != "" {
-			out.WriteString(t1)
-		}
-		if t1 != "" && t2 != "" {
-			out.WriteString("\n")
-		}
-		if t2 != "" {
-			out.WriteString(t2)
-		}
-	}
-	return out.String()
+	c1, t1 = strings.TrimSpace(c1), strings.TrimSpace(t1)
+	c2, t2 = strings.TrimSpace(c2), strings.TrimSpace(t2)
+	content := joinNonEmpty("\n\n", c1, c2)
+	trailer := joinNonEmpty("\n", t1, t2)
+	return joinNonEmpty(commitMessageTrailerSep(util.Iif(t1 == "", s2, s1)), content, trailer)
 }
 
 func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
