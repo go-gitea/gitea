@@ -1285,6 +1285,8 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 		return nil, nil, nil, err
 	}
 
+	// HINT: GIT-DIFF-HIGHLIGHT-LINE-NUMBER: git doesn't treat CR(\r) as EOL, CR is just a plain char which can appear anywhere in the diff output
+	// Since we have to do full-file-highlighting for the diff result, we need to make sure the highlighted lines exactly match the git's diff output.
 	cmdDiff := gitcmd.NewCommand().
 		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/").
 		AddArguments(opts.WhitespaceBehavior...).
@@ -1405,8 +1407,12 @@ func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool,
 	if setting.Git.DisableDiffHighlight || len(rawContent) > MaxFullFileHighlightSizeLimit {
 		return nil
 	}
-
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
+	// HINT: GIT-DIFF-HIGHLIGHT-LINE-NUMBER: it should handle all CR(\r) before highlight to make line numbers match
+	if strings.Contains(content, "\r") {
+		content = strings.ReplaceAll(content, "\r\n", "\n")
+		content = strings.ReplaceAll(content, "\r", "␍")
+	}
 	lexer := highlight.DetectChromaLexerByFileName(name, lang)
 	highlightedNewContent := highlight.RenderCodeByLexer(lexer, content)
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
