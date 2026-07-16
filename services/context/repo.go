@@ -86,8 +86,10 @@ type Repository struct {
 	Repository *repo_model.Repository
 	Owner      *user_model.User
 
-	RepoLink string
-	GitRepo  *git.Repository
+	RepoLink  string
+	CloneLink *repo_model.CloneLink
+
+	GitRepo *git.Repository
 
 	// RefFullName is the full ref name that the user is viewing
 	RefFullName git.RefName
@@ -584,23 +586,13 @@ func repoAssignmentPrepareRepo(ctx *Context, data *repoAssignmentPrepareDataStru
 	data.repo = repo
 }
 
-// cloneButtonsShow decides which repository clone protocol buttons are shown in
-// the UI. A protocol that the admin disabled is never shown, so the UI does not
-// advertise a clone URL that would be rejected: DISABLE_HTTP_GIT hides HTTPS, and
-// SSH is only shown when enabled and either the viewer is signed in or anonymous
-// SSH URLs are exposed. When both protocols are unavailable to the viewer neither
-// button is shown (see issue #38339).
-func cloneButtonsShow(isSigned bool) (showHTTPS, showSSH bool) {
-	showHTTPS = !setting.Repository.DisableHTTPGit
-	showSSH = !setting.SSH.Disabled && (isSigned || setting.SSH.ExposeAnonymous)
-	return showHTTPS, showSSH
-}
-
 func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	repo := data.repo
 	ctx.Repo.RepoLink = repo.Link()
+	ctx.Repo.CloneLink = repo.CloneLink(ctx, ctx.Doer)
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["FeedURL"] = ctx.Repo.RepoLink
+	ctx.Data["CloneButtonOriginLink"] = ctx.Repo.CloneLink // CloneButtonOriginLink may be rewritten to the WikiCloneLink by the router middleware
 
 	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeExternalTracker)
 	if err == nil {
@@ -654,13 +646,6 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	// if he owns an org that doesn't have a fork of this repo yet
 	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
 	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
-
-	ctx.Data["RepoCloneLink"] = repo.CloneLink(ctx, ctx.Doer)
-
-	cloneButtonShowHTTPS, cloneButtonShowSSH := cloneButtonsShow(ctx.IsSigned)
-	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
-	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
-	ctx.Data["CloneButtonOriginLink"] = ctx.Data["RepoCloneLink"] // it may be rewritten to the WikiCloneLink by the router middleware
 
 	ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
 	if setting.Indexer.RepoIndexerEnabled {
@@ -786,12 +771,15 @@ func repoAssignmentPrepareRepoTransfer(ctx *Context, data *repoAssignmentPrepare
 }
 
 func repoAssignmentHandleGoGet(ctx *Context, data *repoAssignmentPrepareDataStruct) {
+	// FIXME: this should be removed, dead code, because the "goGet" middleware already handles the "go-get=1" requests
 	repo := data.repo
-	if ctx.FormString("go-get") == "1" {
+	// "go get" only supports HTTPS clone
+	if ctx.FormString("go-get") == "1" && ctx.Repo.CloneLink.SupportHTTPS {
 		ctx.Data["GoGetImport"] = ComposeGoGetImport(ctx, repo.Owner.Name, repo.Name)
 		fullURLPrefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
 		ctx.Data["GoDocDirectory"] = fullURLPrefix + "{/dir}"
 		ctx.Data["GoDocFile"] = fullURLPrefix + "{/dir}/{file}#L{line}"
+		ctx.Data["GoGetCloneLink"] = ctx.Repo.CloneLink.HTTPS
 	}
 }
 

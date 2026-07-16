@@ -67,7 +67,7 @@ func prepareHomeSidebarRepoTopics(ctx *context.Context) {
 	ctx.Data["Topics"] = topics
 }
 
-func prepareOpenWithEditorApps(ctx *context.Context) {
+func prepareClonePanel(ctx *context.Context) {
 	var tmplApps []map[string]any
 	apps := setting.Config().Repository.OpenWithEditorApps.Value(ctx)
 	for _, app := range apps {
@@ -93,6 +93,10 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		})
 	}
 	ctx.Data["OpenWithEditorApps"] = tmplApps
+
+	if !setting.Repository.DisableDownloadSourceArchives {
+		ctx.Data["DownloadArchiveLinkPrefix"] = ctx.Repo.RepoLink + "/archive/" + util.PathEscapeSegments(ctx.Repo.RefFullName.String())
+	}
 }
 
 func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Context) {
@@ -439,7 +443,7 @@ func Home(ctx *context.Context) {
 	isTreePathRoot := ctx.Repo.TreePath == ""
 
 	prepareFuncs := []func(*context.Context){
-		prepareOpenWithEditorApps,
+		prepareClonePanel,
 		prepareHomeSidebarRepoTopics,
 		checkOutdatedBranch,
 		prepareToRenderDirOrFile(entry),

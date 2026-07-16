@@ -1,13 +1,14 @@
 <!-- render the clone combo only when a git protocol is available; the URL input would otherwise be empty -->
-{{if or $.CloneButtonShowHTTPS $.CloneButtonShowSSH}}
-<div class="ui action small input clone-buttons-combo">
-	{{if $.CloneButtonShowHTTPS}}
-		<button class="ui small button repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">HTTPS</button>
+{{$cloneLink := $.CloneButtonOriginLink}}
+{{if or $cloneLink.SupportHTTPS $cloneLink.SupportSSH}}
+<div class="ui action small input clone-buttons-combo" data-global-init="initRepoCloneButtonsCombo">
+	{{if $cloneLink.SupportHTTPS}}
+		<button class="ui small button repo-clone-https" data-link="{{$cloneLink.HTTPS}}">HTTPS</button>
 	{{end}}
-	{{if $.CloneButtonShowSSH}}
-		<button class="ui small button repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">SSH</button>
+	{{if $cloneLink.SupportSSH}}
+		<button class="ui small button repo-clone-ssh" data-link="{{$cloneLink.SSH}}">SSH</button>
 	{{end}}
-	<input size="10" class="repo-clone-url js-clone-url" value="{{if $.CloneButtonShowHTTPS}}{{$.CloneButtonOriginLink.HTTPS}}{{else}}{{$.CloneButtonOriginLink.SSH}}{{end}}" readonly>
+	<input size="10" class="repo-clone-url js-clone-url" value="{{Iif $cloneLink.SupportHTTPS $cloneLink.HTTPS $cloneLink.SSH}}" readonly>
 	<button class="ui small icon button" data-clipboard-target=".repo-clone-url" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}">
 		{{svg "octicon-copy" 14}}
 	</button>

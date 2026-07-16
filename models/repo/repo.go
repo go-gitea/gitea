@@ -647,6 +647,10 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 
 // CloneLink represents different types of clone URLs of repository.
 type CloneLink struct {
+	IsWikiRepo   bool
+	SupportSSH   bool
+	SupportHTTPS bool
+
 	SSH   string
 	HTTPS string
 	Tea   string
@@ -698,15 +702,18 @@ func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
 	return &CloneLink{
-		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
-		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
-		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
+		SupportHTTPS: !setting.Repository.DisableHTTPGit,
+		SupportSSH:   !setting.SSH.Disabled && (doer != nil || setting.SSH.ExposeAnonymous),
+		SSH:          ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
+		HTTPS:        ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
+		Tea:          ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
 	}
 }
 
 // CloneLink returns clone URLs of repository.
 func (repo *Repository) CloneLink(ctx context.Context, doer *user_model.User) (cl *CloneLink) {
-	return repo.cloneLink(ctx, doer, repo.Name)
+	cl = repo.cloneLink(ctx, doer, repo.Name)
+	return cl
 }
 
 func (repo *Repository) CloneLinkGeneral(ctx context.Context) (cl *CloneLink) {

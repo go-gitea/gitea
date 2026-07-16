@@ -1,53 +1,59 @@
-<button class="ui compact primary button js-btn-clone-panel">
+{{$cloneLink := $.CloneButtonOriginLink}}
+{{$downloadArchiveLinkPrefix := $.DownloadArchiveLinkPrefix}}
+{{$openWithEditorApps := $.OpenWithEditorApps}}
+{{$showCloneLinks := or $cloneLink.SupportHTTPS $cloneLink.SupportSSH}}
+{{$showOpenWithEditorApps := and $showCloneLinks $openWithEditorApps}}
+{{if or $showCloneLinks $showOpenWithEditorApps $downloadArchiveLinkPrefix}}
+<button class="ui compact primary button" data-global-init="initRepoClonePanel">
 	{{svg "octicon-code" 16}}
 	<span>{{ctx.Locale.Tr "repo.code"}}</span>
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 </button>
 <div class="clone-panel-popup tippy-target">
-	{{if or $.CloneButtonShowHTTPS $.CloneButtonShowSSH}}
-	<div class="flex-text-block clone-panel-field">{{svg "octicon-terminal"}} Clone</div>
-
-	<div class="clone-panel-tab">
-		<!-- tea clone also uses the git HTTPS/SSH transports, so the whole clone section is hidden when both are disabled -->
-		{{if $.CloneButtonShowHTTPS}}
-			<button class="item repo-clone-https" data-link="{{$.CloneButtonOriginLink.HTTPS}}">HTTPS</button>
-		{{end}}
-		{{if $.CloneButtonShowSSH}}
-			<button class="item repo-clone-ssh" data-link="{{$.CloneButtonOriginLink.SSH}}">SSH</button>
-		{{end}}
-		<button class="item repo-clone-tea" data-link="{{$.CloneButtonOriginLink.Tea}}">Tea CLI</button>
-	</div>
-	<div class="divider"></div>
-
-	<div class="clone-panel-field">
-		<div class="ui input tiny action">
-			<input size="30" class="repo-clone-url js-clone-url" value="{{if $.CloneButtonShowHTTPS}}{{$.CloneButtonOriginLink.HTTPS}}{{else}}{{$.CloneButtonOriginLink.SSH}}{{end}}" readonly>
-			<div class="ui small compact icon button" data-clipboard-target=".js-clone-url" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}">
-				{{svg "octicon-copy" 14}}
-			</div>
-		</div>
-	</div>
-	{{end}}
-
-	{{if not .PageIsWiki}}
-		{{if or $.CloneButtonShowHTTPS $.CloneButtonShowSSH}}
-		<!-- editors clone via a git URL, so only offer them when HTTPS/SSH is available (not for the Tea CLI command) -->
-		<div class="flex-items-block clone-panel-list">
-			{{range .OpenWithEditorApps}}
-			<a class="item muted js-clone-url-editor" data-href-template="{{.OpenURL}}">{{.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" .DisplayName}}</a>
+	{{if $showCloneLinks}}
+		<div class="flex-text-block clone-panel-field">{{svg "octicon-terminal"}} Clone</div>
+		<div class="clone-panel-tab">
+			<!-- tea clone also uses the git HTTPS/SSH transports, so the whole clone section is hidden when both are disabled -->
+			{{if $cloneLink.SupportHTTPS}}
+				<button class="item repo-clone-https" data-link="{{$cloneLink.HTTPS}}">HTTPS</button>
+			{{end}}
+			{{if $cloneLink.SupportSSH}}
+				<button class="item repo-clone-ssh" data-link="{{$cloneLink.SSH}}">SSH</button>
+			{{end}}
+			{{if not $cloneLink.IsWikiRepo}}
+				<button class="item repo-clone-tea" data-link="{{$cloneLink.Tea}}">Tea CLI</button>
 			{{end}}
 		</div>
-		{{end}}
-
-		{{if and (not $.DisableDownloadSourceArchives) $.RefFullName}}
 		<div class="divider"></div>
-		<div class="flex-items-block clone-panel-list">
-				{{/* FIXME: here it only uses the shortname in the ref to build the link, it can't distinguish the branch/tag/commit with the same name
-					in the future, it's better to use something like "/archive/branch/the-name.zip", "/archive/tag/the-name.zip" */}}
-				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_zip"}}</a>
-				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_tar"}}</a>
-				<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.bundle" rel="nofollow">{{svg "octicon-package"}} {{ctx.Locale.Tr "repo.download_bundle"}}</a>
+
+		<div class="clone-panel-field">
+			<div class="ui input tiny action">
+				<input size="30" class="repo-clone-url js-clone-url" value="{{Iif $cloneLink.SupportHTTPS $cloneLink.HTTPS $cloneLink.SSH}}" readonly>
+				<div class="ui small compact icon button" data-clipboard-target=".js-clone-url" data-tooltip-content="{{ctx.Locale.Tr "copy_url"}}">
+					{{svg "octicon-copy" 14}}
+				</div>
+			</div>
 		</div>
-		{{end}}
+	{{end}}
+
+	{{if $showOpenWithEditorApps}}
+		<!-- editors clone via a git URL, so only offer them when HTTPS/SSH is available (not for the Tea CLI command) -->
+		<div class="flex-items-block clone-panel-list repo-clone-with-apps">
+			{{range $app := $openWithEditorApps}}
+			<a class="item muted js-clone-url-editor" data-href-template="{{$app.OpenURL}}">{{$app.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" $app.DisplayName}}</a>
+			{{end}}
+		</div>
+	{{end}}
+
+	{{if $downloadArchiveLinkPrefix}}
+		{{if $showOpenWithEditorApps}}<div class="divider"></div>{{end}}
+		<div class="flex-items-block clone-panel-list">
+			{{/* FIXME: here it only uses the shortname in the ref to build the link, it can't distinguish the branch/tag/commit with the same name
+				in the future, it's better to use something like "/archive/branch/the-name.zip", "/archive/tag/the-name.zip" */}}
+			<a class="item muted archive-link" href="{{$downloadArchiveLinkPrefix}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_zip"}}</a>
+			<a class="item muted archive-link" href="{{$downloadArchiveLinkPrefix}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_tar"}}</a>
+			<a class="item muted archive-link" href="{{$downloadArchiveLinkPrefix}}.bundle" rel="nofollow">{{svg "octicon-package"}} {{ctx.Locale.Tr "repo.download_bundle"}}</a>
+		</div>
 	{{end}}
 </div>
+{{end}}

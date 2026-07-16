@@ -72,7 +72,9 @@ func (err ErrWikiInvalidFileName) Unwrap() error {
 
 // WikiCloneLink returns clone URLs of repository wiki.
 func (repo *Repository) WikiCloneLink(ctx context.Context, doer *user_model.User) *CloneLink {
-	return repo.cloneLink(ctx, doer, repo.Name+".wiki")
+	cl := repo.cloneLink(ctx, doer, repo.Name+".wiki")
+	cl.IsWikiRepo = true
+	return cl
 }
 
 func RelativeWikiPath(ownerName, repoName string) string {
