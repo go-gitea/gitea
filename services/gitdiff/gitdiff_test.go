@@ -1143,6 +1143,19 @@ func TestHighlightCodeLines(t *testing.T) {
 			1: `<span class="n">b</span>` + nl,
 		}, ret)
 	})
+	t.Run("CharCR", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name: "a.txt",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{{LeftIdx: 1}, {LeftIdx: 2}},
+				},
+			},
+		}
+		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\rb\r\nc"))
+		assert.Equal(t, "a␍b\n", string(ret[0]))
+		assert.Equal(t, `c`, string(ret[1]))
+	})
 }
 
 func TestSyncUserSpecificDiff_UpdatedFiles(t *testing.T) {

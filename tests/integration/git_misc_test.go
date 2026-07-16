@@ -50,10 +50,10 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 		commit, err := gitRepo.GetCommit(sha)
 		assert.NoError(t, err)
 
-		entry, err := commit.GetTreeEntryByPath("test.txt")
+		entry, err := commit.GetTreeEntryByPath(t.Context(), gitRepo, "test.txt")
 		assert.NoError(t, err)
 
-		b := entry.Blob()
+		b := entry.Blob(gitRepo)
 		r1, err := b.DataAsync()
 		assert.NoError(t, err)
 		defer r1.Close()

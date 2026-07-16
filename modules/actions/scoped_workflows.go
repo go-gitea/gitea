@@ -4,6 +4,8 @@
 package actions
 
 import (
+	"context"
+
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -13,8 +15,8 @@ import (
 )
 
 // ListScopedWorkflows lists scoped workflow files (under SCOPED_WORKFLOW_DIRS) at the given commit.
-func ListScopedWorkflows(commit *git.Commit) (string, git.Entries, error) {
-	return listWorkflowsInDirs(commit, setting.Actions.ScopedWorkflowDirs)
+func ListScopedWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) (string, git.Entries, error) {
+	return listWorkflowsInDirs(ctx, gitRepo, commit, setting.Actions.ScopedWorkflowDirs)
 }
 
 // ParsedScopedWorkflow is one scoped workflow's source-side parse result
@@ -26,15 +28,15 @@ type ParsedScopedWorkflow struct {
 }
 
 // ParseScopedWorkflows lists and parses the scoped workflow files at sourceCommit (under SCOPED_WORKFLOW_DIRS).
-func ParseScopedWorkflows(sourceCommit *git.Commit) ([]*ParsedScopedWorkflow, error) {
-	_, entries, err := ListScopedWorkflows(sourceCommit)
+func ParseScopedWorkflows(ctx context.Context, gitRepo *git.Repository, sourceCommit *git.Commit) ([]*ParsedScopedWorkflow, error) {
+	_, entries, err := ListScopedWorkflows(ctx, gitRepo, sourceCommit)
 	if err != nil {
 		return nil, err
 	}
 
 	parsed := make([]*ParsedScopedWorkflow, 0, len(entries))
 	for _, entry := range entries {
-		content, err := GetContentFromEntry(entry)
+		content, err := GetContentFromEntry(gitRepo, entry)
 		if err != nil {
 			return nil, err
 		}

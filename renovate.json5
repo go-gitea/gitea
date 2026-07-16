@@ -6,11 +6,13 @@
   "labels": ["dependencies"],
   "branchPrefix": "renovate/",
   "schedule": ["* * * * 1"], // dependency update PRs weekly, vulnerabilityAlerts bypasses this
+  "separateMajorMinor": false, // include major updates in group PRs
   "minimumReleaseAge": "5 days",
   "semanticCommits": "enabled",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "enabled": true,
+    "semanticCommitType": "fix", // overrides packageRules
   },
   "customManagers": [
     {
@@ -23,6 +25,10 @@
     },
   ],
   "packageRules": [
+    {
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "chore", // dep updates are rarely fixes for gitea
+    },
     {
       "groupName": "action dependencies",
       "matchManagers": ["github-actions"],
@@ -38,6 +44,14 @@
     {
       "matchPackageNames": ["tailwindcss"],
       "allowedVersions": "^3", // need to migrate
+    },
+    {
+      "matchPackageNames": ["@citation-js/core", "@citation-js/plugin-bibtex", "@citation-js/plugin-csl"],
+      "allowedVersions": "<0.8", // https://github.com/citation-js/citation-js/pull/277
+    },
+    {
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "^6", // typescript-eslint is not yet compatible with typescript 7
     },
     {
       "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/azcore"],

@@ -119,7 +119,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	// resolve the workflow content and record its source on the run (scoped runs read from the source repo)
-	content, err := resolveDispatchWorkflowContent(ctx, repo, runTargetCommit, workflowID, scopedWorkflowSourceRepoID, isScoped, run)
+	content, err := resolveDispatchWorkflowContent(ctx, repo, gitRepo, runTargetCommit, workflowID, scopedWorkflowSourceRepoID, isScoped, run)
 	if err != nil {
 		return 0, err
 	}
@@ -172,18 +172,18 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 // resolveDispatchWorkflowContent returns the YAML for a dispatched workflow and records its source on the run.
 //   - Repo-level: from the consumer's runTargetCommit.
 //   - Scoped: from the source repo's default branch.
-func resolveDispatchWorkflowContent(ctx reqctx.RequestContext, repo *repo_model.Repository, runTargetCommit *git.Commit, workflowID string, sourceRepoID int64, isScoped bool, run *actions_model.ActionRun) ([]byte, error) {
+func resolveDispatchWorkflowContent(ctx reqctx.RequestContext, repo *repo_model.Repository, gitRepo *git.Repository, runTargetCommit *git.Commit, workflowID string, sourceRepoID int64, isScoped bool, run *actions_model.ActionRun) ([]byte, error) {
 	if isScoped {
 		return resolveScopedDispatchContent(ctx, repo, sourceRepoID, workflowID, run)
 	}
 
-	_, entries, err := actions.ListWorkflows(runTargetCommit)
+	_, entries, err := actions.ListWorkflows(ctx, gitRepo, runTargetCommit)
 	if err != nil {
 		return nil, err
 	}
 	for _, e := range entries {
 		if e.Name() == workflowID {
-			return actions.GetContentFromEntry(e)
+			return actions.GetContentFromEntry(gitRepo, e)
 		}
 	}
 	return nil, util.ErrorWrapTranslatable(

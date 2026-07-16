@@ -523,7 +523,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	}, nil
 }
 
-func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, refName git.RefName, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
+func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, refName git.RefName, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
@@ -554,7 +554,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	createdAt := commit.Author.When
 	updatedAt := commit.Author.When
 
-	content, err := actions.GetContentFromEntry(entry)
+	content, err := actions.GetContentFromEntry(gitRepo, entry)
 	name := entry.Name()
 	if err == nil {
 		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
@@ -589,26 +589,26 @@ func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *rep
 		return nil, err
 	}
 
-	folder, entries, err := actions.ListWorkflows(defaultBranchCommit)
+	folder, entries, err := actions.ListWorkflows(ctx, gitrepo, defaultBranchCommit)
 	if err != nil {
 		return nil, err
 	}
 
 	workflows := make([]*api.ActionWorkflow, len(entries))
 	for i, entry := range entries {
-		workflows[i] = getActionWorkflowEntry(ctx, repo, defaultBranchCommit, git.RefNameFromBranch(repo.DefaultBranch), folder, entry)
+		workflows[i] = getActionWorkflowEntry(ctx, repo, gitrepo, defaultBranchCommit, git.RefNameFromBranch(repo.DefaultBranch), folder, entry)
 	}
 
 	return workflows, nil
 }
 
-func GetActionWorkflow(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
-	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
+func GetActionWorkflow(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
+	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
 
-	return getActionWorkflowFromCommit(ctx, repo, defaultBranchCommit, git.RefNameFromBranch(repo.DefaultBranch), workflowID)
+	return getActionWorkflowFromCommit(ctx, repo, gitRepo, defaultBranchCommit, git.RefNameFromBranch(repo.DefaultBranch), workflowID)
 }
 
 func GetActionWorkflowByRef(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID string, ref git.RefName) (*api.ActionWorkflow, error) {
@@ -625,18 +625,18 @@ func GetActionWorkflowByRef(ctx context.Context, gitrepo *git.Repository, repo *
 		return nil, err
 	}
 
-	return getActionWorkflowFromCommit(ctx, repo, refCommit, ref, workflowID)
+	return getActionWorkflowFromCommit(ctx, repo, gitrepo, refCommit, ref, workflowID)
 }
 
-func getActionWorkflowFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, refName git.RefName, workflowID string) (*api.ActionWorkflow, error) {
-	folder, entries, err := actions.ListWorkflows(commit)
+func getActionWorkflowFromCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, refName git.RefName, workflowID string) (*api.ActionWorkflow, error) {
+	folder, entries, err := actions.ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, entry := range entries {
 		if entry.Name() == workflowID {
-			return getActionWorkflowEntry(ctx, repo, commit, refName, folder, entry), nil
+			return getActionWorkflowEntry(ctx, repo, gitRepo, commit, refName, folder, entry), nil
 		}
 	}
 
@@ -650,7 +650,7 @@ func GetScopedActionWorkflow(ctx context.Context, sourceGitRepo *git.Repository,
 		return nil, err
 	}
 
-	folder, entries, err := actions.ListScopedWorkflows(commit)
+	folder, entries, err := actions.ListScopedWorkflows(ctx, sourceGitRepo, commit)
 	if err != nil {
 		return nil, err
 	}
@@ -658,7 +658,7 @@ func GetScopedActionWorkflow(ctx context.Context, sourceGitRepo *git.Repository,
 	for _, entry := range entries {
 		if entry.Name() == workflowID {
 			// An empty ref pins HTMLURL to commit (the run's WorkflowCommitSHA) rather than the moving default branch.
-			wf := getActionWorkflowEntry(ctx, sourceRepo, commit, git.RefName(""), folder, entry)
+			wf := getActionWorkflowEntry(ctx, sourceRepo, sourceGitRepo, commit, "", folder, entry)
 			// TODO: a scoped workflow has no repo-level representation on the source: the workflow API scans WORKFLOW_DIRS (not SCOPED_WORKFLOW_DIRS),
 			// and the badge only reflects the source's repo-level runs, so neither link resolves a scoped workflow.
 			// Blank them for now and populate once a scoped-aware workflow/badge endpoint exists.
@@ -864,7 +864,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Description:               org.Description,
 		Website:                   org.Website,
 		Location:                  org.Location,
-		Visibility:                api.UserVisibility(org.Visibility.String()),
+		Visibility:                api.VisibilityString(org.Visibility.String()),
 		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
 	}
 }

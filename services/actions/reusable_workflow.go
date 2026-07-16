@@ -89,7 +89,7 @@ func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refO
 	if err != nil {
 		return nil, "", fmt.Errorf("get commit %q in %s: %w", refOrSHA, repo.FullName(), err)
 	}
-	str, err := commit.GetFileContent(path, 1024*1024)
+	str, err := commit.GetFileContent(ctx, gitRepo, path, 1024*1024)
 	if err != nil {
 		return nil, "", fmt.Errorf("read %s@%s:%s: %w", repo.FullName(), refOrSHA, path, err)
 	}
