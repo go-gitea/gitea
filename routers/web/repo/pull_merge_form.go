@@ -10,6 +10,8 @@ import (
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -64,18 +66,15 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 	defaultMergeTitle, defaultMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		ctx.ServerError("GetDefaultMergeMessage", err)
-		return
+		log.Error("GetDefaultMergeMessage for style %s failed, error: %v", mergeStyle, err)
 	}
 	defaultSquashMergeTitle, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
-		ctx.ServerError("GetDefaultSquashMergeMessage", err)
-		return
+		log.Error("GetDefaultMergeMessage for squash failed, error: %v", err)
 	}
-
-	var defaultSquashMergeCommitMessages string
-	if !prInfo.IsPullRequestBroken {
-		defaultSquashMergeCommitMessages = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+	defaultSquashMergeCommitMessages, err := pull_service.GetSquashMergeCommitMessages(ctx, pull)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		log.Error("GetSquashMergeCommitMessages failed, error: %v", err)
 	}
 
 	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
@@ -106,7 +105,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 	// if this pr can be merged now, then hide the auto merge
 	generalHideAutoMerge := prInfo.MergeBoxData.canMergeNow && allOverridableChecksOk
-
 	var mergeStyles []any
 	if pull.IsStatusMergeable() {
 		mergeStyles = []any{
@@ -138,7 +136,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"allowed":               prConfig.AllowSquash,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.squash_merge_pull_request"),
 				"mergeTitleFieldText":   defaultSquashMergeTitle,
-				"mergeMessageFieldText": defaultSquashMergeCommitMessages + defaultSquashMergeBody,
+				"mergeMessageFieldText": git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody),
 				"hideAutoMerge":         generalHideAutoMerge,
 			},
 			map[string]any{

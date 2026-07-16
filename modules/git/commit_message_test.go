@@ -127,3 +127,27 @@ func TestCommitMessageParticipants(t *testing.T) {
 		}
 	})
 }
+
+func TestCommitMessageMerge(t *testing.T) {
+	cases := []struct {
+		m1, m2 string
+		out    string
+	}{
+		{"", "", ""},
+		{"msg1", "", "msg1"},
+		{"", "msg2", "msg2"},
+		{"msg1", "msg2", "msg1\n\nmsg2"},
+		{"k1: a", "", "k1: a"},
+		{"", "k2: b", "k2: b"},
+		{"k1: a", "k2: b", "k1: a\nk2: b"},
+		{"msg1\n\nk1: a", "msg2", "msg1\n\nmsg2\n\nk1: a"},
+		{"msg1\n----\nk1: a", "msg2", "msg1\n\nmsg2\n----\nk1: a"},
+		{"msg1", "msg2\n\nk2: b", "msg1\n\nmsg2\n\nk2: b"},
+		{"msg1\n\nk1: a", "msg2\n\nk2: b", "msg1\n\nmsg2\n\nk1: a\nk2: b"},
+	}
+
+	for i, c := range cases {
+		out := CommitMessageMerge(c.m1, c.m2)
+		assert.Equal(t, c.out, out, "idx=%d, m1=%q m2=%q", i, c.m1, c.m2)
+	}
+}

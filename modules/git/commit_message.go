@@ -93,6 +93,41 @@ func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 	return v[re.SubexpIndex("content")], v[re.SubexpIndex("sep")], v[re.SubexpIndex("trailer")]
 }
 
+// CommitMessageMerge merges two commit messages with their trailers
+func CommitMessageMerge(m1, m2 string) string {
+	c1, s1, t1 := CommitMessageSplitTrailer(m1)
+	c2, _, t2 := CommitMessageSplitTrailer(m2)
+	c1, s1, t1 = strings.TrimSpace(c1), strings.TrimSpace(s1), strings.TrimSpace(t1)
+	c2, t2 = strings.TrimSpace(c2), strings.TrimSpace(t2)
+	out := strings.Builder{}
+	if c1 != "" && c2 != "" {
+		out.WriteString(c1)
+		out.WriteString("\n\n")
+		out.WriteString(c2)
+	} else if c1 != "" {
+		out.WriteString(c1)
+	} else if c2 != "" {
+		out.WriteString(c2)
+	}
+	if t1 != "" || t2 != "" {
+		if c1 != "" || c2 != "" {
+			out.WriteString("\n")
+			out.WriteString(s1)
+			out.WriteString("\n")
+		}
+		if t1 != "" {
+			out.WriteString(t1)
+		}
+		if t1 != "" && t2 != "" {
+			out.WriteString("\n")
+		}
+		if t2 != "" {
+			out.WriteString(t2)
+		}
+	}
+	return out.String()
+}
+
 func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
 	ret := CommitMessageTrailerValues{}
 	for line := range strings.SplitSeq(util.NormalizeStringEOL(s), "\n") {
