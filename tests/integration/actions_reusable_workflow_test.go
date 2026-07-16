@@ -19,6 +19,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/queue"
 	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -762,6 +763,73 @@ jobs:
 
 			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
+		})
+
+		t.Run("No-needs caller if evaluated inline: false skips, true expands", func(t *testing.T) {
+			// A no-needs reusable-workflow caller is processed inline during InsertRun, where its own
+			// `if:` is now evaluated before expansion:
+			//   - a false `if:` skips the caller without inserting any children, and the skip is
+			//     propagated to a dependent job (via the post-commit emitter kick);
+			//   - a true `if:` still expands the caller into its child jobs.
+			apiRepo := createActionsTestRepo(t, user2Token, "caller-inline-if-test", false)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/lib.yaml",
+				`name: Lib
+on:
+  workflow_call:
+
+jobs:
+  inner:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo inner
+`)
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
+				`name: Caller
+on:
+  push:
+    paths:
+      - '.gitea/workflows/caller.yaml'
+jobs:
+  will_skip:
+    if: ${{ false }}
+    uses: ./.gitea/workflows/lib.yaml
+
+  will_run:
+    if: ${{ true }}
+    uses: ./.gitea/workflows/lib.yaml
+
+  after_skip:
+    needs: [will_skip]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo after_skip
+`)
+
+			// drain the emitter queue so the skip has propagated to the dependent job
+			assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+
+			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID})
+			runID := run.ID
+
+			// will_skip: a caller with a false `if:` is skipped inline and never expands (no children inserted).
+			willSkip := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "will_skip"})
+			assert.True(t, willSkip.IsReusableCaller)
+			assert.False(t, willSkip.IsExpanded)
+			assert.Equal(t, actions_model.StatusSkipped, willSkip.Status)
+			unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: runID, ParentJobID: willSkip.ID})
+
+			// will_run: a caller with a true `if:` still expands into its child job.
+			willRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "will_run"})
+			assert.True(t, willRun.IsReusableCaller)
+			assert.True(t, willRun.IsExpanded)
+			innerChild := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner"})
+			assert.Equal(t, willRun.ID, innerChild.ParentJobID)
+
+			// after_skip: a dependent of the skipped caller resolves to Skipped instead of staying Blocked.
+			afterSkip := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "after_skip"})
+			assert.Equal(t, actions_model.StatusSkipped, afterSkip.Status)
 		})
 	})
 }

@@ -492,12 +492,14 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 	}
 	// Each per-matrix job carries its single matrix combination in RawMatrix so resolve it and pass it in;
 	// otherwise `matrix.*` references in `if:` evaluate to null.
+	// GetMatrixes always returns at least one element (an empty map for a job without a matrix),
+	// so only a non-empty combination should populate `matrix.*`, leaving it nil otherwise.
 	var matrix map[string]any
 	matrixes, err := actJob.GetMatrixes()
 	if err != nil {
 		return false, err
 	}
-	if len(matrixes) > 0 {
+	if len(matrixes) > 0 && len(matrixes[0]) > 0 {
 		matrix = matrixes[0]
 	}
 	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
