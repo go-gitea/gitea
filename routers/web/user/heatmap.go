@@ -51,12 +51,19 @@ func DashboardHeatmap(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
+
+	year := ctx.FormInt("year")
+	showPrivate := true
+	if ctx.FormString("show-private") != "" {
+		showPrivate = ctx.FormBool("show-private")
+	}
+
 	var data []*activities_model.UserHeatmapData
 	var err error
 	if ctx.Org.Organization == nil {
-		data, err = activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
+		data, err = activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer, year, showPrivate)
 	} else {
-		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, ctx.Doer)
+		data, err = activities_model.GetUserHeatmapDataByOrgTeam(ctx, ctx.Org.Organization, ctx.Org.Team, ctx.Doer, year, showPrivate)
 	}
 	if err != nil {
 		ctx.ServerError("GetUserHeatmapData", err)

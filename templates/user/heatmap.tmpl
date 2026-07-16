@@ -7,6 +7,10 @@
 		data-locale-no-contributions="{{ctx.Locale.Tr "heatmap.no_contributions"}}"
 		data-locale-more="{{ctx.Locale.Tr "heatmap.more"}}"
 		data-locale-less="{{ctx.Locale.Tr "heatmap.less"}}"
+		data-locale-last-12-months="{{ctx.Locale.Tr "heatmap.last_12_months"}}"
+		data-locale-show-private="{{ctx.Locale.Tr "heatmap.show_private"}}"
+		data-user-created-year="{{if .ContextUser}}{{.ContextUser.CreatedUnix.Year}}{{end}}"
+		data-show-private-toggle="{{if and .SignedUser (not .ContextUser.IsOrganization) (or .SignedUser.IsAdmin (eq .SignedUser.ID .ContextUser.ID))}}true{{else}}false{{end}}"
 	></div>
 </div>
 <div class="divider"></div>

@@ -168,8 +168,12 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		}
 
 		date := ctx.FormString("date")
+		year := ctx.FormInt("year")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+		if ctx.FormString("show-private") != "" {
+			showPrivate = showPrivate && ctx.FormBool("show-private")
+		}
 		// a public-only API token must not surface private activity, even for its own owner
 		if showPrivate && context.TokenIsPublicOnly(ctx) {
 			showPrivate = false
@@ -181,6 +185,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            date,
+			Year:            year,
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
 				Page:     page,

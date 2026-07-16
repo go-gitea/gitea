@@ -198,6 +198,8 @@
   "heatmap.no_contributions": "No contributions",
   "heatmap.less": "Less",
   "heatmap.more": "More",
+  "heatmap.last_12_months": "Last 12 months",
+  "heatmap.show_private": "Show private contributions",
   "editor.buttons.heading.tooltip": "Add heading",
   "editor.buttons.bold.tooltip": "Add bold text",
   "editor.buttons.italic.tooltip": "Add italic text",
