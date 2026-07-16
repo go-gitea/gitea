@@ -68,7 +68,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 
 	var data string
 	for _, file := range codeOwnerFiles {
-		if blob, err := commit.GetBlobByPath(file); err == nil {
+		if blob, err := commit.GetBlobByPath(ctx, repo, file); err == nil {
 			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err == nil {
 				break

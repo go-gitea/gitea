@@ -1251,6 +1251,13 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
+	// a public-only token must not update (push into) a private head repo,
+	// even when the base repo named in the route is public
+	if !ctx.TokenCanAccessRepo(pr.HeadRepo) {
+		ctx.APIErrorNotFound()
+		return
+	}
+
 	// keep API back-compat: when no style is given, default to "merge" rather than the repo's DefaultUpdateStyle,
 	// so existing API clients keep getting a merge update.
 	rebase := repo_model.UpdateStyle(ctx.FormString("style", string(repo_model.UpdateStyleMerge))) == repo_model.UpdateStyleRebase
