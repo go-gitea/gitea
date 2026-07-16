@@ -78,10 +78,11 @@ func (c *CommitMessage) MessageTrailer() CommitMessageTrailerValues {
 
 var commitMessageTrailerSplit = sync.OnceValue(func() *regexp.Regexp {
 	// ref: https://git-scm.com/docs/git-interpret-trailers
-	// TODO: the regexp is not able to perfectly parse the all kinds of trailers, for example: it doesn't support "split over multiple lines"
-	// It was just copied from legacy code, it is not exactly the same as how Git parses the trailer or not quite right in some cases.
-	// Here, just assume that the sep is either something like "\n---\n" or "\n\n" in the body, or at the start of the body like "---\n"
-	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-A-Za-z0-9]*:[^\n]*\n?)*\n*)$`)
+	// TODO: the regexp is not able to perfectly parse the all kinds of trailers
+	// It was just copied from legacy code, it is not exactly the same as how Git parses the trailer and not quite right in some cases.
+	// For the key characters: it follows RFC 822 field name syntax (or RFC 2822/RFC 5322): printable ASCII characters between 33 and 126 except the colon (:),
+	// but maybe we don't want to make it that complicated, so here we only support some common "symbol-like" characters.
+	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-\w]*:[^\n]*(\n\s+[^\n]*)*\n?)*\n*)$`)
 })
 
 // CommitMessageSplitTrailer tries to split the message by the trailer separator

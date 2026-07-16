@@ -26,9 +26,11 @@ func TestCommitMessageTrailer(t *testing.T) {
 		{"a", "a", "", ""},
 		{"a\n\nk", "a\n\nk", "", ""},
 		{"a\n\nk:v", "a", "\n\n", "k:v"},
+		{"a\n\nk:v\n  next-line", "a", "\n\n", "k:v\n  next-line"},
+		{"a\n\nk:v\n  next-line\nother: v", "a", "\n\n", "k:v\n  next-line\nother: v"},
 		{"a\n\nk:v\n\n", "a", "\n\n", "k:v\n\n"},
 		{"a\n--\nk:v", "a\n--\nk:v", "", ""},
-		{"a\n---\nk:v", "a", "\n---\n", "k:v"},
+		{"a\n---\nk:v", "a", "\n---\n", "k:v"}, // TODO: should we support such case? No empty line between "---" and the trailer
 		{"a\n\n---\n\nk:v", "a", "\n\n---\n\n", "k:v"},
 
 		{"k: v", "", "", "k: v"},
