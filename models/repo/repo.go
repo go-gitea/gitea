@@ -702,6 +702,7 @@ func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
 	return &CloneLink{
+		IsWikiRepo:   strings.HasSuffix(repoPathName, ".wiki"),
 		SupportHTTPS: !setting.Repository.DisableHTTPGit,
 		SupportSSH:   !setting.SSH.Disabled && (doer != nil || setting.SSH.ExposeAnonymous),
 		SSH:          ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
@@ -712,8 +713,7 @@ func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, re
 
 // CloneLink returns clone URLs of repository.
 func (repo *Repository) CloneLink(ctx context.Context, doer *user_model.User) (cl *CloneLink) {
-	cl = repo.cloneLink(ctx, doer, repo.Name)
-	return cl
+	return repo.cloneLink(ctx, doer, repo.Name)
 }
 
 func (repo *Repository) CloneLinkGeneral(ctx context.Context) (cl *CloneLink) {
