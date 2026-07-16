@@ -157,16 +157,18 @@ test('reusable callers with identical dependency signature are kept as separate 
   expect(graph.nodes.find((n) => n.id === 'job:3')?.name).toBe('cross-repo caller');
 });
 
-test('reusable caller with matrix-pattern name does not get absorbed into a sibling matrix node', () => {
+test('matrix legs that call a reusable workflow are folded into a single matrix node', () => {
   const jobs: ActionsJob[] = [
-    {id: 1, link: '', jobId: 'deploy_dev', name: 'deploy (dev)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '1s'},
-    {id: 2, link: '', jobId: 'deploy_qa', name: 'deploy (qa)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '1s'},
-    {id: 3, link: '', jobId: 'deploy_staging', name: 'deploy (staging)', status: 'running', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '2s', callUses: './.gitea/workflows/deploy.yml'},
+    {id: 1, link: '', jobId: 'prepare', name: 'prepare', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '30s'},
+    {id: 2, link: '', jobId: 'build_call_linux', name: 'build-call (linux)', status: 'success', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '1m', needs: ['prepare'], callUses: './.gitea/workflows/build.yml'},
+    {id: 3, link: '', jobId: 'build_call_windows', name: 'build-call (windows)', status: 'success', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '2m', needs: ['prepare'], callUses: './.gitea/workflows/build.yml'},
+    {id: 4, link: '', jobId: 'build_call_macos', name: 'build-call (macos)', status: 'success', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '90s', needs: ['prepare'], callUses: './.gitea/workflows/build.yml'},
   ];
   const graph = createWorkflowGraphModel(jobs);
-  expect(graph.nodes.find((n) => n.id === 'job:3')?.name).toBe('deploy (staging)');
-  const matrixNode = graph.nodes.find((n) => n.type === 'matrix');
-  expect(matrixNode?.jobs.map((j) => j.id).sort()).toEqual([1, 2]);
+  const matrixNodes = graph.nodes.filter((n) => n.type === 'matrix');
+  expect(matrixNodes).toHaveLength(1);
+  expect(matrixNodes[0].matrixKey).toBe('build-call');
+  expect(matrixNodes[0].jobs.map((j) => j.id).sort()).toEqual([2, 3, 4]);
 });
 
 test('directed highlight state covers ancestors and descendants of the hovered node', () => {
