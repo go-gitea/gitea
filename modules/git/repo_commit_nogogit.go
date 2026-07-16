@@ -88,7 +88,7 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 		}
 		return repo.getCommitWithBatch(batch, tag.Object)
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, info.Size))
+		commit, err := CommitFromReader(id, io.LimitReader(rd, info.Size))
 		if err != nil {
 			return nil, err
 		}

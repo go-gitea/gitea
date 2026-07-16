@@ -5,6 +5,7 @@
 package git
 
 import (
+	"context"
 	"path"
 	"slices"
 	"strings"
@@ -78,18 +79,18 @@ type EntryFollowResult struct {
 	TargetEntry    *TreeEntry
 }
 
-func EntryFollowLink(commit *Commit, fullPath string, te *TreeEntry) (*EntryFollowResult, error) {
+func EntryFollowLink(ctx context.Context, gitRepo *Repository, commit *Commit, fullPath string, te *TreeEntry) (*EntryFollowResult, error) {
 	if !te.IsLink() {
 		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "%q is not a symlink", fullPath)
 	}
 
 	// git's filename max length is 4096, hopefully a link won't be longer than multiple of that
 	const maxSymlinkSize = 20 * 4096
-	if te.Blob().Size() > maxSymlinkSize {
+	if te.Blob(gitRepo).Size() > maxSymlinkSize {
 		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "%q content exceeds symlink limit", fullPath)
 	}
 
-	link, err := te.Blob().GetBlobContent(maxSymlinkSize)
+	link, err := te.Blob(gitRepo).GetBlobContent(maxSymlinkSize)
 	if err != nil {
 		return nil, err
 	}
@@ -99,18 +100,18 @@ func EntryFollowLink(commit *Commit, fullPath string, te *TreeEntry) (*EntryFoll
 	}
 
 	targetFullPath := path.Join(path.Dir(fullPath), link)
-	targetEntry, err := commit.GetTreeEntryByPath(targetFullPath)
+	targetEntry, err := commit.GetTreeEntryByPath(ctx, gitRepo, targetFullPath)
 	if err != nil {
 		return &EntryFollowResult{SymlinkContent: link}, err
 	}
 	return &EntryFollowResult{SymlinkContent: link, TargetFullPath: targetFullPath, TargetEntry: targetEntry}, nil
 }
 
-func EntryFollowLinks(commit *Commit, firstFullPath string, firstTreeEntry *TreeEntry, optLimit ...int) (res *EntryFollowResult, err error) {
+func EntryFollowLinks(ctx context.Context, gitRepo *Repository, commit *Commit, firstFullPath string, firstTreeEntry *TreeEntry, optLimit ...int) (res *EntryFollowResult, err error) {
 	limit := util.OptionalArg(optLimit, 10)
 	treeEntry, fullPath := firstTreeEntry, firstFullPath
 	for range limit {
-		res, err = EntryFollowLink(commit, fullPath, treeEntry)
+		res, err = EntryFollowLink(ctx, gitRepo, commit, fullPath, treeEntry)
 		if err != nil {
 			return res, err
 		}
@@ -125,28 +126,26 @@ func EntryFollowLinks(commit *Commit, firstFullPath string, firstTreeEntry *Tree
 	return res, nil
 }
 
-// returns the Tree pointed to by this TreeEntry, or nil if this is not a tree
-func (te *TreeEntry) Tree() *Tree {
-	t, err := te.ptree.repo.getTree(te.ID)
+func (te *TreeEntry) Tree(gitRepo *Repository) *Tree {
+	t, err := gitRepo.getTree(te.ID)
 	if err != nil {
 		return nil
 	}
-	t.ptree = te.ptree
 	return t
 }
 
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )
-func (te *TreeEntry) GetSubJumpablePathName() string {
+func (te *TreeEntry) GetSubJumpablePathName(ctx context.Context, gitRepo *Repository) string {
 	if te.IsSubModule() || !te.IsDir() {
 		return ""
 	}
-	tree, err := te.ptree.SubTree(te.Name())
+	tree, err := te.ptree.SubTree(ctx, gitRepo, te.Name())
 	if err != nil {
 		return te.Name()
 	}
-	entries, _ := tree.ListEntries()
+	entries, _ := tree.ListEntries(ctx, gitRepo)
 	if len(entries) == 1 && entries[0].IsDir() {
-		name := entries[0].GetSubJumpablePathName()
+		name := entries[0].GetSubJumpablePathName(ctx, gitRepo)
 		if name != "" {
 			return te.Name() + "/" + name
 		}

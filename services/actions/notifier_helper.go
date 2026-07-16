@@ -185,7 +185,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	var detectedWorkflows []*actions_module.DetectedWorkflow
 	var filteredWorkflows []*actions_module.DetectedWorkflow
 	actionsConfig := input.Repo.MustGetUnit(ctx, unit_model.TypeActions).ActionsConfig()
-	workflows, schedules, filtered, err := actions_module.DetectWorkflows(gitRepo, commit,
+	workflows, schedules, filtered, err := actions_module.DetectWorkflows(ctx, gitRepo, commit,
 		input.Event,
 		input.Payload,
 		shouldDetectSchedules,
@@ -231,7 +231,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
-		baseWorkflows, _, baseFiltered, err := actions_module.DetectWorkflows(gitRepo, baseCommit, input.Event, input.Payload, false)
+		baseWorkflows, _, baseFiltered, err := actions_module.DetectWorkflows(ctx, gitRepo, baseCommit, input.Event, input.Payload, false)
 		if err != nil {
 			return fmt.Errorf("DetectWorkflows: %w", err)
 		}
@@ -602,7 +602,7 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
-	scheduleWorkflows, err := actions_module.DetectScheduledWorkflows(gitRepo, commit)
+	scheduleWorkflows, err := actions_module.DetectScheduledWorkflows(ctx, gitRepo, commit)
 	if err != nil {
 		return fmt.Errorf("detect schedule workflows: %w", err)
 	}
@@ -743,6 +743,7 @@ func detectScopedWorkflowsForSource(
 	sourceRepo *repo_model.Repository,
 ) (sourceCommitSHA string, detected, filtered []*actions_module.DetectedWorkflow, err error) {
 	// scoped workflow content is always taken from the source repo's default branch; the parse is cached per (source, default-branch SHA) and reused across consuming repos/events
+
 	sourceCommitSHA, parsed, err := LoadParsedScopedWorkflows(ctx, sourceRepo)
 	if err != nil {
 		return "", nil, nil, err

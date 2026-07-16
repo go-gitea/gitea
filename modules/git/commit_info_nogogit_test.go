@@ -24,7 +24,7 @@ func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
 
 	commit, err := repo.GetCommit("feaf4ba6bc635fec442f46ddd4512416ec43c2c2")
 	require.NoError(t, err)
-	entries, err := commit.Tree.ListEntries()
+	entries, err := commit.Tree().ListEntries(t.Context(), repo)
 	require.NoError(t, err)
 
 	countCommitInfosCommit := func(infos []CommitInfo) (nilCommits, nonNilCommits int) {
@@ -39,14 +39,14 @@ func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
 	defer test.MockVariableValue(&walkGitLogDebugBeforeNext)()
 
 	walkGitLogDebugBeforeNext = cancel
-	commitInfos, _, err := entries.GetCommitsInfo(ctx, "/any/repo-link", commit, "")
+	commitInfos, _, err := entries.GetCommitsInfo(ctx, "/any/repo-link", repo, commit, "")
 	assert.NoError(t, err)
 	nilCommits, nonNilCommits := countCommitInfosCommit(commitInfos)
 	assert.Equal(t, 0, nonNilCommits) // no commit info due to canceled (or deadline-exceeded) context
 	assert.Equal(t, 3, nilCommits)
 
 	walkGitLogDebugBeforeNext = nil
-	commitInfos, _, err = entries.GetCommitsInfo(t.Context(), "/any/repo-link", commit, "")
+	commitInfos, _, err = entries.GetCommitsInfo(t.Context(), "/any/repo-link", repo, commit, "")
 	assert.NoError(t, err)
 	nilCommits, nonNilCommits = countCommitInfosCommit(commitInfos)
 	assert.Equal(t, 3, nonNilCommits)

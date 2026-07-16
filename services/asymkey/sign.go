@@ -340,7 +340,7 @@ Loop:
 				return false, nil, nil, &ErrWontSign{headSigned}
 			}
 		case commitsSigned:
-			verified, err := allCommitsVerified(ctx, baseCommit, headCommit)
+			verified, err := allCommitsVerified(ctx, gitRepo, baseCommit, headCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -363,13 +363,13 @@ func AllHeadCommitsVerified(ctx context.Context, pr *issues_model.PullRequest, g
 	if err != nil {
 		return false, err
 	}
-	return allCommitsVerified(ctx, baseCommit, headCommit)
+	return allCommitsVerified(ctx, gitRepo, baseCommit, headCommit)
 }
 
 // allCommitsVerified checks the commits a merge would introduce, those reachable from
-// headCommit but not from baseCommit. Both commits must come from the same repository.
-func allCommitsVerified(ctx context.Context, baseCommit, headCommit *git.Commit) (bool, error) {
-	commitList, err := headCommit.CommitsBeforeUntil(baseCommit.ID.RefName())
+// headCommit but not from baseCommit. Both commits must come from gitRepo.
+func allCommitsVerified(ctx context.Context, gitRepo *git.Repository, baseCommit, headCommit *git.Commit) (bool, error) {
+	commitList, err := headCommit.CommitsBeforeUntil(gitRepo, baseCommit.ID.RefName())
 	if err != nil {
 		return false, err
 	}
