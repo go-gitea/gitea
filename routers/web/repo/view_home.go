@@ -95,7 +95,9 @@ func prepareClonePanel(ctx *context.Context) {
 	ctx.Data["OpenWithEditorApps"] = tmplApps
 
 	if !setting.Repository.DisableDownloadSourceArchives {
-		ctx.Data["DownloadArchiveLinkPrefix"] = ctx.Repo.RepoLink + "/archive/" + util.PathEscapeSegments(ctx.Repo.RefFullName.String())
+		// FIXME: here it only uses the shortname in the ref to build the link, it can't distinguish the branch/tag/commit with the same name
+		// in the future, it's better to use something like "/archive/branch/the-name.zip", "/archive/tag/the-name.zip" */}}
+		ctx.Data["DownloadArchiveLinkPrefix"] = ctx.Repo.RepoLink + "/archive/" + util.PathEscapeSegments(ctx.Repo.RefFullName.ShortName())
 	}
 }
 

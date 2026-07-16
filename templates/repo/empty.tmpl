@@ -21,7 +21,7 @@
 					<div class="ui segment center">{{ctx.Locale.Tr "repo.no_branch"}}</div>
 				{{else if .CanWriteCode}}
 					<h4 class="ui top attached header">{{ctx.Locale.Tr "repo.quick_guide"}}</h4>
-					<div class="ui attached guide table segment empty-repo-guide">
+					<div class="ui attached segment empty-repo-guide flex-relaxed-list">
 						<div class="item">
 							<h3>{{ctx.Locale.Tr "repo.clone_this_repo"}} <small>{{ctx.Locale.Tr "repo.clone_helper" "http://git-scm.com/book/en/v2/Git-Basics-Getting-a-Git-Repository"}}</small></h3>
 
@@ -40,14 +40,16 @@
 							</div>
 						</div>
 
-						{{if not .Repository.IsArchived}}
-							<div class="divider tw-my-0"></div>
+						{{$cloneLink := $.CloneButtonOriginLink}}
+						{{$showGitClientCommands := and (or $cloneLink.SupportHTTPS $cloneLink.SupportSSH) (not .Repository.IsArchived)}}
+						{{/* TODO: when both HTTPS and SSH are disabled, the UI is not that good */}}
+						{{if $showGitClientCommands}}
+							<div class="divider"></div>
 
 							<div class="item">
 								<h3>{{ctx.Locale.Tr "repo.create_new_repo_command"}}</h3>
 								<div class="markup">
 									{{$gitRemoteName := $.SystemConfig.Repository.GitGuideRemoteName.Value ctx}}
-									{{$cloneLink := $.CloneButtonOriginLink}}
 									<pre><code>touch README.md
 git init{{if ne .Repository.ObjectFormatName "sha1"}} --object-format={{.Repository.ObjectFormatName}}{{end}}{{/* for sha256 repo, it needs to set "object-format" explicitly*/}}
 {{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
@@ -57,8 +59,6 @@ git remote add {{$gitRemoteName}} <span class="js-clone-url">{{Iif $cloneLink.Su
 git push -u {{$gitRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
-							<div class="divider"></div>
-
 							<div class="item">
 								<h3>{{ctx.Locale.Tr "repo.push_exist_repo"}}</h3>
 								<div class="markup">
@@ -66,6 +66,8 @@ git push -u {{$gitRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
 git push -u {{$gitRemoteName}} {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
+						{{else}}
+							<div class="item">HTTPS and SSH clones are disabled, you can only modify the repository via Gitea's web UI.</div>
 						{{end}}
 					</div>
 				{{else}}

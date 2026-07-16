@@ -2,7 +2,7 @@
 {{$downloadArchiveLinkPrefix := $.DownloadArchiveLinkPrefix}}
 {{$openWithEditorApps := $.OpenWithEditorApps}}
 {{$showCloneLinks := or $cloneLink.SupportHTTPS $cloneLink.SupportSSH}}
-{{$showOpenWithEditorApps := and $showCloneLinks $openWithEditorApps}}
+{{$showOpenWithEditorApps := and $showCloneLinks $openWithEditorApps}}{{/* the editor apps need the clone link */}}
 {{if or $showCloneLinks $showOpenWithEditorApps $downloadArchiveLinkPrefix}}
 <button class="ui compact primary button" data-global-init="initRepoClonePanel">
 	{{svg "octicon-code" 16}}
@@ -37,7 +37,6 @@
 	{{end}}
 
 	{{if $showOpenWithEditorApps}}
-		<!-- editors clone via a git URL, so only offer them when HTTPS/SSH is available (not for the Tea CLI command) -->
 		<div class="flex-items-block clone-panel-list repo-clone-with-apps">
 			{{range $app := $openWithEditorApps}}
 			<a class="item muted js-clone-url-editor" data-href-template="{{$app.OpenURL}}">{{$app.IconHTML}}{{ctx.Locale.Tr "repo.open_with_editor" $app.DisplayName}}</a>
@@ -48,8 +47,6 @@
 	{{if $downloadArchiveLinkPrefix}}
 		{{if $showOpenWithEditorApps}}<div class="divider"></div>{{end}}
 		<div class="flex-items-block clone-panel-list">
-			{{/* FIXME: here it only uses the shortname in the ref to build the link, it can't distinguish the branch/tag/commit with the same name
-				in the future, it's better to use something like "/archive/branch/the-name.zip", "/archive/tag/the-name.zip" */}}
 			<a class="item muted archive-link" href="{{$downloadArchiveLinkPrefix}}.zip" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_zip"}}</a>
 			<a class="item muted archive-link" href="{{$downloadArchiveLinkPrefix}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_tar"}}</a>
 			<a class="item muted archive-link" href="{{$downloadArchiveLinkPrefix}}.bundle" rel="nofollow">{{svg "octicon-package"}} {{ctx.Locale.Tr "repo.download_bundle"}}</a>
