@@ -6,6 +6,7 @@
 package git
 
 import (
+	"context"
 	"errors"
 	"io"
 	"strings"
@@ -15,11 +16,11 @@ import (
 )
 
 // ResolveReference resolves a name to a reference
-func (repo *Repository) ResolveReference(name string) (string, error) {
+func (repo *Repository) ResolveReference(ctx context.Context, name string) (string, error) {
 	stdout, _, err := gitcmd.NewCommand("show-ref", "--hash").
 		AddDynamicArguments(name).
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
@@ -35,8 +36,8 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 }
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
-func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+func (repo *Repository) GetRefCommitID(ctx context.Context, name string) (string, error) {
+	batch, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -50,8 +51,8 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	return info.ID, nil
 }
 
-func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+func (repo *Repository) getCommit(ctx context.Context, id ObjectID) (*Commit, error) {
+	batch, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +111,8 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 }
 
 // ConvertToGitID returns a git object ID from the git ref, it doesn't guarantee the returned ID really exists
-func (repo *Repository) ConvertToGitID(ref string) (ObjectID, error) {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) ConvertToGitID(ctx context.Context, ref string) (ObjectID, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +123,7 @@ func (repo *Repository) ConvertToGitID(ref string) (ObjectID, error) {
 		}
 	}
 
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}

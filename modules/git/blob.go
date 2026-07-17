@@ -6,6 +6,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"io"
@@ -23,11 +24,11 @@ func (b *Blob) Name() string {
 }
 
 // GetBlobBytes Gets the limited content of the blob
-func (b *Blob) GetBlobBytes(limit int64) ([]byte, error) {
+func (b *Blob) GetBlobBytes(ctx context.Context, limit int64) ([]byte, error) {
 	if limit <= 0 {
 		return nil, nil
 	}
-	dataRc, err := b.DataAsync()
+	dataRc, err := b.DataAsync(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,15 +37,15 @@ func (b *Blob) GetBlobBytes(limit int64) ([]byte, error) {
 }
 
 // GetBlobContent Gets the limited content of the blob as raw text
-func (b *Blob) GetBlobContent(limit int64) (string, error) {
-	buf, err := b.GetBlobBytes(limit)
+func (b *Blob) GetBlobContent(ctx context.Context, limit int64) (string, error) {
+	buf, err := b.GetBlobBytes(ctx, limit)
 	return string(buf), err
 }
 
 // GetBlobLineCount gets line count of the blob.
 // It will also try to write the content to w if it's not nil, then we could pre-fetch the content without reading it again.
-func (b *Blob) GetBlobLineCount(w io.Writer) (int, error) {
-	reader, err := b.DataAsync()
+func (b *Blob) GetBlobLineCount(ctx context.Context, w io.Writer) (int, error) {
+	reader, err := b.DataAsync(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -70,8 +71,8 @@ func (b *Blob) GetBlobLineCount(w io.Writer) (int, error) {
 }
 
 // GetBlobContentBase64 Reads the content of the blob with a base64 encoding and returns the encoded string
-func (b *Blob) GetBlobContentBase64(originContent *strings.Builder) (string, error) {
-	dataRc, err := b.DataAsync()
+func (b *Blob) GetBlobContentBase64(ctx context.Context, originContent *strings.Builder) (string, error) {
+	dataRc, err := b.DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -103,8 +104,8 @@ loop:
 }
 
 // GuessContentType guesses the content type of the blob.
-func (b *Blob) GuessContentType() (typesniffer.SniffedType, error) {
-	buf, err := b.GetBlobBytes(typesniffer.SniffContentSize)
+func (b *Blob) GuessContentType(ctx context.Context) (typesniffer.SniffedType, error) {
+	buf, err := b.GetBlobBytes(ctx, typesniffer.SniffContentSize)
 	if err != nil {
 		return typesniffer.SniffedType{}, err
 	}

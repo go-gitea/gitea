@@ -148,7 +148,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return nil
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(context.Background(), input.Repo)
+	gitRepo, err := gitrepo.OpenRepository(input.Repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
@@ -167,13 +167,13 @@ func notify(ctx context.Context, input *notifyInput) error {
 		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 
-	commitID, err := gitRepo.GetRefCommitID(ref.String())
+	commitID, err := gitRepo.GetRefCommitID(ctx, ref.String())
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
 
 	// Get the commit object for the ref
-	commit, err := gitRepo.GetCommit(commitID)
+	commit, err := gitRepo.GetCommit(ctx, commitID)
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
@@ -227,7 +227,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 	if input.PullRequest != nil {
 		// detect pull_request_target workflows
 		baseRef := git.BranchPrefix + input.PullRequest.BaseBranch
-		baseCommit, err := gitRepo.GetCommit(baseRef)
+		baseCommit, err := gitRepo.GetCommit(ctx, baseRef)
 		if err != nil {
 			return fmt.Errorf("gitRepo.GetCommit: %w", err)
 		}
@@ -591,14 +591,14 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 		return nil
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(context.Background(), repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
 	// Only detect schedule workflows on the default branch
-	commit, err := gitRepo.GetCommit(repo.DefaultBranch)
+	commit, err := gitRepo.GetCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetCommit: %w", err)
 	}
@@ -748,6 +748,6 @@ func detectScopedWorkflowsForSource(
 	if err != nil {
 		return "", nil, nil, err
 	}
-	detected, filtered = actions_module.MatchScopedWorkflows(parsed, consumerGitRepo, consumerCommit, input.Event, input.Payload)
+	detected, filtered = actions_module.MatchScopedWorkflows(ctx, parsed, consumerGitRepo, consumerCommit, input.Event, input.Payload)
 	return sourceCommitSHA, detected, filtered, nil
 }

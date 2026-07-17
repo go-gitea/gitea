@@ -50,13 +50,13 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", util.ErrPermissionDenied
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, dbRepo)
+	gitRepo, err := gitrepo.OpenRepository(dbRepo)
 	if err != nil {
 		return "", err
 	}
 	defer gitRepo.Close()
 
-	commit, err := gitRepo.GetCommit(opts.CommitID)
+	commit, err := gitRepo.GetCommit(ctx, opts.CommitID)
 	if err != nil {
 		return "", err
 	}
@@ -67,11 +67,11 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", err
 	}
 
-	if blob.Size() > setting.UI.MaxDisplayFileSize {
+	if blob.Size(ctx) > setting.UI.MaxDisplayFileSize {
 		return "", errors.New("file is too large")
 	}
 
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}

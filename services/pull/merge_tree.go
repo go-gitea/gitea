@@ -55,7 +55,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return err
 	}
-	headGitRepo, err := gitrepo.OpenRepository(ctx, pr.HeadRepo)
+	headGitRepo, err := gitrepo.OpenRepository(pr.HeadRepo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -66,7 +66,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	if pr.IsSameRepo() {
 		baseGitRepo = headGitRepo
 	} else {
-		baseGitRepo, err = gitrepo.OpenRepository(ctx, pr.BaseRepo)
+		baseGitRepo, err = gitrepo.OpenRepository(pr.BaseRepo)
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
@@ -75,13 +75,13 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 
 	// 3. Get head commit id
 	if pr.Flow == issues_model.PullRequestFlowGithub {
-		pr.HeadCommitID, err = headGitRepo.GetRefCommitID(git.BranchPrefix + pr.HeadBranch)
+		pr.HeadCommitID, err = headGitRepo.GetRefCommitID(ctx, git.BranchPrefix+pr.HeadBranch)
 		if err != nil {
 			return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
 		}
 	} else {
 		if pr.ID > 0 {
-			pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+			pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 			if err != nil {
 				return fmt.Errorf("GetRefCommitID: can't find commit ID for head: %w", err)
 			}
@@ -93,7 +93,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	// 4. fetch head commit id into the current repository
 	// it will be checked in 2 weeks by default from git if the pull request created failure.
 	if !pr.IsSameRepo() {
-		if !baseGitRepo.IsReferenceExist(pr.HeadCommitID) {
+		if !baseGitRepo.IsReferenceExist(ctx, pr.HeadCommitID) {
 			if err := gitrepo.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
 				return fmt.Errorf("FetchRemoteCommit: %w", err)
 			}
@@ -101,7 +101,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	}
 
 	// 5. update merge base
-	baseCommitID, err := baseGitRepo.GetRefCommitID(git.BranchPrefix + pr.BaseBranch)
+	baseCommitID, err := baseGitRepo.GetRefCommitID(ctx, git.BranchPrefix+pr.BaseBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for base: %w", err)
 	}

@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"io"
 
 	"gitea.dev/modules/log"
@@ -27,7 +28,7 @@ func (b *Blob) gogitEncodedObj() (plumbing.EncodedObject, error) {
 
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
-func (b *Blob) DataAsync() (io.ReadCloser, error) {
+func (b *Blob) DataAsync(_ context.Context) (io.ReadCloser, error) {
 	obj, err := b.gogitEncodedObj()
 	if err != nil {
 		return nil, err
@@ -36,7 +37,7 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 }
 
 // Size returns the uncompressed size of the blob
-func (b *Blob) Size() int64 {
+func (b *Blob) Size(_ context.Context) int64 {
 	obj, err := b.gogitEncodedObj()
 	if err != nil {
 		log.Error("Error getting gogit encoded object for blob %s(%s): %v", b.name, b.ID.String(), err)

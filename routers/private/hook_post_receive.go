@@ -90,7 +90,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		commitIDs = append(commitIDs, update.NewCommitID)
 	}
 
-	if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, branchNames, commitIDs, gitRepo.GetCommit); err != nil {
+	if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames, commitIDs); err != nil {
 		ctx.PrivateError(http.StatusInternalServerError, err, "failed to sync branch to DB")
 		return false
 	}
@@ -296,10 +296,10 @@ func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opt
 	}
 
 	// if default branch doesn't exist, try to guess one from existing git repo
-	_, err = gitRepo.GetBranchCommitID(repo.DefaultBranch)
+	_, err = gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch)
 	if errors.Is(err, util.ErrNotExist) {
 		for _, guessBranchName := range []string{"main", "master"} {
-			if _, err = gitRepo.GetBranchCommitID(guessBranchName); err == nil {
+			if _, err = gitRepo.GetBranchCommitID(ctx, guessBranchName); err == nil {
 				repo.DefaultBranch = guessBranchName
 				err = repo_model.UpdateDefaultBranch(ctx, repo)
 				if err != nil {

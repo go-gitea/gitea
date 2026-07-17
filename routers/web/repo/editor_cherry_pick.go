@@ -23,7 +23,7 @@ func CherryPick(ctx *context.Context) {
 
 	fromCommitID := ctx.PathParam("sha")
 	ctx.Data["FromCommitID"] = fromCommitID
-	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(fromCommitID)
+	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(ctx, fromCommitID)
 	if err != nil {
 		HandleGitError(ctx, "GetCommit", err)
 		return
@@ -66,7 +66,7 @@ func CherryPickPost(ctx *context.Context) {
 		if parsed.form.Revert {
 			err = gitrepo.GetReverseRawDiff(ctx, ctx.Repo.Repository, fromCommitID, buf)
 		} else {
-			err = git.GetRawDiff(ctx.Repo.GitRepo, fromCommitID, git.RawDiffPatch, buf)
+			err = git.GetRawDiff(ctx, ctx.Repo.GitRepo, fromCommitID, git.RawDiffPatch, buf)
 		}
 		if err == nil {
 			opts.Content = buf.String()

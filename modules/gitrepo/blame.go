@@ -186,7 +186,7 @@ func tryCreateBlameIgnoreRevsFile(ctx context.Context, gitRepo *git.Repository, 
 		return "", nil, err
 	}
 
-	r, err := entry.Blob(gitRepo).DataAsync()
+	r, err := entry.Blob(gitRepo).DataAsync(ctx)
 	if err != nil {
 		return "", nil, err
 	}

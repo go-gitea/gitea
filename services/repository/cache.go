@@ -14,7 +14,7 @@ import (
 
 // CacheRef cachhe last commit information of the branch or the tag
 func CacheRef(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, fullRefName git.RefName) error {
-	commit, err := gitRepo.GetCommit(fullRefName.String())
+	commit, err := gitRepo.GetCommit(ctx, fullRefName.String())
 	if err != nil {
 		return err
 	}

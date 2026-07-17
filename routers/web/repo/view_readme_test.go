@@ -41,11 +41,11 @@ data 12
 			err = gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
 			require.NoError(t, err)
 
-			gitRepo, err := git.OpenRepository(t.Context(), repoPath)
+			gitRepo, err := git.OpenRepository(repoPath)
 			require.NoError(t, err)
 			defer gitRepo.Close()
 
-			commit, err := gitRepo.GetBranchCommit("master")
+			commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
 			require.NoError(t, err)
 
 			entries, err := commit.Tree().ListEntries(t.Context(), gitRepo)

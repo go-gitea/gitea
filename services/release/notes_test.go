@@ -23,7 +23,7 @@ func TestGenerateReleaseNotes(t *testing.T) {
 
 	t.Run("ChangeLogsWithPRs", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, err := gitrepo.OpenRepository(repo)
 		require.NoError(t, err)
 		t.Cleanup(func() { gitRepo.Close() })
 
@@ -52,7 +52,7 @@ func TestGenerateReleaseNotes(t *testing.T) {
 
 	t.Run("NoPreviousTag", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, err := gitrepo.OpenRepository(repo)
 		require.NoError(t, err)
 		t.Cleanup(func() { gitRepo.Close() })
 
@@ -83,7 +83,7 @@ func TestGenerateReleaseNotes(t *testing.T) {
 
 	t.Run("EmptyPreviousTagWithExistingTags", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, err := gitrepo.OpenRepository(repo)
 		require.NoError(t, err)
 		t.Cleanup(func() { gitRepo.Close() })
 

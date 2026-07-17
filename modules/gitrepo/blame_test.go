@@ -20,10 +20,10 @@ func TestReadingBlameOutput(t *testing.T) {
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {
 		storage := &mockRepository{path: "repo5_pulls"}
-		repo, err := OpenRepository(ctx, storage)
+		repo, err := OpenRepository(storage)
 		assert.NoError(t, err)
 		defer repo.Close()
-		commit, err := repo.GetCommit("f32b0a9dfd09a60f616f29158f772cedd89942d2")
+		commit, err := repo.GetCommit(t.Context(), "f32b0a9dfd09a60f616f29158f772cedd89942d2")
 		assert.NoError(t, err)
 
 		parts := []*BlamePart{
@@ -65,7 +65,7 @@ func TestReadingBlameOutput(t *testing.T) {
 
 	t.Run("With .git-blame-ignore-revs", func(t *testing.T) {
 		storage := &mockRepository{path: "repo6_blame"}
-		repo, err := OpenRepository(ctx, storage)
+		repo, err := OpenRepository(storage)
 		assert.NoError(t, err)
 		defer repo.Close()
 
@@ -123,10 +123,10 @@ func TestReadingBlameOutput(t *testing.T) {
 			},
 		}
 
-		objectFormat, err := repo.GetObjectFormat()
+		objectFormat, err := repo.GetObjectFormat(t.Context())
 		assert.NoError(t, err)
 		for _, c := range cases {
-			commit, err := repo.GetCommit(c.CommitID)
+			commit, err := repo.GetCommit(t.Context(), c.CommitID)
 			assert.NoError(t, err)
 
 			blameReader, err := CreateBlameReader(ctx, objectFormat, storage, repo, commit, "blame.txt", c.Bypass)

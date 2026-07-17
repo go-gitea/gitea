@@ -251,7 +251,7 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 		return
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(run.CommitSHA)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, run.CommitSHA)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
@@ -1476,14 +1476,14 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 		return
 	}
 
-	sourceGitRepo, err := gitrepo.OpenRepository(ctx, sourceRepo)
+	sourceGitRepo, err := gitrepo.OpenRepository(sourceRepo)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return
 	}
 	defer sourceGitRepo.Close()
 
-	commit, err := sourceGitRepo.GetCommit(run.WorkflowCommitSHA)
+	commit, err := sourceGitRepo.GetCommit(ctx, run.WorkflowCommitSHA)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommit", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)

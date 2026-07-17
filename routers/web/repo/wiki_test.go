@@ -29,12 +29,12 @@ const (
 )
 
 func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) (*git.Repository, *git.TreeEntry) {
-	wikiRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
+	wikiRepo, err := gitrepo.OpenRepository(repo.WikiStorageRepo())
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		defer wikiRepo.Close()
 	})
-	commit, err := wikiRepo.GetBranchCommit("master")
+	commit, err := wikiRepo.GetBranchCommit(t.Context(), "master")
 	assert.NoError(t, err)
 	entries, err := commit.Tree().ListEntries(t.Context(), wikiRepo)
 	assert.NoError(t, err)
@@ -51,7 +51,7 @@ func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_servic
 	if !assert.NotNil(t, entry) {
 		return ""
 	}
-	reader, err := entry.Blob(wikiRepo).DataAsync()
+	reader, err := entry.Blob(wikiRepo).DataAsync(t.Context())
 	assert.NoError(t, err)
 	defer reader.Close()
 	bytes, err := io.ReadAll(reader)

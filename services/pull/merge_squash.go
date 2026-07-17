@@ -25,14 +25,14 @@ func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
 	// Try to get a signature from the same user in one of the commits, as the
 	// poster email might be private or commits might have a different signature
 	// than the primary email address of the poster.
-	gitRepo, err := git.OpenRepository(ctx, ctx.tmpBasePath)
+	gitRepo, err := git.OpenRepository(ctx.tmpBasePath)
 	if err != nil {
 		log.Error("%-v Unable to open base repository: %v", ctx.pr, err)
 		return nil, err
 	}
 	defer gitRepo.Close()
 
-	commits, err := gitRepo.CommitsBetween(git.RefNameFromBranch(tmpRepoTrackingBranch), git.RefNameHead, -1)
+	commits, err := gitRepo.CommitsBetween(ctx, git.RefNameFromBranch(tmpRepoTrackingBranch), git.RefNameHead, -1)
 	if err != nil {
 		log.Error("%-v Unable to get commits between: head and tracking branch: %v", ctx.pr, err)
 		return nil, err

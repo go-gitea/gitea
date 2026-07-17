@@ -102,7 +102,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	mergeCtx.sig = doer.NewGitSig()
 	mergeCtx.committer = mergeCtx.sig
 
-	gitRepo, err := git.OpenRepository(ctx, mergeCtx.tmpBasePath)
+	gitRepo, err := git.OpenRepository(mergeCtx.tmpBasePath)
 	if err != nil {
 		defer cancel()
 		return nil, nil, fmt.Errorf("failed to open temp git repo for pr[%d]: %w", mergeCtx.pr.ID, err)
