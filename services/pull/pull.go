@@ -365,7 +365,7 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
 	}
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		return fmt.Errorf("gitrepo.OpenRepository: %w", err)
 	}
@@ -803,7 +803,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headCommitRef = git.RefNameFromBranch(pr.HeadBranch)
 	} else {
-		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		pr.HeadCommitID, err = gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return "", err
 		}
@@ -814,7 +814,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 	limit := setting.Repository.PullRequest.DefaultMergeMessageCommitsLimit
 
-	limitedCommits, err := gitRepo.CommitsBetween(headCommitRef, mergeBaseRef, limit)
+	limitedCommits, err := gitRepo.CommitsBetween(ctx, headCommitRef, mergeBaseRef, limit)
 	if err != nil {
 		return "", err
 	}
@@ -874,7 +874,7 @@ func collectSquashMergeCommitCoAuthors(ctx context.Context, gitRepo *git.Reposit
 		skip := limitFirst
 		batchLimit := 30
 		for {
-			commits, err := gitRepo.CommitsBetween(headCommitRef, mergeBaseRef, batchLimit, skip)
+			commits, err := gitRepo.CommitsBetween(ctx, headCommitRef, mergeBaseRef, batchLimit, skip)
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 				return authors
@@ -960,7 +960,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = gitrepo.OpenRepository(ctx, issue.Repo)
+			gitRepo, err = gitrepo.OpenRepository(issue.Repo)
 			if err != nil {
 				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
 				continue
@@ -981,7 +981,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 
 // getAllCommitStatus get pr's commit statuses.
 func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
-	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	sha, shaErr := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if shaErr != nil {
 		return nil, nil, shaErr
 	}
@@ -1003,7 +1003,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 	}
 	defer closer.Close()
 
-	baseCommit, err := baseGitRepo.GetBranchCommit(branchName)
+	baseCommit, err := baseGitRepo.GetBranchCommit(ctx, branchName)
 	if err != nil {
 		return false, err
 	}
@@ -1026,16 +1026,16 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 
 	var headCommit *git.Commit
 	if pr.Flow == issues_model.PullRequestFlowGithub {
-		headCommit, err = headGitRepo.GetBranchCommit(pr.HeadBranch)
+		headCommit, err = headGitRepo.GetBranchCommit(ctx, pr.HeadBranch)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return false, err
 		}
-		if headCommit, err = baseGitRepo.GetCommit(pr.HeadCommitID); err != nil {
+		if headCommit, err = baseGitRepo.GetCommit(ctx, pr.HeadCommitID); err != nil {
 			return false, err
 		}
 	}

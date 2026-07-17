@@ -52,13 +52,13 @@ func SyncRepositoryHooks(ctx context.Context) error {
 
 // GenerateGitHooks generates git hooks from a template repository
 func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	generateGitRepo, err := gitrepo.OpenRepository(ctx, generateRepo)
+	generateGitRepo, err := gitrepo.OpenRepository(generateRepo)
 	if err != nil {
 		return err
 	}
 	defer generateGitRepo.Close()
 
-	templateGitRepo, err := gitrepo.OpenRepository(ctx, templateRepo)
+	templateGitRepo, err := gitrepo.OpenRepository(templateRepo)
 	if err != nil {
 		return err
 	}

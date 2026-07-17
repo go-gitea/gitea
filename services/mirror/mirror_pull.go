@@ -176,7 +176,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, m.Repo)
+	gitRepo, err := gitrepo.OpenRepository(m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to OpenRepository: %v", m.Repo, err)
 		return nil, false
@@ -325,7 +325,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, m.Repo)
+	gitRepo, err := gitrepo.OpenRepository(m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
 		return false
@@ -348,7 +348,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 		// Create reference
 		if result.OldCommitID == "" {
-			commitID, err := gitRepo.GetRefCommitID(result.RefName.String())
+			commitID, err := gitRepo.GetRefCommitID(ctx, result.RefName.String())
 			if err != nil {
 				log.Error("SyncMirrors [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.RefName, err)
 				continue
@@ -370,14 +370,14 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 
 		oldCommitID, newCommitID := result.OldCommitID, result.NewCommitID
-		commits, err := gitRepo.CommitsBetween(newCommitID, oldCommitID, setting.UI.FeedMaxCommitNum)
+		commits, err := gitRepo.CommitsBetween(ctx, newCommitID, oldCommitID, setting.UI.FeedMaxCommitNum)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get CommitsBetween [new_commit_id: %s, old_commit_id: %s]: %v", m.Repo, newCommitID, oldCommitID, err)
 			continue
 		}
 		theCommits := repo_module.GitToPushCommits(commits)
 
-		newCommit, err := gitRepo.GetCommit(newCommitID.String())
+		newCommit, err := gitRepo.GetCommit(ctx, newCommitID.String())
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get commit %s: %v", m.Repo, newCommitID, err)
 			continue
@@ -394,7 +394,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	}
 	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
-	isEmpty, err := gitRepo.IsEmpty()
+	isEmpty, err := gitRepo.IsEmpty(ctx)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: unable to check empty git repo: %v", m.Repo, err)
 		return false

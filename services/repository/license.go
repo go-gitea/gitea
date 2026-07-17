@@ -72,14 +72,14 @@ func repoLicenseUpdater(items ...*LicenseUpdaterOptions) []*LicenseUpdaterOption
 			continue
 		}
 
-		gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+		gitRepo, err := gitrepo.OpenRepository(repo)
 		if err != nil {
 			log.Error("repoLicenseUpdater [%d] failed: OpenRepository: %v", opts.RepoID, err)
 			continue
 		}
 		defer gitRepo.Close()
 
-		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+		commit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
 		if err != nil {
 			log.Error("repoLicenseUpdater [%d] failed: GetBranchCommit: %v", opts.RepoID, err)
 			continue
@@ -131,7 +131,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRep
 
 	licenses := make([]string, 0)
 	if b != nil {
-		r, err := b.DataAsync()
+		r, err := b.DataAsync(ctx)
 		if err != nil {
 			return err
 		}

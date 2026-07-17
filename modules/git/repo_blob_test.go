@@ -14,7 +14,7 @@ import (
 
 func TestRepository_GetBlob_Found(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo1_bare")
-	r, err := OpenRepository(t.Context(), repoPath)
+	r, err := OpenRepository(repoPath)
 	assert.NoError(t, err)
 	defer r.Close()
 
@@ -30,7 +30,7 @@ func TestRepository_GetBlob_Found(t *testing.T) {
 		blob, err := r.GetBlob(testCase.OID)
 		assert.NoError(t, err)
 
-		dataReader, err := blob.DataAsync()
+		dataReader, err := blob.DataAsync(t.Context())
 		assert.NoError(t, err)
 
 		data, err := io.ReadAll(dataReader)
@@ -42,7 +42,7 @@ func TestRepository_GetBlob_Found(t *testing.T) {
 
 func TestRepository_GetBlob_NotExist(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo1_bare")
-	r, err := OpenRepository(t.Context(), repoPath)
+	r, err := OpenRepository(repoPath)
 	assert.NoError(t, err)
 	defer r.Close()
 
@@ -56,7 +56,7 @@ func TestRepository_GetBlob_NotExist(t *testing.T) {
 
 func TestRepository_GetBlob_NoId(t *testing.T) {
 	repoPath := filepath.Join(testReposDir, "repo1_bare")
-	r, err := OpenRepository(t.Context(), repoPath)
+	r, err := OpenRepository(repoPath)
 	assert.NoError(t, err)
 	defer r.Close()
 

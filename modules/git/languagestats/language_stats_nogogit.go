@@ -58,7 +58,7 @@ func GetLanguageStats(ctx context.Context, repo *git.Repository, commitID string
 		return nil, err
 	}
 
-	checker, err := attribute.NewBatchChecker(repo, commitID, attribute.LinguistAttributes)
+	checker, err := attribute.NewBatchChecker(ctx, repo, commitID, attribute.LinguistAttributes)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +78,6 @@ func GetLanguageStats(ctx context.Context, repo *git.Repository, commitID string
 
 	for _, f := range entries {
 		select {
-		case <-repo.Ctx.Done():
-			return sizes, repo.Ctx.Err()
 		case <-ctx.Done():
 			return sizes, ctx.Err()
 		default:

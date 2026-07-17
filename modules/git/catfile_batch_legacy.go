@@ -51,6 +51,10 @@ func (b *catFileBatchLegacy) getBatchCheck() *catFileBatchCommunicator {
 	return b.batchCheck
 }
 
+func (b *catFileBatchLegacy) Context() context.Context {
+	return b.ctx
+}
+
 func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
 	if strings.Contains(obj, "\n") {
 		setting.PanicInDevOrTesting("invalid object name with newline: %q", obj)

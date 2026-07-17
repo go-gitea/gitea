@@ -57,7 +57,7 @@ func RefBlame(ctx *context.Context) {
 	}
 
 	blob := entry.Blob(ctx.Repo.GitRepo)
-	fileSize := blob.Size()
+	fileSize := blob.Size(ctx)
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 
@@ -73,7 +73,7 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["NumLines"], err = blob.GetBlobLineCount(nil)
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount(ctx, nil)
 	if err != nil {
 		ctx.NotFound(err)
 		return
@@ -197,7 +197,7 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 		commit, ok := commitCache[sha]
 		var err error
 		if !ok {
-			commit, err = ctx.Repo.GitRepo.GetCommit(sha)
+			commit, err = ctx.Repo.GitRepo.GetCommit(ctx, sha)
 			if err != nil {
 				if git.IsErrNotExist(err) {
 					ctx.NotFound(err)

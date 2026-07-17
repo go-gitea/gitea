@@ -73,7 +73,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo, err := gitrepo.OpenRepository(repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -82,10 +82,10 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	err = repo_service.CreateNewBranch(t.Context(), user2, repo1, repo1.DefaultBranch, newBranch)
 	assert.NoError(t, err)
 
-	commitID, _ := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
+	commitID, _ := gitRepo.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 	// Make a new tag in repo1
 	newTag := "test_tag"
-	err = gitRepo.CreateTag(newTag, commitID)
+	err = gitRepo.CreateTag(t.Context(), newTag, commitID)
 	assert.NoError(t, err)
 	/*** END SETUP ***/
 
@@ -96,7 +96,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	resp := MakeRequest(t, req, http.StatusOK)
 	contentsListResponse := DecodeJSON(t, resp, []*api.ContentsResponse{})
 	assert.NotNil(t, contentsListResponse)
-	lastCommit, err := gitRepo.GetCommitByPath("README.md")
+	lastCommit, err := gitRepo.GetCommitByPath(t.Context(), "README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse := getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
@@ -118,9 +118,9 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsListResponse = DecodeJSON(t, resp, []*api.ContentsResponse{})
 	assert.NotNil(t, contentsListResponse)
-	branchCommit, err := gitRepo.GetBranchCommit(ref)
+	branchCommit, err := gitRepo.GetBranchCommit(t.Context(), ref)
 	assert.NoError(t, err)
-	lastCommit, err = branchCommit.GetCommitByPath(gitRepo, "README.md")
+	lastCommit, err = branchCommit.GetCommitByPath(t.Context(), gitRepo, "README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.Equal(t, expectedContentsListResponse, contentsListResponse)
@@ -132,9 +132,9 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsListResponse = DecodeJSON(t, resp, []*api.ContentsResponse{})
 	assert.NotNil(t, contentsListResponse)
-	tagCommit, err := gitRepo.GetTagCommit(ref)
+	tagCommit, err := gitRepo.GetTagCommit(t.Context(), ref)
 	assert.NoError(t, err)
-	lastCommit, err = tagCommit.GetCommitByPath(gitRepo, "README.md")
+	lastCommit, err = tagCommit.GetCommitByPath(t.Context(), gitRepo, "README.md")
 	assert.NoError(t, err)
 	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.Equal(t, expectedContentsListResponse, contentsListResponse)

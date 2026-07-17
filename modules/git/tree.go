@@ -39,7 +39,7 @@ func (t *Tree) SubTree(ctx context.Context, gitRepo *Repository, rpath string) (
 			return nil, err
 		}
 
-		g, err = gitRepo.getTree(te.ID)
+		g, err = gitRepo.getTree(ctx, te.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -49,11 +49,11 @@ func (t *Tree) SubTree(ctx context.Context, gitRepo *Repository, rpath string) (
 }
 
 // LsTree checks if the given filenames are in the tree
-func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error) {
+func (repo *Repository) LsTree(ctx context.Context, ref string, filenames ...string) ([]string, error) {
 	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").
 		AddDashesAndList(append([]string{ref}, filenames...)...)
 
-	res, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
+	res, _, err := cmd.WithDir(repo.Path).RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -66,13 +66,13 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 }
 
 // GetTreePathLatestCommit returns the latest commit of a tree path
-func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Commit, error) {
+func (repo *Repository) GetTreePathLatestCommit(ctx context.Context, refName, treePath string) (*Commit, error) {
 	stdout, _, err := gitcmd.NewCommand("rev-list", "-1").
 		AddDynamicArguments(refName).AddDashesAndList(treePath).
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return repo.GetCommit(strings.TrimSpace(stdout))
+	return repo.GetCommit(ctx, strings.TrimSpace(stdout))
 }

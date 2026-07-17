@@ -48,11 +48,11 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	commit, err := gitRepo.GetBranchCommit(t.Context(), repo.DefaultBranch)
 	require.NoError(t, err)
 
 	run := &actions_model.ActionRun{

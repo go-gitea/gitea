@@ -37,7 +37,7 @@ func checkOutdatedBranch(ctx *context.Context) {
 	}
 
 	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.BranchName)
 	if err != nil {
 		log.Error("GetBranchCommitID: %v", err)
 		// Don't return an error page, as it can be rechecked the next time the user opens the page.
@@ -119,7 +119,7 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 		for _, entry := range allEntries {
 			if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
 				// Read Citation file contents
-				if content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				if content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
 					log.Error("checkCitationFile: GetBlobContent: %v", err)
 				} else {
 					ctx.Data["CitiationExist"] = true
@@ -226,7 +226,7 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 		ctx.Repo.GitRepo, _ = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 	}
 	if ctx.Repo.GitRepo != nil {
-		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
+		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty(ctx)
 		if err != nil {
 			showEmpty = true // the repo is broken
 			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryBroken)
@@ -235,7 +235,7 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 		} else if reallyEmpty {
 			showEmpty = true // the repo is really empty
 			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryReady)
-		} else if branches, _, _ := ctx.Repo.GitRepo.GetBranchNames(0, 1); len(branches) == 0 {
+		} else if branches, _, _ := ctx.Repo.GitRepo.GetBranchNames(ctx, 0, 1); len(branches) == 0 {
 			showEmpty = true // it is not really empty, but there is no branch
 			// at the moment, other repo units like "actions" are not able to handle such case,
 			// so we just mark the repo as empty to prevent from displaying these units.

@@ -66,7 +66,7 @@ func lineBlame(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Re
 	}
 
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-	return gitRepo.GetCommit(sha[:objectFormat.FullLength()])
+	return gitRepo.GetCommit(ctx, sha[:objectFormat.FullLength()])
 }
 
 // checkInvalidation checks if the line of code comment got changed by another commit.
@@ -266,7 +266,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 	// Only fetch diff if comment is review comment
 	if len(patch) == 0 && reviewID != 0 {
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", pr.GetGitHeadRefName(), err)
 		}
@@ -274,7 +274,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			commitID = headCommitID
 		}
 
-		patch, err = git.GetFileDiffCutAroundLine(
+		patch, err = git.GetFileDiffCutAroundLine(ctx,
 			gitRepo, pr.MergeBase, headCommitID, treePath,
 			int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
 		)
@@ -322,7 +322,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 			return nil, nil, ErrSubmitReviewOnClosedPR
 		}
 
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, nil, err
 		}

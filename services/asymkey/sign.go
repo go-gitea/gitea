@@ -200,7 +200,7 @@ Loop:
 				return false, nil, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			commit, err := gitRepo.GetCommit("HEAD")
+			commit, err := gitRepo.GetCommit(ctx, "HEAD")
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -248,12 +248,12 @@ Loop:
 				return false, nil, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			isEmpty, err := gitRepo.IsEmpty()
+			isEmpty, err := gitRepo.IsEmpty(ctx)
 			if err != nil {
 				return false, nil, nil, err
 			}
 			if !isEmpty {
-				commit, err := gitRepo.GetCommit(parentCommit)
+				commit, err := gitRepo.GetCommit(ctx, parentCommit)
 				if err != nil {
 					return false, nil, nil, err
 				}
@@ -280,11 +280,11 @@ func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.
 	}
 	repo := pr.BaseRepo
 
-	baseCommit, err := gitRepo.GetCommit(baseRef)
+	baseCommit, err := gitRepo.GetCommit(ctx, baseRef)
 	if err != nil {
 		return false, nil, nil, err
 	}
-	headCommit, err := gitRepo.GetCommit(headRef)
+	headCommit, err := gitRepo.GetCommit(ctx, headRef)
 	if err != nil {
 		return false, nil, nil, err
 	}
@@ -355,11 +355,11 @@ Loop:
 // AllHeadCommitsVerified checks that every new commit in the PR head has a
 // verified signature.
 func AllHeadCommitsVerified(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) (bool, error) {
-	baseCommit, err := gitRepo.GetCommit(pr.BaseBranch)
+	baseCommit, err := gitRepo.GetCommit(ctx, pr.BaseBranch)
 	if err != nil {
 		return false, err
 	}
-	headCommit, err := gitRepo.GetCommit(pr.GetGitHeadRefName())
+	headCommit, err := gitRepo.GetCommit(ctx, pr.GetGitHeadRefName())
 	if err != nil {
 		return false, err
 	}
@@ -369,7 +369,7 @@ func AllHeadCommitsVerified(ctx context.Context, pr *issues_model.PullRequest, g
 // allCommitsVerified checks the commits a merge would introduce, those reachable from
 // headCommit but not from baseCommit. Both commits must come from gitRepo.
 func allCommitsVerified(ctx context.Context, gitRepo *git.Repository, baseCommit, headCommit *git.Commit) (bool, error) {
-	commitList, err := headCommit.CommitsBeforeUntil(gitRepo, baseCommit.ID.RefName())
+	commitList, err := headCommit.CommitsBeforeUntil(ctx, gitRepo, baseCommit.ID.RefName())
 	if err != nil {
 		return false, err
 	}

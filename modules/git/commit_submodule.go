@@ -23,7 +23,7 @@ func (c *Commit) GetSubModules(ctx context.Context, gitRepo *Repository) (*Objec
 		return nil, err
 	}
 
-	rd, err := entry.Blob(gitRepo).DataAsync()
+	rd, err := entry.Blob(gitRepo).DataAsync(ctx)
 	if err != nil {
 		return nil, err
 	}
