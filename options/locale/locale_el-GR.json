@@ -2560,7 +2560,6 @@
   "admin.config.default_enable_timetracking": "Ενεργοποίηση Καταγραφής Χρόνου σαν Προεπιλογή",
   "admin.config.default_allow_only_contributors_to_track_time": "Επιτρέπονται Μόνο οι Συμμετέχοντες να Καταγράφουν Χρόνο",
   "admin.config.no_reply_address": "Κρυφό Email Domain",
-  "admin.config.default_visibility_organization": "Προεπιλεγμένη ορατότητα για νέους οργανισμούς",
   "admin.config.default_enable_dependencies": "Ενεργοποίηση Εξαρτήσεων Ζητημάτων από Προεπιλογή",
   "admin.config.webhook_config": "Ρύθμιση Webhook",
   "admin.config.queue_length": "Μέγεθος Ουράς",

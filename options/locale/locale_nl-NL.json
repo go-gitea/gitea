@@ -1924,7 +1924,6 @@
   "admin.config.default_enable_timetracking": "Tijdregistratie standaard inschakelen",
   "admin.config.default_allow_only_contributors_to_track_time": "Sta alleen bijdragers toe tijdregistratie te gebruiken",
   "admin.config.no_reply_address": "Verborgen e-maildomein",
-  "admin.config.default_visibility_organization": "Standaard zichtbaarheid voor nieuwe organisaties",
   "admin.config.default_enable_dependencies": "Issue afhankelijkheden standaard inschakelen",
   "admin.config.webhook_config": "Webhook configuratie",
   "admin.config.queue_length": "Lengte van wachtrij",

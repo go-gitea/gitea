@@ -3305,7 +3305,6 @@
   "admin.config.default_enable_timetracking": "Activer le suivi de temps par défaut",
   "admin.config.default_allow_only_contributors_to_track_time": "Restreindre le suivi de temps aux contributeurs",
   "admin.config.no_reply_address": "Domaine pour les courriels cachés",
-  "admin.config.default_visibility_organization": "Visibilité par défaut des nouvelles organisations",
   "admin.config.default_enable_dependencies": "Activer les dépendances pour les tickets par défaut",
   "admin.config.webhook_config": "Configuration Webhook",
   "admin.config.queue_length": "Longueur de la file d'attente",
