@@ -589,6 +589,7 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	ctx.Repo.RepoLink = repo.Link()
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["FeedURL"] = ctx.Repo.RepoLink
+	ctx.Data["CloneButtonOriginLink"] = repo.CloneLink(ctx, ctx.Doer) // CloneButtonOriginLink may be rewritten to the WikiCloneLink by the router middleware
 
 	unit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeExternalTracker)
 	if err == nil {
@@ -642,18 +643,6 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 	// if he owns an org that doesn't have a fork of this repo yet
 	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
 	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
-
-	ctx.Data["RepoCloneLink"] = repo.CloneLink(ctx, ctx.Doer)
-
-	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
-	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)
-	if !cloneButtonShowHTTPS && !cloneButtonShowSSH {
-		// We have to show at least one link, so we just show the HTTPS
-		cloneButtonShowHTTPS = true
-	}
-	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
-	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
-	ctx.Data["CloneButtonOriginLink"] = ctx.Data["RepoCloneLink"] // it may be rewritten to the WikiCloneLink by the router middleware
 
 	ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
 	if setting.Indexer.RepoIndexerEnabled {
@@ -778,16 +767,6 @@ func repoAssignmentPrepareRepoTransfer(ctx *Context, data *repoAssignmentPrepare
 	}
 }
 
-func repoAssignmentHandleGoGet(ctx *Context, data *repoAssignmentPrepareDataStruct) {
-	repo := data.repo
-	if ctx.FormString("go-get") == "1" {
-		ctx.Data["GoGetImport"] = ComposeGoGetImport(ctx, repo.Owner.Name, repo.Name)
-		fullURLPrefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
-		ctx.Data["GoDocDirectory"] = fullURLPrefix + "{/dir}"
-		ctx.Data["GoDocFile"] = fullURLPrefix + "{/dir}/{file}#L{line}"
-	}
-}
-
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) {
 	repoAssignmentPreCheck(ctx)
@@ -804,7 +783,6 @@ func RepoAssignment(ctx *Context) {
 		repoAssignmentPrepareRepoTransfer,
 		repoAssignmentPrepareBranches,
 		repoAssignmentPreparePullRequests,
-		repoAssignmentHandleGoGet,
 	}
 	for _, f := range funcs {
 		f(ctx, prepareData)
