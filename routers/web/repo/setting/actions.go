@@ -13,6 +13,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
 	shared_actions "gitea.dev/routers/web/shared/actions"
 	"gitea.dev/services/context"
 	repo_service "gitea.dev/services/repository"
@@ -25,6 +26,9 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["PageType"] = "general"
 	ctx.Data["PageIsActionsSettingsGeneral"] = true
 
+type ActionsTokenPermissionForm struct {
+	TokenMode string `form:"token_mode" binding:"Required;AlphaDashDot"`
+}
 	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
 	if err != nil && !repo_model.IsErrUnitTypeNotExist(err) {
 		ctx.ServerError("GetUnit", err)
@@ -188,4 +192,23 @@ func UpdateTokenPermissions(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(redirectURL)
+}
+
+func ActionsTokenPermissionsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*ActionsTokenPermissionForm)
+	repo := ctx.Repo.Repository
+
+	repo.DefaultActionsTokenPermission = form.TokenMode
+	if err := repo_service.UpdateRepository(ctx, ctx.Repo.Repository, false); err != nil {
+		ctx.ServerError("UpdateRepository failed", err)
+		return
+	}
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(repo.Link() + "/settings/actions")
+}
+
+// ActionsTokenPermissionForm form for changing default actions token permissions
+type ActionsTokenPermissionForm struct {
+	DefaultPermissions string `form:"default_permissions" binding:"Required"`
+	TokenMode          string `form:"token_mode"`
 }

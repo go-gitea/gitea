@@ -11,3 +11,28 @@
 		{{end}}
 	</div>
 {{template "repo/settings/layout_footer" .}}
+
+<div class="ui container m-4">
+    <h4 class="ui top attached header">Actions Token Security Level</h4>
+    <div class="ui attached segment">
+        <form class="ui form" action="{{.Link}}/settings/actions/token_permissions" method="post">
+            {{.CsrfTokenHtml}}
+            <div class="grouped fields">
+                <label>Default Access Token Mode</label>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input type="radio" name="token_mode" value="permissive" checked>
+                        <label>Permissive Mode (Default Write Access)</label>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="ui radio checkbox">
+                        <input type="radio" name="token_mode" value="restricted">
+                        <label>Restricted Mode (Default Read-Only Access)</label>
+                    </div>
+                </div>
+            </div>
+            <button class="ui green button" type="submit">Update Token Configuration</button>
+        </form>
+    </div>
+</div>

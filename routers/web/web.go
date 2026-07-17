@@ -1239,20 +1239,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/actions/general", func() {
 			m.Get("", repo_setting.ActionsGeneralSettings)
 			m.Post("/actions_unit", repo_setting.ActionsUnitPost)
+			m.Post("/general/token_permissions", web.Bind(repo_setting.ActionsTokenPermissionForm{}), repo_setting.ActionsTokenPermissionsPost)
 		}) // doesn't require actions enabled
 		m.Group("/actions", func() {
 			m.Get("", misc.LocationRedirect("./actions/general"))
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
-			m.Group("/general", func() {
-				m.Group("/collaborative_owner", func() {
-					m.Post("/add", repo_setting.AddCollaborativeOwner)
-					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
-				})
-				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
-			})
 		}, actions.MustEnableActions)
+
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {
 			m.Post("/retry", repo.MigrateRetryPost)
