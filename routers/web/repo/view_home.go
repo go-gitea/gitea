@@ -67,7 +67,7 @@ func prepareHomeSidebarRepoTopics(ctx *context.Context) {
 	ctx.Data["Topics"] = topics
 }
 
-func prepareOpenWithEditorApps(ctx *context.Context) {
+func prepareClonePanel(ctx *context.Context) {
 	var tmplApps []map[string]any
 	apps := setting.Config().Repository.OpenWithEditorApps.Value(ctx)
 	for _, app := range apps {
@@ -93,6 +93,12 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		})
 	}
 	ctx.Data["OpenWithEditorApps"] = tmplApps
+
+	if !setting.Repository.DisableDownloadSourceArchives {
+		// FIXME: here it only uses the shortname in the ref to build the link, it can't distinguish the branch/tag/commit with the same name
+		// in the future, it's better to use something like "/archive/branch/the-name.zip", "/archive/tag/the-name.zip" */}}
+		ctx.Data["DownloadArchiveLinkPrefix"] = ctx.Repo.RepoLink + "/archive/" + util.PathEscapeSegments(ctx.Repo.RefFullName.ShortName())
+	}
 }
 
 func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Context) {
@@ -439,7 +445,7 @@ func Home(ctx *context.Context) {
 	isTreePathRoot := ctx.Repo.TreePath == ""
 
 	prepareFuncs := []func(*context.Context){
-		prepareOpenWithEditorApps,
+		prepareClonePanel,
 		prepareHomeSidebarRepoTopics,
 		checkOutdatedBranch,
 		prepareToRenderDirOrFile(entry),
