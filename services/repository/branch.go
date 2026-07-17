@@ -38,13 +38,13 @@ import (
 )
 
 // CreateNewBranch creates a new repository branch
-func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldBranchName, branchName string) (err error) {
+func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, oldBranchName, branchName string) (err error) {
 	branch, err := git_model.GetBranch(ctx, repo.ID, oldBranchName)
 	if err != nil {
 		return err
 	}
 
-	return CreateNewBranchFromCommit(ctx, doer, repo, branch.CommitID, branchName)
+	return CreateNewBranchFromCommit(ctx, doer, repo, gitRepo, branch.CommitID, branchName)
 }
 
 // Branch contains the branch information
@@ -257,8 +257,8 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 }
 
 // checkBranchName validates branch name with existing repository branches
-func checkBranchName(ctx context.Context, repo *repo_model.Repository, name string) error {
-	_, err := gitrepo.WalkReferences(ctx, repo, func(_, refName string) error {
+func checkBranchName(ctx context.Context, gitRepo *git.Repository, name string) error {
+	_, err := gitRepo.WalkReferences(ctx, "", 0, 0, func(_, refName string) error {
 		branchRefName := strings.TrimPrefix(refName, git.BranchPrefix)
 		switch {
 		case branchRefName == name:
@@ -374,14 +374,14 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, gitRepo *git.
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
-func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitID, branchName string) (err error) {
+func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, commitID, branchName string) (err error) {
 	err = repo.MustNotBeArchived()
 	if err != nil {
 		return err
 	}
 
 	// Check if branch name can be used
-	if err := checkBranchName(ctx, repo, branchName); err != nil {
+	if err := checkBranchName(ctx, gitRepo, branchName); err != nil {
 		return err
 	}
 

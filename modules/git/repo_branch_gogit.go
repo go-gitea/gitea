@@ -101,7 +101,7 @@ func (repo *Repository) GetBranchNames(_ context.Context, skip, limit int) ([]st
 }
 
 // WalkReferences walks all the references from the repository
-func (repo *Repository) WalkReferences(_ context.Context, arg ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
+func (repo *Repository) WalkReferences(ctx context.Context, arg ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
 	i := 0
 	var iter storer.ReferenceIter
 	var err error
@@ -131,13 +131,13 @@ func (repo *Repository) WalkReferences(_ context.Context, arg ObjectType, skip, 
 		if limit != 0 && i >= skip+limit {
 			return storer.ErrStop
 		}
-		return nil
+		return ctx.Err()
 	})
 	return i, err
 }
 
 // GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
-func (repo *Repository) GetRefsBySha(_ context.Context, sha, prefix string) ([]string, error) {
+func (repo *Repository) GetRefsBySha(ctx context.Context, sha, prefix string) ([]string, error) {
 	var revList []string
 	iter, err := repo.gogitRepo.References()
 	if err != nil {
@@ -147,7 +147,7 @@ func (repo *Repository) GetRefsBySha(_ context.Context, sha, prefix string) ([]s
 		if ref.Hash().String() == sha && strings.HasPrefix(string(ref.Name()), prefix) {
 			revList = append(revList, string(ref.Name()))
 		}
-		return nil
+		return ctx.Err()
 	})
 	return revList, err
 }

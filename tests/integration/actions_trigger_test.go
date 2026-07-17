@@ -484,7 +484,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// create a branch
-		err = repo_service.CreateNewBranchFromCommit(t.Context(), user2, repo, branch.CommitID, "test-create-branch")
+		err = repo_service.CreateNewBranchFromCommit(t.Context(), user2, repo, gitRepo, branch.CommitID, "test-create-branch")
 		assert.NoError(t, err)
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
@@ -602,8 +602,7 @@ jobs:
 
 		// create a new branch
 		testBranch := "test-branch"
-		err = repo_service.CreateNewBranch(t.Context(), user2, repo, "main", testBranch)
-		assert.NoError(t, err)
+		testCreateBranch(t, ctx.Session, repo.OwnerName, repo.Name, "branch/main", testBranch, http.StatusSeeOther)
 
 		// create Pull
 		pullIssue := &issues_model.Issue{
@@ -830,8 +829,7 @@ jobs:
 
 		// create a branch and a PR
 		testBranch := "test-review-branch"
-		err = repo_service.CreateNewBranch(t.Context(), user2, repo, "main", testBranch)
-		assert.NoError(t, err)
+		testCreateBranch(t, ctx.Session, repo.OwnerName, repo.Name, "branch/main", testBranch, http.StatusSeeOther)
 
 		// add a file on the test branch so the PR has changes
 		addFileResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
@@ -1808,12 +1806,16 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
+		gitRepo, err := gitrepo.OpenRepository(repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
 		// Get the commit ID of the default branch
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		// create a branch
-		err = repo_service.CreateNewBranchFromCommit(t.Context(), user2, repo, branch.CommitID, "test-action-run-name-with-variables")
+		err = repo_service.CreateNewBranchFromCommit(t.Context(), user2, repo, gitRepo, branch.CommitID, "test-action-run-name-with-variables")
 		assert.NoError(t, err)
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      user2.LoginName + " is running this workflow",
@@ -1882,12 +1884,16 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
+		gitRepo, err := gitrepo.OpenRepository(repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
 		// Get the commit ID of the default branch
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		// create a branch
-		err = repo_service.CreateNewBranchFromCommit(t.Context(), user2, repo, branch.CommitID, "test-action-run-name")
+		err = repo_service.CreateNewBranchFromCommit(t.Context(), user2, repo, gitRepo, branch.CommitID, "test-action-run-name")
 		assert.NoError(t, err)
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "run name without variables",

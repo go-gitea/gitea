@@ -243,7 +243,7 @@ func CreateBranch(ctx *context.APIContext) {
 		}
 	}
 
-	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
+	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			ctx.APIError(http.StatusNotFound, "The old branch does not exist")

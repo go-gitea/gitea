@@ -17,7 +17,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/setting"
@@ -171,7 +170,7 @@ Loop:
 // SignWikiCommit determines if we should sign the commits to this repository wiki
 func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
-	signingKey, sig := gitrepo.GetSigningKey(ctx)
+	signingKey, sig := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -289,7 +288,7 @@ func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.
 		return false, nil, nil, err
 	}
 
-	signingKey, signer := gitrepo.GetSigningKey(ctx)
+	signingKey, signer := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
