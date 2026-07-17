@@ -1340,7 +1340,6 @@
   "admin.config.enable_timetracking": "Ota käyttöön ajan seuranta",
   "admin.config.default_enable_timetracking": "Ota ajan seuranta oletusarvoisesti käyttöön",
   "admin.config.no_reply_address": "Piilotettu sähköpostin verkkotunnus",
-  "admin.config.default_visibility_organization": "Uuden organisaation oletusnäkyvyys",
   "admin.config.webhook_config": "Webkoukku asetukset",
   "admin.config.queue_length": "Jonon pituus",
   "admin.config.deliver_timeout": "Toimitus aikakatkaisu",

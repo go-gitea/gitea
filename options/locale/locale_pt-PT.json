@@ -3305,7 +3305,6 @@
   "admin.config.default_enable_timetracking": "Habilitar, por norma, a contagem do tempo",
   "admin.config.default_allow_only_contributors_to_track_time": "Permitir a contagem de tempo somente aos contribuidores",
   "admin.config.no_reply_address": "Domínio dos emails ocultos",
-  "admin.config.default_visibility_organization": "Visibilidade predefinida para as novas organizações",
   "admin.config.default_enable_dependencies": "Habilitar, por norma, dependências nas questões",
   "admin.config.webhook_config": "Configuração do automatismo web",
   "admin.config.queue_length": "Tamanho da fila",
