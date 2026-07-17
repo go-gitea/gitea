@@ -25,7 +25,7 @@ func dumpMemProfileForUsername(pprofDataPath, subName string) error {
 
 func DumpPprofForUsername(pprofDataPath, subName string) (func(), error) {
 	if err := os.MkdirAll(pprofDataPath, os.ModePerm); err != nil {
-		return func() {}, fmt.Errorf(`os.MkdirAll(pprofDataPath) failed: %v`, err)
+		return nil, fmt.Errorf(`os.MkdirAll(pprofDataPath) failed: %v`, err)
 	}
 
 	f, err := os.CreateTemp(pprofDataPath, fmt.Sprintf("pprof_cpu_%s_", filepath.Clean(subName)))
@@ -35,7 +35,8 @@ func DumpPprofForUsername(pprofDataPath, subName string) (func(), error) {
 
 	err = pprof.StartCPUProfile(f)
 	if err != nil {
-		log.Error("StartCPUProfile: %v", err)
+		_ = f.Close()
+		return nil, fmt.Errorf("StartCPUProfile: %w", err)
 	}
 	return func() {
 		pprof.StopCPUProfile()

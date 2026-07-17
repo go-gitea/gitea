@@ -217,11 +217,11 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	}
 
 	if c.Bool("enable-pprof") {
-		stopCPUProfiler, err := pprof.DumpPprofForUsername(setting.PprofDataPath, reqOwnerName)
+		stopProfiler, err := pprof.DumpPprofForUsername(setting.PprofDataPath, reqOwnerName)
 		if err != nil {
-			return fail(ctx, "Unable to start CPU profiler", "Unable to start CPU profile: %v", err)
+			return fail(ctx, "Unable to start pprof profiler", "Unable to start pprof profile: %v", err)
 		}
-		defer stopCPUProfiler()
+		defer stopProfiler()
 	}
 
 	verb, lfsVerb := sshCmdArgs[0], ""

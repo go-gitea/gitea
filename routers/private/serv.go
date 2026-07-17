@@ -4,7 +4,6 @@
 package private
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -28,24 +27,18 @@ import (
 func ServNoCommand(ctx *context.PrivateContext) {
 	keyID := ctx.PathParamInt64("keyid")
 	if keyID <= 0 {
-		ctx.JSON(http.StatusBadRequest, private.Response{
-			UserMsg: fmt.Sprintf("Bad key id: %d", keyID),
-		})
+		ctx.PrivateUserErrorf(http.StatusBadRequest, "Bad key id: %d", keyID)
+		return
 	}
 	results := private.KeyAndOwner{}
 
 	key, err := asymkey_model.GetPublicKeyByID(ctx, keyID)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.JSON(http.StatusUnauthorized, private.Response{
-				UserMsg: fmt.Sprintf("Cannot find key: %d", keyID),
-			})
+			ctx.PrivateUserErrorf(http.StatusUnauthorized, "Cannot find key: %d", keyID)
 			return
 		}
-		log.Error("Unable to get public key: %d Error: %v", keyID, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
+		ctx.PrivateInternalErrorf("Unable to get public key: %d Error: %v", keyID, err)
 		return
 	}
 	results.Key = key
@@ -54,21 +47,14 @@ func ServNoCommand(ctx *context.PrivateContext) {
 		user, err := user_model.GetUserByID(ctx, key.OwnerID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.JSON(http.StatusUnauthorized, private.Response{
-					UserMsg: fmt.Sprintf("Cannot find owner with id: %d for key: %d", key.OwnerID, keyID),
-				})
+				ctx.PrivateUserErrorf(http.StatusUnauthorized, "Cannot find owner with id: %d for key: %d", key.OwnerID, keyID)
 				return
 			}
-			log.Error("Unable to get owner with id: %d for public key: %d Error: %v", key.OwnerID, keyID, err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: err.Error(),
-			})
+			ctx.PrivateInternalErrorf("Unable to get owner with id: %d for public key: %d Error: %v", key.OwnerID, keyID, err)
 			return
 		}
 		if !user.IsActive || user.ProhibitLogin {
-			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: "Your account is disabled.",
-			})
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Your account is disabled.")
 			return
 		}
 		results.Owner = user
@@ -86,80 +72,49 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Set the basic parts of the results to return
 	results := private.ServCommandResults{
-		RepoName:  reqRepoName,
-		OwnerName: reqOwnerName,
+		OwnerName: reqOwnerName, // it might be changed if there is "renamed user redirection"
+		RepoName:  reqRepoName,  // it might be changed if there is "renamed repo redirection", or the repo is a wiki
 		KeyID:     keyID,
 	}
+	repoLogName := reqOwnerName + "/" + reqRepoName
 
-	// Now because we're not translating things properly let's just default some English strings here
-	modeString := "read"
-	if mode > perm.AccessModeRead {
-		modeString = "write to"
-	}
-
-	// The default unit we're trying to look at is code
-	unitType := unit.TypeCode
-
-	// Unless we're a wiki...
-	if strings.HasSuffix(reqRepoName, ".wiki") {
-		// in which case we need to look at the wiki
-		unitType = unit.TypeWiki
-		// And we'd better munge the repo name and tell downstream we're looking at a wiki
+	if reqWikiRepoName, ok := strings.CutSuffix(reqRepoName, ".wiki"); ok {
+		// in which case we need to look at the wiki, trim the ".wiki" suffix, only use the main repo name
 		results.IsWiki = true
-		results.RepoName = reqRepoName[:len(reqRepoName)-5]
+		results.RepoName = reqWikiRepoName
 	}
+	unitType := util.Iif(results.IsWiki, unit.TypeWiki, unit.TypeCode)
+	modeString := mode.ToString()
 
 	owner, err := user_model.GetUserByName(ctx, results.OwnerName)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
-			log.Error("Unable to get repository owner: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
-			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("Unable to get repository owner: %s/%s %v", results.OwnerName, results.RepoName, err),
-			})
+			ctx.PrivateInternalErrorf("Unable to get repository owner for %s, error: %v", repoLogName, err)
 			return
 		}
 
 		// Check if there is a user redirect for the requested owner
 		redirectedUserID, err := user_model.LookupUserRedirect(ctx, results.OwnerName)
 		if err != nil {
-			// User is fetching/cloning a non-existent repository
-			log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
-			ctx.JSON(http.StatusNotFound, private.Response{
-				UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
-			})
+			ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find repository %s", repoLogName)
 			return
 		}
-
 		redirectUser, err := user_model.GetUserByID(ctx, redirectedUserID)
 		if err != nil {
-			// User is fetching/cloning a non-existent repository
-			log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
-			ctx.JSON(http.StatusNotFound, private.Response{
-				UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
-			})
+			ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find repository: %s", repoLogName)
 			return
 		}
 
-		log.Info("User %s has been redirected to %s", results.OwnerName, redirectUser.Name)
+		log.Debug("User %s has been redirected to %s", results.OwnerName, redirectUser.Name)
 		results.OwnerName = redirectUser.Name
 		owner = redirectUser
 	}
-	if !owner.IsOrganization() && !owner.IsActive {
-		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: "Repository cannot be accessed, you could retry it later",
-		})
-		return
-	}
 
 	// Now get the Repository and set the results section
-	repoExist := true
 	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, results.RepoName)
 	if err != nil {
 		if !repo_model.IsErrRepoNotExist(err) {
-			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to get repository: %s/%s %v", results.OwnerName, results.RepoName, err),
-			})
+			ctx.PrivateInternalErrorf("Unable to get repository %s, error: %v", repoLogName, err)
 			return
 		}
 
@@ -167,53 +122,53 @@ func ServCommand(ctx *context.PrivateContext) {
 		if err == nil {
 			redirectedRepo, err := repo_model.GetRepositoryByID(ctx, redirectedRepoID)
 			if err == nil {
-				log.Info("Repository %s/%s has been redirected to %s/%s", results.OwnerName, results.RepoName, redirectedRepo.OwnerName, redirectedRepo.Name)
+				log.Info("Repository %s has been redirected to %s/%s", repoLogName, redirectedRepo.OwnerName, redirectedRepo.Name)
+				repo = redirectedRepo
+				if err = repo.LoadOwner(ctx); err != nil {
+					ctx.PrivateInternalErrorf("Unable to repository owner %d", repo.OwnerID)
+					return
+				}
+				owner = repo.Owner
 				results.RepoName = redirectedRepo.Name
 				results.OwnerName = redirectedRepo.OwnerName
-				repo = redirectedRepo
-				owner.ID = redirectedRepo.OwnerID
+				repoLogName = results.OwnerName + "/" + results.RepoName + util.Iif(results.IsWiki, ".wiki", "")
 			} else {
-				log.Warn("Repo %s/%s has a redirect to repo with ID %d, but no repo with this ID could be found. Trying without redirect...", results.OwnerName, results.RepoName, redirectedRepoID)
+				log.Warn("Repo %s has a redirect to repo with ID %d, but no repo with this ID could be found. Trying without redirect...", repoLogName, redirectedRepoID)
 			}
 		}
 
 		if repo == nil {
-			repoExist = false
 			if mode == perm.AccessModeRead {
 				// User is fetching/cloning a non-existent repository
-				log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
-				ctx.JSON(http.StatusNotFound, private.Response{
-					UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
-				})
+				ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find repository %s", repoLogName)
 				return
 			}
 		}
 	}
 
-	if repoExist {
+	if !owner.IsOrganization() && !owner.IsActive {
+		ctx.PrivateUserErrorf(http.StatusForbidden, "Repository cannot be accessed, the owner is inactive.")
+		return
+	}
+
+	if repo != nil {
 		repo.Owner = owner
 		repo.OwnerName = owner.Name
 		results.RepoID = repo.ID
 
 		if repo.IsBeingCreated() {
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: "Repository is being created, you could retry after it finished",
-			})
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Repository is being created, you could retry after it finished")
 			return
 		}
 
 		if repo.IsBroken() {
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: "Repository is in a broken state",
-			})
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Repository is in a broken state")
 			return
 		}
 
 		// We can shortcut at this point if the repo is a mirror
 		if mode > perm.AccessModeRead && repo.IsMirror {
-			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("Mirror Repository %s/%s is read-only", results.OwnerName, results.RepoName),
-			})
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Mirror Repository %s is read-only", repoLogName)
 			return
 		}
 	}
@@ -222,28 +177,15 @@ func ServCommand(ctx *context.PrivateContext) {
 	key, err := asymkey_model.GetPublicKeyByID(ctx, keyID)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.JSON(http.StatusNotFound, private.Response{
-				UserMsg: fmt.Sprintf("Cannot find key: %d", keyID),
-			})
+			ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find key: %d", keyID)
 			return
 		}
-		log.Error("Unable to get public key: %d Error: %v", keyID, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Unable to get key: %d  Error: %v", keyID, err),
-		})
+		ctx.PrivateInternalErrorf("Unable to get key: %d, error: %v", keyID, err)
 		return
 	}
 	results.KeyName = key.Name
 	results.KeyID = key.ID
 	results.UserID = key.OwnerID
-
-	// If repo doesn't exist, deploy key doesn't make sense
-	if !repoExist && key.Type == asymkey_model.KeyTypeDeploy {
-		ctx.JSON(http.StatusNotFound, private.Response{
-			UserMsg: fmt.Sprintf("Cannot find repository %s/%s", results.OwnerName, results.RepoName),
-		})
-		return
-	}
 
 	// Deploy Keys have ownerID set to 0 therefore we can't use the owner
 	// So now we need to check if the key is a deploy key
@@ -251,19 +193,17 @@ func ServCommand(ctx *context.PrivateContext) {
 	var deployKey *asymkey_model.DeployKey
 	var user *user_model.User
 	if key.Type == asymkey_model.KeyTypeDeploy {
-		var err error
+		if repo == nil {
+			ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find repository %s", repoLogName)
+			return
+		}
 		deployKey, err = asymkey_model.GetDeployKeyByRepo(ctx, key.ID, repo.ID)
 		if err != nil {
 			if asymkey_model.IsErrDeployKeyNotExist(err) {
-				ctx.JSON(http.StatusNotFound, private.Response{
-					UserMsg: fmt.Sprintf("Public (Deploy) Key: %d:%s is not authorized to %s %s/%s.", key.ID, key.Name, modeString, results.OwnerName, results.RepoName),
-				})
+				ctx.PrivateUserErrorf(http.StatusNotFound, "Deploy key %d:%s has no %q permission for %s.", key.ID, key.Name, modeString, repoLogName)
 				return
 			}
-			log.Error("Unable to get deploy for public (deploy) key: %d in %-v Error: %v", key.ID, repo, err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to get Deploy Key for Public Key: %d:%s in %s/%s.", key.ID, key.Name, results.OwnerName, results.RepoName),
-			})
+			ctx.PrivateInternalErrorf("Unable to get deploy for public (deploy) key %d for %s, error: %v", key.ID, repoLogName, err)
 			return
 		}
 		results.DeployKeyID = deployKey.ID
@@ -279,26 +219,18 @@ func ServCommand(ctx *context.PrivateContext) {
 		}
 	} else {
 		// Get the user represented by the Key
-		var err error
 		user, err = user_model.GetUserByID(ctx, key.OwnerID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				ctx.JSON(http.StatusUnauthorized, private.Response{
-					UserMsg: fmt.Sprintf("Public Key: %d:%s owner %d does not exist.", key.ID, key.Name, key.OwnerID),
-				})
+				ctx.PrivateUserErrorf(http.StatusUnauthorized, "Public key %d:%s owner %d does not exist.", key.ID, key.Name, key.OwnerID)
 				return
 			}
-			log.Error("Unable to get owner: %d for public key: %d:%s Error: %v", key.OwnerID, key.ID, key.Name, err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to get Owner: %d for Deploy Key: %d:%s in %s/%s.", key.OwnerID, key.ID, key.Name, reqOwnerName, reqRepoName),
-			})
+			ctx.PrivateInternalErrorf("Unable to get key owner %d for public key %d:%s, error: %v", key.OwnerID, key.ID, key.Name, err)
 			return
 		}
 
 		if !user.IsActive || user.ProhibitLogin {
-			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: "Your account is disabled.",
-			})
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Your account is disabled.")
 			return
 		}
 
@@ -309,25 +241,21 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Don't allow pushing if the repo is archived
-	if repoExist && mode > perm.AccessModeRead && repo.IsArchived {
-		ctx.JSON(http.StatusUnauthorized, private.Response{
-			UserMsg: fmt.Sprintf("Repo: %s/%s is archived.", results.OwnerName, results.RepoName),
-		})
+	if repo != nil && mode > perm.AccessModeRead && repo.IsArchived {
+		ctx.PrivateUserErrorf(http.StatusUnauthorized, "Repo %s is archived.", repoLogName)
 		return
 	}
 
 	// Permissions checking:
-	if repoExist &&
+	if repo != nil &&
 		(mode > perm.AccessModeRead ||
 			repo.IsPrivate ||
 			owner.Visibility.IsPrivate() ||
-			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploykey
+			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploy key
 			setting.Service.RequireSignInViewStrict) {
 		if key.Type == asymkey_model.KeyTypeDeploy {
-			if deployKey.Mode < mode {
-				ctx.JSON(http.StatusUnauthorized, private.Response{
-					UserMsg: fmt.Sprintf("Deploy Key: %d:%s is not authorized to %s %s/%s.", key.ID, key.Name, modeString, results.OwnerName, results.RepoName),
-				})
+			if deployKey == nil || deployKey.Mode < mode {
+				ctx.PrivateUserErrorf(http.StatusUnauthorized, "Deploy key %d:%s has no %q permission for %s.", key.ID, key.Name, modeString, repoLogName)
 				return
 			}
 		} else {
@@ -339,48 +267,34 @@ func ServCommand(ctx *context.PrivateContext) {
 				mode = perm.AccessModeRead
 			}
 
-			perm, err := access_model.GetDoerRepoPermission(ctx, repo, user)
+			userPerm, err := access_model.GetDoerRepoPermission(ctx, repo, user)
 			if err != nil {
-				log.Error("Unable to get permissions for %-v with key %d in %-v Error: %v", user, key.ID, repo, err)
-				ctx.JSON(http.StatusInternalServerError, private.Response{
-					Err: fmt.Sprintf("Unable to get permissions for user %d:%s with key %d in %s/%s Error: %v", user.ID, user.Name, key.ID, results.OwnerName, results.RepoName, err),
-				})
+				ctx.PrivateInternalErrorf("Unable to get permissions for %-v with key %d in %-v, error: %v", user, key.ID, repo, err)
 				return
 			}
 
-			userMode := perm.UnitAccessMode(unitType)
-
+			userMode := userPerm.UnitAccessMode(unitType)
 			if userMode < mode {
-				log.Warn("Failed authentication attempt for %s with key %s (not authorized to %s %s/%s) from %s", user.Name, key.Name, modeString, reqOwnerName, reqRepoName, ctx.RemoteAddr())
-				ctx.JSON(http.StatusUnauthorized, private.Response{
-					UserMsg: fmt.Sprintf("User: %d:%s with Key: %d:%s is not authorized to %s %s/%s.", user.ID, user.Name, key.ID, key.Name, modeString, reqOwnerName, reqRepoName),
-				})
+				ctx.PrivateUserErrorf(http.StatusUnauthorized, "User %d with key %d:%s has no %q permission for %s", key.OwnerID, key.ID, key.Name, modeString, repoLogName)
 				return
 			}
 		}
 	}
 
 	// We already know we aren't using a deploy key
-	if !repoExist {
+	if repo == nil {
 		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
-			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: "Push to create is not enabled for organizations.",
-			})
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Push to create is not enabled for organizations.")
 			return
 		}
 		if !owner.IsOrganization() && !setting.Repository.EnablePushCreateUser {
-			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: "Push to create is not enabled for users.",
-			})
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Push to create is not enabled for users.")
 			return
 		}
 
 		repo, err = repo_service.PushCreateRepo(ctx, user, owner, results.RepoName)
 		if err != nil {
-			log.Error("pushCreateRepo: %v", err)
-			ctx.JSON(http.StatusNotFound, private.Response{
-				UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
-			})
+			ctx.PrivateInternalErrorf("pushCreateRepo: %v", err)
 			return
 		}
 		results.RepoID = repo.ID
@@ -390,24 +304,16 @@ func ServCommand(ctx *context.PrivateContext) {
 		// Ensure the wiki is enabled before we allow access to it
 		if _, err := repo.GetUnit(ctx, unit.TypeWiki); err != nil {
 			if repo_model.IsErrUnitTypeNotExist(err) {
-				ctx.JSON(http.StatusForbidden, private.Response{
-					UserMsg: "repository wiki is disabled",
-				})
+				ctx.PrivateUserErrorf(http.StatusForbidden, "repository wiki is disabled")
 				return
 			}
-			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Failed to get the wiki unit in %s/%s Error: %v", reqOwnerName, reqRepoName, err),
-			})
+			ctx.PrivateInternalErrorf("Failed to get the wiki unit in %-v, error: %v", repo, err)
 			return
 		}
 
 		// Finally if we're trying to touch the wiki we should init it
 		if err = wiki_service.InitWiki(ctx, repo); err != nil {
-			log.Error("Failed to initialize the wiki in %-v Error: %v", repo, err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Failed to initialize the wiki in %s/%s Error: %v", reqOwnerName, reqRepoName, err),
-			})
+			ctx.PrivateInternalErrorf("Failed to initialize the wiki in %-v, error: %v", repo, err)
 			return
 		}
 	}
