@@ -264,9 +264,8 @@ function buildVisualGraph(
 
   const matrixJobsByKey = new Map<string, ActionsJob[]>();
   for (const job of jobs) {
-    // Reusable callers are distinct workflow files — never fold them into a matrix bucket
-    // even if their display name happens to look like "name (variant)".
-    if (job.isReusableCaller) continue;
+    // Matrix legs that call a reusable workflow are still one logical job (a single `uses:`
+    // expanded over the matrix), so fold them into a matrix node like any other matrix job.
     const matrixKey = matrixKeyFromJobName(job.name);
     if (!matrixKey) continue;
     if (!matrixJobsByKey.has(matrixKey)) matrixJobsByKey.set(matrixKey, []);
@@ -322,10 +321,8 @@ function buildVisualGraph(
   const visualIdByJobId = new Map<number, string>();
   for (const job of jobs) {
     const matrixKey = matrixKeyFromJobName(job.name);
-    // Symmetric with the matrix-bucket loop above: a reusable caller whose display name
-    // happens to look like "name (variant)" must never be folded into the matrix node, or it
-    // would silently vanish (its visualId would point at a matrix node it isn't part of).
-    if (matrixKey && !job.isReusableCaller && (matrixJobsByKey.get(matrixKey)?.length ?? 0) > 1) {
+    // Symmetric with the matrix-bucket loop above (callers included).
+    if (matrixKey && (matrixJobsByKey.get(matrixKey)?.length ?? 0) > 1) {
       visualIdByJobId.set(job.id, `matrix:${matrixKey}`);
       continue;
     }

@@ -3305,7 +3305,6 @@
   "admin.config.default_enable_timetracking": "默认情况下启用时间跟踪",
   "admin.config.default_allow_only_contributors_to_track_time": "仅允许成员跟踪时间",
   "admin.config.no_reply_address": "隐藏邮件域",
-  "admin.config.default_visibility_organization": "新组织的默认可见性",
   "admin.config.default_enable_dependencies": "默认情况下启用工单依赖",
   "admin.config.webhook_config": "Web 钩子配置",
   "admin.config.queue_length": "队列长度",
