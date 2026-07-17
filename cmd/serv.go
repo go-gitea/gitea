@@ -201,35 +201,27 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return fail(ctx, "Too few arguments", "Too few arguments in cmd: %s", cmd)
 	}
 
-	repoPath := strings.TrimPrefix(sshCmdArgs[1], "/")
-	repoPathFields := strings.SplitN(repoPath, "/", 2)
-	if len(repoPathFields) != 2 {
-		return fail(ctx, "Invalid repository path", "Invalid repository path: %v", repoPath)
+	var reqOwnerName, reqRepoName string
+	{
+		var ok bool
+		reqRepoPath := strings.TrimPrefix(sshCmdArgs[1], "/")
+		reqOwnerName, reqRepoName, ok = strings.Cut(reqRepoPath, "/")
+		if !ok {
+			return fail(ctx, "Invalid repository path", "Invalid repository path: %v", reqRepoPath)
+		}
+		reqRepoName = strings.TrimSuffix(reqRepoName, ".git") // "the-repo-name" or "the-repo-name.wiki"
 	}
 
-	username := repoPathFields[0]
-	reponame := strings.TrimSuffix(repoPathFields[1], ".git") // “the-repo-name" or "the-repo-name.wiki"
-
-	if !repo_model.IsValidSSHAccessRepoName(reponame) {
-		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reponame)
+	if !repo_model.IsValidSSHAccessRepoName(reqRepoName) {
+		return fail(ctx, "Invalid repo name", "Invalid repo name: %s", reqRepoName)
 	}
 
 	if c.Bool("enable-pprof") {
-		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
-			return fail(ctx, "Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
-		}
-
-		stopCPUProfiler, err := pprof.DumpCPUProfileForUsername(setting.PprofDataPath, username)
+		stopCPUProfiler, err := pprof.DumpPprofForUsername(setting.PprofDataPath, reqOwnerName)
 		if err != nil {
 			return fail(ctx, "Unable to start CPU profiler", "Unable to start CPU profile: %v", err)
 		}
-		defer func() {
-			stopCPUProfiler()
-			err := pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
-			if err != nil {
-				_ = fail(ctx, "Unable to dump Mem profile", "Unable to dump Mem Profile: %v", err)
-			}
-		}()
+		defer stopCPUProfiler()
 	}
 
 	verb, lfsVerb := sshCmdArgs[0], ""
@@ -254,30 +246,29 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return fail(ctx, "Unknown git command", "Unknown git command %s %s", verb, lfsVerb)
 	}
 
-	results, extra := private.ServCommand(ctx, keyID, username, reponame, requestedMode, verb, lfsVerb)
+	results, extra := private.ServCommand(ctx, keyID, reqOwnerName, reqRepoName, requestedMode, verb, lfsVerb)
 	if extra.HasError() {
 		return fail(ctx, extra.UserMsg, "ServCommand failed: %s", extra.Error)
 	}
 
-	// because the original repoPath maybe redirected, we need to use the returned actual repository information
-	if results.IsWiki {
-		repoPath = repo_model.RelativeWikiPath(results.OwnerName, results.RepoName)
-	} else {
-		repoPath = repo_model.RelativePath(results.OwnerName, results.RepoName)
-	}
-
 	// LFS SSH protocol
 	if verb == git.CmdVerbLfsTransfer {
+		if results.IsWiki {
+			return fail(ctx, "LFS Transfer is not supported for wikis", "")
+		}
 		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
 		if err != nil {
 			return err
 		}
-		return lfstransfer.Main(ctx, repoPath, lfsVerb, token)
+		return lfstransfer.Main(ctx, results.OwnerName, results.RepoName, lfsVerb, token)
 	}
 
 	// LFS token authentication
 	if verb == git.CmdVerbLfsAuthenticate {
-		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
+		if results.IsWiki {
+			return fail(ctx, "LFS Authenticate is not supported for wikis", "")
+		}
+		lfsTokenHref := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
 		token, err := lfs.GetLFSAuthTokenWithBearer(lfs.AuthTokenOptions{Op: lfsVerb, UserID: results.UserID, RepoID: results.RepoID})
 		if err != nil {
@@ -286,7 +277,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 
 		tokenAuthentication := &git_model.LFSTokenResponse{
 			Header: make(map[string]string),
-			Href:   url,
+			Href:   lfsTokenHref,
 		}
 		tokenAuthentication.Header["Authorization"] = token
 
@@ -307,12 +298,12 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		verbFields := strings.SplitN(verb, "-", 2)
 		if len(verbFields) == 2 {
 			// use git binary with the sub-command part: "C:\...\bin\git.exe", "upload-pack", ...
-			command = exec.CommandContext(ctx, gitcmd.GitExecutable, verbFields[1], repoPath)
+			command = exec.CommandContext(ctx, gitcmd.GitExecutable, verbFields[1], results.RepoStoragePath)
 		}
 	}
 	if command == nil {
 		// by default, use the verb (it has been checked above by allowedCommands)
-		command = exec.CommandContext(ctx, gitBinVerb, repoPath)
+		command = exec.CommandContext(ctx, gitBinVerb, results.RepoStoragePath)
 	}
 
 	process.SetSysProcAttribute(command)

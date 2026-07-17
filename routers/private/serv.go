@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	repo_service "gitea.dev/services/repository"
 	wiki_service "gitea.dev/services/wiki"
@@ -78,15 +79,15 @@ func ServNoCommand(ctx *context.PrivateContext) {
 // ServCommand returns information about the provided keyid
 func ServCommand(ctx *context.PrivateContext) {
 	keyID := ctx.PathParamInt64("keyid")
-	ownerName := ctx.PathParam("owner")
-	repoName := ctx.PathParam("repo")
+	reqOwnerName := ctx.PathParam("owner")
+	reqRepoName := ctx.PathParam("repo")
 	mode := perm.AccessMode(ctx.FormInt("mode"))
 	verb := ctx.FormString("verb")
 
 	// Set the basic parts of the results to return
 	results := private.ServCommandResults{
-		RepoName:  repoName,
-		OwnerName: ownerName,
+		RepoName:  reqRepoName,
+		OwnerName: reqOwnerName,
 		KeyID:     keyID,
 	}
 
@@ -100,12 +101,12 @@ func ServCommand(ctx *context.PrivateContext) {
 	unitType := unit.TypeCode
 
 	// Unless we're a wiki...
-	if strings.HasSuffix(repoName, ".wiki") {
+	if strings.HasSuffix(reqRepoName, ".wiki") {
 		// in which case we need to look at the wiki
 		unitType = unit.TypeWiki
-		// And we'd better munge the reponame and tell downstream we're looking at a wiki
+		// And we'd better munge the repo name and tell downstream we're looking at a wiki
 		results.IsWiki = true
-		results.RepoName = repoName[:len(repoName)-5]
+		results.RepoName = reqRepoName[:len(reqRepoName)-5]
 	}
 
 	owner, err := user_model.GetUserByName(ctx, results.OwnerName)
@@ -191,7 +192,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	if repoExist {
 		repo.Owner = owner
-		repo.OwnerName = ownerName
+		repo.OwnerName = owner.Name
 		results.RepoID = repo.ID
 
 		if repo.IsBeingCreated() {
@@ -289,7 +290,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			}
 			log.Error("Unable to get owner: %d for public key: %d:%s Error: %v", key.OwnerID, key.ID, key.Name, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to get Owner: %d for Deploy Key: %d:%s in %s/%s.", key.OwnerID, key.ID, key.Name, ownerName, repoName),
+				Err: fmt.Sprintf("Unable to get Owner: %d for Deploy Key: %d:%s in %s/%s.", key.OwnerID, key.ID, key.Name, reqOwnerName, reqRepoName),
 			})
 			return
 		}
@@ -350,9 +351,9 @@ func ServCommand(ctx *context.PrivateContext) {
 			userMode := perm.UnitAccessMode(unitType)
 
 			if userMode < mode {
-				log.Warn("Failed authentication attempt for %s with key %s (not authorized to %s %s/%s) from %s", user.Name, key.Name, modeString, ownerName, repoName, ctx.RemoteAddr())
+				log.Warn("Failed authentication attempt for %s with key %s (not authorized to %s %s/%s) from %s", user.Name, key.Name, modeString, reqOwnerName, reqRepoName, ctx.RemoteAddr())
 				ctx.JSON(http.StatusUnauthorized, private.Response{
-					UserMsg: fmt.Sprintf("User: %d:%s with Key: %d:%s is not authorized to %s %s/%s.", user.ID, user.Name, key.ID, key.Name, modeString, ownerName, repoName),
+					UserMsg: fmt.Sprintf("User: %d:%s with Key: %d:%s is not authorized to %s %s/%s.", user.ID, user.Name, key.ID, key.Name, modeString, reqOwnerName, reqRepoName),
 				})
 				return
 			}
@@ -361,14 +362,6 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// We already know we aren't using a deploy key
 	if !repoExist {
-		owner, err := user_model.GetUserByName(ctx, ownerName)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to get owner: %s %v", results.OwnerName, err),
-			})
-			return
-		}
-
 		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
 			ctx.JSON(http.StatusForbidden, private.Response{
 				UserMsg: "Push to create is not enabled for organizations.",
@@ -404,7 +397,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			}
 			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Failed to get the wiki unit in %s/%s Error: %v", ownerName, repoName, err),
+				Err: fmt.Sprintf("Failed to get the wiki unit in %s/%s Error: %v", reqOwnerName, reqRepoName, err),
 			})
 			return
 		}
@@ -413,22 +406,14 @@ func ServCommand(ctx *context.PrivateContext) {
 		if err = wiki_service.InitWiki(ctx, repo); err != nil {
 			log.Error("Failed to initialize the wiki in %-v Error: %v", repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Failed to initialize the wiki in %s/%s Error: %v", ownerName, repoName, err),
+				Err: fmt.Sprintf("Failed to initialize the wiki in %s/%s Error: %v", reqOwnerName, reqRepoName, err),
 			})
 			return
 		}
 	}
-	log.Debug("Serv Results:\nIsWiki: %t\nDeployKeyID: %d\nKeyID: %d\tKeyName: %s\nUserName: %s\nUserID: %d\nOwnerName: %s\nRepoName: %s\nRepoID: %d",
-		results.IsWiki,
-		results.DeployKeyID,
-		results.KeyID,
-		results.KeyName,
-		results.UserName,
-		results.UserID,
-		results.OwnerName,
-		results.RepoName,
-		results.RepoID)
 
+	results.RepoStoragePath = util.Iif(results.IsWiki, repo_model.RelativeWikiPath(repo.OwnerName, repo.Name), repo.RelativePath())
+	log.Debug("Serv Results: %+v", results)
 	ctx.JSON(http.StatusOK, results)
 	// We will update the keys in a different call.
 }
