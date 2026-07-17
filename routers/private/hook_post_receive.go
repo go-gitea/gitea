@@ -63,7 +63,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		}
 		if update.IsDelRef() {
 			if err := git_model.MarkBranchAsDeleted(ctx, repo.ID, update.RefFullName.BranchName(), update.PusherID); err != nil {
-				ctx.PrivateError(http.StatusInternalServerError, err, fmt.Sprintf("failed to mark branch %s as deleted", update.RefFullName))
+				ctx.PrivateInternalErrorf("failed to mark branch %s as deleted: %v", update.RefFullName, err)
 				return false
 			}
 		} else {
@@ -79,7 +79,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 
 	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
-		ctx.PrivateError(http.StatusInternalServerError, err, "failed to open repository")
+		ctx.PrivateInternalErrorf("failed to open repository: %v", err)
 		return false
 	}
 
@@ -91,7 +91,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 	}
 
 	if err = repo_service.SyncBranchesToDB(ctx, repo.ID, opts.UserID, gitRepo, branchNames, commitIDs); err != nil {
-		ctx.PrivateError(http.StatusInternalServerError, err, "failed to sync branch to DB")
+		ctx.PrivateInternalErrorf("failed to sync branch to DB: %v", err)
 		return false
 	}
 	return true
@@ -133,7 +133,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 	// push async updates
 	if err := repo_service.PushUpdates(updates...); err != nil {
-		ctx.PrivateError(http.StatusInternalServerError, err, "failed to push updates")
+		ctx.PrivateInternalErrorf("failed to push updates: %v", err)
 		return
 	}
 
@@ -147,16 +147,16 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 	if isPrivate.Has() || isTemplate.Has() {
 		pusher, err := loadContextCacheUser(ctx, opts.UserID)
 		if err != nil {
-			ctx.PrivateError(http.StatusInternalServerError, err, "failed to load pusher user")
+			ctx.PrivateInternalErrorf("failed to load pusher user: %v", err)
 			return false
 		}
 		perm, err := access_model.GetDoerRepoPermission(ctx, repo, pusher)
 		if err != nil {
-			ctx.PrivateError(http.StatusInternalServerError, err, "failed to load doer repo permission")
+			ctx.PrivateInternalErrorf("failed to load doer repo permission: %v", err)
 			return false
 		}
 		if !perm.IsOwner() && !perm.IsAdmin() {
-			ctx.PrivateError(http.StatusNotFound, nil, "permission denied")
+			ctx.PrivateUserErrorf(http.StatusNotFound, "permission denied")
 			return false
 		}
 
@@ -191,7 +191,7 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 	baseRepo := repo
 	if repo.IsFork {
 		if err := repo.GetBaseRepo(ctx); err != nil {
-			ctx.PrivateError(http.StatusInternalServerError, err, "failed to load base repo")
+			ctx.PrivateInternalErrorf("failed to load base repo: %v", err)
 			return
 		}
 		if repo.BaseRepo.AllowsPulls(ctx) {
@@ -222,7 +222,7 @@ func hookPostReceiveRespondWithTrailer(ctx *gitea_context.PrivateContext, opts *
 
 			pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)
 			if err != nil && !errors.Is(err, util.ErrNotExist) {
-				ctx.PrivateError(http.StatusInternalServerError, err, "failed to get active PR for branch "+branch)
+				ctx.PrivateInternalErrorf("failed to get active PR for branch %s: %v", branch, err)
 				return
 			}
 			if pr == nil {
@@ -252,20 +252,19 @@ func loadContextCacheUser(ctx context.Context, id int64) (*user_model.User, erro
 // hookPostReceiveHandlePullRequestMerging handle pull request merging, a pull request action should push at least 1 commit
 func hookPostReceiveHandlePullRequestMerging(ctx *gitea_context.PrivateContext, opts *private.HookOptions, updates []*repo_module.PushUpdateOptions) bool {
 	if len(updates) == 0 {
-		err := fmt.Errorf("Pushing a merged PR (pr:%d) no commits pushed ", opts.PullRequestID)
-		ctx.PrivateError(http.StatusInternalServerError, err, "no push update")
+		ctx.PrivateInternalErrorf("Pushing a merged PR (pr:%d) no commits pushed ", opts.PullRequestID)
 		return false
 	}
 
 	pr, err := issues_model.GetPullRequestByID(ctx, opts.PullRequestID)
 	if err != nil {
-		ctx.PrivateError(http.StatusInternalServerError, err, "failed to load pull request")
+		ctx.PrivateInternalErrorf("failed to get pull request %d: %v", opts.PullRequestID, err)
 		return false
 	}
 
 	pusher, err := loadContextCacheUser(ctx, opts.UserID)
 	if err != nil {
-		ctx.PrivateError(http.StatusInternalServerError, err, "failed to load pusher user")
+		ctx.PrivateInternalErrorf("failed to load pusher user %d: %v", opts.UserID, err)
 		return false
 	}
 
@@ -273,7 +272,7 @@ func hookPostReceiveHandlePullRequestMerging(ctx *gitea_context.PrivateContext, 
 	// here to keep it as before, that maybe PullRequestStatusMergeable
 	_, err = pull_service.SetMerged(ctx, pr, updates[len(updates)-1].NewCommitID, timeutil.TimeStampNow(), pusher, pr.Status)
 	if err != nil {
-		ctx.PrivateError(http.StatusInternalServerError, err, "failed to set pr to merged")
+		ctx.PrivateInternalErrorf("failed to set pr %d to merged: %v", pr.ID, err)
 		return false
 	}
 	return true

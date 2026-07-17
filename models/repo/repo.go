@@ -230,7 +230,7 @@ func RelativePath(ownerName, repoName string) string {
 	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-// RelativePath should be an unix style path like username/reponame.git
+// RelativePath should be a unix style path like "owner-name/repo-name.git"
 func (repo *Repository) RelativePath() string {
 	return RelativePath(repo.OwnerName, repo.Name)
 }
