@@ -27,20 +27,20 @@ const (
 )
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
-func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) (retErr error) {
-	cmd, err := getRepoRawDiffForFileCmd(repo.Ctx, repo, "", commitID, diffType, "")
+func GetRawDiff(ctx context.Context, repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) (retErr error) {
+	cmd, err := getRepoRawDiffForFileCmd(ctx, repo, "", commitID, diffType, "")
 	if err != nil {
 		return fmt.Errorf("getRepoRawDiffForFileCmd: %w", err)
 	}
-	return cmd.WithStdoutCopy(writer).RunWithStderr(repo.Ctx)
+	return cmd.WithStdoutCopy(writer).RunWithStderr(ctx)
 }
 
 // GetFileDiffCutAroundLine cuts the old or new part of the diff of a file around a specific line number
 func GetFileDiffCutAroundLine(
-	repo *Repository, startCommit, endCommit, treePath string,
+	ctx context.Context, repo *Repository, startCommit, endCommit, treePath string,
 	line int64, old bool, numbersOfLine int,
 ) (ret string, retErr error) {
-	cmd, err := getRepoRawDiffForFileCmd(repo.Ctx, repo, startCommit, endCommit, RawDiffNormal, treePath)
+	cmd, err := getRepoRawDiffForFileCmd(ctx, repo, startCommit, endCommit, RawDiffNormal, treePath)
 	if err != nil {
 		return "", fmt.Errorf("getRepoRawDiffForFileCmd: %w", err)
 	}
@@ -50,13 +50,13 @@ func GetFileDiffCutAroundLine(
 		ret, err = CutDiffAroundLine(stdoutReader, line, old, numbersOfLine)
 		return err
 	})
-	return ret, cmd.RunWithStderr(repo.Ctx)
+	return ret, cmd.RunWithStderr(ctx)
 }
 
 // getRepoRawDiffForFile returns an io.Reader for the diff results of file in given commit ID
 // and a "finish" function to wait for the git command and clean up resources after reading is done.
-func getRepoRawDiffForFileCmd(_ context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string) (*gitcmd.Command, error) {
-	commit, err := repo.GetCommit(endCommit)
+func getRepoRawDiffForFileCmd(ctx context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string) (*gitcmd.Command, error) {
+	commit, err := repo.GetCommit(ctx, endCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func getRepoRawDiffForFileCmd(_ context.Context, repo *Repository, startCommit, 
 		} else if commit.ParentCount() == 0 {
 			cmd.AddArguments("show").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
-			c, err := commit.Parent(repo, 0)
+			c, err := commit.Parent(ctx, repo, 0)
 			if err != nil {
 				return nil, err
 			}
@@ -90,7 +90,7 @@ func getRepoRawDiffForFileCmd(_ context.Context, repo *Repository, startCommit, 
 		} else if commit.ParentCount() == 0 {
 			cmd.AddArguments("format-patch", "--no-signature", "--stdout", "--root").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
-			c, err := commit.Parent(repo, 0)
+			c, err := commit.Parent(ctx, repo, 0)
 			if err != nil {
 				return nil, err
 			}
@@ -292,9 +292,9 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 }
 
 // GetAffectedFiles returns the affected files between two commits
-func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID string, env []string) ([]string, error) {
+func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldCommitID, newCommitID string, env []string) ([]string, error) {
 	if oldCommitID == emptySha1ObjectID.String() || oldCommitID == emptySha256ObjectID.String() {
-		startCommitID, err := repo.GetCommitBranchStart(env, branchName, newCommitID)
+		startCommitID, err := repo.GetCommitBranchStart(ctx, env, branchName, newCommitID)
 		if err != nil {
 			return nil, err
 		}
@@ -323,7 +323,7 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 			}
 			return scanner.Err()
 		}).
-		Run(repo.Ctx)
+		Run(ctx)
 	if err != nil {
 		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}

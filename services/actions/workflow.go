@@ -85,12 +85,12 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	var runTargetCommit *git.Commit
 	var err error
 	if refName.IsTag() {
-		runTargetCommit, err = gitRepo.GetTagCommit(refName.TagName())
+		runTargetCommit, err = gitRepo.GetTagCommit(ctx, refName.TagName())
 	} else if refName.IsBranch() {
-		runTargetCommit, err = gitRepo.GetBranchCommit(refName.BranchName())
+		runTargetCommit, err = gitRepo.GetBranchCommit(ctx, refName.BranchName())
 	} else {
 		refName = git.RefNameFromBranch(ref)
-		runTargetCommit, err = gitRepo.GetBranchCommit(ref)
+		runTargetCommit, err = gitRepo.GetBranchCommit(ctx, ref)
 	}
 	if err != nil {
 		return 0, util.ErrorWrapTranslatable(
@@ -183,7 +183,7 @@ func resolveDispatchWorkflowContent(ctx reqctx.RequestContext, repo *repo_model.
 	}
 	for _, e := range entries {
 		if e.Name() == workflowID {
-			return actions.GetContentFromEntry(gitRepo, e)
+			return actions.GetContentFromEntry(ctx, gitRepo, e)
 		}
 	}
 	return nil, util.ErrorWrapTranslatable(

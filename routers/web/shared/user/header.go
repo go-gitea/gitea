@@ -116,7 +116,7 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 		return nil, nil
 	}
 
-	commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch)
+	commit, err := profileGitRepo.GetBranchCommit(ctx, profileDbRepo.DefaultBranch)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to GetBranchCommit: %v", err)
 		return nil, nil

@@ -63,7 +63,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	}
 
 	// Get the commit of the original branch
-	commit, err := t.GetBranchCommit(opts.OldBranch)
+	commit, err := t.GetBranchCommit(ctx, opts.OldBranch)
 	if err != nil {
 		return nil, err // Couldn't get a commit for the branch
 	}
@@ -72,7 +72,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	if opts.LastCommitID == "" {
 		opts.LastCommitID = commit.ID.String()
 	} else {
-		lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
+		lastCommitID, err := t.gitRepo.ConvertToGitID(ctx, opts.LastCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("CherryPick: Invalid last commit ID: %w", err)
 		}
@@ -85,7 +85,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 		}
 	}
 
-	commit, err = t.GetCommit(strings.TrimSpace(opts.Content))
+	commit, err = t.GetCommit(ctx, strings.TrimSpace(opts.Content))
 	if err != nil {
 		return nil, err
 	}
@@ -142,12 +142,12 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 		return nil, err
 	}
 
-	commit, err = t.GetCommit(commitHash)
+	commit, err = t.GetCommit(ctx, commitHash)
 	if err != nil {
 		return nil, err
 	}
 
-	fileCommitResponse, _ := GetFileCommitResponse(repo, gitRepo, commit) // ok if fails, then will be nil
+	fileCommitResponse, _ := GetFileCommitResponse(ctx, repo, gitRepo, commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(ctx, commit)
 	fileResponse := &structs.FileResponse{
 		Commit:       fileCommitResponse,

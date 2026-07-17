@@ -87,7 +87,7 @@ func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
 
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
 		ctx.NotFound(nil)
@@ -181,9 +181,9 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 	var commit *git.Commit
 	var err error
 	if refName.IsTag() {
-		commit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
+		commit, err = ctx.Repo.GitRepo.GetTagCommit(ctx, refName.TagName())
 	} else if refName.IsBranch() {
-		commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
+		commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, refName.BranchName())
 	} else {
 		ctx.ServerError("UnsupportedRefType", nil)
 		return
@@ -215,7 +215,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 	workflows = make([]WorkflowInfo, 0, len(entries))
 	for _, entry := range entries {
 		workflow := WorkflowInfo{EntryName: entry.Name()}
-		content, err := actions.GetContentFromEntry(ctx.Repo.GitRepo, entry)
+		content, err := actions.GetContentFromEntry(ctx, ctx.Repo.GitRepo, entry)
 		if err != nil {
 			ctx.ServerError("GetContentFromEntry", err)
 			return nil, ""

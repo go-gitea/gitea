@@ -19,6 +19,23 @@ import (
 	"gitea.dev/modules/proxy"
 )
 
+type RepositoryFacade interface {
+	RelativePath() string
+}
+
+type RepositoryBase struct {
+	Path string
+
+	LastCommitCache *LastCommitCache
+
+	tagCache          *ObjectCache[*Tag]
+	objectFormatCache ObjectFormat
+}
+
+func prepareRepositoryBase(repoPath string) RepositoryBase {
+	return RepositoryBase{Path: repoPath, tagCache: newObjectCache[*Tag]()}
+}
+
 const prettyLogFormat = `--pretty=format:%H`
 
 func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
@@ -29,10 +46,10 @@ func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionR
 	if err != nil {
 		return nil, err
 	}
-	return repo.parsePrettyFormatLogToList(logs)
+	return repo.parsePrettyFormatLogToList(ctx, logs)
 }
 
-func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
+func (repo *Repository) parsePrettyFormatLogToList(ctx context.Context, logs []byte) ([]*Commit, error) {
 	var commits []*Commit
 	if len(logs) == 0 {
 		return commits, nil
@@ -41,7 +58,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 	parts := bytes.SplitSeq(logs, []byte{'\n'})
 
 	for commitID := range parts {
-		commit, err := repo.GetCommit(string(commitID))
+		commit, err := repo.GetCommit(ctx, string(commitID))
 		if err != nil {
 			return nil, err
 		}
@@ -81,12 +98,12 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 }
 
 // IsEmpty Check if repository is empty.
-func (repo *Repository) IsEmpty() (bool, error) {
+func (repo *Repository) IsEmpty(ctx context.Context) (bool, error) {
 	stdout, _, err := gitcmd.NewCommand().
 		AddOptionFormat("--git-dir=%s", repo.Path).
 		AddArguments("rev-list", "-n", "1", "--all").
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	if err != nil {
 		if (gitcmd.IsErrorExitCode(err, 1) && err.Stderr() == "") || gitcmd.IsErrorExitCode(err, 129) {
 			// git 2.11 exits with 129 if the repo is empty

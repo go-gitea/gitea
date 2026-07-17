@@ -57,7 +57,7 @@ func getClosestParentWithFiles(ctx context.Context, gitRepo *git.Repository, bra
 		}
 		return treePath
 	}
-	commit, err := gitRepo.GetBranchCommit(branchName) // must get the commit again to get the latest change
+	commit, err := gitRepo.GetBranchCommit(ctx, branchName) // must get the commit again to get the latest change
 	if err != nil {
 		log.Error("GetBranchCommit: %v", err)
 		return ""

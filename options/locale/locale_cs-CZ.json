@@ -2826,7 +2826,6 @@
   "admin.config.default_enable_timetracking": "Povolit sledování času ve výchozím nastavení",
   "admin.config.default_allow_only_contributors_to_track_time": "Povolit sledování času pouze přispěvatelům",
   "admin.config.no_reply_address": "Skrytá e-mailová doména",
-  "admin.config.default_visibility_organization": "Výchozí viditelnost pro nové organizace",
   "admin.config.default_enable_dependencies": "Povolit závislosti úkolů ve výchozím stavu",
   "admin.config.webhook_config": "Nastavení webových háčků",
   "admin.config.queue_length": "Délka fronty",

@@ -2823,7 +2823,6 @@
   "admin.config.default_enable_timetracking": "Habilitar o Cronômetro por Padrão",
   "admin.config.default_allow_only_contributors_to_track_time": "Permitir que Apenas os Colaboradores Acompanhem o Cronômetro",
   "admin.config.no_reply_address": "Ocultar Domínio de E-mail",
-  "admin.config.default_visibility_organization": "Visibilidade padrão para novas organizações",
   "admin.config.webhook_config": "Configuração de Hook da Web",
   "admin.config.queue_length": "Tamanho da Fila",
   "admin.config.deliver_timeout": "Intervalo de Entrega",

@@ -811,7 +811,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		gitRepo, err := git.OpenRepository(dstPath)
 		require.NoError(t, err)
 
 		defer gitRepo.Close()
@@ -848,7 +848,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 				Message: "Testing commit 1",
 			})
 			assert.NoError(t, err)
-			commit, err = gitRepo.GetRefCommitID("HEAD")
+			commit, err = gitRepo.GetRefCommitID(t.Context(), "HEAD")
 			assert.NoError(t, err)
 		})
 
@@ -920,7 +920,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 				Message: "Testing commit 2",
 			})
 			assert.NoError(t, err)
-			commit, err = gitRepo.GetRefCommitID("HEAD")
+			commit, err = gitRepo.GetRefCommitID(t.Context(), "HEAD")
 			assert.NoError(t, err)
 		})
 
