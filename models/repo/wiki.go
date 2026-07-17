@@ -79,8 +79,8 @@ func RelativeWikiPath(ownerName, repoName string) string {
 	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".wiki.git"
 }
 
-// WikiStorageRepo returns the storage repo for the wiki
-// The wiki repository should have the same object format as the code repository
+// WikiStorageRepo returns the storage repo for the wiki like "owner-name/repo-name.wiki.git"
+// The wiki repository should have the same object format as the code repository. TODO: REALLY? Why?
 func (repo *Repository) WikiStorageRepo() StorageRepo {
 	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name))
 }
