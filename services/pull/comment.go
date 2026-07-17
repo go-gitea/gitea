@@ -106,12 +106,12 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 
 	oldCommitID := oldRef
 	if !git.IsEmptyCommitID(oldRef) {
-		oldCommitID, err = gitRepo.GetRefCommitID(oldRef)
+		oldCommitID, err = gitRepo.GetRefCommitID(ctx, oldRef)
 		if err != nil {
 			return nil, false, err
 		}
 	}
-	newCommitID, err := gitRepo.GetRefCommitID(newRef)
+	newCommitID, err := gitRepo.GetRefCommitID(ctx, newRef)
 	if err != nil {
 		return nil, false, err
 	}

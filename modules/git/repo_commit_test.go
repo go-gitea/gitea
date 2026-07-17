@@ -18,7 +18,7 @@ import (
 
 func TestRepository_GetCommitBranches(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -35,9 +35,9 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 		{"master", []string{"master"}},
 	}
 	for _, testCase := range testCases {
-		commit, err := bareRepo1.GetCommit(testCase.CommitID)
+		commit, err := bareRepo1.GetCommit(t.Context(), testCase.CommitID)
 		assert.NoError(t, err)
-		branches, err := bareRepo1.getBranches(nil, commit.ID.String(), 2)
+		branches, err := bareRepo1.getBranches(t.Context(), nil, commit.ID.String(), 2)
 		assert.NoError(t, err)
 		assert.Equal(t, testCase.ExpectedBranches, branches)
 	}
@@ -45,12 +45,12 @@ func TestRepository_GetCommitBranches(t *testing.T) {
 
 func TestGetTagCommitWithSignature(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
 	// both the tag and the commit are signed here, this validates only the commit signature
-	commit, err := bareRepo1.GetCommit("28b55526e7100924d864dd89e35c1ea62e7a5a32")
+	commit, err := bareRepo1.GetCommit(t.Context(), "28b55526e7100924d864dd89e35c1ea62e7a5a32")
 	assert.NoError(t, err)
 	assert.NotNil(t, commit)
 	assert.NotNil(t, commit.Signature)
@@ -60,11 +60,11 @@ func TestGetTagCommitWithSignature(t *testing.T) {
 
 func TestGetCommitWithBadCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	commit, err := bareRepo1.GetCommit("bad_branch")
+	commit, err := bareRepo1.GetCommit(t.Context(), "bad_branch")
 	assert.Nil(t, commit)
 	assert.Error(t, err)
 	assert.True(t, IsErrNotExist(err))
@@ -72,22 +72,22 @@ func TestGetCommitWithBadCommitID(t *testing.T) {
 
 func TestIsCommitInBranch(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	result, err := bareRepo1.IsCommitInBranch("2839944139e0de9737a044f78b0e4b40d989a9e3", "branch1")
+	result, err := bareRepo1.IsCommitInBranch(t.Context(), "2839944139e0de9737a044f78b0e4b40d989a9e3", "branch1")
 	assert.NoError(t, err)
 	assert.True(t, result)
 
-	result, err = bareRepo1.IsCommitInBranch("2839944139e0de9737a044f78b0e4b40d989a9e3", "branch2")
+	result, err = bareRepo1.IsCommitInBranch(t.Context(), "2839944139e0de9737a044f78b0e4b40d989a9e3", "branch2")
 	assert.NoError(t, err)
 	assert.False(t, result)
 }
 
 func TestRepository_CommitsBetween(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo4_commitsbetween")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -101,7 +101,7 @@ func TestRepository_CommitsBetween(t *testing.T) {
 		{"78a445db1eac62fe15e624e1137965969addf344", "a78e5638b66ccfe7e1b4689d3d5684e42c97d7ca", 1}, // com2 -> com2_new
 	}
 	for i, c := range cases {
-		commits, err := bareRepo1.CommitsBetween(c.NewID, c.OldID, -1)
+		commits, err := bareRepo1.CommitsBetween(t.Context(), c.NewID, c.OldID, -1)
 		assert.NoError(t, err)
 		assert.Len(t, commits, c.ExpectedCommits, "case %d", i)
 	}
@@ -109,7 +109,7 @@ func TestRepository_CommitsBetween(t *testing.T) {
 
 func TestGetRefCommitID(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -125,7 +125,7 @@ func TestGetRefCommitID(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		commitID, err := bareRepo1.GetRefCommitID(testCase.Ref)
+		commitID, err := bareRepo1.GetRefCommitID(t.Context(), testCase.Ref)
 		if assert.NoError(t, err) {
 			assert.Equal(t, testCase.ExpectedCommitID, commitID)
 		}
@@ -136,17 +136,17 @@ func TestCommitsByFileAndRange(t *testing.T) {
 	defer test.MockVariableValue(&setting.Git.CommitsRangeSize, 2)()
 
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	require.NoError(t, err)
 	defer bareRepo1.Close()
 
 	// "foo" has 3 commits in "master" branch
-	commits, hasMore, err := bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 1})
+	commits, hasMore, err := bareRepo1.CommitsByFileAndRange(t.Context(), CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 1})
 	require.NoError(t, err)
 	assert.True(t, hasMore)
 	assert.Len(t, commits, 2)
 
-	commits, hasMore, err = bareRepo1.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 2})
+	commits, hasMore, err = bareRepo1.CommitsByFileAndRange(t.Context(), CommitsByFileAndRangeOptions{Revision: "master", File: "foo", Page: 2})
 	require.NoError(t, err)
 	assert.Len(t, commits, 1)
 	assert.False(t, hasMore)
@@ -179,14 +179,14 @@ M 100644 :1 b.txt
 	`))).RunStdString(t.Context())
 	require.NoError(t, runErr)
 
-	repoFollowRename, err := OpenRepository(t.Context(), repoFollowRenameDir)
+	repoFollowRename, err := OpenRepository(repoFollowRenameDir)
 	require.NoError(t, err)
 	defer repoFollowRename.Close()
 
-	commits, _, err = repoFollowRename.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "b.txt", Page: 1})
+	commits, _, err = repoFollowRename.CommitsByFileAndRange(t.Context(), CommitsByFileAndRangeOptions{Revision: "master", File: "b.txt", Page: 1})
 	require.NoError(t, err)
 	assert.Len(t, commits, 1)
-	commits, _, err = repoFollowRename.CommitsByFileAndRange(CommitsByFileAndRangeOptions{Revision: "master", File: "b.txt", Page: 1, FollowRename: true})
+	commits, _, err = repoFollowRename.CommitsByFileAndRange(t.Context(), CommitsByFileAndRangeOptions{Revision: "master", File: "b.txt", Page: 1, FollowRename: true})
 	require.NoError(t, err)
 	assert.Len(t, commits, 2)
 }

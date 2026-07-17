@@ -39,6 +39,7 @@ type CatFileBatch interface {
 
 type CatFileBatchCloser interface {
 	CatFileBatch
+	Context() context.Context
 	Close()
 }
 

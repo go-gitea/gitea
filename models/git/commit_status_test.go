@@ -186,11 +186,11 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo2)
+	gitRepo, err := gitrepo.OpenRepository(repo2)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	commit, err := gitRepo.GetBranchCommit(repo2.DefaultBranch)
+	commit, err := gitRepo.GetBranchCommit(t.Context(), repo2.DefaultBranch)
 	assert.NoError(t, err)
 
 	defer func() {

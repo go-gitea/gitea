@@ -3203,7 +3203,6 @@
   "admin.config.default_enable_timetracking": "Varsayılan Olarak Zaman İzlemeyi Etkinleştir",
   "admin.config.default_allow_only_contributors_to_track_time": "Yalnızca Katkıda Bulunanlar Zaman İzlesin",
   "admin.config.no_reply_address": "Gizlenmiş E-Postalar için Alan Adı",
-  "admin.config.default_visibility_organization": "Yeni organizasyonlar için varsayılan görünürlük",
   "admin.config.default_enable_dependencies": "Konu Bağımlılıklarını Varsayılan Olarak Etkinleştir",
   "admin.config.webhook_config": "Web İstemcileri Yapılandırması",
   "admin.config.queue_length": "Kuyruk Uzunluğu",

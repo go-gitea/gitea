@@ -72,6 +72,9 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
 func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoName string) (*repo_model.Repository, error) {
+	if authUser == nil {
+		return nil, errors.New("cannot push-create repository anonymously")
+	}
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
 			if ok, err := organization.CanCreateOrgRepo(ctx, owner.ID, authUser.ID); err != nil {

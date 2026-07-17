@@ -25,11 +25,11 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {
 		storage := &mockRepository{path: "repo5_pulls_sha256"}
-		repo, err := OpenRepository(ctx, storage)
+		repo, err := OpenRepository(storage)
 		assert.NoError(t, err)
 		defer repo.Close()
 
-		commit, err := repo.GetCommit("0b69b7bb649b5d46e14cabb6468685e5dd721290acc7ffe604d37cde57927345")
+		commit, err := repo.GetCommit(t.Context(), "0b69b7bb649b5d46e14cabb6468685e5dd721290acc7ffe604d37cde57927345")
 		assert.NoError(t, err)
 
 		parts := []*BlamePart{
@@ -71,7 +71,7 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 
 	t.Run("With .git-blame-ignore-revs", func(t *testing.T) {
 		storage := &mockRepository{path: "repo6_blame_sha256"}
-		repo, err := OpenRepository(ctx, storage)
+		repo, err := OpenRepository(storage)
 		assert.NoError(t, err)
 		defer repo.Close()
 
@@ -129,10 +129,10 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 			},
 		}
 
-		objectFormat, err := repo.GetObjectFormat()
+		objectFormat, err := repo.GetObjectFormat(t.Context())
 		assert.NoError(t, err)
 		for _, c := range cases {
-			commit, err := repo.GetCommit(c.CommitID)
+			commit, err := repo.GetCommit(t.Context(), c.CommitID)
 			assert.NoError(t, err)
 			blameReader, err := CreateBlameReader(ctx, objectFormat, storage, repo, commit, "blame.txt", c.Bypass)
 			assert.NoError(t, err)

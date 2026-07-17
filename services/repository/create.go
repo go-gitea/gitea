@@ -84,7 +84,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		return fmt.Errorf("GetRepoInitFile[%s]: %w", opts.Readme, err)
 	}
 
-	cloneLink := repo.CloneLink(ctx, nil /* no doer so do not generate user-related SSH link */)
+	cloneLink := repo.CloneLinkGeneral(ctx)
 	match := map[string]string{
 		"Name":           repo.Name,
 		"Description":    util.NormalizeStringEOL(repo.Description),

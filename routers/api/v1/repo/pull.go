@@ -1107,7 +1107,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		headGitRepo = ctx.Repo.GitRepo
 		closer = func() {} // no need to close the head repo because it shares the base repo
 	} else {
-		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
+		headGitRepo, err = gitrepo.OpenRepository(headRepo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return nil, nil
@@ -1146,12 +1146,12 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	baseRef, err := common.ResolveRefWithSuffix(ctx.Repo.GitRepo, util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx)), compareReq.BaseOriRefSuffix)
+	baseRef, err := common.ResolveRefWithSuffix(ctx, ctx.Repo.GitRepo, util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx)), compareReq.BaseOriRefSuffix)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil, nil
 	}
-	headRef, err := common.ResolveRefWithSuffix(headGitRepo, util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch), compareReq.HeadOriRefSuffix)
+	headRef, err := common.ResolveRefWithSuffix(ctx, headGitRepo, util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch), compareReq.HeadOriRefSuffix)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil, nil
@@ -1570,7 +1570,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

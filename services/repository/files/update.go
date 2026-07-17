@@ -202,7 +202,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	if hasOldBranch {
 		// Get the commit of the original branch
-		commit, err := t.GetBranchCommit(opts.OldBranch)
+		commit, err := t.GetBranchCommit(ctx, opts.OldBranch)
 		if err != nil {
 			return nil, err // Couldn't get a commit for the branch
 		}
@@ -211,7 +211,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		if opts.LastCommitID == "" {
 			opts.LastCommitID = commit.ID.String()
 		} else {
-			lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
+			lastCommitID, err := t.gitRepo.ConvertToGitID(ctx, opts.LastCommitID)
 			if err != nil {
 				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %w", err)
 			}
@@ -282,7 +282,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return nil, err
 	}
 
-	commit, err := t.GetCommit(commitHash)
+	commit, err := t.GetCommit(ctx, commitHash)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +295,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	if repo.IsEmpty {
-		if isEmpty, err := gitRepo.IsEmpty(); err == nil && !isEmpty {
+		if isEmpty, err := gitRepo.IsEmpty(ctx); err == nil && !isEmpty {
 			_ = repo_model.UpdateRepositoryColsWithAutoTime(ctx, &repo_model.Repository{ID: repo.ID, IsEmpty: false, DefaultBranch: opts.NewBranch}, "is_empty", "default_branch")
 		}
 	}
@@ -391,7 +391,7 @@ func handleCheckErrors(ctx context.Context, file *ChangeRepoFile, gitRepo *git.R
 			// If a lastCommitID given doesn't match the branch head's commitID throw
 			// an error, but only if we aren't creating a new branch.
 			if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
-				if changed, err := commit.FileChangedSinceCommit(gitRepo, file.Options.treePath, opts.LastCommitID); err != nil {
+				if changed, err := commit.FileChangedSinceCommit(ctx, gitRepo, file.Options.treePath, opts.LastCommitID); err != nil {
 					return err
 				} else if changed {
 					return ErrCommitIDDoesNotMatch{
@@ -592,7 +592,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 	if err != nil {
 		return nil, err
 	}
-	commit, err := t.GetCommit(lastCommitID)
+	commit, err := t.GetCommit(ctx, lastCommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -619,7 +619,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 	}
 
 	oldEntryBlobPointerBy := func(f func(r io.Reader) (lfs.Pointer, error)) (lfsPointer lfs.Pointer, err error) {
-		r, err := oldEntry.Blob(t.gitRepo).DataAsync()
+		r, err := oldEntry.Blob(t.gitRepo).DataAsync(ctx)
 		if err != nil {
 			return lfsPointer, err
 		}
@@ -645,7 +645,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 		if err != nil {
 			return nil, err
 		}
-		ret.LfsContent, err = oldEntry.Blob(t.gitRepo).DataAsync()
+		ret.LfsContent, err = oldEntry.Blob(t.gitRepo).DataAsync(ctx)
 		if err != nil {
 			return nil, err
 		}

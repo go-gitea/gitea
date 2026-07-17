@@ -2600,7 +2600,6 @@
   "admin.config.default_enable_timetracking": "Pēc noklusējuma iespējot laika uzskaiti",
   "admin.config.default_allow_only_contributors_to_track_time": "Atļaut tikai dalībniekiem uzskaitīt laiku",
   "admin.config.no_reply_address": "Neatbildēt e-pasta adreses domēns",
-  "admin.config.default_visibility_organization": "Noklusētā redzamība jaunām organizācijām",
   "admin.config.default_enable_dependencies": "Pēc noklusējuma iespējot problēmu atkarības",
   "admin.config.webhook_config": "Tīkla āķu konfigurācija",
   "admin.config.queue_length": "Rindas garums",

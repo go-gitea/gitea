@@ -17,13 +17,13 @@ var testReposDir = "tests/repos/"
 func TestVerifyCommits(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	gitRepo, err := git.OpenRepository(t.Context(), testReposDir+"repo1_hook_verification")
+	gitRepo, err := git.OpenRepository(testReposDir + "repo1_hook_verification")
 	if err != nil {
 		defer gitRepo.Close()
 	}
 	assert.NoError(t, err)
 
-	objectFormat, err := gitRepo.GetObjectFormat()
+	objectFormat, err := gitRepo.GetObjectFormat(t.Context())
 	assert.NoError(t, err)
 
 	testCases := []struct {
@@ -37,7 +37,7 @@ func TestVerifyCommits(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		err = verifyCommits(tc.base, tc.head, gitRepo, nil)
+		err = verifyCommits(t.Context(), tc.base, tc.head, gitRepo, nil)
 		if tc.verified {
 			assert.NoError(t, err)
 		} else {
