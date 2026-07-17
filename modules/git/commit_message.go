@@ -115,6 +115,7 @@ func CommitMessageMerge(m1, m2 string) string {
 	}
 	if t1 != "" || t2 != "" {
 		sep := util.Iif(t1 == "", s2, s1)
+		sep = util.IfZero(sep, "\n\n")
 		if c1 != "" || c2 != "" {
 			out.WriteString(sep)
 		}

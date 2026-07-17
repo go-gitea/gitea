@@ -142,6 +142,8 @@ func TestCommitMessageMerge(t *testing.T) {
 		{"k1: a", "", "k1: a"},
 		{"", "k2: b", "k2: b"},
 		{"k1: a", "k2: b", "k1: a\nk2: b"},
+		{"msg1", "k2: b", "msg1\n\nk2: b"},
+		{"k1: a", "msg2", "msg2\n\nk1: a"},
 		{"msg1\n\nk1: a", "msg2", "msg1\n\nmsg2\n\nk1: a"},
 		{"msg1\n----\nk1: a", "msg2", "msg1\n\nmsg2\n----\nk1: a"},
 		{"msg1\n\n----\n\nk1: a", "msg2", "msg1\n\nmsg2\n\n----\n\nk1: a"},
