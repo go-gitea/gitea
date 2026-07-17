@@ -26,9 +26,9 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["PageType"] = "general"
 	ctx.Data["PageIsActionsSettingsGeneral"] = true
 
-type ActionsTokenPermissionForm struct {
-	TokenMode string `form:"token_mode" binding:"Required;AlphaDashDot"`
-}
+	type ActionsTokenPermissionForm struct {
+		TokenMode string `form:"token_mode" binding:"Required;AlphaDashDot"`
+	}
 	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
 	if err != nil && !repo_model.IsErrUnitTypeNotExist(err) {
 		ctx.ServerError("GetUnit", err)

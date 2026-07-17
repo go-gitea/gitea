@@ -153,21 +153,21 @@ const (
 
 // Repository represents a git repository.
 type Repository struct {
-	ID                  int64 `xorm:"pk autoincr"`
-	OwnerID             int64 `xorm:"UNIQUE(s) index"`
-	OwnerName           string
-	Owner               *user_model.User   `xorm:"-"`
-	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name                string             `xorm:"INDEX NOT NULL"`
-	Description         string             `xorm:"TEXT"`
-	Website             string             `xorm:"VARCHAR(2048)"`
-	OriginalServiceType api.GitServiceType `xorm:"index"`
-	OriginalURL         string             `xorm:"VARCHAR(2048)"`
-	DefaultBranch       string
-	DefaultWikiBranch   string
-  DefaultActionsTokenPermission string `xorm:"VARCHAR(50) DEFAULT 'permissive'"`
- MaxTokenPermissionsMap        string `xorm:"TEXT"`
-  
+	ID                            int64 `xorm:"pk autoincr"`
+	OwnerID                       int64 `xorm:"UNIQUE(s) index"`
+	OwnerName                     string
+	Owner                         *user_model.User   `xorm:"-"`
+	LowerName                     string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name                          string             `xorm:"INDEX NOT NULL"`
+	Description                   string             `xorm:"TEXT"`
+	Website                       string             `xorm:"VARCHAR(2048)"`
+	OriginalServiceType           api.GitServiceType `xorm:"index"`
+	OriginalURL                   string             `xorm:"VARCHAR(2048)"`
+	DefaultBranch                 string
+	DefaultWikiBranch             string
+	DefaultActionsTokenPermission string `xorm:"VARCHAR(50) DEFAULT 'permissive'"`
+	MaxTokenPermissionsMap        string `xorm:"TEXT"`
+
 	NumWatches          int
 	NumStars            int
 	NumForks            int
@@ -213,7 +213,6 @@ type Repository struct {
 	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
 	Topics                          []string           `xorm:"TEXT JSON"`
 	ObjectFormatName                string             `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
-
 
 	TrustModel TrustModelType
 
