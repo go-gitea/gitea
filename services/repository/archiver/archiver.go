@@ -161,9 +161,9 @@ func (aReq *ArchiveRequest) Stream(ctx context.Context, w io.Writer) error {
 	return gitrepo.CreateArchive(
 		ctx,
 		aReq.Repo,
+		aReq.Repo.Name,
 		aReq.Type.String(),
 		w,
-		setting.Repository.PrefixArchiveFiles,
 		aReq.CommitID,
 		aReq.Paths,
 	)

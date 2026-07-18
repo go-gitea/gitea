@@ -15,14 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type mockRepository struct {
-	path string
-}
-
-func (r *mockRepository) RelativePath() string {
-	return r.path
-}
-
 func TestMergeBaseNoCommonHistory(t *testing.T) {
 	repoDir := filepath.Join(t.TempDir(), "repo.git")
 	require.NoError(t, gitcmd.NewCommand("init").AddDynamicArguments(repoDir).Run(t.Context()))
@@ -44,13 +36,13 @@ data 12
 Hello from 2
 `))).RunStdString(t.Context())
 	require.NoError(t, runErr)
-	mergeBase, err := MergeBase(t.Context(), &mockRepository{path: repoDir}, "branch1", "branch2")
+	mergeBase, err := MergeBase(t.Context(), mockRepository(repoDir), "branch1", "branch2")
 	assert.Empty(t, mergeBase)
 	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func TestRepoGetDivergingCommits(t *testing.T) {
-	repo := &mockRepository{path: "repo1_bare"}
+	repo := mockRepository("repo1_bare")
 	do, err := GetDivergingCommits(t.Context(), repo, "master", "branch2")
 	assert.NoError(t, err)
 	assert.Equal(t, &DivergeObject{
@@ -74,7 +66,7 @@ func TestRepoGetDivergingCommits(t *testing.T) {
 }
 
 func TestGetCommitIDsBetweenReverse(t *testing.T) {
-	repo := &mockRepository{path: "repo1_bare"}
+	repo := mockRepository("repo1_bare")
 
 	// tests raw commit IDs
 	commitIDs, err := GetCommitIDsBetweenReverse(t.Context(), repo,

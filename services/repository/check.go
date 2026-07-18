@@ -95,7 +95,7 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
-		return fmt.Errorf("Repository garbage collection failed in repo: %s: Error: %w", repo.RelativePath(), err)
+		return fmt.Errorf("repository garbage collection failed in repo: %s, error: %w", repo.FullName(), err)
 	}
 
 	// Now update the size of the repository
@@ -105,7 +105,7 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
-		return fmt.Errorf("Updating size as part of garbage collection failed in repo: %s: Error: %w", repo.RelativePath(), err)
+		return fmt.Errorf("updating size as part of garbage collection failed in repo: %s, error: %w", repo.FullName(), err)
 	}
 
 	return nil
@@ -190,7 +190,7 @@ func ReinitMissingRepositories(ctx context.Context) error {
 		}
 		log.Trace("Initializing %d/%d...", repo.OwnerID, repo.ID)
 		if err := gitrepo.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
-			log.Error("Unable (re)initialize repository %d at %s. Error: %v", repo.ID, repo.RelativePath(), err)
+			log.Error("Unable (re)initialize repository %d at %s. Error: %v", repo.ID, repo.FullName(), err)
 			if err2 := system_model.CreateRepositoryNotice("InitRepository (%s) [%d]: %v", repo.FullName(), repo.ID, err); err2 != nil {
 				log.Error("CreateRepositoryNotice: %v", err2)
 			}

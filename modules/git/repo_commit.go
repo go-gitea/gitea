@@ -45,6 +45,38 @@ func (repo *Repository) GetTagCommit(ctx context.Context, name string) (*Commit,
 	return repo.GetCommit(ctx, RefNameFromTag(name).String())
 }
 
+const prettyLogFormat = `--pretty=format:%H`
+
+func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
+	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
+	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
+		AddDynamicArguments(revisionRange).AddArguments("--").WithDir(repo.Path).
+		RunStdBytes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(ctx, logs)
+}
+
+func (repo *Repository) parsePrettyFormatLogToList(ctx context.Context, logs []byte) ([]*Commit, error) {
+	var commits []*Commit
+	if len(logs) == 0 {
+		return commits, nil
+	}
+
+	parts := bytes.SplitSeq(logs, []byte{'\n'})
+
+	for commitID := range parts {
+		commit, err := repo.GetCommit(ctx, string(commitID))
+		if err != nil {
+			return nil, err
+		}
+		commits = append(commits, commit)
+	}
+
+	return commits, nil
+}
+
 func (repo *Repository) getCommitByPathWithID(ctx context.Context, id ObjectID, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
 	if strings.HasPrefix(relpath, ":") {

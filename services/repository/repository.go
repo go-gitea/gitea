@@ -334,7 +334,7 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 	repo := repo_model.StorageRepo(repo_model.RelativePath(owner.Name, name))
 	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.RelativePath(), err)
+		log.Error("Unable to check if repo %s/%s exists, error: %v", owner.Name, name, err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {

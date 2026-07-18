@@ -64,7 +64,7 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 			if run.IsScopedRun {
 				// A scoped workflow's cross-repo "uses:" is resolved with the consuming repo's read permission,
 				// so the referenced repo must be readable by every consumer. Make that explicit in the failure.
-				return nil, 0, "", fmt.Errorf("no permission to read reusable workflow %s/%s: a scoped workflow's cross-repo \"uses:\" is resolved with the consuming repository %q read permission", ref.Owner, ref.Repo, run.Repo.RelativePath())
+				return nil, 0, "", fmt.Errorf("no permission to read reusable workflow %s/%s: a scoped workflow's cross-repo \"uses:\" is resolved with the consuming repository %q read permission", ref.Owner, ref.Repo, run.Repo.FullName())
 			}
 			return nil, 0, "", fmt.Errorf("no permission to read reusable workflow from %s/%s", ref.Owner, ref.Repo)
 		}

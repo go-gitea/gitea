@@ -10,7 +10,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	giturl "gitea.dev/modules/git/url"
-	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/util"
 )
 
@@ -22,7 +21,7 @@ const (
 )
 
 func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL string, options ...RemoteOption) error {
-	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
+	return git.LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
 		cmd := gitcmd.NewCommand("remote", "add")
 		if len(options) > 0 {
 			switch options[0] {
@@ -40,7 +39,7 @@ func GitRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL st
 }
 
 func GitRemoteRemove(ctx context.Context, repo Repository, remoteName string) error {
-	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
+	return git.LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
 		cmd := gitcmd.NewCommand("remote", "rm").AddDynamicArguments(remoteName)
 		_, _, err := RunCmdString(ctx, repo, cmd)
 		return err
