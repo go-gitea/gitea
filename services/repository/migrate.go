@@ -36,12 +36,12 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 	storageRepo := repo.WikiStorageRepo()
 
 	if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
-		return "", fmt.Errorf("failed to remove existing wiki dir %q, err: %w", storageRepo.RelativePath(), err)
+		return "", fmt.Errorf("failed to remove existing wiki for repo %q, err: %w", repo.FullName(), err)
 	}
 
 	cleanIncompleteWikiPath := func() {
 		if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
-			log.Error("Failed to remove incomplete wiki dir %q, err: %v", storageRepo.RelativePath(), err)
+			log.Error("Failed to remove incomplete wiki for repo %q, err: %v", repo.FullName(), err)
 		}
 	}
 	if err := gitrepo.CloneExternalRepo(ctx, wikiRemoteURL, storageRepo, git.CloneRepoOptions{
@@ -63,7 +63,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 	defaultBranch, err := gitrepo.GetDefaultBranch(ctx, storageRepo)
 	if err != nil {
 		cleanIncompleteWikiPath()
-		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", storageRepo.RelativePath(), err)
+		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", repo.FullName(), err)
 	}
 
 	return defaultBranch, nil

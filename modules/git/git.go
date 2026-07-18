@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/tempdir"
@@ -194,4 +195,12 @@ func runGitTests(m interface{ Run() int }) int {
 		return testlogger.MainErrorf("failed to call Init: %v", err)
 	}
 	return m.Run()
+}
+
+func LockConfigAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
+	return globallock.LockAndDo(ctx, "repo-config:"+repo.GitRepoUniqueID(), fn)
+}
+
+func LockWriteAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
+	return globallock.LockAndDo(ctx, "repo-write:"+repo.GitRepoUniqueID(), fn)
 }

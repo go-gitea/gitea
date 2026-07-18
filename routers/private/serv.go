@@ -318,7 +318,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		}
 	}
 
-	results.RepoStoragePath = util.Iif(results.IsWiki, repo_model.RelativeWikiPath(repo.OwnerName, repo.Name), repo.RelativePath())
+	results.RepoStoragePath = util.Iif(results.IsWiki, repo_model.RelativeWikiPath(repo.OwnerName, repo.Name), repo.GitRepoLocation())
 	log.Debug("Serv Results: %+v", results)
 	ctx.JSON(http.StatusOK, results)
 	// We will update the keys in a different call.

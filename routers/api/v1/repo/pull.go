@@ -1157,7 +1157,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), compareReq.BaseOriRef+compareReq.BaseOriRefSuffix, baseRef, compareReq.HeadOriRef+compareReq.HeadOriRefSuffix, headRef)
+	log.Trace("Repo: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.FullName(), compareReq.BaseOriRef+compareReq.BaseOriRefSuffix, baseRef, compareReq.HeadOriRef+compareReq.HeadOriRefSuffix, headRef)
 
 	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
 	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())

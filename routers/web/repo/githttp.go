@@ -418,7 +418,8 @@ func serviceRPC(ctx *context.Context, service string) {
 		WithStdoutCopy(ctx.Resp),
 	); err != nil {
 		if !gitcmd.IsErrorCanceledOrKilled(err) {
-			log.Error("Fail to serve RPC(%s) in %s: %v", service, h.getStorageRepo().RelativePath(), err)
+			repoLogName := h.repo.FullName() + util.Iif(h.isWiki, ".wiki", "")
+			log.Error("Fail to serve RPC(%s) for repo %s: %v", service, repoLogName, err)
 		}
 	}
 }
