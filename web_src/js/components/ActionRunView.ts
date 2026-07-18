@@ -165,7 +165,7 @@ export function createActionRunViewStore(viewUrl: string) {
     try {
       const resp = await POST(viewUrl, {
         signal: abortController.signal,
-        // Tell the server which summaries we already hold so it can skip re-sending unchanged ones.
+        // Let the server skip re-sending summaries we already hold.
         data: {jobSummariesVersion: viewData.currentRun.jobSummariesVersion},
       });
       const runResp = await resp.json();
@@ -173,7 +173,7 @@ export function createActionRunViewStore(viewUrl: string) {
 
       viewData.runArtifacts = runResp.artifacts || [];
       const newRun = runResp.state.run;
-      // Summaries are only re-sent when their version changes; otherwise keep the ones we already rendered.
+      // Unchanged version: keep the summaries we already rendered (server omitted them).
       if (newRun.jobSummariesVersion === viewData.currentRun.jobSummariesVersion) {
         newRun.jobSummaries = viewData.currentRun.jobSummaries;
       }

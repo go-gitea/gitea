@@ -192,15 +192,10 @@ WHEN NOT MATCHED THEN
 	return util.ErrInvalidArgument
 }
 
-// GetActionRunJobSummariesVersion returns a cheap fingerprint of the stored summaries for a run
-// attempt, using the same optional jobID scoping as ListActionRunJobSummaries. It is computed
-// entirely in the database — no summary content is loaded — so the run view poll can detect whether
-// any summary was inserted, updated or deleted without re-reading and re-rendering every row.
-// An empty string means there are no summaries.
-//
-// The fingerprint combines row count, latest update time and total content size. This misses a
-// same-second, same-length content edit of an existing step, which is acceptable at the poll's
-// one-second granularity and second-resolution timestamps.
+// GetActionRunJobSummariesVersion returns a cheap DB-side fingerprint of a run attempt's summaries
+// (same optional jobID scoping as ListActionRunJobSummaries) so the poll can tell whether any summary
+// changed without loading content. Empty means no summaries. Combining count, latest update time and
+// total size misses only a same-second, same-length edit — within the 1s poll's own granularity.
 func GetActionRunJobSummariesVersion(ctx context.Context, repoID, runID, runAttemptID, jobID int64) (string, error) {
 	sess := db.GetEngine(ctx).Table(new(ActionRunJobSummary)).
 		Where("repo_id=? AND run_id=? AND run_attempt_id=?", repoID, runID, runAttemptID)
