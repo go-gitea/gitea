@@ -495,16 +495,16 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	// pre-fetch the blob info & content
 	// * for "bin" type: need the pre-fetched buffer to detect content type (e.g.: help to render image diff)
 	// * for "text" type: need to read up to "highlight limit size" to do full-file-highlighting
-	contentLimit := util.Iif(diffFile.IsBin, 1024, MaxFullFileHighlightSizeLimit)
+	contentLimit := util.Iif(diffFile.IsBin, typesniffer.SniffContentSize, MaxFullFileHighlightSizeLimit)
 	var leftLineCount, rightLineCount int
 	var leftBlobType, rightBlobType typesniffer.SniffedType
 	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
-		c := getCommitFileLineCountAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName, contentLimit)
+		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName, contentLimit)
 		diffFile.LeftBlob, diffFile.LeftBlobSize, leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		leftBlobType = typesniffer.DetectContentType(ret.leftContent.buf.Bytes())
 	}
 	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
-		c := getCommitFileLineCountAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName, contentLimit)
+		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName, contentLimit)
 		diffFile.RightBlob, diffFile.RightBlobSize, rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		rightBlobType = typesniffer.DetectContentType(ret.rightContent.buf.Bytes())
 	}
@@ -619,11 +619,7 @@ func (l *limitByteWriter) Write(p []byte) (n int, err error) {
 	return l.buf.Write(p)
 }
 
-func (l *limitByteWriter) LimitReached() bool {
-	return l.buf.Len() >= l.limit
-}
-
-func getCommitFileLineCountAndLimitedContent(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, filePath string, limit int) (ret struct {
+func getCommitFileBlobAndLimitedContent(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, filePath string, limit int) (ret struct {
 	gitBlob        *git.Blob
 	blobSize       int64
 	lineCount      int
@@ -1434,7 +1430,8 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			diffFile.addTailSection(renderDetail)
 		}
 
-		shouldFullFileHighlight := !diffFile.IsBin && !diffFile.IsLFSFile && attrDiff.Value() == "" // only do highlight for text files which have no custom diff command
+		// only do highlight for text files which have no custom diff command
+		shouldFullFileHighlight := !diffFile.IsBin && !diffFile.IsLFSFile && attrDiff.Value() == ""
 		shouldFullFileHighlight = shouldFullFileHighlight && time.Since(startTime) < MaxFullFileHighlightTimeLimit
 		if shouldFullFileHighlight {
 			if renderDetail.leftContent != nil {
