@@ -30,7 +30,7 @@
 									{{ctx.Locale.Tr "repo.diff.file_image_height"}}: <span class="text bounds-info-height"></span>
 									&nbsp;|&nbsp;
 								</span>
-								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize .blobBase.Size}}</span>
+								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize (.blobBase.Size ctx)}}</span>
 							</p>
 						</span>
 						{{end}}
@@ -45,7 +45,7 @@
 									{{ctx.Locale.Tr "repo.diff.file_image_height"}}: <span class="text bounds-info-height"></span>
 									&nbsp;|&nbsp;
 								</span>
-								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize .blobHead.Size}}</span>
+								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize (.blobHead.Size ctx)}}</span>
 							</p>
 						</span>
 						{{end}}
