@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -18,24 +17,22 @@ import (
 )
 
 // CreateArchive create archive content to the target path
-func CreateArchive(ctx context.Context, repo Repository, format string, target io.Writer, usePrefix bool, commitID string, paths []string) error {
+func CreateArchive(ctx context.Context, repo Repository, repoName, format string, target io.Writer, commitID string, paths []string) error {
 	if format == "unknown" {
 		return fmt.Errorf("unknown format: %v", format)
 	}
 
 	cmd := gitcmd.NewCommand("archive")
-	if usePrefix {
-		cmd.AddOptionFormat("--prefix=%s", filepath.Base(strings.TrimSuffix(repo.RelativePath(), ".git"))+"/")
+	if setting.Repository.PrefixArchiveFiles {
+		cmd.AddOptionFormat("--prefix=%s", strings.ToLower(repoName)+"/")
 	}
 	cmd.AddOptionFormat("--format=%s", format)
 	cmd.AddDynamicArguments(commitID)
 
-	paths = slices.Clone(paths)
 	for i := range paths {
 		// although "git archive" already ensures the paths won't go outside the repo, we still clean them here for safety
-		paths[i] = path.Clean(paths[i])
+		cmd.AddDynamicArguments(path.Clean(paths[i]))
 	}
-	cmd.AddDynamicArguments(paths...)
 	return RunCmdWithStderr(ctx, repo, cmd.WithStdoutCopy(target))
 }
 

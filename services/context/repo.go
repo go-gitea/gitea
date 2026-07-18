@@ -692,7 +692,7 @@ func repoAssignmentPrepareGitRepo(ctx *Context, data *repoAssignmentPrepareDataS
 	ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
-			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RelativePath(), err)
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.FullName(), err)
 			ctx.Repo.Repository.MarkAsBrokenEmpty()
 			// Only allow access to base of repo or settings
 			if !repoAssignmentIsHomeOrSettings(ctx, data) {
@@ -944,7 +944,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				if err == nil && len(brs) != 0 {
 					refShortName = brs[0]
 				} else if len(brs) == 0 {
-					log.Error("No branches in non-empty repository %s", ctx.Repo.Repository.RelativePath())
+					log.Error("No branches in non-empty repository %s", ctx.Repo.Repository.FullName())
 				} else {
 					log.Error("GetBranches error: %v", err)
 				}

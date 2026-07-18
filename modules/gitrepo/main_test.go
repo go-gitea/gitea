@@ -7,19 +7,20 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 )
 
-func TestMain(m *testing.M) {
-	// resolve repository path relative to the test directory
-	setting.SetupGiteaTestEnv()
-	giteaRoot := setting.GetGiteaTestSourceRoot()
-	repoPath = func(repo Repository) string {
-		if filepath.IsAbs(repo.RelativePath()) {
-			return repo.RelativePath() // for testing purpose only
-		}
-		return filepath.Join(giteaRoot, "modules/git/tests/repos", repo.RelativePath())
+func mockRepository(repoPath string) repo.StorageRepo {
+	if !filepath.IsAbs(repoPath) {
+		// resolve repository path relative to the unit test fixture directory
+		repoPath = filepath.Join(setting.GetGiteaTestSourceRoot(), "modules/git/tests/repos", repoPath)
 	}
+	return repo.StorageRepo(repoPath)
+}
+
+func TestMain(m *testing.M) {
+	setting.SetupGiteaTestEnv()
 	git.RunGitTests(m)
 }
