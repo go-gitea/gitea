@@ -176,7 +176,9 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 
 // coerceDispatchInputTypes normalizes workflow_dispatch input values to the JSON types declared by
 // the workflow. Only booleans are coerced, matching GitHub, whose `inputs` context "preserves
-// Boolean values as Booleans instead of converting them to strings"; other types stay as-is.
+// Boolean values as Booleans instead of converting them to strings" while every other type stays a
+// string. workflow_dispatch has no `number` type (its input types are string, choice, boolean and
+// environment), so booleans are the complete set to coerce here.
 // A value that is already a bool is left untouched, so the coercion is idempotent.
 func coerceDispatchInputTypes(dispatch *model.WorkflowDispatch, inputs map[string]any) {
 	for name, cfg := range dispatch.Inputs {
