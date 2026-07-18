@@ -19,6 +19,10 @@ type mockRepository struct {
 	path string
 }
 
+func (r *mockRepository) GitRepoUniqueID() string {
+	return r.path // TODO: it is for testing purpose only, so even if the path is not "unique" at the moment, it is fine
+}
+
 func (r *mockRepository) RelativePath() string {
 	return r.path
 }

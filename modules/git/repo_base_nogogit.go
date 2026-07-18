@@ -8,12 +8,9 @@ package git
 
 import (
 	"context"
-	"path/filepath"
 	"sync"
 
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 )
 
 const isGogit = false
@@ -26,19 +23,8 @@ type Repository struct {
 	catFileBatchInUse  bool
 }
 
-func OpenRepository(repoPath string) (*Repository, error) {
-	repoPath, err := filepath.Abs(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	exist, err := util.IsDir(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	if !exist {
-		return nil, util.NewNotExistErrorf("no such file or directory")
-	}
-	return &Repository{RepositoryBase: prepareRepositoryBase(repoPath)}, nil
+func openRepositoryInternal(_ *Repository) error {
+	return nil
 }
 
 // CatFileBatch obtains a "batch object provider" for this repository.
@@ -80,11 +66,7 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, close
 	return tempBatch, tempBatch.Close, nil
 }
 
-func (repo *Repository) Close() error {
-	if repo == nil {
-		setting.PanicInDevOrTesting("don't close a nil repository")
-		return nil
-	}
+func (repo *Repository) closeInternal() error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 	if repo.catFileBatchCloser != nil {
@@ -92,7 +74,5 @@ func (repo *Repository) Close() error {
 		repo.catFileBatchCloser = nil
 		repo.catFileBatchInUse = false
 	}
-	repo.LastCommitCache = nil
-	repo.tagCache = nil
 	return nil
 }
