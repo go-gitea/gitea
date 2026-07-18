@@ -1,17 +1,20 @@
 {{$root := ctx.RootData}}
-{{if or .blobBase .blobHead}}
+{{$file := $.file}}
+{{$hasLeft := Iif $file.LeftBlobMimeType true false}}
+{{$hasRight := Iif $file.RightBlobMimeType true false}}
+{{if or $hasLeft $hasRight}}
 <tr>
 	<td colspan="2">
 		<div class="image-diff"
-			data-path-before="{{$root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}"
-			data-path-after="{{$root.RawPath}}/{{PathEscapeSegments .file.Name}}"
-			data-mime-before="{{.sniffedTypeBase.GetMimeType}}"
-			data-mime-after="{{.sniffedTypeHead.GetMimeType}}"
+			data-path-before="{{$root.BeforeRawPath}}/{{PathEscapeSegments $file.OldName}}"
+			data-path-after="{{$root.RawPath}}/{{PathEscapeSegments $file.Name}}"
+			data-mime-before="{{$file.LeftBlobMimeType}}"
+			data-mime-after="{{$file.RightBlobMimeType}}"
 		>
 			<overflow-menu class="ui secondary pointing tabular menu">
 				<div class="overflow-menu-items tw-justify-center" data-global-init="initTabSwitcher">
 					<a class="item active" data-tab="diff-side-by-side-{{.file.NameHash}}">{{ctx.Locale.Tr "repo.diff.image.side_by_side"}}</a>
-					{{if and .blobBase .blobHead}}
+					{{if and $hasLeft $hasRight}}
 					<a class="item" data-tab="diff-swipe-{{.file.NameHash}}">{{ctx.Locale.Tr "repo.diff.image.swipe"}}</a>
 					<a class="item" data-tab="diff-overlay-{{.file.NameHash}}">{{ctx.Locale.Tr "repo.diff.image.overlay"}}</a>
 					{{end}}
@@ -20,7 +23,7 @@
 			<div class="image-diff-tabs is-loading">
 				<div class="ui bottom attached tab image-diff-container active" data-tab="diff-side-by-side-{{.file.NameHash}}">
 					<div class="diff-side-by-side">
-						{{if .blobBase}}
+						{{if $hasLeft}}
 						<span class="side">
 							<p class="side-header">{{ctx.Locale.Tr "repo.diff.file_before"}}</p>
 							<span class="before-container"><img alt class="image-before"></span>
@@ -35,7 +38,7 @@
 							</p>
 						</span>
 						{{end}}
-						{{if .blobHead}}
+						{{if $hasRight}}
 						<span class="side">
 							<p class="side-header">{{ctx.Locale.Tr "repo.diff.file_after"}}</p>
 							<span class="after-container"><img alt class="image-after"></span>
@@ -52,7 +55,7 @@
 						{{end}}
 					</div>
 				</div>
-				{{if and .blobBase .blobHead}}
+				{{if and $hasLeft $hasRight}}
 				<div class="ui bottom attached tab image-diff-container" data-tab="diff-swipe-{{.file.NameHash}}">
 					<div class="diff-swipe">
 						<div class="swipe-frame">

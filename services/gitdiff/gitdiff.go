@@ -467,9 +467,10 @@ type DiffFile struct {
 	highlightedLeftLines  diffVarMutable[map[int]template.HTML]
 	highlightedRightLines diffVarMutable[map[int]template.HTML]
 
-	LeftBlob, RightBlob         *git.Blob
-	LeftBlobSize, RightBlobSize int64
-	LeftBlobType, RightBlobType typesniffer.SniffedType
+	// image diff and csv diff need some of the following fields
+	LeftBlob, RightBlob                 *git.Blob
+	LeftBlobSize, RightBlobSize         int64
+	LeftBlobMimeType, RightBlobMimeType string
 
 	IsBlobTypeImage bool
 	IsBlobTypeCsv   bool
@@ -496,26 +497,28 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	// * for "text" type: need to read up to "highlight limit size" to do full-file-highlighting
 	contentLimit := util.Iif(diffFile.IsBin, 1024, MaxFullFileHighlightSizeLimit)
 	var leftLineCount, rightLineCount int
+	var leftBlobType, rightBlobType typesniffer.SniffedType
 	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
 		c := getCommitFileLineCountAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName, contentLimit)
 		diffFile.LeftBlob, diffFile.LeftBlobSize, leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
-		diffFile.LeftBlobType = typesniffer.DetectContentType(ret.leftContent.buf.Bytes())
+		leftBlobType = typesniffer.DetectContentType(ret.leftContent.buf.Bytes())
 	}
 	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
 		c := getCommitFileLineCountAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName, contentLimit)
 		diffFile.RightBlob, diffFile.RightBlobSize, rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
-		diffFile.RightBlobType = typesniffer.DetectContentType(ret.rightContent.buf.Bytes())
+		rightBlobType = typesniffer.DetectContentType(ret.rightContent.buf.Bytes())
 	}
 
 	isFileTypeImage := func(st typesniffer.SniffedType) bool {
 		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
 	}
 	isFileTypeCsv := func(name string) bool {
-		extension := strings.ToLower(path.Ext(diffFile.Name))
+		extension := strings.ToLower(path.Ext(name))
 		return extension == ".csv" || extension == ".tsv"
 	}
-	diffFile.IsBlobTypeImage = isFileTypeImage(diffFile.LeftBlobType) || isFileTypeImage(diffFile.RightBlobType)
-	diffFile.IsBlobTypeCsv = isFileTypeCsv(diffFile.OldName) || isFileTypeCsv(diffFile.Name)
+	diffFile.LeftBlobMimeType, diffFile.RightBlobMimeType = leftBlobType.GetMimeType(), rightBlobType.GetMimeType()
+	diffFile.IsBlobTypeImage = isFileTypeImage(leftBlobType) || isFileTypeImage(rightBlobType)
+	diffFile.IsBlobTypeCsv = isFileTypeCsv(diffFile.Name)
 
 	if diffFile.IsBin || len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
 		return ret
