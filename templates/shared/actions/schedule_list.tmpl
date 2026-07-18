@@ -1,0 +1,57 @@
+<div class="schedule-container">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.schedules.manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
+	</h4>
+	{{if .Schedules}}
+	<div class="ui attached table segment">
+		<table class="ui very basic table unstackable">
+			<thead>
+				<tr>
+					<th>{{ctx.Locale.Tr "actions.schedules.id"}}</th>
+					{{if not .IsRepoSchedules}}<th>{{ctx.Locale.Tr "actions.schedules.repository"}}</th>{{end}}
+					<th>{{ctx.Locale.Tr "actions.schedules.workflow"}}</th>
+					<th>{{ctx.Locale.Tr "actions.schedules.spec"}}</th>
+					<th>{{ctx.Locale.Tr "actions.schedules.ref"}}</th>
+					<th>{{ctx.Locale.Tr "actions.schedules.next_run"}}</th>
+					<th>{{ctx.Locale.Tr "actions.schedules.last_run"}}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .Schedules}}
+				<tr>
+					<td>{{.Schedule.ID}}</td>
+					{{if not $.IsRepoSchedules}}
+					<td>
+						{{if .Repo}}
+							<a href="{{AppSubUrl}}/{{.Repo.OwnerName}}/{{.Repo.Name}}">{{.Repo.OwnerName}}/{{.Repo.Name}}</a>
+						{{else}}
+							{{.Schedule.RepoID}}
+						{{end}}
+					</td>
+					{{end}}
+					<td>{{.Schedule.Title}}</td>
+					<td>
+						{{range .Specs}}<span class="ui label">{{.Spec}}</span> {{end}}
+					</td>
+					<td><span class="ui label">{{.Schedule.Ref}}</span></td>
+					<td>
+						{{range .Specs}}
+							{{DateUtils.FullTime .Next}}
+						{{end}}
+					</td>
+					<td>
+						{{range .Specs}}
+							{{DateUtils.FullTime .Prev}}
+						{{end}}
+					</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{else}}
+	<div class="ui attached segment tw-text-center">{{ctx.Locale.Tr "actions.schedules.none"}}</div>
+	{{end}}
+
+	{{template "base/paginate" .}}
+</div>
