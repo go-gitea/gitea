@@ -230,8 +230,7 @@ func RelativePath(ownerName, repoName string) string {
 	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-// RelativePath should be a unix style path like "owner-name/repo-name.git"
-func (repo *Repository) RelativePath() string {
+func (repo *Repository) GitRepoLocation() string {
 	return RelativePath(repo.OwnerName, repo.Name)
 }
 
@@ -247,7 +246,7 @@ func (sr StorageRepo) GitRepoUniqueID() string {
 	return string(sr)
 }
 
-func (sr StorageRepo) RelativePath() string {
+func (sr StorageRepo) GitRepoLocation() string {
 	return string(sr)
 }
 

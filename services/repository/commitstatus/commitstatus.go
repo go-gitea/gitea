@@ -72,7 +72,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	// confirm that commit is exist
 	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %w", repo.RelativePath(), err)
+		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}
 	defer closer.Close()
 
