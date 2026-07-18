@@ -218,7 +218,8 @@ func TestCreateCommitStatus_LegacyHashRecovery(t *testing.T) {
 	legacyHash := git_model.HashCommitStatusContext(ctxName)
 	sha, err := git.NewIDFromString(branch.CommitID)
 	require.NoError(t, err)
-	creator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	// Pre-#35699 in-flight rows were posted by the Actions user with the Context-only hash.
+	creator := user_model.NewActionsUser()
 	require.NoError(t, git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
 		Repo:    repo,
 		Creator: creator,
@@ -257,6 +258,67 @@ func TestCreateCommitStatus_LegacyHashRecovery(t *testing.T) {
 		}
 	}
 	assert.Equal(t, 1, matches)
+}
+
+// TestCreateCommitStatus_LegacyHashExternalNotAdopted: a status posted by a
+// non-Actions creator (an external integration or the API) that happens to share
+// a workflow's Context must not pull the workflow into the legacy Context-only
+// hash group, or two same-named workflows would collapse into a single check again.
+func TestCreateCommitStatus_LegacyHashExternalNotAdopted(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	branch := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo.ID, Name: repo.DefaultBranch})
+
+	workflowID := "external.yaml"
+	ctxName := "external.yaml / my-job (push)"
+	legacyHash := git_model.HashCommitStatusContext(ctxName)
+	distinctHash := git_model.HashCommitStatusContext(ctxName + "\x00" + workflowID)
+	sha, err := git.NewIDFromString(branch.CommitID)
+	require.NoError(t, err)
+
+	// An external status (posted by a real user, not the Actions user) sharing the same Context.
+	externalCreator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	require.NoError(t, git_model.NewCommitStatus(t.Context(), git_model.NewCommitStatusOptions{
+		Repo:    repo,
+		Creator: externalCreator,
+		SHA:     sha,
+		CommitStatus: &git_model.CommitStatus{
+			State:       commitstatus.CommitStatusSuccess,
+			Context:     ctxName,
+			ContextHash: legacyHash,
+			TargetURL:   "https://example.invalid/external",
+			Description: "external check",
+		},
+	}))
+
+	run := &actions_model.ActionRun{
+		ID: 99311, Index: 99311, RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID, TriggerUserID: repo.OwnerID,
+		WorkflowID: workflowID, CommitSHA: branch.CommitID,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+	job := &actions_model.ActionRunJob{
+		ID: 99312, RunID: run.ID, RepoID: repo.ID, OwnerID: repo.OwnerID,
+		Name: "my-job", Status: actions_model.StatusSuccess,
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+	require.NoError(t, createCommitStatus(t.Context(), repo, "push", branch.CommitID, "", run, job))
+
+	latest, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, branch.CommitID, db.ListOptionsAll)
+	require.NoError(t, err)
+	// The external status and the workflow status must coexist under distinct hashes.
+	var external, workflow *git_model.CommitStatus
+	for _, s := range latest {
+		switch s.ContextHash {
+		case legacyHash:
+			external = s
+		case distinctHash:
+			workflow = s
+		}
+	}
+	require.NotNil(t, external, "external status must be preserved under the legacy hash")
+	require.NotNil(t, workflow, "workflow status must use its own distinct hash, not the external legacy hash")
+	assert.Equal(t, "https://example.invalid/external", external.TargetURL)
 }
 
 // TestCreateCommitStatus_UnnamedWorkflowUsesFileName: a workflow with no
