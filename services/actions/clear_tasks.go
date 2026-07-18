@@ -26,11 +26,15 @@ func StopZombieTasks(ctx context.Context) error {
 	}, actions_model.StatusRunning, actions_model.StatusCancelling)
 }
 
-// StopEndlessTasks stops tasks in running/cancelling status with continuous updates that don't end for a long time
+// StopEndlessTasks stops running tasks with continuous updates that don't end for a long time.
+// It intentionally only targets StatusRunning tasks: the threshold is the task's *start* time, so a
+// cancelling task (running its post-cancel cleanup) whose job merely started long ago would be killed
+// immediately, cutting the cleanup short. A cancelling task whose runner has stopped reporting is
+// handled by StopZombieTasks instead (which keys off the last update, not the start).
 func StopEndlessTasks(ctx context.Context) error {
 	return stopTasksByStatuses(ctx, actions_model.FindTaskOptions{
 		StartedBefore: timeutil.TimeStamp(time.Now().Add(-setting.Actions.EndlessTaskTimeout).Unix()),
-	}, actions_model.StatusRunning, actions_model.StatusCancelling)
+	}, actions_model.StatusRunning)
 }
 
 func stopTasksByStatuses(ctx context.Context, opts actions_model.FindTaskOptions, statuses ...actions_model.Status) error {
