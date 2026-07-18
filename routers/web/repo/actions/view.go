@@ -705,7 +705,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 				current = &ViewJobSummary{JobID: s.JobID, JobName: jobNameByID[s.JobID]}
 				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, current)
 			}
-			current.SummaryHTML += renderUtils.MarkdownToHtml(s.Content)
+			current.SummaryHTML += renderCachedJobSummary(renderUtils, ctx.Repo.Repository.ID, s.Content)
 		}
 	}
 
@@ -723,6 +723,19 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			ExpiresUnix: int64(art.ExpiredUnix),
 		})
 	}
+}
+
+// renderCachedJobSummary renders a job step summary's markdown to HTML, caching the result by
+// repo + content hash. The run view is polled roughly every second while a run is in progress, and
+// re-renders every job's summary each time; a completed job's summary is immutable, so caching avoids
+// repeatedly re-rendering the same markdown (up to MaxJobNumPerRun jobs per poll). Content-hash keying
+// is self-invalidating — changed content renders afresh — and it falls back to a direct render when the
+// cache is disabled.
+func renderCachedJobSummary(renderUtils *templates.RenderUtils, repoID int64, content string) template.HTML {
+	html, _ := cache.GetString(fmt.Sprintf("actions_job_summary_html:%d:%s", repoID, base.EncodeSha256(content)), func() (string, error) {
+		return string(renderUtils.MarkdownToHtml(content)), nil
+	})
+	return template.HTML(html)
 }
 
 func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
