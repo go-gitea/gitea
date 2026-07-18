@@ -75,7 +75,22 @@ func (w *SingleWorkflow) SetJob(id string, job *Job) error {
 }
 
 func (w *SingleWorkflow) Marshal() ([]byte, error) {
-	return yaml.Marshal(w)
+	// Encode with the same indentation SetJob uses (2). yaml.Marshal's default
+	// indentation (4) makes the encoder emit multi-line block scalars (e.g. a
+	// `run:` step that begins with blank lines) with a wrong explicit indentation
+	// indicator (`run: |4`) that then fails to re-parse, which silently strands
+	// the job during concurrency evaluation. Keeping both encoders at indent 2
+	// makes the serialized single workflow round-trip.
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	if err := enc.Encode(w); err != nil {
+		return nil, err
+	}
+	if err := enc.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 type Job struct {
