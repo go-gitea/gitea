@@ -1007,7 +1007,16 @@ func RerunFailed(ctx *context_module.Context) {
 		return
 	}
 
-	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, actions_service.GetFailedJobsForRerun(jobs)); err != nil {
+	// An empty job list means "re-run the whole run" to RerunWorkflowRunJobs, which is correct for the
+	// plain rerun button but wrong here: re-running the failed jobs of a run that has none must be a no-op,
+	// not a full re-run. Reject it explicitly so a direct POST on a fully successful run cannot re-run everything.
+	failedJobs := actions_service.GetFailedJobsForRerun(jobs)
+	if len(failedJobs) == 0 {
+		ctx.JSONError(ctx.Locale.Tr("actions.runs.no_failed_jobs"))
+		return
+	}
+
+	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, failedJobs); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}

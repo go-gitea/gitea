@@ -143,6 +143,17 @@ jobs:
 		job2LatestAttempt := getLatestAttemptJobByTemplateJobID(t, run.ID, job2.ID)
 		assert.Equal(t, runLatestAttempt.LatestAttemptID, job2LatestAttempt.RunAttemptID)
 
+		t.Run("RerunFailedWithNoFailedJobs", func(t *testing.T) {
+			// The run is fully successful, so "re-run failed jobs" must be rejected and must not create a
+			// new attempt (an empty failed-job list must not fall through to re-running the whole run).
+			before := getRunLatestAttemptNum(t, run.ID)
+			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun-failed", user2.Name, repo.Name, run.ID))
+			resp := session.MakeRequest(t, req, http.StatusBadRequest)
+			assert.Contains(t, resp.Body.String(), "no failed jobs")
+			assert.Equal(t, before, getRunLatestAttemptNum(t, run.ID))
+			runner.fetchNoTask(t) // no new tasks were scheduled
+		})
+
 		t.Run("AttemptAPI", func(t *testing.T) {
 			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/attempts/2", user2.Name, repo.Name, run.ID)).
 				AddTokenAuth(token)
