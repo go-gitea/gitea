@@ -93,11 +93,11 @@ func TestAPIChangeFiles(t *testing.T) {
 				req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name), &changeFilesOptions).
 					AddTokenAuth(token2)
 				resp := MakeRequest(t, req, http.StatusCreated)
-				gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+				gitRepo, _ := gitrepo.OpenRepository(repo1)
 				defer gitRepo.Close()
-				commitID, _ := gitRepo.GetBranchCommitID(changeFilesOptions.NewBranchName)
-				createLasCommit, _ := gitRepo.GetCommitByPath(createTreePath)
-				updateLastCommit, _ := gitRepo.GetCommitByPath(updateTreePath)
+				commitID, _ := gitRepo.GetBranchCommitID(t.Context(), changeFilesOptions.NewBranchName)
+				createLasCommit, _ := gitRepo.GetCommitByPath(t.Context(), createTreePath)
+				updateLastCommit, _ := gitRepo.GetCommitByPath(t.Context(), updateTreePath)
 				expectedCreateFileResponse := getExpectedFileResponseForCreate(apiFileResponseInfo{
 					repoFullName:      fmt.Sprintf("%s/%s", user2.Name, repo1.Name),
 					commitID:          commitID,

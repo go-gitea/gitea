@@ -68,7 +68,7 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 
 	if mergeStyle != "" {
 		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
-		commit, err := baseGitRepo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
+		commit, err := baseGitRepo.GetBranchCommit(ctx, pr.BaseRepo.DefaultBranch)
 		if err != nil {
 			return "", "", err
 		}
@@ -642,7 +642,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return errors.New("Wrong commit ID")
 		}
 
-		commit, err := baseGitRepo.GetCommit(commitID)
+		commit, err := baseGitRepo.GetCommit(ctx, commitID)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				return errors.New("Wrong commit ID")
@@ -651,7 +651,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		}
 		commitID = commit.ID.String()
 
-		ok, err := baseGitRepo.IsCommitInBranch(commitID, pr.BaseBranch)
+		ok, err := baseGitRepo.IsCommitInBranch(ctx, commitID, pr.BaseBranch)
 		if err != nil {
 			return err
 		}

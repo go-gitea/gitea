@@ -137,6 +137,7 @@ func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		assert.NoError(t, git.Clone(t.Context(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))
 		assert.NoError(t, err)

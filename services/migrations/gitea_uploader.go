@@ -139,13 +139,13 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = gitrepo.OpenRepository(ctx, g.repo)
+	g.gitRepo, err = gitrepo.OpenRepository(g.repo)
 	if err != nil {
 		return err
 	}
 
 	// detect object format from git repository and update to database
-	objectFormat, err := g.gitRepo.GetObjectFormat()
+	objectFormat, err := g.gitRepo.GetObjectFormat(ctx)
 	if err != nil {
 		return err
 	}
@@ -298,7 +298,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 
 		// calc NumCommits if possible
 		if rel.TagName != "" {
-			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
+			commit, err := g.gitRepo.GetTagCommit(ctx, rel.TagName)
 			if !git.IsErrNotExist(err) {
 				if err != nil {
 					return fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
@@ -632,7 +632,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 			}
 			// ... now add the remote
-			err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+			err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
 			if err != nil {
 				log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
 			} else {
@@ -651,10 +651,10 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			localRef = git.SanitizeRefPattern(pr.Head.OwnerName + "/" + pr.Head.Ref)
 
 			// ... Now we must assert that this does not exist
-			if g.gitRepo.IsBranchExist(localRef) {
+			if g.gitRepo.IsBranchExist(ctx, localRef) {
 				localRef = "head-pr-" + strconv.FormatInt(pr.Number, 10) + "/" + localRef
 				i := 0
-				for g.gitRepo.IsBranchExist(localRef) {
+				for g.gitRepo.IsBranchExist(ctx, localRef) {
 					if i > 5 {
 						// ... We tried, we really tried but this is just a seriously unfriendly repo
 						return head, nil
@@ -681,7 +681,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 
 		// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
 		if pr.Head.SHA == "" {
-			headSha, err := g.gitRepo.GetBranchCommitID(localRef)
+			headSha, err := g.gitRepo.GetBranchCommitID(ctx, localRef)
 			if err != nil {
 				log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 				return head, nil
@@ -886,7 +886,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			continue
 		}
 
-		headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := g.gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitHeadRefName(), g.repoOwner, g.repoName, err)
 			continue
@@ -903,7 +903,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			// SECURITY: The TreePath must be cleaned! use relative path
 			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
-			patch, _ := git.GetFileDiffCutAroundLine(
+			patch, _ := git.GetFileDiffCutAroundLine(ctx,
 				g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath,
 				int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
 			)

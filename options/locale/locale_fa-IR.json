@@ -2021,7 +2021,6 @@
   "admin.config.default_enable_timetracking": "فعال سازی پیگیری زمان به صورت پیش فرض",
   "admin.config.default_allow_only_contributors_to_track_time": "اجاز پگیری زمان مشارکت فقط",
   "admin.config.no_reply_address": "مخفی کردن دامنه ایمیل",
-  "admin.config.default_visibility_organization": "وضعیت پیشفرض پدیداری برای سازمان جدید",
   "admin.config.default_enable_dependencies": "فعال کردن وابستگی پیشفرض برای مسئله",
   "admin.config.webhook_config": "پیکربندی هوک تحت وب",
   "admin.config.queue_length": "طول صف",

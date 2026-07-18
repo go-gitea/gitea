@@ -18,11 +18,11 @@ import (
 )
 
 func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
-	repo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepository(filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()
 
-	commit, err := repo.GetCommit("feaf4ba6bc635fec442f46ddd4512416ec43c2c2")
+	commit, err := repo.GetCommit(t.Context(), "feaf4ba6bc635fec442f46ddd4512416ec43c2c2")
 	require.NoError(t, err)
 	entries, err := commit.Tree().ListEntries(t.Context(), repo)
 	require.NoError(t, err)

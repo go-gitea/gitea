@@ -583,7 +583,7 @@ func getCommitFileLineCountAndLimitedContent(ctx context.Context, gitRepo *git.R
 		return 0, nil
 	}
 	w := &limitByteWriter{limit: MaxFullFileHighlightSizeLimit + 1}
-	lineCount, err = blob.GetBlobLineCount(w)
+	lineCount, err = blob.GetBlobLineCount(ctx, w)
 	if err != nil {
 		return 0, nil
 	}
@@ -1248,7 +1248,7 @@ type DiffOptions struct {
 	DirectComparison   bool
 }
 
-func guessBeforeCommitForDiff(gitRepo *git.Repository, beforeCommitID string, afterCommit *git.Commit) (actualBeforeCommit *git.Commit, actualBeforeCommitID git.ObjectID, err error) {
+func guessBeforeCommitForDiff(ctx context.Context, gitRepo *git.Repository, beforeCommitID string, afterCommit *git.Commit) (actualBeforeCommit *git.Commit, actualBeforeCommitID git.ObjectID, err error) {
 	commitObjectFormat := afterCommit.ID.Type()
 	isBeforeCommitIDEmpty := beforeCommitID == "" || beforeCommitID == commitObjectFormat.EmptyObjectID().String()
 
@@ -1256,9 +1256,9 @@ func guessBeforeCommitForDiff(gitRepo *git.Repository, beforeCommitID string, af
 		actualBeforeCommitID = commitObjectFormat.EmptyTree()
 	} else {
 		if isBeforeCommitIDEmpty {
-			actualBeforeCommit, err = afterCommit.Parent(gitRepo, 0)
+			actualBeforeCommit, err = afterCommit.Parent(ctx, gitRepo, 0)
 		} else {
-			actualBeforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			actualBeforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
 		}
 		if err != nil {
 			return nil, nil, err
@@ -1275,12 +1275,12 @@ func guessBeforeCommitForDiff(gitRepo *git.Repository, beforeCommitID string, af
 func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (_ *Diff, beforeCommit, afterCommit *git.Commit, err error) {
 	repoPath := gitRepo.Path
 
-	afterCommit, err = gitRepo.GetCommit(opts.AfterCommitID)
+	afterCommit, err = gitRepo.GetCommit(ctx, opts.AfterCommitID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	beforeCommit, beforeCommitID, err := guessBeforeCommitForDiff(gitRepo, opts.BeforeCommitID, afterCommit)
+	beforeCommit, beforeCommitID, err := guessBeforeCommitForDiff(ctx, gitRepo, opts.BeforeCommitID, afterCommit)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -1340,7 +1340,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 
 	startTime := time.Now()
 
-	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
+	checker, err := attribute.NewBatchChecker(ctx, gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
 	if err != nil {
 		return nil, err
 	}
@@ -1440,12 +1440,12 @@ type DiffShortStat struct {
 }
 
 func GetDiffShortStat(ctx context.Context, repoStorage gitrepo.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
-	afterCommit, err := gitRepo.GetCommit(afterCommitID)
+	afterCommit, err := gitRepo.GetCommit(ctx, afterCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	_, actualBeforeCommitID, err := guessBeforeCommitForDiff(gitRepo, beforeCommitID, afterCommit)
+	_, actualBeforeCommitID, err := guessBeforeCommitForDiff(ctx, gitRepo, beforeCommitID, afterCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -1474,7 +1474,7 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 		latestCommit = pull.HeadBranch // opts.AfterCommitID is preferred because it handles PRs from forks correctly and the branch name doesn't
 	}
 
-	changedFiles, errIgnored := gitRepo.GetFilesChangedBetween(review.CommitSHA, latestCommit)
+	changedFiles, errIgnored := gitRepo.GetFilesChangedBetween(ctx, review.CommitSHA, latestCommit)
 	// There are way too many possible errors.
 	// Examples are various git errors such as the commit the review was based on was gc'ed and hence doesn't exist anymore as well as unrecoverable errors where we should serve a 500 response
 	// Due to the current architecture and physical limitation of needing to compare explicit error messages, we can only choose one approach without the code getting ugly
@@ -1549,7 +1549,7 @@ func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) 
 
 // GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line
 func GeneratePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
-	commit, err := gitRepo.GetCommit(commitID)
+	commit, err := gitRepo.GetCommit(ctx, commitID)
 	if err != nil {
 		return "", fmt.Errorf("GetCommit: %w", err)
 	}
@@ -1560,7 +1560,7 @@ func GeneratePatchForUnchangedLine(ctx context.Context, gitRepo *git.Repository,
 	}
 
 	blob := entry.Blob(gitRepo)
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		return "", fmt.Errorf("DataAsync: %w", err)
 	}

@@ -28,7 +28,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	oldContent, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(setting.UI.MaxDisplayFileSize)
+	oldContent, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 	if err != nil {
 		ctx.ServerError("GetBlobContent", err)
 		return

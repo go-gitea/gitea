@@ -554,7 +554,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 	createdAt := commit.Author.When
 	updatedAt := commit.Author.When
 
-	content, err := actions.GetContentFromEntry(gitRepo, entry)
+	content, err := actions.GetContentFromEntry(ctx, gitRepo, entry)
 	name := entry.Name()
 	if err == nil {
 		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
@@ -584,7 +584,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 }
 
 func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository) ([]*api.ActionWorkflow, error) {
-	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
+	defaultBranchCommit, err := gitrepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -603,7 +603,7 @@ func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *rep
 }
 
 func GetActionWorkflow(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
-	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	defaultBranchCommit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -616,11 +616,11 @@ func GetActionWorkflowByRef(ctx context.Context, gitrepo *git.Repository, repo *
 		return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
 	}
 
-	refCommitID, err := gitrepo.GetRefCommitID(ref.String())
+	refCommitID, err := gitrepo.GetRefCommitID(ctx, ref.String())
 	if err != nil {
 		return nil, err
 	}
-	refCommit, err := gitrepo.GetCommit(refCommitID)
+	refCommit, err := gitrepo.GetCommit(ctx, refCommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +645,7 @@ func getActionWorkflowFromCommit(ctx context.Context, repo *repo_model.Repositor
 
 // GetScopedActionWorkflow resolves a scoped workflow definition (under SCOPED_WORKFLOW_DIRS) from the source repo at commitSHA.
 func GetScopedActionWorkflow(ctx context.Context, sourceGitRepo *git.Repository, sourceRepo *repo_model.Repository, workflowID, commitSHA string) (*api.ActionWorkflow, error) {
-	commit, err := sourceGitRepo.GetCommit(commitSHA)
+	commit, err := sourceGitRepo.GetCommit(ctx, commitSHA)
 	if err != nil {
 		return nil, err
 	}
@@ -680,7 +680,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		if err != nil {
 			return nil, err
 		}
-		sourceGitRepo, err := gitrepo.OpenRepository(ctx, sourceRepo)
+		sourceGitRepo, err := gitrepo.OpenRepository(sourceRepo)
 		if err != nil {
 			return nil, err
 		}
@@ -688,7 +688,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		return GetScopedActionWorkflow(ctx, sourceGitRepo, sourceRepo, run.WorkflowID, run.WorkflowCommitSHA)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		return nil, err
 	}

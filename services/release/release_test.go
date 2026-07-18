@@ -33,11 +33,11 @@ func TestRelease_Create(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -51,7 +51,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -65,7 +65,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -79,7 +79,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -93,7 +93,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -129,7 +129,7 @@ func TestRelease_Create(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        true,
 	}
-	assert.NoError(t, CreateRelease(gitRepo, &release, []string{attach.UUID}, "test"))
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &release, []string{attach.UUID}, "test"))
 }
 
 func TestRelease_Update(t *testing.T) {
@@ -138,7 +138,7 @@ func TestRelease_Update(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -149,7 +149,7 @@ func TestRelease_Update(t *testing.T) {
 	advance := func() { fakeNow = fakeNow.Add(time.Second); timeutil.MockSet(fakeNow) }
 
 	// Test a changed release
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -173,7 +173,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed draft
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -197,7 +197,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed pre-release
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -235,7 +235,7 @@ func TestRelease_Update(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	assert.NoError(t, CreateRelease(gitRepo, release, nil, ""))
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, release, nil, ""))
 	assert.Positive(t, release.ID)
 
 	release.IsDraft = false
@@ -297,7 +297,7 @@ func TestRelease_createTag(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

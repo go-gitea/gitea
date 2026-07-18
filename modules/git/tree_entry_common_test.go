@@ -13,11 +13,11 @@ import (
 )
 
 func TestFollowLink(t *testing.T) {
-	r, err := OpenRepository(t.Context(), "tests/repos/repo1_bare")
+	r, err := OpenRepository("tests/repos/repo1_bare")
 	require.NoError(t, err)
 	defer r.Close()
 
-	commit, err := r.GetCommit("37991dec2c8e592043f47155ce4808d4580f9123")
+	commit, err := r.GetCommit(t.Context(), "37991dec2c8e592043f47155ce4808d4580f9123")
 	require.NoError(t, err)
 
 	// get the symlink

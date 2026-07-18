@@ -18,7 +18,7 @@ import (
 func TestRepository_GetLanguageStats(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
 	repoPath := "../tests/repos/language_stats_repo"
-	gitRepo, err := git.OpenRepository(t.Context(), repoPath)
+	gitRepo, err := git.OpenRepository(repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

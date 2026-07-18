@@ -5,6 +5,7 @@ package private
 
 import (
 	"bufio"
+	"context"
 	"io"
 
 	"gitea.dev/modules/git"
@@ -15,9 +16,9 @@ import (
 
 // This file contains commit verification functions for refs passed across in hooks
 
-func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
+func verifyCommits(ctx context.Context, oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
 	var command *gitcmd.Command
-	objectFormat, _ := repo.GetObjectFormat()
+	objectFormat, _ := repo.GetObjectFormat(ctx)
 	if oldCommitID == objectFormat.EmptyObjectID().String() {
 		// When creating a new branch, the oldCommitID is empty, by using "newCommitID --not --all":
 		// List commits that are reachable by following the newCommitID, exclude "all" existing heads/tags commits
@@ -32,22 +33,22 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 
 	err := command.WithEnv(env).
 		WithDir(repo.Path).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
-			err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
-			return ctx.CancelPipeline(err)
+		WithPipelineFunc(func(gitCtx gitcmd.Context) error {
+			err := readAndVerifyCommitsFromShaReader(ctx, stdoutReader, repo, env)
+			return gitCtx.CancelPipeline(err)
 		}).
-		Run(repo.Ctx)
+		Run(ctx)
 	if err != nil && !isErrUnverifiedCommit(err) {
 		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
 	return err
 }
 
-func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository, env []string) error {
+func readAndVerifyCommitsFromShaReader(ctx context.Context, input io.ReadCloser, repo *git.Repository, env []string) error {
 	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		line := scanner.Text()
-		err := readAndVerifyCommit(line, repo, env)
+		err := readAndVerifyCommit(ctx, line, repo, env)
 		if err != nil {
 			return err
 		}
@@ -55,7 +56,7 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 	return scanner.Err()
 }
 
-func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
+func readAndVerifyCommit(ctx context.Context, sha string, repo *git.Repository, env []string) error {
 	commitID := git.MustIDFromString(sha)
 	cmd := gitcmd.NewCommand("cat-file", "commit").AddDynamicArguments(sha)
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
@@ -63,18 +64,18 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 
 	return cmd.WithEnv(env).
 		WithDir(repo.Path).
-		WithPipelineFunc(func(ctx gitcmd.Context) error {
+		WithPipelineFunc(func(gitCtx gitcmd.Context) error {
 			commit, err := git.CommitFromReader(commitID, stdoutReader)
 			if err != nil {
 				return err
 			}
 			verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
-				return ctx.CancelPipeline(&errUnverifiedCommit{commit.ID.String()})
+				return gitCtx.CancelPipeline(&errUnverifiedCommit{commit.ID.String()})
 			}
 			return nil
 		}).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 type errUnverifiedCommit struct {

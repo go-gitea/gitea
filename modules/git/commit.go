@@ -46,12 +46,12 @@ func (c *Commit) ParentID(n int) (ObjectID, error) {
 }
 
 // Parent returns n-th parent (0-based index) of the commit.
-func (c *Commit) Parent(gitRepo *Repository, n int) (*Commit, error) {
+func (c *Commit) Parent(ctx context.Context, gitRepo *Repository, n int) (*Commit, error) {
 	id, err := c.ParentID(n)
 	if err != nil {
 		return nil, err
 	}
-	parent, err := gitRepo.getCommit(id)
+	parent, err := gitRepo.getCommit(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -65,11 +65,11 @@ func (c *Commit) ParentCount() int {
 }
 
 // GetCommitByPath return the commit of relative path object.
-func (c *Commit) GetCommitByPath(gitRepo *Repository, relpath string) (*Commit, error) {
+func (c *Commit) GetCommitByPath(ctx context.Context, gitRepo *Repository, relpath string) (*Commit, error) {
 	if gitRepo.LastCommitCache != nil {
-		return gitRepo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
+		return gitRepo.LastCommitCache.GetCommitByPath(ctx, c.ID.String(), relpath)
 	}
-	return gitRepo.getCommitByPathWithID(c.ID, relpath)
+	return gitRepo.getCommitByPathWithID(ctx, c.ID, relpath)
 }
 
 func (c *Commit) Tree() *Tree {
@@ -92,13 +92,13 @@ func (c *Commit) SubTree(ctx context.Context, gitRepo *Repository, relpath strin
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(gitRepo *Repository, page, pageSize int, not, since, until string) ([]*Commit, error) {
-	return gitRepo.commitsByRangeWithTime(c.ID, page, pageSize, not, since, until)
+func (c *Commit) CommitsByRange(ctx context.Context, gitRepo *Repository, page, pageSize int, not, since, until string) ([]*Commit, error) {
+	return gitRepo.commitsByRangeWithTime(ctx, c.ID, page, pageSize, not, since, until)
 }
 
 // CommitsBefore returns all the commits before current revision
-func (c *Commit) CommitsBefore(gitRepo *Repository) ([]*Commit, error) {
-	return gitRepo.getCommitsBefore(c.ID)
+func (c *Commit) CommitsBefore(ctx context.Context, gitRepo *Repository) ([]*Commit, error) {
+	return gitRepo.getCommitsBefore(ctx, c.ID)
 }
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
@@ -128,7 +128,7 @@ func (c *Commit) HasPreviousCommit(ctx context.Context, gitRepo *Repository, obj
 
 // IsForcePush returns true if a push from oldCommitHash to this is a force push
 func (c *Commit) IsForcePush(ctx context.Context, gitRepo *Repository, oldCommitID string) (bool, error) {
-	objectFormat, err := gitRepo.GetObjectFormat()
+	objectFormat, err := gitRepo.GetObjectFormat(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -136,7 +136,7 @@ func (c *Commit) IsForcePush(ctx context.Context, gitRepo *Repository, oldCommit
 		return false, nil
 	}
 
-	oldCommit, err := gitRepo.GetCommit(oldCommitID)
+	oldCommit, err := gitRepo.GetCommit(ctx, oldCommitID)
 	if err != nil {
 		return false, err
 	}
@@ -145,13 +145,13 @@ func (c *Commit) IsForcePush(ctx context.Context, gitRepo *Repository, oldCommit
 }
 
 // CommitsBeforeLimit returns num commits before current revision
-func (c *Commit) CommitsBeforeLimit(gitRepo *Repository, num int) ([]*Commit, error) {
-	return gitRepo.getCommitsBeforeLimit(c.ID, num)
+func (c *Commit) CommitsBeforeLimit(ctx context.Context, gitRepo *Repository, num int) ([]*Commit, error) {
+	return gitRepo.getCommitsBeforeLimit(ctx, c.ID, num)
 }
 
 // CommitsBeforeUntil returns the commits in range "[cur, ref)"
-func (c *Commit) CommitsBeforeUntil(gitRepo *Repository, ref RefName) ([]*Commit, error) {
-	return gitRepo.CommitsBetween(c.ID.RefName(), ref, -1)
+func (c *Commit) CommitsBeforeUntil(ctx context.Context, gitRepo *Repository, ref RefName) ([]*Commit, error) {
+	return gitRepo.CommitsBetween(ctx, c.ID.RefName(), ref, -1)
 }
 
 // SearchCommitsOptions specify the parameters for SearchCommits
@@ -194,19 +194,19 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 }
 
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(gitRepo *Repository, opts SearchCommitsOptions) ([]*Commit, error) {
-	return gitRepo.searchCommits(c.ID, opts)
+func (c *Commit) SearchCommits(ctx context.Context, gitRepo *Repository, opts SearchCommitsOptions) ([]*Commit, error) {
+	return gitRepo.searchCommits(ctx, c.ID, opts)
 }
 
 // GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision
-func (c *Commit) GetFilesChangedSinceCommit(gitRepo *Repository, pastCommit string) ([]string, error) {
-	return gitRepo.GetFilesChangedBetween(pastCommit, c.ID.String())
+func (c *Commit) GetFilesChangedSinceCommit(ctx context.Context, gitRepo *Repository, pastCommit string) ([]string, error) {
+	return gitRepo.GetFilesChangedBetween(ctx, pastCommit, c.ID.String())
 }
 
 // FileChangedSinceCommit Returns true if the file given has changed since the past commit
 // YOU MUST ENSURE THAT pastCommit is a valid commit ID.
-func (c *Commit) FileChangedSinceCommit(gitRepo *Repository, filename, pastCommit string) (bool, error) {
-	return gitRepo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
+func (c *Commit) FileChangedSinceCommit(ctx context.Context, gitRepo *Repository, filename, pastCommit string) (bool, error) {
+	return gitRepo.FileChangedBetweenCommits(ctx, filename, pastCommit, c.ID.String())
 }
 
 // GetFileContent reads a file content as a string or returns false if this was not possible
@@ -216,7 +216,7 @@ func (c *Commit) GetFileContent(ctx context.Context, gitRepo *Repository, filena
 		return "", err
 	}
 
-	r, err := entry.Blob(gitRepo).DataAsync()
+	r, err := entry.Blob(gitRepo).DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}

@@ -171,7 +171,7 @@ func doSSHLFSAccessTest(_ APITestContext, keyID int64) func(*testing.T) {
 			_, err := cmd.Output()
 			var errExit *exec.ExitError
 			require.ErrorAs(t, err, &errExit) // inaccessible, error
-			assert.Contains(t, string(errExit.Stderr), fmt.Sprintf("User: 2:user2 with Key: %d:test-key is not authorized to write to user5/repo4.", keyID))
+			assert.Contains(t, string(errExit.Stderr), fmt.Sprintf(`User 2 with key %d:test-key has no "write" permission for user5/repo4`, keyID))
 		})
 	}
 }
@@ -811,7 +811,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		gitRepo, err := git.OpenRepository(dstPath)
 		require.NoError(t, err)
 
 		defer gitRepo.Close()
@@ -848,7 +848,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 				Message: "Testing commit 1",
 			})
 			assert.NoError(t, err)
-			commit, err = gitRepo.GetRefCommitID("HEAD")
+			commit, err = gitRepo.GetRefCommitID(t.Context(), "HEAD")
 			assert.NoError(t, err)
 		})
 
@@ -920,7 +920,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 				Message: "Testing commit 2",
 			})
 			assert.NoError(t, err)
-			commit, err = gitRepo.GetRefCommitID("HEAD")
+			commit, err = gitRepo.GetRefCommitID(t.Context(), "HEAD")
 			assert.NoError(t, err)
 		})
 

@@ -84,7 +84,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		}, "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"},
 	}
 	for _, testCase := range testCases {
-		commit, err := repo1.GetCommit(testCase.CommitID)
+		commit, err := repo1.GetCommit(t.Context(), testCase.CommitID)
 		if err != nil {
 			assert.NoError(t, err, "Unable to get commit: %s from testcase due to error: %v", testCase.CommitID, err)
 			// no point trying to do anything else for this test.
@@ -132,7 +132,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 
 func TestEntries_GetCommitsInfo(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
+	bareRepo1, err := OpenRepository(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -142,7 +142,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	if err != nil {
 		assert.NoError(t, err)
 	}
-	clonedRepo1, err := OpenRepository(t.Context(), clonedPath)
+	clonedRepo1, err := OpenRepository(clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 	}
@@ -151,7 +151,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	testGetCommitsInfo(t, clonedRepo1)
 
 	t.Run("NonExistingSubmoduleAsNil", func(t *testing.T) {
-		commit, err := bareRepo1.GetCommit("HEAD")
+		commit, err := bareRepo1.GetCommit(t.Context(), "HEAD")
 		require.NoError(t, err)
 		treeEntry, err := commit.GetTreeEntryByPath(t.Context(), bareRepo1, "file1.txt")
 		require.NoError(t, err)

@@ -230,7 +230,7 @@ func RelativePath(ownerName, repoName string) string {
 	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-// RelativePath should be an unix style path like username/reponame.git
+// RelativePath should be a unix style path like "owner-name/repo-name.git"
 func (repo *Repository) RelativePath() string {
 	return RelativePath(repo.OwnerName, repo.Name)
 }
@@ -647,6 +647,10 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 
 // CloneLink represents different types of clone URLs of repository.
 type CloneLink struct {
+	IsWikiRepo   bool
+	SupportSSH   bool
+	SupportHTTPS bool
+
 	SSH   string
 	HTTPS string
 	Tea   string
@@ -698,9 +702,12 @@ func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
 	return &CloneLink{
-		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
-		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
-		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
+		IsWikiRepo:   strings.HasSuffix(repoPathName, ".wiki"),
+		SupportHTTPS: !setting.Repository.DisableHTTPGit,
+		SupportSSH:   !setting.SSH.Disabled && (doer != nil || setting.SSH.ExposeAnonymous),
+		SSH:          ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
+		HTTPS:        ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
+		Tea:          ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
 	}
 }
 

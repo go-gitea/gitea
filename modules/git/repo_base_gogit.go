@@ -7,7 +7,6 @@
 package git
 
 import (
-	"context"
 	"path/filepath"
 
 	gitealog "gitea.dev/modules/log"
@@ -24,22 +23,14 @@ import (
 
 const isGogit = true
 
-// Repository represents a Git repository.
 type Repository struct {
-	Path string
-
-	tagCache *ObjectCache[*Tag]
+	RepositoryBase
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
-
-	Ctx             context.Context
-	LastCommitCache *LastCommitCache
-	objectFormat    ObjectFormat
 }
 
-// OpenRepository opens the repository at the given path within the context.Context
-func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
+func OpenRepository(repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
@@ -74,14 +65,13 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		return nil, err
 	}
 
-	return &Repository{
-		Path:         repoPath,
-		gogitRepo:    gogitRepo,
-		gogitStorage: storage,
-		tagCache:     newObjectCache[*Tag](),
-		Ctx:          ctx,
-		objectFormat: ParseGogitHash(plumbing.ZeroHash).Type(),
-	}, nil
+	repo := &Repository{
+		RepositoryBase: prepareRepositoryBase(repoPath),
+		gogitRepo:      gogitRepo,
+		gogitStorage:   storage,
+	}
+	repo.objectFormatCache = ParseGogitHash(plumbing.ZeroHash).Type()
+	return repo, nil
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil

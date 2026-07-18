@@ -39,11 +39,11 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 	compareArg := pr.MergeBase + "..." + pr.GetGitHeadRefName()
 	switch {
 	case patch:
-		err = gitRepo.GetPatch(compareArg, w)
+		err = gitRepo.GetPatch(ctx, compareArg, w)
 	case binary:
-		err = gitRepo.GetDiffBinary(compareArg, w)
+		err = gitRepo.GetDiffBinary(ctx, compareArg, w)
 	default:
-		err = gitRepo.GetDiff(compareArg, w)
+		err = gitRepo.GetDiff(ctx, compareArg, w)
 	}
 
 	if err != nil {
@@ -74,7 +74,7 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 	}
 	defer cancel()
 
-	gitRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
+	gitRepo, err := git.OpenRepository(prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -84,13 +84,13 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 	pr.MergeBase, _, err = gitcmd.NewCommand("merge-base", "--", tmpRepoBaseBranch, tmpRepoTrackingBranch).WithDir(prCtx.tmpBasePath).RunStdString(ctx)
 	if err != nil {
 		var err2 error
-		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + tmpRepoBaseBranch)
+		pr.MergeBase, err2 = gitRepo.GetRefCommitID(ctx, git.BranchPrefix+tmpRepoBaseBranch)
 		if err2 != nil {
 			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %w", err, err2)
 		}
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
-	if pr.HeadCommitID, err = gitRepo.GetRefCommitID(git.BranchPrefix + tmpRepoTrackingBranch); err != nil {
+	if pr.HeadCommitID, err = gitRepo.GetRefCommitID(ctx, git.BranchPrefix+tmpRepoTrackingBranch); err != nil {
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
 	}
 
@@ -289,10 +289,10 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	}
 
 	// Add and remove files in one command, as this is slow with many files otherwise
-	if err := gitRepo.RemoveFilesFromIndex(filesToRemove...); err != nil {
+	if err := gitRepo.RemoveFilesFromIndex(ctx, filesToRemove...); err != nil {
 		return false, nil, err
 	}
-	if err := gitRepo.AddObjectsToIndex(filesToAdd...); err != nil {
+	if err := gitRepo.AddObjectsToIndex(ctx, filesToAdd...); err != nil {
 		return false, nil, err
 	}
 
@@ -321,7 +321,7 @@ func checkConflictsByTmpRepo(ctx context.Context, pr *issues_model.PullRequest, 
 			return false, fmt.Errorf("unable to write unconflicted tree: %w\n`git ls-files -u`:\n%s", err, lsfiles)
 		}
 		treeHash = strings.TrimSpace(treeHash)
-		baseTree, err := gitRepo.GetTree(tmpRepoBaseBranch)
+		baseTree, err := gitRepo.GetTree(ctx, tmpRepoBaseBranch)
 		if err != nil {
 			return false, err
 		}
@@ -366,11 +366,11 @@ func (err ErrFilePathProtected) Unwrap() error {
 }
 
 // CheckFileProtection check file Protection
-func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
+func CheckFileProtection(ctx context.Context, repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string) ([]string, error) {
 	if len(patterns) == 0 {
 		return nil, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(ctx, repo, branchName, oldCommitID, newCommitID, env)
 	if err != nil {
 		return nil, err
 	}
@@ -396,11 +396,11 @@ func CheckFileProtection(repo *git.Repository, branchName, oldCommitID, newCommi
 }
 
 // CheckUnprotectedFiles check if the commit only touches unprotected files
-func CheckUnprotectedFiles(repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
+func CheckUnprotectedFiles(ctx context.Context, repo *git.Repository, branchName, oldCommitID, newCommitID string, patterns []glob.Glob, env []string) (bool, error) {
 	if len(patterns) == 0 {
 		return false, nil
 	}
-	affectedFiles, err := git.GetAffectedFiles(repo, branchName, oldCommitID, newCommitID, env)
+	affectedFiles, err := git.GetAffectedFiles(ctx, repo, branchName, oldCommitID, newCommitID, env)
 	if err != nil {
 		return false, err
 	}
@@ -437,7 +437,7 @@ func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest,
 		return nil
 	}
 
-	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.HeadBranch, pr.MergeBase, headRef, pb.GetProtectedFilePatterns(), 10, os.Environ())
+	pr.ChangedProtectedFiles, err = CheckFileProtection(ctx, gitRepo, pr.HeadBranch, pr.MergeBase, headRef, pb.GetProtectedFilePatterns(), 10, os.Environ())
 	if err != nil && !IsErrFilePathProtected(err) {
 		return err
 	}
