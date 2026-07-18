@@ -69,8 +69,9 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		return compareInfo, errors.Join(err1, err2)
 	}
 
-	// if they are not the same repository, then we need to fetch the base commit into the head repository
-	// because we will use headGitRepo in the following code
+	// If they are not the same repository, fetch the base commit object into the head repository
+	// because the following comparison code only operates on headGitRepo.
+	// This only needs object presence; it does not rely on FETCH_HEAD or a local ref update.
 	if baseRepo.ID != headRepo.ID {
 		exist := headGitRepo.IsReferenceExist(ctx, compareInfo.BaseCommitID)
 		if !exist {

@@ -90,8 +90,9 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 		}
 	}
 
-	// 4. fetch head commit id into the current repository
-	// it will be checked in 2 weeks by default from git if the pull request created failure.
+	// 4. Fetch the head commit object into the base repository so merge-base/merge-tree
+	// can operate locally. This only needs object presence; no FETCH_HEAD or local ref is used.
+	// It will be checked in 2 weeks by default from git if the pull request created failure.
 	if !pr.IsSameRepo() {
 		if !baseGitRepo.IsReferenceExist(ctx, pr.HeadCommitID) {
 			if err := gitrepo.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
