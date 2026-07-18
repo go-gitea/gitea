@@ -144,6 +144,11 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
 		return 0, err
 	}
+	// The dispatch callbacks fill boolean inputs as the strings "true"/"false". Normalize them to
+	// native JSON booleans so `type: boolean` inputs match GitHub, whose `inputs` context preserves
+	// booleans as booleans. Without this, a server-side needs-gated job `if: inputs.flag == true`
+	// evaluates against the string "true" and never matches, leaving the job blocked forever.
+	coerceDispatchInputTypes(workflowDispatch, inputsWithDefaults)
 
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
 	// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
@@ -167,6 +172,23 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, fmt.Errorf("PrepareRun: %w", err)
 	}
 	return run.ID, nil
+}
+
+// coerceDispatchInputTypes normalizes workflow_dispatch input values to the JSON types declared by
+// the workflow. Only booleans are coerced, matching GitHub, whose `inputs` context "preserves
+// Boolean values as Booleans instead of converting them to strings" while every other type stays a
+// string. workflow_dispatch has no `number` type (its input types are string, choice, boolean and
+// environment), so booleans are the complete set to coerce here.
+// A value that is already a bool is left untouched, so the coercion is idempotent.
+func coerceDispatchInputTypes(dispatch *model.WorkflowDispatch, inputs map[string]any) {
+	for name, cfg := range dispatch.Inputs {
+		if cfg.Type != "boolean" {
+			continue
+		}
+		if s, ok := inputs[name].(string); ok {
+			inputs[name] = s == "true"
+		}
+	}
 }
 
 // resolveDispatchWorkflowContent returns the YAML for a dispatched workflow and records its source on the run.
