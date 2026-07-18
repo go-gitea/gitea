@@ -31,6 +31,23 @@ import (
 // a top-level caller may have at most MaxReusableCallLevels nested callers below it.
 const MaxReusableCallLevels = 9
 
+// checkRunJobLimit rejects an expansion that would push the attempt over actions_model.MaxJobNumPerRun.
+// checkCallerChain bounds nesting *depth*, but a reusable graph can also fan out in *breadth*: every
+// caller inserts its callees, and each callee that is itself a caller is expanded on a later resolver
+// pass. Without a cumulative cap a tiny set of files can drive exponential, server-side job-row
+// insertion and exhaust the database. This guard counts the jobs already in the attempt and refuses
+// to insert more once the limit is reached.
+func checkRunJobLimit(ctx context.Context, runID, attemptID int64, adding int) error {
+	existing, err := actions_model.CountRunJobsByRunAndAttemptID(ctx, runID, attemptID)
+	if err != nil {
+		return fmt.Errorf("count existing jobs of run %d attempt %d: %w", runID, attemptID, err)
+	}
+	if existing+int64(adding) > actions_model.MaxJobNumPerRun {
+		return fmt.Errorf("workflow run exceeds the maximum of %d jobs", actions_model.MaxJobNumPerRun)
+	}
+	return nil
+}
+
 // loadReusableWorkflowSource resolves the workflow file referenced by a caller's `uses:` and returns its raw bytes,
 // along with the (repo_id, commit_sha) the file was loaded from.
 func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRun, caller *actions_model.ActionRunJob, ref *jobparser.UsesRef) (content []byte, sourceRepoID int64, sourceCommitSHA string, err error) {
@@ -283,6 +300,12 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 	}
 	if len(childWorkflows) == 0 {
 		return fmt.Errorf("called workflow for caller %d (uses %q) has no jobs", caller.ID, caller.CallUses)
+	}
+
+	// Bound the cumulative number of jobs in the attempt so a nested reusable-workflow graph
+	// cannot insert an unbounded number of rows (depth is capped separately by checkCallerChain).
+	if err := checkRunJobLimit(ctx, run.ID, attempt.ID, len(childWorkflows)); err != nil {
+		return err
 	}
 
 	priorChildren, err := actions_model.GetPriorAttemptChildrenByParent(ctx, run.ID, attempt.ID, caller.AttemptJobID)

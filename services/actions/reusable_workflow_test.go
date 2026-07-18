@@ -206,3 +206,43 @@ func TestResolveUses(t *testing.T) {
 		assert.ErrorContains(t, err, "must point to this Gitea instance")
 	})
 }
+
+func TestCheckRunJobLimit(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	const (
+		runID    = 900100
+		attemptA = 910001
+		attemptB = 910002
+	)
+
+	seed := func(runID, attemptID int64, n int) {
+		for i := range n {
+			require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunJob{
+				RunID:        runID,
+				RunAttemptID: attemptID,
+				RepoID:       1,
+				OwnerID:      1,
+				CommitSHA:    "abcdef",
+				Name:         fmt.Sprintf("job-%d-%d", attemptID, i),
+				JobID:        fmt.Sprintf("job-%d-%d", attemptID, i),
+				AttemptJobID: attemptID*1000 + int64(i),
+				Status:       actions_model.StatusBlocked,
+			}))
+		}
+	}
+
+	seed(runID, attemptA, 5)
+	seed(runID, attemptB, 3) // a different attempt of the same run must not count toward attempt A
+
+	limit := actions_model.MaxJobNumPerRun
+
+	// attempt A already holds 5 jobs: filling up to the cap is allowed, one more is rejected.
+	require.NoError(t, checkRunJobLimit(t.Context(), runID, attemptA, limit-5))
+	require.ErrorContains(t, checkRunJobLimit(t.Context(), runID, attemptA, limit-4), "maximum")
+	require.ErrorContains(t, checkRunJobLimit(t.Context(), runID, attemptA, limit), "maximum")
+
+	// the count is scoped to the attempt: attempt B only holds 3 jobs, so attempt A's 5 must not leak in.
+	require.NoError(t, checkRunJobLimit(t.Context(), runID, attemptB, limit-3))
+	require.ErrorContains(t, checkRunJobLimit(t.Context(), runID, attemptB, limit-2), "maximum")
+}
