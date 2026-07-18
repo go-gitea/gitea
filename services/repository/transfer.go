@@ -311,7 +311,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiStorageRepo := repo_model.StorageRepo(repo_model.RelativeWikiPath(oldOwner.Name, repo.Name))
 	if isExist, err := gitrepo.IsRepositoryExist(ctx, wikiStorageRepo); err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiStorageRepo.RelativePath(), err)
+		log.Error("Unable to check if wiki of repo %s/%s exists. Error: %v", oldOwner.Name, repo.Name, err)
 		return err
 	} else if isExist {
 		if err := gitrepo.RenameRepository(ctx, wikiStorageRepo, repo_model.StorageRepo(repo_model.RelativeWikiPath(newOwner.Name, repo.Name))); err != nil {

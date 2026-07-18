@@ -384,7 +384,7 @@ func loadScopedWorkflowModel(ctx *context.Context, repo *repo_model.Repository, 
 	}
 	content, err := actions_service.ScopedWorkflowContent(ctx, sourceRepo, workflowID)
 	if err != nil {
-		log.Error("scoped dispatch: content of %s in %s: %v", workflowID, sourceRepo.RelativePath(), err)
+		log.Error("scoped dispatch: content of %s in %s: %v", workflowID, sourceRepo.FullName(), err)
 		return nil
 	}
 	if content == nil {

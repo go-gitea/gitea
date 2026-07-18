@@ -70,7 +70,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
 }
 
-func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, gitRepo gitrepo.Repository, timeout time.Duration) error {
+func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo gitrepo.Repository, timeout time.Duration) error {
 	// Never follow HTTP redirects, see cmdFetch in runSync.
 	cmd := gitcmd.NewCommand("remote", "prune").AddConfig("http.followRedirects", "false").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
 	stdout, _, pruneErr := gitrepo.RunCmdString(ctx, gitRepo, cmd)
@@ -79,8 +79,8 @@ func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, gitRepo gi
 		stderrMessage := util.SanitizeCredentialURLs(pruneErr.Stderr())
 		stdoutMessage := util.SanitizeCredentialURLs(stdout)
 
-		log.Error("Failed to prune mirror repository %s references:\nStdout: %s\nStderr: %s\nErr: %v", gitRepo.RelativePath(), stdoutMessage, stderrMessage, pruneErr)
-		desc := fmt.Sprintf("Failed to prune mirror repository (%s) references: %s", m.Repo.FullName(), stderrMessage)
+		log.Error("Failed to prune mirror repository %s references:\nStdout: %s\nStderr: %s\nErr: %v", repoLogName, stdoutMessage, stderrMessage, pruneErr)
+		desc := fmt.Sprintf("Failed to prune mirror repository (%s) references: %s", repoLogName, stderrMessage)
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
@@ -150,7 +150,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			log.Warn("SyncMirrors [repo: %-v]: failed to update mirror repository due to broken references:\nStdout: %s\nStderr: %s\nErr: %v\nAttempting Prune", m.Repo, stdoutMessage, stderrMessage, err)
 			err = nil
 			// Attempt prune
-			pruneErr := pruneBrokenReferences(ctx, m, m.Repo, timeout)
+			pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName(), m.Repo, timeout)
 			if pruneErr == nil {
 				// Successful prune - reattempt mirror
 				fetchStdout, fetchStderr, err = gitrepo.RunCmdString(ctx, m.Repo, cmdFetch())
@@ -232,7 +232,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 				err = nil
 
 				// Attempt prune
-				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.WikiStorageRepo(), timeout)
+				pruneErr := pruneBrokenReferences(ctx, m, m.Repo.FullName()+".wiki", m.Repo.WikiStorageRepo(), timeout)
 				if pruneErr == nil {
 					// Successful prune - reattempt mirror
 					stdout, stderr, err = gitrepo.RunCmdString(ctx, m.Repo.WikiStorageRepo(), cmdRemoteUpdatePrune())

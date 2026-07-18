@@ -6,17 +6,13 @@ package gitrepo
 import (
 	"context"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/globallock"
 )
-
-func getRepoConfigLockKey(repoStoragePath string) string {
-	return "repo-config:" + repoStoragePath
-}
 
 // GitConfigAdd add a git configuration key to a specific value for the given repository.
 func GitConfigAdd(ctx context.Context, repo Repository, key, value string) error {
-	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
+	return git.LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
 		_, _, err := RunCmdString(ctx, repo, gitcmd.NewCommand("config", "--add").
 			AddDynamicArguments(key, value))
 		return err
@@ -27,7 +23,7 @@ func GitConfigAdd(ctx context.Context, repo Repository, key, value string) error
 // If the key does not exist, it will be created.
 // If the key exists, it will be updated to the new value.
 func GitConfigSet(ctx context.Context, repo Repository, key, value string) error {
-	return globallock.LockAndDo(ctx, getRepoConfigLockKey(repo.RelativePath()), func(ctx context.Context) error {
+	return git.LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
 		_, _, err := RunCmdString(ctx, repo, gitcmd.NewCommand("config").
 			AddDynamicArguments(key, value))
 		return err

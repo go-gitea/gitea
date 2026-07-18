@@ -69,7 +69,7 @@ M 100644 :5 z/d
 func TestMergeTreeDirectoryRenameConflictWithoutFiles(t *testing.T) {
 	repoDir := prepareRepoDirRenameConflict(t)
 	require.DirExists(t, repoDir)
-	repo := &mockRepository{path: repoDir}
+	repo := mockRepository(repoDir)
 
 	mergeBase, err := MergeBase(t.Context(), repo, "add", "split")
 	require.NoError(t, err)

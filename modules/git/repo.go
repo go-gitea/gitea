@@ -5,26 +5,26 @@
 package git
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/proxy"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
-type RepositoryFacade interface {
-	RelativePath() string
-}
+type RepositoryFacade = gitcmd.RepositoryFacade
 
 type RepositoryBase struct {
-	Path string
+	Path string // absolute path
 
 	LastCommitCache *LastCommitCache
 
@@ -32,40 +32,35 @@ type RepositoryBase struct {
 	objectFormatCache ObjectFormat
 }
 
-func prepareRepositoryBase(repoPath string) RepositoryBase {
-	return RepositoryBase{Path: repoPath, tagCache: newObjectCache[*Tag]()}
-}
-
-const prettyLogFormat = `--pretty=format:%H`
-
-func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
-	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
-	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
-		AddDynamicArguments(revisionRange).AddArguments("--").WithDir(repo.Path).
-		RunStdBytes(ctx)
+func OpenRepository(repoPath string) (*Repository, error) {
+	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
 	}
-	return repo.parsePrettyFormatLogToList(ctx, logs)
+	exist, err := util.IsDir(repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		return nil, util.NewNotExistErrorf("no such file or directory")
+	}
+	gitRepo := &Repository{
+		RepositoryBase: RepositoryBase{Path: repoPath, tagCache: newObjectCache[*Tag]()},
+	}
+	if err = openRepositoryInternal(gitRepo); err != nil {
+		return nil, err
+	}
+	return gitRepo, nil
 }
 
-func (repo *Repository) parsePrettyFormatLogToList(ctx context.Context, logs []byte) ([]*Commit, error) {
-	var commits []*Commit
-	if len(logs) == 0 {
-		return commits, nil
+func (repo *Repository) Close() error {
+	if repo == nil {
+		setting.PanicInDevOrTesting("don't close a nil repository")
+		return nil
 	}
-
-	parts := bytes.SplitSeq(logs, []byte{'\n'})
-
-	for commitID := range parts {
-		commit, err := repo.GetCommit(ctx, string(commitID))
-		if err != nil {
-			return nil, err
-		}
-		commits = append(commits, commit)
-	}
-
-	return commits, nil
+	repo.LastCommitCache = nil
+	repo.tagCache = nil
+	return repo.closeInternal()
 }
 
 // IsRepoURLAccessible checks if given repository URL is accessible.

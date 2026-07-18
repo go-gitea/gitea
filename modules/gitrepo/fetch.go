@@ -6,8 +6,8 @@ package gitrepo
 import (
 	"context"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/globallock"
 )
 
 // FetchRemoteCommit fetches a specific commit and its related objects from a remote
@@ -20,7 +20,7 @@ import (
 // This behavior is sufficient for temporary operations, such as determining the
 // merge base between commits.
 func FetchRemoteCommit(ctx context.Context, repo, remoteRepo Repository, commitID string) error {
-	return globallock.LockAndDo(ctx, getRepoWriteLockKey(repo.RelativePath()), func(ctx context.Context) error {
+	return git.LockWriteAndDo(ctx, repo, func(ctx context.Context) error {
 		return RunCmd(ctx, repo, gitcmd.NewCommand("fetch", "--no-tags").
 			AddDynamicArguments(repoPath(remoteRepo)).
 			AddDynamicArguments(commitID))

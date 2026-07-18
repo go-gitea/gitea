@@ -14,17 +14,12 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
-type Repository = git.RepositoryFacade
+type Repository = gitcmd.RepositoryFacade
 
-// repoPath resolves the Repository.RelativePath (which is a unix-style path like "username/reponame.git")
-// to a local filesystem path according to setting.RepoRootPath
-var repoPath = func(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo.RelativePath()))
-}
+var repoPath = gitcmd.RepoLocalPath
 
 // OpenRepository opens the repository at the given relative path with the provided context.
 func OpenRepository(repo Repository) (*git.Repository, error) {
@@ -33,7 +28,7 @@ func OpenRepository(repo Repository) (*git.Repository, error) {
 
 // contextKey is a value for use with context.WithValue.
 type contextKey struct {
-	repoPath string
+	uniqueID string
 }
 
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
@@ -51,11 +46,11 @@ func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Rep
 // RepositoryFromRequestContextOrOpen opens the repository at the given relative path in the provided request context.
 // Caller shouldn't close the git repo manually, the git repo will be automatically closed when the request context is done.
 func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Repository) (*git.Repository, error) {
-	ck := contextKey{repoPath: repoPath(repo)}
+	ck := contextKey{uniqueID: repo.GitRepoUniqueID()}
 	if gitRepo, ok := ctx.Value(ck).(*git.Repository); ok {
 		return gitRepo, nil
 	}
-	gitRepo, err := git.OpenRepository(ck.repoPath)
+	gitRepo, err := git.OpenRepository(repoPath(repo))
 	if err != nil {
 		return nil, err
 	}

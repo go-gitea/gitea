@@ -128,10 +128,11 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		if isWiki {
 			storageRepo = repo.WikiStorageRepo()
 		}
+		mirrorLogName := fmt.Sprintf("%s%s[mirror=%d]", m.Repo.FullName(), util.Iif(isWiki, ".wiki", ""), m.ID)
 		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
-			log.Error("GetRemoteURL(%s) Error %v", storageRepo.RelativePath(), err)
-			return errors.New("Unexpected error")
+			log.Error("GetRemoteURL %s failed, error %v", mirrorLogName, err)
+			return errors.New("GitRemoteGetURL failed")
 		}
 
 		if setting.LFS.StartServer {
@@ -139,8 +140,8 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 
 			gitRepo, err := gitrepo.OpenRepository(storageRepo)
 			if err != nil {
-				log.Error("OpenRepository: %v", err)
-				return errors.New("Unexpected error")
+				log.Error("OpenRepository %s failed: %v", mirrorLogName, err)
+				return errors.New("OpenRepository failed")
 			}
 			defer gitRepo.Close()
 
@@ -153,7 +154,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 		}
 
-		log.Trace("Pushing %s mirror[%d] remote %s", storageRepo.RelativePath(), m.ID, m.RemoteName)
+		log.Trace("Pushing %s remote %s", mirrorLogName, m.ID, m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
 		if err := gitrepo.PushToExternal(ctx, storageRepo, git.PushOptions{
@@ -163,8 +164,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			Timeout: timeout,
 			Env:     envs,
 		}); err != nil {
-			log.Error("Error pushing %s mirror[%d] remote %s: %v", storageRepo.RelativePath(), m.ID, m.RemoteName, err)
-
+			log.Error("Error pushing %s remote %s: %v", mirrorLogName, m.RemoteName, err)
 			return util.SanitizeErrorCredentialURLs(err)
 		}
 
