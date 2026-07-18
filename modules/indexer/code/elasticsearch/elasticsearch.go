@@ -183,7 +183,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) es.Bul
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	ops := make([]es.BulkOp, 0)
 	if len(changes.Updates) > 0 {
-		batch, err := gitrepo.NewBatch(ctx, repo)
+		batch, err := git.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}

@@ -8,20 +8,17 @@ import (
 
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 )
 
-var testReposDir = "tests/repos/"
-
 func TestVerifyCommits(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	gitRepo, err := git.OpenRepositoryLocal(testReposDir + "repo1_hook_verification")
-	if err != nil {
-		defer gitRepo.Close()
-	}
-	assert.NoError(t, err)
+	gitRepo, err := git.OpenRepositoryLocal("tests/repos/repo1_hook_verification")
+	require.NoError(t, err)
+	defer gitRepo.Close()
 
 	objectFormat, err := gitRepo.GetObjectFormat(t.Context())
 	assert.NoError(t, err)

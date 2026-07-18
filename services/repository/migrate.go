@@ -55,7 +55,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 		return "", err
 	}
 
-	if err := gitrepo.WriteCommitGraph(ctx, storageRepo); err != nil {
+	if err := git.WriteCommitGraph(ctx, storageRepo); err != nil {
 		cleanIncompleteWikiPath()
 		return "", err
 	}
@@ -102,7 +102,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("clone error: %w", err)
 	}
 
-	if err := gitrepo.WriteCommitGraph(ctx, repo); err != nil {
+	if err := git.WriteCommitGraph(ctx, repo); err != nil {
 		return repo, err
 	}
 

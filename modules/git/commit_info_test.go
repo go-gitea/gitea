@@ -12,10 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	testReposDir = "tests/repos/"
-)
-
 func cloneRepo(tb testing.TB, url string) (string, error) {
 	repoDir := tb.TempDir()
 	if err := Clone(tb.Context(), url, repoDir, CloneRepoOptions{

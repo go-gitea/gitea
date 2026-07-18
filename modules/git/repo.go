@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -60,8 +61,14 @@ func OpenRepository(repo RepositoryFacade) (*Repository, error) {
 	return gitRepo, nil
 }
 
-func OpenRepositoryLocal(s string) (*Repository, error) {
-	return OpenRepository(gitcmd.RepositoryUnmanaged(s))
+func OpenRepositoryLocal(localPath string) (_ *Repository, err error) {
+	if !filepath.IsAbs(localPath) {
+		localPath, err = filepath.Abs(localPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return OpenRepository(gitcmd.RepositoryUnmanaged(localPath))
 }
 
 func (repo *Repository) Close() error {

@@ -6,6 +6,8 @@ package git
 import (
 	"context"
 	"io"
+
+	"gitea.dev/modules/git/gitcmd"
 )
 
 type BufferedReader interface {
@@ -45,7 +47,8 @@ type CatFileBatchCloser interface {
 
 // NewBatch creates a "batch object provider (CatFileBatch)" for the given repository path to retrieve object info and content efficiently.
 // The CatFileBatch and the readers create by it should only be used in the same goroutine.
-func NewBatch(ctx context.Context, repoPath string) (CatFileBatchCloser, error) {
+func NewBatch(ctx context.Context, repo RepositoryFacade) (CatFileBatchCloser, error) {
+	repoPath := gitcmd.RepoLocalPath(repo)
 	if DefaultFeatures().SupportCatFileBatchCommand {
 		return newCatFileBatchCommand(ctx, repoPath)
 	}

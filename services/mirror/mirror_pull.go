@@ -172,7 +172,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			return nil, false
 		}
 	}
-	if err := gitrepo.WriteCommitGraph(ctx, m.Repo); err != nil {
+	if err := git.WriteCommitGraph(ctx, m.Repo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
 
@@ -253,7 +253,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 				return nil, false
 			}
 
-			if err := gitrepo.WriteCommitGraph(ctx, m.Repo.WikiStorageRepo()); err != nil {
+			if err := git.WriteCommitGraph(ctx, m.Repo.WikiStorageRepo()); err != nil {
 				log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 			}
 		}

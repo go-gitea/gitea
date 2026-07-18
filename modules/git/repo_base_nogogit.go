@@ -42,7 +42,7 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, close
 	}
 
 	if repo.catFileBatchCloser == nil {
-		repo.catFileBatchCloser, err = NewBatch(ctx, repo.Path)
+		repo.catFileBatchCloser, err = NewBatch(ctx, repo)
 		if err != nil {
 			repo.catFileBatchCloser = nil // otherwise it is "interface(nil)" and will cause wrong logic
 			return nil, nil, err
@@ -59,7 +59,7 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, close
 	}
 
 	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	tempBatch, err := NewBatch(ctx, repo.Path)
+	tempBatch, err := NewBatch(ctx, repo)
 	if err != nil {
 		return nil, nil, err
 	}

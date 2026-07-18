@@ -157,7 +157,9 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 	if err != nil {
 		return fmt.Errorf("Clone: %w", err)
 	}
-	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+
+	repoLocal := gitcmd.RepositoryUnmanaged(repoPath)
+	if err := git.WriteCommitGraph(ctx, repoLocal); err != nil {
 		return err
 	}
 
@@ -168,7 +170,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 			if err := os.MkdirAll(wikiPath, os.ModePerm); err != nil {
 				return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 			}
-
+			wikiLocal := gitcmd.RepositoryUnmanaged(wikiPath)
 			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:        true,
 				Quiet:         true,
@@ -180,7 +182,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 				if err := os.RemoveAll(wikiPath); err != nil {
 					return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
 				}
-			} else if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+			} else if err := git.WriteCommitGraph(ctx, wikiLocal); err != nil {
 				return err
 			}
 		}
