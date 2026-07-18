@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"sort"
 	"strings"
 	"unicode"
@@ -35,7 +34,6 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/context"
@@ -56,35 +54,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 	ctx.Data["BeforeCommit"] = before
 	ctx.Data["HeadCommit"] = head
 
-	ctx.Data["GetBlobByPathForCommit"] = func(commit *git.Commit, path string) *git.Blob {
-		if commit == nil {
-			return nil
-		}
-
-		blob, err := commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, path)
-		if err != nil {
-			return nil
-		}
-		return blob
-	}
-
-	ctx.Data["GetSniffedTypeForBlob"] = func(blob *git.Blob) typesniffer.SniffedType {
-		st := typesniffer.SniffedType{}
-
-		if blob == nil {
-			return st
-		}
-
-		st, err := blob.GuessContentType(ctx)
-		if err != nil {
-			log.Error("GuessContentType failed: %v", err)
-			return st
-		}
-		return st
-	}
-
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
-	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
 }
 
@@ -108,20 +78,8 @@ func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOw
 	}
 }
 
-// setImageCompareContext sets context data that is required by image compare template
-func setImageCompareContext(ctx *context.Context) {
-	ctx.Data["IsSniffedTypeAnImage"] = func(st typesniffer.SniffedType) bool {
-		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
-	}
-}
-
 // setCsvCompareContext sets context data that is required by the CSV compare template
 func setCsvCompareContext(ctx *context.Context) {
-	ctx.Data["IsCsvFile"] = func(diffFile *gitdiff.DiffFile) bool {
-		extension := strings.ToLower(filepath.Ext(diffFile.Name))
-		return extension == ".csv" || extension == ".tsv"
-	}
-
 	type CsvDiffResult struct {
 		Sections []*gitdiff.TableDiffSection
 		Error    string

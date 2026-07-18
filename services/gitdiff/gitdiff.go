@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/url"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -38,6 +39,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
@@ -465,6 +467,13 @@ type DiffFile struct {
 	highlightRender       diffVarMutable[chroma.Lexer] // cache render (atm: lexer) for current file, only detect once for line-by-line mode
 	highlightedLeftLines  diffVarMutable[map[int]template.HTML]
 	highlightedRightLines diffVarMutable[map[int]template.HTML]
+
+	LeftBlob, RightBlob         *git.Blob
+	LeftBlobSize, RightBlobSize int64
+	LeftBlobType, RightBlobType typesniffer.SniffedType
+
+	IsBlobTypeImage bool
+	IsBlobTypeCsv   bool
 }
 
 // GetType returns type of diff file.
@@ -472,31 +481,62 @@ func (diffFile *DiffFile) GetType() int {
 	return int(diffFile.Type)
 }
 
-type DiffLimitedContent struct {
-	LeftContent, RightContent *limitByteWriter
+type DiffRenderDetail struct {
+	needTailSection               bool
+	leftLineCount, rightLineCount int
+	leftContent, rightContent     *limitByteWriter
 }
 
-// GetTailSectionAndLimitedContent creates a fake DiffLineSection if the last section is not the end of the file
-func (diffFile *DiffFile) GetTailSectionAndLimitedContent(ctx context.Context, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (_ *DiffSection, diffLimitedContent DiffLimitedContent) {
-	var leftLineCount, rightLineCount int
-	diffLimitedContent = DiffLimitedContent{}
-	if diffFile.IsBin || diffFile.IsLFSFile {
-		return nil, diffLimitedContent
+func (diffFile *DiffFile) getDiffRenderDetail(ctx context.Context, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (ret DiffRenderDetail) {
+	if diffFile.IsLFSFile {
+		return ret
 	}
+
+	// pre-fetch the blob info & content
+	// * for "bin" type: need the pre-fetched buffer to detect content type (e.g.: help to render image diff)
+	// * for "text" type: need to read up to "highlight limit size" to do full-file-highlighting
+	contentLimit := util.Iif(diffFile.IsBin, 1024, MaxFullFileHighlightSizeLimit)
+	var leftLineCount, rightLineCount int
 	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
-		leftLineCount, diffLimitedContent.LeftContent = getCommitFileLineCountAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName)
+		c := getCommitFileLineCountAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName, contentLimit)
+		diffFile.LeftBlob, diffFile.LeftBlobSize, leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
+		diffFile.LeftBlobType = typesniffer.DetectContentType(ret.leftContent.buf.Bytes())
 	}
 	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
-		rightLineCount, diffLimitedContent.RightContent = getCommitFileLineCountAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName)
+		c := getCommitFileLineCountAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName, contentLimit)
+		diffFile.RightBlob, diffFile.RightBlobSize, rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
+		diffFile.RightBlobType = typesniffer.DetectContentType(ret.rightContent.buf.Bytes())
 	}
-	if len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
-		return nil, diffLimitedContent
+
+	isFileTypeImage := func(st typesniffer.SniffedType) bool {
+		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
 	}
+	isFileTypeCsv := func(name string) bool {
+		extension := strings.ToLower(filepath.Ext(diffFile.Name))
+		return extension == ".csv" || extension == ".tsv"
+	}
+	diffFile.IsBlobTypeImage = isFileTypeImage(diffFile.LeftBlobType) || isFileTypeImage(diffFile.RightBlobType)
+	diffFile.IsBlobTypeCsv = isFileTypeCsv(diffFile.OldName) || isFileTypeCsv(diffFile.Name)
+
+	if diffFile.IsBin || len(diffFile.Sections) == 0 || diffFile.Type != DiffFileChange {
+		return ret
+	}
+
+	// check whether the text file diff needs a tail section
 	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
 	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
 	if leftLineCount <= lastLine.LeftIdx || rightLineCount <= lastLine.RightIdx {
-		return nil, diffLimitedContent
+		return ret
 	}
+	ret.needTailSection = true
+	return ret
+}
+
+func (diffFile *DiffFile) addTailSection(diffLimitedContent DiffRenderDetail) {
+	// if the last diff section still doesn't reach to the end of file, we need to add a "tail section" to
+	// make users can expand the remaining unchanged lines to see the full file content.
+	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
+	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
 	tailDiffLine := &DiffLine{
 		Type:    DiffLineSection,
 		Content: " ",
@@ -505,12 +545,12 @@ func (diffFile *DiffFile) GetTailSectionAndLimitedContent(ctx context.Context, g
 			Path:         diffFile.Name,
 			LastLeftIdx:  lastLine.LeftIdx,
 			LastRightIdx: lastLine.RightIdx,
-			LeftIdx:      leftLineCount,
-			RightIdx:     rightLineCount,
+			LeftIdx:      diffLimitedContent.leftLineCount,
+			RightIdx:     diffLimitedContent.rightLineCount,
 		},
 	}
 	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
-	return tailSection, diffLimitedContent
+	diffFile.Sections = append(diffFile.Sections, tailSection)
 }
 
 // GetDiffFileName returns the name of the diff file, or its old name in case it was deleted
@@ -577,17 +617,28 @@ func (l *limitByteWriter) Write(p []byte) (n int, err error) {
 	return l.buf.Write(p)
 }
 
-func getCommitFileLineCountAndLimitedContent(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, filePath string) (lineCount int, limitWriter *limitByteWriter) {
-	blob, err := commit.GetBlobByPath(ctx, gitRepo, filePath)
+func (l *limitByteWriter) LimitReached() bool {
+	return l.buf.Len() >= l.limit
+}
+
+func getCommitFileLineCountAndLimitedContent(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, filePath string, limit int) (ret struct {
+	gitBlob        *git.Blob
+	blobSize       int64
+	lineCount      int
+	limitedContent *limitByteWriter
+},
+) {
+	var err error
+	ret.limitedContent = &limitByteWriter{limit: limit}
+	ret.gitBlob, err = commit.GetBlobByPath(ctx, gitRepo, filePath)
 	if err != nil {
-		return 0, nil
+		return ret
 	}
-	w := &limitByteWriter{limit: MaxFullFileHighlightSizeLimit + 1}
-	lineCount, err = blob.GetBlobLineCount(ctx, w)
+	ret.blobSize, ret.lineCount, err = ret.gitBlob.GetBlobLineCount(ctx, ret.limitedContent)
 	if err != nil {
-		return 0, nil
+		return ret
 	}
-	return lineCount, w
+	return ret
 }
 
 // Diff represents a difference between two git trees.
@@ -1374,19 +1425,19 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
 		}
 		diffFile.IsGenerated = isGenerated.Value()
-		tailSection, limitedContent := diffFile.GetTailSectionAndLimitedContent(ctx, gitRepo, beforeCommit, afterCommit)
-		if tailSection != nil {
-			diffFile.Sections = append(diffFile.Sections, tailSection)
+		limitedContent := diffFile.getDiffRenderDetail(ctx, gitRepo, beforeCommit, afterCommit)
+		if limitedContent.needTailSection {
+			diffFile.addTailSection(limitedContent)
 		}
 
 		shouldFullFileHighlight := attrDiff.Value() == "" // only do highlight if no custom diff command
 		shouldFullFileHighlight = shouldFullFileHighlight && time.Since(startTime) < MaxFullFileHighlightTimeLimit
 		if shouldFullFileHighlight {
-			if limitedContent.LeftContent != nil {
-				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, limitedContent.LeftContent.buf.Bytes())
+			if limitedContent.leftContent != nil {
+				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, limitedContent.leftContent.buf.Bytes())
 			}
-			if limitedContent.RightContent != nil {
-				diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, limitedContent.RightContent.buf.Bytes())
+			if limitedContent.rightContent != nil {
+				diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, limitedContent.rightContent.buf.Bytes())
 			}
 		}
 	}
@@ -1404,7 +1455,7 @@ func highlightCodeLinesForDiffFile(diffFile *DiffFile, isLeft bool, rawContent [
 }
 
 func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool, rawContent []byte) map[int]template.HTML {
-	if setting.Git.DisableDiffHighlight || len(rawContent) > MaxFullFileHighlightSizeLimit {
+	if setting.Git.DisableDiffHighlight || len(rawContent) >= MaxFullFileHighlightSizeLimit {
 		return nil
 	}
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))

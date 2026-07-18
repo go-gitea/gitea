@@ -1,9 +1,10 @@
+{{$root := ctx.RootData}}
 {{if or .blobBase .blobHead}}
 <tr>
 	<td colspan="2">
 		<div class="image-diff"
-			data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}"
-			data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}"
+			data-path-before="{{$root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}"
+			data-path-after="{{$root.RawPath}}/{{PathEscapeSegments .file.Name}}"
 			data-mime-before="{{.sniffedTypeBase.GetMimeType}}"
 			data-mime-after="{{.sniffedTypeHead.GetMimeType}}"
 		>
@@ -30,7 +31,7 @@
 									{{ctx.Locale.Tr "repo.diff.file_image_height"}}: <span class="text bounds-info-height"></span>
 									&nbsp;|&nbsp;
 								</span>
-								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize (.blobBase.Size ctx)}}</span>
+								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize .file.LeftBlobSize}}</span>
 							</p>
 						</span>
 						{{end}}
@@ -45,7 +46,7 @@
 									{{ctx.Locale.Tr "repo.diff.file_image_height"}}: <span class="text bounds-info-height"></span>
 									&nbsp;|&nbsp;
 								</span>
-								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize (.blobHead.Size ctx)}}</span>
+								{{ctx.Locale.Tr "repo.diff.file_byte_size"}}: <span class="text">{{FileSize .file.RightBlobSize}}</span>
 							</p>
 						</span>
 						{{end}}

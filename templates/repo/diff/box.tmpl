@@ -72,12 +72,12 @@
 			<div id="diff-file-boxes" class="sixteen wide column">
 				{{range $i, $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
-					{{$blobBase := call $.GetBlobByPathForCommit $.BeforeCommit $file.OldName}}
-					{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
-					{{$sniffedTypeBase := call $.GetSniffedTypeForBlob $blobBase}}
-					{{$sniffedTypeHead := call $.GetSniffedTypeForBlob $blobHead}}
-					{{$isImage:= or (call $.IsSniffedTypeAnImage $sniffedTypeBase) (call $.IsSniffedTypeAnImage $sniffedTypeHead)}}
-					{{$isCsv := (call $.IsCsvFile $file)}}
+					{{$blobBase := $file.LeftBlob}}
+					{{$blobHead := $file.RightBlob}}
+					{{$sniffedTypeBase := $file.LeftBlobType}}
+					{{$sniffedTypeHead := $file.RightBlobType}}
+					{{$isImage:= $file.IsBlobTypeImage}}
+					{{$isCsv := $file.IsBlobTypeCsv}}
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
@@ -198,9 +198,9 @@
 								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} tw-overflow-x-scroll">
 									<table class="chroma tw-w-full">
 										{{if $isImage}}
-											{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
-										{{else}}
-											{{template "repo/diff/csv_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
+											{{template "repo/diff/image_diff" dict "file" $file "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
+										{{else if $isCsv}}
+											{{template "repo/diff/csv_diff" dict "file" $file "blobBase" $blobBase "blobHead" $blobHead}}
 										{{end}}
 									</table>
 								</div>
