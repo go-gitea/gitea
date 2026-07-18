@@ -14,7 +14,6 @@ import (
 	"io"
 	"net/url"
 	"path"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -487,7 +486,7 @@ type DiffRenderDetail struct {
 	leftContent, rightContent     *limitByteWriter
 }
 
-func (diffFile *DiffFile) getDiffRenderDetail(ctx context.Context, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (ret DiffRenderDetail) {
+func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *git.Repository, leftCommit, rightCommit *git.Commit) (ret DiffRenderDetail) {
 	if diffFile.IsLFSFile {
 		return ret
 	}
@@ -512,7 +511,7 @@ func (diffFile *DiffFile) getDiffRenderDetail(ctx context.Context, gitRepo *git.
 		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
 	}
 	isFileTypeCsv := func(name string) bool {
-		extension := strings.ToLower(filepath.Ext(diffFile.Name))
+		extension := strings.ToLower(path.Ext(diffFile.Name))
 		return extension == ".csv" || extension == ".tsv"
 	}
 	diffFile.IsBlobTypeImage = isFileTypeImage(diffFile.LeftBlobType) || isFileTypeImage(diffFile.RightBlobType)
@@ -1425,19 +1424,21 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			isGenerated = optional.Some(analyze.IsGenerated(diffFile.Name))
 		}
 		diffFile.IsGenerated = isGenerated.Value()
-		limitedContent := diffFile.getDiffRenderDetail(ctx, gitRepo, beforeCommit, afterCommit)
-		if limitedContent.needTailSection {
-			diffFile.addTailSection(limitedContent)
+
+		// prepare more details for the rendering, e.g.: blob (file) size, type, limited content to highlight, etc
+		renderDetail := diffFile.prepareDiffRenderDetail(ctx, gitRepo, beforeCommit, afterCommit)
+		if renderDetail.needTailSection {
+			diffFile.addTailSection(renderDetail)
 		}
 
-		shouldFullFileHighlight := attrDiff.Value() == "" // only do highlight if no custom diff command
+		shouldFullFileHighlight := !diffFile.IsBin && !diffFile.IsLFSFile && attrDiff.Value() == "" // only do highlight for text files which have no custom diff command
 		shouldFullFileHighlight = shouldFullFileHighlight && time.Since(startTime) < MaxFullFileHighlightTimeLimit
 		if shouldFullFileHighlight {
-			if limitedContent.leftContent != nil {
-				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, limitedContent.leftContent.buf.Bytes())
+			if renderDetail.leftContent != nil {
+				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, renderDetail.leftContent.buf.Bytes())
 			}
-			if limitedContent.rightContent != nil {
-				diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, limitedContent.rightContent.buf.Bytes())
+			if renderDetail.rightContent != nil {
+				diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, renderDetail.rightContent.buf.Bytes())
 			}
 		}
 	}
