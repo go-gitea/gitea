@@ -16,6 +16,8 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
+  // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
+  const resolvedTheme = theme || role || 'default';
 
   const instance: Instance = tippy(target, {
     appendTo: document.body,
@@ -44,11 +46,10 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       target.setAttribute('aria-controls', instance.popper.id);
       return onShow?.(instance);
     },
-    arrow: arrow ?? (theme === 'bare' ? false : arrowSvg),
+    arrow: arrow ?? (resolvedTheme === 'bare' || resolvedTheme === 'tooltip' ? false : arrowSvg),
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
-    // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
-    theme: theme || role || 'default',
+    theme: resolvedTheme,
     offset: [0, arrow ? 10 : 6],
     plugins: [followCursor],
     ...other,
@@ -87,7 +88,7 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
     theme: 'tooltip',
     hideOnClick,
     allowHTML: target.getAttribute('data-tooltip-render') === 'html',
-    placement: target.getAttribute('data-tooltip-placement') as Placement || 'top-start',
+    placement: target.getAttribute('data-tooltip-placement') as Placement || 'top',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
     ...((target.getAttribute('data-tooltip-interactive') === 'true') && {interactive: true, aria: {content: 'describedby', expanded: false}}),
   };

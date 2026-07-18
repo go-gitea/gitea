@@ -493,7 +493,7 @@ async function hashChangeListener() {
         <SvgIcon
           v-else
           name="octicon-chevron-right"
-          class="tw-mr-2 step-summary-chevron"
+          class="step-summary-chevron"
           :class="{'tw-invisible': !isExpandable(jobStep.status)}"
         />
         <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill"/>

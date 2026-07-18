@@ -52,12 +52,7 @@
 }
 
 .tippy-box[data-theme="tooltip"] .tippy-content {
-  padding: 0.5rem 1rem;
-}
-
-.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-inner,
-.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-outer {
-  fill: var(--color-tooltip-bg);
+  padding: 5px 10px;
 }
 
 /* menu theme for .ui.menu */

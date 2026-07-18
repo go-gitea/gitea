@@ -249,7 +249,7 @@ gitea-theme-meta-info {
   --color-reaction-hover-bg: var(--color-primary-light-4);
   --color-reaction-active-bg: var(--color-primary-light-5);
   --color-tooltip-text: #fafafa;
-  --color-tooltip-bg: #0b0b0cf0;
+  --color-tooltip-bg: #2b2e33;
   --color-nav-bg: #18191b;
   --color-nav-hover-bg: var(--color-secondary-light-1);
   --color-nav-text: var(--color-text);
