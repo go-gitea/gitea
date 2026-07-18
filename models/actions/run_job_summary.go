@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"fmt"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/setting"
@@ -189,6 +190,37 @@ WHEN NOT MATCHED THEN
 	}
 
 	return util.ErrInvalidArgument
+}
+
+// GetActionRunJobSummariesVersion returns a cheap fingerprint of the stored summaries for a run
+// attempt, using the same optional jobID scoping as ListActionRunJobSummaries. It is computed
+// entirely in the database — no summary content is loaded — so the run view poll can detect whether
+// any summary was inserted, updated or deleted without re-reading and re-rendering every row.
+// An empty string means there are no summaries.
+//
+// The fingerprint combines row count, latest update time and total content size. This misses a
+// same-second, same-length content edit of an existing step, which is acceptable at the poll's
+// one-second granularity and second-resolution timestamps.
+func GetActionRunJobSummariesVersion(ctx context.Context, repoID, runID, runAttemptID, jobID int64) (string, error) {
+	sess := db.GetEngine(ctx).Table(new(ActionRunJobSummary)).
+		Where("repo_id=? AND run_id=? AND run_attempt_id=?", repoID, runID, runAttemptID)
+	if jobID > 0 {
+		sess = sess.And("job_id=?", jobID)
+	}
+	var agg struct {
+		Count      int64 `xorm:"count"`
+		MaxUpdated int64 `xorm:"max_updated"`
+		SumSize    int64 `xorm:"sum_size"`
+	}
+	if _, err := sess.
+		Select("COUNT(*) AS count, COALESCE(MAX(updated), 0) AS max_updated, COALESCE(SUM(content_size), 0) AS sum_size").
+		Get(&agg); err != nil {
+		return "", err
+	}
+	if agg.Count == 0 {
+		return "", nil
+	}
+	return fmt.Sprintf("%d-%d-%d", agg.Count, agg.MaxUpdated, agg.SumSize), nil
 }
 
 // ListActionRunJobSummaries lists the stored summaries for a run attempt, ordered by job

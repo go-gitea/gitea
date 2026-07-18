@@ -10,7 +10,6 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
@@ -138,10 +137,8 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		// Only the attempt's trigger user is needed for triggering_actor. Avoid attempt.LoadAttributes,
 		// which also re-loads the run and the run's attributes that this function already holds (run is a
 		// parameter) — several needless queries on the hot task-dispatch path.
-		if attempt.TriggerUser == nil {
-			if _, triggerUser, err := user_model.GetPossibleUserByID(ctx, attempt.TriggerUserID); err == nil {
-				attempt.TriggerUser = triggerUser
-			}
+		if err := attempt.LoadTriggerUser(ctx); err != nil {
+			log.Error("GenerateGiteaContext: load trigger user of attempt %d: %v", attempt.ID, err)
 		}
 		if attempt.TriggerUser != nil {
 			gitContext["triggering_actor"] = attempt.TriggerUser.Name

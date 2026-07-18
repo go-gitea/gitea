@@ -62,14 +62,16 @@ func (attempt *ActionRunAttempt) LoadAttributes(ctx context.Context) (err error)
 		attempt.Run = run
 	}
 
-	if attempt.TriggerUser == nil {
-		attempt.TriggerUserID, attempt.TriggerUser, err = user_model.GetPossibleUserByID(ctx, attempt.TriggerUserID)
-		if err != nil {
-			return err
-		}
-	}
+	return attempt.LoadTriggerUser(ctx)
+}
 
-	return nil
+// LoadTriggerUser loads the attempt's trigger user if not already loaded.
+func (attempt *ActionRunAttempt) LoadTriggerUser(ctx context.Context) (err error) {
+	if attempt.TriggerUser != nil {
+		return nil
+	}
+	attempt.TriggerUserID, attempt.TriggerUser, err = user_model.GetPossibleUserByID(ctx, attempt.TriggerUserID)
+	return err
 }
 
 func GetRunAttemptByRepoAndID(ctx context.Context, repoID, attemptID int64) (*ActionRunAttempt, error) {

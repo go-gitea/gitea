@@ -280,6 +280,10 @@ type LogCursor struct {
 
 type ViewRequest struct {
 	LogCursors []LogCursor `json:"logCursors"`
+	// JobSummariesVersion is the summaries fingerprint the client currently holds. When it matches the
+	// server's current fingerprint, the response omits jobSummaries so the poll skips the content load
+	// and markdown render. Empty on first load or when the client has no summaries.
+	JobSummariesVersion string `json:"jobSummariesVersion"`
 }
 
 type ArtifactsViewItem struct {
@@ -327,6 +331,9 @@ type ViewResponse struct {
 			TriggerEvent string `json:"triggerEvent"` // e.g. pull_request, push, schedule
 
 			JobSummaries []*ViewJobSummary `json:"jobSummaries,omitempty"`
+			// JobSummariesVersion is the current summaries fingerprint. jobSummaries is only present when
+			// this differs from the client-sent version; otherwise the client keeps the summaries it holds.
+			JobSummariesVersion string `json:"jobSummariesVersion"`
 		} `json:"run"`
 		CurrentJob struct {
 			Title  string         `json:"title"`
@@ -680,16 +687,30 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		runAttemptID = attempt.ID
 	}
 
-	// Each step's markdown is rendered independently so an unclosed construct
-	// in one step can't bleed into the next.
 	// On a single-job view only that job's summaries are needed; the run view shows all.
-	// Scoping server-side avoids rendering every job's markdown on each 1s poll.
-	summaries, err := actions_model.ListActionRunJobSummaries(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, ctx.PathParamInt64("job"))
+	// Scoping server-side avoids reading every job's summaries on each 1s poll.
+	jobID := ctx.PathParamInt64("job")
+
+	// The run view is polled ~1s while a run is in progress. Send a cheap fingerprint of the
+	// summaries and let the client tell us which version it already holds: when it matches, skip
+	// the content load, the markdown render and the payload entirely, so the heavy templating only
+	// runs when the summaries have actually changed.
+	summariesVersion, err := actions_model.GetActionRunJobSummariesVersion(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, jobID)
 	if err != nil {
-		ctx.ServerError("ListActionRunJobSummaries", err)
+		ctx.ServerError("GetActionRunJobSummariesVersion", err)
 		return
 	}
-	if len(summaries) > 0 {
+	resp.State.Run.JobSummariesVersion = summariesVersion
+
+	if req := web.GetForm(ctx).(*ViewRequest); req.JobSummariesVersion != summariesVersion {
+		summaries, err := actions_model.ListActionRunJobSummaries(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, jobID)
+		if err != nil {
+			ctx.ServerError("ListActionRunJobSummaries", err)
+			return
+		}
+		// The version differs, so the client replaces the summaries it holds with this set (an empty
+		// set clears them — jobSummaries is then omitted and the client falls back to none).
+		resp.State.Run.JobSummaries = make([]*ViewJobSummary, 0, len(summaries))
 		jobNameByID := make(map[int64]string, len(jobs))
 		for _, j := range jobs {
 			jobNameByID[j.ID] = j.Name
@@ -705,7 +726,9 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 				current = &ViewJobSummary{JobID: s.JobID, JobName: jobNameByID[s.JobID]}
 				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, current)
 			}
-			current.SummaryHTML += renderCachedJobSummary(renderUtils, ctx.Repo.Repository.ID, s.Content)
+			// Each step's markdown is rendered independently so an unclosed construct
+			// in one step can't bleed into the next.
+			current.SummaryHTML += renderUtils.MarkdownToHtml(s.Content)
 		}
 	}
 
@@ -723,19 +746,6 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			ExpiresUnix: int64(art.ExpiredUnix),
 		})
 	}
-}
-
-// renderCachedJobSummary renders a job step summary's markdown to HTML, caching the result by
-// repo + content hash. The run view is polled roughly every second while a run is in progress, and
-// re-renders every job's summary each time; a completed job's summary is immutable, so caching avoids
-// repeatedly re-rendering the same markdown (up to MaxJobNumPerRun jobs per poll). Content-hash keying
-// is self-invalidating — changed content renders afresh — and it falls back to a direct render when the
-// cache is disabled.
-func renderCachedJobSummary(renderUtils *templates.RenderUtils, repoID int64, content string) template.HTML {
-	html, _ := cache.GetString(fmt.Sprintf("actions_job_summary_html:%d:%s", repoID, base.EncodeSha256(content)), func() (string, error) {
-		return string(renderUtils.MarkdownToHtml(content)), nil
-	})
-	return template.HTML(html)
 }
 
 func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
