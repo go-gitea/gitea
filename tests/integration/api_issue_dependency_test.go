@@ -68,7 +68,7 @@ func TestAPICreateIssueDependencyCrossRepoPermission(t *testing.T) {
 	})
 
 	// add user40 as a collaborator to dependency repository with read permission
-	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), dependencyRepo, user40, perm.AccessModeRead))
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), user40, dependencyRepo, user40, perm.AccessModeRead))
 
 	// try again after getting read permission to dependency repository
 	req = NewRequestWithJSON(t, "POST", url, dependencyMeta).
@@ -80,7 +80,7 @@ func TestAPICreateIssueDependencyCrossRepoPermission(t *testing.T) {
 	})
 
 	// add user40 as a collaborator to target repository with write permission
-	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), targetRepo, user40, perm.AccessModeWrite))
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), user40, targetRepo, user40, perm.AccessModeWrite))
 
 	req = NewRequestWithJSON(t, "POST", url, dependencyMeta).
 		AddTokenAuth(writerToken)
@@ -129,7 +129,7 @@ func TestAPIDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 	})
 
 	// add user40 as a collaborator to dependency repository with read permission
-	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), dependencyRepo, user40, perm.AccessModeRead))
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), user40, dependencyRepo, user40, perm.AccessModeRead))
 
 	// try again after getting read permission to dependency repository
 	req = NewRequestWithJSON(t, "DELETE", url, dependencyMeta).
@@ -141,7 +141,7 @@ func TestAPIDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 	})
 
 	// add user40 as a collaborator to target repository with write permission
-	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), targetRepo, user40, perm.AccessModeWrite))
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), user40, targetRepo, user40, perm.AccessModeWrite))
 
 	req = NewRequestWithJSON(t, "DELETE", url, dependencyMeta).
 		AddTokenAuth(writerToken)

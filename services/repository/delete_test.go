@@ -36,7 +36,7 @@ func TestTeam_RemoveRepository(t *testing.T) {
 
 	testSuccess := func(teamID, repoID int64) {
 		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
-		assert.NoError(t, repo_service.RemoveRepositoryFromTeam(t.Context(), team, repoID))
+		assert.NoError(t, repo_service.RemoveRepositoryFromTeam(t.Context(), user_model.NewGhostUser(), team, repoID))
 		unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: teamID, RepoID: repoID})
 		unittest.CheckConsistencyFor(t, &organization.Team{ID: teamID}, &repo_model.Repository{ID: repoID})
 	}

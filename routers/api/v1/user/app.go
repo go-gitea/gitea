@@ -10,14 +10,18 @@ import (
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
+
+	"xorm.io/builder"
 )
 
 // ListAccessTokens list all the access tokens
@@ -153,6 +157,10 @@ func CreateAccessToken(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserAccessTokenAdd, ctx.Doer, ctx.Doer,
+		fmt.Sprintf("Added access token %s for user %s with scope %s.", t.Name, ctx.Doer.Name, t.Scope), "token", t.Name, "scope", t.Scope)
+
 	ctx.JSON(http.StatusCreated, &api.AccessToken{
 		Name:           t.Name,
 		Token:          t.Token,
@@ -215,10 +223,22 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		}
 	}
 
-	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID); err != nil {
+	t, exist, err := db.Get[auth_model.AccessToken](ctx, builder.Eq{"id": tokenID, "uid": ctx.ContextUser.ID})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	} else if !exist {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	if err := auth_model.DeleteAccessTokenByID(ctx, t.ID, ctx.ContextUser.ID); err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserAccessTokenRemove, ctx.Doer, ctx.Doer,
+		fmt.Sprintf("Removed access token %s from user %s.", t.Name, ctx.Doer.Name), "token", t.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -264,6 +284,9 @@ func CreateOauth2Application(ctx *context.APIContext) {
 		return
 	}
 	app.ClientSecret = secret
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationAdd, ctx.Doer, ctx.Doer,
+		fmt.Sprintf("Created OAuth2 application %s for user %s", app.Name, ctx.Doer.Name), "oauth2_application", app.Name)
 
 	ctx.JSON(http.StatusCreated, convert.ToOAuth2Application(app))
 }
@@ -327,6 +350,15 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.PathParamInt64("id")
+	app, err := auth_model.GetOAuth2ApplicationByID(ctx, appID)
+	if err != nil {
+		if auth_model.IsErrOAuthApplicationNotFound(err) {
+			ctx.APIErrorNotFound()
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
 	if err := auth_model.DeleteOAuth2Application(ctx, appID, ctx.Doer.ID); err != nil {
 		if auth_model.IsErrOAuthApplicationNotFound(err) {
 			ctx.APIErrorNotFound()
@@ -335,6 +367,9 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationRemove, ctx.Doer, ctx.Doer,
+		fmt.Sprintf("Removed OAuth2 application %s of user %s", app.Name, ctx.Doer.Name), "oauth2_application", app.Name)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -433,6 +468,9 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "error updating application secret")
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserOAuth2ApplicationUpdate, ctx.Doer, ctx.Doer,
+		fmt.Sprintf("Updated OAuth2 application %s of user %s", app.Name, ctx.Doer.Name), "oauth2_application", app.Name)
 
 	ctx.JSON(http.StatusOK, convert.ToOAuth2Application(app))
 }

@@ -54,7 +54,7 @@ func oauth2SignInSync(ctx *context.Context, authSourceID int64, u *user_model.Us
 	// sync user flags (admin/restricted)
 	isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(oauth2Source, &gothUser)
 	if isAdmin.Has() || isRestricted.Has() {
-		if err = user_service.UpdateUser(ctx, u, &user_service.UpdateOptions{IsAdmin: isAdmin, IsRestricted: isRestricted}); err != nil {
+		if err = user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), u, &user_service.UpdateOptions{IsAdmin: isAdmin, IsRestricted: isRestricted}); err != nil {
 			log.Error("Unable to sync OAuth2 user admin or restricted status %s: %v", gothUser.Provider, err)
 		}
 	}

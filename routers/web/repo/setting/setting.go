@@ -6,11 +6,13 @@ package setting
 
 import (
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
@@ -31,6 +33,7 @@ import (
 	"gitea.dev/modules/web"
 	repo_router "gitea.dev/routers/web/repo"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/migrations"
@@ -467,6 +470,10 @@ func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.RepositoryMirrorPushRemove, ctx.Doer, repo,
+		fmt.Sprintf("Removed push mirror to %s for repository %s.", m.RemoteAddress, repo.FullName()),
+		"mirror_id", m.ID, "remote_address", m.RemoteAddress)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(repo.Link() + "/settings")
 }
@@ -530,6 +537,10 @@ func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
 		ctx.ServerError("AddPushMirrorRemote", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.RepositoryMirrorPushAdd, ctx.Doer, repo,
+		fmt.Sprintf("Added push mirror to %s for repository %s.", m.RemoteAddress, repo.FullName()),
+		"mirror_id", m.ID, "remote_address", m.RemoteAddress)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(repo.Link() + "/settings")
@@ -713,6 +724,11 @@ func handleSettingsPostSigning(ctx *context.Context) {
 			ctx.ServerError("UpdateRepositoryColsNoAutoTime", err)
 			return
 		}
+
+		audit.Record(ctx, audit_model.RepositorySigningVerification, ctx.Doer, repo,
+			fmt.Sprintf("Changed signing verification of repository %s to %s.", repo.FullName(), repo.TrustModel.String()),
+			"trust_model", repo.TrustModel.String())
+
 		log.Trace("Repository signing settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 	}
 
@@ -797,6 +813,10 @@ func handleSettingsPostConvert(ctx *context.Context) {
 		ctx.ServerError("DeleteMirrorByRepoID", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.RepositoryConvertMirror, ctx.Doer, repo,
+		fmt.Sprintf("Converted repository %s from pull mirror to regular repository.", repo.FullName()))
+
 	log.Trace("Repository converted from mirror to regular: %s", repo.FullName())
 	ctx.Flash.Success(ctx.Tr("repo.settings.convert_succeed"))
 	ctx.JSONRedirect(repo.Link())
@@ -831,7 +851,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		return
 	}
 
-	if err := repo_service.ConvertForkToNormalRepository(ctx, repo); err != nil {
+	if err := repo_service.ConvertForkToNormalRepository(ctx, ctx.Doer, repo); err != nil {
 		log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 		ctx.ServerError("Convert Fork", err)
 		return
@@ -973,7 +993,7 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 		return
 	}
 
-	err := wiki_service.DeleteWiki(ctx, repo)
+	err := wiki_service.DeleteWiki(ctx, ctx.Doer, repo)
 	if err != nil {
 		log.Error("Delete Wiki: %v", err.Error())
 	}
@@ -1010,6 +1030,9 @@ func handleSettingsPostArchive(ctx *context.Context) {
 	// update issue indexer
 	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 
+	audit.Record(ctx, audit_model.RepositoryArchive, ctx.Doer, repo,
+		fmt.Sprintf("Archived repository %s.", repo.FullName()))
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.archive.success"))
 
 	log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -1039,6 +1062,9 @@ func handleSettingsPostUnarchive(ctx *context.Context) {
 	// update issue indexer
 	issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 
+	audit.Record(ctx, audit_model.RepositoryUnarchive, ctx.Doer, repo,
+		fmt.Sprintf("Unarchived repository %s.", repo.FullName()))
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.unarchive.success"))
 
 	log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
@@ -1064,7 +1090,7 @@ func handleSettingsPostVisibility(ctx *context.Context) {
 		return
 	}
 
-	err := repo_service.MakeRepoPrivate(ctx, repo, private)
+	err := repo_service.MakeRepoPrivate(ctx, ctx.Doer, repo, private)
 	if err != nil {
 		log.Error("Tried to change the visibility of the repo: %s", err)
 		ctx.JSONError(ctx.Tr("repo.settings.visibility.error"))

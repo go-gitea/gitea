@@ -4,14 +4,17 @@
 package setting
 
 import (
+	"fmt"
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -92,6 +95,10 @@ func DeployKeysPost(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.RepositoryDeployKeyAdd, ctx.Doer, ctx.Repo.Repository,
+		fmt.Sprintf("Added deploy key %s for repository %s.", key.Name, ctx.Repo.Repository.FullName()),
+		"deploy_key", key.Name)
+
 	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
@@ -99,7 +106,7 @@ func DeployKeysPost(ctx *context.Context) {
 
 // DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
-	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Doer, ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))

@@ -28,9 +28,9 @@ func registerDeleteInactiveUsers() {
 			Schedule:   "@annually",
 		},
 		OlderThan: time.Minute * time.Duration(setting.Service.ActiveCodeLives),
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+	}, func(ctx context.Context, doer *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return user_service.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
+		return user_service.DeleteInactiveUsers(ctx, doer, olderThanConfig.OlderThan)
 	})
 }
 

@@ -5,14 +5,17 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -84,6 +87,11 @@ func TwoFactorPost(ctx *context.Context) {
 		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
 		handleSignIn(ctx, u, remember)
 		return
+	}
+
+	if u, err := user_model.GetUserByID(ctx, id); err == nil {
+		audit.Record(ctx, audit_model.UserAuthenticationFailTwoFactor, u, u,
+			fmt.Sprintf("Failed two-factor authentication for user %s.", u.Name))
 	}
 
 	ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, forms.TwoFactorAuthForm{})

@@ -8,17 +8,19 @@ import (
 	"context"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/services/audit"
 
 	"xorm.io/builder"
 )
 
-func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
+func AddOrUpdateCollaborator(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
 	// only allow valid access modes, read, write and admin
 	if mode < perm.AccessModeRead || mode > perm.AccessModeAdmin {
 		return perm.ErrInvalidAccessMode
@@ -32,7 +34,8 @@ func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u
 		return user_model.ErrBlockedUser
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	changed := false
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		collaboration, has, err := db.Get[repo_model.Collaboration](ctx, builder.Eq{
 			"repo_id": repo.ID,
 			"user_id": u.ID,
@@ -52,31 +55,47 @@ func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u
 				}); err != nil {
 				return err
 			}
-		} else if err = db.Insert(ctx, &repo_model.Collaboration{
-			RepoID: repo.ID,
-			UserID: u.ID,
-			Mode:   mode,
-		}); err != nil {
-			return err
+			changed = true
+		} else {
+			if err = db.Insert(ctx, &repo_model.Collaboration{
+				RepoID: repo.ID,
+				UserID: u.ID,
+				Mode:   mode,
+			}); err != nil {
+				return err
+			}
+			changed = true
 		}
 
 		return access_model.RecalculateUserAccess(ctx, repo, u.ID)
-	})
+	}); err != nil {
+		return err
+	}
+
+	if changed {
+		audit.Record(ctx, audit_model.RepositoryCollaboratorAdd, doer, repo,
+			fmt.Sprintf("Added user %s as collaborator for repository %s with access mode %s.", u.Name, repo.FullName(), mode.ToString()),
+			"collaborator", u.Name, "access_mode", mode.ToString())
+	}
+
+	return nil
 }
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
-func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User) (err error) {
+func DeleteCollaboration(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, collaborator *user_model.User) (err error) {
 	collaboration := &repo_model.Collaboration{
 		RepoID: repo.ID,
 		UserID: collaborator.ID,
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	deleted := false
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if has, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
 			return err
 		} else if has == 0 {
 			return nil
 		}
+		deleted = true
 
 		if err := repo.LoadOwner(ctx); err != nil {
 			return err
@@ -96,7 +115,17 @@ func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, colla
 
 		// Unassign a user from any issue (s)he has been assigned to in the repository
 		return ReconsiderRepoIssuesAssignee(ctx, repo, collaborator)
-	})
+	}); err != nil {
+		return err
+	}
+
+	if deleted {
+		audit.Record(ctx, audit_model.RepositoryCollaboratorRemove, doer, repo,
+			fmt.Sprintf("Removed collaborator %s from repository %s.", collaborator.Name, repo.FullName()),
+			"collaborator", collaborator.Name)
+	}
+
+	return nil
 }
 
 func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {

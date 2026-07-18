@@ -5,17 +5,22 @@
 package setting
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
+
+	"xorm.io/builder"
 )
 
 const (
@@ -108,6 +113,9 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.UserAccessTokenAdd, ctx.Doer, ctx.Doer,
+		fmt.Sprintf("Added access token %s for user %s with scope %s.", t.Name, ctx.Doer.Name, t.Scope), "token", t.Name, "scope", t.Scope)
+
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Token)
 
@@ -116,9 +124,22 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	if err := auth_model.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
+	t, exist, err := db.Get[auth_model.AccessToken](ctx, builder.Eq{"id": ctx.FormInt64("id"), "uid": ctx.Doer.ID})
+	if err != nil {
+		ctx.ServerError("GetAccessToken", err)
+		return
+	} else if !exist {
+		ctx.Flash.Error("DeleteAccessTokenByID: not found")
+		ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
+		return
+	}
+
+	if err := auth_model.DeleteAccessTokenByID(ctx, t.ID, ctx.Doer.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.UserAccessTokenRemove, ctx.Doer, ctx.Doer,
+			fmt.Sprintf("Removed access token %s from user %s.", t.Name, ctx.Doer.Name), "token", t.Name)
+
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 

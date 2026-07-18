@@ -5,8 +5,10 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/password"
@@ -16,6 +18,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
@@ -85,6 +88,9 @@ func ForgotPasswdPost(ctx *context.Context) {
 	}
 
 	mailer.SendResetPasswordMail(u)
+
+	audit.Record(ctx, audit_model.UserPasswordResetRequest, user_model.NewGhostUser(), u,
+		fmt.Sprintf("Requested password reset for user %s.", u.Name))
 
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -195,7 +201,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		Password:           optional.Some(ctx.FormString("password")),
 		MustChangePassword: optional.Some(false),
 	}
-	if err := user_service.UpdateAuth(ctx, u, opts); err != nil {
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, u, opts); err != nil {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
 		switch {
@@ -277,7 +283,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 		Password:           optional.Some(form.Password),
 		MustChangePassword: optional.Some(false),
 	}
-	if err := user_service.UpdateAuth(ctx, ctx.Doer, opts); err != nil {
+	if err := user_service.UpdateAuth(ctx, ctx.Doer, ctx.Doer, opts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
 			ctx.Data["Err_Password"] = true

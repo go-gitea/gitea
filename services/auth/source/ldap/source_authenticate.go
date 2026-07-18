@@ -5,15 +5,18 @@ package ldap
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	auth_module "gitea.dev/modules/auth"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	source_service "gitea.dev/services/auth/source"
 	user_service "gitea.dev/services/user"
 )
@@ -65,7 +68,7 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 				opts.IsRestricted = optional.Some(sr.IsRestricted)
 			}
 			if opts.IsAdmin.Has() || opts.IsRestricted.Has() {
-				if err := user_service.UpdateUser(ctx, user, opts); err != nil {
+				if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), user, opts); err != nil {
 					return nil, err
 				}
 			}
@@ -98,6 +101,9 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		if err != nil {
 			return user, err
 		}
+
+		audit.Record(ctx, audit_model.UserCreate, user_model.NewAuthenticationSourceUser(), user,
+			fmt.Sprintf("Created user %s.", user.Name))
 
 		if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(ctx, user, source.AuthSource, sr.SSHPublicKey, source.SSHKeysAreVerified) {
 			if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {

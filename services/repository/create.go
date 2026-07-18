@@ -430,7 +430,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 			return fmt.Errorf("IsUserRepoAdmin: %w", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
-			if err = AddOrUpdateCollaborator(ctx, repo, doer, perm.AccessModeAdmin); err != nil {
+			if err = AddOrUpdateCollaborator(ctx, doer, repo, doer, perm.AccessModeAdmin); err != nil {
 				return fmt.Errorf("AddCollaborator: %w", err)
 			}
 		}

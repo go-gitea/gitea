@@ -5,10 +5,12 @@ package security
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	wa "gitea.dev/modules/auth/webauthn"
@@ -16,6 +18,7 @@ import (
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 
@@ -115,13 +118,17 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}
 
 	// Create the credential
-	_, err = auth.CreateCredential(ctx, ctx.Doer.ID, name, cred)
+	dbCred, err = auth.CreateCredential(ctx, ctx.Doer.ID, name, cred)
 	if err != nil {
 		ctx.ServerError("CreateCredential", err)
 		return
 	}
 	_ = ctx.Session.Delete("webauthnName")
 	_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
+
+	audit.Record(ctx, audit_model.UserWebAuthAdd, ctx.Doer, ctx.Doer,
+		fmt.Sprintf("Added WebAuthn key %s for user %s.", dbCred.Name, ctx.Doer.Name), "credential", dbCred.Name)
+
 	ctx.JSON(http.StatusCreated, cred)
 }
 
@@ -132,9 +139,18 @@ func WebauthnDelete(ctx *context.Context) {
 		return
 	}
 
-	if _, err := auth.DeleteCredential(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
+	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.FormInt64("id"))
+	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
+	}
+
+	if ok, err := auth.DeleteCredential(ctx, cred.ID, ctx.Doer.ID); err != nil {
+		ctx.ServerError("DeleteCredential", err)
+		return
+	} else if ok {
+		audit.Record(ctx, audit_model.UserWebAuthRemove, ctx.Doer, ctx.Doer,
+			fmt.Sprintf("Removed WebAuthn key %s from user %s.", cred.Name, ctx.Doer.Name), "credential", cred.Name)
 	}
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/security")
 }

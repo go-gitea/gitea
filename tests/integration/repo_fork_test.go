@@ -92,7 +92,7 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 	assert.Equal(t, structs.VisibleTypeLimited, limitedOrg.Visibility)
 	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(t.Context())
 	assert.NoError(t, err)
-	assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam1, user1))
+	assert.NoError(t, org_service.AddTeamMember(t.Context(), nil, ownerTeam1, user1))
 	testRepoFork(t, user1Sess, "user2", "repo1", limitedOrg.Name, "repo1", "")
 
 	// fork to a private org
@@ -102,7 +102,7 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 	assert.Equal(t, structs.VisibleTypePrivate, privateOrg.Visibility)
 	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(t.Context())
 	assert.NoError(t, err)
-	assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam2, user4))
+	assert.NoError(t, org_service.AddTeamMember(t.Context(), nil, ownerTeam2, user4))
 	testRepoFork(t, user4Sess, "user2", "repo1", privateOrg.Name, "repo1", "")
 
 	t.Run("Anonymous", func(t *testing.T) {
@@ -122,7 +122,7 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 		// since user1 is an admin, he can get both of the forked repositories
 		assert.Equal(t, 2, htmlDoc.Find(forkItemSelector).Length())
 
-		assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam2, user1))
+		assert.NoError(t, org_service.AddTeamMember(t.Context(), nil, ownerTeam2, user1))
 		resp = user1Sess.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
 		assert.Equal(t, 2, htmlDoc.Find(forkItemSelector).Length())

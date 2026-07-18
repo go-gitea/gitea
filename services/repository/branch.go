@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -31,6 +32,7 @@ import (
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 	release_service "gitea.dev/services/release"
 
@@ -697,7 +699,7 @@ func AddAllRepoBranchesToSyncQueue(ctx context.Context) error {
 	return nil
 }
 
-func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newBranchName string) error {
+func SetRepoDefaultBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, newBranchName string) error {
 	if repo.DefaultBranch == newBranchName {
 		return nil
 	}
@@ -746,6 +748,10 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newB
 	if err := DelRepoDivergenceFromCache(ctx, repo.ID); err != nil {
 		log.Error("DelRepoDivergenceFromCache: %v", err)
 	}
+
+	audit.Record(ctx, audit_model.RepositoryBranchDefault, doer, repo,
+		fmt.Sprintf("Changed default branch of repository %s to %s.", repo.FullName(), repo.DefaultBranch),
+		"default_branch", repo.DefaultBranch)
 
 	notify_service.ChangeDefaultBranch(ctx, repo)
 

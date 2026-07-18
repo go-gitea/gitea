@@ -5,9 +5,11 @@ package ldap
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
@@ -16,6 +18,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	source_service "gitea.dev/services/auth/source"
 	user_service "gitea.dev/services/user"
 )
@@ -131,6 +134,9 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			err = user_model.CreateUser(ctx, usr, &user_model.Meta{}, overwriteDefault)
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.AuthSource.Name, su.Username, err)
+			} else {
+				audit.Record(ctx, audit_model.UserCreate, user_model.NewAuthenticationSourceUser(), usr,
+					fmt.Sprintf("Created user %s.", usr.Name))
 			}
 
 			if err == nil && isAttributeSSHPublicKeySet {
@@ -169,11 +175,11 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					opts.IsRestricted = optional.Some(su.IsRestricted)
 				}
 
-				if err := user_service.UpdateUser(ctx, usr, opts); err != nil {
+				if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), usr, opts); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.AuthSource.Name, usr.Name, err)
 				}
 
-				if err := user_service.ReplacePrimaryEmailAddress(ctx, usr, su.Mail); err != nil {
+				if err := user_service.ReplacePrimaryEmailAddress(ctx, user_model.NewAuthenticationSourceUser(), usr, su.Mail); err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s primary email %s: %v", source.AuthSource.Name, usr.Name, su.Mail, err)
 				}
 			}
@@ -220,7 +226,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			opts := &user_service.UpdateOptions{
 				IsActive: optional.Some(false),
 			}
-			if err := user_service.UpdateUser(ctx, usr, opts); err != nil {
+			if err := user_service.UpdateUser(ctx, user_model.NewAuthenticationSourceUser(), usr, opts); err != nil {
 				log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.AuthSource.Name, usr.Name, err)
 			}
 		}

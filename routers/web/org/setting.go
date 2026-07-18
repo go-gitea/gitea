@@ -6,9 +6,11 @@ package org
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
@@ -24,6 +26,7 @@ import (
 	"gitea.dev/modules/web"
 	shared_user "gitea.dev/routers/web/shared/user"
 	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	org_service "gitea.dev/services/org"
@@ -91,7 +94,7 @@ func SettingsPost(ctx *context.Context) {
 		opts.MaxRepoCreation = optional.FromPtr(form.MaxRepoCreation)
 	}
 
-	if err := user_service.UpdateUser(ctx, org.AsUser(), opts); err != nil {
+	if err := user_service.UpdateUser(ctx, ctx.Doer, org.AsUser(), opts); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -130,7 +133,7 @@ func SettingsDeleteOrgPost(ctx *context.Context) {
 		return
 	}
 
-	if err := org_service.DeleteOrganization(ctx, ctx.Org.Organization, false /* no purge */); err != nil {
+	if err := org_service.DeleteOrganization(ctx, ctx.Doer, ctx.Org.Organization, false /* no purge */); err != nil {
 		if repo_model.IsErrUserOwnRepos(err) {
 			ctx.JSONError(ctx.Tr("form.org_still_own_repo"))
 		} else if packages_model.IsErrUserOwnPackages(err) {
@@ -172,9 +175,19 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	hook, err := webhook.GetWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+		ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/hooks")
+		return
+	}
+
+	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.OrganizationWebhookRemove, ctx.Doer, ctx.Org.Organization.AsUser(),
+			fmt.Sprintf("Removed webhook %s of organization %s.", hook.URL, ctx.Org.Organization.Name), "webhook", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 

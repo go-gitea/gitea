@@ -68,6 +68,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -92,6 +93,7 @@ import (
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -122,6 +124,10 @@ func sudo() func(ctx *context.APIContext) {
 					return
 				}
 				log.Trace("Sudo from (%s) to: %s", ctx.Doer.Name, user.Name)
+
+				audit.Record(ctx, audit_model.UserImpersonation, ctx.Doer, user,
+					fmt.Sprintf("User %s impersonating user %s.", ctx.Doer.Name, user.Name))
+
 				ctx.Doer = user
 			} else {
 				ctx.JSON(http.StatusForbidden, map[string]string{

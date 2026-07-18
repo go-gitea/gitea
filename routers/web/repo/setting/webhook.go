@@ -12,9 +12,11 @@ import (
 	"path"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
@@ -25,6 +27,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	webhook_module "gitea.dev/modules/webhook"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
@@ -58,6 +61,8 @@ func Webhooks(ctx *context.Context) {
 }
 
 type ownerRepoCtx struct {
+	Owner           *user_model.User
+	Repo            *repo_model.Repository
 	OwnerID         int64
 	RepoID          int64
 	IsAdmin         bool
@@ -71,6 +76,7 @@ type ownerRepoCtx struct {
 func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &ownerRepoCtx{
+			Repo:        ctx.Repo.Repository,
 			RepoID:      ctx.Repo.Repository.ID,
 			Link:        path.Join(ctx.Repo.RepoLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Repo.RepoLink, "settings/hooks"),
@@ -80,6 +86,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 
 	if ctx.Data["PageIsOrgSettings"] == true {
 		return &ownerRepoCtx{
+			Owner:       ctx.ContextUser,
 			OwnerID:     ctx.ContextUser.ID,
 			Link:        path.Join(ctx.Org.OrgLink, "settings/hooks"),
 			LinkNew:     path.Join(ctx.Org.OrgLink, "settings/hooks"),
@@ -89,6 +96,7 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 
 	if ctx.Data["PageIsUserSettings"] == true {
 		return &ownerRepoCtx{
+			Owner:       ctx.Doer,
 			OwnerID:     ctx.Doer.ID,
 			Link:        path.Join(setting.AppSubURL, "/user/settings/hooks"),
 			LinkNew:     path.Join(setting.AppSubURL, "/user/settings/hooks"),
@@ -107,6 +115,16 @@ func getOwnerRepoCtx(ctx *context.Context) (*ownerRepoCtx, error) {
 	}
 
 	return nil, errors.New("unable to set OwnerRepo context")
+}
+
+// recordWebhookAudit emits a webhook audit event scoped to the repository,
+// organization, user, or instance (admin/system) the webhook belongs to. The
+// shared add/edit handlers run in any of these contexts, so the scope is derived
+// from orCtx rather than assuming a repository.
+func (orCtx *ownerRepoCtx) recordWebhookAudit(ctx *context.Context, actions audit.ScopedActions, url, verb string) {
+	audit.RecordScoped(ctx, ctx.Doer, orCtx.Owner, orCtx.Repo, actions, func(scope string) string {
+		return fmt.Sprintf("%s webhook %s of %s.", verb, url, scope)
+	}, "webhook", url)
 }
 
 func checkHookType(ctx *context.Context) string {
@@ -258,6 +276,13 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
+	orCtx.recordWebhookAudit(ctx, audit.ScopedActions{
+		Repo:   audit_model.RepositoryWebhookAdd,
+		Org:    audit_model.OrganizationWebhookAdd,
+		User:   audit_model.UserWebhookAdd,
+		System: audit_model.SystemWebhookAdd,
+	}, w.URL, "Added")
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
 }
@@ -310,6 +335,13 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		ctx.ServerError("UpdateWebhook", err)
 		return
 	}
+
+	orCtx.recordWebhookAudit(ctx, audit.ScopedActions{
+		Repo:   audit_model.RepositoryWebhookUpdate,
+		Org:    audit_model.OrganizationWebhookUpdate,
+		User:   audit_model.UserWebhookUpdate,
+		System: audit_model.SystemWebhookUpdate,
+	}, w.URL, "Updated")
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
@@ -736,9 +768,19 @@ func ReplayWebhook(ctx *context.Context) {
 
 // DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+	hook, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
+		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/hooks")
+		return
+	}
+
+	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.RepositoryWebhookRemove, ctx.Doer, ctx.Repo.Repository,
+			fmt.Sprintf("Removed webhook %s of repository %s.", hook.URL, ctx.Repo.Repository.FullName()), "webhook", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 

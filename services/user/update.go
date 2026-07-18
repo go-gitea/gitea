@@ -7,12 +7,14 @@ import (
 	"context"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/services/audit"
 )
 
 type UpdateOptionField[T any] struct {
@@ -58,8 +60,10 @@ type UpdateOptions struct {
 	RepoAdminChangeTeamAccess    optional.Option[bool]
 }
 
-func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) error {
+func UpdateUser(ctx context.Context, doer, u *user_model.User, opts *UpdateOptions) error {
 	cols := make([]string, 0, 20)
+
+	oldIsActive, oldIsRestricted, oldIsAdmin, oldVisibility := u.IsActive, u.IsRestricted, u.IsAdmin, u.Visibility
 
 	if opts.KeepEmailPrivate.Has() {
 		u.KeepEmailPrivate = opts.KeepEmailPrivate.Value()
@@ -183,7 +187,24 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		cols = append(cols, "last_login_unix")
 	}
 
-	return user_model.UpdateUserCols(ctx, u, cols...)
+	if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
+		return err
+	}
+
+	if u.IsActive != oldIsActive {
+		audit.Record(ctx, audit_model.UserActive, doer, u, fmt.Sprintf("Changed activation status of user %s.", u.Name))
+	}
+	if u.IsAdmin != oldIsAdmin {
+		audit.Record(ctx, audit_model.UserAdmin, doer, u, fmt.Sprintf("Changed admin status of user %s.", u.Name))
+	}
+	if u.IsRestricted != oldIsRestricted {
+		audit.Record(ctx, audit_model.UserRestricted, doer, u, fmt.Sprintf("Changed restricted status of user %s.", u.Name))
+	}
+	if u.Visibility != oldVisibility {
+		audit.Record(ctx, audit_model.UserVisibility, doer, u, fmt.Sprintf("Changed visibility of user %s.", u.Name))
+	}
+
+	return nil
 }
 
 type UpdateAuthOptions struct {
@@ -194,12 +215,15 @@ type UpdateAuthOptions struct {
 	ProhibitLogin      optional.Option[bool]
 }
 
-func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions) error {
+func UpdateAuth(ctx context.Context, doer, u *user_model.User, opts *UpdateAuthOptions) error {
+	loginSourceChanged := false
 	if opts.LoginSource.Has() {
 		source, err := auth_model.GetSourceByID(ctx, opts.LoginSource.Value())
 		if err != nil {
 			return err
 		}
+
+		loginSourceChanged = u.LoginSource != source.ID
 
 		u.LoginType = source.Type
 		u.LoginSource = source.ID
@@ -241,7 +265,17 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	}
 
 	if deleteAuthTokens {
-		return auth_model.DeleteAuthTokensByUserID(ctx, u.ID)
+		if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
+			return err
+		}
 	}
+
+	if deleteAuthTokens {
+		audit.Record(ctx, audit_model.UserPassword, doer, u, fmt.Sprintf("Changed password of user %s.", u.Name))
+	}
+	if loginSourceChanged {
+		audit.Record(ctx, audit_model.UserAuthenticationSource, doer, u, fmt.Sprintf("Changed authentication source of user %s.", u.Name))
+	}
+
 	return nil
 }

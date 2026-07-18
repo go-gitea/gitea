@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
@@ -17,6 +18,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -64,6 +66,10 @@ func NewProtectedTagPost(ctx *context.Context) {
 		ctx.ServerError("InsertProtectedTag", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.RepositoryTagProtectionAdd, ctx.Doer, ctx.Repo.Repository,
+		fmt.Sprintf("Added tag protection %s for repository %s.", pt.NamePattern, ctx.Repo.Repository.FullName()),
+		"pattern", pt.NamePattern)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
@@ -118,6 +124,10 @@ func EditProtectedTagPost(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.RepositoryTagProtectionUpdate, ctx.Doer, ctx.Repo.Repository,
+		fmt.Sprintf("Updated tag protection %s for repository %s.", pt.NamePattern, ctx.Repo.Repository.FullName()),
+		"pattern", pt.NamePattern)
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.Repository.Link() + "/settings/tags")
 }
@@ -133,6 +143,10 @@ func DeleteProtectedTagPost(ctx *context.Context) {
 		ctx.ServerError("DeleteProtectedTag", err)
 		return
 	}
+
+	audit.Record(ctx, audit_model.RepositoryTagProtectionRemove, ctx.Doer, ctx.Repo.Repository,
+		fmt.Sprintf("Removed tag protection %s from repository %s.", pt.NamePattern, ctx.Repo.Repository.FullName()),
+		"pattern", pt.NamePattern)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Repo.Repository.Link() + "/settings/tags")

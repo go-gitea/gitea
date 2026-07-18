@@ -43,7 +43,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 		style = util.IfZero(style, ctx.Doer.DiffViewStyle)
 		style = util.Iif(style == gitdiff.DiffStyleSplit, gitdiff.DiffStyleSplit, gitdiff.DiffStyleUnified)
 		if style != ctx.Doer.DiffViewStyle {
-			err := user_service.UpdateUser(ctx, ctx.Doer, &user_service.UpdateOptions{DiffViewStyle: optional.Some(style)})
+			err := user_service.UpdateUser(ctx, ctx.Doer, ctx.Doer, &user_service.UpdateOptions{DiffViewStyle: optional.Some(style)})
 			if err != nil {
 				log.Error("UpdateUser DiffViewStyle: %v", err)
 			}
