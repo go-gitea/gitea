@@ -368,7 +368,7 @@ onBeforeUnmount(() => {
 }
 
 .action-view-back:hover {
-  color: var(--color-text-dark-1);
+  color: var(--color-text);
 }
 
 .action-info-summary {
