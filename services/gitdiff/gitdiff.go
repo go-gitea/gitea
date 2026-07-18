@@ -532,7 +532,7 @@ func (diffFile *DiffFile) getDiffRenderDetail(ctx context.Context, gitRepo *git.
 	return ret
 }
 
-func (diffFile *DiffFile) addTailSection(diffLimitedContent DiffRenderDetail) {
+func (diffFile *DiffFile) addTailSection(detail DiffRenderDetail) {
 	// if the last diff section still doesn't reach to the end of file, we need to add a "tail section" to
 	// make users can expand the remaining unchanged lines to see the full file content.
 	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
@@ -545,8 +545,8 @@ func (diffFile *DiffFile) addTailSection(diffLimitedContent DiffRenderDetail) {
 			Path:         diffFile.Name,
 			LastLeftIdx:  lastLine.LeftIdx,
 			LastRightIdx: lastLine.RightIdx,
-			LeftIdx:      diffLimitedContent.leftLineCount,
-			RightIdx:     diffLimitedContent.rightLineCount,
+			LeftIdx:      detail.leftLineCount,
+			RightIdx:     detail.rightLineCount,
 		},
 	}
 	tailSection := &DiffSection{FileName: diffFile.Name, Lines: []*DiffLine{tailDiffLine}}
