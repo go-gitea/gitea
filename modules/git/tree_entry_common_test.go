@@ -13,7 +13,7 @@ import (
 )
 
 func TestFollowLink(t *testing.T) {
-	r, err := OpenRepository("tests/repos/repo1_bare")
+	r, err := OpenRepositoryLocal("tests/repos/repo1_bare")
 	require.NoError(t, err)
 	defer r.Close()
 

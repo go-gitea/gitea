@@ -9,6 +9,8 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 )
 
+// TODO: all wrappers can be removed in next PR, because cmd now can accept Repository directly.
+
 func RunCmd(ctx context.Context, repo Repository, cmd *gitcmd.Command) error {
 	return cmd.WithRepo(repo).WithParentCallerInfo().Run(ctx)
 }

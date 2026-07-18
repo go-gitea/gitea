@@ -19,16 +19,14 @@ import (
 
 type Repository = gitcmd.RepositoryFacade
 
-var repoPath = gitcmd.RepoLocalPath
-
-// OpenRepository opens the repository at the given relative path with the provided context.
-func OpenRepository(repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(repoPath(repo))
-}
+var (
+	repoPath       = gitcmd.RepoLocalPath
+	OpenRepository = git.OpenRepository
+)
 
 // contextKey is a value for use with context.WithValue.
 type contextKey struct {
-	uniqueID string
+	key string
 }
 
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
@@ -46,11 +44,11 @@ func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Rep
 // RepositoryFromRequestContextOrOpen opens the repository at the given relative path in the provided request context.
 // Caller shouldn't close the git repo manually, the git repo will be automatically closed when the request context is done.
 func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Repository) (*git.Repository, error) {
-	ck := contextKey{uniqueID: repo.GitRepoUniqueID()}
+	ck := contextKey{key: repo.GitRepoLocation()}
 	if gitRepo, ok := ctx.Value(ck).(*git.Repository); ok {
 		return gitRepo, nil
 	}
-	gitRepo, err := git.OpenRepository(repoPath(repo))
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		return nil, err
 	}

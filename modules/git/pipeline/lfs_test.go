@@ -15,7 +15,7 @@ import (
 
 func TestFindLFSFile(t *testing.T) {
 	repoPath := "../../../tests/gitea-repositories-meta/user2/lfs.git"
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepositoryLocal(repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

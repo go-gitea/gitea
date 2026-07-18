@@ -186,7 +186,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(g.gitPath())
+	g.gitRepo, err = git.OpenRepositoryLocal(g.gitPath())
 	return err
 }
 

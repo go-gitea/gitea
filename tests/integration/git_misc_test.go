@@ -87,7 +87,7 @@ func TestAgitPullPush(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -150,7 +150,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 

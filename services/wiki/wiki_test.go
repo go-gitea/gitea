@@ -305,7 +305,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	err := git.InitRepository(t.Context(), tmpDir, true, git.Sha1ObjectFormat.Name())
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(tmpDir)
+	gitRepo, err := git.OpenRepositoryLocal(tmpDir)
 	require.NoError(t, err)
 
 	defer gitRepo.Close()

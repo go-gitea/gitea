@@ -159,12 +159,12 @@ func migratePushMirrors(x db.EngineMigration) error {
 
 func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
 	ctx := context.Background()
-	relativePath := repo_model.RelativePath(ownerName, repoName)
-	if exist, _ := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(relativePath)); !exist {
+	repo := repo_model.CodeRepoByName(ownerName, repoName)
+	if exist, _ := gitrepo.IsRepositoryExist(ctx, repo); !exist {
 		return "", nil
 	}
 
-	u, err := gitrepo.GitRemoteGetURL(ctx, repo_model.StorageRepo(relativePath), remoteName)
+	u, err := gitrepo.GitRemoteGetURL(ctx, repo, remoteName)
 	if err != nil {
 		return "", err
 	}

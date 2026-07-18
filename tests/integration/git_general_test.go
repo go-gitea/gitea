@@ -811,7 +811,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(dstPath)
 		require.NoError(t, err)
 
 		defer gitRepo.Close()
