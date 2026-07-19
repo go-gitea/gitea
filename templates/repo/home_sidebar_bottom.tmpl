@@ -7,10 +7,10 @@
 			</a>
 			<span class="ui small label">{{.NumReleases}}</span>
 		</div>
-		<div class="flex-relaxed-list tw-gap-0">
+		<div>
 			<div class="flex-text-block">
 				<div>{{svg "octicon-tag"}}</div>
-				<a class="gt-ellipsis muted tw-font-semibold" href="{{.LatestRelease.Link}}" title="{{.LatestRelease.Title}}">{{.LatestRelease.Title}}</a>
+				<a class="gt-ellipsis muted" href="{{.LatestRelease.Link}}" title="{{.LatestRelease.Title}}"><strong>{{.LatestRelease.Title}}</strong></a>
 				<div class="tw-shrink-0">
 					{{template "repo/release/label" (dict "Release" .LatestRelease "IsLatest" true)}}
 				</div>
