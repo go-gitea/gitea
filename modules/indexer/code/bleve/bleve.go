@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/indexer"
+	"gitea.dev/modules/indexer/code/bleve/token/lettersdigits"
 	path_filter "gitea.dev/modules/indexer/code/bleve/token/path"
 	"gitea.dev/modules/indexer/code/internal"
 	indexer_internal "gitea.dev/modules/indexer/internal"
@@ -32,7 +33,6 @@ import (
 	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
-	tokenizer_regexp "github.com/blevesearch/bleve/v2/analysis/tokenizer/regexp"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
@@ -68,11 +68,10 @@ func (d *RepoIndexerData) Type() string {
 
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
-	repoIndexerTokenizer     = "repoIndexerTokenizer"
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
 	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 10 // Index numeric code content tokens.
+	repoIndexerLatestVersion = 10 // Index numeric code content tokens, segment CJK per-character.
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -105,19 +104,15 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
-	} else if err := mapping.AddCustomTokenizer(repoIndexerTokenizer, map[string]any{
-		"type": tokenizer_regexp.Name,
-		// Letters or digits, same boundary behavior as the `letter` tokenizer
-		// (splits on punctuation like `.` so "console.log" still yields both
-		// "console" and "log") but also emits digit-only runs as tokens, so
-		// purely-numeric search terms match (#37221).
-		"regexp": `[\p{L}\p{N}]+`,
-	}); err != nil {
-		return nil, err
 	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]any{
-		"type":          analyzer_custom.Name,
-		"char_filters":  []string{},
-		"tokenizer":     repoIndexerTokenizer,
+		"type":         analyzer_custom.Name,
+		"char_filters": []string{},
+		// lettersdigits groups letter/digit runs into one token — same
+		// punctuation-splitting boundary as the old `letter` tokenizer (so
+		// "console.log" still yields "console"/"log") but keeps digits (so
+		// purely-numeric terms match, #37221) and segments CJK per character
+		// instead of gluing a whole CJK phrase into one unsearchable token.
+		"tokenizer":     lettersdigits.Name,
 		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
 		return nil, err
