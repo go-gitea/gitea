@@ -7,7 +7,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/util"
@@ -73,14 +72,4 @@ func (err ErrWikiInvalidFileName) Unwrap() error {
 // WikiCloneLink returns clone URLs of repository wiki.
 func (repo *Repository) WikiCloneLink(ctx context.Context, doer *user_model.User) *CloneLink {
 	return repo.cloneLink(ctx, doer, repo.Name+".wiki")
-}
-
-func RelativeWikiPath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".wiki.git"
-}
-
-// WikiStorageRepo returns the storage repo for the wiki like "owner-name/repo-name.wiki.git"
-// The wiki repository should have the same object format as the code repository. TODO: REALLY? Why?
-func (repo *Repository) WikiStorageRepo() StorageRepo {
-	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name))
 }

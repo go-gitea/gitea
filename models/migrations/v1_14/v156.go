@@ -6,23 +6,13 @@ package v1_14
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 )
-
-// Copy paste from models/repo.go because we cannot import models package
-func repoPath(userName, repoName string) string {
-	return filepath.Join(userPath(userName), strings.ToLower(repoName)+".git")
-}
-
-func userPath(userName string) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
-}
 
 func FixPublisherIDforTagReleases(ctx context.Context, x db.EngineMigration) error {
 	type Release struct {
@@ -108,7 +98,7 @@ func FixPublisherIDforTagReleases(ctx context.Context, x db.EngineMigration) err
 						return err
 					}
 				}
-				gitRepo, err = git.OpenRepository(repoPath(repo.OwnerName, repo.Name))
+				gitRepo, err = git.OpenRepository(repo_model.CodeRepoByName(repo.OwnerName, repo.Name))
 				if err != nil {
 					log.Error("Error whilst opening git repo for [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
 					return err

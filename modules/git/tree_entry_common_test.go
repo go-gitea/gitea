@@ -4,6 +4,7 @@
 package git
 
 import (
+	"path/filepath"
 	"testing"
 
 	"gitea.dev/modules/util"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestFollowLink(t *testing.T) {
-	r, err := OpenRepository("tests/repos/repo1_bare")
+	r, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer r.Close()
 

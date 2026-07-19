@@ -80,7 +80,7 @@ func (archiver *RepoArchiver) RelativePath() string {
 	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String())
 }
 
-// repoArchiverForRelativePath takes a relativePath created from (archiver *RepoArchiver) RelativePath() and creates a shell repoArchiver struct representing it
+// repoArchiverForRelativePath takes a relativePath created from RepoArchiver.RelativePath() and creates a shell repoArchiver struct representing it
 func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
 	parts := strings.SplitN(relativePath, "/", 3)
 	if len(parts) != 3 {

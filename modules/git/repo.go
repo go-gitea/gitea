@@ -28,15 +28,23 @@ type RepositoryBase struct {
 
 	LastCommitCache *LastCommitCache
 
+	repoFacade        RepositoryFacade
 	tagCache          *ObjectCache[*Tag]
 	objectFormatCache ObjectFormat
 }
 
-func OpenRepository(repoPath string) (*Repository, error) {
-	repoPath, err := filepath.Abs(repoPath)
-	if err != nil {
-		return nil, err
-	}
+var _ gitcmd.RepositoryFacade = (*Repository)(nil)
+
+func (repo *Repository) GitRepoManagedID() string {
+	return repo.repoFacade.GitRepoManagedID()
+}
+
+func (repo *Repository) GitRepoLocation() string {
+	return repo.repoFacade.GitRepoLocation()
+}
+
+func OpenRepository(repo RepositoryFacade) (*Repository, error) {
+	repoPath := gitcmd.RepoLocalPath(repo)
 	exist, err := util.IsDir(repoPath)
 	if err != nil {
 		return nil, err
@@ -45,12 +53,22 @@ func OpenRepository(repoPath string) (*Repository, error) {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 	gitRepo := &Repository{
-		RepositoryBase: RepositoryBase{Path: repoPath, tagCache: newObjectCache[*Tag]()},
+		RepositoryBase: RepositoryBase{Path: repoPath, tagCache: newObjectCache[*Tag](), repoFacade: repo},
 	}
 	if err = openRepositoryInternal(gitRepo); err != nil {
 		return nil, err
 	}
 	return gitRepo, nil
+}
+
+func OpenRepositoryLocal(localPath string) (_ *Repository, err error) {
+	if !filepath.IsAbs(localPath) {
+		localPath, err = filepath.Abs(localPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return OpenRepository(gitcmd.RepositoryUnmanaged(localPath))
 }
 
 func (repo *Repository) Close() error {

@@ -7,17 +7,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/models/repo"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
 
-func mockRepository(repoPath string) repo.StorageRepo {
+func mockRepository(repoPath string) gitcmd.RepositoryFacade {
 	if !filepath.IsAbs(repoPath) {
 		// resolve repository path relative to the unit test fixture directory
 		repoPath = filepath.Join(setting.GetGiteaTestSourceRoot(), "modules/git/tests/repos", repoPath)
 	}
-	return repo.StorageRepo(repoPath)
+	return gitcmd.RepositoryManaged(repoPath, repoPath)
 }
 
 func TestMain(m *testing.M) {

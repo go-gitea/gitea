@@ -56,7 +56,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 empty commit`
 
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := OpenRepository(filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
@@ -120,7 +120,7 @@ gpgsig -----BEGIN PGP SIGNATURE-----
 ISO-8859-1`
 	commitString = strings.ReplaceAll(commitString, "<SPACE>", " ")
 	sha := &Sha1Hash{0xfe, 0xaf, 0x4b, 0xa6, 0xbc, 0x63, 0x5f, 0xec, 0x44, 0x2f, 0x46, 0xdd, 0xd4, 0x51, 0x24, 0x16, 0xec, 0x43, 0xc2, 0xc2}
-	gitRepo, err := OpenRepository(filepath.Join(testReposDir, "repo1_bare"))
+	gitRepo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
@@ -162,7 +162,7 @@ ISO-8859-1`, commitFromReader.Signature.Payload)
 func TestHasPreviousCommit(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
-	repo, err := OpenRepository(bareRepo1Path)
+	repo, err := OpenRepositoryLocal(bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 
@@ -187,7 +187,7 @@ func TestHasPreviousCommit(t *testing.T) {
 
 func Test_GetCommitBranchStart(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(bareRepo1Path)
+	repo, err := OpenRepositoryLocal(bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 	commit, err := repo.GetBranchCommit(t.Context(), "branch1")

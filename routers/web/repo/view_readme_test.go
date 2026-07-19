@@ -41,7 +41,7 @@ data 12
 			err = gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
 			require.NoError(t, err)
 
-			gitRepo, err := git.OpenRepository(repoPath)
+			gitRepo, err := git.OpenRepositoryLocal(repoPath)
 			require.NoError(t, err)
 			defer gitRepo.Close()
 

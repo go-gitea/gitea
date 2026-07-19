@@ -87,7 +87,7 @@ func FixReleaseSha1OnReleaseTable(ctx context.Context, x db.EngineMigration) err
 					userCache[repo.OwnerID] = user
 				}
 
-				gitRepo, err = gitrepo.OpenRepository(repo_model.StorageRepo(repo_model.RelativePath(user.Name, repo.Name)))
+				gitRepo, err = gitrepo.OpenRepository(repo_model.CodeRepoByName(user.Name, repo.Name))
 				if err != nil {
 					return err
 				}

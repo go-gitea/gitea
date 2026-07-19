@@ -6,6 +6,7 @@
 package git
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -14,9 +15,13 @@ import (
 
 func TestRepoCatFileBatch(t *testing.T) {
 	t.Run("MissingRepoAndClose", func(t *testing.T) {
-		repo, err := OpenRepository(filepath.Join(testReposDir, "repo1_bare"))
+		testDir := filepath.Join(t.TempDir(), "testdir")
+		_ = os.Mkdir(testDir, 0o755)
+		repo, err := OpenRepositoryLocal(testDir)
 		require.NoError(t, err)
-		repo.Path = "/no-such" // when the repo is missing (it usually occurs during testing because the fixtures are synced frequently)
+		// when the repo is missing (it usually occurs during testing because the fixtures are synced frequently)
+		err = os.Remove(testDir)
+		require.NoError(t, err)
 		_, _, err = repo.CatFileBatch(t.Context())
 		require.Error(t, err)
 		require.NoError(t, repo.Close()) // shouldn't panic

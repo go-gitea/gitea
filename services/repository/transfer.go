@@ -94,7 +94,7 @@ func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoNa
 	if err != nil {
 		return false, err
 	}
-	repo := repo_model.StorageRepo(repo_model.RelativePath(u.Name, repoName))
+	repo := repo_model.CodeRepoByName(u.Name, repoName)
 	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 	return has || isExist, err
 }
@@ -116,18 +116,19 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 
 		if repoRenamed {
-			oldRelativePath, newRelativePath := repo_model.RelativePath(newOwnerName, repo.Name), repo_model.RelativePath(oldOwnerName, repo.Name)
-			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
-				log.Error("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
-					oldRelativePath, newRelativePath, err)
+			// revert the rename
+			from := repo_model.CodeRepoByName(newOwnerName, repo.Name)
+			to := repo_model.CodeRepoByName(oldOwnerName, repo.Name)
+			if err := gitrepo.RenameRepository(ctx, from, to); err != nil {
+				log.Error("Unable to revert repository %s/%s to %s/%s: %v", newOwnerName, repo.Name, oldOwnerName, repo.Name, err)
 			}
 		}
 
 		if wikiRenamed {
-			oldRelativePath, newRelativePath := repo_model.RelativeWikiPath(newOwnerName, repo.Name), repo_model.RelativeWikiPath(oldOwnerName, repo.Name)
-			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
-				log.Error("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
-					oldRelativePath, newRelativePath, err)
+			from := repo_model.WikiRepoByName(newOwnerName, repo.Name)
+			to := repo_model.WikiRepoByName(oldOwnerName, repo.Name)
+			if err := gitrepo.RenameRepository(ctx, from, to); err != nil {
+				log.Error("Unable to revert wiki repository %s/%s to %s/%s: %v", newOwnerName, repo.Name, oldOwnerName, repo.Name, err)
 			}
 		}
 
@@ -302,19 +303,21 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	oldRelativePath, newRelativePath := repo_model.RelativePath(oldOwner.Name, repo.Name), repo_model.RelativePath(newOwner.Name, repo.Name)
-	if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
+	oldCodeRepo := repo_model.CodeRepoByName(oldOwner.Name, repo.Name)
+	newCodeRepo := repo_model.CodeRepoByName(newOwner.Name, repo.Name)
+	if err := gitrepo.RenameRepository(ctx, oldCodeRepo, newCodeRepo); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	repoRenamed = true
 
 	// Rename remote wiki repository to new path and delete local copy.
-	wikiStorageRepo := repo_model.StorageRepo(repo_model.RelativeWikiPath(oldOwner.Name, repo.Name))
-	if isExist, err := gitrepo.IsRepositoryExist(ctx, wikiStorageRepo); err != nil {
+	oldWikiRepo := repo_model.WikiRepoByName(oldOwner.Name, repo.Name)
+	if isExist, err := gitrepo.IsRepositoryExist(ctx, oldWikiRepo); err != nil {
 		log.Error("Unable to check if wiki of repo %s/%s exists. Error: %v", oldOwner.Name, repo.Name, err)
 		return err
 	} else if isExist {
-		if err := gitrepo.RenameRepository(ctx, wikiStorageRepo, repo_model.StorageRepo(repo_model.RelativeWikiPath(newOwner.Name, repo.Name))); err != nil {
+		newWikiRepo := repo_model.WikiRepoByName(newOwner.Name, repo.Name)
+		if err := gitrepo.RenameRepository(ctx, oldWikiRepo, newWikiRepo); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 		wikiRenamed = true
@@ -373,14 +376,14 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		}
 	}
 
-	if err = gitrepo.RenameRepository(ctx, repo,
-		repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, newRepoName))); err != nil {
+	newCodeRepo := repo_model.CodeRepoByName(repo.OwnerName, newRepoName)
+	if err = gitrepo.RenameRepository(ctx, repo, newCodeRepo); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
 	if HasWiki(ctx, repo) {
-		if err = gitrepo.RenameRepository(ctx, repo.WikiStorageRepo(), repo_model.StorageRepo(
-			repo_model.RelativeWikiPath(repo.OwnerName, newRepoName))); err != nil {
+		newWikiRepo := repo_model.WikiRepoByName(repo.OwnerName, newRepoName)
+		if err = gitrepo.RenameRepository(ctx, repo.WikiStorageRepo(), newWikiRepo); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}
