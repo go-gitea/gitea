@@ -32,7 +32,7 @@ import (
 	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/v2/analysis/tokenizer/letter"
+	tokenizer_regexp "github.com/blevesearch/bleve/v2/analysis/tokenizer/regexp"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
@@ -68,10 +68,11 @@ func (d *RepoIndexerData) Type() string {
 
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
+	repoIndexerTokenizer     = "repoIndexerTokenizer"
 	filenameIndexerAnalyzer  = "filenameIndexerAnalyzer"
 	filenameIndexerTokenizer = "filenameIndexerTokenizer"
 	repoIndexerDocType       = "repoIndexerDocType"
-	repoIndexerLatestVersion = 9
+	repoIndexerLatestVersion = 10 // Index numeric code content tokens.
 )
 
 // generateBleveIndexMapping generates a bleve index mapping for the repo indexer
@@ -104,10 +105,19 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
+	} else if err := mapping.AddCustomTokenizer(repoIndexerTokenizer, map[string]any{
+		"type": tokenizer_regexp.Name,
+		// Letters or digits, same boundary behavior as the `letter` tokenizer
+		// (splits on punctuation like `.` so "console.log" still yields both
+		// "console" and "log") but also emits digit-only runs as tokens, so
+		// purely-numeric search terms match (#37221).
+		"regexp": `[\p{L}\p{N}]+`,
+	}); err != nil {
+		return nil, err
 	} else if err := mapping.AddCustomAnalyzer(repoIndexerAnalyzer, map[string]any{
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
-		"tokenizer":     letter.Name,
+		"tokenizer":     repoIndexerTokenizer,
 		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
 	}); err != nil {
 		return nil, err
