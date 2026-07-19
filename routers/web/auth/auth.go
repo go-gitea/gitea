@@ -319,6 +319,10 @@ func SignInPost(ctx *context.Context) {
 		}
 		return
 	}
+	if err := ctx.Session.Set(session.KeyLoginType, auth.Plain); err != nil {
+		ctx.ServerError("UserSignIn: Unable to update session", err)
+		return
+	}
 
 	// Now handle 2FA:
 	// First of all if the source can skip local two fa we're done
@@ -484,14 +488,19 @@ func SignOut(ctx *context.Context) {
 }
 
 func buildSignOutRedirectURL(ctx *context.Context) string {
-	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
+	loginType := auth.NoType
+	if sessionLoginType := ctx.Session.Get(session.KeyLoginType); sessionLoginType != nil {
+		loginType, _ = sessionLoginType.(auth.Type)
+	} else if ctx.Doer != nil {
+		loginType = ctx.Doer.LoginType
+	}
+	if ctx.Doer != nil && loginType == auth.OAuth2 {
 		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
 			return s
 		}
 	}
 
 	// The assumption is: if reverse proxy auth is enabled, then the users should only sign-in via reverse proxy auth.
-	// TODO: in the future, if we need to distinguish different sign-in methods, we need to save the sign-in method in session and check here
 	if setting.Service.EnableReverseProxyAuth && setting.ReverseProxyLogoutRedirect != "" {
 		return setting.ReverseProxyLogoutRedirect
 	}

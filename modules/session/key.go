@@ -4,8 +4,9 @@
 package session
 
 const (
-	KeyUID   = "uid"
-	KeyUname = "uname"
+	KeyUID       = "uid"
+	KeyUname     = "uname"
+	KeyLoginType = "loginType"
 
 	KeyUserHasTwoFactorAuth = "userHasTwoFactorAuth"
 )

@@ -165,5 +165,19 @@ func TestWebAuthOAuth2(t *testing.T) {
 		assert.Equal(t, expectedValues, u.Query())
 		u.RawQuery = ""
 		assert.Equal(t, "https://example.com/oidc-logout", u.String())
+
+		t.Run("SessionOAuth2OverridesUserLoginType", func(t *testing.T) {
+			ctx, _ := contexttest.MockContext(t, "/user/logout", contexttest.MockContextOption{SessionStore: session.NewMockMemStore("oauth2-sid")})
+			ctx.Doer = &user_model.User{ID: 1, LoginType: auth_model.Plain, LoginSource: authSource.ID}
+			require.NoError(t, ctx.Session.Set(session.KeyLoginType, auth_model.OAuth2))
+			assert.Contains(t, buildSignOutRedirectURL(ctx), "https://example.com/oidc-logout")
+		})
+
+		t.Run("SessionPlainOverridesUserLoginType", func(t *testing.T) {
+			ctx, _ := contexttest.MockContext(t, "/user/logout", contexttest.MockContextOption{SessionStore: session.NewMockMemStore("plain-sid")})
+			ctx.Doer = &user_model.User{ID: 1, LoginType: auth_model.OAuth2, LoginSource: authSource.ID}
+			require.NoError(t, ctx.Session.Set(session.KeyLoginType, auth_model.Plain))
+			assert.Equal(t, setting.AppSubURL+"/", buildSignOutRedirectURL(ctx))
+		})
 	})
 }

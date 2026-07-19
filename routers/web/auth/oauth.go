@@ -275,6 +275,7 @@ type LinkAccountData struct {
 }
 
 func init() {
+	gob.Register(auth.Type(0))      // TODO: CHI-SESSION-GOB-REGISTER
 	gob.Register(LinkAccountData{}) // TODO: CHI-SESSION-GOB-REGISTER
 }
 
@@ -356,6 +357,10 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_mo
 func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_model.User, gothUser goth.User) {
 	oauth2SignInSync(ctx, authSource.ID, u, gothUser)
 	if ctx.Written() {
+		return
+	}
+	if err := ctx.Session.Set(session.KeyLoginType, auth.OAuth2); err != nil {
+		ctx.ServerError("handleOAuth2SignIn: Unable to update session", err)
 		return
 	}
 
