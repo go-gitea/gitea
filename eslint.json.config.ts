@@ -1,5 +1,5 @@
-import json from '@eslint/json';
 import {defineConfig, globalIgnores} from 'eslint/config';
+import json from '@eslint/json';
 
 export default defineConfig([
   globalIgnores([
