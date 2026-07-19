@@ -113,9 +113,12 @@ function switchTitleToTooltip(target: Element): void {
  * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  */
-function lazyTooltipOnMouseHover(this: HTMLElement, e: Event): void {
-  (e.target as HTMLElement).removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
-  attachTooltip(this);
+function lazyTooltipOnMouseHover(e: Event): void {
+  const el = e.currentTarget as HTMLElement;
+  el.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
+  // Firefox skips enter/leave dispatch when the window had no such listeners at the time of the
+  // pointer crossing, so the new tippy misses its first "mouseenter". Show via a synthetic event.
+  attachTooltip(el)?.reference.dispatchEvent(new MouseEvent('mouseenter'));
 }
 
 // Activate the tooltip for current element.
