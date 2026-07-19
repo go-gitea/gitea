@@ -14,8 +14,8 @@ func PushToExternal(ctx context.Context, repo Repository, opts git.PushOptions) 
 	return git.Push(ctx, repoPath(repo), opts)
 }
 
-// Push pushes from one managed repository to another managed repository.
-func Push(ctx context.Context, fromRepo, toRepo Repository, opts git.PushOptions) error {
+// PushManaged pushes from one managed repository to another managed repository.
+func PushManaged(ctx context.Context, fromRepo, toRepo Repository, opts git.PushOptions) error {
 	opts.Remote = repoPath(toRepo)
 	return git.Push(ctx, repoPath(fromRepo), opts)
 }

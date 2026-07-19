@@ -227,9 +227,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 			// this is necessary for sync local tags from remote
 			configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
-			if stdout, _, err := gitrepo.RunCmdString(ctx, repo,
-				gitcmd.NewCommand("config").
-					AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`)); err != nil {
+			stdout, _, err := gitcmd.NewCommand("config").
+				AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
+				WithRepo(repo).RunStdString(ctx)
+			if err != nil {
 				log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 				return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
 			}
@@ -272,13 +273,13 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	err := gitrepo.GitRemoteRemove(ctx, repo, "origin")
+	err := gitrepo.ManagedRemoteRemove(ctx, repo, "origin")
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 
 	if hasWiki {
-		err = gitrepo.GitRemoteRemove(ctx, repo.WikiStorageRepo(), "origin")
+		err = gitrepo.ManagedRemoteRemove(ctx, repo.WikiStorageRepo(), "origin")
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}

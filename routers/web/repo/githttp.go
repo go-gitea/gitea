@@ -412,11 +412,12 @@ func serviceRPC(ctx *context.Context, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	if err := gitrepo.RunCmdWithStderr(ctx, h.getStorageRepo(), cmd.AddArguments(".").
-		WithEnv(append(os.Environ(), h.environ...)).
+	err := cmd.AddArguments(".").
+		WithRepo(h.getStorageRepo()).WithEnv(append(os.Environ(), h.environ...)).
 		WithStdinCopy(reqBody).
-		WithStdoutCopy(ctx.Resp),
-	); err != nil {
+		WithStdoutCopy(ctx.Resp).
+		RunWithStderr(ctx)
+	if err != nil {
 		if !gitcmd.IsErrorCanceledOrKilled(err) {
 			repoLogName := h.repo.FullName() + util.Iif(h.isWiki, ".wiki", "")
 			log.Error("Fail to serve RPC(%s) for repo %s: %v", service, repoLogName, err)
@@ -482,7 +483,7 @@ func GetInfoRefs(ctx *context.Context) {
 	h.environ = append(os.Environ(), h.environ...)
 
 	cmd = cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").WithEnv(h.environ)
-	refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd)
+	refs, _, err := cmd.WithRepo(h.getStorageRepo()).RunStdBytes(ctx)
 	if err != nil {
 		ctx.ServerError("RunGitServiceAdvertiseRefs", err)
 		return

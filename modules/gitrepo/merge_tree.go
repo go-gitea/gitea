@@ -47,7 +47,7 @@ func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase
 		return scanner.Err()
 	})
 
-	err := RunCmdWithStderr(ctx, repo, cmd)
+	err := cmd.WithRepo(repo).RunWithStderr(ctx)
 	// For a successful, non-conflicted merge, the exit status is 0. When the merge has conflicts, the exit status is 1.
 	// A merge can have conflicts without having individual files conflict
 	// https://git-scm.com/docs/git-merge-tree/2.38.0#_mistakes_to_avoid

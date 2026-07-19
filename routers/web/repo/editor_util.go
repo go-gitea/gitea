@@ -128,7 +128,7 @@ func getUniqueRepositoryName(ctx context.Context, ownerID int64, name string) st
 }
 
 func editorPushBranchToForkedRepository(ctx context.Context, doer *user_model.User, baseRepo *repo_model.Repository, baseBranchName string, targetRepo *repo_model.Repository, targetBranchName string) error {
-	return gitrepo.Push(ctx, baseRepo, targetRepo, git.PushOptions{
+	return gitrepo.PushManaged(ctx, baseRepo, targetRepo, git.PushOptions{
 		Branch: baseBranchName + ":" + targetBranchName,
 		Env:    repo_module.PushingEnvironment(doer, targetRepo),
 	})

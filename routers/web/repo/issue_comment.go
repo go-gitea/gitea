@@ -146,7 +146,7 @@ func NewComment(ctx *context.Context) {
 
 				if prHeadCommitID != headBranchCommitID {
 					// force push to base repo
-					err := gitrepo.Push(ctx, pull.HeadRepo, pull.BaseRepo, git.PushOptions{
+					err := gitrepo.PushManaged(ctx, pull.HeadRepo, pull.BaseRepo, git.PushOptions{
 						Branch: pull.HeadBranch + ":" + prHeadRef,
 						Force:  true,
 						Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),

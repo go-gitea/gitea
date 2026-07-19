@@ -12,5 +12,5 @@ import (
 
 // Fsck verifies the connectivity and validity of the objects in the database
 func Fsck(ctx context.Context, repo Repository, timeout time.Duration, args gitcmd.TrustedCmdArgs) error {
-	return RunCmd(ctx, repo, gitcmd.NewCommand("fsck").AddArguments(args...).WithTimeout(timeout))
+	return gitcmd.NewCommand("fsck").AddArguments(args...).WithTimeout(timeout).WithRepo(repo).Run(ctx)
 }

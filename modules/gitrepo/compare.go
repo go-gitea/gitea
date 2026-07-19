@@ -22,7 +22,7 @@ type DivergeObject struct {
 func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targetBranch string) (*DivergeObject, error) {
 	cmd := gitcmd.NewCommand("rev-list", "--count", "--left-right").
 		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
-	stdout, _, err1 := RunCmdString(ctx, repo, cmd)
+	stdout, _, err1 := cmd.WithRepo(repo).RunStdString(ctx)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -55,11 +55,11 @@ func GetCommitIDsBetweenReverse(ctx context.Context, repo Repository, startRef, 
 		}
 		return cmd
 	}
-	stdout, _, err := RunCmdString(ctx, repo, genCmd(startRef+".."+endRef))
+	stdout, _, err := genCmd(startRef + ".." + endRef).WithRepo(repo).RunStdString(ctx)
 	if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
 		// if the start and end are not related (no merge base), just get all commits pushed by "end ref"
 		// previously it would return the results of git rev-list before last so let's try that...
-		stdout, _, err = RunCmdString(ctx, repo, genCmd(endRef))
+		stdout, _, err = genCmd(endRef).WithRepo(repo).RunStdString(ctx)
 	}
 	if err != nil {
 		return nil, err

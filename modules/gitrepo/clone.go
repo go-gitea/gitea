@@ -19,6 +19,6 @@ func CloneRepoToLocal(ctx context.Context, fromRepo Repository, toLocalPath stri
 	return git.Clone(ctx, repoPath(fromRepo), toLocalPath, opts)
 }
 
-func Clone(ctx context.Context, fromRepo, toRepo Repository, opts git.CloneRepoOptions) error {
+func CloneManaged(ctx context.Context, fromRepo, toRepo Repository, opts git.CloneRepoOptions) error {
 	return git.Clone(ctx, repoPath(fromRepo), repoPath(toRepo), opts)
 }

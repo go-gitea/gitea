@@ -10,10 +10,9 @@ import (
 )
 
 func UpdateRef(ctx context.Context, repo Repository, refName, newCommitID string) error {
-	return RunCmd(ctx, repo, gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID))
+	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).Run(ctx)
 }
 
 func RemoveRef(ctx context.Context, repo Repository, refName string) error {
-	return RunCmd(ctx, repo, gitcmd.NewCommand("update-ref", "--no-deref", "-d").
-		AddDynamicArguments(refName))
+	return gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(refName).WithRepo(repo).Run(ctx)
 }

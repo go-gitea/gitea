@@ -15,11 +15,11 @@ import (
 )
 
 func LineBlame(ctx context.Context, repo Repository, revision, file string, line uint) (string, error) {
-	stdout, _, err := RunCmdString(ctx, repo,
-		gitcmd.NewCommand("blame").
-			AddOptionFormat("-L %d,%d", line, line).
-			AddOptionValues("-p", revision).
-			AddDashesAndList(file))
+	stdout, _, err := gitcmd.NewCommand("blame").WithRepo(repo).
+		AddOptionFormat("-L %d,%d", line, line).
+		AddOptionValues("-p", revision).
+		AddDashesAndList(file).
+		RunStdString(ctx)
 	return stdout, err
 }
 
@@ -174,7 +174,7 @@ func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo 
 
 	go func() {
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		rd.done <- RunCmdWithStderr(ctx, repo, cmd)
+		rd.done <- cmd.WithRepo(repo).RunWithStderr(ctx)
 	}()
 
 	return rd, nil

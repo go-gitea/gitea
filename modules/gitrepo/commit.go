@@ -44,7 +44,7 @@ func CommitsCount(ctx context.Context, repo Repository, opts CommitsCountOptions
 		cmd.AddDashesAndList(opts.RelPath...)
 	}
 
-	stdout, _, err := cmd.WithDir(repoPath(repo)).RunStdString(ctx)
+	stdout, _, err := cmd.WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -79,7 +79,7 @@ func AllCommitsCount(ctx context.Context, repo Repository, hidePRRefs bool, file
 		cmd.AddDashesAndList(files...)
 	}
 
-	stdout, _, err := RunCmdString(ctx, repo, cmd)
+	stdout, _, err := cmd.WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -93,8 +93,7 @@ func GetFullCommitID(ctx context.Context, repo Repository, shortID string) (stri
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repo Repository) (time.Time, error) {
-	stdout, _, err := RunCmdString(ctx, repo,
-		gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", git.BranchPrefix, "--count", "1", "--format=%(committerdate)"))
+	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", git.BranchPrefix, "--count", "1", "--format=%(committerdate)").WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return time.Time{}, err
 	}

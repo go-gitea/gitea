@@ -586,7 +586,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 
 	gitRefName := pr.GetGitHeadRefName()
 
-	if err := gitrepo.Push(ctx, pr.HeadRepo, pr.BaseRepo, git.PushOptions{
+	if err := gitrepo.PushManaged(ctx, pr.HeadRepo, pr.BaseRepo, git.PushOptions{
 		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...

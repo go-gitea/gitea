@@ -77,7 +77,7 @@ func GetCommitFileStatus(ctx context.Context, repo Repository, commitID string) 
 		close(done)
 	}()
 	err := cmd.AddDynamicArguments(commitID).
-		WithDir(repoPath(repo)).
+		WithRepo(repo).
 		RunWithStderr(ctx)
 	if err != nil {
 		return nil, err

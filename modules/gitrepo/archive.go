@@ -33,7 +33,7 @@ func CreateArchive(ctx context.Context, repo Repository, repoName, format string
 		// although "git archive" already ensures the paths won't go outside the repo, we still clean them here for safety
 		cmd.AddDynamicArguments(path.Clean(paths[i]))
 	}
-	return RunCmdWithStderr(ctx, repo, cmd.WithStdoutCopy(target))
+	return cmd.WithStdoutCopy(target).WithRepo(repo).RunWithStderr(ctx)
 }
 
 // CreateBundle create bundle content to the target path
