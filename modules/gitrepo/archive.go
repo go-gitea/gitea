@@ -38,6 +38,10 @@ func CreateArchive(ctx context.Context, repo Repository, repoName, format string
 
 // CreateBundle create bundle content to the target path
 func CreateBundle(ctx context.Context, repo Repository, commit string, out io.Writer) error {
+	// TODO: use the following steps instead of creating a temp file, also need to iterate and clean up outdated refs
+	// git update-ref refs/bundle/temp-{timestamp} {commit}
+	// git bundle create - refs/bundle/export
+	// git update-ref -d refs/bundle/temp-{timestamp}
 	tmp, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-bundle")
 	if err != nil {
 		return err
