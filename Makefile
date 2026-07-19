@@ -138,7 +138,7 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST)
 GO_DIRS := build cmd models modules routers services tests tools
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_JS_FILES := web_src/js tools *.ts tests/e2e
+ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
 SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.json .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.json
@@ -299,12 +299,12 @@ lint-backend-fix: lint-go-fix lint-editorconfig ## lint backend files and fix is
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js and ts files
-	pnpm exec eslint $(ESLINT_ARGS) $(ESLINT_JS_FILES)
+	pnpm exec eslint $(ESLINT_ARGS) $(ESLINT_FILES)
 	pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js and ts files and fix issues
-	pnpm exec eslint $(ESLINT_ARGS) $(ESLINT_JS_FILES) --fix
+	pnpm exec eslint $(ESLINT_ARGS) $(ESLINT_FILES) --fix
 	pnpm exec vue-tsc
 
 .PHONY: lint-css
