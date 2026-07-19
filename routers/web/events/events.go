@@ -38,7 +38,6 @@ func Events(ctx *context.Context) {
 
 	// Listen to connection close and un-register messageChan
 	notify := ctx.Done()
-	ctx.Resp.Flush()
 
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 
@@ -57,12 +56,9 @@ func Events(ctx *context.Context) {
 		}
 	}
 
-	// signal that messageChan is registered, so the client can rely on receiving all subsequent events
-	event := &eventsource.Event{
-		Name: "connected",
-		Data: "true",
-	}
-	if _, err := event.WriteTo(ctx.Resp); err != nil {
+	// send the initial response bytes only after registering messageChan, so a client whose
+	// connection is open can rely on receiving all subsequent events
+	if _, err := ctx.Resp.Write([]byte("\n")); err != nil {
 		log.Error("Unable to write to EventStream: %v", err)
 		unregister()
 		return

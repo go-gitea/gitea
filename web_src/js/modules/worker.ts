@@ -54,7 +54,7 @@ export class UserEventsSharedWorker {
       } else if (event.data.type === 'close') {
         this.sharedWorker.port.postMessage({type: 'close'});
         this.sharedWorker.port.close();
-      } else if (event.data.type === 'connected') {
+      } else if (event.data.type === 'open') {
         // e2e tests wait for this attribute to know events cannot be missed anymore
         document.documentElement.setAttribute('data-user-events-connected', 'true');
       }
