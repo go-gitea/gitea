@@ -53,9 +53,9 @@ linters:
               desc: use builtin errors package instead
         migrations:
           files:
-            - '**/models/migrations/**/*.go'
+            - '**/modelmigration/**/*.go'
           deny:
-            - pkg: gitea.dev/models$
+            - pkg: gitea.dev/models$ # FIXME: it should deny all sub packages like "gitea.dev/models/repo"
               desc: migrations must not depend on the models package
             - pkg: gitea.dev/modules/structs
               desc: migrations must not depend on modules/structs (API structures change over time)
@@ -134,8 +134,7 @@ linters:
         path: _test\.go
       - linters:
           - dupl
-          - errcheck
-        path: models/migrations/v
+        path: modelmigration/v
       - linters:
           - forbidigo
         path: cmd

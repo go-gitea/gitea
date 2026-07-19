@@ -136,7 +136,7 @@ Useful environment variables:
 ## Migration tests
 
 If you change a database-persisted struct under `models/` you will usually need a
-new migration in `models/migrations/`. Run the migration tests with:
+new migration in `modelmigration`. Run the migration tests with:
 
 ```bash
 make test-migration

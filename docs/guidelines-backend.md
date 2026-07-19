@@ -23,7 +23,7 @@ The backend is split into top-level packages, each with a focused responsibility
   dependencies to a minimum
   - `models/db`: core database operations
   - `models/fixtures`: sample data used by tests
-  - `models/migrations`: schema migration scripts
+  - `modelmigration`: schema migration scripts
 - `modules`: standalone functionality with few dependencies
   - `modules/setting`: configuration handling
   - `modules/git`: interaction with the Git command line

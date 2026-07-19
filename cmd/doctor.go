@@ -12,9 +12,9 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"gitea.dev/modelmigration"
+	"gitea.dev/modelmigration/base"
 	"gitea.dev/models/db"
-	"gitea.dev/models/migrations"
-	migrate_base "gitea.dev/models/migrations/base"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -129,10 +129,10 @@ func runRecreateTable(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	recreateTables := migrate_base.RecreateTables(beans...)
+	recreateTables := base.RecreateTables(beans...)
 
 	return db.InitEngineWithMigration(context.Background(), func(ctx context.Context, x db.EngineMigration) error {
-		if err := migrations.EnsureUpToDate(ctx, x); err != nil {
+		if err := modelmigration.EnsureUpToDate(ctx, x); err != nil {
 			return err
 		}
 		return recreateTables(x)
