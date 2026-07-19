@@ -1,11 +1,12 @@
-import {defineConfig, globalIgnores} from 'eslint/config';
 import json from '@eslint/json';
+import {defineConfig, globalIgnores} from 'eslint/config';
 
 export default defineConfig([
   globalIgnores([
-    '**/.venv',
-    '**/node_modules',
-    '**/public',
+    'public',
+    'custom/public',
+    'data',
+    '.venv',
   ]),
   {
     files: ['**/*.json'],
