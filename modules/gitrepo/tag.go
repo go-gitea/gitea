@@ -10,6 +10,6 @@ import (
 )
 
 // IsTagExist returns true if given tag exists in the repository.
-func IsTagExist(ctx context.Context, repo Repository, name string) bool {
+func IsTagExist(ctx context.Context, repo git.RepositoryFacade, name string) bool {
 	return IsReferenceExist(ctx, repo, git.TagPrefix+name)
 }

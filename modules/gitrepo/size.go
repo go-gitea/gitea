@@ -6,12 +6,14 @@ package gitrepo
 import (
 	"os"
 	"path/filepath"
+
+	"gitea.dev/modules/git"
 )
 
 const notRegularFileMode = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
 
 // CalcRepositorySize returns the disk consumption for a given path
-func CalcRepositorySize(repo Repository) (int64, error) {
+func CalcRepositorySize(repo git.RepositoryFacade) (int64, error) {
 	var size int64
 	err := filepath.WalkDir(repoPath(repo), func(_ string, entry os.DirEntry, err error) error {
 		if os.IsNotExist(err) { // ignore the error because some files (like temp/lock file) may be deleted during traversing.

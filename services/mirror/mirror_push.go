@@ -31,7 +31,7 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
-	addRemoteAndConfig := func(storageRepo gitrepo.Repository, addr string) error {
+	addRemoteAndConfig := func(storageRepo git.RepositoryFacade, addr string) error {
 		if err := gitrepo.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, addr, gitrepo.RemoteOptionMirrorPush); err != nil {
 			return err
 		}
@@ -41,7 +41,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 		return gitrepo.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
 	}
 
-	if err := addRemoteAndConfig(m.Repo, addr); err != nil {
+	if err := addRemoteAndConfig(m.Repo.CodeStorageRepo(), addr); err != nil {
 		return err
 	}
 
@@ -124,7 +124,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(repo *repo_model.Repository, isWiki bool) error {
-		var storageRepo gitrepo.Repository = repo
+		storageRepo := repo.CodeStorageRepo()
 		if isWiki {
 			storageRepo = repo.WikiStorageRepo()
 		}

@@ -23,7 +23,7 @@ type CommitsCountOptions struct {
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(ctx context.Context, repo Repository, opts CommitsCountOptions) (int64, error) {
+func CommitsCount(ctx context.Context, repo git.RepositoryFacade, opts CommitsCountOptions) (int64, error) {
 	cmd := gitcmd.NewCommand("rev-list", "--count")
 
 	cmd.AddDynamicArguments(opts.Revision...)
@@ -53,7 +53,7 @@ func CommitsCount(ctx context.Context, repo Repository, opts CommitsCountOptions
 }
 
 // FileCommitsCount return the number of files at a revision
-func FileCommitsCount(ctx context.Context, repo Repository, revision, file string) (int64, error) {
+func FileCommitsCount(ctx context.Context, repo git.RepositoryFacade, revision, file string) (int64, error) {
 	return CommitsCount(ctx, repo,
 		CommitsCountOptions{
 			Revision: []string{revision},
@@ -62,14 +62,14 @@ func FileCommitsCount(ctx context.Context, repo Repository, revision, file strin
 }
 
 // CommitsCountOfCommit returns number of total commits of until current revision.
-func CommitsCountOfCommit(ctx context.Context, repo Repository, commitID string) (int64, error) {
+func CommitsCountOfCommit(ctx context.Context, repo git.RepositoryFacade, commitID string) (int64, error) {
 	return CommitsCount(ctx, repo, CommitsCountOptions{
 		Revision: []string{commitID},
 	})
 }
 
 // AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(ctx context.Context, repo Repository, hidePRRefs bool, files ...string) (int64, error) {
+func AllCommitsCount(ctx context.Context, repo git.RepositoryFacade, hidePRRefs bool, files ...string) (int64, error) {
 	cmd := gitcmd.NewCommand("rev-list")
 	if hidePRRefs {
 		cmd.AddArguments("--exclude=" + git.PullPrefix + "*")
@@ -87,12 +87,12 @@ func AllCommitsCount(ctx context.Context, repo Repository, hidePRRefs bool, file
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
-func GetFullCommitID(ctx context.Context, repo Repository, shortID string) (string, error) {
+func GetFullCommitID(ctx context.Context, repo git.RepositoryFacade, shortID string) (string, error) {
 	return git.GetFullCommitID(ctx, repoPath(repo), shortID)
 }
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
-func GetLatestCommitTime(ctx context.Context, repo Repository) (time.Time, error) {
+func GetLatestCommitTime(ctx context.Context, repo git.RepositoryFacade) (time.Time, error) {
 	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", git.BranchPrefix, "--count", "1", "--format=%(committerdate)").WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return time.Time{}, err

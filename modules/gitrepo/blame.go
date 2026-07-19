@@ -14,7 +14,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func LineBlame(ctx context.Context, repo Repository, revision, file string, line uint) (string, error) {
+func LineBlame(ctx context.Context, repo git.RepositoryFacade, revision, file string, line uint) (string, error) {
 	stdout, _, err := gitcmd.NewCommand("blame").WithRepo(repo).
 		AddOptionFormat("-L %d,%d", line, line).
 		AddOptionValues("-p", revision).
@@ -138,8 +138,8 @@ func (r *BlameReader) cleanup() {
 	}
 }
 
-// CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo Repository, gitRepo *git.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, retErr error) {
+// CreateBlameReader creates reader for given git.RepositoryFacade, commit and file
+func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo git.RepositoryFacade, gitRepo *git.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, retErr error) {
 	defer func() {
 		if retErr != nil {
 			rd.cleanup()

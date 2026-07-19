@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"strings"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/util"
 )
 
 // MergeBase checks and returns merge base of two commits.
-func MergeBase(ctx context.Context, repo Repository, baseCommitID, headCommitID string) (string, error) {
+func MergeBase(ctx context.Context, repo git.RepositoryFacade, baseCommitID, headCommitID string) (string, error) {
 	mergeBase, stderr, err := gitcmd.NewCommand("merge-base").
 		AddDashesAndList(baseCommitID, headCommitID).WithRepo(repo).RunStdString(ctx)
 	if err != nil {

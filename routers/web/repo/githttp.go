@@ -306,11 +306,11 @@ type serviceHandler struct {
 	environ []string
 }
 
-func (h *serviceHandler) getStorageRepo() gitrepo.Repository {
+func (h *serviceHandler) getStorageRepo() git.RepositoryFacade {
 	if h.isWiki {
 		return h.repo.WikiStorageRepo()
 	}
-	return h.repo
+	return h.repo.CodeStorageRepo()
 }
 
 func setHeaderNoCache(ctx *context.Context) {

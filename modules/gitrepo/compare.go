@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 )
 
@@ -19,7 +20,7 @@ type DivergeObject struct {
 }
 
 // GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targetBranch string) (*DivergeObject, error) {
+func GetDivergingCommits(ctx context.Context, repo git.RepositoryFacade, baseBranch, targetBranch string) (*DivergeObject, error) {
 	cmd := gitcmd.NewCommand("rev-list", "--count", "--left-right").
 		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
 	stdout, _, err1 := cmd.WithRepo(repo).RunStdString(ctx)
@@ -45,7 +46,7 @@ func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targe
 
 // GetCommitIDsBetweenReverse returns the last commit IDs between two commits in reverse order (from old to new) with limit.
 // If the result exceeds the limit, the old commits IDs will be ignored
-func GetCommitIDsBetweenReverse(ctx context.Context, repo Repository, startRef, endRef, notRef string, limit int) ([]string, error) {
+func GetCommitIDsBetweenReverse(ctx context.Context, repo git.RepositoryFacade, startRef, endRef, notRef string, limit int) ([]string, error) {
 	genCmd := func(reversions ...string) *gitcmd.Command {
 		cmd := gitcmd.NewCommand("rev-list", "--reverse").
 			AddArguments("-n").AddDynamicArguments(strconv.Itoa(limit)).

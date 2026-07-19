@@ -20,7 +20,7 @@ const (
 	RemoteOptionMirrorFetch RemoteOption = "--mirror=fetch"
 )
 
-func ManagedRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteURL string, options ...RemoteOption) error {
+func ManagedRemoteAdd(ctx context.Context, repo git.RepositoryFacade, remoteName, remoteURL string, options ...RemoteOption) error {
 	return git.LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
 		cmd := gitcmd.NewCommand("remote", "add")
 		if len(options) > 0 {
@@ -38,7 +38,7 @@ func ManagedRemoteAdd(ctx context.Context, repo Repository, remoteName, remoteUR
 	})
 }
 
-func ManagedRemoteRemove(ctx context.Context, repo Repository, remoteName string) error {
+func ManagedRemoteRemove(ctx context.Context, repo git.RepositoryFacade, remoteName string) error {
 	return git.LockConfigAndDo(ctx, repo, func(ctx context.Context) error {
 		cmd := gitcmd.NewCommand("remote", "rm").AddDynamicArguments(remoteName)
 		_, _, err := cmd.WithRepo(repo).RunStdString(ctx)
@@ -47,7 +47,7 @@ func ManagedRemoteRemove(ctx context.Context, repo Repository, remoteName string
 }
 
 // GitRemoteGetURL returns the url of a specific remote of the repository.
-func GitRemoteGetURL(ctx context.Context, repo Repository, remoteName string) (*giturl.GitURL, error) {
+func GitRemoteGetURL(ctx context.Context, repo git.RepositoryFacade, remoteName string) (*giturl.GitURL, error) {
 	addr, err := git.GetRemoteAddress(ctx, repo, remoteName)
 	if err != nil {
 		return nil, err

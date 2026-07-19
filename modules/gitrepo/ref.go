@@ -6,13 +6,14 @@ package gitrepo
 import (
 	"context"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 )
 
-func UpdateRef(ctx context.Context, repo Repository, refName, newCommitID string) error {
+func UpdateRef(ctx context.Context, repo git.RepositoryFacade, refName, newCommitID string) error {
 	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).Run(ctx)
 }
 
-func RemoveRef(ctx context.Context, repo Repository, refName string) error {
+func RemoveRef(ctx context.Context, repo git.RepositoryFacade, refName string) error {
 	return gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(refName).WithRepo(repo).Run(ctx)
 }
