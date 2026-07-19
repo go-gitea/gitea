@@ -85,7 +85,6 @@ jobs:
             docs:
               - "**/*.md"
               - ".markdownlint.yaml"
-              - "eslint.md.config.ts"
               - "package.json"
               - "pnpm-lock.yaml"
               - "pnpm-workspace.yaml"

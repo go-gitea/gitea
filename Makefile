@@ -322,12 +322,10 @@ lint-swagger: node_modules ## lint swagger files
 .PHONY: lint-md
 lint-md: node_modules ## lint markdown files
 	pnpm exec markdownlint *.md
-	pnpm exec eslint -c eslint.md.config.ts $(ESLINT_ARGS)
 
 .PHONY: lint-md-fix
 lint-md-fix: node_modules ## lint markdown files and fix issues
 	pnpm exec markdownlint --fix *.md
-	pnpm exec eslint -c eslint.md.config.ts $(ESLINT_ARGS) --fix
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
