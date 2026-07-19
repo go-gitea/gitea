@@ -57,11 +57,17 @@ func Events(ctx *context.Context) {
 		}
 	}
 
-	if _, err := ctx.Resp.Write([]byte("\n")); err != nil {
+	// signal that messageChan is registered, so the client can rely on receiving all subsequent events
+	event := &eventsource.Event{
+		Name: "connected",
+		Data: "true",
+	}
+	if _, err := event.WriteTo(ctx.Resp); err != nil {
 		log.Error("Unable to write to EventStream: %v", err)
 		unregister()
 		return
 	}
+	ctx.Resp.Flush()
 
 	timer := time.NewTicker(30 * time.Second)
 

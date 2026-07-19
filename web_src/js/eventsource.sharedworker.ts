@@ -3,18 +3,23 @@ class Source {
   eventSource: EventSource | null;
   listening: Record<string, boolean>;
   clients: Array<MessagePort>;
+  connected: boolean;
 
   constructor(url: string) {
     this.url = url;
     this.eventSource = new EventSource(url);
     this.listening = {};
     this.clients = [];
+    this.connected = false;
     this.listen('open');
     this.listen('close');
+    this.listen('connected');
     this.listen('logout');
     this.listen('notification-count');
     this.listen('stopwatches');
     this.listen('error');
+    this.eventSource.addEventListener('connected', () => { this.connected = true });
+    this.eventSource.addEventListener('error', () => { this.connected = false });
   }
 
   register(port: MessagePort) {
@@ -26,6 +31,11 @@ class Source {
       type: 'status',
       message: `registered to ${this.url}`,
     });
+
+    // ports attaching to an already-connected source would otherwise never see the event
+    if (this.connected) {
+      port.postMessage({type: 'connected', data: 'true'});
+    }
   }
 
   deregister(port: MessagePort) {
