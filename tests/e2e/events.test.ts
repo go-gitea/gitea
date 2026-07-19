@@ -67,7 +67,7 @@ test.describe('events', () => {
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeHidden();
 
     // Wait until the server has registered page2's event stream, otherwise the logout
-    // event can race the connection and be silently dropped. See https://github.com/go-gitea/gitea/pull/37403
+    // event can race the connection and be silently dropped.
     await expect(page2.locator('html[data-user-events-connected]')).toBeAttached();
 
     // Logout from page1 — this sends a logout event to all tabs
