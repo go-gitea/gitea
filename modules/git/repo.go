@@ -24,7 +24,10 @@ import (
 type RepositoryFacade = gitcmd.RepositoryFacade
 
 type RepositoryBase struct {
-	Path string // absolute path
+	// TODO: refactor it to a private field "localPath" in the future
+	// * for repo accessing purpose, in most causes, use "WithRepo", or RepoLocalPath(repo) if the local path must be used
+	// * for error handling & logging purpose, it needs to introduce a new function "git.RepoLogName()" to handle various cases
+	Path string
 
 	LastCommitCache *LastCommitCache
 
