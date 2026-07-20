@@ -368,25 +368,28 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 
 	// testing fallback rules
 	// READMEs are searched in this order:
-	// - .gitea/README.zh-cn.md, .gitea/README.zh_cn.md, .gitea/README.zh.md, .gitea/README_zh.md, .gitea/README.md, .gitea/README.txt, .gitea/README,
-	// - .github/README.zh-cn.md, .github/README.zh_cn.md, .github/README.zh.md, .github/README_zh.md, .github/README.md, .github/README.txt, .github/README,
-	// - README.zh-cn.md, README.zh_cn.md, README.zh.md, README_zh.md, README.md, README.txt, README,
-	// - docs/README.zh-cn.md, docs/README.zh_cn.md, docs/README.zh.md, docs/README_zh.md, docs/README.md, docs/README.txt, docs/README
+	// - .gitea/README.zh-cn.md, .gitea/README.zh_cn.md, .gitea/README.zh.md, .gitea/README_zh.md, .gitea/README.en.md, .gitea/README.md, .gitea/README.txt, .gitea/README,
+	// - .github/README.zh-cn.md, .github/README.zh_cn.md, .github/README.zh.md, .github/README_zh.md, .github/README.en.md, .github/README.md, .github/README.txt, .github/README,
+	// - README.zh-cn.md, README.zh_cn.md, README.zh.md, README_zh.md, README.en.md, README.md, README.txt, README,
+	// - docs/README.zh-cn.md, docs/README.zh_cn.md, docs/README.zh.md, docs/README_zh.md, docs/README.en.md, docs/README.md, docs/README.txt, docs/README
 	//
 	// and a broken/looped symlink counts as not existing at all and should be skipped.
 	// again, this doesn't cover all cases, but it covers a few
 	check("fallback/top", "/user2/readme-test/src/branch/fallbacks/", ".gitea/README.en.md", "markdown", "This is .gitea/README.en.md")
-	check("fallback/2", "/user2/readme-test/src/branch/fallbacks2/", ".gitea/README.en.md", "markdown", "This is .gitea/README.en.md")
-	check("fallback/3", "/user2/readme-test/src/branch/fallbacks3/", ".gitea/README.en.md", "markdown", "This is .gitea/README.en.md")
-	check("fallback/4", "/user2/readme-test/src/branch/fallbacks4/", ".gitea/README.en.md", "markdown", "This is .gitea/README.en.md")
-	check("fallback/5", "/user2/readme-test/src/branch/fallbacks5/", ".gitea/README.en.md", "markdown", "This is .gitea/README.en.md")
-	check("fallback/6", "/user2/readme-test/src/branch/fallbacks6/", ".gitea/README.en.md", "markdown", "This is .gitea/README.en.md")
-	check("fallback/7", "/user2/readme-test/src/branch/fallbacks7/", ".gitea/README.en.md", "markdown", "This is .gitea/README.en.md")
-	check("fallback/8", "/user2/readme-test/src/branch/fallbacks8/", ".gitea/README.md", "markdown", "This is .gitea/README.md")
-	check("fallback/9", "/user2/readme-test/src/branch/fallbacks9/", ".gitea/README", "plain-text", "This is .gitea/README")
+	check("fallback/2", "/user2/readme-test/src/branch/fallbacks2/", ".gitea/README.md", "markdown", "This is .gitea/README.md")
+	check("fallback/3", "/user2/readme-test/src/branch/fallbacks3/", ".gitea/README", "plain-text", "This is .gitea/README")
+	check("fallback/4", "/user2/readme-test/src/branch/fallbacks4/", ".github/README.en.md", "markdown", "This is .github/README.en.md")
+	check("fallback/5", "/user2/readme-test/src/branch/fallbacks5/", ".github/README.md", "markdown", "This is .github/README.md")
+	check("fallback/6", "/user2/readme-test/src/branch/fallbacks6/", ".github/README", "plain-text", "This is .github/README")
+	check("fallback/7", "/user2/readme-test/src/branch/fallbacks7/", "README.en.md", "markdown", "This is README.en.md")
+	check("fallback/8", "/user2/readme-test/src/branch/fallbacks8/", "README.md", "markdown", "This is README.md")
+	check("fallback/9", "/user2/readme-test/src/branch/fallbacks9/", "README", "plain-text", "This is README")
+	check("fallback/10", "/user2/readme-test/src/branch/fallbacks10/", "docs/README.en.md", "markdown", "This is docs/README.en.md")
+	check("fallback/11", "/user2/readme-test/src/branch/fallbacks11/", "docs/README.md", "markdown", "This is docs/README.md")
+	check("fallback/12", "/user2/readme-test/src/branch/fallbacks12/", "docs/README", "plain-text", "This is docs/README")
 
 	// this case tests that broken symlinks count as missing files, instead of rendering their contents
-	check("fallbacks-broken-symlinks", "/user2/readme-test/src/branch/fallbacks-broken-symlinks/", ".gitea/README.md", "markdown", "This is .gitea/README.md")
+	check("fallbacks-broken-symlinks", "/user2/readme-test/src/branch/fallbacks-broken-symlinks/", "docs/README", "plain-text", "This is docs/README")
 
 	// some cases that should NOT render a README
 	// - /readme
