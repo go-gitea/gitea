@@ -71,8 +71,8 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 }
 
 func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {
-	// Never follow HTTP redirects, see cmdFetch in runSync.
-	cmd := gitcmd.NewCommand("remote", "prune").AddConfig("http.followRedirects", "false").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+	cmd := gitcmd.NewCommand("remote", "prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout)
+	git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
 	stdout, _, pruneErr := cmd.WithRepo(gitRepo).RunStdString(ctx)
 	if pruneErr != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
@@ -129,9 +129,8 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 
 	// use fetch but not remote update because git fetch support --tags but remote update doesn't
 	cmdFetch := func() *gitcmd.Command {
-		// Never follow HTTP redirects: a mirror remote that later starts redirecting to an
-		// otherwise-blocked address would be an SSRF/exfiltration vector on scheduled syncs.
-		cmd := gitcmd.NewCommand("fetch", "--tags").AddConfig("http.followRedirects", "false")
+		cmd := gitcmd.NewCommand("fetch", "--tags")
+		git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
 		if m.EnablePrune {
 			cmd.AddArguments("--prune")
 		}
@@ -212,9 +211,9 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
-		// Never follow HTTP redirects, see cmdFetch above.
-		return gitcmd.NewCommand("remote", "update", "--prune").AddConfig("http.followRedirects", "false").
-			AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
+		cmd := gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
+		git.HandleGitCmdHTTPRedirection(cmd, m.GetRemoteName())
+		return cmd
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
