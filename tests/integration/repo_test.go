@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,7 +19,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
@@ -306,115 +305,88 @@ func testViewRepoDirectory(t *testing.T) {
 	assert.Zero(t, repoSummary.Length())
 }
 
-type fastImportFile struct {
-	mode    string
-	path    string
-	content string
-}
-
-type fastImportCommit struct {
-	ref   string
-	msg   string
-	files []fastImportFile
-}
-
-func createFastImportRepo(t *testing.T, repoPath string, commits []fastImportCommit) {
-	var buf bytes.Buffer
-	for i, c := range commits {
-		fmt.Fprintf(&buf, "reset %s\n", c.ref)
-		fmt.Fprintf(&buf, "commit %s\nmark :%d\ncommitter Gitea <gitea@example.com> 1500000000 +0000\n", c.ref, i+1)
-		fmt.Fprintf(&buf, "data %d\n%s\n", len(c.msg), c.msg)
-		for _, f := range c.files {
-			fmt.Fprintf(&buf, "M %s inline %s\ndata %d\n%s\n", f.mode, f.path, len(f.content), f.content)
-		}
-	}
-	buf.WriteString("done\n")
-	_, _, err := gitcmd.NewCommand("fast-import").AddArguments("--force", "--done").WithDir(repoPath).WithStdinBytes(buf.Bytes()).RunStdString(t.Context())
-	require.NoError(t, err)
-}
-
 // ensure that the all the different ways to find and render a README work
 func testViewRepoDirectoryReadme(t *testing.T) {
 	defer tests.PrintCurrentTest(t)()
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 	repo56 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "readme-test"})
-	repoPath := repo_model.RepoPath(user2.Name, repo56.Name)
 
-	allGitea := []fastImportFile{
-		{"100644", ".gitea/README.en.md", "This is .gitea/README.en.md"},
-		{"100644", ".gitea/README.md", "This is .gitea/README.md"},
-		{"100644", ".gitea/README", "This is .gitea/README"},
+	const regular, symlink = git.EntryModeBlob, git.EntryModeSymlink
+
+	allGitea := []test.GitFastImportFile{
+		{regular, ".gitea/README.en.md", "This is .gitea/README.en.md"},
+		{regular, ".gitea/README.md", "This is .gitea/README.md"},
+		{regular, ".gitea/README", "This is .gitea/README"},
 	}
-	allGithub := []fastImportFile{
-		{"100644", ".github/README.en.md", "This is .github/README.en.md"},
-		{"100644", ".github/README.md", "This is .github/README.md"},
-		{"100644", ".github/README", "This is .github/README"},
+	allGithub := []test.GitFastImportFile{
+		{regular, ".github/README.en.md", "This is .github/README.en.md"},
+		{regular, ".github/README.md", "This is .github/README.md"},
+		{regular, ".github/README", "This is .github/README"},
 	}
-	allRoot := []fastImportFile{
-		{"100644", "README.en.md", "This is README.en.md"},
-		{"100644", "README.md", "This is README.md"},
-		{"100644", "README", "This is README"},
+	allRoot := []test.GitFastImportFile{
+		{regular, "README.en.md", "This is README.en.md"},
+		{regular, "README.md", "This is README.md"},
+		{regular, "README", "This is README"},
 	}
-	allDocs := []fastImportFile{
-		{"100644", "docs/README.en.md", "This is docs/README.en.md"},
-		{"100644", "docs/README.md", "This is docs/README.md"},
-		{"100644", "docs/README", "This is docs/README"},
+	allDocs := []test.GitFastImportFile{
+		{regular, "docs/README.en.md", "This is docs/README.en.md"},
+		{regular, "docs/README.md", "This is docs/README.md"},
+		{regular, "docs/README", "This is docs/README"},
 	}
 
-	combineFiles := func(slices ...[]fastImportFile) []fastImportFile {
-		var res []fastImportFile
+	combineFiles := func(slices ...[]test.GitFastImportFile) (res []test.GitFastImportFile) {
 		for _, s := range slices {
 			res = append(res, s...)
 		}
 		return res
 	}
 
-	createFastImportRepo(t, repoPath, []fastImportCommit{
-		{ref: "refs/heads/master", msg: "init master", files: []fastImportFile{{"100644", "README.md", "The cake is a lie."}}},
-		{ref: "refs/heads/txt", msg: "init txt", files: []fastImportFile{{"100644", "README.txt", "My spoon is too big."}}},
-		{ref: "refs/heads/plain", msg: "init plain", files: []fastImportFile{{"100644", "README", "Birken my stocks gee howdy"}}},
-		{ref: "refs/heads/i18n", msg: "init i18n", files: []fastImportFile{{"100644", "README.zh.md", "你好世界"}}},
-		{ref: "refs/heads/subdir", msg: "init subdir", files: []fastImportFile{{"100644", "libcake/README.md", "Four pints of sugar."}}},
-		{ref: "refs/heads/special-subdir-docs", msg: "init special-subdir-docs", files: []fastImportFile{{"100644", "docs/README.md", "This is in docs/"}}},
-		{ref: "refs/heads/special-subdir-.gitea", msg: "init special-subdir-.gitea", files: []fastImportFile{{"100644", ".gitea/README.md", "This is in .gitea/"}}},
-		{ref: "refs/heads/special-subdir-.github", msg: "init special-subdir-.github", files: []fastImportFile{{"100644", ".github/README.md", "This is in .github/"}}},
-		{ref: "refs/heads/special-subdir-nested", msg: "init special-subdir-nested", files: []fastImportFile{
-			{"100644", ".gitea/docs/README.md", "This is in docs/"},
-			{"100644", "subproject/.github/README.md", "This is in .github/"},
+	test.GitFastImport(t, repo56.CodeStorageRepo(), []test.GitFastImportCommit{
+		{Ref: "refs/heads/master", Message: "init master", Files: []test.GitFastImportFile{{regular, "README.md", "The cake is a lie."}}},
+		{Ref: "refs/heads/txt", Message: "init txt", Files: []test.GitFastImportFile{{regular, "README.txt", "My spoon is too big."}}},
+		{Ref: "refs/heads/plain", Message: "init plain", Files: []test.GitFastImportFile{{regular, "README", "Birken my stocks gee howdy"}}},
+		{Ref: "refs/heads/i18n", Message: "init i18n", Files: []test.GitFastImportFile{{regular, "README.zh.md", "你好世界"}}},
+		{Ref: "refs/heads/subdir", Message: "init subdir", Files: []test.GitFastImportFile{{regular, "libcake/README.md", "Four pints of sugar."}}},
+		{Ref: "refs/heads/special-subdir-docs", Message: "init special-subdir-docs", Files: []test.GitFastImportFile{{regular, "docs/README.md", "This is in docs/"}}},
+		{Ref: "refs/heads/special-subdir-.gitea", Message: "init special-subdir-.gitea", Files: []test.GitFastImportFile{{regular, ".gitea/README.md", "This is in .gitea/"}}},
+		{Ref: "refs/heads/special-subdir-.github", Message: "init special-subdir-.github", Files: []test.GitFastImportFile{{regular, ".github/README.md", "This is in .github/"}}},
+		{Ref: "refs/heads/special-subdir-nested", Message: "init special-subdir-nested", Files: []test.GitFastImportFile{
+			{regular, ".gitea/docs/README.md", "This is in docs/"},
+			{regular, "subproject/.github/README.md", "This is in .github/"},
 		}},
-		{ref: "refs/heads/symlink", msg: "init symlink", files: []fastImportFile{
-			{"120000", "README.md", "some/other/path/awefulcake.txt"},
-			{"120000", "some/README.txt", "other/path/awefulcake.txt"},
-			{"100644", "some/other/path/awefulcake.txt", "This is in some/other/path"},
-			{"120000", "trampoline", "up/back/down/down"},
-			{"120000", "up/back/down/down/README.md", "../../../../up/down/left/reelmein"},
-			{"100644", "up/down/left/reelmein", "It's a me, mario"},
+		{Ref: "refs/heads/symlink", Message: "init symlink", Files: []test.GitFastImportFile{
+			{symlink, "README.md", "some/other/path/awefulcake.txt"},
+			{symlink, "some/README.txt", "other/path/awefulcake.txt"},
+			{regular, "some/other/path/awefulcake.txt", "This is in some/other/path"},
+			{symlink, "trampoline", "up/back/down/down"},
+			{symlink, "up/back/down/down/README.md", "../../../../up/down/left/reelmein"},
+			{regular, "up/down/left/reelmein", "It's a me, mario"},
 		}},
-		{ref: "refs/heads/symlink-loop", msg: "init symlink-loop", files: []fastImportFile{
-			{"120000", "README.md", "trampoline"},
-			{"120000", "some/README.txt", "other/path/awefulcake.txt"},
-			{"120000", "some/other/path/awefulcake.txt", "../../../README.md"},
-			{"120000", "trampoline", "README.md"},
+		{Ref: "refs/heads/symlink-loop", Message: "init symlink-loop", Files: []test.GitFastImportFile{
+			{symlink, "README.md", "trampoline"},
+			{symlink, "some/README.txt", "other/path/awefulcake.txt"},
+			{symlink, "some/other/path/awefulcake.txt", "../../../README.md"},
+			{symlink, "trampoline", "README.md"},
 		}},
-		{ref: "refs/heads/sp-ace", msg: "init sp-ace", files: []fastImportFile{{"100644", "read me", "The cake is a lie."}}},
-		{ref: "refs/heads/fallbacks", msg: "init fallbacks", files: combineFiles(allGitea, allGithub, allRoot, allDocs)},
-		{ref: "refs/heads/fallbacks2", msg: "init fallbacks2", files: combineFiles(allGitea[1:], allGithub, allRoot, allDocs)},
-		{ref: "refs/heads/fallbacks3", msg: "init fallbacks3", files: combineFiles(allGitea[2:], allGithub, allRoot, allDocs)},
-		{ref: "refs/heads/fallbacks4", msg: "init fallbacks4", files: combineFiles(allGithub, allRoot, allDocs)},
-		{ref: "refs/heads/fallbacks5", msg: "init fallbacks5", files: combineFiles(allGithub[1:], allRoot, allDocs)},
-		{ref: "refs/heads/fallbacks6", msg: "init fallbacks6", files: combineFiles(allGithub[2:], allRoot, allDocs)},
-		{ref: "refs/heads/fallbacks7", msg: "init fallbacks7", files: combineFiles(allRoot, allDocs)},
-		{ref: "refs/heads/fallbacks8", msg: "init fallbacks8", files: combineFiles(allRoot[1:], allDocs)},
-		{ref: "refs/heads/fallbacks9", msg: "init fallbacks9", files: combineFiles(allRoot[2:], allDocs)},
-		{ref: "refs/heads/fallbacks10", msg: "init fallbacks10", files: combineFiles(allDocs)},
-		{ref: "refs/heads/fallbacks11", msg: "init fallbacks11", files: combineFiles(allDocs[1:])},
-		{ref: "refs/heads/fallbacks12", msg: "init fallbacks12", files: combineFiles(allDocs[2:])},
-		{ref: "refs/heads/fallbacks-broken-symlinks", msg: "init fallbacks-broken-symlinks", files: []fastImportFile{
-			{"120000", ".gitea/README.md", "non-existent-file"},
-			{"120000", ".github/README.md", "non-existent-file"},
-			{"120000", "README.md", "non-existent-file"},
-			{"100644", "docs/README", "This is docs/README"},
+		{Ref: "refs/heads/sp-ace", Message: "init sp-ace", Files: []test.GitFastImportFile{{regular, "read me", "The cake is a lie."}}},
+		{Ref: "refs/heads/fallbacks", Message: "init fallbacks", Files: combineFiles(allGitea, allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks2", Message: "init fallbacks2", Files: combineFiles(allGitea[1:], allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks3", Message: "init fallbacks3", Files: combineFiles(allGitea[2:], allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks4", Message: "init fallbacks4", Files: combineFiles(allGithub, allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks5", Message: "init fallbacks5", Files: combineFiles(allGithub[1:], allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks6", Message: "init fallbacks6", Files: combineFiles(allGithub[2:], allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks7", Message: "init fallbacks7", Files: combineFiles(allRoot, allDocs)},
+		{Ref: "refs/heads/fallbacks8", Message: "init fallbacks8", Files: combineFiles(allRoot[1:], allDocs)},
+		{Ref: "refs/heads/fallbacks9", Message: "init fallbacks9", Files: combineFiles(allRoot[2:], allDocs)},
+		{Ref: "refs/heads/fallbacks10", Message: "init fallbacks10", Files: combineFiles(allDocs)},
+		{Ref: "refs/heads/fallbacks11", Message: "init fallbacks11", Files: combineFiles(allDocs[1:])},
+		{Ref: "refs/heads/fallbacks12", Message: "init fallbacks12", Files: combineFiles(allDocs[2:])},
+		{Ref: "refs/heads/fallbacks-broken-symlinks", Message: "init fallbacks-broken-symlinks", Files: []test.GitFastImportFile{
+			{symlink, ".gitea/README.md", "non-existent-file"},
+			{symlink, ".github/README.md", "non-existent-file"},
+			{symlink, "README.md", "non-existent-file"},
+			{regular, "docs/README", "This is docs/README"},
 		}},
 	})
 
@@ -523,17 +495,26 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 
 func testViewRepoSymlink(t *testing.T) {
 	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2/readme-test/src/branch/symlink")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 2, ID: 1})
+	test.GitFastImport(t, repo.CodeStorageRepo(), []test.GitFastImportCommit{
+		{
+			Ref: "refs/heads/symlink", Message: "test", Files: []test.GitFastImportFile{
+				{git.EntryModeSymlink, "README.md", "some/other/path/awefulcake.txt"},
+				{git.EntryModeBlob, "some/other/path/awefulcake.txt", "text content"},
+			},
+		},
+	})
+	req := NewRequest(t, "GET", "/user2/repo1/src/branch/symlink")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, ".entry-symbol-link", true)
 	followSymbolLinkHref := htmlDoc.Find(".entry-symbol-link").AttrOr("href", "")
-	require.Equal(t, "/user2/readme-test/src/branch/symlink/README.md?follow_symlink=1", followSymbolLinkHref)
+	require.Equal(t, "/user2/repo1/src/branch/symlink/README.md?follow_symlink=1", followSymbolLinkHref)
 
 	req = NewRequest(t, "GET", followSymbolLinkHref)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	assert.Equal(t, "/user2/readme-test/src/branch/symlink/some/other/path/awefulcake.txt?follow_symlink=1", resp.Header().Get("Location"))
+	assert.Equal(t, "/user2/repo1/src/branch/symlink/some/other/path/awefulcake.txt?follow_symlink=1", resp.Header().Get("Location"))
 }
 
 func testMarkDownReadmeImage(t *testing.T) {

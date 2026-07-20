@@ -357,7 +357,8 @@ func redirectFollowSymlink(ctx *context.Context, treePathEntry *git.TreeEntry) b
 		return false
 	}
 	if treePathEntry.IsLink() {
-		if res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, treePathEntry); err == nil {
+		res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, treePathEntry)
+		if err == nil {
 			redirect := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(res.TargetFullPath) + "?" + ctx.Req.URL.RawQuery
 			ctx.Redirect(redirect)
 			return true
