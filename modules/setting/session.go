@@ -51,7 +51,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions"))
 		if !filepath.IsAbs(SessionConfig.ProviderConfig) {
 			// Although the "data path" should be used as Gitea's "data" base directory (work path sometimes is not writable),
-			// document says the relative is based on the "work path", so keep the behavior
+			// document says the relative session path is based on the "work path", so keep the behavior
 			SessionConfig.ProviderConfig = filepath.Join(AppWorkPath, SessionConfig.ProviderConfig)
 		}
 		checkOverlappedPath("[session].PROVIDER_CONFIG", SessionConfig.ProviderConfig)
