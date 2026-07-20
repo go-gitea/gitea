@@ -1,6 +1,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
+//nolint:govet // disable "composites: gitea.dev/modules/git.FastImportFile struct literal uses unkeyed fields"
 package integration
 
 import (
