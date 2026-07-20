@@ -203,7 +203,7 @@ func listSourceScopedWorkflowFiles(ctx *context.Context, repo *repo_model.Reposi
 	if !repo.IsEmpty {
 		_, parsed, err := actions_service.LoadParsedScopedWorkflows(ctx, repo)
 		if err != nil {
-			log.Error("scoped workflows settings: parse %s: %v", repo.RelativePath(), err)
+			log.Error("scoped workflows settings: parse %s: %v", repo.FullName(), err)
 		} else {
 			for _, p := range parsed {
 				info := scopedWorkflowInfo{

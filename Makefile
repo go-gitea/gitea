@@ -113,8 +113,8 @@ LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
 
-GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/models/migrations/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
-MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/models/migrations/...)
+GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/modelmigration/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
+MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/modelmigration/...)
 
 FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
 FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
@@ -477,7 +477,7 @@ migrations.individual.test:
 
 .PHONY: migrations.individual.test\#%
 migrations.individual.test\#%:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/models/migrations/$*
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/modelmigration/$*
 
 .PHONY: playwright
 playwright: deps-frontend

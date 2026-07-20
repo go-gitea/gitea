@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"sort"
 	"strings"
 	"unicode"
@@ -35,7 +34,6 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/context"
@@ -56,35 +54,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 	ctx.Data["BeforeCommit"] = before
 	ctx.Data["HeadCommit"] = head
 
-	ctx.Data["GetBlobByPathForCommit"] = func(commit *git.Commit, path string) *git.Blob {
-		if commit == nil {
-			return nil
-		}
-
-		blob, err := commit.GetBlobByPath(path)
-		if err != nil {
-			return nil
-		}
-		return blob
-	}
-
-	ctx.Data["GetSniffedTypeForBlob"] = func(blob *git.Blob) typesniffer.SniffedType {
-		st := typesniffer.SniffedType{}
-
-		if blob == nil {
-			return st
-		}
-
-		st, err := blob.GuessContentType()
-		if err != nil {
-			log.Error("GuessContentType failed: %v", err)
-			return st
-		}
-		return st
-	}
-
 	setPathsCompareContext(ctx, before, head, headOwner, headName)
-	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
 }
 
@@ -108,20 +78,8 @@ func setPathsCompareContext(ctx *context.Context, base, head *git.Commit, headOw
 	}
 }
 
-// setImageCompareContext sets context data that is required by image compare template
-func setImageCompareContext(ctx *context.Context) {
-	ctx.Data["IsSniffedTypeAnImage"] = func(st typesniffer.SniffedType) bool {
-		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
-	}
-}
-
 // setCsvCompareContext sets context data that is required by the CSV compare template
 func setCsvCompareContext(ctx *context.Context) {
-	ctx.Data["IsCsvFile"] = func(diffFile *gitdiff.DiffFile) bool {
-		extension := strings.ToLower(filepath.Ext(diffFile.Name))
-		return extension == ".csv" || extension == ".tsv"
-	}
-
 	type CsvDiffResult struct {
 		Sections []*gitdiff.TableDiffSection
 		Error    string
@@ -140,11 +98,11 @@ func setCsvCompareContext(ctx *context.Context) {
 				return nil, nil, nil
 			}
 
-			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
+			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size(ctx) {
 				return nil, nil, errTooLarge
 			}
 
-			reader, err := blob.DataAsync()
+			reader, err := blob.DataAsync(ctx)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -236,7 +194,7 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx))
 	headRefName := util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch)
 
-	baseRef, err := common.ResolveRefWithSuffix(ctx.Repo.GitRepo, baseRefName, compareReq.BaseOriRefSuffix)
+	baseRef, err := common.ResolveRefWithSuffix(ctx, ctx.Repo.GitRepo, baseRefName, compareReq.BaseOriRefSuffix)
 	if err != nil {
 		return err
 	}
@@ -245,7 +203,7 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 		return err
 	}
 
-	headRef, err := common.ResolveRefWithSuffix(headGitRepo, headRefName, compareReq.HeadOriRefSuffix)
+	headRef, err := common.ResolveRefWithSuffix(ctx, headGitRepo, headRefName, compareReq.HeadOriRefSuffix)
 	if err != nil {
 		return err
 	}
@@ -468,7 +426,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 		ctx.ServerError("GetDiff", err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadRepo, ci.HeadGitRepo, beforeCommitID, headCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ci.HeadGitRepo, beforeCommitID, headCommitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
@@ -496,7 +454,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 		ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 	}
 
-	headCommit, err := ci.HeadGitRepo.GetCommit(headCommitID)
+	headCommit, err := ci.HeadGitRepo.GetCommit(ctx, headCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return
@@ -504,7 +462,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	beforeCommit, err := baseGitRepo.GetCommit(beforeCommitID)
+	beforeCommit, err := baseGitRepo.GetCommit(ctx, beforeCommitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return
@@ -631,9 +589,9 @@ func downloadCompareDiffOrPatch(ctx *context.Context, patch bool) {
 
 	var err error
 	if patch {
-		err = ci.HeadGitRepo.GetPatch(compareArg, ctx.Resp)
+		err = ci.HeadGitRepo.GetPatch(ctx, compareArg, ctx.Resp)
 	} else {
-		err = ci.HeadGitRepo.GetDiff(compareArg, ctx.Resp)
+		err = ci.HeadGitRepo.GetDiff(ctx, compareArg, ctx.Resp)
 	}
 	if err != nil {
 		ctx.ServerError("DownloadCompareDiffOrPatch", err)
@@ -768,17 +726,17 @@ func ExcerptBlob(ctx *context.Context) {
 		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
 	}
 
-	commit, err := gitRepo.GetCommit(commitID)
+	commit, err := gitRepo.GetCommit(ctx, commitID)
 	if err != nil {
 		ctx.ServerError("GetCommit", err)
 		return
 	}
-	blob, err := commit.Tree.GetBlobByPath(filePath)
+	blob, err := commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, filePath)
 	if err != nil {
 		ctx.ServerError("GetBlobByPath", err)
 		return
 	}
-	reader, err := blob.DataAsync()
+	reader, err := blob.DataAsync(ctx)
 	if err != nil {
 		ctx.ServerError("DataAsync", err)
 		return

@@ -21,11 +21,11 @@ func TestEditorUtils(t *testing.T) {
 		assert.Equal(t, "user2-patch-1", branchName)
 	})
 	t.Run("getClosestParentWithFiles", func(t *testing.T) {
-		gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, _ := gitrepo.OpenRepository(repo)
 		defer gitRepo.Close()
-		treePath := getClosestParentWithFiles(gitRepo, "sub-home-md-img-check", "docs/foo/bar")
+		treePath := getClosestParentWithFiles(t.Context(), gitRepo, "sub-home-md-img-check", "docs/foo/bar")
 		assert.Equal(t, "docs", treePath)
-		treePath = getClosestParentWithFiles(gitRepo, "sub-home-md-img-check", "any/other")
+		treePath = getClosestParentWithFiles(t.Context(), gitRepo, "sub-home-md-img-check", "any/other")
 		assert.Empty(t, treePath)
 	})
 }

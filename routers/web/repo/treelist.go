@@ -22,13 +22,13 @@ import (
 
 // TreeList get all files' entries of a repository
 func TreeList(ctx *context.Context) {
-	tree, err := ctx.Repo.Commit.SubTree("/")
+	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, "/")
 	if err != nil {
 		ctx.ServerError("Repo.Commit.SubTree", err)
 		return
 	}
 
-	entries, err := tree.ListEntriesRecursiveFast()
+	entries, err := tree.ListEntriesRecursiveFast(ctx, ctx.Repo.GitRepo)
 	if err != nil {
 		ctx.ServerError("ListEntriesRecursiveFast", err)
 		return
@@ -144,7 +144,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 
 func TreeViewNodes(ctx *context.Context) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
-	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.RepoLink, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
+	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.RepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
 	if err != nil {
 		ctx.ServerError("GetTreeViewNodes", err)
 		return

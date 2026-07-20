@@ -7,6 +7,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -31,7 +32,7 @@ func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 
 // GetDiffNumChangedFiles counts the number of changed files
 // This is substantially quicker than shortstat but...
-func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparison bool) (int, error) {
+func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head string, directComparison bool) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	w := &lineCountWriter{}
 
@@ -45,7 +46,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 		AddArguments("--").
 		WithDir(repo.Path).
 		WithStdoutCopy(w).
-		RunWithStderr(repo.Ctx); err != nil {
+		RunWithStderr(ctx); err != nil {
 		if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
 			// it doesn't make sense to count the changed files in this case because UI won't display such diff
@@ -59,35 +60,35 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
-func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
+func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
 		WithStdoutCopy(w).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
-func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
+func (repo *Repository) GetDiffBinary(ctx context.Context, compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("diff", "-p", "--binary", "--histogram").
 		AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
 		WithStdoutCopy(w).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
-func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
+func (repo *Repository) GetPatch(ctx context.Context, compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
 		WithStdoutCopy(w).
-		Run(repo.Ctx)
+		Run(ctx)
 }
 
 // GetFilesChangedBetween returns a list of all files that have been changed between the given commits
 // If base is undefined empty SHA (zeros), it only returns the files changed in the head commit
 // If base is the SHA of an empty tree (EmptyTreeSHA), it returns the files changes from the initial commit to the head commit
-func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) GetFilesChangedBetween(ctx context.Context, base, head string) ([]string, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +98,7 @@ func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, err
 	} else {
 		cmd.AddDynamicArguments(base, head)
 	}
-	stdout, _, err := cmd.WithDir(repo.Path).RunStdString(repo.Ctx)
+	stdout, _, err := cmd.WithDir(repo.Path).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}

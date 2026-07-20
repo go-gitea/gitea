@@ -154,7 +154,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		cloneOpts.SingleBranch = true
 		cloneOpts.Branch = opts.SingleBranch
 	}
-	if err = gitrepo.Clone(ctx, opts.BaseRepo, repo, cloneOpts); err != nil {
+	if err = gitrepo.CloneManaged(ctx, opts.BaseRepo, repo, cloneOpts); err != nil {
 		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nError: %v", repo, opts.BaseRepo, err)
 		return nil, fmt.Errorf("git clone: %w", err)
 	}
@@ -171,7 +171,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	// 6 - Sync the repository branches and tags
 	var gitRepo *git.Repository
-	gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err = gitrepo.OpenRepository(repo)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %w", err)
 	}

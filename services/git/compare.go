@@ -72,7 +72,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	// if they are not the same repository, then we need to fetch the base commit into the head repository
 	// because we will use headGitRepo in the following code
 	if baseRepo.ID != headRepo.ID {
-		exist := headGitRepo.IsReferenceExist(compareInfo.BaseCommitID)
+		exist := headGitRepo.IsReferenceExist(ctx, compareInfo.BaseCommitID)
 		if !exist {
 			if err := gitrepo.FetchRemoteCommit(ctx, headRepo, baseRepo, compareInfo.BaseCommitID); err != nil {
 				return compareInfo, fmt.Errorf("FetchRemoteCommit: %w", err)
@@ -108,6 +108,6 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	// Count number of changed files.
 	// TODO: This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(compareInfo.BaseCommitID, compareInfo.HeadCommitID, directComparison)
+	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(ctx, compareInfo.BaseCommitID, compareInfo.HeadCommitID, directComparison)
 	return compareInfo, err
 }

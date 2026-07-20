@@ -10,7 +10,7 @@ import (
 )
 
 func TestCommitsCount(t *testing.T) {
-	bareRepo1 := &mockRepository{path: "repo1_bare"}
+	bareRepo1 := mockRepository("repo1_bare")
 
 	commitsCount, err := CommitsCount(t.Context(), bareRepo1,
 		CommitsCountOptions{
@@ -22,7 +22,7 @@ func TestCommitsCount(t *testing.T) {
 }
 
 func TestCommitsCountWithSinceUntil(t *testing.T) {
-	bareRepo1 := &mockRepository{path: "repo1_bare"}
+	bareRepo1 := mockRepository("repo1_bare")
 	revision := []string{"8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"}
 
 	// The three commits on this revision are dated 2018-04-18, 2017-12-19 and 2017-12-19.
@@ -53,7 +53,7 @@ func TestCommitsCountWithSinceUntil(t *testing.T) {
 }
 
 func TestCommitsCountWithoutBase(t *testing.T) {
-	bareRepo1 := &mockRepository{path: "repo1_bare"}
+	bareRepo1 := mockRepository("repo1_bare")
 
 	commitsCount, err := CommitsCount(t.Context(), bareRepo1,
 		CommitsCountOptions{
@@ -66,7 +66,7 @@ func TestCommitsCountWithoutBase(t *testing.T) {
 }
 
 func TestGetLatestCommitTime(t *testing.T) {
-	bareRepo1 := &mockRepository{path: "repo1_bare"}
+	bareRepo1 := mockRepository("repo1_bare")
 	lct, err := GetLatestCommitTime(t.Context(), bareRepo1)
 	assert.NoError(t, err)
 	// Time is Sun Nov 13 16:40:14 2022 +0100

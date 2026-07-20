@@ -120,9 +120,9 @@ func downloadCompareDiffOrPatch(ctx *context.APIContext, compareInfo *git_servic
 
 	var err error
 	if patch {
-		err = compareInfo.HeadGitRepo.GetPatch(compareArg, ctx.Resp)
+		err = compareInfo.HeadGitRepo.GetPatch(ctx, compareArg, ctx.Resp)
 	} else {
-		err = compareInfo.HeadGitRepo.GetDiff(compareArg, ctx.Resp)
+		err = compareInfo.HeadGitRepo.GetDiff(ctx, compareArg, ctx.Resp)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)

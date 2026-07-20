@@ -72,6 +72,9 @@ func DeleteRepository(ctx context.Context, doer *user_model.User, repo *repo_mod
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
 func PushCreateRepo(ctx context.Context, authUser, owner *user_model.User, repoName string) (*repo_model.Repository, error) {
+	if authUser == nil {
+		return nil, errors.New("cannot push-create repository anonymously")
+	}
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
 			if ok, err := organization.CanCreateOrgRepo(ctx, owner.ID, authUser.ID); err != nil {
@@ -328,10 +331,10 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{Uname: owner.Name, Name: name}
 	}
-	repo := repo_model.StorageRepo(repo_model.RelativePath(owner.Name, name))
+	repo := repo_model.CodeRepoByName(owner.Name, name)
 	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repo.RelativePath(), err)
+		log.Error("Unable to check if repo %s/%s exists, error: %v", owner.Name, name, err)
 		return err
 	}
 	if !overwriteOrAdopt && isExist {

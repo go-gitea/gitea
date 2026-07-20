@@ -263,13 +263,12 @@ var walkGitLogDebugBeforeNext func() // is used to simulate various edge git pro
 // walkGitLog walks the git log --name-status for the head commit in the provided treepath and files
 func walkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
 	headRef := head.ID.String()
-
-	tree, err := head.SubTree(treepath)
+	tree, err := head.SubTree(ctx, repo, treepath)
 	if err != nil {
 		return nil, err
 	}
 
-	entries, err := tree.ListEntries()
+	entries, err := tree.ListEntries(ctx, repo)
 	if err != nil {
 		return nil, err
 	}

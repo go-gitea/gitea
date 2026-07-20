@@ -116,7 +116,7 @@ func TestParseCommitFileStatus(t *testing.T) {
 }
 
 func TestGetCommitFileStatusMerges(t *testing.T) {
-	bareRepo6 := &mockRepository{path: "repo6_merge"}
+	bareRepo6 := mockRepository("repo6_merge")
 
 	commitFileStatus, err := GetCommitFileStatus(t.Context(), bareRepo6, "022f4ce6214973e018f02bf363bf8a2e3691f699")
 	assert.NoError(t, err)
@@ -139,7 +139,7 @@ func TestGetCommitFileStatusMerges(t *testing.T) {
 }
 
 func TestGetCommitFileStatusMergesSha256(t *testing.T) {
-	bareRepo6Sha256 := &mockRepository{path: "repo6_merge_sha256"}
+	bareRepo6Sha256 := mockRepository("repo6_merge_sha256")
 
 	commitFileStatus, err := GetCommitFileStatus(t.Context(), bareRepo6Sha256, "d2e5609f630dd8db500f5298d05d16def282412e3e66ed68cc7d0833b29129a1")
 	assert.NoError(t, err)

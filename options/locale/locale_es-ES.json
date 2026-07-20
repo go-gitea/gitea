@@ -2524,7 +2524,6 @@
   "admin.config.default_enable_timetracking": "Habilitar seguimiento de tiempo por defecto",
   "admin.config.default_allow_only_contributors_to_track_time": "Deje que solo los colaboradores hagan un seguimiento del tiempo",
   "admin.config.no_reply_address": "Dominio de correos electrónicos ocultos",
-  "admin.config.default_visibility_organization": "Visibilidad por defecto para nuevas organizaciones",
   "admin.config.default_enable_dependencies": "Habilitar dependencias de incidencias por defecto",
   "admin.config.webhook_config": "Configuración de Webhooks",
   "admin.config.queue_length": "Tamaño de Cola de Envío",

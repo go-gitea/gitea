@@ -72,13 +72,13 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	// confirm that commit is exist
 	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %w", repo.RelativePath(), err)
+		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}
 	defer closer.Close()
 
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 
-	commit, err := gitRepo.GetCommit(sha)
+	commit, err := gitRepo.GetCommit(ctx, sha)
 	if err != nil {
 		return fmt.Errorf("GetCommit[%s]: %w", sha, err)
 	}
@@ -104,7 +104,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 
 	notify.CreateCommitStatus(ctx, repo, repo_module.CommitToPushCommit(commit), creator, status)
 
-	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	defaultBranchCommit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommit[%s]: %w", repo.DefaultBranch, err)
 	}

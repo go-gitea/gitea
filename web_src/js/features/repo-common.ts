@@ -1,4 +1,4 @@
-import {queryElems} from '../utils/dom.ts';
+import {queryElems, toggleElem} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -7,6 +7,7 @@ import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
 import {createApp} from 'vue';
 import {createTippy} from '../modules/tippy.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 async function onDownloadArchive(e: Event) {
   e.preventDefault();
@@ -51,31 +52,32 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
   return tmpl.replace('{url}', needEncode ? encodeURIComponent(url) : url);
 }
 
-function initCloneSchemeUrlSelection(parent: Element) {
-  const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url')!;
+function initRepoCloneButtonsCombo(parent: Element) {
+  // the clone section is not rendered at all when no git transport (HTTPS/SSH) is available
+  const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
+  if (!elCloneUrlInput) return;
 
   const tabHttps = parent.querySelector('.repo-clone-https');
   const tabSsh = parent.querySelector('.repo-clone-ssh');
   const tabTea = parent.querySelector('.repo-clone-tea');
+  const listOpenWithEditorApps = parent.querySelector('.repo-clone-with-apps');
+
+  // not every tab exists in every panel, eg: the admin may disable HTTP/SSH, and the empty repo page has no Tea CLI tab
+  const tabByScheme: Record<string, Element | null> = {https: tabHttps, ssh: tabSsh, tea: tabTea};
   const updateClonePanelUi = function() {
     let scheme = localUserSettings.getString('repo-clone-protocol');
-    if (!['https', 'ssh', 'tea'].includes(scheme)) {
-      scheme = 'https';
-    }
-
-    // Fallbacks if the scheme preference is not available in the tabs, for example: empty repo page, there are only HTTPS and SSH
-    if (scheme === 'tea' && !tabTea) {
-      scheme = 'https';
-    }
-    if (scheme === 'https' && !tabHttps) {
-      scheme = 'ssh';
-    } else if (scheme === 'ssh' && !tabSsh) {
-      scheme = 'https';
+    // fall back to the first available tab when the preferred scheme's tab is absent (unset preference, or disabled protocol)
+    if (!tabByScheme[scheme]) {
+      scheme = ['https', 'ssh', 'tea'].find((s) => tabByScheme[s]) ?? '';
     }
 
     const isHttps = scheme === 'https';
     const isSsh = scheme === 'ssh';
     const isTea = scheme === 'tea';
+
+    if (listOpenWithEditorApps) {
+      toggleElem(listOpenWithEditorApps, !isTea); // don't show the "Open with editor apps" list when "Tea" clone is selected
+    }
 
     if (tabHttps) {
       const link = tabHttps.getAttribute('data-link')!;
@@ -89,16 +91,9 @@ function initCloneSchemeUrlSelection(parent: Element) {
       tabTea.classList.toggle('active', isTea);
     }
 
-    let tab: Element | null = null;
-    if (isHttps) {
-      tab = tabHttps;
-    } else if (isSsh) {
-      tab = tabSsh;
-    } else if (isTea) {
-      tab = tabTea;
-    }
+    const tab = tabByScheme[scheme];
+    if (!tab) return; // no protocol available at all, leave the (hidden) input untouched
 
-    if (!tab) return;
     const link = tab.getAttribute('data-link')!;
 
     for (const el of document.querySelectorAll('.js-clone-url')) {
@@ -132,10 +127,10 @@ function initCloneSchemeUrlSelection(parent: Element) {
   });
 }
 
-function initClonePanelButton(btn: HTMLButtonElement) {
+function initRepoClonePanel(btn: HTMLButtonElement) {
   const elPanel = btn.nextElementSibling!;
   // "init" must be before the "createTippy" otherwise the "tippy-target" will be removed from the document
-  initCloneSchemeUrlSelection(elPanel);
+  initRepoCloneButtonsCombo(elPanel);
   createTippy(btn, {
     content: elPanel,
     trigger: 'click',
@@ -147,8 +142,8 @@ function initClonePanelButton(btn: HTMLButtonElement) {
 }
 
 export function initRepoCloneButtons() {
-  queryElems(document, '.js-btn-clone-panel', initClonePanelButton);
-  queryElems(document, '.clone-buttons-combo', initCloneSchemeUrlSelection);
+  registerGlobalInitFunc('initRepoClonePanel', initRepoClonePanel);
+  registerGlobalInitFunc('initRepoCloneButtonsCombo', initRepoCloneButtonsCombo);
 }
 
 export async function updateIssuesMeta(url: string, action: string, issue_ids: string, id: string) {

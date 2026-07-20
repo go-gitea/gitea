@@ -6,6 +6,7 @@
 package git
 
 import (
+	"context"
 	"io"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -20,49 +21,47 @@ type Tree struct {
 }
 
 // ListEntries returns all entries of current tree.
-func (t *Tree) ListEntries() (Entries, error) {
+func (t *Tree) ListEntries(ctx context.Context, gitRepo *Repository) (Entries, error) {
 	if t.entriesParsed {
 		return t.entries, nil
 	}
 
-	if t.repo != nil {
-		batch, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
-		if err != nil {
+	batch, cancel, err := gitRepo.CatFileBatch(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+
+	info, rd, err := batch.QueryContent(t.ID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	if info.Type == "commit" {
+		treeID, err := ReadTreeID(rd, info.Size)
+		if err != nil && err != io.EOF {
 			return nil, err
 		}
-		defer cancel()
-
-		info, rd, err := batch.QueryContent(t.ID.String())
+		info, rd, err = batch.QueryContent(treeID)
 		if err != nil {
-			return nil, err
-		}
-
-		if info.Type == "commit" {
-			treeID, err := ReadTreeID(rd, info.Size)
-			if err != nil && err != io.EOF {
-				return nil, err
-			}
-			info, rd, err = batch.QueryContent(treeID)
-			if err != nil {
-				return nil, err
-			}
-		}
-		if info.Type == "tree" {
-			t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, info.Size)
-			if err != nil {
-				return nil, err
-			}
-			t.entriesParsed = true
-			return t.entries, nil
-		}
-
-		// Not a tree just use ls-tree instead
-		if err := DiscardFull(rd, info.Size+1); err != nil {
 			return nil, err
 		}
 	}
+	if info.Type == "tree" {
+		t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, info.Size)
+		if err != nil {
+			return nil, err
+		}
+		t.entriesParsed = true
+		return t.entries, nil
+	}
 
-	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithDir(t.repo.Path).RunStdBytes(t.repo.Ctx)
+	// Not a tree just use ls-tree instead
+	if err := DiscardFull(rd, info.Size+1); err != nil {
+		return nil, err
+	}
+
+	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithDir(gitRepo.Path).RunStdBytes(ctx)
 	if runErr != nil {
 		if gitcmd.IsStderr(runErr, gitcmd.StderrNotValidObjectName) || gitcmd.IsStderr(runErr, gitcmd.StderrNotTreeObject) {
 			return nil, ErrNotExist{
@@ -72,7 +71,6 @@ func (t *Tree) ListEntries() (Entries, error) {
 		return nil, runErr
 	}
 
-	var err error
 	t.entries, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesParsed = true
@@ -83,12 +81,12 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, error) {
+func (t *Tree) listEntriesRecursive(ctx context.Context, gitRepo *Repository, extraArgs gitcmd.TrustedCmdArgs) (Entries, error) {
 	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-t", "-r").
 		AddArguments(extraArgs...).
 		AddDynamicArguments(t.ID.String()).
-		WithDir(t.repo.Path).
-		RunStdBytes(t.repo.Ctx)
+		WithDir(gitRepo.Path).
+		RunStdBytes(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -99,11 +97,11 @@ func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, e
 }
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
-func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
-	return t.listEntriesRecursive(nil)
+func (t *Tree) ListEntriesRecursiveFast(ctx context.Context, gitRepo *Repository) (Entries, error) {
+	return t.listEntriesRecursive(ctx, gitRepo, nil)
 }
 
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
-func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
-	return t.listEntriesRecursive(gitcmd.TrustedCmdArgs{"--long"})
+func (t *Tree) ListEntriesRecursiveWithSize(ctx context.Context, gitRepo *Repository) (Entries, error) {
+	return t.listEntriesRecursive(ctx, gitRepo, gitcmd.TrustedCmdArgs{"--long"})
 }

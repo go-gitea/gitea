@@ -36,12 +36,12 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 	storageRepo := repo.WikiStorageRepo()
 
 	if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
-		return "", fmt.Errorf("failed to remove existing wiki dir %q, err: %w", storageRepo.RelativePath(), err)
+		return "", fmt.Errorf("failed to remove existing wiki for repo %q, err: %w", repo.FullName(), err)
 	}
 
 	cleanIncompleteWikiPath := func() {
 		if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
-			log.Error("Failed to remove incomplete wiki dir %q, err: %v", storageRepo.RelativePath(), err)
+			log.Error("Failed to remove incomplete wiki for repo %q, err: %v", repo.FullName(), err)
 		}
 	}
 	if err := gitrepo.CloneExternalRepo(ctx, wikiRemoteURL, storageRepo, git.CloneRepoOptions{
@@ -55,7 +55,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 		return "", err
 	}
 
-	if err := gitrepo.WriteCommitGraph(ctx, storageRepo); err != nil {
+	if err := git.WriteCommitGraph(ctx, storageRepo); err != nil {
 		cleanIncompleteWikiPath()
 		return "", err
 	}
@@ -63,7 +63,7 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 	defaultBranch, err := gitrepo.GetDefaultBranch(ctx, storageRepo)
 	if err != nil {
 		cleanIncompleteWikiPath()
-		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", storageRepo.RelativePath(), err)
+		return "", fmt.Errorf("failed to get wiki repo default branch for %q, err: %w", repo.FullName(), err)
 	}
 
 	return defaultBranch, nil
@@ -102,7 +102,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("clone error: %w", err)
 	}
 
-	if err := gitrepo.WriteCommitGraph(ctx, repo); err != nil {
+	if err := git.WriteCommitGraph(ctx, repo); err != nil {
 		return repo, err
 	}
 
@@ -122,13 +122,13 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return nil, fmt.Errorf("updateGitRepoAfterCreate: %w", err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer gitRepo.Close()
 
-	repo.IsEmpty, err = gitRepo.IsEmpty()
+	repo.IsEmpty, err = gitRepo.IsEmpty(ctx)
 	if err != nil {
 		return repo, fmt.Errorf("git.IsEmpty: %w", err)
 	}
@@ -227,9 +227,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 			// this is necessary for sync local tags from remote
 			configName := fmt.Sprintf("remote.%s.fetch", mirrorModel.GetRemoteName())
-			if stdout, _, err := gitrepo.RunCmdString(ctx, repo,
-				gitcmd.NewCommand("config").
-					AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`)); err != nil {
+			stdout, _, err := gitcmd.NewCommand("config").
+				AddOptionValues("--add", configName, `+refs/tags/*:refs/tags/*`).
+				WithRepo(repo).RunStdString(ctx)
+			if err != nil {
 				log.Error("MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 				return repo, fmt.Errorf("error in MigrateRepositoryGitData(git config --add <remote> +refs/tags/*:refs/tags/*): %w", err)
 			}
@@ -272,13 +273,13 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	err := gitrepo.GitRemoteRemove(ctx, repo, "origin")
+	err := gitrepo.ManagedRemoteRemove(ctx, repo, "origin")
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %w", err)
 	}
 
 	if hasWiki {
-		err = gitrepo.GitRemoteRemove(ctx, repo.WikiStorageRepo(), "origin")
+		err = gitrepo.ManagedRemoteRemove(ctx, repo.WikiStorageRepo(), "origin")
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return repo, fmt.Errorf("cleanUpMigrateGitConfig (wiki): %w", err)
 		}

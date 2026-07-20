@@ -43,21 +43,21 @@ func getUniquePatchBranchName(ctx context.Context, prefixName string, repo *repo
 
 // getClosestParentWithFiles Recursively gets the closest path of parent in a tree that has files when a file in a tree is
 // deleted. It returns "" for the tree root if no parents other than the root have files.
-func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePath string) string {
+func getClosestParentWithFiles(ctx context.Context, gitRepo *git.Repository, branchName, originTreePath string) string {
 	var f func(treePath string, commit *git.Commit) string
 	f = func(treePath string, commit *git.Commit) string {
 		if treePath == "" || treePath == "." {
 			return ""
 		}
 		// see if the tree has entries
-		if tree, err := commit.SubTree(treePath); err != nil {
+		if tree, err := commit.SubTree(ctx, gitRepo, treePath); err != nil {
 			return f(path.Dir(treePath), commit) // failed to get the tree, going up a dir
-		} else if entries, err := tree.ListEntries(); err != nil || len(entries) == 0 {
+		} else if entries, err := tree.ListEntries(ctx, gitRepo); err != nil || len(entries) == 0 {
 			return f(path.Dir(treePath), commit) // no files in this dir, going up a dir
 		}
 		return treePath
 	}
-	commit, err := gitRepo.GetBranchCommit(branchName) // must get the commit again to get the latest change
+	commit, err := gitRepo.GetBranchCommit(ctx, branchName) // must get the commit again to get the latest change
 	if err != nil {
 		log.Error("GetBranchCommit: %v", err)
 		return ""
@@ -87,7 +87,7 @@ func getCodeEditorConfigByEditorconfig(ctx *context_service.Context, treePath st
 	ret.LineWrapExtensions = setting.Repository.Editor.LineWrapExtensions
 	ret.LineWrap = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
 	ret.Previewable = util.SliceContainsString(ret.PreviewableExtensions, path.Ext(treePath), true)
-	ec, _, err := ctx.Repo.GetEditorconfig()
+	ec, _, err := ctx.Repo.GetEditorconfig(ctx)
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
@@ -128,7 +128,7 @@ func getUniqueRepositoryName(ctx context.Context, ownerID int64, name string) st
 }
 
 func editorPushBranchToForkedRepository(ctx context.Context, doer *user_model.User, baseRepo *repo_model.Repository, baseBranchName string, targetRepo *repo_model.Repository, targetBranchName string) error {
-	return gitrepo.Push(ctx, baseRepo, targetRepo, git.PushOptions{
+	return gitrepo.PushManaged(ctx, baseRepo, targetRepo, git.PushOptions{
 		Branch: baseBranchName + ":" + targetBranchName,
 		Env:    repo_module.PushingEnvironment(doer, targetRepo),
 	})

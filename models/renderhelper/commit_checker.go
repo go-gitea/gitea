@@ -7,22 +7,23 @@ import (
 	"context"
 	"io"
 
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 )
 
 type commitChecker struct {
-	ctx           context.Context
-	commitCache   map[string]bool
-	gitRepoFacade gitrepo.Repository
+	ctx         context.Context
+	commitCache map[string]bool
+	repo        *repo_model.Repository
 
 	gitRepo       *git.Repository
 	gitRepoCloser io.Closer
 }
 
-func newCommitChecker(ctx context.Context, gitRepo gitrepo.Repository) *commitChecker {
-	return &commitChecker{ctx: ctx, commitCache: make(map[string]bool), gitRepoFacade: gitRepo}
+func newCommitChecker(ctx context.Context, repo *repo_model.Repository) *commitChecker {
+	return &commitChecker{ctx: ctx, commitCache: make(map[string]bool), repo: repo}
 }
 
 func (c *commitChecker) Close() error {
@@ -39,15 +40,15 @@ func (c *commitChecker) IsCommitIDExisting(commitID string) bool {
 	}
 
 	if c.gitRepo == nil {
-		r, closer, err := gitrepo.RepositoryFromContextOrOpen(c.ctx, c.gitRepoFacade)
+		r, closer, err := gitrepo.RepositoryFromContextOrOpen(c.ctx, c.repo)
 		if err != nil {
-			log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(c.gitRepoFacade), err)
+			log.Error("Unable to open repository: %s, error: %v", c.repo.FullName(), err)
 			return false
 		}
 		c.gitRepo, c.gitRepoCloser = r, closer
 	}
 
-	exist = c.gitRepo.IsReferenceExist(commitID) // Don't use IsObjectExist since it doesn't support short hashes with gogit edition.
+	exist = c.gitRepo.IsReferenceExist(c.ctx, commitID) // Don't use IsObjectExist since it doesn't support short hashes with gogit edition.
 	c.commitCache[commitID] = exist
 	return exist
 }

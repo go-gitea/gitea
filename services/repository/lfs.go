@@ -70,7 +70,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		}
 	}()
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		log.Error("Unable to open git repository %-v: %v", repo, err)
 		return err
@@ -88,7 +88,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 		total++
 		pointerSha := git.ComputeBlobHash(objectFormat, []byte(metaObject.Pointer.StringContent()))
 
-		if gitRepo.IsObjectExist(pointerSha.String()) {
+		if gitRepo.IsObjectExist(ctx, pointerSha.String()) {
 			return git_model.MarkLFSMetaObject(ctx, metaObject.ID)
 		}
 		orphaned++

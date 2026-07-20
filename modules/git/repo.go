@@ -5,50 +5,80 @@
 package git
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/proxy"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
-const prettyLogFormat = `--pretty=format:%H`
+type RepositoryFacade = gitcmd.RepositoryFacade
 
-func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
-	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
-	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
-		AddDynamicArguments(revisionRange).AddArguments("--").WithDir(repo.Path).
-		RunStdBytes(ctx)
+type RepositoryBase struct {
+	Path string // absolute path
+
+	LastCommitCache *LastCommitCache
+
+	repoFacade        RepositoryFacade
+	tagCache          *ObjectCache[*Tag]
+	objectFormatCache ObjectFormat
+}
+
+var _ gitcmd.RepositoryFacade = (*Repository)(nil)
+
+func (repo *Repository) GitRepoManagedID() string {
+	return repo.repoFacade.GitRepoManagedID()
+}
+
+func (repo *Repository) GitRepoLocation() string {
+	return repo.repoFacade.GitRepoLocation()
+}
+
+func OpenRepository(repo RepositoryFacade) (*Repository, error) {
+	repoPath := gitcmd.RepoLocalPath(repo)
+	exist, err := util.IsDir(repoPath)
 	if err != nil {
 		return nil, err
 	}
-	return repo.parsePrettyFormatLogToList(logs)
+	if !exist {
+		return nil, util.NewNotExistErrorf("no such file or directory")
+	}
+	gitRepo := &Repository{
+		RepositoryBase: RepositoryBase{Path: repoPath, tagCache: newObjectCache[*Tag](), repoFacade: repo},
+	}
+	if err = openRepositoryInternal(gitRepo); err != nil {
+		return nil, err
+	}
+	return gitRepo, nil
 }
 
-func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
-	var commits []*Commit
-	if len(logs) == 0 {
-		return commits, nil
-	}
-
-	parts := bytes.SplitSeq(logs, []byte{'\n'})
-
-	for commitID := range parts {
-		commit, err := repo.GetCommit(string(commitID))
+func OpenRepositoryLocal(localPath string) (_ *Repository, err error) {
+	if !filepath.IsAbs(localPath) {
+		localPath, err = filepath.Abs(localPath)
 		if err != nil {
 			return nil, err
 		}
-		commits = append(commits, commit)
 	}
+	return OpenRepository(gitcmd.RepositoryUnmanaged(localPath))
+}
 
-	return commits, nil
+func (repo *Repository) Close() error {
+	if repo == nil {
+		setting.PanicInDevOrTesting("don't close a nil repository")
+		return nil
+	}
+	repo.LastCommitCache = nil
+	repo.tagCache = nil
+	return repo.closeInternal()
 }
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
@@ -81,12 +111,12 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 }
 
 // IsEmpty Check if repository is empty.
-func (repo *Repository) IsEmpty() (bool, error) {
+func (repo *Repository) IsEmpty(ctx context.Context) (bool, error) {
 	stdout, _, err := gitcmd.NewCommand().
 		AddOptionFormat("--git-dir=%s", repo.Path).
 		AddArguments("rev-list", "-n", "1", "--all").
 		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		RunStdString(ctx)
 	if err != nil {
 		if (gitcmd.IsErrorExitCode(err, 1) && err.Stderr() == "") || gitcmd.IsErrorExitCode(err, 129) {
 			// git 2.11 exits with 129 if the repo is empty
