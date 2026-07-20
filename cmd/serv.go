@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode"
@@ -289,22 +288,22 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		return nil
 	}
 
-	var command *exec.Cmd
-	gitBinPath := filepath.Dir(gitcmd.GitExecutable) // e.g. /usr/bin
-	gitBinVerb := filepath.Join(gitBinPath, verb)    // e.g. /usr/bin/git-upload-pack
-	if _, err := os.Stat(gitBinVerb); err != nil {
-		// if the command "git-upload-pack" doesn't exist, try to split "git-upload-pack" to use the sub-command with git
-		// ps: Windows only has "git.exe" in the bin path, so Windows always uses this way
-		verbFields := strings.SplitN(verb, "-", 2)
-		if len(verbFields) == 2 {
-			// use git binary with the sub-command part: "C:\...\bin\git.exe", "upload-pack", ...
-			command = exec.CommandContext(ctx, gitcmd.GitExecutable, verbFields[1], results.RepoStoragePath)
-		}
+	// Use a static mapping from validated verb to its git sub-command name.
+	// Always invoking gitcmd.GitExecutable with the sub-command (e.g. "git upload-pack")
+	// ensures no user-tainted string reaches the program argument of exec.Command.
+	// This is functionally equivalent to the standalone binary form on all platforms.
+	var gitSubVerb string
+	switch verb {
+	case git.CmdVerbUploadPack:
+		gitSubVerb = "upload-pack"
+	case git.CmdVerbUploadArchive:
+		gitSubVerb = "upload-archive"
+	case git.CmdVerbReceivePack:
+		gitSubVerb = "receive-pack"
+	default:
+		return fail(ctx, "Unknown git command", "Unexpected verb after validation: %s", verb)
 	}
-	if command == nil {
-		// by default, use the verb (it has been checked above by allowedCommands)
-		command = exec.CommandContext(ctx, gitBinVerb, results.RepoStoragePath)
-	}
+	command := exec.CommandContext(ctx, gitcmd.GitExecutable, gitSubVerb, results.RepoStoragePath) // nosemgrep: go.lang.security.audit.dangerous-exec-command.dangerous-exec-command
 
 	process.SetSysProcAttribute(command)
 	command.Dir = setting.RepoRootPath
