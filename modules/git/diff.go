@@ -325,7 +325,7 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 		}).
 		Run(ctx)
 	if err != nil {
-		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.LogString(), err)
 	}
 
 	return affectedFiles, err

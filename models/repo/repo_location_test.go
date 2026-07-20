@@ -14,7 +14,6 @@ import (
 
 func TestRepository_GitRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	assert.Equal(t, "user2/repo1.git", repo_model.CodeRepoByName(repo.OwnerName, repo.Name).GitRepoLocation())
