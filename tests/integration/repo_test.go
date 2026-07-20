@@ -374,7 +374,7 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 		{ref: "refs/heads/master", msg: "init master", files: []fastImportFile{{"100644", "README.md", "The cake is a lie."}}},
 		{ref: "refs/heads/txt", msg: "init txt", files: []fastImportFile{{"100644", "README.txt", "My spoon is too big."}}},
 		{ref: "refs/heads/plain", msg: "init plain", files: []fastImportFile{{"100644", "README", "Birken my stocks gee howdy"}}},
-		{ref: "refs/heads/i18n", msg: "init i18n", files: []fastImportFile{{"100644", "README.zh.md", "蛋糕是一个谎言"}}},
+		{ref: "refs/heads/i18n", msg: "init i18n", files: []fastImportFile{{"100644", "README.zh.md", "你好世界"}}},
 		{ref: "refs/heads/subdir", msg: "init subdir", files: []fastImportFile{{"100644", "libcake/README.md", "Four pints of sugar."}}},
 		{ref: "refs/heads/special-subdir-docs", msg: "init special-subdir-docs", files: []fastImportFile{{"100644", "docs/README.md", "This is in docs/"}}},
 		{ref: "refs/heads/special-subdir-.gitea", msg: "init special-subdir-.gitea", files: []fastImportFile{{"100644", ".gitea/README.md", "This is in .gitea/"}}},
@@ -421,7 +421,7 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 	// there are many combinations:
 	// - READMEs can be .md, .txt, or have no extension
 	// - READMEs can be tagged with a language and even a country code
-	// - READMEs can be stored in docs/, .gitea/, or .github/
+	// - READMEs can be stored in "docs/", ".gitea/", or ".github/"
 	// - READMEs can be symlinks to other files
 	// - READMEs can be broken symlinks which should not render
 	//
@@ -454,7 +454,7 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 	check("md", "/user2/readme-test/src/branch/master/", "README.md", "markdown", "The cake is a lie.")
 	check("txt", "/user2/readme-test/src/branch/txt/", "README.txt", "plain-text", "My spoon is too big.")
 	check("plain", "/user2/readme-test/src/branch/plain/", "README", "plain-text", "Birken my stocks gee howdy")
-	check("i18n", "/user2/readme-test/src/branch/i18n/", "README.zh.md", "markdown", "蛋糕是一个谎言")
+	check("i18n", "/user2/readme-test/src/branch/i18n/", "README.zh.md", "markdown", "你好世界")
 
 	// using HEAD ref
 	check("branch-HEAD", "/user2/readme-test/src/branch/HEAD/", "README.md", "markdown", "The cake is a lie.")
@@ -467,7 +467,6 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 	check(".gitea", "/user2/readme-test/src/branch/special-subdir-.gitea/", ".gitea/README.md", "markdown", "This is in .gitea/")
 	check(".github", "/user2/readme-test/src/branch/special-subdir-.github/", ".github/README.md", "markdown", "This is in .github/")
 
-	// symlinks
 	// symlinks are subtle:
 	// - they should be able to handle going a reasonable number of times up and down in the tree
 	// - they shouldn't get stuck on link cycles
@@ -478,11 +477,8 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 
 	// testing fallback rules
 	// READMEs are searched in this order:
-	// - .gitea/README.zh-cn.md, .gitea/README.zh_cn.md, .gitea/README.zh.md, .gitea/README_zh.md, .gitea/README.en.md, .gitea/README.md, .gitea/README.txt, .gitea/README,
-	// - .github/README.zh-cn.md, .github/README.zh_cn.md, .github/README.zh.md, .github/README_zh.md, .github/README.en.md, .github/README.md, .github/README.txt, .github/README,
-	// - README.zh-cn.md, README.zh_cn.md, README.zh.md, README_zh.md, README.en.md, README.md, README.txt, README,
-	// - docs/README.zh-cn.md, docs/README.zh_cn.md, docs/README.zh.md, docs/README_zh.md, docs/README.en.md, docs/README.md, docs/README.txt, docs/README
-	//
+	// - directories: .gitea -> .github -> (root) -> docs
+	// - extensions: longer to shorter, non-English to English, e.g.: ".zh-cn.md" -> ".zh.md" -> "_zh.md" -> "en.md" -> ".md" -> (no-ext)
 	// and a broken/looped symlink counts as not existing at all and should be skipped.
 	// again, this doesn't cover all cases, but it covers a few
 	check("fallback/top", "/user2/readme-test/src/branch/fallbacks/", ".gitea/README.en.md", "markdown", "This is .gitea/README.en.md")
@@ -520,7 +516,7 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 		})
 	}
 	missing("sp-ace", "/user2/readme-test/src/branch/sp-ace/")
-	missing("nested-special", "/user2/readme-test/src/branch/special-subdir-nested/subproject") // the special subdirs should only trigger on the repo root
+	missing("nested-special", "/user2/readme-test/src/branch/special-subdir-nested/subproject") // the special sub-dirs should only trigger on the repo root
 	missing("special-subdir-nested", "/user2/readme-test/src/branch/special-subdir-nested/")
 	missing("symlink-loop", "/user2/readme-test/src/branch/symlink-loop/")
 }
