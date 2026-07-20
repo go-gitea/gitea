@@ -15,7 +15,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -74,7 +73,7 @@ func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %w", err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}
@@ -269,7 +268,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *gi
 		repo.DefaultBranch = opts.RefName()
 		repo.IsEmpty = false
 		if repo.DefaultBranch != setting.Repository.DefaultBranch {
-			if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+			if err := git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 				return nil, err
 			}
 		}

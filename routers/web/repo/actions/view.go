@@ -28,7 +28,6 @@ import (
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -1476,7 +1475,7 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 		return
 	}
 
-	sourceGitRepo, err := gitrepo.OpenRepository(sourceRepo)
+	sourceGitRepo, err := git.OpenRepository(sourceRepo)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return

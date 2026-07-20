@@ -30,7 +30,6 @@ import (
 	"gitea.dev/modules/actions"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -680,7 +679,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		if err != nil {
 			return nil, err
 		}
-		sourceGitRepo, err := gitrepo.OpenRepository(sourceRepo)
+		sourceGitRepo, err := git.OpenRepository(sourceRepo)
 		if err != nil {
 			return nil, err
 		}
@@ -688,7 +687,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		return GetScopedActionWorkflow(ctx, sourceGitRepo, sourceRepo, run.WorkflowID, run.WorkflowCommitSHA)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		return nil, err
 	}

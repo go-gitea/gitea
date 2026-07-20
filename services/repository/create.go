@@ -23,7 +23,6 @@ import (
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/options"
@@ -71,7 +70,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	)
 
 	// Clone to temporary path and do the init commit.
-	if err := gitrepo.CloneRepoToLocal(ctx, repo, tmpDir, git.CloneRepoOptions{
+	if err := git.CloneRepoToLocal(ctx, repo, tmpDir, git.CloneRepoOptions{
 		Env: env,
 	}); err != nil {
 		log.Error("Failed to clone from %v into %s\nError: %v", repo, tmpDir, err)
@@ -146,9 +145,9 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	// Init git bare new repository.
-	if err = gitrepo.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
+	if err = git.InitRepository(ctx, repo, repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("git.InitRepository: %w", err)
-	} else if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
+	} else if err = git.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
@@ -180,7 +179,7 @@ func initRepository(ctx context.Context, u *user_model.User, repo *repo_model.Re
 		}
 	}
 
-	if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+	if err = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
 
@@ -276,7 +275,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 
 	// 2 - check whether the repository with the same storage exists
 	var isExist bool
-	isExist, err = gitrepo.IsRepositoryExist(ctx, repo)
+	isExist, err = git.IsRepositoryExist(ctx, repo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return nil, err
@@ -314,7 +313,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		licenses = append(licenses, opts.License)
 
 		var stdout string
-		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("rev-parse", "HEAD"))
+		stdout, _, err = gitcmd.NewCommand("rev-parse", "HEAD").WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
@@ -467,8 +466,8 @@ func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) 
 		return fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, _, err := gitrepo.RunCmdString(ctx, repo,
-		gitcmd.NewCommand("update-server-info")); err != nil {
+	stdout, _, err := gitcmd.NewCommand("update-server-info").WithRepo(repo).RunStdString(ctx)
+	if err != nil {
 		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return fmt.Errorf("CreateRepository(git update-server-info): %w", err)
 	}

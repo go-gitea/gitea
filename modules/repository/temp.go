@@ -7,16 +7,18 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/modules/log"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
 
-// CreateTemporaryPath creates a temporary path
-func CreateTemporaryPath(prefix string) (string, context.CancelFunc, error) {
-	basePath, cleanup, err := setting.AppDataTempDir("local-repo").MkdirTempRandom(prefix + ".git")
+// CreateTemporaryGitRepo creates a temporary Git repository empty directory (not initialized)
+func CreateTemporaryGitRepo(prefix string) (tmpPath string, tmpRepo git.RepositoryFacade, cancel context.CancelFunc, err error) {
+	tmpNamePrefix := prefix + ".git"
+	tmpPath, cancel, err = setting.AppDataTempDir("local-repo").MkdirTempRandom(tmpNamePrefix)
 	if err != nil {
-		log.Error("Unable to create temporary directory: %s-*.git (%v)", prefix, err)
-		return "", nil, fmt.Errorf("failed to create dir %s-*.git: %w", prefix, err)
+		return "", nil, nil, fmt.Errorf("failed to create temp dir with prefix %s: %w", tmpNamePrefix, err)
 	}
-	return basePath, cleanup, nil
+	tmpRepo = gitcmd.RepositoryUnmanaged(tmpPath)
+	return tmpPath, tmpRepo, cancel, nil
 }

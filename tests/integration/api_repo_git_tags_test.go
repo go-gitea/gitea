@@ -12,7 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
 
@@ -28,10 +28,10 @@ func TestAPIGitTags(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Set up git config for the tagger
-	_ = gitrepo.GitConfigSet(t.Context(), repo, "user.name", user.Name)
-	_ = gitrepo.GitConfigSet(t.Context(), repo, "user.email", user.Email)
+	_ = git.ManagedConfigSet(t.Context(), repo, "user.name", user.Name)
+	_ = git.ManagedConfigSet(t.Context(), repo, "user.email", user.Email)
 
-	gitRepo, _ := gitrepo.OpenRepository(repo)
+	gitRepo, _ := git.OpenRepository(repo)
 	defer gitRepo.Close()
 
 	commit, _ := gitRepo.GetBranchCommit(t.Context(), "master")

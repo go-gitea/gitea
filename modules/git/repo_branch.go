@@ -20,7 +20,7 @@ func (repo *Repository) AddRemote(ctx context.Context, name, url string, fetch b
 		cmd.AddArguments("-f")
 	}
 	_, _, err := cmd.AddDynamicArguments(name, url).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(ctx)
 	return err
 }

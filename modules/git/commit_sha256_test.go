@@ -15,17 +15,13 @@ import (
 )
 
 func TestGetFullCommitIDSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
-
-	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "f004f4")
+	id, err := GetFullCommitID(t.Context(), mockRepository("repo1_bare_sha256"), "f004f4")
 	assert.NoError(t, err)
 	assert.Equal(t, "f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc", id)
 }
 
 func TestGetFullCommitIDErrorSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
-
-	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "unknown")
+	id, err := GetFullCommitID(t.Context(), mockRepository("repo1_bare_sha256"), "unknown")
 	assert.Empty(t, id)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")

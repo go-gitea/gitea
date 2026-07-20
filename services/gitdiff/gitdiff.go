@@ -29,7 +29,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/attribute"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
@@ -1322,8 +1321,6 @@ func guessBeforeCommitForDiff(ctx context.Context, gitRepo *git.Repository, befo
 // The whitespaceBehavior is either an empty string or a git flag
 // Returned beforeCommit could be nil if the afterCommit doesn't have parent commit
 func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (_ *Diff, beforeCommit, afterCommit *git.Commit, err error) {
-	repoPath := gitRepo.Path
-
 	afterCommit, err = gitRepo.GetCommit(ctx, opts.AfterCommitID)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1360,9 +1357,9 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	defer readerClose()
 	go func() {
 		if err := cmdDiff.
-			WithDir(repoPath).
+			WithRepo(gitRepo).
 			RunWithStderr(cmdCtx); err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
-			log.Error("error during GetDiff(git diff dir: %s): %v", repoPath, err)
+			log.Error("error during GetDiff(git diff dir: %s): %v", gitRepo.Path, err)
 		}
 	}()
 
@@ -1491,7 +1488,7 @@ type DiffShortStat struct {
 	NumFiles, TotalAddition, TotalDeletion int
 }
 
-func GetDiffShortStat(ctx context.Context, repoStorage gitrepo.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
+func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
 	afterCommit, err := gitRepo.GetCommit(ctx, afterCommitID)
 	if err != nil {
 		return nil, err
@@ -1503,7 +1500,7 @@ func GetDiffShortStat(ctx context.Context, repoStorage gitrepo.Repository, gitRe
 	}
 
 	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = gitrepo.GetDiffShortStatByCmdArgs(ctx, repoStorage, nil, actualBeforeCommitID.String(), afterCommitID)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(ctx, gitRepo, nil, actualBeforeCommitID.String(), afterCommitID)
 	if err != nil {
 		return nil, err
 	}
