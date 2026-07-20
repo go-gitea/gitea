@@ -11,7 +11,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	ctx "gitea.dev/services/context"
@@ -190,7 +189,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Retrieve files affected by the commit
 	if opts.Files {
-		fileStatus, err := gitrepo.GetCommitFileStatus(ctx, repo, commit.ID.String())
+		fileStatus, err := git.GetCommitFileStatus(ctx, repo, commit.ID.String())
 		if err != nil {
 			return nil, err
 		}

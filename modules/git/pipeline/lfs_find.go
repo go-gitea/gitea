@@ -1,8 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build !gogit
-
 package pipeline
 
 import (
@@ -21,7 +19,7 @@ func FindLFSFile(ctx context.Context, repo *git.Repository, objectID git.ObjectI
 	cmd := gitcmd.NewCommand("rev-list", "--all")
 	revListReader, revListReaderClose := cmd.MakeStdoutPipe()
 	defer revListReaderClose()
-	err := cmd.WithDir(repo.Path).
+	err := cmd.WithRepo(repo).
 		WithPipelineFunc(func(context gitcmd.Context) (err error) {
 			results, err = findLFSFileFunc(ctx, repo, objectID, revListReader)
 			return err
@@ -146,6 +144,6 @@ func findLFSFileFunc(ctx context.Context, repo *git.Repository, objectID git.Obj
 	}
 
 	sort.Sort(lfsResultSlice(results))
-	err = fillResultNameRev(ctx, repo.Path, results)
+	err = fillResultNameRev(ctx, repo, results)
 	return results, err
 }

@@ -17,7 +17,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 )
@@ -108,7 +108,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	}
 
 	// check if all required status checks are successful
-	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
+	headGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
 		return "", fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -121,7 +121,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 			return "", errors.New("Head branch does not exist, can not merge")
 		}
 	}
-	if pr.Flow == issues_model.PullRequestFlowAGit && !gitrepo.IsReferenceExist(ctx, pr.HeadRepo, pr.GetGitHeadRefName()) {
+	if pr.Flow == issues_model.PullRequestFlowAGit && !git.IsReferenceExist(ctx, pr.HeadRepo, pr.GetGitHeadRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 

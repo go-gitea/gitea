@@ -10,7 +10,7 @@ import (
 
 	"gitea.dev/modelmigration/base"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -85,7 +85,7 @@ func AddCommitDivergenceToPulls(x base.EngineMigration) error {
 			}
 			repoStore := repo_model.CodeRepoByName(baseRepo.OwnerName, baseRepo.Name)
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
-			divergence, err := gitrepo.GetDivergingCommits(graceful.GetManager().HammerContext(), repoStore, pr.BaseBranch, gitRefName)
+			divergence, err := git.GetDivergingCommits(graceful.GetManager().HammerContext(), repoStore, pr.BaseBranch, gitRefName)
 			if err != nil {
 				log.Warn("Could not recalculate Divergence for pull: %d", pr.ID)
 				pr.CommitsAhead = 0

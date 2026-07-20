@@ -32,7 +32,7 @@ func verifyCommits(ctx context.Context, oldCommitID, newCommitID string, repo *g
 	defer stdoutReaderClose()
 
 	err := command.WithEnv(env).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithPipelineFunc(func(gitCtx gitcmd.Context) error {
 			err := readAndVerifyCommitsFromShaReader(ctx, stdoutReader, repo, env)
 			return gitCtx.CancelPipeline(err)
@@ -63,7 +63,7 @@ func readAndVerifyCommit(ctx context.Context, sha string, repo *git.Repository, 
 	defer stdoutReaderClose()
 
 	return cmd.WithEnv(env).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithPipelineFunc(func(gitCtx gitcmd.Context) error {
 			commit, err := git.CommitFromReader(commitID, stdoutReader)
 			if err != nil {

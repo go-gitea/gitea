@@ -8,7 +8,7 @@ import (
 
 	"gitea.dev/modelmigration/base"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 )
 
@@ -160,11 +160,11 @@ func migratePushMirrors(x base.EngineMigration) error {
 func getRemoteAddress(ownerName, repoName, remoteName string) (string, error) {
 	ctx := context.Background()
 	repo := repo_model.CodeRepoByName(ownerName, repoName)
-	if exist, _ := gitrepo.IsRepositoryExist(ctx, repo); !exist {
+	if exist, _ := git.IsRepositoryExist(ctx, repo); !exist {
 		return "", nil
 	}
 
-	u, err := gitrepo.GitRemoteGetURL(ctx, repo, remoteName)
+	u, err := git.ParseRemoteAddressURL(ctx, repo, remoteName)
 	if err != nil {
 		return "", err
 	}

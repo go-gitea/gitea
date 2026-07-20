@@ -24,7 +24,6 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
@@ -237,7 +236,7 @@ func FileHistory(ctx *context.Context) {
 		// there is no quick method to know the total count when "follow rename"
 		commitsCount = -1
 	} else {
-		commitsCount, err = gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
+		commitsCount, err = git.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
 		if err != nil {
 			ctx.ServerError("FileCommitsCount", err)
 			return
@@ -292,7 +291,7 @@ func Diff(ctx *context.Context) {
 
 	if ctx.Data["PageIsWiki"] != nil {
 		var err error
-		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
+		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -431,7 +430,7 @@ func Diff(ctx *context.Context) {
 func RawDiff(ctx *context.Context) {
 	var gitRepo *git.Repository
 	if ctx.Data["PageIsWiki"] != nil {
-		wikiRepo, err := gitrepo.OpenRepository(ctx.Repo.Repository.WikiStorageRepo())
+		wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return

@@ -69,7 +69,7 @@ func NewBatchChecker(ctx context.Context, repo *git.Repository, treeish string, 
 	checker.stdOut = lw
 
 	cmd.WithEnv(envs).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdoutCopy(lw)
 
 	go func() {
