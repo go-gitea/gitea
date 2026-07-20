@@ -23,8 +23,8 @@ var (
 	// It is used as the base path for several other paths.
 	// Do remember:
 	// * Work path might not be the POSIX current working directory or the Gitea's binary directory, Gitea binary is not FHS-compliant
-	// * Work path sometimes is not writable or not persistent (https://github.com/go-gitea/gitea/pull/35851)
-	// * Work path, custom path and data path, they sometimes overlap (e.g.: docker image)
+	// * Work path sometimes is not writable (e.g.: /usr/local/bin) or not persistent (https://github.com/go-gitea/gitea/pull/35851)
+	// * Work path, custom path and data path, some of them are the same sometimes (e.g.: docker image, some downstream packages, some manual installations)
 	AppWorkPath string
 	CustomPath  string // Custom directory path. Env: GITEA_CUSTOM
 	CustomConf  string
