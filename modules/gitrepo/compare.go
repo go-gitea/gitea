@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 )
 
@@ -19,10 +20,10 @@ type DivergeObject struct {
 }
 
 // GetDivergingCommits returns the number of commits a targetBranch is ahead or behind a baseBranch
-func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targetBranch string) (*DivergeObject, error) {
+func GetDivergingCommits(ctx context.Context, repo git.RepositoryFacade, baseBranch, targetBranch string) (*DivergeObject, error) {
 	cmd := gitcmd.NewCommand("rev-list", "--count", "--left-right").
 		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
-	stdout, _, err1 := RunCmdString(ctx, repo, cmd)
+	stdout, _, err1 := cmd.WithRepo(repo).RunStdString(ctx)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -45,7 +46,7 @@ func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targe
 
 // GetCommitIDsBetweenReverse returns the last commit IDs between two commits in reverse order (from old to new) with limit.
 // If the result exceeds the limit, the old commits IDs will be ignored
-func GetCommitIDsBetweenReverse(ctx context.Context, repo Repository, startRef, endRef, notRef string, limit int) ([]string, error) {
+func GetCommitIDsBetweenReverse(ctx context.Context, repo git.RepositoryFacade, startRef, endRef, notRef string, limit int) ([]string, error) {
 	genCmd := func(reversions ...string) *gitcmd.Command {
 		cmd := gitcmd.NewCommand("rev-list", "--reverse").
 			AddArguments("-n").AddDynamicArguments(strconv.Itoa(limit)).
@@ -55,11 +56,11 @@ func GetCommitIDsBetweenReverse(ctx context.Context, repo Repository, startRef, 
 		}
 		return cmd
 	}
-	stdout, _, err := RunCmdString(ctx, repo, genCmd(startRef+".."+endRef))
+	stdout, _, err := genCmd(startRef + ".." + endRef).WithRepo(repo).RunStdString(ctx)
 	if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
 		// if the start and end are not related (no merge base), just get all commits pushed by "end ref"
 		// previously it would return the results of git rev-list before last so let's try that...
-		stdout, _, err = RunCmdString(ctx, repo, genCmd(endRef))
+		stdout, _, err = genCmd(endRef).WithRepo(repo).RunStdString(ctx)
 	}
 	if err != nil {
 		return nil, err

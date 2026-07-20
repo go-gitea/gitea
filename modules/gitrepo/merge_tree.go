@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/util"
 )
@@ -17,7 +18,7 @@ const MaxConflictedDetectFiles = 10
 // MergeTree performs a merge between two commits (baseRef and headRef) with an optional merge base.
 // It returns the resulting tree hash, a list of conflicted files (if any), and an error if the operation fails.
 // If there are no conflicts, the list of conflicted files will be nil.
-func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase string) (treeID string, isErrHasConflicts bool, conflictFiles []string, _ error) {
+func MergeTree(ctx context.Context, repo git.RepositoryFacade, baseRef, headRef, mergeBase string) (treeID string, isErrHasConflicts bool, conflictFiles []string, _ error) {
 	cmd := gitcmd.NewCommand("merge-tree", "--write-tree", "-z", "--name-only", "--no-messages").
 		AddOptionFormat("--merge-base=%s", mergeBase).
 		AddDynamicArguments(baseRef, headRef)
@@ -47,7 +48,7 @@ func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase
 		return scanner.Err()
 	})
 
-	err := RunCmdWithStderr(ctx, repo, cmd)
+	err := cmd.WithRepo(repo).RunWithStderr(ctx)
 	// For a successful, non-conflicted merge, the exit status is 0. When the merge has conflicts, the exit status is 1.
 	// A merge can have conflicts without having individual files conflict
 	// https://git-scm.com/docs/git-merge-tree/2.38.0#_mistakes_to_avoid

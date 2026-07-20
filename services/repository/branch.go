@@ -385,7 +385,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		return err
 	}
 
-	if err := gitrepo.Push(ctx, repo, repo, git.PushOptions{
+	if err := gitrepo.PushManaged(ctx, repo, repo, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	}); err != nil {
@@ -545,7 +545,7 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 
 	// branch protection will be checked in the pre received hook, so that we don't need any check here
-	return gitrepo.Push(ctx, repo, repo, pushOpts)
+	return gitrepo.PushManaged(ctx, repo, repo, pushOpts)
 }
 
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default or pull request target")

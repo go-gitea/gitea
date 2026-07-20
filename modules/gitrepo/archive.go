@@ -12,12 +12,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
 
 // CreateArchive create archive content to the target path
-func CreateArchive(ctx context.Context, repo Repository, repoName, format string, target io.Writer, commitID string, paths []string) error {
+func CreateArchive(ctx context.Context, repo git.RepositoryFacade, repoName, format string, target io.Writer, commitID string, paths []string) error {
 	if format == "unknown" {
 		return fmt.Errorf("unknown format: %v", format)
 	}
@@ -33,11 +34,15 @@ func CreateArchive(ctx context.Context, repo Repository, repoName, format string
 		// although "git archive" already ensures the paths won't go outside the repo, we still clean them here for safety
 		cmd.AddDynamicArguments(path.Clean(paths[i]))
 	}
-	return RunCmdWithStderr(ctx, repo, cmd.WithStdoutCopy(target))
+	return cmd.WithStdoutCopy(target).WithRepo(repo).RunWithStderr(ctx)
 }
 
 // CreateBundle create bundle content to the target path
-func CreateBundle(ctx context.Context, repo Repository, commit string, out io.Writer) error {
+func CreateBundle(ctx context.Context, repo git.RepositoryFacade, commit string, out io.Writer) error {
+	// TODO: use the following steps instead of creating a temp file, also need to iterate and clean up outdated refs
+	// git update-ref refs/bundle/temp-{timestamp} {commit}
+	// git bundle create - refs/bundle/temp-{timestamp}
+	// git update-ref -d refs/bundle/temp-{timestamp}
 	tmp, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-bundle")
 	if err != nil {
 		return err
