@@ -14,7 +14,6 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -32,13 +31,13 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(storageRepo git.RepositoryFacade, addr string) error {
-		if err := gitrepo.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, addr, gitrepo.RemoteOptionMirrorPush); err != nil {
+		if err := git.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, addr, git.RemoteOptionMirrorPush); err != nil {
 			return err
 		}
-		if err := gitrepo.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*"); err != nil {
+		if err := git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*"); err != nil {
 			return err
 		}
-		return gitrepo.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
+		return git.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
 	}
 
 	if err := addRemoteAndConfig(m.Repo.CodeStorageRepo(), addr); err != nil {
@@ -60,12 +59,12 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	_ = m.GetRepository(ctx)
-	if err := gitrepo.ManagedRemoteRemove(ctx, m.Repo, m.RemoteName); err != nil {
+	if err := git.ManagedRemoteRemove(ctx, m.Repo, m.RemoteName); err != nil {
 		return err
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		if err := gitrepo.ManagedRemoteRemove(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err != nil {
+		if err := git.ManagedRemoteRemove(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
 		}
@@ -129,7 +128,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			storageRepo = repo.WikiStorageRepo()
 		}
 		mirrorLogName := fmt.Sprintf("%s%s[mirror=%d]", m.Repo.FullName(), util.Iif(isWiki, ".wiki", ""), m.ID)
-		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, storageRepo, m.RemoteName)
+		remoteURL, err := git.ParseRemoteAddressURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
 			log.Error("GetRemoteURL %s failed, error %v", mirrorLogName, err)
 			return errors.New("GitRemoteGetURL failed")
@@ -138,7 +137,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := gitrepo.OpenRepository(storageRepo)
+			gitRepo, err := git.OpenRepository(storageRepo)
 			if err != nil {
 				log.Error("OpenRepository %s failed: %v", mirrorLogName, err)
 				return errors.New("OpenRepository failed")
@@ -157,7 +156,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing %s remote %s", mirrorLogName, m.ID, m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
-		if err := gitrepo.PushToExternal(ctx, storageRepo, git.PushOptions{
+		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
@@ -177,7 +176,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		if _, err := gitrepo.GitRemoteGetURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err == nil {
+		if _, err := git.ParseRemoteAddressURL(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err == nil {
 			err := performPush(m.Repo, true)
 			if err != nil {
 				return err

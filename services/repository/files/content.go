@@ -13,7 +13,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -125,7 +124,7 @@ func GetFileContents(ctx context.Context, repo *repo_model.Repository, gitRepo *
 func addLastCommitCache(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, cacheKey, fullName, sha string) error {
 	if gitRepo.LastCommitCache == nil {
 		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
-			return gitrepo.CommitsCountOfCommit(ctx, repo, sha)
+			return git.CommitsCountOfCommit(ctx, repo, sha)
 		})
 		if err != nil {
 			return err

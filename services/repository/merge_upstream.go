@@ -13,7 +13,6 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/util"
@@ -47,7 +46,7 @@ func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_
 		return "up-to-date", nil
 	}
 
-	err = gitrepo.PushManaged(ctx, repo.BaseRepo, repo, git.PushOptions{
+	err = git.PushManaged(ctx, repo.BaseRepo, repo, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s", divergingInfo.BaseBranchName, branch),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	})

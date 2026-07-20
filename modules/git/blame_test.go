@@ -1,13 +1,12 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitrepo
+package git
 
 import (
 	"context"
 	"testing"
 
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +42,7 @@ func TestReadingBlameOutput(t *testing.T) {
 		}
 
 		for _, bypass := range []bool{false, true} {
-			blameReader, err := CreateBlameReader(ctx, git.Sha1ObjectFormat, storage, repo, commit, "README.md", bypass)
+			blameReader, err := CreateBlameReader(ctx, Sha1ObjectFormat, storage, repo, commit, "README.md", bypass)
 			assert.NoError(t, err)
 			assert.NotNil(t, blameReader)
 			defer blameReader.Close()

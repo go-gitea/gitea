@@ -12,7 +12,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 )
@@ -33,7 +32,7 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 
 	log.Debug("SyncRepoBranches: in Repo[%d:%s]", repo.ID, repo.FullName())
 
-	gitRepo, err := gitrepo.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		log.Error("OpenRepository[%s]: %w", repo.FullName(), err)
 		return 0, err

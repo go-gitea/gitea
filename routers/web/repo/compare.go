@@ -27,7 +27,6 @@ import (
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/optional"
@@ -198,7 +197,7 @@ func (cpi *comparePageInfoType) parseCompareInfo(ctx *context.Context, comparePa
 	if err != nil {
 		return err
 	}
-	headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
+	headGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, headRepo)
 	if err != nil {
 		return err
 	}
@@ -718,7 +717,7 @@ func ExcerptBlob(ctx *context.Context) {
 
 	if ctx.Data["PageIsWiki"] == true {
 		var err error
-		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
+		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return

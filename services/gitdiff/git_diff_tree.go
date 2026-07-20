@@ -64,7 +64,7 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 		cmd.AddArguments("--merge-base")
 	}
 	cmd.AddDynamicArguments(baseCommitID, headCommitID)
-	stdout, _, runErr := cmd.WithDir(gitRepo.Path).RunStdString(ctx)
+	stdout, _, runErr := cmd.WithRepo(gitRepo).RunStdString(ctx)
 	if runErr != nil {
 		log.Warn("git diff-tree: %v", runErr)
 		return nil, runErr

@@ -1,14 +1,13 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitrepo
+package git
 
 import (
 	"bufio"
 	"context"
 	"fmt"
 
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/util"
 )
@@ -18,7 +17,7 @@ const MaxConflictedDetectFiles = 10
 // MergeTree performs a merge between two commits (baseRef and headRef) with an optional merge base.
 // It returns the resulting tree hash, a list of conflicted files (if any), and an error if the operation fails.
 // If there are no conflicts, the list of conflicted files will be nil.
-func MergeTree(ctx context.Context, repo git.RepositoryFacade, baseRef, headRef, mergeBase string) (treeID string, isErrHasConflicts bool, conflictFiles []string, _ error) {
+func MergeTree(ctx context.Context, repo RepositoryFacade, baseRef, headRef, mergeBase string) (treeID string, isErrHasConflicts bool, conflictFiles []string, _ error) {
 	cmd := gitcmd.NewCommand("merge-tree", "--write-tree", "-z", "--name-only", "--no-messages").
 		AddOptionFormat("--merge-base=%s", mergeBase).
 		AddDynamicArguments(baseRef, headRef)

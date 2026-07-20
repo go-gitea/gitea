@@ -24,7 +24,6 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -273,7 +272,7 @@ func dummyInfoRefs(ctx *context.Context) {
 		}
 		defer cleanup()
 
-		if err := git.InitRepository(ctx, tmpDir, true, git.Sha1ObjectFormat.Name()); err != nil {
+		if err := git.InitRepositoryLocal(ctx, tmpDir, true, git.Sha1ObjectFormat.Name()); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
 			return
 		}
@@ -343,7 +342,7 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 		return
 	}
 
-	fs := gitrepo.GetRepoFS(h.getStorageRepo())
+	fs := git.GetRepoFS(h.getStorageRepo())
 	ctx.Resp.Header().Set("Content-Type", contentType)
 	http.ServeFileFS(ctx.Resp, ctx.Req, fs, path.Clean(file))
 }
@@ -463,7 +462,7 @@ func GetInfoRefs(ctx *context.Context) {
 	if h.serviceType == "" {
 		// it's said that some legacy git clients will send requests to "/info/refs" without "service" parameter,
 		// although there should be no such case client in the modern days. TODO: not quite sure why we need this UpdateServerInfo logic
-		if err := gitrepo.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
+		if err := git.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
 			ctx.ServerError("UpdateServerInfo", err)
 			return
 		}
