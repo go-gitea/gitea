@@ -1,29 +1,30 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gogs Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package test
+package git
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 )
 
-type GitFastImportFile struct {
-	Mode    git.EntryMode
+type FastImportFile struct {
+	Mode    EntryMode
 	Path    string
 	Content string
 }
 
-type GitFastImportCommit struct {
+type FastImportCommit struct {
 	Ref     string
 	Message string
-	Files   []GitFastImportFile
+	Files   []FastImportFile
 }
 
-func GitFastImport(t TestingT, repo git.RepositoryFacade, commits []GitFastImportCommit) {
+// ForceFastImport is for mainly for testing purpose
+func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastImportCommit) error {
 	var buf bytes.Buffer
 	for i, c := range commits {
 		_, _ = fmt.Fprintf(&buf, "reset %s\n", c.Ref)
@@ -36,8 +37,6 @@ func GitFastImport(t TestingT, repo git.RepositoryFacade, commits []GitFastImpor
 	buf.WriteString("done\n")
 	_, _, err := gitcmd.NewCommand("fast-import").AddArguments("--force", "--done").
 		WithRepo(repo).WithStdinBytes(buf.Bytes()).
-		RunStdString(t.Context())
-	if err != nil {
-		t.Fatalf("Failed to do git fast-import for repo: %v", err)
-	}
+		RunStdString(ctx)
+	return err
 }
