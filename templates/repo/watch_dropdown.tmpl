@@ -1,0 +1,43 @@
+{{$isAllActivity := and .IsWatching .Watch.PullRequests .Watch.Issues .Watch.Releases}}
+{{$isCustom := and .IsWatching (not $isAllActivity)}}
+<div class="menu left flex-items-menu watch-options-menu">
+	<a
+		class="{{if not .IsWatching}}active selected {{end}}item"
+		aria-label="{{ctx.Locale.Tr "repo.watch.mode.participating"}}"
+		data-fetch-method="post"
+		data-fetch-url="{{.RepoLink}}/action/unwatch"
+		data-fetch-sync="$closest(.ui.labeled.button)">
+		{{svg "octicon-check" 14 (Iif (not .IsWatching) "" "tw-invisible")}}
+		<div>
+			<span class="repo-watch-option-title">{{ctx.Locale.Tr "repo.watch.mode.participating"}}</span>
+			<span class="repo-watch-option-desc">{{ctx.Locale.Tr "repo.watch.mode.participating.desc"}}</span>
+		</div>
+	</a>
+	<a
+		class="{{if $isAllActivity}}active selected {{end}}item"
+		aria-label="{{ctx.Locale.Tr "repo.watch.mode.all"}}"
+		data-fetch-method="post"
+		data-fetch-url="{{.RepoLink}}/action/watch"
+		data-fetch-sync="$closest(.ui.labeled.button)">
+		{{svg "octicon-check" 14 (Iif $isAllActivity "" "tw-invisible")}}
+		<div>
+			<span class="repo-watch-option-title">{{ctx.Locale.Tr "repo.watch.mode.all"}}</span>
+			<span class="repo-watch-option-desc">{{ctx.Locale.Tr "repo.watch.mode.all.desc"}}</span>
+		</div>
+	</a>
+	<a
+		class="{{if $isCustom}}active selected {{end}}item"
+		aria-label="{{ctx.Locale.Tr "repo.watch.mode.custom"}}"
+		data-global-init="initWatchCustom"
+		data-repo-link="{{.RepoLink}}"
+		data-watch-pull-requests="{{if .IsWatching}}{{.Watch.PullRequests}}{{else}}true{{end}}"
+		data-watch-issues="{{if .IsWatching}}{{.Watch.Issues}}{{else}}true{{end}}"
+		data-watch-releases="{{if .IsWatching}}{{.Watch.Releases}}{{else}}true{{end}}"
+	>
+		{{svg "octicon-check" 14 (Iif $isCustom "" "tw-invisible")}}
+		<div>
+			<span class="repo-watch-option-title">{{ctx.Locale.Tr "repo.watch.mode.custom"}}</span>
+			<span class="repo-watch-option-desc">{{ctx.Locale.Tr "repo.watch.mode.custom.desc"}}</span>
+		</div>
+	</a>
+</div>

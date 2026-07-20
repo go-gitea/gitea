@@ -78,6 +78,9 @@
 		{{if .IsGenerated}}<div class="secondary-info">{{ctx.Locale.Tr "repo.generated_from"}} <a href="{{(.TemplateRepo ctx).Link}}">{{(.TemplateRepo ctx).FullName}}</a></div>{{end}}
 	</div>
 	{{end}}
+	{{if .IsSigned}}
+		{{template "repo/watch_options_modal" .}}
+	{{end}}
 
 	<div class="ui container">
 		<overflow-menu class="ui secondary pointing menu">

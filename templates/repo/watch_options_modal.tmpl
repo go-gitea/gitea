@@ -1,0 +1,34 @@
+<div class="ui small modal" id="repo-watch-options-modal">
+	<div class="header">{{ctx.Locale.Tr "notifications"}}</div>
+	<div class="content">
+		<p>{{ctx.Locale.Tr "repo.watch.options.desc"}}</p>
+		<form class="ui form" method="post" data-required-message="{{ctx.Locale.Tr "repo.watch.options.required"}}">
+			<input type="hidden" name="watch_mode" value="custom" />
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="pull_requests" type="checkbox"><label>{{ctx.Locale.Tr "repo.watch.options.pull_requests"}}</label>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="issues" type="checkbox"><label>{{ctx.Locale.Tr "repo.watch.options.issues"}}</label>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui checkbox">
+					<input name="releases" type="checkbox"><label>{{ctx.Locale.Tr "repo.watch.options.releases"}}</label>
+				</div>
+			</div>
+		</form>
+	</div>
+	<div class="actions">
+		<button class="ui small basic cancel button">
+			{{svg "octicon-x"}}
+			{{ctx.Locale.Tr "cancel"}}
+		</button>
+		<button class="ui primary small approve button">
+			{{svg "fontawesome-save"}}
+			{{ctx.Locale.Tr "save"}}
+		</button>
+	</div>
+</div>

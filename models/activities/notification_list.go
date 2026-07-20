@@ -101,7 +101,12 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 		toNotify.AddMultiple(issueWatches...)
 		if !(issue.IsPull && issues_model.HasWorkInProgressPrefix(issue.Title)) {
-			repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID)
+			repoWatchType := repo_model.WatchIssues
+			if issue.IsPull {
+				repoWatchType = repo_model.WatchPullRequests
+			}
+
+			repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID, repoWatchType)
 			if err != nil {
 				return err
 			}
@@ -112,6 +117,18 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 			return err
 		}
 		toNotify.AddMultiple(issueParticipants...)
+		issueAssignees, err := issues_model.GetAssigneeIDsByIssue(ctx, issueID)
+		if err != nil {
+			return err
+		}
+		toNotify.AddMultiple(issueAssignees...)
+		if issue.IsPull {
+			issueReviewers, err := issues_model.GetPullRequestRequestedReviewerIDs(ctx, issueID)
+			if err != nil {
+				return err
+			}
+			toNotify.AddMultiple(issueReviewers...)
+		}
 
 		// don't notify user who cause notification
 		delete(toNotify, notificationAuthorID)

@@ -10,6 +10,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
@@ -137,4 +138,70 @@ func TestSetIssueReadBy(t *testing.T) {
 	nt, err := activities_model.GetIssueNotification(t.Context(), user.ID, issue.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, activities_model.NotificationStatusRead, nt.Status)
+}
+
+func TestIssueNotificationWithWatchOptions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	watcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	iss := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+
+	assert.NoError(t, issues_model.RemoveIssueWatchersByRepoID(t.Context(), watcher.ID, repo.ID))
+	assert.NoError(t, repo_model.WatchRepo(t.Context(), watcher, repo, true))
+	assert.NoError(t, repo_model.WatchRepoOptions(t.Context(), watcher, repo, repo_model.WatchOptions{
+		PullRequests: true,
+		Issues:       false,
+		Releases:     true,
+	}))
+
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), iss.ID, 0, doer.ID, 0))
+	notification, err := activities_model.GetIssueNotification(t.Context(), watcher.ID, iss.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), notification.IssueID) // No notification found
+
+	assert.NoError(t, repo_model.WatchRepoOptions(t.Context(), watcher, repo, repo_model.WatchOptions{
+		PullRequests: true,
+		Issues:       true,
+		Releases:     true,
+	}))
+
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), iss.ID, 0, doer.ID, 0))
+	notification, err = activities_model.GetIssueNotification(t.Context(), watcher.ID, iss.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, activities_model.NotificationStatusUnread, notification.Status)
+}
+
+func TestPullRequestNotificationWithWatchOptions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	watcher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 8})
+
+	assert.NoError(t, repo_model.WatchRepo(t.Context(), watcher, repo2, true))
+	assert.NoError(t, repo_model.WatchRepoOptions(t.Context(), watcher, repo2, repo_model.WatchOptions{
+		PullRequests: false,
+		Issues:       true,
+		Releases:     true,
+	}))
+
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), pr.ID, 0, doer.ID, 0))
+	notification, err := activities_model.GetIssueNotification(t.Context(), watcher.ID, pr.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), notification.IssueID) // No notification found
+
+	assert.NoError(t, repo_model.WatchRepoOptions(t.Context(), watcher, repo2, repo_model.WatchOptions{
+		PullRequests: true,
+		Issues:       true,
+		Releases:     true,
+	}))
+
+	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), pr.ID, 0, doer.ID, 0))
+	notification, err = activities_model.GetIssueNotification(t.Context(), watcher.ID, pr.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, activities_model.NotificationStatusUnread, notification.Status)
 }

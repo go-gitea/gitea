@@ -69,7 +69,7 @@
 			{{else}}
 				{{template "shared/repo/search" .}}
 				<div class="divider"></div>
-				{{template "shared/repo/list" .}}
+				{{template "shared/repo/list" dict "." . "ShowWatchOptions" true}}
 				{{template "base/paginate" .}}
 			{{end}}
 		</div>

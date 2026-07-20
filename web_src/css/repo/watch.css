@@ -1,0 +1,18 @@
+.watch-options-menu .item {
+  width: 100%;
+  background: var(--color-menu);
+}
+
+.repo-watch-option-title,
+.repo-watch-option-desc {
+  display: block;
+}
+
+.repo-watch-option-title {
+  font-weight: var(--font-weight-medium);
+}
+
+.repo-watch-option-desc {
+  color: var(--color-text-light-2);
+  margin-top: 3px;
+}
