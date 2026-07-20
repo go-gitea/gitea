@@ -35,13 +35,9 @@ input[type="checkbox"]::before {
   height: var(--checkbox-size);
   clip-path: inset(var(--checkbox-size) 0 0 0);
   mask-image: var(--checkbox-mask-checked);
-  -webkit-mask-image: var(--checkbox-mask-checked);
   mask-size: 75%;
-  -webkit-mask-size: 75%;
   mask-repeat: no-repeat;
-  -webkit-mask-repeat: no-repeat;
   mask-position: center;
-  -webkit-mask-position: center;
 }
 
 input[type="checkbox"]:checked,
@@ -67,9 +63,7 @@ input[type="radio"]:disabled:checked {
 input[type="checkbox"]:indeterminate::before {
   clip-path: inset(0);
   mask-image: var(--checkbox-mask-indeterminate);
-  -webkit-mask-image: var(--checkbox-mask-indeterminate);
   mask-size: 75%;
-  -webkit-mask-size: 75%;
 }
 
 .ui.checkbox {

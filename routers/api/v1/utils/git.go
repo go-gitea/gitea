@@ -6,12 +6,11 @@ package utils
 import (
 	"errors"
 
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/services/context"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/services/context"
 )
 
 type RefCommit struct {
@@ -23,14 +22,14 @@ type RefCommit struct {
 
 // ResolveRefCommit resolve ref to a commit if exist
 func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, inputRef string, minCommitIDLen ...int) (_ *RefCommit, err error) {
-	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
 	refCommit := RefCommit{InputRef: inputRef}
 	if exist, _ := git_model.IsBranchExist(ctx, repo.ID, inputRef); exist {
 		refCommit.RefName = git.RefNameFromBranch(inputRef)
-	} else if gitrepo.IsTagExist(ctx, repo, inputRef) {
+	} else if git.IsTagExist(ctx, repo, inputRef) {
 		refCommit.RefName = git.RefNameFromTag(inputRef)
 	} else if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.ObjectFormatName), inputRef, minCommitIDLen...) {
 		refCommit.RefName = git.RefNameFromCommit(inputRef)
@@ -38,7 +37,7 @@ func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, in
 	if refCommit.RefName == "" {
 		return nil, git.ErrNotExist{ID: inputRef}
 	}
-	if refCommit.Commit, err = gitRepo.GetCommit(refCommit.RefName.String()); err != nil {
+	if refCommit.Commit, err = gitRepo.GetCommit(ctx, refCommit.RefName.String()); err != nil {
 		return nil, err
 	}
 	refCommit.CommitID = refCommit.Commit.ID.String()
@@ -57,6 +56,6 @@ func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, strin
 	if len(filter) > 0 {
 		filter = "refs/" + filter
 	}
-	refs, err := ctx.Repo.GitRepo.GetRefsFiltered(filter)
+	refs, err := ctx.Repo.GitRepo.GetRefsFiltered(ctx, filter)
 	return refs, "GetRefsFiltered", err
 }

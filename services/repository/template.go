@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	notify_service "gitea.dev/services/notify"
 )
 
 // GenerateIssueLabels generates issue labels from a template repository
@@ -107,7 +107,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}()
 
 	// 2 - check whether the repository with the same storage exists
-	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
+	isExist, err := git.IsRepositoryExist(ctx, generateRepo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", generateRepo.FullName(), err)
 		return nil, err
@@ -122,9 +122,9 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// 3 -Init git bare new repository.
-	if err = gitrepo.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName); err != nil {
+	if err = git.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName); err != nil {
 		return nil, fmt.Errorf("git.InitRepository: %w", err)
-	} else if err = gitrepo.CreateDelegateHooks(ctx, generateRepo); err != nil {
+	} else if err = git.CreateDelegateHooks(ctx, generateRepo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 

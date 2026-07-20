@@ -4,11 +4,12 @@
 package public
 
 import (
+	"html/template"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,59 +23,54 @@ func TestViteManifest(t *testing.T) {
 		"name": "index",
 		"src": "web_src/js/index.ts",
 		"isEntry": true,
-		"css": ["css/index.B3zrQPqD.css"]
+		"imports": ["_shared.AaAaAaAa.js"],
+		"css": ["css/index.B3zrQPqD.css", "css/index-extra.CcCcCcCc.css"]
+	},
+	"_shared.AaAaAaAa.js": {
+		"file": "js/shared.AaAaAaAa.js",
+		"name": "shared",
+		"css": ["css/shared.BbBbBbBb.css"]
 	},
 	"web_src/css/themes/theme-gitea-dark.css": {
 		"file": "css/theme-gitea-dark.CyAaQnn5.css",
 		"name": "theme-gitea-dark",
 		"src": "web_src/css/themes/theme-gitea-dark.css",
 		"isEntry": true
-	},
-	"web_src/js/features/eventsource.sharedworker.ts": {
-		"file": "js/eventsource.sharedworker.Dug1twio.js",
-		"name": "eventsource.sharedworker",
-		"src": "web_src/js/features/eventsource.sharedworker.ts",
-		"isEntry": true
-	},
-	"_chunk.js": {
-		"file": "js/chunk.abc123.js",
-		"name": "chunk"
 	}
 }`
 
 	t.Run("EmptyManifest", func(t *testing.T) {
 		storeManifestFromBytes([]byte(``), 0, time.Now())
-		assert.Equal(t, "/assets/js/index.js", AssetURI("js/index.js"))
-		assert.Equal(t, "/assets/css/theme-gitea-dark.css", AssetURI("css/theme-gitea-dark.css"))
-		assert.Equal(t, "", AssetNameFromHashedPath("css/no-such-file.css"))
+		// not in manifest -> custom theme fallback
+		assert.Equal(t, "/assets/css/theme-gitea-dark.css", AssetURI("web_src/css/themes/theme-gitea-dark.css"))
+		assert.Empty(t, entryStyleURLs("web_src/js/index.ts", "web_src/css/index.css"))
+		assert.Empty(t, AssetNameFromHashedPath("css/no-such-file.css"))
 	})
 
 	t.Run("ParseManifest", func(t *testing.T) {
 		storeManifestFromBytes([]byte(testManifest), 0, time.Now())
-		paths, names := manifestData.Load().paths, manifestData.Load().names
 
-		// JS entries
-		assert.Equal(t, "js/index.C6Z2MRVQ.js", paths["js/index.js"])
-		assert.Equal(t, "js/eventsource.sharedworker.Dug1twio.js", paths["js/eventsource.sharedworker.js"])
+		// assets are addressed by their source path (the manifest key)
+		assert.Equal(t, "/assets/js/index.C6Z2MRVQ.js", AssetURI("web_src/js/index.ts"))
+		assert.Equal(t, "/assets/css/theme-gitea-dark.CyAaQnn5.css", AssetURI("web_src/css/themes/theme-gitea-dark.css"))
 
-		// Associated CSS from JS entries
-		assert.Equal(t, "css/index.B3zrQPqD.css", paths["css/index.css"])
+		// custom theme not in the manifest falls back to the static asset location
+		assert.Equal(t, "/assets/css/theme-custom.css", AssetURI("web_src/css/themes/theme-custom.css"))
 
-		// CSS-only entries
-		assert.Equal(t, "css/theme-gitea-dark.CyAaQnn5.css", paths["css/theme-gitea-dark.css"])
+		// a JS entry's stylesheets: all of the entry's own CSS plus the CSS of statically-imported chunks
+		assert.Equal(t, []string{
+			"/assets/css/index.B3zrQPqD.css",
+			"/assets/css/index-extra.CcCcCcCc.css",
+			"/assets/css/shared.BbBbBbBb.css",
+		}, entryStyleURLs("web_src/js/index.ts", "web_src/css/index.css"))
+		assert.Equal(t, template.HTML(
+			`<link rel="stylesheet" href="/assets/css/index.B3zrQPqD.css">`+
+				`<link rel="stylesheet" href="/assets/css/index-extra.CcCcCcCc.css">`+
+				`<link rel="stylesheet" href="/assets/css/shared.BbBbBbBb.css">`,
+		), AssetCSSLinks("web_src/js/index.ts", "web_src/css/index.css"))
 
-		// Non-entry chunks should not be included
-		assert.Empty(t, paths["js/chunk.js"])
-
-		// Names: hashed path -> entry name
-		assert.Equal(t, "index", names["js/index.C6Z2MRVQ.js"])
-		assert.Equal(t, "index", names["css/index.B3zrQPqD.css"])
-		assert.Equal(t, "theme-gitea-dark", names["css/theme-gitea-dark.CyAaQnn5.css"])
-		assert.Equal(t, "eventsource.sharedworker", names["js/eventsource.sharedworker.Dug1twio.js"])
-
-		// Test Asset related functions
-		assert.Equal(t, "/assets/js/index.C6Z2MRVQ.js", AssetURI("js/index.js"))
-		assert.Equal(t, "/assets/css/theme-gitea-dark.CyAaQnn5.css", AssetURI("css/theme-gitea-dark.css"))
+		// hashed output file -> entry name
 		assert.Equal(t, "theme-gitea-dark", AssetNameFromHashedPath("css/theme-gitea-dark.CyAaQnn5.css"))
+		assert.Empty(t, AssetNameFromHashedPath("css/no-such-file.css"))
 	})
 }

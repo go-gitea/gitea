@@ -1,6 +1,6 @@
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
-import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
+import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
 import {errorMessage, errorName} from '../modules/errors.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
@@ -16,6 +16,7 @@ type FetchActionOpts = {
   url: string;
   headers?: HeadersInit;
   body?: FormData;
+  formSubmitter?: HTMLElement | null;
 
   // pseudo selectors/commands to update the current page with the response text when the response is text (html)
   // e.g.: "$this", "$innerHTML", "$closest(tr) td .the-class", "$body #the-id"
@@ -113,7 +114,7 @@ function buildFetchActionUrl(el: HTMLElement, opt: FetchActionOpts) {
     const u = new URL(url, window.location.href);
     if (name && !u.searchParams.has(name)) {
       u.searchParams.set(name, val);
-      url = u.toString();
+      url = u.href;
     }
   }
   return url;
@@ -122,7 +123,7 @@ function buildFetchActionUrl(el: HTMLElement, opt: FetchActionOpts) {
 async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
   const attrIsLoading = 'data-fetch-is-loading';
   if (el.getAttribute(attrIsLoading)) return;
-  if (!await confirmFetchAction(el)) return;
+  if (!await confirmFetchAction(opt.formSubmitter ?? el)) return;
 
   el.setAttribute(attrIsLoading, 'true');
   toggleLoadingIndicator(el, opt, true);
@@ -181,6 +182,7 @@ function prepareFormFetchActionOpts(formEl: HTMLFormElement, opts: SubmitFormFet
     method: formMethodUpper,
     url: reqUrl,
     body: reqBody,
+    formSubmitter: opts.formSubmitter,
     loadingIndicator: '$this', // for form submit, by default, the loading indicator is the whole form
     successSync: formEl.getAttribute('data-fetch-sync') ?? '', // by default, no fetch sync for form submit
   };
@@ -328,17 +330,10 @@ function initFetchActionTriggerEvery(el: HTMLElement, trigger: string) {
 
   const num = parseInt(match[1], 10), unit = match[2];
   const intervalMs = unit === 's' ? num * 1000 : num;
-  const fn = async () => {
-    try {
-      await performFetchActionTrigger(el, 'every');
-    } finally {
-      // only continue if the element is still in the document
-      if (document.contains(el)) {
-        setTimeout(fn, intervalMs);
-      }
-    }
-  };
-  setTimeout(fn, intervalMs);
+  activePageTimerRefresh({
+    interval: () => document.contains(el) ? intervalMs : 0, // only continue if the element is still in the document
+    async callback() { await performFetchActionTrigger(el, 'every') },
+  });
 }
 
 function initFetchActionTrigger(el: HTMLElement) {

@@ -20,19 +20,19 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/kballard/go-shellquote"
 	"github.com/stretchr/testify/assert"
@@ -171,7 +171,7 @@ func doSSHLFSAccessTest(_ APITestContext, keyID int64) func(*testing.T) {
 			_, err := cmd.Output()
 			var errExit *exec.ExitError
 			require.ErrorAs(t, err, &errExit) // inaccessible, error
-			assert.Contains(t, string(errExit.Stderr), fmt.Sprintf("User: 2:user2 with Key: %d:test-key is not authorized to write to user5/repo4.", keyID))
+			assert.Contains(t, string(errExit.Stderr), fmt.Sprintf(`User 2 with key %d:test-key has no "write" permission for user5/repo4`, keyID))
 		})
 	}
 }
@@ -811,7 +811,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(dstPath)
 		require.NoError(t, err)
 
 		defer gitRepo.Close()
@@ -848,7 +848,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 				Message: "Testing commit 1",
 			})
 			assert.NoError(t, err)
-			commit, err = gitRepo.GetRefCommitID("HEAD")
+			commit, err = gitRepo.GetRefCommitID(t.Context(), "HEAD")
 			assert.NoError(t, err)
 		})
 
@@ -920,7 +920,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 				Message: "Testing commit 2",
 			})
 			assert.NoError(t, err)
-			commit, err = gitRepo.GetRefCommitID("HEAD")
+			commit, err = gitRepo.GetRefCommitID(t.Context(), "HEAD")
 			assert.NoError(t, err)
 		})
 

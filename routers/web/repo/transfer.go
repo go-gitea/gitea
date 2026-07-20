@@ -4,8 +4,8 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 )
 
 func acceptTransfer(ctx *context.Context) {

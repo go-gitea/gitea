@@ -89,7 +89,7 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
     allowHTML: target.getAttribute('data-tooltip-render') === 'html',
     placement: target.getAttribute('data-tooltip-placement') as Placement || 'top-start',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
-    ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
+    ...((target.getAttribute('data-tooltip-interactive') === 'true') && {interactive: true, aria: {content: 'describedby', expanded: false}}),
   };
 
   if (!target._tippy) {

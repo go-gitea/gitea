@@ -10,7 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 // CatFileBatchCheck runs cat-file with --batch-check
@@ -20,13 +21,13 @@ func CatFileBatchCheck(ctx context.Context, cmd *gitcmd.Command, tmpBasePath str
 }
 
 // CatFileBatchCheckAllObjects runs cat-file with --batch-check --batch-all
-func CatFileBatchCheckAllObjects(ctx context.Context, cmd *gitcmd.Command, tmpBasePath string) error {
-	return cmd.AddArguments("cat-file", "--batch-check", "--batch-all-objects").WithDir(tmpBasePath).RunWithStderr(ctx)
+func CatFileBatchCheckAllObjects(ctx context.Context, cmd *gitcmd.Command, gitRepo *git.Repository) error {
+	return cmd.AddArguments("cat-file", "--batch-check", "--batch-all-objects").WithRepo(gitRepo).RunWithStderr(ctx)
 }
 
 // CatFileBatch runs cat-file --batch
-func CatFileBatch(ctx context.Context, cmd *gitcmd.Command, tmpBasePath string) error {
-	return cmd.AddArguments("cat-file", "--batch").WithDir(tmpBasePath).RunWithStderr(ctx)
+func CatFileBatch(ctx context.Context, cmd *gitcmd.Command, gitRepo git.RepositoryFacade) error {
+	return cmd.AddArguments("cat-file", "--batch").WithRepo(gitRepo).RunWithStderr(ctx)
 }
 
 // BlobsLessThan1024FromCatFileBatchCheck reads a pipeline from cat-file --batch-check and returns the blobs <1024 in size

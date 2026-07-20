@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"path"
 
-	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/renderhelper"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/services/context"
 )
 
 // RenderFile renders a file by repos path
@@ -19,7 +19,7 @@ func RenderFile(ctx *context.Context) {
 	var blob *git.Blob
 	var err error
 	if ctx.Repo.TreePath != "" {
-		blob, err = ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+		blob, err = ctx.Repo.Commit.GetBlobByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	} else {
 		blob, err = ctx.Repo.GitRepo.GetBlob(ctx.PathParam("sha"))
 	}
@@ -32,7 +32,7 @@ func RenderFile(ctx *context.Context) {
 		return
 	}
 
-	blobReader, err := blob.DataAsync()
+	blobReader, err := blob.DataAsync(ctx)
 	if err != nil {
 		ctx.ServerError("DataAsync", err)
 		return
@@ -63,9 +63,7 @@ func RenderFile(ctx *context.Context) {
 	// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 	extRendererOpts := extRenderer.GetExternalRendererOptions()
 	if extRendererOpts.ContentSandbox != "" {
-		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox "+extRendererOpts.ContentSandbox)
-	} else {
-		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
+		ctx.Resp.Header().Add("Content-Security-Policy", "sandbox "+extRendererOpts.ContentSandbox)
 	}
 
 	err = markup.RenderWithRenderer(rctx, renderer, rendererInput, ctx.Resp)

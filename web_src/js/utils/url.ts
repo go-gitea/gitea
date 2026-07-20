@@ -1,3 +1,16 @@
+/** Matches URLs, excluding characters that are never valid unencoded in URLs per RFC 3986. */
+export const urlRawRegex = () => /\bhttps?:\/\/[^\s<>[\]]+/gi; // JS regexp has internal states, so always use a new instance
+
+/** Strip trailing punctuation that is likely not part of the URL. */
+export function trimUrlPunctuation(url: string): string {
+  url = url.replace(/[.,;:'"]+$/, '');
+  // Strip trailing closing parens only if unbalanced (not part of the URL like Wikipedia links)
+  while (url.endsWith(')') && (url.match(/\(/g) || []).length < (url.match(/\)/g) || []).length) {
+    url = url.slice(0, -1);
+  }
+  return url;
+}
+
 export function urlQueryEscape(s: string) {
   // See "TestQueryEscape" in backend
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
@@ -28,32 +41,4 @@ export function pathEscape(s: string): string {
 export function pathEscapeSegments(s: string): string {
   // The same as backend's PathEscapeSegments
   return s.split('/').map(pathEscape).join('/');
-}
-
-// Match HTML tags (to skip) or URLs (to linkify) in HTML content
-const urlLinkifyPattern = /(<([-\w]+)[^>]*>)|(<\/([-\w]+)[^>]*>)|(https?:\/\/[^\s<>"'`|(){}[\]]+)/gi;
-const trailingPunctPattern = /[.,;:!?]+$/;
-
-// Convert URLs to clickable links in HTML, preserving existing HTML tags
-export function linkifyURLs(html: string): string {
-  let inAnchor = false;
-  return html.replace(urlLinkifyPattern, (match, _openTagFull, openTag, _closeTagFull, closeTag, url) => {
-    // skip URLs inside existing <a> tags
-    if (openTag === 'a') {
-      inAnchor = true;
-      return match;
-    } else if (closeTag === 'a') {
-      inAnchor = false;
-      return match;
-    }
-    if (inAnchor || !url) {
-      return match;
-    }
-
-    const trailingPunct = url.match(trailingPunctPattern);
-    const cleanUrl = trailingPunct ? url.slice(0, -trailingPunct[0].length) : url;
-    const trailing = trailingPunct ? trailingPunct[0] : '';
-    // safe because regexp only matches valid URLs (no quotes or angle brackets)
-    return `<a href="${cleanUrl}" target="_blank">${cleanUrl}</a>${trailing}`; // eslint-disable-line github/unescaped-html-literal
-  });
 }

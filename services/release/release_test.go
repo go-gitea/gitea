@@ -8,13 +8,17 @@ import (
 	"testing"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/services/attachment"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/services/attachment"
+	"gitea.dev/services/context/upload"
 
-	_ "code.gitea.io/gitea/models/actions"
+	_ "gitea.dev/models/actions"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,11 +33,11 @@ func TestRelease_Create(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := git.OpenRepository(repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -47,7 +51,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -61,7 +65,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -75,7 +79,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -89,7 +93,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -125,7 +129,7 @@ func TestRelease_Create(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        true,
 	}
-	assert.NoError(t, CreateRelease(gitRepo, &release, []string{attach.UUID}, "test"))
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &release, []string{attach.UUID}, "test"))
 }
 
 func TestRelease_Update(t *testing.T) {
@@ -134,12 +138,18 @@ func TestRelease_Update(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := git.OpenRepository(repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
+	// Advance a mocked clock between create and update instead of sleeping, so the
+	// timestamp-sensitive assertions below stay deterministic.
+	fakeNow := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	defer timeutil.MockSet(fakeNow)()
+	advance := func() { fakeNow = fakeNow.Add(time.Second); timeutil.MockSet(fakeNow) }
+
 	// Test a changed release
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -155,7 +165,7 @@ func TestRelease_Update(t *testing.T) {
 	release, err := repo_model.GetRelease(t.Context(), repo.ID, "v1.1.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix := release.CreatedUnix
-	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
+	advance()
 	release.Note = "Changed note"
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
@@ -163,7 +173,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed draft
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -179,7 +189,7 @@ func TestRelease_Update(t *testing.T) {
 	release, err = repo_model.GetRelease(t.Context(), repo.ID, "v1.2.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
-	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
+	advance()
 	release.Title = "Changed title"
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
@@ -187,7 +197,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed pre-release
-	assert.NoError(t, CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -203,7 +213,7 @@ func TestRelease_Update(t *testing.T) {
 	release, err = repo_model.GetRelease(t.Context(), repo.ID, "v1.3.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
-	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
+	advance()
 	release.Title = "Changed title"
 	release.Note = "Changed note"
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
@@ -225,7 +235,7 @@ func TestRelease_Update(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	assert.NoError(t, CreateRelease(gitRepo, release, nil, ""))
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, release, nil, ""))
 	assert.Positive(t, release.ID)
 
 	release.IsDraft = false
@@ -263,6 +273,17 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, release.ID, release.Attachments[0].ReleaseID)
 	assert.Equal(t, "test2.txt", release.Attachments[0].Name)
 
+	defer test.MockVariableValue(&setting.Repository.Release.AllowedTypes, ".zip")()
+	err = UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, map[string]string{
+		attach.UUID: "test.exe",
+	})
+	assert.Error(t, err)
+	assert.True(t, upload.IsErrFileTypeForbidden(err))
+	release.Attachments = nil
+	assert.NoError(t, repo_model.GetReleaseAttachments(t.Context(), release))
+	assert.Len(t, release.Attachments, 1)
+	assert.Equal(t, "test2.txt", release.Attachments[0].Name)
+
 	// delete the attachment
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, []string{attach.UUID}, nil))
 	release.Attachments = nil
@@ -276,9 +297,15 @@ func TestRelease_createTag(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := git.OpenRepository(repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
+
+	// Advance a mocked clock between create and update instead of sleeping, so the
+	// timestamp-sensitive assertions below stay deterministic.
+	fakeNow := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	defer timeutil.MockSet(fakeNow)()
+	advance := func() { fakeNow = fakeNow.Add(time.Second); timeutil.MockSet(fakeNow) }
 
 	// Test a changed release
 	release := &repo_model.Release{
@@ -298,7 +325,7 @@ func TestRelease_createTag(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, release.CreatedUnix)
 	releaseCreatedUnix := release.CreatedUnix
-	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
+	advance()
 	release.Note = "Changed note"
 	_, err = createTag(t.Context(), gitRepo, release, "")
 	assert.NoError(t, err)
@@ -321,7 +348,7 @@ func TestRelease_createTag(t *testing.T) {
 	_, err = createTag(t.Context(), gitRepo, release, "")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
-	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
+	advance()
 	release.Title = "Changed title"
 	_, err = createTag(t.Context(), gitRepo, release, "")
 	assert.NoError(t, err)
@@ -344,7 +371,7 @@ func TestRelease_createTag(t *testing.T) {
 	_, err = createTag(t.Context(), gitRepo, release, "")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
-	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
+	advance()
 	release.Title = "Changed title"
 	release.Note = "Changed note"
 	_, err = createTag(t.Context(), gitRepo, release, "")

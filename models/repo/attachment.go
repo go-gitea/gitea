@@ -11,12 +11,14 @@ import (
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -156,8 +158,7 @@ func GetAttachmentsByCommentID(ctx context.Context, commentID int64) ([]*Attachm
 
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
 func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, fileName string) (*Attachment, error) {
-	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
-	has, err := db.GetEngine(ctx).Get(attach)
+	attach, has, err := db.Get[Attachment](ctx, builder.Eq{"release_id": releaseID, "`name`": fileName})
 	if err != nil {
 		return nil, err
 	} else if !has {

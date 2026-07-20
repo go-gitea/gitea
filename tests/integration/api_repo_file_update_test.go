@@ -11,14 +11,14 @@ import (
 	"path"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/context"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/context"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -136,10 +136,10 @@ func TestAPIUpdateFile(t *testing.T) {
 			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
-			gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+			gitRepo, _ := git.OpenRepository(repo1)
 			defer gitRepo.Close()
-			commitID, _ := gitRepo.GetBranchCommitID(updateFileOptions.NewBranchName)
-			lasCommit, _ := gitRepo.GetCommitByPath(treePath)
+			commitID, _ := gitRepo.GetBranchCommitID(t.Context(), updateFileOptions.NewBranchName)
+			lasCommit, _ := gitRepo.GetCommitByPath(t.Context(), treePath)
 			expectedFileResponse := getExpectedFileResponseForUpdate(apiFileResponseInfo{
 				commitID:          commitID,
 				treePath:          treePath,

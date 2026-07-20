@@ -9,7 +9,7 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitcmd"
 )
 
 // RevListObjects run rev-list --objects from headSHA to baseSHA

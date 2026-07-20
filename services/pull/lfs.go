@@ -11,20 +11,21 @@ import (
 	"io"
 	"strconv"
 
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/git/pipeline"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/pipeline"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )
 
 // LFSPush pushes lfs objects referred to in new commits in the head repository from the base repository
-func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *issues_model.PullRequest) error {
-	// Now we have to implement git lfs push
+func LFSPush(ctx context.Context, tmpBasePath string, tmpRepo git.RepositoryFacade, mergeHeadSHA, mergeBaseSHA string, pr *issues_model.PullRequest) error {
+	// Now we have to implement git-lfs push
 	// git rev-list --objects --filter=blob:limit=1k HEAD --not base
 	// pass blob shas in to git cat-file --batch-check (possibly unnecessary)
 	// ensure only blobs and <=1k size then pass in to git cat-file --batch
@@ -53,7 +54,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 
 	// 5. Take the shas of the blobs and batch read them
 	wg.Go(func() error {
-		return pipeline.CatFileBatch(ctx, cmd5BatchContent, tmpBasePath)
+		return pipeline.CatFileBatch(ctx, cmd5BatchContent, tmpRepo)
 	})
 
 	// 4. From the provided objects restrict to blobs <=1k

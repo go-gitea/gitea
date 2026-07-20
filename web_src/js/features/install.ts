@@ -95,7 +95,7 @@ function initPostInstall() {
       if (tid && resp.status === 200) {
         clearInterval(tid);
         tid = null;
-        window.location.href = targetUrl;
+        window.location.assign(targetUrl);
       }
     } catch {}
   }, 1000);

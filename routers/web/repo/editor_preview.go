@@ -6,9 +6,9 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/context"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/context"
+	files_service "gitea.dev/services/repository/files"
 )
 
 func DiffPreviewPost(ctx *context.Context) {
@@ -19,7 +19,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
 	if err != nil {
 		ctx.ServerError("GetTreeEntryByPath", err)
 		return
@@ -28,7 +28,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	oldContent, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize)
+	oldContent, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 	if err != nil {
 		ctx.ServerError("GetBlobContent", err)
 		return

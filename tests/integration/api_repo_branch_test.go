@@ -11,14 +11,14 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -127,4 +127,21 @@ func TestAPIRepoBranchesMirror(t *testing.T) {
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.JSONEq(t, "{\"message\":\"Git Repository is a mirror.\",\"url\":\""+setting.AppURL+"api/swagger\"}", string(bs))
+}
+
+func TestAPIRepoBranchesSearch(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeWriteRepository)
+
+	// "test" matches "test_branch" but not "master"
+	resp := MakeRequest(t, NewRequestf(t, "GET", "/api/v1/repos/org3/repo3/branches?q=test").AddTokenAuth(token), http.StatusOK)
+	branches := DecodeJSON(t, resp, []api.Branch{})
+	assert.Len(t, branches, 1)
+	assert.Equal(t, "test_branch", branches[0].Name)
+
+	// no match returns empty list
+	resp = MakeRequest(t, NewRequestf(t, "GET", "/api/v1/repos/org3/repo3/branches?q=doesnotexist").AddTokenAuth(token), http.StatusOK)
+	branches = DecodeJSON(t, resp, []api.Branch{})
+	assert.Empty(t, branches)
 }

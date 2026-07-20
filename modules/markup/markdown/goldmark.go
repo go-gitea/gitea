@@ -6,9 +6,9 @@ package markdown
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/internal"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/internal"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"

@@ -6,20 +6,21 @@ package integration
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -145,6 +146,50 @@ func TestAPIDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 	req = NewRequestWithJSON(t, "DELETE", url, dependencyMeta).
 		AddTokenAuth(writerToken)
 	MakeRequest(t, req, http.StatusCreated)
+	unittest.AssertNotExistsBean(t, &issues_model.IssueDependency{
+		IssueID:      targetIssue.ID,
+		DependencyID: dependencyIssue.ID,
+	})
+}
+
+func TestWebDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	targetRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	targetIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: targetRepo.ID, Index: 1})
+	dependencyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	assert.True(t, dependencyRepo.IsPrivate)
+	dependencyIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: dependencyRepo.ID, Index: 1})
+
+	enableRepoDependencies(t, targetIssue.RepoID)
+	enableRepoDependencies(t, dependencyRepo.ID)
+
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.NoError(t, issues_model.CreateIssueDependency(t.Context(), user1, targetIssue, dependencyIssue))
+
+	user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), targetRepo, user40, perm.AccessModeWrite))
+
+	session := loginUser(t, user40.Name)
+	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/issues/%d/dependency/delete", targetIssue.Index), map[string]string{
+		"removeDependencyID": strconv.FormatInt(dependencyIssue.ID, 10),
+		"dependencyType":     "blockedBy",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueDependency{
+		IssueID:      targetIssue.ID,
+		DependencyID: dependencyIssue.ID,
+	})
+
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), dependencyRepo, user40, perm.AccessModeRead))
+
+	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/user2/repo1/issues/%d/dependency/delete", targetIssue.Index), map[string]string{
+		"removeDependencyID": strconv.FormatInt(dependencyIssue.ID, 10),
+		"dependencyType":     "blockedBy",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
 	unittest.AssertNotExistsBean(t, &issues_model.IssueDependency{
 		IssueID:      targetIssue.ID,
 		DependencyID: dependencyIssue.ID,

@@ -372,7 +372,7 @@ test('close project and view in closed projects list', async ({page}) => {
     await expect(page.locator('.milestone-list')).toContainText(closedProjectTitle);
 
     // Close the second project by clicking the close link
-    const projectCard = page.locator('.milestone-card').filter({hasText: closedProjectTitle});
+    const projectCard = page.locator('.milestone-list > .item').filter({hasText: closedProjectTitle});
     await projectCard.locator('a.link-action[data-url$="/close"]').click();
 
     // Wait for redirect back to project view page

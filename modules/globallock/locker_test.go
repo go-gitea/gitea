@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/go-redsync/redsync/v4"
 	"github.com/stretchr/testify/assert"

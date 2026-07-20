@@ -7,21 +7,20 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
 )
 
 // SyncResult describes a reference update detected during sync.
 type SyncResult struct {
 	RefName     git.RefName
-	OldCommitID string
-	NewCommitID string
+	OldCommitID git.RefName
+	NewCommitID git.RefName
 }
 
 // SyncRepoBranches synchronizes branch table with repository branches
@@ -33,7 +32,7 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 
 	log.Debug("SyncRepoBranches: in Repo[%d:%s]", repo.ID, repo.FullName())
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		log.Error("OpenRepository[%s]: %w", repo.FullName(), err)
 		return 0, err
@@ -45,7 +44,7 @@ func SyncRepoBranches(ctx context.Context, repoID, doerID int64) (int64, error) 
 }
 
 func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doerID int64) (int64, []*SyncResult, error) {
-	objFmt, err := gitRepo.GetObjectFormat()
+	objFmt, err := gitRepo.GetObjectFormat(ctx)
 	if err != nil {
 		return 0, nil, fmt.Errorf("GetObjectFormat: %w", err)
 	}
@@ -58,7 +57,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 
 	allBranches := container.Set[string]{}
 	{
-		branches, _, err := gitRepo.GetBranchNames(0, 0)
+		branches, _, err := gitRepo.GetBranchNames(ctx, 0, 0)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -88,7 +87,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 	var syncResults []*SyncResult
 	for branch := range allBranches {
 		dbb := dbBranches[branch]
-		commit, err := gitRepo.GetBranchCommit(branch)
+		commit, err := gitRepo.GetBranchCommit(ctx, branch)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -104,7 +103,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromBranch(branch),
 				OldCommitID: "",
-				NewCommitID: commit.ID.String(),
+				NewCommitID: commit.ID.RefName(),
 			})
 		} else if commit.ID.String() != dbb.CommitID || dbb.IsDeleted {
 			toUpdate = append(toUpdate, &git_model.Branch{
@@ -118,8 +117,8 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 			})
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromBranch(branch),
-				OldCommitID: dbb.CommitID,
-				NewCommitID: commit.ID.String(),
+				OldCommitID: git.RefNameFromCommit(dbb.CommitID),
+				NewCommitID: commit.ID.RefName(),
 			})
 		}
 	}
@@ -129,7 +128,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 			toRemove = append(toRemove, dbBranch.ID)
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromBranch(dbBranch.Name),
-				OldCommitID: dbBranch.CommitID,
+				OldCommitID: git.RefNameFromCommit(dbBranch.CommitID),
 				NewCommitID: "",
 			})
 		}

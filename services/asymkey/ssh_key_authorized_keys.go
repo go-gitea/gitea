@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"time"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // RewriteAllPublicKeys removes any authorized key and rewrite all keys from database again.

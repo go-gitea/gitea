@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -54,6 +54,23 @@ func TestAPIReposGitCommits(t *testing.T) {
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
 	}
+}
+
+func TestAPIReposGitCommitsHEAD(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	// HEAD on a valid ref must return 200 (RFC 9110 §9.3.2)
+	req := NewRequestf(t, "HEAD", "/api/v1/repos/%s/repo1/git/commits/master", user.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	// HEAD on a missing sha must return 404, not 405
+	req = NewRequestf(t, "HEAD", "/api/v1/repos/%s/repo1/git/commits/12345", user.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIReposGitCommitList(t *testing.T) {
@@ -223,4 +240,28 @@ func TestGetFileHistoryNotOnMaster(t *testing.T) {
 	compareCommitFiles(t, []string{"test.csv"}, apiData[0].Files)
 
 	assert.Equal(t, "1", resp.Header().Get("X-Total"))
+}
+
+func TestGetFileHistoryEmptyDateRange(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	// Login as User2.
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	// readme.md exists in repo16 but no commits fall before 1970, so the date
+	// filter yields an empty range: this must return 200 with an empty list,
+	// not 404 (regression: a valid path with an empty date range was a 404).
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?path=readme.md&sha=good-sign&until=1970-01-01T00:00:00Z", user.Name).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	apiData := DecodeJSON(t, resp, []api.Commit{})
+	assert.Empty(t, apiData)
+	assert.Equal(t, "0", resp.Header().Get("X-Total"))
+
+	// a path that does not exist must still return 404 even with a date filter
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/commits?path=does-not-exist.md&sha=good-sign&until=1970-01-01T00:00:00Z", user.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }

@@ -36,8 +36,8 @@
 					</div>
 					<div class="item-trailing muted-links">
 						{{if .PrimaryLanguage}}
-							<a class="flex-text-inline" href="?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}{{if $.TabName}}&tab={{$.TabName}}{{end}}">
-								<i class="color-icon tw-mr-2" style="background-color: {{.PrimaryLanguage.Color}}"></i>
+							<a class="flex-text-block" href="?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}{{if $.TabName}}&tab={{$.TabName}}{{end}}">
+								<i class="color-icon" style="background-color: {{.PrimaryLanguage.Color}}"></i>
 								{{.PrimaryLanguage.Language}}
 							</a>
 						{{end}}

@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // catFileBatchCommand implements the CatFileBatch interface using the "cat-file --batch-command" command
@@ -38,6 +38,10 @@ func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
 	}
 	b.batch = newCatFileBatch(b.ctx, b.repoPath, gitcmd.NewCommand("cat-file", "--batch-command"))
 	return b.batch
+}
+
+func (b *catFileBatchCommand) Context() context.Context {
+	return b.ctx
 }
 
 func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {

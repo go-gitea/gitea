@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"strings"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/webhook"
+	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/context"
+	"gitea.dev/services/webhook"
 
 	"gitea.com/go-chi/binding"
 )

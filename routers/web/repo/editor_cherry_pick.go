@@ -7,12 +7,11 @@ import (
 	"bytes"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/repository/files"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	"gitea.dev/services/repository/files"
 )
 
 func CherryPick(ctx *context.Context) {
@@ -23,7 +22,7 @@ func CherryPick(ctx *context.Context) {
 
 	fromCommitID := ctx.PathParam("sha")
 	ctx.Data["FromCommitID"] = fromCommitID
-	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(fromCommitID)
+	cherryPickCommit, err := ctx.Repo.GitRepo.GetCommit(ctx, fromCommitID)
 	if err != nil {
 		HandleGitError(ctx, "GetCommit", err)
 		return
@@ -64,9 +63,9 @@ func CherryPickPost(ctx *context.Context) {
 		// Drop through to the "apply" method
 		buf := &bytes.Buffer{}
 		if parsed.form.Revert {
-			err = gitrepo.GetReverseRawDiff(ctx, ctx.Repo.Repository, fromCommitID, buf)
+			err = git.GetReverseRawDiff(ctx, ctx.Repo.Repository, fromCommitID, buf)
 		} else {
-			err = git.GetRawDiff(ctx.Repo.GitRepo, fromCommitID, git.RawDiffPatch, buf)
+			err = git.GetRawDiff(ctx, ctx.Repo.GitRepo, fromCommitID, git.RawDiffPatch, buf)
 		}
 		if err == nil {
 			opts.Content = buf.String()

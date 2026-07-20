@@ -6,5 +6,8 @@
 	{{if eq .PageType "variables"}}
 		{{template "shared/variables/variable_list" .}}
 	{{end}}
+	{{if eq .PageType "scoped-workflows"}}
+		{{template "shared/actions/scoped_workflows" .}}
+	{{end}}
 	</div>
 {{template "admin/layout_footer" .}}

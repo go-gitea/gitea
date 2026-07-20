@@ -28,9 +28,8 @@ var (
 	registeredInitFuncs []func() error
 )
 
-// Engine represents a xorm engine or session.
-type Engine interface {
-	Table(tableNameOrBean any) *xorm.Session
+// SQLSession represents a common interface for engine and session to execute SQLs
+type SQLSession interface {
 	Count(...any) (int64, error)
 	Decr(column string, arg ...any) *xorm.Session
 	Delete(...any) (int64, error)
@@ -52,7 +51,6 @@ type Engine interface {
 	Limit(limit int, start ...int) *xorm.Session
 	NoAutoTime() *xorm.Session
 	SumInt(bean any, columnName string) (res int64, err error)
-	Sync(...any) error
 	Select(string) *xorm.Session
 	SetExpr(string, any) *xorm.Session
 	NotIn(string, ...any) *xorm.Session
@@ -61,12 +59,20 @@ type Engine interface {
 	Distinct(...string) *xorm.Session
 	Query(...any) ([]map[string][]byte, error)
 	Cols(...string) *xorm.Session
+	Table(tableNameOrBean any) *xorm.Session
 	Context(ctx context.Context) *xorm.Session
-	Ping() error
+	QueryInterface(sqlOrArgs ...any) ([]map[string]any, error)
 	IsTableExist(tableNameOrBean any) (bool, error)
 }
 
-// Session represents a xorm session interface, used as an abstraction over *xorm.Session.
+// Engine represents a xorm engine
+type Engine interface {
+	SQLSession
+	Sync(...any) error
+	Ping() error
+}
+
+// Session represents a xorm session interface
 type Session interface {
 	Engine
 	And(query any, args ...any) *xorm.Session
@@ -89,7 +95,6 @@ type EngineMigration interface {
 	Dialect() dialects.Dialect
 	DropTables(beans ...any) error
 	NewSession() *xorm.Session
-	QueryInterface(sqlOrArgs ...any) ([]map[string]any, error)
 	SetMapper(mapper names.Mapper)
 	SyncWithOptions(opts xorm.SyncOptions, beans ...any) (*xorm.SyncResult, error)
 	TableInfo(bean any) (*schemas.Table, error)

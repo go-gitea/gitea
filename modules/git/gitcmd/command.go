@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
-	"code.gitea.io/gitea/modules/gtprof"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
+	"gitea.dev/modules/gtprof"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/util"
 )
 
 // TrustedCmdArgs returns the trusted arguments for git command.
@@ -205,6 +205,8 @@ func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 }
 
 type runOpts struct {
+	// TODO: this struct should be removed, the fields can be just merged into the command
+
 	Env     []string
 	Timeout time.Duration
 
@@ -213,7 +215,7 @@ type runOpts struct {
 	// * /some/path/.git
 	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
 	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
-	// The correct approach is to use `--git-dir" global argument
+	// The correct approach is to use `--git-dir" global argument or "GIT_DIR=..." environment variable.
 	Dir string
 
 	PipelineFunc func(Context) error
@@ -445,6 +447,17 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin
 	c.cmd.Stderr = c.cmdStderr
+	c.cmd.Cancel = func() error {
+		// Golang's default cmd.Cancel only calls Process.Kill(), but here we need to close the parent pipes together:
+		// * for some commands like "git --batch-xxx", Windows git might have 2 processes (a wrapper and a real git process)
+		// * on Windows, if parent process is killed (context canceled), the children process won't be killed, and the pipe handles are still open.
+		// * if we don't close the parent pipes here, the children process won't exit.
+		//
+		// There is no such problem on POSIX, while it won't make things worse by closing the parent pipes also on POSIX.
+		err := c.cmd.Process.Kill()
+		c.closePipeFiles(c.parentPipeFiles)
+		return err
+	}
 	return c.cmd.Start()
 }
 

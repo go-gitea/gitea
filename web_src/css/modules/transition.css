@@ -1,0 +1,24 @@
+/* styles for Fomantic transition (toggle): dimmer, modal, dropdown menu */
+
+/* this is the only place using "hidden" and "visible" classes, it can safely work with tailwind without prefix in the future */
+.ui.modal.transition.hidden,
+.ui.dropdown > .menu.transition.hidden {
+  display: none;
+  visibility: hidden;
+}
+
+.ui.modal.transition.visible,
+.ui.dropdown > .menu.transition.visible {
+  display: block;
+  visibility: visible;
+}
+
+/* dimmer uses "active" but not "hidden/visible" classes, no special classes for it here */
+
+/* only modal and dimmer need animation, dropdown menu doesn't */
+.ui.modal.transition,
+.ui.dimmer.transition {
+  animation-name: fadein;
+  animation-duration: 100ms;
+  animation-timing-function: ease-in-out;
+}

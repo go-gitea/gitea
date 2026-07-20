@@ -7,17 +7,17 @@ import (
 	"sync"
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/feed"
-	notify_service "code.gitea.io/gitea/services/notify"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/feed"
+	notify_service "gitea.dev/services/notify"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -133,6 +133,8 @@ func TestRepositoryTransferRejection(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	// Set limit to 0 repositories so no repositories can be transferred
 	defer test.MockVariableValue(&setting.Repository.MaxCreationLimit, 0)()
+	defer test.MockVariableValue(&setting.Repository.UserMaxCreationLimit, 0)()
+	defer test.MockVariableValue(&setting.Repository.OrgMaxCreationLimit, 0)()
 
 	// Admin case
 	doerAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

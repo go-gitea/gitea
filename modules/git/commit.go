@@ -11,61 +11,29 @@ import (
 	"os/exec"
 	"strings"
 
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
-
-type CommitMessage struct {
-	MessageRaw   string
-	messageUTF8  *string
-	messageTitle *string
-	messageBody  *string
-}
 
 // Commit represents a git commit.
 type Commit struct {
-	Tree // FIXME: bad design, this field can be nil if the commit is from "last commit cache"
-
 	CommitMessage
 
 	ID        ObjectID
+	TreeID    ObjectID
+	Parents   []ObjectID
 	Author    *Signature // never nil
 	Committer *Signature // never nil
 	Signature *CommitSignature
 
-	Parents        []ObjectID // ID strings
 	submoduleCache *ObjectCache[*SubModule]
+	treeCache      *Tree
 }
 
 // CommitSignature represents a git commit signature part.
 type CommitSignature struct {
 	Signature string
 	Payload   string
-}
-
-func (c *CommitMessage) MessageUTF8() string {
-	if c.messageUTF8 == nil {
-		bs := charset.ToUTF8(util.UnsafeStringToBytes(c.MessageRaw), charset.ConvertOpts{ErrorReplacement: []byte{'?'}})
-		c.messageUTF8 = new(util.UnsafeBytesToString(bs))
-	}
-	return *c.messageUTF8
-}
-
-func (c *CommitMessage) MessageTitle() string {
-	if c.messageTitle == nil {
-		s, _, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
-		c.messageTitle = new(strings.TrimSpace(s))
-	}
-	return *c.messageTitle
-}
-
-func (c *CommitMessage) MessageBody() string {
-	if c.messageBody == nil {
-		_, s, _ := strings.Cut(strings.TrimSpace(c.MessageUTF8()), "\n")
-		c.messageBody = new(strings.TrimSpace(s))
-	}
-	return *c.messageBody
 }
 
 // ParentID returns oid of n-th parent (0-based index).
@@ -78,12 +46,12 @@ func (c *Commit) ParentID(n int) (ObjectID, error) {
 }
 
 // Parent returns n-th parent (0-based index) of the commit.
-func (c *Commit) Parent(n int) (*Commit, error) {
+func (c *Commit) Parent(ctx context.Context, gitRepo *Repository, n int) (*Commit, error) {
 	id, err := c.ParentID(n)
 	if err != nil {
 		return nil, err
 	}
-	parent, err := c.repo.getCommit(id)
+	parent, err := gitRepo.getCommit(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -97,25 +65,44 @@ func (c *Commit) ParentCount() int {
 }
 
 // GetCommitByPath return the commit of relative path object.
-func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
-	if c.repo.LastCommitCache != nil {
-		return c.repo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
+func (c *Commit) GetCommitByPath(ctx context.Context, gitRepo *Repository, relpath string) (*Commit, error) {
+	if gitRepo.LastCommitCache != nil {
+		return gitRepo.LastCommitCache.GetCommitByPath(ctx, c.ID.String(), relpath)
 	}
-	return c.repo.getCommitByPathWithID(c.ID, relpath)
+	return gitRepo.getCommitByPathWithID(ctx, c.ID, relpath)
+}
+
+func (c *Commit) Tree() *Tree {
+	if c.treeCache == nil {
+		c.treeCache = newTree(c.TreeID)
+	}
+	return c.treeCache
+}
+
+func (c *Commit) GetBlobByPath(ctx context.Context, gitRepo *Repository, relpath string) (*Blob, error) {
+	return c.Tree().GetBlobByPath(ctx, gitRepo, relpath)
+}
+
+func (c *Commit) GetTreeEntryByPath(ctx context.Context, gitRepo *Repository, relpath string) (_ *TreeEntry, err error) {
+	return c.Tree().GetTreeEntryByPath(ctx, gitRepo, relpath)
+}
+
+func (c *Commit) SubTree(ctx context.Context, gitRepo *Repository, relpath string) (*Tree, error) {
+	return c.Tree().SubTree(ctx, gitRepo, relpath)
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
-func (c *Commit) CommitsByRange(page, pageSize int, not, since, until string) ([]*Commit, error) {
-	return c.repo.commitsByRangeWithTime(c.ID, page, pageSize, not, since, until)
+func (c *Commit) CommitsByRange(ctx context.Context, gitRepo *Repository, page, pageSize int, not, since, until string) ([]*Commit, error) {
+	return gitRepo.commitsByRangeWithTime(ctx, c.ID, page, pageSize, not, since, until)
 }
 
 // CommitsBefore returns all the commits before current revision
-func (c *Commit) CommitsBefore() ([]*Commit, error) {
-	return c.repo.getCommitsBefore(c.ID)
+func (c *Commit) CommitsBefore(ctx context.Context, gitRepo *Repository) ([]*Commit, error) {
+	return gitRepo.getCommitsBefore(ctx, c.ID)
 }
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
-func (c *Commit) HasPreviousCommit(objectID ObjectID) (bool, error) {
+func (c *Commit) HasPreviousCommit(ctx context.Context, gitRepo *Repository, objectID ObjectID) (bool, error) {
 	this := c.ID.String()
 	that := objectID.String()
 
@@ -125,8 +112,8 @@ func (c *Commit) HasPreviousCommit(objectID ObjectID) (bool, error) {
 
 	_, _, err := gitcmd.NewCommand("merge-base", "--is-ancestor").
 		AddDynamicArguments(that, this).
-		WithDir(c.repo.Path).
-		RunStdString(c.repo.Ctx)
+		WithRepo(gitRepo).
+		RunStdString(ctx)
 	if err == nil {
 		return true, nil
 	}
@@ -140,8 +127,8 @@ func (c *Commit) HasPreviousCommit(objectID ObjectID) (bool, error) {
 }
 
 // IsForcePush returns true if a push from oldCommitHash to this is a force push
-func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
-	objectFormat, err := c.repo.GetObjectFormat()
+func (c *Commit) IsForcePush(ctx context.Context, gitRepo *Repository, oldCommitID string) (bool, error) {
+	objectFormat, err := gitRepo.GetObjectFormat(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -149,26 +136,22 @@ func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
 		return false, nil
 	}
 
-	oldCommit, err := c.repo.GetCommit(oldCommitID)
+	oldCommit, err := gitRepo.GetCommit(ctx, oldCommitID)
 	if err != nil {
 		return false, err
 	}
-	hasPreviousCommit, err := c.HasPreviousCommit(oldCommit.ID)
+	hasPreviousCommit, err := c.HasPreviousCommit(ctx, gitRepo, oldCommit.ID)
 	return !hasPreviousCommit, err
 }
 
 // CommitsBeforeLimit returns num commits before current revision
-func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
-	return c.repo.getCommitsBeforeLimit(c.ID, num)
+func (c *Commit) CommitsBeforeLimit(ctx context.Context, gitRepo *Repository, num int) ([]*Commit, error) {
+	return gitRepo.getCommitsBeforeLimit(ctx, c.ID, num)
 }
 
-// CommitsBeforeUntil returns the commits between commitID to current revision
-func (c *Commit) CommitsBeforeUntil(commitID string) ([]*Commit, error) {
-	endCommit, err := c.repo.GetCommit(commitID)
-	if err != nil {
-		return nil, err
-	}
-	return c.repo.CommitsBetween(c, endCommit)
+// CommitsBeforeUntil returns the commits in range "[cur, ref)"
+func (c *Commit) CommitsBeforeUntil(ctx context.Context, gitRepo *Repository, ref RefName) ([]*Commit, error) {
+	return gitRepo.CommitsBetween(ctx, c.ID.RefName(), ref, -1)
 }
 
 // SearchCommitsOptions specify the parameters for SearchCommits
@@ -211,39 +194,29 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 }
 
 // SearchCommits returns the commits match the keyword before current revision
-func (c *Commit) SearchCommits(opts SearchCommitsOptions) ([]*Commit, error) {
-	return c.repo.searchCommits(c.ID, opts)
+func (c *Commit) SearchCommits(ctx context.Context, gitRepo *Repository, opts SearchCommitsOptions) ([]*Commit, error) {
+	return gitRepo.searchCommits(ctx, c.ID, opts)
 }
 
 // GetFilesChangedSinceCommit get all changed file names between pastCommit to current revision
-func (c *Commit) GetFilesChangedSinceCommit(pastCommit string) ([]string, error) {
-	return c.repo.GetFilesChangedBetween(pastCommit, c.ID.String())
+func (c *Commit) GetFilesChangedSinceCommit(ctx context.Context, gitRepo *Repository, pastCommit string) ([]string, error) {
+	return gitRepo.GetFilesChangedBetween(ctx, pastCommit, c.ID.String())
 }
 
 // FileChangedSinceCommit Returns true if the file given has changed since the past commit
 // YOU MUST ENSURE THAT pastCommit is a valid commit ID.
-func (c *Commit) FileChangedSinceCommit(filename, pastCommit string) (bool, error) {
-	return c.repo.FileChangedBetweenCommits(filename, pastCommit, c.ID.String())
-}
-
-// HasFile returns true if the file given exists on this commit
-// This does only mean it's there - it does not mean the file was changed during the commit.
-func (c *Commit) HasFile(filename string) (bool, error) {
-	_, err := c.GetBlobByPath(filename)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+func (c *Commit) FileChangedSinceCommit(ctx context.Context, gitRepo *Repository, filename, pastCommit string) (bool, error) {
+	return gitRepo.FileChangedBetweenCommits(ctx, filename, pastCommit, c.ID.String())
 }
 
 // GetFileContent reads a file content as a string or returns false if this was not possible
-func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
-	entry, err := c.GetTreeEntryByPath(filename)
+func (c *Commit) GetFileContent(ctx context.Context, gitRepo *Repository, filename string, limit int) (string, error) {
+	entry, err := c.GetTreeEntryByPath(ctx, gitRepo, filename)
 	if err != nil {
 		return "", err
 	}
 
-	r, err := entry.Blob().DataAsync()
+	r, err := entry.Blob(gitRepo).DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -266,10 +239,10 @@ func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
-func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, error) {
+func GetFullCommitID(ctx context.Context, repo RepositoryFacade, shortID string) (string, error) {
 	commitID, _, err := gitcmd.NewCommand("rev-parse").
 		AddDynamicArguments(shortID).
-		WithDir(repoPath).
+		WithRepo(repo).
 		RunStdString(ctx)
 	if err != nil {
 		if gitcmd.IsErrorExitCode(err, 128) {
@@ -289,11 +262,15 @@ func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) boo
 	if len(s) < minLen || len(s) > maxLen {
 		return false
 	}
+	return isStringLowerHex(s)
+}
+
+func isStringLowerHex(s string) bool {
 	for _, c := range s {
 		isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
 		if !isHex {
 			return false
 		}
 	}
-	return true
+	return len(s) > 0 // it accepts odd length because "shorten commit id" can be 7-chars
 }

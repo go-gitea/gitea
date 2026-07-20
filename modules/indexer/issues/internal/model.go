@@ -6,10 +6,10 @@ package internal
 import (
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/indexer"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/indexer"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
 )
 
 // IndexerData data stored in the issue indexer
@@ -34,7 +34,8 @@ type IndexerData struct {
 	NoProject          bool               `json:"no_project"`                   // True if ProjectIDs is empty
 	ProjectColumnMap   map[int64]int64    `json:"project_column_map,omitempty"` // Maps project ID to column ID for each project the issue is in
 	PosterID           int64              `json:"poster_id"`
-	AssigneeID         int64              `json:"assignee_id"`
+	AssigneeIDs        []int64            `json:"assignee_ids"`
+	NoAssignee         bool               `json:"no_assignee"` // True if the issue has no assignees
 	MentionIDs         []int64            `json:"mention_ids"`
 	ReviewedIDs        []int64            `json:"reviewed_ids"`
 	ReviewRequestedIDs []int64            `json:"review_requested_ids"`

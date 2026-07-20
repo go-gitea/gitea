@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	pwd "code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	pwd "gitea.dev/modules/auth/password"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
@@ -158,7 +158,8 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	}
 
 	isAdmin := c.Bool("admin")
-	mustChangePassword := true // always default to true
+	// Only local, existing, regular users should be forced to update their password. Bot users for example are non-interactive
+	mustChangePassword := userType == user_model.UserTypeIndividual
 	if c.IsSet("must-change-password") {
 		if userType != user_model.UserTypeIndividual {
 			return errors.New("must-change-password flag can only be set for individual users")

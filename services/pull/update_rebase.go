@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"strings"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
 )
 
 // updateHeadByRebaseOnToBase handles updating a PR's head branch by rebasing it on the PR current base branch
@@ -42,7 +42,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		// It's questionable about where this should go - either after or before the push
 		// I think in the interests of data safety - failures to push to the lfs should prevent
 		// the push as you can always re-rebase.
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, tmpRepoBaseBranch, oldMergeBase, &issues_model.PullRequest{
+		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, tmpRepoBaseBranch, oldMergeBase, &issues_model.PullRequest{
 			HeadRepoID: pr.BaseRepoID,
 			BaseRepoID: pr.HeadRepoID,
 		}); err != nil {

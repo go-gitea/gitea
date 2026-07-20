@@ -11,9 +11,9 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 )
 
 const (

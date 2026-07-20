@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -102,20 +102,13 @@ func GetCollaborators(ctx context.Context, opts *FindCollaborationOptions) ([]*C
 
 // GetCollaboration get collaboration for a repository id with a user id
 func GetCollaboration(ctx context.Context, repoID, uid int64) (*Collaboration, error) {
-	collaboration := &Collaboration{
-		RepoID: repoID,
-		UserID: uid,
-	}
-	has, err := db.GetEngine(ctx).Get(collaboration)
-	if !has {
-		collaboration = nil
-	}
+	collaboration, _, err := db.Get[Collaboration](ctx, builder.Eq{"repo_id": repoID, "user_id": uid})
 	return collaboration, err
 }
 
 // IsCollaborator check if a user is a collaborator of a repository
 func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
-	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repoID, UserID: userID})
+	return db.Exist[Collaboration](ctx, builder.Eq{"repo_id": repoID, "user_id": userID})
 }
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
@@ -126,13 +119,7 @@ func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid in
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		e := db.GetEngine(ctx)
-
-		collaboration := &Collaboration{
-			RepoID: repo.ID,
-			UserID: uid,
-		}
-		has, err := e.Get(collaboration)
+		collaboration, has, err := db.Get[Collaboration](ctx, builder.Eq{"repo_id": repo.ID, "user_id": uid})
 		if err != nil {
 			return fmt.Errorf("get collaboration: %w", err)
 		} else if !has {
@@ -144,12 +131,12 @@ func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid in
 		}
 		collaboration.Mode = mode
 
-		if _, err = e.
+		if _, err = db.GetEngine(ctx).
 			ID(collaboration.ID).
 			Cols("mode").
 			Update(collaboration); err != nil {
 			return fmt.Errorf("update collaboration: %w", err)
-		} else if _, err = e.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
+		} else if _, err = db.Exec(ctx, "UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
 			return fmt.Errorf("update access table: %w", err)
 		}
 
@@ -174,5 +161,5 @@ func IsOwnerMemberCollaborator(ctx context.Context, repo *Repository, userID int
 		return true, nil
 	}
 
-	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
+	return db.Exist[Collaboration](ctx, builder.Eq{"repo_id": repo.ID, "user_id": userID})
 }

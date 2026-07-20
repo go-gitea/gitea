@@ -9,7 +9,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 )
 
 type tagType string

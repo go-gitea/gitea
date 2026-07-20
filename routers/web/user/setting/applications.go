@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 const (
@@ -77,6 +77,30 @@ func ApplicationsPost(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", t.Name))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 		return
+	}
+
+	// a token-authenticated request must not mint a token with a broader scope than its own, nor
+	// drop the public-only restriction. Web routes accept basic-auth PATs/OAuth tokens too, so this
+	// must mirror the REST API guard in routers/api/v1/user/app.go.
+	if ctx.Data["IsApiToken"] == true {
+		apiTokenScope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+		if !ok {
+			ctx.HTTPError(http.StatusForbidden, "the authenticating token has no scope")
+			return
+		}
+		hasScope, err := apiTokenScope.CanCreateChildScope(t.Scope)
+		if err != nil {
+			ctx.ServerError("CanCreateChildScope", err)
+			return
+		}
+		if !hasScope {
+			ctx.HTTPError(http.StatusForbidden, "cannot create an access token with a broader scope than the authenticating token")
+			return
+		}
+		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
+			ctx.ServerError("EnforcePublicOnlyFrom", err)
+			return
+		}
 	}
 
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {

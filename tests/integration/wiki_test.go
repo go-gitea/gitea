@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -72,7 +72,7 @@ EOF
 
 	// reader can't push
 	_, _, runErr = gitcmd.NewCommand("push", "origin", "refs/heads/master").WithDir(dstLocalPath).RunStdString(t.Context())
-	assert.True(t, gitcmd.StderrContains(runErr, "remote: Repository not found\n"))
+	assert.Contains(t, runErr.Stderr(), "remote: Repository not found\n")
 	req := NewRequest(t, "GET", "/user2/repo1/wiki/raw/Home.md")
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "This is the home page!")

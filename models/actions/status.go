@@ -6,9 +6,8 @@ package actions
 import (
 	"slices"
 
-	"code.gitea.io/gitea/modules/translation"
-
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/modules/translation"
 )
 
 // Status represents the status of ActionRun, ActionRunJob, ActionTask, or ActionTaskStep

@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/gtprof"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/gtprof"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web/routing"
+	"gitea.dev/services/context"
 
 	"gitea.com/go-chi/session"
 	"github.com/chi-middleware/proxy"
@@ -147,6 +147,9 @@ func MustInitSessioner() func(next http.Handler) http.Handler {
 		Secure:         setting.SessionConfig.Secure,
 		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
+
+		// in the future, if websocket is used, the websocket handler should manage its own session sync (release)
+		IgnoreReleaseForWebSocket: true,
 	})
 	if err != nil {
 		log.Fatal("common.Sessioner failed: %v", err)

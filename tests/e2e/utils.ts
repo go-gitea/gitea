@@ -159,7 +159,7 @@ export async function createProject(
   await page.waitForURL(new RegExp(`/${owner}/${repo}/projects$`));
 
   // Extract the project ID from the project link in the list
-  const projectLink = page.locator('.milestone-list .milestone-card').filter({hasText: title}).locator('a').first();
+  const projectLink = page.locator('.milestone-list > .item').filter({hasText: title}).locator('a').first();
   const href = await projectLink.getAttribute('href');
   const match = /\/projects\/(\d+)/.exec(href || '');
   const id = match ? parseInt(match[1]) : 0;

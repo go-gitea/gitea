@@ -7,16 +7,16 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/web/auth"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/web/auth"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/context"
+	"gitea.dev/tests"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -27,6 +27,8 @@ import (
 func TestOAuth2AvatarFromPicture(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	defer test.MockVariableValue(&setting.OAuth2Client.UpdateAvatar, true)()
+	// the SSRF-protected avatar client blocks loopback by default; allow the loopback mock server here
+	defer test.MockVariableValue(&setting.Security.AllowedHostList, "loopback,external")()
 
 	mockServer := createOAuth2MockProvider()
 	defer mockServer.Close()

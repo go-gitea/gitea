@@ -14,12 +14,13 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"strk.kbt.io/projects/go/libravatar"
+	"xorm.io/builder"
 )
 
 const (
@@ -99,12 +100,13 @@ func HashEmail(email string) string {
 // GetEmailForHash converts a provided md5sum to the email
 func GetEmailForHash(ctx context.Context, md5Sum string) (string, error) {
 	return cache.GetString("Avatar:"+md5Sum, func() (string, error) {
-		emailHash := EmailHash{
-			Hash: strings.ToLower(strings.TrimSpace(md5Sum)),
+		emailHash, has, err := db.Get[EmailHash](ctx, builder.Eq{"`hash`": strings.ToLower(strings.TrimSpace(md5Sum))})
+		if err != nil {
+			return "", err
+		} else if !has {
+			return "", nil
 		}
-
-		_, err := db.GetEngine(ctx).Get(&emailHash)
-		return emailHash.Email, err
+		return emailHash.Email, nil
 	})
 }
 

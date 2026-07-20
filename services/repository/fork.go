@@ -9,18 +9,17 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	notify_service "gitea.dev/services/notify"
 
 	"xorm.io/builder"
 )
@@ -130,7 +129,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	// 2 - check whether the repository with the same storage exists
 	var isExist bool
-	isExist, err = gitrepo.IsRepositoryExist(ctx, repo)
+	isExist, err = git.IsRepositoryExist(ctx, repo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return nil, err
@@ -154,7 +153,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		cloneOpts.SingleBranch = true
 		cloneOpts.Branch = opts.SingleBranch
 	}
-	if err = gitrepo.Clone(ctx, opts.BaseRepo, repo, cloneOpts); err != nil {
+	if err = git.CloneManaged(ctx, opts.BaseRepo, repo, cloneOpts); err != nil {
 		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nError: %v", repo, opts.BaseRepo, err)
 		return nil, fmt.Errorf("git clone: %w", err)
 	}
@@ -165,13 +164,13 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// 5 - Create hooks
-	if err = gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
+	if err = git.CreateDelegateHooks(ctx, repo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
 	// 6 - Sync the repository branches and tags
 	var gitRepo *git.Repository
-	gitRepo, err = gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err = git.OpenRepository(repo)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %w", err)
 	}

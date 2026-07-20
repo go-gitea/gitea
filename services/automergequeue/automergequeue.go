@@ -8,10 +8,10 @@ import (
 	"errors"
 	"fmt"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/queue"
 )
 
 var AutoMergeQueue *queue.WorkerPoolQueue[string]
@@ -34,13 +34,13 @@ func StartPRCheckAndAutoMerge(ctx context.Context, pull *issues_model.PullReques
 		return
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, pull.BaseRepo)
+	gitRepo, err := git.OpenRepository(pull.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return
 	}
 	defer gitRepo.Close()
-	commitID, err := gitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	commitID, err := gitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 	if err != nil {
 		log.Error("GetRefCommitID: %v", err)
 		return

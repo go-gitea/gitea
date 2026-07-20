@@ -291,7 +291,7 @@ class ImageDiff {
 
     function updateOpacity() {
       if (ctx.imageAfter) {
-        (ctx.imageAfter.parentNode as HTMLElement).style.opacity = `${Number(rangeInput.value) / 100}`;
+        (ctx.imageAfter.parentNode as HTMLElement).style.opacity = String(Number(rangeInput.value) / 100);
       }
     }
 

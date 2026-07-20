@@ -4,8 +4,8 @@
 package admin
 
 import (
-	"code.gitea.io/gitea/routers/api/v1/shared"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/routers/api/v1/shared"
+	"gitea.dev/services/context"
 )
 
 // ListWorkflowJobs Lists all jobs
@@ -99,5 +99,5 @@ func ListWorkflowRuns(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	shared.ListRuns(ctx, 0, 0)
+	shared.ListRuns(ctx, 0, 0, "")
 }
