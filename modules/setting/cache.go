@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"strings"
 	"time"
 
 	"gitea.dev/modules/log"
@@ -14,7 +13,7 @@ import (
 type Cache struct {
 	Adapter  string
 	Interval int
-	Conn     string
+	Conn     string        `ini:"-"`
 	TTL      time.Duration `ini:"ITEM_TTL"`
 }
 
@@ -53,16 +52,12 @@ func loadCacheFrom(rootCfg ConfigProvider) {
 	CacheService.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache", "twoqueue"})
 	switch CacheService.Adapter {
 	case "memory":
-	case "redis", "memcache":
-		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
-		if CacheService.Adapter == "redis" && CacheService.Conn == "" {
-			CacheService.Conn = Redis.ConnStr // fall back to the shared [redis] conn
-		}
+	case "memcache":
+		CacheService.Conn = sec.Key("HOST").String()
+	case "redis":
+		CacheService.Conn = sec.Key("HOST").MustString(Redis.ConnStr)
 	case "twoqueue":
-		CacheService.Conn = strings.TrimSpace(sec.Key("HOST").String())
-		if CacheService.Conn == "" {
-			CacheService.Conn = "50000"
-		}
+		CacheService.Conn = sec.Key("HOST").MustString("50000")
 	default:
 		log.Fatal("Unknown cache adapter: %s", CacheService.Adapter)
 	}

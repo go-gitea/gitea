@@ -42,19 +42,20 @@ var SessionConfig = struct {
 
 func loadSessionFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("session")
-	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
-		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
-	// for the redis provider with an empty PROVIDER_CONFIG, fall back to the shared [redis] conn;
-	// the raw key is read first so the file-provider default path below is left untouched
-	if SessionConfig.Provider == "redis" && strings.TrimSpace(sec.Key("PROVIDER_CONFIG").String()) == "" && Redis.ConnStr != "" {
-		SessionConfig.ProviderConfig = Redis.ConnStr
-	} else {
-		SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions")), "\" ")
-	}
-	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
-		SessionConfig.ProviderConfig = filepath.Join(AppWorkPath, SessionConfig.ProviderConfig)
+	SessionConfig.Provider = sec.Key("PROVIDER").In("memory", []string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
+
+	if SessionConfig.Provider == "redis" {
+		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").MustString(Redis.ConnStr)
+	} else if SessionConfig.Provider == "file" {
+		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions"))
+		if !filepath.IsAbs(SessionConfig.ProviderConfig) {
+			SessionConfig.ProviderConfig = filepath.Join(AppDataPath, SessionConfig.ProviderConfig)
+		}
 		checkOverlappedPath("[session].PROVIDER_CONFIG", SessionConfig.ProviderConfig)
+	} else {
+		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").String()
 	}
+
 	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
 	// HINT: INSTALL-PAGE-COOKIE-INIT: the cookie system is not properly initialized on the Install page, so there is no CookiePath
 	SessionConfig.CookiePath = util.IfZero(AppSubURL, "/")
