@@ -95,7 +95,6 @@
     "eslint-plugin-import-x": "4.17.1",
     "eslint-plugin-playwright": "2.10.5",
     "eslint-plugin-regexp": "3.1.1",
-    "eslint-plugin-sonarjs": "4.2.0",
     "eslint-plugin-unicorn": "72.0.0",
     "eslint-plugin-vue": "10.9.2",
     "eslint-plugin-vue-scoped-css": "3.1.1",

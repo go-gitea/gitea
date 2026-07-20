@@ -148,6 +148,7 @@ GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
 GO_SOURCES += $(GENERATED_GO_DEST)
 
 ESLINT_CONCURRENCY ?= 2
+ESLINT_ARGS := --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
@@ -298,12 +299,12 @@ lint-backend-fix: lint-go-fix lint-editorconfig ## lint backend files and fix is
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js and ts files
-	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES)
+	pnpm exec eslint $(ESLINT_ARGS) $(ESLINT_FILES)
 	pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js and ts files and fix issues
-	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES) --fix
+	pnpm exec eslint $(ESLINT_ARGS) $(ESLINT_FILES) --fix
 	pnpm exec vue-tsc
 
 .PHONY: lint-css
@@ -367,11 +368,11 @@ lint-yaml: .venv ## lint yaml files
 
 .PHONY: lint-json
 lint-json: node_modules ## lint json files
-	pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
+	pnpm exec eslint -c eslint.json.config.ts $(ESLINT_ARGS)
 
 .PHONY: lint-json-fix
 lint-json-fix: node_modules ## lint and fix json files
-	pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) --fix
+	pnpm exec eslint -c eslint.json.config.ts $(ESLINT_ARGS) --fix
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
