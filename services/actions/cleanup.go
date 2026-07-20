@@ -249,6 +249,10 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		if err := CleanupEphemeralRunners(ctx); err != nil {
 			return err
 		}
+		// remove label rows before their jobs so the job_id subquery can resolve
+		if err := actions_model.DeleteActionRunJobLabelsByRunID(ctx, repoID, run.ID); err != nil {
+			return err
+		}
 		return db.DeleteBeans(ctx, recordsToDelete...)
 	}); err != nil {
 		return err

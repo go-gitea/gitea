@@ -210,7 +210,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 
 			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
 			hasWaitingJobs = hasWaitingJobs || (runJob.Status == actions_model.StatusWaiting && !isReusableWorkflowCaller)
-			if err := db.Insert(ctx, runJob); err != nil {
+			if err := actions_model.InsertActionRunJob(ctx, runJob); err != nil {
 				return err
 			}
 

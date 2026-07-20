@@ -144,6 +144,12 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return fmt.Errorf("cleanupEphemeralRunners: %w", err)
 	}
 
+	// remove action_run_job_label rows before their jobs are deleted below, so the
+	// job_id subquery can still resolve (the table has no repo_id of its own).
+	if err := actions_model.DeleteActionRunJobLabelsByRepoID(ctx, repoID); err != nil {
+		return fmt.Errorf("deleteActionRunJobLabels: %w", err)
+	}
+
 	if err := db.DeleteBeans(ctx,
 		&access_model.Access{RepoID: repo.ID},
 		&activities_model.Action{RepoID: repo.ID},
