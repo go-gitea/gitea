@@ -288,13 +288,11 @@ func Diff(ctx *context.Context) {
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
 	}
-	gitRepo := ctx.Repo.GitRepo
-	var gitRepoStore gitrepo.Repository = ctx.Repo.Repository
+	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
 
 	if ctx.Data["PageIsWiki"] != nil {
 		var err error
-		gitRepoStore = ctx.Repo.Repository.WikiStorageRepo()
-		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, gitRepoStore)
+		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -334,7 +332,7 @@ func Diff(ctx *context.Context) {
 		ctx.NotFound(err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepoStore, gitRepo, "", commitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, "", commitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
@@ -410,7 +408,7 @@ func Diff(ctx *context.Context) {
 	}
 
 	note := &git.Note{}
-	err = git.GetNote(ctx, ctx.Repo.GitRepo, commitID, note)
+	err = git.GetNote(ctx, gitRepo, commitID, note)
 	if err == nil {
 		ctx.Data["NoteCommit"] = note.Commit
 		ctx.Data["NoteAuthor"] = user_model.GetUserByGitAuthor(ctx, note.Commit)
