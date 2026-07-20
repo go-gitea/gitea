@@ -64,13 +64,13 @@ func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 	}
 	defer templateGitRepo.Close()
 
-	templateHooks, err := templateGitRepo.Hooks()
+	templateHooks, err := git.ListHooks(templateGitRepo)
 	if err != nil {
 		return err
 	}
 
 	for _, templateHook := range templateHooks {
-		generateHook, err := generateGitRepo.GetHook(templateHook.Name())
+		generateHook, err := git.GetHook(generateGitRepo, templateHook.Name())
 		if err != nil {
 			return err
 		}
