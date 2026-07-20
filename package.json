@@ -13,7 +13,7 @@
     "@codemirror/autocomplete": "6.20.3",
     "@codemirror/commands": "6.10.4",
     "@codemirror/lang-json": "6.0.2",
-    "@codemirror/lang-markdown": "6.5.0",
+    "@codemirror/lang-markdown": "6.5.1",
     "@codemirror/language": "6.12.4",
     "@codemirror/language-data": "6.5.2",
     "@codemirror/legacy-modes": "6.5.3",
