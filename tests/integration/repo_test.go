@@ -321,6 +321,7 @@ type fastImportCommit struct {
 func createFastImportRepo(t *testing.T, repoPath string, commits []fastImportCommit) {
 	var buf bytes.Buffer
 	for i, c := range commits {
+		fmt.Fprintf(&buf, "reset %s\n", c.ref)
 		fmt.Fprintf(&buf, "commit %s\nmark :%d\ncommitter Gitea <gitea@example.com> 1500000000 +0000\n", c.ref, i+1)
 		fmt.Fprintf(&buf, "data %d\n%s\n", len(c.msg), c.msg)
 		for _, f := range c.files {
@@ -328,7 +329,7 @@ func createFastImportRepo(t *testing.T, repoPath string, commits []fastImportCom
 		}
 	}
 	buf.WriteString("done\n")
-	_, _, err := gitcmd.NewCommand("fast-import", "--done").WithDir(repoPath).WithStdinBytes(buf.Bytes()).RunStdString(t.Context())
+	_, _, err := gitcmd.NewCommand("fast-import").AddArguments("--force", "--done").WithDir(repoPath).WithStdinBytes(buf.Bytes()).RunStdString(t.Context())
 	require.NoError(t, err)
 }
 
