@@ -28,6 +28,7 @@ import (
 	"gitea.dev/modelmigration/v1_25"
 	"gitea.dev/modelmigration/v1_26"
 	"gitea.dev/modelmigration/v1_27"
+	"gitea.dev/modelmigration/v1_28"
 	"gitea.dev/modelmigration/v1_6"
 	"gitea.dev/modelmigration/v1_7"
 	"gitea.dev/modelmigration/v1_8"
