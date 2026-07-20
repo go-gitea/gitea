@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitrepo
+package git
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 )
 
@@ -23,7 +22,7 @@ type CommitsCountOptions struct {
 }
 
 // CommitsCount returns number of total commits of until given revision.
-func CommitsCount(ctx context.Context, repo git.RepositoryFacade, opts CommitsCountOptions) (int64, error) {
+func CommitsCount(ctx context.Context, repo RepositoryFacade, opts CommitsCountOptions) (int64, error) {
 	cmd := gitcmd.NewCommand("rev-list", "--count")
 
 	cmd.AddDynamicArguments(opts.Revision...)
@@ -53,7 +52,7 @@ func CommitsCount(ctx context.Context, repo git.RepositoryFacade, opts CommitsCo
 }
 
 // FileCommitsCount return the number of files at a revision
-func FileCommitsCount(ctx context.Context, repo git.RepositoryFacade, revision, file string) (int64, error) {
+func FileCommitsCount(ctx context.Context, repo RepositoryFacade, revision, file string) (int64, error) {
 	return CommitsCount(ctx, repo,
 		CommitsCountOptions{
 			Revision: []string{revision},
@@ -62,17 +61,17 @@ func FileCommitsCount(ctx context.Context, repo git.RepositoryFacade, revision, 
 }
 
 // CommitsCountOfCommit returns number of total commits of until current revision.
-func CommitsCountOfCommit(ctx context.Context, repo git.RepositoryFacade, commitID string) (int64, error) {
+func CommitsCountOfCommit(ctx context.Context, repo RepositoryFacade, commitID string) (int64, error) {
 	return CommitsCount(ctx, repo, CommitsCountOptions{
 		Revision: []string{commitID},
 	})
 }
 
 // AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(ctx context.Context, repo git.RepositoryFacade, hidePRRefs bool, files ...string) (int64, error) {
+func AllCommitsCount(ctx context.Context, repo RepositoryFacade, hidePRRefs bool, files ...string) (int64, error) {
 	cmd := gitcmd.NewCommand("rev-list")
 	if hidePRRefs {
-		cmd.AddArguments("--exclude=" + git.PullPrefix + "*")
+		cmd.AddArguments("--exclude=" + PullPrefix + "*")
 	}
 	cmd.AddArguments("--all", "--count")
 	if len(files) > 0 {
@@ -87,13 +86,9 @@ func AllCommitsCount(ctx context.Context, repo git.RepositoryFacade, hidePRRefs 
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 }
 
-func GetFullCommitID(ctx context.Context, repo git.RepositoryFacade, shortID string) (string, error) {
-	return git.GetFullCommitID(ctx, repoPath(repo), shortID)
-}
-
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
-func GetLatestCommitTime(ctx context.Context, repo git.RepositoryFacade) (time.Time, error) {
-	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", git.BranchPrefix, "--count", "1", "--format=%(committerdate)").WithRepo(repo).RunStdString(ctx)
+func GetLatestCommitTime(ctx context.Context, repo RepositoryFacade) (time.Time, error) {
+	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)").WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return time.Time{}, err
 	}

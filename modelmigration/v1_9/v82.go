@@ -10,7 +10,6 @@ import (
 	"gitea.dev/modelmigration/base"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 )
 
 func FixReleaseSha1OnReleaseTable(ctx context.Context, x base.EngineMigration) error {
@@ -87,7 +86,7 @@ func FixReleaseSha1OnReleaseTable(ctx context.Context, x base.EngineMigration) e
 					userCache[repo.OwnerID] = user
 				}
 
-				gitRepo, err = gitrepo.OpenRepository(repo_model.CodeRepoByName(user.Name, repo.Name))
+				gitRepo, err = git.OpenRepository(repo_model.CodeRepoByName(user.Name, repo.Name))
 				if err != nil {
 					return err
 				}

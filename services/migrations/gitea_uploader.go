@@ -20,7 +20,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/label"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
@@ -139,7 +138,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = gitrepo.OpenRepository(g.repo)
+	g.gitRepo, err = git.OpenRepository(g.repo)
 	if err != nil {
 		return err
 	}
@@ -304,7 +303,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 					return fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
 				}
 				rel.Sha1 = commit.ID.String()
-				rel.NumCommits, err = gitrepo.CommitsCountOfCommit(ctx, g.repo, commit.ID.String())
+				rel.NumCommits, err = git.CommitsCountOfCommit(ctx, g.repo, commit.ID.String())
 				if err != nil {
 					return fmt.Errorf("CommitsCount: %w", err)
 				}
@@ -596,7 +595,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		}
 		defer ret.Close()
 
-		f, err := gitrepo.CreateRepoFile(ctx, g.repo, fmt.Sprintf("pulls/%d.patch", pr.Number))
+		f, err := git.CreateRepoFile(ctx, g.repo, fmt.Sprintf("pulls/%d.patch", pr.Number))
 		if err != nil {
 			return err
 		}
@@ -689,7 +688,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			pr.Head.SHA = headSha
 		}
 
-		if err = gitrepo.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
+		if err = git.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
 			return "", err
 		}
 
@@ -712,7 +711,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
 		} else {
 			// set head information
-			if err = gitrepo.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
+			if err = git.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
 				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			}
 		}
@@ -742,7 +741,7 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		if pr.Base.Ref != "" && pr.Head.SHA != "" {
 			// A PR against a tag base does not make sense - therefore pr.Base.Ref must be a branch
 			// TODO: should we be checking for the refs/heads/ prefix on the pr.Base.Ref? (i.e. are these actually branches or refs)
-			pr.Base.SHA, err = gitrepo.MergeBase(ctx, g.repo, git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
+			pr.Base.SHA, err = git.MergeBase(ctx, g.repo, git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
 			if err != nil {
 				log.Error("Cannot determine the merge base for PR #%d in %s/%s. Error: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}

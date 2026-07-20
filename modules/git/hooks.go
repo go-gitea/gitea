@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitrepo
+package git
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -108,8 +108,8 @@ done
 }
 
 // CreateDelegateHooks creates all the hooks scripts for the repo
-func CreateDelegateHooks(_ context.Context, repo git.RepositoryFacade) (err error) {
-	return createDelegateHooks(filepath.Join(repoPath(repo), "hooks"))
+func CreateDelegateHooks(_ context.Context, repo RepositoryFacade) (err error) {
+	return createDelegateHooks(filepath.Join(gitcmd.RepoLocalPath(repo), "hooks"))
 }
 
 func createDelegateHooks(hookDir string) (err error) {
@@ -175,8 +175,8 @@ func ensureExecutable(filename string) error {
 }
 
 // CheckDelegateHooks checks the hooks scripts for the repo
-func CheckDelegateHooks(_ context.Context, repo git.RepositoryFacade) ([]string, error) {
-	return checkDelegateHooks(filepath.Join(repoPath(repo), "hooks"))
+func CheckDelegateHooks(_ context.Context, repo RepositoryFacade) ([]string, error) {
+	return checkDelegateHooks(filepath.Join(gitcmd.RepoLocalPath(repo), "hooks"))
 }
 
 func checkDelegateHooks(hookDir string) ([]string, error) {

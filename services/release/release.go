@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
@@ -78,9 +77,9 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 	}
 
 	var created bool
-	// Only actual create when publish.
+	// Only actual create when a release is published.
 	if !rel.IsDraft {
-		if !gitrepo.IsTagExist(ctx, rel.Repo, rel.TagName) {
+		if !git.IsTagExist(ctx, rel.Repo, rel.TagName) {
 			if err := rel.LoadAttributes(ctx); err != nil {
 				log.Error("LoadAttributes: %v", err)
 				return false, err
@@ -150,7 +149,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.NumCommits, err = gitrepo.CommitsCountOfCommit(ctx, rel.Repo, commit.ID.String())
+		rel.NumCommits, err = git.CommitsCountOfCommit(ctx, rel.Repo, commit.ID.String())
 		if err != nil {
 			return false, fmt.Errorf("CommitsCount: %w", err)
 		}
@@ -229,7 +228,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		}
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return err
 	}

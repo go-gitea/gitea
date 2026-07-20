@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitrepo
+package git
 
 import (
 	"bufio"
@@ -9,12 +9,11 @@ import (
 	"context"
 	"io"
 
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
 
-func LineBlame(ctx context.Context, repo git.RepositoryFacade, revision, file string, line uint) (string, error) {
+func LineBlame(ctx context.Context, repo RepositoryFacade, revision, file string, line uint) (string, error) {
 	stdout, _, err := gitcmd.NewCommand("blame").WithRepo(repo).
 		AddOptionFormat("-L %d,%d", line, line).
 		AddOptionValues("-p", revision).
@@ -37,7 +36,7 @@ type BlameReader struct {
 	done           chan error
 	lastSha        *string
 	ignoreRevsFile string
-	objectFormat   git.ObjectFormat
+	objectFormat   ObjectFormat
 	cleanupFuncs   []func()
 }
 
@@ -139,7 +138,7 @@ func (r *BlameReader) cleanup() {
 }
 
 // CreateBlameReader creates reader for given git.RepositoryFacade, commit and file
-func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo git.RepositoryFacade, gitRepo *git.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, retErr error) {
+func CreateBlameReader(ctx context.Context, objectFormat ObjectFormat, repo RepositoryFacade, gitRepo *Repository, commit *Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, retErr error) {
 	defer func() {
 		if retErr != nil {
 			rd.cleanup()
@@ -157,9 +156,9 @@ func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo 
 	rd.bufferedReader = bufio.NewReader(stdoutReader)
 	rd.cleanupFuncs = append(rd.cleanupFuncs, stdoutReaderClose)
 
-	if git.DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
+	if DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
 		ignoreRevsFileName, ignoreRevsFileCleanup, err := tryCreateBlameIgnoreRevsFile(ctx, gitRepo, commit)
-		if err != nil && !git.IsErrNotExist(err) {
+		if err != nil && !IsErrNotExist(err) {
 			return nil, err
 		} else if err == nil {
 			rd.ignoreRevsFile = ignoreRevsFileName
@@ -180,7 +179,7 @@ func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo 
 	return rd, nil
 }
 
-func tryCreateBlameIgnoreRevsFile(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) (string, func(), error) {
+func tryCreateBlameIgnoreRevsFile(ctx context.Context, gitRepo *Repository, commit *Commit) (string, func(), error) {
 	entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, ".git-blame-ignore-revs")
 	if err != nil {
 		return "", nil, err

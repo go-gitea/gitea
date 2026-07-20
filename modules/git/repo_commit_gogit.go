@@ -57,7 +57,7 @@ func (repo *Repository) ConvertToGitID(ctx context.Context, commitID string) (Ob
 
 	actualCommitID, _, err := gitcmd.NewCommand("rev-parse", "--verify").
 		AddDynamicArguments(commitID).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(ctx)
 	actualCommitID = strings.TrimSpace(actualCommitID)
 	if err != nil {

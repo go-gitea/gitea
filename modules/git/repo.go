@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -24,13 +25,20 @@ import (
 type RepositoryFacade = gitcmd.RepositoryFacade
 
 type RepositoryBase struct {
-	Path string // absolute path
+	// TODO: refactor it to a private field "localPath" in the future
+	// * for repo accessing purpose, in most causes, use "WithRepo", or RepoLocalPath(repo) if the local path must be used
+	// * for error handling & logging purpose, it needs to introduce a new function "git.RepoLogName()" to handle various cases
+	Path string
 
 	LastCommitCache *LastCommitCache
 
 	repoFacade        RepositoryFacade
 	tagCache          *ObjectCache[*Tag]
 	objectFormatCache ObjectFormat
+
+	mu                 sync.Mutex
+	catFileBatchCloser CatFileBatchCloser
+	catFileBatchInUse  bool
 }
 
 var _ gitcmd.RepositoryFacade = (*Repository)(nil)
@@ -78,6 +86,14 @@ func (repo *Repository) Close() error {
 	}
 	repo.LastCommitCache = nil
 	repo.tagCache = nil
+
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	if repo.catFileBatchCloser != nil {
+		repo.catFileBatchCloser.Close()
+		repo.catFileBatchCloser = nil
+		repo.catFileBatchInUse = false
+	}
 	return repo.closeInternal()
 }
 
@@ -87,8 +103,8 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 	return err == nil
 }
 
-// InitRepository initializes a new Git repository.
-func InitRepository(ctx context.Context, repoPath string, bare bool, objectFormatName string) error {
+// InitRepositoryLocal initializes a new Git repository.
+func InitRepositoryLocal(ctx context.Context, repoPath string, bare bool, objectFormatName string) error {
 	err := os.MkdirAll(repoPath, os.ModePerm)
 	if err != nil {
 		return err
@@ -115,7 +131,7 @@ func (repo *Repository) IsEmpty(ctx context.Context) (bool, error) {
 	stdout, _, err := gitcmd.NewCommand().
 		AddOptionFormat("--git-dir=%s", repo.Path).
 		AddArguments("rev-list", "-n", "1", "--all").
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(ctx)
 	if err != nil {
 		if (gitcmd.IsErrorExitCode(err, 1) && err.Stderr() == "") || gitcmd.IsErrorExitCode(err, 129) {
@@ -254,4 +270,42 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 
 	return nil
+}
+
+// CatFileBatch obtains a "batch object provider" for this repository.
+// It reuses an existing one if available, otherwise creates a new one.
+func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, closeFunc func(), err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+
+	if repo.catFileBatchCloser != nil && !repo.catFileBatchInUse {
+		if ctx != repo.catFileBatchCloser.Context() {
+			repo.catFileBatchCloser.Close()
+			repo.catFileBatchCloser = nil
+			repo.catFileBatchInUse = false
+		}
+	}
+
+	if repo.catFileBatchCloser == nil {
+		repo.catFileBatchCloser, err = NewBatch(ctx, repo)
+		if err != nil {
+			repo.catFileBatchCloser = nil // otherwise it is "interface(nil)" and will cause wrong logic
+			return nil, nil, err
+		}
+	}
+
+	if !repo.catFileBatchInUse {
+		repo.catFileBatchInUse = true
+		return CatFileBatch(repo.catFileBatchCloser), func() {
+			repo.mu.Lock()
+			defer repo.mu.Unlock()
+			repo.catFileBatchInUse = false
+		}, nil
+	}
+
+	tempBatch, err := NewBatch(ctx, repo)
+	if err != nil {
+		return nil, nil, err
+	}
+	return tempBatch, tempBatch.Close, nil
 }

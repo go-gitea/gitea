@@ -19,7 +19,6 @@ import (
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
@@ -125,7 +124,7 @@ func getExtendedCommitStats(ctx context.Context, repo *git.Repository, revision 
 	defer stdoutReaderClose()
 
 	var extendedCommitStats []*ExtendedCommitStats
-	err = gitCmd.WithDir(repo.Path).
+	err = gitCmd.WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 
@@ -191,7 +190,7 @@ func getExtendedCommitStats(ctx context.Context, repo *git.Repository, revision 
 func generateContributorStats(genDone chan struct{}, cache cache.StringCache, cacheKey string, repo *repo_model.Repository, revision string) {
 	ctx := graceful.GetManager().HammerContext()
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		_ = cache.PutJSON(cacheKey, fmt.Errorf("OpenRepository: %w", err), contributorStatsCacheTimeout)
 		return

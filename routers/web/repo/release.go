@@ -19,7 +19,6 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -60,7 +59,7 @@ func calReleaseNumCommitsBehind(ctx stdCtx.Context, repoCtx *context.Repository,
 				return fmt.Errorf("GetBranchCommit(DefaultBranch): %w", err)
 			}
 		}
-		countCache[target], err = gitrepo.CommitsCountOfCommit(ctx, repoCtx.Repository, commit.ID.String())
+		countCache[target], err = git.CommitsCountOfCommit(ctx, repoCtx.Repository, commit.ID.String())
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %w", err)
 		}

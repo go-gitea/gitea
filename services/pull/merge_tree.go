@@ -11,7 +11,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 )
 
@@ -19,7 +18,7 @@ import (
 // return true if there are conflicts otherwise return false
 // pr.Status and pr.ConflictedFiles will be updated as necessary
 func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, baseCommitID string) (bool, error) {
-	treeHash, conflict, conflictFiles, err := gitrepo.MergeTree(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID, pr.MergeBase)
+	treeHash, conflict, conflictFiles, err := git.MergeTree(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID, pr.MergeBase)
 	if err != nil {
 		return false, fmt.Errorf("MergeTree: %w", err)
 	}
@@ -55,7 +54,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return err
 	}
-	headGitRepo, err := gitrepo.OpenRepository(pr.HeadRepo)
+	headGitRepo, err := git.OpenRepository(pr.HeadRepo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -66,7 +65,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	if pr.IsSameRepo() {
 		baseGitRepo = headGitRepo
 	} else {
-		baseGitRepo, err = gitrepo.OpenRepository(pr.BaseRepo)
+		baseGitRepo, err = git.OpenRepository(pr.BaseRepo)
 		if err != nil {
 			return fmt.Errorf("OpenRepository: %w", err)
 		}
@@ -94,7 +93,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 	// it will be checked in 2 weeks by default from git if the pull request created failure.
 	if !pr.IsSameRepo() {
 		if !baseGitRepo.IsReferenceExist(ctx, pr.HeadCommitID) {
-			if err := gitrepo.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
+			if err := git.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
 				return fmt.Errorf("FetchRemoteCommit: %w", err)
 			}
 		}
@@ -106,7 +105,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for base: %w", err)
 	}
 
-	pr.MergeBase, err = gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
+	pr.MergeBase, err = git.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
 	if err != nil {
 		// if there is no merge base, then it's empty, still need to allow the pull request to be created
 		// not quite right (e.g.: why not reset the fields like below), but no interest to do more investigation at the moment

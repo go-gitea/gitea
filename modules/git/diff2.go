@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitrepo
+package git
 
 import (
 	"context"
@@ -10,13 +10,12 @@ import (
 	"regexp"
 	"strconv"
 
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 )
 
 // GetDiffShortStatByCmdArgs counts number of changed files, number of additions and deletions
 // TODO: it can be merged with another "GetDiffShortStat" in the future
-func GetDiffShortStatByCmdArgs(ctx context.Context, repo git.RepositoryFacade, trustedArgs gitcmd.TrustedCmdArgs, dynamicArgs ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
+func GetDiffShortStatByCmdArgs(ctx context.Context, repo RepositoryFacade, trustedArgs gitcmd.TrustedCmdArgs, dynamicArgs ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
 	// Now if we call:
 	// $ git diff --shortstat 1ebb35b98889ff77299f24d82da426b434b0cca0...788b8b1440462d477f45b0088875
 	// we get:
@@ -64,7 +63,7 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 }
 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
-func GetReverseRawDiff(ctx context.Context, repo git.RepositoryFacade, commitID string, writer io.Writer) error {
+func GetReverseRawDiff(ctx context.Context, repo RepositoryFacade, commitID string, writer io.Writer) error {
 	return gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").
 		AddDynamicArguments(commitID).
 		WithStdoutCopy(writer).
