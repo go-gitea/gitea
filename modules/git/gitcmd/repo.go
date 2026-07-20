@@ -29,6 +29,9 @@ func (c *Command) WithRepo(repo RepositoryFacade) *Command {
 	return c
 }
 
+// RepoLocalPath returns an absolute path for a RepositoryFacade.
+// TODO: most of the calls to this function should be replaced with a "Repo FS" in the future
+// to handle file accesses in the git repo (e.g.: read, write, list, remove).
 func RepoLocalPath(repo RepositoryFacade) string {
 	repoLoc := repo.GitRepoLocation()
 	if filepath.IsAbs(repoLoc) {
@@ -71,6 +74,8 @@ func (r *repositoryUnmanaged) GitRepoLocation() string {
 
 // RepositoryUnmanaged returns a RepositoryFacade for a repository that might not be managed by Gitea.
 // If the path is not absolute, then it is relative to setting.RepoRootPath
+// This function is mainly for maintaining the owner's repo when the repo is not managed yet.
+// e.g.: init, clone, transfer, rename, adopt, etc., and temp repo creation and modification.
 func RepositoryUnmanaged(s string) RepositoryFacade {
 	return &repositoryUnmanaged{loc: filepath.Clean(s)}
 }
