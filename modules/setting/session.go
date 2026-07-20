@@ -46,15 +46,15 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 
 	switch SessionConfig.Provider {
 	case "redis":
-		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").MustString(Redis.ConnStr)
+		SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(Redis.ConnStr), "\" ")
 	case "file":
-		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions"))
+		SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions")), "\" ")
 		if !filepath.IsAbs(SessionConfig.ProviderConfig) {
-			SessionConfig.ProviderConfig = filepath.Join(AppDataPath, SessionConfig.ProviderConfig)
+			SessionConfig.ProviderConfig = filepath.Join(AppWorkPath, SessionConfig.ProviderConfig)
 		}
 		checkOverlappedPath("[session].PROVIDER_CONFIG", SessionConfig.ProviderConfig)
 	default:
-		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").String()
+		SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").String(), "\" ")
 	}
 
 	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
