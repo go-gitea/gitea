@@ -45,6 +45,38 @@ func (repo *Repository) GetTagCommit(ctx context.Context, name string) (*Commit,
 	return repo.GetCommit(ctx, RefNameFromTag(name).String())
 }
 
+const prettyLogFormat = `--pretty=format:%H`
+
+func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
+	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
+	logs, _, err := gitcmd.NewCommand("log").AddArguments(prettyLogFormat).
+		AddDynamicArguments(revisionRange).AddArguments("--").WithRepo(repo).
+		RunStdBytes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return repo.parsePrettyFormatLogToList(ctx, logs)
+}
+
+func (repo *Repository) parsePrettyFormatLogToList(ctx context.Context, logs []byte) ([]*Commit, error) {
+	var commits []*Commit
+	if len(logs) == 0 {
+		return commits, nil
+	}
+
+	parts := bytes.SplitSeq(logs, []byte{'\n'})
+
+	for commitID := range parts {
+		commit, err := repo.GetCommit(ctx, string(commitID))
+		if err != nil {
+			return nil, err
+		}
+		commits = append(commits, commit)
+	}
+
+	return commits, nil
+}
+
 func (repo *Repository) getCommitByPathWithID(ctx context.Context, id ObjectID, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
 	if strings.HasPrefix(relpath, ":") {
@@ -54,7 +86,7 @@ func (repo *Repository) getCommitByPathWithID(ctx context.Context, id ObjectID, 
 	stdout, _, runErr := gitcmd.NewCommand("log", "-1", prettyLogFormat).
 		AddDynamicArguments(id.String()).
 		AddDashesAndList(relpath).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(ctx)
 	if runErr != nil {
 		return nil, runErr
@@ -72,7 +104,7 @@ func (repo *Repository) getCommitByPathWithID(ctx context.Context, id ObjectID, 
 func (repo *Repository) GetCommitByPath(ctx context.Context, relpath string) (*Commit, error) {
 	stdout, _, runErr := gitcmd.NewCommand("log", "-1", prettyLogFormat).
 		AddDashesAndList(relpath).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdBytes(ctx)
 	if runErr != nil {
 		return nil, runErr
@@ -106,7 +138,7 @@ func (repo *Repository) commitsByRangeWithTime(ctx context.Context, id ObjectID,
 		cmd.AddOptionFormat("--until=%s", until)
 	}
 
-	stdout, _, err := cmd.WithDir(repo.Path).RunStdBytes(ctx)
+	stdout, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +192,7 @@ func (repo *Repository) searchCommits(ctx context.Context, id ObjectID, opts Sea
 
 	// search for commits matching given constraints and keywords in commit msg
 	addCommonSearchArgs(cmd)
-	stdout, _, err := cmd.WithDir(repo.Path).RunStdBytes(ctx)
+	stdout, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +213,7 @@ func (repo *Repository) searchCommits(ctx context.Context, id ObjectID, opts Sea
 			hashCmd.AddDynamicArguments(v)
 
 			// search with given constraints for commit matching sha hash of v
-			hashMatching, _, err := hashCmd.WithDir(repo.Path).RunStdBytes(ctx)
+			hashMatching, _, err := hashCmd.WithRepo(repo).RunStdBytes(ctx)
 			if err != nil || bytes.Contains(stdout, hashMatching) {
 				continue
 			}
@@ -199,7 +231,7 @@ func (repo *Repository) FileChangedBetweenCommits(ctx context.Context, filename,
 	stdout, _, err := gitcmd.NewCommand("diff", "--name-only", "-z").
 		AddDynamicArguments(id1, id2).
 		AddDashesAndList(filename).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdBytes(ctx)
 	if err != nil {
 		return false, err
@@ -243,7 +275,7 @@ func (repo *Repository) CommitsByFileAndRange(ctx context.Context, opts CommitsB
 
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	err := gitCmd.WithDir(repo.Path).
+	err := gitCmd.WithRepo(repo).
 		WithPipelineFunc(func(context gitcmd.Context) error {
 			objectFormat, err := repo.GetObjectFormat(ctx)
 			if err != nil {
@@ -284,7 +316,7 @@ func (repo *Repository) CommitsByFileAndRange(ctx context.Context, opts CommitsB
 // If "before" and "after" are not related, it returns the all commits for the "after" commit.
 func (repo *Repository) CommitsBetween(ctx context.Context, afterRef, beforeRef RefName, limit int, optSkip ...int) ([]*Commit, error) {
 	gitCmd := func() *gitcmd.Command {
-		cmd := gitcmd.NewCommand("rev-list").WithDir(repo.Path)
+		cmd := gitcmd.NewCommand("rev-list").WithRepo(repo)
 		if limit >= 0 {
 			cmd.AddOptionValues("--max-count", strconv.Itoa(limit))
 		}
@@ -319,7 +351,7 @@ func (repo *Repository) commitsBefore(ctx context.Context, id ObjectID, limit in
 	}
 	cmd.AddDynamicArguments(id.String())
 
-	stdout, _, runErr := cmd.WithDir(repo.Path).RunStdBytes(ctx)
+	stdout, _, runErr := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -360,7 +392,7 @@ func (repo *Repository) getBranches(ctx context.Context, env []string, commitID 
 		AddOptionValues("--contains", commitID).
 		AddArguments(BranchPrefix).
 		WithEnv(env).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(ctx)
 	if err != nil {
 		return nil, err
@@ -386,7 +418,7 @@ func (repo *Repository) GetCommitsFromIDs(ctx context.Context, commitIDs []strin
 func (repo *Repository) IsCommitInBranch(ctx context.Context, commitID, branch string) (r bool, err error) {
 	stdout, _, err := gitcmd.NewCommand("branch", "--contains").
 		AddDynamicArguments(commitID, branch).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(ctx)
 	if err != nil {
 		return false, err
@@ -399,7 +431,7 @@ func (repo *Repository) GetCommitBranchStart(ctx context.Context, env []string, 
 	cmd := gitcmd.NewCommand("log", prettyLogFormat)
 	cmd.AddDynamicArguments(endCommitID)
 
-	stdout, _, runErr := cmd.WithDir(repo.Path).
+	stdout, _, runErr := cmd.WithRepo(repo).
 		WithEnv(env).
 		RunStdBytes(ctx)
 	if runErr != nil {

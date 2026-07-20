@@ -205,6 +205,8 @@ func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 }
 
 type runOpts struct {
+	// TODO: this struct should be removed, the fields can be just merged into the command
+
 	Env     []string
 	Timeout time.Duration
 
@@ -213,7 +215,7 @@ type runOpts struct {
 	// * /some/path/.git
 	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
 	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
-	// The correct approach is to use `--git-dir" global argument
+	// The correct approach is to use `--git-dir" global argument or "GIT_DIR=..." environment variable.
 	Dir string
 
 	PipelineFunc func(Context) error

@@ -14,7 +14,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/optional"
 	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
@@ -1169,7 +1168,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		if !isPlainRule {
 			if ctx.Repo.GitRepo == nil {
-				ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+				ctx.Repo.GitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 				if err != nil {
 					ctx.APIErrorInternal(err)
 					return

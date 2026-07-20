@@ -24,7 +24,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/httplib"
 	code_indexer "gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/log"
@@ -185,7 +184,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		}
 	}
 
-	targetGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, targetRepo)
+	targetGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, targetRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +259,7 @@ func (r *Repository) GetCommitsCount(ctx context.Context) (int64, error) {
 	contextName := r.RefFullName.ShortName()
 	isRef := r.RefFullName.IsBranch() || r.RefFullName.IsTag()
 	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, isRef), func() (int64, error) {
-		return gitrepo.CommitsCountOfCommit(ctx, r.Repository, r.Commit.ID.String())
+		return git.CommitsCountOfCommit(ctx, r.Repository, r.Commit.ID.String())
 	})
 }
 
@@ -270,10 +269,10 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 
 	return cache.GetInt64(cacheKey, func() (int64, error) {
 		if len(branches) == 0 {
-			return gitrepo.AllCommitsCount(ctx, r.Repository, hidePRRefs, files...)
+			return git.AllCommitsCount(ctx, r.Repository, hidePRRefs, files...)
 		}
-		return gitrepo.CommitsCount(ctx, r.Repository,
-			gitrepo.CommitsCountOptions{
+		return git.CommitsCount(ctx, r.Repository,
+			git.CommitsCountOptions{
 				Revision: branches,
 				RelPath:  files,
 			})
@@ -689,10 +688,10 @@ func repoAssignmentAutoRedirectNotReady(ctx *Context, data *repoAssignmentPrepar
 func repoAssignmentPrepareGitRepo(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 	var err error
 	repo := data.repo
-	ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	ctx.Repo.GitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
-			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RelativePath(), err)
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.FullName(), err)
 			ctx.Repo.Repository.MarkAsBrokenEmpty()
 			// Only allow access to base of repo or settings
 			if !repoAssignmentIsHomeOrSettings(ctx, data) {
@@ -939,12 +938,12 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		reqPath := ctx.PathParam("*")
 		if reqPath == "" {
 			refShortName = ctx.Repo.Repository.DefaultBranch
-			if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
+			if !git.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
 				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(ctx, 0, 1)
 				if err == nil && len(brs) != 0 {
 					refShortName = brs[0]
 				} else if len(brs) == 0 {
-					log.Error("No branches in non-empty repository %s", ctx.Repo.Repository.RelativePath())
+					log.Error("No branches in non-empty repository %s", ctx.Repo.Repository.FullName())
 				} else {
 					log.Error("GetBranches error: %v", err)
 				}
@@ -976,7 +975,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				return
 			}
 
-			if refType == git.RefTypeBranch && gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
+			if refType == git.RefTypeBranch && git.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
 				ctx.Repo.BranchName = refShortName
 				ctx.Repo.RefFullName = git.RefNameFromBranch(refShortName)
 
@@ -986,7 +985,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 					return
 				}
 				ctx.Repo.CommitID = ctx.Repo.Commit.ID.String()
-			} else if refType == git.RefTypeTag && gitrepo.IsTagExist(ctx, ctx.Repo.Repository, refShortName) {
+			} else if refType == git.RefTypeTag && git.IsTagExist(ctx, ctx.Repo.Repository, refShortName) {
 				ctx.Repo.RefFullName = git.RefNameFromTag(refShortName)
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(ctx, refShortName)

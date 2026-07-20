@@ -16,7 +16,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
@@ -151,19 +150,19 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 // will occur directly in this routine.
 func (aReq *ArchiveRequest) Stream(ctx context.Context, w io.Writer) error {
 	if aReq.Type == repo_model.ArchiveBundle {
-		return gitrepo.CreateBundle(
+		return git.CreateBundle(
 			ctx,
 			aReq.Repo,
 			aReq.CommitID,
 			w,
 		)
 	}
-	return gitrepo.CreateArchive(
+	return git.CreateArchive(
 		ctx,
 		aReq.Repo,
+		aReq.Repo.Name,
 		aReq.Type.String(),
 		w,
-		setting.Repository.PrefixArchiveFiles,
 		aReq.CommitID,
 		aReq.Paths,
 	)

@@ -109,7 +109,7 @@ which lives in the [documentation repository](https://gitea.com/gitea/docs).
 ## Database migrations
 
 If you make breaking changes to a database-persisted struct under `models/`, add a
-new migration in `models/migrations/`. See [testing.md](testing.md#migration-tests)
+new migration in `modelmigration/`. See [testing.md](testing.md#migration-tests)
 for running the migration tests.
 
 ## Testing

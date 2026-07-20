@@ -24,7 +24,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -336,7 +336,7 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	assert.False(t, pr13.HasMerged)
 	assert.True(t, pr13.Issue.IsLocked)
 
-	gitRepo, err := gitrepo.OpenRepository(migratedRepo)
+	gitRepo, err := git.OpenRepository(migratedRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

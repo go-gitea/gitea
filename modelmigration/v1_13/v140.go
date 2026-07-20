@@ -1,0 +1,49 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package v1_13
+
+import (
+	"fmt"
+
+	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/setting"
+)
+
+func FixLanguageStatsToSaveSize(x base.EngineMigration) error {
+	// LanguageStat see models/repo_language_stats.go
+	type LanguageStat struct {
+		Size int64 `xorm:"NOT NULL DEFAULT 0"`
+	}
+
+	// RepoIndexerType specifies the repository indexer type
+	type RepoIndexerType int
+
+	const RepoIndexerTypeStats RepoIndexerType = 1
+
+	// RepoIndexerStatus see models/repo_indexer.go
+	type RepoIndexerStatus struct {
+		IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
+	}
+
+	if err := x.Sync(new(LanguageStat)); err != nil {
+		return fmt.Errorf("Sync: %w", err)
+	}
+
+	_, _ = x.Delete(&RepoIndexerStatus{IndexerType: RepoIndexerTypeStats})
+
+	// Delete language stat statuses
+	truncExpr := "TRUNCATE TABLE"
+	if setting.Database.Type.IsSQLite3() {
+		truncExpr = "DELETE FROM"
+	}
+
+	// Delete language stats
+	if _, err := x.Exec(truncExpr + " language_stat"); err != nil {
+		return err
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	return base.DropTableColumns(sess, "language_stat", "percentage")
+}
