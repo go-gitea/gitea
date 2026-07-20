@@ -71,15 +71,15 @@ func findReadmeWellKnownSubDirs(entries []*git.TreeEntry) (ret struct{ entryGite
 		lowerName := strings.ToLower(entry.Name())
 		switch lowerName {
 		case ".gitea":
-			if entry.Name() == ".gitea" {
+			if entry.Name() == ".gitea" || ret.entryGitea == nil {
 				ret.entryGitea = entry
 			}
 		case ".github":
-			if entry.Name() == ".github" {
+			if entry.Name() == ".github" || ret.entryGitHub == nil {
 				ret.entryGitHub = entry
 			}
 		case "docs":
-			if entry.Name() == "docs" {
+			if entry.Name() == "docs" || ret.entryDocs == nil {
 				ret.entryDocs = entry
 			}
 		}
