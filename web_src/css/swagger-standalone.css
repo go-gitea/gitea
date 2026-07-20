@@ -4,26 +4,57 @@ body {
   margin: 0;
 }
 
-.swagger-back-link {
-  color: var(--color-primary);
-  text-decoration: none;
+.swagger-page-links {
+  /* overlay the top-right of the info block by replicating swagger-ui's ".wrapper" and ".info" metrics */
   position: absolute;
-  top: 1rem;
-  right: 1.5rem;
+  top: 50px;
+  left: 0;
+  right: 0;
+  max-width: 1460px;
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
   display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  font-family: sans-serif;
+  font-size: 14px;
+  pointer-events: none; /* only the links themselves are clickable */
+}
+
+/* below this width the links would overlap the title, flow above swagger-ui instead */
+@media (max-width: 991.98px) {
+  .swagger-page-links {
+    position: static;
+    padding: 10px 20px 0;
+    flex-wrap: wrap;
+  }
+}
+
+/* mimic the regular gitea button, the main site CSS is not loaded on this page */
+.swagger-page-links a {
+  pointer-events: auto;
+  display: inline-flex;
   align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 4px;
+  background: var(--color-button);
+  border: 1px solid var(--color-light-border);
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-.swagger-back-link:hover {
-  text-decoration: underline;
+.swagger-page-links a:hover {
+  background: var(--color-hover);
 }
 
-.swagger-back-link svg {
-  color: inherit;
+.swagger-page-links a:active {
+  background: var(--color-active);
+}
+
+.swagger-page-links svg {
   fill: currentcolor;
-  margin-right: 0.5rem;
-}
-
-.swagger-spec-content {
-  display: none;
 }

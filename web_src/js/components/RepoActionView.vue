@@ -274,7 +274,12 @@ onBeforeUnmount(() => {
                   <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
-              <span v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2">
+              <span
+                v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2"
+                :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiredAt)"
+                data-tooltip-render="html"
+                data-tooltip-placement="top-end"
+              >
                 <SvgIcon name="octicon-file-removed"/>
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>

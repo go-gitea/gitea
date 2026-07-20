@@ -42,7 +42,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		// It's questionable about where this should go - either after or before the push
 		// I think in the interests of data safety - failures to push to the lfs should prevent
 		// the push as you can always re-rebase.
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, tmpRepoBaseBranch, oldMergeBase, &issues_model.PullRequest{
+		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, tmpRepoBaseBranch, oldMergeBase, &issues_model.PullRequest{
 			HeadRepoID: pr.BaseRepoID,
 			BaseRepoID: pr.HeadRepoID,
 		}); err != nil {

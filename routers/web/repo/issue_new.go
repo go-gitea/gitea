@@ -38,7 +38,7 @@ import (
 
 // Tries to load and set an issue template. The first return value indicates if a template was loaded.
 func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string, metaData *IssuePageMetaData) (bool, map[string]error) {
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		return false, nil
 	}

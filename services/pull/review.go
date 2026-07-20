@@ -16,7 +16,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -57,7 +56,7 @@ var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or 
 
 // LineBlame returns the latest commit at the given line
 func lineBlame(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, branch, file string, line uint) (*git.Commit, error) {
-	sha, err := gitrepo.LineBlame(ctx, repo, branch, file, line)
+	sha, err := git.LineBlame(ctx, repo, branch, file, line)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +65,7 @@ func lineBlame(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Re
 	}
 
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
-	return gitRepo.GetCommit(sha[:objectFormat.FullLength()])
+	return gitRepo.GetCommit(ctx, sha[:objectFormat.FullLength()])
 }
 
 // checkInvalidation checks if the line of code comment got changed by another commit.
@@ -215,7 +214,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, fmt.Errorf("LoadBaseRepo: %w", err)
 	}
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}
@@ -266,7 +265,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 	// Only fetch diff if comment is review comment
 	if len(patch) == 0 && reviewID != 0 {
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", pr.GetGitHeadRefName(), err)
 		}
@@ -274,7 +273,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			commitID = headCommitID
 		}
 
-		patch, err = git.GetFileDiffCutAroundLine(
+		patch, err = git.GetFileDiffCutAroundLine(ctx,
 			gitRepo, pr.MergeBase, headCommitID, treePath,
 			int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
 		)
@@ -322,7 +321,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 			return nil, nil, ErrSubmitReviewOnClosedPR
 		}
 
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, nil, err
 		}

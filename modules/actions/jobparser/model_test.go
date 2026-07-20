@@ -464,3 +464,61 @@ func TestParseMappingNode(t *testing.T) {
 		})
 	}
 }
+
+func TestEvaluateJobIfExpression(t *testing.T) {
+	kases := []struct {
+		name       string
+		ifCond     string
+		needResult string
+		expected   bool
+	}{
+		{name: "empty need success", ifCond: "${{ 1 == 1 }}", needResult: "success", expected: true},
+		{name: "always", ifCond: "${{ always() }}", needResult: "failure", expected: true},
+		{name: "failure true", ifCond: "${{ failure() }}", needResult: "failure", expected: true},
+		{name: "failure false", ifCond: "${{ failure() }}", needResult: "success", expected: false},
+		{name: "success true", ifCond: "${{ success() }}", needResult: "success", expected: true},
+		// cancelled() is always false on the server: a cancelled run never evaluates a blocked job's `if:`
+		{name: "cancelled", ifCond: "${{ cancelled() }}", needResult: "success", expected: false},
+		{name: "not cancelled or failure", ifCond: "${{ !(cancelled() || failure()) }}", needResult: "success", expected: true},
+		{name: "not cancelled or failure, need failed", ifCond: "${{ !(cancelled() || failure()) }}", needResult: "failure", expected: false},
+	}
+	for _, kase := range kases {
+		t.Run(kase.name, func(t *testing.T) {
+			content := strings.ReplaceAll(`
+name: test
+on: push
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo job1
+  job2:
+    runs-on: ubuntu-latest
+    needs: [job1]
+    if: IF_COND
+    steps:
+      - run: echo job2
+`, "IF_COND", kase.ifCond)
+
+			workflows, err := Parse([]byte(content))
+			require.NoError(t, err)
+
+			var job2 *Job
+			for _, wf := range workflows {
+				if id, job := wf.Job(); id == "job2" {
+					job2 = job
+				}
+			}
+			require.NotNil(t, job2)
+
+			// mirrors findJobNeedsAndFillJobResults: the needs' results plus a self entry carrying Needs
+			results := map[string]*JobResult{
+				"job1": {Result: kase.needResult},
+				"job2": {Needs: []string{"job1"}},
+			}
+			got, err := EvaluateJobIfExpression("job2", job2, map[string]any{}, results, nil, nil)
+			require.NoError(t, err)
+			assert.Equal(t, kase.expected, got)
+		})
+	}
+}

@@ -14,7 +14,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	repo_module "gitea.dev/modules/repository"
@@ -57,7 +56,7 @@ func getClosestParentWithFiles(ctx context.Context, gitRepo *git.Repository, bra
 		}
 		return treePath
 	}
-	commit, err := gitRepo.GetBranchCommit(branchName) // must get the commit again to get the latest change
+	commit, err := gitRepo.GetBranchCommit(ctx, branchName) // must get the commit again to get the latest change
 	if err != nil {
 		log.Error("GetBranchCommit: %v", err)
 		return ""
@@ -128,7 +127,7 @@ func getUniqueRepositoryName(ctx context.Context, ownerID int64, name string) st
 }
 
 func editorPushBranchToForkedRepository(ctx context.Context, doer *user_model.User, baseRepo *repo_model.Repository, baseBranchName string, targetRepo *repo_model.Repository, targetBranchName string) error {
-	return gitrepo.Push(ctx, baseRepo, targetRepo, git.PushOptions{
+	return git.PushManaged(ctx, baseRepo, targetRepo, git.PushOptions{
 		Branch: baseBranchName + ":" + targetBranchName,
 		Env:    repo_module.PushingEnvironment(doer, targetRepo),
 	})

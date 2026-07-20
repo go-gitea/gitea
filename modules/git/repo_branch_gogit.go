@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"sort"
 	"strings"
 
@@ -19,7 +20,7 @@ import (
 // Unlike the implementation of IsObjectExist in nogogit edition, it does not support short hashes here.
 // For example, IsObjectExist("153f451") will return false, but it will return true in nogogit edition.
 // To fix this, the solution could be adding support for short hashes in gogit edition if it's really needed.
-func (repo *Repository) IsObjectExist(name string) bool {
+func (repo *Repository) IsObjectExist(_ context.Context, name string) bool {
 	if name == "" {
 		return false
 	}
@@ -33,7 +34,7 @@ func (repo *Repository) IsObjectExist(name string) bool {
 // Unlike the implementation of IsObjectExist in nogogit edition, it does not support blob hashes here.
 // For example, IsObjectExist([existing_blob_hash]) will return false, but it will return true in nogogit edition.
 // To fix this, the solution could be refusing to support blob hashes in nogogit edition since a blob hash is not a reference.
-func (repo *Repository) IsReferenceExist(name string) bool {
+func (repo *Repository) IsReferenceExist(_ context.Context, name string) bool {
 	if name == "" {
 		return false
 	}
@@ -44,7 +45,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 }
 
 // IsBranchExist returns true if given branch exists in current repository.
-func (repo *Repository) IsBranchExist(name string) bool {
+func (repo *Repository) IsBranchExist(_ context.Context, name string) bool {
 	if name == "" {
 		return false
 	}
@@ -60,7 +61,7 @@ func (repo *Repository) IsBranchExist(name string) bool {
 // Branches are returned with sort of `-committerdate` as the nogogit
 // implementation. This requires full fetch, sort and then the
 // skip/limit applies later as gogit returns in undefined order.
-func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
+func (repo *Repository) GetBranchNames(_ context.Context, skip, limit int) ([]string, int, error) {
 	type BranchData struct {
 		name          string
 		committerDate int64
@@ -100,7 +101,7 @@ func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 }
 
 // WalkReferences walks all the references from the repository
-func (repo *Repository) WalkReferences(arg ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
+func (repo *Repository) WalkReferences(ctx context.Context, arg ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
 	i := 0
 	var iter storer.ReferenceIter
 	var err error
@@ -130,13 +131,13 @@ func (repo *Repository) WalkReferences(arg ObjectType, skip, limit int, walkfn f
 		if limit != 0 && i >= skip+limit {
 			return storer.ErrStop
 		}
-		return nil
+		return ctx.Err()
 	})
 	return i, err
 }
 
 // GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
-func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
+func (repo *Repository) GetRefsBySha(ctx context.Context, sha, prefix string) ([]string, error) {
 	var revList []string
 	iter, err := repo.gogitRepo.References()
 	if err != nil {
@@ -146,7 +147,7 @@ func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
 		if ref.Hash().String() == sha && strings.HasPrefix(string(ref.Name()), prefix) {
 			revList = append(revList, string(ref.Name()))
 		}
-		return nil
+		return ctx.Err()
 	})
 	return revList, err
 }

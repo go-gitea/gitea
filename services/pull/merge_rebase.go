@@ -10,7 +10,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 )
 
@@ -38,7 +37,7 @@ func getRebaseAmendMessage(ctx *mergeContext, baseGitRepo *git.Repository) (mess
 
 // Perform rebase merge without merge commit.
 func doMergeRebaseFastForward(ctx *mergeContext) error {
-	baseHeadSHA, err := git.GetFullCommitID(ctx, ctx.tmpBasePath, "HEAD")
+	baseHeadSHA, err := git.GetFullCommitID(ctx, ctx.tmpRepo, "HEAD")
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
@@ -49,8 +48,8 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 		return err
 	}
 
-	// Check if anything actually changed before we amend the message, fast forward can skip commits.
-	newMergeHeadSHA, err := git.GetFullCommitID(ctx, ctx.tmpBasePath, "HEAD")
+	// Check if anything actually changed before we amend the message, fast-forward can skip commits.
+	newMergeHeadSHA, err := git.GetFullCommitID(ctx, ctx.tmpRepo, "HEAD")
 	if err != nil {
 		return fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
@@ -59,7 +58,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 	}
 
 	// Original repo to read template from.
-	baseGitRepo, err := gitrepo.OpenRepository(ctx, ctx.pr.BaseRepo)
+	baseGitRepo, err := git.OpenRepository(ctx.pr.BaseRepo)
 	if err != nil {
 		log.Error("Unable to get Git repo for rebase: %v", err)
 		return err

@@ -92,7 +92,7 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 			if subTreeEntry == nil {
 				continue
 			}
-			subTree := subTreeEntry.Tree(ctx.Repo.GitRepo)
+			subTree := subTreeEntry.Tree(ctx, ctx.Repo.GitRepo)
 			if subTree == nil {
 				// this should be impossible; if subTreeEntry exists so should this.
 				continue

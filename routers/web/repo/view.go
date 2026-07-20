@@ -70,7 +70,7 @@ func (fi *fileInfo) isLFSFile() bool {
 }
 
 func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []byte, dataRc io.ReadCloser, fi *fileInfo, err error) {
-	dataRc, err = blob.DataAsync()
+	dataRc, err = blob.DataAsync(ctx)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -81,7 +81,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
-	fi = &fileInfo{blobOrLfsSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
+	fi = &fileInfo{blobOrLfsSize: blob.Size(ctx), st: typesniffer.DetectContentType(buf)}
 
 	// FIXME: what happens when README file is an image?
 	if !fi.st.IsText() || !setting.LFS.StartServer {

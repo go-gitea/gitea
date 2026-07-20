@@ -17,7 +17,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 
@@ -539,7 +539,7 @@ jobs:
 			assert.True(t, crossJob.IsExpanded)
 
 			// cross_job's children come from libRepo/lib.yaml - their source must be libRepo + libRepo's commit.
-			libHead, err := gitrepo.GetBranchCommitID(t.Context(), libRepo, libRepo.DefaultBranch)
+			libHead, err := git.GetBranchCommitID(t.Context(), libRepo, libRepo.DefaultBranch)
 			require.NoError(t, err)
 			callUtilJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "call_util_in_lib", ParentJobID: crossJob.ID})
 			assert.True(t, callUtilJob.IsReusableCaller)

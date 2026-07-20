@@ -1928,7 +1928,6 @@
   "admin.config.default_enable_timetracking": "Domyślnie włącz śledzenie czasu",
   "admin.config.default_allow_only_contributors_to_track_time": "Zezwalaj wyłącznie współpracownikom na śledzenie czasu",
   "admin.config.no_reply_address": "Ukryta domena e-mail",
-  "admin.config.default_visibility_organization": "Domyślna widoczność dla nowych organizacji",
   "admin.config.default_enable_dependencies": "Domyślne włączanie zależności zgłoszeń",
   "admin.config.webhook_config": "Konfiguracja webhooka",
   "admin.config.queue_length": "Długość kolejki",
