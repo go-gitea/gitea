@@ -142,7 +142,7 @@ func prepareHomeSidebarLicenses(ctx *context.Context) {
 }
 
 func prepareToRenderDirectory(ctx *context.Context) {
-	entries := renderDirectoryFiles(ctx, 1*time.Second)
+	treeEntry, subEntries := renderDirectoryFiles(ctx, 1*time.Second)
 	if ctx.Written() {
 		return
 	}
@@ -152,12 +152,11 @@ func prepareToRenderDirectory(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+ctx.Repo.TreePath, ctx.Repo.RefFullName.ShortName())
 	}
 
-	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, ctx.Repo.TreePath, entries, true)
+	subfolder, readmeFile, err := findReadmeFileInRepoTree(ctx, ctx.Repo.TreePath, treeEntry, subEntries)
 	if err != nil {
-		ctx.ServerError("findReadmeFileInEntries", err)
+		ctx.ServerError("findReadmeFileInRepo", err)
 		return
 	}
-
 	prepareToRenderReadmeFile(ctx, subfolder, readmeFile)
 }
 

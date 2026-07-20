@@ -29,108 +29,96 @@ import (
 //	entries == ctx.Repo.Commit.SubTree(ctx.Repo.TreePath).ListEntries()
 //
 // this function is tested by integration test ViewRepoDirectoryReadme
-func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*git.TreeEntry, tryWellKnownDirs bool) (string, *git.TreeEntry, error) {
-	var giteaEntry, githubEntry, docsEntry *git.TreeEntry
+func findReadmeFileInRepoTree(ctx *context.Context, treePath string, tree *git.TreeEntry, rootSubEntries []*git.TreeEntry) (subFolder string, _ *git.TreeEntry, err error) {
+	gitRepo := ctx.Repo.GitRepo
+	var dirEntries []*git.TreeEntry
+	if treePath == "" {
+		// only try the special sub-folders when visiting the repo root
+		wellKnownSubDirs := findReadmeWellKnownSubDirs(rootSubEntries)
+		dirEntries = []*git.TreeEntry{wellKnownSubDirs.entryGitea, wellKnownSubDirs.entryGitHub, tree, wellKnownSubDirs.entryDocs}
+	} else {
+		dirEntries = []*git.TreeEntry{tree}
+	}
 
+	for _, dirEntry := range dirEntries {
+		if dirEntry == nil {
+			continue
+		}
+
+		var dirSubEntries []*git.TreeEntry
+		if dirEntry == tree {
+			subFolder, dirSubEntries = "", rootSubEntries
+		} else {
+			subFolder = dirEntry.Name()
+			dirSubEntries, err = dirEntry.Tree(ctx, gitRepo).ListEntries(ctx, gitRepo)
+			if err != nil {
+				return "", nil, err
+			}
+		}
+		found := findReadmeFileInEntries(ctx, path.Join(treePath, subFolder), dirSubEntries)
+		if found != nil {
+			return subFolder, found, nil
+		}
+	}
+	return "", nil, nil
+}
+
+func findReadmeWellKnownSubDirs(entries []*git.TreeEntry) (ret struct{ entryGitea, entryGitHub, entryDocs *git.TreeEntry }) {
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		lowerName := strings.ToLower(entry.Name())
+		switch lowerName {
+		case ".gitea":
+			if entry.Name() == ".gitea" {
+				ret.entryGitea = entry
+			}
+		case ".github":
+			if entry.Name() == ".github" {
+				ret.entryGitHub = entry
+			}
+		case "docs":
+			if entry.Name() == "docs" {
+				ret.entryDocs = entry
+			}
+		}
+	}
+	return ret
+}
+
+func findReadmeFileInEntries(ctx *context.Context, parentPath string, entries []*git.TreeEntry) *git.TreeEntry {
 	// Create a list of extensions in priority order
-	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
+	// 1. Markdown files - with and without localization - e.g. README.en-us.md or README.md
 	// 2. Txt files - e.g. README.txt
 	// 3. No extension - e.g. README
 	exts := append(localizedExtensions(".md", ctx.Locale.Language()), ".txt", "") // sorted by priority
 	extCount := len(exts)
-	readmeFiles := make([]*git.TreeEntry, extCount+1)
+	readmeFiles := make([]*git.TreeEntry, extCount+1) // ext weight can be len(exts), so here "+1"
 
 	for _, entry := range entries {
-		if entry.IsDir() {
-			if tryWellKnownDirs {
-				lowerName := strings.ToLower(entry.Name())
-				switch lowerName {
-				case ".gitea":
-					if entry.Name() == ".gitea" || giteaEntry == nil {
-						giteaEntry = entry
-					}
-				case ".github":
-					if entry.Name() == ".github" || githubEntry == nil {
-						githubEntry = entry
-					}
-				case "docs":
-					if entry.Name() == "docs" || docsEntry == nil {
-						docsEntry = entry
-					}
-				}
-			}
+		extWeight, ok := util.IsReadmeFileExtension(entry.Name(), exts...)
+		if !ok {
 			continue
 		}
-
-		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
-			fullPath := path.Join(parentDir, entry.Name())
-			if readmeFiles[i] == nil || base.NaturalSortCompare(readmeFiles[i].Name(), entry.Blob(ctx.Repo.GitRepo).Name()) < 0 {
-				if entry.IsLink() {
-					res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, fullPath, entry)
-					if err == nil && (res.TargetEntry.IsExecutable() || res.TargetEntry.IsRegular()) {
-						readmeFiles[i] = entry
-					}
-				} else {
-					readmeFiles[i] = entry
+		fullPath := path.Join(parentPath, entry.Name())
+		if readmeFiles[extWeight] == nil || base.NaturalSortCompare(readmeFiles[extWeight].Name(), entry.Blob(ctx.Repo.GitRepo).Name()) < 0 {
+			if entry.IsLink() {
+				res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, fullPath, entry)
+				if err == nil && (res.TargetEntry.IsExecutable() || res.TargetEntry.IsRegular()) {
+					readmeFiles[extWeight] = entry
 				}
+			} else {
+				readmeFiles[extWeight] = entry
 			}
 		}
 	}
-
-	if ctx.Repo.TreePath == "" && tryWellKnownDirs {
-		for _, subTreeEntry := range []*git.TreeEntry{giteaEntry, githubEntry} {
-			if subTreeEntry == nil {
-				continue
-			}
-			subTree := subTreeEntry.Tree(ctx, ctx.Repo.GitRepo)
-			if subTree == nil {
-				// this should be impossible; if subTreeEntry exists so should this.
-				continue
-			}
-			childEntries, err := subTree.ListEntries(ctx, ctx.Repo.GitRepo)
-			if err != nil {
-				return "", nil, err
-			}
-
-			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, path.Join(parentDir, subTreeEntry.Name()), childEntries, false)
-			if err != nil && !git.IsErrNotExist(err) {
-				return "", nil, err
-			}
-			if readmeFile != nil {
-				return path.Join(subTreeEntry.Name(), subfolder), readmeFile, nil
-			}
-		}
-	}
-
-	var readmeFile *git.TreeEntry
 	for _, f := range readmeFiles {
 		if f != nil {
-			readmeFile = f
-			break
+			return f
 		}
 	}
-
-	if ctx.Repo.TreePath == "" && tryWellKnownDirs && readmeFile == nil {
-		if docsEntry != nil {
-			subTree := docsEntry.Tree(ctx, ctx.Repo.GitRepo)
-			if subTree != nil {
-				childEntries, err := subTree.ListEntries(ctx, ctx.Repo.GitRepo)
-				if err != nil {
-					return "", nil, err
-				}
-
-				subfolder, readmeFile, err := findReadmeFileInEntries(ctx, path.Join(parentDir, docsEntry.Name()), childEntries, false)
-				if err != nil && !git.IsErrNotExist(err) {
-					return "", nil, err
-				}
-				if readmeFile != nil {
-					return path.Join(docsEntry.Name(), subfolder), readmeFile, nil
-				}
-			}
-		}
-	}
-
-	return "", readmeFile, nil
+	return nil
 }
 
 // localizedExtensions prepends the provided language code with and without a
