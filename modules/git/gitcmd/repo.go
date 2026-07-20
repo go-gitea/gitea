@@ -69,6 +69,8 @@ func (r *repositoryUnmanaged) GitRepoLocation() string {
 	return r.loc
 }
 
+// RepositoryUnmanaged returns a RepositoryFacade for a repository that might not be managed by Gitea.
+// If the path is not absolute, then it is relative to setting.RepoRootPath
 func RepositoryUnmanaged(s string) RepositoryFacade {
 	return &repositoryUnmanaged{loc: filepath.Clean(s)}
 }

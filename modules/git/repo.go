@@ -68,6 +68,8 @@ func OpenRepository(repo RepositoryFacade) (*Repository, error) {
 	return gitRepo, nil
 }
 
+// OpenRepositoryLocal opens a local repository that is not managed by Gitea
+// If the path is relative, it will be converted to an absolute path using filepath.Abs (base on current working path)
 func OpenRepositoryLocal(localPath string) (_ *Repository, err error) {
 	if !filepath.IsAbs(localPath) {
 		localPath, err = filepath.Abs(localPath)
