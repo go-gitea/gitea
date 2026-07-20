@@ -1,4 +1,4 @@
-// Copyright 2026 The Gogs Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
