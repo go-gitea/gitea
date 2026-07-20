@@ -31,6 +31,7 @@ const (
 type prTmpRepoContext struct {
 	context.Context
 	tmpBasePath string
+	tmpRepo     git.RepositoryFacade
 	pr          *issues_model.PullRequest
 	outbuf      *bytes.Buffer // we keep these around to help reduce needless buffer recreation, any use should be preceded by a Reset and preferably after use
 }
@@ -45,42 +46,37 @@ func (ctx *prTmpRepoContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command 
 
 // createTemporaryRepoForPR creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
 // it also create a second base branch called "original_base"
-func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest) (prCtx *prTmpRepoContext, cancel context.CancelFunc, err error) {
+func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest) (prCtx *prTmpRepoContext, cancel context.CancelFunc, retErr error) {
+	defer func() {
+		if retErr != nil && cancel != nil {
+			cancel()
+		}
+	}()
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		log.Error("%-v LoadHeadRepo: %v", pr, err)
 		return nil, nil, fmt.Errorf("%v LoadHeadRepo: %w", pr, err)
 	} else if pr.HeadRepo == nil {
-		log.Error("%-v HeadRepo %d does not exist", pr, pr.HeadRepoID)
-		return nil, nil, &repo_model.ErrRepoNotExist{
-			ID: pr.HeadRepoID,
-		}
+		return nil, nil, &repo_model.ErrRepoNotExist{ID: pr.HeadRepoID}
 	} else if err := pr.LoadBaseRepo(ctx); err != nil {
-		log.Error("%-v LoadBaseRepo: %v", pr, err)
 		return nil, nil, fmt.Errorf("%v LoadBaseRepo: %w", pr, err)
 	} else if pr.BaseRepo == nil {
-		log.Error("%-v BaseRepo %d does not exist", pr, pr.BaseRepoID)
-		return nil, nil, &repo_model.ErrRepoNotExist{
-			ID: pr.BaseRepoID,
-		}
+		return nil, nil, &repo_model.ErrRepoNotExist{ID: pr.BaseRepoID}
 	} else if err := pr.HeadRepo.LoadOwner(ctx); err != nil {
-		log.Error("%-v HeadRepo.LoadOwner: %v", pr, err)
 		return nil, nil, fmt.Errorf("%v HeadRepo.LoadOwner: %w", pr, err)
 	} else if err := pr.BaseRepo.LoadOwner(ctx); err != nil {
-		log.Error("%-v BaseRepo.LoadOwner: %v", pr, err)
 		return nil, nil, fmt.Errorf("%v BaseRepo.LoadOwner: %w", pr, err)
 	}
 
 	// Clone base repo.
-	tmpBasePath, cleanup, err := repo_module.CreateTemporaryPath("pull")
+	tmpBasePath, tmpRepo, cleanup, err := repo_module.CreateTemporaryGitRepo("pull")
 	if err != nil {
-		log.Error("CreateTemporaryPath[%-v]: %v", pr, err)
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("CreateTemporaryPath[%-v]: %w", pr, err)
 	}
 	cancel = cleanup
 
 	prCtx = &prTmpRepoContext{
 		Context:     ctx,
 		tmpBasePath: tmpBasePath,
+		tmpRepo:     tmpRepo,
 		pr:          pr,
 		outbuf:      &bytes.Buffer{},
 	}
@@ -88,10 +84,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	baseRepoPath := pr.BaseRepo.RepoPath()
 	headRepoPath := pr.HeadRepo.RepoPath()
 
-	if err := git.InitRepository(ctx, tmpBasePath, false, pr.BaseRepo.ObjectFormatName); err != nil {
-		log.Error("Unable to init tmpBasePath for %-v: %v", pr, err)
-		cancel()
-		return nil, nil, err
+	if err := git.InitRepositoryLocal(ctx, tmpBasePath, false, pr.BaseRepo.ObjectFormatName); err != nil {
+		return nil, nil, fmt.Errorf("InitRepository[%-v]: %w", pr, err)
 	}
 
 	remoteRepoName := "head_repo"
@@ -121,9 +115,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 
 	// Add head repo remote.
 	if err := addCacheRepo(tmpBasePath, baseRepoPath); err != nil {
-		log.Error("%-v Unable to add base repository to temporary repo [%s -> %s]: %v", pr, pr.BaseRepo.FullName(), tmpBasePath, err)
-		cancel()
-		return nil, nil, fmt.Errorf("Unable to add base repository to temporary repo [%s -> tmpBasePath]: %w", pr.BaseRepo.FullName(), err)
+		return nil, nil, fmt.Errorf("unable to add base repository to temporary repo [%s -> tmpBasePath]: %w", pr.BaseRepo.FullName(), err)
 	}
 
 	if err := prCtx.PrepareGitCmd(gitcmd.NewCommand("remote", "add", "-t").AddDynamicArguments(pr.BaseBranch).AddArguments("-m").AddDynamicArguments(pr.BaseBranch).AddDynamicArguments("origin", baseRepoPath)).

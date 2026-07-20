@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitrepo
+package git
 
 import (
 	"context"
@@ -12,13 +12,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 )
 
 // CreateArchive create archive content to the target path
-func CreateArchive(ctx context.Context, repo git.RepositoryFacade, repoName, format string, target io.Writer, commitID string, paths []string) error {
+func CreateArchive(ctx context.Context, repo RepositoryFacade, repoName, format string, target io.Writer, commitID string, paths []string) error {
 	if format == "unknown" {
 		return fmt.Errorf("unknown format: %v", format)
 	}
@@ -38,7 +37,7 @@ func CreateArchive(ctx context.Context, repo git.RepositoryFacade, repoName, for
 }
 
 // CreateBundle create bundle content to the target path
-func CreateBundle(ctx context.Context, repo git.RepositoryFacade, commit string, out io.Writer) error {
+func CreateBundle(ctx context.Context, repo RepositoryFacade, commit string, out io.Writer) error {
 	// TODO: use the following steps instead of creating a temp file, also need to iterate and clean up outdated refs
 	// git update-ref refs/bundle/temp-{timestamp} {commit}
 	// git bundle create - refs/bundle/temp-{timestamp}
@@ -49,7 +48,7 @@ func CreateBundle(ctx context.Context, repo git.RepositoryFacade, commit string,
 	}
 	defer cleanup()
 
-	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repoPath(repo), "objects"))
+	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(gitcmd.RepoLocalPath(repo), "objects"))
 	_, _, err = gitcmd.NewCommand("init", "--bare").WithDir(tmp).WithEnv(env).RunStdString(ctx)
 	if err != nil {
 		return err

@@ -87,8 +87,8 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 	return err == nil
 }
 
-// InitRepository initializes a new Git repository.
-func InitRepository(ctx context.Context, repoPath string, bare bool, objectFormatName string) error {
+// InitRepositoryLocal initializes a new Git repository.
+func InitRepositoryLocal(ctx context.Context, repoPath string, bare bool, objectFormatName string) error {
 	err := os.MkdirAll(repoPath, os.ModePerm)
 	if err != nil {
 		return err

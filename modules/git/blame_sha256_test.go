@@ -1,13 +1,12 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitrepo
+package git
 
 import (
 	"context"
 	"testing"
 
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +17,7 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	if git.DefaultFeatures().UsingGogit {
+	if DefaultFeatures().UsingGogit {
 		t.Skip("Skipping test since gogit does not support sha256")
 		return
 	}
@@ -49,7 +48,7 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 		}
 
 		for _, bypass := range []bool{false, true} {
-			blameReader, err := CreateBlameReader(ctx, git.Sha256ObjectFormat, storage, repo, commit, "README.md", bypass)
+			blameReader, err := CreateBlameReader(ctx, Sha256ObjectFormat, storage, repo, commit, "README.md", bypass)
 			assert.NoError(t, err)
 			assert.NotNil(t, blameReader)
 			defer blameReader.Close()

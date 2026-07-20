@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	giturl "gitea.dev/modules/git/url"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -40,12 +39,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	remoteName := m.GetRemoteName()
 	repo := m.GetRepository(ctx)
 	// Remove old remote
-	err = gitrepo.ManagedRemoteRemove(ctx, repo, remoteName)
+	err = git.ManagedRemoteRemove(ctx, repo, remoteName)
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
 
-	err = gitrepo.ManagedRemoteAdd(ctx, repo, remoteName, addr, gitrepo.RemoteOptionMirrorFetch)
+	err = git.ManagedRemoteAdd(ctx, repo, remoteName, addr, git.RemoteOptionMirrorFetch)
 	if err != nil && !git.IsRemoteNotExistError(err) {
 		return err
 	}
@@ -53,12 +52,12 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	if repo_service.HasWiki(ctx, m.Repo) {
 		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		err = gitrepo.ManagedRemoteRemove(ctx, repo.WikiStorageRepo(), remoteName)
+		err = git.ManagedRemoteRemove(ctx, repo.WikiStorageRepo(), remoteName)
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
 
-		err = gitrepo.ManagedRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, gitrepo.RemoteOptionMirrorFetch)
+		err = git.ManagedRemoteAdd(ctx, repo.WikiStorageRepo(), remoteName, wikiRemotePath, git.RemoteOptionMirrorFetch)
 		if err != nil && !git.IsRemoteNotExistError(err) {
 			return err
 		}
@@ -110,7 +109,7 @@ func checkRecoverableSyncError(stderrMessage string) bool {
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResult, bool) {
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
-	remoteURL, remoteErr := gitrepo.GitRemoteGetURL(ctx, m.Repo, m.GetRemoteName())
+	remoteURL, remoteErr := git.ParseRemoteAddressURL(ctx, m.Repo, m.GetRemoteName())
 	if remoteErr != nil {
 		log.Error("SyncMirrors [repo: %-v]: GetRemoteURL Error %v", m.Repo, remoteErr)
 		return nil, false
@@ -176,7 +175,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(m.Repo)
+	gitRepo, err := git.OpenRepository(m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to OpenRepository: %v", m.Repo, err)
 		return nil, false
@@ -261,7 +260,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
-	branches, _, err := gitrepo.GetBranchesByPath(ctx, m.Repo, 0, 0)
+	branches, _, err := git.GetBranchesByPath(ctx, m.Repo, 0, 0)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to GetBranches: %v", m.Repo, err)
 		return nil, false
@@ -325,7 +324,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(m.Repo)
+	gitRepo, err := git.OpenRepository(m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
 		return false
@@ -401,7 +400,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	}
 	if !isEmpty {
 		// Get latest commit date and update to current repository updated time
-		commitDate, err := gitrepo.GetLatestCommitTime(ctx, m.Repo)
+		commitDate, err := git.GetLatestCommitTime(ctx, m.Repo)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to GetLatestCommitDate: %v", m.Repo, err)
 			return false
@@ -465,7 +464,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, re
 			m.Repo.DefaultBranch = firstName
 		}
 		// Update the git repository default branch
-		if err := gitrepo.SetDefaultBranch(ctx, m.Repo, m.Repo.DefaultBranch); err != nil {
+		if err := git.SetDefaultBranch(ctx, m.Repo, m.Repo.DefaultBranch); err != nil {
 			log.Error("Failed to update default branch of underlying git repository %-v. Error: %v", m.Repo, err)
 			return false
 		}

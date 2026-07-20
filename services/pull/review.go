@@ -16,7 +16,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -57,7 +56,7 @@ var ErrSubmitReviewOnClosedPR = errors.New("can't submit review for a closed or 
 
 // LineBlame returns the latest commit at the given line
 func lineBlame(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, branch, file string, line uint) (*git.Commit, error) {
-	sha, err := gitrepo.LineBlame(ctx, repo, branch, file, line)
+	sha, err := git.LineBlame(ctx, repo, branch, file, line)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +214,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, fmt.Errorf("LoadBaseRepo: %w", err)
 	}
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
 	}

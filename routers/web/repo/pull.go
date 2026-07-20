@@ -29,7 +29,6 @@ import (
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/graceful"
 	issue_template "gitea.dev/modules/issue/template"
@@ -233,7 +232,7 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
 			if err == nil {
 				// Recreate pull head in files for next time
-				if err := gitrepo.UpdateRef(ctx, ctx.Repo.Repository, pull.GetGitHeadRefName(), commitSHA); err != nil {
+				if err := git.UpdateRef(ctx, ctx.Repo.Repository, pull.GetGitHeadRefName(), commitSHA); err != nil {
 					log.Error("Could not write head file", err)
 				}
 			} else {
@@ -551,13 +550,13 @@ func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.Pull
 		if pull.HeadRepo == nil {
 			return "", util.ErrNotExist
 		}
-		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, pull.HeadRepo)
+		headGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, pull.HeadRepo)
 		if err != nil {
 			return "", err
 		}
 		return headGitRepo.GetRefCommitID(ctx, git.RefNameFromBranch(pull.HeadBranch).String())
 	case issues_model.PullRequestFlowAGit:
-		baseGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, pull.BaseRepo)
+		baseGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, pull.BaseRepo)
 		if err != nil {
 			return "", err
 		}

@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -100,7 +99,7 @@ func RefBlame(ctx *context.Context) {
 }
 
 type blameResult struct {
-	Parts                []*gitrepo.BlamePart
+	Parts                []*git.BlamePart
 	UsesIgnoreRevs       bool
 	FaultyIgnoreRevsFile bool
 }
@@ -112,7 +111,7 @@ func performBlame(ctx *context.Context, bypassBlameIgnore bool) (*blameResult, e
 	file := ctx.Repo.TreePath
 	objectFormat := ctx.Repo.GetObjectFormat()
 
-	blameReader, err := gitrepo.CreateBlameReader(ctx, objectFormat, repo, gitRepo, commit, file, bypassBlameIgnore)
+	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repo, gitRepo, commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +127,7 @@ func performBlame(ctx *context.Context, bypassBlameIgnore bool) (*blameResult, e
 		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
 			// try again without ignored revs
 
-			blameReader, err = gitrepo.CreateBlameReader(ctx, objectFormat, repo, gitRepo, commit, file, true)
+			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repo, gitRepo, commit, file, true)
 			if err != nil {
 				return nil, err
 			}
@@ -148,12 +147,12 @@ func performBlame(ctx *context.Context, bypassBlameIgnore bool) (*blameResult, e
 	return r, nil
 }
 
-func fillBlameResult(br *gitrepo.BlameReader, r *blameResult) error {
+func fillBlameResult(br *git.BlameReader, r *blameResult) error {
 	r.UsesIgnoreRevs = br.UsesIgnoreRevs()
 
-	previousHelper := make(map[string]*gitrepo.BlamePart)
+	previousHelper := make(map[string]*git.BlamePart)
 
-	r.Parts = make([]*gitrepo.BlamePart, 0, 5)
+	r.Parts = make([]*git.BlamePart, 0, 5)
 	for {
 		blamePart, err := br.NextPart()
 		if err != nil {
@@ -178,7 +177,7 @@ func fillBlameResult(br *gitrepo.BlameReader, r *blameResult) error {
 	return nil
 }
 
-func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) map[string]*gituser.UserCommit {
+func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[string]*gituser.UserCommit {
 	// store commit data by SHA to look up avatar info etc
 	commitNames := make(map[string]*gituser.UserCommit)
 	// and as blameParts can reference the same commits multiple
@@ -225,7 +224,7 @@ func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) ma
 	return commitNames
 }
 
-func renderBlameFillFirstBlameRow(ctx *context.Context, repoLink string, part *gitrepo.BlamePart, commit *gituser.UserCommit, br *blameRow) {
+func renderBlameFillFirstBlameRow(ctx *context.Context, repoLink string, part *git.BlamePart, commit *gituser.UserCommit, br *blameRow) {
 	br.AvatarStackData = gituser.BuildAvatarStackData(ctx, commit.GitCommit.AllParticipantIdentities(), nil)
 	br.PreviousSha = part.PreviousSha
 	br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
@@ -234,7 +233,7 @@ func renderBlameFillFirstBlameRow(ctx *context.Context, repoLink string, part *g
 	br.CommitSince = templates.TimeSince(commit.GitCommit.Author.When)
 }
 
-func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNames map[string]*gituser.UserCommit) {
+func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames map[string]*gituser.UserCommit) {
 	language, err := languagestats.GetFileLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 	if err != nil {
 		log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)

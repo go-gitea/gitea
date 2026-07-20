@@ -29,7 +29,6 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/attribute"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/lfs"
@@ -1503,7 +1502,7 @@ func GetDiffShortStat(ctx context.Context, gitRepo *git.Repository, beforeCommit
 	}
 
 	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = gitrepo.GetDiffShortStatByCmdArgs(ctx, gitRepo, nil, actualBeforeCommitID.String(), afterCommitID)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStatByCmdArgs(ctx, gitRepo, nil, actualBeforeCommitID.String(), afterCommitID)
 	if err != nil {
 		return nil, err
 	}

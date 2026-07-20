@@ -14,7 +14,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
@@ -41,7 +41,7 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 
 	// TODO: FakePR: if the PR is a fake PR (for example: from Merge Upstream), then no need to check diverging
 	if pr.ID > 0 {
-		diffCount, err := gitrepo.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		if err != nil {
 			return err
 		} else if diffCount.Behind == 0 {
@@ -213,7 +213,7 @@ func syncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) err
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return err
 	}
-	divergence, err := gitrepo.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+	divergence, err := git.GetDivergingCommits(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return err
 	}

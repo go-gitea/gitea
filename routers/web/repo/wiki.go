@@ -20,7 +20,6 @@ import (
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
@@ -97,7 +96,7 @@ func findEntryForFile(ctx gocontext.Context, wikiRepo *git.Repository, commit *g
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiGitRepo, errGitRepo := gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
+	wikiGitRepo, errGitRepo := git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if errGitRepo != nil {
 		ctx.ServerError("OpenRepository", errGitRepo)
 		return nil, nil, errGitRepo
@@ -106,7 +105,7 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 	commit, errCommit := wikiGitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultWikiBranch)
 	if git.IsErrNotExist(errCommit) {
 		// if the default branch recorded in database is out of sync, then re-sync it
-		gitRepoDefaultBranch, errBranch := gitrepo.GetDefaultBranch(ctx, ctx.Repo.Repository.WikiStorageRepo())
+		gitRepoDefaultBranch, errBranch := git.GetDefaultBranch(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if errBranch != nil {
 			return wikiGitRepo, nil, errBranch
 		}
@@ -308,7 +307,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := git.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiGitRepo, entry
@@ -345,7 +344,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := git.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page

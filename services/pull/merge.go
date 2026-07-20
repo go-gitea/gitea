@@ -362,15 +362,15 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	}
 
 	// OK we should cache our current head and origin/headbranch
-	mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "HEAD")
+	mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "HEAD")
 	if err != nil {
 		return "", fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
-	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "original_"+tmpRepoBaseBranch)
+	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "original_"+tmpRepoBaseBranch)
 	if err != nil {
 		return "", fmt.Errorf("Failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
 	}
-	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, tmpRepoBaseBranch)
+	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch)
 	if err != nil {
 		return "", fmt.Errorf("Failed to get full commit id for the new merge: %w", err)
 	}

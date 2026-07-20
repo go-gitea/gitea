@@ -169,7 +169,7 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
-		assert.NoError(t, git.InitRepository(t.Context(), dstPath, false, git.Sha1ObjectFormat.Name()))
+		assert.NoError(t, git.InitRepositoryLocal(t.Context(), dstPath, false, git.Sha1ObjectFormat.Name()))
 		// forcibly set default branch to master
 		_, _, err := gitcmd.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").
 			WithDir(dstPath).

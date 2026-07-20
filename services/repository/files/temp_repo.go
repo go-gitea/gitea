@@ -18,7 +18,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -37,7 +36,7 @@ type TemporaryUploadRepository struct {
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
 func NewTemporaryUploadRepository(repo *repo_model.Repository) (*TemporaryUploadRepository, error) {
-	basePath, cleanup, err := repo_module.CreateTemporaryPath("upload")
+	basePath, _, cleanup, err := repo_module.CreateTemporaryGitRepo("upload")
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +58,7 @@ func (t *TemporaryUploadRepository) Close() {
 
 // Clone the base repository to our path and set branch as the HEAD
 func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, bare bool) error {
-	if err := gitrepo.CloneRepoToLocal(ctx, t.repo, t.basePath, git.CloneRepoOptions{
+	if err := git.CloneRepoToLocal(ctx, t.repo, t.basePath, git.CloneRepoOptions{
 		Bare:   bare,
 		Branch: branch,
 		Shared: true,
@@ -89,7 +88,7 @@ func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, ba
 
 // Init the repository
 func (t *TemporaryUploadRepository) Init(ctx context.Context, objectFormatName string) error {
-	if err := git.InitRepository(ctx, t.basePath, false, objectFormatName); err != nil {
+	if err := git.InitRepositoryLocal(ctx, t.basePath, false, objectFormatName); err != nil {
 		return err
 	}
 	gitRepo, err := git.OpenRepositoryLocal(t.basePath)
@@ -342,7 +341,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.User, commitHash, branch string, force bool) error {
 	// Because calls hooks we need to pass in the environment
 	env := repo_module.PushingEnvironment(doer, t.repo)
-	if err := gitrepo.PushFromLocal(ctx, t.basePath, t.repo, git.PushOptions{
+	if err := git.PushFromLocal(ctx, t.basePath, t.repo, git.PushOptions{
 		Branch: strings.TrimSpace(commitHash) + ":" + git.BranchPrefix + strings.TrimSpace(branch),
 		Env:    env,
 		Force:  force,
