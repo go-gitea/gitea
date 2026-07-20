@@ -39,7 +39,7 @@ func verifyCommits(ctx context.Context, oldCommitID, newCommitID string, repo *g
 		}).
 		Run(ctx)
 	if err != nil && !isErrUnverifiedCommit(err) {
-		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.LogString(), err)
 	}
 	return err
 }

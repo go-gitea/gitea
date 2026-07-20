@@ -153,10 +153,8 @@ func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string
 
 // GetLastCommitForPaths returns last commit information
 func GetLastCommitForPaths(ctx context.Context, gitRepo *Repository, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
-	commitNodeIndex, commitGraphFile := gitRepo.CommitNodeIndex()
-	if commitGraphFile != nil {
-		defer commitGraphFile.Close()
-	}
+	commitNodeIndex, closer := gitRepo.CommitNodeIndex()
+	defer closer()
 
 	c, err := commitNodeIndex.Get(plumbing.Hash(commit.ID.RawValue()))
 	if err != nil {
