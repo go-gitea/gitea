@@ -19,10 +19,11 @@ import (
 //
 // This behavior is sufficient for temporary operations, such as determining the
 // merge base between commits.
-func FetchRemoteCommit(ctx context.Context, repo, remoteRepo Repository, commitID string) error {
+func FetchRemoteCommit(ctx context.Context, repo, remoteRepo git.RepositoryFacade, commitID string) error {
 	return git.LockWriteAndDo(ctx, repo, func(ctx context.Context) error {
-		return RunCmd(ctx, repo, gitcmd.NewCommand("fetch", "--no-tags").
+		return gitcmd.NewCommand("fetch", "--no-tags").
 			AddDynamicArguments(repoPath(remoteRepo)).
-			AddDynamicArguments(commitID))
+			AddDynamicArguments(commitID).
+			WithRepo(repo).Run(ctx)
 	})
 }
