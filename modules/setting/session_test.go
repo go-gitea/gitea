@@ -6,6 +6,8 @@ package setting
 import (
 	"testing"
 
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,12 +41,12 @@ PROVIDER_CONFIG = redis://10.0.0.1:6379/1
 			wantMissing: "127.0.0.1",
 		},
 		{
-			name: "no shared [redis] keeps previous behavior (default sessions path)",
+			name: "no shared [redis]",
 			iniStr: `
 [session]
 PROVIDER = redis
 `,
-			wantContain: "sessions",
+			wantContain: "",
 			wantMissing: "redis://",
 		},
 		{
@@ -61,11 +63,11 @@ PROVIDER = file
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defer test.MockVariableValue(&Redis)()
 			cfg, err := NewConfigProviderFromData(tt.iniStr)
 			assert.NoError(t, err)
 
 			loadRedisFrom(cfg)
-			t.Cleanup(func() { Redis.ConnStr = "" })
 			loadSessionFrom(cfg)
 			// ProviderConfig is shadowed into a JSON blob at the end of loadSessionFrom
 			assert.Contains(t, SessionConfig.ProviderConfig, tt.wantContain)

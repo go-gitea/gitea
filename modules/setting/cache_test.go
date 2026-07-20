@@ -6,6 +6,8 @@ package setting
 import (
 	"testing"
 
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,11 +59,11 @@ ADAPTER = memcache
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defer test.MockVariableValue(&Redis)()
 			cfg, err := NewConfigProviderFromData(tt.iniStr)
 			assert.NoError(t, err)
 
 			loadRedisFrom(cfg)
-			t.Cleanup(func() { Redis.ConnStr = "" })
 			loadCacheFrom(cfg)
 			assert.Equal(t, tt.wantConn, CacheService.Conn)
 		})
