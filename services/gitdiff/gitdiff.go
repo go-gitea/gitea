@@ -1321,8 +1321,6 @@ func guessBeforeCommitForDiff(ctx context.Context, gitRepo *git.Repository, befo
 // The whitespaceBehavior is either an empty string or a git flag
 // Returned beforeCommit could be nil if the afterCommit doesn't have parent commit
 func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOptions, files ...string) (_ *Diff, beforeCommit, afterCommit *git.Commit, err error) {
-	repoPath := gitRepo.Path
-
 	afterCommit, err = gitRepo.GetCommit(ctx, opts.AfterCommitID)
 	if err != nil {
 		return nil, nil, nil, err
@@ -1359,9 +1357,9 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	defer readerClose()
 	go func() {
 		if err := cmdDiff.
-			WithDir(repoPath).
+			WithRepo(gitRepo).
 			RunWithStderr(cmdCtx); err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
-			log.Error("error during GetDiff(git diff dir: %s): %v", repoPath, err)
+			log.Error("error during GetDiff(git diff dir: %s): %v", gitRepo.Path, err)
 		}
 	}()
 

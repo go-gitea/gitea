@@ -124,7 +124,7 @@ func getExtendedCommitStats(ctx context.Context, repo *git.Repository, revision 
 	defer stdoutReaderClose()
 
 	var extendedCommitStats []*ExtendedCommitStats
-	err = gitCmd.WithDir(repo.Path).
+	err = gitCmd.WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 

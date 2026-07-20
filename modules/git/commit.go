@@ -112,7 +112,7 @@ func (c *Commit) HasPreviousCommit(ctx context.Context, gitRepo *Repository, obj
 
 	_, _, err := gitcmd.NewCommand("merge-base", "--is-ancestor").
 		AddDynamicArguments(that, this).
-		WithDir(gitRepo.Path).
+		WithRepo(gitRepo).
 		RunStdString(ctx)
 	if err == nil {
 		return true, nil

@@ -19,7 +19,7 @@ const TagPrefix = "refs/tags/"
 
 // CreateTag create one tag in the repository
 func (repo *Repository) CreateTag(ctx context.Context, name, revision string) error {
-	_, _, err := gitcmd.NewCommand("tag").AddDashesAndList(name, revision).WithDir(repo.Path).RunStdString(ctx)
+	_, _, err := gitcmd.NewCommand("tag").AddDashesAndList(name, revision).WithRepo(repo).RunStdString(ctx)
 	return err
 }
 
@@ -28,7 +28,7 @@ func (repo *Repository) CreateAnnotatedTag(ctx context.Context, name, message, r
 	_, _, err := gitcmd.NewCommand("tag", "-a", "-m").
 		AddDynamicArguments(message).
 		AddDashesAndList(name, revision).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(ctx)
 	return err
 }
@@ -39,7 +39,7 @@ func (repo *Repository) GetTagNameBySHA(ctx context.Context, sha string) (string
 		return "", fmt.Errorf("SHA is too short: %s", sha)
 	}
 
-	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags", "-d").WithDir(repo.Path).RunStdString(ctx)
+	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags", "-d").WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +62,7 @@ func (repo *Repository) GetTagNameBySHA(ctx context.Context, sha string) (string
 
 // GetTagID returns the object ID for a tag (annotated tags have both an object SHA AND a commit SHA)
 func (repo *Repository) GetTagID(ctx context.Context, name string) (string, error) {
-	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags").AddDashesAndList(name).WithDir(repo.Path).RunStdString(ctx)
+	stdout, _, err := gitcmd.NewCommand("show-ref", "--tags").AddDashesAndList(name).WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -122,7 +122,7 @@ func (repo *Repository) GetTagInfos(ctx context.Context, page, pageSize int) ([]
 	defer stdoutReaderClose()
 	err := cmd.AddOptionFormat("--format=%s", forEachRefFmt.Flag()).
 		AddArguments("--sort", "-*creatordate", "refs/tags").
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithPipelineFunc(func(context gitcmd.Context) error {
 			parser := forEachRefFmt.Parser(stdoutReader)
 			for {

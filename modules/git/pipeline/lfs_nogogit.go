@@ -21,7 +21,7 @@ func FindLFSFile(ctx context.Context, repo *git.Repository, objectID git.ObjectI
 	cmd := gitcmd.NewCommand("rev-list", "--all")
 	revListReader, revListReaderClose := cmd.MakeStdoutPipe()
 	defer revListReaderClose()
-	err := cmd.WithDir(repo.Path).
+	err := cmd.WithRepo(repo).
 		WithPipelineFunc(func(context gitcmd.Context) (err error) {
 			results, err = findLFSFileFunc(ctx, repo, objectID, revListReader)
 			return err

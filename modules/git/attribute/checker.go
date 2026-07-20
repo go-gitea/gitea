@@ -69,7 +69,7 @@ func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish strin
 	defer cancel()
 
 	stdout, _, err := cmd.WithEnv(append(os.Environ(), envs...)).
-		WithDir(gitRepo.Path).
+		WithRepo(gitRepo).
 		RunStdBytes(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run check-attr: %w", err)
