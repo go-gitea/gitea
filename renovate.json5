@@ -4,7 +4,7 @@
     "config:recommended",
     "helpers:pinGitHubActionDigests",
     "customManagers:githubActionsVersions",
-    "schedule:weekly", // dependency update PRs on monday 0-4 UTC, vulnerabilityAlerts bypasses this
+    "schedule:weekly", // vulnerabilityAlerts bypasses this
   ],
   "configMigration": true,
   "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix", "custom.regex", "dockerfile"],
