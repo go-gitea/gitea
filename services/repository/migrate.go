@@ -27,7 +27,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo git.Repository, cloneOpts git.CloneRepoOptions, sshKeyOwnerID int64) error {
+func cloneExternalRepoWithSSHAuth(ctx context.Context, repo *repo_model.Repository, remoteURL string, storageRepo git.RepositoryFacade, cloneOpts git.CloneRepoOptions, sshKeyOwnerID int64) error {
 	sshAuth, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL, sshKeyOwnerID)
 	if err != nil {
 		return err
