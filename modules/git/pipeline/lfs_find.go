@@ -1,8 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build !gogit
-
 package pipeline
 
 import (
@@ -146,6 +144,6 @@ func findLFSFileFunc(ctx context.Context, repo *git.Repository, objectID git.Obj
 	}
 
 	sort.Sort(lfsResultSlice(results))
-	err = fillResultNameRev(ctx, repo.Path, results)
+	err = fillResultNameRev(ctx, repo, results)
 	return results, err
 }

@@ -11,8 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -115,8 +113,8 @@ func (repo *Repository) GetFilesChangedBetween(ctx context.Context, base, head s
 // ReadPatchCommit will check if a diff patch exists and return stats
 func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error) {
 	// Migrated repositories download patches to "pulls" location
-	patchFile := fmt.Sprintf("pulls/%d.patch", prID)
-	loadPatch, err := os.Open(filepath.Join(repo.Path, patchFile))
+	repoFS := GetRepoFS(repo)
+	loadPatch, err := repoFS.Open(fmt.Sprintf("pulls/%d.patch", prID))
 	if err != nil {
 		return "", err
 	}
