@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -423,6 +424,35 @@ func Diff(ctx *context.Context) {
 	if pr != nil {
 		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
+
+	// Load inline commit comments for the diff view
+	commitComments, err := repo_model.FindCommitCommentsForDiff(ctx, ctx.Repo.Repository.ID, commitID)
+	if err != nil {
+		log.Error("FindCommitCommentsForDiff: %v", err)
+	}
+	// Render markdown content for each commit comment
+	for _, fcc := range commitComments {
+		for _, comments := range fcc.Left {
+			for _, c := range comments {
+				rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{})
+				c.RenderedContent, err = markdown.RenderString(rctx, c.Content)
+				if err != nil {
+					log.Error("RenderString for commit comment %d: %v", c.ID, err)
+				}
+			}
+		}
+		for _, comments := range fcc.Right {
+			for _, c := range comments {
+				rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{})
+				c.RenderedContent, err = markdown.RenderString(rctx, c.Content)
+				if err != nil {
+					log.Error("RenderString for commit comment %d: %v", c.ID, err)
+				}
+			}
+		}
+	}
+	ctx.Data["CommitComments"] = commitComments
+	ctx.Data["CanComment"] = ctx.Doer != nil && ctx.Repo.Permission.CanRead(unit_model.TypeCode)
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }

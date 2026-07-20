@@ -178,7 +178,7 @@ func (nl NotificationList) LoadAttributes(ctx context.Context) error {
 	if _, err := nl.LoadComments(ctx); err != nil {
 		return err
 	}
-	return nil
+	return nl.LoadCommitComments(ctx)
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {
@@ -448,6 +448,65 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 		}
 	}
 	return failures, nil
+}
+
+// LoadCommitComments loads standalone commit comments for SourceCommit
+// notifications and clears stale CommitCommentID references for deleted
+// commit comments so list pages and the API don't render dangling anchors.
+func (nl NotificationList) LoadCommitComments(ctx context.Context) error {
+	if len(nl) == 0 {
+		return nil
+	}
+
+	pending := make(map[int64]struct{})
+	for _, n := range nl {
+		if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 || n.CommitComment != nil {
+			continue
+		}
+		pending[n.CommitCommentID] = struct{}{}
+	}
+	if len(pending) == 0 {
+		return nil
+	}
+
+	ids := make([]int64, 0, len(pending))
+	for id := range pending {
+		ids = append(ids, id)
+	}
+
+	loaded := make(map[int64]*repo_model.CommitComment, len(ids))
+	left := len(ids)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		var batch []*repo_model.CommitComment
+		if err := db.GetEngine(ctx).In("id", ids[:limit]).Find(&batch); err != nil {
+			return err
+		}
+		for _, c := range batch {
+			loaded[c.ID] = c
+		}
+		left -= limit
+		ids = ids[limit:]
+	}
+
+	for _, n := range nl {
+		if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 {
+			continue
+		}
+		// Match by both id AND repo_id. CommitComment IDs are globally unique
+		// so a cross-repo match is unlikely, but the single-row helper
+		// GetCommitCommentByID enforces this pairing and the list path should
+		// stay consistent.
+		if c, ok := loaded[n.CommitCommentID]; ok && c.RepoID == n.RepoID {
+			n.CommitComment = c
+			continue
+		}
+		// Comment was deleted (or repo-id mismatch) between notification
+		// creation and now: clear the dangling ID so HTMLURL/Link fall back
+		// to the bare commit.
+		n.CommitCommentID = 0
+	}
+	return nil
 }
 
 // LoadIssuePullRequests loads all issues' pull requests if possible
