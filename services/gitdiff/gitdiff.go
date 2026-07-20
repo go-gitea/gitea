@@ -1359,7 +1359,7 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 		if err := cmdDiff.
 			WithRepo(gitRepo).
 			RunWithStderr(cmdCtx); err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
-			log.Error("error during GetDiff(git diff dir: %s): %v", gitRepo.Path, err)
+			log.Error("error during GetDiff(git diff dir: %s): %v", gitRepo.LogString(), err)
 		}
 	}()
 
@@ -1530,7 +1530,7 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 	// For SOME of the errors such as the gc'ed commit, it would be best to mark all files as changed
 	// But as that does not work for all potential errors, we simply mark all files as unchanged and drop the error which always works, even if not as good as possible
 	if errIgnored != nil {
-		log.Error("Could not get changed files between %s and %s for pull request %d in repo with path %s. Assuming no changes. Error: %w", review.CommitSHA, latestCommit, pull.Index, gitRepo.Path, err)
+		log.Error("Could not get changed files between %s and %s for pull request %d in repo with path %s. Assuming no changes. Error: %w", review.CommitSHA, latestCommit, pull.Index, gitRepo.LogString(), err)
 	}
 	changedFilesSet := make(map[string]struct{}, len(changedFiles))
 	for _, changedFile := range changedFiles {

@@ -5,6 +5,7 @@ package gitcmd
 
 import (
 	"path/filepath"
+	"sync/atomic"
 
 	"gitea.dev/modules/setting"
 )
@@ -19,6 +20,8 @@ type RepositoryFacade interface {
 	// * absolute path: will be used as-is
 	// * in the future: maybe URI for more flexible definitions
 	GitRepoLocation() string
+
+	LogString() string
 }
 
 func (c *Command) WithRepo(repo RepositoryFacade) *Command {
@@ -31,26 +34,57 @@ func RepoLocalPath(repo RepositoryFacade) string {
 	if filepath.IsAbs(repoLoc) {
 		return repoLoc
 	}
-	return filepath.Join(setting.RepoRootPath, filepath.FromSlash(repoLoc))
+	if setting.RepoRootPath == "" {
+		panic("repo root path is not initialized")
+	}
+	// the repo root path and the repo loc should all have been cleaned, so we can safely join them together
+	return setting.RepoRootPath + string(filepath.Separator) + filepath.FromSlash(repoLoc)
 }
 
-type repositoryUnmanaged string
+func repoLogNameByLocation(loc string) string {
+	t := filepath.FromSlash(loc)
+	// hide the parent paths, then the name should be safe for end users
+	return ".../" + filepath.Base(filepath.Dir(t)) + "/" + filepath.Base(t)
+}
 
-func (r repositoryUnmanaged) GitRepoManagedID() string {
+type repositoryUnmanaged struct {
+	loc     string
+	logName atomic.Pointer[string]
+}
+
+func (r *repositoryUnmanaged) LogString() string {
+	s := r.logName.Load()
+	if s == nil {
+		s = new(repoLogNameByLocation(r.loc))
+		r.logName.Store(s)
+	}
+	return *s
+}
+
+func (r *repositoryUnmanaged) GitRepoManagedID() string {
 	panic("this repo is not managed by Gitea, can't be used in this managed context")
 }
 
-func (r repositoryUnmanaged) GitRepoLocation() string {
-	return string(r)
+func (r *repositoryUnmanaged) GitRepoLocation() string {
+	return r.loc
 }
 
 func RepositoryUnmanaged(s string) RepositoryFacade {
-	return repositoryUnmanaged(s)
+	return &repositoryUnmanaged{loc: filepath.Clean(s)}
 }
 
 type repositoryManaged struct {
-	id  string
-	loc string
+	id, loc string
+	logName atomic.Pointer[string]
+}
+
+func (r *repositoryManaged) LogString() string {
+	s := r.logName.Load()
+	if s == nil {
+		s = new(repoLogNameByLocation(r.loc))
+		r.logName.Store(s)
+	}
+	return *s
 }
 
 func (r *repositoryManaged) GitRepoManagedID() string {
@@ -62,5 +96,5 @@ func (r *repositoryManaged) GitRepoLocation() string {
 }
 
 func RepositoryManaged(id, loc string) RepositoryFacade {
-	return &repositoryManaged{id, loc}
+	return &repositoryManaged{id: id, loc: filepath.Clean(loc)}
 }

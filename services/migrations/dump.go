@@ -136,7 +136,10 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		return err
 	}
 
-	repoPath := g.gitPath()
+	repoPath, err := filepath.Abs(g.gitPath())
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
 		return err
 	}

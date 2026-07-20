@@ -25,7 +25,8 @@ func TestCatFileBatch(t *testing.T) {
 }
 
 func testCatFileBatch(t *testing.T) {
-	repo1 := gitcmd.RepositoryUnmanaged(filepath.Join(testReposDir, "repo1_bare"))
+	repo1, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
+	require.NoError(t, err)
 	t.Run("CorruptedGitRepo", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		batch, err := NewBatch(t.Context(), gitcmd.RepositoryUnmanaged(tmpDir))

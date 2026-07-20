@@ -25,11 +25,6 @@ import (
 type RepositoryFacade = gitcmd.RepositoryFacade
 
 type RepositoryBase struct {
-	// TODO: refactor it to a private field "localPath" in the future
-	// * for repo accessing purpose, in most causes, use "WithRepo", or RepoLocalPath(repo) if the local path must be used
-	// * for error handling & logging purpose, it needs to introduce a new function "git.RepoLogName()" to handle various cases
-	Path string
-
 	LastCommitCache *LastCommitCache
 
 	repoFacade        RepositoryFacade
@@ -51,6 +46,10 @@ func (repo *Repository) GitRepoLocation() string {
 	return repo.repoFacade.GitRepoLocation()
 }
 
+func (repo *Repository) LogString() string {
+	return repo.repoFacade.LogString()
+}
+
 func OpenRepository(repo RepositoryFacade) (*Repository, error) {
 	repoPath := gitcmd.RepoLocalPath(repo)
 	exist, err := util.IsDir(repoPath)
@@ -61,7 +60,7 @@ func OpenRepository(repo RepositoryFacade) (*Repository, error) {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 	gitRepo := &Repository{
-		RepositoryBase: RepositoryBase{Path: repoPath, tagCache: newObjectCache[*Tag](), repoFacade: repo},
+		RepositoryBase: RepositoryBase{tagCache: newObjectCache[*Tag](), repoFacade: repo},
 	}
 	if err = openRepositoryInternal(gitRepo); err != nil {
 		return nil, err
@@ -129,7 +128,7 @@ func InitRepositoryLocal(ctx context.Context, repoPath string, bare bool, object
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty(ctx context.Context) (bool, error) {
 	stdout, _, err := gitcmd.NewCommand().
-		AddOptionFormat("--git-dir=%s", repo.Path).
+		AddOptionFormat("--git-dir=%s", gitcmd.RepoLocalPath(repo)). // TODO: all git commands should use "--git-dir" or "GIT_DIR=..."
 		AddArguments("rev-list", "-n", "1", "--all").
 		WithRepo(repo).
 		RunStdString(ctx)
