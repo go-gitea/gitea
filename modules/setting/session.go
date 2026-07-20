@@ -44,15 +44,16 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("session")
 	SessionConfig.Provider = sec.Key("PROVIDER").In("memory", []string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
 
-	if SessionConfig.Provider == "redis" {
+	switch SessionConfig.Provider {
+	case "redis":
 		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").MustString(Redis.ConnStr)
-	} else if SessionConfig.Provider == "file" {
+	case "file":
 		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions"))
 		if !filepath.IsAbs(SessionConfig.ProviderConfig) {
 			SessionConfig.ProviderConfig = filepath.Join(AppDataPath, SessionConfig.ProviderConfig)
 		}
 		checkOverlappedPath("[session].PROVIDER_CONFIG", SessionConfig.ProviderConfig)
-	} else {
+	default:
 		SessionConfig.ProviderConfig = sec.Key("PROVIDER_CONFIG").String()
 	}
 
