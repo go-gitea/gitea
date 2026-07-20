@@ -24,6 +24,9 @@ func loadGlobalLockFrom(rootCfg ConfigProvider) {
 	case "redis":
 		connStr := sec.Key("SERVICE_CONN_STR").String()
 		if connStr == "" {
+			connStr = Redis.ConnStr // fall back to the shared [redis] conn before failing
+		}
+		if connStr == "" {
 			log.Fatal("SERVICE_CONN_STR is empty for redis")
 		}
 		u := nosql.ToRedisURI(connStr)

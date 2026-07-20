@@ -77,6 +77,11 @@ func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error
 	}
 	cfg.Datadir = filepath.ToSlash(cfg.Datadir)
 
+	// redis fallback order: [queue]/[queue.name] CONN_STR (already merged above) wins,
+	// then the shared [redis] conn, then the built-in localhost default for compatibility
+	if cfg.Type == "redis" && cfg.ConnStr == "" {
+		cfg.ConnStr = Redis.ConnStr
+	}
 	if cfg.Type == "redis" && cfg.ConnStr == "" {
 		cfg.ConnStr = "redis://127.0.0.1:6379/0"
 	}

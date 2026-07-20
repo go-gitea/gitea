@@ -32,4 +32,37 @@ SERVICE_CONN_STR = addrs=127.0.0.1:6379 db=0
 		assert.Equal(t, "redis", GlobalLock.ServiceType)
 		assert.Equal(t, "addrs=127.0.0.1:6379 db=0", GlobalLock.ServiceConnStr)
 	})
+
+	t.Run("RedisGlobalLockFallsBackToSharedRedis", func(t *testing.T) {
+		iniStr := `
+[redis]
+CONN_STR = redis://127.0.0.1:6379/0
+[global_lock]
+SERVICE_TYPE = redis
+`
+		cfg, err := NewConfigProviderFromData(iniStr)
+		assert.NoError(t, err)
+
+		loadRedisFrom(cfg)
+		loadGlobalLockFrom(cfg)
+		assert.Equal(t, "redis", GlobalLock.ServiceType)
+		assert.Equal(t, "redis://127.0.0.1:6379/0", GlobalLock.ServiceConnStr)
+	})
+
+	t.Run("RedisGlobalLockOwnConnWinsOverSharedRedis", func(t *testing.T) {
+		iniStr := `
+[redis]
+CONN_STR = redis://127.0.0.1:6379/0
+[global_lock]
+SERVICE_TYPE = redis
+SERVICE_CONN_STR = redis://10.0.0.1:6379/1
+`
+		cfg, err := NewConfigProviderFromData(iniStr)
+		assert.NoError(t, err)
+
+		loadRedisFrom(cfg)
+		loadGlobalLockFrom(cfg)
+		assert.Equal(t, "redis", GlobalLock.ServiceType)
+		assert.Equal(t, "redis://10.0.0.1:6379/1", GlobalLock.ServiceConnStr)
+	})
 }

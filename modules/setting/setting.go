@@ -157,6 +157,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadGitFrom(cfg)
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
+	loadRedisFrom(cfg) // must run before subsystems that fall back to the shared redis conn (global lock, cache, session, queue)
 	loadGlobalLockFrom(cfg)
 	loadOtherFrom(cfg)
 	return nil

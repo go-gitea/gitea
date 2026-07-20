@@ -55,6 +55,9 @@ func loadCacheFrom(rootCfg ConfigProvider) {
 	case "memory":
 	case "redis", "memcache":
 		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+		if CacheService.Adapter == "redis" && CacheService.Conn == "" {
+			CacheService.Conn = Redis.ConnStr // fall back to the shared [redis] conn
+		}
 	case "twoqueue":
 		CacheService.Conn = strings.TrimSpace(sec.Key("HOST").String())
 		if CacheService.Conn == "" {
