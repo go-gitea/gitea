@@ -13,15 +13,17 @@ import (
 
 func TestLoadGlobalLockConfig(t *testing.T) {
 	t.Run("DefaultGlobalLockConfig", func(t *testing.T) {
+		defer test.MockVariableValue(&Redis)()
 		iniStr := ``
 		cfg, err := NewConfigProviderFromData(iniStr)
 		assert.NoError(t, err)
-
+		loadRedisFrom(cfg)
 		loadGlobalLockFrom(cfg)
 		assert.Equal(t, "memory", GlobalLock.ServiceType)
 	})
 
 	t.Run("RedisGlobalLockConfig", func(t *testing.T) {
+		defer test.MockVariableValue(&Redis)()
 		iniStr := `
 [global_lock]
 SERVICE_TYPE = redis
@@ -29,7 +31,7 @@ SERVICE_CONN_STR = addrs=127.0.0.1:6379 db=0
 `
 		cfg, err := NewConfigProviderFromData(iniStr)
 		assert.NoError(t, err)
-
+		loadRedisFrom(cfg)
 		loadGlobalLockFrom(cfg)
 		assert.Equal(t, "redis", GlobalLock.ServiceType)
 		assert.Equal(t, "addrs=127.0.0.1:6379 db=0", GlobalLock.ServiceConnStr)
