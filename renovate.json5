@@ -1,11 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "customManagers:githubActionsVersions"],
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "customManagers:githubActionsVersions",
+    "schedule:weekly", // dependency update PRs on monday 0-4 UTC, vulnerabilityAlerts bypasses this
+  ],
   "configMigration": true,
   "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix", "custom.regex", "dockerfile"],
   "labels": ["dependencies"],
   "branchPrefix": "renovate/",
-  "schedule": ["* * * * 1"], // dependency update PRs weekly, vulnerabilityAlerts bypasses this
   "separateMajorMinor": false, // include major updates in group PRs
   "minimumReleaseAge": "5 days",
   "semanticCommits": "enabled",
@@ -27,11 +31,8 @@
   "packageRules": [
     {
       "matchPackageNames": ["*"],
+      "groupName": "dependencies", // single weekly PR for all dependency updates
       "semanticCommitType": "chore", // dep updates are rarely fixes for gitea
-    },
-    {
-      "groupName": "action dependencies",
-      "matchManagers": ["github-actions"],
     },
     {
       "matchPackageNames": ["@mcaptcha/vanilla-glue"],
@@ -82,7 +83,6 @@
       "allowedVersions": "/^2019($|[.-])/", // pin to oldest in extended support
     },
     {
-      "groupName": "go dependencies",
       "matchManagers": ["gomod"],
       "postUpdateOptions": ["gomodUpdateImportPaths"],
       "postUpgradeTasks": {
@@ -96,11 +96,6 @@
       },
     },
     {
-      "groupName": "tool dependencies",
-      "matchManagers": ["custom.regex"],
-      "matchFileNames": ["**/Makefile"],
-    },
-    {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
       "matchDepTypes": ["golang"],
@@ -109,7 +104,6 @@
       "minimumReleaseAge": "0",
     },
     {
-      "groupName": "npm dependencies",
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
       "postUpgradeTasks": {
@@ -124,18 +118,6 @@
         ],
         "executionMode": "branch",
       },
-    },
-    {
-      "groupName": "python dependencies",
-      "matchManagers": ["pep621"],
-    },
-    {
-      "groupName": "nix dependencies",
-      "matchManagers": ["nix"],
-    },
-    {
-      "groupName": "docker dependencies",
-      "matchManagers": ["dockerfile"],
     },
   ],
 }
