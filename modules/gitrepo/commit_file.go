@@ -8,6 +8,7 @@ import (
 	"context"
 	"io"
 
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
 )
@@ -66,7 +67,7 @@ func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
 }
 
 // GetCommitFileStatus returns file status of commit in given repository.
-func GetCommitFileStatus(ctx context.Context, repo Repository, commitID string) (*CommitFileStatus, error) {
+func GetCommitFileStatus(ctx context.Context, repo git.RepositoryFacade, commitID string) (*CommitFileStatus, error) {
 	cmd := gitcmd.NewCommand("log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1")
 	stdout, stdoutClose := cmd.MakeStdoutPipe()
 	defer stdoutClose()
@@ -77,7 +78,7 @@ func GetCommitFileStatus(ctx context.Context, repo Repository, commitID string) 
 		close(done)
 	}()
 	err := cmd.AddDynamicArguments(commitID).
-		WithDir(repoPath(repo)).
+		WithRepo(repo).
 		RunWithStderr(ctx)
 	if err != nil {
 		return nil, err
