@@ -141,7 +141,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 	}
 
 	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	if err != nil {
 		return fmt.Errorf("openRepository: %w", err)
 	}
@@ -213,10 +213,10 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		return err
 	}
 
-	relativePath := repo_model.RelativePath(u.Name, repoName)
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(relativePath))
+	codeRepo := repo_model.CodeRepoByName(u.Name, repoName)
+	exist, err := gitrepo.IsRepositoryExist(ctx, codeRepo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", relativePath, err)
+		log.Error("Unable to check if repo %s/%s exists. Error: %v", u.Name, repoName, err)
 		return err
 	}
 	if !exist {
@@ -235,7 +235,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	return gitrepo.DeleteRepository(ctx, repo_model.StorageRepo(relativePath))
+	return gitrepo.DeleteRepository(ctx, codeRepo)
 }
 
 type unadoptedRepositories struct {

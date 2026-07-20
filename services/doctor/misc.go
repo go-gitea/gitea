@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/structs"
@@ -162,7 +163,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 		if !isExist {
 			numNeedUpdate++
 			if autofix {
-				if err := gitrepo.WriteCommitGraph(ctx, repo); err != nil {
+				if err := git.WriteCommitGraph(ctx, repo); err != nil {
 					logger.Error("Unable to write commit-graph in %s. Error: %v", repo.FullName(), err)
 					return err
 				}

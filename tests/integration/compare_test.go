@@ -182,12 +182,12 @@ func TestResolveRefWithSuffixContract(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := gitrepo.OpenRepository(repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
 	// a nil error guarantees a usable RefName
-	ref, err := common.ResolveRefWithSuffix(gitRepo, "add-csv", "^")
+	ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, "add-csv", "^")
 	require.NoError(t, err)
 	assert.NotEmpty(t, ref)
 	// a ref resolved with a suffix must be a commit SHA, not a branch ref
@@ -199,7 +199,7 @@ func TestResolveRefWithSuffixContract(t *testing.T) {
 		{"does-not-exist", ""},
 		{"add-csv", "~50"},
 	} {
-		ref, err := common.ResolveRefWithSuffix(gitRepo, tc.oriRef, tc.suffix)
+		ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, tc.oriRef, tc.suffix)
 		assert.ErrorIs(t, err, util.ErrNotExist, "ref %q suffix %q", tc.oriRef, tc.suffix)
 		assert.Empty(t, ref, "ref %q suffix %q", tc.oriRef, tc.suffix)
 	}

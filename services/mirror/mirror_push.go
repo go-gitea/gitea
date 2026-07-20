@@ -31,17 +31,17 @@ var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
-	addRemoteAndConfig := func(storageRepo gitrepo.Repository, addr string) error {
-		if err := gitrepo.GitRemoteAdd(ctx, storageRepo, m.RemoteName, addr, gitrepo.RemoteOptionMirrorPush); err != nil {
+	addRemoteAndConfig := func(storageRepo git.RepositoryFacade, addr string) error {
+		if err := gitrepo.ManagedRemoteAdd(ctx, storageRepo, m.RemoteName, addr, gitrepo.RemoteOptionMirrorPush); err != nil {
 			return err
 		}
-		if err := gitrepo.GitConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*"); err != nil {
+		if err := gitrepo.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*"); err != nil {
 			return err
 		}
-		return gitrepo.GitConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
+		return gitrepo.ManagedConfigAdd(ctx, storageRepo, "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*")
 	}
 
-	if err := addRemoteAndConfig(m.Repo, addr); err != nil {
+	if err := addRemoteAndConfig(m.Repo.CodeStorageRepo(), addr); err != nil {
 		return err
 	}
 
@@ -60,12 +60,12 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	_ = m.GetRepository(ctx)
-	if err := gitrepo.GitRemoteRemove(ctx, m.Repo, m.RemoteName); err != nil {
+	if err := gitrepo.ManagedRemoteRemove(ctx, m.Repo, m.RemoteName); err != nil {
 		return err
 	}
 
 	if repo_service.HasWiki(ctx, m.Repo) {
-		if err := gitrepo.GitRemoteRemove(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err != nil {
+		if err := gitrepo.ManagedRemoteRemove(ctx, m.Repo.WikiStorageRepo(), m.RemoteName); err != nil {
 			// The wiki remote may not exist
 			log.Warn("Wiki Remote[%d] could not be removed: %v", m.ID, err)
 		}
@@ -124,23 +124,24 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(repo *repo_model.Repository, isWiki bool) error {
-		var storageRepo gitrepo.Repository = repo
+		storageRepo := repo.CodeStorageRepo()
 		if isWiki {
 			storageRepo = repo.WikiStorageRepo()
 		}
+		mirrorLogName := fmt.Sprintf("%s%s[mirror=%d]", m.Repo.FullName(), util.Iif(isWiki, ".wiki", ""), m.ID)
 		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, storageRepo, m.RemoteName)
 		if err != nil {
-			log.Error("GetRemoteURL(%s) Error %v", storageRepo.RelativePath(), err)
-			return errors.New("Unexpected error")
+			log.Error("GetRemoteURL %s failed, error %v", mirrorLogName, err)
+			return errors.New("GitRemoteGetURL failed")
 		}
 
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := gitrepo.OpenRepository(ctx, storageRepo)
+			gitRepo, err := gitrepo.OpenRepository(storageRepo)
 			if err != nil {
-				log.Error("OpenRepository: %v", err)
-				return errors.New("Unexpected error")
+				log.Error("OpenRepository %s failed: %v", mirrorLogName, err)
+				return errors.New("OpenRepository failed")
 			}
 			defer gitRepo.Close()
 
@@ -153,7 +154,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 		}
 
-		log.Trace("Pushing %s mirror[%d] remote %s", storageRepo.RelativePath(), m.ID, m.RemoteName)
+		log.Trace("Pushing %s remote %s", mirrorLogName, m.ID, m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
 		if err := gitrepo.PushToExternal(ctx, storageRepo, git.PushOptions{
@@ -163,8 +164,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			Timeout: timeout,
 			Env:     envs,
 		}); err != nil {
-			log.Error("Error pushing %s mirror[%d] remote %s: %v", storageRepo.RelativePath(), m.ID, m.RemoteName, err)
-
+			log.Error("Error pushing %s remote %s: %v", mirrorLogName, m.RemoteName, err)
 			return util.SanitizeErrorCredentialURLs(err)
 		}
 

@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const testReposDir = "tests/repos/"
+
 func TestMain(m *testing.M) {
 	RunGitTests(m)
 }

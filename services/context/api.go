@@ -306,11 +306,11 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		var err error
 		switch refType {
 		case git.RefTypeBranch:
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, refName)
 		case git.RefTypeTag:
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(ctx, refName)
 		case git.RefTypeCommit:
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(ctx, refName)
 		}
 		if ctx.Repo.Commit == nil || errors.Is(err, util.ErrNotExist) {
 			ctx.APIErrorNotFound("unable to find a git ref")

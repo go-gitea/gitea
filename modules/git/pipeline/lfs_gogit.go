@@ -6,6 +6,7 @@
 package pipeline
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"sort"
@@ -19,7 +20,7 @@ import (
 )
 
 // FindLFSFile finds commits that contain a provided pointer file hash
-func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
+func FindLFSFile(ctx context.Context, repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
 
@@ -80,6 +81,6 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	}
 
 	sort.Sort(lfsResultSlice(results))
-	err = fillResultNameRev(repo.Ctx, repo.Path, results)
+	err = fillResultNameRev(ctx, repo.Path, results)
 	return results, err
 }

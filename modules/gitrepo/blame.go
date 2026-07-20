@@ -14,12 +14,12 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func LineBlame(ctx context.Context, repo Repository, revision, file string, line uint) (string, error) {
-	stdout, _, err := RunCmdString(ctx, repo,
-		gitcmd.NewCommand("blame").
-			AddOptionFormat("-L %d,%d", line, line).
-			AddOptionValues("-p", revision).
-			AddDashesAndList(file))
+func LineBlame(ctx context.Context, repo git.RepositoryFacade, revision, file string, line uint) (string, error) {
+	stdout, _, err := gitcmd.NewCommand("blame").WithRepo(repo).
+		AddOptionFormat("-L %d,%d", line, line).
+		AddOptionValues("-p", revision).
+		AddDashesAndList(file).
+		RunStdString(ctx)
 	return stdout, err
 }
 
@@ -138,8 +138,8 @@ func (r *BlameReader) cleanup() {
 	}
 }
 
-// CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, retErr error) {
+// CreateBlameReader creates reader for given git.RepositoryFacade, commit and file
+func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo git.RepositoryFacade, gitRepo *git.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, retErr error) {
 	defer func() {
 		if retErr != nil {
 			rd.cleanup()
@@ -158,7 +158,7 @@ func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo 
 	rd.cleanupFuncs = append(rd.cleanupFuncs, stdoutReaderClose)
 
 	if git.DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
-		ignoreRevsFileName, ignoreRevsFileCleanup, err := tryCreateBlameIgnoreRevsFile(commit)
+		ignoreRevsFileName, ignoreRevsFileCleanup, err := tryCreateBlameIgnoreRevsFile(ctx, gitRepo, commit)
 		if err != nil && !git.IsErrNotExist(err) {
 			return nil, err
 		} else if err == nil {
@@ -174,19 +174,19 @@ func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo 
 
 	go func() {
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		rd.done <- RunCmdWithStderr(ctx, repo, cmd)
+		rd.done <- cmd.WithRepo(repo).RunWithStderr(ctx)
 	}()
 
 	return rd, nil
 }
 
-func tryCreateBlameIgnoreRevsFile(commit *git.Commit) (string, func(), error) {
-	entry, err := commit.GetTreeEntryByPath(".git-blame-ignore-revs")
+func tryCreateBlameIgnoreRevsFile(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) (string, func(), error) {
+	entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, ".git-blame-ignore-revs")
 	if err != nil {
 		return "", nil, err
 	}
 
-	r, err := entry.Blob().DataAsync()
+	r, err := entry.Blob(gitRepo).DataAsync(ctx)
 	if err != nil {
 		return "", nil, err
 	}

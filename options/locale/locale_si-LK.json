@@ -1999,7 +1999,6 @@
   "admin.config.default_enable_timetracking": "පෙරනිමියෙන් කාල ට්රැකින් සක්රීය කරන්න",
   "admin.config.default_allow_only_contributors_to_track_time": "දායකයින්ට පමණක් වේලාව නිරීක්ෂණය කිරීමට ඉඩ දෙන්න",
   "admin.config.no_reply_address": "සැඟවුණු ඊ-තැපැල් වසම",
-  "admin.config.default_visibility_organization": "නව සංවිධාන සඳහා පෙරනිමි දෘශ්යතාව",
   "admin.config.default_enable_dependencies": "පෙරනිමියෙන් නිකුත් යැපීම් සක්රීය",
   "admin.config.webhook_config": "වෙබ්හූක් වින්යාසය",
   "admin.config.queue_length": "පෝලිම් දිග",

@@ -5,25 +5,28 @@
 
 package git
 
-import "gitea.dev/modules/log"
+import (
+	"context"
 
-// Size returns the size of the entry
-func (te *TreeEntry) Size() int64 {
+	"gitea.dev/modules/log"
+)
+
+func (te *TreeEntry) GetSize(ctx context.Context, gitRepo *Repository) int64 {
 	if te.IsDir() {
 		return 0
 	} else if te.sized {
 		return te.size
 	}
 
-	batch, cancel, err := te.ptree.repo.CatFileBatch(te.ptree.repo.Ctx)
+	batch, cancel, err := gitRepo.CatFileBatch(ctx)
 	if err != nil {
-		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), te.ptree.repo.Path, err)
+		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), gitRepo.Path, err)
 		return 0
 	}
 	defer cancel()
 	info, err := batch.QueryInfo(te.ID.String())
 	if err != nil {
-		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), te.ptree.repo.Path, err)
+		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), gitRepo.Path, err)
 		return 0
 	}
 
@@ -33,12 +36,12 @@ func (te *TreeEntry) Size() int64 {
 }
 
 // Blob returns the blob object the entry
-func (te *TreeEntry) Blob() *Blob {
+func (te *TreeEntry) Blob(gitRepo *Repository) *Blob {
 	return &Blob{
 		ID:      te.ID,
 		name:    te.Name(),
 		size:    te.size,
 		gotSize: te.sized,
-		repo:    te.ptree.repo,
+		repo:    gitRepo,
 	}
 }

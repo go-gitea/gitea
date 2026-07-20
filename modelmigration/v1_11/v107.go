@@ -1,0 +1,15 @@
+// Copyright 2019 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package v1_11
+
+import "gitea.dev/modelmigration/base"
+
+func AddTemplateToRepo(x base.EngineMigration) error {
+	type Repository struct {
+		IsTemplate bool  `xorm:"INDEX NOT NULL DEFAULT false"`
+		TemplateID int64 `xorm:"INDEX"`
+	}
+
+	return x.Sync(new(Repository))
+}

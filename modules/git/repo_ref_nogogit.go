@@ -7,6 +7,7 @@ package git
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"strings"
 
@@ -14,7 +15,7 @@ import (
 )
 
 // GetRefsFiltered returns all references of the repository that matches patterm exactly or starting with.
-func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
+func (repo *Repository) GetRefsFiltered(ctx context.Context, pattern string) ([]*Reference, error) {
 	refs := make([]*Reference, 0)
 	cmd := gitcmd.NewCommand("for-each-ref")
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
@@ -70,6 +71,6 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 				}
 			}
 			return nil
-		}).RunWithStderr(repo.Ctx)
+		}).RunWithStderr(ctx)
 	return refs, err
 }

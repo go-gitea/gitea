@@ -3305,7 +3305,6 @@
   "admin.config.default_enable_timetracking": "デフォルトでタイムトラッキング有効",
   "admin.config.default_allow_only_contributors_to_track_time": "コントリビューターだけタイムトラッキングする",
   "admin.config.no_reply_address": "メールを隠すときのドメイン",
-  "admin.config.default_visibility_organization": "新しい組織のデフォルトの表示設定",
   "admin.config.default_enable_dependencies": "デフォルトでイシューの依存関係有効",
   "admin.config.webhook_config": "Webhook設定",
   "admin.config.queue_length": "キューの長さ",

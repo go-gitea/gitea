@@ -141,7 +141,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
+	gitRepo, err := gitrepo.OpenRepository(repo.Repository)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		gitRepo.Close()
@@ -152,7 +152,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	if repo.RefFullName.IsPull() {
 		repo.BranchName = repo.RefFullName.ShortName()
 	}
-	repo.Commit, err = gitRepo.GetCommit(repo.RefFullName.String())
+	repo.Commit, err = gitRepo.GetCommit(ctx, repo.RefFullName.String())
 	require.NoError(t, err)
 }
 
@@ -185,7 +185,7 @@ func LoadGitRepo(t *testing.T, ctx gocontext.Context) {
 	}
 	assert.NoError(t, repo.Repository.LoadOwner(ctx))
 	var err error
-	repo.GitRepo, err = gitrepo.OpenRepository(ctx, repo.Repository)
+	repo.GitRepo, err = gitrepo.OpenRepository(repo.Repository)
 	assert.NoError(t, err)
 }
 

@@ -5,60 +5,41 @@ package gitrepo
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"io/fs"
-	"os"
-	"path/filepath"
 
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/reqctx"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
-// Repository represents a git repository which stored in a disk
-type Repository interface {
-	RelativePath() string // We don't assume how the directory structure of the repository is, so we only need the relative path
-}
-
-// repoPath resolves the Repository.RelativePath (which is a unix-style path like "username/reponame.git")
-// to a local filesystem path according to setting.RepoRootPath
-var repoPath = func(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo.RelativePath()))
-}
-
-// OpenRepository opens the repository at the given relative path with the provided context.
-func OpenRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, repoPath(repo))
-}
+var OpenRepository = git.OpenRepository // TODO: can be removed in the future
 
 // contextKey is a value for use with context.WithValue.
 type contextKey struct {
-	repoPath string
+	key string
 }
 
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
 // The caller must call Closer.Close()
-func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Repository, io.Closer, error) {
+func RepositoryFromContextOrOpen(ctx context.Context, repo git.RepositoryFacade) (*git.Repository, io.Closer, error) {
 	reqCtx := reqctx.FromContext(ctx)
 	if reqCtx != nil {
 		gitRepo, err := RepositoryFromRequestContextOrOpen(reqCtx, repo)
 		return gitRepo, util.NopCloser{}, err
 	}
-	gitRepo, err := OpenRepository(ctx, repo)
+	gitRepo, err := OpenRepository(repo)
 	return gitRepo, gitRepo, err
 }
 
 // RepositoryFromRequestContextOrOpen opens the repository at the given relative path in the provided request context.
 // Caller shouldn't close the git repo manually, the git repo will be automatically closed when the request context is done.
-func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Repository) (*git.Repository, error) {
-	ck := contextKey{repoPath: repoPath(repo)}
+func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo git.RepositoryFacade) (*git.Repository, error) {
+	ck := contextKey{key: repo.GitRepoLocation()}
 	if gitRepo, ok := ctx.Value(ck).(*git.Repository); ok {
 		return gitRepo, nil
 	}
-	gitRepo, err := git.OpenRepository(ctx, ck.repoPath)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		return nil, err
 	}
@@ -67,62 +48,7 @@ func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Reposito
 	return gitRepo, nil
 }
 
-// IsRepositoryExist returns true if the repository directory exists in the disk
-func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
-	return util.IsExist(repoPath(repo))
-}
-
-// DeleteRepository deletes the repository directory from the disk, it will return
-// nil if the repository does not exist.
-func DeleteRepository(ctx context.Context, repo Repository) error {
-	return util.RemoveAll(repoPath(repo))
-}
-
-// RenameRepository renames a repository's name on disk
-func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
-	dstDir := repoPath(newRepo)
-	if err := os.MkdirAll(filepath.Dir(dstDir), os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", filepath.Dir(dstDir), err)
-	}
-
-	if err := util.Rename(repoPath(repo), dstDir); err != nil {
-		return fmt.Errorf("rename repository directory: %w", err)
-	}
-	return nil
-}
-
-func InitRepository(ctx context.Context, repo Repository, objectFormatName string) error {
-	return git.InitRepository(ctx, repoPath(repo), true, objectFormatName)
-}
-
-func UpdateServerInfo(ctx context.Context, repo Repository) error {
-	_, _, err := RunCmdBytes(ctx, repo, gitcmd.NewCommand("update-server-info"))
+func UpdateServerInfo(ctx context.Context, repo git.RepositoryFacade) error {
+	_, _, err := gitcmd.NewCommand("update-server-info").WithRepo(repo).RunStdBytes(ctx)
 	return err
-}
-
-func GetRepoFS(repo Repository) fs.FS {
-	return os.DirFS(repoPath(repo))
-}
-
-func IsRepoFileExist(ctx context.Context, repo Repository, relativeFilePath string) (bool, error) {
-	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
-	return util.IsExist(absoluteFilePath)
-}
-
-func IsRepoDirExist(ctx context.Context, repo Repository, relativeDirPath string) (bool, error) {
-	absoluteDirPath := filepath.Join(repoPath(repo), relativeDirPath)
-	return util.IsDir(absoluteDirPath)
-}
-
-func RemoveRepoFileOrDir(ctx context.Context, repo Repository, relativeFileOrDirPath string) error {
-	absoluteFilePath := filepath.Join(repoPath(repo), relativeFileOrDirPath)
-	return util.Remove(absoluteFilePath)
-}
-
-func CreateRepoFile(ctx context.Context, repo Repository, relativeFilePath string) (io.WriteCloser, error) {
-	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
-	if err := os.MkdirAll(filepath.Dir(absoluteFilePath), os.ModePerm); err != nil {
-		return nil, err
-	}
-	return os.Create(absoluteFilePath)
 }
