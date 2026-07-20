@@ -61,6 +61,7 @@ ADAPTER = memcache
 			assert.NoError(t, err)
 
 			loadRedisFrom(cfg)
+			t.Cleanup(func() { Redis.ConnStr = "" })
 			loadCacheFrom(cfg)
 			assert.Equal(t, tt.wantConn, CacheService.Conn)
 		})

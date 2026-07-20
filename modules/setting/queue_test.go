@@ -81,6 +81,7 @@ TYPE = redis
 			assert.NoError(t, err)
 
 			loadRedisFrom(cfg)
+			t.Cleanup(func() { Redis.ConnStr = "" })
 			q, err := GetQueueSettings(cfg, tt.queueName)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.wantConn, q.ConnStr)

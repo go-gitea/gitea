@@ -44,6 +44,7 @@ SERVICE_TYPE = redis
 		assert.NoError(t, err)
 
 		loadRedisFrom(cfg)
+		t.Cleanup(func() { Redis.ConnStr = "" })
 		loadGlobalLockFrom(cfg)
 		assert.Equal(t, "redis", GlobalLock.ServiceType)
 		assert.Equal(t, "redis://127.0.0.1:6379/0", GlobalLock.ServiceConnStr)
@@ -61,6 +62,7 @@ SERVICE_CONN_STR = redis://10.0.0.1:6379/1
 		assert.NoError(t, err)
 
 		loadRedisFrom(cfg)
+		t.Cleanup(func() { Redis.ConnStr = "" })
 		loadGlobalLockFrom(cfg)
 		assert.Equal(t, "redis", GlobalLock.ServiceType)
 		assert.Equal(t, "redis://10.0.0.1:6379/1", GlobalLock.ServiceConnStr)

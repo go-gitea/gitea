@@ -65,6 +65,7 @@ PROVIDER = file
 			assert.NoError(t, err)
 
 			loadRedisFrom(cfg)
+			t.Cleanup(func() { Redis.ConnStr = "" })
 			loadSessionFrom(cfg)
 			// ProviderConfig is shadowed into a JSON blob at the end of loadSessionFrom
 			assert.Contains(t, SessionConfig.ProviderConfig, tt.wantContain)

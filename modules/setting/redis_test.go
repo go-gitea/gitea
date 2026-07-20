@@ -35,6 +35,7 @@ CONN_STR = redis://127.0.0.1:6379/0
 			assert.NoError(t, err)
 
 			loadRedisFrom(cfg)
+			t.Cleanup(func() { Redis.ConnStr = "" })
 			assert.Equal(t, tt.wantStr, Redis.ConnStr)
 		})
 	}

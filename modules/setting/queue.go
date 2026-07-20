@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // QueueSettings represent the settings for a queue from the ini
@@ -80,10 +81,7 @@ func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error
 	// redis fallback order: [queue]/[queue.name] CONN_STR (already merged above) wins,
 	// then the shared [redis] conn, then the built-in localhost default for compatibility
 	if cfg.Type == "redis" && cfg.ConnStr == "" {
-		cfg.ConnStr = Redis.ConnStr
-	}
-	if cfg.Type == "redis" && cfg.ConnStr == "" {
-		cfg.ConnStr = "redis://127.0.0.1:6379/0"
+		cfg.ConnStr = util.IfZero(Redis.ConnStr, "redis://127.0.0.1:6379/0")
 	}
 
 	if cfg.Length <= 0 {
