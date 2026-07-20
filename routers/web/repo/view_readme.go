@@ -24,11 +24,11 @@ import (
 )
 
 // locate a README for a tree in one of the supported paths.
-//
-// entries is passed to reduce calls to ListEntries(), so
-// this has precondition:
+// entries are passed to reduce calls to ListEntries(), so this has precondition:
 //
 //	entries == ctx.Repo.Commit.SubTree(ctx.Repo.TreePath).ListEntries()
+//
+// this function is tested by integration test ViewRepoDirectoryReadme
 func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*git.TreeEntry, tryWellKnownDirs bool) (string, *git.TreeEntry, error) {
 	var giteaEntry, githubEntry, docsEntry *git.TreeEntry
 

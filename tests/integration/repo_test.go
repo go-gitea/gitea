@@ -356,7 +356,7 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 			{regular, "subproject/.github/README.md", "This is in .github/"},
 		}},
 		{Ref: "refs/heads/symlink", Message: "init symlink", Files: []test.GitFastImportFile{
-			{symlink, "README.md", "some/other/path/awefulcake.txt"},
+			{symlink, ".github/README.md", "../some/other/path/awefulcake.txt"},
 			{symlink, "some/README.txt", "other/path/awefulcake.txt"},
 			{regular, "some/other/path/awefulcake.txt", "This is in some/other/path"},
 			{symlink, "trampoline", "up/back/down/down"},
@@ -443,7 +443,7 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 	// - they should be able to handle going a reasonable number of times up and down in the tree
 	// - they shouldn't get stuck on link cycles
 	// - they should determine the filetype based on the name of the link, not the target
-	check("symlink", "/user2/readme-test/src/branch/symlink/", "README.md", "markdown", "This is in some/other/path")
+	check("symlink", "/user2/readme-test/src/branch/symlink/", ".github/README.md", "markdown", "This is in some/other/path")
 	check("symlink-multiple", "/user2/readme-test/src/branch/symlink/some/", "README.txt", "plain-text", "This is in some/other/path")
 	check("symlink-up-and-down", "/user2/readme-test/src/branch/symlink/up/back/down/down", "README.md", "markdown", "It's a me, mario")
 
