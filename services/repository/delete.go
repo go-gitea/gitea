@@ -169,6 +169,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
 		&secret_model.Secret{RepoID: repoID},
+		&actions_model.ActionVariable{RepoID: repoID},
 		&actions_model.ActionTaskStep{RepoID: repoID},
 		&actions_model.ActionTask{RepoID: repoID},
 		&actions_model.ActionRunJob{RepoID: repoID},
@@ -179,6 +180,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&actions_model.ActionArtifact{RepoID: repoID},
 		&actions_model.ActionRunJobSummary{RepoID: repoID},
 		&actions_model.ActionRunnerToken{RepoID: repoID},
+		&actions_model.ActionEnvironment{RepoID: repoID},
 		&actions_model.ActionScopedWorkflowSource{SourceRepoID: repoID},
 		&issues_model.IssuePin{RepoID: repoID},
 	); err != nil {

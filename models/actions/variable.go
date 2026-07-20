@@ -5,6 +5,8 @@ package actions
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 	"unicode/utf8"
 
@@ -22,6 +24,7 @@ import (
 //  1. global variable, OwnerID is 0 and RepoID is 0
 //  2. org/user level variable, OwnerID is org/user ID and RepoID is 0
 //  3. repo level variable, OwnerID is 0 and RepoID is repo ID
+//  4. environment level variable, OwnerID is 0, RepoID is repo ID and EnvironmentID is environment ID
 //
 // Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
 // or it will be complicated to find variables belonging to a specific owner.
@@ -29,14 +32,15 @@ import (
 // but it's a repo level variable, not an org/user level variable.
 // To avoid this, make it clear with {OwnerID: 0, RepoID: 1} for repo level variables.
 type ActionVariable struct {
-	ID          int64              `xorm:"pk autoincr"`
-	OwnerID     int64              `xorm:"UNIQUE(owner_repo_name)"`
-	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name)"`
-	Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
-	Data        string             `xorm:"LONGTEXT NOT NULL"`
-	Description string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+	ID            int64              `xorm:"pk autoincr"`
+	OwnerID       int64              `xorm:"UNIQUE(owner_repo_name)"`
+	RepoID        int64              `xorm:"INDEX UNIQUE(owner_repo_name)"`
+	EnvironmentID int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
+	Name          string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
+	Data          string             `xorm:"LONGTEXT NOT NULL"`
+	Description   string             `xorm:"TEXT"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL"`
+	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
 
 const (
@@ -48,7 +52,7 @@ func init() {
 	db.RegisterModel(new(ActionVariable))
 }
 
-func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data, description string) (*ActionVariable, error) {
+func InsertVariable(ctx context.Context, ownerID, repoID, environmentID int64, name, data, description string) (*ActionVariable, error) {
 	if ownerID != 0 && repoID != 0 {
 		// It's trying to create a variable that belongs to a repository, but OwnerID has been set accidentally.
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
@@ -62,21 +66,23 @@ func InsertVariable(ctx context.Context, ownerID, repoID int64, name, data, desc
 	description = util.TruncateRunes(description, VariableDescriptionMaxLength)
 
 	variable := &ActionVariable{
-		OwnerID:     ownerID,
-		RepoID:      repoID,
-		Name:        strings.ToUpper(name),
-		Data:        data,
-		Description: description,
+		OwnerID:       ownerID,
+		RepoID:        repoID,
+		EnvironmentID: environmentID,
+		Name:          strings.ToUpper(name),
+		Data:          data,
+		Description:   description,
 	}
 	return variable, db.Insert(ctx, variable)
 }
 
 type FindVariablesOpts struct {
 	db.ListOptions
-	IDs     []int64
-	RepoID  int64
-	OwnerID int64 // it will be ignored if RepoID is set
-	Name    string
+	IDs           []int64
+	RepoID        int64
+	OwnerID       int64 // it will be ignored if RepoID is set
+	EnvironmentID int64 // defaults to 0 (repo/org/global scope) when not set
+	Name          string
 }
 
 func (opts FindVariablesOpts) ToConds() builder.Cond {
@@ -103,6 +109,7 @@ func (opts FindVariablesOpts) ToConds() builder.Cond {
 	if opts.Name != "" {
 		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
 	}
+	cond = cond.And(builder.Eq{"environment_id": opts.EnvironmentID})
 	return cond
 }
 
@@ -166,6 +173,47 @@ func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, 
 		variables[v.Name] = v.Data
 	}
 
+	return variables, nil
+}
+
+// GetVariablesOfJob returns variables for a job, overlaying environment-scoped variables when the job
+// targets a deployment environment whose branch policy matches the run's ref.
+// Precedence (high to low): environment > repo > org/user > global
+func GetVariablesOfJob(ctx context.Context, job *ActionRunJob) (map[string]string, error) {
+	if err := job.LoadRun(ctx); err != nil {
+		return nil, err
+	}
+	variables, err := GetVariablesOfRun(ctx, job.Run)
+	if err != nil {
+		return nil, err
+	}
+
+	if job.EnvironmentName == "" {
+		return variables, nil
+	}
+
+	env, err := GetEnvironmentByRepoAndName(ctx, job.RepoID, job.EnvironmentName)
+	if err != nil {
+		if !errors.Is(err, util.ErrNotExist) {
+			return nil, fmt.Errorf("get environment %q for job %d: %w", job.EnvironmentName, job.ID, err)
+		}
+		return variables, nil
+	}
+	if !env.MatchesBranch(job.Run.Ref) {
+		return variables, nil
+	}
+
+	envVars, err := db.Find[ActionVariable](ctx, FindVariablesOpts{
+		RepoID:        job.RepoID,
+		EnvironmentID: env.ID,
+	})
+	if err != nil {
+		log.Error("find environment variables for env %d: %v", env.ID, err)
+		return variables, nil
+	}
+	for _, v := range envVars {
+		variables[v.Name] = v.Data
+	}
 	return variables, nil
 }
 

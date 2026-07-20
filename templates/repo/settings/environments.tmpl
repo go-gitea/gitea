@@ -1,0 +1,84 @@
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings environments")}}
+	<div class="repo-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "environments.environments"}}
+			<div class="ui right">
+				<button class="ui primary tiny button show-modal"
+					data-modal="#new-environment-modal"
+				>
+					{{ctx.Locale.Tr "environments.new"}}
+				</button>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			<p class="color-text-light-2">{{ctx.Locale.Tr "environments.description"}}</p>
+			{{if .Environments}}
+			<div class="flex-divided-list items-with-main">
+				{{range .Environments}}
+				<div class="item tw-items-center">
+					<div class="item-leading">
+						{{svg "octicon-server" 32}}
+					</div>
+					<div class="item-main">
+						<div class="item-title">
+							<a href="{{$.RepoLink}}/settings/environments/{{.Name}}">{{.Name}}</a>
+						</div>
+						{{if .ProtectedBranches}}
+						<div class="item-body">
+							{{svg "octicon-git-branch" 14}} {{.ProtectedBranches}}
+						</div>
+						{{end}}
+					</div>
+					<div class="item-trailing">
+						<a class="btn interact-bg tw-p-2"
+							href="{{$.RepoLink}}/settings/environments/{{.Name}}"
+							data-tooltip-content="{{ctx.Locale.Tr "environments.configure"}}"
+						>
+							{{svg "octicon-gear"}}
+						</a>
+						<button class="btn interact-bg link-action tw-p-2"
+							data-url="{{$.RepoLink}}/settings/environments/{{.Name}}/delete"
+							data-modal-confirm="{{ctx.Locale.Tr "environments.deletion.description"}}"
+							data-tooltip-content="{{ctx.Locale.Tr "environments.deletion"}}"
+						>
+							{{svg "octicon-trash"}}
+						</button>
+					</div>
+				</div>
+				{{end}}
+			</div>
+			{{else}}
+			<p>{{ctx.Locale.Tr "environments.none"}}</p>
+			{{end}}
+		</div>
+	</div>
+
+{{/* New environment dialog */}}
+<div class="ui small modal" id="new-environment-modal">
+	<div class="header">{{ctx.Locale.Tr "environments.new"}}</div>
+	<form class="ui form" action="{{.RepoLink}}/settings/environments/new" method="post">
+		{{$.CsrfTokenHtml}}
+		<div class="content">
+			<div class="field required">
+				<label for="env-name">{{ctx.Locale.Tr "environments.name"}}</label>
+				<input autofocus required
+					id="env-name"
+					name="name"
+					maxlength="255"
+					placeholder="{{ctx.Locale.Tr "environments.name_placeholder"}}"
+				>
+			</div>
+			<div class="field">
+				<label for="env-protected-branches">{{ctx.Locale.Tr "environments.protected_branches"}}</label>
+				<input
+					id="env-protected-branches"
+					name="protected_branches"
+					placeholder="{{ctx.Locale.Tr "environments.protected_branches_placeholder"}}"
+				>
+				<p class="help">{{ctx.Locale.Tr "environments.protected_branches_help"}}</p>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</form>
+</div>
+{{template "repo/settings/layout_footer" .}}

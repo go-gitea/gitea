@@ -105,6 +105,10 @@ type ActionRunJob struct {
 	// Only set when IsReusableCaller is true.
 	CallPayload string `xorm:"LONGTEXT"`
 
+	// EnvironmentName is the deployment environment name declared in the job's "environment:" key.
+	// Empty if the job does not target a deployment environment.
+	EnvironmentName string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+
 	// ParentJobID scopes `Needs` resolution: name lookups happen only among rows sharing the same ParentJobID. 0 for top-level rows.
 	ParentJobID int64 `xorm:"index NOT NULL DEFAULT 0"`
 

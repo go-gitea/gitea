@@ -5,6 +5,7 @@ package secret
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -27,6 +28,7 @@ import (
 // It can be:
 //  1. org/user level secret, OwnerID is org/user ID and RepoID is 0
 //  2. repo level secret, OwnerID is 0 and RepoID is repo ID
+//  3. environment level secret, OwnerID is 0, RepoID is repo ID and EnvironmentID is environment ID
 //
 // Please note that it's not acceptable to have both OwnerID and RepoID to be non-zero,
 // or it will be complicated to find secrets belonging to a specific owner.
@@ -37,13 +39,14 @@ import (
 // Please note that it's not acceptable to have both OwnerID and RepoID to zero, global secrets are not supported.
 // It's for security reasons, admin may be not aware of that the secrets could be stolen by any user when setting them as global.
 type Secret struct {
-	ID          int64
-	OwnerID     int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL"`
-	RepoID      int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-	Name        string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
-	Data        string             `xorm:"LONGTEXT"` // encrypted data
-	Description string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
+	ID            int64
+	OwnerID       int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL"`
+	RepoID        int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
+	EnvironmentID int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
+	Name          string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
+	Data          string             `xorm:"LONGTEXT"` // encrypted data
+	Description   string             `xorm:"TEXT"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 
 const (
@@ -65,7 +68,7 @@ func (err ErrSecretNotFound) Unwrap() error {
 }
 
 // InsertEncryptedSecret Creates, encrypts, and validates a new secret with yet unencrypted data and insert into database
-func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, data, description string) (*Secret, error) {
+func InsertEncryptedSecret(ctx context.Context, ownerID, repoID, environmentID int64, name, data, description string) (*Secret, error) {
 	if ownerID != 0 && repoID != 0 {
 		// It's trying to create a secret that belongs to a repository, but OwnerID has been set accidentally.
 		// Remove OwnerID to avoid confusion; it's not worth returning an error here.
@@ -87,11 +90,12 @@ func InsertEncryptedSecret(ctx context.Context, ownerID, repoID int64, name, dat
 	}
 
 	secret := &Secret{
-		OwnerID:     ownerID,
-		RepoID:      repoID,
-		Name:        strings.ToUpper(name),
-		Data:        encrypted,
-		Description: description,
+		OwnerID:       ownerID,
+		RepoID:        repoID,
+		EnvironmentID: environmentID,
+		Name:          strings.ToUpper(name),
+		Data:          encrypted,
+		Description:   description,
 	}
 	return secret, db.Insert(ctx, secret)
 }
@@ -102,10 +106,11 @@ func init() {
 
 type FindSecretsOptions struct {
 	db.ListOptions
-	RepoID   int64
-	OwnerID  int64 // it will be ignored if RepoID is set
-	SecretID int64
-	Name     string
+	RepoID        int64
+	OwnerID       int64 // it will be ignored if RepoID is set
+	EnvironmentID int64 // defaults to 0 (repo/org scope) when not set
+	SecretID      int64
+	Name          string
 }
 
 func (opts FindSecretsOptions) ToConds() builder.Cond {
@@ -125,6 +130,7 @@ func (opts FindSecretsOptions) ToConds() builder.Cond {
 	if opts.Name != "" {
 		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
 	}
+	cond = cond.And(builder.Eq{"environment_id": opts.EnvironmentID})
 
 	return cond
 }
@@ -184,6 +190,33 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 			continue
 		}
 		baseSecrets[secret.Name] = v
+	}
+
+	// Environment-scoped secrets override repo/org secrets when the job targets a deployment environment.
+	if task.Job.EnvironmentName != "" {
+		env, err := actions_model.GetEnvironmentByRepoAndName(ctx, task.Job.Run.RepoID, task.Job.EnvironmentName)
+		if err != nil {
+			if !errors.Is(err, util.ErrNotExist) {
+				log.Error("get environment %q for task %d: %v", task.Job.EnvironmentName, task.ID, err)
+			}
+		} else if env.MatchesBranch(task.Job.Run.Ref) {
+			envSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{
+				RepoID:        task.Job.Run.RepoID,
+				EnvironmentID: env.ID,
+			})
+			if err != nil {
+				log.Error("find environment secrets for env %d: %v", env.ID, err)
+			} else {
+				for _, s := range envSecrets {
+					v, err := secret_module.DecryptSecret(setting.SecretKey, s.Data)
+					if err != nil {
+						log.Error("Unable to decrypt environment secret %v %q: %v", s.ID, s.Name, err)
+						continue
+					}
+					baseSecrets[s.Name] = v
+				}
+			}
+		}
 	}
 
 	return getScopedSecretsForJob(ctx, task.Job, baseSecrets)

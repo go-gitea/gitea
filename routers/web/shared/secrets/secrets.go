@@ -29,7 +29,7 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	form := web.GetForm(ctx).(*forms.AddSecretForm)
 
-	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
+	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, 0, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
 	if err != nil {
 		log.Error("CreateOrUpdateSecret failed: %v", err)
 		ctx.JSONError(ctx.Tr("secrets.save_failed"))
@@ -43,7 +43,7 @@ func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL
 func PerformSecretsDelete(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
 	id := ctx.FormInt64("id")
 
-	err := secret_service.DeleteSecretByID(ctx, ownerID, repoID, id)
+	err := secret_service.DeleteSecretByID(ctx, ownerID, repoID, 0, id)
 	if err != nil {
 		log.Error("DeleteSecretByID(%d) failed: %v", id, err)
 		ctx.JSONError(ctx.Tr("secrets.deletion.failed"))
