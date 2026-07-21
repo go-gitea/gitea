@@ -4,10 +4,13 @@
 package gitdiff
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -215,6 +218,38 @@ func TestGitDiffTree(t *testing.T) {
 			assert.Equal(t, tt.Expected, diffPaths)
 		})
 	}
+}
+
+func TestGitDiffTreeRespectsDiffOrderFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	srcRepoPath := "../../modules/git/tests/repos/repo5_pulls"
+	clonedRepoPath := filepath.Join(tmpDir, "repo5_pulls")
+
+	err := gitcmd.NewCommand("clone", "--quiet").
+		AddDynamicArguments(srcRepoPath, clonedRepoPath).
+		Run(t.Context())
+	require.NoError(t, err)
+
+	orderFilePath := filepath.Join(clonedRepoPath, "test-diff-order.txt")
+	err = os.WriteFile(orderFilePath, []byte("README.md\nLICENSE\n"), 0o644)
+	require.NoError(t, err)
+
+	_, _, err = gitcmd.NewCommand("config", "diff.orderFile").
+		AddDynamicArguments(orderFilePath).
+		WithDir(clonedRepoPath).
+		RunStdString(t.Context())
+	require.NoError(t, err)
+
+	gitRepo, err := git.OpenRepositoryLocal(clonedRepoPath)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	diffTree, err := GetDiffTree(t.Context(), gitRepo, false, "72866af952e98d02a73003501836074b286a78f6", "d8e0bbb45f200e67d9a784ce55bd90821af45ebd")
+	require.NoError(t, err)
+	require.Len(t, diffTree.Files, 2)
+
+	assert.Equal(t, "README.md", diffTree.Files[0].HeadPath)
+	assert.Equal(t, "LICENSE", diffTree.Files[1].HeadPath)
 }
 
 func TestParseGitDiffTree(t *testing.T) {
