@@ -20,16 +20,16 @@ import (
 )
 
 func Verify(ctx context.Context, token string) (bool, error) {
-	client := &Client{
+	c := &client{
 		ServerURL: setting.Service.McaptchaURL,
 		SiteKey:   setting.Service.McaptchaSitekey,
 		Secret:    setting.Service.McaptchaSecret,
 		Token:     token,
 	}
-	return client.Verify(ctx)
+	return c.Verify(ctx)
 }
 
-type Client struct {
+type client struct {
 	ServerURL string
 
 	Secret  string
@@ -37,7 +37,7 @@ type Client struct {
 	Token   string
 }
 
-func (c *Client) Verify(ctx context.Context) (bool, error) {
+func (c *client) Verify(ctx context.Context) (bool, error) {
 	verifyURL := strings.TrimSuffix(c.ServerURL, "/") + "/api/v1/pow/siteverify"
 	reqParams := map[string]string{"secret": c.Secret, "key": c.SiteKey, "token": c.Token}
 	reqBody, _ := json.Marshal(reqParams)
@@ -57,7 +57,7 @@ func (c *Client) Verify(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("unable to read response body: %w", err)
 	}
 	if res.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("unexpected response content: %q", util.TruncateRunes(util.UnsafeBytesToString(respContent), 100))
+		return false, fmt.Errorf("unexpected response status %d: %q", res.StatusCode, util.TruncateRunes(util.UnsafeBytesToString(respContent), 100))
 	}
 
 	var resp struct {
