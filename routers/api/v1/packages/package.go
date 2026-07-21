@@ -4,7 +4,6 @@
 package packages
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -19,6 +18,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/optional"
 	composer_module "gitea.dev/modules/packages/composer"
 	api "gitea.dev/modules/structs"
