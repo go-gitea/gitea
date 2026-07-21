@@ -4,14 +4,26 @@
 package packages
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
+	"strings"
 
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	org_model "gitea.dev/models/organization"
 	"gitea.dev/models/packages"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
+	composer_module "gitea.dev/modules/packages/composer"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -465,6 +477,180 @@ func UnlinkPackage(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+// CreateComposerDevBranch creates or updates a Composer dev branch link
+func CreateComposerDevBranch(ctx *context.APIContext) {
+	// swagger:operation POST /packages/{owner}/composer/{vendor}/{project}/-/composer/dev-branch package createComposerDevBranch
+	// ---
+	// summary: Create or update a Composer dev branch link
+	// parameters:
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/ComposerDevBranchOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/ComposerDevBranch"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if !canWriteOwnerPackages(ctx, ctx.Package.Owner, ctx.Doer) {
+		ctx.APIError(http.StatusForbidden, "user should have package write permission or be a site admin")
+		return
+	}
+
+	form := web.GetForm(ctx).(*api.ComposerDevBranchOption)
+	packageName := ctx.PathParam("vendor") + "/" + ctx.PathParam("project")
+
+	var repo *repo_model.Repository
+	if form.Repo != "" {
+		var err error
+		repo, err = repo_model.GetRepositoryByName(ctx, ctx.Package.Owner.ID, form.Repo)
+		if err != nil {
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.APIError(http.StatusNotFound, err.Error())
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+		if repo.OwnerID != ctx.Package.Owner.ID {
+			ctx.APIError(http.StatusForbidden, "repository owner does not match package owner")
+			return
+		}
+	} else {
+		existingPkg, err := packages.GetPackageByName(ctx, ctx.Package.Owner.ID, packages.TypeComposer, packageName)
+		if err != nil && !errors.Is(err, packages.ErrPackageNotExist) {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if existingPkg == nil || existingPkg.RepoID <= 0 {
+			ctx.APIError(http.StatusBadRequest, "repository is required when the Composer package has no repository link")
+			return
+		}
+		repo, err = repo_model.GetRepositoryByID(ctx, existingPkg.RepoID)
+		if err != nil {
+			if errors.Is(err, util.ErrNotExist) {
+				ctx.APIError(http.StatusNotFound, err.Error())
+			} else {
+				ctx.APIErrorInternal(err)
+			}
+			return
+		}
+	}
+	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !permission.CanWrite(unit.TypePackages) && !ctx.IsUserSiteAdmin() {
+		ctx.APIError(http.StatusForbidden, "user should have repository package write permission or be a site admin")
+		return
+	}
+	branchExists, err := git_model.IsBranchExist(ctx, repo.ID, form.Branch)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !branchExists {
+		ctx.APIError(http.StatusNotFound, "branch does not exist")
+		return
+	}
+
+	version := "dev-" + form.Branch
+	metadataJSON, err := json.Marshal(&composer_module.Metadata{})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	dbCtx, committer, err := db.TxContext(ctx)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	defer committer.Close()
+
+	pkg := &packages.Package{
+		OwnerID:          ctx.Package.Owner.ID,
+		Type:             packages.TypeComposer,
+		Name:             packageName,
+		LowerName:        strings.ToLower(packageName),
+		SemverCompatible: false,
+	}
+	if pkg, err = packages.TryInsertPackage(dbCtx, pkg); err != nil {
+		if !errors.Is(err, packages.ErrDuplicatePackage) {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
+	pv := &packages.PackageVersion{
+		PackageID:    pkg.ID,
+		CreatorID:    ctx.Doer.ID,
+		Version:      version,
+		LowerVersion: strings.ToLower(version),
+		MetadataJSON: string(metadataJSON),
+	}
+	if pv, err = packages.GetOrInsertVersion(dbCtx, pv); err != nil {
+		if !errors.Is(err, packages.ErrDuplicatePackageVersion) {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		pv.MetadataJSON = string(metadataJSON)
+		if err := packages.UpdateVersion(dbCtx, pv); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
+	properties := map[string]string{
+		composer_module.TypeProperty:      "library",
+		composer_module.DevBranchProperty: form.Branch,
+	}
+	if form.Repo != "" {
+		properties[composer_module.DevBranchRepoProperty] = strconv.FormatInt(repo.ID, 10)
+	} else if err := packages.DeletePropertiesByName(dbCtx, packages.PropertyTypeVersion, pv.ID, composer_module.DevBranchRepoProperty); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	for name, value := range properties {
+		if err := packages.InsertOrUpdateProperty(dbCtx, packages.PropertyTypeVersion, pv.ID, name, value); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+
+	if err := committer.Commit(); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, api.ComposerDevBranch{
+		Package: packageName,
+		Version: version,
+		Repo:    repo.Name,
+		Branch:  form.Branch,
+	})
+}
+
+func canWriteOwnerPackages(ctx *context.APIContext, owner, doer *user_model.User) bool {
+	if ctx.IsUserSiteAdmin() {
+		return true
+	}
+	if doer == nil || doer.IsGhost() {
+		return false
+	}
+	if !owner.IsOrganization() {
+		return owner.ID == doer.ID
+	}
+	accessMode, err := org_model.OrgFromUser(owner).GetOrgUserMaxAuthorizeLevel(ctx, doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return false
+	}
+	return accessMode >= perm.AccessModeWrite
 }
 
 func searchPackages(ctx *context.APIContext, opts *packages.PackageSearchOptions) ([]*api.Package, int64, error) {
