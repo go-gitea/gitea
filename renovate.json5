@@ -98,22 +98,17 @@
     {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
-      "matchDepTypes": ["golang"], // bump go minimum on new minor releases
+      "matchDepTypes": ["golang", "toolchain"], // bump go minimum and toolchain, fast-tracked
       "rangeStrategy": "bump",
+      "schedule": ["at any time"],
+      "minimumReleaseAge": "0",
     },
     {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
       "matchDepTypes": ["golang"],
-      "matchUpdateTypes": ["patch"], // but not on patches, toolchain tracks those by default
+      "matchUpdateTypes": ["patch"], // keep the go minimum off patch releases
       "enabled": false,
-    },
-    {
-      "matchManagers": ["gomod"],
-      "matchDepNames": ["go"],
-      "matchDepTypes": ["toolchain"], // fast-track toolchain bumps
-      "schedule": ["at any time"],
-      "minimumReleaseAge": "0",
     },
     {
       "matchManagers": ["npm"],
