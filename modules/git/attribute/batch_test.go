@@ -119,7 +119,7 @@ func Test_BatchChecker(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
 	repoPath := "../tests/repos/language_stats_repo"
 	ctx := t.Context()
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepositoryLocal(repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -144,7 +144,7 @@ func Test_BatchChecker(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		tempRepo, err := git.OpenRepository(dir)
+		tempRepo, err := git.OpenRepositoryLocal(dir)
 		assert.NoError(t, err)
 		defer tempRepo.Close()
 

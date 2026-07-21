@@ -58,13 +58,13 @@ func (b *Blob) Size(ctx context.Context) int64 {
 
 	batch, cancel, err := b.repo.CatFileBatch(ctx)
 	if err != nil {
-		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.LogString(), err)
 		return 0
 	}
 	defer cancel()
 	info, err := batch.QueryInfo(b.ID.String())
 	if err != nil {
-		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.LogString(), err)
 		return 0
 	}
 	b.gotSize = true

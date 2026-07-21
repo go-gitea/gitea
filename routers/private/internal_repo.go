@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	gitea_context "gitea.dev/services/context"
@@ -27,7 +27,7 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

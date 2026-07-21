@@ -18,7 +18,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/util"
@@ -199,12 +198,9 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	// 2. Disallow force pushes to protected branches
 	if oldCommitID != objectFormat.EmptyObjectID().String() {
-		output, _, err := gitrepo.RunCmdString(ctx,
-			repo,
-			gitcmd.NewCommand("rev-list", "--max-count=1").
-				AddDynamicArguments(oldCommitID, "^"+newCommitID).
-				WithEnv(ctx.env),
-		)
+		output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
+			AddDynamicArguments(oldCommitID, "^"+newCommitID).
+			WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{

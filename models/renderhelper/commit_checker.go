@@ -9,7 +9,6 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 )
 
@@ -40,7 +39,7 @@ func (c *commitChecker) IsCommitIDExisting(commitID string) bool {
 	}
 
 	if c.gitRepo == nil {
-		r, closer, err := gitrepo.RepositoryFromContextOrOpen(c.ctx, c.repo)
+		r, closer, err := git.RepositoryFromContextOrOpen(c.ctx, c.repo)
 		if err != nil {
 			log.Error("Unable to open repository: %s, error: %v", c.repo.FullName(), err)
 			return false

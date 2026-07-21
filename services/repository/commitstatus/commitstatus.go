@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
@@ -70,7 +69,7 @@ func deleteCommitStatusCache(repoID int64, branchName string) error {
 // Requires: Repo, Creator, SHA
 func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, sha string, status *git_model.CommitStatus) error {
 	// confirm that commit is exist
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}

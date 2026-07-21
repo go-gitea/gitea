@@ -15,7 +15,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/context"
@@ -136,7 +136,7 @@ func TestAPIUpdateFile(t *testing.T) {
 			req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath), &updateFileOptions).
 				AddTokenAuth(token2)
 			resp := MakeRequest(t, req, http.StatusOK)
-			gitRepo, _ := gitrepo.OpenRepository(repo1)
+			gitRepo, _ := git.OpenRepository(repo1)
 			defer gitRepo.Close()
 			commitID, _ := gitRepo.GetBranchCommitID(t.Context(), updateFileOptions.NewBranchName)
 			lasCommit, _ := gitRepo.GetCommitByPath(t.Context(), treePath)

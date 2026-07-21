@@ -226,30 +226,6 @@ func init() {
 	db.RegisterModel(new(Repository))
 }
 
-func RelativePath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
-}
-
-func (repo *Repository) GitRepoLocation() string {
-	return RelativePath(repo.OwnerName, repo.Name)
-}
-
-func (repo *Repository) GitRepoUniqueID() string {
-	return strconv.FormatInt(repo.ID, 10)
-}
-
-type StorageRepo string
-
-func (sr StorageRepo) GitRepoUniqueID() string {
-	// TODO: need to correctly refactor this method in the future.
-	// "unique id" should be a cache-key-friendly string, but not a full repo path
-	return string(sr)
-}
-
-func (sr StorageRepo) GitRepoLocation() string {
-	return string(sr)
-}
-
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {

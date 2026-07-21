@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/repostats"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/structs"
 
@@ -32,14 +32,14 @@ func iterateRepositories(ctx context.Context, each func(*repo_model.Repository) 
 
 func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
-		results, err := gitrepo.CheckDelegateHooks(ctx, repo)
+		results, err := git.CheckDelegateHooks(ctx, repo)
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
 			return fmt.Errorf("Unable to check delegate hooks for repo %-v. ERROR: %w", repo, err)
 		}
 		if len(results) > 0 && autofix {
 			logger.Warn("Regenerated hooks for %s", repo.FullName())
-			if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
+			if err := git.CreateDelegateHooks(ctx, repo); err != nil {
 				logger.Critical("Unable to recreate delegate hooks for %-v. ERROR: %v", repo, err)
 				return fmt.Errorf("Unable to recreate delegate hooks for %-v. ERROR: %w", repo, err)
 			}
@@ -57,7 +57,7 @@ func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 
 func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) error {
 	if autofix {
-		if err := models.DoctorUserStarNum(ctx); err != nil {
+		if err := repostats.DoctorUserStarNum(ctx); err != nil {
 			logger.Critical("Unable update User Stars numbers")
 			return err
 		}
@@ -90,7 +90,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := `git-daemon-export-ok`
-		isExist, err := gitrepo.IsRepoFileExist(ctx, repo, daemonExportFile)
+		isExist, err := git.IsRepoFileExist(ctx, repo, daemonExportFile)
 		if err != nil {
 			log.Error("Unable to check if %s:%s exists. Error: %v", repo.FullName(), daemonExportFile, err)
 			return err
@@ -101,11 +101,11 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 			numNeedUpdate++
 			if autofix {
 				if !isPublic && isExist {
-					if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
+					if err = git.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
 						log.Error("Failed to remove %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					}
 				} else if isPublic && !isExist {
-					if f, err := gitrepo.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
+					if f, err := git.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
 						log.Error("Failed to create %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					} else {
 						f.Close()
@@ -138,7 +138,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 		commitGraphExists := func() (bool, error) {
 			// Check commit-graph exists
 			commitGraphFile := `objects/info/commit-graph`
-			isExist, err := gitrepo.IsRepoFileExist(ctx, repo, commitGraphFile)
+			isExist, err := git.IsRepoFileExist(ctx, repo, commitGraphFile)
 			if err != nil {
 				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
 				return false, err
@@ -146,7 +146,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 
 			if !isExist {
 				commitGraphsDir := `objects/info/commit-graphs`
-				isExist, err = gitrepo.IsRepoDirExist(ctx, repo, commitGraphsDir)
+				isExist, err = git.IsRepoDirExist(ctx, repo, commitGraphsDir)
 				if err != nil {
 					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)
 					return false, err
@@ -162,7 +162,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 		if !isExist {
 			numNeedUpdate++
 			if autofix {
-				if err := gitrepo.WriteCommitGraph(ctx, repo); err != nil {
+				if err := git.WriteCommitGraph(ctx, repo); err != nil {
 					logger.Error("Unable to write commit-graph in %s. Error: %v", repo.FullName(), err)
 					return err
 				}

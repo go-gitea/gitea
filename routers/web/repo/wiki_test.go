@@ -12,7 +12,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
@@ -29,7 +28,7 @@ const (
 )
 
 func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) (*git.Repository, *git.TreeEntry) {
-	wikiRepo, err := gitrepo.OpenRepository(repo.WikiStorageRepo())
+	wikiRepo, err := git.OpenRepository(repo.WikiStorageRepo())
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		defer wikiRepo.Close()
