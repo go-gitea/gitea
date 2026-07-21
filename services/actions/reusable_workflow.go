@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -240,24 +241,29 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 	// Two concurrent expanders serialize on this row: exactly one winner matches (n==1) and owns the expansion.
 	// Children are only ever inserted by the claim winner, so no duplicate child rows can arise.
 	caller.IsExpanded = true
-	n, err := actions_model.UpdateRunJob(ctx, caller, builder.Eq{"is_expanded": false}, "is_expanded")
+	n, err := actions_model.UpdateRunJob(ctx, caller, builder.And(
+		builder.Eq{"is_expanded": false},
+		builder.In("status", actions_model.StatusBlocked, actions_model.StatusWaiting),
+	), "is_expanded")
 	if err != nil {
+		caller.IsExpanded = false // the claim was not established
 		return fmt.Errorf("claim caller %d expansion: %w", caller.ID, err)
 	}
 	if n == 0 {
-		// Another writer won the expansion; nothing was inserted here.
+		// Another writer won the expansion, or the caller has been moved to a terminal status (e.g. failed/cancelled).
 		return nil
 	}
 
 	// 9. We own the expansion: insert the direct children.
 	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, workflowCallInputs); err != nil {
-		return err
+		// On failure, undo the partial expansion so an error return always leaves the caller unexpanded and childless.
+		return errors.Join(err, undoExpansion(ctx, caller))
 	}
 
 	// 10. Persist the remaining caller metadata (the row is already ours via the claim above).
 	caller.CallPayload = string(callPayload)
 	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "call_secrets", "reusable_workflow_content", "call_payload"); err != nil {
-		return fmt.Errorf("persist caller %d expansion metadata: %w", caller.ID, err)
+		return errors.Join(fmt.Errorf("persist caller %d expansion metadata: %w", caller.ID, err), undoExpansion(ctx, caller))
 	}
 	return nil
 }
@@ -372,4 +378,17 @@ func ResolveUses(ctx context.Context, uses string) (*jobparser.UsesRef, error) {
 		return nil, fmt.Errorf(`"uses:" path %q must be under a configured workflow directory (WORKFLOW_DIRS or SCOPED_WORKFLOW_DIRS)`, ref.Path)
 	}
 	return ref, nil
+}
+
+// undoExpansion rolls back a partial expansion owned by the current transaction:
+// it removes the inserted children and releases the is_expanded claim itself.
+func undoExpansion(ctx context.Context, caller *actions_model.ActionRunJob) error {
+	if err := actions_model.DeleteDirectChildJobsByParent(ctx, caller); err != nil {
+		return fmt.Errorf("delete children of caller %d: %w", caller.ID, err)
+	}
+	caller.IsExpanded = false
+	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "is_expanded"); err != nil {
+		return fmt.Errorf("release caller %d expansion claim: %w", caller.ID, err)
+	}
+	return nil
 }

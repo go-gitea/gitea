@@ -294,18 +294,18 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
 						// Terminal expansion failure (an invalid/unresolvable reusable workflow): fail this caller.
 						log.Warn("caller %d cannot be expanded, marking it failed: %v", job.ID, err)
-						// Undo any children inserted before the expansion failed mid-way, or they would be committed and run as orphans of the failed caller.
-						if derr := actions_model.DeleteDirectChildJobsByParent(ctx, job); derr != nil {
-							return fmt.Errorf("trigger caller-ready %d: %w", job.ID, err)
-						}
 						job.Status = actions_model.StatusFailure
 						job.Stopped = timeutil.TimeStampNow()
-						if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status", "stopped"); uerr != nil {
-							return fmt.Errorf("trigger caller-ready %d: %w", job.ID, err)
+						if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); uerr != nil {
+							return fmt.Errorf("mark unexpandable caller %d failed: %w", job.ID, uerr)
 						} else if n == 1 {
 							result.UpdatedJobs = append(result.UpdatedJobs, job)
 							// Re-emit so the failed caller's dependents get resolved on the next pass.
 							expandedAnyCaller = true
+						} else {
+							// A concurrent writer advanced the caller; restore the in-memory state.
+							job.Status = actions_model.StatusBlocked
+							job.Stopped = 0
 						}
 					} else {
 						expandedAnyCaller = true
