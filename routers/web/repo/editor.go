@@ -224,7 +224,7 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 }
 
 func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.ReadCloser, fInfo *fileInfo) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "GetTreeEntryByPath", err)
 		return nil, nil, nil
@@ -236,7 +236,7 @@ func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.Read
 		return nil, nil, nil
 	}
 
-	blob := entry.Blob()
+	blob := entry.Blob(ctx.Repo.GitRepo)
 	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -403,7 +403,7 @@ func DeleteFilePost(ctx *context.Context) {
 	}
 
 	// Check if the path is a directory
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
 		return
@@ -442,7 +442,7 @@ func DeleteFilePost(ctx *context.Context) {
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", treePath))
 	}
-	redirectTreePath := getClosestParentWithFiles(ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
+	redirectTreePath := getClosestParentWithFiles(ctx, ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
 	redirectForCommitChoice(ctx, parsed, redirectTreePath)
 }
 
