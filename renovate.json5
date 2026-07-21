@@ -98,10 +98,15 @@
     {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
-      "matchDepTypes": ["golang"],
+      "matchDepTypes": ["golang"], // bump go minimum on new minor releases
       "rangeStrategy": "bump",
-      "schedule": ["at any time"],
-      "minimumReleaseAge": "0",
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "matchUpdateTypes": ["patch"], // but not on patches, toolchain tracks those by default
+      "enabled": false,
     },
     {
       "matchManagers": ["npm"],
