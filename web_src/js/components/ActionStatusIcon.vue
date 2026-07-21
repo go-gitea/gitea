@@ -32,14 +32,3 @@ const iconClass = computed(() => {
     <SvgIcon :name="icon.name" :class="iconClass" :size="size"/>
   </span>
 </template>
-
-<style scoped>
-/* Safari renders inline <span> baseline differently from Chrome/Firefox, causing
-   SVG icons to appear misaligned. inline-flex + align-items centers the icon
-   vertically within the span regardless of browser baseline handling. */
-.action-status-icon {
-  display: inline-flex;
-  align-items: center;
-  vertical-align: middle;
-}
-</style>
