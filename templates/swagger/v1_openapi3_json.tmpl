@@ -353,6 +353,16 @@
         },
         "description": ""
       },
+      "ComposerDevBranch": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ComposerDevBranch"
+            }
+          }
+        },
+        "description": "ComposerDevBranch"
+      },
       "ContentsExtResponse": {
         "content": {
           "application/json": {
@@ -3476,6 +3486,44 @@
           }
         },
         "title": "Compare represents a comparison between two commits.",
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "ComposerDevBranch": {
+        "description": "ComposerDevBranch represents a Composer dev branch link",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "x-go-name": "Branch"
+          },
+          "package": {
+            "type": "string",
+            "x-go-name": "Package"
+          },
+          "repo": {
+            "type": "string",
+            "x-go-name": "Repo"
+          },
+          "version": {
+            "type": "string",
+            "x-go-name": "Version"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "ComposerDevBranchOption": {
+        "description": "ComposerDevBranchOption describes a Composer dev branch link",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "x-go-name": "Branch"
+          },
+          "repo": {
+            "type": "string",
+            "x-go-name": "Repo"
+          }
+        },
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
@@ -14705,6 +14753,62 @@
           }
         },
         "summary": "Gets all packages of an owner",
+        "tags": [
+          "package"
+        ]
+      }
+    },
+    "/packages/{owner}/composer/{vendor}/{project}/-/composer/dev-branch": {
+      "post": {
+        "operationId": "createComposerDevBranch",
+        "parameters": [
+          {
+            "description": "owner of the package",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "vendor of the Composer package",
+            "in": "path",
+            "name": "vendor",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "project of the Composer package",
+            "in": "path",
+            "name": "project",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComposerDevBranchOption"
+              }
+            }
+          },
+          "x-originalParamName": "body"
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/ComposerDevBranch"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Create or update a Composer dev branch link",
         "tags": [
           "package"
         ]

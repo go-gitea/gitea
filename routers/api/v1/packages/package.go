@@ -485,6 +485,21 @@ func CreateComposerDevBranch(ctx *context.APIContext) {
 	// ---
 	// summary: Create or update a Composer dev branch link
 	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the package
+	//   type: string
+	//   required: true
+	// - name: vendor
+	//   in: path
+	//   description: vendor of the Composer package
+	//   type: string
+	//   required: true
+	// - name: project
+	//   in: path
+	//   description: project of the Composer package
+	//   type: string
+	//   required: true
 	// - name: body
 	//   in: body
 	//   schema:
