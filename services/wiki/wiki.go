@@ -15,7 +15,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -33,18 +32,18 @@ func getWikiWorkingLockKey(repoID int64) string {
 // it does nothing when repository already has wiki.
 func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 	// don't use HasWiki because the error should not be ignored.
-	if exist, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo()); err != nil {
+	if exist, err := git.IsRepositoryExist(ctx, repo.WikiStorageRepo()); err != nil {
 		return err
 	} else if exist {
 		return nil
 	}
 
 	// wiki's object format should be the same as repository's
-	if err := gitrepo.InitRepository(ctx, repo.WikiStorageRepo(), repo.ObjectFormatName); err != nil {
+	if err := git.InitRepository(ctx, repo.WikiStorageRepo(), repo.ObjectFormatName); err != nil {
 		return fmt.Errorf("InitRepository: %w", err)
-	} else if err = gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
+	} else if err = git.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
-	} else if err = gitrepo.SetDefaultBranch(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch); err != nil {
+	} else if err = git.SetDefaultBranch(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to %q: %w", repo.DefaultWikiBranch, err)
 	}
 	return nil
@@ -101,9 +100,9 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %w", err)
 	}
 
-	hasDefaultBranch := gitrepo.IsBranchExist(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch)
+	hasDefaultBranch := git.IsBranchExist(ctx, repo.WikiStorageRepo(), repo.DefaultWikiBranch)
 
-	basePath, cleanup, err := repo_module.CreateTemporaryPath("update-wiki")
+	basePath, _, cleanup, err := repo_module.CreateTemporaryGitRepo("update-wiki")
 	if err != nil {
 		return err
 	}
@@ -118,12 +117,12 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		cloneOpts.Branch = repo.DefaultWikiBranch
 	}
 
-	if err := gitrepo.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, cloneOpts); err != nil {
+	if err := git.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, cloneOpts); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepository(basePath)
+	gitRepo, err := git.OpenRepositoryLocal(basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("failed to open new temporary repository in: %s %w", basePath, err)
@@ -193,7 +192,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	originalGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
+	originalGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
 	if err != nil {
 		return fmt.Errorf("unable to open wiki repository: %w", err)
 	}
@@ -218,7 +217,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := gitrepo.PushFromLocal(ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
+	if err := git.PushFromLocal(ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,
@@ -267,13 +266,13 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %w", err)
 	}
 
-	basePath, cleanup, err := repo_module.CreateTemporaryPath("update-wiki")
+	basePath, _, cleanup, err := repo_module.CreateTemporaryGitRepo("update-wiki")
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 
-	if err := gitrepo.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, git.CloneRepoOptions{
+	if err := git.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 		Branch: repo.DefaultWikiBranch,
@@ -282,7 +281,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepository(basePath)
+	gitRepo, err := git.OpenRepositoryLocal(basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("failed to open new temporary repository in: %s %w", basePath, err)
@@ -321,7 +320,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	originalGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
+	originalGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
 	if err != nil {
 		return fmt.Errorf("unable to open wiki repository: %w", err)
 	}
@@ -342,7 +341,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := gitrepo.PushFromLocal(ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
+	if err := git.PushFromLocal(ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,
@@ -368,7 +367,7 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return err
 	}
 
-	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
+	if err := git.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
 		desc := fmt.Sprintf("Delete wiki repository files (%s): %v", repo.FullName(), err)
 		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
@@ -393,7 +392,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return nil
 		}
 
-		oldDefBranch, err := gitrepo.GetDefaultBranch(ctx, repo.WikiStorageRepo())
+		oldDefBranch, err := git.GetDefaultBranch(ctx, repo.WikiStorageRepo())
 		if err != nil {
 			return fmt.Errorf("unable to get default branch: %w", err)
 		}
@@ -401,7 +400,7 @@ func ChangeDefaultWikiBranch(ctx context.Context, repo *repo_model.Repository, n
 			return nil
 		}
 
-		err = gitrepo.RenameBranch(ctx, repo.WikiStorageRepo(), oldDefBranch, newBranch)
+		err = git.RenameBranch(ctx, repo.WikiStorageRepo(), oldDefBranch, newBranch)
 		if err != nil {
 			return fmt.Errorf("unable to rename default branch: %w", err)
 		}

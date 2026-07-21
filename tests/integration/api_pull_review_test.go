@@ -15,7 +15,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 	issue_service "gitea.dev/services/issue"
@@ -375,7 +375,7 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: pullIssue.PosterID})
 	require.NoError(t, pullIssue.LoadPullRequest(ctx))
-	gitRepo, err := gitrepo.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -536,7 +536,7 @@ func testAPIPullReviewCommentReply(t *testing.T) {
 	require.NoError(t, pullIssue.LoadRepo(t.Context()))
 	require.NoError(t, pullIssue.LoadPullRequest(t.Context()))
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	gitRepo, err := gitrepo.OpenRepository(pullIssue.Repo)
+	gitRepo, err := git.OpenRepository(pullIssue.Repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

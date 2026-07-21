@@ -22,7 +22,7 @@ func (repo *Repository) ReadTreeToIndex(ctx context.Context, treeish string, ind
 	}
 
 	if len(treeish) != objectFormat.FullLength() {
-		res, _, err := gitcmd.NewCommand("rev-parse", "--verify").AddDynamicArguments(treeish).WithDir(repo.Path).RunStdString(ctx)
+		res, _, err := gitcmd.NewCommand("rev-parse", "--verify").AddDynamicArguments(treeish).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			return err
 		}
@@ -42,7 +42,7 @@ func (repo *Repository) readTreeToIndex(ctx context.Context, id ObjectID, indexF
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
 	}
-	_, _, err := gitcmd.NewCommand("read-tree").AddDynamicArguments(id.String()).WithDir(repo.Path).WithEnv(env).RunStdString(ctx)
+	_, _, err := gitcmd.NewCommand("read-tree").AddDynamicArguments(id.String()).WithRepo(repo).WithEnv(env).RunStdString(ctx)
 	if err != nil {
 		return err
 	}
@@ -75,14 +75,14 @@ func (repo *Repository) ReadTreeToTemporaryIndex(ctx context.Context, treeish st
 
 // EmptyIndex empties the index
 func (repo *Repository) EmptyIndex(ctx context.Context) error {
-	_, _, err := gitcmd.NewCommand("read-tree", "--empty").WithDir(repo.Path).RunStdString(ctx)
+	_, _, err := gitcmd.NewCommand("read-tree", "--empty").WithRepo(repo).RunStdString(ctx)
 	return err
 }
 
 // LsFiles checks if the given filenames are in the index
 func (repo *Repository) LsFiles(ctx context.Context, filenames ...string) ([]string, error) {
 	cmd := gitcmd.NewCommand("ls-files", "-z").AddDashesAndList(filenames...)
-	res, _, err := cmd.WithDir(repo.Path).RunStdBytes(ctx)
+	res, _, err := cmd.WithRepo(repo).RunStdBytes(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (repo *Repository) RemoveFilesFromIndex(ctx context.Context, filenames ...s
 		}
 	}
 	return cmd.
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdinBytes(input.Bytes()).
 		RunWithStderr(ctx)
 }
@@ -129,7 +129,7 @@ func (repo *Repository) AddObjectsToIndex(ctx context.Context, objects ...IndexO
 		input.WriteString(object.Mode + " blob " + object.Object.String() + "\t" + object.Filename + "\000")
 	}
 	return cmd.
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdinBytes(input.Bytes()).
 		RunWithStderr(ctx)
 }
@@ -141,7 +141,7 @@ func (repo *Repository) AddObjectToIndex(ctx context.Context, mode string, objec
 
 // WriteTree writes the current index as a tree to the object db and returns its hash
 func (repo *Repository) WriteTree(ctx context.Context) (*Tree, error) {
-	stdout, _, runErr := gitcmd.NewCommand("write-tree").WithDir(repo.Path).RunStdString(ctx)
+	stdout, _, runErr := gitcmd.NewCommand("write-tree").WithRepo(repo).RunStdString(ctx)
 	if runErr != nil {
 		return nil, runErr
 	}

@@ -20,7 +20,7 @@ func (repo *Repository) GetRefsFiltered(ctx context.Context, pattern string) ([]
 	cmd := gitcmd.NewCommand("for-each-ref")
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	err := cmd.WithDir(repo.Path).
+	err := cmd.WithRepo(repo).
 		WithPipelineFunc(func(context gitcmd.Context) error {
 			bufReader := bufio.NewReader(stdoutReader)
 			for {

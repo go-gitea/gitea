@@ -1,8 +1,6 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build !gogit
-
 package languagestats
 
 import (
@@ -18,7 +16,7 @@ import (
 func TestRepository_GetLanguageStats(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
 	repoPath := "../tests/repos/language_stats_repo"
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepositoryLocal(repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

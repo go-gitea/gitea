@@ -12,7 +12,6 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/typesniffer"
 	"gitea.dev/modules/util"
 )
 
@@ -44,28 +43,29 @@ func (b *Blob) GetBlobContent(ctx context.Context, limit int64) (string, error) 
 
 // GetBlobLineCount gets line count of the blob.
 // It will also try to write the content to w if it's not nil, then we could pre-fetch the content without reading it again.
-func (b *Blob) GetBlobLineCount(ctx context.Context, w io.Writer) (int, error) {
+func (b *Blob) GetBlobLineCount(ctx context.Context, w io.Writer) (size int64, count int, _ error) {
 	reader, err := b.DataAsync(ctx)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	defer reader.Close()
 	buf := make([]byte, 32*1024)
-	count := 1
+	size, count = 0, 1
 	lineSep := []byte{'\n'}
 	for {
 		c, err := reader.Read(buf)
+		size += int64(c)
 		if w != nil {
 			if _, err := w.Write(buf[:c]); err != nil {
-				return count, err
+				return size, count, err
 			}
 		}
 		count += bytes.Count(buf[:c], lineSep)
 		switch {
 		case errors.Is(err, io.EOF):
-			return count, nil
+			return size, count, nil
 		case err != nil:
-			return count, err
+			return size, count, err
 		}
 	}
 }
@@ -101,13 +101,4 @@ loop:
 	}
 	_ = encoder.Close()
 	return base64buf.String(), nil
-}
-
-// GuessContentType guesses the content type of the blob.
-func (b *Blob) GuessContentType(ctx context.Context) (typesniffer.SniffedType, error) {
-	buf, err := b.GetBlobBytes(ctx, typesniffer.SniffContentSize)
-	if err != nil {
-		return typesniffer.SniffedType{}, err
-	}
-	return typesniffer.DetectContentType(buf), nil
 }

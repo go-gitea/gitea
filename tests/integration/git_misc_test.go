@@ -17,7 +17,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
@@ -44,7 +43,7 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 
 		sha := resp.Commit.SHA
 
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 
 		commit, err := gitRepo.GetCommit(t.Context(), sha)
@@ -87,7 +86,7 @@ func TestAgitPullPush(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -150,7 +149,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -219,7 +218,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 
 		// For AGit PRs, HeadCommitID must be loaded from git references
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		baseGitRepo, err := gitrepo.OpenRepository(baseRepo)
+		baseGitRepo, err := git.OpenRepository(baseRepo)
 		assert.NoError(t, err)
 		defer baseGitRepo.Close()
 

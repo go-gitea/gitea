@@ -16,7 +16,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -30,7 +29,7 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 		return err
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
 	}
@@ -74,7 +73,7 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 	}
 	defer cancel()
 
-	gitRepo, err := git.OpenRepository(prCtx.tmpBasePath)
+	gitRepo, err := git.OpenRepositoryLocal(prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
 	}
