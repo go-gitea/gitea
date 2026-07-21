@@ -60,11 +60,14 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 	cmd := gitcmd.NewCommand("diff-tree", "--raw", "-r", "--root").
 		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
 
-	// explicitly pass -O to ensure diff-tree ordering follows the configured orderFile
-	if orderFile, _, err := gitcmd.NewCommand("config", "--get", "diff.orderFile").WithRepo(gitRepo).RunStdString(ctx); err == nil {
-		if orderFile = strings.TrimSpace(orderFile); orderFile != "" {
-			cmd.AddOptionFormat("-O%s", orderFile)
+	// explicitly pass -O to ensure diff-tree ordering follows the configured global orderFile
+	orderFile, _, err := gitcmd.NewCommand("config", "--global", "--path", "--get", "diff.orderFile").RunStdString(ctx)
+	if err != nil {
+		if !gitcmd.IsErrorExitCode(err, 1) {
+			log.Warn("git config --global --path --get diff.orderFile: %v", err)
 		}
+	} else if orderFile = strings.TrimSpace(orderFile); orderFile != "" {
+		cmd.AddOptionFormat("-O%s", orderFile)
 	}
 
 	if useMergeBase {

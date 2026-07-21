@@ -4,6 +4,7 @@
 package gitdiff
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -234,11 +235,13 @@ func TestGitDiffTreeRespectsDiffOrderFile(t *testing.T) {
 	err = os.WriteFile(orderFilePath, []byte("README.md\nLICENSE\n"), 0o644)
 	require.NoError(t, err)
 
-	_, _, err = gitcmd.NewCommand("config", "diff.orderFile").
+	_, _, err = gitcmd.NewCommand("config", "--global", "diff.orderFile").
 		AddDynamicArguments(orderFilePath).
-		WithDir(clonedRepoPath).
 		RunStdString(t.Context())
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _, _ = gitcmd.NewCommand("config", "--global", "--unset", "diff.orderFile").RunStdString(context.Background())
+	})
 
 	gitRepo, err := git.OpenRepositoryLocal(clonedRepoPath)
 	require.NoError(t, err)
