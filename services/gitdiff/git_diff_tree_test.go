@@ -222,6 +222,9 @@ func TestGitDiffTree(t *testing.T) {
 }
 
 func TestGitDiffTreeRespectsDiffOrderFile(t *testing.T) {
+	resetGlobalDiffOrderFileCacheForTesting()
+	t.Cleanup(resetGlobalDiffOrderFileCacheForTesting)
+
 	tmpDir := t.TempDir()
 	srcRepoPath := "../../modules/git/tests/repos/repo5_pulls"
 	clonedRepoPath := filepath.Join(tmpDir, "repo5_pulls")
@@ -235,12 +238,22 @@ func TestGitDiffTreeRespectsDiffOrderFile(t *testing.T) {
 	err = os.WriteFile(orderFilePath, []byte("README.md\nLICENSE\n"), 0o644)
 	require.NoError(t, err)
 
+	prevOrderFile, _, errPrev := gitcmd.NewCommand("config", "--global", "--get", "diff.orderFile").RunStdString(t.Context())
+	if errPrev != nil && !gitcmd.IsErrorExitCode(errPrev, 1) {
+		require.NoError(t, errPrev)
+	}
+	prevOrderFile = strings.TrimSpace(prevOrderFile)
+
 	_, _, err = gitcmd.NewCommand("config", "--global", "diff.orderFile").
 		AddDynamicArguments(orderFilePath).
 		RunStdString(t.Context())
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _, _ = gitcmd.NewCommand("config", "--global", "--unset", "diff.orderFile").RunStdString(context.Background())
+		if prevOrderFile != "" {
+			_, _, _ = gitcmd.NewCommand("config", "--global", "diff.orderFile").AddDynamicArguments(prevOrderFile).RunStdString(context.Background())
+		} else {
+			_, _, _ = gitcmd.NewCommand("config", "--global", "--unset", "diff.orderFile").RunStdString(context.Background())
+		}
 	})
 
 	gitRepo, err := git.OpenRepositoryLocal(clonedRepoPath)
