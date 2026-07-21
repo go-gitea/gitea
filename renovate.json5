@@ -109,6 +109,13 @@
       "enabled": false,
     },
     {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["toolchain"], // fast-track toolchain bumps
+      "schedule": ["at any time"],
+      "minimumReleaseAge": "0",
+    },
+    {
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
       "postUpgradeTasks": {
