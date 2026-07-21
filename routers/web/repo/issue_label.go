@@ -179,9 +179,11 @@ func UpdateIssueLabel(ctx *context.Context) {
 			}
 		}
 	case "attach", "detach", "toggle", "toggle-alt":
-		label, err := issues_model.GetLabelByID(ctx, ctx.FormInt64("id"))
+		// scope the label to this repo (or its org) so a foreign label ID is 404, not an oracle
+		labelID := ctx.FormInt64("id")
+		label, err := issues_model.GetLabelInRepoOrOrgByID(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner.ID, ctx.Repo.Owner.IsOrganization(), labelID)
 		if err != nil {
-			if issues_model.IsErrRepoLabelNotExist(err) {
+			if errors.Is(err, util.ErrNotExist) {
 				ctx.HTTPError(http.StatusNotFound, "GetLabelByID")
 			} else {
 				ctx.ServerError("GetLabelByID", err)

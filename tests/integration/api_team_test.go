@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/structs"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/convert"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -304,6 +305,30 @@ func TestAPIGetTeamRepo(t *testing.T) {
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d/repos/%s/", team.ID, teamRepo.FullName()).
 		AddTokenAuth(token5)
 	MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestAPIAddRemoveTeamRepositoryRequiresOrgOwnerOrSetting(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: team.OrgID})
+	assert.False(t, org.RepoAdminChangeTeamAccess)
+	targetRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 32, OwnerID: org.ID})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), targetRepo, user, perm.AccessModeAdmin))
+
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteOrganization)
+	url := fmt.Sprintf("/api/v1/teams/%d/repos/%s", team.ID, targetRepo.FullName())
+
+	req := NewRequest(t, "PUT", url).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+	unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
+
+	assert.NoError(t, db.Insert(t.Context(), &organization.TeamRepo{OrgID: org.ID, TeamID: team.ID, RepoID: targetRepo.ID}))
+
+	req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
 }
 
 func TestAPITeamVisibilityAccess(t *testing.T) {

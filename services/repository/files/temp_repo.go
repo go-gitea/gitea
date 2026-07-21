@@ -18,7 +18,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -37,7 +36,7 @@ type TemporaryUploadRepository struct {
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
 func NewTemporaryUploadRepository(repo *repo_model.Repository) (*TemporaryUploadRepository, error) {
-	basePath, cleanup, err := repo_module.CreateTemporaryPath("upload")
+	basePath, _, cleanup, err := repo_module.CreateTemporaryGitRepo("upload")
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +47,10 @@ func NewTemporaryUploadRepository(repo *repo_model.Repository) (*TemporaryUpload
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
 	// must stop the repo access before removal, otherwise Windows can't remove the directory occupied by other processes
-	t.gitRepo.Close()
+	if t.gitRepo != nil {
+		_ = t.gitRepo.Close()
+		t.gitRepo = nil
+	}
 	if t.cleanup != nil {
 		t.cleanup()
 	}
@@ -56,7 +58,7 @@ func (t *TemporaryUploadRepository) Close() {
 
 // Clone the base repository to our path and set branch as the HEAD
 func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, bare bool) error {
-	if err := gitrepo.CloneRepoToLocal(ctx, t.repo, t.basePath, git.CloneRepoOptions{
+	if err := git.CloneRepoToLocal(ctx, t.repo, t.basePath, git.CloneRepoOptions{
 		Bare:   bare,
 		Branch: branch,
 		Shared: true,
@@ -76,7 +78,7 @@ func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, ba
 		}
 		return fmt.Errorf("Clone: %w %s", err, stderr)
 	}
-	gitRepo, err := git.OpenRepository(ctx, t.basePath)
+	gitRepo, err := git.OpenRepositoryLocal(t.basePath)
 	if err != nil {
 		return err
 	}
@@ -86,10 +88,10 @@ func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, ba
 
 // Init the repository
 func (t *TemporaryUploadRepository) Init(ctx context.Context, objectFormatName string) error {
-	if err := git.InitRepository(ctx, t.basePath, false, objectFormatName); err != nil {
+	if err := git.InitRepositoryLocal(ctx, t.basePath, false, objectFormatName); err != nil {
 		return err
 	}
-	gitRepo, err := git.OpenRepository(ctx, t.basePath)
+	gitRepo, err := git.OpenRepositoryLocal(t.basePath)
 	if err != nil {
 		return err
 	}
@@ -141,7 +143,7 @@ func (t *TemporaryUploadRepository) RemoveRecursivelyFromIndex(ctx context.Conte
 
 // RemoveFilesFromIndex removes the given files from the index
 func (t *TemporaryUploadRepository) RemoveFilesFromIndex(ctx context.Context, filenames ...string) error {
-	objFmt, err := t.gitRepo.GetObjectFormat()
+	objFmt, err := t.gitRepo.GetObjectFormat(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to get object format for temporary repo: %q, error: %w", t.repo.FullName(), err)
 	}
@@ -339,7 +341,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.User, commitHash, branch string, force bool) error {
 	// Because calls hooks we need to pass in the environment
 	env := repo_module.PushingEnvironment(doer, t.repo)
-	if err := gitrepo.PushFromLocal(ctx, t.basePath, t.repo, git.PushOptions{
+	if err := git.PushFromLocal(ctx, t.basePath, t.repo, git.PushOptions{
 		Branch: strings.TrimSpace(commitHash) + ":" + git.BranchPrefix + strings.TrimSpace(branch),
 		Env:    env,
 		Force:  force,
@@ -387,17 +389,17 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context, oldContent, n
 }
 
 // GetBranchCommit Gets the commit object of the given branch
-func (t *TemporaryUploadRepository) GetBranchCommit(branch string) (*git.Commit, error) {
+func (t *TemporaryUploadRepository) GetBranchCommit(ctx context.Context, branch string) (*git.Commit, error) {
 	if t.gitRepo == nil {
 		return nil, errors.New("repository has not been cloned")
 	}
-	return t.gitRepo.GetBranchCommit(branch)
+	return t.gitRepo.GetBranchCommit(ctx, branch)
 }
 
 // GetCommit Gets the commit object of the given commit ID
-func (t *TemporaryUploadRepository) GetCommit(commitID string) (*git.Commit, error) {
+func (t *TemporaryUploadRepository) GetCommit(ctx context.Context, commitID string) (*git.Commit, error) {
 	if t.gitRepo == nil {
 		return nil, errors.New("repository has not been cloned")
 	}
-	return t.gitRepo.GetCommit(commitID)
+	return t.gitRepo.GetCommit(ctx, commitID)
 }

@@ -5,6 +5,7 @@ package actions
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"path"
 	"slices"
@@ -35,7 +36,7 @@ type detectResult int
 const (
 	detectMatched       detectResult = iota // event matched; run normally
 	detectNotApplicable                     // event/type doesn't apply; create nothing
-	detectFilteredOut                       // matched but excluded by a branch/paths filter; emits a skipped commit status
+	detectFilteredOut                       // matched but excluded by a branch/paths filter; posts a skipped commit status when the context is a required check
 )
 
 func init() {
@@ -69,16 +70,16 @@ func isWorkflowInDirs(path string, dirs []string) bool {
 	return false
 }
 
-func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
-	return listWorkflowsInDirs(commit, setting.Actions.WorkflowDirs)
+func ListWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) (string, git.Entries, error) {
+	return listWorkflowsInDirs(ctx, gitRepo, commit, setting.Actions.WorkflowDirs)
 }
 
-func listWorkflowsInDirs(commit *git.Commit, dirs []string) (string, git.Entries, error) {
+func listWorkflowsInDirs(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, dirs []string) (string, git.Entries, error) {
 	var tree *git.Tree
 	var err error
 	var workflowDir string
 	for _, workflowDir = range dirs {
-		tree, err = commit.SubTree(workflowDir)
+		tree, err = commit.SubTree(ctx, gitRepo, workflowDir)
 		if err == nil {
 			break
 		}
@@ -90,7 +91,7 @@ func listWorkflowsInDirs(commit *git.Commit, dirs []string) (string, git.Entries
 		return "", nil, nil
 	}
 
-	entries, err := tree.ListEntriesRecursiveFast()
+	entries, err := tree.ListEntriesRecursiveFast(ctx, gitRepo)
 	if err != nil {
 		return "", nil, err
 	}
@@ -104,8 +105,8 @@ func listWorkflowsInDirs(commit *git.Commit, dirs []string) (string, git.Entries
 	return workflowDir, ret, nil
 }
 
-func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
-	f, err := entry.Blob().DataAsync()
+func GetContentFromEntry(ctx context.Context, gitRepo *git.Repository, entry *git.TreeEntry) ([]byte, error) {
+	f, err := entry.Blob(gitRepo).DataAsync(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -175,19 +176,20 @@ func ShouldEventCreateCommitStatus(event string) bool {
 }
 
 func DetectWorkflows(
+	ctx context.Context,
 	gitRepo *git.Repository,
 	commit *git.Commit,
 	triggedEvent webhook_module.HookEventType,
 	payload api.Payloader,
 	detectSchedule bool,
 ) (workflows, schedules, filtered []*DetectedWorkflow, err error) {
-	_, entries, err := ListWorkflows(commit)
+	_, entries, err := ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	for _, entry := range entries {
-		content, err := GetContentFromEntry(entry)
+		content, err := GetContentFromEntry(ctx, gitRepo, entry)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -215,7 +217,7 @@ func DetectWorkflows(
 					TriggerEvent: evt,
 					Content:      content,
 				}
-				switch detectWorkflowMatch(gitRepo, commit, triggedEvent, payload, evt) {
+				switch detectWorkflowMatch(ctx, gitRepo, commit, triggedEvent, payload, evt) {
 				case detectMatched:
 					workflows = append(workflows, dwf)
 				case detectFilteredOut:
@@ -229,15 +231,15 @@ func DetectWorkflows(
 	return workflows, schedules, filtered, nil
 }
 
-func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
-	_, entries, err := ListWorkflows(commit)
+func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]*DetectedWorkflow, error) {
+	_, entries, err := ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
 		return nil, err
 	}
 
 	wfs := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
-		content, err := GetContentFromEntry(entry)
+		content, err := GetContentFromEntry(ctx, gitRepo, entry)
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +266,7 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 	return wfs, nil
 }
 
-func detectWorkflowMatch(gitRepo *git.Repository, commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) detectResult {
+func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) detectResult {
 	if !canGithubEventMatch(evt.Name, triggedEvent) {
 		return detectNotApplicable
 	}
@@ -284,7 +286,7 @@ func detectWorkflowMatch(gitRepo *git.Repository, commit *git.Commit, triggedEve
 
 	case // push
 		webhook_module.HookEventPush:
-		return matchPushEvent(commit, payload.(*api.PushPayload), evt)
+		return matchPushEvent(ctx, gitRepo, commit, payload.(*api.PushPayload), evt)
 
 	case // issues
 		webhook_module.HookEventIssues,
@@ -313,7 +315,7 @@ func detectWorkflowMatch(gitRepo *git.Repository, commit *git.Commit, triggedEve
 		webhook_module.HookEventPullRequestLabel,
 		webhook_module.HookEventPullRequestReviewRequest,
 		webhook_module.HookEventPullRequestMilestone:
-		return matchPullRequestEvent(gitRepo, commit, payload.(*api.PullRequestPayload), evt)
+		return matchPullRequestEvent(ctx, gitRepo, commit, payload.(*api.PullRequestPayload), evt)
 
 	case // pull_request_review
 		webhook_module.HookEventPullRequestReviewApproved,
@@ -357,7 +359,7 @@ func detectWorkflowMatch(gitRepo *git.Repository, commit *git.Commit, triggedEve
 	}
 }
 
-func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) detectResult {
+func matchPushEvent(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, pushPayload *api.PushPayload, evt *jobparser.Event) detectResult {
 	// with no special filter parameters
 	if len(evt.Acts()) == 0 {
 		return detectMatched
@@ -423,7 +425,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				matchTimes++
 				break
 			}
-			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+			filesChanged, err := commit.GetFilesChangedSinceCommit(ctx, gitRepo, pushPayload.Before)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
 				return detectNotApplicable
@@ -440,7 +442,7 @@ func matchPushEvent(commit *git.Commit, pushPayload *api.PushPayload, evt *jobpa
 				matchTimes++
 				break
 			}
-			filesChanged, err := commit.GetFilesChangedSinceCommit(pushPayload.Before)
+			filesChanged, err := commit.GetFilesChangedSinceCommit(ctx, gitRepo, pushPayload.Before)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", commit.ID.String(), err)
 				return detectNotApplicable
@@ -514,7 +516,7 @@ func matchIssuesEvent(issuePayload *api.IssuePayload, evt *jobparser.Event) bool
 	return matchTimes == len(evt.Acts())
 }
 
-func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) detectResult {
+func matchPullRequestEvent(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, prPayload *api.PullRequestPayload, evt *jobparser.Event) detectResult {
 	acts := evt.Acts()
 	activityTypeMatched := false
 	matchTimes := 0
@@ -558,7 +560,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 		err        error
 	)
 	if evt.Name == GithubEventPullRequestTarget && (len(acts["paths"]) > 0 || len(acts["paths-ignore"]) > 0) {
-		headCommit, err = gitRepo.GetCommit(prPayload.PullRequest.Head.Sha)
+		headCommit, err = gitRepo.GetCommit(ctx, prPayload.PullRequest.Head.Sha)
 		if err != nil {
 			log.Error("GetCommit [ref: %s]: %v", prPayload.PullRequest.Head.Sha, err)
 			return detectNotApplicable
@@ -590,7 +592,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 				matchTimes++
 			}
 		case "paths":
-			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
+			filesChanged, err := headCommit.GetFilesChangedSinceCommit(ctx, gitRepo, prPayload.PullRequest.MergeBase)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
 				return detectNotApplicable
@@ -603,7 +605,7 @@ func matchPullRequestEvent(gitRepo *git.Repository, commit *git.Commit, prPayloa
 				matchTimes++
 			}
 		case "paths-ignore":
-			filesChanged, err := headCommit.GetFilesChangedSinceCommit(prPayload.PullRequest.MergeBase)
+			filesChanged, err := headCommit.GetFilesChangedSinceCommit(ctx, gitRepo, prPayload.PullRequest.MergeBase)
 			if err != nil {
 				log.Error("GetFilesChangedSinceCommit [commit_sha1: %s]: %v", headCommit.ID.String(), err)
 				return detectNotApplicable

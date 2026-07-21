@@ -4304,7 +4304,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "possible values are `public` (default), `limited` or `private`"
@@ -4845,7 +4845,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "User visibility level: public, limited, or private"
@@ -5549,7 +5549,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "possible values are `public`, `limited` or `private`"
@@ -6075,7 +6075,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "User visibility level: public, limited, or private"
@@ -7782,7 +7782,7 @@
               "Repository"
             ],
             "type": "string",
-            "x-go-enum-desc": "Issue NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
+            "x-go-enum-desc": "Issue NotifySubjectIssue an issue is subject of a notification\nPull NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository a repository is subject of an notification",
             "x-go-name": "Type"
           },
           "url": {
@@ -7949,7 +7949,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "The visibility level of the organization (public, limited, private)"
@@ -10343,7 +10343,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "User visibility level option: public, limited, private"
@@ -10496,7 +10496,7 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
-      "UserVisibility": {
+      "VisibilityString": {
         "enum": [
           "public",
           "limited",
@@ -16954,7 +16954,7 @@
             "$ref": "#/components/responses/notFound"
           }
         },
-        "summary": "List an repo's actions secrets",
+        "summary": "List a repo's actions secrets",
         "tags": [
           "repository"
         ]

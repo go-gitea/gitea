@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -53,12 +54,37 @@ func dialContextInternalAPI(ctx context.Context, network, address string) (conn 
 	return conn, nil
 }
 
+// internalAPIConnectionIsLocal reports whether the internal API transport connects to a local target,
+// where the self-signed local certificate cannot be verified so skipping verification is safe. It mirrors
+// what dialContextInternalAPI actually dials: a unix socket whenever Protocol is HTTPUnix (always local,
+// whatever LOCAL_ROOT_URL says), otherwise the LOCAL_ROOT_URL host directly. A non-loopback LOCAL_ROOT_URL
+// is a real network hop, so its certificate must be verified, else the internal token can be MITM'd. An
+// unparseable LOCAL_ROOT_URL is a hard misconfiguration and fails closed (verify).
+func internalAPIConnectionIsLocal(protocol setting.Scheme, localURL string) bool {
+	if protocol == setting.HTTPUnix {
+		return true
+	}
+	u, err := url.Parse(localURL)
+	if err != nil {
+		return false
+	}
+	host := u.Hostname()
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
 var internalAPITransport = sync.OnceValue(func() http.RoundTripper {
 	return &http.Transport{
 		DialContext: dialContextInternalAPI,
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			ServerName:         setting.Domain,
+			// Skip verification only for a local target (unix socket, or a loopback LOCAL_ROOT_URL), where the
+			// self-signed local cert can't be verified anyway; a non-loopback LOCAL_ROOT_URL is a real network
+			// hop and must be verified so the internal token can't be MITM'd. When verifying, Go's default
+			// ServerName (the dialed LOCAL_ROOT_URL host) is already correct, so it is not overridden.
+			InsecureSkipVerify: internalAPIConnectionIsLocal(setting.Protocol, setting.LocalURL),
 		},
 	}
 })

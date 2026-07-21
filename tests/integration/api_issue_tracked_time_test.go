@@ -11,10 +11,13 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
+	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -100,6 +103,30 @@ func TestAPIGetTrackedTimesNonExistentUserFilter(t *testing.T) {
 	})
 }
 
+func TestAPIUserTrackedTimesOmitsInaccessiblePrivateIssues(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+	privateRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	assert.True(t, privateRepo.IsPrivate)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: privateRepo.ID})
+	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), privateRepo, user, perm.AccessModeRead))
+	_, err := issues_model.AddTime(t.Context(), user, issue, 60, time.Time{})
+	assert.NoError(t, err)
+	assert.NoError(t, repo_service.DeleteCollaboration(t.Context(), privateRepo, user))
+
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadUser)
+	req := NewRequest(t, "GET", "/api/v1/user/times").AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	trackedTimes := DecodeJSON(t, resp, api.TrackedTimeList{})
+	for _, trackedTime := range trackedTimes {
+		if assert.NotNil(t, trackedTime.Issue) {
+			assert.NotEqual(t, issue.ID, trackedTime.Issue.ID)
+		}
+	}
+}
+
 func TestAPIDeleteTrackedTime(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -168,4 +195,11 @@ func TestAPIAddTrackedTimes(t *testing.T) {
 	assert.EqualValues(t, 33, apiNewTime.Time)
 	assert.Equal(t, user2.ID, apiNewTime.UserID)
 	assert.EqualValues(t, 947688818, apiNewTime.Created.Unix())
+
+	// adding time for a nonexistent user must return 404, not panic with a 500
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.AddTimeOption{
+		Time: 33,
+		User: "nonexistentuser",
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }

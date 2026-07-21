@@ -13,7 +13,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
@@ -180,13 +180,13 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error 
 			return err
 		}
 
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, c.Issue.Repo)
 		if err != nil {
 			return err
 		}
 		defer closer.Close()
 
-		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo, "") // no current ref sub path for PR commit list
+		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(ctx, data.CommitIDs), c.Issue.Repo, "") // no current ref sub path for PR commit list
 		if err != nil {
 			log.Debug("ConvertFromGitCommit: %v", err) // no need to show 500 error to end user when the commit does not exist
 		} else {

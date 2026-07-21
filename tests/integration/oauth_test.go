@@ -1405,3 +1405,22 @@ func testOAuthSourceSpecialChars(t *testing.T) {
 	testOAuth2(t, "/user/oauth2/test%2Bplus", http.StatusTemporaryRedirect)
 	testOAuth2(t, "/user/oauth2/test%20plus", http.StatusNotFound)
 }
+
+// TestOAuthUserInfoTokenScope verifies the OIDC userinfo endpoint enforces the
+// read:user token scope, so a restrictively-scoped token cannot read identity claims.
+func TestOAuthUserInfoTokenScope(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// a token without the user scope must be rejected
+	miscToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadMisc)
+	req := NewRequest(t, "GET", "/login/oauth/userinfo")
+	req.SetHeader("Authorization", "Bearer "+miscToken)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// a token with read:user is allowed and returns the identity claims
+	userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
+	req = NewRequest(t, "GET", "/login/oauth/userinfo")
+	req.SetHeader("Authorization", "Bearer "+userToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "user2@example.com")
+}

@@ -6,13 +6,85 @@ package actions
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestShouldPersistLastOnline(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name string
+		last timeutil.TimeStamp
+		want bool
+	}{
+		{
+			name: "fresh, skip write",
+			last: timeutil.TimeStamp(now.Add(-5 * time.Second).Unix()),
+			want: false,
+		},
+		{
+			name: "exactly at interval, write",
+			last: timeutil.TimeStamp(now.Add(-RunnerHeartbeatInterval).Unix()),
+			want: true,
+		},
+		{
+			name: "stale, write",
+			last: timeutil.TimeStamp(now.Add(-2 * RunnerHeartbeatInterval).Unix()),
+			want: true,
+		},
+		{
+			name: "zero (never seen), write",
+			last: 0,
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, ShouldPersistLastOnline(tt.last, now))
+		})
+	}
+}
+
+func TestShouldPersistLastActive(t *testing.T) {
+	now := time.Now()
+	tests := []struct {
+		name string
+		last timeutil.TimeStamp
+		want bool
+	}{
+		{
+			name: "fresh, skip write",
+			last: timeutil.TimeStamp(now.Add(-1 * time.Second).Unix()),
+			want: false,
+		},
+		{
+			name: "exactly at interval, write",
+			last: timeutil.TimeStamp(now.Add(-RunnerActiveInterval).Unix()),
+			want: true,
+		},
+		{
+			name: "stale, write",
+			last: timeutil.TimeStamp(now.Add(-2 * RunnerActiveInterval).Unix()),
+			want: true,
+		},
+		{
+			name: "zero (never seen), write",
+			last: 0,
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, ShouldPersistLastActive(tt.last, now))
+		})
+	}
+}
 
 func TestFindRunnerOptions_ToOrders_StableTiebreaker(t *testing.T) {
 	// Sorts on a non-unique column must end with the unique id tiebreaker so

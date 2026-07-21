@@ -371,3 +371,74 @@ func TestReleaseTaskForRunner(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &ActionTask{ID: task.ID})
 	unittest.AssertNotExistsBean(t, &ActionTaskStep{TaskID: task.ID})
 }
+
+// TestCreateTaskForRunnerPagination verifies that a job sitting beyond the first page is still claimed
+func TestCreateTaskForRunnerPagination(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	defer func(orig int) { pickTaskBatchSize = orig }(pickTaskBatchSize)
+	pickTaskBatchSize = 2
+
+	run := &ActionRun{
+		Title:         "pagination-test-run",
+		RepoID:        1,
+		OwnerID:       2,
+		WorkflowID:    "test.yaml",
+		Index:         9903,
+		TriggerUserID: 2,
+		Ref:           "refs/heads/main",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		Status:        StatusWaiting,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	// Five waiting jobs the runner cannot run, then one it can.
+	// With a page size of 2 the matching job only appears on the third page.
+	for i := range 5 {
+		mismatch := &ActionRunJob{
+			RunID:     run.ID,
+			RepoID:    run.RepoID,
+			OwnerID:   run.OwnerID,
+			CommitSHA: run.CommitSHA,
+			Name:      "mismatch-" + string(rune('a'+i)),
+			Attempt:   1,
+			JobID:     "mismatch-" + string(rune('a'+i)),
+			Status:    StatusWaiting,
+			RunsOn:    []string{"windows-latest"},
+		}
+		require.NoError(t, db.Insert(t.Context(), mismatch))
+	}
+
+	target := &ActionRunJob{
+		RunID:           run.ID,
+		RepoID:          run.RepoID,
+		OwnerID:         run.OwnerID,
+		CommitSHA:       run.CommitSHA,
+		Name:            "target-job",
+		Attempt:         1,
+		JobID:           "target-job",
+		Status:          StatusWaiting,
+		RunsOn:          []string{"ubuntu-latest"},
+		WorkflowPayload: []byte("on: push\njobs:\n  target-job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
+	}
+	require.NoError(t, db.Insert(t.Context(), target))
+
+	runner := &ActionRunner{
+		UUID:        "pagination-runner-uuid",
+		Name:        "pagination-runner",
+		AgentLabels: []string{"ubuntu-latest"},
+	}
+	runner.GenerateAndFillToken()
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	task, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.NotNil(t, task)
+
+	claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: target.ID})
+	assert.Equal(t, StatusRunning, claimed.Status)
+	assert.Equal(t, task.ID, claimed.TaskID)
+}

@@ -35,7 +35,7 @@
 								<div class="item-trailing">
 									{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
 										<button class="ui red button show-modal" data-modal="#remove-team-member"
-											data-modal-form.action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove?uid={{.ID}}"
+											data-modal-form.url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove?uid={{.ID}}"
 											data-modal-name="{{.DisplayName}}"
 											data-modal-team-name="{{$.Team.Name}}">{{ctx.Locale.Tr "org.members.remove"}}</button>
 									{{end}}

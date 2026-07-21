@@ -153,4 +153,14 @@ func TestEffectiveRequiredContexts(t *testing.T) {
 			"org/src: ci.yaml / lint (pull_request)",
 		}, got)
 	})
+
+	t.Run("several rules union their enabled contexts, deduplicated; a disabled rule contributes none", func(t *testing.T) {
+		noSourceRepo := &repo_model.Repository{ID: consumer.ID, OwnerID: 99999} // no scoped sources, so only the rules' contexts gate
+		a := &git_model.ProtectedBranch{EnableStatusCheck: true, StatusCheckContexts: []string{"a/check", "shared/check"}}
+		b := &git_model.ProtectedBranch{EnableStatusCheck: true, StatusCheckContexts: []string{"b/check", "shared/check"}}
+		off := &git_model.ProtectedBranch{EnableStatusCheck: false, StatusCheckContexts: []string{"off/check"}}
+		got, err := EffectiveRequiredContexts(t.Context(), noSourceRepo, a, b, off)
+		require.NoError(t, err)
+		assert.ElementsMatch(t, []string{"a/check", "b/check", "shared/check"}, got)
+	})
 }

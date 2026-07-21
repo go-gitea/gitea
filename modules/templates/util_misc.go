@@ -15,7 +15,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
@@ -141,7 +141,7 @@ type remoteAddress struct {
 
 func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	ret := remoteAddress{}
-	u, err := gitrepo.GitRemoteGetURL(ctx, m, remoteName)
+	u, err := git.ParseRemoteAddressURL(ctx, m, remoteName)
 	if err != nil {
 		log.Error("GetRemoteURL %v", err)
 		return ret

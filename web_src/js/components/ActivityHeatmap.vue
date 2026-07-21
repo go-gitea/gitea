@@ -2,6 +2,7 @@
 import {computed, onBeforeUnmount, onMounted} from 'vue';
 import tippy, {createSingleton} from 'tippy.js';
 import type {CreateSingletonInstance, Instance} from 'tippy.js';
+import {getCurrentLocale} from '../utils.ts';
 
 type HeatmapValue = {date: Date; count: number};
 type HeatmapCell = {date: Date; colorIndex: number; ariaLabel: string; tooltip: string};
@@ -61,8 +62,9 @@ const grid = computed(() => {
     activities.set(dateKey(date), {count, colorIndex});
   }
 
-  const {months, on} = props.locale.heatMapLocale;
+  const {on} = props.locale.heatMapLocale;
   const {noDataText, tooltipUnit} = props.locale;
+  const currentLocale = getCurrentLocale();
 
   const cursorStart = shiftDate(start, -padStart);
   const cursor = new Date(cursorStart.getFullYear(), cursorStart.getMonth(), cursorStart.getDate());
@@ -71,7 +73,7 @@ const grid = computed(() => {
     const week: HeatmapCell[] = [];
     for (let d = 0; d < daysInWeek; d++) {
       const hit = activities.get(dateKey(cursor));
-      const dateStr = `${months[cursor.getMonth()]} ${cursor.getDate()}, ${cursor.getFullYear()}`;
+      const dateStr = cursor.toLocaleDateString(currentLocale, {year: 'numeric', month: 'short', day: 'numeric'});
       const head = hit ? `${hit.count} ${tooltipUnit}` : noDataText;
       week.push({
         date: new Date(cursor),

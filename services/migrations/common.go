@@ -22,6 +22,9 @@ func WarnAndNotice(fmtStr string, args ...any) {
 }
 
 func hasBaseURL(toCheck, baseURL string) bool {
+	if baseURL == "" {
+		return false
+	}
 	if len(baseURL) > 0 && baseURL[len(baseURL)-1] != '/' {
 		baseURL += "/"
 	}

@@ -2551,7 +2551,6 @@
   "admin.config.default_enable_timetracking": "Включить отслеживание времени по умолчанию",
   "admin.config.default_allow_only_contributors_to_track_time": "Учитывать только участников разработки в подсчёте времени",
   "admin.config.no_reply_address": "No-reply адрес",
-  "admin.config.default_visibility_organization": "Видимость по умолчанию для новых организаций",
   "admin.config.default_enable_dependencies": "Включение зависимостей для задач по умолчанию",
   "admin.config.webhook_config": "Конфигурация веб-хуков",
   "admin.config.queue_length": "Длина очереди",

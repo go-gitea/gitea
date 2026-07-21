@@ -10,6 +10,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -62,7 +63,9 @@ func TestCheckAuthToken(t *testing.T) {
 		assert.ErrorIs(t, err, ErrAuthTokenInvalidHash)
 		assert.Nil(t, at2)
 
-		assert.NoError(t, auth_model.DeleteAuthTokenByID(t.Context(), at.ID))
+		// a hash mismatch signals a compromised token, which must be revoked
+		_, err = auth_model.GetAuthTokenByID(t.Context(), at.ID)
+		assert.ErrorIs(t, err, util.ErrNotExist)
 	})
 
 	t.Run("Valid", func(t *testing.T) {

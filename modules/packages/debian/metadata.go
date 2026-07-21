@@ -135,7 +135,10 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				return nil, GlobalVars().ErrUnsupportedCompression
 			}
 
-			tr := tar.NewReader(inner)
+			// bound the decompressed control archive: it holds only the small control file
+			// and maintainer scripts, so a much larger stream is a decompression bomb
+			const maxControlTarSize = 32 * 1024 * 1024
+			tr := tar.NewReader(io.LimitReader(inner, maxControlTarSize))
 			for {
 				hd, err := tr.Next()
 				if err == io.EOF {
@@ -168,6 +171,7 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 	key := ""
 	var depends strings.Builder
 	var control strings.Builder
+	var description strings.Builder
 
 	// https://www.debian.org/doc/debian-policy/ch-controlfields.html#syntax-of-control-files
 	s := bufio.NewScanner(r)
@@ -189,10 +193,13 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 		control.WriteString(line)
 		control.WriteByte('\n')
 
+		// a leading space or tab marks a folded continuation line that belongs to the previous field
+		// (identified by key), not a new "Key: value" pair; only the multi-line fields append here.
+		// Continuation lines may themselves contain a colon, so they must not be re-split on ":".
 		if line[0] == ' ' || line[0] == '\t' {
 			switch key {
 			case "Description":
-				p.Metadata.Description += line
+				description.WriteString(line)
 			case "Depends":
 				depends.WriteString(trimmed)
 			}
@@ -219,7 +226,8 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 					p.Metadata.Maintainer = a.Name
 				}
 			case "Description":
-				p.Metadata.Description = value
+				description.Reset()
+				description.WriteString(value)
 			case "Depends":
 				depends.WriteString(value)
 			case "Homepage":
@@ -242,6 +250,8 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 	if p.Architecture == "" {
 		return nil, GlobalVars().ErrInvalidArchitecture
 	}
+
+	p.Metadata.Description = description.String()
 
 	dependencies := strings.Split(depends.String(), ",")
 	for i := range dependencies {

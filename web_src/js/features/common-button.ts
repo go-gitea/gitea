@@ -42,11 +42,20 @@ function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
 }
 
 export type ElementWithAssignableProperties = {
+  nodeName: string;
   getAttribute: (name: string) => string | null;
   setAttribute: (name: string, value: string) => void;
 } & Record<string, any>;
 
 export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
+  if (el.nodeName === 'FORM') {
+    // HINT: GOLANG-HTML-TEMPLATE-URL-ESCAPING: a special case for Golang HTML template escaping.
+    // Golang HTML template only handles some "known" attribute names as URL (e.g.: when the name is "action" or contains "url")
+    // To prevent template developers from making mistakes like `data-modal-form.action="?k={{ValueWithSpecialChars}}" (no escaping),
+    // here we use `data-modal-form.url="?k={{ValueWithSpecialChars}}", then the value gets correctly escaped by Golang HTML template.
+    if (kebabName === 'action') throw new Error(`don't assign element property "action" by value, use "data-modal-form.url" instead`);
+    if (kebabName === 'url') kebabName = 'action';
+  }
   const camelizedName = camelize(kebabName);
   const old = el[camelizedName];
   if (typeof old === 'boolean') {
@@ -59,7 +68,7 @@ export function assignElementProperty(el: ElementWithAssignableProperties, kebab
     // "form" has an edge case: its "<input name=action>" element overwrites the "action" property, we can only set attribute
     el.setAttribute(kebabName, val);
   } else {
-    // in the future, we could introduce a better typing system like `data-modal-form.action:string="..."`
+    // in the future, maybe we could introduce a better typing system if it is really needed
     throw new Error(`cannot assign element property "${camelizedName}" by value "${val}"`);
   }
 }
@@ -71,7 +80,11 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // * Then, try to query '[name=target]'
   // * Then, try to query '.target'
   // * Then, try to query 'target' as HTML tag
-  // If there is a ".{prop-name}" part like "data-modal-form.action", the "form" element's "action" property will be set, the "prop-name" will be camel-cased to "propName".
+  // If there's a ".{prop-name}" part like "data-modal-input.value", the "input" element's "value" property will be set,
+  // the "prop-name" will be camel-cased to "propName" (e.g.: "data-modal-input.read-only" for "readOnly" property).
+  //
+  // HINT: GOLANG-HTML-TEMPLATE-URL-ESCAPING: Form element's "action" property must be set by "data-modal-form.url"
+  // to make the template variables get correctly escaped in the URL.
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal')!;
   const elModal = document.querySelector(modalSelector);

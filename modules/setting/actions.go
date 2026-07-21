@@ -14,6 +14,8 @@ import (
 
 const defaultMaxRerunAttempts = 50
 
+const defaultMaxConcurrentTaskPicks = 16
+
 // Actions settings
 var (
 	Actions = struct {
@@ -31,13 +33,18 @@ var (
 		WorkflowDirs          []string          `ini:"WORKFLOW_DIRS"`
 		ScopedWorkflowDirs    []string          `ini:"SCOPED_WORKFLOW_DIRS"`
 		MaxRerunAttempts      int64             `ini:"MAX_RERUN_ATTEMPTS"`
+		// MaxConcurrentTaskPicks bounds how many runners may run the task-assignment
+		// transaction at once per Gitea instance, to avoid a thundering herd when many
+		// runners poll together. It is a per-process limit, not a cluster-wide one.
+		MaxConcurrentTaskPicks int `ini:"MAX_CONCURRENT_TASK_PICKS"`
 	}{
-		Enabled:             true,
-		DefaultActionsURL:   defaultActionsURLGitHub,
-		SkipWorkflowStrings: []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
-		WorkflowDirs:        []string{".gitea/workflows", ".github/workflows"},
-		ScopedWorkflowDirs:  []string{".gitea/scoped_workflows"},
-		MaxRerunAttempts:    defaultMaxRerunAttempts,
+		Enabled:                true,
+		DefaultActionsURL:      defaultActionsURLGitHub,
+		SkipWorkflowStrings:    []string{"[skip ci]", "[ci skip]", "[no ci]", "[skip actions]", "[actions skip]"},
+		WorkflowDirs:           []string{".gitea/workflows", ".github/workflows"},
+		ScopedWorkflowDirs:     []string{".gitea/scoped_workflows"},
+		MaxRerunAttempts:       defaultMaxRerunAttempts,
+		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
 	}
 )
 
@@ -126,6 +133,10 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 
 	if Actions.MaxRerunAttempts <= 0 {
 		Actions.MaxRerunAttempts = defaultMaxRerunAttempts
+	}
+
+	if Actions.MaxConcurrentTaskPicks <= 0 {
+		Actions.MaxConcurrentTaskPicks = defaultMaxConcurrentTaskPicks
 	}
 
 	if !Actions.LogCompression.IsValid() {

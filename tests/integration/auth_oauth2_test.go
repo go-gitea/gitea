@@ -222,24 +222,34 @@ func TestOAuth2CallbackReactivationGating(t *testing.T) {
 	}
 	require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, extLink))
 
-	prepareUserExternalLink := func(t *testing.T, refreshToken string) {
+	prepareUserExternalLink := func(t *testing.T, accessToken, refreshToken string, expiresAt time.Time) {
 		err := user_model.UpdateUserCols(t.Context(), &user_model.User{ID: u.ID, IsActive: false}, "is_active")
 		require.NoError(t, err)
-		_, err = db.GetEngine(t.Context()).Where(builder.Eq{"user_id": u.ID}).Cols("refresh_token").
-			Update(&user_model.ExternalLoginUser{RefreshToken: refreshToken})
+		_, err = db.GetEngine(t.Context()).Where(builder.Eq{"user_id": u.ID}).Cols("access_token", "refresh_token", "expires_at").
+			Update(&user_model.ExternalLoginUser{AccessToken: accessToken, RefreshToken: refreshToken, ExpiresAt: expiresAt})
 		require.NoError(t, err)
 		require.False(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID}).IsActive)
 	}
 
 	t.Run("admin-disabled user is not reactivated", func(t *testing.T) {
-		prepareUserExternalLink(t, "non-empty-refresh-token")
+		prepareUserExternalLink(t, "an-access-token", "non-empty-refresh-token", time.Now().Add(time.Hour))
 		doOIDCSignIn(t, authSource.Name)
 		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
 		assert.False(t, after.IsActive, "OAuth callback must not re-enable an administrator-disabled account")
 	})
 
+	t.Run("admin-disabled user without refresh token is not reactivated", func(t *testing.T) {
+		// GitHub / OIDC-without-offline_access sources never store a refresh token, so a
+		// stored access token (and no refresh token) is the normal admin-disabled state
+		prepareUserExternalLink(t, "an-access-token", "" /* no refresh token */, time.Now().Add(time.Hour))
+		doOIDCSignIn(t, authSource.Name)
+		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
+		assert.False(t, after.IsActive, "OAuth callback must not re-enable an admin-disabled account on a no-refresh-token source")
+	})
+
 	t.Run("auto-sync-disabled user is reactivated", func(t *testing.T) {
-		prepareUserExternalLink(t, "" /* empty refresh token */)
+		// the auto-sync cron clears all three token fields when it disables a user
+		prepareUserExternalLink(t, "", "", time.Time{})
 		doOIDCSignIn(t, authSource.Name)
 		after := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: u.ID})
 		assert.True(t, after.IsActive, "OAuth callback must reactivate a sync-disabled account on successful login")
