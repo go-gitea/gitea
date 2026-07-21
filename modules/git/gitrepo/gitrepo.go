@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitcmd
+package gitrepo
 
 import (
 	"path/filepath"
@@ -22,11 +22,6 @@ type RepositoryFacade interface {
 	GitRepoLocation() string
 
 	LogString() string
-}
-
-func (c *Command) WithRepo(repo RepositoryFacade) *Command {
-	c.gitDir = RepoLocalPath(repo)
-	return c
 }
 
 // RepoLocalPath returns an absolute path for a RepositoryFacade.

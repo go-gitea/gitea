@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/git/internal" //nolint:depguard // only this file can use the internal type CmdArg, other files and packages should use AddXxx functions
 	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/log"
@@ -258,6 +259,11 @@ var ErrBrokenCommand = errors.New("git command is broken")
 
 func (c *Command) WithDir(dir string) *Command {
 	c.gitDir = dir
+	return c
+}
+
+func (c *Command) WithRepo(repo gitrepo.RepositoryFacade) *Command {
+	c.gitDir = gitrepo.RepoLocalPath(repo)
 	return c
 }
 

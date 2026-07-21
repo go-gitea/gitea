@@ -17,12 +17,13 @@ import (
 	"time"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
-type RepositoryFacade = gitcmd.RepositoryFacade
+type RepositoryFacade = gitrepo.RepositoryFacade
 
 type RepositoryBase struct {
 	LastCommitCache *LastCommitCache
@@ -36,7 +37,7 @@ type RepositoryBase struct {
 	catFileBatchInUse  bool
 }
 
-var _ gitcmd.RepositoryFacade = (*Repository)(nil)
+var _ RepositoryFacade = (*Repository)(nil)
 
 func (repo *Repository) GitRepoManagedID() string {
 	return repo.repoFacade.GitRepoManagedID()
@@ -51,7 +52,7 @@ func (repo *Repository) LogString() string {
 }
 
 func OpenRepository(repo RepositoryFacade) (*Repository, error) {
-	repoPath := gitcmd.RepoLocalPath(repo)
+	repoPath := gitrepo.RepoLocalPath(repo)
 	exist, err := util.IsDir(repoPath)
 	if err != nil {
 		return nil, err
@@ -77,7 +78,7 @@ func OpenRepositoryLocal(localPath string) (_ *Repository, err error) {
 			return nil, err
 		}
 	}
-	return OpenRepository(gitcmd.RepositoryUnmanaged(localPath))
+	return OpenRepository(gitrepo.RepositoryUnmanaged(localPath))
 }
 
 func (repo *Repository) Close() error {
@@ -130,7 +131,7 @@ func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, o
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty(ctx context.Context) (bool, error) {
 	stdout, _, err := gitcmd.NewCommand().
-		AddOptionFormat("--git-dir=%s", gitcmd.RepoLocalPath(repo)). // TODO: all git commands should use "--git-dir" or "GIT_DIR=..."
+		AddOptionFormat("--git-dir=%s", gitrepo.RepoLocalPath(repo)). // TODO: all git commands should use "--git-dir" or "GIT_DIR=..."
 		AddArguments("rev-list", "-n", "1", "--all").
 		WithRepo(repo).
 		RunStdString(ctx)
