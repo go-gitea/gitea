@@ -6,12 +6,15 @@ package composer
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 
 	packages_model "gitea.dev/models/packages"
 	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/log"
 	composer_module "gitea.dev/modules/packages/composer"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 )
 
@@ -94,7 +97,7 @@ type Source struct {
 	Reference string `json:"reference"`
 }
 
-func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds []*packages_model.PackageDescriptor) *PackageMetadataResponse {
+func createPackageMetadataResponse(ctx *context.Context, registryURL string, pkg *packages_model.Package, pds []*packages_model.PackageDescriptor, includeDev bool) *PackageMetadataResponse {
 	versions := make([]*PackageVersionMetadata, 0, len(pds))
 
 	for _, pd := range pds {
@@ -104,6 +107,21 @@ func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds
 				packageType = pvp.Value
 				break
 			}
+		}
+		isDevBranch := pd.VersionProperties.GetByName(composer_module.DevBranchProperty) != ""
+		if isDevBranch != includeDev {
+			continue
+		}
+		if isDevBranch {
+			branchVersion, ok := createDevBranchPackageMetadata(ctx, packageType, pd)
+			if ok {
+				versions = append(versions, branchVersion)
+			}
+			continue
+		}
+		if len(pd.Files) == 0 {
+			log.Error("Composer package version without files: %d", pd.Version.ID)
+			continue
 		}
 
 		pkg := PackageVersionMetadata{
@@ -137,7 +155,59 @@ func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds
 	return &PackageMetadataResponse{
 		Minified: "composer/2.0",
 		Packages: map[string][]*PackageVersionMetadata{
-			pds[0].Package.Name: versions,
+			pkg.Name: versions,
 		},
 	}
+}
+
+func createDevBranchPackageMetadata(ctx *context.Context, packageType string, pd *packages_model.PackageDescriptor) (*PackageVersionMetadata, bool) {
+	repoID := pd.Package.RepoID
+	repoIDValue := pd.VersionProperties.GetByName(composer_module.DevBranchRepoProperty)
+	if repoIDValue != "" {
+		parsedRepoID, err := strconv.ParseInt(repoIDValue, 10, 64)
+		if err != nil || parsedRepoID <= 0 {
+			log.Error("Invalid Composer dev branch repository ID for package version %d", pd.Version.ID)
+			return nil, false
+		}
+		repoID = parsedRepoID
+	}
+	if repoID <= 0 {
+		log.Error("Missing Composer dev branch repository ID for package version %d", pd.Version.ID)
+		return nil, false
+	}
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		log.Error("GetRepositoryByID[%d]: %v", repoID, err)
+		return nil, false
+	}
+	permission, err := access_model.GetDoerRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		log.Error("GetDoerRepoPermission[%d]: %v", repo.ID, err)
+		return nil, false
+	}
+	if !permission.HasAnyUnitAccessOrPublicAccess() {
+		return nil, false
+	}
+
+	branch := pd.VersionProperties.GetByName(composer_module.DevBranchProperty)
+	if branch == "" {
+		branch = pd.Version.Version[len("dev-"):]
+	}
+
+	return &PackageVersionMetadata{
+		Name:     pd.Package.Name,
+		Version:  pd.Version.Version,
+		Type:     packageType,
+		Created:  pd.Version.CreatedUnix.AsLocalTime(),
+		Metadata: pd.Metadata.(*composer_module.Metadata),
+		Dist: Dist{
+			Type: "zip",
+			URL:  repo.HTMLURL(ctx) + "/archive/" + util.PathEscapeSegments(branch) + ".zip",
+		},
+		Source: Source{
+			URL:       repo.HTMLURL(ctx),
+			Type:      "git",
+			Reference: branch,
+		},
+	}, true
 }

@@ -10,12 +10,14 @@ import (
 	neturl "net/url"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	composer_module "gitea.dev/modules/packages/composer"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
 	"gitea.dev/routers/api/packages/composer"
 	"gitea.dev/tests"
@@ -58,6 +60,8 @@ func TestPackageComposer(t *testing.T) {
 	}).Bytes()
 
 	url := fmt.Sprintf("%sapi/packages/%s/composer", setting.AppURL, user.Name)
+	session := loginUser(t, user.Name)
+	writePackageToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWritePackage)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -97,7 +101,7 @@ func TestPackageComposer(t *testing.T) {
 
 			pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 			assert.NoError(t, err)
-			assert.NotNil(t, pd.SemVer)
+			assert.Nil(t, pd.SemVer)
 			assert.IsType(t, &composer_module.Metadata{}, pd.Metadata)
 			assert.Equal(t, packageName, pd.Package.Name)
 			assert.Equal(t, packageVersion, pd.Version.Version)
@@ -273,6 +277,110 @@ func TestPackageComposer(t *testing.T) {
 		assert.Empty(t, pkgs[0].Source.URL)
 		assert.Empty(t, pkgs[0].Source.Type)
 		assert.Empty(t, pkgs[0].Source.Reference)
+
+		req = NewRequestWithBody(t, "PUT", url+"?version=1.0.10", bytes.NewReader(content)).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName)).
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		pkgs = result.Packages[packageName]
+		assert.Len(t, pkgs, 2)
+		// Composer p2 metadata follows upload order, newest first.
+		assert.Equal(t, "1.0.10", pkgs[0].Version)
+		assert.Equal(t, packageVersion, pkgs[1].Version)
+	})
+
+	t.Run("DevBranchOnlyPackageMetadata", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		devVendorName := "gitea"
+		devProjectName := "dev-only-package"
+		devPackageName := devVendorName + "/" + devProjectName
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/packages/%s/composer/%s/%s/-/composer/dev-branch", user.Name, devVendorName, devProjectName), api.ComposerDevBranchOption{
+			Repo:   repo1.Name,
+			Branch: "feature/1",
+		}).AddTokenAuth(writePackageToken)
+		resp := MakeRequest(t, req, http.StatusCreated)
+
+		devBranch := DecodeJSON(t, resp, &api.ComposerDevBranch{})
+		assert.Equal(t, devPackageName, devBranch.Package)
+		assert.Equal(t, "dev-feature/1", devBranch.Version)
+		assert.Equal(t, repo1.Name, devBranch.Repo)
+		assert.Equal(t, "feature/1", devBranch.Branch)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, devVendorName, devProjectName)).
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		result := DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		assert.Contains(t, result.Packages, devPackageName)
+		pkgs := result.Packages[devPackageName]
+		assert.Empty(t, pkgs)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s~dev.json", url, devVendorName, devProjectName)).
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		assert.Contains(t, result.Packages, devPackageName)
+		pkgs = result.Packages[devPackageName]
+		assert.Len(t, pkgs, 1)
+		assert.Equal(t, devPackageName, pkgs[0].Name)
+		assert.Equal(t, "dev-feature/1", pkgs[0].Version)
+		assert.Equal(t, "library", pkgs[0].Type)
+		assert.Equal(t, "zip", pkgs[0].Dist.Type)
+		assert.Equal(t, repo1.HTMLURL()+"/archive/feature/1.zip", pkgs[0].Dist.URL)
+		assert.Empty(t, pkgs[0].Dist.Checksum)
+		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
+		assert.Equal(t, "git", pkgs[0].Source.Type)
+		assert.Equal(t, "feature/1", pkgs[0].Source.Reference)
+
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/packages/%s/composer/%s/%s/-/composer/dev-branch", user.Name, devVendorName, "missing-repo-package"), api.ComposerDevBranchOption{
+			Branch: "master",
+		}).AddTokenAuth(writePackageToken)
+		MakeRequest(t, req, http.StatusBadRequest)
+
+		linkedProjectName := "linked-dev-package"
+		linkedPackageName := devVendorName + "/" + linkedProjectName
+		linkedPkg := &packages.Package{
+			OwnerID:          user.ID,
+			RepoID:           repo1.ID,
+			Type:             packages.TypeComposer,
+			Name:             linkedPackageName,
+			LowerName:        linkedPackageName,
+			SemverCompatible: false,
+		}
+		_, err := packages.TryInsertPackage(t.Context(), linkedPkg)
+		assert.NoError(t, err)
+
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/packages/%s/composer/%s/%s/-/composer/dev-branch", user.Name, devVendorName, linkedProjectName), api.ComposerDevBranchOption{
+			Branch: "master",
+		}).AddTokenAuth(writePackageToken)
+		resp = MakeRequest(t, req, http.StatusCreated)
+
+		devBranch = DecodeJSON(t, resp, &api.ComposerDevBranch{})
+		assert.Equal(t, linkedPackageName, devBranch.Package)
+		assert.Equal(t, "dev-master", devBranch.Version)
+		assert.Equal(t, repo1.Name, devBranch.Repo)
+		assert.Equal(t, "master", devBranch.Branch)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s~dev.json", url, devVendorName, linkedProjectName)).
+			AddBasicAuth(user.Name)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		result = DecodeJSON(t, resp, &composer.PackageMetadataResponse{})
+		pkgs = result.Packages[linkedPackageName]
+		assert.Len(t, pkgs, 1)
+		assert.Equal(t, "dev-master", pkgs[0].Version)
+		assert.Equal(t, repo1.HTMLURL()+"/archive/master.zip", pkgs[0].Dist.URL)
+		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
+		assert.Equal(t, "master", pkgs[0].Source.Reference)
 	})
 
 	t.Run("WebVisibilityBadge", func(t *testing.T) {
