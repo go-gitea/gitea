@@ -137,6 +137,7 @@ function initRepoClonePanel(btn: HTMLButtonElement) {
     placement: 'bottom-end',
     interactive: true,
     hideOnClick: true,
+    arrow: false,
   });
 }
 

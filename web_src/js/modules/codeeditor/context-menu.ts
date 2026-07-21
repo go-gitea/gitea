@@ -200,6 +200,7 @@ export function contextMenu(cm: CodemirrorModules, togglePalette: (view: EditorV
         trigger: 'manual',
         placement: 'bottom-start',
         interactive: true,
+        arrow: false,
         offset: [0, 0],
         showOnCreate: true,
         onHidden: () => {
