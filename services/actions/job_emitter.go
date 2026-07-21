@@ -293,17 +293,19 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 				case actions_model.StatusWaiting:
 					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
 						// Terminal expansion failure (an invalid/unresolvable reusable workflow): fail this caller.
-						log.Warn("caller %d cannot be expanded, marking it failed: %v", job.ID, err)
+						log.Warn("caller %d cannot be expanded: %v", job.ID, err)
 						job.Status = actions_model.StatusFailure
 						job.Stopped = timeutil.TimeStampNow()
 						if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); uerr != nil {
 							return fmt.Errorf("mark unexpandable caller %d failed: %w", job.ID, uerr)
 						} else if n == 1 {
+							log.Warn("unexpandable caller %d has been marked as failed", job.ID)
 							result.UpdatedJobs = append(result.UpdatedJobs, job)
 							// Re-emit so the failed caller's dependents get resolved on the next pass.
 							expandedAnyCaller = true
 						} else {
 							// A concurrent writer advanced the caller; restore the in-memory state.
+							log.Warn("unexpandable caller %d has been advanced by a concurrent writer, not marking it failed", job.ID)
 							job.Status = actions_model.StatusBlocked
 							job.Stopped = 0
 						}
