@@ -218,7 +218,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	// Get active submodules from the template
-	submodules, err := git.GetTemplateSubmoduleCommits(ctx, tmpDir)
+	submodules, err := git.GetTemplateSubmoduleCommits(ctx, templateRepo)
 	if err != nil {
 		return fmt.Errorf("GetTemplateSubmoduleCommits: %w", err)
 	}
