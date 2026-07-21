@@ -236,30 +236,28 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		return fmt.Errorf("build call payload: %w", err)
 	}
 
-	// 8. Insert direct children of this caller.
-	existingChildren, err := actions_model.GetDirectChildJobsByParent(ctx, caller)
+	// 8. Claim the expansion by flipping is_expanded false->true BEFORE inserting any children.
+	// Two concurrent expanders serialize on this row: exactly one winner matches (n==1) and owns the expansion.
+	// Children are only ever inserted by the claim winner, so no duplicate child rows can arise.
+	caller.IsExpanded = true
+	n, err := actions_model.UpdateRunJob(ctx, caller, builder.Eq{"is_expanded": false}, "is_expanded")
 	if err != nil {
-		return fmt.Errorf("get existing children of caller %d: %w", caller.ID, err)
+		return fmt.Errorf("claim caller %d expansion: %w", caller.ID, err)
 	}
-	if len(existingChildren) > 0 {
-		// Should not happen - child jobs cannot be expanded before the caller gets ready
-		return fmt.Errorf("invariant violation: caller %d has %d pre-existing children", caller.ID, len(existingChildren))
+	if n == 0 {
+		// Another writer won the expansion; nothing was inserted here.
+		return nil
 	}
+
+	// 9. We own the expansion: insert the direct children.
 	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, workflowCallInputs); err != nil {
 		return err
 	}
 
-	// 9. Update caller-related cols.
+	// 10. Persist the remaining caller metadata (the row is already ours via the claim above).
 	caller.CallPayload = string(callPayload)
-	caller.IsExpanded = true
-	n, err := actions_model.UpdateRunJob(ctx, caller,
-		builder.Eq{"is_expanded": false},
-		"call_secrets", "reusable_workflow_content", "call_payload", "is_expanded")
-	if err != nil {
-		return fmt.Errorf("commit caller %d expansion: %w", caller.ID, err)
-	}
-	if n == 0 {
-		return fmt.Errorf("caller %d already expanded by another writer", caller.ID)
+	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "call_secrets", "reusable_workflow_content", "call_payload"); err != nil {
+		return fmt.Errorf("persist caller %d expansion metadata: %w", caller.ID, err)
 	}
 	return nil
 }
