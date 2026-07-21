@@ -108,7 +108,7 @@
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
       "matchDepTypes": ["golang"],
-      "matchUpdateTypes": ["patch"], // go minimum bumps on minor only
+      "matchUpdateTypes": ["patch", "major"], // go minimum bumps on minor only
       "enabled": false,
     },
     {
