@@ -55,6 +55,11 @@
   padding: 5px 10px;
 }
 
+.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-inner,
+.tippy-box[data-theme="tooltip"] .tippy-svg-arrow-outer {
+  fill: var(--color-tooltip-bg);
+}
+
 /* menu theme for .ui.menu */
 
 .tippy-box[data-theme="menu"] {

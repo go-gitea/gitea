@@ -12,12 +12,21 @@ type TippyOpts = {
 const visibleInstances = new Set<Instance>();
 const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
+// shrink tippy's default 3px arrow padding so the arrow can point at the center of
+// narrow references like 16px icons with "start"/"end" placements
+function arrowPadding({placement, reference}: {placement: Placement, reference: {width: number, height: number}}): number {
+  const isVertical = placement.startsWith('left') || placement.startsWith('right');
+  const referenceLength = isVertical ? reference.height : reference.width;
+  return Math.max(0, Math.min(3, referenceLength / 2 - 8)); // 8 = half of arrow width
+}
+
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
   // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
   const resolvedTheme = theme || role || 'default';
+  const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
 
   const instance: Instance = tippy(target, {
     appendTo: document.body,
@@ -46,11 +55,12 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       target.setAttribute('aria-controls', instance.popper.id);
       return onShow?.(instance);
     },
-    arrow: arrow ?? (resolvedTheme === 'bare' || resolvedTheme === 'tooltip' ? false : arrowSvg),
+    arrow: resolvedArrow,
+    popperOptions: {modifiers: [{name: 'arrow', options: {padding: arrowPadding}}]},
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
     theme: resolvedTheme,
-    offset: [0, arrow ? 10 : 6],
+    offset: [0, resolvedArrow ? 10 : 6],
     plugins: [followCursor],
     ...other,
   } satisfies Partial<Props>);
