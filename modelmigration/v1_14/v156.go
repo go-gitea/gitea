@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitea.dev/modelmigration/base"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 )
@@ -97,7 +98,7 @@ func FixPublisherIDforTagReleases(ctx context.Context, x base.EngineMigration) e
 						return err
 					}
 				}
-				gitRepo, err = git.OpenRepository(base.LocalCodeGitRepo(repo.OwnerName, repo.Name))
+				gitRepo, err = git.OpenRepository(repo_model.CodeRepoByName(repo.OwnerName, repo.Name))
 				if err != nil {
 					log.Error("Error whilst opening git repo for [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
 					return err

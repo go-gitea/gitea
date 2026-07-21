@@ -34,7 +34,7 @@ func (b *catFileBatchCommunicator) Close(err ...error) {
 }
 
 // newCatFileBatch opens git cat-file --batch/--batch-check/--batch-command command and prepares the stdin/stdout pipes for communication.
-func newCatFileBatch(ctx context.Context, repo RepositoryFacade, cmdCatFile *gitcmd.Command) *catFileBatchCommunicator {
+func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command) *catFileBatchCommunicator {
 	ctx, ctxCancel := context.WithCancelCause(ctx)
 	stdinWriter, stdoutReader, stdPipeClose := cmdCatFile.MakeStdinStdoutPipe()
 	ret := &catFileBatchCommunicator{
@@ -47,7 +47,7 @@ func newCatFileBatch(ctx context.Context, repo RepositoryFacade, cmdCatFile *git
 		stdPipeClose()
 	}))
 
-	err := cmdCatFile.WithRepo(repo).StartWithStderr(ctx)
+	err := cmdCatFile.WithDir(repoPath).StartWithStderr(ctx)
 	if err != nil {
 		log.Error("Unable to start git command %v: %v", cmdCatFile.LogString(), err)
 		// ideally here it should return the error, but it would require refactoring all callers
@@ -59,7 +59,7 @@ func newCatFileBatch(ctx context.Context, repo RepositoryFacade, cmdCatFile *git
 	go func() {
 		err := cmdCatFile.WaitWithStderr()
 		if err != nil && !errors.Is(err, context.Canceled) {
-			log.Error("cat-file --batch command failed in repo %s, error: %v", repo.LogString(), err)
+			log.Error("cat-file --batch command failed in repo %s, error: %v", repoPath, err)
 		}
 		ret.Close(err)
 	}()

@@ -168,7 +168,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		cmdApply.AddArguments("-3")
 	}
 
-	if err := cmdApply.WithRepo(t.gitRepo).
+	if err := cmdApply.WithDir(t.basePath).
 		WithStdinBytes([]byte(opts.Content)).
 		RunWithStderr(ctx); err != nil {
 		return nil, fmt.Errorf("git apply error: %w", err)

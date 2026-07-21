@@ -130,8 +130,10 @@ function lazyTooltipOnMouseHover(e: Event): void {
   const el = e.currentTarget as HTMLElement;
   el.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
   // Firefox skips enter/leave dispatch when the window had no such listeners at the time of the
-  // pointer crossing, so the new tippy misses its first "mouseenter". Show via a synthetic event.
-  attachTooltip(el)?.reference.dispatchEvent(new MouseEvent('mouseenter'));
+  // pointer crossing, so the new tippy misses its first "mouseenter". Show via a synthetic event,
+  // carrying over the cursor position for "followCursor" tooltips.
+  const {clientX, clientY} = e as MouseEvent;
+  attachTooltip(el)?.reference.dispatchEvent(new MouseEvent('mouseenter', {clientX, clientY}));
 }
 
 // Activate the tooltip for current element.

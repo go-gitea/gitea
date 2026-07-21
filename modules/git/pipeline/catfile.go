@@ -15,19 +15,19 @@ import (
 )
 
 // CatFileBatchCheck runs cat-file with --batch-check
-func CatFileBatchCheck(ctx context.Context, cmd *gitcmd.Command, repo git.RepositoryFacade) error {
+func CatFileBatchCheck(ctx context.Context, cmd *gitcmd.Command, tmpBasePath string) error {
 	cmd.AddArguments("cat-file", "--batch-check")
-	return cmd.WithRepo(repo).RunWithStderr(ctx)
+	return cmd.WithDir(tmpBasePath).RunWithStderr(ctx)
 }
 
 // CatFileBatchCheckAllObjects runs cat-file with --batch-check --batch-all
-func CatFileBatchCheckAllObjects(ctx context.Context, cmd *gitcmd.Command, repo git.RepositoryFacade) error {
-	return cmd.AddArguments("cat-file", "--batch-check", "--batch-all-objects").WithRepo(repo).RunWithStderr(ctx)
+func CatFileBatchCheckAllObjects(ctx context.Context, cmd *gitcmd.Command, gitRepo *git.Repository) error {
+	return cmd.AddArguments("cat-file", "--batch-check", "--batch-all-objects").WithRepo(gitRepo).RunWithStderr(ctx)
 }
 
 // CatFileBatch runs cat-file --batch
-func CatFileBatch(ctx context.Context, cmd *gitcmd.Command, repo git.RepositoryFacade) error {
-	return cmd.AddArguments("cat-file", "--batch").WithRepo(repo).RunWithStderr(ctx)
+func CatFileBatch(ctx context.Context, cmd *gitcmd.Command, gitRepo git.RepositoryFacade) error {
+	return cmd.AddArguments("cat-file", "--batch").WithRepo(gitRepo).RunWithStderr(ctx)
 }
 
 // BlobsLessThan1024FromCatFileBatchCheck reads a pipeline from cat-file --batch-check and returns the blobs <1024 in size

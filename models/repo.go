@@ -2,7 +2,7 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package repostats
+package models
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 
@@ -19,6 +20,11 @@ import (
 
 	"xorm.io/builder"
 )
+
+// Init initialize model
+func Init(ctx context.Context) error {
+	return unit.LoadUnitConfig()
+}
 
 type repoChecker struct {
 	querySQL   func(ctx context.Context) ([]int64, error)

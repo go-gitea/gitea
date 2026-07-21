@@ -536,7 +536,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	if err := cmd.WithRepo(prCtx.tmpRepo).
+	if err := cmd.WithDir(prCtx.tmpBasePath).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			return util.IsEmptyReader(stdoutReader)
 		}).

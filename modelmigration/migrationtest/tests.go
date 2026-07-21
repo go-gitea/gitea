@@ -58,11 +58,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (base.EngineMigra
 		}
 	}
 
-	db.ResetModels()
 	if len(syncModels) > 0 {
-		for _, syncModel := range syncModels {
-			db.RegisterModel(syncModel)
-		}
 		if err := x.Sync(syncModels...); err != nil {
 			t.Errorf("error during sync: %v", err)
 			return x, deferFn

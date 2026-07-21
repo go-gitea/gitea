@@ -16,7 +16,7 @@ import (
 // getRebaseAmendMessage composes the message to amend commits in rebase merge of a pull request.
 func getRebaseAmendMessage(ctx *mergeContext, baseGitRepo *git.Repository) (message string, err error) {
 	// Get existing commit message.
-	commitMessage, _, err := gitcmd.NewCommand("show", "--format=%B", "-s").WithRepo(ctx.tmpRepo).RunStdString(ctx)
+	commitMessage, _, err := gitcmd.NewCommand("show", "--format=%B", "-s").WithDir(ctx.tmpBasePath).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -76,7 +76,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 		cmdCommit := gitcmd.NewCommand("commit", "--amend").
 			AddOptionFormat("--message=%s", newMessage)
 		addCommitSigningOptions(cmdCommit, ctx.signKey)
-		if err := cmdCommit.WithRepo(ctx.tmpRepo).Run(ctx); err != nil {
+		if err := cmdCommit.WithDir(ctx.tmpBasePath).Run(ctx); err != nil {
 			log.Error("Unable to amend commit message: %v", err)
 			return err
 		}

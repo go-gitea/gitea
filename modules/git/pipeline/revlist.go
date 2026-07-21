@@ -9,17 +9,16 @@ import (
 	"io"
 	"strings"
 
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 )
 
 // RevListObjects run rev-list --objects from headSHA to baseSHA
-func RevListObjects(ctx context.Context, cmd *gitcmd.Command, repo git.RepositoryFacade, headSHA, baseSHA string) error {
+func RevListObjects(ctx context.Context, cmd *gitcmd.Command, tmpBasePath, headSHA, baseSHA string) error {
 	cmd.AddArguments("rev-list", "--objects").AddDynamicArguments(headSHA)
 	if baseSHA != "" {
 		cmd = cmd.AddArguments("--not").AddDynamicArguments(baseSHA)
 	}
-	return cmd.WithRepo(repo).RunWithStderr(ctx)
+	return cmd.WithDir(tmpBasePath).RunWithStderr(ctx)
 }
 
 // BlobsFromRevListObjects reads a RevListAllObjects and only selects blobs

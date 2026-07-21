@@ -64,7 +64,7 @@ func LFSPush(ctx context.Context, tmpBasePath string, tmpRepo git.RepositoryFaca
 
 	// 3. Run batch-check on the objects retrieved from rev-list
 	wg.Go(func() error {
-		return pipeline.CatFileBatchCheck(ctx, cmd3BathCheck, tmpRepo)
+		return pipeline.CatFileBatchCheck(ctx, cmd3BathCheck, tmpBasePath)
 	})
 
 	// 2. Check each object retrieved rejecting those without names as they will be commits or trees
@@ -74,7 +74,7 @@ func LFSPush(ctx context.Context, tmpBasePath string, tmpRepo git.RepositoryFaca
 
 	// 1. Run rev-list objects from mergeHead to mergeBase
 	wg.Go(func() error {
-		return pipeline.RevListObjects(ctx, cmd1RevList, tmpRepo, mergeHeadSHA, mergeBaseSHA)
+		return pipeline.RevListObjects(ctx, cmd1RevList, tmpBasePath, mergeHeadSHA, mergeBaseSHA)
 	})
 
 	return wg.Wait()

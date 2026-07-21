@@ -7,13 +7,15 @@ import (
 	"time"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/models/repo"
 	"gitea.dev/modules/timeutil"
 )
 
 func AddSyncOnCommitColForPushMirror(x base.EngineMigration) error {
 	type PushMirror struct {
-		ID         int64 `xorm:"pk autoincr"`
-		RepoID     int64 `xorm:"INDEX"`
+		ID         int64            `xorm:"pk autoincr"`
+		RepoID     int64            `xorm:"INDEX"`
+		Repo       *repo.Repository `xorm:"-"`
 		RemoteName string
 
 		SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`

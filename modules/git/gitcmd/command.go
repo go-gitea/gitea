@@ -35,14 +35,7 @@ type Command struct {
 	args       []string
 	preErrors  []error
 	configArgs []string
-
-	// Dir is the working dir for the git command, however:
-	// FIXME: this could be incorrect in many cases, for example:
-	// * /some/path/.git
-	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
-	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
-	// The correct approach is to use `--git-dir" global argument or "GIT_DIR=..." environment variable.
-	gitDir string
+	opts       runOpts
 
 	cmd *exec.Cmd
 
@@ -51,14 +44,9 @@ type Command struct {
 	cmdFinished  process.FinishedFunc
 	cmdStartTime time.Time
 
-	pipelineFunc func(Context) error
-
 	parentPipeFiles   []*os.File
 	parentPipeReaders []*os.File
 	childrenPipeFiles []*os.File
-
-	cmdEnv     []string
-	cmdTimeout time.Duration
 
 	// only os.Pipe and in-memory buffers can work with Stdin safely, see https://github.com/golang/go/issues/77227 if the command would exit unexpectedly
 	cmdStdin  io.Reader
@@ -216,6 +204,23 @@ func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 	return ret
 }
 
+type runOpts struct {
+	// TODO: this struct should be removed, the fields can be just merged into the command
+
+	Env     []string
+	Timeout time.Duration
+
+	// Dir is the working dir for the git command, however:
+	// FIXME: this could be incorrect in many cases, for example:
+	// * /some/path/.git
+	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
+	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
+	// The correct approach is to use `--git-dir" global argument or "GIT_DIR=..." environment variable.
+	Dir string
+
+	PipelineFunc func(Context) error
+}
+
 func commonBaseEnvs() []string {
 	envs := []string{
 		// Make Gitea use internal git config only, to prevent conflicts with user's git config
@@ -257,17 +262,17 @@ func CommonCmdServEnvs() []string {
 var ErrBrokenCommand = errors.New("git command is broken")
 
 func (c *Command) WithDir(dir string) *Command {
-	c.gitDir = dir
+	c.opts.Dir = dir
 	return c
 }
 
 func (c *Command) WithEnv(env []string) *Command {
-	c.cmdEnv = env
+	c.opts.Env = env
 	return c
 }
 
 func (c *Command) WithTimeout(timeout time.Duration) *Command {
-	c.cmdTimeout = timeout
+	c.opts.Timeout = timeout
 	return c
 }
 
@@ -356,7 +361,7 @@ func (c *Command) WithStdoutCopy(w io.Writer) *Command {
 // The returned error of Run / Wait can be joined errors from the pipeline function, context cause, and command exit error.
 // Caller can get the pipeline function's error (if any) by UnwrapPipelineError.
 func (c *Command) WithPipelineFunc(f func(ctx Context) error) *Command {
-	c.pipelineFunc = f
+	c.opts.PipelineFunc = f
 	return c
 }
 
@@ -413,7 +418,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 		c.WithParentCallerInfo()
 	}
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
-	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.callerInfo, logArgSanitize(c.gitDir), cmdLogString)
+	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.callerInfo, logArgSanitize(c.opts.Dir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
@@ -421,24 +426,24 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	span.SetAttributeString(gtprof.TraceAttrFuncCaller, c.callerInfo)
 	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
-	if c.cmdTimeout <= 0 {
+	if c.opts.Timeout <= 0 {
 		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContext(ctx, desc)
 	} else {
-		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContextTimeout(ctx, c.cmdTimeout, desc)
+		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContextTimeout(ctx, c.opts.Timeout, desc)
 	}
 
 	c.cmdStartTime = time.Now()
 
 	c.cmd = exec.CommandContext(c.cmdCtx, c.prog, append(c.configArgs, c.args...)...)
-	if c.cmdEnv == nil {
+	if c.opts.Env == nil {
 		c.cmd.Env = os.Environ()
 	} else {
-		c.cmd.Env = c.cmdEnv
+		c.cmd.Env = c.opts.Env
 	}
 
 	process.SetSysProcAttribute(c.cmd)
 	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
-	c.cmd.Dir = c.gitDir
+	c.cmd.Dir = c.opts.Dir
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin
 	c.cmd.Stderr = c.cmdStderr
@@ -476,8 +481,8 @@ func (c *Command) Wait() error {
 		c.cmdFinished()
 	}()
 
-	if c.pipelineFunc != nil {
-		errPipeline := c.pipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
+	if c.opts.PipelineFunc != nil {
+		errPipeline := c.opts.PipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
 
 		if context.Cause(c.cmdCtx) == nil {
 			// if the context is not canceled explicitly, we need to discard the unread data,

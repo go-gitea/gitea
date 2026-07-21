@@ -5,32 +5,38 @@ package git
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // catFileBatchCommand implements the CatFileBatch interface using the "cat-file --batch-command" command
 // for git version >= 2.36
 // ref: https://git-scm.com/docs/git-cat-file#Documentation/git-cat-file.txt---batch-command
 type catFileBatchCommand struct {
-	ctx   context.Context
-	repo  RepositoryFacade
-	batch *catFileBatchCommunicator
+	ctx      context.Context
+	repoPath string
+	batch    *catFileBatchCommunicator
 }
 
 var _ CatFileBatch = (*catFileBatchCommand)(nil)
 
-func newCatFileBatchCommand(ctx context.Context, repo RepositoryFacade) *catFileBatchCommand {
-	return &catFileBatchCommand{ctx: ctx, repo: repo}
+func newCatFileBatchCommand(ctx context.Context, repoPath string) (*catFileBatchCommand, error) {
+	if _, err := os.Stat(repoPath); err != nil {
+		return nil, util.NewNotExistErrorf("repo %q doesn't exist", filepath.Base(repoPath))
+	}
+	return &catFileBatchCommand{ctx: ctx, repoPath: repoPath}, nil
 }
 
 func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
 	if b.batch != nil {
 		return b.batch
 	}
-	b.batch = newCatFileBatch(b.ctx, b.repo, gitcmd.NewCommand("cat-file", "--batch-command"))
+	b.batch = newCatFileBatch(b.ctx, b.repoPath, gitcmd.NewCommand("cat-file", "--batch-command"))
 	return b.batch
 }
 

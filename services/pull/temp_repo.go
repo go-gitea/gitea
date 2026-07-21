@@ -40,7 +40,7 @@ type prTmpRepoContext struct {
 // Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
 func (ctx *prTmpRepoContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
-	return cmd.WithRepo(ctx.tmpRepo).WithStdoutBuffer(ctx.outbuf)
+	return cmd.WithDir(ctx.tmpBasePath).WithStdoutBuffer(ctx.outbuf)
 }
 
 // createTemporaryRepoForPR creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch

@@ -6,10 +6,13 @@ package git
 import (
 	"context"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // catFileBatchLegacy implements the CatFileBatch interface using the "cat-file --batch" command and "cat-file --batch-check" command
@@ -18,22 +21,25 @@ import (
 // ref: https://git-scm.com/docs/git-cat-file#Documentation/git-cat-file.txt---batch
 type catFileBatchLegacy struct {
 	ctx          context.Context
-	repo         RepositoryFacade
+	repoPath     string
 	batchContent *catFileBatchCommunicator
 	batchCheck   *catFileBatchCommunicator
 }
 
 var _ CatFileBatchCloser = (*catFileBatchLegacy)(nil)
 
-func newCatFileBatchLegacy(ctx context.Context, repo RepositoryFacade) *catFileBatchLegacy {
-	return &catFileBatchLegacy{ctx: ctx, repo: repo}
+func newCatFileBatchLegacy(ctx context.Context, repoPath string) (*catFileBatchLegacy, error) {
+	if _, err := os.Stat(repoPath); err != nil {
+		return nil, util.NewNotExistErrorf("repo %q doesn't exist", filepath.Base(repoPath))
+	}
+	return &catFileBatchLegacy{ctx: ctx, repoPath: repoPath}, nil
 }
 
 func (b *catFileBatchLegacy) getBatchContent() *catFileBatchCommunicator {
 	if b.batchContent != nil {
 		return b.batchContent
 	}
-	b.batchContent = newCatFileBatch(b.ctx, b.repo, gitcmd.NewCommand("cat-file", "--batch"))
+	b.batchContent = newCatFileBatch(b.ctx, b.repoPath, gitcmd.NewCommand("cat-file", "--batch"))
 	return b.batchContent
 }
 
@@ -41,7 +47,7 @@ func (b *catFileBatchLegacy) getBatchCheck() *catFileBatchCommunicator {
 	if b.batchCheck != nil {
 		return b.batchCheck
 	}
-	b.batchCheck = newCatFileBatch(b.ctx, b.repo, gitcmd.NewCommand("cat-file", "--batch-check"))
+	b.batchCheck = newCatFileBatch(b.ctx, b.repoPath, gitcmd.NewCommand("cat-file", "--batch-check"))
 	return b.batchCheck
 }
 
