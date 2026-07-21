@@ -47,3 +47,17 @@ type PackageFile struct {
 	// The SHA512 hash of the package file
 	HashSHA512 string `json:"sha512"`
 }
+
+// ComposerDevBranchOption describes a Composer dev branch link
+type ComposerDevBranchOption struct {
+	Repo   string `json:"repo" binding:"MaxSize(100)"`
+	Branch string `json:"branch" binding:"Required;GitRefName;MaxSize(100)"`
+}
+
+// ComposerDevBranch represents a Composer dev branch link
+type ComposerDevBranch struct {
+	Package string `json:"package"`
+	Version string `json:"version"`
+	Repo    string `json:"repo"`
+	Branch  string `json:"branch"`
+}
