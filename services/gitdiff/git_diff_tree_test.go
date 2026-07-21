@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"gitea.dev/modules/git"
@@ -16,6 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func resetGlobalDiffOrderFileCacheForTesting() {
+	diffOrderFileOnce = sync.Once{}
+	diffOrderFileCached = ""
+	hasDiffOrderFile = false
+}
 
 func TestGitDiffTree(t *testing.T) {
 	test := []struct {

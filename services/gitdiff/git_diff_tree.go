@@ -32,7 +32,7 @@ var (
 func getGlobalDiffOrderFile(ctx context.Context) (string, bool) {
 	diffOrderFileOnce.Do(func() {
 		// Use global config by design, and resolve path-like values (e.g. ~/...).
-		orderFile, _, err := gitcmd.NewCommand("config", "--global", "--path", "--get", "diff.orderFile").RunStdString(ctx)
+		orderFile, _, err := gitcmd.NewCommand("config", "--global", "--path", "--get", "diff.orderFile").RunStdString(context.WithoutCancel(ctx))
 		if err != nil {
 			if !gitcmd.IsErrorExitCode(err, 1) {
 				log.Warn("git config --global --path --get diff.orderFile: %v", err)
@@ -45,12 +45,6 @@ func getGlobalDiffOrderFile(ctx context.Context) (string, bool) {
 		}
 	})
 	return diffOrderFileCached, hasDiffOrderFile
-}
-
-func resetGlobalDiffOrderFileCacheForTesting() {
-	diffOrderFileOnce = sync.Once{}
-	diffOrderFileCached = ""
-	hasDiffOrderFile = false
 }
 
 type DiffTreeRecord struct {
