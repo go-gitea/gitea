@@ -29,7 +29,7 @@ type globalVarsStruct struct {
 	codeMap        map[string]int    // emoji unicode code to its emoji data.
 	aliasMap       map[string]int    // the alias to its emoji data.
 	trie           *util.TrieNode    // trie for finding emoji positions.
-	isStartingByte [256]bool         // fast-path skip for starting bytes
+	isStartingByte [256]bool         // fast-path skip for starting bytes.
 	codeReplacer   *strings.Replacer // string replacer for emoji codes.
 	aliasReplacer  *strings.Replacer // string replacer for emoji aliases.
 }

@@ -3,37 +3,38 @@
 
 package util
 
-// TrieEdge represents a byte transition edge in the Trie.
-type TrieEdge struct {
-	B    byte
-	Node *TrieNode
+type trieEdge struct {
+	b    byte
+	node *TrieNode
 }
 
 // TrieNode represents a node in a slice-based Trie for fast byte-sequence prefix matching.
 type TrieNode struct {
-	Children []TrieEdge
-	IsEnd    bool
+	children []trieEdge
+	isEnd    bool
+}
+
+func (t *TrieNode) child(b byte) *TrieNode {
+	for _, edge := range t.children {
+		if edge.b == b {
+			return edge.node
+		}
+	}
+	return nil
 }
 
 // Insert adds a string (byte sequence) to the Trie.
 func (t *TrieNode) Insert(val string) {
 	curr := t
 	for i := 0; i < len(val); i++ {
-		b := val[i]
-		var next *TrieNode
-		for _, edge := range curr.Children {
-			if edge.B == b {
-				next = edge.Node
-				break
-			}
-		}
+		next := curr.child(val[i])
 		if next == nil {
 			next = &TrieNode{}
-			curr.Children = append(curr.Children, TrieEdge{B: b, Node: next})
+			curr.children = append(curr.children, trieEdge{b: val[i], node: next})
 		}
 		curr = next
 	}
-	curr.IsEnd = true
+	curr.isEnd = true
 }
 
 // Match returns the length of the longest matching prefix starting at index `start` in string `s`.
@@ -42,19 +43,12 @@ func (t *TrieNode) Match(s string, start int) int {
 	curr := t
 	matchLen := -1
 	for j := start; j < len(s); j++ {
-		b := s[j]
-		var next *TrieNode
-		for _, edge := range curr.Children {
-			if edge.B == b {
-				next = edge.Node
-				break
-			}
-		}
+		next := curr.child(s[j])
 		if next == nil {
 			break
 		}
 		curr = next
-		if curr.IsEnd {
+		if curr.isEnd {
 			matchLen = j - start + 1
 		}
 	}
