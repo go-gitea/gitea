@@ -115,8 +115,9 @@ func syncGitConfig(ctx context.Context) (err error) {
 	}
 
 	GlobalConfig = &GlobalConfigStruct{}
-	// HINT: GIT-DIFF-TREE-UI-CONFIG: Git's bug: https://github.com/git/git/blame/master/builtin/diff-tree.c#L127 /* no "diff" UI options */ since 20 years ago.
-	// Although document says that "git-diff-tree" supports "diff.orderfile" option, but it is not actually supported.
+	// HINT: GIT-DIFF-TREE-UI-CONFIG: Git's bug: git-diff-tree loads config with /* no "diff" UI options */ (since 20 years ago).
+	// https://github.com/git/git/blame/5d2e7709234afea1b6ddb25cd4f60d3d5fb3c200/builtin/diff-tree.c#L127
+	// Although document and manual say that "git-diff-tree" supports "diff.orderfile" option, but it is not actually supported.
 	// So we need to apply the diff.orderfile explicitly in our code.
 	GlobalConfig.DiffOrderFile, _ = configGet(ctx, "diff.orderfile")
 	return nil

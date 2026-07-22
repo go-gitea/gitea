@@ -46,7 +46,6 @@ var (
 	GlobalConfig    *GlobalConfigStruct
 )
 
-
 func (f *Features) CheckVersionAtLeast(atLeast string) bool {
 	return f.gitVersion.Compare(version.Must(version.NewVersion(atLeast))) >= 0
 }
