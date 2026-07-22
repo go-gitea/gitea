@@ -154,6 +154,17 @@ jobs:
 			runner.fetchNoTask(t) // no new tasks were scheduled
 		})
 
+		t.Run("RerunFailedWithNoFailedJobsAPI", func(t *testing.T) {
+			// Same rejection on the API route: an empty failed-job list must not fall through to a full re-run.
+			before := getRunLatestAttemptNum(t, run.ID)
+			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/rerun-failed-jobs", user2.Name, repo.Name, run.ID)).
+				AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusBadRequest)
+			assert.Contains(t, resp.Body.String(), "no failed jobs")
+			assert.Equal(t, before, getRunLatestAttemptNum(t, run.ID))
+			runner.fetchNoTask(t)
+		})
+
 		t.Run("AttemptAPI", func(t *testing.T) {
 			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/attempts/2", user2.Name, repo.Name, run.ID)).
 				AddTokenAuth(token)
