@@ -57,18 +57,12 @@ function initRepoIssueListCheckboxes() {
 
       const url = el.getAttribute('data-url')!;
       let action = el.getAttribute('data-action')!;
-      let elementId = el.getAttribute('data-element-id')!;
+      const elementId = el.getAttribute('data-element-id')!;
       const issueIDList: string[] = Array.from(document.querySelectorAll('.issue-checkbox:checked'), (el) => (el.getAttribute('data-issue-id')!));
       const issueIDs = issueIDList.join(',');
       if (!issueIDs) return;
 
-      // for assignee
-      if (elementId === '0' && url.endsWith('/assignee')) {
-        elementId = '';
-        action = 'clear';
-      }
-
-      // for toggle
+      // for label toggle
       if (action === 'toggle' && e.altKey) {
         action = 'toggle-alt';
       }
