@@ -5,6 +5,7 @@ package helm
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"io"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
+	"github.com/ProtonMail/go-crypto/openpgp/clearsign"
 	"github.com/hashicorp/go-version"
 	"go.yaml.in/yaml/v4"
 )
@@ -138,35 +140,12 @@ func ParseProvenanceFile(r io.Reader) (*Metadata, error) {
 		return nil, err
 	}
 
-	content := string(data)
-
-	// A provenance file is a PGP signed message.
-	// The content is between the header and the signature.
-	const (
-		header    = "-----BEGIN PGP SIGNED MESSAGE-----"
-		separator = "...\n"
-	)
-
-	i := strings.Index(content, header)
-	if i == -1 {
-		// Not a PGP signed message, so it's not a valid prov file
+	// A provenance file must be a clearsigned PGP message
+	block, _ := clearsign.Decode(data)
+	if block == nil {
 		return nil, ErrInvalidProvenance
 	}
 
-	content = content[i+len(header):]
-	// Skip Hash: ${hash} from header
-	// https://www.gnupg.org/gph/en/manual/x135.html
-	i = strings.Index(content, "\n\n")
-	if i != -1 {
-		content = content[i+2:]
-	}
-	i = strings.Index(content, separator)
-	if i == -1 {
-		// The file HAS to include the separator
-		// https://helm.sh/docs/topics/provenance/#the-provenance-file
-		return nil, ErrInvalidProvenance
-	}
-	content = content[:i] // We only need the chart.yaml part
-
-	return ParseChartFile(strings.NewReader(content))
+	// Use the plaintext content from the clearsigned message
+	return ParseChartFile(bytes.NewReader(block.Plaintext))
 }

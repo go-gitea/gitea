@@ -64,7 +64,16 @@ dependencies:
 	provContent := `-----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA512
 
-` + chartContent + `
+apiVersion: v2
+description: ` + packageDescription + `
+name: ` + packageName + `
+type: application
+version: ` + packageVersion + `
+maintainers:
+- - name: ` + packageAuthor + `
+dependencies:
+- - name: dep1
+repository: https://example.com/
 
 ...
 files:
