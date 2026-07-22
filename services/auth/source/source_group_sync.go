@@ -6,6 +6,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
@@ -45,40 +46,35 @@ func SyncGroupsToTeamsCached(ctx context.Context, user *user_model.User, sourceU
 	return nil
 }
 
-func resolveMappedMemberships(sourceUserGroups container.Set[string], sourceGroupTeamMapping map[string]map[string][]string) (map[string][]string, map[string][]string) {
-	membershipsToAdd := map[string][]string{}
-	membershipsToRemove := map[string][]string{}
-	for group, memberships := range sourceGroupTeamMapping {
+func resolveMappedMemberships(sourceUserGroups container.Set[string], groupOrgTeamsMapping map[string]map[string][]string) (membershipsToAdd, membershipsToRemove map[string][]string) {
+	membershipsToAdd, membershipsToRemove = map[string][]string{}, map[string][]string{}
+	for group, orgTeams := range groupOrgTeamsMapping {
 		isUserInGroup := sourceUserGroups.Contains(group)
 		if isUserInGroup {
-			for org, teams := range memberships {
-				membershipsToAdd[org] = append(membershipsToAdd[org], teams...)
+			for org, teams := range orgTeams {
+				for _, teamName := range teams {
+					membershipsToAdd[org] = append(membershipsToAdd[org], strings.ToLower(teamName))
+				}
 			}
 		} else {
-			for org, teams := range memberships {
-				membershipsToRemove[org] = append(membershipsToRemove[org], teams...)
+			for org, teams := range orgTeams {
+				for _, teamName := range teams {
+					membershipsToRemove[org] = append(membershipsToRemove[org], strings.ToLower(teamName))
+				}
 			}
 		}
 	}
 
-	// If another group grants the same team, don't remove it — for the Owners
-	// team this would fail with ErrLastOrgOwner before the add runs.
+	// If another group grants the same team (to add), don't remove it
 	for org, removeTeams := range membershipsToRemove {
-		addTeams, ok := membershipsToAdd[org]
-		if !ok {
-			continue
-		}
-		addSet := container.SetOf(addTeams...)
-		filtered := make([]string, 0, len(removeTeams))
-		for _, team := range removeTeams {
-			if !addSet.Contains(team) {
-				filtered = append(filtered, team)
+		removeTeamSet := container.SetOf(removeTeams...)
+		removedCount := removeTeamSet.RemoveFromSlice(membershipsToAdd[org])
+		if removedCount > 0 {
+			removeTeams = removeTeamSet.Values()
+			membershipsToRemove[org] = removeTeams
+			if len(removeTeams) == 0 {
+				delete(membershipsToRemove, org)
 			}
-		}
-		if len(filtered) > 0 {
-			membershipsToRemove[org] = filtered
-		} else {
-			delete(membershipsToRemove, org)
 		}
 	}
 
@@ -128,7 +124,6 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 				}
 			} else if action == syncRemove && isMember {
 				if err := org_service.RemoveTeamMember(ctx, team, user); err != nil {
-					// Skip sole-owner removal so OAuth login still succeeds.
 					if organization.IsErrLastOrgOwner(err) {
 						log.Warn("group sync: Skipping removal of last owner in org %s for user %s: %v", org.Name, user.Name, err)
 						continue
