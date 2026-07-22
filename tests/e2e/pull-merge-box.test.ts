@@ -4,7 +4,7 @@ import {apiCreateFile, apiCreatePR, apiCreateRepo, assertNoJsError, login, rando
 
 const owner = env.GITEA_TEST_E2E_USER;
 
-test('merge box switches style and renders the merge form', async ({page, request}) => {
+test('merge box merges a pull request', async ({page, request}) => {
   const repo = `e2e-merge-box-${randomString(8)}`;
   const createPR = (async () => {
     await apiCreateRepo(request, {name: repo});
@@ -15,17 +15,9 @@ test('merge box switches style and renders the merge form', async ({page, reques
   await page.goto(`/${owner}/${repo}/pulls/${index}`, {waitUntil: 'commit'});
 
   const mergeBox = page.locator('.pull-merge-box');
-  const mergeButton = mergeBox.locator('.merge-button');
-  await expect(mergeButton).toContainText('Create merge commit');
+  await mergeBox.locator('.merge-button button.ui.button').first().click();
+  await mergeBox.locator('form').getByRole('button', {name: /Create merge commit/}).click();
 
-  await mergeButton.locator('.ui.dropdown').click();
-  await mergeButton.locator('.menu').getByText('Create squash commit', {exact: true}).click();
-  await expect(mergeButton).toContainText('Create squash commit');
-
-  await mergeButton.locator('button.ui.button').first().click();
-  const form = mergeBox.locator('form');
-  await expect(form.locator('input[name="merge_title_field"]')).toHaveValue(new RegExp(`#${index}`));
-  await expect(mergeBox.locator('#delete-branch-after-merge')).toBeAttached();
-
+  await expect(mergeBox).toContainText(/successfully merged/i);
   await assertNoJsError(page);
 });
