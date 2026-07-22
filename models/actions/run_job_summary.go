@@ -194,8 +194,11 @@ WHEN NOT MATCHED THEN
 
 // GetActionRunJobSummariesVersion returns a cheap DB-side fingerprint of a run attempt's summaries
 // (same optional jobID scoping as ListActionRunJobSummaries) so the poll can tell whether any summary
-// changed without loading content. Empty means no summaries. Combining count, latest update time and
-// total size misses only a same-second, same-length edit — within the 1s poll's own granularity.
+// changed without loading content. Empty means no summaries. COUNT(*) is required alongside MAX(updated):
+// "updated" has 1s granularity, so MAX alone would miss a cleared summary (a non-latest row deleted) and a
+// step summary inserted in the same second as the previous one. The only change it still misses is an
+// in-place edit of an existing step within that same second, which the runner never does — it uploads each
+// step's summary once.
 func GetActionRunJobSummariesVersion(ctx context.Context, repoID, runID, runAttemptID, jobID int64) (string, error) {
 	sess := db.GetEngine(ctx).Table(new(ActionRunJobSummary)).
 		Where("repo_id=? AND run_id=? AND run_attempt_id=?", repoID, runID, runAttemptID)
@@ -205,17 +208,16 @@ func GetActionRunJobSummariesVersion(ctx context.Context, repoID, runID, runAtte
 	var agg struct {
 		Count      int64 `xorm:"count"`
 		MaxUpdated int64 `xorm:"max_updated"`
-		SumSize    int64 `xorm:"sum_size"`
 	}
 	if _, err := sess.
-		Select("COUNT(*) AS count, COALESCE(MAX(updated), 0) AS max_updated, COALESCE(SUM(content_size), 0) AS sum_size").
+		Select("COUNT(*) AS count, COALESCE(MAX(updated), 0) AS max_updated").
 		Get(&agg); err != nil {
 		return "", err
 	}
 	if agg.Count == 0 {
 		return "", nil
 	}
-	return fmt.Sprintf("%d-%d-%d", agg.Count, agg.MaxUpdated, agg.SumSize), nil
+	return fmt.Sprintf("%d-%d", agg.Count, agg.MaxUpdated), nil
 }
 
 // ListActionRunJobSummaries lists the stored summaries for a run attempt, ordered by job

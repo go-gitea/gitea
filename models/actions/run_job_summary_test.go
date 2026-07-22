@@ -39,15 +39,10 @@ func TestGetActionRunJobSummariesVersion(t *testing.T) {
 	v2 := version(0)
 	assert.NotEqual(t, v1, v2)
 
-	// Editing an existing step to a different length changes the fingerprint (content size differs).
-	require.NoError(t, UpsertActionRunJobSummary(ctx, repoID, runID, attemptID, jobA, 1, JobSummaryContentTypeMarkdown, []byte("much longer replacement content")))
-	v3 := version(0)
-	assert.NotEqual(t, v2, v3)
-
 	// Job scoping: adding job B changes the all-jobs fingerprint but leaves job A's untouched.
 	vA := version(jobA)
 	require.NoError(t, UpsertActionRunJobSummary(ctx, repoID, runID, attemptID, jobB, 0, JobSummaryContentTypeMarkdown, []byte("b summary")))
-	assert.NotEqual(t, v3, version(0))
+	assert.NotEqual(t, v2, version(0))
 	assert.Equal(t, vA, version(jobA))
 
 	// Deleting a step changes the fingerprint.
