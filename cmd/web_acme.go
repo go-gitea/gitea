@@ -101,7 +101,7 @@ func runACME(listenAddr string, m http.Handler) error {
 	ctx := graceful.GetManager().ShutdownContext()
 	err := magic.ManageSync(ctx, []string{setting.Domain})
 	if err != nil {
-		cert, err := magic.CacheManagedCertificate(ctx, setting.Domain)
+		cert, cacheErr := magic.CacheManagedCertificate(ctx, setting.Domain)
 		if cacheErr != nil || cert.Expired() {
 			return errors.Join(err, cacheErr)
 		}
