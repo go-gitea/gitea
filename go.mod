@@ -1,6 +1,8 @@
 module gitea.dev
 
-go 1.26.5
+go 1.26.0
+
+toolchain go1.26.5
 
 require (
 	connectrpc.com/connect v1.20.0
@@ -110,7 +112,7 @@ require (
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.40.0
-	google.golang.org/grpc v1.82.0
+	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/ini.v1 v1.67.3
 	modernc.org/sqlite v1.53.0

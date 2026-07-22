@@ -57,18 +57,12 @@ function initRepoIssueListCheckboxes() {
 
       const url = el.getAttribute('data-url')!;
       let action = el.getAttribute('data-action')!;
-      let elementId = el.getAttribute('data-element-id')!;
+      const elementId = el.getAttribute('data-element-id')!;
       const issueIDList: string[] = Array.from(document.querySelectorAll('.issue-checkbox:checked'), (el) => (el.getAttribute('data-issue-id')!));
       const issueIDs = issueIDList.join(',');
       if (!issueIDs) return;
 
-      // for assignee
-      if (elementId === '0' && url.endsWith('/assignee')) {
-        elementId = '';
-        action = 'clear';
-      }
-
-      // for toggle
+      // for label toggle
       if (action === 'toggle' && e.altKey) {
         action = 'toggle-alt';
       }
@@ -139,7 +133,7 @@ function initDropdownUserRemoteSearch(el: Element) {
         processedResults.length = 0;
         for (const item of resp.results) {
           const htmlAvatar = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20">`;
-          const htmlFullName = item.full_name ? html`<span class="username-fullname gt-ellipsis">(${item.full_name})</span>` : '';
+          const htmlFullName = item.full_name ? html`<span class="username-fullname">(${item.full_name})</span>` : '';
           const htmlItem = html`<span class="username-display">${htmlRaw(htmlAvatar)}<span>${item.username}</span>${htmlRaw(htmlFullName)}</span>`;
           if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
           processedResults.push({value: item.username, name: htmlItem});
