@@ -27,29 +27,35 @@ text/*.txt
 
 # All files in modules folders
 **/modules/*
+
+# Exclude some files
+!**/modules/*.tmp
 `)
 
 	gt := newGiteaTemplateFileMatcher("", giteaTemplate)
 	assert.Len(t, gt.includeGlobs, 3)
 
 	tt := []struct {
-		Path  string
-		Match bool
+		Path    string
+		Include bool
+		Exclude bool
 	}{
-		{Path: "main.go", Match: true},
-		{Path: "sub/sub/foo.go", Match: true},
+		{Path: "main.go", Include: true},
+		{Path: "sub/sub/foo.go", Include: true},
 
-		{Path: "a.txt", Match: false},
-		{Path: "text/a.txt", Match: true},
-		{Path: "sub/text/a.txt", Match: false},
-		{Path: "text/a.json", Match: false},
+		{Path: "a.txt"},
+		{Path: "text/a.txt", Include: true},
+		{Path: "sub/text/a.txt"},
+		{Path: "text/a.json"},
 
-		{Path: "a/b/c/modules/README.md", Match: true},
-		{Path: "a/b/c/modules/d/README.md", Match: false},
+		{Path: "a/b/c/modules/README.md", Include: true},
+		{Path: "a/b/c/modules/README.md.tmp", Include: true, Exclude: true},
+		{Path: "a/b/c/modules/d/README.md"},
 	}
 
 	for _, tc := range tt {
-		assert.Equal(t, tc.Match, gt.Match(tc.Path, false), "path: %s", tc.Path)
+		assert.Equal(t, tc.Include, gt.matchRules(gt.includeGlobs, tc.Path), "should include path: %s", tc.Path)
+		assert.Equal(t, tc.Exclude, gt.matchRules(gt.excludeGlobs, tc.Path), "should exclude path: %s", tc.Path)
 	}
 }
 
@@ -237,42 +243,6 @@ func TestProcessGiteaTemplateFileRead(t *testing.T) {
 	assert.Len(t, fm.includeGlobs, 1)
 }
 
-func TestNewGiteaTemplateMatcherExclude(t *testing.T) {
-	// Test that '!' prefix is parsed as exclude patterns
-	content := []byte("# Comment\n\n*.go\ntext/*.txt\n!vendor/*\n!node_modules/*")
-	gt := newGiteaTemplateFileMatcher(".gitea/template", content)
-	assert.Len(t, gt.includeGlobs, 2, "should parse 2 include globs")
-	assert.Len(t, gt.excludeGlobs, 2, "should parse 2 exclude globs")
-
-	// Include patterns should work as before
-	assert.True(t, gt.Match("main.go", false))
-	assert.True(t, gt.Match("text/a.txt", false))
-	assert.False(t, gt.Match("vendor/pkg.so", false))
-
-	// Exclude patterns should match
-	assert.True(t, gt.Match("vendor/pkg.so", true))
-	assert.True(t, gt.Match("node_modules/foo.js", true))
-	assert.False(t, gt.Match("main.go", true))
-	assert.False(t, gt.Match("text/a.txt", true))
-
-	// Empty content
-	empty := newGiteaTemplateFileMatcher(".gitea/template", []byte{})
-	assert.False(t, empty.HasRules())
-	assert.False(t, empty.HasExcludeRules())
-
-	// Only exclude patterns
-	onlyExclude := newGiteaTemplateFileMatcher(".gitea/template", []byte("!vendor/*\n!node_modules/*"))
-	assert.False(t, onlyExclude.HasRules())
-	assert.True(t, onlyExclude.HasExcludeRules())
-	assert.True(t, onlyExclude.Match("vendor/foo.txt", true))
-	assert.True(t, onlyExclude.Match("node_modules/bar.js", true))
-
-	// Invalid patterns are skipped
-	invalid := newGiteaTemplateFileMatcher(".gitea/template", []byte("valid.txt\n![invalid[glob\n!valid/*"))
-	assert.Len(t, invalid.includeGlobs, 1)
-	assert.Len(t, invalid.excludeGlobs, 1, "should skip invalid exclude glob pattern")
-}
-
 func TestProcessGiteaTemplateFileExclusion(t *testing.T) {
 	t.Run("include and exclude patterns", func(t *testing.T) {
 		tmpDir := t.TempDir()
@@ -362,8 +332,6 @@ func TestProcessGiteaTemplateFileExclusion(t *testing.T) {
 
 		fm, err := readGiteaTemplateFile(tmpDir)
 		require.NoError(t, err)
-		require.False(t, fm.HasRules(), "only exclude rules, no include rules")
-		require.True(t, fm.HasExcludeRules())
 
 		_, err = processGiteaTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fm)
 		require.NoError(t, err)
