@@ -91,7 +91,7 @@ func syncGitConfig(ctx context.Context) (err error) {
 		}
 	}
 
-	// By default partial clones are disabled, enable them from git v2.22
+	// By default, partial clones are disabled, enable them from git v2.22
 	if !setting.Git.DisablePartialClone && DefaultFeatures().CheckVersionAtLeast("2.22") {
 		if err = configSet(ctx, "uploadpack.allowfilter", "true"); err != nil {
 			return err
@@ -114,7 +114,20 @@ func syncGitConfig(ctx context.Context) (err error) {
 		}
 	}
 
+	GlobalConfig = &GlobalConfigStruct{}
+	// HINT: GIT-DIFF-TREE-UI-CONFIG: Git's bug: https://github.com/git/git/blame/master/builtin/diff-tree.c#L127 /* no "diff" UI options */ since 20 years ago.
+	// Although document says that "git-diff-tree" supports "diff.orderfile" option, but it is not actually supported.
+	// So we need to apply the diff.orderfile explicitly in our code.
+	GlobalConfig.DiffOrderFile, _ = configGet(ctx, "diff.orderfile")
 	return nil
+}
+
+func configGet(ctx context.Context, key string) (string, error) {
+	stdout, _, err := gitcmd.NewCommand("config", "--global", "--get").AddDynamicArguments(key).RunStdString(ctx)
+	if err != nil && !gitcmd.IsErrorExitCode(err, 1) {
+		return "", fmt.Errorf("failed to get git config %s, err: %w", key, err)
+	}
+	return strings.TrimRight(stdout, "\r\n"), nil
 }
 
 func configSet(ctx context.Context, key, value string) error {

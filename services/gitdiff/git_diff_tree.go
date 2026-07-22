@@ -11,7 +11,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"sync"
 
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
@@ -21,30 +20,6 @@ import (
 
 type DiffTree struct {
 	Files []*DiffTreeRecord
-}
-
-var (
-	diffOrderFileOnce   sync.Once
-	diffOrderFileCached string
-	hasDiffOrderFile    bool
-)
-
-func getGlobalDiffOrderFile(ctx context.Context) (string, bool) {
-	diffOrderFileOnce.Do(func() {
-		// Use global config by design, and resolve path-like values (e.g. ~/...).
-		orderFile, _, err := gitcmd.NewCommand("config", "--global", "--path", "--get", "diff.orderFile").RunStdString(context.WithoutCancel(ctx))
-		if err != nil {
-			if !gitcmd.IsErrorExitCode(err, 1) {
-				log.Warn("git config --global --path --get diff.orderFile: %v", err)
-			}
-			return
-		}
-		if orderFile = strings.TrimSpace(orderFile); orderFile != "" {
-			diffOrderFileCached = orderFile
-			hasDiffOrderFile = true
-		}
-	})
-	return diffOrderFileCached, hasDiffOrderFile
 }
 
 type DiffTreeRecord struct {
@@ -85,9 +60,9 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 	cmd := gitcmd.NewCommand("diff-tree", "--raw", "-r", "--root").
 		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
 
-	// Explicitly pass -O to ensure diff-tree ordering follows the configured global orderfile.
-	if orderFile, ok := getGlobalDiffOrderFile(ctx); ok {
-		cmd.AddOptionFormat("-O%s", orderFile)
+	// HINT: GIT-DIFF-TREE-UI-CONFIG: apply the diff.orderfile explicitly
+	if git.GlobalConfig.DiffOrderFile != "" {
+		cmd.AddOptionFormat("-O%s", git.GlobalConfig.DiffOrderFile)
 	}
 
 	if useMergeBase {
