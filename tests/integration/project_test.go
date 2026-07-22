@@ -109,19 +109,6 @@ func TestUpdateIssueProject(t *testing.T) {
 		})
 		sess.MakeRequest(t, req, http.StatusOK)
 		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
-
-		// Test clearing projects with sentinel value "0"
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "1",
-		})
-		sess.MakeRequest(t, req, http.StatusOK)
-		unittest.AssertExistsAndLoadBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
-
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/issues/projects?issue_ids=2", map[string]string{
-			"id": "0",
-		})
-		sess.MakeRequest(t, req, http.StatusOK)
-		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{IssueID: 2, ProjectID: 1})
 	})
 }
 

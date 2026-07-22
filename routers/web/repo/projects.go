@@ -449,15 +449,6 @@ func UpdateIssueProject(ctx *context.Context) {
 	}
 
 	projectIDs := ctx.FormStringInt64s("id")
-	// ID 0 is a sentinel value for "clear projects", so filter it out
-	cleanedProjectIDs := make([]int64, 0, len(projectIDs))
-	for _, id := range projectIDs {
-		if id > 0 {
-			cleanedProjectIDs = append(cleanedProjectIDs, id)
-		}
-	}
-	projectIDs = cleanedProjectIDs
-
 	var failedIssues []int64
 	for _, issue := range issues {
 		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs); err != nil {
