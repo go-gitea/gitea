@@ -7,8 +7,8 @@ import (
 	"context"
 	"time"
 
-	"gitea.dev/models"
 	git_model "gitea.dev/models/git"
+	"gitea.dev/models/repostats"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/git/gitcmd"
@@ -69,7 +69,7 @@ func registerCheckRepoStats() {
 		RunAtStart: true,
 		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return models.CheckRepoStats(ctx)
+		return repostats.CheckRepoStats(ctx)
 	})
 }
 

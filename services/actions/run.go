@@ -6,7 +6,6 @@ package actions
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -61,7 +60,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 // The title will be cut off at 255 characters if it's longer than 255 characters.
 func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte, vars map[string]string, inputs map[string]any, wfRawConcurrency *act_model.RawConcurrency) error {
 	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
-	var hasWaitingCallerJobs bool
+	var needPostCommitEmit bool
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -139,118 +138,28 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 		waitingCountByJobID := make(map[string]int)
 
 		for _, v := range jobs {
-			id, job := v.Job()
-			needs := job.Needs()
-			if err := v.SetJob(id, job.EraseNeeds()); err != nil {
+			runJob, jobsToCancel, jobNeedsPostCommitEmit, err := insertRunJob(ctx, run, runAttempt, v, vars, inputs)
+			if err != nil {
 				return err
 			}
-			payload, _ := v.Marshal()
-
-			isReusableWorkflowCaller := job.Uses != ""
-			shouldBlockJob := runAttempt.Status == actions_model.StatusBlocked || len(needs) > 0 || run.NeedApproval
-
-			attemptJobID, err := actions_model.GetNextAttemptJobID(ctx, run.ID)
-			if err != nil {
-				return fmt.Errorf("alloc attempt_job_id: %w", err)
-			}
-
-			job.Name = util.EllipsisDisplayString(job.Name, 255)
-			runJob := &actions_model.ActionRunJob{
-				RunID:                   run.ID,
-				RunAttemptID:            runAttempt.ID,
-				RepoID:                  run.RepoID,
-				OwnerID:                 run.OwnerID,
-				CommitSHA:               run.CommitSHA,
-				IsForkPullRequest:       run.IsForkPullRequest,
-				Name:                    job.Name,
-				Attempt:                 runAttempt.Attempt,
-				WorkflowPayload:         payload,
-				JobID:                   id,
-				AttemptJobID:            attemptJobID,
-				Needs:                   needs,
-				RunsOn:                  job.RunsOn(),
-				Status:                  util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
-				WorkflowSourceRepoID:    run.WorkflowRepoID,
-				WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
-				ContinueOnError:         job.GetContinueOnError(),
-			}
-			// Parse workflow/job permissions (no clamping here)
-			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
-				runJob.TokenPermissions = perms
-			}
-
-			// Extract max-parallel from strategy if present.
-			// TODO: only literal integers are supported; expressions are not evaluated.
-			if job.Strategy.MaxParallelString != "" {
-				if maxParallel, err := strconv.Atoi(job.Strategy.MaxParallelString); err != nil {
-					log.Debug("failed to process max-parallel for job %s: invalid value %q: %v", id, job.Strategy.MaxParallelString, err)
-				} else if maxParallel > 0 {
-					runJob.MaxParallel = maxParallel
-				}
-				// maxParallel == 0 or negative means unlimited; no log needed
-			}
-
-			if isReusableWorkflowCaller {
-				runJob.IsReusableCaller = true
-				runJob.CallUses = job.Uses
-			}
-
-			// check job concurrency
-			if job.RawConcurrency != nil {
-				rawConcurrency, err := yaml.Marshal(job.RawConcurrency)
-				if err != nil {
-					return fmt.Errorf("marshal raw concurrency: %w", err)
-				}
-				runJob.RawConcurrency = string(rawConcurrency)
-
-				// do not evaluate job concurrency when it requires `needs`, the jobs with `needs` will be evaluated later by job emitter
-				if len(needs) == 0 {
-					err = EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs)
-					if err != nil {
-						return fmt.Errorf("evaluate job concurrency: %w", err)
-					}
-				}
-
-				// If a job needs other jobs ("needs" is not empty), its status is set to StatusBlocked at the entry of the loop
-				// No need to check job concurrency for a blocked job (it will be checked by job emitter later)
-				if runJob.Status == actions_model.StatusWaiting {
-					var jobsToCancel []*actions_model.ActionRunJob
-					runJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, runJob)
-					if err != nil {
-						return fmt.Errorf("prepare to start job with concurrency: %w", err)
-					}
-					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
-				}
-			}
+			cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
+			needPostCommitEmit = needPostCommitEmit || jobNeedsPostCommitEmit
 
 			// Enforce max-parallel: excess jobs start as Blocked and are promoted
 			// by jobStatusResolver when a slot opens.
 			if runJob.Status == actions_model.StatusWaiting && runJob.MaxParallel > 0 {
-				if waitingCountByJobID[id] >= runJob.MaxParallel {
+				if waitingCountByJobID[runJob.JobID] >= runJob.MaxParallel {
 					runJob.Status = actions_model.StatusBlocked
+					if _, err := actions_model.UpdateRunJob(ctx, runJob, nil, "status"); err != nil {
+						return err
+					}
 				} else {
-					waitingCountByJobID[id]++
+					waitingCountByJobID[runJob.JobID]++
 				}
 			}
 
 			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
-			hasWaitingJobs = hasWaitingJobs || (runJob.Status == actions_model.StatusWaiting && !isReusableWorkflowCaller)
-			if err := db.Insert(ctx, runJob); err != nil {
-				return err
-			}
-
-			// expand reusable caller
-			if isReusableWorkflowCaller && runJob.Status == actions_model.StatusWaiting {
-				if err := expandReusableWorkflowCaller(ctx, run, runAttempt, runJob, vars); err != nil {
-					return fmt.Errorf("inline trigger caller %d ready: %w", runJob.ID, err)
-				}
-				// refresh the caller status
-				if err := actions_model.RefreshReusableCallerStatus(ctx, runJob); err != nil {
-					return fmt.Errorf("refresh caller %d status: %w", runJob.ID, err)
-				}
-				hasWaitingCallerJobs = true
-			}
-
+			hasWaitingJobs = hasWaitingJobs || (runJob.Status == actions_model.StatusWaiting && !runJob.IsReusableCaller)
 			runJobs = append(runJobs, runJob)
 		}
 
@@ -274,12 +183,135 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, cancelledConcurrencyJobs)
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
-	// Post-commit kick for expanded callers: let job_emitter resolve its child jobs
-	if hasWaitingCallerJobs {
+	// Post-commit kick: let the job emitter resolve jobs if needed
+	if needPostCommitEmit {
 		if err := EmitJobsIfReadyByRun(run.ID); err != nil {
 			log.Error("emit run %d after InsertRun: %v", run.ID, err)
 		}
 	}
 
+	return nil
+}
+
+// insertRunJob builds a single run job from a parsed workflow job, evaluates its
+// job-level concurrency, inserts it, and — for a ready no-needs reusable caller —
+// inline-expands (or skips) it. It returns the inserted job, any jobs cancelled by
+// job concurrency, and whether a post-commit emitter pass is needed to resolve the
+// caller's dependents.
+func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, workflowJob *jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, bool, error) {
+	id, job := workflowJob.Job()
+	needs := job.Needs()
+	if err := workflowJob.SetJob(id, job.EraseNeeds()); err != nil {
+		return nil, nil, false, err
+	}
+	payload, _ := workflowJob.Marshal()
+
+	isReusableWorkflowCaller := job.Uses != ""
+	shouldBlockJob := runAttempt.Status == actions_model.StatusBlocked || len(needs) > 0 || run.NeedApproval
+
+	attemptJobID, err := actions_model.GetNextAttemptJobID(ctx, run.ID)
+	if err != nil {
+		return nil, nil, false, fmt.Errorf("alloc attempt_job_id: %w", err)
+	}
+
+	job.Name = util.EllipsisDisplayString(job.Name, 255)
+	runJob := &actions_model.ActionRunJob{
+		RunID:                   run.ID,
+		RunAttemptID:            runAttempt.ID,
+		RepoID:                  run.RepoID,
+		OwnerID:                 run.OwnerID,
+		CommitSHA:               run.CommitSHA,
+		IsForkPullRequest:       run.IsForkPullRequest,
+		Name:                    job.Name,
+		Attempt:                 runAttempt.Attempt,
+		WorkflowPayload:         payload,
+		JobID:                   id,
+		AttemptJobID:            attemptJobID,
+		Needs:                   needs,
+		RunsOn:                  job.RunsOn(),
+		Status:                  util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
+		WorkflowSourceRepoID:    run.WorkflowRepoID,
+		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
+		ContinueOnError:         job.GetContinueOnError(),
+	}
+	// Parse workflow/job permissions (no clamping here)
+	if perms := ExtractJobPermissionsFromWorkflow(workflowJob, job); perms != nil {
+		runJob.TokenPermissions = perms
+	}
+
+	if isReusableWorkflowCaller {
+		runJob.IsReusableCaller = true
+		runJob.CallUses = job.Uses
+	}
+
+	var cancelledConcurrencyJobs []*actions_model.ActionRunJob
+	// check job concurrency
+	if job.RawConcurrency != nil {
+		rawConcurrency, err := yaml.Marshal(job.RawConcurrency)
+		if err != nil {
+			return nil, nil, false, fmt.Errorf("marshal raw concurrency: %w", err)
+		}
+		runJob.RawConcurrency = string(rawConcurrency)
+
+		// do not evaluate job concurrency when it requires `needs`, the jobs with `needs` will be evaluated later by job emitter
+		if len(needs) == 0 {
+			if err := EvaluateJobConcurrencyFillModel(ctx, run, runAttempt, runJob, vars, inputs); err != nil {
+				return nil, nil, false, fmt.Errorf("evaluate job concurrency: %w", err)
+			}
+		}
+
+		// If a job needs other jobs ("needs" is not empty), its status is set to StatusBlocked at the entry of the loop
+		// No need to check job concurrency for a blocked job (it will be checked by job emitter later)
+		if runJob.Status == actions_model.StatusWaiting {
+			var jobsToCancel []*actions_model.ActionRunJob
+			runJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, runJob)
+			if err != nil {
+				return nil, nil, false, fmt.Errorf("prepare to start job with concurrency: %w", err)
+			}
+			cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
+		}
+	}
+
+	if err := db.Insert(ctx, runJob); err != nil {
+		return nil, nil, false, err
+	}
+
+	// expand reusable caller
+	var needPostCommitEmit bool
+	if isReusableWorkflowCaller && runJob.Status == actions_model.StatusWaiting {
+		if err := processInlineReusableCaller(ctx, run, runAttempt, runJob, vars); err != nil {
+			return nil, nil, false, err
+		}
+		// A processed caller always needs a resolver pass:
+		//   - if the caller is expanded, resolve its children jobs;
+		//   - if the caller is skipped, propagate its state to its dependents
+		needPostCommitEmit = true
+	}
+
+	return runJob, cancelledConcurrencyJobs, needPostCommitEmit, nil
+}
+
+// processInlineReusableCaller evaluates a no-needs reusable caller's own `if:` and
+// either inline-expands it into child jobs or marks it skipped.
+// (A caller with needs is Blocked and gets its `if:` evaluated by the job emitter instead.)
+func processInlineReusableCaller(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, vars map[string]string) error {
+	shouldStart, err := evaluateJobIf(ctx, run, runAttempt, caller, vars, true)
+	if err != nil {
+		return fmt.Errorf("evaluate caller %d if: %w", caller.ID, err)
+	}
+	if shouldStart {
+		if err := expandReusableWorkflowCaller(ctx, run, runAttempt, caller, vars); err != nil {
+			return fmt.Errorf("inline trigger caller %d ready: %w", caller.ID, err)
+		}
+		// refresh the caller status
+		if err := actions_model.RefreshReusableCallerStatus(ctx, caller); err != nil {
+			return fmt.Errorf("refresh caller %d status: %w", caller.ID, err)
+		}
+		return nil
+	}
+	caller.Status = actions_model.StatusSkipped
+	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "status"); err != nil {
+		return fmt.Errorf("skip caller %d: %w", caller.ID, err)
+	}
 	return nil
 }
