@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // Gemoji is a set of emoji data.
@@ -24,63 +25,10 @@ type Emoji struct {
 	SkinTones      bool
 }
 
-type trieEdge struct {
-	b    byte
-	node *trieNode
-}
-
-type trieNode struct {
-	children []trieEdge
-	isEnd    bool
-}
-
-func (t *trieNode) insert(val string) {
-	curr := t
-	for i := 0; i < len(val); i++ {
-		b := val[i]
-		var next *trieNode
-		for _, edge := range curr.children {
-			if edge.b == b {
-				next = edge.node
-				break
-			}
-		}
-		if next == nil {
-			next = &trieNode{}
-			curr.children = append(curr.children, trieEdge{b: b, node: next})
-		}
-		curr = next
-	}
-	curr.isEnd = true
-}
-
-func (t *trieNode) match(s string, start int) int {
-	curr := t
-	matchLen := -1
-	for j := start; j < len(s); j++ {
-		b := s[j]
-		var next *trieNode
-		for _, edge := range curr.children {
-			if edge.b == b {
-				next = edge.node
-				break
-			}
-		}
-		if next == nil {
-			break
-		}
-		curr = next
-		if curr.isEnd {
-			matchLen = j - start + 1
-		}
-	}
-	return matchLen
-}
-
 type globalVarsStruct struct {
 	codeMap        map[string]int    // emoji unicode code to its emoji data.
 	aliasMap       map[string]int    // the alias to its emoji data.
-	trie           *trieNode         // trie for finding emoji positions.
+	trie           *util.TrieNode    // trie for finding emoji positions.
 	isStartingByte [256]bool         // fast-path skip for starting bytes
 	codeReplacer   *strings.Replacer // string replacer for emoji codes.
 	aliasReplacer  *strings.Replacer // string replacer for emoji aliases.
@@ -97,7 +45,7 @@ func globalVars() *globalVarsStruct {
 	vars = &globalVarsStruct{}
 	vars.codeMap = make(map[string]int, len(GemojiData))
 	vars.aliasMap = make(map[string]int, len(GemojiData))
-	vars.trie = &trieNode{}
+	vars.trie = &util.TrieNode{}
 
 	// process emoji codes and aliases
 	codePairs := make([]string, 0)
@@ -134,7 +82,7 @@ func globalVars() *globalVarsStruct {
 		if firstAlias != "" {
 			vars.codeMap[emoji.Emoji] = idx
 			codePairs = append(codePairs, emoji.Emoji, ":"+emoji.Aliases[0]+":")
-			vars.trie.insert(emoji.Emoji)
+			vars.trie.Insert(emoji.Emoji)
 			vars.isStartingByte[emoji.Emoji[0]] = true
 		}
 	}
@@ -193,7 +141,7 @@ func FindEmojiSubmatchIndex(s string) []int {
 		if !vars.isStartingByte[s[i]] {
 			continue
 		}
-		if matchLen := vars.trie.match(s, i); matchLen > 0 {
+		if matchLen := vars.trie.Match(s, i); matchLen > 0 {
 			return []int{i, i + matchLen}
 		}
 	}
