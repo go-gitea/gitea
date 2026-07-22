@@ -574,6 +574,49 @@ jobs:
 			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
 		})
 
+		t.Run("Nested caller with missing callee fails instead of blocking", func(t *testing.T) {
+			// When the expansion hits a terminal error (e.g. missing callee), the emitter must fail the caller and let the run finish as failed, not retry the expansion forever.
+			apiRepo := createActionsTestRepo(t, user2Token, "nested-caller-missing-callee", false)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
+				`name: Caller
+on: push
+jobs:
+  plain_job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job'
+  bad_caller:
+    needs: plain_job
+    uses: ./.gitea/workflows/does-not-exist.yml
+`)
+
+			// plain_job runs first; bad_caller is Blocked on needs and is NOT expanded at creation.
+			plainTask := runner.fetchTask(t)
+			_, plainJob, run := getTaskAndJobAndRunByTaskID(t, plainTask.Id)
+			assert.Equal(t, "plain_job", plainJob.JobID)
+			badCallerPre := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "bad_caller"})
+			assert.Equal(t, actions_model.StatusBlocked, badCallerPre.Status)
+			assert.False(t, badCallerPre.IsExpanded)
+
+			runner.execTask(t, plainTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+			// The emitter now tries to expand bad_caller, hits the missing callee, and fails the caller.
+			badCaller := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: badCallerPre.ID})
+			assert.Equal(t, actions_model.StatusFailure, badCaller.Status)
+			// No children were inserted (the terminal error precedes the child inserts).
+			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{ParentJobID: badCallerPre.ID}))
+
+			finalRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+			assert.Equal(t, actions_model.StatusFailure, finalRun.Status)
+
+			runner.fetchNoTask(t) // no task scheduled for the failed caller; the run is not stuck
+		})
+
 		t.Run("Fork PR with secrets: inherit does not leak base repo secrets", func(t *testing.T) {
 			// user2 owns the base repo, configures a secret, and registers a reusable workflow that declares a required secret.
 			// The caller workflow uses `secrets: inherit`.
