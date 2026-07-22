@@ -13,7 +13,7 @@ import (
 
 func TestRepository_GetBranches(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -41,7 +41,7 @@ func TestRepository_GetBranches(t *testing.T) {
 
 func BenchmarkRepository_GetBranches(b *testing.B) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func BenchmarkRepository_GetBranches(b *testing.B) {
 
 func TestGetRefsBySha(t *testing.T) {
 	bareRepo5Path := filepath.Join(testReposDir, "repo5_pulls")
-	bareRepo5, err := OpenRepository(bareRepo5Path)
+	bareRepo5, err := OpenRepositoryLocal(bareRepo5Path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestGetRefsBySha(t *testing.T) {
 
 func BenchmarkGetRefsBySha(b *testing.B) {
 	bareRepo5Path := filepath.Join(testReposDir, "repo5_pulls")
-	bareRepo5, err := OpenRepository(bareRepo5Path)
+	bareRepo5, err := OpenRepositoryLocal(bareRepo5Path)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -98,7 +98,7 @@ func BenchmarkGetRefsBySha(b *testing.B) {
 
 func TestRepository_IsObjectExist(t *testing.T) {
 	ctx := t.Context()
-	repo, err := OpenRepository(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()
 
@@ -151,7 +151,7 @@ func TestRepository_IsObjectExist(t *testing.T) {
 
 func TestRepository_IsReferenceExist(t *testing.T) {
 	ctx := t.Context()
-	repo, err := OpenRepository(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()
 

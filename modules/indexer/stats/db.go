@@ -9,7 +9,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -37,7 +36,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return err
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		if err.Error() == "no such file or directory" {
 			return nil

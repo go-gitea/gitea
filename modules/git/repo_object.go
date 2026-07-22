@@ -68,7 +68,7 @@ func (repo *Repository) hashObjectBytes(ctx context.Context, buf []byte, save bo
 		cmd = gitcmd.NewCommand("hash-object", "--stdin")
 	}
 	stdout, _, err := cmd.
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdinBytes(buf).
 		RunStdString(ctx)
 	if err != nil {

@@ -12,7 +12,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 )
@@ -23,11 +22,11 @@ func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_mod
 	if isForcePush {
 		// if it's a force push, we need to get the whole pull request commits
 		// the force-push timeline comment should always be created, so all errors are ignored and logged only.
-		mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, newCommitID)
+		mergeBase, err := git.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, newCommitID)
 		if err != nil {
 			log.Debug("MergeBase %q..%q failed: %v", pr.BaseBranch, newCommitID, err)
 		} else {
-			data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReverse(ctx, pr.BaseRepo, mergeBase, newCommitID, "", maxPushCommitsInCommentCount)
+			data.CommitIDs, err = git.GetCommitIDsBetweenReverse(ctx, pr.BaseRepo, mergeBase, newCommitID, "", maxPushCommitsInCommentCount)
 			if err != nil {
 				log.Debug("GetCommitIDsBetweenReverse %q..%q failed: %v", mergeBase, newCommitID, err)
 			}
@@ -36,7 +35,7 @@ func preparePushPullCommentPushActionContent(ctx context.Context, pr *issues_mod
 	}
 
 	// for a normal push, it maybe an empty pull request, only non-empty pull request need to create push comment
-	data.CommitIDs, err = gitrepo.GetCommitIDsBetweenReverse(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch, maxPushCommitsInCommentCount)
+	data.CommitIDs, err = git.GetCommitIDsBetweenReverse(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch, maxPushCommitsInCommentCount)
 	return data, len(data.CommitIDs) > 0, err
 }
 
@@ -98,7 +97,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 		return nil, false, nil
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, false, err
 	}

@@ -12,7 +12,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/structs"
 	"gitea.dev/services/pull"
@@ -36,7 +35,7 @@ func (err ErrCommitIDDoesNotMatch) Error() string {
 
 // CherryPick cherry-picks or reverts a commit to the given repository
 func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, revert bool, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}

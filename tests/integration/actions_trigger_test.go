@@ -23,7 +23,7 @@ import (
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/commitstatus"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -477,7 +477,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
@@ -881,7 +881,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// submit an approval review as user4
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -961,7 +961,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1132,7 +1132,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1162,7 +1162,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1223,7 +1223,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1309,7 +1309,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1342,7 +1342,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1439,7 +1439,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the dispatch branch
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		commit, err := gitRepo.GetBranchCommit(t.Context(), "dispatch")
@@ -1473,7 +1473,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1637,7 +1637,7 @@ jobs:
 		assert.Equal(t, workflows.Workflows[0].State, workflow.State)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1670,7 +1670,7 @@ jobs:
 		assert.Contains(t, dispatchPayload.Inputs, "myinput3")
 		assert.Equal(t, "val0", dispatchPayload.Inputs["myinput"])
 		assert.Equal(t, "def2", dispatchPayload.Inputs["myinput2"])
-		assert.Equal(t, "true", dispatchPayload.Inputs["myinput3"])
+		assert.Equal(t, true, dispatchPayload.Inputs["myinput3"])
 	})
 }
 
@@ -1806,7 +1806,7 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -1884,7 +1884,7 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
-		gitRepo, err := gitrepo.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 

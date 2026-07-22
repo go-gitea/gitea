@@ -65,7 +65,7 @@ func (repo *Repository) IsBranchExist(ctx context.Context, name string) bool {
 // GetBranchNames returns branches from the repository, skipping "skip" initial branches and
 // returning at most "limit" branches, or all branches if "limit" is 0.
 func (repo *Repository) GetBranchNames(ctx context.Context, skip, limit int) ([]string, int, error) {
-	return callShowRef(ctx, repo.Path, BranchPrefix, gitcmd.TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}, skip, limit)
+	return callShowRef(ctx, repo, BranchPrefix, gitcmd.TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}, skip, limit)
 }
 
 // WalkReferences walks all the references from the repository
@@ -79,12 +79,12 @@ func (repo *Repository) WalkReferences(ctx context.Context, refType ObjectType, 
 		args = gitcmd.TrustedCmdArgs{BranchPrefix, "--sort=-committerdate"}
 	}
 
-	return WalkShowRef(ctx, repo.Path, args, skip, limit, walkfn)
+	return WalkShowRef(ctx, repo, args, skip, limit, walkfn)
 }
 
 // callShowRef return refs, if limit = 0 it will not limit
-func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs gitcmd.TrustedCmdArgs, skip, limit int) (branchNames []string, countAll int, err error) {
-	countAll, err = WalkShowRef(ctx, repoPath, extraArgs, skip, limit, func(_, branchName string) error {
+func callShowRef(ctx context.Context, repo RepositoryFacade, trimPrefix string, extraArgs gitcmd.TrustedCmdArgs, skip, limit int) (branchNames []string, countAll int, err error) {
+	countAll, err = WalkShowRef(ctx, repo, extraArgs, skip, limit, func(_, branchName string) error {
 		branchName = strings.TrimPrefix(branchName, trimPrefix)
 		branchNames = append(branchNames, branchName)
 
@@ -93,14 +93,14 @@ func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs git
 	return branchNames, countAll, err
 }
 
-func WalkShowRef(ctx context.Context, repoPath string, extraArgs gitcmd.TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
+func WalkShowRef(ctx context.Context, repo RepositoryFacade, extraArgs gitcmd.TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
 	i := 0
 	args := gitcmd.TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
 	args = append(args, extraArgs...)
 	cmd := gitcmd.NewCommand(args...)
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	cmd.WithDir(repoPath).
+	cmd.WithRepo(repo).
 		WithPipelineFunc(func(gitcmd.Context) error {
 			bufReader := bufio.NewReader(stdoutReader)
 			for i < skip {
@@ -174,7 +174,7 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs gitcmd.TrustedC
 // GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
 func (repo *Repository) GetRefsBySha(ctx context.Context, sha, prefix string) ([]string, error) {
 	var revList []string
-	_, err := WalkShowRef(ctx, repo.Path, nil, 0, 0, func(walkSha, refname string) error {
+	_, err := WalkShowRef(ctx, repo, nil, 0, 0, func(walkSha, refname string) error {
 		if walkSha == sha && strings.HasPrefix(refname, prefix) {
 			revList = append(revList, refname)
 		}

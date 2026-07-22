@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -241,4 +242,12 @@ func ParseRefSuffix(ref string) (refName, refSuffix string) {
 		return ref, ""
 	}
 	return ref[:suffixIdx], ref[suffixIdx:]
+}
+
+func UpdateRef(ctx context.Context, repo RepositoryFacade, refName, newCommitID string) error {
+	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).Run(ctx)
+}
+
+func RemoveRef(ctx context.Context, repo RepositoryFacade, refName string) error {
+	return gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(refName).WithRepo(repo).Run(ctx)
 }
