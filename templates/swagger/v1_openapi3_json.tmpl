@@ -16482,7 +16482,7 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "$ref": "#/components/responses/WorkflowRun"
           },
           "400": {
             "$ref": "#/components/responses/error"
@@ -16492,6 +16492,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/conflict"
           }
         },
         "summary": "Approve a workflow run that requires approval",
@@ -16731,7 +16734,7 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "$ref": "#/components/responses/WorkflowRun"
           },
           "400": {
             "$ref": "#/components/responses/error"
@@ -16836,61 +16839,6 @@
           }
         },
         "summary": "Lists all jobs for a workflow run",
-        "tags": [
-          "repository"
-        ]
-      }
-    },
-    "/repos/{owner}/{repo}/actions/runs/{run}/jobs/{job_id}/logs": {
-      "get": {
-        "operationId": "getWorkflowJobLogs",
-        "parameters": [
-          {
-            "description": "owner of the repo",
-            "in": "path",
-            "name": "owner",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "name of the repository",
-            "in": "path",
-            "name": "repo",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "run ID",
-            "in": "path",
-            "name": "run",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "id of the job",
-            "in": "path",
-            "name": "job_id",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Job logs"
-          },
-          "404": {
-            "$ref": "#/components/responses/notFound"
-          }
-        },
-        "summary": "Download job logs as plain text",
         "tags": [
           "repository"
         ]
