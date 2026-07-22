@@ -3762,7 +3762,6 @@
   "actions.runners.delete_runner_header": "Confirm to delete this runner",
   "actions.runners.delete_runner_notice": "If a task is running on this runner, it will be terminated and marked as failed. It may break building workflow.",
   "actions.runners.none": "No runners available",
-  "actions.runners.disabled": "Disabled",
   "actions.runners.status.unspecified": "Unknown",
   "actions.runners.status.idle": "Idle",
   "actions.runners.status.active": "Active",

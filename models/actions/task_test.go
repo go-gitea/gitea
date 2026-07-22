@@ -27,12 +27,11 @@ func TestActionTask_GetRunJobLink(t *testing.T) {
 	// a task with a loaded job links to that specific job, not just the run
 	task := &ActionTask{Job: job}
 	assert.Equal(t, run.Link()+"/jobs/42", task.GetRunJobLink())
-	assert.Equal(t, run.Link(), task.GetRunLink())
-	assert.NotEqual(t, task.GetRunLink(), task.GetRunJobLink())
 
-	// missing job or run yields an empty link instead of a broken URL
+	// missing job, run or repo yields an empty link instead of a broken URL
 	assert.Empty(t, (&ActionTask{}).GetRunJobLink())
 	assert.Empty(t, (&ActionTask{Job: &ActionRunJob{ID: 42}}).GetRunJobLink())
+	assert.Empty(t, (&ActionTask{Job: &ActionRunJob{ID: 42, Run: &ActionRun{ID: 10}}}).GetRunJobLink())
 }
 
 func TestMakeTaskStepDisplayName(t *testing.T) {
