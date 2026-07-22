@@ -7,7 +7,7 @@ extend([a11yPlugin]); // adds the WCAG-correct colord().contrast()
 
 type CssVariables = Record<string, string>;
 
-// The diff stat counters match GitHub, which renders them around 5:1; issue #37448 asks for >= 5.
+// Diff stat counters are short glanceable labels; issue #37448 asks for a contrast ratio of >= 5.
 const diffStatMinContrast = 5;
 // Function/type names are code read continuously, so keep the pre-1.26 AAA level.
 const syntaxNameMinContrast = 7;
@@ -28,7 +28,7 @@ function expectMinContrast(label: string, foreground: string, background: string
   expect(colord(foreground).contrast(background), label).toBeGreaterThanOrEqual(min);
 }
 
-test('dark diff stat colors meet the GitHub-parity contrast floor', async () => {
+test('dark diff stat colors meet the minimum contrast floor', async () => {
   const darkVariables = await loadThemeVariables('theme-gitea-dark.css');
   const colorblindVariables = await loadThemeVariables('theme-gitea-dark-protanopia-deuteranopia.css', darkVariables);
   const tritanopiaVariables = await loadThemeVariables('theme-gitea-dark-tritanopia.css', darkVariables);
