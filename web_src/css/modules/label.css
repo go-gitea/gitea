@@ -33,12 +33,6 @@ a.ui.label {
   opacity: 1;
 }
 
-.ui.label > img {
-  width: auto;
-  vertical-align: middle;
-  height: 2.1666em;
-}
-
 .ui.label > .icon {
   width: auto;
   margin: 0 0.75em 0 0;
