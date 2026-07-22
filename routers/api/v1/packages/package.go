@@ -11,13 +11,11 @@ import (
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
-	org_model "gitea.dev/models/organization"
 	"gitea.dev/models/packages"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/optional"
 	composer_module "gitea.dev/modules/packages/composer"
@@ -510,7 +508,7 @@ func CreateComposerDevBranch(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if !canWriteOwnerPackages(ctx, ctx.Package.Owner, ctx.Doer) {
+	if ctx.Package.AccessMode < perm.AccessModeWrite && !ctx.IsUserSiteAdmin() {
 		ctx.APIError(http.StatusForbidden, "user should have package write permission or be a site admin")
 		return
 	}
@@ -648,24 +646,6 @@ func CreateComposerDevBranch(ctx *context.APIContext) {
 		Repo:    repo.Name,
 		Branch:  form.Branch,
 	})
-}
-
-func canWriteOwnerPackages(ctx *context.APIContext, owner, doer *user_model.User) bool {
-	if ctx.IsUserSiteAdmin() {
-		return true
-	}
-	if doer == nil || doer.IsGhost() {
-		return false
-	}
-	if !owner.IsOrganization() {
-		return owner.ID == doer.ID
-	}
-	accessMode, err := org_model.OrgFromUser(owner).GetOrgUserMaxAuthorizeLevel(ctx, doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return false
-	}
-	return accessMode >= perm.AccessModeWrite
 }
 
 func searchPackages(ctx *context.APIContext, opts *packages.PackageSearchOptions) ([]*api.Package, int64, error) {
