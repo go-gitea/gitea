@@ -725,8 +725,9 @@ func (f *NewWikiForm) Validate(req *http.Request, errs binding.Errors) binding.E
 
 // AddTimeManuallyForm form that adds spent time manually.
 type AddTimeManuallyForm struct {
-	Hours   int `binding:"Range(0,1000)"`
-	Minutes int `binding:"Range(0,1000)"`
+	Hours   int    `binding:"Range(0,1000)"`
+	Minutes int    `binding:"Range(0,1000)"`
+	SpentOn string `form:"spent_on" binding:"MaxSize(10)"`
 }
 
 // Validate validates the fields

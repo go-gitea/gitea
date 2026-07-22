@@ -161,7 +161,7 @@ func ToTrackedTime(ctx context.Context, doer *user_model.User, t *issues_model.T
 		IssueID: t.IssueID,
 		UserID:  t.UserID,
 		Time:    t.Time,
-		Created: t.Created,
+		Created: t.SpentOn,
 	}
 	if t.Issue != nil {
 		apiT.Issue = ToAPIIssue(ctx, doer, t.Issue)
