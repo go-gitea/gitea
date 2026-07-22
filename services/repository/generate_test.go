@@ -31,7 +31,8 @@ text/*.txt
 **/modules/*
 
 # Exclude some files
-!**/modules/*.tmp
+[exclude]
+**/modules/*.tmp
 `)
 
 	gt := newGiteaTemplateFileMatcher("", giteaTemplate)
@@ -39,25 +40,25 @@ text/*.txt
 
 	tt := []struct {
 		Path    string
-		Include bool
+		Expand  bool
 		Exclude bool
 	}{
-		{Path: "main.go", Include: true},
-		{Path: "sub/sub/foo.go", Include: true},
+		{Path: "main.go", Expand: true},
+		{Path: "sub/sub/foo.go", Expand: true},
 
 		{Path: "a.txt"},
-		{Path: "text/a.txt", Include: true},
+		{Path: "text/a.txt", Expand: true},
 		{Path: "sub/text/a.txt"},
 		{Path: "text/a.json"},
 
-		{Path: "a/b/c/modules/README.md", Include: true},
-		{Path: "a/b/c/modules/README.md.tmp", Include: true, Exclude: true},
+		{Path: "a/b/c/modules/README.md", Expand: true},
+		{Path: "a/b/c/modules/README.md.tmp", Expand: true, Exclude: true},
 		{Path: "a/b/c/modules/d/README.md"},
 	}
 
 	for _, tc := range tt {
-		assert.Equal(t, tc.Include, gt.matchRules(gt.globsExpand, tc.Path), "should include path: %s", tc.Path)
-		assert.Equal(t, tc.Exclude, gt.matchRules(gt.globsExclude, tc.Path), "should exclude path: %s", tc.Path)
+		assert.Equal(t, tc.Expand, gt.matchRules(gt.globsExpand, tc.Path), "should expand: %s", tc.Path)
+		assert.Equal(t, tc.Exclude, gt.matchRules(gt.globsExclude, tc.Path), "should exclude: %s", tc.Path)
 	}
 }
 

@@ -100,7 +100,6 @@ func generateExpansion(ctx context.Context, src string, templateRepo, generateRe
 	})
 }
 
-// giteaTemplateFileMatcher holds include and exclude globs from .gitea/template
 type giteaTemplateFileMatcher struct {
 	relPath      string
 	globsExpand  []glob.Glob
@@ -179,8 +178,8 @@ func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, t
 	return util.WriteRegularPathFile(tmpDir, substSubPath, []byte(generatedContent), 0o755, 0o644)
 }
 
-// processGiteaTemplateFile processes and removes the .gitea/template file, does variable expansion for template files
-// and save the processed files to the filesystem. It also deletes files/directories matching exclude patterns ('!' prefix).
+// processGiteaTemplateFile processes and removes the .gitea/template file,
+// does file exclusion and variable expansion for template files, and save the processed files to the filesystem.
 // It returns a list of skipped files that are not regular paths.
 func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, fileMatcher *giteaTemplateFileMatcher) (skippedFiles []string, _ error) {
 	// Why not use "os.Root" here: symlink is unsafe even in the same root but "os.Root" can't help, it's more difficult to use "os.Root" to do the WalkDir.
@@ -200,7 +199,7 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 			return err
 		}
 		if relPath == "." {
-			// WalkDir always visits the root "." first, don't process it (don't "exclude" to remove, or "include" to subst)
+			// WalkDir always visits the root "." first, don't process it (don't "exclude" to remove, or "expand" to subst)
 			return nil
 		}
 
@@ -219,6 +218,7 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 		if d.IsDir() {
 			return nil
 		}
+		// try to expand variables for regular files
 		if fileMatcher.matchRules(fileMatcher.globsExpand, treePath) {
 			err := substGiteaTemplateFile(ctx, tmpDir, relPath, templateRepo, generateRepo)
 			if errors.Is(err, util.ErrNotRegularPathFile) {
