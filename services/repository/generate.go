@@ -103,37 +103,45 @@ func generateExpansion(ctx context.Context, src string, templateRepo, generateRe
 // giteaTemplateFileMatcher holds include and exclude globs from .gitea/template
 type giteaTemplateFileMatcher struct {
 	relPath      string
-	includeGlobs []glob.Glob
-	excludeGlobs []glob.Glob
+	globsExpand  []glob.Glob
+	globsExclude []glob.Glob
 }
 
 func newGiteaTemplateFileMatcher(relPath string, content []byte) *giteaTemplateFileMatcher {
 	gt := &giteaTemplateFileMatcher{relPath: relPath}
 	scanner := bufio.NewScanner(bytes.NewReader(content))
-	addGlob := func(globs *[]glob.Glob, pattern, kind string) {
+	addGlob := func(globs *[]glob.Glob, pattern string) {
 		g, err := glob.Compile(pattern, '/')
 		if err != nil {
-			log.Debug("Invalid %s glob expression '%s' (skipped): %v", kind, pattern, err)
+			log.Debug("Invalid gitea template glob expression %q (skipped): %v", pattern, err)
 			return
 		}
 		*globs = append(*globs, g)
 	}
+	curGlobs := &gt.globsExpand
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		if strings.HasPrefix(line, "!") {
-			addGlob(&gt.excludeGlobs, line[1:], "exclude")
-		} else {
-			addGlob(&gt.includeGlobs, line, "include")
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			switch line {
+			case "[expand]":
+				curGlobs = &gt.globsExpand
+			case "[exclude]":
+				curGlobs = &gt.globsExclude
+			default:
+				log.Debug("Invalid gitea template glob section %q", line)
+			}
+			continue
 		}
+		addGlob(curGlobs, line)
 	}
 	return gt
 }
 
 func (gt *giteaTemplateFileMatcher) hasAnyRules() bool {
-	return len(gt.includeGlobs) != 0 || len(gt.excludeGlobs) != 0
+	return len(gt.globsExpand) != 0 || len(gt.globsExclude) != 0
 }
 
 func (gt *giteaTemplateFileMatcher) matchRules(globs []glob.Glob, s string) bool {
@@ -192,21 +200,26 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 			return err
 		}
 		if relPath == "." {
-			// WalkDir always visits the root "." first.
-			// Matching "." would let a pattern like "*" call RemoveAll on
-			// the working directory while WalkDir is still recursing into it.
+			// WalkDir always visits the root "." first, don't process it (don't "exclude" to remove, or "include" to subst)
 			return nil
 		}
 
 		treePath := filepath.ToSlash(relPath)
-		if fileMatcher.matchRules(fileMatcher.excludeGlobs, treePath) {
+
+		// try to "exclude" (remove) first
+		if fileMatcher.matchRules(fileMatcher.globsExclude, treePath) {
+			isDir := d.IsDir()
+			// if the target is a symlink, only the symlink is unlinked, so it is safe
 			if err := os.RemoveAll(fullPath); err != nil {
 				return err
 			}
-			return util.Iif(d.IsDir(), filepath.SkipDir, nil)
+			return util.Iif(isDir, filepath.SkipDir, nil)
 		}
 
-		if fileMatcher.matchRules(fileMatcher.includeGlobs, treePath) {
+		if d.IsDir() {
+			return nil
+		}
+		if fileMatcher.matchRules(fileMatcher.globsExpand, treePath) {
 			err := substGiteaTemplateFile(ctx, tmpDir, relPath, templateRepo, generateRepo)
 			if errors.Is(err, util.ErrNotRegularPathFile) {
 				skippedFiles = append(skippedFiles, relPath)
