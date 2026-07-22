@@ -14,7 +14,7 @@ const mergeForm = props.mergeFormProps;
 const mergeTitleFieldValue = shallowRef('');
 const mergeMessageFieldValue = shallowRef('');
 const deleteBranchAfterMerge = shallowRef(false);
-const bypassProtection = shallowRef(false);
+const forceMerge = shallowRef(false);
 
 const mergeStyle = shallowRef('');
 const mergeStyleDetail = shallowRef({
@@ -31,13 +31,9 @@ const mergeStyleAllowedCount = computed(() => mergeForm.mergeStyles.reduce((v: n
 const showMergeStyleMenu = shallowRef(false);
 const showActionForm = shallowRef(false);
 
-// the bypass checkbox is only meaningful when the user can bypass and there are overridable blockers
+// the bypass action is only offered when the user can bypass and there are overridable blockers
 const showBypassProtection = computed(() => {
   return mergeForm.canBypassProtection && !mergeForm.allOverridableChecksOk;
-});
-
-const forceMerge = computed(() => {
-  return showBypassProtection.value && bypassProtection.value;
 });
 
 // the merge mode is derived, not hand-managed: with overridable blockers present and no explicit bypass,
@@ -89,9 +85,14 @@ function toggleActionForm(show: boolean) {
 }
 
 function selectMergeStyle(name: string) {
-  // the dropdown only chooses the merge style; the merge mode (now / auto / bypass) is derived
+  // the dropdown only chooses the merge style; the merge mode (auto / force) is chosen independently
   mergeStyle.value = name;
   showMergeStyleMenu.value = false;
+}
+
+function toggleForceMerge() {
+  // switch between scheduling an auto merge and bypassing the blockers to merge now
+  forceMerge.value = !forceMerge.value;
 }
 
 function clearMergeMessage() {
@@ -105,7 +106,7 @@ function clearMergeMessage() {
   the dropdown only chooses the merge style; the merge mode is derived:
   - no overridable blockers => merge now
   - overridable blockers, no bypass => enable auto merge (merge when checks succeed)
-  - overridable blockers + bypass checkbox (only offered when the user can bypass) => merge now, skipping the blockers
+  - overridable blockers + "switch to force merge" link (only offered when the user can bypass) => merge now, skipping the blockers
   How to test the UI manually:
   * Method 1: manually set some variables in pull.tmpl, eg: {{$notAllOverridableChecksOk = true}} {{$canMergeNow = false}}
   * Method 2: make a protected branch, then set state=pending/success :
@@ -117,11 +118,10 @@ function clearMergeMessage() {
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"/>
 
-    <!-- explicit opt-in to bypass branch protection, kept above the merge button like GitHub -->
-    <div class="ui checkbox tw-mb-3" v-if="showBypassProtection">
-      <input type="checkbox" v-model="bypassProtection" id="bypass-protection">
-      <label for="bypass-protection" class="tw-text-red">{{ mergeForm.textBypassProtection }}</label>
-    </div>
+    <!-- switch between scheduling an auto merge and bypassing the blockers to merge now, keeping the selected style -->
+    <a v-if="showBypassProtection" class="tw-inline-block tw-mb-2 tw-cursor-pointer" :class="forceMerge ? 'muted' : 'tw-text-red'" @click="toggleForceMerge">
+      {{ forceMerge ? mergeForm.textSwitchToAutoMerge : mergeForm.textSwitchToForceMerge }}
+    </a>
 
     <!-- another similar form is in pull.tmpl (manual merge)-->
     <form class="ui form form-fetch-action" v-if="showActionForm" :action="mergeForm.baseLink+'/merge'" method="post">
