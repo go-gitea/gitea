@@ -2112,7 +2112,6 @@
   "admin.config.default_enable_timetracking": "Attiva il cronografo di Default",
   "admin.config.default_allow_only_contributors_to_track_time": "Consenti soltanto ai contributori di utilizzare il cronografo",
   "admin.config.no_reply_address": "Dominio email nascosto",
-  "admin.config.default_visibility_organization": "Visibilità predefinita per le nuove organizzazioni",
   "admin.config.default_enable_dependencies": "Abilita i problemi delle dipendenze di default",
   "admin.config.webhook_config": "Configurazione Webhook",
   "admin.config.queue_length": "Lunghezza della coda",

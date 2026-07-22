@@ -16,7 +16,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
@@ -146,7 +145,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 			var commit *git.Commit
 			if title == "" || description == "" {
-				commit, err = gitRepo.GetCommit(opts.NewCommitIDs[i])
+				commit, err = gitRepo.GetCommit(ctx, opts.NewCommitIDs[i])
 				if err != nil {
 					return nil, fmt.Errorf("failed to get commit %s in repository: %s Error: %w", opts.NewCommitIDs[i], repo.FullName(), err)
 				}
@@ -209,7 +208,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
-		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		oldCommitID, err := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
 		}
@@ -225,10 +224,8 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		if !forcePush.Value() {
-			output, _, err := gitrepo.RunCmdString(ctx, repo,
-				gitcmd.NewCommand("rev-list", "--max-count=1").
-					AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]),
-			)
+			output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
+				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).WithRepo(repo).RunStdString(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to detect force push: %w", err)
 			} else if len(output) > 0 {

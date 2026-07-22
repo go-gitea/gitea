@@ -1,0 +1,95 @@
+// Copyright 2024 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package git
+
+import (
+	"context"
+	"errors"
+	"strings"
+
+	"gitea.dev/modules/git/gitcmd"
+)
+
+// GetBranchesByPath returns a branch by its path
+// if limit = 0 it will not limit
+func GetBranchesByPath(ctx context.Context, repo RepositoryFacade, skip, limit int) ([]string, int, error) {
+	gitRepo, err := OpenRepository(repo)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer gitRepo.Close()
+
+	return gitRepo.GetBranchNames(ctx, skip, limit)
+}
+
+func GetBranchCommitID(ctx context.Context, repo RepositoryFacade, branch string) (string, error) {
+	gitRepo, err := OpenRepository(repo)
+	if err != nil {
+		return "", err
+	}
+	defer gitRepo.Close()
+
+	return gitRepo.GetBranchCommitID(ctx, branch)
+}
+
+// SetDefaultBranch sets default branch of repository.
+func SetDefaultBranch(ctx context.Context, repo RepositoryFacade, name string) error {
+	_, _, err := gitcmd.NewCommand("symbolic-ref", "HEAD").
+		AddDynamicArguments(BranchPrefix + name).WithRepo(repo).RunStdString(ctx)
+	return err
+}
+
+// GetDefaultBranch gets default branch of repository.
+func GetDefaultBranch(ctx context.Context, repo RepositoryFacade) (string, error) {
+	stdout, _, err := gitcmd.NewCommand("symbolic-ref", "HEAD").WithRepo(repo).RunStdString(ctx)
+	if err != nil {
+		return "", err
+	}
+	stdout = strings.TrimSpace(stdout)
+	if !strings.HasPrefix(stdout, BranchPrefix) {
+		return "", errors.New("the HEAD is not a branch: " + stdout)
+	}
+	return strings.TrimPrefix(stdout, BranchPrefix), nil
+}
+
+// IsReferenceExist returns true if given reference exists in the repository.
+func IsReferenceExist(ctx context.Context, repo RepositoryFacade, name string) bool {
+	_, _, err := gitcmd.NewCommand("show-ref", "--verify").AddDashesAndList(name).WithRepo(repo).RunStdString(ctx)
+	return err == nil
+}
+
+// IsBranchExist returns true if given branch exists in the repository.
+func IsBranchExist(ctx context.Context, repo RepositoryFacade, name string) bool {
+	return IsReferenceExist(ctx, repo, BranchPrefix+name)
+}
+
+// DeleteBranch delete a branch by name on repository.
+func DeleteBranch(ctx context.Context, repo RepositoryFacade, name string, force bool) error {
+	cmd := gitcmd.NewCommand("branch")
+
+	if force {
+		cmd.AddArguments("-D")
+	} else {
+		cmd.AddArguments("-d")
+	}
+
+	cmd.AddDashesAndList(name)
+	_, _, err := cmd.WithRepo(repo).RunStdString(ctx)
+	return err
+}
+
+// CreateBranch create a new branch
+func CreateBranch(ctx context.Context, repo RepositoryFacade, branch, oldbranchOrCommit string) error {
+	cmd := gitcmd.NewCommand("branch")
+	cmd.AddDashesAndList(branch, oldbranchOrCommit)
+
+	_, _, err := cmd.WithRepo(repo).RunStdString(ctx)
+	return err
+}
+
+// RenameBranch rename a branch
+func RenameBranch(ctx context.Context, repo RepositoryFacade, from, to string) error {
+	_, _, err := gitcmd.NewCommand("branch", "-m").AddDynamicArguments(from, to).WithRepo(repo).RunStdString(ctx)
+	return err
+}

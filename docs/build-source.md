@@ -53,10 +53,10 @@ For packagers who need to use paths like `/etc/gitea/app.ini`,
 they should define these values at build time for `make build` by environment variable like
 `LDFLAGS='-X "module.Var1=Value1" -X "module.Var2=Value2"' TAGS="bindata" make build`.
 
-- _`CustomConf`_: `-X "code.gitea.io/gitea/modules/setting.CustomConf=/etc/gitea/app.ini"`
-- _`AppWorkPath`_: `-X "code.gitea.io/gitea/modules/setting.AppWorkPath=/var/lib/gitea"`
-- _`CustomPath`_: `-X "code.gitea.io/gitea/modules/setting.CustomPath=/var/lib/gitea/custom"`
-- Default PID file location: `-X "code.gitea.io/gitea/cmd.PIDFile=/run/gitea.pid"`
+- _`CustomConf`_: `-X "gitea.dev/modules/setting.CustomConf=/etc/gitea/app.ini"`
+- _`AppWorkPath`_: `-X "gitea.dev/modules/setting.AppWorkPath=/var/lib/gitea"`
+- _`CustomPath`_: `-X "gitea.dev/modules/setting.CustomPath=/var/lib/gitea/custom"`
+- Default PID file location: `-X "gitea.dev/cmd.PIDFile=/run/gitea.pid"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.

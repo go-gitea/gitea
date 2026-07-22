@@ -601,7 +601,7 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepository(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
+	gitRepo, err := git.OpenRepositoryLocal("../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
@@ -1143,6 +1143,19 @@ func TestHighlightCodeLines(t *testing.T) {
 			1: `<span class="n">b</span>` + nl,
 		}, ret)
 	})
+	t.Run("CharCR", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name: "a.txt",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{{LeftIdx: 1}, {LeftIdx: 2}},
+				},
+			},
+		}
+		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\rb\r\nc"))
+		assert.Equal(t, "a␍b\n", string(ret[0]))
+		assert.Equal(t, `c`, string(ret[1]))
+	})
 }
 
 func TestSyncUserSpecificDiff_UpdatedFiles(t *testing.T) {
@@ -1175,7 +1188,7 @@ D test2.txt
 D test10.txt`
 	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(pull.BaseRepo.RepoPath()).WithStdinBytes([]byte(stdin)).Run(t.Context()))
 
-	gitRepo, err := git.OpenRepository(t.Context(), pull.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepositoryLocal(pull.BaseRepo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

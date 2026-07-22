@@ -1,7 +1,17 @@
 {{template "devtest/devtest-header"}}
 <div class="page-content devtest">
 	<div class="ui container">
-		<h3>Flex List (standalone)</h3>
+		<h3>Flex Relaxed List</h3>
+		<div class="flex-container tw-border">
+			<div class="flex-relaxed-list tw-flex-1">
+				<div class="flex-left-right">
+					<span class="gt-ellipsis">left looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong</span>
+					<span>right</span>
+				</div>
+			</div>
+		</div>
+
+		<h3>Flex Divided List (standalone)</h3>
 		<div class="divider"></div>
 		<div class="flex-divided-list items-with-main">
 			<div class="item">
@@ -87,7 +97,7 @@
 
 		<div class="divider"></div>
 
-		<h3>Flex List (with "ui segment")</h3>
+		<h3>Flex Divided List (with "ui segment")</h3>
 		<div class="ui attached segment">
 			<div class="flex-divided-list">
 				<div class="item">item 1</div>
@@ -101,7 +111,7 @@
 				<div class="item">item 2</div>
 			</div>
 		</div>
-		<h3>Flex List (with "ui segment fitted", items have their own padding)</h3>
+		<h3>Flex Divided List (with "ui segment fitted", items have their own padding)</h3>
 		<div class="ui fitted segment">
 			<div class="flex-divided-list items-px-default">
 				<div class="item">item 1</div>
