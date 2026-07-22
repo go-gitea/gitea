@@ -10,16 +10,16 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -176,15 +176,7 @@ func (r *Review) LoadReviewer(ctx context.Context) (err error) {
 	if r.ReviewerID == 0 || r.Reviewer != nil {
 		return err
 	}
-	r.Reviewer, err = user_model.GetPossibleUserByID(ctx, r.ReviewerID)
-	if err != nil {
-		if !user_model.IsErrUserNotExist(err) {
-			return fmt.Errorf("GetPossibleUserByID [%d]: %w", r.ReviewerID, err)
-		}
-		r.ReviewerID = user_model.GhostUserID
-		r.Reviewer = user_model.NewGhostUser()
-		return nil
-	}
+	r.ReviewerID, r.Reviewer, err = user_model.GetPossibleUserByID(ctx, r.ReviewerID)
 	return err
 }
 
@@ -330,6 +322,59 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	}
 
 	return slices.Contains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil
+}
+
+// RecalculateReviewsOfficial re-evaluates the "official" flag of the latest approve
+// and reject reviews of an issue against its pull request's current base branch.
+// It must be called whenever the target branch changes, otherwise an approval that
+// was official on the previous (possibly unprotected) branch would keep satisfying
+// the new branch's protection rules.
+func RecalculateReviewsOfficial(ctx context.Context, issue *Issue) error {
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return err
+	}
+
+	// Clearing and restoring the official flags must happen atomically, otherwise a
+	// failure in between would leave the reviews without any official flag set.
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Only the latest approve/reject review of each reviewer counts as official, so
+		// clear the flag on all of them first and restore it only where it still applies.
+		if _, err := db.GetEngine(ctx).
+			Where("issue_id = ?", issue.ID).
+			In("type", ReviewTypeApprove, ReviewTypeReject).
+			Cols("official").
+			Update(&Review{Official: false}); err != nil {
+			return err
+		}
+
+		reviews, err := FindLatestReviews(ctx, FindReviewOptions{
+			Types:   []ReviewType{ReviewTypeApprove, ReviewTypeReject},
+			IssueID: issue.ID,
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, review := range reviews {
+			if err := review.LoadReviewer(ctx); err != nil {
+				return err
+			}
+			if review.Reviewer == nil {
+				continue
+			}
+			official, err := IsOfficialReviewer(ctx, issue, review.Reviewer)
+			if err != nil {
+				return err
+			}
+			if official {
+				if _, err := db.GetEngine(ctx).ID(review.ID).Cols("official").Update(&Review{Official: true}); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }
 
 // CreateReview creates a new review based on opts
@@ -490,6 +535,14 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 
 		if _, err := sess.ID(review.ID).Cols("content, type, official, commit_id, stale").Update(review); err != nil {
 			return nil, nil, err
+		}
+
+		// make sure the leftover review request is cleared, consistent with CreateReview
+		if reviewType != ReviewTypePending {
+			if _, err := sess.Where(builder.Eq{"reviewer_id": doer.ID, "issue_id": issue.ID, "type": ReviewTypeRequest}).
+				Delete(new(Review)); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 
@@ -908,8 +961,8 @@ func MarkConversation(ctx context.Context, comment *Comment, doer *user_model.Us
 // CanMarkConversation  Add or remove Conversation mark for a code comment permission check
 // the PR writer , official reviewer and poster can do it
 func CanMarkConversation(ctx context.Context, issue *Issue, doer *user_model.User) (permResult bool, err error) {
-	if doer == nil || issue == nil {
-		return false, errors.New("issue or doer is nil")
+	if doer == nil {
+		return false, nil
 	}
 
 	if err = issue.LoadRepo(ctx); err != nil {

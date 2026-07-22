@@ -1,31 +1,33 @@
-<div id="issue-list" class="flex-list">
+<div id="issue-list" class="flex-divided-list items-with-main">
 	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
-		<div class="flex-item">
+		<div class="item">
 
-			<div class="flex-item-leading">
+			<div class="item-leading">
 				{{/* using some tw helpers is the only way to align the checkbox */}}
 				<div class="flex-text-inline tw-mt-[3px]">
 					{{if $.CanWriteIssuesOrPulls}}
-						<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-[14px]" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
+						<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-[14px]" data-issue-id="{{.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{.Title}}">
 					{{end}}
 					{{template "shared/issueicon" .}}
 				</div>
 			</div>
 
-			<div class="flex-item-main">
-				<div class="flex-item-header">
-					<div class="flex-item-title">
-						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
+			<div class="item-main">
+				<div class="item-header">
+					<div>
+						<a class="list-item-large-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
+								<span class="tw-align-[1px]">{{/* make the "flex" children align with parent "inline" */}}
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
+								</span>
 							{{end}}
 						{{end}}
 						<span class="labels-list">
-							{{range .Labels}}
-								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.RenderUtils.RenderLabel .}}</a>
-							{{end}}
+							{{- range .Labels -}}
+								<a class="item" href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.RenderUtils.RenderLabel .}}</a>
+							{{- end -}}
 						</span>
 					</div>
 					{{if .TotalTrackedTime}}
@@ -35,14 +37,16 @@
 					</div>
 					{{end}}
 				</div>
-				<div class="flex-item-body">
-					<a class="index" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+				<div class="item-body tw-gap-2">
+					<a class="index flex-text-inline" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
 							{{.Repo.FullName}}#{{.Index}}
 						{{else}}
 							#{{.Index}}
 						{{end}}
 					</a>
+
+					<div class="flex-text-inline">
 					{{$timeStr := DateUtils.TimeSince .GetLastEventTimestamp}}
 					{{if .OriginalAuthor}}
 						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor}}
@@ -51,6 +55,8 @@
 					{{else}}
 						{{ctx.Locale.Tr .GetLastEventLabelFake $timeStr .Poster.GetDisplayName}}
 					{{end}}
+					</div>
+
 					{{if .IsPull}}
 						<div class="branches flex-text-inline">
 							<div class="branch">
@@ -76,10 +82,10 @@
 							<span class="gt-ellipsis">{{.Milestone.Name}}</span>
 						</a>
 					{{end}}
-					{{if .Project}}
-						<a class="project flex-text-inline tw-max-w-[300px]" href="{{.Project.Link ctx}}">
-							{{svg .Project.IconName 14}}
-							<span class="gt-ellipsis">{{.Project.Title}}</span>
+					{{range $project := .Projects}}
+						<a class="project flex-text-inline tw-max-w-[300px]" href="{{$project.Link ctx}}">
+							{{svg $project.IconName 14}}
+							<span class="gt-ellipsis">{{$project.Title}}</span>
 						</a>
 					{{end}}
 					{{if .Ref}}{{/* TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl" */}}
@@ -97,11 +103,9 @@
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-						<span class="due-date flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
-							<span{{if .IsOverdue}} class="tw-text-red"{{end}}>
-								{{svg "octicon-calendar" 14}}
-								{{DateUtils.AbsoluteShort .DeadlineUnix}}
-							</span>
+						<span class="due-date flex-text-inline {{if .IsOverdue}}tw-text-red{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
+							{{svg "octicon-calendar" 14}}
+							{{DateUtils.AbsoluteShort .DeadlineUnix}}
 						</span>
 					{{end}}
 					{{if .IsPull}}
@@ -136,7 +140,7 @@
 				</div>
 			</div>
 			{{if or .Assignees .NumComments}}
-			<div class="flex-item-trailing">
+			<div class="item-trailing">
 				{{if .Assignees}}
 				<div class="tw-text-text-light">
 					{{range .Assignees}}

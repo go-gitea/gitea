@@ -3,7 +3,7 @@
 
 package setting
 
-import "code.gitea.io/gitea/modules/glob"
+import "gitea.dev/modules/glob"
 
 type GlobMatcher struct {
 	compiledGlob  glob.Glob

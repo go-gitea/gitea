@@ -111,8 +111,6 @@ func (p *Parser) parseRef(refBlock string) (map[string]string, error) {
 			len(fields), len(p.format.fieldNames))
 	}
 	for i, field := range fields {
-		field = strings.TrimSpace(field)
-
 		var fieldKey string
 		var fieldVal string
 		before, after, ok := strings.Cut(field, " ")

@@ -1,8 +1,9 @@
 import {checkAppUrl} from '../common-page.ts';
 import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
-import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {showFomanticModal} from '../../modules/fomantic/modal.ts';
 import {pathEscape} from '../../utils/url.ts';
+import {registerGlobalInitFunc} from '../../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
@@ -23,6 +24,33 @@ export function initAdminCommon(): void {
   initAdminUser();
   initAdminAuthentication();
   initAdminNotice();
+  registerGlobalInitFunc('initRunnerBulkToolbar', initAdminRunnerBulk);
+}
+
+function initAdminRunnerBulk(toolbar: HTMLElement) {
+  const actionButtons = toolbar.querySelectorAll<HTMLButtonElement>('.runner-bulk-action');
+  const formRunnerIds = toolbar.querySelector<HTMLInputElement>('form input[name="ids"]')!;
+  const rowCheckboxes = document.querySelectorAll<HTMLInputElement>('.runner-bulk-select');
+  const selectAll = document.querySelector<HTMLInputElement>('.runner-bulk-select-all');
+  if (!selectAll) return;
+
+  const refresh = () => {
+    const checked = Array.from(rowCheckboxes).filter((c) => c.checked);
+    formRunnerIds.value = checked.map((c) => c.getAttribute('data-runner-id')!).join(',');
+    toggleElem(toolbar, checked.length > 0);
+    for (const btn of actionButtons) {
+      btn.querySelector<HTMLElement>('.runner-bulk-count')!.textContent = `(${checked.length})`;
+    }
+    selectAll.checked = checked.length > 0 && checked.length === rowCheckboxes.length;
+    selectAll.indeterminate = checked.length > 0 && checked.length < rowCheckboxes.length;
+  };
+
+  selectAll.addEventListener('change', () => {
+    for (const cb of rowCheckboxes) cb.checked = selectAll.checked;
+    refresh();
+  });
+  for (const cb of rowCheckboxes) cb.addEventListener('change', refresh);
+  refresh();
 }
 
 function initAdminUser() {
@@ -86,6 +114,7 @@ function initAdminAuthentication() {
     const provider = document.querySelector<HTMLInputElement>('#oauth2_provider')!.value;
     switch (provider) {
       case 'openidConnect':
+      case 'aws-cognito':
         document.querySelector<HTMLInputElement>('.open_id_connect_auto_discovery_url input')!.setAttribute('required', 'required');
         showElem('.open_id_connect_auto_discovery_url');
         showElem('.open_id_connect_external_id_claim');
@@ -250,7 +279,7 @@ function initAdminNotice() {
     const elNoticeDesc = el.closest('tr')!.querySelector('.notice-description')!;
     const elModalDesc = detailModal.querySelector('.content pre')!;
     elModalDesc.textContent = elNoticeDesc.textContent;
-    fomanticQuery(detailModal).modal('show');
+    showFomanticModal(detailModal);
   }));
 
   // Select actions

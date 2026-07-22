@@ -37,7 +37,7 @@
 	</div>
 {{end}}
 {{range .workflows}}
-	{{if and .ErrMsg (eq .Entry.Name $.CurWorkflow)}}
+	{{if and .ErrMsg (eq .EntryName $.CurWorkflow)}}
 		<div class="ui field">
 			<div>{{svg "octicon-alert" 16 "tw-text-red"}} {{.ErrMsg}}</div>
 		</div>

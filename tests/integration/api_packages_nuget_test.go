@@ -18,17 +18,17 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/routers/api/packages/nuget"
-	packageService "code.gitea.io/gitea/services/packages"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	nuget_module "gitea.dev/modules/packages/nuget"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/routers/api/packages/nuget"
+	packageService "gitea.dev/services/packages"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -251,8 +251,7 @@ func TestPackageNuGet(t *testing.T) {
 						return
 					}
 
-					var result nuget.ServiceIndexResponseV3
-					DecodeJSON(t, resp, &result)
+					result := DecodeJSON(t, resp, &nuget.ServiceIndexResponseV3{})
 
 					assert.Equal(t, "3.0.0", result.Version)
 					assert.NotEmpty(t, result.Resources)
@@ -684,8 +683,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result nuget.SearchResultResponse
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, &nuget.SearchResultResponse{})
 
 				assert.Equal(t, c.ExpectedTotal, result.TotalHits, "case %d: unexpected total hits", i)
 				assert.Len(t, result.Data, c.ExpectedResults, "case %d: unexpected result count", i)
@@ -702,8 +700,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result nuget.SearchResultResponse
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, &nuget.SearchResultResponse{})
 
 				assert.EqualValues(t, 2, result.TotalHits)
 				assert.Len(t, result.Data, 2)
@@ -740,8 +737,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result nuget.RegistrationIndexResponse
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &nuget.RegistrationIndexResponse{})
 
 			assert.Equal(t, indexURL, result.RegistrationIndexURL)
 			assert.Equal(t, 1, result.Count)
@@ -821,8 +817,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 					AddBasicAuth(user.Name)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var result nuget.RegistrationLeafResponse
-				DecodeJSON(t, resp, &result)
+				result := DecodeJSON(t, resp, &nuget.RegistrationLeafResponse{})
 
 				assert.Equal(t, leafURL, result.RegistrationLeafURL)
 				assert.Equal(t, indexURL, result.RegistrationIndexURL)
@@ -882,8 +877,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				AddBasicAuth(user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result nuget.PackageVersionsResponse
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &nuget.PackageVersionsResponse{})
 
 			assert.Len(t, result.Versions, 1)
 			assert.Equal(t, packageVersion, result.Versions[0])

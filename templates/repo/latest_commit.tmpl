@@ -2,25 +2,18 @@
 {{if not .LatestCommit}}
 	…
 {{else}}
-	<span class="author-wrapper">
-	{{- if .LatestCommitUser -}}
-		{{- ctx.AvatarUtils.Avatar .LatestCommitUser 20 "tw-mr-2" -}}
-		<strong>{{.LatestCommitUser.GetShortDisplayNameLinkHTML}}</strong>
-	{{- else if .LatestCommit.Author -}}
-		{{- ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 20 "tw-mr-2" -}}
-		<strong>{{.LatestCommit.Author.Name}}</strong>
-	{{- end -}}
-	</span>
+	{{ctx.RenderUtils.AvatarStackWithNames .LatestCommitAvatarStackData}}
 
 	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
 
 	{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
 
 	{{$commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String)}}
-	<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .LatestCommit.Message $commitLink $.Repository}}</span>
-		{{if IsMultilineCommitMessage .LatestCommit.Message}}
+	<span class="grey commit-summary" title="{{.LatestCommit.MessageTitle}}">
+		<span class="message-wrapper">{{ctx.RenderUtils.RenderCommitMessageLinkSubject .LatestCommit.MessageUTF8 $commitLink $.Repository}}</span>
+		{{if .LatestCommit.MessageBody}}
 			<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
-			<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .LatestCommit.Message $.Repository}}</pre>
+			<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody .LatestCommit.MessageUTF8 $.Repository}}</pre>
 		{{end}}
 	</span>
 {{end}}

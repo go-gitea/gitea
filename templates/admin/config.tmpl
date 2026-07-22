@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin config")}}
+{{template "admin/layout_head" (dict "pageClass" "admin config")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.server_config"}}
@@ -155,8 +155,6 @@
 					<dt>{{ctx.Locale.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
 					<dd>{{svg (Iif .Service.DefaultAllowOnlyContributorsToTrackTime "octicon-check" "octicon-x")}}</dd>
 				{{end}}
-				<dt>{{ctx.Locale.Tr "admin.config.default_visibility_organization"}}</dt>
-				<dd>{{.Service.DefaultOrgVisibility}}</dd>
 
 				<dt>{{ctx.Locale.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
@@ -244,8 +242,6 @@
 					<dd>{{.CacheInterval}} {{ctx.Locale.Tr "tool.raw_seconds"}}</dd>
 				{{end}}
 				{{if .CacheConn}}
-					<dt>{{ctx.Locale.Tr "admin.config.cache_conn"}}</dt>
-					<dd>{{.CacheConn}}</dd>
 					<dt>{{ctx.Locale.Tr "admin.config.cache_item_ttl"}}</dt>
 					<dd>{{.CacheItemTTL}}</dd>
 				{{end}}
@@ -266,8 +262,6 @@
 			<dl class="admin-dl-horizontal">
 				<dt>{{ctx.Locale.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.provider_config"}}</dt>
-				<dd>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.cookie_name"}}</dt>
 				<dd>{{.SessionConfig.CookieName}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.gc_interval_time"}}</dt>

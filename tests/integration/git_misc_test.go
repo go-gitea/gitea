@@ -10,15 +10,14 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -44,36 +43,33 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 
 		sha := resp.Commit.SHA
 
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 
-		commit, err := gitRepo.GetCommit(sha)
+		commit, err := gitRepo.GetCommit(t.Context(), sha)
 		assert.NoError(t, err)
 
-		entry, err := commit.GetTreeEntryByPath("test.txt")
+		entry, err := commit.GetTreeEntryByPath(t.Context(), gitRepo, "test.txt")
 		assert.NoError(t, err)
 
-		b := entry.Blob()
-		r1, err := b.DataAsync()
+		b := entry.Blob(gitRepo)
+		r1, err := b.DataAsync(t.Context())
 		assert.NoError(t, err)
 		defer r1.Close()
-		r2, err := b.DataAsync()
+		r2, err := b.DataAsync(t.Context())
 		assert.NoError(t, err)
 		defer r2.Close()
 
 		var data1, data2 []byte
 		wg := sync.WaitGroup{}
-		wg.Add(2)
-		go func() {
+		wg.Go(func() {
 			data1, _ = io.ReadAll(r1)
 			assert.NoError(t, err)
-			wg.Done()
-		}()
-		go func() {
+		})
+		wg.Go(func() {
 			data2, _ = io.ReadAll(r2)
 			assert.NoError(t, err)
-			wg.Done()
-		}()
+		})
 		wg.Wait()
 		assert.Equal(t, testContent, data1)
 		assert.Equal(t, testContent, data2)
@@ -90,7 +86,7 @@ func TestAgitPullPush(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -153,7 +149,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepository(t.Context(), dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -222,11 +218,11 @@ func TestAgitReviewStaleness(t *testing.T) {
 
 		// For AGit PRs, HeadCommitID must be loaded from git references
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := git.OpenRepository(baseRepo)
 		assert.NoError(t, err)
 		defer baseGitRepo.Close()
 
-		updatedCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		updatedCommitID, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		t.Logf("Updated commit ID: %s", updatedCommitID)
 

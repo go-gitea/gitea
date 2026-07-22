@@ -4,10 +4,10 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/eventsource"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/eventsource"
+	"gitea.dev/services/context"
 )
 
 // IssueStartStopwatch creates a stopwatch for the given issue.

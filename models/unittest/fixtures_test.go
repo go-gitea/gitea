@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
@@ -70,7 +70,7 @@ func prepareTestFixturesLoaders(t testing.TB) unittest.FixturesOptions {
 	opts := unittest.FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: []string{
 		"user.yml",
 	}}
-	require.NoError(t, unittest.CreateTestEngine(opts))
+	require.NoError(t, unittest.CreateTestEngine(filepath.Join(t.TempDir(), "sqlite-test.db"), opts))
 	return opts
 }
 
@@ -95,7 +95,7 @@ func TestFixturesLoader(t *testing.T) {
 
 func BenchmarkFixturesLoader(b *testing.B) {
 	opts := prepareTestFixturesLoaders(b)
-	require.NoError(b, unittest.CreateTestEngine(opts))
+	require.NoError(b, unittest.CreateTestEngine(filepath.Join(b.TempDir(), "sqlite-test.db"), opts))
 	loaderInternal, err := unittest.NewFixturesLoader(unittest.GetXORMEngine(), opts)
 	require.NoError(b, err)
 	loaderVendor, err := NewFixturesLoaderVendor(unittest.GetXORMEngine(), opts)

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/modules/reqctx"
+	"gitea.dev/modules/reqctx"
 )
 
 // Flash represents a one time data transfer between two requests.

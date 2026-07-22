@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/util"
 )
 
 // FormString returns the first value matching the provided key in the form as a string
@@ -33,6 +34,11 @@ func (b *Base) FormStrings(key string) []string {
 		return v
 	}
 	return nil
+}
+
+func (b *Base) FormStringInt64s(key string) []int64 {
+	vals, _ := base.StringsToInt64s(strings.Split(b.FormString(key), ","))
+	return vals
 }
 
 // FormTrim returns the first value for the provided key in the form as a space trimmed string
@@ -71,9 +77,4 @@ func (b *Base) FormOptionalBool(key string) optional.Option[bool] {
 	v, _ := strconv.ParseBool(s)
 	v = v || strings.EqualFold(s, "on")
 	return optional.Some(v)
-}
-
-func (b *Base) SetFormString(key, value string) {
-	_ = b.Req.FormValue(key) // force parse form
-	b.Req.Form.Set(key, value)
 }

@@ -11,13 +11,13 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	conda_module "code.gitea.io/gitea/modules/packages/conda"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/zstd"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	conda_module "gitea.dev/modules/packages/conda"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/zstd"
+	"gitea.dev/tests"
 
 	"github.com/dsnet/compress/bzip2"
 	"github.com/stretchr/testify/assert"
@@ -218,8 +218,7 @@ func TestPackageConda(t *testing.T) {
 			req := NewRequest(t, "GET", root+"/noarch/repodata.json")
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result RepoData
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &RepoData{})
 
 			assert.Equal(t, "noarch", result.Info.Subdir)
 			assert.Empty(t, result.PackagesConda)
@@ -251,8 +250,7 @@ func TestPackageConda(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/noarch/repodata.json", root, channel))
 			resp := MakeRequest(t, req, http.StatusOK)
 
-			var result RepoData
-			DecodeJSON(t, resp, &result)
+			result := DecodeJSON(t, resp, &RepoData{})
 
 			assert.Equal(t, "noarch", result.Info.Subdir)
 			assert.Empty(t, result.Packages)

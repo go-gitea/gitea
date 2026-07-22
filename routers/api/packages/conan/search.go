@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"strings"
 
-	conan_model "code.gitea.io/gitea/models/packages/conan"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	conan_module "code.gitea.io/gitea/modules/packages/conan"
-	"code.gitea.io/gitea/services/context"
+	conan_model "gitea.dev/models/packages/conan"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	conan_module "gitea.dev/modules/packages/conan"
+	"gitea.dev/services/context"
 )
 
 // SearchResult contains the found recipe names

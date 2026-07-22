@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +37,7 @@ func TestParseCommitWithSSHSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("UserSSHKey", func(t *testing.T) {
-		commit, err := git.CommitFromReader(nil, git.Sha1ObjectFormat.EmptyObjectID(), strings.NewReader(`tree a3b1fad553e0f9a2b4a58327bebde36c7da75aa2
+		commit, err := git.CommitFromReader(git.Sha1ObjectFormat.EmptyObjectID(), strings.NewReader(`tree a3b1fad553e0f9a2b4a58327bebde36c7da75aa2
 author user2 <user2@example.com> 1752194028 -0700
 committer user2 <user2@example.com> 1752194028 -0700
 gpgsig -----BEGIN SSH SIGNATURE-----
@@ -68,7 +68,7 @@ init project
 		defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "gitea@fake.local")()
 		defer test.MockVariableValue(&setting.Repository.Signing.TrustedSSHKeys, []string{"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH6Y4idVaW3E+bLw1uqoAfJD7o5Siu+HqS51E9oQLPE9"})()
 
-		commit, err := git.CommitFromReader(nil, git.Sha1ObjectFormat.EmptyObjectID(), strings.NewReader(`tree 9a93ffa76e8b72bdb6431910b3a506fa2b39f42e
+		commit, err := git.CommitFromReader(git.Sha1ObjectFormat.EmptyObjectID(), strings.NewReader(`tree 9a93ffa76e8b72bdb6431910b3a506fa2b39f42e
 author User Two <user2@example.com> 1749230009 +0200
 committer User Two <user2@example.com> 1749230009 +0200
 gpgsig -----BEGIN SSH SIGNATURE-----

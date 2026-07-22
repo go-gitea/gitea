@@ -9,18 +9,17 @@ import (
 	"fmt"
 	"slices"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/services/notify"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/services/notify"
 )
 
 func getCacheKey(repoID int64, brancheName string) string {
@@ -70,15 +69,15 @@ func deleteCommitStatusCache(repoID int64, branchName string) error {
 // Requires: Repo, Creator, SHA
 func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, sha string, status *git_model.CommitStatus) error {
 	// confirm that commit is exist
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
 	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %w", repo.RelativePath(), err)
+		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}
 	defer closer.Close()
 
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 
-	commit, err := gitRepo.GetCommit(sha)
+	commit, err := gitRepo.GetCommit(ctx, sha)
 	if err != nil {
 		return fmt.Errorf("GetCommit[%s]: %w", sha, err)
 	}
@@ -104,7 +103,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 
 	notify.CreateCommitStatus(ctx, repo, repo_module.CommitToPushCommit(commit), creator, status)
 
-	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	defaultBranchCommit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return fmt.Errorf("GetBranchCommit[%s]: %w", repo.DefaultBranch, err)
 	}

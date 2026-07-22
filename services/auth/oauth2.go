@@ -11,16 +11,16 @@ import (
 	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/httpauth"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/services/oauth2_provider"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/httpauth"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/actions"
+	"gitea.dev/services/oauth2_provider"
 )
 
 var _ Method = &OAuth2{}
@@ -128,7 +128,7 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 	}
 	t, err := auth_model.GetAccessTokenBySHA(ctx, tokenSHA)
 	if err != nil {
-		if auth_model.IsErrAccessTokenNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			// check task token
 			if task, err := actions_model.GetRunningTaskByToken(ctx, tokenSHA); err == nil {
 				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)

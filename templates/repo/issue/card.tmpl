@@ -68,7 +68,7 @@
 			{{range $label := .Labels}}
 				{{$link := print $.Issue.Repo.Link "/issues"}}
 				{{$link = QueryBuild $link "labels" $label.ID}}
-				{{ctx.RenderUtils.RenderLabelWithLink $label $link}}
+				<a class="item" href="{{$link}}">{{ctx.RenderUtils.RenderLabel $label}}</a>
 			{{end}}
 		</div>
 		{{if .Assignees}}

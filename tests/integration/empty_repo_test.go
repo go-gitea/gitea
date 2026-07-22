@@ -13,17 +13,17 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -179,8 +179,7 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	}).AddTokenAuth(token)
 
 	resp := MakeRequest(t, req, http.StatusCreated)
-	var fileResponse api.FileResponse
-	DecodeJSON(t, resp, &fileResponse)
+	fileResponse := DecodeJSON(t, resp, &api.FileResponse{})
 	expectedHTMLURL := setting.AppURL + "user30/empty/src/branch/new_branch/new-file.txt"
 	assert.Equal(t, expectedHTMLURL, *fileResponse.Content.HTMLURL)
 
@@ -191,7 +190,6 @@ func TestEmptyRepoAddFileByAPI(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/repos/user30/empty").
 		AddTokenAuth(token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	var apiRepo api.Repository
-	DecodeJSON(t, resp, &apiRepo)
+	apiRepo := DecodeJSON(t, resp, &api.Repository{})
 	assert.Equal(t, "new_branch", apiRepo.DefaultBranch)
 }

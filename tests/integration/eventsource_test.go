@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/eventsource"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/eventsource"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -61,14 +61,12 @@ func TestEventSourceManagerRun(t *testing.T) {
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteNotification, auth_model.AccessTokenScopeWriteRepository)
 
-	var apiNL []api.NotificationThread
-
 	// -- mark notifications as read --
 	req := NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	DecodeJSON(t, resp, &apiNL)
+	apiNL := DecodeJSON(t, resp, []api.NotificationThread{})
 	assert.Len(t, apiNL, 2)
 
 	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801 <- only Notification 4 is in this filter ...
@@ -79,7 +77,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 	req = NewRequest(t, "GET", "/api/v1/notifications?status-types=unread").
 		AddTokenAuth(token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiNL)
+	apiNL = DecodeJSON(t, resp, []api.NotificationThread{})
 	assert.Len(t, apiNL, 1)
 
 	assert.Eventually(t, expectNotificationCountEvent(1), 30*time.Second, 1*time.Second)

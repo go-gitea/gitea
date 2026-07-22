@@ -6,12 +6,11 @@ package renderhelper
 import (
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/markup/markdown"
 
-	_ "code.gitea.io/gitea/modules/markup/orgmode"
+	_ "gitea.dev/modules/markup/orgmode"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +21,7 @@ func TestRepoFile(t *testing.T) {
 
 	t.Run("AutoLink", func(t *testing.T) {
 		rctx := NewRenderContextRepoFile(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
-		rendered, err := markup.RenderString(rctx, `
+		rendered, err := testRenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
 @user2
@@ -36,9 +35,9 @@ func TestRepoFile(t *testing.T) {
 	})
 
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefPath: "branch/main"}).
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefSubURL: "branch/main"}).
 			WithMarkupType(markdown.MarkupName)
-		rendered, err := markup.RenderString(rctx, `
+		rendered, err := testRenderString(rctx, `
 [/test](/test)
 [./test](./test)
 ![/image](/image)
@@ -53,10 +52,10 @@ func TestRepoFile(t *testing.T) {
 `, rendered)
 	})
 
-	t.Run("WithCurrentRefPath", func(t *testing.T) {
-		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefPath: "/commit/1234"}).
+	t.Run("WithCurrentRefSubURL", func(t *testing.T) {
+		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{CurrentRefSubURL: "/commit/1234"}).
 			WithMarkupType(markdown.MarkupName)
-		rendered, err := markup.RenderString(rctx, `
+		rendered, err := testRenderString(rctx, `
 [/test](/test)
 ![/image](/image)
 `)
@@ -66,13 +65,13 @@ func TestRepoFile(t *testing.T) {
 `, rendered)
 	})
 
-	t.Run("WithCurrentRefPathByTag", func(t *testing.T) {
+	t.Run("WithCurrentRefSubURLByTag", func(t *testing.T) {
 		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
-			CurrentRefPath:  "/commit/1234",
-			CurrentTreePath: "my-dir",
+			CurrentRefSubURL: "/commit/1234",
+			CurrentTreePath:  "my-dir",
 		}).
 			WithMarkupType(markdown.MarkupName)
-		rendered, err := markup.RenderString(rctx, `
+		rendered, err := testRenderString(rctx, `
 <img src="LINK">
 <video src="LINK">
 `)
@@ -89,11 +88,11 @@ func TestRepoFileOrgMode(t *testing.T) {
 
 	t.Run("Links", func(t *testing.T) {
 		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{
-			CurrentRefPath:  "/commit/1234",
-			CurrentTreePath: "my-dir",
+			CurrentRefSubURL: "/commit/1234",
+			CurrentTreePath:  "my-dir",
 		}).WithRelativePath("my-dir/a.org")
 
-		rendered, err := markup.RenderString(rctx, `
+		rendered, err := testRenderString(rctx, `
 [[https://google.com/]]
 [[ImageLink.svg][The Image Desc]]
 `)
@@ -107,7 +106,7 @@ func TestRepoFileOrgMode(t *testing.T) {
 	t.Run("CodeHighlight", func(t *testing.T) {
 		rctx := NewRenderContextRepoFile(t.Context(), repo1, RepoFileOptions{}).WithRelativePath("my-dir/a.org")
 
-		rendered, err := markup.RenderString(rctx, `
+		rendered, err := testRenderString(rctx, `
 #+begin_src c
 int a = 1;
 #+end_src

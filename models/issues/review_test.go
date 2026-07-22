@@ -6,10 +6,12 @@ package issues_test
 import (
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -303,6 +305,46 @@ func TestDeleteDismissedReview(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: comment.ID})
 }
 
+func TestSubmitReviewClearsStaleReviewRequest(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	assert.NoError(t, issue.Repo.LoadOwner(t.Context()))
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// the reviewer is requested to review the pull request
+	requestReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeRequest,
+		Issue:    issue,
+		Reviewer: reviewer,
+	})
+	assert.NoError(t, err)
+
+	// the reviewer starts a pending review (e.g. by adding code comments)
+	pendingReview, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypePending,
+		Issue:    issue,
+		Reviewer: reviewer,
+	})
+	assert.NoError(t, err)
+
+	// submitting the pending review must clear the leftover review request,
+	// otherwise the reviewer can no longer be re-requested afterwards
+	review, _, err := issues_model.SubmitReview(t.Context(), reviewer, issue, issues_model.ReviewTypeComment, "looks good", "", false, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, pendingReview.ID, review.ID)
+	assert.Equal(t, issues_model.ReviewTypeComment, review.Type)
+
+	unittest.AssertNotExistsBean(t, &issues_model.Review{ID: requestReview.ID})
+
+	// the reviewer can be re-requested afterwards (no-op before the fix)
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+}
+
 func TestAddReviewRequest(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -345,4 +387,46 @@ func TestAddReviewRequest(t *testing.T) {
 	assert.NotNil(t, comment)
 	assert.NotNil(t, comment.CommentMetaData)
 	assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, comment.CommentMetaData.SpecialDoerName)
+}
+
+func TestRecalculateReviewsOfficial(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// PR #2 targets repo1's "master" branch. Simulate an approval that became
+	// official while the PR targeted an unprotected branch.
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	review, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeApprove,
+		Issue:    issue,
+		Reviewer: reviewer,
+		Official: true,
+	})
+	assert.NoError(t, err)
+
+	// Protect the (now current) target branch with an approvals whitelist that
+	// does not include the reviewer, mirroring a retarget onto a protected branch.
+	rule := &git_model.ProtectedBranch{
+		RepoID:                    issue.RepoID,
+		RuleName:                  "master",
+		EnableApprovalsWhitelist:  true,
+		ApprovalsWhitelistUserIDs: []int64{2},
+		RequiredApprovals:         1,
+	}
+	assert.NoError(t, db.Insert(t.Context(), rule))
+
+	// Re-evaluating must strip the stale official flag, otherwise the approval
+	// would still satisfy the protected branch's required approvals.
+	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
+	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
+	assert.False(t, review.Official)
+
+	// Once the reviewer is whitelisted, re-evaluating restores the official flag.
+	rule.ApprovalsWhitelistUserIDs = []int64{2, reviewer.ID}
+	_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("approvals_whitelist_user_i_ds").Update(rule)
+	assert.NoError(t, err)
+
+	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
+	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
+	assert.True(t, review.Official)
 }

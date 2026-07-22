@@ -7,15 +7,18 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
+	neturl "net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -173,6 +176,27 @@ func TestPackageGeneric(t *testing.T) {
 
 			checkDownloadCount(3)
 		})
+
+		t.Run("WebAssetUsesFilename", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeGeneric)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 1)
+
+			pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, pfs)
+
+			req = NewRequest(t, "GET", fmt.Sprintf("/%s/-/packages/generic/%s/%s/files/%d", user.Name, neturl.PathEscape(packageName), neturl.PathEscape(packageVersion), pfs[0].ID))
+			resp = MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, content, resp.Body.Bytes())
+
+			disposition, params, err := mime.ParseMediaType(resp.Header().Get("Content-Disposition"))
+			assert.NoError(t, err)
+			assert.Equal(t, "attachment", disposition)
+			assert.Equal(t, pfs[0].Name, params["filename"])
+		})
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -238,4 +262,32 @@ func TestPackageGeneric(t *testing.T) {
 			MakeRequest(t, req, http.StatusNotFound)
 		})
 	})
+}
+
+// TestPackageGenericPublicOnlyTokenLimitedOwner ensures a public-only token cannot
+// access packages owned by a limited-visibility owner (only genuinely public owners).
+func TestPackageGenericPublicOnlyTokenLimitedOwner(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user33 has limited visibility (visible only to authenticated users, not public)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 33})
+	base := fmt.Sprintf("/api/packages/%s/generic/pkg/1.0.0", owner.Name)
+
+	// upload a package into the limited owner's namespace
+	req := NewRequestWithBody(t, "PUT", base+"/file.bin", bytes.NewReader([]byte{1, 2, 3})).
+		AddBasicAuth(owner.Name)
+	MakeRequest(t, req, http.StatusCreated)
+
+	// a public-only read:package token (even the owner's own) must be refused
+	publicOnlyToken := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadPackage, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequest(t, "GET", base+"/file.bin").AddTokenAuth(publicOnlyToken)
+	MakeRequest(t, req, http.StatusForbidden)
+	// same via the v1 package API surface (checkTokenPublicOnly)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/pkg/1.0.0", owner.Name)).AddTokenAuth(publicOnlyToken)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// a normal read:package token still works, proving only public-only is restricted
+	token := getUserToken(t, owner.Name, auth_model.AccessTokenScopeReadPackage)
+	req = NewRequest(t, "GET", base+"/file.bin").AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 }

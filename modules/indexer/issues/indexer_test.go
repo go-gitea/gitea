@@ -6,16 +6,16 @@ package issues
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/indexer/issues/internal"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/indexer/issues/internal"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 
-	_ "code.gitea.io/gitea/models"
-	_ "code.gitea.io/gitea/models/actions"
-	_ "code.gitea.io/gitea/models/activities"
+	_ "gitea.dev/models"
+	_ "gitea.dev/models/actions"
+	_ "gitea.dev/models/activities"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -416,21 +416,9 @@ func searchIssueInProject(t *testing.T) {
 	}{
 		{
 			SearchOptions{
-				ProjectID: optional.Some(int64(1)),
+				ProjectIDs: []int64{1},
 			},
 			[]int64{5, 3, 2, 1},
-		},
-		{
-			SearchOptions{
-				ProjectColumnID: optional.Some(int64(1)),
-			},
-			[]int64{1},
-		},
-		{
-			SearchOptions{
-				ProjectColumnID: optional.Some(int64(0)), // issue with in default column
-			},
-			[]int64{2},
 		},
 	}
 	for _, test := range tests {
@@ -438,6 +426,32 @@ func searchIssueInProject(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
+
+	// Test filtering for issues with no project assigned using dynamic validation
+	t.Run("no project assigned", func(t *testing.T) {
+		issueIDs, total, err := SearchIssues(t.Context(), &SearchOptions{
+			ProjectIDs: []int64{db.NoConditionID},
+		})
+		require.NoError(t, err)
+		assert.NotEmpty(t, issueIDs)
+		assert.Equal(t, total, int64(len(issueIDs)))
+
+		// Verify each returned issue actually has no project
+		for _, issueID := range issueIDs {
+			issue, err := issues.GetIssueByID(t.Context(), issueID)
+			require.NoError(t, err)
+			err = issue.LoadProjects(t.Context())
+			require.NoError(t, err)
+			assert.Empty(t, issue.Projects, "Issue %d should have no projects", issueID)
+		}
+
+		// Count total issues with no project to verify we got them all
+		allIssues, err := issues.Issues(t.Context(), &issues.IssuesOptions{
+			ProjectIDs: []int64{db.NoConditionID},
+		})
+		require.NoError(t, err)
+		assert.Len(t, issueIDs, len(allIssues), "Should return all issues with no project")
+	})
 }
 
 func searchIssueWithPaginator(t *testing.T) {

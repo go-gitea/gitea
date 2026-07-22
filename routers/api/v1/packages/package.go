@@ -7,15 +7,15 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/optional"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	packages_service "code.gitea.io/gitea/services/packages"
+	"gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/optional"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	packages_service "gitea.dev/services/packages"
 )
 
 // ListPackages gets all packages of an owner
@@ -329,7 +329,7 @@ func GetLatestPackageVersion(ctx *context.APIContext) {
 		return
 	}
 	if len(pvs) == 0 {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -383,7 +383,7 @@ func LinkPackage(ctx *context.APIContext) {
 	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -393,7 +393,7 @@ func LinkPackage(ctx *context.APIContext) {
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.ContextUser.ID, ctx.PathParam("repo_name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -404,9 +404,9 @@ func LinkPackage(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -445,7 +445,7 @@ func UnlinkPackage(ctx *context.APIContext) {
 	pkg, err := packages.GetPackageByName(ctx, ctx.ContextUser.ID, packages.Type(ctx.PathParam("type")), ctx.PathParam("name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -456,9 +456,9 @@ func UnlinkPackage(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		default:
 			ctx.APIErrorInternal(err)
 		}

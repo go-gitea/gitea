@@ -4,7 +4,7 @@
 
 package migration
 
-import "code.gitea.io/gitea/modules/structs"
+import "gitea.dev/modules/structs"
 
 // MigrateOptions defines the way a repository gets migrated
 // this is for internal usage by migrations module and func who interact with it
@@ -40,5 +40,7 @@ type MigrateOptions struct {
 	MirrorInterval  string `json:"mirror_interval"`
 
 	AWSAccessKeyID     string
-	AWSSecretAccessKey string
+	AWSSecretAccessKey string `json:",omitempty"`
+
+	AWSSecretAccessKeyEncrypted string `json:"aws_secret_access_key_encrypted,omitempty"`
 }

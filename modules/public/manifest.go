@@ -4,27 +4,31 @@
 package public
 
 import (
+	"html"
+	"html/template"
 	"io"
 	"path"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
+// https://vite.dev/guide/backend-integration
 type manifestEntry struct {
 	File    string   `json:"file"`
 	Name    string   `json:"name"`
-	IsEntry bool     `json:"isEntry"`
 	CSS     []string `json:"css"`
+	Imports []string `json:"imports"`
 }
 
 type manifestDataStruct struct {
-	paths     map[string]string // unhashed path -> hashed path
-	names     map[string]string // hashed path -> entry name
+	entries   map[string]*manifestEntry // source path -> entry
+	names     map[string]string         // content-hashed output file -> entry name
 	modTime   int64
 	checkTime time.Time
 }
@@ -36,35 +40,16 @@ var (
 
 const manifestPath = "assets/.vite/manifest.json"
 
-func parseManifest(data []byte) (map[string]string, map[string]string) {
-	var manifest map[string]manifestEntry
-	if err := json.Unmarshal(data, &manifest); err != nil {
+func parseManifest(data []byte) (entries map[string]*manifestEntry, names map[string]string) {
+	if err := json.Unmarshal(data, &entries); err != nil {
 		log.Error("Failed to parse frontend manifest: %v", err)
 		return nil, nil
 	}
-
-	paths := make(map[string]string)
-	names := make(map[string]string)
-	for _, entry := range manifest {
-		if !entry.IsEntry || entry.Name == "" {
-			continue
-		}
-		// Build unhashed key from file path: "js/index.js", "css/theme-gitea-dark.css"
-		dir := path.Dir(entry.File)
-		ext := path.Ext(entry.File)
-		key := dir + "/" + entry.Name + ext
-		paths[key] = entry.File
+	names = make(map[string]string, len(entries))
+	for _, entry := range entries {
 		names[entry.File] = entry.Name
-		// Map associated CSS files, e.g. "css/index.css" -> "css/index.B3zrQPqD.css"
-		// FIXME: INCORRECT-VITE-MANIFEST-PARSER: the logic is wrong, Vite manifest doesn't work this way
-		// It just happens to be correct for the current modules dependencies
-		for _, css := range entry.CSS {
-			cssKey := path.Dir(css) + "/" + entry.Name + path.Ext(css)
-			paths[cssKey] = css
-			names[css] = entry.Name
-		}
 	}
-	return paths, names
+	return entries, names
 }
 
 func reloadManifest(existingData *manifestDataStruct) *manifestDataStruct {
@@ -102,9 +87,9 @@ func reloadManifest(existingData *manifestDataStruct) *manifestDataStruct {
 }
 
 func storeManifestFromBytes(manifestContent []byte, modTime int64, checkTime time.Time) *manifestDataStruct {
-	paths, names := parseManifest(manifestContent)
+	entries, names := parseManifest(manifestContent)
 	data := &manifestDataStruct{
-		paths:     paths,
+		entries:   entries,
 		names:     names,
 		modTime:   modTime,
 		checkTime: checkTime,
@@ -127,33 +112,66 @@ func getManifestData() *manifestDataStruct {
 	return data
 }
 
-// AssetURI returns the URI for a frontend asset.
-// It may return a relative path or a full URL depending on the StaticURLPrefix setting.
-// In Vite dev mode, known entry points are mapped to their source paths
-// so the reverse proxy serves them from the Vite dev server.
-// In production, it resolves the content-hashed path from the manifest.
-func AssetURI(originPath string) string {
+// devAssetURL returns a source file's Vite dev server URL, panicking in dev/testing if it's absent.
+func devAssetURL(src string) string {
+	if url := viteDevSourceURL(src); url != "" {
+		return url
+	}
+	setting.PanicInDevOrTesting("Failed to locate source file for asset: %s", src)
+	return ""
+}
+
+// AssetURI resolves a frontend asset by its source path (the Vite manifest key, e.g.
+// "web_src/js/index.ts"). Dev mode serves the source file; production resolves the hashed output.
+func AssetURI(srcPath string) string {
 	if IsViteDevMode() {
-		if src := viteDevSourceURL(originPath); src != "" {
-			return src
-		}
-		// it should be caused by incorrect vite config
-		setting.PanicInDevOrTesting("Failed to locate local path for managed asset URI: %s", originPath)
+		return devAssetURL(srcPath)
 	}
+	if entry := getManifestData().entries[srcPath]; entry != nil {
+		return setting.StaticURLPrefix + "/assets/" + entry.File
+	}
+	// The only expected manifest miss is a user's custom theme CSS, served as a static asset
+	// under "/assets/css/". Anything else is a misconfigured or missing entry.
+	if path.Ext(srcPath) == ".css" {
+		return setting.StaticURLPrefix + "/assets/css/" + path.Base(srcPath)
+	}
+	log.Error("asset not found in frontend manifest: %s", srcPath)
+	return setting.StaticURLPrefix + "/assets/" + path.Base(srcPath)
+}
 
-	// Try to resolve an unhashed asset path (origin path) to its content-hashed path from the frontend manifest.
-	// Example: "js/index.js" -> "js/index.C6Z2MRVQ.js"
-	data := getManifestData()
-	assetPath := data.paths[originPath]
-	if assetPath == "" {
-		// it should be caused by either: "incorrect vite config" or "user's custom theme"
-		assetPath = originPath
-		if !setting.IsProd {
-			log.Warn("Failed to find managed asset URI for origin path: %s", originPath)
+// AssetCSSLinks renders the <link> tags for a JS entry's stylesheets: the entry's CSS plus the CSS
+// of every statically-imported chunk. Dev links devStylesheetSrc and lets the JS module inject the rest.
+func AssetCSSLinks(jsEntrySrc, devStylesheetSrc string) template.HTML {
+	var b strings.Builder
+	for _, href := range entryStyleURLs(jsEntrySrc, devStylesheetSrc) {
+		b.WriteString(`<link rel="stylesheet" href="` + html.EscapeString(href) + `">`)
+	}
+	return template.HTML(b.String())
+}
+
+func entryStyleURLs(jsEntrySrc, devStylesheetSrc string) []string {
+	if IsViteDevMode() {
+		return []string{devAssetURL(devStylesheetSrc)}
+	}
+	entries := getManifestData().entries
+	var urls []string
+	seen := make(map[string]bool)
+	var walk func(key string)
+	walk = func(key string) {
+		entry := entries[key]
+		if entry == nil || seen[key] {
+			return
+		}
+		seen[key] = true
+		for _, css := range entry.CSS {
+			urls = append(urls, setting.StaticURLPrefix+"/assets/"+css)
+		}
+		for _, imp := range entry.Imports {
+			walk(imp)
 		}
 	}
-
-	return setting.StaticURLPrefix + "/assets/" + assetPath
+	walk(jsEntrySrc)
+	return urls
 }
 
 // AssetNameFromHashedPath returns the asset entry name for a given hashed asset path.

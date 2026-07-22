@@ -3,6 +3,7 @@ import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {hideElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {htmlEscape} from '../utils/html.ts';
 import {compareVersions} from 'compare-versions';
@@ -11,7 +12,7 @@ export function initRepoReleaseNew() {
   registerGlobalEventFunc('click', 'onReleaseEditAttachmentDelete', (el) => {
     const uuid = el.getAttribute('data-uuid')!;
     const id = el.getAttribute('data-id')!;
-    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`)!.value = 'true';
+    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${CSS.escape(uuid)}']`)!.value = 'true';
     hideElem(`#attachment-${id}`);
   });
   registerGlobalInitFunc('initReleaseEditForm', (elForm: HTMLFormElement) => {
@@ -112,7 +113,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
       }
     } finally {
       elModal.classList.remove('loading', 'disabled');
-      fomanticQuery(elModal).modal('hide');
+      hideFomanticModal(elModal);
       comboEditor.focus();
     }
   };
@@ -139,12 +140,12 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
     }
     $dropdown.dropdown('set selected', guessPreviousReleaseTag(tagName, existingTags));
 
-    fomanticQuery(elModal).modal({
+    showFomanticModal(elModal, {
       onApprove: () => {
         doSubmit(tagName); // don't await, need to return false to keep the modal
         return false;
       },
-    }).modal('show');
+    });
   };
 
   buttonShowModal.addEventListener('click', doShowModal);

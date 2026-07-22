@@ -3,9 +3,10 @@ import json from '@eslint/json';
 
 export default defineConfig([
   globalIgnores([
-    '**/.venv',
-    '**/node_modules',
-    '**/public',
+    'public',
+    'custom/public',
+    'data',
+    '.venv',
   ]),
   {
     files: ['**/*.json'],
@@ -14,11 +15,17 @@ export default defineConfig([
     extends: ['json/recommended'],
   },
   {
+    files: ['**/*.json5'],
+    plugins: {json},
+    language: 'json/json5',
+    extends: ['json/recommended'],
+  },
+  {
     files: [
       'tsconfig.json',
       '.devcontainer/*.json',
       '.vscode/*.json',
-      'contrib/ide/vscode/*.json',
+      'contrib/development/vscode/*.json',
     ],
     plugins: {json},
     language: 'json/jsonc',

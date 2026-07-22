@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/organization"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	repo_service "gitea.dev/services/repository"
 )
 
 // ListTeams list a repository's teams
@@ -187,7 +187,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	if !ctx.Repo.Owner.IsOrganization() {
 		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
 	}
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.IsOwner() {
+	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.Permission.IsOwner() {
 		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
 		return
 	}
@@ -201,13 +201,13 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	var err error
 	if add {
 		if repoHasTeam {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("team '%s' is already added to repo", team.Name))
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("team '%s' is already added to repo", team.Name))
 			return
 		}
 		err = repo_service.TeamAddRepository(ctx, team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("team '%s' was not added to repo", team.Name))
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("team '%s' was not added to repo", team.Name))
 			return
 		}
 		err = repo_service.RemoveRepositoryFromTeam(ctx, team, ctx.Repo.Repository.ID)
@@ -224,7 +224,7 @@ func getTeamByParam(ctx *context.APIContext) *organization.Team {
 	team, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, ctx.PathParam("team"))
 	if err != nil {
 		if organization.IsErrTeamNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 			return nil
 		}
 		ctx.APIErrorInternal(err)

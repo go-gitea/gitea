@@ -6,7 +6,7 @@ package pipeline
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
+	"gitea.dev/modules/git"
 )
 
 func TestMain(m *testing.M) {

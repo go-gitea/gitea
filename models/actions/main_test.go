@@ -6,7 +6,7 @@ package actions
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
+	"gitea.dev/models/unittest"
 )
 
 func TestMain(m *testing.M) {
@@ -15,6 +15,7 @@ func TestMain(m *testing.M) {
 			"action_runner_token.yml",
 			"action_run.yml",
 			"repository.yml",
+			"user.yml",
 		},
 	})
 }

@@ -12,17 +12,17 @@ import (
 	"slices"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -59,17 +59,18 @@ type Issue struct {
 	PosterID          int64                  `xorm:"INDEX"`
 	Poster            *user_model.User       `xorm:"-"`
 	OriginalAuthor    string
-	OriginalAuthorID  int64                  `xorm:"index"`
-	Title             string                 `xorm:"name"`
-	Content           string                 `xorm:"LONGTEXT"`
-	RenderedContent   template.HTML          `xorm:"-"`
-	ContentVersion    int                    `xorm:"NOT NULL DEFAULT 0"`
-	Labels            []*Label               `xorm:"-"`
-	isLabelsLoaded    bool                   `xorm:"-"`
-	MilestoneID       int64                  `xorm:"INDEX"`
-	Milestone         *Milestone             `xorm:"-"`
-	isMilestoneLoaded bool                   `xorm:"-"`
-	Project           *project_model.Project `xorm:"-"`
+	OriginalAuthorID  int64                    `xorm:"index"`
+	Title             string                   `xorm:"name"`
+	Content           string                   `xorm:"LONGTEXT"`
+	RenderedContent   template.HTML            `xorm:"-"`
+	ContentVersion    int                      `xorm:"NOT NULL DEFAULT 0"`
+	Labels            []*Label                 `xorm:"-"`
+	isLabelsLoaded    bool                     `xorm:"-"`
+	MilestoneID       int64                    `xorm:"INDEX"`
+	Milestone         *Milestone               `xorm:"-"`
+	isMilestoneLoaded bool                     `xorm:"-"`
+	Projects          []*project_model.Project `xorm:"-"`
+	isProjectsLoaded  bool                     `xorm:"-"`
 	Priority          int
 	AssigneeID        int64            `xorm:"-"`
 	Assignee          *user_model.User `xorm:"-"`
@@ -175,17 +176,10 @@ func (issue *Issue) IsTimetrackerEnabled(ctx context.Context) bool {
 
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster(ctx context.Context) (err error) {
-	if issue.Poster == nil && issue.PosterID != 0 {
-		issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
-		if err != nil {
-			issue.PosterID = user_model.GhostUserID
-			issue.Poster = user_model.NewGhostUser()
-			if !user_model.IsErrUserNotExist(err) {
-				return fmt.Errorf("getUserByID.(poster) [%d]: %w", issue.PosterID, err)
-			}
-			return nil
-		}
+	if issue.Poster != nil {
+		return nil
 	}
+	issue.PosterID, issue.Poster, err = user_model.GetPossibleUserByID(ctx, issue.PosterID)
 	return err
 }
 
@@ -312,7 +306,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if err = issue.LoadProject(ctx); err != nil {
+	if err = issue.LoadProjects(ctx); err != nil {
 		return err
 	}
 
@@ -362,12 +356,13 @@ func (issue *Issue) ResetAttributesLoaded() {
 	issue.isMilestoneLoaded = false
 	issue.isAttachmentsLoaded = false
 	issue.isAssigneeLoaded = false
+	issue.isProjectsLoaded = false
 }
 
 // GetIsRead load the `IsRead` field of the issue
 func (issue *Issue) GetIsRead(ctx context.Context, userID int64) error {
-	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
-	if has, err := db.GetEngine(ctx).Get(issueUser); err != nil {
+	issueUser, has, err := db.Get[IssueUser](ctx, builder.Eq{"issue_id": issue.ID, "uid": userID})
+	if err != nil {
 		return err
 	} else if !has {
 		issue.IsRead = false
@@ -504,11 +499,7 @@ func GetIssueByIndex(ctx context.Context, repoID, index int64) (*Issue, error) {
 	if index < 1 {
 		return nil, ErrIssueNotExist{}
 	}
-	issue := &Issue{
-		RepoID: repoID,
-		Index:  index,
-	}
-	has, err := db.GetEngine(ctx).Get(issue)
+	issue, has, err := db.Get[Issue](ctx, builder.Eq{"repo_id": repoID, "`index`": index})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -687,7 +678,7 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptio
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
 		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID)
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 	}
 	total, err = sess.FindAndCount(&issueDeps)
 

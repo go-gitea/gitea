@@ -5,31 +5,36 @@ package integration
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
-	"code.gitea.io/gitea/services/oauth2_provider"
-	"code.gitea.io/gitea/tests"
+	asymkey_model "gitea.dev/models/asymkey"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/auth/source/oauth2"
+	"gitea.dev/services/oauth2_provider"
+	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/stretchr/testify/assert"
@@ -56,6 +61,46 @@ func testOAuth2PrepareTestCode(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func createOAuthTestApplication(t *testing.T, userName, name string, redirectURIs []string) *api.OAuth2Application {
+	t.Helper()
+	req := NewRequestWithJSON(t, "POST", "/api/v1/user/applications/oauth2", &api.CreateOAuth2ApplicationOptions{
+		Name:               name,
+		RedirectURIs:       redirectURIs,
+		ConfidentialClient: true,
+	}).AddBasicAuth(userName)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	created := DecodeJSON(t, resp, &api.OAuth2Application{})
+	require.NotEmpty(t, created.ClientID)
+	require.NotEmpty(t, created.ClientSecret)
+	return created
+}
+
+func issueOAuthAuthorizationCode(t *testing.T, user *user_model.User, app *api.OAuth2Application, redirectURI, scope string) (string, string) {
+	t.Helper()
+
+	grant := &auth_model.OAuth2Grant{
+		ApplicationID: app.ID,
+		UserID:        user.ID,
+		Scope:         scope,
+	}
+	require.NoError(t, db.Insert(t.Context(), grant))
+
+	verifier := "phase3-verifier-" + util.FastCryptoRandomHex(12)
+	challengeBytes := sha256.Sum256([]byte(verifier))
+	code := "phase3-code-" + util.FastCryptoRandomHex(10)
+
+	require.NoError(t, db.Insert(t.Context(), &auth_model.OAuth2AuthorizationCode{
+		GrantID:             grant.ID,
+		Code:                code,
+		CodeChallenge:       base64.RawURLEncoding.EncodeToString(challengeBytes[:]),
+		CodeChallengeMethod: "S256",
+		RedirectURI:         redirectURI,
+		ValidUntil:          timeutil.TimeStampNow() + 86400,
+	}))
+
+	return code, verifier
+}
+
 func TestOAuth2(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -70,14 +115,18 @@ func TestOAuth2(t *testing.T) {
 		t.Run("AuthorizeRedirectWithExistingGrant", testAuthorizeRedirectWithExistingGrant)
 		t.Run("AuthorizePKCERequiredForPublicClient", testAuthorizePKCERequiredForPublicClient)
 		t.Run("AccessTokenExchange", testAccessTokenExchange)
+		t.Run("AccessTokenExchangeRedirectURIMismatch", testAccessTokenExchangeRedirectURIMismatch)
 		t.Run("AccessTokenExchangeWithPublicClient", testAccessTokenExchangeWithPublicClient)
 		t.Run("AccessTokenExchangeJSON", testAccessTokenExchangeJSON)
 		t.Run("AccessTokenExchangeWithoutPKCE", testAccessTokenExchangeWithoutPKCE)
 		t.Run("AccessTokenExchangeWithInvalidCredentials", testAccessTokenExchangeWithInvalidCredentials)
 		t.Run("AccessTokenExchangeWithBasicAuth", testAccessTokenExchangeWithBasicAuth)
 		t.Run("RefreshTokenInvalidation", testRefreshTokenInvalidation)
+		t.Run("RefreshTokenCrossClientUsage", testRefreshTokenCrossClientUsage)
 		t.Run("OAuthIntrospection", testOAuthIntrospection)
+		t.Run("OAuthIntrospectionCrossClientIsolation", testOAuthIntrospectionCrossClientIsolation)
 		t.Run("OAuthGrantScopesReadUserFailRepos", testOAuthGrantScopesReadUserFailRepos)
+		t.Run("OAuthGrantScopesBasicRespectsWriteUser", testOAuthGrantScopesBasicRespectsWriteUser)
 		t.Run("OAuthGrantScopesReadRepositoryFailOrganization", testOAuthGrantScopesReadRepositoryFailOrganization)
 		t.Run("OAuthGrantScopesClaimPublicOnlyGroups", testOAuthGrantScopesClaimPublicOnlyGroups)
 		t.Run("OAuthGrantScopesClaimAllGroups", testOAuthGrantScopesClaimAllGroups)
@@ -222,12 +271,43 @@ func testAccessTokenExchange(t *testing.T) {
 	assert.Greater(t, len(parsed.RefreshToken), 10)
 }
 
+func testAccessTokenExchangeRedirectURIMismatch(t *testing.T) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	redirectURIs := []string{"https://phase3.example/callback", "https://phase3.example/callback-alt"}
+	app := createOAuthTestApplication(t, user.Name, "phase3-redirect-uri-guard", redirectURIs)
+	code, verifier := issueOAuthAuthorizationCode(t, user, app, redirectURIs[0], "openid profile")
+
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     app.ClientID,
+		"client_secret": app.ClientSecret,
+		"redirect_uri":  redirectURIs[1],
+		"code":          code,
+		"code_verifier": verifier,
+	})
+	resp := MakeRequest(t, req, http.StatusBadRequest)
+	parsedError := new(oauth2_provider.AccessTokenError)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
+	assert.Equal(t, "invalid_grant", string(parsedError.ErrorCode))
+	assert.Equal(t, "redirect_uri differs from the original authorization request", parsedError.ErrorDescription)
+
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     app.ClientID,
+		"client_secret": app.ClientSecret,
+		"redirect_uri":  redirectURIs[0],
+		"code":          code,
+		"code_verifier": verifier,
+	})
+	MakeRequest(t, req, http.StatusOK)
+}
+
 func testAccessTokenExchangeWithPublicClient(t *testing.T) {
 	testOAuth2PrepareTestCode(t)
 	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     "ce5a1322-42a7-11ed-b878-0242ac120002",
-		"redirect_uri":  "http://127.0.0.1",
+		"redirect_uri":  "http://127.0.0.1/",
 		"code":          "authcodepublic",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt",
 	})
@@ -522,6 +602,54 @@ func testRefreshTokenInvalidation(t *testing.T) {
 	assert.Equal(t, "token was already used", parsedError.ErrorDescription)
 }
 
+func testRefreshTokenCrossClientUsage(t *testing.T) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	primaryApp := createOAuthTestApplication(t, user.Name, "phase3-refresh-token-primary", []string{"https://phase3.example/refresh-primary"})
+	secondaryApp := createOAuthTestApplication(t, user.Name, "refresh-token-client-guard", []string{"https://alt-client.example/oauth/callback"})
+	code, verifier := issueOAuthAuthorizationCode(t, user, primaryApp, primaryApp.RedirectURIs[0], "openid profile")
+
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     primaryApp.ClientID,
+		"client_secret": primaryApp.ClientSecret,
+		"redirect_uri":  primaryApp.RedirectURIs[0],
+		"code":          code,
+		"code_verifier": verifier,
+	})
+	resp := MakeRequest(t, req, http.StatusOK)
+	type response struct {
+		AccessToken  string `json:"access_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int64  `json:"expires_in"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	parsed := new(response)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
+	assert.NotEmpty(t, parsed.RefreshToken)
+
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "refresh_token",
+		"client_id":     secondaryApp.ClientID,
+		"client_secret": secondaryApp.ClientSecret,
+		"redirect_uri":  secondaryApp.RedirectURIs[0],
+		"refresh_token": parsed.RefreshToken,
+	})
+	resp = MakeRequest(t, req, http.StatusBadRequest)
+	parsedError := new(oauth2_provider.AccessTokenError)
+	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsedError))
+	assert.Equal(t, "invalid_grant", string(parsedError.ErrorCode))
+	assert.Equal(t, "refresh token belongs to a different client", parsedError.ErrorDescription)
+
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "refresh_token",
+		"client_id":     primaryApp.ClientID,
+		"client_secret": primaryApp.ClientSecret,
+		"redirect_uri":  primaryApp.RedirectURIs[0],
+		"refresh_token": parsed.RefreshToken,
+	})
+	MakeRequest(t, req, http.StatusOK)
+}
+
 func testOAuthIntrospection(t *testing.T) {
 	testOAuth2PrepareTestCode(t)
 	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
@@ -580,8 +708,142 @@ func testOAuthIntrospection(t *testing.T) {
 	assert.Contains(t, resp.Body.String(), "no valid authorization")
 }
 
+func testOAuthIntrospectionCrossClientIsolation(t *testing.T) {
+	resourceOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	clientA := createOAuthTestApplication(t, "user1", "introspection-primary-client", []string{"https://primary.example/oauth/callback"})
+	clientB := createOAuthTestApplication(t, "user2", "introspection-secondary-client", []string{"https://secondary.example/oauth/callback"})
+	code, verifier := issueOAuthAuthorizationCode(t, resourceOwner, clientA, clientA.RedirectURIs[0], "openid profile")
+
+	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     clientA.ClientID,
+		"client_secret": clientA.ClientSecret,
+		"redirect_uri":  clientA.RedirectURIs[0],
+		"code":          code,
+		"code_verifier": verifier,
+	})
+	resp := MakeRequest(t, req, http.StatusOK)
+	type tokenResponse struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	tokenParsed := new(tokenResponse)
+	require.NoError(t, json.Unmarshal(resp.Body.Bytes(), tokenParsed))
+	require.NotEmpty(t, tokenParsed.AccessToken)
+	require.NotEmpty(t, tokenParsed.RefreshToken)
+
+	type introspectResponse struct {
+		Active   bool   `json:"active"`
+		Scope    string `json:"scope,omitempty"`
+		Username string `json:"username,omitempty"`
+		jwt.RegisteredClaims
+	}
+
+	assertBlockedIntrospection := func(token string) {
+		t.Helper()
+
+		req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
+			"token": token,
+		})
+		req.SetBasicAuth(clientB.ClientID, clientB.ClientSecret)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		blocked := new(introspectResponse)
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), blocked))
+		assert.False(t, blocked.Active)
+		assert.Empty(t, blocked.Scope)
+		assert.Empty(t, blocked.Username)
+		assert.Empty(t, blocked.Subject)
+		assert.Empty(t, blocked.Audience)
+	}
+
+	assertAllowedIntrospection := func(token string) {
+		t.Helper()
+
+		req = NewRequestWithValues(t, "POST", "/login/oauth/introspect", map[string]string{
+			"token": token,
+		})
+		req.SetBasicAuth(clientA.ClientID, clientA.ClientSecret)
+		resp = MakeRequest(t, req, http.StatusOK)
+
+		allowed := new(introspectResponse)
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), allowed))
+		assert.True(t, allowed.Active)
+		assert.Equal(t, "openid profile", allowed.Scope)
+		assert.Equal(t, resourceOwner.Name, allowed.Username)
+		assert.Equal(t, strconv.FormatInt(resourceOwner.ID, 10), allowed.Subject)
+		assert.Equal(t, jwt.ClaimStrings{clientA.ClientID}, allowed.Audience)
+	}
+
+	assertBlockedIntrospection(tokenParsed.AccessToken)
+	assertAllowedIntrospection(tokenParsed.AccessToken)
+	assertBlockedIntrospection(tokenParsed.RefreshToken)
+	assertAllowedIntrospection(tokenParsed.RefreshToken)
+}
+
 func testOAuthGrantScopesReadUserFailRepos(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	accessToken := issueOAuthAccessTokenForScope(t, user, "openid read:user")
+	userReq := NewRequest(t, "GET", "/api/v1/user")
+	userReq.SetHeader("Authorization", "Bearer "+accessToken)
+	userResp := MakeRequest(t, userReq, http.StatusOK)
+
+	type userResponse struct {
+		Login string `json:"login"`
+		Email string `json:"email"`
+	}
+
+	userParsed := new(userResponse)
+	require.NoError(t, json.Unmarshal(userResp.Body.Bytes(), userParsed))
+	assert.Contains(t, userParsed.Email, "user2@example.com")
+
+	errorReq := NewRequest(t, "GET", "/api/v1/users/user2/repos")
+	errorReq.SetHeader("Authorization", "Bearer "+accessToken)
+	errorResp := MakeRequest(t, errorReq, http.StatusForbidden)
+
+	type errorResponse struct {
+		Message string `json:"message"`
+	}
+
+	errorParsed := new(errorResponse)
+	require.NoError(t, json.Unmarshal(errorResp.Body.Bytes(), errorParsed))
+	assert.Contains(t, errorParsed.Message, "token does not have at least one of required scope(s), required=[read:repository]")
+}
+
+func testOAuthGrantScopesBasicRespectsWriteUser(t *testing.T) {
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	accessToken := issueOAuthAccessTokenForScope(t, user, "openid read:user")
+	fullName := "oauth2-basic-scope-test"
+
+	updateBody := &api.UserSettingsOptions{
+		FullName: &fullName,
+	}
+
+	bearerReq := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", updateBody)
+	bearerReq.SetHeader("Authorization", "Bearer "+accessToken)
+	bearerResp := MakeRequest(t, bearerReq, http.StatusForbidden)
+
+	type errorResponse struct {
+		Message string `json:"message"`
+	}
+
+	bearerError := new(errorResponse)
+	require.NoError(t, json.Unmarshal(bearerResp.Body.Bytes(), bearerError))
+	assert.Contains(t, bearerError.Message, "required=[write:user]")
+
+	basicReq := NewRequestWithJSON(t, "PATCH", "/api/v1/user/settings", updateBody)
+	basicAuth := base64.StdEncoding.EncodeToString([]byte(accessToken + ":x-oauth-basic"))
+	basicReq.SetHeader("Authorization", "Basic "+basicAuth)
+	basicResp := MakeRequest(t, basicReq, http.StatusForbidden)
+
+	basicError := new(errorResponse)
+	require.NoError(t, json.Unmarshal(basicResp.Body.Bytes(), basicError))
+	assert.Contains(t, basicError.Message, "required=[write:user]")
+}
+
+func issueOAuthAccessTokenForScope(t *testing.T, user *user_model.User, scope string) string {
+	t.Helper()
+
 	appBody := api.CreateOAuth2ApplicationOptions{
 		Name: "oauth-provider-scopes-test",
 		RedirectURIs: []string{
@@ -599,20 +861,14 @@ func testOAuthGrantScopesReadUserFailRepos(t *testing.T) {
 	grant := &auth_model.OAuth2Grant{
 		ApplicationID: app.ID,
 		UserID:        user.ID,
-		Scope:         "openid read:user",
+		Scope:         scope,
 	}
-
-	err := db.Insert(t.Context(), grant)
-	require.NoError(t, err)
-
-	assert.Contains(t, grant.Scope, "openid read:user")
+	require.NoError(t, db.Insert(t.Context(), grant))
 
 	ctx := loginUser(t, user.Name)
-
 	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate", app.ClientID)
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
-
 	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
 
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
@@ -622,7 +878,7 @@ func testOAuthGrantScopesReadUserFailRepos(t *testing.T) {
 		"redirect_uri":  "https://example.com",
 		"code":          authcode,
 	})
-	accessTokenResp := ctx.MakeRequest(t, accessTokenReq, 200)
+	accessTokenResp := ctx.MakeRequest(t, accessTokenReq, http.StatusOK)
 	type response struct {
 		AccessToken  string `json:"access_token"`
 		TokenType    string `json:"token_type"`
@@ -630,32 +886,8 @@ func testOAuthGrantScopesReadUserFailRepos(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
-
 	require.NoError(t, json.Unmarshal(accessTokenResp.Body.Bytes(), parsed))
-	userReq := NewRequest(t, "GET", "/api/v1/user")
-	userReq.SetHeader("Authorization", "Bearer "+parsed.AccessToken)
-	userResp := MakeRequest(t, userReq, http.StatusOK)
-
-	type userResponse struct {
-		Login string `json:"login"`
-		Email string `json:"email"`
-	}
-
-	userParsed := new(userResponse)
-	require.NoError(t, json.Unmarshal(userResp.Body.Bytes(), userParsed))
-	assert.Contains(t, userParsed.Email, "user2@example.com")
-
-	errorReq := NewRequest(t, "GET", "/api/v1/users/user2/repos")
-	errorReq.SetHeader("Authorization", "Bearer "+parsed.AccessToken)
-	errorResp := MakeRequest(t, errorReq, http.StatusForbidden)
-
-	type errorResponse struct {
-		Message string `json:"message"`
-	}
-
-	errorParsed := new(errorResponse)
-	require.NoError(t, json.Unmarshal(errorResp.Body.Bytes(), errorParsed))
-	assert.Contains(t, errorParsed.Message, "token does not have at least one of required scope(s), required=[read:repository]")
+	return parsed.AccessToken
 }
 
 func testOAuthGrantScopesReadRepositoryFailOrganization(t *testing.T) {
@@ -992,8 +1224,7 @@ func testOAuth2WellKnown(t *testing.T) {
 	t.Run("WellKnown", func(t *testing.T) {
 		req := NewRequest(t, "GET", urlOpenidConfiguration)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var respMap map[string]any
-		DecodeJSON(t, resp, &respMap)
+		respMap := DecodeJSON(t, resp, map[string]any{})
 		assert.Equal(t, "https://try.gitea.io", respMap["issuer"])
 		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
 		assert.Equal(t, "https://try.gitea.io/login/oauth/access_token", respMap["token_endpoint"])
@@ -1007,8 +1238,7 @@ func testOAuth2WellKnown(t *testing.T) {
 		defer test.MockVariableValue(&setting.OAuth2.JWTClaimIssuer, "https://try.gitea.io/")()
 		req := NewRequest(t, "GET", urlOpenidConfiguration)
 		resp := MakeRequest(t, req, http.StatusOK)
-		var respMap map[string]any
-		DecodeJSON(t, resp, &respMap)
+		respMap := DecodeJSON(t, resp, map[string]any{})
 		assert.Equal(t, "https://try.gitea.io/", respMap["issuer"]) // has trailing by JWTClaimIssuer
 		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
 	})
@@ -1032,6 +1262,13 @@ func createOAuth2MockProvider() *httptest.Server {
 	var mockServer *httptest.Server
 	mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/avatar.png":
+			if !strings.HasPrefix(r.Header.Get("User-Agent"), "Gitea ") {
+				http.Error(w, "user agent doesn't match", http.StatusForbidden)
+				return
+			}
+			w.Header().Set("Content-Type", "image/png")
+			_ = png.Encode(w, image.NewRGBA(image.Rect(0, 0, 8, 8)))
 		case "/.well-known/openid-configuration":
 			_, _ = w.Write([]byte(`{
 				"issuer": "` + mockServer.URL + `",
@@ -1167,4 +1404,23 @@ func testOAuthSourceSpecialChars(t *testing.T) {
 	testOAuth2(t, "/user/oauth2/test+plus", http.StatusTemporaryRedirect)
 	testOAuth2(t, "/user/oauth2/test%2Bplus", http.StatusTemporaryRedirect)
 	testOAuth2(t, "/user/oauth2/test%20plus", http.StatusNotFound)
+}
+
+// TestOAuthUserInfoTokenScope verifies the OIDC userinfo endpoint enforces the
+// read:user token scope, so a restrictively-scoped token cannot read identity claims.
+func TestOAuthUserInfoTokenScope(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// a token without the user scope must be rejected
+	miscToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadMisc)
+	req := NewRequest(t, "GET", "/login/oauth/userinfo")
+	req.SetHeader("Authorization", "Bearer "+miscToken)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// a token with read:user is allowed and returns the identity claims
+	userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
+	req = NewRequest(t, "GET", "/login/oauth/userinfo")
+	req.SetHeader("Authorization", "Bearer "+userToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "user2@example.com")
 }

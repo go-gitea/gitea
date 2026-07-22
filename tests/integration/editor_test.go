@@ -16,15 +16,14 @@ import (
 	"strings"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -98,6 +97,42 @@ func testEditorProtectedBranch(t *testing.T) {
 	resp := testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/", map[string]string{"tree_path": "test-protected-branch.txt", "commit_choice": "direct"})
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	// Change "master" branch to mark files under "docs/" as unprotected
+	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+		"rule_name":                 "master",
+		"protected_file_patterns":   "",
+		"unprotected_file_patterns": "docs/*.md",
+		"enable_push":               "true",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+	flashMsg = session.GetCookieFlashMessage()
+	assert.Equal(t, `Branch protection for rule "master" has been updated.`, flashMsg.SuccessMsg)
+
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_new/master/docs/new.md", map[string]string{"tree_path": "docs/new.md", "commit_choice": "direct"})
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/new.md"`)
+
+	// Form's destination (renamed.md) is decided by the pre-receive hook, not the controller.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/docs/new.md", map[string]string{
+		"content":       "renamed via editor",
+		"commit_choice": "direct",
+		"tree_path":     "docs/renamed.md",
+	})
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, resp.Body.String(), `"redirect":"/user2/repo1/src/branch/master/docs/renamed.md"`)
+
+	// Protected source path: controller rejects up-front regardless of unprotected destination.
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_edit/master/README.md", map[string]string{
+		"commit_choice": "direct",
+		"tree_path":     "docs/from-readme.md",
+	})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+
+	resp = testEditorActionPostRequest(t, session, "/user2/repo1/_delete/master/README.md", map[string]string{"commit_choice": "direct"})
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Equal(t, `Cannot commit to protected branch "master".`, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 }
 
 func testEditorActionPostRequest(t *testing.T, session *TestSession, requestPath string, params map[string]string) *httptest.ResponseRecorder {
@@ -124,7 +159,7 @@ func testEditorActionEdit(t *testing.T, session *TestSession, user, repo, editor
 	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s/%s/%s/%s", user, repo, editorAction, branch, filePath), params)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.NotEmpty(t, test.RedirectURL(resp))
-	req := NewRequest(t, "GET", path.Join(user, repo, "raw/branch", newBranchName, params["tree_path"]))
+	req := NewRequest(t, "GET", "/"+path.Join(user, repo, "raw/branch", newBranchName, params["tree_path"]))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, params["content"], resp.Body.String())
 	return resp
@@ -185,10 +220,10 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 	require.True(t, user.KeepEmailPrivate)
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo, _ := git.OpenRepository(repo1)
 	defer gitRepo.Close()
 	getLastCommit := func(t *testing.T) *git.Commit {
-		c, err := gitRepo.GetBranchCommit("master")
+		c, err := gitRepo.GetBranchCommit(t.Context(), "master")
 		require.NoError(t, err)
 		return c
 	}
@@ -227,8 +262,7 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 		req.Header.Add("Content-Type", uploadForm.FormDataContentType())
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
-		respMap := map[string]string{}
-		DecodeJSON(t, resp, &respMap)
+		respMap := DecodeJSON(t, resp, map[string]string{})
 		return respMap["uuid"]
 	}
 
@@ -314,9 +348,9 @@ index 0000000000..bbbbbbbbbb
 			},
 		)
 
-		commit1, err := gitRepo.GetCommitByPath("patch-file-1.txt")
+		commit1, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-1.txt")
 		require.NoError(t, err)
-		commit2, err := gitRepo.GetCommitByPath("patch-file-2.txt")
+		commit2, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-2.txt")
 		require.NoError(t, err)
 		resp1, _ := testWebGit(t,
 			"/user2/repo1/_cherrypick/"+commit1.ID.String()+"/master", map[string]string{"revert": "true"},
@@ -331,18 +365,18 @@ index 0000000000..bbbbbbbbbb
 func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, branch, filePath string) {
 	forkToEdit := func(t *testing.T, session *TestSession, owner, repo, operation, branch, filePath string) {
 		// visit the base repo, see the "Add File" button
-		req := NewRequest(t, "GET", path.Join(owner, repo))
+		req := NewRequest(t, "GET", "/"+path.Join(owner, repo))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		AssertHTMLElement(t, htmlDoc, ".repo-add-file", 1)
 
 		// attempt to edit a file, see the guideline page
-		req = NewRequest(t, "GET", path.Join(owner, repo, operation, branch, filePath))
+		req = NewRequest(t, "GET", "/"+path.Join(owner, repo, operation, branch, filePath))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "Fork Repository to Propose Changes")
 
 		// fork the repository
-		req = NewRequest(t, "POST", path.Join(owner, repo, "_fork", branch))
+		req = NewRequest(t, "POST", "/"+path.Join(owner, repo, "_fork", branch))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.JSONEq(t, `{"redirect":""}`, resp.Body.String())
 	}
@@ -352,7 +386,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		forkToEdit(t, session, owner, repo, "_edit", branch, filePath)
 
 		// Archive the repository
-		req := NewRequestWithValues(t, "POST", path.Join(user, repo, "settings"),
+		req := NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
 				"repo_name": repo,
 				"action":    "archive",
@@ -361,12 +395,12 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// Check editing archived repository is disabled
-		req = NewRequest(t, "GET", path.Join(owner, repo, "_edit", branch, filePath)).SetHeader("Accept", "text/html")
+		req = NewRequest(t, "GET", "/"+path.Join(owner, repo, "_edit", branch, filePath)).SetHeader("Accept", "text/html")
 		resp := session.MakeRequest(t, req, http.StatusNotFound)
 		assert.Contains(t, resp.Body.String(), "You have forked this repository but your fork is not editable.")
 
 		// Unfork the repository
-		req = NewRequestWithValues(t, "POST", path.Join(user, repo, "settings"),
+		req = NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "settings"),
 			map[string]string{
 				"repo_name": repo,
 				"action":    "convert_fork",
@@ -382,7 +416,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 
 	t.Run("CheckBaseRepoForm", func(t *testing.T) {
 		// the base repo's edit form should have the correct action and upload links (pointing to the forked repo)
-		req := NewRequest(t, "GET", path.Join(owner, repo, "_upload", branch, filePath)+"?foo=bar")
+		req := NewRequest(t, "GET", "/"+path.Join(owner, repo, "_upload", branch, filePath)+"?foo=bar")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
@@ -400,7 +434,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 	})
 
 	t.Run("ViewBaseEditFormAndCommitToFork", func(t *testing.T) {
-		req := NewRequest(t, "GET", path.Join(owner, repo, "_edit", branch, filePath))
+		req := NewRequest(t, "GET", "/"+path.Join(owner, repo, "_edit", branch, filePath))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		editRequestForm := map[string]string{
@@ -438,16 +472,16 @@ func testEditFileNotAllowed(t *testing.T) {
 	for _, operation := range operations {
 		t.Run(operation, func(t *testing.T) {
 			// Branch does not exist
-			targetLink := path.Join("user2", "repo1", operation, "missing", "README.md")
+			targetLink := path.Join("/user2/repo1", operation, "missing", "README.md")
 			sessionUser1.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusNotFound)
 
 			// Private repository
-			targetLink = path.Join("user2", "repo2", operation, "master", "Home.md")
+			targetLink = path.Join("/user2/repo2", operation, "master", "Home.md")
 			sessionUser1.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusOK)
 			sessionUser4.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusNotFound)
 
 			// Empty repository
-			targetLink = path.Join("org41", "repo61", operation, "master", "README.md")
+			targetLink = path.Join("/org41/repo61", operation, "master", "README.md")
 			sessionUser1.MakeRequest(t, NewRequest(t, "GET", targetLink), http.StatusNotFound)
 		})
 	}

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -70,7 +70,7 @@ func TestUserSettingsAccount(t *testing.T) {
 
 		AssertHTMLElement(t, doc, "#password", true)
 		AssertHTMLElement(t, doc, "#email", true)
-		AssertHTMLElement(t, doc, "#delete-form", true)
+		AssertHTMLElement(t, doc, `form[action="/user/settings/account/delete"]`, true)
 	})
 
 	t.Run("credentials disabled", func(t *testing.T) {
@@ -87,7 +87,7 @@ func TestUserSettingsAccount(t *testing.T) {
 
 		AssertHTMLElement(t, doc, "#password", false)
 		AssertHTMLElement(t, doc, "#email", false)
-		AssertHTMLElement(t, doc, "#delete-form", true)
+		AssertHTMLElement(t, doc, `form[action="/user/settings/account/delete"]`, true)
 	})
 
 	t.Run("deletion disabled", func(t *testing.T) {

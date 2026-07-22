@@ -4,13 +4,30 @@
 package integration
 
 import (
+	"archive/zip"
+	"bytes"
+	"crypto/md5"
+	"encoding/base64"
+	"fmt"
+	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/tests"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type uploadArtifactResponse struct {
@@ -30,6 +47,148 @@ func prepareTestEnvActionsArtifacts(t *testing.T) func() {
 	return f
 }
 
+func getArtifactFixtureTask(t *testing.T) *actions_model.ActionTask {
+	t.Helper()
+
+	task, err := actions_model.GetRunningTaskByToken(t.Context(), "8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
+	require.NoError(t, err)
+	require.NoError(t, task.LoadJob(t.Context()))
+	ensureArtifactFixtureTaskSteps(t, task)
+	return task
+}
+
+func ensureArtifactFixtureTaskSteps(t *testing.T, task *actions_model.ActionTask) {
+	t.Helper()
+
+	steps, err := actions_model.GetTaskStepsByTaskID(t.Context(), task.ID)
+	require.NoError(t, err)
+
+	existingIndexes := make(map[int64]bool, len(steps))
+	for _, step := range steps {
+		existingIndexes[step.Index] = true
+	}
+
+	var stepsToInsert []*actions_model.ActionTaskStep
+	for _, idx := range []int64{0, 1} {
+		if existingIndexes[idx] {
+			continue
+		}
+		stepsToInsert = append(stepsToInsert, &actions_model.ActionTaskStep{
+			TaskID: task.ID,
+			Index:  idx,
+			RepoID: task.RepoID,
+			Status: actions_model.StatusWaiting,
+		})
+	}
+	if len(stepsToInsert) == 0 {
+		return
+	}
+
+	_, err = db.GetEngine(t.Context()).Insert(stepsToInsert)
+	require.NoError(t, err)
+}
+
+func TestActionsJobSummaryUpload(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	const runnerToken = "8061e833a55f6fc0157c98b883e91fcfeeb1a71a"
+	task := getArtifactFixtureTask(t)
+	summaryURL := func(stepIndex int64) string {
+		return fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/%d/summary", task.Job.RunID, task.Job.ID, stepIndex)
+	}
+	putSummary := func(stepIndex int64, body, contentType string) *RequestWrapper {
+		return NewRequestWithBody(t, "PUT", summaryURL(stepIndex), strings.NewReader(body)).
+			AddTokenAuth(runnerToken).
+			SetHeader("Content-Type", contentType)
+	}
+
+	t.Run("success", func(t *testing.T) {
+		body := "### Uploaded summary\n\n- line one\n"
+		MakeRequest(t, putSummary(0, body, "text/markdown; charset=utf-8"), http.StatusOK)
+
+		summary, err := actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.JobSummaryContentTypeMarkdown, summary.ContentType)
+		assert.Equal(t, body, summary.Content)
+
+		staleUpdated := summary.Updated - 60
+		_, err = db.GetEngine(t.Context()).ID(summary.ID).Cols("updated").Update(&actions_model.ActionRunJobSummary{Updated: staleUpdated})
+		require.NoError(t, err)
+
+		updatedBody := "### Updated summary\n\n- refreshed\n"
+		MakeRequest(t, putSummary(0, updatedBody, actions_model.JobSummaryContentTypeMarkdown), http.StatusOK)
+
+		summary, err = actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0)
+		require.NoError(t, err)
+		assert.Equal(t, updatedBody, summary.Content)
+		assert.Greater(t, summary.Updated, staleUpdated)
+
+		stepTwoBody := "### Second step summary\n\n- another step\n"
+		MakeRequest(t, putSummary(1, stepTwoBody, actions_model.JobSummaryContentTypeMarkdown), http.StatusOK)
+
+		summary, err = actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 1)
+		require.NoError(t, err)
+		assert.Equal(t, stepTwoBody, summary.Content)
+
+		summaries, err := actions_model.ListActionRunJobSummaries(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, 0)
+		require.NoError(t, err)
+		require.Len(t, summaries, 2)
+		assert.Equal(t, int64(0), summaries[0].StepIndex)
+		assert.Equal(t, int64(1), summaries[1].StepIndex)
+	})
+
+	t.Run("invalid-content-type", func(t *testing.T) {
+		resp := MakeRequest(t, putSummary(0, "summary", "text/html"), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "invalid summary content type")
+	})
+
+	t.Run("size-limit", func(t *testing.T) {
+		resp := MakeRequest(t, putSummary(0, strings.Repeat("a", actions_model.MaxJobSummarySize+1), actions_model.JobSummaryContentTypeMarkdown), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "invalid summary")
+	})
+
+	t.Run("aggregate-size-limit", func(t *testing.T) {
+		require.NoError(t, actions_model.UpsertActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0,
+			actions_model.JobSummaryContentTypeMarkdown, []byte(strings.Repeat("a", actions_model.MaxJobSummaryAggregateSize-1024))))
+		resp := MakeRequest(t, putSummary(1, strings.Repeat("b", 4096), actions_model.JobSummaryContentTypeMarkdown), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "aggregate size exceeded")
+	})
+
+	t.Run("job-mismatch", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/0/summary", task.Job.RunID, task.Job.ID+1), strings.NewReader("summary")).
+			AddTokenAuth(runnerToken).
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "job_id mismatch")
+	})
+
+	t.Run("run-mismatch", func(t *testing.T) {
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/jobs/%d/steps/0/summary", task.Job.RunID+1, task.Job.ID), strings.NewReader("summary")).
+			AddTokenAuth(runnerToken).
+			SetHeader("Content-Type", actions_model.JobSummaryContentTypeMarkdown)
+		resp := MakeRequest(t, req, http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "run-id does not match")
+	})
+
+	t.Run("invalid-step-index", func(t *testing.T) {
+		resp := MakeRequest(t, putSummary(-1, "summary", actions_model.JobSummaryContentTypeMarkdown), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "invalid step_index")
+	})
+
+	t.Run("step-index-mismatch", func(t *testing.T) {
+		resp := MakeRequest(t, putSummary(999, "summary", actions_model.JobSummaryContentTypeMarkdown), http.StatusBadRequest)
+		assert.Contains(t, resp.Body.String(), "step_index mismatch")
+	})
+
+	t.Run("empty-body-clears", func(t *testing.T) {
+		MakeRequest(t, putSummary(0, "### keep me", actions_model.JobSummaryContentTypeMarkdown), http.StatusOK)
+		MakeRequest(t, putSummary(0, "", actions_model.JobSummaryContentTypeMarkdown), http.StatusOK)
+
+		_, err := actions_model.GetActionRunJobSummary(t.Context(), task.Job.RepoID, task.Job.RunID, task.Job.RunAttemptID, task.Job.ID, 0)
+		require.ErrorIs(t, err, util.ErrNotExist)
+	})
+}
+
 func TestActionsArtifactUploadSingleFile(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
@@ -39,8 +198,7 @@ func TestActionsArtifactUploadSingleFile(t *testing.T) {
 		Name: "artifact",
 	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp uploadArtifactResponse
-	DecodeJSON(t, resp, &uploadResp)
+	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
 	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
 	// get upload url
@@ -120,8 +278,7 @@ func TestActionsArtifactDownload(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp listArtifactsResponse
-	DecodeJSON(t, resp, &listResp)
+	listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 	assert.Equal(t, int64(2), listResp.Count)
 
 	// Return list might be in any order. Get one file.
@@ -137,12 +294,11 @@ func TestActionsArtifactDownload(t *testing.T) {
 	assert.Contains(t, listResp.Value[artifactIdx].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
 	idx := strings.Index(listResp.Value[artifactIdx].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := listResp.Value[artifactIdx].FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
+	url := listResp.Value[artifactIdx].FileContainerResourceURL[idx:] + "?itemPath=artifact-download"
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
-	var downloadResp downloadArtifactResponse
-	DecodeJSON(t, resp, &downloadResp)
+	downloadResp := DecodeJSON(t, resp, &downloadArtifactResponse{})
 	assert.Len(t, downloadResp.Value, 1)
 	assert.Equal(t, "artifact-download/abc.txt", downloadResp.Value[0].Path)
 	assert.Equal(t, "file", downloadResp.Value[0].ItemType)
@@ -169,8 +325,7 @@ func TestActionsArtifactUploadMultipleFile(t *testing.T) {
 		Name: testArtifactName,
 	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp uploadArtifactResponse
-	DecodeJSON(t, resp, &uploadResp)
+	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
 	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
 	type uploadingFile struct {
@@ -222,8 +377,7 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var listResp listArtifactsResponse
-	DecodeJSON(t, resp, &listResp)
+	listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 	assert.Equal(t, int64(2), listResp.Count)
 
 	var fileContainerResourceURL string
@@ -236,12 +390,11 @@ func TestActionsArtifactDownloadMultiFiles(t *testing.T) {
 	assert.Contains(t, fileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 
 	idx := strings.Index(fileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-	url := fileContainerResourceURL[idx+1:] + "?itemPath=" + testArtifactName
+	url := fileContainerResourceURL[idx:] + "?itemPath=" + testArtifactName
 	req = NewRequest(t, "GET", url).
 		AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp = MakeRequest(t, req, http.StatusOK)
-	var downloadResp downloadArtifactResponse
-	DecodeJSON(t, resp, &downloadResp)
+	downloadResp := DecodeJSON(t, resp, &downloadArtifactResponse{})
 	assert.Len(t, downloadResp.Value, 2)
 
 	downloads := [][]string{{"multi-file-download/abc.txt", "B"}, {"multi-file-download/xyz/def.txt", "C"}}
@@ -279,8 +432,7 @@ func TestActionsArtifactUploadWithRetentionDays(t *testing.T) {
 		RetentionDays: 9,
 	}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp uploadArtifactResponse
-	DecodeJSON(t, resp, &uploadResp)
+	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
 	assert.Contains(t, uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts")
 	assert.Contains(t, uploadResp.FileContainerResourceURL, "?retentionDays=9")
 
@@ -313,16 +465,14 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp := MakeRequest(t, req, http.StatusOK)
-		var listResp listArtifactsResponse
-		DecodeJSON(t, resp, &listResp)
+		listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 
 		idx := strings.Index(listResp.Value[0].FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-		url := listResp.Value[0].FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
+		url := listResp.Value[0].FileContainerResourceURL[idx:] + "?itemPath=artifact-download"
 		req = NewRequest(t, "GET", url).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp = MakeRequest(t, req, http.StatusOK)
-		var downloadResp downloadArtifactResponse
-		DecodeJSON(t, resp, &downloadResp)
+		downloadResp := DecodeJSON(t, resp, &downloadArtifactResponse{})
 
 		idx = strings.Index(downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
 		url = downloadResp.Value[0].ContentLocation[idx:]
@@ -340,8 +490,7 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 			Name: "artifact-download",
 		}).AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp := MakeRequest(t, req, http.StatusOK)
-		var uploadResp uploadArtifactResponse
-		DecodeJSON(t, resp, &uploadResp)
+		uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
 
 		idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
 		url := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=artifact-download/abc.txt"
@@ -364,8 +513,7 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/actions_pipeline/_apis/pipelines/workflows/791/artifacts").
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp := MakeRequest(t, req, http.StatusOK)
-		var listResp listArtifactsResponse
-		DecodeJSON(t, resp, &listResp)
+		listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
 
 		var uploadedItem listArtifactsResponseItem
 		for _, item := range listResp.Value {
@@ -377,12 +525,11 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		assert.Equal(t, "artifact-download", uploadedItem.Name)
 
 		idx := strings.Index(uploadedItem.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
-		url := uploadedItem.FileContainerResourceURL[idx+1:] + "?itemPath=artifact-download"
+		url := uploadedItem.FileContainerResourceURL[idx:] + "?itemPath=artifact-download"
 		req = NewRequest(t, "GET", url).
 			AddTokenAuth("8061e833a55f6fc0157c98b883e91fcfeeb1a71a")
 		resp = MakeRequest(t, req, http.StatusOK)
-		var downloadResp downloadArtifactResponse
-		DecodeJSON(t, resp, &downloadResp)
+		downloadResp := DecodeJSON(t, resp, &downloadArtifactResponse{})
 
 		idx = strings.Index(downloadResp.Value[0].ContentLocation, "/api/actions_pipeline/_apis/pipelines/")
 		url = downloadResp.Value[0].ContentLocation[idx:]
@@ -392,4 +539,155 @@ func TestActionsArtifactOverwrite(t *testing.T) {
 		body := strings.Repeat("B", 4096)
 		assert.Equal(t, resp.Body.String(), body)
 	}
+}
+
+func TestActionRunAttemptArtifact(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, token, "actions-run-attempt-artifact", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(httpContext)(t)
+
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		wfTreePath := ".gitea/workflows/run-attempt-artifact.yml"
+		wfFileContent := `name: run-attempt-artifact
+on:
+  workflow_dispatch:
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job1'
+`
+		opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts)
+
+		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "run-attempt-artifact.yml")
+		req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
+			"ref": "refs/heads/main",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		t.Run("testActionRunAttemptArtifactV3", func(t *testing.T) {
+			testActionRunAttemptArtifactV3(t, repo, session, runner)
+		})
+
+		t.Run("testActionRunAttemptArtifactV4", func(t *testing.T) {
+			testActionRunAttemptArtifactV4(t, repo, session, runner)
+		})
+	})
+}
+
+func testActionRunAttemptArtifactV3(t *testing.T, repo *repo_model.Repository, session *TestSession, runner *mockRunner) {
+	// first run
+	task1 := runner.fetchTask(t)
+	_, job1, run := getTaskAndJobAndRunByTaskID(t, task1.Id)
+	require.NotZero(t, job1.RunAttemptID)
+	taskToken1 := task1.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	require.NotEmpty(t, taskToken1)
+	uploadTestArtifactFile(t, run.ID, taskToken1, "artifact-attempt-1", "attempt-1.txt", strings.Repeat("A", 32))
+	uploadTestArtifactFile(t, run.ID, taskToken1, "artifact-shared", "shared.txt", strings.Repeat("C", 32))
+	attempt1Names := listArtifactNamesForRun(t, run.ID, taskToken1)
+	assert.ElementsMatch(t, []string{"artifact-attempt-1", "artifact-shared"}, attempt1Names)
+
+	runner.execTask(t, task1, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS}) // complete first run
+
+	// rerun
+	req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", repo.OwnerName, repo.Name, run.ID))
+	session.MakeRequest(t, req, http.StatusOK)
+	task2 := runner.fetchTask(t)
+	_, job2, _ := getTaskAndJobAndRunByTaskID(t, task2.Id)
+	require.NotZero(t, job2.RunAttemptID)
+	assert.NotEqual(t, job1.RunAttemptID, job2.RunAttemptID)
+	taskToken2 := task2.Context.GetFields()["gitea_runtime_token"].GetStringValue()
+	require.NotEmpty(t, taskToken2)
+	uploadTestArtifactFile(t, run.ID, taskToken2, "artifact-attempt-2", "attempt-2.txt", strings.Repeat("B", 32))
+	uploadTestArtifactFile(t, run.ID, taskToken2, "artifact-shared", "shared.txt", strings.Repeat("D", 32))
+	attempt2Names := listArtifactNamesForRun(t, run.ID, taskToken2)
+	assert.ElementsMatch(t, []string{"artifact-attempt-2", "artifact-shared"}, attempt2Names)
+	assert.NotContains(t, attempt2Names, "artifact-attempt-1")
+
+	// "artifact-attempt-1" belongs to the first attempt, so the rerun token cannot access it
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/artifacts/%x/download_url?itemPath=artifact-attempt-1", run.ID, md5.Sum([]byte("artifact-attempt-1")))).
+		AddTokenAuth(taskToken2)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// "artifact-shared" for each attempt has different content
+	sharedContent1 := downloadArtifactFileContentByAttempt(t, session, repo.OwnerName, repo.Name, run.ID, "artifact-shared", 1, "shared.txt")
+	assert.Equal(t, strings.Repeat("C", 32), sharedContent1)
+	sharedContent2 := downloadArtifactFileContentByAttempt(t, session, repo.OwnerName, repo.Name, run.ID, "artifact-shared", 2, "shared.txt")
+	assert.Equal(t, strings.Repeat("D", 32), sharedContent2)
+}
+
+func uploadTestArtifactFile(t *testing.T, runID int64, authToken, artifactName, fileName, content string) {
+	t.Helper()
+
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/artifacts", runID), getUploadArtifactRequest{
+		Type: "actions_storage",
+		Name: artifactName,
+	}).AddTokenAuth(authToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	uploadResp := DecodeJSON(t, resp, &uploadArtifactResponse{})
+
+	idx := strings.Index(uploadResp.FileContainerResourceURL, "/api/actions_pipeline/_apis/pipelines/")
+	uploadURL := uploadResp.FileContainerResourceURL[idx:] + "?itemPath=" + artifactName + "/" + fileName
+	contentLen := strconv.Itoa(len(content))
+	contentMD5 := md5.Sum([]byte(content))
+	req = NewRequestWithBody(t, "PUT", uploadURL, strings.NewReader(content)).
+		AddTokenAuth(authToken).
+		SetHeader("Content-Range", fmt.Sprintf("bytes 0-%d/%d", len(content)-1, len(content))).
+		SetHeader("x-tfs-filelength", contentLen).
+		SetHeader("x-actions-results-md5", base64.StdEncoding.EncodeToString(contentMD5[:]))
+	MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequest(t, "PATCH", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/artifacts?artifactName=%s", runID, artifactName)).
+		AddTokenAuth(authToken)
+	MakeRequest(t, req, http.StatusOK)
+}
+
+func listArtifactNamesForRun(t *testing.T, runID int64, taskToken string) []string {
+	t.Helper()
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/actions_pipeline/_apis/pipelines/workflows/%d/artifacts", runID)).
+		AddTokenAuth(taskToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	listResp := DecodeJSON(t, resp, &listArtifactsResponse{})
+
+	names := make([]string, 0, len(listResp.Value))
+	for _, item := range listResp.Value {
+		names = append(names, item.Name)
+	}
+	return names
+}
+
+func downloadArtifactFileContentByAttempt(t *testing.T, session *TestSession, owner, repo string, runID int64, artifactName string, attempt int64, fileName string) string {
+	t.Helper()
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/actions/runs/%d/artifacts/%s?attempt=%d", owner, repo, runID, url.PathEscape(artifactName), attempt))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	zr, err := zip.NewReader(bytes.NewReader(resp.Body.Bytes()), int64(resp.Body.Len()))
+	require.NoError(t, err)
+	for _, f := range zr.File {
+		if f.Name != fileName {
+			continue
+		}
+		rc, err := f.Open()
+		require.NoError(t, err)
+		content, err := io.ReadAll(rc)
+		rc.Close()
+		require.NoError(t, err)
+		return string(content)
+	}
+
+	require.FailNowf(t, "artifact file not found", "artifact %q attempt %d does not contain file %q", artifactName, attempt, fileName)
+	return ""
 }
