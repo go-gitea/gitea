@@ -185,9 +185,6 @@ importers:
       tributejs:
         specifier: 5.1.3
         version: 5.1.3
-      uint8-to-base64:
-        specifier: 0.2.1
-        version: 0.2.1
       vanilla-colorful:
         specifier: 0.7.2
         version: 0.7.2
@@ -4182,9 +4179,6 @@ packages:
 
   uc.micro@2.1.0:
     resolution: {integrity: sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A==}
-
-  uint8-to-base64@0.2.1:
-    resolution: {integrity: sha512-uO/84GaoDUfiAxpa8EksjVLE77A9Kc7ZTziN4zRpq4de9yLaLcZn3jx1/sVjyupsywcVX6RKWbqLe7gUNyzH+Q==}
 
   unbox-primitive@1.1.0:
     resolution: {integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==}
@@ -8901,8 +8895,6 @@ snapshots:
   typo-js@1.3.2: {}
 
   uc.micro@2.1.0: {}
-
-  uint8-to-base64@0.2.1: {}
 
   unbox-primitive@1.1.0:
     dependencies:
