@@ -9,6 +9,7 @@ import (
 
 	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/timeutil"
@@ -17,6 +18,22 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func TestActionTask_GetRunJobLink(t *testing.T) {
+	repo := &repo_model.Repository{OwnerName: "org", Name: "consumer"}
+	run := &ActionRun{ID: 10, Repo: repo}
+	job := &ActionRunJob{ID: 42, Run: run}
+
+	// a task with a loaded job links to that specific job, not just the run
+	task := &ActionTask{Job: job}
+	assert.Equal(t, run.Link()+"/jobs/42", task.GetRunJobLink())
+	assert.Equal(t, run.Link(), task.GetRunLink())
+	assert.NotEqual(t, task.GetRunLink(), task.GetRunJobLink())
+
+	// missing job or run yields an empty link instead of a broken URL
+	assert.Empty(t, (&ActionTask{}).GetRunJobLink())
+	assert.Empty(t, (&ActionTask{Job: &ActionRunJob{ID: 42}}).GetRunJobLink())
+}
 
 func TestMakeTaskStepDisplayName(t *testing.T) {
 	tests := []struct {

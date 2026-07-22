@@ -92,6 +92,13 @@ func (task *ActionTask) GetRunLink() string {
 	return task.Job.Run.Link()
 }
 
+func (task *ActionTask) GetRunJobLink() string {
+	if task.Job == nil || task.Job.Run == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/jobs/%d", task.Job.Run.Link(), task.Job.ID)
+}
+
 func (task *ActionTask) GetCommitLink() string {
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
