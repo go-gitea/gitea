@@ -599,8 +599,8 @@ func HasAnyUnitAccess(ctx context.Context, userID int64, repo *repo_model.Reposi
 	return perm.HasAnyUnitAccess(), nil
 }
 
-func GetUsersWithUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type) (users []*user_model.User, err error) {
-	userIDs, err := GetUserIDsWithUnitAccess(ctx, repo, mode, unitType)
+func GetUsersWithAnyUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type, moreUnitTypes ...unit.Type) (users []*user_model.User, err error) {
+	userIDs, err := GetUserIDsWithAnyUnitAccess(ctx, repo, mode, unitType, moreUnitTypes...)
 	if err != nil {
 		return nil, err
 	}
@@ -613,7 +613,7 @@ func GetUsersWithUnitAccess(ctx context.Context, repo *repo_model.Repository, mo
 	return users, nil
 }
 
-func GetUserIDsWithUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type) (container.Set[int64], error) {
+func GetUserIDsWithAnyUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type, moreUnitTypes ...unit.Type) (container.Set[int64], error) {
 	userIDs := container.Set[int64]{}
 	e := db.GetEngine(ctx)
 	accesses := make([]*Access, 0, 10)
@@ -630,7 +630,7 @@ func GetUserIDsWithUnitAccess(ctx context.Context, repo *repo_model.Repository, 
 	if !repo.Owner.IsOrganization() {
 		userIDs.Add(repo.Owner.ID)
 	} else {
-		teamUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, mode, unitType)
+		teamUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, mode, unitType, moreUnitTypes...)
 		if err != nil {
 			return nil, err
 		}
