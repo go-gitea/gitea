@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	giturl "gitea.dev/modules/git/url"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 )
@@ -44,21 +45,32 @@ func endpointFromCloneURL(rawurl string) *url.URL {
 }
 
 func endpointFromURL(rawurl string) *url.URL {
+	if rawurl == "" {
+		return nil
+	}
+
 	if strings.HasPrefix(rawurl, "/") {
 		return endpointFromLocalPath(rawurl)
 	}
 
-	u, err := url.Parse(rawurl)
+	gitURL, err := giturl.ParseGitURL(rawurl)
 	if err != nil {
 		log.Error("lfs.endpointFromUrl: %v", err)
 		return nil
 	}
+	u := gitURL.URL
 
 	switch u.Scheme {
 	case "http", "https":
 		return u
 	case "git":
 		u.Scheme = "https"
+		return u
+	case "ssh", "git+ssh":
+		u.Scheme = "https"    // is it possible http?
+		u.Host = u.Hostname() // remove ssh port if any
+		u.Path = "/" + strings.TrimPrefix(u.Path, "/")
+		u.User = nil
 		return u
 	case "file":
 		return u

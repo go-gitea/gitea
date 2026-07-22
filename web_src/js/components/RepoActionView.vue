@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {computed, ref, toRefs} from 'vue';
+import {computed, onBeforeUnmount, ref, toRefs, watch} from 'vue';
+import {resetActionFavicon, syncActionRunFavicon} from '../modules/favicon-status.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import ActionRunSummaryView from './ActionRunSummaryView.vue';
 import ActionRunJobView from './ActionRunJobView.vue';
@@ -118,12 +119,20 @@ async function deleteArtifact(name: string) {
   await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }
+
+watch(() => run.value.status, (status) => {
+  syncActionRunFavicon(status);
+});
+
+onBeforeUnmount(() => {
+  resetActionFavicon();
+});
 </script>
 <template>
   <!-- make the view container full width to make users easier to read logs -->
   <div class="ui fluid container">
     <div class="action-view-header">
-      <a v-if="backLink" class="action-view-back silenced" :href="backLink.href">
+      <a v-if="backLink" class="action-view-back" :href="backLink.href">
         <SvgIcon name="octicon-arrow-left" :size="14"/>
         <span>{{ backLink.prefix }} <span class="action-view-back-name">{{ backLink.name }}</span></span>
       </a>
@@ -132,6 +141,7 @@ async function deleteArtifact(name: string) {
           <ActionStatusIcon :locale-status="locale.status[run.status]" :status="run.status" :size="22" icon-variant="circle-fill"/>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
+          <span class="action-info-summary-title-index">#{{ run.index }}</span>
         </div>
         <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
@@ -178,7 +188,7 @@ async function deleteArtifact(name: string) {
                 </div>
                 <div class="flex-text-block tw-pl-[20px]">
                   <span class="flex-text-inline tw-flex-shrink-0">
-                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" class="flex-text-block" icon-variant="circle-fill"/>
+                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" icon-variant="circle-fill"/>
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
                   <span>•</span>
@@ -206,10 +216,7 @@ async function deleteArtifact(name: string) {
         <div class="ui divider"/>
         <div class="left-list-header">{{ locale.allJobs }}</div>
         <div class="flex-items-block action-view-sidebar-list">
-          <div
-            class="item job-brief-item"
-            :class="{'selected': props.jobId === item.job.id}"
-            :style="{paddingLeft: `${10 + item.depth * 16}px`}"
+          <template
             v-for="item in visibleJobListItems"
             :key="item.job.id"
           >
@@ -218,7 +225,9 @@ async function deleteArtifact(name: string) {
             <button
               v-if="item.job.isReusableCaller"
               type="button"
-              class="tw-contents caller-row-toggle"
+              class="item caller-row-toggle"
+              :class="{'selected': props.jobId === item.job.id}"
+              :style="{paddingLeft: `${10 + item.depth * 16}px`}"
               @click="toggleExpandedJob(item.job.id)"
               :title="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
               :aria-label="isJobCollapsed(item.job.id) ? locale.expandCallerJobs : locale.collapseCallerJobs"
@@ -229,13 +238,19 @@ async function deleteArtifact(name: string) {
               <span class="job-duration">{{ item.job.duration }}</span>
               <SvgIcon name="octicon-chevron-down" :size="14" class="job-brief-toggle-icon" :class="{'collapsed': isJobCollapsed(item.job.id)}"/>
             </button>
-            <a v-else class="tw-contents silenced" :href="item.job.link">
+            <a
+              v-else
+              class="item silenced"
+              :class="{'selected': props.jobId === item.job.id}"
+              :style="{paddingLeft: `${10 + item.depth * 16}px`}"
+              :href="item.job.link"
+            >
               <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
               <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
               <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
               <span class="job-duration">{{ item.job.duration }}</span>
             </a>
-          </div>
+          </template>
         </div>
 
         <!-- artifacts list -->
@@ -259,7 +274,12 @@ async function deleteArtifact(name: string) {
                   <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
-              <span v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2">
+              <span
+                v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2"
+                :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiredAt)"
+                data-tooltip-render="html"
+                data-tooltip-placement="top-end"
+              >
                 <SvgIcon name="octicon-file-removed"/>
                 <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
@@ -273,10 +293,14 @@ async function deleteArtifact(name: string) {
         <div class="left-list-header">{{ locale.runDetails }}</div>
         <div class="flex-items-block action-view-sidebar-list">
           <div class="item">
-            <a class="flex-text-block silenced" :href="`${run.link}/workflow`">
+            <a v-if="run.canViewWorkflowFile" class="flex-text-block silenced" :href="`${run.link}/workflow`">
               <SvgIcon name="octicon-file-code" class="tw-text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
             </a>
+            <span v-else class="flex-text-block silenced" :data-tooltip-content="locale.workflowFileNoPermission">
+              <SvgIcon name="octicon-lock" class="tw-text-text"/>
+              <span class="gt-ellipsis">{{ locale.workflowFileNoPermission }}</span>
+            </span>
           </div>
         </div>
       </div>
@@ -340,14 +364,10 @@ async function deleteArtifact(name: string) {
   gap: 4px;
   font-size: 13px;
   color: var(--color-text-light-1);
+  text-decoration: none;
 }
 
 .action-view-back:hover {
-  color: var(--color-primary);
-}
-
-.action-view-back-name {
-  font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 
@@ -368,8 +388,13 @@ async function deleteArtifact(name: string) {
 .action-info-summary-title-text {
   font-size: 20px;
   margin: 0;
-  flex: 1;
   overflow-wrap: anywhere;
+}
+
+.action-info-summary-title-index {
+  font-size: 20px;
+  color: var(--color-text-light-2);
+  flex: 1;
 }
 
 .action-info-summary .ui.button {
@@ -431,10 +456,11 @@ async function deleteArtifact(name: string) {
 }
 
 .caller-row-toggle {
+  width: 100%;
   border: none;
-  padding: 0;
   background: transparent;
   color: inherit;
+  line-height: inherit; /* buttons don't inherit line-height; match the <a> rows' row height */
   cursor: pointer;
   text-align: inherit;
 }
@@ -464,13 +490,13 @@ async function deleteArtifact(name: string) {
 }
 
 .action-view-sidebar-list > .item:hover .job-rerun-button,
-.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button {
+.action-view-sidebar-list > .item:focus .job-rerun-button {
   display: inline-flex;
 }
 
 /* only swap out the duration when a re-run button exists to take its place */
 .action-view-sidebar-list > .item:hover .job-rerun-button ~ .job-duration,
-.action-view-sidebar-list > .item:has(a:focus) .job-rerun-button ~ .job-duration {
+.action-view-sidebar-list > .item:focus .job-rerun-button ~ .job-duration {
   display: none;
 }
 
@@ -488,6 +514,7 @@ async function deleteArtifact(name: string) {
 }
 
 .action-view-right-panel {
+  flex: 1; /* fill the right column so the summary graph stretches even without a job-summary section */
   border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
   background: var(--color-console-bg);
@@ -529,6 +556,7 @@ async function deleteArtifact(name: string) {
 }
 
 .job-summary-section {
+  flex: 0 0 auto; /* size to its content; let the summary panel keep the remaining height */
   overflow: hidden;
 }
 

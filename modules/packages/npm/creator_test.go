@@ -326,4 +326,31 @@ func TestParsePackage(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "MIT", string(p.Metadata.License))
 	})
+
+	t.Run("ValidRepositoryAndBinAsString", func(t *testing.T) {
+		// npm allows "repository" and "bin" to be plain strings, not only objects.
+		packageJSON := `{
+  "versions": {
+		"0.1.1": {
+			"name": "dev-null",
+			"version": "0.1.1",
+			"bin": "./cli.js",
+			"repository": "https://gitea.io/gitea/test.git",
+			"dist": {
+				"integrity": "sha256-"
+			}
+		}
+	},
+	"_attachments": {
+		"foo": {
+			"data": "AAAA"
+		}
+	}
+}`
+		p, err := ParsePackage(strings.NewReader(packageJSON))
+		require.NoError(t, err)
+		require.Equal(t, "https://gitea.io/gitea/test.git", p.Metadata.Repository.URL)
+		// a string bin is named after the package
+		require.Equal(t, "./cli.js", p.Metadata.Bin["dev-null"])
+	})
 }

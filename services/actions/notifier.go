@@ -16,7 +16,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -802,21 +801,17 @@ func (n *actionsNotifier) WorkflowRunStatusUpdate(ctx context.Context, repo *rep
 
 	status := convert.ToWorkflowRunAction(run.Status)
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	convertedWorkflow, err := convert.ResolveActionWorkflowForRun(ctx, repo, run)
 	if err != nil {
-		log.Error("OpenRepository: %v", err)
+		if errors.Is(err, util.ErrNotExist) {
+			// The workflow definition is gone (e.g. a scoped source repo/file was deleted, or the file no longer exists at the recorded commit), skip
+			log.Debug("WorkflowRunStatusUpdate: workflow %q for run %d not found: %v", run.WorkflowID, run.ID, err)
+			return
+		}
+		log.Error("WorkflowRunStatusUpdate resolve workflow: %v", err)
 		return
 	}
-	defer gitRepo.Close()
 
-	convertedWorkflow, err := convert.GetActionWorkflowByRef(ctx, gitRepo, repo, run.WorkflowID, git.RefName(run.Ref))
-	if err != nil && errors.Is(err, util.ErrNotExist) {
-		convertedWorkflow, err = convert.GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
-	}
-	if err != nil {
-		log.Error("GetActionWorkflow: %v", err)
-		return
-	}
 	run.Repo = repo
 	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {

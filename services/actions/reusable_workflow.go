@@ -13,9 +13,10 @@ import (
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
@@ -60,6 +61,11 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 			return nil, 0, "", err
 		}
 		if !ok {
+			if run.IsScopedRun {
+				// A scoped workflow's cross-repo "uses:" is resolved with the consuming repo's read permission,
+				// so the referenced repo must be readable by every consumer. Make that explicit in the failure.
+				return nil, 0, "", fmt.Errorf("no permission to read reusable workflow %s/%s: a scoped workflow's cross-repo \"uses:\" is resolved with the consuming repository %q read permission", ref.Owner, ref.Repo, run.Repo.FullName())
+			}
 			return nil, 0, "", fmt.Errorf("no permission to read reusable workflow from %s/%s", ref.Owner, ref.Repo)
 		}
 		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, repo, ref.Ref, ref.Path)
@@ -73,17 +79,17 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 
 // readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA` and returns its content plus the resolved commit SHA.
 func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refOrSHA, path string) ([]byte, string, error) {
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		return nil, "", fmt.Errorf("open repo %s: %w", repo.FullName(), err)
 	}
 	defer gitRepo.Close()
 
-	commit, err := gitRepo.GetCommit(refOrSHA)
+	commit, err := gitRepo.GetCommit(ctx, refOrSHA)
 	if err != nil {
 		return nil, "", fmt.Errorf("get commit %q in %s: %w", refOrSHA, repo.FullName(), err)
 	}
-	str, err := commit.GetFileContent(path, 1024*1024)
+	str, err := commit.GetFileContent(ctx, gitRepo, path, 1024*1024)
 	if err != nil {
 		return nil, "", fmt.Errorf("read %s@%s:%s: %w", repo.FullName(), refOrSHA, path, err)
 	}
@@ -325,6 +331,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			AttemptJobID:            attemptJobID,
 			Needs:                   needs,
 			RunsOn:                  parsedChild.RunsOn(),
+			ContinueOnError:         parsedChild.GetContinueOnError(),
 			Status:                  actions_model.StatusBlocked,
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    sourceRepoID,
@@ -358,5 +365,13 @@ func ResolveUses(ctx context.Context, uses string) (*jobparser.UsesRef, error) {
 		// RoutePath is the instance-relative path (AppSubURL already stripped), e.g. "/owner/repo/.gitea/workflows/file.yml@ref".
 		uses = strings.TrimPrefix(gsu.RoutePath, "/")
 	}
-	return jobparser.ParseUses(uses)
+	ref, err := jobparser.ParseUses(uses)
+	if err != nil {
+		return nil, err
+	}
+	// jobparser only validates syntax; enforce the (instance-configurable) directory allowlist here.
+	if !actions_module.IsWorkflowOrScopedWorkflow(ref.Path) {
+		return nil, fmt.Errorf(`"uses:" path %q must be under a configured workflow directory (WORKFLOW_DIRS or SCOPED_WORKFLOW_DIRS)`, ref.Path)
+	}
+	return ref, nil
 }

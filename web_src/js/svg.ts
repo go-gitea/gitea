@@ -5,6 +5,7 @@ import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-che
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
+import giteaFavicon from '../../public/assets/img/favicon.svg';
 import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
 import octiconArrowLeft from '../../public/assets/img/svg/octicon-arrow-left.svg';
@@ -93,6 +94,7 @@ const svgs = {
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
+  'gitea-favicon': giteaFavicon,
   'gitea-running': giteaRunning,
   'octicon-archive': octiconArchive,
   'octicon-arrow-left': octiconArrowLeft,

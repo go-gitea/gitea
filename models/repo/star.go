@@ -9,6 +9,8 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // Star represents a starred repo by a user.
@@ -68,7 +70,7 @@ func StarRepo(ctx context.Context, doer *user_model.User, repo *Repository, star
 
 // IsStaring checks if user has starred given repository.
 func IsStaring(ctx context.Context, userID, repoID int64) bool {
-	has, _ := db.GetEngine(ctx).Get(&Star{UID: userID, RepoID: repoID})
+	has, _ := db.Exist[Star](ctx, builder.Eq{"uid": userID, "repo_id": repoID})
 	return has
 }
 

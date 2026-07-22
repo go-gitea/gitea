@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
@@ -91,6 +92,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		user, err := user_model.GetUserByName(ctx, qUser)
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err.Error())
+			return
 		} else if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -131,9 +133,31 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	trackedTimes, err = filterTrackedTimesByAccess(ctx, trackedTimes)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(ctx, ctx.Doer, trackedTimes))
+}
+
+func filterTrackedTimesByAccess(ctx *context.APIContext, trackedTimes issues_model.TrackedTimeList) (issues_model.TrackedTimeList, error) {
+	filtered := make(issues_model.TrackedTimeList, 0, len(trackedTimes))
+	for _, trackedTime := range trackedTimes {
+		if trackedTime.Issue == nil || trackedTime.Issue.Repo == nil {
+			continue
+		}
+		permission, err := access_model.GetIndividualUserRepoPermission(ctx, trackedTime.Issue.Repo, ctx.Doer)
+		if err != nil {
+			return nil, err
+		}
+		if permission.HasAnyUnitAccessOrPublicAccess() {
+			filtered = append(filtered, trackedTime)
+		}
+	}
+	return filtered, nil
 }
 
 // AddTime add time manual to the given issue
@@ -197,7 +221,8 @@ func AddTime(ctx *context.APIContext) {
 			// allow only RepoAdmin, Admin and User to add time
 			user, err = user_model.GetUserByName(ctx, form.User)
 			if err != nil {
-				ctx.APIErrorInternal(err)
+				ctx.APIErrorAuto(err)
+				return
 			}
 		}
 	}
@@ -499,6 +524,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		user, err := user_model.GetUserByName(ctx, qUser)
 		if user_model.IsErrUserNotExist(err) {
 			ctx.APIError(http.StatusNotFound, err.Error())
+			return
 		} else if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -537,6 +563,11 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 	if err = trackedTimes.LoadAttributes(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	trackedTimes, err = filterTrackedTimesByAccess(ctx, trackedTimes)
+	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -599,6 +630,11 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	}
 
 	if err = trackedTimes.LoadAttributes(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	trackedTimes, err = filterTrackedTimesByAccess(ctx, trackedTimes)
+	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

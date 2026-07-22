@@ -4,6 +4,7 @@
 package htmlutil
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -86,6 +87,52 @@ func HTMLPrintTag(w io.Writer, tag template.HTML, attrs map[string]string) (writ
 
 func EscapeString(s string) template.HTML {
 	return template.HTML(template.HTMLEscapeString(s))
+}
+
+type HTMLWriter interface {
+	OriginWriter() io.Writer
+	WriteString(s string) HTMLWriter
+	WriteHTML(s template.HTML) HTMLWriter
+	WriteFormat(fmt template.HTML, args ...any) HTMLWriter
+	Err() error
+}
+
+type htmlWriter struct {
+	w    io.Writer
+	errs []error
+}
+
+func (h *htmlWriter) OriginWriter() io.Writer {
+	return h.w
+}
+
+func (h *htmlWriter) WriteString(s string) HTMLWriter {
+	if _, err := io.WriteString(h.w, template.HTMLEscapeString(s)); err != nil {
+		h.errs = append(h.errs, err)
+	}
+	return h
+}
+
+func (h *htmlWriter) WriteHTML(s template.HTML) HTMLWriter {
+	if _, err := io.WriteString(h.w, string(s)); err != nil {
+		h.errs = append(h.errs, err)
+	}
+	return h
+}
+
+func (h *htmlWriter) WriteFormat(fmt template.HTML, args ...any) HTMLWriter {
+	if _, err := HTMLPrintf(h.w, fmt, args...); err != nil {
+		h.errs = append(h.errs, err)
+	}
+	return h
+}
+
+func (h *htmlWriter) Err() error {
+	return errors.Join(h.errs...)
+}
+
+func NewHTMLWriter(w io.Writer) HTMLWriter {
+	return &htmlWriter{w: w}
 }
 
 type HTMLBuilder struct {

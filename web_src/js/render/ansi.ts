@@ -1,5 +1,5 @@
 import {AnsiUp} from 'ansi_up';
-import {linkifyURLs} from '../utils/url.ts';
+import {trimUrlPunctuation, urlRawRegex} from '../utils/url.ts';
 
 const replacements: Array<[RegExp, string]> = [
   [/\x1b\[\d+[A-H]/g, ''], // Move cursor, treat them as no-op
@@ -7,7 +7,7 @@ const replacements: Array<[RegExp, string]> = [
 ];
 
 // render ANSI to HTML
-export function renderAnsi(line: string): string {
+export function renderAnsiInto(el: HTMLElement, line: string) {
   // create a fresh ansi_up instance because otherwise previous renders can influence
   // the output of future renders, because ansi_up is stateful and remembers things like
   // unclosed opening tags for colors.
@@ -44,5 +44,42 @@ export function renderAnsi(line: string): string {
     result = lines.join('\n');
   }
 
-  return linkifyURLs(result);
+  el.innerHTML = result;
+  // at the moment, only need to do post-process when there are potential URL links
+  if (result.includes('://')) renderAnsiPostProcessNode(el);
+}
+
+function renderAnsiProcessText(node: ChildNode): ChildNode {
+  const text = node.textContent!;
+  const match = urlRawRegex().exec(text);
+  if (!match || match.index === undefined) return node;
+
+  const before = text.slice(0, match.index);
+  const urlMatched = match[0];
+  const urlTrimmed = trimUrlPunctuation(urlMatched);
+  const after = text.slice(match.index + urlMatched.length - (urlMatched.length - urlTrimmed.length));
+
+  const link = document.createElement('a');
+  link.setAttribute('href', urlTrimmed);
+  link.setAttribute('target', '_blank');
+  link.textContent = urlTrimmed;
+
+  const newNodes: Array<Node | string> = [];
+  if (before) newNodes.push(before);
+  newNodes.push(link);
+  if (after) newNodes.push(after);
+
+  node.replaceWith(...newNodes);
+  return link;
+}
+
+function renderAnsiPostProcessNode(el: ChildNode) {
+  for (let node = el.firstChild; node; node = node.nextSibling) {
+    if (node.nodeName === 'A') continue;
+    if (node.nodeType !== Node.TEXT_NODE) {
+      renderAnsiPostProcessNode(node);
+      continue;
+    }
+    node = renderAnsiProcessText(node);
+  }
 }

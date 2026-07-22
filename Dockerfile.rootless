@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build frontend on the native platform to avoid QEMU-related issues with nodejs ecosystem
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine3.23 AS frontend-build
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine3.24 AS frontend-build
 RUN apk --no-cache add build-base git nodejs pnpm
 WORKDIR /src
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -9,7 +9,7 @@ COPY --exclude=.git/ . .
 RUN make frontend
 
 # Build backend for each target platform
-FROM docker.io/library/golang:1.26-alpine3.23 AS build-env
+FROM docker.io/library/golang:1.26-alpine3.24 AS build-env
 
 ARG GITEA_VERSION
 ARG TAGS=""
@@ -39,7 +39,7 @@ COPY docker/rootless /tmp/local
 RUN chmod 755 /tmp/local/usr/local/bin/* \
               /go/src/gitea.dev/gitea
 
-FROM docker.io/library/alpine:3.23 AS gitea-rootless
+FROM docker.io/library/alpine:3.24 AS gitea-rootless
 
 EXPOSE 2222 3000
 

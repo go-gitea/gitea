@@ -186,6 +186,22 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 			return
 		}
 
+		// Draft release attachments must not be exposed to anyone without write
+		// access, matching the API-side canAccessReleaseDraft gate. Otherwise the
+		// UUID-based web endpoints would leak draft attachments to any recipient of
+		// the (leaked) download URL.
+		if unitType == unit.TypeReleases && attach.ReleaseID != 0 && !perm.CanWrite(unit.TypeReleases) {
+			rel, err := repo_model.GetReleaseByID(ctx, attach.ReleaseID)
+			if err != nil {
+				ctx.ServerError("GetReleaseByID", err)
+				return
+			}
+			if rel.IsDraft {
+				ctx.HTTPError(http.StatusNotFound)
+				return
+			}
+		}
+
 		if requiredScope, ok := attachmentReadScope(unitType); ok {
 			context.CheckTokenScopes(ctx, repo, requiredScope)
 			if ctx.Written() {

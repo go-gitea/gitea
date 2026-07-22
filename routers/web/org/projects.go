@@ -450,7 +450,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["MilestoneID"] = milestoneID
 
 	// Get assignees.
-	assigneeUsers, err := project_service.LoadIssuesAssigneesForProject(ctx, issuesMap)
+	assigneeUsers, err := project_service.LoadIssuesAssigneesForProject(ctx, project.ID)
 	if err != nil {
 		ctx.ServerError("LoadIssuesAssigneesForProject", err)
 		return

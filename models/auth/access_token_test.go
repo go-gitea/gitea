@@ -9,6 +9,7 @@ import (
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -76,11 +77,11 @@ func TestGetAccessTokenBySHA(t *testing.T) {
 
 	_, err = auth_model.GetAccessTokenBySHA(t.Context(), "notahash")
 	assert.Error(t, err)
-	assert.True(t, auth_model.IsErrAccessTokenNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 
 	_, err = auth_model.GetAccessTokenBySHA(t.Context(), "")
 	assert.Error(t, err)
-	assert.True(t, auth_model.IsErrAccessTokenEmpty(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func TestListAccessTokens(t *testing.T) {
@@ -128,5 +129,5 @@ func TestDeleteAccessTokenByID(t *testing.T) {
 
 	err = auth_model.DeleteAccessTokenByID(t.Context(), 100, 100)
 	assert.Error(t, err)
-	assert.True(t, auth_model.IsErrAccessTokenNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }

@@ -840,7 +840,8 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: var(--gap-inline);
   vertical-align: middle;
-  min-width: 0; /* make ellipsis work */
+  max-width: 100%; /* the inner part might have "gt-ellipsis" */
+  min-width: 0; /* if it is the top flex container, "max-width" works; but if it is inside another flex container, the parent needs to handle the x-axis and here also needs "min-width" */
 }
 
 .ui.ui.labeled.button {
@@ -856,11 +857,13 @@ table th[data-sortt-desc] .svg {
   justify-content: space-between;
   align-items: center;
   gap: var(--gap-block);
+  max-width: 100%;
   min-width: 0;
 }
 
 .ui.list.flex-items-block > .item,
 .ui.vertical.menu.flex-items-block > .item,
+.ui.vertical.menu .item.flex-text-block,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {
@@ -868,6 +871,7 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: var(--gap-block);
   max-width: 100%;
+  min-width: 0;
 }
 
 .flex-left-right > .ui.button,

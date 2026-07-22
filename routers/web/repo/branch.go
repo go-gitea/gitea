@@ -15,7 +15,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	repo_module "gitea.dev/modules/repository"
@@ -138,7 +137,7 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := gitrepo.Push(ctx, ctx.Repo.Repository, ctx.Repo.Repository, git.PushOptions{
+	if err := git.PushManaged(ctx, ctx.Repo.Repository, ctx.Repo.Repository, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.CommitID, git.BranchPrefix, deletedBranch.Name),
 		Env:    repo_module.PushingEnvironment(ctx.Doer, ctx.Repo.Repository),
 	}); err != nil {
@@ -198,9 +197,9 @@ func CreateBranch(ctx *context.Context) {
 		}
 		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.RefFullName.IsBranch() {
-		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
 		if release_service.IsErrProtectedTagName(err) {
@@ -264,7 +263,7 @@ func MergeUpstream(ctx *context.Context) {
 	branchName := ctx.FormString("branch")
 	_, err := repo_service.MergeUpstream(ctx, ctx.Doer, ctx.Repo.Repository, branchName, false)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrPermissionDenied) {
 			ctx.JSONErrorNotFound()
 			return
 		} else if pull_service.IsErrMergeConflicts(err) {

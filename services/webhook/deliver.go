@@ -308,20 +308,14 @@ func webhookProxy(allowList *hostmatcher.HostMatchList) func(req *http.Request) 
 // Init starts the hooks delivery thread
 func Init() error {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
+	allowedHostMatcher := hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Webhook.AllowedHostList)
 
-	allowedHostListValue := setting.Webhook.AllowedHostList
-	if allowedHostListValue == "" {
-		allowedHostListValue = hostmatcher.MatchBuiltinExternal
-	}
-	allowedHostMatcher := hostmatcher.ParseHostMatchList("webhook.ALLOWED_HOST_LIST", allowedHostListValue)
-
+	// NewHTTPTransport enforces the allow-list on direct connections; when webhookProxy routes a request
+	// through a configured proxy, restricting the proxied target is the proxy server's responsibility.
 	webhookHTTPClient = &http.Client{
 		Timeout: timeout,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
-			Proxy:           webhookProxy(allowedHostMatcher),
-			DialContext:     hostmatcher.NewDialContext("webhook", allowedHostMatcher, nil, setting.Webhook.ProxyURLFixed),
-		},
+		Transport: hostmatcher.NewHTTPTransport("webhook", allowedHostMatcher, nil, webhookProxy(allowedHostMatcher), setting.Webhook.ProxyURLFixed,
+			&tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify}),
 	}
 
 	hookQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "webhook_sender", handler)

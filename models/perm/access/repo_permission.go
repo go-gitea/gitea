@@ -369,7 +369,9 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	// 2. The Actions Bot user has been explicitly granted access and repository is private
 	// 3. The repository is public (handled by botPerm above)
 
-	if taskRepo.IsPrivate {
+	// Fork PRs are never allowed cross-repo access to other private repositories,
+	// matching the discriminator enforced by checkSameOwnerCrossRepoAccess above.
+	if taskRepo.IsPrivate && !task.IsForkPullRequest {
 		actionsUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 		if actionsUnit.ActionsConfig().IsCollaborativeOwner(taskRepo.OwnerID) {
 			return maxPerm, nil

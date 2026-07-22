@@ -132,8 +132,7 @@ func WebauthnDelete(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.WebauthnDeleteForm)
-	if _, err := auth.DeleteCredential(ctx, form.ID, ctx.Doer.ID); err != nil {
+	if _, err := auth.DeleteCredential(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}

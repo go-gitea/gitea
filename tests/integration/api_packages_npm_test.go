@@ -208,6 +208,12 @@ func TestPackageNpm(t *testing.T) {
 		test(t, http.StatusNotFound, packageTag2, "1.2")
 		test(t, http.StatusOK, packageTag, packageVersion)
 		test(t, http.StatusOK, packageTag2, packageVersion)
+
+		// an oversized dist-tag body is rejected instead of being read unbounded
+		oversized := strings.Repeat("a", 5*1024)
+		req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s", tagsRoot, packageTag), strings.NewReader(oversized)).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusRequestEntityTooLarge)
 	})
 
 	t.Run("ListTags", func(t *testing.T) {

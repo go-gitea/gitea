@@ -139,6 +139,8 @@ func buildCallerChain(t *testing.T, callerUses ...string) []*actions_model.Actio
 func TestResolveUses(t *testing.T) {
 	defer test.MockVariableValue(&setting.AppURL, "https://gitea.example.com/sub/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/sub")()
+	defer test.MockVariableValue(&setting.Actions.WorkflowDirs, []string{".gitea/workflows", ".github/workflows"})()
+	defer test.MockVariableValue(&setting.Actions.ScopedWorkflowDirs, []string{".gitea/scoped_workflows"})()
 	ctx := t.Context()
 
 	t.Run("LocalForms", func(t *testing.T) {
@@ -150,6 +152,34 @@ func TestResolveUses(t *testing.T) {
 		ref, err = ResolveUses(ctx, "owner/repo/.gitea/workflows/build.yml@v1")
 		require.NoError(t, err)
 		assert.Equal(t, jobparser.UsesRef{Kind: jobparser.UsesKindLocalCrossRepo, Owner: "owner", Repo: "repo", Path: ".gitea/workflows/build.yml", Ref: "v1"}, *ref)
+	})
+
+	t.Run("DirectoryAllowlist", func(t *testing.T) {
+		// SCOPED_WORKFLOW_DIRS is allowed (local and cross-repo).
+		ref, err := ResolveUses(ctx, "./.gitea/scoped_workflows/lib.yml")
+		require.NoError(t, err)
+		assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
+
+		ref, err = ResolveUses(ctx, "owner/repo/.gitea/scoped_workflows/lib.yml@v1")
+		require.NoError(t, err)
+		assert.Equal(t, ".gitea/scoped_workflows/lib.yml", ref.Path)
+
+		// A directory that is neither WORKFLOW_DIRS nor SCOPED_WORKFLOW_DIRS parses but is rejected by the allowlist.
+		_, err = ResolveUses(ctx, "./not-workflows/build.yml")
+		require.Error(t, err)
+		_, err = ResolveUses(ctx, "owner/repo/lib/build.yml@v1")
+		require.Error(t, err)
+	})
+
+	t.Run("ConfigurableWorkflowDirs", func(t *testing.T) {
+		// A non-default WORKFLOW_DIRS is honored (the hardcoded ".gitea/workflows" is no longer special).
+		defer test.MockVariableValue(&setting.Actions.WorkflowDirs, []string{".gitea/ci"})()
+		ref, err := ResolveUses(ctx, "./.gitea/ci/build.yml")
+		require.NoError(t, err)
+		assert.Equal(t, ".gitea/ci/build.yml", ref.Path)
+
+		_, err = ResolveUses(ctx, "./.gitea/workflows/build.yml") // no longer a configured dir
+		require.Error(t, err)
 	})
 
 	t.Run("LocalInstanceURL", func(t *testing.T) {

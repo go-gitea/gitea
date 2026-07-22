@@ -21,7 +21,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     this.popup.style.display = '';
     this.button!.setAttribute('aria-expanded', 'true');
     setTimeout(() => this.popup.focus(), 0);
-    document.addEventListener('click', this.onClickOutside, true);
+    document.addEventListener('click', this.onClickOutside, {capture: true});
   }
 
   hidePopup() {
@@ -125,7 +125,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       const itemRight = item.offsetLeft + item.offsetWidth;
       if (menuRight - itemRight < 38) { // roughly the width of .overflow-menu-button with some extra space
         const onlyLastItem = idx === menuItems.length - 1 && this.overflowItems.length === 0;
-        const lastItemFit = onlyLastItem && menuRight - itemRight > 0;
+        const lastItemFit = onlyLastItem && menuRight > itemRight;
         const moveToPopup = !onlyLastItem || !lastItemFit;
         if (moveToPopup) this.overflowItems.push(item);
       }

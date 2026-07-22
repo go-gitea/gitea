@@ -15,9 +15,11 @@ import (
 type UsesKind int
 
 const (
-	// UsesKindLocalSameRepo is "./.gitea/workflows/foo.yml" - a path inside the calling repository.
+	// UsesKindLocalSameRepo is "./<dir>/foo.yml" - a path inside the calling repository.
+	// For example: "./.gitea/workflows/foo.yml"
 	UsesKindLocalSameRepo UsesKind = iota + 1
-	// UsesKindLocalCrossRepo is "owner/repo/.gitea/workflows/foo.yml@ref" - a workflow in another repo on the same instance.
+	// UsesKindLocalCrossRepo is "owner/repo/<dir>/foo.yml@ref" - a workflow in another repo on the same instance.
+	// For example: "owner/repo/.gitea/workflows/foo.yml@ref"
 	UsesKindLocalCrossRepo
 )
 
@@ -31,14 +33,16 @@ type UsesRef struct {
 }
 
 var (
-	reLocalSameRepo  = regexp.MustCompile(`^\./\.(gitea|github)/workflows/([^@]+\.ya?ml)$`)
-	reLocalCrossRepo = regexp.MustCompile(`^([-.\w]+)/([-.\w]+)/\.(gitea|github)/workflows/([^@]+\.ya?ml)@(.+)$`)
+	reLocalSameRepo  = regexp.MustCompile(`^\./([^@]+\.ya?ml)$`)
+	reLocalCrossRepo = regexp.MustCompile(`^([-.\w]+)/([-.\w]+)/([^@]+\.ya?ml)@(.+)$`)
 )
 
-// ParseUses parses a reusable workflow "uses:" value.
-// Only two forms are supported:
-//   - "./.gitea/workflows/foo.yml"              (UsesKindLocalSameRepo, no @ref)
-//   - "OWNER/REPO/.gitea/workflows/foo.yml@REF" (UsesKindLocalCrossRepo)
+// ParseUses parses the SYNTAX of a reusable workflow "uses:" value into a UsesRef. Two forms are supported:
+//   - "./<dir>/foo.yml"               (UsesKindLocalSameRepo, no @ref)
+//   - "OWNER/REPO/<dir>/foo.yml@REF"  (UsesKindLocalCrossRepo)
+//
+// It deliberately does NOT validate that <dir> is an allowed workflow directory: the allowed directories are instance-configurable (WORKFLOW_DIRS / SCOPED_WORKFLOW_DIRS).
+// The caller (services/actions.ResolveUses) enforces the directory allowlist. The returned Path is the cleaned, repo-relative file path.
 func ParseUses(s string) (*UsesRef, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -48,9 +52,9 @@ func ParseUses(s string) (*UsesRef, error) {
 	if strings.HasPrefix(s, "./") {
 		m := reLocalSameRepo.FindStringSubmatch(s)
 		if m == nil {
-			return nil, fmt.Errorf(`invalid local "uses:" %q (expect ./.gitea/workflows/<file>.yml)`, s)
+			return nil, fmt.Errorf(`invalid local "uses:" %q (expect ./<dir>/<file>.yml)`, s)
 		}
-		p := fmt.Sprintf(".%s/workflows/%s", m[1], m[2])
+		p := m[1]
 		if path.Clean(p) != p {
 			return nil, fmt.Errorf("invalid workflow path %q", s)
 		}
@@ -59,9 +63,9 @@ func ParseUses(s string) (*UsesRef, error) {
 
 	m := reLocalCrossRepo.FindStringSubmatch(s)
 	if m == nil {
-		return nil, fmt.Errorf(`invalid cross-repo "uses:" %q (expect owner/repo/.gitea/workflows/<file>.yml@ref)`, s)
+		return nil, fmt.Errorf(`invalid cross-repo "uses:" %q (expect owner/repo/<dir>/<file>.yml@ref)`, s)
 	}
-	p := fmt.Sprintf(".%s/workflows/%s", m[3], m[4])
+	p := m[3]
 	if path.Clean(p) != p {
 		return nil, fmt.Errorf("invalid workflow path %q", s)
 	}
@@ -70,6 +74,6 @@ func ParseUses(s string) (*UsesRef, error) {
 		Owner: m[1],
 		Repo:  m[2],
 		Path:  p,
-		Ref:   m[5],
+		Ref:   m[4],
 	}, nil
 }

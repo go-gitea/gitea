@@ -21,7 +21,6 @@ import (
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
@@ -247,7 +246,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	repo.DefaultBranch = util.IfZero(repo.DefaultBranch, util.IfZero(templateRepo.DefaultBranch, setting.Repository.DefaultBranch))
 
 	// Clone to temporary path and do the init commit.
-	if err := gitrepo.CloneRepoToLocal(ctx, templateRepo, tmpDir, git.CloneRepoOptions{
+	if err := git.CloneRepoToLocal(ctx, templateRepo, tmpDir, git.CloneRepoOptions{
 		Depth:  1,
 		Branch: templateRepo.DefaultBranch,
 	}); err != nil {
@@ -255,7 +254,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	// Get active submodules from the template
-	submodules, err := git.GetTemplateSubmoduleCommits(ctx, tmpDir)
+	submodules, err := git.GetTemplateSubmoduleCommits(ctx, templateRepo)
 	if err != nil {
 		return fmt.Errorf("GetTemplateSubmoduleCommits: %w", err)
 	}
@@ -276,7 +275,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("readGiteaTemplateFile: %w", err)
 	}
 
-	if err = git.InitRepository(ctx, tmpDir, false, templateRepo.ObjectFormatName); err != nil {
+	if err = git.InitRepositoryLocal(ctx, tmpDir, false, templateRepo.ObjectFormatName); err != nil {
 		return err
 	}
 
@@ -298,7 +297,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 	if err = generateRepoCommit(ctx, generateRepo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %w", err)
 	}
-	if err = gitrepo.SetDefaultBranch(ctx, generateRepo, generateRepo.DefaultBranch); err != nil {
+	if err = git.SetDefaultBranch(ctx, generateRepo, generateRepo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
 	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, generateRepo, "default_branch"); err != nil {

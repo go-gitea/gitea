@@ -4,7 +4,7 @@ import {isDarkTheme} from '../utils.ts';
 
 function safeRenderIframeLink(link: any): string | null {
   try {
-    const url = new URL(`${link}`, window.location.href);
+    const url = new URL(link, window.location.href);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
       console.error(`Unsupported link protocol: ${link}`);
       return null;

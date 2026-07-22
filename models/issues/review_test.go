@@ -6,6 +6,8 @@ package issues_test
 import (
 	"testing"
 
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -385,4 +387,46 @@ func TestAddReviewRequest(t *testing.T) {
 	assert.NotNil(t, comment)
 	assert.NotNil(t, comment.CommentMetaData)
 	assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, comment.CommentMetaData.SpecialDoerName)
+}
+
+func TestRecalculateReviewsOfficial(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// PR #2 targets repo1's "master" branch. Simulate an approval that became
+	// official while the PR targeted an unprotected branch.
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	review, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
+		Type:     issues_model.ReviewTypeApprove,
+		Issue:    issue,
+		Reviewer: reviewer,
+		Official: true,
+	})
+	assert.NoError(t, err)
+
+	// Protect the (now current) target branch with an approvals whitelist that
+	// does not include the reviewer, mirroring a retarget onto a protected branch.
+	rule := &git_model.ProtectedBranch{
+		RepoID:                    issue.RepoID,
+		RuleName:                  "master",
+		EnableApprovalsWhitelist:  true,
+		ApprovalsWhitelistUserIDs: []int64{2},
+		RequiredApprovals:         1,
+	}
+	assert.NoError(t, db.Insert(t.Context(), rule))
+
+	// Re-evaluating must strip the stale official flag, otherwise the approval
+	// would still satisfy the protected branch's required approvals.
+	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
+	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
+	assert.False(t, review.Official)
+
+	// Once the reviewer is whitelisted, re-evaluating restores the official flag.
+	rule.ApprovalsWhitelistUserIDs = []int64{2, reviewer.ID}
+	_, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("approvals_whitelist_user_i_ds").Update(rule)
+	assert.NoError(t, err)
+
+	assert.NoError(t, issues_model.RecalculateReviewsOfficial(t.Context(), issue))
+	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: review.ID})
+	assert.True(t, review.Official)
 }

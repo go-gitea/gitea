@@ -14,21 +14,21 @@
 
 ## Purpose
 
-The goal of this project is to make the easiest, fastest, and most
-painless way of setting up a self-hosted Git service.
+The goal of Gitea is to make the easiest, fastest, and most painless way of
+setting up a self-hosted all-in-one software development service,
+including Git hosting, code management, code review, issue tracking, project kanban, wiki,
+team collaboration, package registry and CI/CD which can reuse GitHub Actions.
 
 As Gitea is written in Go, it works across **all** the platforms and
-architectures that are supported by Go, including Linux, macOS, and
-Windows on x86, amd64, ARM and PowerPC architectures.
-This project has been
-[forked](https://blog.gitea.com/welcome-to-gitea/) from
-[Gogs](https://gogs.io) since November of 2016, but a lot has changed.
+architectures that are supported by Go, including Linux, macOS, FreeBSD/OpenBSD and Windows
+on x86, amd64, ARM, RISC-V 64 and PowerPC architectures.
 
 For online demonstrations, you can visit [demo.gitea.com](https://demo.gitea.com).
 
 For accessing free Gitea service (with a limited number of repositories), you can visit [gitea.com](https://gitea.com/user/login).
 
-To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com).
+To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com),
+or use container (docker/podman/etc) to deploy on your own server with the [official image](https://hub.docker.com/r/gitea/gitea).
 
 ## Documentation
 
@@ -40,27 +40,12 @@ If you have any suggestions or would like to contribute to it, you can visit the
 
 ## Building
 
-From the root of the source tree, run:
+See [docs/build-setup.md](docs/build-setup.md) for prerequisites
+and [docs/development.md](docs/development.md) for setting up a local development environment, linting, and testing.
 
-    TAGS="bindata" make build
+If you'd like to build from source or make a distribution package, see [docs/build-source.md](docs/build-source.md) for more information.
 
-The `build` target is split into two sub-targets:
-
-- `make backend` which requires [Go Stable](https://go.dev/dl/), the required version is defined in [go.mod](/go.mod).
-- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater and [pnpm](https://pnpm.io/installation).
-
-Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
-
-More info: https://docs.gitea.com/installation/install-from-source
-
-## Using
-
-After building, a binary file named `gitea` will be generated in the root of the source tree by default. To run it, use:
-
-    ./gitea web
-
-> [!NOTE]
-> If you're interested in using our APIs, we have experimental support with [documentation](https://docs.gitea.com/api).
+After building, you can run `./gitea web` to start the server, or `./gitea help` to see all available commands.
 
 ## Contributing
 
@@ -69,7 +54,8 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 > [!NOTE]
 >
 > 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
-> 2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
+> 2. New to the codebase? The [development guide](docs/development.md) walks through setting up a local environment and building from source.
+> 3. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
 
 ## Translating
 
@@ -126,13 +112,18 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" with a hard g.
 
-**Why is this not hosted on a Gitea instance?**
+**How do I configure Gitea?**
 
-We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
+For dynamic config options, you can change it on your admin panel's configuration section.
+
+For static config options, you can edit your `app.ini` file and resart the instance.
+See [app.example.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini) or [configuration documentation](https://docs.gitea.com/administration/config-cheat-sheet) for more details.
 
 **Where can I find the security patches?**
 
 In the [release log](https://github.com/go-gitea/gitea/releases) or the [change log](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md), search for the keyword `SECURITY` to find the security patches.
+
+(more FAQs are listed in [FAQ documentation](https://docs.gitea.com/help/faq))
 
 ## License
 
@@ -143,7 +134,7 @@ for the full license text.
 ## Further information
 
 <details>
-<summary>Looking for an overview of the interface? Check it out!</summary>
+<summary>Looking for an overview of the interface? Check it out the screenshots!</summary>
 
 ### Login/Register Page
 

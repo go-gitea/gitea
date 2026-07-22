@@ -12,30 +12,28 @@ const rule: JSRuleDefinition<JSRuleDefinitionTypeOptions> = {
     },
   },
 
-  create(context) {
-    return {
-      Literal(node) {
-        if (typeof node.value !== 'string' || !htmlOpenTag.test(node.value)) return;
+  create: (context) => ({
+    Literal(node) {
+      if (typeof node.value !== 'string' || !htmlOpenTag.test(node.value)) return;
 
-        context.report({
-          node,
-          messageId: 'unescapedHtmlLiteral',
-        });
-      },
-      TemplateLiteral(node) {
-        const templateStart = node.quasis[0]?.value.raw;
-        if (!templateStart || !htmlOpenTag.test(templateStart)) return;
+      context.report({
+        node,
+        messageId: 'unescapedHtmlLiteral',
+      });
+    },
+    TemplateLiteral(node) {
+      const templateStart = node.quasis[0]?.value.raw;
+      if (!templateStart || !htmlOpenTag.test(templateStart)) return;
 
-        const parent = node.parent;
-        if (parent?.type === 'TaggedTemplateExpression' && parent.tag.type === 'Identifier' && parent.tag.name === 'html') return;
+      const parent = node.parent;
+      if (parent?.type === 'TaggedTemplateExpression' && parent.tag.type === 'Identifier' && parent.tag.name === 'html') return;
 
-        context.report({
-          node,
-          messageId: 'unescapedHtmlLiteral',
-        });
-      },
-    };
-  },
+      context.report({
+        node,
+        messageId: 'unescapedHtmlLiteral',
+      });
+    },
+  }),
 };
 
 export default rule;

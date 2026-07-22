@@ -24,7 +24,7 @@ var (
 
 	// NOTE: All below regex matching do not perform any extra validation.
 	// Thus a link is produced even if the linked entity does not exist.
-	// While fast, this is also incorrect and lead to false positives.
+	// While fast, this is also incorrect and leads to false positives.
 	// TODO: fix invalid linking issue
 
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"

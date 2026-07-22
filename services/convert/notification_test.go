@@ -39,6 +39,36 @@ func TestToNotificationThreadOmitsRepoWhenAccessRevoked(t *testing.T) {
 	assert.Nil(t, thread.Repository)
 }
 
+func TestToNotificationThreadOmitsSubjectWhenAccessRevoked(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	// repo 2 is private; user 4 has no access to it
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.NoError(t, repo.LoadOwner(ctx))
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4, RepoID: repo.ID})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+
+	n := &activities_model.Notification{
+		ID:          12345,
+		UserID:      user.ID,
+		RepoID:      repo.ID,
+		Status:      activities_model.NotificationStatusUnread,
+		Source:      activities_model.NotificationSourceIssue,
+		IssueID:     issue.ID,
+		UpdatedUnix: timeutil.TimeStampNow(),
+		Issue:       issue,
+		Repository:  repo,
+		User:        user,
+	}
+
+	thread := ToNotificationThread(ctx, n)
+
+	// must not leak private issue metadata once access is revoked
+	assert.Nil(t, thread.Repository)
+	assert.Nil(t, thread.Subject)
+}
+
 func TestToNotificationThread(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 

@@ -54,14 +54,8 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test what happens if you use a file that is not an image
-	text, err := os.ReadFile(filepath.Join(setting.GetGiteaTestSourceRoot(), "tests/integration/README.md"))
-	assert.NoError(t, err)
-	if err != nil {
-		assert.FailNow(t, "Unable to open README.md")
-	}
-
 	opts = api.UpdateRepoAvatarOption{
-		Image: base64.StdEncoding.EncodeToString(text),
+		Image: base64.StdEncoding.EncodeToString([]byte("This is not an image")),
 	}
 
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).

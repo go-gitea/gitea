@@ -12,10 +12,10 @@
 						{{template "base/alert" .}}
 						<div class="required field {{if .Err_TeamName}}error{{end}}">
 							<label for="team_name">{{ctx.Locale.Tr "org.team_name"}}</label>
-							{{if eq .Team.LowerName "owners"}}
+							{{if .Team.IsOwnerTeam}}
 								<input type="hidden" name="team_name" value="{{.Team.Name}}">
 							{{end}}
-							<input id="team_name" name="team_name" value="{{.Team.Name}}" required {{if eq .Team.LowerName "owners"}}disabled{{end}} autofocus>
+							<input id="team_name" name="team_name" value="{{.Team.Name}}" required {{if .Team.IsOwnerTeam}}disabled{{end}} autofocus>
 							<span class="help">{{ctx.Locale.Tr "org.team_name_helper"}}</span>
 						</div>
 						<div class="field {{if .Err_Description}}error{{end}}">
@@ -23,7 +23,47 @@
 							<input id="description" name="description" value="{{.Team.Description}}" maxlength="255">
 							<span class="help">{{ctx.Locale.Tr "org.team_desc_helper"}}</span>
 						</div>
-						{{if not (eq .Team.LowerName "owners")}}
+						{{if .Team.IsOwnerTeam}}
+							<div class="field">
+								<label>{{ctx.Locale.Tr "org.teams.visibility"}}</label>
+								<div class="tw-mb-1">
+									{{if .Team.IsPrivate}}
+										<span class="ui mini label">{{ctx.Locale.Tr "org.teams.visibility_private"}}</span>
+									{{else if .Team.IsLimited}}
+										<span class="ui mini label">{{ctx.Locale.Tr "org.teams.visibility_limited"}}</span>
+									{{else if .Team.IsPublic}}
+										<span class="ui mini label">{{ctx.Locale.Tr "org.teams.visibility_public"}}</span>
+									{{end}}
+								</div>
+								<span class="help">{{ctx.Locale.Tr "org.teams.owners_visibility_fixed"}}</span>
+							</div>
+						{{end}}
+						{{if not .Team.IsOwnerTeam}}
+							<div class="grouped field">
+								<label>{{ctx.Locale.Tr "org.teams.visibility"}}</label>
+								<br>
+								<div class="field">
+									<div class="ui radio checkbox">
+										<input type="radio" name="visibility" value="private" {{if or .PageIsOrgTeamsNew .Team.IsPrivate}}checked{{end}}>
+										<label>{{ctx.Locale.Tr "org.teams.visibility_private"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_private_helper"}}</span>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui radio checkbox">
+										<input type="radio" name="visibility" value="limited" {{if .Team.IsLimited}}checked{{end}}>
+										<label>{{ctx.Locale.Tr "org.teams.visibility_limited"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_limited_helper"}}</span>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui radio checkbox">
+										<input type="radio" name="visibility" value="public" {{if .Team.IsPublic}}checked{{end}}>
+										<label>{{ctx.Locale.Tr "org.teams.visibility_public"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.visibility_public_helper"}}</span>
+									</div>
+								</div>
+							</div>
 							<div class="grouped field">
 								<label>{{ctx.Locale.Tr "org.team_access_desc"}}</label>
 								<br>
@@ -135,8 +175,8 @@
 								<button class="ui primary button">{{ctx.Locale.Tr "org.create_team"}}</button>
 							{{else}}
 								<button class="ui primary button">{{ctx.Locale.Tr "org.teams.update_settings"}}</button>
-								{{if not (eq .Team.LowerName "owners")}}
-									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
+								{{if not .Team.IsOwnerTeam}}
+									<button class="ui red button link-action" data-modal-confirm="#delete-team" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}
 							{{end}}
 						</div>
@@ -147,7 +187,7 @@
 	</div>
 </div>
 
-<div class="ui g-modal-confirm delete modal">
+<div class="ui small modal" id="delete-team">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "org.teams.delete_team_title"}}

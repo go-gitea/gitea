@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
       :jobs="topLevelJobs"
       :run-link="run.link"
       :workflow-id="run.workflowID"
-      :workflow-link="`${run.link}/workflow`"
+      :workflow-link="run.canViewWorkflowFile ? `${run.link}/workflow` : ''"
       :trigger-event="run.triggerEvent"
       :locale="locale"
     />

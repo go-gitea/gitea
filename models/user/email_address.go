@@ -348,8 +348,8 @@ func VerifyActiveEmailCode(ctx context.Context, code, email string) *EmailAddres
 		opts := &TimeLimitCodeOptions{Purpose: TimeLimitCodeActivateEmail, NewEmail: email}
 		data := makeTimeLimitCodeHashData(opts, user)
 		if base.VerifyTimeLimitCode(time.Now(), data, setting.Service.ActiveCodeLives, prefix) {
-			emailAddress := &EmailAddress{UID: user.ID, Email: email}
-			if has, _ := db.GetEngine(ctx).Get(emailAddress); has {
+			emailAddress, has, _ := db.Get[EmailAddress](ctx, builder.Eq{"uid": user.ID, "email": email})
+			if has {
 				return emailAddress
 			}
 		}

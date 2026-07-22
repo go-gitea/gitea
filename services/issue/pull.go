@@ -13,7 +13,6 @@ import (
 	org_model "gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 )
@@ -55,21 +54,21 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return nil, nil
 	}
 
-	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	repo, err := git.OpenRepository(pr.BaseRepo)
 	if err != nil {
 		return nil, err
 	}
 	defer repo.Close()
 
-	commit, err := repo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
+	commit, err := repo.GetBranchCommit(ctx, pr.BaseRepo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
 
 	var data string
 	for _, file := range codeOwnerFiles {
-		if blob, err := commit.GetBlobByPath(file); err == nil {
-			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+		if blob, err := commit.GetBlobByPath(ctx, repo, file); err == nil {
+			data, err = blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 			if err == nil {
 				break
 			}
@@ -85,13 +84,13 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	// get the mergebase
-	mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
+	mergeBase, err := git.MergeBase(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitHeadRefName())
+	changedFiles, err := repo.GetFilesChangedBetween(ctx, mergeBase, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}

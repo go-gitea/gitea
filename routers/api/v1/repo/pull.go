@@ -23,7 +23,6 @@ import (
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
@@ -1087,12 +1086,6 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 	baseRepo := ctx.Repo.Repository
 	compareReq := common.ParseCompareRouterParam(compareParam)
 
-	// remove the check when we support compare with carets
-	if compareReq.BaseOriRefSuffix != "" {
-		ctx.APIError(http.StatusBadRequest, "Unsupported comparison syntax: ref with suffix")
-		return nil, nil
-	}
-
 	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
 	switch {
 	case errors.Is(err, util.ErrInvalidArgument):
@@ -1113,7 +1106,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		headGitRepo = ctx.Repo.GitRepo
 		closer = func() {} // no need to close the head repo because it shares the base repo
 	} else {
-		headGitRepo, err = gitrepo.OpenRepository(ctx, headRepo)
+		headGitRepo, err = git.OpenRepository(headRepo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return nil, nil
@@ -1152,10 +1145,18 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		return nil, nil
 	}
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx)))
-	headRef := headGitRepo.UnstableGuessRefByShortName(util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch))
+	baseRef, err := common.ResolveRefWithSuffix(ctx, ctx.Repo.GitRepo, util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx)), compareReq.BaseOriRefSuffix)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil, nil
+	}
+	headRef, err := common.ResolveRefWithSuffix(ctx, headGitRepo, util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch), compareReq.HeadOriRefSuffix)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil, nil
+	}
 
-	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), compareReq.BaseOriRef, baseRef, compareReq.HeadOriRef, headRef)
+	log.Trace("Repo: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.FullName(), compareReq.BaseOriRef+compareReq.BaseOriRefSuffix, baseRef, compareReq.HeadOriRef+compareReq.HeadOriRefSuffix, headRef)
 
 	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
 	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
@@ -1246,6 +1247,13 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 	if err = pr.LoadHeadRepo(ctx); err != nil {
 		ctx.APIErrorInternal(err)
+		return
+	}
+
+	// a public-only token must not update (push into) a private head repo,
+	// even when the base repo named in the route is public
+	if !ctx.TokenCanAccessRepo(pr.HeadRepo) {
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -1417,7 +1425,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		return
 	}
 
-	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	baseGitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1561,7 +1569,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1588,7 +1596,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.Repository, baseGitRepo, startCommitID, endCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, baseGitRepo, startCommitID, endCommitID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
