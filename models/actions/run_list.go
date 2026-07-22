@@ -118,13 +118,6 @@ func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 			return nil
 		}}
 	}
-	if opts.RepoID == 0 {
-		// Exclude runs whose repository has been deleted.
-		return []db.JoinFunc{func(sess db.Engine) error {
-			sess.Join("INNER", "repository", "repository.id = action_run.repo_id")
-			return nil
-		}}
-	}
 	return nil
 }
 

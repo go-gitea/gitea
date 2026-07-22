@@ -5492,7 +5492,7 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "$ref": "#/responses/WorkflowRun"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5502,6 +5502,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -5717,7 +5720,7 @@
         ],
         "responses": {
           "200": {
-            "description": "success"
+            "$ref": "#/responses/WorkflowRun"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5806,56 +5809,6 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/actions/runs/{run}/jobs/{job_id}/logs": {
-      "get": {
-        "produces": [
-          "text/plain"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Download job logs as plain text",
-        "operationId": "getWorkflowJobLogs",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repository",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "run ID",
-            "name": "run",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "id of the job",
-            "name": "job_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Job logs"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       }

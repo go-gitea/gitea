@@ -21,24 +21,20 @@ import (
 	context_module "gitea.dev/services/context"
 )
 
-var (
-	workflowNameReplacer = strings.NewReplacer(`"`, "", "\r", "", "\n", "", "/", "-", `\`, "-")
-	jobNameReplacer      = strings.NewReplacer("/", "-", `\`, "-", "..", "__")
-)
+// logFileNameReplacer keeps a workflow or job name usable as a file name: it drops
+// path separators and traversal sequences so the result stays a single zip entry,
+// and drops the characters that would otherwise survive into a download filename.
+var logFileNameReplacer = strings.NewReplacer(`"`, "", "\r", "", "\n", "", "/", "-", `\`, "-", "..", "__")
 
 func sanitizeWorkflowFileName(workflowID string) string {
 	if p := strings.Index(workflowID, "."); p > 0 {
 		workflowID = workflowID[:p]
 	}
-	return workflowNameReplacer.Replace(workflowID)
-}
-
-func sanitizeJobFileName(name string) string {
-	return jobNameReplacer.Replace(name)
+	return logFileNameReplacer.Replace(workflowID)
 }
 
 func jobLogFileName(workflowID, jobName string, taskID int64) string {
-	return fmt.Sprintf("%s-%s-%d.log", sanitizeWorkflowFileName(workflowID), sanitizeJobFileName(jobName), taskID)
+	return fmt.Sprintf("%s-%s-%d.log", sanitizeWorkflowFileName(workflowID), logFileNameReplacer.Replace(jobName), taskID)
 }
 
 func resolveJobLogTask(ctx context.Context, job *actions_model.ActionRunJob) (*actions_model.ActionTask, error) {
@@ -54,9 +50,6 @@ func resolveJobLogTask(ctx context.Context, job *actions_model.ActionRunJob) (*a
 
 	if task.LogExpired {
 		return nil, util.NewNotExistErrorf("logs have been cleaned up")
-	}
-	if task.LogLength == 0 {
-		return nil, util.NewNotExistErrorf("logs not found")
 	}
 	return task, nil
 }
@@ -85,19 +78,44 @@ func openJobTaskLogs(ctx context.Context, job *actions_model.ActionRunJob) (io.R
 	return reader, task, nil
 }
 
-func appendJobLogToZip(ctx context.Context, zipWriter *zip.Writer, workflowID string, job *actions_model.ActionRunJob, task *actions_model.ActionTask) error {
-	reader, err := openTaskLogs(ctx, task)
-	if err != nil {
-		return err
-	}
-	defer reader.Close()
+type jobLogEntry struct {
+	job  *actions_model.ActionRunJob
+	task *actions_model.ActionTask
+}
 
-	zipFile, err := zipWriter.Create(jobLogFileName(workflowID, job.Name, task.ID))
+// collectJobLogEntries pairs each job with the task holding its logs, skipping jobs
+// that never started or whose logs are already gone. The tasks are fetched in one query.
+func collectJobLogEntries(ctx context.Context, jobs []*actions_model.ActionRunJob) ([]jobLogEntry, error) {
+	taskIDs := make([]int64, 0, len(jobs))
+	for _, job := range jobs {
+		if taskID := job.EffectiveTaskID(); taskID != 0 {
+			taskIDs = append(taskIDs, taskID)
+		}
+	}
+
+	tasks, err := actions_model.GetTasksByIDs(ctx, taskIDs)
 	if err != nil {
-		return fmt.Errorf("Create zip entry for job %d: %w", job.ID, err)
+		return nil, fmt.Errorf("GetTasksByIDs: %w", err)
+	}
+
+	entries := make([]jobLogEntry, 0, len(jobs))
+	for _, job := range jobs {
+		task := tasks[job.EffectiveTaskID()]
+		if task == nil || task.LogExpired {
+			continue
+		}
+		entries = append(entries, jobLogEntry{job: job, task: task})
+	}
+	return entries, nil
+}
+
+func writeJobLogToZip(zipWriter *zip.Writer, workflowID string, entry jobLogEntry, reader io.Reader) error {
+	zipFile, err := zipWriter.Create(jobLogFileName(workflowID, entry.job.Name, entry.task.ID))
+	if err != nil {
+		return fmt.Errorf("create zip entry for job %d: %w", entry.job.ID, err)
 	}
 	if _, err = io.Copy(zipFile, reader); err != nil {
-		return fmt.Errorf("Write job %d logs to zip: %w", job.ID, err)
+		return fmt.Errorf("write job %d logs to zip: %w", entry.job.ID, err)
 	}
 	return nil
 }
@@ -110,54 +128,65 @@ func DownloadActionsRunJobLogsWithID(ctx *context_module.Base, ctxRepo *repo_mod
 	return DownloadActionsRunJobLogs(ctx, ctxRepo, job)
 }
 
-func DownloadActionsRunAllJobLogs(ctx *context_module.Base, ctxRepo *repo_model.Repository, runID int64) error {
-	runJobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, ctxRepo.ID, runID)
+// DownloadActionsRunAllJobLogs streams the logs of the run's latest attempt as a zip archive.
+// The run must already be resolved against the requesting repository.
+func DownloadActionsRunAllJobLogs(ctx *context_module.Base, run *actions_model.ActionRun) error {
+	runJobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
 	if err != nil {
-		return fmt.Errorf("GetLatestAttemptJobsByRepoAndRunID: %w", err)
+		return fmt.Errorf("GetLatestAttemptJobsByRun: %w", err)
 	}
 
-	if len(runJobs) == 0 {
-		return util.NewNotExistErrorf("no jobs found for run %d", runID)
+	entries, err := collectJobLogEntries(ctx, runJobs)
+	if err != nil {
+		return err
 	}
 
-	if err := runJobs[0].LoadRun(ctx); err != nil {
-		return fmt.Errorf("LoadRun: %w", err)
-	}
-	workflowID := runJobs[0].Run.WorkflowID
-
-	type jobLogEntry struct {
-		job  *actions_model.ActionRunJob
-		task *actions_model.ActionTask
-	}
-	logEntries := make([]jobLogEntry, 0, len(runJobs))
-	for _, job := range runJobs {
-		task, err := resolveJobLogTask(ctx, job)
+	// Open the first readable log before writing anything: once the response headers and
+	// the zip stream are committed, a failure can no longer be reported to the client.
+	firstIdx := -1
+	var firstReader io.ReadSeekCloser
+	for i, entry := range entries {
+		reader, err := openTaskLogs(ctx, entry.task)
 		if err != nil {
-			if errors.Is(err, util.ErrNotExist) {
-				continue
-			}
-			return err
+			log.Error("Failed to open logs of job %d: %v", entry.job.ID, err)
+			continue
 		}
-		logEntries = append(logEntries, jobLogEntry{job: job, task: task})
+		firstIdx, firstReader = i, reader
+		break
 	}
-	if len(logEntries) == 0 {
+	if firstReader == nil {
 		return util.NewNotExistErrorf("logs not found")
 	}
+	defer firstReader.Close()
 
-	ctx.Resp.Header().Set("Content-Type", "application/zip")
-	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(
-		fmt.Sprintf("%s-run-%d-logs.zip", sanitizeWorkflowFileName(workflowID), runID),
-	))
+	ctx.SetServeHeaders(context_module.ServeHeaderOptions{
+		Filename:           fmt.Sprintf("%s-run-%d-logs.zip", sanitizeWorkflowFileName(run.WorkflowID), run.ID),
+		ContentType:        "application/zip",
+		ContentDisposition: httplib.ContentDispositionAttachment,
+	})
 
 	zipWriter := zip.NewWriter(ctx.Resp)
-	defer zipWriter.Close()
+	defer func() {
+		if err := zipWriter.Close(); err != nil {
+			log.Error("Failed to finalize logs zip of run %d: %v", run.ID, err)
+		}
+	}()
 
-	// Best-effort: the response headers and zip stream are already committed, so a
-	// failure to read one job's logs must not abort the whole archive. Log and skip.
-	for _, entry := range logEntries {
-		if err := appendJobLogToZip(ctx, zipWriter, workflowID, entry.job, entry.task); err != nil {
-			log.Error("Failed to add logs for job %d to zip: %v", entry.job.ID, err)
+	// Best-effort from here on: the response is already committed, so a failure to read
+	// one job's logs must not abort the whole archive. Log and skip.
+	if err := writeJobLogToZip(zipWriter, run.WorkflowID, entries[firstIdx], firstReader); err != nil {
+		log.Error("Failed to add logs of job %d to zip: %v", entries[firstIdx].job.ID, err)
+	}
+	for _, entry := range entries[firstIdx+1:] {
+		reader, err := openTaskLogs(ctx, entry.task)
+		if err != nil {
+			log.Error("Failed to open logs of job %d: %v", entry.job.ID, err)
 			continue
+		}
+		err = writeJobLogToZip(zipWriter, run.WorkflowID, entry, reader)
+		reader.Close()
+		if err != nil {
+			log.Error("Failed to add logs of job %d to zip: %v", entry.job.ID, err)
 		}
 	}
 	return nil
