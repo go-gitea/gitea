@@ -114,7 +114,6 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   expect(new Uint8Array(decodeURLEncodedBase64('YQ'))).toEqual(uint8array('a'));
   expect(new Uint8Array(decodeURLEncodedBase64('YQ=='))).toEqual(uint8array('a'));
 
-  // full byte range must round-trip: WebAuthn payloads are binary, not ASCII
   const allBytes = Uint8Array.from({length: 256}, (_, i) => i);
   expect(new Uint8Array(decodeURLEncodedBase64(encodeURLEncodedBase64(allBytes)))).toEqual(allBytes);
 });
