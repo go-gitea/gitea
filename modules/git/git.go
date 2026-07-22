@@ -37,7 +37,14 @@ type Features struct {
 	SupportGitMergeTree        bool           // >= 2.40 // we also need "--merge-base"
 }
 
-var defaultFeatures *Features
+type GlobalConfigStruct struct {
+	DiffOrderFile string
+}
+
+var (
+	defaultFeatures *Features
+	GlobalConfig    *GlobalConfigStruct
+)
 
 func (f *Features) CheckVersionAtLeast(atLeast string) bool {
 	return f.gitVersion.Compare(version.Must(version.NewVersion(atLeast))) >= 0
