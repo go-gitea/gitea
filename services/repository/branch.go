@@ -19,7 +19,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -123,9 +122,9 @@ func getDivergenceCacheKey(repoID int64, branchName string) string {
 }
 
 // getDivergenceFromCache gets the divergence from cache
-func getDivergenceFromCache(repoID int64, branchName string) (*gitrepo.DivergeObject, bool) {
+func getDivergenceFromCache(repoID int64, branchName string) (*git.DivergeObject, bool) {
 	data, ok := cache.GetCache().Get(getDivergenceCacheKey(repoID, branchName))
-	res := gitrepo.DivergeObject{
+	res := git.DivergeObject{
 		Ahead:  -1,
 		Behind: -1,
 	}
@@ -139,7 +138,7 @@ func getDivergenceFromCache(repoID int64, branchName string) (*gitrepo.DivergeOb
 	return &res, true
 }
 
-func putDivergenceFromCache(repoID int64, branchName string, divergence *gitrepo.DivergeObject) error {
+func putDivergenceFromCache(repoID int64, branchName string, divergence *git.DivergeObject) error {
 	bs, err := json.Marshal(divergence)
 	if err != nil {
 		return err
@@ -178,7 +177,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 	p := protectedBranches.GetFirstMatched(branchName)
 	isProtected := p != nil
 
-	var divergence *gitrepo.DivergeObject
+	var divergence *git.DivergeObject
 
 	// it's not default branch
 	if repo.DefaultBranch != dbBranch.Name && !dbBranch.IsDeleted {
@@ -186,7 +185,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		divergence, cached = getDivergenceFromCache(repo.ID, dbBranch.Name)
 		if !cached {
 			var err error
-			divergence, err = gitrepo.GetDivergingCommits(ctx, repo, repo.DefaultBranch, git.BranchPrefix+branchName)
+			divergence, err = git.GetDivergingCommits(ctx, repo, repo.DefaultBranch, git.BranchPrefix+branchName)
 			if err != nil {
 				log.Error("GetDivergingCommits: %v", err)
 			} else {
@@ -199,7 +198,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 
 	if divergence == nil {
 		// tolerate the error that we cannot get divergence
-		divergence = &gitrepo.DivergeObject{Ahead: -1, Behind: -1}
+		divergence = &git.DivergeObject{Ahead: -1, Behind: -1}
 	}
 
 	pr, err := issues_model.GetLatestPullRequestByHeadInfo(ctx, repo.ID, branchName)
@@ -226,7 +225,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		if pr.HasMerged {
 			baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
 			if !ok {
-				baseGitRepo, err = gitrepo.OpenRepository(pr.BaseRepo)
+				baseGitRepo, err = git.OpenRepository(pr.BaseRepo)
 				if err != nil {
 					return nil, fmt.Errorf("OpenRepository: %v", err)
 				}
@@ -385,7 +384,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		return err
 	}
 
-	if err := gitrepo.Push(ctx, repo, repo, git.PushOptions{
+	if err := git.PushManaged(ctx, repo, repo, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	}); err != nil {
@@ -453,7 +452,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	}
 
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
-		err2 := gitrepo.RenameBranch(ctx, repo, from, to)
+		err2 := git.RenameBranch(ctx, repo, from, to)
 		if err2 != nil {
 			return err2
 		}
@@ -474,7 +473,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 				log.Error("CancelPreviousJobs: %v", err)
 			}
 
-			err2 = gitrepo.SetDefaultBranch(ctx, repo, to)
+			err2 = git.SetDefaultBranch(ctx, repo, to)
 			if err2 != nil {
 				return err2
 			}
@@ -545,7 +544,7 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 
 	// branch protection will be checked in the pre received hook, so that we don't need any check here
-	return gitrepo.Push(ctx, repo, repo, pushOpts)
+	return git.PushManaged(ctx, repo, repo, pushOpts)
 }
 
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default or pull request target")
@@ -589,7 +588,7 @@ func deleteBranchInternal(ctx context.Context, doer *user_model.User, repo *repo
 
 	// process the branch in git
 	if branchCommit != nil {
-		err := gitrepo.DeleteBranch(ctx, repo, branchName, true)
+		err := git.DeleteBranch(ctx, repo, branchName, true)
 		if err != nil {
 			return false, fmt.Errorf("DeleteBranch: %w", err)
 		}
@@ -729,7 +728,7 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newB
 			log.Error("CancelPreviousJobs: %v", err)
 		}
 
-		return gitrepo.SetDefaultBranch(ctx, repo, newBranchName)
+		return git.SetDefaultBranch(ctx, repo, newBranchName)
 	}); err != nil {
 		return err
 	}
@@ -792,14 +791,14 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 	// if the fork repo has new commits, this call will fail because they are not in the base repo
 	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
 	// so at the moment, we first check the update time, then check whether the fork branch has base's head
-	diff, err := gitrepo.GetDivergingCommits(ctx, baseRepo, baseGitBranch.CommitID, headGitBranch.CommitID)
+	diff, err := git.GetDivergingCommits(ctx, baseRepo, baseGitBranch.CommitID, headGitBranch.CommitID)
 	if err != nil {
 		info.BaseHasNewCommits = baseGitBranch.UpdatedUnix > headGitBranch.UpdatedUnix
 		if headRepo.IsFork && info.BaseHasNewCommits {
 			return info, nil
 		}
 		// if the base's update time is before the fork, check whether the base's head is in the fork
-		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, headRepo)
+		headGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, headRepo)
 		if err != nil {
 			return nil, err
 		}
@@ -873,13 +872,13 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 		return err
 	}
 
-	gitBaseRepo, gitBaseCloser, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	gitBaseRepo, gitBaseCloser, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return err
 	}
 	defer gitBaseCloser.Close()
 
-	gitHeadRepo, gitHeadCloser, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
+	gitHeadRepo, gitHeadCloser, err := git.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
 	if err != nil {
 		return err
 	}

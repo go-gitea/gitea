@@ -11,7 +11,6 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 
@@ -129,7 +128,7 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s", repo.FullName())
-			gitRepo, err := gitrepo.OpenRepository(repo)
+			gitRepo, err := git.OpenRepository(repo)
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue

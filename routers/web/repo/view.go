@@ -268,11 +268,11 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	ctx.Data["FileIconPoolHTML"] = renderedIconPool.RenderToHTML()
 }
 
-func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
+func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.TreeEntry, git.Entries) {
 	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.SubTree", err)
-		return nil
+		return nil, nil
 	}
 
 	// TODO: LAST-COMMIT-ASYNC-LOADING: search this keyword to see more details
@@ -283,20 +283,20 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
-		return nil
+		return nil, nil
 	}
 
 	if !entry.IsDir() {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
-		return nil
+		return nil, nil
 	}
 
-	allEntries, err := tree.ListEntries(ctx, ctx.Repo.GitRepo)
+	subEntries, err := tree.ListEntries(ctx, ctx.Repo.GitRepo)
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
-		return nil
+		return nil, nil
 	}
-	allEntries.CustomSort(base.NaturalSortCompare)
+	subEntries.CustomSort(base.NaturalSortCompare)
 
 	commitInfoCtx := gocontext.Context(ctx)
 	if timeout > 0 {
@@ -305,10 +305,10 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.RepoLink, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := subEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.RepoLink, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
-		return nil
+		return nil, nil
 	}
 
 	{ // this block is for testing purpose only
@@ -340,9 +340,9 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	}
 
 	if !loadLatestCommitData(ctx, latestCommit) {
-		return nil
+		return nil, nil
 	}
-	return allEntries
+	return entry, subEntries
 }
 
 // RenderUserCards render a page show users according the input template

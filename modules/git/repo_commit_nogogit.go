@@ -19,7 +19,7 @@ import (
 func (repo *Repository) ResolveReference(ctx context.Context, name string) (string, error) {
 	stdout, _, err := gitcmd.NewCommand("show-ref", "--hash").
 		AddDynamicArguments(name).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {

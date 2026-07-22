@@ -8,7 +8,7 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	repo_service "gitea.dev/services/repository"
@@ -99,7 +99,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
+	exist, err := git.IsRepositoryExist(ctx, repo_model.CodeRepoByName(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -161,7 +161,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
+	exist, err := git.IsRepositoryExist(ctx, repo_model.CodeRepoByName(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

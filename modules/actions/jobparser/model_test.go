@@ -4,6 +4,7 @@
 package jobparser
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -461,6 +462,51 @@ func TestParseMappingNode(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, test.scalars, scalars, scalars)
 			assert.Equal(t, test.datas, datas, datas)
+		})
+	}
+}
+
+func TestEvaluateJobIfExpressionMatrix(t *testing.T) {
+	ifExprs := []string{
+		`${{ contains(fromJSON('["linux","windows"]'), matrix.target) }}`,
+		`${{ contains('["linux","windows"]', matrix.target) }}`,
+	}
+
+	want := map[string]bool{
+		"build (linux)":   true,
+		"build (windows)": true,
+		"build (macos)":   false,
+	}
+
+	for _, ifExpr := range ifExprs {
+		t.Run(ifExpr, func(t *testing.T) {
+			content := fmt.Sprintf(`
+name: test
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: %s
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [linux, windows, macos]
+    steps:
+      - run: echo ${{ matrix.target }}
+`, ifExpr)
+
+			swfs, err := Parse([]byte(content))
+			require.NoError(t, err)
+			require.Len(t, swfs, 3)
+
+			got := make(map[string]bool, len(swfs))
+			for _, swf := range swfs {
+				id, job := swf.Job()
+				shouldRun, err := EvaluateJobIfExpression(id, job, map[string]any{}, map[string]*JobResult{id: {}}, nil, nil)
+				require.NoError(t, err)
+				got[job.Name] = shouldRun
+			}
+			assert.Equal(t, want, got)
 		})
 	}
 }

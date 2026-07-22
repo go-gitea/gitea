@@ -26,7 +26,6 @@ import (
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -410,7 +409,7 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		assert.Empty(t, payloads)
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		gitRepo, err := gitrepo.OpenRepository(repo1)
+		gitRepo, err := git.OpenRepository(repo1)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -461,7 +460,7 @@ func Test_WebhookPushToNewBranch(t *testing.T) {
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "new_branch")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		gitRepo, err := gitrepo.OpenRepository(repo1)
+		gitRepo, err := git.OpenRepository(repo1)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -926,7 +925,7 @@ func Test_WebhookStatus(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-		gitRepo1, err := gitrepo.OpenRepository(repo1)
+		gitRepo1, err := git.OpenRepository(repo1)
 		assert.NoError(t, err)
 		commitID, err := gitRepo1.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 		assert.NoError(t, err)
@@ -999,7 +998,7 @@ func Test_WebhookWorkflowJob(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-		gitRepo1, err := gitrepo.OpenRepository(repo1)
+		gitRepo1, err := git.OpenRepository(repo1)
 		assert.NoError(t, err)
 
 		runner := newMockRunner()
@@ -1191,7 +1190,7 @@ func testWorkflowRunEvents(t *testing.T, webhookData *workflowRunWebhook) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := gitrepo.OpenRepository(repo1)
+	gitRepo1, err := git.OpenRepository(repo1)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
@@ -1316,7 +1315,7 @@ func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook)
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := gitrepo.OpenRepository(repo1)
+	gitRepo1, err := git.OpenRepository(repo1)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
@@ -1486,7 +1485,7 @@ func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *wo
 	testAPICreateWebhookForRepo(t, session, "user2", repoName, webhookData.URL, "workflow_run")
 
 	ctx := t.Context()
-	gitRepo, err := gitrepo.OpenRepository(testRepo)
+	gitRepo, err := git.OpenRepository(testRepo)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
@@ -1704,7 +1703,7 @@ func testWebhookWorkflowRun(t *testing.T, webhookData *workflowRunWebhook) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := gitrepo.OpenRepository(repo1)
+	gitRepo1, err := git.OpenRepository(repo1)
 	assert.NoError(t, err)
 
 	runner := newMockRunner()
@@ -1805,7 +1804,7 @@ func testWebhookWorkflowRunDepthLimit(t *testing.T, webhookData *workflowRunWebh
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := gitrepo.OpenRepository(repo1)
+	gitRepo1, err := git.OpenRepository(repo1)
 	assert.NoError(t, err)
 
 	// 2. trigger the webhooks

@@ -11,8 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -44,7 +42,7 @@ func (repo *Repository) GetDiffNumChangedFiles(ctx context.Context, base, head s
 	if err := gitcmd.NewCommand("diff", "-z", "--name-only").
 		AddDynamicArguments(base + separator + head).
 		AddArguments("--").
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdoutCopy(w).
 		RunWithStderr(ctx); err != nil {
 		if gitcmd.IsStderr(err, gitcmd.StderrNoMergeBase) {
@@ -62,7 +60,7 @@ var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdoutCopy(w).
 		Run(ctx)
 }
@@ -71,7 +69,7 @@ func (repo *Repository) GetDiff(ctx context.Context, compareArg string, w io.Wri
 func (repo *Repository) GetDiffBinary(ctx context.Context, compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("diff", "-p", "--binary", "--histogram").
 		AddDynamicArguments(compareArg).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdoutCopy(w).
 		Run(ctx)
 }
@@ -79,7 +77,7 @@ func (repo *Repository) GetDiffBinary(ctx context.Context, compareArg string, w 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
 func (repo *Repository) GetPatch(ctx context.Context, compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdoutCopy(w).
 		Run(ctx)
 }
@@ -98,7 +96,7 @@ func (repo *Repository) GetFilesChangedBetween(ctx context.Context, base, head s
 	} else {
 		cmd.AddDynamicArguments(base, head)
 	}
-	stdout, _, err := cmd.WithDir(repo.Path).RunStdString(ctx)
+	stdout, _, err := cmd.WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -115,8 +113,8 @@ func (repo *Repository) GetFilesChangedBetween(ctx context.Context, base, head s
 // ReadPatchCommit will check if a diff patch exists and return stats
 func (repo *Repository) ReadPatchCommit(prID int64) (commitSHA string, err error) {
 	// Migrated repositories download patches to "pulls" location
-	patchFile := fmt.Sprintf("pulls/%d.patch", prID)
-	loadPatch, err := os.Open(filepath.Join(repo.Path, patchFile))
+	repoFS := GetRepoFS(repo)
+	loadPatch, err := repoFS.Open(fmt.Sprintf("pulls/%d.patch", prID))
 	if err != nil {
 		return "", err
 	}

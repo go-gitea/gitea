@@ -18,7 +18,6 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
@@ -142,7 +141,7 @@ func prepareHomeSidebarLicenses(ctx *context.Context) {
 }
 
 func prepareToRenderDirectory(ctx *context.Context) {
-	entries := renderDirectoryFiles(ctx, 1*time.Second)
+	treeEntry, subEntries := renderDirectoryFiles(ctx, 1*time.Second)
 	if ctx.Written() {
 		return
 	}
@@ -152,12 +151,11 @@ func prepareToRenderDirectory(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+ctx.Repo.TreePath, ctx.Repo.RefFullName.ShortName())
 	}
 
-	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, ctx.Repo.TreePath, entries, true)
+	subfolder, readmeFile, err := findReadmeFileInRepoTree(ctx, ctx.Repo.TreePath, treeEntry, subEntries)
 	if err != nil {
-		ctx.ServerError("findReadmeFileInEntries", err)
+		ctx.ServerError("findReadmeFileInRepo", err)
 		return
 	}
-
 	prepareToRenderReadmeFile(ctx, subfolder, readmeFile)
 }
 
@@ -223,7 +221,7 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 	showEmpty := true
 	if ctx.Repo.GitRepo == nil {
 		// in case the repo really exists and works, but the status was incorrectly marked as "broken", we need to open and check it again
-		ctx.Repo.GitRepo, _ = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+		ctx.Repo.GitRepo, _ = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 	}
 	if ctx.Repo.GitRepo != nil {
 		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty(ctx)
@@ -357,7 +355,8 @@ func redirectFollowSymlink(ctx *context.Context, treePathEntry *git.TreeEntry) b
 		return false
 	}
 	if treePathEntry.IsLink() {
-		if res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, treePathEntry); err == nil {
+		res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, treePathEntry)
+		if err == nil {
 			redirect := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(res.TargetFullPath) + "?" + ctx.Req.URL.RawQuery
 			ctx.Redirect(redirect)
 			return true
