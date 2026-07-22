@@ -25,7 +25,7 @@ type RepositoryFacade interface {
 }
 
 func (c *Command) WithRepo(repo RepositoryFacade) *Command {
-	c.opts.Dir = RepoLocalPath(repo)
+	c.gitDir = RepoLocalPath(repo)
 	return c
 }
 
