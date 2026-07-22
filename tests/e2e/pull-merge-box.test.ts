@@ -14,10 +14,10 @@ test('merge box merges a pull request', async ({page, request}) => {
   const [index] = await Promise.all([createPR, login(page)]);
   await page.goto(`/${owner}/${repo}/pulls/${index}`, {waitUntil: 'commit'});
 
-  const mergeBox = page.locator('.pull-merge-box');
-  await mergeBox.locator('.merge-button button.ui.button').first().click();
-  await mergeBox.locator('form').getByRole('button', {name: /Create merge commit/}).click();
+  // expand the merge form, then submit the merge
+  await page.getByRole('button', {name: 'Create merge commit'}).click();
+  await page.locator('form.form-fetch-action').getByRole('button', {name: 'Create merge commit'}).click();
 
-  await expect(mergeBox).toContainText(/successfully merged/i);
+  await expect(page.getByText(/successfully merged/i)).toBeVisible();
   await assertNoJsError(page);
 });
