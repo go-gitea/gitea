@@ -10,13 +10,15 @@ import (
 	"strings"
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	project "gitea.dev/services/projects"
+	"gitea.dev/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -363,5 +365,30 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		issueIDs = getProjectIssueIDs(t, htmlDoc)
 		assert.Contains(t, issueIDs, issue16.ID)
 		assert.NotContains(t, issueIDs, issue17.ID)
+	})
+}
+
+func TestProjects(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	t.Run("LoadIssuesAssigneesForProject", func(t *testing.T) {
+		_ = db.TruncateBeans(t.Context(), "project_issue", "issue_assignees")
+		_ = db.Insert(t.Context(),
+			&project_model.ProjectIssue{ProjectID: 1, IssueID: 1},
+			&project_model.ProjectIssue{ProjectID: 1, IssueID: 6},
+		)
+		_ = db.Insert(t.Context(),
+			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 1},
+			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 10},
+			&issues_model.IssueAssignees{IssueID: 1, AssigneeID: 2},
+			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 2},
+			&issues_model.IssueAssignees{IssueID: 6, AssigneeID: 4},
+		)
+		assignees, err := project.LoadIssuesAssigneesForProject(t.Context(), 1)
+		require.NoError(t, err)
+		require.Len(t, assignees, 4)
+		require.Equal(t, "user1", assignees[0].Name)
+		require.Equal(t, "user10", assignees[1].Name)
+		require.Equal(t, "user2", assignees[2].Name)
+		require.Equal(t, "user4", assignees[3].Name)
 	})
 }

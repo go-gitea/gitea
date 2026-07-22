@@ -7,19 +7,19 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/modules/label"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	shared_label "code.gitea.io/gitea/routers/web/shared/label"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	issue_service "code.gitea.io/gitea/services/issue"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/modules/label"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	shared_label "gitea.dev/routers/web/shared/label"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
 )
 
 const (
@@ -179,9 +179,11 @@ func UpdateIssueLabel(ctx *context.Context) {
 			}
 		}
 	case "attach", "detach", "toggle", "toggle-alt":
-		label, err := issues_model.GetLabelByID(ctx, ctx.FormInt64("id"))
+		// scope the label to this repo (or its org) so a foreign label ID is 404, not an oracle
+		labelID := ctx.FormInt64("id")
+		label, err := issues_model.GetLabelInRepoOrOrgByID(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner.ID, ctx.Repo.Owner.IsOrganization(), labelID)
 		if err != nil {
-			if issues_model.IsErrRepoLabelNotExist(err) {
+			if errors.Is(err, util.ErrNotExist) {
 				ctx.HTTPError(http.StatusNotFound, "GetLabelByID")
 			} else {
 				ctx.ServerError("GetLabelByID", err)

@@ -8,12 +8,11 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
 
 	"github.com/urfave/cli/v3"
 )
@@ -128,8 +127,8 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 		}
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
-			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RelativePath())
-			gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+			log.Trace("Synchronizing repo %s", repo.FullName())
+			gitRepo, err := git.OpenRepository(repo)
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue

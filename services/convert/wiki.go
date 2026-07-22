@@ -6,8 +6,8 @@ package convert
 import (
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
+	"gitea.dev/modules/git"
+	api "gitea.dev/modules/structs"
 )
 
 // ToWikiCommit convert a git commit into a WikiCommit
@@ -28,7 +28,7 @@ func ToWikiCommit(commit *git.Commit) *api.WikiCommit {
 			},
 			Date: commit.Committer.When.UTC().Format(time.RFC3339),
 		},
-		Message: commit.CommitMessage,
+		Message: commit.MessageUTF8(),
 	}
 }
 

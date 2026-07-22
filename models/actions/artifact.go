@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-// This artifact server is inspired by https://github.com/nektos/act/blob/master/pkg/artifacts/server.go.
+// This artifact server is inspired by the Gitea runner artifact server implementation.
 // It updates url setting and uses ObjectStore to handle artifacts persistence.
 
 package actions
@@ -11,10 +11,10 @@ import (
 	"errors"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )

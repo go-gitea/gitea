@@ -11,27 +11,26 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	"code.gitea.io/gitea/models/pull"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	"code.gitea.io/gitea/services/automergequeue"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	"gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/automergequeue"
+	notify_service "gitea.dev/services/notify"
 )
 
 // prPatchCheckerQueue represents a queue to handle update pull request tests
@@ -139,7 +138,7 @@ const (
 //   - merge: both the head commits must be verified and Gitea must sign the merge commit.
 //   - rebase, rebase-merge, squash: Gitea rewrites the commits and signs each, so only Gitea's
 //     signing ability is checked.
-func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, mergeStyle repo_model.MergeStyle, adminForceMerge bool) error {
+func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *issues_model.PullRequest, mergeCheckType MergeCheckType, mergeStyle repo_model.MergeStyle, forceMerge bool) error {
 	return db.WithTx(stdCtx, func(ctx context.Context) error {
 		if pr.HasMerged {
 			return ErrHasMerged
@@ -176,21 +175,21 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 			return ErrIsChecking
 		}
 
-		if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
-			if !errors.Is(err, ErrNotReadyToMerge) {
-				log.Error("Error whilst checking pull branch protection for %-v: %v", pr, err)
-				return err
+		if errProtection := CheckPullBranchProtections(ctx, pr, false); errProtection != nil {
+			if !errors.Is(errProtection, ErrNotReadyToMerge) {
+				log.Error("Error whilst checking pull branch protection for %-v: %v", pr, errProtection)
+				return errProtection
 			}
 
 			// Now the branch protection check failed, check whether the failure could be skipped (skip by setting err = nil)
 
 			// * when doing Auto Merge (Scheduled Merge After Checks Succeed), skip the branch protection check
 			if mergeCheckType == MergeCheckTypeAuto {
-				err = nil
+				errProtection = nil
 			}
 
-			// * if admin tries to "Force Merge", they could sometimes skip the branch protection check
-			if adminForceMerge {
+			// * if the doer tries to "Force Merge", check whether it is really allowed
+			if forceMerge {
 				isRepoAdmin, errForceMerge := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer)
 				if errForceMerge != nil {
 					return fmt.Errorf("IsUserRepoAdmin failed, repo: %v, doer: %v, err: %w", pr.BaseRepoID, doer.ID, errForceMerge)
@@ -201,16 +200,18 @@ func CheckPullMergeable(stdCtx context.Context, doer *user_model.User, perm *acc
 					return fmt.Errorf("GetFirstMatchProtectedBranchRule failed, repo: %v, base branch: %v, err: %w", pr.BaseRepoID, pr.BaseBranch, errForceMerge)
 				}
 
-				// if doer is admin and the "Force Merge" is not blocked, then clear the branch protection check error
-				blockAdminForceMerge := protectedBranchRule != nil && protectedBranchRule.BlockAdminMergeOverride
-				if isRepoAdmin && !blockAdminForceMerge {
-					err = nil
+				canForceMerge := isRepoAdmin
+				if protectedBranchRule != nil {
+					canForceMerge = git_model.CanBypassBranchProtection(ctx, protectedBranchRule, doer, isRepoAdmin)
+				}
+				if canForceMerge {
+					errProtection = nil
 				}
 			}
 
 			// If there is still a branch protection check error, return it
-			if err != nil {
-				return err
+			if errProtection != nil {
+				return errProtection
 			}
 		}
 
@@ -245,7 +246,7 @@ func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest,
 		return nil
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return err
 	}
@@ -262,7 +263,7 @@ func checkSigningRequirements(ctx context.Context, pr *issues_model.PullRequest,
 	}
 
 	if mergeStyle != repo_model.MergeStyleFastForwardOnly {
-		if _, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo); err != nil {
+		if _, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo, pr.BaseBranch, pr.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}
@@ -314,7 +315,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 	// Check if the pull request is merged into BaseBranch
 	cmd := gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(prHeadRef, pr.BaseBranch)
-	if err := gitrepo.RunCmdWithStderr(ctx, pr.BaseRepo, cmd); err != nil {
+	if err := cmd.WithRepo(pr.BaseRepo).RunWithStderr(ctx); err != nil {
 		if gitcmd.IsErrorExitCode(err, 1) {
 			// prHeadRef is not an ancestor of the base branch
 			return nil, nil //nolint:nilnil // return nil to indicate that the PR head is not merged
@@ -326,12 +327,12 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	// If merge-base successfully exits then prHeadRef is an ancestor of pr.BaseBranch
 
 	// Find the head commit id
-	prHeadCommitID, err := gitrepo.GetFullCommitID(ctx, pr.BaseRepo, prHeadRef)
+	prHeadCommitID, err := git.GetFullCommitID(ctx, pr.BaseRepo, prHeadRef)
 	if err != nil {
 		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(pr.BaseRepo)
 	if err != nil {
 		return nil, fmt.Errorf("%-v OpenRepository: %w", pr.BaseRepo, err)
 	}
@@ -339,19 +340,25 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 
 	objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 
-	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, _, err := gitrepo.RunCmdString(ctx, pr.BaseRepo,
-		gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
-			AddDynamicArguments(prHeadCommitID+".."+pr.BaseBranch))
+	// Get the commit from BaseBranch where the pull request got merged.
+	// When several PRs targeting the same base are merged in a single push,
+	// rev-list returns one line per merge commit on the ancestry path; we
+	// only want the first one (the oldest, with --reverse, i.e. the merge
+	// commit that actually introduced this PR).
+	mergeCommit, _, err := gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
+		AddDynamicArguments(prHeadCommitID + ".." + pr.BaseBranch).WithRepo(pr.BaseRepo).RunStdString(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
-	} else if len(mergeCommit) < objectFormat.FullLength() {
+	}
+
+	// only use the latest commit as merge commit if the output contains multiple commits
+	mergeCommit = strings.TrimSpace(mergeCommit)
+	mergeCommit, _, _ = strings.Cut(mergeCommit, "\n")
+	if len(mergeCommit) < objectFormat.FullLength() {
 		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = prHeadCommitID
 	}
-	mergeCommit = strings.TrimSpace(mergeCommit)
-
-	commit, err := gitRepo.GetCommit(mergeCommit)
+	commit, err := gitRepo.GetCommit(ctx, mergeCommit)
 	if err != nil {
 		return nil, fmt.Errorf("GetMergeCommit[%s]: %w", mergeCommit, err)
 	}

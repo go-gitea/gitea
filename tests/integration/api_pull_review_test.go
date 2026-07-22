@@ -8,19 +8,19 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	api "code.gitea.io/gitea/modules/structs"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	api "gitea.dev/modules/structs"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -375,11 +375,11 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: pullIssue.PosterID})
 	require.NoError(t, pullIssue.LoadPullRequest(ctx))
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	latestCommitID, err := gitRepo.GetRefCommitID(pullIssue.PullRequest.GetGitHeadRefName())
+	latestCommitID, err := gitRepo.GetRefCommitID(t.Context(), pullIssue.PullRequest.GetGitHeadRefName())
 	require.NoError(t, err)
 
 	codeComment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, 1, "resolve comment", "README.md", false, 0, latestCommitID, nil)
@@ -536,11 +536,11 @@ func testAPIPullReviewCommentReply(t *testing.T) {
 	require.NoError(t, pullIssue.LoadRepo(t.Context()))
 	require.NoError(t, pullIssue.LoadPullRequest(t.Context()))
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), pullIssue.Repo)
+	gitRepo, err := git.OpenRepository(pullIssue.Repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	commitID, err := gitRepo.GetRefCommitID(pullIssue.PullRequest.GetGitHeadRefName())
+	commitID, err := gitRepo.GetRefCommitID(t.Context(), pullIssue.PullRequest.GetGitHeadRefName())
 	require.NoError(t, err)
 
 	parent, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, 1, "parent comment", "README.md", false, 0, commitID, nil)
@@ -556,9 +556,7 @@ func testAPIPullReviewCommentReply(t *testing.T) {
 	// happy path
 	req := NewRequestWithJSON(t, http.MethodPost, url, &api.CreatePullReviewCommentReplyOptions{Body: "the reply"}).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusCreated)
-
-	var reply api.PullReviewComment
-	DecodeJSON(t, resp, &reply)
+	reply := DecodeJSON(t, resp, &api.PullReviewComment{})
 	assert.Equal(t, "the reply", reply.Body)
 	assert.Equal(t, parent.ReviewID, reply.ReviewID)
 	assert.Equal(t, "README.md", reply.Path)

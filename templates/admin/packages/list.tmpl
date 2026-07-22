@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+{{template "admin/layout_head" (dict "pageClass" "admin user")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.packages.package_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .TotalCount}},
@@ -73,7 +73,7 @@
 							<td>{{DateUtils.AbsoluteShort .Version.CreatedUnix}}</td>
 							<td>
 								<a class="tw-text-red show-modal" href data-modal="#admin-package-delete-modal"
-									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.Version.ID}}"
+									data-modal-form.url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.Version.ID}}"
 									data-modal-package-name="{{.Package.Name}}" data-modal-package-version="{{.Version.Version}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>

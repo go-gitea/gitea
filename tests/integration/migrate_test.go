@@ -17,18 +17,19 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/migrations"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/migrations"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,11 +37,9 @@ import (
 
 func TestMigrateLocalPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.ImportLocalPaths, true)()
 
 	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
-
-	old := setting.ImportLocalPaths
-	setting.ImportLocalPaths = true
 
 	basePath := t.TempDir()
 
@@ -57,22 +56,13 @@ func TestMigrateLocalPath(t *testing.T) {
 
 	err = migrations.IsMigrateURLAllowed(mixedcasePath, adminUser)
 	assert.NoError(t, err, "case mixedcase path")
-
-	setting.ImportLocalPaths = old
 }
 
 func TestMigrateGiteaForm(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		AllowLocalNetworks := setting.Migrations.AllowLocalNetworks
-		setting.Migrations.AllowLocalNetworks = true
-		AppVer := setting.AppVer
 		// Gitea SDK (go-sdk) need to parse the AppVer from server response, so we must set it to a valid version string.
-		setting.AppVer = "1.16.0"
-		defer func() {
-			setting.Migrations.AllowLocalNetworks = AllowLocalNetworks
-			setting.AppVer = AppVer
-			migrations.Init()
-		}()
+		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+		defer test.MockVariableValue(&setting.AppVer, "1.16.0")()
 		assert.NoError(t, migrations.Init())
 
 		ownerName := "user2"
@@ -232,14 +222,8 @@ done
 
 func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	AllowLocalNetworks := setting.Migrations.AllowLocalNetworks
-	setting.Migrations.AllowLocalNetworks = true
-	defer func() {
-		setting.Migrations.AllowLocalNetworks = AllowLocalNetworks
-		migrations.Init()
-	}()
-	require.NoError(t, migrations.Init())
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+	assert.NoError(t, migrations.Init())
 
 	mockServer := setupGiteaMockServer(t)
 
@@ -352,11 +336,11 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	assert.False(t, pr13.HasMerged)
 	assert.True(t, pr13.Issue.IsLocked)
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), migratedRepo)
+	gitRepo, err := git.OpenRepository(migratedRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	branches, _, err := gitRepo.GetBranchNames(0, 0)
+	branches, _, err := gitRepo.GetBranchNames(t.Context(), 0, 0)
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"6543-patch-1", "master", "6543-forks/add-xkcd-2199"}, branches) // last branch comes from the pull request
 
@@ -366,7 +350,7 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []string{"6543-patch-1", "master", "6543-forks/add-xkcd-2199"}, branchNames)
 
-	tags, _, err := gitRepo.GetTagInfos(0, 0)
+	tags, _, err := gitRepo.GetTagInfos(t.Context(), 0, 0)
 	require.NoError(t, err)
 	tagNames := make([]string, 0, len(tags))
 	for _, tag := range tags {

@@ -58,10 +58,7 @@ function initRepoIssueListCheckboxes() {
       const url = el.getAttribute('data-url')!;
       let action = el.getAttribute('data-action')!;
       let elementId = el.getAttribute('data-element-id')!;
-      const issueIDList: string[] = [];
-      for (const el of document.querySelectorAll('.issue-checkbox:checked')) {
-        issueIDList.push(el.getAttribute('data-issue-id')!);
-      }
+      const issueIDList: string[] = Array.from(document.querySelectorAll('.issue-checkbox:checked'), (el) => (el.getAttribute('data-issue-id')!));
       const issueIDs = issueIDList.join(',');
       if (!issueIDs) return;
 
@@ -109,7 +106,7 @@ function initDropdownUserRemoteSearch(el: Element) {
     fullTextSearch: true,
     selectOnKeydown: false,
     action: (_text: string, value: string) => {
-      window.location.href = actionJumpUrl.replace('{username}', encodeURIComponent(value));
+      window.location.assign(actionJumpUrl.replace('{username}', encodeURIComponent(value)));
     },
   });
 
@@ -192,7 +189,7 @@ function initPinRemoveButton() {
         // Delete the tooltip
         el._tippy.destroy();
         // Remove the Card
-        el.closest(`div.issue-card[data-issue-id="${id}"]`)!.remove();
+        el.closest(`div.issue-card[data-issue-id="${CSS.escape(String(id))}"]`)!.remove();
       }
     });
   }

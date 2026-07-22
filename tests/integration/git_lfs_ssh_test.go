@@ -12,12 +12,13 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/context"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,7 +46,7 @@ func TestGitLFSSSH(t *testing.T) {
 			cfg, err := setting.CfgProvider.PrepareSaving()
 			require.NoError(t, err)
 			cfg.Section("server").Key("LFS_ALLOW_PURE_SSH").SetValue("true")
-			setting.LFS.AllowPureSSH = true
+			defer test.MockVariableValue(&setting.LFS.AllowPureSSH, true)()
 			require.NoError(t, cfg.Save())
 
 			_, _, cmdErr := gitcmd.NewCommand("config", "lfs.sshtransfer", "always").

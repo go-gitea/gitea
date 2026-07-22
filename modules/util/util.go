@@ -15,7 +15,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/modules/container"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"

@@ -9,7 +9,7 @@ import (
 	"io"
 	"reflect"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -91,7 +91,7 @@ func (e *MarshalEncoder) marshal(v any) error {
 	val := reflect.ValueOf(v)
 	typ := reflect.TypeOf(v)
 
-	if typ.Kind() == reflect.Ptr {
+	if typ.Kind() == reflect.Pointer {
 		val = val.Elem()
 		typ = typ.Elem()
 	}

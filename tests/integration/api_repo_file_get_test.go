@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,8 +42,8 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 			lfs := lfsCommitAndPushTest(t, dstPath, testFileSizeSmall)[0]
 
 			reqLFS := NewRequest(t, "GET", "/api/v1/repos/user2/repo-lfs-test/media/"+lfs).AddTokenAuth(httpContext.Token)
-			respLFS := MakeRequestNilResponseRecorder(t, reqLFS, http.StatusOK)
-			assert.Equal(t, testFileSizeSmall, respLFS.Length)
+			respLFS := MakeRequest(t, reqLFS, http.StatusOK)
+			assert.Equal(t, testFileSizeSmall, respLFS.Body.Len())
 		})
 	})
 }

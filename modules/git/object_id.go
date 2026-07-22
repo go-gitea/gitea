@@ -11,6 +11,7 @@ import (
 
 type ObjectID interface {
 	String() string
+	RefName() RefName
 	IsZero() bool
 	RawValue() []byte
 	Type() ObjectFormat
@@ -18,8 +19,14 @@ type ObjectID interface {
 
 type Sha1Hash [20]byte
 
+var _ ObjectID = (*Sha1Hash)(nil)
+
 func (h *Sha1Hash) String() string {
 	return hex.EncodeToString(h[:])
+}
+
+func (h *Sha1Hash) RefName() RefName {
+	return RefName(h.String())
 }
 
 func (h *Sha1Hash) IsZero() bool {
@@ -28,8 +35,6 @@ func (h *Sha1Hash) IsZero() bool {
 }
 func (h *Sha1Hash) RawValue() []byte { return h[:] }
 func (*Sha1Hash) Type() ObjectFormat { return Sha1ObjectFormat }
-
-var _ ObjectID = &Sha1Hash{}
 
 func MustIDFromString(hexHash string) ObjectID {
 	id, err := NewIDFromString(hexHash)
@@ -41,8 +46,14 @@ func MustIDFromString(hexHash string) ObjectID {
 
 type Sha256Hash [32]byte
 
+var _ ObjectID = (*Sha256Hash)(nil)
+
 func (h *Sha256Hash) String() string {
 	return hex.EncodeToString(h[:])
+}
+
+func (h *Sha256Hash) RefName() RefName {
+	return RefName(h.String())
 }
 
 func (h *Sha256Hash) IsZero() bool {
@@ -92,12 +103,4 @@ func IsEmptyCommitID(commitID string) bool {
 // ComputeBlobHash compute the hash for a given blob content
 func ComputeBlobHash(hashType ObjectFormat, content []byte) ObjectID {
 	return hashType.ComputeHash(ObjectBlob, content)
-}
-
-type ErrInvalidSHA struct {
-	SHA string
-}
-
-func (err ErrInvalidSHA) Error() string {
-	return "invalid sha: " + err.SHA
 }

@@ -8,7 +8,6 @@ const fomanticDropdownFn = $.fn.dropdown;
 export function initAriaDropdownPatch() {
   if ($.fn.dropdown === ariaDropdownFn) throw new Error('initAriaDropdownPatch could only be called once');
   $.fn.dropdown = ariaDropdownFn;
-  $.fn.fomanticExt.onResponseKeepSelectedItem = onResponseKeepSelectedItem;
   $.fn.fomanticExt.onDropdownAfterFiltered = onDropdownAfterFiltered;
   (ariaDropdownFn as FomanticInitFunction).settings = fomanticDropdownFn.settings;
 }
@@ -254,22 +253,22 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   dropdown.addEventListener('mousedown', () => {
     ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
     ignoreClickPreEvents++;
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('focus', () => {
     ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
     ignoreClickPreEvents++;
     deferredRefreshAriaActiveItem();
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('blur', () => {
     ignoreClickPreVisible = ignoreClickPreEvents = 0;
     deferredRefreshAriaActiveItem(100);
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('mouseup', () => {
     setTimeout(() => {
       ignoreClickPreVisible = ignoreClickPreEvents = 0;
       deferredRefreshAriaActiveItem(100);
     }, 0);
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('click', (e: MouseEvent) => {
     if (isMenuVisible() &&
       ignoreClickPreVisible !== 2 && // dropdown is switch from invisible to visible
@@ -278,7 +277,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
       e.stopPropagation(); // if the dropdown menu has been opened by focus, do not trigger the next click event again
     }
     ignoreClickPreEvents = ignoreClickPreVisible = 0;
-  }, true);
+  }, {capture: true});
 }
 
 // Although Fomantic Dropdown supports "hideDividers", it doesn't really work with our "scoped dividers"
@@ -296,8 +295,8 @@ export function hideScopedEmptyDividers(container: Element) {
   let curScope: string = '', lastVisibleScope: string = '';
   const isDivider = (item: Element) => item.classList.contains('divider');
   const isScopedDivider = (item: Element) => isDivider(item) && item.hasAttribute('data-scope');
-  const hideDivider = (item: Element) => item.classList.add('hidden', 'transition'); // dropdown has its own classes to hide items
-  const showDivider = (item: Element) => item.classList.remove('hidden', 'transition');
+  const hideDivider = (item: Element) => item.classList.add('hidden'); // dropdown has its own classes to hide items
+  const showDivider = (item: Element) => item.classList.remove('hidden');
   const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered') || item.classList.contains('tw-hidden');
   const handleScopeSwitch = (itemScope: string) => {
     if (curScopeVisibleItems.length === 1 && isScopedDivider(curScopeVisibleItems[0])) {
@@ -346,20 +345,4 @@ export function hideScopedEmptyDividers(container: Element) {
     if (!visibleItems[i].matches('.divider')) continue;
     if (visibleItems[i + 1].matches('.divider')) hideDivider(visibleItems[i]);
   }
-}
-
-function onResponseKeepSelectedItem(dropdown: typeof $ | HTMLElement, selectedValue: string) {
-  // There is a bug in fomantic dropdown when using "apiSettings" to fetch data
-  // * when there is a selected item, the dropdown insists on hiding the selected one from the list:
-  // * in the "filter" function: ('[data-value="'+value+'"]').addClass(className.filtered)
-  //
-  // When user selects one item, and click the dropdown again,
-  // then the dropdown only shows other items and will select another (wrong) one.
-  // It can't be easily fix by using setTimeout(patch, 0) in `onResponse` because the `onResponse` is called before another `setTimeout(..., timeLeft)`
-  // Fortunately, the "timeLeft" is controlled by "loadingDuration" which is always zero at the moment, so we can use `setTimeout(..., 10)`
-  const elDropdown = (dropdown instanceof HTMLElement) ? dropdown : (dropdown as any)[0];
-  setTimeout(() => {
-    queryElems(elDropdown, `.menu .item[data-value="${CSS.escape(selectedValue)}"].filtered`, (el) => el.classList.remove('filtered'));
-    $(elDropdown).dropdown('set selected', selectedValue ?? '');
-  }, 10);
 }

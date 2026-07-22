@@ -9,15 +9,14 @@ import (
 	"net/url"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/contexttest"
-	"code.gitea.io/gitea/services/forms"
-	repo_service "code.gitea.io/gitea/services/repository"
-	wiki_service "code.gitea.io/gitea/services/wiki"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
+	repo_service "gitea.dev/services/repository"
+	wiki_service "gitea.dev/services/wiki"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,28 +27,30 @@ const (
 	message = "Wiki commit message for unit tests"
 )
 
-func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) *git.TreeEntry {
-	wikiRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
+func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) (*git.Repository, *git.TreeEntry) {
+	wikiRepo, err := git.OpenRepository(repo.WikiStorageRepo())
 	assert.NoError(t, err)
-	defer wikiRepo.Close()
-	commit, err := wikiRepo.GetBranchCommit("master")
+	t.Cleanup(func() {
+		defer wikiRepo.Close()
+	})
+	commit, err := wikiRepo.GetBranchCommit(t.Context(), "master")
 	assert.NoError(t, err)
-	entries, err := commit.ListEntries()
+	entries, err := commit.Tree().ListEntries(t.Context(), wikiRepo)
 	assert.NoError(t, err)
 	for _, entry := range entries {
 		if entry.Name() == wiki_service.WebPathToGitPath(wikiName) {
-			return entry
+			return wikiRepo, entry
 		}
 	}
-	return nil
+	return wikiRepo, nil
 }
 
 func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) string {
-	entry := wikiEntry(t, repo, wikiName)
+	wikiRepo, entry := wikiEntry(t, repo, wikiName)
 	if !assert.NotNil(t, entry) {
 		return ""
 	}
-	reader, err := entry.Blob().DataAsync()
+	reader, err := entry.Blob(wikiRepo).DataAsync(t.Context())
 	assert.NoError(t, err)
 	defer reader.Close()
 	bytes, err := io.ReadAll(reader)
@@ -58,11 +59,13 @@ func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_servic
 }
 
 func assertWikiExists(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) {
-	assert.NotNil(t, wikiEntry(t, repo, wikiName))
+	_, entry := wikiEntry(t, repo, wikiName)
+	assert.NotNil(t, entry)
 }
 
 func assertWikiNotExists(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) {
-	assert.Nil(t, wikiEntry(t, repo, wikiName))
+	_, entry := wikiEntry(t, repo, wikiName)
+	assert.Nil(t, entry)
 }
 
 func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {

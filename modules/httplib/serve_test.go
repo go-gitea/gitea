@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/typesniffer"
+	"gitea.dev/modules/typesniffer"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -132,4 +132,12 @@ func TestServeSetHeaderContentRelated(t *testing.T) {
 
 	// make sure sandboxed
 	require.Contains(t, serveHeaderCspDefault, "; sandbox")
+}
+
+func TestServeSetHeaders(t *testing.T) {
+	w := httptest.NewRecorder()
+	ServeSetHeaders(w, ServeHeaderOptions{Filename: "foo.zip"})
+	assert.Equal(t, "attachment; filename=foo.zip", w.Header().Get("Content-Disposition"))
+	ServeSetHeaders(w, ServeHeaderOptions{Filename: "foo.zip", ContentDisposition: ContentDispositionInline})
+	assert.Equal(t, "inline; filename=foo.zip", w.Header().Get("Content-Disposition"))
 }

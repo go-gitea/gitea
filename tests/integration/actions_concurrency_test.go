@@ -11,20 +11,20 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	actions_web "code.gitea.io/gitea/routers/web/repo/actions"
-	actions_service "code.gitea.io/gitea/services/actions"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	webhook_module "gitea.dev/modules/webhook"
+	actions_web "gitea.dev/routers/web/repo/actions"
+	actions_service "gitea.dev/services/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -486,14 +486,18 @@ jobs:
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user4-fix2")),
 		})(t)
-		doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":do-not-cancel/ccc")(t)
-		// cannot fetch the task because cancel-in-progress is false
+		pr3, _ := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":do-not-cancel/ccc")(t)
+		// cannot fetch the task: approval still required (user4 has no merged PR) and cancel-in-progress is false
 		runner.fetchNoTask(t)
 		runner.execTask(t, pr2Task1, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 		pr2Run1 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: pr2Run1.ID})
 		assert.Equal(t, actions_model.StatusSuccess, pr2Run1.Status)
+		// user2 approves the third PR's run (user4 still has no merged PR, approval still required)
+		pr3Run1Pending := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, TriggerUserID: user4.ID, Ref: fmt.Sprintf("refs/pull/%d/head", pr3.Index)})
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/approve", baseRepo.OwnerName, baseRepo.Name, pr3Run1Pending.ID))
+		user2Session.MakeRequest(t, req, http.StatusOK)
 		// fetch the task
 		pr3Task1 := runner.fetchTask(t)
 		_, _, pr3Run1 := getTaskAndJobAndRunByTaskID(t, pr3Task1.Id)
@@ -1559,6 +1563,9 @@ jobs:
 		run2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "workflow-2.yml"})
 		// run2 is blocked because it is blocked by workflow1's concurrency group "test-group"
 		assert.Equal(t, actions_model.StatusBlocked, run2.Status)
+
+		// complete wf1-job1
+		runner.execTask(t, w1j1Task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
 		// mock time
 		fakeNow := now.Add(setting.Actions.AbandonedJobTimeout)

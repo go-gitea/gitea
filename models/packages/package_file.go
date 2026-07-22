@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -68,7 +68,7 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 // GetFilesByVersionID gets all files of a version
 func GetFilesByVersionID(ctx context.Context, versionID int64) ([]*PackageFile, error) {
 	pfs := make([]*PackageFile, 0, 10)
-	return pfs, db.GetEngine(ctx).Where("version_id = ?", versionID).Find(&pfs)
+	return pfs, db.GetEngine(ctx).Where("version_id = ?", versionID).OrderBy("lower_name, created_unix, id").Find(&pfs)
 }
 
 // GetFileForVersionByID gets a file of a version by id
@@ -232,7 +232,7 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 		Where(opts.toConds())
 
 	if opts.Paginator != nil {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	pfs := make([]*PackageFile, 0, 10)

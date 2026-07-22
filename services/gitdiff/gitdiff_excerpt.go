@@ -10,7 +10,7 @@ import (
 	"html/template"
 	"io"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 
 	"github.com/alecthomas/chroma/v2"
 )

@@ -14,7 +14,3 @@ window.config = {
   i18n: {},
   frontendInited: false,
 };
-
-window.testModules = {};
-
-export {}; // mark as module for top-level await

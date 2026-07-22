@@ -10,18 +10,18 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/shared/types"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/shared/types"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"xorm.io/builder"
 )
 
@@ -64,6 +64,8 @@ type ActionRunner struct {
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	// Store if this runner is disabled and should not pick up new jobs
 	IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
+	// Store if this runner supports the StatusCancelling flow
+	HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -73,7 +75,27 @@ type ActionRunner struct {
 const (
 	RunnerOfflineTime = time.Minute
 	RunnerIdleTime    = 10 * time.Second
+	// RunnerHeartbeatInterval is how often last_online is persisted on poll.
+	// Must stay well below RunnerOfflineTime so runners don't flap to offline.
+	RunnerHeartbeatInterval = 30 * time.Second
+	// RunnerActiveInterval is how often last_active is persisted while a runner
+	// streams task updates and logs. Must stay well below RunnerIdleTime so a
+	// busy runner keeps showing ACTIVE without a DB write on every RPC.
+	RunnerActiveInterval = 5 * time.Second
 )
+
+// ShouldPersistLastOnline reports whether last_online is stale enough to be
+// worth writing back. Avoids a DB write on every runner poll.
+func ShouldPersistLastOnline(last timeutil.TimeStamp, now time.Time) bool {
+	return now.Sub(last.AsTime()) >= RunnerHeartbeatInterval
+}
+
+// ShouldPersistLastActive reports whether last_active is stale enough to be
+// worth writing back. Avoids a DB write on every UpdateTask/UpdateLog RPC while
+// a runner is actively streaming logs.
+func ShouldPersistLastActive(last timeutil.TimeStamp, now time.Time) bool {
+	return now.Sub(last.AsTime()) >= RunnerActiveInterval
+}
 
 // BelongsToOwnerName before calling, should guarantee that all attributes are loaded
 func (r *ActionRunner) BelongsToOwnerName() string {
@@ -249,21 +271,24 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 }
 
 func (opts FindRunnerOptions) ToOrders() string {
+	// A unique tiebreaker (id) is appended so that runners sharing the same
+	// last_online or name keep a deterministic order across paginated queries,
+	// otherwise the same runner may appear on more than one page.
 	switch opts.Sort {
 	case "online":
-		return "last_online DESC"
+		return "last_online DESC, id ASC"
 	case "offline":
-		return "last_online ASC"
+		return "last_online ASC, id ASC"
 	case "alphabetically":
-		return "name ASC"
+		return "name ASC, id ASC"
 	case "reversealphabetically":
-		return "name DESC"
+		return "name DESC, id ASC"
 	case "newest":
 		return "id DESC"
 	case "oldest":
 		return "id ASC"
 	}
-	return "last_online DESC"
+	return "last_online DESC, id ASC"
 }
 
 // GetRunnerByUUID returns a runner via uuid

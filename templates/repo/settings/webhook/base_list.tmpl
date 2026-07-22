@@ -8,17 +8,18 @@
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="ui list flex-items-block">
-		<div class="item"><span>{{.Description}}</span></div>
+	<div>{{.Description}}</div>
+	{{if .Webhooks}}<div class="divider"></div>{{end}}
+	<div class="flex-divided-list">
 		{{range .Webhooks}}
-			<div class="item">
+			<div class="item flex-text-block">
 				<span class="{{if eq .LastStatus 1}}tw-text-green{{else if eq .LastStatus 2}}tw-text-red{{else}}tw-text-text-light{{end}}">{{svg "octicon-dot-fill" 22}}</span>
 				<div class="gt-ellipsis tw-flex-1">
 					<a title="{{.URL}}" href="{{$.BaseLink}}/{{.ID}}">{{or .Name (ctx.Locale.Tr "repo.settings.webhook.name_empty")}}</a>
 					<span class="tw-ml-2 tw-text-grey-light">{{.URL}}</span>
 				</div>
-				<a class="muted tw-p-2" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
-				<a class="tw-text-red tw-p-2 link-action"
+				<a class="muted" href="{{$.BaseLink}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+				<a class="tw-text-red tw-pr-2 link-action"
 					data-url="{{$.Link}}/delete?id={{.ID}}"
 					data-modal-confirm="{{ctx.Locale.Tr "repo.settings.webhook_deletion_desc"}}"
 				>{{svg "octicon-trash"}}</a>

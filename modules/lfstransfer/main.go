@@ -6,30 +6,32 @@ package lfstransfer
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 
-	"code.gitea.io/gitea/modules/lfstransfer/backend"
+	"gitea.dev/modules/lfstransfer/backend"
 
 	"github.com/charmbracelet/git-lfs-transfer/transfer"
 )
 
-func Main(ctx context.Context, repo, verb, token string) error {
+func Main(ctx context.Context, ownerName, repoName, verb, token string) error {
 	logger := newLogger()
-	pktline := transfer.NewPktline(os.Stdin, os.Stdout, logger)
-	giteaBackend, err := backend.New(ctx, repo, verb, token, logger)
+	backendReqPath := fmt.Sprintf("api/internal/repo/%s/%s.git/info/lfs", url.PathEscape(ownerName), url.PathEscape(repoName))
+	giteaBackend, err := backend.New(ctx, backendReqPath, verb, token, logger)
 	if err != nil {
 		return err
 	}
 
+	pktLine := transfer.NewPktline(os.Stdin, os.Stdout, logger)
 	for _, cap := range backend.Capabilities {
-		if err := pktline.WritePacketText(cap); err != nil {
+		if err := pktLine.WritePacketText(cap); err != nil {
 			logger.Log("error sending capability due to error:", err)
 		}
 	}
-	if err := pktline.WriteFlush(); err != nil {
+	if err := pktLine.WriteFlush(); err != nil {
 		logger.Log("error flushing capabilities:", err)
 	}
-	p := transfer.NewProcessor(pktline, giteaBackend, logger)
+	p := transfer.NewProcessor(pktLine, giteaBackend, logger)
 	defer logger.Log("done processing commands")
 	switch verb {
 	case "upload":

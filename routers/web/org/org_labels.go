@@ -6,15 +6,15 @@ package org
 import (
 	"errors"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/label"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	shared_label "code.gitea.io/gitea/routers/web/shared/label"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/label"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	shared_label "gitea.dev/routers/web/shared/label"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 // RetrieveLabels find all the labels of an organization

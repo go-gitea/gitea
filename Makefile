@@ -11,15 +11,18 @@ COMMA := ,
 
 XGO_VERSION := go-1.26.x
 
-AIR_PACKAGE ?= github.com/air-verse/air@v1 # renovate: datasource=go
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3 # renovate: datasource=go
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4 # renovate: datasource=go
+AIR_PACKAGE ?= github.com/air-verse/air@v1.65.3 # renovate: datasource=go
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.8.0 # renovate: datasource=go
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1 # renovate: datasource=go
-XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
-GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1 # renovate: datasource=go
-ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.11 # renovate: datasource=go
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.35.0 # renovate: datasource=go
+XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.6.0 # renovate: datasource=go
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
+SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
+
+CONTAINER_RUNTIME ?= $(shell hash docker >/dev/null 2>&1 && echo docker || echo podman)
 
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 ifeq ($(HAS_GO), yes)
@@ -38,13 +41,10 @@ ifneq ($(findstring test-,$(MAKECMDGOALS)),)
 endif
 
 TAGS ?=
-ifeq ($(GITEA_TEST_DATABASE),sqlite)
-	TAGS += sqlite sqlite_unlock_notify
-endif
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
+ifneq (,$(findstring sqlite_mattn,$(TAGS))$(findstring pam,$(TAGS)))
 	CGO_ENABLED = 1
 endif
 
@@ -113,8 +113,8 @@ LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
 
-GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
-MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
+GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/modelmigration/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
+MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/modelmigration/...)
 
 FRONTEND_SOURCES := $(shell find web_src/js web_src/css -type f)
 FRONTEND_CONFIGS := vite.config.ts tailwind.config.ts
@@ -127,6 +127,7 @@ BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* mo
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
 SVG_DEST_DIR := public/assets/img/svg
+SVG_DEST_DIRS := $(SVG_DEST_DIR) options/fileicon
 
 AIR_TMP_DIR := .air
 
@@ -147,10 +148,11 @@ GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
 GO_SOURCES += $(GENERATED_GO_DEST)
 
 ESLINT_CONCURRENCY ?= 2
+ESLINT_ARGS := --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
-SWAGGER_EXCLUDE := code.gitea.io/sdk
+SWAGGER_EXCLUDE := gitea.dev/sdk
 OPENAPI3_SPEC := templates/swagger/v1_openapi3_json.tmpl
 
 TEST_MYSQL_HOST ?= mysql:3306
@@ -230,7 +232,9 @@ endif
 generate-swagger: $(SWAGGER_SPEC) $(OPENAPI3_SPEC) ## generate the swagger spec from code comments
 
 $(SWAGGER_SPEC): $(GO_SOURCES) $(SWAGGER_SPEC_INPUT)
-	$(GO) run $(SWAGGER_PACKAGE) generate spec --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)'
+	@output="$$($(GO) run $(SWAGGER_PACKAGE) generate spec --enable-allof-compounding --skip-enum-desc --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)' 2>&1)" || { printf '%s\n' "$$output" >&2; exit 1; }; \
+	warnings="$$(printf '%s\n' "$$output" | grep -v '^go: ')"; \
+	if [ -n "$$warnings" ]; then printf '%s\n' "$$warnings" >&2; exit 1; fi
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
@@ -245,9 +249,11 @@ swagger-check: generate-swagger
 swagger-validate: ## check if the swagger spec is valid
 	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
 	@$(SED_INPLACE) -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
-	@# FIXME: there are some warnings
-	$(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)'
-	@$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)' # remove the prefix slash from basePath
+	@output="$$($(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)' 2>&1)"; status=$$?; \
+	$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)'; \
+	printf '%s\n' "$$output" | grep -v '^go: '; \
+	[ $$status -eq 0 ] || exit $$status; \
+	case "$$output" in *WARNING:*) exit 1;; esac
 
 .PHONY: generate-openapi3
 generate-openapi3: $(OPENAPI3_SPEC) ## generate the OpenAPI 3.0 spec from the Swagger 2.0 spec
@@ -274,7 +280,7 @@ checks-frontend: lockfile-check svg-check ## check frontend files
 checks-backend: tidy-check swagger-check openapi3-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
-lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml ## lint everything
+lint: lint-frontend lint-backend lint-templates lint-swagger lint-spell lint-md lint-actions lint-json lint-yaml lint-shell ## lint everything
 
 .PHONY: lint-fix
 lint-fix: lint-frontend-fix lint-backend-fix lint-spell-fix ## lint everything and fix issues
@@ -293,12 +299,12 @@ lint-backend-fix: lint-go-fix lint-editorconfig ## lint backend files and fix is
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js and ts files
-	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES)
+	pnpm exec eslint $(ESLINT_ARGS) $(ESLINT_FILES)
 	pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js and ts files and fix issues
-	pnpm exec eslint --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) $(ESLINT_FILES) --fix
+	pnpm exec eslint $(ESLINT_ARGS) $(ESLINT_FILES) --fix
 	pnpm exec vue-tsc
 
 .PHONY: lint-css
@@ -331,18 +337,11 @@ lint-spell-fix: ## lint spelling and fix issues
 
 .PHONY: lint-go
 lint-go: ## lint go files
-	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
+	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go
 
 .PHONY: lint-go-fix
 lint-go-fix: ## lint go files and fix issues
-	$(GO) run $(GOLANGCI_LINT_PACKAGE) run --fix
-
-# workaround step for the lint-go-windows CI task because 'go run' can not
-# have distinct GOOS/GOARCH for its build and run steps
-.PHONY: lint-go-windows
-lint-go-windows:
-	@GOOS= GOARCH= $(GO) install $(GOLANGCI_LINT_PACKAGE)
-	golangci-lint run
+	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go --fix
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
@@ -350,8 +349,13 @@ lint-editorconfig:
 	@$(GO) run $(EDITORCONFIG_CHECKER_PACKAGE) $(EDITORCONFIG_FILES)
 
 .PHONY: lint-actions
-lint-actions: ## lint action workflow files
-	$(GO) run $(ACTIONLINT_PACKAGE)
+lint-actions: .venv ## lint action workflow files
+	@$(GO) run $(ACTIONLINT_PACKAGE)
+	@uv run --frozen zizmor --quiet --min-confidence=medium .github
+
+.PHONY: lint-shell
+lint-shell: ## lint shell scripts
+	@SHELLCHECK_IMAGE=$(SHELLCHECK_IMAGE) CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/lint-shell.sh $$(git ls-files '*.sh')
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
@@ -364,11 +368,11 @@ lint-yaml: .venv ## lint yaml files
 
 .PHONY: lint-json
 lint-json: node_modules ## lint json files
-	pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
+	pnpm exec eslint -c eslint.json.config.ts $(ESLINT_ARGS)
 
 .PHONY: lint-json-fix
 lint-json-fix: node_modules ## lint and fix json files
-	pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY) --fix
+	pnpm exec eslint -c eslint.json.config.ts $(ESLINT_ARGS) --fix
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
@@ -449,19 +453,23 @@ test-integration:
 	@# Use a compiled binary: testlogger forwards gitea logs to t.Log, so `go test -v`
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c code.gitea.io/gitea/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
-	./test-integration-$(GITEA_TEST_DATABASE).test
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c gitea.dev/tests/integration -o ./test-integration-$(GITEA_TEST_DATABASE).test
+	./tools/test-integration.sh ./test-integration-$(GITEA_TEST_DATABASE).test
+
+.PHONY: test-integration-compile
+test-integration-compile:
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
 
 .PHONY: test-integration\#%
 test-integration\#%:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) code.gitea.io/gitea/tests/integration
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) gitea.dev/tests/integration
 
 .PHONY: test-migration
 test-migration: migrations.integration.test migrations.individual.test
 
 .PHONY: migrations.integration.test
 migrations.integration.test:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' code.gitea.io/gitea/tests/integration/migration-test
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/tests/integration/migration-test
 
 .PHONY: migrations.individual.test
 migrations.individual.test:
@@ -470,16 +478,15 @@ migrations.individual.test:
 
 .PHONY: migrations.individual.test\#%
 migrations.individual.test\#%:
-	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' code.gitea.io/gitea/models/migrations/$*
+	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' gitea.dev/modelmigration/$*
 
 .PHONY: playwright
 playwright: deps-frontend
-	@# on GitHub Actions VMs, playwright's system deps are pre-installed
-	@pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium firefox $(PLAYWRIGHT_FLAGS)
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/test-e2e.sh install
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
-	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: build
 build: frontend backend ## build everything
@@ -606,8 +613,6 @@ update-js: node_modules ## update js dependencies
 	pnpm exec updates -u -f package.json
 	rm -rf node_modules pnpm-lock.yaml
 	pnpm install
-	pnpm exec nolyfill install
-	pnpm install
 	@touch node_modules
 
 .PHONY: update-py
@@ -634,10 +639,10 @@ svg: node_modules ## build svg files
 
 .PHONY: svg-check
 svg-check: svg
-	@git add $(SVG_DEST_DIR)
-	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
+	@git add $(SVG_DEST_DIRS)
+	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIRS)); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
+		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIRS)' and commit the result:"; \
 		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
@@ -660,6 +665,10 @@ generate-gitignore: ## update gitignore files
 .PHONY: generate-images
 generate-images: | node_modules ## generate images
 	cd tools && node generate-images.ts $(TAGS)
+
+.PHONY: generate-codemirror-languages
+generate-codemirror-languages: | node_modules ## generate codemirror languages
+	node tools/generate-codemirror-languages.ts
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage

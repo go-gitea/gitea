@@ -8,16 +8,16 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -261,7 +261,7 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 		Cols("commit_id, commit_message, pusher_id, commit_time, is_deleted, updated_unix").
 		Update(&Branch{
 			CommitID:      commit.ID.String(),
-			CommitMessage: commit.Summary(),
+			CommitMessage: commit.MessageTitle(),
 			PusherID:      pusherID,
 			CommitTime:    timeutil.TimeStamp(commit.Committer.When.Unix()),
 			IsDeleted:     false,
@@ -323,13 +323,7 @@ type RenamedBranch struct {
 
 // FindRenamedBranch check if a branch was renamed
 func FindRenamedBranch(ctx context.Context, repoID int64, from string) (branch *RenamedBranch, exist bool, err error) {
-	branch = &RenamedBranch{
-		RepoID: repoID,
-		From:   from,
-	}
-	exist, err = db.GetEngine(ctx).Get(branch)
-
-	return branch, exist, err
+	return db.Get[RenamedBranch](ctx, builder.Eq{"repo_id": repoID, "`from`": from})
 }
 
 // RenameBranch rename a branch

@@ -6,12 +6,12 @@ package user
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	org_model "code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	org_model "gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	repo_service "gitea.dev/services/repository"
 )
 
 func CanBlockUser(ctx context.Context, doer, blocker, blockee *user_model.User) bool {

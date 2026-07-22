@@ -5,12 +5,14 @@ package actions
 
 import (
 	"context"
+	"slices"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -21,6 +23,22 @@ func (jobs ActionJobList) GetRunIDs() []int64 {
 	return container.FilterSlice(jobs, func(j *ActionRunJob) (int64, bool) {
 		return j.RunID, j.RunID != 0
 	})
+}
+
+// SortMatrixGroupsByName natural-sorts each contiguous run of jobs that share a JobID
+// so matrix expansions (e.g. "test (1)", "test (2)", "test (10)") appear in human order.
+// Input is expected to be in DB id order so JobID groups are contiguous; cross-group order is preserved.
+func (jobs ActionJobList) SortMatrixGroupsByName() {
+	for i := 0; i < len(jobs); {
+		j := i + 1
+		for j < len(jobs) && jobs[j].JobID == jobs[i].JobID {
+			j++
+		}
+		slices.SortFunc(jobs[i:j], func(a, b *ActionRunJob) int {
+			return base.NaturalSortCompare(a.Name, b.Name)
+		})
+		i = j
+	}
 }
 
 func (jobs ActionJobList) LoadRepos(ctx context.Context) error {
@@ -80,6 +98,16 @@ type FindRunJobOptions struct {
 	Statuses         []Status
 	UpdatedBefore    timeutil.TimeStamp
 	ConcurrencyGroup string
+	OrderBy          db.SearchOrderBy
+	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
+	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
+	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
+	AccessibleRepoIDsSubQuery *builder.Builder
+}
+
+var JobOrderByMap = map[string]map[string]db.SearchOrderBy{
+	"asc":  {"id": "`action_run_job`.id ASC"},
+	"desc": {"id": "`action_run_job`.id DESC"},
 }
 
 func (opts FindRunJobOptions) ToConds() builder.Cond {
@@ -108,6 +136,9 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 		}
 		cond = cond.And(builder.Eq{"`action_run_job`.concurrency_group": opts.ConcurrencyGroup})
 	}
+	if opts.AccessibleRepoIDsSubQuery != nil {
+		cond = cond.And(builder.In("`action_run_job`.repo_id", opts.AccessibleRepoIDsSubQuery))
+	}
 	return cond
 }
 
@@ -122,3 +153,9 @@ func (opts FindRunJobOptions) ToJoins() []db.JoinFunc {
 	}
 	return nil
 }
+
+func (opts FindRunJobOptions) ToOrders() string {
+	return string(opts.OrderBy)
+}
+
+var _ db.FindOptionsOrder = FindRunJobOptions{}

@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -28,6 +28,62 @@ func TestAPICreateAndDeleteToken(t *testing.T) {
 
 	newAccessToken = createAPIAccessTokenWithoutCleanUp(t, "test-key-2", user, []auth_model.AccessTokenScope{auth_model.AccessTokenScopeAll})
 	deleteAPIAccessToken(t, newAccessToken, user)
+}
+
+// TestAPICreateTokenScopeEscalation ensures a token-authenticated request cannot
+// mint a new token with a broader scope than the authenticating token.
+func TestAPICreateTokenScopeEscalation(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// a write:user-scoped token authenticates the create requests below
+	writeUserToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteUser)
+
+	// requesting a broader scope ("all") than the authenticating token is rejected
+	req := NewRequestWithJSON(t, "POST", "/api/v1/users/"+user.LoginName+"/tokens", map[string]any{
+		"name":   "escalated",
+		"scopes": []string{"all"},
+	})
+	req.Request.SetBasicAuth(user.Name, writeUserToken)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// requesting a subset scope ("read:user") is allowed
+	req = NewRequestWithJSON(t, "POST", "/api/v1/users/"+user.LoginName+"/tokens", map[string]any{
+		"name":   "subset",
+		"scopes": []string{"read:user"},
+	})
+	req.Request.SetBasicAuth(user.Name, writeUserToken)
+	MakeRequest(t, req, http.StatusCreated)
+
+	// password (non-token) auth may still create a token with any scope
+	req = NewRequestWithJSON(t, "POST", "/api/v1/users/"+user.LoginName+"/tokens", map[string]any{
+		"name":   "by-password",
+		"scopes": []string{"all"},
+	}).AddBasicAuth(user.Name)
+	MakeRequest(t, req, http.StatusCreated)
+
+	// a public-only token must not mint a token that drops the public-only restriction
+	publicOnlyToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopePublicOnly)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/users/"+user.LoginName+"/tokens", map[string]any{
+		"name":   "still-public-only",
+		"scopes": []string{"write:user"},
+	})
+	req.Request.SetBasicAuth(user.Name, publicOnlyToken)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	var createdToken api.AccessToken
+	DecodeJSON(t, resp, &createdToken)
+	assert.Contains(t, createdToken.Scopes, string(auth_model.AccessTokenScopePublicOnly))
+
+	// an unrestricted parent token may create a narrower public-only child: public-only is a restriction,
+	// not a grantable permission, so the subset check must not reject it
+	req = NewRequestWithJSON(t, "POST", "/api/v1/users/"+user.LoginName+"/tokens", map[string]any{
+		"name":   "narrower-public-only",
+		"scopes": []string{"write:user", "public-only"},
+	})
+	req.Request.SetBasicAuth(user.Name, writeUserToken)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, &createdToken)
+	assert.Contains(t, createdToken.Scopes, string(auth_model.AccessTokenScopePublicOnly))
 }
 
 // TestAPIDeleteMissingToken ensures that error is thrown when token not found

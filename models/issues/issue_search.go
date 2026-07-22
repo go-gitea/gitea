@@ -9,17 +9,16 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 const ScopeSortPrefix = "scope-"
@@ -71,7 +70,7 @@ func (o *IssuesOptions) Copy(edit ...func(options *IssuesOptions)) *IssuesOption
 
 // applySorts sort an issues-related session based on the provided
 // sortType string
-func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
+func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 	// Since this sortType is dynamically created, it has to be treated specially.
 	if after, ok := strings.CutPrefix(sortType, ScopeSortPrefix); ok {
 		scope := after
@@ -129,7 +128,7 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 	}
 }
 
-func applyLimit(sess *xorm.Session, opts *IssuesOptions) {
+func applyLimit(sess db.Session, opts *IssuesOptions) {
 	if opts.Paginator == nil || opts.Paginator.IsListAll() {
 		return
 	}
@@ -141,7 +140,7 @@ func applyLimit(sess *xorm.Session, opts *IssuesOptions) {
 	sess.Limit(opts.Paginator.PageSize, start)
 }
 
-func applyLabelsCondition(sess *xorm.Session, opts *IssuesOptions) {
+func applyLabelsCondition(sess db.Session, opts *IssuesOptions) {
 	if len(opts.LabelIDs) > 0 {
 		if opts.LabelIDs[0] == 0 {
 			sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label)")
@@ -182,7 +181,7 @@ func applyLabelsCondition(sess *xorm.Session, opts *IssuesOptions) {
 	}
 }
 
-func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) {
+func applyMilestoneCondition(sess db.Session, opts *IssuesOptions) {
 	if len(opts.MilestoneIDs) == 1 && opts.MilestoneIDs[0] == db.NoConditionID {
 		sess.And("issue.milestone_id = 0")
 	} else if len(opts.MilestoneIDs) > 0 {
@@ -197,7 +196,7 @@ func applyMilestoneCondition(sess *xorm.Session, opts *IssuesOptions) {
 	}
 }
 
-func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
+func applyProjectCondition(sess db.Session, opts *IssuesOptions) {
 	projectIDs := util.SliceRemoveAll(opts.ProjectIDs, 0)
 	if len(projectIDs) == 1 && projectIDs[0] == db.NoConditionID { // show those that are in no project
 		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
@@ -211,7 +210,7 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
 	// do not need to apply any condition
 }
 
-func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) {
+func applyRepoConditions(sess db.Session, opts *IssuesOptions) {
 	if len(opts.RepoIDs) == 1 {
 		opts.RepoCond = builder.Eq{"issue.repo_id": opts.RepoIDs[0]}
 	} else if len(opts.RepoIDs) > 1 {
@@ -228,7 +227,7 @@ func applyRepoConditions(sess *xorm.Session, opts *IssuesOptions) {
 	}
 }
 
-func applyConditions(sess *xorm.Session, opts *IssuesOptions) {
+func applyConditions(sess db.Session, opts *IssuesOptions) {
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
 	}
@@ -362,7 +361,7 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, owner *user_mod
 	return cond
 }
 
-func applyAssigneeCondition(sess *xorm.Session, assigneeID string) {
+func applyAssigneeCondition(sess db.Session, assigneeID string) {
 	// old logic: 0 is also treated as "not filtering assignee", because the "assignee" was read as FormInt64
 	if assigneeID == "(none)" {
 		sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_assignees)")
@@ -374,7 +373,7 @@ func applyAssigneeCondition(sess *xorm.Session, assigneeID string) {
 	}
 }
 
-func applyPosterCondition(sess *xorm.Session, posterID string) {
+func applyPosterCondition(sess db.Session, posterID string) {
 	// Actually every issue has a poster.
 	// The "(none)" is for internal usage only: when doer tries to search non-existing user as poster, use "(none)" to return empty result.
 	if posterID == "(none)" {
@@ -384,13 +383,13 @@ func applyPosterCondition(sess *xorm.Session, posterID string) {
 	}
 }
 
-func applyMentionedCondition(sess *xorm.Session, mentionedID int64) {
+func applyMentionedCondition(sess db.Session, mentionedID int64) {
 	sess.Join("INNER", "issue_user", "issue.id = issue_user.issue_id").
 		And("issue_user.is_mentioned = ?", true).
 		And("issue_user.uid = ?", mentionedID)
 }
 
-func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) {
+func applyReviewRequestedCondition(sess db.Session, reviewRequestedID int64) {
 	existInTeamQuery := builder.Select("team_user.team_id").
 		From("team_user").
 		Where(builder.Eq{"team_user.uid": reviewRequestedID})
@@ -415,7 +414,7 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 		And(builder.In("issue.id", subQuery))
 }
 
-func applyReviewedCondition(sess *xorm.Session, reviewedID int64) {
+func applyReviewedCondition(sess db.Session, reviewedID int64) {
 	// Query for pull requests where you are a reviewer or commenter, excluding
 	// any pull requests already returned by the review requested filter.
 	notPoster := builder.Neq{"issue.poster_id": reviewedID}
@@ -445,7 +444,7 @@ func applyReviewedCondition(sess *xorm.Session, reviewedID int64) {
 	sess.And(notPoster, builder.Or(reviewed, commented))
 }
 
-func applySubscribedCondition(sess *xorm.Session, subscriberID int64) {
+func applySubscribedCondition(sess db.Session, subscriberID int64) {
 	sess.And(
 		builder.
 			NotIn("issue.id",

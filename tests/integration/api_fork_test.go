@@ -7,14 +7,14 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	org_model "code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	org_service "code.gitea.io/gitea/services/org"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	org_model "gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	org_service "gitea.dev/services/org"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -89,7 +89,7 @@ func testAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 		assert.Equal(t, "0", resp.Header().Get("X-Total-Count"))
 	})
 
-	t.Run("Logged in", func(t *testing.T) {
+	t.Run("LoggedIn", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks").AddTokenAuth(user1Token)
@@ -106,6 +106,36 @@ func testAPIForkListLimitedAndPrivateRepos(t *testing.T) {
 		forks = DecodeJSON(t, resp, []*api.Repository{})
 		assert.Len(t, forks, 2)
 		assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
+	})
+
+	t.Run("RespHeaderLinks", func(t *testing.T) {
+		t.Run("Page1", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks?page=1&limit=1").AddTokenAuth(user1Token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
+
+			linkHeader := resp.Header().Get("Link")
+			assert.NotEmpty(t, linkHeader, "Link header should not be empty")
+			assert.Contains(t, linkHeader, `rel="next"`)
+			assert.Contains(t, linkHeader, `rel="last"`)
+			assert.Contains(t, linkHeader, `/api/v1/repos/user2/repo1/forks?limit=1&page=2>`)
+
+			forks := DecodeJSON(t, resp, []*api.Repository{})
+			assert.Len(t, forks, 1)
+		})
+
+		t.Run("Page2", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/forks?page=2&limit=1").AddTokenAuth(user1Token)
+			resp := MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "2", resp.Header().Get("X-Total-Count"))
+
+			forks := DecodeJSON(t, resp, []*api.Repository{})
+			assert.Len(t, forks, 1)
+		})
 	})
 }
 

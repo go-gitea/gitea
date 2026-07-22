@@ -9,18 +9,18 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
 )
 
 // ListCollaborators list a repository's collaborators
@@ -107,7 +107,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	user, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -167,7 +167,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -186,7 +186,7 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 
 	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -230,7 +230,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	collaborator, err := user_model.GetUserByName(ctx, ctx.PathParam("collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -284,7 +284,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 	collaborator, err := user_model.GetUserByName(ctx, collaboratorUsername)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -326,7 +326,7 @@ func GetReviewers(ctx *context.APIContext) {
 
 	canChooseReviewer := issue_service.CanDoerChangeReviewRequests(ctx, ctx.Doer, ctx.Repo.Repository, 0)
 	if !canChooseReviewer {
-		ctx.APIError(http.StatusForbidden, errors.New("doer has no permission to get reviewers"))
+		ctx.APIError(http.StatusForbidden, "doer has no permission to get reviewers")
 		return
 	}
 
@@ -367,5 +367,42 @@ func GetAssignees(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+
 	ctx.JSON(http.StatusOK, convert.ToUsers(ctx, ctx.Doer, assignees))
+}
+
+// CheckRepoIssueAssignee check if a user can be assigned to issues in a repository
+func CheckRepoIssueAssignee(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/assignees/{assignee} repository repoCheckAssignee
+	// ---
+	// summary: Check if a user can be assigned to issues in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: assignee
+	//   in: path
+	//   description: username of the user to check for being an assignee
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if checkAssignableUser(ctx, ctx.PathParam("assignee"), ctx.Repo.Repository) {
+		ctx.Status(http.StatusNoContent)
+	}
 }

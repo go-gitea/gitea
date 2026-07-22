@@ -129,7 +129,7 @@ function initRepoDiffConversationNav() {
     const navIndex = isPrevious ? previousIndex : nextIndex;
     const elNavConversation = elAllConversations[navIndex];
     const anchor = elNavConversation.querySelector('.comment')!.id;
-    window.location.href = `#${anchor}`;
+    window.location.assign(`#${anchor}`);
   });
 }
 
@@ -245,7 +245,7 @@ async function onLocationHashChange() {
     const issueCommentPrefix = '#issuecomment-';
     if (currentHash.startsWith(issueCommentPrefix)) {
       const commentId = currentHash.substring(issueCommentPrefix.length);
-      const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${commentId},"]`);
+      const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${CSS.escape(commentId)},"]`);
       if (expandButton) {
         // avoid infinite loop, do not re-click the button if already clicked
         const attrAutoLoadClicked = 'data-auto-load-clicked';

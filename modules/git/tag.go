@@ -5,19 +5,21 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"sort"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // Tag represents a Git tag.
 type Tag struct {
+	CommitMessage
+
 	Name      string
 	ID        ObjectID
 	Object    ObjectID // The id of this commit object
 	Type      string
 	Tagger    *Signature
-	Message   string
 	Signature *CommitSignature
 }
 
@@ -87,7 +89,7 @@ func parseTagData(objectFormat ObjectFormat, data []byte) (*Tag, error) {
 		pos += eol + 1
 	}
 	payload, msg, sign := parsePayloadSignature(data, pos)
-	tag.Message = msg
+	tag.MessageRaw = msg
 	if len(sign) > 0 {
 		tag.Signature = &CommitSignature{Signature: sign, Payload: payload}
 	}
@@ -112,4 +114,9 @@ func (ts tagSorter) Swap(i, j int) {
 func sortTagsByTime(tags []*Tag) {
 	sorter := tagSorter(tags)
 	sort.Sort(sorter)
+}
+
+// IsTagExist returns true if given tag exists in the repository.
+func IsTagExist(ctx context.Context, repo RepositoryFacade, name string) bool {
+	return IsReferenceExist(ctx, repo, TagPrefix+name)
 }

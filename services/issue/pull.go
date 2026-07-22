@@ -7,14 +7,14 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	org_model "code.gitea.io/gitea/models/organization"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	issues_model "gitea.dev/models/issues"
+	org_model "gitea.dev/models/organization"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
 
 type ReviewRequestNotifier struct {
@@ -25,6 +25,10 @@ type ReviewRequestNotifier struct {
 }
 
 var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
+
+// codeOwnerMatchBudget caps the total wall-clock time spent evaluating all
+// CODEOWNERS rules against all changed files for a single PR.
+const codeOwnerMatchBudget = 2 * time.Second
 
 func IsCodeOwnerFile(f string) bool {
 	return slices.Contains(codeOwnerFiles, f)
@@ -50,21 +54,21 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return nil, nil
 	}
 
-	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	repo, err := git.OpenRepository(pr.BaseRepo)
 	if err != nil {
 		return nil, err
 	}
 	defer repo.Close()
 
-	commit, err := repo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
+	commit, err := repo.GetBranchCommit(ctx, pr.BaseRepo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
 
 	var data string
 	for _, file := range codeOwnerFiles {
-		if blob, err := commit.GetBlobByPath(file); err == nil {
-			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+		if blob, err := commit.GetBlobByPath(ctx, repo, file); err == nil {
+			data, err = blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 			if err == nil {
 				break
 			}
@@ -80,21 +84,30 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	// get the mergebase
-	mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
+	mergeBase, err := git.MergeBase(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitHeadRefName())
+	changedFiles, err := repo.GetFilesChangedBetween(ctx, mergeBase, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}
 
 	uniqUsers := make(map[int64]*user_model.User)
 	uniqTeams := make(map[string]*org_model.Team)
+	// Bound the total time spent matching rules×files. The per-rule MatchTimeout
+	// only caps a single match; without an aggregate budget a crafted CODEOWNERS
+	// plus a PR touching many files could still exhaust CPU inside this loop.
+	matchDeadline := time.Now().Add(codeOwnerMatchBudget)
+ruleLoop:
 	for _, rule := range rules {
 		for _, f := range changedFiles {
+			if time.Now().After(matchDeadline) {
+				log.Warn("CODEOWNERS matching for PR %s#%d exceeded its time budget; some rules were not evaluated", pr.BaseRepo.FullName(), pr.ID)
+				break ruleLoop
+			}
 			shouldMatch := !rule.Negative
 			matched, _ := rule.Rule.MatchString(f) // err only happens when timeouts, any error can be considered as not matched
 			if matched == shouldMatch {

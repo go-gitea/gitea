@@ -7,13 +7,13 @@ import (
 	"encoding/base64"
 	"net/http"
 
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	repo_service "code.gitea.io/gitea/services/repository"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	repo_service "gitea.dev/services/repository"
 )
 
-// UpdateVatar updates the Avatar of an Repo
+// UpdateAvatar updates the Avatar of a Repo
 func UpdateAvatar(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/avatar repository repoUpdateAvatar
 	// ---
@@ -44,7 +44,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -56,7 +56,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// UpdateAvatar deletes the Avatar of an Repo
+// DeleteAvatar deletes the Avatar of a Repo
 func DeleteAvatar(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/avatar repository repoDeleteAvatar
 	// ---

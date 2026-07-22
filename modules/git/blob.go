@@ -6,13 +6,13 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // This file contains common functions between the gogit and !gogit variants for git Blobs
@@ -23,11 +23,11 @@ func (b *Blob) Name() string {
 }
 
 // GetBlobBytes Gets the limited content of the blob
-func (b *Blob) GetBlobBytes(limit int64) ([]byte, error) {
+func (b *Blob) GetBlobBytes(ctx context.Context, limit int64) ([]byte, error) {
 	if limit <= 0 {
 		return nil, nil
 	}
-	dataRc, err := b.DataAsync()
+	dataRc, err := b.DataAsync(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,42 +36,43 @@ func (b *Blob) GetBlobBytes(limit int64) ([]byte, error) {
 }
 
 // GetBlobContent Gets the limited content of the blob as raw text
-func (b *Blob) GetBlobContent(limit int64) (string, error) {
-	buf, err := b.GetBlobBytes(limit)
+func (b *Blob) GetBlobContent(ctx context.Context, limit int64) (string, error) {
+	buf, err := b.GetBlobBytes(ctx, limit)
 	return string(buf), err
 }
 
 // GetBlobLineCount gets line count of the blob.
 // It will also try to write the content to w if it's not nil, then we could pre-fetch the content without reading it again.
-func (b *Blob) GetBlobLineCount(w io.Writer) (int, error) {
-	reader, err := b.DataAsync()
+func (b *Blob) GetBlobLineCount(ctx context.Context, w io.Writer) (size int64, count int, _ error) {
+	reader, err := b.DataAsync(ctx)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	defer reader.Close()
 	buf := make([]byte, 32*1024)
-	count := 1
+	size, count = 0, 1
 	lineSep := []byte{'\n'}
 	for {
 		c, err := reader.Read(buf)
+		size += int64(c)
 		if w != nil {
 			if _, err := w.Write(buf[:c]); err != nil {
-				return count, err
+				return size, count, err
 			}
 		}
 		count += bytes.Count(buf[:c], lineSep)
 		switch {
 		case errors.Is(err, io.EOF):
-			return count, nil
+			return size, count, nil
 		case err != nil:
-			return count, err
+			return size, count, err
 		}
 	}
 }
 
 // GetBlobContentBase64 Reads the content of the blob with a base64 encoding and returns the encoded string
-func (b *Blob) GetBlobContentBase64(originContent *strings.Builder) (string, error) {
-	dataRc, err := b.DataAsync()
+func (b *Blob) GetBlobContentBase64(ctx context.Context, originContent *strings.Builder) (string, error) {
+	dataRc, err := b.DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -100,13 +101,4 @@ loop:
 	}
 	_ = encoder.Close()
 	return base64buf.String(), nil
-}
-
-// GuessContentType guesses the content type of the blob.
-func (b *Blob) GuessContentType() (typesniffer.SniffedType, error) {
-	buf, err := b.GetBlobBytes(typesniffer.SniffContentSize)
-	if err != nil {
-		return typesniffer.SniffedType{}, err
-	}
-	return typesniffer.DetectContentType(buf), nil
 }

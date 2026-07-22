@@ -6,12 +6,12 @@ package feed
 import (
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/renderhelper"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/services/context"
-	feed_service "code.gitea.io/gitea/services/feed"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/renderhelper"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/services/context"
+	feed_service "gitea.dev/services/feed"
 
 	"github.com/gorilla/feeds"
 )
@@ -39,6 +39,11 @@ func showUserFeed(ctx *context.Context, formatType string) {
 			return
 		}
 		includePrivate = isOrgMember
+	}
+
+	// a public-only API token must not surface private activity, even for its own owner
+	if includePrivate && context.TokenIsPublicOnly(ctx) {
+		includePrivate = false
 	}
 
 	actions, _, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{

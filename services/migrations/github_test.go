@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/unittest"
-	base "code.gitea.io/gitea/modules/migration"
+	"gitea.dev/models/unittest"
+	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,8 +30,9 @@ func TestGitHubDownloadRepo(t *testing.T) {
 
 	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
 	ctx := t.Context()
-	downloader := NewGithubDownloaderV3(ctx, mockServer.URL, "", "", token, "go-gitea", "test_repo")
-	err := downloader.RefreshRate(ctx)
+	downloader, err := NewGithubDownloaderV3(ctx, mockServer.URL, "", "", token, "go-gitea", "test_repo")
+	require.NoError(t, err)
+	err = downloader.RefreshRate(ctx)
 	require.NoError(t, err)
 
 	repo, err := downloader.GetRepoInfo(ctx)
@@ -40,6 +41,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		Name:          "test_repo",
 		Owner:         "go-gitea",
 		Description:   "Test repository for testing migration from github to gitea",
+		Website:       "https://gitea.com/test-repo",
 		CloneURL:      "https://github.com/go-gitea/test_repo.git",
 		OriginalURL:   "https://github.com/go-gitea/test_repo",
 		DefaultBranch: "master",

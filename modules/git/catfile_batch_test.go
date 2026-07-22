@@ -9,7 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,9 +25,11 @@ func TestCatFileBatch(t *testing.T) {
 }
 
 func testCatFileBatch(t *testing.T) {
+	repo1Path, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	repo1 := gitcmd.RepositoryUnmanaged(repo1Path)
 	t.Run("CorruptedGitRepo", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		batch, err := NewBatch(t.Context(), tmpDir)
+		batch, err := NewBatch(t.Context(), gitcmd.RepositoryUnmanaged(tmpDir))
 		// as long as the directory exists, no error, because we can't really know whether the git repo is valid until we run commands
 		require.NoError(t, err)
 		defer batch.Close()
@@ -47,7 +50,7 @@ func testCatFileBatch(t *testing.T) {
 			assert.ErrorIs(t, err, expectedErr)
 		}
 
-		batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+		batch, err := NewBatch(t.Context(), repo1)
 		require.NoError(t, err)
 		defer batch.Close()
 		_, err = batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
@@ -79,7 +82,7 @@ func testCatFileBatch(t *testing.T) {
 		simulateQueryTerminated(t, nil, os.ErrClosed) // pipes are closed faster
 	})
 
-	batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+	batch, err := NewBatch(t.Context(), repo1)
 	require.NoError(t, err)
 	defer batch.Close()
 

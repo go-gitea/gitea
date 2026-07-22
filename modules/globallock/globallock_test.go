@@ -5,7 +5,6 @@ package globallock
 
 import (
 	"context"
-	"os"
 	"sync"
 	"testing"
 
@@ -15,50 +14,13 @@ import (
 
 func TestLockAndDo(t *testing.T) {
 	t.Run("redis", func(t *testing.T) {
-		url := "redis://127.0.0.1:6379/0"
-		if os.Getenv("CI") == "" {
-			// Make it possible to run tests against a local redis instance
-			url = os.Getenv("TEST_REDIS_URL")
-			if url == "" {
-				t.Skip("TEST_REDIS_URL not set and not running in CI")
-				return
-			}
-		}
-
-		oldDefaultLocker := defaultLocker
-		oldInitFunc := initFunc
-		defer func() {
-			defaultLocker = oldDefaultLocker
-			initFunc = oldInitFunc
-			if defaultLocker == nil {
-				initOnce = sync.Once{}
-			}
-		}()
-
-		initOnce = sync.Once{}
-		initFunc = func() {
-			defaultLocker = NewRedisLocker(url)
-		}
-
+		locker := newTestRedisLocker(t)
+		defaultLocker.Store(new(locker))
 		testLockAndDo(t)
-		require.NoError(t, defaultLocker.(*redisLocker).Close())
+		require.NoError(t, locker.(*redisLocker).Close())
 	})
 	t.Run("memory", func(t *testing.T) {
-		oldDefaultLocker := defaultLocker
-		oldInitFunc := initFunc
-		defer func() {
-			defaultLocker = oldDefaultLocker
-			initFunc = oldInitFunc
-			if defaultLocker == nil {
-				initOnce = sync.Once{}
-			}
-		}()
-
-		initOnce = sync.Once{}
-		initFunc = func() {
-			defaultLocker = NewMemoryLocker()
-		}
-
+		defaultLocker.Store(new(NewMemoryLocker()))
 		testLockAndDo(t)
 	})
 }
@@ -69,13 +31,10 @@ func testLockAndDo(t *testing.T) {
 	ctx := t.Context()
 	count := 0
 	wg := sync.WaitGroup{}
-	wg.Add(concurrency)
 	for range concurrency {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			err := LockAndDo(ctx, "test", func(ctx context.Context) error {
 				count++
-
 				// It's impossible to acquire the lock inner the function
 				ok, err := TryLockAndDo(ctx, "test", func(ctx context.Context) error {
 					assert.Fail(t, "should not acquire the lock")
@@ -83,13 +42,11 @@ func testLockAndDo(t *testing.T) {
 				})
 				assert.False(t, ok)
 				assert.NoError(t, err)
-
 				return nil
 			})
-			require.NoError(t, err)
-		}()
+			assert.NoError(t, err)
+		})
 	}
-
 	wg.Wait()
 
 	assert.Equal(t, concurrency, count)

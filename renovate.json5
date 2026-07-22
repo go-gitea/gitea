@@ -1,16 +1,22 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "helpers:pinGitHubActionDigests", "customManagers:githubActionsVersions"],
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "customManagers:githubActionsVersions",
+    "schedule:weekly", // dependency update PR on monday, vulnerabilityAlerts bypasses this
+  ],
   "configMigration": true,
-  "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix"],
+  "enabledManagers": ["github-actions", "gomod", "npm", "pep621", "nix", "custom.regex", "dockerfile"],
   "labels": ["dependencies"],
   "branchPrefix": "renovate/",
-  "schedule": ["* * * * 1"], // dependency update PRs weekly, vulnerabilityAlerts bypasses this
+  "separateMajorMinor": false, // include major updates in group PRs
   "minimumReleaseAge": "5 days",
   "semanticCommits": "enabled",
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
     "enabled": true,
+    "semanticCommitType": "fix", // overrides packageRules
   },
   "customManagers": [
     {
@@ -18,13 +24,15 @@
       "managerFilePatterns": ["/(^|/)Makefile$/"],
       "matchStrings": [
         "[A-Z_]+_PACKAGE\\s*\\?=\\s*(?<depName>[^@\\s]+?)(?:/cmd/[^@/\\s]+)?@(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+)",
+        "[A-Z_]+_IMAGE\\s*\\?=\\s*(?<depName>[^:\\s]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)\\s+# renovate: datasource=(?<datasource>\\S+)",
       ],
     },
   ],
   "packageRules": [
     {
-      "groupName": "action dependencies",
-      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["*"],
+      "groupName": "dependencies", // single weekly PR for all dependency updates
+      "semanticCommitType": "chore", // dep updates are rarely fixes for gitea
     },
     {
       "matchPackageNames": ["@mcaptcha/vanilla-glue"],
@@ -39,8 +47,12 @@
       "allowedVersions": "^3", // need to migrate
     },
     {
-      "matchPackageNames": ["github.com/urfave/cli/v3"],
-      "allowedVersions": "<3.6.2", // v3.6.2 breaks -c flag parsing in help commands
+      "matchPackageNames": ["@citation-js/core", "@citation-js/plugin-bibtex", "@citation-js/plugin-csl"],
+      "allowedVersions": "<0.8", // https://github.com/citation-js/citation-js/pull/277
+    },
+    {
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "^6", // typescript-eslint is not yet compatible with typescript 7
     },
     {
       "matchPackageNames": ["github.com/Azure/azure-sdk-for-go/sdk/azcore"],
@@ -59,30 +71,53 @@
       "allowedVersions": "<4.0.0-rc.4", // rc.4 changes block scalar serialization, wait for stable release
     },
     {
-      "groupName": "go dependencies",
-      "matchDatasources": ["go"], // covers gomod manager + Makefile go-tool customManager
+      "matchPackageNames": ["postgres"],
+      "allowedVersions": "/^14($|[.-])/", // pin to oldest supported major
+    },
+    {
+      "matchPackageNames": ["bitnamilegacy/mysql"],
+      "allowedVersions": "/^8\\.4($|[.-])/", // pin to oldest LTS
+    },
+    {
+      "matchPackageNames": ["mcr.microsoft.com/mssql/server"],
+      "allowedVersions": "/^2019($|[.-])/", // pin to oldest in extended support
+    },
+    {
+      "matchManagers": ["gomod"],
+      "postUpdateOptions": ["gomodUpdateImportPaths"],
       "postUpgradeTasks": {
         "commands": ["make tidy"],
-        "fileFilters": ["go.mod", "go.sum", "assets/go-licenses.json"],
+        "fileFilters": [
+          "go.mod",
+          "go.sum",
+          "assets/go-licenses.json",
+        ],
         "executionMode": "branch",
       },
     },
     {
-      "groupName": "npm dependencies",
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump",
+      "schedule": ["at any time"],
+      "minimumReleaseAge": "0",
+    },
+    {
       "matchManagers": ["npm"],
+      "postUpdateOptions": ["pnpmDedupe"],
       "postUpgradeTasks": {
-        "commands": ["make svg"],
-        "fileFilters": ["public/assets/img/svg/**"],
+        "commands": ["make svg", "make generate-codemirror-languages"],
+        "fileFilters": [
+          "package.json",
+          "pnpm-lock.yaml",
+          "pnpm-workspace.yaml",
+          "public/assets/img/svg/**",
+          "options/fileicon/**",
+          "assets/codemirror-languages.json",
+        ],
         "executionMode": "branch",
       },
-    },
-    {
-      "groupName": "python dependencies",
-      "matchManagers": ["pep621"],
-    },
-    {
-      "groupName": "nix dependencies",
-      "matchManagers": ["nix"],
     },
   ],
 }

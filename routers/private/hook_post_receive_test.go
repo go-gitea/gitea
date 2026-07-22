@@ -6,14 +6,14 @@ package private
 import (
 	"testing"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	pull_model "code.gitea.io/gitea/models/pull"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/private"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/services/contexttest"
+	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/private"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,10 +32,10 @@ func TestHandlePullRequestMerging(t *testing.T) {
 	autoMerge := unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 
 	ctx, resp := contexttest.MockPrivateContext(t, "/")
-	handlePullRequestMerging(ctx, &private.HookOptions{
+	hookPostReceiveHandlePullRequestMerging(ctx, &private.HookOptions{
 		PullRequestID: pr.ID,
 		UserID:        2,
-	}, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, []*repo_module.PushUpdateOptions{
+	}, []*repo_module.PushUpdateOptions{
 		{NewCommitID: "01234567"},
 	})
 	assert.Empty(t, resp.Body.String())

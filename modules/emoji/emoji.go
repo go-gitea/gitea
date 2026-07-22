@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 )
 
 // Gemoji is a set of emoji data.

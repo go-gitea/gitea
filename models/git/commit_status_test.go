@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/gitrepo"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -186,11 +186,11 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo2)
+	gitRepo, err := git.OpenRepository(repo2)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	commit, err := gitRepo.GetBranchCommit(repo2.DefaultBranch)
+	commit, err := gitRepo.GetBranchCommit(t.Context(), repo2.DefaultBranch)
 	assert.NoError(t, err)
 
 	defer func() {

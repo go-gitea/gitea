@@ -6,10 +6,10 @@ package issues
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
 )
 
 // IssueWatch is connection request for receiving issue notification.
@@ -106,7 +106,7 @@ func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOpt
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 		watches := make([]*IssueWatch, 0, listOptions.PageSize)
 		return watches, sess.Find(&watches)
 	}

@@ -1,8 +1,8 @@
 <div class="issue-content">
 	{{$createdStr:= DateUtils.TimeSince .Issue.CreatedUnix}}
-	<div class="issue-content-left comment-list prevent-before-timeline">
-		<div class="ui timeline">
-			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
+	<div class="issue-content-left">
+		<div class="comment-list">
+			<div id="{{.Issue.HashTag}}" class="timeline-item comment issue-content-comment">
 				{{if .Issue.OriginalAuthor}}
 				<span class="timeline-avatar">
 					{{ctx.AvatarUtils.Avatar nil 40}}
@@ -171,14 +171,3 @@
 
 {{template "repo/issue/view_content/reference_issue_dialog" .}}
 {{template "shared/user/block_user_dialog" .}}
-
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{svg "octicon-trash"}}
-		{{ctx.Locale.Tr "repo.branch.delete" .HeadTarget}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "repo.branch.delete_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
-</div>

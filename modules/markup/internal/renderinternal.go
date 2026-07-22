@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.gitea.io/gitea/modules/htmlutil"
+	"gitea.dev/modules/htmlutil"
 
 	"golang.org/x/net/html"
 )
@@ -77,6 +77,7 @@ func (r *RenderInternal) ProtectSafeAttrs(content template.HTML) template.HTML {
 }
 
 func (r *RenderInternal) FormatWithSafeAttrs(w io.Writer, fmt template.HTML, a ...any) error {
-	_, err := w.Write([]byte(r.ProtectSafeAttrs(htmlutil.HTMLFormat(fmt, a...))))
+	htmlStr := r.ProtectSafeAttrs(htmlutil.HTMLFormat(fmt, a...))
+	_, err := io.WriteString(w, string(htmlStr))
 	return err
 }

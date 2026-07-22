@@ -6,7 +6,7 @@ package log
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
 )

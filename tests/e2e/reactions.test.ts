@@ -5,14 +5,14 @@ import {login, apiCreateRepo, apiCreateIssue, randomString} from './utils.ts';
 test('toggle issue reactions', async ({page, request}) => {
   const repoName = `e2e-reactions-${randomString(8)}`;
   const owner = env.GITEA_TEST_E2E_USER;
-  await apiCreateRepo(request, {name: repoName});
+  await apiCreateRepo(request, {name: repoName, autoInit: false});
   await Promise.all([
     apiCreateIssue(request, {owner, repo: repoName, title: 'Reaction test'}),
     login(page),
   ]);
   await page.goto(`/${owner}/${repoName}/issues/1`);
 
-  const issueComment = page.locator('.timeline-item.comment.first');
+  const issueComment = page.locator('.timeline-item.comment.issue-content-comment');
 
   const reactionPicker = issueComment.locator('.select-reaction');
   await reactionPicker.click();

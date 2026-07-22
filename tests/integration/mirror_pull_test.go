@@ -4,20 +4,26 @@
 package integration
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"slices"
+	"sync/atomic"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/migration"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	release_service "code.gitea.io/gitea/services/release"
-	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	migrations "gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
+	release_service "gitea.dev/services/release"
+	repo_service "gitea.dev/services/repository"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,7 +66,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeReleases }))
 	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeWiki }))
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := git.OpenRepository(repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -73,7 +79,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Zero(t, initCount) // no sync yet, so even though there is a tag in source repo, the mirror's release table is still empty
 
-	assert.NoError(t, release_service.CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, release_service.CreateRelease(ctx, gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -93,6 +99,9 @@ func TestMirrorPull(t *testing.T) {
 	ok := mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
 	assert.True(t, ok)
 
+	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.Equal(t, mirror.UpdatedUnix, mirror.LastSyncUnix)
+
 	// actually there is a tag in the source repo, so after "sync", that tag will also come into the mirror
 	initCount++
 
@@ -110,4 +119,59 @@ func TestMirrorPull(t *testing.T) {
 	count, err = db.Count[repo_model.Release](t.Context(), findOptions)
 	assert.NoError(t, err)
 	assert.Equal(t, initCount, count)
+
+	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	lastMirrorSync := mirror.LastSyncUnix
+	assert.NoError(t, mirror_service.UpdateAddress(ctx, mirror, repoPath+"-missing"))
+
+	ok = mirror_service.SyncPullMirror(ctx, mirrorRepo.ID)
+	assert.False(t, ok)
+
+	mirror = unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.Equal(t, lastMirrorSync, mirror.LastSyncUnix)
+}
+
+// TestMirrorPullSSRFRevalidation ensures a pull mirror re-validates its remote URL against
+// the migration allow/block list on every sync, so a mirror whose (network) remote now
+// points at a disallowed internal host is never fetched.
+func TestMirrorPullSSRFRevalidation(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	ctx := t.Context()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+
+	// an "internal" server that records whether it was reached
+	var reached atomic.Bool
+	internal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reached.Store(true)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer internal.Close()
+
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(ctx, user, user, repo_service.CreateRepoOptions{
+		Name:     "ssrf_mirror",
+		IsMirror: true,
+		Status:   repo_model.RepositoryBeingMigrated,
+	}, false)
+	require.NoError(t, err)
+	_, err = repo_service.MigrateRepositoryGitData(ctx, user, mirrorRepo, migration.MigrateOptions{
+		RepoName:  "ssrf_mirror",
+		Mirror:    true,
+		CloneAddr: repoPath,
+	}, nil)
+	require.NoError(t, err)
+
+	mirror, err := repo_model.GetMirrorByRepoID(ctx, mirrorRepo.ID)
+	require.NoError(t, err)
+
+	// repoint the mirror at the loopback server, which is disallowed once local networks are off
+	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, internal.URL+"/repo.git"))
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)()
+	require.NoError(t, migrations.Init())
+	t.Cleanup(func() { _ = migrations.Init() })
+
+	assert.False(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
+	assert.False(t, reached.Load(), "the disallowed internal remote must not be reached")
 }

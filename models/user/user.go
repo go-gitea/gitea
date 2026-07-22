@@ -21,22 +21,22 @@ import (
 	"time"
 	"unicode"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/auth/openid"
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/auth/openid"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -244,12 +244,15 @@ func (u *User) IsOAuth2() bool {
 	return u.LoginType == auth.OAuth2
 }
 
-// MaxCreationLimit returns the number of repositories a user is allowed to create
+// MaxCreationLimit returns the number of repositories a user or an organization is allowed to create
 func (u *User) MaxCreationLimit() int {
-	if u.MaxRepoCreation <= -1 {
-		return setting.Repository.MaxCreationLimit
+	if u.MaxRepoCreation > -1 {
+		return u.MaxRepoCreation
 	}
-	return u.MaxRepoCreation
+	if u.IsOrganization() {
+		return setting.Repository.OrgMaxCreationLimit
+	}
+	return setting.Repository.UserMaxCreationLimit
 }
 
 // CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
@@ -264,13 +267,11 @@ func (u *User) CanCreateRepoIn(owner *User) bool {
 		return true
 	}
 	const noLimit = -1
-	if owner.MaxRepoCreation == noLimit {
-		if setting.Repository.MaxCreationLimit == noLimit {
-			return true
-		}
-		return owner.NumRepos < setting.Repository.MaxCreationLimit
+	limit := owner.MaxCreationLimit()
+	if limit == noLimit {
+		return true
 	}
-	return owner.NumRepos < owner.MaxRepoCreation
+	return owner.NumRepos < limit
 }
 
 // CanCreateOrganization returns true if user can create organisation.
@@ -307,6 +308,13 @@ func (u *User) DashboardLink() string {
 	return setting.AppSubURL + "/"
 }
 
+func (u *User) SettingsLink() string {
+	if u.IsOrganization() {
+		return u.OrganisationLink() + "/settings"
+	}
+	return setting.AppSubURL + "/user/settings"
+}
+
 // HomeLink returns the user or organization home page link.
 func (u *User) HomeLink() string {
 	return setting.AppSubURL + "/" + url.PathEscape(u.Name)
@@ -332,7 +340,7 @@ func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		count, err := sess.FindAndCount(&users)
@@ -354,7 +362,7 @@ func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListO
 		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page > 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		count, err := sess.FindAndCount(&users)
@@ -1051,19 +1059,28 @@ func GetPossibleUserByIDs(ctx context.Context, ids []int64) ([]*User, error) {
 	return users, nil
 }
 
-// GetUserByName returns user by given name.
-func GetUserByName(ctx context.Context, name string) (*User, error) {
-	if len(name) == 0 {
-		return nil, ErrUserNotExist{Name: name}
+func getUserByNameWithTypes(ctx context.Context, name string, types ...UserType) (*User, error) {
+	u := &User{}
+	sess := db.GetEngine(ctx).Where(builder.Eq{"lower_name": strings.ToLower(name)})
+	if len(types) > 0 {
+		sess.In("`type`", types)
 	}
-	u := &User{LowerName: strings.ToLower(name), Type: UserTypeIndividual}
-	has, err := db.GetEngine(ctx).Get(u)
+	has, err := sess.Get(u)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrUserNotExist{Name: name}
 	}
 	return u, nil
+}
+
+// GetUserByName returns the user object by given name, any user type.
+func GetUserByName(ctx context.Context, name string) (*User, error) {
+	return getUserByNameWithTypes(ctx, name)
+}
+
+func GetIndividualUserByName(ctx context.Context, name string) (*User, error) {
+	return getUserByNameWithTypes(ctx, name, UserTypeIndividual)
 }
 
 // GetUserEmailsByNames returns a list of e-mails corresponds to names of users
@@ -1108,19 +1125,6 @@ func GetMailableUsersByIDs(ctx context.Context, ids []int64, isMention bool) ([]
 		Find(&ous)
 }
 
-// GetUserNameByID returns username for the id
-func GetUserNameByID(ctx context.Context, id int64) (string, error) {
-	var name string
-	has, err := db.GetEngine(ctx).Table("user").Where("id = ?", id).Cols("name").Get(&name)
-	if err != nil {
-		return "", err
-	}
-	if has {
-		return name, nil
-	}
-	return "", nil
-}
-
 // GetUserIDsByNames returns a slice of ids corresponds to names.
 func GetUserIDsByNames(ctx context.Context, names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
@@ -1144,14 +1148,7 @@ func GetUsersBySource(ctx context.Context, s *auth.Source) ([]*User, error) {
 	return users, err
 }
 
-// UserCommit represents a commit with validation of user.
-type UserCommit struct { //revive:disable-line:exported
-	User *User
-	*git.Commit
-}
-
-// ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
-func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
+func GetUserByGitAuthor(ctx context.Context, c *git.Commit) *User {
 	if c.Author == nil {
 		return nil
 	}
@@ -1160,33 +1157,6 @@ func ValidateCommitWithEmail(ctx context.Context, c *git.Commit) *User {
 		return nil
 	}
 	return u
-}
-
-// ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(ctx context.Context, oldCommits []*git.Commit) ([]*UserCommit, error) {
-	var (
-		newCommits = make([]*UserCommit, 0, len(oldCommits))
-		emailSet   = make(container.Set[string])
-	)
-	for _, c := range oldCommits {
-		if c.Author != nil {
-			emailSet.Add(c.Author.Email)
-		}
-	}
-
-	emailUserMap, err := GetUsersByEmails(ctx, emailSet.Values())
-	if err != nil {
-		return nil, err
-	}
-
-	for _, c := range oldCommits {
-		user := emailUserMap.GetByEmail(c.Author.Email) // FIXME: why ValidateCommitsWithEmails uses "Author", but ParseCommitsWithSignature uses "Committer"?
-		newCommits = append(newCommits, &UserCommit{
-			User:   user,
-			Commit: c,
-		})
-	}
-	return newCommits, nil
 }
 
 type EmailUserMap struct {
@@ -1199,7 +1169,7 @@ func (eum *EmailUserMap) GetByEmail(email string) *User {
 
 func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
 	if len(emails) == 0 {
-		return nil, nil //nolint:nilnil // return nil when there are no emails to look up
+		return &EmailUserMap{}, nil
 	}
 
 	needCheckEmails := make(container.Set[string])
@@ -1306,8 +1276,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 
 	email = strings.ToLower(email)
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{LowerEmail: email, IsActivated: true}
-	has, err := db.GetEngine(ctx).Get(emailAddress)
+	emailAddress, has, err := db.Get[EmailAddress](ctx, builder.Eq{"lower_email": email, "is_activated": true})
 	if err != nil {
 		return nil, err
 	}
@@ -1321,18 +1290,35 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		if id != 0 {
 			return GetUserByID(ctx, id)
 		}
-		return GetUserByName(ctx, name)
+		return GetIndividualUserByName(ctx, name)
 	}
 
 	return nil, ErrUserNotExist{Name: email}
 }
 
-func GetIndividualUser(ctx context.Context, user *User) (bool, error) {
-	has, err := db.GetEngine(ctx).Get(user)
+func GetIndividualUserByPrimaryEmail(ctx context.Context, email string) (*User, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if len(email) == 0 {
+		return nil, ErrUserNotExist{Name: email}
+	}
+
+	user, has, err := db.Get[User](ctx, builder.Eq{"email": email, "type": UserTypeIndividual})
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrUserNotExist{Name: email}
+	}
+	return user, nil
+}
+
+func GetIndividualUserByLoginSource(ctx context.Context, loginType auth.Type, loginSource int64, loginName string) (*User, bool, error) {
+	user, has, err := db.Get[User](ctx, builder.Eq{"login_type": loginType, "login_source": loginSource, "login_name": loginName})
 	if has && user.Type != UserTypeIndividual {
 		has = false
+		user = nil
 	}
-	return has, err
+	return user, has, err
 }
 
 // GetUserByOpenID returns the user object by given OpenID if exists.
@@ -1491,28 +1477,4 @@ func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {
 		return &setting.Admin.ExternalUserDisableFeatures
 	}
 	return &setting.Admin.UserDisabledFeatures
-}
-
-// GetUserOrOrgIDByName returns the id for a user or an org by name
-func GetUserOrOrgIDByName(ctx context.Context, name string) (int64, error) {
-	var id int64
-	has, err := db.GetEngine(ctx).Table("user").Where("name = ?", name).Cols("id").Get(&id)
-	if err != nil {
-		return 0, err
-	} else if !has {
-		return 0, fmt.Errorf("user or org with name %s: %w", name, util.ErrNotExist)
-	}
-	return id, nil
-}
-
-// GetUserOrOrgByName returns the user or org by name
-func GetUserOrOrgByName(ctx context.Context, name string) (*User, error) {
-	var u User
-	has, err := db.GetEngine(ctx).Where("lower_name = ?", strings.ToLower(name)).Get(&u)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrUserNotExist{Name: name}
-	}
-	return &u, nil
 }

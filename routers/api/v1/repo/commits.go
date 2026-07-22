@@ -10,15 +10,14 @@ import (
 	"strconv"
 	"time"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
+	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 )
 
 // GetSingleCommit get a commit via sha
@@ -74,7 +73,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 }
 
 func getCommit(ctx *context.APIContext, identifier string, toCommitOpts convert.ToCommitOptions) {
-	commit, err := ctx.Repo.GitRepo.GetCommit(identifier)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, identifier)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound("commit doesn't exist: " + identifier)
@@ -208,22 +207,22 @@ func GetAllCommits(ctx *context.APIContext) {
 		var baseCommit *git.Commit
 		if len(sha) == 0 {
 			// no sha supplied - use default branch
-			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+			baseCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
 		} else {
 			// get commit specified by sha
-			baseCommit, err = ctx.Repo.GitRepo.GetCommit(sha)
+			baseCommit, err = ctx.Repo.GitRepo.GetCommit(ctx, sha)
 			if err != nil {
-				ctx.NotFoundOrServerError(err)
+				ctx.APIErrorAuto(err)
 				return
 			}
 		}
 
 		// Total commit count
-		commitsCountTotal, err = gitrepo.CommitsCount(ctx, ctx.Repo.Repository, gitrepo.CommitsCountOptions{
+		commitsCountTotal, err = git.CommitsCount(ctx, ctx.Repo.Repository, git.CommitsCountOptions{
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
 			Since:    since,
@@ -235,7 +234,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not, since, until)
+		commits, err = baseCommit.CommitsByRange(ctx, ctx.Repo.GitRepo, listOptions.Page, listOptions.PageSize, not, since, until)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -245,8 +244,8 @@ func GetAllCommits(ctx *context.APIContext) {
 			sha = ctx.Repo.Repository.DefaultBranch
 		}
 
-		commitsCountTotal, err = gitrepo.CommitsCount(ctx, ctx.Repo.Repository,
-			gitrepo.CommitsCountOptions{
+		commitsCountTotal, err = git.CommitsCount(ctx, ctx.Repo.Repository,
+			git.CommitsCountOptions{
 				Not:      not,
 				Revision: []string{sha},
 				RelPath:  []string{path},
@@ -258,11 +257,30 @@ func GetAllCommits(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		} else if commitsCountTotal == 0 {
-			ctx.APIErrorNotFound("FileCommitsCount", nil)
-			return
+			// when date filters are active, a zero count may just mean no
+			// commits in the requested range — not that the path is invalid
+			if since == "" && until == "" {
+				ctx.APIErrorNotFound()
+				return
+			}
+			// verify the path actually exists in the revision history
+			totalWithoutDate, err := git.CommitsCount(ctx, ctx.Repo.Repository,
+				git.CommitsCountOptions{
+					Not:      not,
+					Revision: []string{sha},
+					RelPath:  []string{path},
+				})
+			if err != nil {
+				ctx.APIErrorInternal(err)
+				return
+			}
+			if totalWithoutDate == 0 {
+				ctx.APIErrorNotFound()
+				return
+			}
 		}
 
-		commits, err = ctx.Repo.GitRepo.CommitsByFileAndRange(
+		commits, _, err = ctx.Repo.GitRepo.CommitsByFileAndRange(ctx,
 			git.CommitsByFileAndRangeOptions{
 				Revision: sha,
 				File:     path,
@@ -341,7 +359,7 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	sha := ctx.PathParam("sha")
 	diffType := git.RawDiffType(ctx.PathParam("diffType"))
 
-	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
+	if err := git.GetRawDiff(ctx, ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound("commit doesn't exist: " + sha)
 			return
@@ -383,7 +401,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	pr, err := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.PathParam("sha"))
 	if err != nil {
 		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

@@ -1,0 +1,93 @@
+.markup.jupyter-render {
+  padding: 0;
+}
+
+.markup .jupyter-notebook {
+  padding: 20px;
+  background: var(--color-body);
+  border-bottom-left-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
+  font-family: var(--fonts-monospace);
+  display: flex;
+  flex-direction: column;
+  gap: 2em;
+}
+
+/* cell code */
+.markup .jupyter-notebook .cell-line {
+  display: flex;
+  width: 100%;
+  gap: 0.5em;
+}
+
+.markup .jupyter-notebook .cell-left {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.markup .jupyter-notebook .cell-right {
+  flex: 1;
+}
+
+.markup .jupyter-notebook .cell-prompt {
+  padding: 10px 0;
+  color: var(--color-text-light-2);
+  font-size: 13px;
+}
+
+.markup .jupyter-notebook .cell-left.cell-prompt {
+  padding-left: 10px;
+  text-align: right;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.markup .jupyter-notebook .cell-right.cell-prompt {
+  padding-right: 10px;
+}
+
+.markup .jupyter-notebook .cell-input,
+.markup .jupyter-notebook .cell-output {
+  overflow-x: auto;
+}
+
+.markup .jupyter-notebook .cell-input pre,
+.markup .jupyter-notebook .cell-output pre {
+  padding: 10px 16px;
+  font-size: 13px;
+  min-height: 40px;
+  margin: 0;
+}
+
+.markup .jupyter-notebook .cell-input pre {
+  background-color: var(--color-code-bg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.markup .jupyter-notebook .cell-output {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.markup .jupyter-notebook .cell-type-code {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.markup .jupyter-notebook .cell-output-unsupported {
+  color: var(--color-text-light-2);
+  font-style: italic;
+  font-size: 13px;
+}
+
+.markup .jupyter-notebook .cell-output-error {
+  color: var(--color-red);
+}
+
+/* cell markdown */
+.markup .jupyter-notebook .cell-right .embedded-markdown {
+  padding: 0 16px; /* match cell code right padding */
+}

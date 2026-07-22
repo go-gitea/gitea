@@ -5,12 +5,12 @@
 }
 
 .timeline-item .conversation-holder .bottom-reactions {
-  margin: 1em 0 0 36px;
+  margin: 1em 0 0 24px;
   padding-bottom: 8px;
 }
 
 .bottom-reactions .ui.label {
-  padding: 5px 8px;
+  padding: 2px 6px;
   font-weight: var(--font-weight-normal);
 }
 

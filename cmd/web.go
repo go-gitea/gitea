@@ -15,17 +15,17 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/gtprof"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/install"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/gtprof"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers"
+	"gitea.dev/routers/install"
 
 	"github.com/felixge/fgprof"
 	"github.com/urfave/cli/v3"
@@ -150,7 +150,7 @@ func serveInstall(cmd *cli.Command) error {
 	c := install.Routes()
 	err := listen(c, false)
 	if err != nil {
-		log.Critical("Unable to open listener for installer. Is Gitea already running?")
+		log.Error("Unable to open listener for installer. Is Gitea already running?")
 		graceful.GetManager().DoGracefulShutdown()
 	}
 	select {
@@ -375,7 +375,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
 	if err != nil {
-		log.Critical("Failed to start server: %v", err)
+		log.Error("Failed to start server: %v", err)
 	}
 	log.Info("HTTP Listener: %s Closed", listenAddr)
 	return err
