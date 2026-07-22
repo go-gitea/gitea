@@ -441,12 +441,16 @@ select.ui.dropdown {
 }
 
 .ui.multiple.dropdown > .label {
-  display: inline-block;
   white-space: normal;
   font-size: 1em;
   padding: 0.35714286em 0.78571429em;
   margin: 0.14285714rem 0.28571429rem 0.14285714rem 0;
   box-shadow: 0 0 0 1px var(--color-secondary) inset;
+}
+
+.ui.multiple.dropdown > .label img {
+  width: auto;
+  max-height: 20px;
 }
 
 /* Text */
