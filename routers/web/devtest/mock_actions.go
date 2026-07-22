@@ -202,6 +202,10 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	// Mock job summaries so the devtest page can preview the Summary panel rendering.
 	// Only some runs have summaries, so the page also exercises the "no summary" state.
 	if runID == 10 || runID == 20 {
+		// A non-empty version is required: the run view keeps its already-held summaries when the
+		// returned version matches the one it holds, so an unset (empty) version would match the
+		// client's initial empty state and discard these mock summaries.
+		resp.State.Run.JobSummariesVersion = "devtest-summaries-v1"
 		resp.State.Run.JobSummaries = []*actions.ViewJobSummary{
 			{
 				JobID:       runID * 10,
