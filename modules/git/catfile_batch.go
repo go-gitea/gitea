@@ -6,8 +6,10 @@ package git
 import (
 	"context"
 	"io"
+	"os"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 type BufferedReader interface {
@@ -49,8 +51,11 @@ type CatFileBatchCloser interface {
 // The CatFileBatch and the readers create by it should only be used in the same goroutine.
 func NewBatch(ctx context.Context, repo RepositoryFacade) (CatFileBatchCloser, error) {
 	repoPath := gitcmd.RepoLocalPath(repo)
-	if DefaultFeatures().SupportCatFileBatchCommand {
-		return newCatFileBatchCommand(ctx, repoPath)
+	if _, err := os.Stat(repoPath); err != nil {
+		return nil, util.NewNotExistErrorf("repo %q doesn't exist", repo.LogString())
 	}
-	return newCatFileBatchLegacy(ctx, repoPath)
+	if DefaultFeatures().SupportCatFileBatchCommand {
+		return newCatFileBatchCommand(ctx, repo), nil
+	}
+	return newCatFileBatchLegacy(ctx, repo), nil
 }

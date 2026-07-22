@@ -132,7 +132,7 @@ onBeforeUnmount(() => {
   <!-- make the view container full width to make users easier to read logs -->
   <div class="ui fluid container">
     <div class="action-view-header">
-      <a v-if="backLink" class="action-view-back silenced" :href="backLink.href">
+      <a v-if="backLink" class="action-view-back" :href="backLink.href">
         <SvgIcon name="octicon-arrow-left" :size="14"/>
         <span>{{ backLink.prefix }} <span class="action-view-back-name">{{ backLink.name }}</span></span>
       </a>
@@ -188,7 +188,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="flex-text-block tw-pl-[20px]">
                   <span class="flex-text-inline tw-flex-shrink-0">
-                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" class="flex-text-block" icon-variant="circle-fill"/>
+                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" icon-variant="circle-fill"/>
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
                   <span>•</span>
@@ -364,14 +364,10 @@ onBeforeUnmount(() => {
   gap: 4px;
   font-size: 13px;
   color: var(--color-text-light-1);
+  text-decoration: none;
 }
 
 .action-view-back:hover {
-  color: var(--color-primary);
-}
-
-.action-view-back-name {
-  font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 
