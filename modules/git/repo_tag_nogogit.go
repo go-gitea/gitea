@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"errors"
 	"io"
 
@@ -14,17 +15,17 @@ import (
 )
 
 // IsTagExist returns true if given tag exists in the repository.
-func (repo *Repository) IsTagExist(name string) bool {
+func (repo *Repository) IsTagExist(ctx context.Context, name string) bool {
 	if repo == nil || name == "" {
 		return false
 	}
 
-	return repo.IsReferenceExist(TagPrefix + name)
+	return repo.IsReferenceExist(ctx, TagPrefix+name)
 }
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
-func (repo *Repository) GetTagType(id ObjectID) (string, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+func (repo *Repository) GetTagType(ctx context.Context, id ObjectID) (string, error) {
+	batch, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -39,7 +40,7 @@ func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 	return info.Type, nil
 }
 
-func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
+func (repo *Repository) getTag(ctx context.Context, tagID ObjectID, name string) (*Tag, error) {
 	t, ok := repo.tagCache.Get(tagID.String())
 	if ok {
 		log.Debug("Hit cache: %s", tagID)
@@ -48,13 +49,13 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 		return &tagClone, nil
 	}
 
-	tp, err := repo.GetTagType(tagID)
+	tp, err := repo.GetTagType(ctx, tagID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the commit ID and tag ID (may be different for annotated tag) for the returned tag object
-	commitIDStr, err := repo.GetTagCommitID(name)
+	commitIDStr, err := repo.GetTagCommitID(ctx, name)
 	if err != nil {
 		// every tag should have a commit ID so return all errors
 		return nil, err
@@ -66,7 +67,7 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 
 	// If type is "commit, the tag is a lightweight tag
 	if ObjectType(tp) == ObjectCommit {
-		commit, err := repo.GetCommit(commitIDStr)
+		commit, err := repo.GetCommit(ctx, commitIDStr)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +85,7 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 
 	// The tag is an annotated tag with a message.
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}

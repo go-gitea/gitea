@@ -10,7 +10,7 @@ import (
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -50,17 +50,17 @@ func LoadParsedScopedWorkflows(ctx context.Context, sourceRepo *repo_model.Repos
 	}
 
 	// cache miss: open the source repo at the exact SHA we keyed on
-	sourceGitRepo, err := gitrepo.OpenRepository(ctx, sourceRepo)
+	sourceGitRepo, err := git.OpenRepository(sourceRepo)
 	if err != nil {
 		return "", nil, fmt.Errorf("open source repo: %w", err)
 	}
 	defer sourceGitRepo.Close()
 
-	sourceCommit, err := sourceGitRepo.GetCommit(sha)
+	sourceCommit, err := sourceGitRepo.GetCommit(ctx, sha)
 	if err != nil {
 		return "", nil, fmt.Errorf("get source commit %s: %w", sha, err)
 	}
-	parsed, err = actions_module.ParseScopedWorkflows(sourceCommit)
+	parsed, err = actions_module.ParseScopedWorkflows(ctx, sourceGitRepo, sourceCommit)
 	if err != nil {
 		return "", nil, err
 	}

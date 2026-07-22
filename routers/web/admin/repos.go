@@ -11,7 +11,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -134,7 +134,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
 	}
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
+	exist, err := git.IsRepositoryExist(ctx, repo_model.CodeRepoByName(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
 		return

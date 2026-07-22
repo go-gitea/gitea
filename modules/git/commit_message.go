@@ -77,8 +77,12 @@ func (c *CommitMessage) MessageTrailer() CommitMessageTrailerValues {
 }
 
 var commitMessageTrailerSplit = sync.OnceValue(func() *regexp.Regexp {
-	// the sep is either something like "\n---\n" or "\n\n" in the body, or at the start of the body like "---\n"
-	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n-{3,}\n+|\n\n)(?P<trailer>(?:[A-Za-z0-9][-A-Za-z0-9]*:[^\n]*\n?)*\n*)$`)
+	// ref: https://git-scm.com/docs/git-interpret-trailers
+	// TODO: the regexp is not able to perfectly parse the all kinds of trailers
+	// It was just copied from legacy code, it is not exactly the same as how Git parses the trailer and not quite right in some cases.
+	// For the key characters: it follows RFC 822 field name syntax (or RFC 2822/RFC 5322): printable ASCII characters between 33 and 126 except the colon (:),
+	// but maybe we don't want to make it that complicated, so here we only support some common "symbol-like" characters.
+	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-\w]*:[^\n]*(\n\s+[^\n]*)*\n?)*\n*)$`)
 })
 
 // CommitMessageSplitTrailer tries to split the message by the trailer separator
@@ -91,6 +95,41 @@ func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 		return s, "", ""
 	}
 	return v[re.SubexpIndex("content")], v[re.SubexpIndex("sep")], v[re.SubexpIndex("trailer")]
+}
+
+// CommitMessageMerge merges two commit messages with their trailers
+func CommitMessageMerge(m1, m2 string) string {
+	c1, s1, t1 := CommitMessageSplitTrailer(m1)
+	c2, s2, t2 := CommitMessageSplitTrailer(m2)
+	c1, t1 = strings.TrimSpace(c1), strings.TrimSpace(t1)
+	c2, t2 = strings.TrimSpace(c2), strings.TrimSpace(t2)
+	out := strings.Builder{}
+	if c1 != "" && c2 != "" {
+		out.WriteString(c1)
+		out.WriteString("\n\n")
+		out.WriteString(c2)
+	} else if c1 != "" {
+		out.WriteString(c1)
+	} else if c2 != "" {
+		out.WriteString(c2)
+	}
+	if t1 != "" || t2 != "" {
+		sep := util.Iif(t1 == "", s2, s1)
+		sep = util.IfZero(sep, "\n\n")
+		if c1 != "" || c2 != "" {
+			out.WriteString(sep)
+		}
+		if t1 != "" {
+			out.WriteString(t1)
+		}
+		if t1 != "" && t2 != "" {
+			out.WriteString("\n")
+		}
+		if t2 != "" {
+			out.WriteString(t2)
+		}
+	}
+	return out.String()
 }
 
 func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {

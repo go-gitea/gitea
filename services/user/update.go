@@ -145,7 +145,8 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 		}
 	}
 
-	if opts.Visibility.Has() {
+	// only validate and persist the visibility when it actually changes
+	if opts.Visibility.Has() && opts.Visibility.Value() != u.Visibility {
 		if !u.IsOrganization() && !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(opts.Visibility.Value()) {
 			return fmt.Errorf("visibility mode not allowed: %s", opts.Visibility.Value().String())
 		}

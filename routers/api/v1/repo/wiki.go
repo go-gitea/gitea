@@ -11,7 +11,6 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -177,26 +176,26 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	// lookup filename in wiki - get filecontent, real filename
-	content, pageFilename := wikiContentsByName(ctx, commit, wikiName, false)
+	content, pageFilename := wikiContentsByName(ctx, wikiRepo, commit, wikiName, false)
 	if ctx.Written() {
 		return nil
 	}
 
-	sidebarContent, _ := wikiContentsByName(ctx, commit, "_Sidebar", true)
+	sidebarContent, _ := wikiContentsByName(ctx, wikiRepo, commit, "_Sidebar", true)
 	if ctx.Written() {
 		return nil
 	}
 
-	footerContent, _ := wikiContentsByName(ctx, commit, "_Footer", true)
+	footerContent, _ := wikiContentsByName(ctx, wikiRepo, commit, "_Footer", true)
 	if ctx.Written() {
 		return nil
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := git.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	// Get last change information.
-	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
+	lastCommit, err := wikiRepo.GetCommitByPath(ctx, pageFilename)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil
@@ -303,7 +302,7 @@ func ListWikiPages(ctx *context.APIContext) {
 	skip := (page - 1) * limit
 	maxNum := page * limit
 
-	entries, err := commit.ListEntries()
+	entries, err := commit.Tree().ListEntries(ctx, wikiRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -313,7 +312,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		if i < skip || i >= maxNum || !entry.IsRegular() {
 			continue
 		}
-		c, err := wikiRepo.GetCommitByPath(entry.Name())
+		c, err := wikiRepo.GetCommitByPath(ctx, entry.Name())
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -420,18 +419,18 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// lookup filename in wiki - get filecontent, gitTree entry , real filename
-	_, pageFilename := wikiContentsByName(ctx, commit, pageName, false)
+	_, pageFilename := wikiContentsByName(ctx, wikiRepo, commit, pageName, false)
 	if ctx.Written() {
 		return
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := git.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
-	commitsHistory, _, err := wikiRepo.CommitsByFileAndRange(
+	commitsHistory, _, err := wikiRepo.CommitsByFileAndRange(ctx,
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,
@@ -448,8 +447,8 @@ func ListPageRevisions(ctx *context.APIContext) {
 }
 
 // findEntryForFile finds the tree entry for a target filepath.
-func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
-	entry, err := commit.GetTreeEntryByPath(target)
+func findEntryForFile(ctx *context.APIContext, wikiRepo *git.Repository, commit *git.Commit, target string) (*git.TreeEntry, error) {
+	entry, err := commit.GetTreeEntryByPath(ctx, wikiRepo, target)
 	if err != nil {
 		return nil, err
 	}
@@ -462,19 +461,19 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 	if unescapedTarget, err = url.QueryUnescape(target); err != nil {
 		return nil, err
 	}
-	return commit.GetTreeEntryByPath(unescapedTarget)
+	return commit.GetTreeEntryByPath(ctx, wikiRepo, unescapedTarget)
 }
 
 // findWikiRepoCommit opens the wiki repo and returns the latest commit, writing to context on error.
 // The caller is responsible for closing the returned repo again
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
-	wikiRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
+	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil, nil
 	}
 
-	commit, err := wikiRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
+	commit, err := wikiRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultWikiBranch)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return wikiRepo, nil
@@ -484,12 +483,12 @@ func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) 
 
 // wikiContentsByEntry returns the contents of the wiki page referenced by the
 // given tree entry, encoded with base64. Writes to ctx if an error occurs.
-func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
-	blob := entry.Blob()
-	if blob.Size() > setting.API.DefaultMaxBlobSize {
+func wikiContentsByEntry(ctx *context.APIContext, wikiRepo *git.Repository, entry *git.TreeEntry) string {
+	blob := entry.Blob(wikiRepo)
+	if blob.Size(ctx) > setting.API.DefaultMaxBlobSize {
 		return ""
 	}
-	content, err := blob.GetBlobContentBase64(nil)
+	content, err := blob.GetBlobContentBase64(ctx, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return ""
@@ -499,9 +498,9 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
 
 // wikiContentsByName returns the contents of a wiki page, along with a boolean
 // indicating whether the page exists. Writes to ctx if an error occurs.
-func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName wiki_service.WebPath, isSidebarOrFooter bool) (string, string) {
+func wikiContentsByName(ctx *context.APIContext, wikiRepo *git.Repository, commit *git.Commit, wikiName wiki_service.WebPath, isSidebarOrFooter bool) (string, string) {
 	gitFilename := wiki_service.WebPathToGitPath(wikiName)
-	entry, err := findEntryForFile(commit, gitFilename)
+	entry, err := findEntryForFile(ctx, wikiRepo, commit, gitFilename)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			if !isSidebarOrFooter {
@@ -512,5 +511,5 @@ func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName wi
 		}
 		return "", ""
 	}
-	return wikiContentsByEntry(ctx, entry), gitFilename
+	return wikiContentsByEntry(ctx, wikiRepo, entry), gitFilename
 }

@@ -29,7 +29,7 @@ type CreateUserOption struct {
 	// Whether the user has restricted access privileges
 	Restricted *bool `json:"restricted"`
 	// User visibility level: public, limited, or private
-	Visibility UserVisibility `json:"visibility" binding:"In(,public,limited,private)"`
+	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
 
 	// For explicitly setting the user creation timestamp. Useful when users are
 	// migrated from other systems. When omitted, the user's creation timestamp
@@ -78,5 +78,5 @@ type EditUserOption struct {
 	// Whether the user has restricted access privileges
 	Restricted *bool `json:"restricted"`
 	// User visibility level: public, limited, or private
-	Visibility UserVisibility `json:"visibility" binding:"In(,public,limited,private)"`
+	Visibility VisibilityString `json:"visibility" binding:"In(,public,limited,private)"`
 }

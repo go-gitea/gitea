@@ -1236,7 +1236,6 @@
   "admin.config.enable_timetracking": "Időmérés bekapcsolása",
   "admin.config.default_enable_timetracking": "Időmérés bekapcsolása alapértelmezetten",
   "admin.config.no_reply_address": "Rejtett e-mail tartomány",
-  "admin.config.default_visibility_organization": "Alapértelmezett láthatóság új szervezeteknek",
   "admin.config.webhook_config": "Webhook Beállítása",
   "admin.config.queue_length": "Várakozási Sor Hossza",
   "admin.config.deliver_timeout": "Kézbesítési Időtúllépés",

@@ -8,6 +8,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -156,6 +157,7 @@ var AllowSkipExternalService = sync.OnceValue(func() bool {
 })
 
 type TestingT interface {
+	Context() context.Context
 	Helper()
 	Skipf(format string, args ...any)
 	Errorf(format string, args ...any)

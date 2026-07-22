@@ -110,9 +110,9 @@ var validRefSuffix = sync.OnceValue(func() *regexp.Regexp {
 // ResolveRefWithSuffix resolves oriRef plus an optional revision suffix (^, ~N) to a RefName.
 // A nil error guarantees a usable RefName: an unsupported suffix yields an invalid-argument error
 // and an unresolvable ref yields a not-found error.
-func ResolveRefWithSuffix(gitRepo *git.Repository, oriRef, refSuffix string) (git.RefName, error) {
+func ResolveRefWithSuffix(ctx context.Context, gitRepo *git.Repository, oriRef, refSuffix string) (git.RefName, error) {
 	if refSuffix == "" {
-		if refName := gitRepo.UnstableGuessRefByShortName(oriRef); refName != "" {
+		if refName := gitRepo.UnstableGuessRefByShortName(ctx, oriRef); refName != "" {
 			return refName, nil
 		}
 		return "", util.NewNotExistErrorf("ref %q does not exist", oriRef)
@@ -120,7 +120,7 @@ func ResolveRefWithSuffix(gitRepo *git.Repository, oriRef, refSuffix string) (gi
 	if !validRefSuffix().MatchString(refSuffix) {
 		return "", util.NewInvalidArgumentErrorf("unsupported ref suffix %q", refSuffix)
 	}
-	commit, err := gitRepo.GetCommit(oriRef + refSuffix)
+	commit, err := gitRepo.GetCommit(ctx, oriRef+refSuffix)
 	if err != nil {
 		return "", util.NewNotExistErrorf("ref %q does not exist", oriRef+refSuffix)
 	}

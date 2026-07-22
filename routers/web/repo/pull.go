@@ -29,7 +29,6 @@ import (
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/graceful"
 	issue_template "gitea.dev/modules/issue/template"
@@ -203,14 +202,14 @@ func GetPullDiffStats(ctx *context.Context) {
 	}
 
 	// do not report 500 server error to end users if error occurs, otherwise a PR missing ref won't be able to view.
-	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 	if errors.Is(err, util.ErrNotExist) {
 		return
 	} else if err != nil {
 		log.Error("Failed to GetRefCommitID: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, mergeBaseCommitID, headCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, mergeBaseCommitID, headCommitID)
 	if err != nil {
 		log.Error("Failed to GetDiffShortStat: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
@@ -227,13 +226,13 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	if pull.MergeBase == "" {
 		var commitSHA, parentCommit string
 		// If there is a head or a patch file, and it is readable, grab info
-		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 		if err != nil {
 			// Head File does not exist, try the patch
 			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
 			if err == nil {
 				// Recreate pull head in files for next time
-				if err := gitrepo.UpdateRef(ctx, ctx.Repo.Repository, pull.GetGitHeadRefName(), commitSHA); err != nil {
+				if err := git.UpdateRef(ctx, ctx.Repo.Repository, pull.GetGitHeadRefName(), commitSHA); err != nil {
 					log.Error("Could not write head file", err)
 				}
 			} else {
@@ -243,8 +242,8 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, _, err = gitrepo.RunCmdString(ctx, ctx.Repo.Repository,
-				gitcmd.NewCommand("rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA))
+			parentCommit, _, err = gitcmd.NewCommand("rev-list", "-1", "--skip=1").
+				AddDynamicArguments(commitSHA).WithRepo(ctx.Repo.Repository).RunStdString(ctx)
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}
@@ -550,17 +549,17 @@ func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.Pull
 		if pull.HeadRepo == nil {
 			return "", util.ErrNotExist
 		}
-		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, pull.HeadRepo)
+		headGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, pull.HeadRepo)
 		if err != nil {
 			return "", err
 		}
-		return headGitRepo.GetRefCommitID(git.RefNameFromBranch(pull.HeadBranch).String())
+		return headGitRepo.GetRefCommitID(ctx, git.RefNameFromBranch(pull.HeadBranch).String())
 	case issues_model.PullRequestFlowAGit:
-		baseGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, pull.BaseRepo)
+		baseGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, pull.BaseRepo)
 		if err != nil {
 			return "", err
 		}
-		return baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		return baseGitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 	}
 	setting.PanicInDevOrTesting("invalid pull request flow type: %v", pull.Flow)
 	return "", util.ErrNotExist
@@ -730,7 +729,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	afterCommitID = util.IfZero(afterCommitID, headCommitID)
 	afterCommit := indexCommit(prCompareInfo.Commits, afterCommitID)
 	if afterCommit == nil && afterCommitID == headCommitID {
-		afterCommit, err = gitRepo.GetCommit(afterCommitID)
+		afterCommit, err = gitRepo.GetCommit(ctx, afterCommitID)
 		if err != nil {
 			ctx.ServerError("GetCommit(afterCommitID)", err)
 			return
@@ -743,7 +742,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	var beforeCommit *git.Commit
 	if isSingleCommit {
-		beforeCommit, err = afterCommit.Parent(0)
+		beforeCommit, err = afterCommit.Parent(ctx, ctx.Repo.GitRepo, 0)
 		if err != nil {
 			ctx.ServerError("afterCommit.Parent", err)
 			return
@@ -754,7 +753,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
 		if beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase {
 			// base commit is not in the list of the pull request commits
-			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			beforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
 			if err != nil {
 				ctx.ServerError("GetCommit(beforeCommitID)", err)
 				return
@@ -810,7 +809,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		}
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, beforeCommitID, afterCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, beforeCommitID, afterCommitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
@@ -1376,7 +1375,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+		if template, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}
 	}

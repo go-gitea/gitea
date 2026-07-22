@@ -17,7 +17,6 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/indexer/code"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/indexer/stats"
@@ -69,7 +68,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 
-	signing, _ := gitrepo.GetSigningKey(ctx)
+	signing, _ := git.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -147,7 +146,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 
-	signing, _ := gitrepo.GetSigningKey(ctx)
+	signing, _ := git.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -296,7 +295,7 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		return
 	}
 
-	u, err := gitrepo.GitRemoteGetURL(ctx, ctx.Repo.Repository, pullMirror.GetRemoteName())
+	u, err := git.ParseRemoteAddressURL(ctx, ctx.Repo.Repository, pullMirror.GetRemoteName())
 	if err != nil {
 		ctx.Data["Err_MirrorAddress"] = true
 		handleSettingRemoteAddrError(ctx, err, form)

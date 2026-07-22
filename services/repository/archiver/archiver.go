@@ -16,7 +16,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
@@ -77,7 +76,7 @@ func (item *archiveQueueItem) toArchiveRequest(ctx context.Context) (*ArchiveReq
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
-func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRefExt string, paths []string) (*ArchiveRequest, error) {
+func NewRequest(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, archiveRefExt string, paths []string) (*ArchiveRequest, error) {
 	// here the archiveRefShortName is not a clear ref, it could be a tag, branch or commit id
 	archiveRefShortName, archiveType := repo_model.SplitArchiveNameType(archiveRefExt)
 	if archiveType == repo_model.ArchiveUnknown {
@@ -88,7 +87,7 @@ func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRef
 	}
 
 	// Get corresponding commit.
-	commit, err := gitRepo.GetCommit(archiveRefShortName)
+	commit, err := gitRepo.GetCommit(ctx, archiveRefShortName)
 	if err != nil {
 		return nil, util.NewNotExistErrorf("unrecognized repository reference: %s", archiveRefShortName)
 	}
@@ -151,19 +150,19 @@ func (aReq *ArchiveRequest) Await(ctx context.Context) (*repo_model.RepoArchiver
 // will occur directly in this routine.
 func (aReq *ArchiveRequest) Stream(ctx context.Context, w io.Writer) error {
 	if aReq.Type == repo_model.ArchiveBundle {
-		return gitrepo.CreateBundle(
+		return git.CreateBundle(
 			ctx,
 			aReq.Repo,
 			aReq.CommitID,
 			w,
 		)
 	}
-	return gitrepo.CreateArchive(
+	return git.CreateArchive(
 		ctx,
 		aReq.Repo,
+		aReq.Repo.Name,
 		aReq.Type.String(),
 		w,
-		setting.Repository.PrefixArchiveFiles,
 		aReq.CommitID,
 		aReq.Paths,
 	)

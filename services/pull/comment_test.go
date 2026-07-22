@@ -11,7 +11,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
@@ -19,13 +18,14 @@ import (
 )
 
 func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
+	ctx := t.Context()
 	require.NoError(t, unittest.PrepareTestDatabase())
 	pusher := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	require.NoError(t, pr.LoadIssue(t.Context()))
-	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	require.NoError(t, pr.LoadIssue(ctx))
+	require.NoError(t, pr.LoadBaseRepo(ctx))
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(pr.BaseRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -65,7 +65,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		insertCommitComment(t, issues_model.PushActionContent{})
 		assertCommitCommentCount(t, 2, 0)
 
-		baseCommit, err := gitRepo.GetBranchCommit(pr.BaseBranch)
+		baseCommit, err := gitRepo.GetBranchCommit(ctx, pr.BaseBranch)
 		assert.NoError(t, err)
 
 		// force push, the old push comments should be deleted, and one new force-push comment should be created.
@@ -83,7 +83,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 
 	t.Run("force-push-ignores-missing-old-commit", func(t *testing.T) {
 		require.NoError(t, db.TruncateBeans(t.Context(), &issues_model.Comment{}))
-		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
+		headCommit, err := gitRepo.GetBranchCommit(ctx, pr.HeadBranch)
 		require.NoError(t, err)
 
 		commitIDZero := git.Sha1ObjectFormat.EmptyObjectID().String()
@@ -110,9 +110,9 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		insertCommitComment(t, issues_model.PushActionContent{})
 		assertCommitCommentCount(t, 4, 0)
 
-		baseCommit, err := gitRepo.GetBranchCommit(pr.BaseBranch)
+		baseCommit, err := gitRepo.GetBranchCommit(ctx, pr.BaseBranch)
 		require.NoError(t, err)
-		headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
+		headCommit, err := gitRepo.GetBranchCommit(ctx, pr.HeadBranch)
 		require.NoError(t, err)
 
 		_, _, err = CreatePushPullComment(t.Context(), pusher, pr, baseCommit.ID.String(), headCommit.ID.String(), true)
