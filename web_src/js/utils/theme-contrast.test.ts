@@ -1,7 +1,18 @@
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {colord, extend} from 'colord';
+import a11yPlugin from 'colord/plugins/a11y';
+
+extend([a11yPlugin]); // adds the WCAG-correct colord().contrast()
 
 type CssVariables = Record<string, string>;
+
+// The diff stat counters match GitHub, which renders them around 5:1; issue #37448 asks for >= 5.
+const diffStatMinContrast = 5;
+// Function/type names are code read continuously, so keep the pre-1.26 AAA level.
+const syntaxNameMinContrast = 7;
+// A distinct type color only needs to stay comfortably readable (WCAG AA).
+const syntaxTypeMinContrast = 4.5;
 
 async function loadThemeVariables(fileName: string, baseVariables: CssVariables = {}): Promise<CssVariables> {
   const themePath = join(import.meta.dirname, '../../css/themes', fileName);
@@ -13,30 +24,11 @@ async function loadThemeVariables(fileName: string, baseVariables: CssVariables 
   return variables;
 }
 
-function relativeLuminance(hex: string): number {
-  const rgb = [
-    Number.parseInt(hex.slice(1, 3), 16),
-    Number.parseInt(hex.slice(3, 5), 16),
-    Number.parseInt(hex.slice(5, 7), 16),
-  ].map((value) => {
-    const channel = value / 255;
-    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+function expectMinContrast(label: string, foreground: string, background: string, min: number): void {
+  expect(colord(foreground).contrast(background), label).toBeGreaterThanOrEqual(min);
 }
 
-function contrastRatio(foreground: string, background: string): number {
-  const foregroundLuminance = relativeLuminance(foreground);
-  const backgroundLuminance = relativeLuminance(background);
-  return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
-    (Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
-}
-
-function expectWcagAaaContrast(label: string, foreground: string, background: string): void {
-  expect(contrastRatio(foreground, background), label).toBeGreaterThanOrEqual(7);
-}
-
-test('dark diff stat colors have WCAG AAA contrast', async () => {
+test('dark diff stat colors meet the GitHub-parity contrast floor', async () => {
   const darkVariables = await loadThemeVariables('theme-gitea-dark.css');
   const colorblindVariables = await loadThemeVariables('theme-gitea-dark-protanopia-deuteranopia.css', darkVariables);
   const tritanopiaVariables = await loadThemeVariables('theme-gitea-dark-tritanopia.css', darkVariables);
@@ -49,18 +41,17 @@ test('dark diff stat colors have WCAG AAA contrast', async () => {
   ];
 
   for (const [label, variables, colorVariable] of themes) {
-    expectWcagAaaContrast(label, variables[colorVariable], darkVariables['--color-body']);
+    expectMinContrast(label, variables[colorVariable], darkVariables['--color-body'], diffStatMinContrast);
   }
 });
 
-test('dark syntax name colors have WCAG AAA contrast on diff rows', async () => {
+test('dark syntax name stays AAA on diff rows and distinct from type', async () => {
   const variables = await loadThemeVariables('theme-gitea-dark.css');
   const backgrounds = ['--color-diff-added-row-bg', '--color-diff-removed-row-bg'] as const;
-  const foregrounds = ['--color-syntax-name', '--color-syntax-type'] as const;
 
-  for (const foreground of foregrounds) {
-    for (const background of backgrounds) {
-      expectWcagAaaContrast(`${foreground} on ${background}`, variables[foreground], variables[background]);
-    }
+  expect(variables['--color-syntax-name']).not.toBe(variables['--color-syntax-type']);
+  for (const background of backgrounds) {
+    expectMinContrast(`name on ${background}`, variables['--color-syntax-name'], variables[background], syntaxNameMinContrast);
+    expectMinContrast(`type on ${background}`, variables['--color-syntax-type'], variables[background], syntaxTypeMinContrast);
   }
 });
