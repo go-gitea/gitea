@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
 	"time"
 
 	"gitea.dev/modules/git"
@@ -69,7 +68,7 @@ func NewBatchChecker(ctx context.Context, repo *git.Repository, treeish string, 
 	checker.stdOut = lw
 
 	cmd.WithEnv(envs).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithStdoutCopy(lw)
 
 	go func() {
@@ -90,7 +89,7 @@ func NewBatchChecker(ctx context.Context, repo *git.Repository, treeish string, 
 func (c *BatchChecker) CheckPath(path string) (rs *Attributes, err error) {
 	defer func() {
 		if err != nil && err != c.ctx.Err() {
-			log.Error("Unexpected error when checking path %s in %s, error: %v", path, filepath.Base(c.repo.Path), err)
+			log.Error("Unexpected error when checking path %s in %s, error: %v", path, c.repo.LogString(), err)
 		}
 	}()
 
@@ -112,7 +111,7 @@ func (c *BatchChecker) CheckPath(path string) (rs *Attributes, err error) {
 			stdOutClosed = true
 		default:
 		}
-		debugMsg := fmt.Sprintf("check path %q in repo %q", path, filepath.Base(c.repo.Path))
+		debugMsg := fmt.Sprintf("check path %q in repo %q", path, c.repo.LogString())
 		debugMsg += fmt.Sprintf(", stdOut: tmp=%q, pos=%d, closed=%v", string(c.stdOut.tmp), c.stdOut.pos, stdOutClosed)
 		if c.cmd != nil {
 			debugMsg += fmt.Sprintf(", process state: %q", c.cmd.ProcessState())

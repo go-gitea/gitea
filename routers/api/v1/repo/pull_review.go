@@ -13,7 +13,7 @@ import (
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
@@ -519,7 +519,7 @@ func CreatePullReview(ctx *context.APIContext) {
 
 	// if CommitID is empty, set it as lastCommitID
 	if opts.CommitID == "" {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.Issue.Repo)
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.Issue.Repo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

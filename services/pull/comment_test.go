@@ -11,7 +11,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +25,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 	require.NoError(t, pr.LoadIssue(ctx))
 	require.NoError(t, pr.LoadBaseRepo(ctx))
 
-	gitRepo, err := gitrepo.OpenRepository(pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(pr.BaseRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

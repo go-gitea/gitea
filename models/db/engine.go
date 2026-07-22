@@ -116,6 +116,10 @@ func RegisterModel(bean any, initFunc ...func() error) {
 	}
 }
 
+func ResetModels() {
+	registeredModels, registeredInitFuncs = nil, nil
+}
+
 // SyncAllTables sync the schemas of all tables, is required by unit test code
 func SyncAllTables() error {
 	_, err := xormEngine.StoreEngine("InnoDB").SyncWithOptions(xorm.SyncOptions{

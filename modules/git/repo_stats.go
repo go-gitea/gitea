@@ -42,7 +42,7 @@ func (repo *Repository) GetCodeActivityStats(ctx context.Context, fromTime time.
 
 	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
 		AddOptionFormat("--since=%s", since).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(ctx)
 	if runErr != nil {
 		return nil, runErr
@@ -65,7 +65,7 @@ func (repo *Repository) GetCodeActivityStats(ctx context.Context, fromTime time.
 	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 	err = gitCmd.
-		WithDir(repo.Path).
+		WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)

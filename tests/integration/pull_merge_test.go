@@ -29,7 +29,6 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
@@ -838,7 +837,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(baseRepo)
+		baseGitRepo, err := git.OpenRepository(baseRepo)
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
@@ -910,7 +909,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(baseRepo)
+		baseGitRepo, err := git.OpenRepository(baseRepo)
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
@@ -1023,7 +1022,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(baseRepo)
+		baseGitRepo, err := git.OpenRepository(baseRepo)
 		assert.NoError(t, err)
 		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)

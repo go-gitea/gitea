@@ -13,7 +13,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/routers/api/v1/utils"
@@ -223,7 +222,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Total commit count
-		commitsCountTotal, err = gitrepo.CommitsCount(ctx, ctx.Repo.Repository, gitrepo.CommitsCountOptions{
+		commitsCountTotal, err = git.CommitsCount(ctx, ctx.Repo.Repository, git.CommitsCountOptions{
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
 			Since:    since,
@@ -245,8 +244,8 @@ func GetAllCommits(ctx *context.APIContext) {
 			sha = ctx.Repo.Repository.DefaultBranch
 		}
 
-		commitsCountTotal, err = gitrepo.CommitsCount(ctx, ctx.Repo.Repository,
-			gitrepo.CommitsCountOptions{
+		commitsCountTotal, err = git.CommitsCount(ctx, ctx.Repo.Repository,
+			git.CommitsCountOptions{
 				Not:      not,
 				Revision: []string{sha},
 				RelPath:  []string{path},
@@ -265,8 +264,8 @@ func GetAllCommits(ctx *context.APIContext) {
 				return
 			}
 			// verify the path actually exists in the revision history
-			totalWithoutDate, err := gitrepo.CommitsCount(ctx, ctx.Repo.Repository,
-				gitrepo.CommitsCountOptions{
+			totalWithoutDate, err := git.CommitsCount(ctx, ctx.Repo.Repository,
+				git.CommitsCountOptions{
 					Not:      not,
 					Revision: []string{sha},
 					RelPath:  []string{path},

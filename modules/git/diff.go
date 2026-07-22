@@ -65,7 +65,7 @@ func getRepoRawDiffForFileCmd(ctx context.Context, repo *Repository, startCommit
 		files = append(files, file)
 	}
 
-	cmd := gitcmd.NewCommand().WithDir(repo.Path)
+	cmd := gitcmd.NewCommand().WithRepo(repo)
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
@@ -310,7 +310,7 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 	cmd := gitcmd.NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID)
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	err := cmd.WithEnv(env).WithDir(repo.Path).
+	err := cmd.WithEnv(env).WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(stdoutReader)
@@ -325,7 +325,7 @@ func GetAffectedFiles(ctx context.Context, repo *Repository, branchName, oldComm
 		}).
 		Run(ctx)
 	if err != nil {
-		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.LogString(), err)
 	}
 
 	return affectedFiles, err

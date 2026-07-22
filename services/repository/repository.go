@@ -18,7 +18,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	git2 "gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/log"
@@ -217,7 +217,7 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	// Create/Remove git-daemon-export-ok for git-daemon...
 	daemonExportFile := `git-daemon-export-ok`
-	isExist, err := gitrepo.IsRepoFileExist(ctx, repo, daemonExportFile)
+	isExist, err := git2.IsRepoFileExist(ctx, repo, daemonExportFile)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 		return err
@@ -225,11 +225,11 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
 	if !isPublic && isExist {
-		if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
+		if err = git2.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to remove %s: %v", daemonExportFile, err)
 		}
 	} else if isPublic && !isExist {
-		if f, err := gitrepo.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
+		if f, err := git2.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to create %s: %v", daemonExportFile, err)
 		} else {
 			f.Close()
@@ -308,7 +308,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 }
 
 func HasWiki(ctx context.Context, repo *repo_model.Repository) bool {
-	hasWiki, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo())
+	hasWiki, err := git2.IsRepositoryExist(ctx, repo.WikiStorageRepo())
 	if err != nil {
 		log.Error("gitrepo.IsRepositoryExist: %v", err)
 	}
@@ -332,7 +332,7 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 		return repo_model.ErrRepoAlreadyExist{Uname: owner.Name, Name: name}
 	}
 	repo := repo_model.CodeRepoByName(owner.Name, name)
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	isExist, err := git2.IsRepositoryExist(ctx, repo)
 	if err != nil {
 		log.Error("Unable to check if repo %s/%s exists, error: %v", owner.Name, name, err)
 		return err

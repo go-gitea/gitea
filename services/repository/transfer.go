@@ -17,7 +17,7 @@ import (
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
@@ -95,7 +95,7 @@ func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoNa
 		return false, err
 	}
 	repo := repo_model.CodeRepoByName(u.Name, repoName)
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	isExist, err := git.IsRepositoryExist(ctx, repo)
 	return has || isExist, err
 }
 
@@ -119,7 +119,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 			// revert the rename
 			from := repo_model.CodeRepoByName(newOwnerName, repo.Name)
 			to := repo_model.CodeRepoByName(oldOwnerName, repo.Name)
-			if err := gitrepo.RenameRepository(ctx, from, to); err != nil {
+			if err := git.RenameRepository(ctx, from, to); err != nil {
 				log.Error("Unable to revert repository %s/%s to %s/%s: %v", newOwnerName, repo.Name, oldOwnerName, repo.Name, err)
 			}
 		}
@@ -127,7 +127,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		if wikiRenamed {
 			from := repo_model.WikiRepoByName(newOwnerName, repo.Name)
 			to := repo_model.WikiRepoByName(oldOwnerName, repo.Name)
-			if err := gitrepo.RenameRepository(ctx, from, to); err != nil {
+			if err := git.RenameRepository(ctx, from, to); err != nil {
 				log.Error("Unable to revert wiki repository %s/%s to %s/%s: %v", newOwnerName, repo.Name, oldOwnerName, repo.Name, err)
 			}
 		}
@@ -305,19 +305,19 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	// Rename remote repository to new path and delete local copy.
 	oldCodeRepo := repo_model.CodeRepoByName(oldOwner.Name, repo.Name)
 	newCodeRepo := repo_model.CodeRepoByName(newOwner.Name, repo.Name)
-	if err := gitrepo.RenameRepository(ctx, oldCodeRepo, newCodeRepo); err != nil {
+	if err := git.RenameRepository(ctx, oldCodeRepo, newCodeRepo); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	repoRenamed = true
 
 	// Rename remote wiki repository to new path and delete local copy.
 	oldWikiRepo := repo_model.WikiRepoByName(oldOwner.Name, repo.Name)
-	if isExist, err := gitrepo.IsRepositoryExist(ctx, oldWikiRepo); err != nil {
+	if isExist, err := git.IsRepositoryExist(ctx, oldWikiRepo); err != nil {
 		log.Error("Unable to check if wiki of repo %s/%s exists. Error: %v", oldOwner.Name, repo.Name, err)
 		return err
 	} else if isExist {
 		newWikiRepo := repo_model.WikiRepoByName(newOwner.Name, repo.Name)
-		if err := gitrepo.RenameRepository(ctx, oldWikiRepo, newWikiRepo); err != nil {
+		if err := git.RenameRepository(ctx, oldWikiRepo, newWikiRepo); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 		wikiRenamed = true
@@ -377,13 +377,13 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 	}
 
 	newCodeRepo := repo_model.CodeRepoByName(repo.OwnerName, newRepoName)
-	if err = gitrepo.RenameRepository(ctx, repo, newCodeRepo); err != nil {
+	if err = git.RenameRepository(ctx, repo, newCodeRepo); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
 	if HasWiki(ctx, repo) {
 		newWikiRepo := repo_model.WikiRepoByName(repo.OwnerName, newRepoName)
-		if err = gitrepo.RenameRepository(ctx, repo.WikiStorageRepo(), newWikiRepo); err != nil {
+		if err = git.RenameRepository(ctx, repo.WikiStorageRepo(), newWikiRepo); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}

@@ -17,7 +17,6 @@ import (
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	repo_module "gitea.dev/modules/repository"
@@ -77,7 +76,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 		return true
 	}
 
-	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		ctx.PrivateInternalErrorf("failed to open repository: %v", err)
 		return false
@@ -288,7 +287,7 @@ func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opt
 	if !hasBranch {
 		return
 	}
-	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		log.Error("failed to open git repo: %v", err)
 		return
@@ -313,7 +312,7 @@ func hookPostReceiveSyncRepoDefaultBranch(ctx *gitea_context.PrivateContext, opt
 	// if default branch was pushed, always keep the HEAD ref in sync
 	for _, refFullName := range opts.RefFullNames {
 		if refFullName.IsBranch() && refFullName.BranchName() == repo.DefaultBranch {
-			_ = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
+			_ = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch)
 		}
 	}
 }
