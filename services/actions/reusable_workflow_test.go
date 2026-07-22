@@ -206,3 +206,34 @@ func TestResolveUses(t *testing.T) {
 		assert.ErrorContains(t, err, "must point to this Gitea instance")
 	})
 }
+
+func TestUndoExpansion(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// A claimed caller with two children inserted by the aborted expansion, plus a sibling that must survive.
+	caller := &actions_model.ActionRunJob{
+		RunID: 991, RepoID: 4, OwnerID: 1, JobID: "caller", Name: "caller",
+		Status: actions_model.StatusBlocked, IsReusableCaller: true, IsExpanded: true,
+	}
+	require.NoError(t, db.Insert(ctx, caller))
+	for _, jobID := range []string{"child1", "child2"} {
+		require.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+			RunID: 991, RepoID: 4, OwnerID: 1, JobID: jobID, Name: jobID,
+			Status: actions_model.StatusBlocked, ParentJobID: caller.ID,
+		}))
+	}
+	sibling := &actions_model.ActionRunJob{
+		RunID: 991, RepoID: 4, OwnerID: 1, JobID: "sibling", Name: "sibling",
+		Status: actions_model.StatusBlocked,
+	}
+	require.NoError(t, db.Insert(ctx, sibling))
+
+	require.NoError(t, undoExpansion(ctx, caller))
+
+	assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{ParentJobID: caller.ID}))
+	assert.False(t, caller.IsExpanded)
+	refreshed := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: caller.ID})
+	assert.False(t, refreshed.IsExpanded)
+	unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: sibling.ID})
+}
