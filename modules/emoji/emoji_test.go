@@ -84,10 +84,34 @@ func TestFindEmojiSubmatchIndex(t *testing.T) {
 			string([]byte{'\u0001'}) + "\U0001f44d",
 			[]int{1, 1 + len("\U0001f44d")},
 		},
+		{
+			"This is a test string containing some emojis like \U0001f44d and \U0001f37a and some text in between.",
+			[]int{50, 54},
+		},
+		{
+			"This is a test string containing no emojis at all, just plain old ASCII text, which should ideally be scanned very quickly by our trie implementation.",
+			nil,
+		},
 	}
 
 	for _, kase := range testcases {
 		actual := FindEmojiSubmatchIndex(kase.teststring)
 		assert.Equal(t, kase.expected, actual)
+	}
+}
+
+func BenchmarkFindEmojiSubmatchIndex(b *testing.B) {
+	s := "This is a test string containing some emojis like \U0001f44d and \U0001f37a and some text in between."
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = FindEmojiSubmatchIndex(s)
+	}
+}
+
+func BenchmarkFindEmojiSubmatchIndexNoMatch(b *testing.B) {
+	s := "This is a test string containing no emojis at all, just plain old ASCII text, which should ideally be scanned very quickly by our trie implementation."
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = FindEmojiSubmatchIndex(s)
 	}
 }

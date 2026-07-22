@@ -5,7 +5,6 @@
 package emoji
 
 import (
-	"io"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -25,12 +24,66 @@ type Emoji struct {
 	SkinTones      bool
 }
 
+type trieEdge struct {
+	b    byte
+	node *trieNode
+}
+
+type trieNode struct {
+	children []trieEdge
+	isEnd    bool
+}
+
+func (t *trieNode) insert(val string) {
+	curr := t
+	for i := 0; i < len(val); i++ {
+		b := val[i]
+		var next *trieNode
+		for _, edge := range curr.children {
+			if edge.b == b {
+				next = edge.node
+				break
+			}
+		}
+		if next == nil {
+			next = &trieNode{}
+			curr.children = append(curr.children, trieEdge{b: b, node: next})
+		}
+		curr = next
+	}
+	curr.isEnd = true
+}
+
+func (t *trieNode) match(s string, start int) int {
+	curr := t
+	matchLen := -1
+	for j := start; j < len(s); j++ {
+		b := s[j]
+		var next *trieNode
+		for _, edge := range curr.children {
+			if edge.b == b {
+				next = edge.node
+				break
+			}
+		}
+		if next == nil {
+			break
+		}
+		curr = next
+		if curr.isEnd {
+			matchLen = j - start + 1
+		}
+	}
+	return matchLen
+}
+
 type globalVarsStruct struct {
-	codeMap       map[string]int    // emoji unicode code to its emoji data.
-	aliasMap      map[string]int    // the alias to its emoji data.
-	emptyReplacer *strings.Replacer // string replacer for emoji codes, used for finding emoji positions.
-	codeReplacer  *strings.Replacer // string replacer for emoji codes.
-	aliasReplacer *strings.Replacer // string replacer for emoji aliases.
+	codeMap        map[string]int    // emoji unicode code to its emoji data.
+	aliasMap       map[string]int    // the alias to its emoji data.
+	trie           *trieNode         // trie for finding emoji positions.
+	isStartingByte [256]bool         // fast-path skip for starting bytes
+	codeReplacer   *strings.Replacer // string replacer for emoji codes.
+	aliasReplacer  *strings.Replacer // string replacer for emoji aliases.
 }
 
 var globalVarsStore atomic.Pointer[globalVarsStruct]
@@ -44,10 +97,10 @@ func globalVars() *globalVarsStruct {
 	vars = &globalVarsStruct{}
 	vars.codeMap = make(map[string]int, len(GemojiData))
 	vars.aliasMap = make(map[string]int, len(GemojiData))
+	vars.trie = &trieNode{}
 
 	// process emoji codes and aliases
 	codePairs := make([]string, 0)
-	emptyPairs := make([]string, 0)
 	aliasPairs := make([]string, 0)
 
 	// sort from largest to small so we match combined emoji first
@@ -81,12 +134,12 @@ func globalVars() *globalVarsStruct {
 		if firstAlias != "" {
 			vars.codeMap[emoji.Emoji] = idx
 			codePairs = append(codePairs, emoji.Emoji, ":"+emoji.Aliases[0]+":")
-			emptyPairs = append(emptyPairs, emoji.Emoji, emoji.Emoji)
+			vars.trie.insert(emoji.Emoji)
+			vars.isStartingByte[emoji.Emoji[0]] = true
 		}
 	}
 
 	// create replacers
-	vars.emptyReplacer = strings.NewReplacer(emptyPairs...)
 	vars.codeReplacer = strings.NewReplacer(codePairs...)
 	vars.aliasReplacer = strings.NewReplacer(aliasPairs...)
 	globalVarsStore.Store(vars)
@@ -133,56 +186,16 @@ func ReplaceAliases(s string) string {
 	return globalVars().aliasReplacer.Replace(s)
 }
 
-type rememberSecondWriteWriter struct {
-	pos        int
-	idx        int
-	end        int
-	writecount int
-}
-
-func (n *rememberSecondWriteWriter) Write(p []byte) (int, error) {
-	n.writecount++
-	if n.writecount == 2 {
-		n.idx = n.pos
-		n.end = n.pos + len(p)
-		n.pos += len(p)
-		return len(p), io.EOF
-	}
-	n.pos += len(p)
-	return len(p), nil
-}
-
-func (n *rememberSecondWriteWriter) WriteString(s string) (int, error) {
-	n.writecount++
-	if n.writecount == 2 {
-		n.idx = n.pos
-		n.end = n.pos + len(s)
-		n.pos += len(s)
-		return len(s), io.EOF
-	}
-	n.pos += len(s)
-	return len(s), nil
-}
-
 // FindEmojiSubmatchIndex returns index pair of longest emoji in a string
 func FindEmojiSubmatchIndex(s string) []int {
-	secondWriteWriter := rememberSecondWriteWriter{}
-
-	// A faster and clean implementation would copy the trie tree formation in strings.NewReplacer but
-	// we can be lazy here.
-	//
-	// The implementation of strings.Replacer.WriteString is such that the first index of the emoji
-	// submatch is simply the second thing that is written to WriteString in the writer.
-	//
-	// Therefore we can simply take the index of the second write as our first emoji
-	//
-	// FIXME: just copy the trie implementation from strings.NewReplacer
-	_, _ = globalVars().emptyReplacer.WriteString(&secondWriteWriter, s)
-
-	// if we wrote less than twice then we never "replaced"
-	if secondWriteWriter.writecount < 2 {
-		return nil
+	vars := globalVars()
+	for i := 0; i < len(s); i++ {
+		if !vars.isStartingByte[s[i]] {
+			continue
+		}
+		if matchLen := vars.trie.match(s, i); matchLen > 0 {
+			return []int{i, i + matchLen}
+		}
 	}
-
-	return []int{secondWriteWriter.idx, secondWriteWriter.end}
+	return nil
 }
