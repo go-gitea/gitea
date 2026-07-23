@@ -23,7 +23,7 @@ const titlePattern = new RegExp(`^(${allowedTypes.join('|')})(\\([\\w/.-]+\\))?(
 function parsePrTitle(title: string): {type: CommitType, scope: string, breaking: boolean} | null {
   const match = titlePattern.exec(title);
   if (!match) return null;
-  // strip the parens and keep only the first segment, so "webhook/discord" matches "webhook"
+  // Keep the first segment, so "webhook/discord" matches "webhook".
   const scope = match[2] ? match[2].slice(1, -1).toLowerCase().split('/')[0] : '';
   return {type: match[1] as CommitType, scope, breaking: Boolean(match[3])};
 }
@@ -39,14 +39,14 @@ const typeLabels: Partial<Record<CommitType, string>> = {
   test: 'type/testing',
 };
 
-// Non-type labels, only added, never auto-removed, so manual labeling is not clobbered.
+// Non-type labels, removed only when the previous title implied them.
 const extraLabels: Partial<Record<CommitType, string>> = {
   chore: 'skip-changelog',
   ci: 'skip-changelog',
   build: 'topic/build',
 };
 
-// Scopes whose label is not the plain "topic/<scope>" derived below. Only added, never auto-removed.
+// Scopes whose label differs from "topic/<scope>".
 const scopeAliases: Record<string, string> = {
   actions: 'topic/gitea-actions',
   auth: 'topic/authentication',
@@ -59,7 +59,6 @@ const scopeAliases: Record<string, string> = {
   webhook: 'topic/webhooks',
 };
 
-// A scope maps to its alias or to "topic/<scope>"; the caller drops names the repo does not have.
 function labelForScope(scope: string): string | undefined {
   if (!scope) return undefined;
   return scopeAliases[scope] ?? `topic/${scope}`;
@@ -103,7 +102,7 @@ async function setPrLabels(): Promise<void> {
 
   const labelsUrl = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/issues/${env.PR_NUMBER}/labels`;
 
-  // Rate limits and server errors are retried, so a blip on GitHub's side does not fail the job.
+  // Retries rate limits and server errors, so a blip does not fail the job.
   async function request(url: string, method = 'GET', body?: unknown, ignoreStatus?: number): Promise<Response> {
     let failure = '';
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -141,7 +140,7 @@ async function setPrLabels(): Promise<void> {
     return names;
   }
 
-  // Labels the repo does not have are dropped, so an unknown scope or a deleted label does not fail the job.
+  // Labels the repo does not have are dropped instead of failing the job.
   const candidates = labelsForPrTitle(env.PR_TITLE);
   const repoLabelsUrl = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/labels`;
   const [current, existing]: string[][] = await Promise.all([
@@ -154,15 +153,17 @@ async function setPrLabels(): Promise<void> {
     return false;
   });
 
+  // PR_TITLE_BEFORE is only set on the "edited" event.
+  const stale = new Set([...removableLabels, ...labelsForPrTitle(env.PR_TITLE_BEFORE ?? '')]);
   const toAdd = desired.filter((name) => !current.includes(name));
-  const toRemove = removableLabels.filter((name) => current.includes(name) && !desired.includes(name));
+  const toRemove = current.filter((name) => stale.has(name) && !desired.includes(name));
 
   if (toAdd.length) {
     await request(labelsUrl, 'POST', {labels: toAdd});
     console.info(`Added labels: ${toAdd.join(', ')}`);
   }
   for (const name of toRemove) {
-    // 404 means the label vanished between the read and the delete, which is the desired end state anyway
+    // 404 means the label is already gone.
     await request(`${labelsUrl}/${encodeURIComponent(name)}`, 'DELETE', undefined, 404);
     console.info(`Removed label: ${name}`);
   }
