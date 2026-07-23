@@ -147,13 +147,14 @@ export function initRepoCloneButtons() {
 }
 
 export async function updateIssuesMeta(url: string, action: string, issue_ids: string, id: string) {
-  try {
-    const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
-    if (!response.ok) {
-      throw new Error('Failed to update issues meta');
-    }
-  } catch (error) {
-    console.error(error);
+  const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
+  if (!response.ok) {
+    let message = 'Failed to update issues meta';
+    try {
+      const json = await response.json();
+      if (json.error) message = json.error;
+    } catch {}
+    throw new Error(message);
   }
 }
 
