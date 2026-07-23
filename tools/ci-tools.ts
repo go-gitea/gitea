@@ -102,32 +102,21 @@ async function setPrLabels(): Promise<void> {
 
   const labelsUrl = `https://api.github.com/repos/${env.GITHUB_REPOSITORY}/issues/${env.PR_NUMBER}/labels`;
 
-  // Retries rate limits and server errors, so a blip does not fail the job.
   async function request(url: string, method = 'GET', body?: unknown, ignoreStatus?: number): Promise<Response> {
-    let failure = '';
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      if (attempt > 1) await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
-      let response;
-      try {
-        response = await fetch(url, {
-          method,
-          headers: {
-            Accept: 'application/vnd.github+json',
-            Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-            'X-GitHub-Api-Version': '2022-11-28',
-            ...(Boolean(body) && {'Content-Type': 'application/json'}),
-          },
-          body: body ? JSON.stringify(body) : undefined,
-        });
-      } catch (error) {
-        failure = error instanceof Error ? error.message : String(error);
-        continue;
-      }
-      if (response.ok || response.status === ignoreStatus) return response;
-      failure = `${response.status}: ${await response.text()}`;
-      if (response.status < 500 && response.status !== 429) break;
+    const response = await fetch(url, {
+      method,
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...(Boolean(body) && {'Content-Type': 'application/json'}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!response.ok && response.status !== ignoreStatus) {
+      throw new Error(`GitHub API ${method} ${url} failed (${response.status}): ${await response.text()}`);
     }
-    throw new Error(`GitHub API ${method} ${url} failed (${failure})`);
+    return response;
   }
 
   async function fetchNames(url: string): Promise<string[]> {
