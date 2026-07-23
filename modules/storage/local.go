@@ -118,7 +118,7 @@ func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
 
 func (l *LocalStorage) deleteEmptyParentDirs(localFullPath string) {
 	for parent := filepath.Dir(localFullPath); len(parent) > len(l.dir); parent = filepath.Dir(parent) {
-		if err := util.RemoveWithRetry(parent); err != nil {
+		if err := util.RemoveWithRetry(parent); err != nil && !os.IsNotExist(err) {
 			// since the target file has been deleted, parent dir error is not related to the file deletion itself.
 			break
 		}

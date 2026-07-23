@@ -235,7 +235,9 @@ func deleteOldFiles(dir, prefix string, removeBefore time.Time) {
 		}
 		if info.ModTime().Before(removeBefore) {
 			if strings.HasPrefix(filepath.Base(path), prefix) {
-				return util.RemoveWithRetry(path)
+				if err = util.RemoveWithRetry(path); err != nil && !os.IsNotExist(err) {
+					errorf("deleteOldFiles: failed to delete old file %s: %v", path, err)
+				}
 			}
 		}
 		return nil
