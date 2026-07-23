@@ -4,14 +4,14 @@
 package v1_28
 
 import (
-	"gitea.dev/models/db"
+	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
 // AddMaxParallelAndRunJobIndex adds the max_parallel column to action_run_job and a
 // composite index on (run_id, job_id) to speed up max-parallel slot queries.
-func AddMaxParallelAndRunJobIndex(x db.EngineMigration) error {
+func AddMaxParallelAndRunJobIndex(x base.EngineMigration) error {
 	type ActionRunJob struct {
 		MaxParallel int    `xorm:"NOT NULL DEFAULT 0"`
 		RunID       int64  `xorm:"index index(idx_run_id_job_id)"`
