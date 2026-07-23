@@ -210,6 +210,16 @@ func IntrospectOAuth(ctx *context.Context) {
 // AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AuthorizationForm)
+
+	if ctx.DoerNeedTwoFactorAuth() {
+		handleAuthorizeError(ctx, AuthorizeError{
+			ErrorCode:        ErrorCodeAccessDenied,
+			ErrorDescription: "two-factor authentication is required",
+			State:            form.State,
+		}, "")
+		return
+	}
+
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
@@ -388,6 +398,15 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
 		ctx.HTTPError(http.StatusBadRequest)
+		return
+	}
+
+	if ctx.DoerNeedTwoFactorAuth() {
+		handleAuthorizeError(ctx, AuthorizeError{
+			ErrorCode:        ErrorCodeAccessDenied,
+			ErrorDescription: "two-factor authentication is required",
+			State:            form.State,
+		}, form.RedirectURI)
 		return
 	}
 
