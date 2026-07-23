@@ -77,7 +77,7 @@ func (h *Hook) Update() error {
 			return err
 		}
 		if exist {
-			err := util.Remove(h.path)
+			err := util.RemoveWithRetry(h.path)
 			if err != nil {
 				return err
 			}

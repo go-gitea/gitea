@@ -994,6 +994,7 @@ func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, er
 }
 
 // UserPath returns the path absolute path of user repositories.
+// FIXME: it should be in "git/gitrepo" package
 func UserPath(userName string) string { //revive:disable-line:exported
 	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)))
 }

@@ -180,7 +180,7 @@ func TestCleanPath(t *testing.T) {
 	}
 
 	// for POSIX only, but the result is similar on Windows, because the first element must be an absolute path
-	if isOSWindows() {
+	if isOSWindows {
 		cases = []struct {
 			elems    []string
 			expected string

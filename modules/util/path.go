@@ -11,7 +11,6 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 )
 
@@ -77,7 +76,7 @@ const filepathSeparator = string(os.PathSeparator)
 func FilePathJoinAbs(base string, sub ...string) string {
 	// POSIX filesystem can have `\` in file names. Windows: `\` and `/` are both used for path separators
 	// to keep the behavior consistent, we do not allow `\` in file names, replace all `\` with `/`
-	if !isOSWindows() {
+	if !isOSWindows {
 		base = strings.ReplaceAll(base, "\\", filepathSeparator)
 	}
 	if !filepath.IsAbs(base) {
@@ -94,7 +93,7 @@ func FilePathJoinAbs(base string, sub ...string) string {
 		if s == "" {
 			continue
 		}
-		if isOSWindows() {
+		if isOSWindows {
 			elems = append(elems, filepath.Clean(filepathSeparator+s))
 		} else {
 			elems = append(elems, filepath.Clean(filepathSeparator+strings.ReplaceAll(s, "\\", filepathSeparator)))
@@ -245,10 +244,6 @@ func ListDirRecursively(rootDir string, opts *ListDirOptions) (res []string, err
 	return res, nil
 }
 
-func isOSWindows() bool {
-	return runtime.GOOS == "windows"
-}
-
 var driveLetterRegexp = regexp.MustCompile("/[A-Za-z]:/")
 
 // FileURLToPath extracts the path information from a file://... url.
@@ -260,7 +255,7 @@ func FileURLToPath(u *url.URL) (string, error) {
 
 	path := u.Path
 
-	if !isOSWindows() {
+	if !isOSWindows {
 		return path, nil
 	}
 
@@ -277,7 +272,7 @@ func HomeDir() (home string, err error) {
 	// TODO: some users run Gitea with mismatched uid  and "HOME=xxx" (they set HOME=xxx by environment manually)
 	// TODO: when running gitea as a sub command inside git, the HOME directory is not the user's home directory
 	// so at the moment we can not use `user.Current().HomeDir`
-	if isOSWindows() {
+	if isOSWindows {
 		home = os.Getenv("USERPROFILE")
 		if home == "" {
 			home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")

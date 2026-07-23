@@ -124,7 +124,7 @@ func createDelegateHooks(hookDir string) (err error) {
 		}
 
 		// WARNING: This will override all old server-side hooks
-		if err = util.Remove(oldHookPath); err != nil && !os.IsNotExist(err) {
+		if err = util.RemoveWithRetry(oldHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove old hook file '%s' prior to rewriting: %w ", oldHookPath, err)
 		}
 		if err = os.WriteFile(oldHookPath, []byte(hookTpls[i]), 0o777); err != nil {
@@ -135,7 +135,7 @@ func createDelegateHooks(hookDir string) (err error) {
 			return fmt.Errorf("Unable to set %s executable. Error %w", oldHookPath, err)
 		}
 
-		if err = util.Remove(newHookPath); err != nil && !os.IsNotExist(err) {
+		if err = util.RemoveWithRetry(newHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove new hook file '%s' prior to rewriting: %w", newHookPath, err)
 		}
 		if err = os.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0o777); err != nil {
