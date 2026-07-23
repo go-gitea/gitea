@@ -1,3 +1,4 @@
+import type {SortableEvent} from 'sortablejs';
 import {toggleElem, queryElems, isElemVisible} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
@@ -5,8 +6,7 @@ import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
 import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import type {SortableEvent} from 'sortablejs';
-import {performFetchAction} from "./common-fetch-action.ts";
+import {performFetchAction} from './common-fetch-action.ts';
 
 function initRepoIssueListCheckboxes() {
   const issueSelectAll = document.querySelector<HTMLInputElement>('.issue-checkbox-all');
@@ -74,8 +74,8 @@ function initRepoIssueListCheckboxes() {
       }
 
       const data = new URLSearchParams({action, issue_ids: issueIDs, id: elementId});
-      await performFetchAction(el, {method: "post", url, data});
-    }
+      await performFetchAction(el, {method: 'post', url, data});
+    },
   ));
 }
 
