@@ -4,7 +4,10 @@
 package npm
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
+	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
 	"strings"
@@ -353,4 +356,206 @@ func TestParsePackage(t *testing.T) {
 		// a string bin is named after the package
 		require.Equal(t, "./cli.js", p.Metadata.Bin["dev-null"])
 	})
+}
+
+// buildTarball assembles a gzipped tar with the given files under
+// package/ and returns the bytes.
+func buildTarball(t *testing.T, files map[string]string) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gw)
+	for name, body := range files {
+		require.NoError(t, tw.WriteHeader(&tar.Header{
+			Name: name,
+			Mode: 0o644,
+			Size: int64(len(body)),
+		}))
+		_, err := tw.Write([]byte(body))
+		require.NoError(t, err)
+	}
+	require.NoError(t, tw.Close())
+	require.NoError(t, gw.Close())
+	return buf.Bytes()
+}
+
+func TestInspectTarball(t *testing.T) {
+	cases := []struct {
+		name                          string
+		files                         map[string]string
+		wantShrinkwrap, wantInstaller bool
+	}{
+		{
+			name:  "empty",
+			files: map[string]string{},
+		},
+		{
+			name:           "shrinkwrap only",
+			files:          map[string]string{"package/npm-shrinkwrap.json": "{}"},
+			wantShrinkwrap: true,
+		},
+		{
+			name:          "postinstall only",
+			files:         map[string]string{"package/package.json": `{"scripts":{"postinstall":"echo hi"}}`},
+			wantInstaller: true,
+		},
+		{
+			name:          "preinstall",
+			files:         map[string]string{"package/package.json": `{"scripts":{"preinstall":"noop"}}`},
+			wantInstaller: true,
+		},
+		{
+			name:          "install",
+			files:         map[string]string{"package/package.json": `{"scripts":{"install":"noop"}}`},
+			wantInstaller: true,
+		},
+		{
+			name:  "whitespace-only script does not count",
+			files: map[string]string{"package/package.json": `{"scripts":{"postinstall":"   "}}`},
+		},
+		{
+			name:  "unrelated lifecycle script ignored",
+			files: map[string]string{"package/package.json": `{"scripts":{"test":"jest"}}`},
+		},
+		{
+			name: "both",
+			files: map[string]string{
+				"package/npm-shrinkwrap.json": "{}",
+				"package/package.json":        `{"scripts":{"install":"go"}}`,
+			},
+			wantShrinkwrap: true,
+			wantInstaller:  true,
+		},
+		{
+			name: "nested shrinkwrap ignored",
+			files: map[string]string{
+				"package/subdir/npm-shrinkwrap.json": "{}",
+			},
+		},
+		{
+			name:  "leading ./ prefix stripped",
+			files: map[string]string{"./package/npm-shrinkwrap.json": "{}"},
+			// npm pack sometimes emits "./package/..." entries.
+			wantShrinkwrap: true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			data := buildTarball(t, c.files)
+			gotShrink, gotInstaller := inspectTarball(data)
+			assert.Equal(t, c.wantShrinkwrap, gotShrink, "shrinkwrap")
+			assert.Equal(t, c.wantInstaller, gotInstaller, "installScript")
+		})
+	}
+
+	t.Run("malformed gzip returns false", func(t *testing.T) {
+		hasShrinkwrap, hasInstaller := inspectTarball([]byte("not a gzip"))
+		assert.False(t, hasShrinkwrap)
+		assert.False(t, hasInstaller)
+	})
+
+	t.Run("malformed package.json falls through", func(t *testing.T) {
+		data := buildTarball(t, map[string]string{"package/package.json": "{ this is not json"})
+		_, hasInstaller := inspectTarball(data)
+		assert.False(t, hasInstaller)
+	})
+}
+
+func TestParsePackageDeprecation(t *testing.T) {
+	pkg := "@scope/test-package"
+	t.Run("InvalidName", func(t *testing.T) {
+		body := `{"name":"","versions":{"1.0.0":{"deprecated":"msg"}}}`
+		_, err := ParsePackageDeprecation(strings.NewReader(body))
+		assert.ErrorIs(t, err, ErrInvalidPackageName)
+	})
+
+	t.Run("PublishRejected", func(t *testing.T) {
+		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","deprecated":"msg"}},"_attachments":{"x.tgz":{"data":"AAAA"}}}`, pkg, pkg)
+		_, err := ParsePackageDeprecation(strings.NewReader(body))
+		assert.ErrorIs(t, err, ErrInvalidPackage)
+	})
+
+	t.Run("ExplicitKeyPresent", func(t *testing.T) {
+		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"gone"},"1.0.1":{"deprecated":""}}}`, pkg)
+		dep, err := ParsePackageDeprecation(strings.NewReader(body))
+		require.NoError(t, err)
+		assert.Equal(t, pkg, dep.PackageName)
+		assert.Equal(t, "gone", dep.Versions["1.0.0"])
+		gotEmpty, hasEmpty := dep.Versions["1.0.1"]
+		assert.True(t, hasEmpty, "empty-string deprecated key should be preserved")
+		assert.Empty(t, gotEmpty)
+	})
+
+	t.Run("AbsentKeySkipped", func(t *testing.T) {
+		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"gone"},"1.0.1":{"version":"1.0.1"}}}`, pkg)
+		dep, err := ParsePackageDeprecation(strings.NewReader(body))
+		require.NoError(t, err)
+		assert.Contains(t, dep.Versions, "1.0.0")
+		assert.NotContains(t, dep.Versions, "1.0.1", "absent deprecated key must not surface as empty string")
+	})
+
+	t.Run("MixedShapes", func(t *testing.T) {
+		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"msg"},"1.0.1":{},"1.0.2":{"deprecated":""},"1.0.3":null}}`, pkg)
+		dep, err := ParsePackageDeprecation(strings.NewReader(body))
+		require.NoError(t, err)
+		assert.Equal(t, "msg", dep.Versions["1.0.0"])
+		assert.NotContains(t, dep.Versions, "1.0.1")
+		_, has102 := dep.Versions["1.0.2"]
+		assert.True(t, has102)
+		assert.NotContains(t, dep.Versions, "1.0.3")
+	})
+}
+
+func TestParseUpload(t *testing.T) {
+	pkg := "@scope/test-package"
+
+	t.Run("dispatches deprecate on missing _attachments", func(t *testing.T) {
+		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"gone"}}}`, pkg)
+		p, dep, err := ParseUpload(strings.NewReader(body))
+		require.NoError(t, err)
+		assert.Nil(t, p)
+		require.NotNil(t, dep)
+		assert.Equal(t, "gone", dep.Versions["1.0.0"])
+	})
+
+	t.Run("dispatches publish when _attachments present", func(t *testing.T) {
+		// Reuse a minimal tarball with a package.json.
+		data := buildTarball(t, map[string]string{"package/package.json": `{}`})
+		integrity := "sha512-" + base64Sha512(t, data)
+		body := fmt.Sprintf(
+			`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","dist":{"integrity":%q}}},"_attachments":{"x.tgz":{"data":%q}}}`,
+			pkg, pkg, integrity, base64.StdEncoding.EncodeToString(data),
+		)
+		p, dep, err := ParseUpload(strings.NewReader(body))
+		require.NoError(t, err)
+		assert.Nil(t, dep)
+		require.NotNil(t, p)
+		assert.Equal(t, pkg, p.Name)
+	})
+
+	t.Run("publish whose readme mentions deprecated is not misrouted", func(t *testing.T) {
+		// The old fast-path used a substring check for "deprecated"; make sure
+		// the new dispatch keys off _attachments only.
+		data := buildTarball(t, map[string]string{"package/package.json": `{}`})
+		integrity := "sha512-" + base64Sha512(t, data)
+		body := fmt.Sprintf(
+			`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","readme":"this package is deprecated!","dist":{"integrity":%q}}},"_attachments":{"x.tgz":{"data":%q}}}`,
+			pkg, pkg, integrity, base64.StdEncoding.EncodeToString(data),
+		)
+		p, dep, err := ParseUpload(strings.NewReader(body))
+		require.NoError(t, err)
+		assert.Nil(t, dep)
+		require.NotNil(t, p)
+	})
+
+	t.Run("invalid json errors out", func(t *testing.T) {
+		_, _, err := ParseUpload(strings.NewReader("not json"))
+		assert.Error(t, err)
+	})
+}
+
+func base64Sha512(t *testing.T, data []byte) string {
+	t.Helper()
+	h := sha512.Sum512(data)
+	return base64.StdEncoding.EncodeToString(h[:])
 }

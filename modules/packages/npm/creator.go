@@ -276,14 +276,14 @@ func ParseUpload(r io.Reader) (*Package, *PackageDeprecation, error) {
 
 // ParsePackage parses an npm publish PUT body. Deprecate bodies are rejected.
 func ParsePackage(r io.Reader) (*Package, error) {
-	p, _, err := ParseUpload(r)
-	if err != nil {
+	var upload packageUpload
+	if err := json.NewDecoder(r).Decode(&upload); err != nil {
 		return nil, err
 	}
-	if p == nil {
-		return nil, ErrInvalidAttachment
+	if len(upload.Attachments) == 0 {
+		return nil, ErrInvalidPackage
 	}
-	return p, nil
+	return parseUploadPackage(&upload)
 }
 
 // parseUploadPackage builds a Package from a decoded publish body.
@@ -480,14 +480,18 @@ type PackageDeprecation struct {
 // the full package document (no `_attachments`) with the `deprecated` string
 // field set or cleared on each affected version.
 func ParsePackageDeprecation(r io.Reader) (*PackageDeprecation, error) {
-	_, dep, err := ParseUpload(r)
+	body, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
-	if dep == nil {
+	var upload packageUpload
+	if err := json.Unmarshal(body, &upload); err != nil {
+		return nil, err
+	}
+	if len(upload.Attachments) > 0 {
 		return nil, ErrInvalidPackage
 	}
-	return dep, nil
+	return parseUploadDeprecation(&upload, body)
 }
 
 // parseUploadDeprecation builds a PackageDeprecation from a body with no
