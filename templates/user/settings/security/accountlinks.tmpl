@@ -40,7 +40,7 @@
 					{{end}}
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
+					<button class="ui red tiny button link-action" data-modal-confirm="#delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link?id={{$loginSource.ID}}">
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 				</div>
@@ -48,7 +48,7 @@
 		{{end}}
 	</div>
 
-	<div class="ui g-modal-confirm delete modal" id="delete-account-link">
+	<div class="ui small modal" id="delete-account-link">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.remove_account_link"}}

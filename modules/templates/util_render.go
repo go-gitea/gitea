@@ -10,8 +10,10 @@ import (
 	"math"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 
+	user_model "gitea.dev/models/gituser"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	"gitea.dev/models/repo"
@@ -22,6 +24,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/repository"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
@@ -31,11 +34,12 @@ import (
 )
 
 type RenderUtils struct {
-	ctx reqctx.RequestContext
+	ctx         reqctx.RequestContext
+	avatarUtils *AvatarUtils
 }
 
 func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
-	return &RenderUtils{ctx: ctx}
+	return &RenderUtils{ctx: ctx, avatarUtils: NewAvatarUtils(ctx)}
 }
 
 // RenderCommitMessage renders commit message title (only title)
@@ -290,4 +294,135 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleTd(combined, escapeStatus *chars
 		return ""
 	}
 	return `<td class="lines-escape">` + ut.RenderUnicodeEscapeToggleButton(escapeStatus) + `</td>`
+}
+
+func renderAvatarStackViewEmailLink(data *user_model.AvatarStackData, email string) template.URL {
+	if data.SearchByEmailLink != "" && email != "" {
+		return template.URL(strings.ReplaceAll(data.SearchByEmailLink, "{email}", url.QueryEscape(email)))
+	}
+	return ""
+}
+
+func (ut *RenderUtils) participantHref(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.URL {
+	if href := renderAvatarStackViewEmailLink(data, participant.GitIdentity.Email); href != "" {
+		return href
+	}
+	if participant.GiteaUser != nil {
+		return template.URL(participant.GiteaUser.HomeLink())
+	} else if participant.GitIdentity.Email != "" {
+		return template.URL("mailto:" + participant.GitIdentity.Email)
+	}
+	return ""
+}
+
+func (ut *RenderUtils) participantAvatar(participant *user_model.CommitParticipant) template.HTML {
+	if participant.GiteaUser != nil {
+		return ut.avatarUtils.Avatar(participant.GiteaUser, 20)
+	}
+	return ut.avatarUtils.AvatarByEmail(participant.GitIdentity.Email, participant.GitIdentity.Name, 20)
+}
+
+func participantName(participant *user_model.CommitParticipant) string {
+	if participant.GiteaUser != nil {
+		return participant.GiteaUser.GetDisplayName()
+	}
+	return participant.GitIdentity.Name
+}
+
+const renderAvatarStackMaxVisible = 10
+
+// AvatarStack renders overlapping avatars for the stack participants. It emits children in reverse
+// so CSS `flex-direction: row-reverse` places the primary (Participants[0]) leftmost and last-painted (on top).
+func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HTML {
+	visible := data.Participants
+	overflow := len(visible) - renderAvatarStackMaxVisible
+	if overflow > 0 {
+		visible = visible[:renderAvatarStackMaxVisible]
+	}
+
+	var b htmlutil.HTMLBuilder
+	b.WriteHTML(`<span class="avatar-stack">`)
+	if overflow > 0 {
+		b.WriteFormat(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
+	}
+
+	// FIXME: such "backward" breaks a11y like screen readers
+	for _, participant := range slices.Backward(visible) {
+		ut.writeAvatarStackItem(&b, data, participant)
+	}
+	b.WriteHTML(`</span>`)
+	return b.HTMLString()
+}
+
+func (ut *RenderUtils) writeAvatarStackItem(b *htmlutil.HTMLBuilder, data *user_model.AvatarStackData, participant *user_model.CommitParticipant) {
+	avatar := ut.participantAvatar(participant)
+	if href := ut.participantHref(data, participant); href != "" {
+		b.WriteFormat(`<a href="%s">%s</a>`, href, avatar)
+	} else {
+		b.WriteFormat(`<span>%s</span>`, avatar)
+	}
+}
+
+func (ut *RenderUtils) AvatarStackPushCommit(pushCommit *repository.PushCommit) template.HTML {
+	fakeGitCommit := git.Commit{
+		CommitMessage: git.CommitMessage{MessageRaw: pushCommit.Message},
+		Author:        &git.Signature{Name: pushCommit.AuthorName, Email: pushCommit.AuthorEmail},
+		// there is no way to know the real committer, but the field can't be nil
+		Committer: &git.Signature{Name: pushCommit.AuthorName, Email: pushCommit.AuthorEmail},
+	}
+	data := user_model.BuildAvatarStackData(ut.ctx, fakeGitCommit.AllParticipantIdentities(), nil)
+	return ut.AvatarStack(data)
+}
+
+// AvatarStackWithNames renders the avatar stack plus a label: `name` / `a and b` / `N people` (opens popup).
+func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) template.HTML {
+	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	participants := data.Participants
+
+	var b htmlutil.HTMLBuilder
+	b.WriteHTML(`<span class="avatar-stack-names">`)
+	b.WriteHTML(ut.AvatarStack(data))
+
+	switch len(participants) {
+	case 1:
+		b.WriteHTML(ut.participantNameLink(data, participants[0]))
+	case 2:
+		b.WriteHTML(ut.participantNameLink(data, participants[0]))
+		b.WriteFormat(`<span>%s</span>`, locale.Tr("repo.commits.avatar_stack_and"))
+		b.WriteHTML(ut.participantNameLink(data, participants[1]))
+	default:
+		b.WriteFormat(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
+			locale.Tr("repo.commits.avatar_stack_people", len(participants)))
+		b.WriteHTML(`<div class="tippy-target"><div class="avatar-stack-popup">`)
+		for _, participant := range participants {
+			b.WriteHTML(ut.participantPopupRow(data, participant))
+		}
+		b.WriteHTML(`</div></div>`)
+	}
+
+	b.WriteHTML(`</span>`)
+	return b.HTMLString()
+}
+
+// participantNameLink prefers (in order): commits-by-author search, `GetShortDisplayNameLinkHTML` (keeps alt-name tooltip), `mailto:`, bare name.
+func (ut *RenderUtils) participantNameLink(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
+	if href := renderAvatarStackViewEmailLink(data, participant.GitIdentity.Email); href != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="%s">%s</a>`, href, participantName(participant))
+	}
+	if participant.GiteaUser != nil {
+		return participant.GiteaUser.GetShortDisplayNameLinkHTML()
+	}
+	if participant.GitIdentity.Email != "" {
+		return htmlutil.HTMLFormat(`<a class="muted" href="mailto:%s">%s</a>`, participant.GitIdentity.Email, participant.GitIdentity.Name)
+	}
+	return template.HTML(template.HTMLEscapeString(participant.GitIdentity.Name))
+}
+
+func (ut *RenderUtils) participantPopupRow(data *user_model.AvatarStackData, participant *user_model.CommitParticipant) template.HTML {
+	avatar := ut.participantAvatar(participant)
+	name := participantName(participant)
+	if href := ut.participantHref(data, participant); href != "" {
+		return htmlutil.HTMLFormat(`<a class="silenced flex-text-block" href="%s">%s<span>%s</span></a>`, href, avatar, name)
+	}
+	return htmlutil.HTMLFormat(`<span class="flex-text-block">%s<span>%s</span></span>`, avatar, name)
 }

@@ -166,7 +166,7 @@ func (a *Action) TableIndices() []*schemas.Index {
 	cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
 
 	cuIndex := schemas.NewIndex("c_u", schemas.IndexType)
-	cuIndex.AddColumn("user_id", "is_deleted")
+	cuIndex.AddColumn("user_id", "is_deleted", "created_unix")
 
 	actUserUserIndex := schemas.NewIndex("au_c_u", schemas.IndexType)
 	actUserUserIndex.AddColumn("act_user_id", "created_unix", "user_id")

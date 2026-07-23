@@ -23,7 +23,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
 	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -177,7 +177,9 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&actions_model.ActionScheduleSpec{RepoID: repoID},
 		&actions_model.ActionSchedule{RepoID: repoID},
 		&actions_model.ActionArtifact{RepoID: repoID},
+		&actions_model.ActionRunJobSummary{RepoID: repoID},
 		&actions_model.ActionRunnerToken{RepoID: repoID},
+		&actions_model.ActionScopedWorkflowSource{SourceRepoID: repoID},
 		&issues_model.IssuePin{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
@@ -308,7 +310,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	// we delete the file but the database rollback, the repository will be broken.
 
 	// Remove repository files.
-	if err := gitrepo.DeleteRepository(ctx, repo); err != nil {
+	if err := git.DeleteRepository(ctx, repo); err != nil {
 		desc := fmt.Sprintf("Delete repository files (%s): %v", repo.FullName(), err)
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
@@ -316,7 +318,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 
 	// Remove wiki files if it exists.
-	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
+	if err := git.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
 		desc := fmt.Sprintf("Delete wiki repository files (%s): %v", repo.FullName(), err)
 		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {

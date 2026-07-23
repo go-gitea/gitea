@@ -9,6 +9,7 @@ import (
 	"text/template"
 	"time"
 
+	"gitea.dev/modules/consts"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 
@@ -52,8 +53,8 @@ var SSH = struct {
 	Domain:                        "",
 	Port:                          22,
 	MinimumKeySizeCheck:           true,
-	MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 3071},
-	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
+	MinimumKeySizes:               map[string]int{"ed25519": consts.AsymKeyMinBitsEC, "ed25519-sk": consts.AsymKeyMinBitsEC, "ecdsa": consts.AsymKeyMinBitsEC, "ecdsa-sk": consts.AsymKeyMinBitsEC, "rsa": consts.AsymKeyMinBitsRsa},
+	ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gitea.ed25519", "ssh/gitea.ecdsa", "ssh/gogs.rsa"},
 	AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
 	PerWriteTimeout:               PerWriteTimeout,
 	PerWritePerKbTimeout:          PerWritePerKbTimeout,

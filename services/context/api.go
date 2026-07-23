@@ -18,7 +18,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/httpcache"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -49,9 +48,10 @@ type APIContext struct {
 }
 
 // TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
-// A public-only token cannot reach a private repo; any other token is unrestricted by this check.
+// A public-only token cannot reach a private repo or a repo owned by a non-public (limited or
+// private) owner; any other token is unrestricted by this check.
 func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
-	return repo == nil || !ctx.PublicOnly || !repo.IsPrivate
+	return !ctx.PublicOnly || !publicOnlyTokenDeniedRepo(ctx, repo)
 }
 
 func init() {
@@ -104,10 +104,6 @@ type APINotFound struct{}
 // swagger:response conflict
 type APIConflict struct{}
 
-// APIRedirect is a redirect response
-// swagger:response redirect
-type APIRedirect struct{}
-
 // APIString is a string response
 // swagger:response string
 type APIString string
@@ -138,26 +134,10 @@ func (ctx *APIContext) apiErrorInternal(skip int, err error) {
 }
 
 // APIErrorNotFound handles 404s for APIContext
-// String will replace message, errors will be added to a slice
-func (ctx *APIContext) APIErrorNotFound(objs ...any) {
-	var message string
-	var errs []string
-	for _, obj := range objs {
-		// Ignore nil
-		if obj == nil {
-			continue
-		}
-
-		if err, ok := obj.(error); ok {
-			errs = append(errs, err.Error())
-		} else {
-			message = obj.(string)
-		}
-	}
-	ctx.JSON(http.StatusNotFound, map[string]any{
-		"message": util.IfZero(message, "not found"), // do not use locale in API
-		"url":     setting.API.SwaggerURL,
-		"errors":  errs,
+func (ctx *APIContext) APIErrorNotFound(msg ...string) {
+	ctx.JSON(http.StatusNotFound, APIError{
+		Message: util.OptionalArg(msg, "not found"),
+		URL:     setting.API.SwaggerURL,
 	})
 }
 
@@ -298,7 +278,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) {
 		// For API calls.
 		if ctx.Repo.GitRepo == nil {
 			var err error
-			ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+			ctx.Repo.GitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -325,11 +305,11 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 		var err error
 		switch refType {
 		case git.RefTypeBranch:
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, refName)
 		case git.RefTypeTag:
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(ctx, refName)
 		case git.RefTypeCommit:
-			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(refName)
+			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetCommit(ctx, refName)
 		}
 		if ctx.Repo.Commit == nil || errors.Is(err, util.ErrNotExist) {
 			ctx.APIErrorNotFound("unable to find a git ref")

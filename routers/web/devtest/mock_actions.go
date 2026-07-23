@@ -15,6 +15,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -84,32 +85,44 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	}
 	resp := &actions.ViewResponse{}
 	resp.State.Run.RepoID = 12345
+	resp.State.Run.Index = runID
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
 	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
 	resp.State.Run.CanDeleteArtifact = true
-	resp.State.Run.WorkflowID = "workflow-id"
-	resp.State.Run.WorkflowLink = "./workflow-link"
+	resp.State.Run.WorkflowID = "workflow-id.yml"
 	resp.State.Run.TriggerEvent = "push"
+	renderUtils := templates.NewRenderUtils(ctx)
+	user2, _ := user_model.GetUserByID(ctx, 2)
+	if user2 == nil {
+		user2 = &user_model.User{Name: "user2"}
+	}
+	user3, _ := user_model.GetUserByID(ctx, 3)
+	if user3 == nil {
+		user3 = &user_model.User{Name: "user3"}
+	}
 	resp.State.Run.Commit = actions.ViewCommit{
 		ShortSha: "ccccdddd",
 		Link:     "./commit-link",
 		Pusher: actions.ViewUser{
-			DisplayName: "pusher user",
-			Link:        "./pusher-link",
+			DisplayName: user2.GetDisplayName(),
+			Link:        user2.HomeLink(),
+			AvatarLink:  user2.AvatarLinkWithSize(ctx, 16),
 		},
 		Branch: actions.ViewBranch{
-			Name:      "commit-branch",
+			Name:      "user2:commit-branch",
 			Link:      "./branch-link",
 			IsDeleted: false,
 		},
+	}
+	resp.State.Run.PullRequest = &actions.ViewPullRequest{
+		Index: "#37658",
+		Link:  "./pull/37658",
 	}
 	now := time.Now()
 	currentAttemptNum := int64(1)
 	if attemptID > 0 {
 		currentAttemptNum = attemptID
 	}
-	user2 := &user_model.User{Name: "user2"}
-	user3 := &user_model.User{Name: "user3"}
 	attempts := []*actions_model.ActionRunAttempt{{
 		Attempt:       1,
 		Status:        actions_model.StatusSuccess,
@@ -168,15 +181,16 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			}
 		}
 		resp.State.Run.Attempts = append(resp.State.Run.Attempts, &actions.ViewRunAttempt{
-			Attempt:         attempt.Attempt,
-			Status:          attempt.Status.String(),
-			Done:            attempt.Status.IsDone(),
-			Link:            link,
-			Current:         current,
-			Latest:          attempt.Attempt == latestAttempt.Attempt,
-			TriggeredAt:     attempt.Created.AsTime().Unix(),
-			TriggerUserName: attempt.TriggerUser.GetDisplayName(),
-			TriggerUserLink: attempt.TriggerUser.HomeLink(),
+			Attempt:           attempt.Attempt,
+			Status:            attempt.Status.String(),
+			Done:              attempt.Status.IsDone(),
+			Link:              link,
+			Current:           current,
+			Latest:            attempt.Attempt == latestAttempt.Attempt,
+			TriggeredAt:       attempt.Created.AsTime().Unix(),
+			TriggerUserName:   attempt.TriggerUser.GetDisplayName(),
+			TriggerUserLink:   attempt.TriggerUser.HomeLink(),
+			TriggerUserAvatar: attempt.TriggerUser.AvatarLinkWithSize(ctx, 16),
 		})
 	}
 	isLatestAttempt := currentAttemptNum == latestAttempt.Attempt
@@ -184,6 +198,23 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	resp.State.Run.CanApprove = runID == 20 && isLatestAttempt
 	resp.State.Run.CanRerun = runID == 30 && isLatestAttempt
 	resp.State.Run.CanRerunFailed = runID == 30 && isLatestAttempt
+
+	// Mock job summaries so the devtest page can preview the Summary panel rendering.
+	// Only some runs have summaries, so the page also exercises the "no summary" state.
+	if runID == 10 || runID == 20 {
+		resp.State.Run.JobSummaries = []*actions.ViewJobSummary{
+			{
+				JobID:       runID * 10,
+				JobName:     "job 100 (testsubname)",
+				SummaryHTML: renderUtils.MarkdownToHtml("### Devtest job summary\n\n- Markdown rendering\n- Links: [example](https://example.com)\n\n```sh\necho hello\n```\n"),
+			},
+			{
+				JobID:       runID*10 + 2,
+				JobName:     "ULTRA LOOOOOOOOOOOONG job name 102 that exceeds the limit",
+				SummaryHTML: renderUtils.MarkdownToHtml("### Another summary\n\nThis demonstrates multiple job summaries in one run.\n\n- Item A\n- Item B\n"),
+			},
+		}
+	}
 
 	resp.Artifacts = append(resp.Artifacts, &actions.ArtifactsViewItem{
 		Name:        "artifact-a",
@@ -351,6 +382,8 @@ func MockActionsRunsJobs(ctx *context.Context) {
 		//       └ deep_job    (regular)
 		//   cross_caller      (caller, cross-repo, expanded)
 		//     └ external_job  (regular)
+		//   build (linux|windows|macos)       (regular matrix; graph folds into one "build" node)
+		//   build-call (linux|windows|macos)  (caller matrix, each calls build.yml; folds into one "build-call" node like "build")
 		//   final             (regular, needs local_caller + cross_caller)
 		const (
 			prepareID     = int64(400)
@@ -361,6 +394,21 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			crossCallerID = int64(405)
 			externalJobID = int64(406)
 			finalID       = int64(407)
+
+			// Regular matrix set – the graph already folds these into a single "build" node.
+			buildLinuxID   = int64(410)
+			buildWindowsID = int64(411)
+			buildMacosID   = int64(412)
+
+			// Caller matrix set – each matrix leg calls the same reusable workflow. #38466: like the
+			// regular "build" matrix above, these fold into one "build-call" node. Matrix legs share a
+			// single JobID, so the legs below use JobID "build-call" and differ only by their name suffix.
+			buildCallLinuxID    = int64(420)
+			buildCallWindowsID  = int64(421)
+			buildCallMacosID    = int64(422)
+			buildCallLinuxJobID = int64(423)
+			buildCallWinJobID   = int64(424)
+			buildCallMacJobID   = int64(425)
 		)
 
 		resp.State.Run.Jobs = []*actions.ViewJob{
@@ -401,6 +449,53 @@ func MockActionsRunsJobs(ctx *context.Context) {
 				Status: actions_model.StatusWaiting.String(), Duration: "0s",
 				ParentJobID: crossCallerID,
 			},
+
+			// Regular matrix "build" – these fold into one matrix node in the graph. The matrix legs
+			// share a single JobID ("build"); the " (variant)" name suffix distinguishes the legs.
+			{
+				ID: buildLinuxID, Link: jobLink(buildLinuxID), JobID: "build", Name: "build (linux)",
+				Status: actions_model.StatusSuccess.String(), Duration: "1m", Needs: []string{"prepare"},
+			},
+			{
+				ID: buildWindowsID, Link: jobLink(buildWindowsID), JobID: "build", Name: "build (windows)",
+				Status: actions_model.StatusSuccess.String(), Duration: "2m", Needs: []string{"prepare"},
+			},
+			{
+				ID: buildMacosID, Link: jobLink(buildMacosID), JobID: "build", Name: "build (macos)",
+				Status: actions_model.StatusSuccess.String(), Duration: "90s", Needs: []string{"prepare"},
+			},
+
+			// Caller matrix "build-call" – each leg calls the same reusable workflow. #38466: like the
+			// regular "build" matrix above, these fold into one node. The matrix legs share a single
+			// JobID ("build-call"); the " (variant)" name suffix distinguishes the legs.
+			{
+				ID: buildCallLinuxID, Link: jobLink(buildCallLinuxID), JobID: "build-call", Name: "build-call (linux)",
+				Status: actions_model.StatusSuccess.String(), Duration: "1m", Needs: []string{"prepare"},
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/build.yml",
+			},
+			{
+				ID: buildCallLinuxJobID, Link: jobLink(buildCallLinuxJobID), JobID: "bc_linux_build", Name: "build",
+				Status: actions_model.StatusSuccess.String(), Duration: "1m", ParentJobID: buildCallLinuxID,
+			},
+			{
+				ID: buildCallWindowsID, Link: jobLink(buildCallWindowsID), JobID: "build-call", Name: "build-call (windows)",
+				Status: actions_model.StatusSuccess.String(), Duration: "2m", Needs: []string{"prepare"},
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/build.yml",
+			},
+			{
+				ID: buildCallWinJobID, Link: jobLink(buildCallWinJobID), JobID: "bc_windows_build", Name: "build",
+				Status: actions_model.StatusSuccess.String(), Duration: "2m", ParentJobID: buildCallWindowsID,
+			},
+			{
+				ID: buildCallMacosID, Link: jobLink(buildCallMacosID), JobID: "build-call", Name: "build-call (macos)",
+				Status: actions_model.StatusSuccess.String(), Duration: "90s", Needs: []string{"prepare"},
+				IsReusableCaller: true, CallUses: "./.gitea/workflows/build.yml",
+			},
+			{
+				ID: buildCallMacJobID, Link: jobLink(buildCallMacJobID), JobID: "bc_macos_build", Name: "build",
+				Status: actions_model.StatusSuccess.String(), Duration: "90s", ParentJobID: buildCallMacosID,
+			},
+
 			{
 				ID: finalID, Link: jobLink(finalID), JobID: "final", Name: "final",
 				Status: actions_model.StatusBlocked.String(), Duration: "0s",

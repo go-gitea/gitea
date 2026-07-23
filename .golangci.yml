@@ -53,12 +53,12 @@ linters:
               desc: use builtin errors package instead
         migrations:
           files:
-            - '**/models/migrations/**/*.go'
+            - '**/modelmigration/**/*.go'
           deny:
-            - pkg: gitea.dev/models$
-              desc: migrations must not depend on the models package
+            - pkg: gitea.dev/models
+              desc: "migrations must not depend on the models package. HINT: MIGRATION-STRUCT-FROZEN"
             - pkg: gitea.dev/modules/structs
-              desc: migrations must not depend on modules/structs (API structures change over time)
+              desc: "migrations must not depend on modules/structs. HINT: MIGRATION-STRUCT-FROZEN"
     nolintlint:
       allow-unused: false
       require-explanation: true
@@ -107,6 +107,7 @@ linters:
         - -QF1008
     testifylint:
       disable:
+        - empty
         - go-require
         - require-error
     usetesting:
@@ -133,8 +134,7 @@ linters:
         path: _test\.go
       - linters:
           - dupl
-          - errcheck
-        path: models/migrations/v
+        path: modelmigration/v
       - linters:
           - forbidigo
         path: cmd

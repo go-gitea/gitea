@@ -21,7 +21,20 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+
+	"xorm.io/builder"
 )
+
+// actionsOwnerAccessibleRepoIDsSubQuery returns the sub-query restricting an owner-scoped actions
+// listing to the repos whose actions the caller can read, or nil when no restriction applies. A bare
+// org member must not be able to enumerate runs/jobs of repos they have no access to. A site admin may
+// skip the access filter, but a public-only token must stay confined to public repos even for an admin.
+func actionsOwnerAccessibleRepoIDsSubQuery(ctx *context.APIContext, ownerID int64) *builder.Builder {
+	if ownerID > 0 && (ctx.Doer == nil || !ctx.Doer.IsAdmin || ctx.PublicOnly) {
+		return repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(ownerID, ctx.Doer, ctx.PublicOnly)
+	}
+	return nil
+}
 
 // ListJobs lists jobs for api route validated ownerID and repoID
 // ownerID == 0 and repoID == 0 means all jobs
@@ -59,6 +72,8 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		}
 		opts.Statuses = append(opts.Statuses, values...)
 	}
+
+	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
 
 	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
 	if err != nil {
@@ -135,8 +150,9 @@ func convertToInternal(s string) ([]actions_model.Status, error) {
 // ownerID == 0 and repoID != 0 means all runs for the given repo
 // ownerID != 0 and repoID == 0 means all runs for the given user/org
 // ownerID != 0 and repoID != 0 undefined behavior
+// workflowID filters runs by workflow file name (e.g. "build.yml"), empty means no filter
 // Access rights are checked at the API route level
-func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
+func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
@@ -144,7 +160,13 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	opts := actions_model.FindRunOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
+		WorkflowID:  workflowID,
 		ListOptions: listOptions,
+	}
+	if workflowID != "" {
+		workflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
+		opts.IsScopedRun = optional.Some(workflowSourceRepoID > 0)
+		opts.WorkflowRepoID = workflowSourceRepoID
 	}
 
 	if event := ctx.FormString("event"); event != "" {
@@ -172,6 +194,9 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	if headSHA := ctx.FormString("head_sha"); headSHA != "" {
 		opts.CommitSHA = headSHA
 	}
+	excludePullRequests := ctx.FormBool("exclude_pull_requests")
+
+	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
 
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
@@ -203,7 +228,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
 	for i := range runs {
 		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil)
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil, excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return

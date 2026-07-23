@@ -16,7 +16,6 @@ import (
 	system_model "gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
 	notify_service "gitea.dev/services/notify"
@@ -32,14 +31,24 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 		return user_model.ErrBlockedUser
 	}
 
+	assigneeCommentMap := make(map[int64]*issues_model.Comment)
+	assignees := make(map[int64]*user_model.User)
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := issues_model.NewIssue(ctx, repo, issue, labelIDs, uuids); err != nil {
 			return err
 		}
 		for _, assigneeID := range assigneeIDs {
-			if _, err := AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assigneeID, true); err != nil {
+			assignee, err := user_model.GetUserByID(ctx, assigneeID)
+			if err != nil {
+				log.Error("GetUserByID: %v", err)
+				continue
+			}
+			assignees[assigneeID] = assignee
+			comment, err := AddAssigneeIfNotAssigned(ctx, issue, issue.Poster, assignee)
+			if err != nil {
 				return err
 			}
+			assigneeCommentMap[assigneeID] = comment
 		}
 		if len(projectIDs) > 0 {
 			err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, projectIDs)
@@ -63,6 +72,12 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *issues_mo
 	}
 	if issue.Milestone != nil {
 		notify_service.IssueChangeMilestone(ctx, issue.Poster, issue, 0)
+	}
+
+	if len(assigneeIDs) > 0 {
+		for _, assignee := range assignees {
+			notify_service.IssueChangeAssignee(ctx, issue.Poster, issue, assignee, false, assigneeCommentMap[assignee.ID])
+		}
 	}
 
 	return nil
@@ -155,7 +170,7 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 		if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
-		if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
+		if err := git.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}

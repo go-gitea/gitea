@@ -63,16 +63,18 @@ jobs:
 `)
 
 	run := &actions_model.ActionRun{
-		Title:         "before parse",
-		RepoID:        4,
-		OwnerID:       1,
-		WorkflowID:    "expr-runid.yaml",
-		TriggerUserID: 1,
-		Ref:           "refs/heads/master",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		EventPayload:  "{}",
+		Title:             "before parse",
+		RepoID:            4,
+		OwnerID:           1,
+		WorkflowID:        "expr-runid.yaml",
+		TriggerUserID:     1,
+		Ref:               "refs/heads/master",
+		CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:             "push",
+		TriggerEvent:      "push",
+		EventPayload:      "{}",
+		WorkflowRepoID:    4,
+		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
 	}
 	require.NoError(t, PrepareRunAndInsert(ctx, content, run, nil))
 	require.Positive(t, run.ID)

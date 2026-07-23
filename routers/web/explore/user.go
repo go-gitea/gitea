@@ -55,11 +55,7 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 	)
 
 	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
-
-	sortOrder := ctx.FormString("sort")
-	if sortOrder == "" {
-		sortOrder = setting.UI.ExploreDefaultSort
-	}
+	sortOrder := util.IfZero(string(opts.OrderBy), ctx.FormString("sort", setting.UI.ExploreDefaultSort))
 	ctx.Data["SortType"] = sortOrder
 
 	switch sortOrder {
@@ -145,18 +141,15 @@ func Users(ctx *context.Context) {
 		"alphabetically",
 		"reversealphabetically",
 	)
-	sortOrder := ctx.FormString("sort")
-	if sortOrder == "" {
-		sortOrder = util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
-		ctx.SetFormString("sort", sortOrder)
-	}
-
+	sortOrderDefault := util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
+	sortOrder := ctx.FormString("sort", sortOrderDefault)
 	RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Types:       []user_model.UserType{user_model.UserTypeIndividual},
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		IsActive:    optional.Some(true),
 		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		OrderBy:     db.SearchOrderBy(sortOrder),
 
 		SupportedSortOrders: supportedSortOrders,
 	}, tplExploreUsers)

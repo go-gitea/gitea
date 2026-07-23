@@ -136,7 +136,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
-	if blob.Size() > lfs.MetaFileMaxSize {
+	if blob.Size(ctx) > lfs.MetaFileMaxSize {
 		// First handle caching for the blob
 		if httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
@@ -151,7 +151,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	// OK, now the blob is known to have at most 1024 (lfs pointer max size) bytes,
 	// we can simply read this in one go (This saves reading it twice)
-	lfsPointerBuf, err := blob.GetBlobBytes(lfs.MetaFileMaxSize)
+	lfsPointerBuf, err := blob.GetBlobBytes(ctx, lfs.MetaFileMaxSize)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -202,7 +202,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified *time.Time) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound()
@@ -213,18 +213,18 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 	}
 
 	if entry.IsDir() || entry.IsSubModule() {
-		ctx.APIErrorNotFound("getBlobForEntry", nil)
+		ctx.APIErrorNotFound()
 		return nil, nil, nil
 	}
 
-	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil, nil
 	}
 	when := &latestCommit.Committer.When
 
-	return entry.Blob(), entry, when
+	return entry.Blob(ctx.Repo.GitRepo), entry, when
 }
 
 // GetArchive get archive of a repository
@@ -299,20 +299,16 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ec, _, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+	ec, _, err := ctx.Repo.GetEditorconfig(ctx, ctx.Repo.Commit)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	fileName := ctx.PathParam("filename")
 	def, err := ec.GetDefinitionForFilename(fileName)
-	if def == nil {
-		ctx.APIErrorNotFound(err)
+	if err != nil {
+		ctx.APIErrorNotFound(err.Error())
 		return
 	}
 	ctx.JSON(http.StatusOK, def)
@@ -699,10 +695,8 @@ func DeleteFile(ctx *context.APIContext) {
 func resolveRefCommit(ctx *context.APIContext, ref string, minCommitIDLen ...int) *utils.RefCommit {
 	ref = util.IfZero(ref, ctx.Repo.Repository.DefaultBranch)
 	refCommit, err := utils.ResolveRefCommit(ctx, ctx.Repo.Repository, ref, minCommitIDLen...)
-	if errors.Is(err, util.ErrNotExist) {
-		ctx.APIErrorNotFound(err)
-	} else if err != nil {
-		ctx.APIErrorInternal(err)
+	if err != nil {
+		ctx.APIErrorAuto(err)
 	}
 	return refCommit
 }
@@ -828,11 +822,8 @@ func getRepoContents(ctx *context.APIContext, opts files_service.GetContentsOrLi
 	}
 	ret, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, refCommit, opts)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.APIErrorNotFound("GetContentsOrList", err)
-			return nil
-		}
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
+		return nil
 	}
 	return &ret
 }

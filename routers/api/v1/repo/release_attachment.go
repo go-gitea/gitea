@@ -205,7 +205,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if attachments are enabled
 	if !setting.Attachment.Enabled {
-		ctx.APIErrorNotFound("Attachment is not enabled")
+		ctx.APIErrorNotFound("attachment is not enabled")
 		return
 	}
 

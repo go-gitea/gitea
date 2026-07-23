@@ -5,14 +5,14 @@ export function initAdminUserListSearchForm(): void {
   const form = document.querySelector<HTMLFormElement>('#user-list-search-form');
   if (!form) return;
 
-  for (const button of form.querySelectorAll(`button[name=sort][value="${searchForm.SortType}"]`)) {
+  for (const button of form.querySelectorAll(`button[name=sort][value="${CSS.escape(searchForm.SortType)}"]`)) {
     button.classList.add('active');
   }
 
   if (searchForm.StatusFilterMap) {
     for (const [k, v] of Object.entries(searchForm.StatusFilterMap)) {
       if (!v) continue;
-      for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="status_filter[${k}]"][value="${v}"]`)) {
+      for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="status_filter[${CSS.escape(k)}]"][value="${CSS.escape(v)}"]`)) {
         input.checked = true;
       }
     }

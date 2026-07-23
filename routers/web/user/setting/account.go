@@ -242,28 +242,16 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("settings_title")
-	ctx.Data["PageIsSettingsAccount"] = true
-	ctx.Data["Email"] = ctx.Doer.Email
-
 	if _, _, err := auth.UserSignIn(ctx, ctx.Doer.Name, ctx.FormString("password")); err != nil {
 		switch {
 		case user_model.IsErrUserNotExist(err):
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.user_not_exist"), tplSettingsAccount, nil)
+			ctx.JSONError(ctx.Tr("form.user_not_exist"))
 		case errors.Is(err, smtp.ErrUnsupportedLoginType):
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.unsupported_login_type"), tplSettingsAccount, nil)
+			ctx.JSONError(ctx.Tr("form.unsupported_login_type"))
 		case errors.As(err, &db.ErrUserPasswordNotSet{}):
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.unset_password"), tplSettingsAccount, nil)
+			ctx.JSONError(ctx.Tr("form.unset_password"))
 		case errors.As(err, &db.ErrUserPasswordInvalid{}):
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
+			ctx.JSONError(ctx.Tr("form.enterred_invalid_password"))
 		default:
 			ctx.ServerError("UserSignIn", err)
 		}
@@ -272,32 +260,27 @@ func DeleteAccount(ctx *context.Context) {
 
 	// admin should not delete themself
 	if ctx.Doer.IsAdmin {
-		ctx.Flash.Error(ctx.Tr("form.admin_cannot_delete_self"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		ctx.JSONError(ctx.Tr("form.admin_cannot_delete_self"))
 		return
 	}
 
 	if err := user.DeleteUser(ctx, ctx.Doer, false); err != nil {
 		switch {
 		case repo_model.IsErrUserOwnRepos(err):
-			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))
-			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			ctx.JSONError(ctx.Tr("form.still_own_repo"))
 		case org_model.IsErrUserHasOrgs(err):
-			ctx.Flash.Error(ctx.Tr("form.still_has_org"))
-			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			ctx.JSONError(ctx.Tr("form.still_has_org"))
 		case packages_model.IsErrUserOwnPackages(err):
-			ctx.Flash.Error(ctx.Tr("form.still_own_packages"))
-			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			ctx.JSONError(ctx.Tr("form.still_own_packages"))
 		case user_model.IsErrDeleteLastAdminUser(err):
-			ctx.Flash.Error(ctx.Tr("auth.last_admin"))
-			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			ctx.JSONError(ctx.Tr("auth.last_admin"))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}
-	} else {
-		log.Trace("Account deleted: %s", ctx.Doer.Name)
-		ctx.Redirect(setting.AppSubURL + "/")
+		return
 	}
+
+	ctx.JSONRedirect(setting.AppSubURL + "/")
 }
 
 func loadAccountData(ctx *context.Context) {

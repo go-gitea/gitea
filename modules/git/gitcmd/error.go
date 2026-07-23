@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
@@ -69,9 +70,10 @@ func IsErrorCanceledOrKilled(err error) bool {
 	return errors.Is(err, context.Canceled) || IsErrorSignalKilled(err)
 }
 
-type StderrPrefix string
-
-type StderrSubStr string
+type (
+	StderrPrefix   string
+	StderrWildcard string
+)
 
 const (
 	StderrNotValidObjectName StderrPrefix = "fatal: not a valid object name"
@@ -82,11 +84,11 @@ const (
 	StderrNoSuchRemote1 StderrPrefix = "fatal: no such remote" // git < 2.30, exit status 128
 	StderrNoSuchRemote2 StderrPrefix = "error: no such remote" // git >= 2.30. exit status 2
 
-	// fatal: ambiguous argument 'origin': unknown revision or path not in the working tree.
-	StderrUnknownRevisionOrPath StderrSubStr = "unknown revision or path not in the working tree"
+	StderrUnknownRevisionOrPath StderrWildcard = "fatal: *: unknown revision or path not in the working tree"
+	StderrNoMergeBase           StderrWildcard = "fatal: *: no merge base"
 )
 
-func IsStderr[T StderrPrefix | StderrSubStr](err error, check T) bool {
+func IsStderr[T StderrPrefix | StderrWildcard](err error, check T) bool {
 	stderr, ok := ErrorAsStderr(err)
 	if !ok {
 		return false
@@ -100,9 +102,11 @@ func IsStderr[T StderrPrefix | StderrSubStr](err error, check T) bool {
 		// Git is lowercasing the "fatal: Not a valid object name" error message
 		// ref: https://lore.kernel.org/git/pull.2052.git.1771836302101.gitgitgadget@gmail.com
 		return util.AsciiEqualFold(stderr[:checkLen], string(check))
-	case StderrSubStr:
-		return strings.Contains(stderr, string(check))
+	case StderrWildcard:
+		prefix, remaining, _ := strings.Cut(string(check), "*")
+		return strings.HasPrefix(stderr, prefix) && strings.Contains(stderr, remaining)
 	}
+	setting.PanicInDevOrTesting("invalid stderr type %T", check)
 	return false
 }
 
@@ -122,8 +126,7 @@ func wrapPipelineError(err error) error {
 }
 
 func UnwrapPipelineError(err error) (error, bool) { //nolint:revive // this is for error unwrapping
-	var pe pipelineError
-	if errors.As(err, &pe) {
+	if pe, ok := errors.AsType[pipelineError](err); ok {
 		return pe.error, true
 	}
 	return nil, false

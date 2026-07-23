@@ -22,14 +22,10 @@ func runSendMail(ctx context.Context, c *cli.Command) error {
 
 	if !confirmSkipped {
 		if len(body) == 0 {
-			fmt.Print("warning: Content is empty")
+			fmt.Println("warning: Content is empty")
 		}
 
-		fmt.Print("Proceed with sending email? [Y/n] ")
-		isConfirmed, err := confirm()
-		if err != nil {
-			return err
-		} else if !isConfirmed {
+		if !confirm(c.Reader, c.Writer, "Proceed with sending email? [Y/n] ") {
 			fmt.Println("The mail was not sent")
 			return nil
 		}

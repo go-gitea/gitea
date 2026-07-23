@@ -5,10 +5,13 @@ package context
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/private"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/web"
 	web_types "gitea.dev/modules/web/types"
@@ -47,6 +50,16 @@ func (ctx *PrivateContext) Err() error {
 		return ctx.Override.Err()
 	}
 	return ctx.Base.Err()
+}
+
+func (ctx *PrivateContext) PrivateInternalErrorf(format string, args ...any) {
+	s := fmt.Sprintf(format, args...)
+	log.ErrorWithSkip(1, "Internal error: %s", s)
+	ctx.JSON(http.StatusInternalServerError, private.Response{Err: s})
+}
+
+func (ctx *PrivateContext) PrivateUserErrorf(status int, format string, args ...any) {
+	ctx.JSON(status, private.Response{UserMsg: fmt.Sprintf(format, args...)})
 }
 
 type privateContextKeyType struct{}

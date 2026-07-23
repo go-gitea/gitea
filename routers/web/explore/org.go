@@ -38,17 +38,14 @@ func Organizations(ctx *context.Context) {
 		"alphabetically",
 		"reversealphabetically",
 	)
-	sortOrder := ctx.FormString("sort")
-	if sortOrder == "" {
-		sortOrder = util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
-		ctx.SetFormString("sort", sortOrder)
-	}
-
+	sortOrderDefault := util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
+	sortOrder := ctx.FormString("sort", sortOrderDefault)
 	RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Types:       []user_model.UserType{user_model.UserTypeOrganization},
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
+		OrderBy:     db.SearchOrderBy(sortOrder),
 
 		SupportedSortOrders: supportedSortOrders,
 	}, tplExploreUsers)

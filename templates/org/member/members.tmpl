@@ -9,19 +9,13 @@
 				<div class="tw-flex-1">{{ctx.Locale.Tr "org.teams.manage_team_member_prompt"}}</div>
 				<a class="ui primary button" href="./teams">{{ctx.Locale.Tr "org.teams.manage_team_member"}}</a>
 			</div>
-			<div class="divider"></div>
 		{{end}}
-		<div class="ui small secondary filter menu">
-			<form id="org-member-search-form" class="ui form ignore-dirty tw-flex-1 tw-flex tw-items-center tw-gap-x-2">
-				<div class="ui small fluid action input tw-flex-1">
-					{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
-					{{template "shared/search/button"}}
-				</div>
-			</form>
-			<div class="item tw-text-text-light">
-				{{ctx.Locale.Tr "org.members"}}: {{CountFmt .MembersShown}} / {{CountFmt .MembersTotal}}
+		<form class="ui form ignore-dirty tw-my-4">
+			<div class="ui small fluid action input">
+				{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
+				{{template "shared/search/button"}}
 			</div>
-		</div>
+		</form>
 		<div class="flex-divided-list items-with-main">
 			{{range .Members}}
 				{{$isPublic := index $.MembersIsPublicMember .ID}}
@@ -79,8 +73,8 @@
 					</div>
 				</div>
 			{{else}}
-				<div class="flex-item">
-					<div class="flex-item-main">
+				<div class="item">
+					<div class="item-main">
 						{{ctx.Locale.Tr "search.no_results"}}
 					</div>
 				</div>

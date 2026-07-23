@@ -151,9 +151,6 @@ func (d *delayWriter) WriteString(s string) (n int, err error) {
 }
 
 func (d *delayWriter) Close() error {
-	if d == nil {
-		return nil
-	}
 	stopped := d.timer.Stop()
 	if stopped || d.buf == nil {
 		return nil
@@ -161,16 +158,6 @@ func (d *delayWriter) Close() error {
 	_, err := d.internal.Write(d.buf.Bytes())
 	d.buf = nil
 	return err
-}
-
-type nilWriter struct{}
-
-func (n *nilWriter) Write(p []byte) (int, error) {
-	return len(p), nil
-}
-
-func (n *nilWriter) WriteString(s string) (int, error) {
-	return len(s), nil
 }
 
 func parseGitHookCommitRefLine(line string) (oldCommitID, newCommitID string, refFullName git.RefName, ok bool) {
@@ -227,8 +214,7 @@ Gitea or set your environment appropriately.`, "")
 	total := 0
 	lastline := 0
 
-	var out io.Writer
-	out = &nilWriter{}
+	out := io.Discard
 	if setting.Git.VerbosePush {
 		if setting.Git.VerbosePushDelay > 0 {
 			dWriter := newDelayWriter(os.Stdout, setting.Git.VerbosePushDelay)
@@ -350,12 +336,10 @@ Gitea or set your environment appropriately.`, "")
 		return nil
 	}
 
-	var out io.Writer
-	var dWriter *delayWriter
-	out = &nilWriter{}
+	out := io.Discard
 	if setting.Git.VerbosePush {
 		if setting.Git.VerbosePushDelay > 0 {
-			dWriter = newDelayWriter(os.Stdout, setting.Git.VerbosePushDelay)
+			dWriter := newDelayWriter(os.Stdout, setting.Git.VerbosePushDelay)
 			defer dWriter.Close()
 			out = dWriter
 		} else {
@@ -382,101 +366,62 @@ Gitea or set your environment appropriately.`, "")
 		PushTrigger:                     repo_module.PushTrigger(os.Getenv(repo_module.EnvPushTrigger)),
 		IsWiki:                          isWiki,
 	}
-	oldCommitIDs := make([]string, hookBatchSize)
-	newCommitIDs := make([]string, hookBatchSize)
-	refFullNames := make([]git.RefName, hookBatchSize)
-	count := 0
-	total := 0
-	wasEmpty := false
-	masterPushed := false
+
+	oldCommitIDs := make([]string, 0, hookBatchSize)
+	newCommitIDs := make([]string, 0, hookBatchSize)
+	refFullNames := make([]git.RefName, 0, hookBatchSize)
 	results := make([]private.HookPostReceiveBranchResult, 0)
+
+	defer func() {
+		hookPrintResults(results)
+	}()
+
+	processBatch := func() error {
+		if len(refFullNames) == 0 {
+			return nil
+		}
+		_, _ = fmt.Fprintf(out, " Processing %d references\n", len(refFullNames))
+		hookOptions.OldCommitIDs = oldCommitIDs
+		hookOptions.NewCommitIDs = newCommitIDs
+		hookOptions.RefFullNames = refFullNames
+		resp, extra := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
+		if extra.HasError() {
+			return fail(ctx, extra.UserMsg, "HookPostReceive failed: %v", extra.Error)
+		}
+		results = append(results, resp.Results...)
+		oldCommitIDs = oldCommitIDs[:0]
+		newCommitIDs = newCommitIDs[:0]
+		refFullNames = refFullNames[:0]
+		return nil
+	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		// TODO: support news feeds for wiki
+		// wiki doesn't need "post-receive" at the moment
 		if isWiki {
 			continue
 		}
 
-		var ok bool
-		oldCommitIDs[count], newCommitIDs[count], refFullNames[count], ok = parseGitHookCommitRefLine(scanner.Text())
+		oldCommitID, newCommitID, refFullName, ok := parseGitHookCommitRefLine(scanner.Text())
 		if !ok {
 			continue
 		}
+		_, _ = fmt.Fprintf(out, ".")
 
-		fmt.Fprintf(out, ".")
-		commitID, _ := git.NewIDFromString(newCommitIDs[count])
-		if refFullNames[count] == git.BranchPrefix+"master" && !commitID.IsZero() && count == total {
-			masterPushed = true
-		}
-		count++
-		total++
-
-		if count >= hookBatchSize {
-			fmt.Fprintf(out, " Processing %d references\n", count)
-			hookOptions.OldCommitIDs = oldCommitIDs
-			hookOptions.NewCommitIDs = newCommitIDs
-			hookOptions.RefFullNames = refFullNames
-			resp, extra := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
-			if extra.HasError() {
-				_ = dWriter.Close()
-				hookPrintResults(results)
-				return fail(ctx, extra.UserMsg, "HookPostReceive failed: %v", extra.Error)
+		oldCommitIDs = append(oldCommitIDs, oldCommitID)
+		newCommitIDs = append(newCommitIDs, newCommitID)
+		refFullNames = append(refFullNames, refFullName)
+		if len(refFullNames) >= hookBatchSize {
+			// process and start a new batch
+			if err := processBatch(); err != nil {
+				return err
 			}
-			wasEmpty = wasEmpty || resp.RepoWasEmpty
-			results = append(results, resp.Results...)
-			count = 0
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		_ = dWriter.Close()
-		hookPrintResults(results)
 		return fail(ctx, "Hook failed: stdin read error", "scanner error: %v", err)
 	}
-
-	if count == 0 {
-		if wasEmpty && masterPushed {
-			// We need to tell the repo to reset the default branch to master
-			extra := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
-			if extra.HasError() {
-				return fail(ctx, extra.UserMsg, "SetDefaultBranch failed: %v", extra.Error)
-			}
-		}
-		fmt.Fprintf(out, "Processed %d references in total\n", total)
-
-		_ = dWriter.Close()
-		hookPrintResults(results)
-		return nil
-	}
-
-	hookOptions.OldCommitIDs = oldCommitIDs[:count]
-	hookOptions.NewCommitIDs = newCommitIDs[:count]
-	hookOptions.RefFullNames = refFullNames[:count]
-
-	fmt.Fprintf(out, " Processing %d references\n", count)
-
-	resp, extra := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
-	if resp == nil {
-		_ = dWriter.Close()
-		hookPrintResults(results)
-		return fail(ctx, extra.UserMsg, "HookPostReceive failed: %v", extra.Error)
-	}
-	wasEmpty = wasEmpty || resp.RepoWasEmpty
-	results = append(results, resp.Results...)
-
-	fmt.Fprintf(out, "Processed %d references in total\n", total)
-
-	if wasEmpty && masterPushed {
-		// We need to tell the repo to reset the default branch to master
-		extra := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
-		if extra.HasError() {
-			return fail(ctx, extra.UserMsg, "SetDefaultBranch failed: %v", extra.Error)
-		}
-	}
-	_ = dWriter.Close()
-	hookPrintResults(results)
-
-	return nil
+	return processBatch()
 }
 
 func hookPrintResults(results []private.HookPostReceiveBranchResult) {

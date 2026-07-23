@@ -19,6 +19,9 @@ function initDevtestPage() {
         levelMap[level](message);
       });
     }
+    document.querySelector('.toast-test-button-pre')!.addEventListener('click', () => {
+      showErrorToast(html`<div>message <pre>pre ${'a'.repeat(200)}</pre><details><summary>summary</summary>details</details></div>`, {useHtmlBody: true});
+    });
   }
 
   const modalButtons = document.querySelector('.modal-buttons');

@@ -39,6 +39,7 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 		&user_model.Blocking{BlockerID: org.ID},
 		&actions_model.ActionRunner{OwnerID: org.ID},
 		&actions_model.ActionRunnerToken{OwnerID: org.ID},
+		&actions_model.ActionScopedWorkflowSource{OwnerID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %w", err)
 	}
@@ -119,7 +120,12 @@ func updateRepoForVisibilityChanged(ctx context.Context, repo *repo_model.Reposi
 			return err
 		}
 
+		// the repo is no longer publicly visible, so drop stars and watches from users who can no longer
+		// see it, matching the direct repository-private transition (see services/repository)
 		if err := repo_model.ClearRepoStars(ctx, repo.ID); err != nil {
+			return err
+		}
+		if err := repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
 			return err
 		}
 	}

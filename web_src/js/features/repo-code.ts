@@ -31,9 +31,9 @@ function selectRange(range: string): Element | null {
   const updateViewGitBlameFragment = function (anchor: string) {
     if (!viewGitBlame) return;
     let href = viewGitBlame.getAttribute('href')!;
-    href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
+    href = href.replace(/#L\d+$|#L\d+-L\d+$/, '');
     if (anchor.length !== 0) {
-      href = `${href}#${anchor}`;
+      href += `#${anchor}`;
     }
     viewGitBlame.setAttribute('href', href);
   };

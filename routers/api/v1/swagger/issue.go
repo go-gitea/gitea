@@ -98,13 +98,6 @@ type swaggerIssueTemplates struct {
 	Body []api.IssueTemplate `json:"body"`
 }
 
-// StopWatch
-// swagger:response StopWatch
-type swaggerResponseStopWatch struct {
-	// in:body
-	Body api.StopWatch `json:"body"`
-}
-
 // StopWatchList
 // swagger:response StopWatchList
 type swaggerResponseStopWatchList struct {

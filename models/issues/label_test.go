@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -94,10 +95,10 @@ func TestGetLabelInRepoByName(t *testing.T) {
 	assert.Equal(t, "label1", label.Name)
 
 	_, err = issues_model.GetLabelInRepoByName(t.Context(), 1, "")
-	assert.True(t, issues_model.IsErrRepoLabelNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 
 	_, err = issues_model.GetLabelInRepoByName(t.Context(), unittest.NonexistentID, "nonexistent")
-	assert.True(t, issues_model.IsErrRepoLabelNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func TestGetLabelInRepoByNames(t *testing.T) {
@@ -131,10 +132,10 @@ func TestGetLabelInRepoByID(t *testing.T) {
 	assert.EqualValues(t, 1, label.ID)
 
 	_, err = issues_model.GetLabelInRepoByID(t.Context(), 1, -1)
-	assert.True(t, issues_model.IsErrRepoLabelNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 
 	_, err = issues_model.GetLabelInRepoByID(t.Context(), unittest.NonexistentID, unittest.NonexistentID)
-	assert.True(t, issues_model.IsErrRepoLabelNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
 func TestGetLabelsInRepoByIDs(t *testing.T) {

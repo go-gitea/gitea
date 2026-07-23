@@ -486,14 +486,18 @@ jobs:
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user4-fix2")),
 		})(t)
-		doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":do-not-cancel/ccc")(t)
-		// cannot fetch the task because cancel-in-progress is false
+		pr3, _ := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":do-not-cancel/ccc")(t)
+		// cannot fetch the task: approval still required (user4 has no merged PR) and cancel-in-progress is false
 		runner.fetchNoTask(t)
 		runner.execTask(t, pr2Task1, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
 		pr2Run1 = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: pr2Run1.ID})
 		assert.Equal(t, actions_model.StatusSuccess, pr2Run1.Status)
+		// user2 approves the third PR's run (user4 still has no merged PR, approval still required)
+		pr3Run1Pending := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, TriggerUserID: user4.ID, Ref: fmt.Sprintf("refs/pull/%d/head", pr3.Index)})
+		req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/approve", baseRepo.OwnerName, baseRepo.Name, pr3Run1Pending.ID))
+		user2Session.MakeRequest(t, req, http.StatusOK)
 		// fetch the task
 		pr3Task1 := runner.fetchTask(t)
 		_, _, pr3Run1 := getTaskAndJobAndRunByTaskID(t, pr3Task1.Id)

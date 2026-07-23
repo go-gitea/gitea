@@ -79,7 +79,7 @@ async function loginPasskey() {
     }
     const reply = await res.json();
 
-    window.location.href = reply?.redirect ?? `${appSubUrl}/`;
+    window.location.assign(reply?.redirect ?? `${appSubUrl}/`);
   } catch (err) {
     webAuthnError('general', errorMessage(err));
   }
@@ -151,7 +151,7 @@ async function verifyAssertion(assertedCredential: any) { // TODO: Credential ty
   }
   const reply = await res.json();
 
-  window.location.href = reply?.redirect ?? `${appSubUrl}/`;
+  window.location.assign(reply?.redirect ?? `${appSubUrl}/`);
 }
 
 async function webauthnRegistered(newCredential: any) { // TODO: Credential type does not work
@@ -188,7 +188,7 @@ function webAuthnError(errorType: ErrorType, message:string = '') {
   if (errorType === 'general') {
     elErrorMsg.textContent = message || 'unknown error';
   } else {
-    const elTypedError = document.querySelector(`#webauthn-error [data-webauthn-error-msg=${errorType}]`);
+    const elTypedError = document.querySelector(`#webauthn-error [data-webauthn-error-msg=${CSS.escape(errorType)}]`);
     if (elTypedError) {
       elErrorMsg.textContent = `${elTypedError.textContent}${message ? ` ${message}` : ''}`;
     } else {

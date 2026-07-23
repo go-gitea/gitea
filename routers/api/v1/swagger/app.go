@@ -20,3 +20,10 @@ type swaggerResponseAccessToken struct {
 	// in:body
 	Body api.AccessToken `json:"body"`
 }
+
+// CurrentAccessToken represents the currently authenticated access token.
+// swagger:response CurrentAccessToken
+type swaggerResponseCurrentAccessToken struct {
+	// in:body
+	Body api.CurrentAccessToken `json:"body"`
+}

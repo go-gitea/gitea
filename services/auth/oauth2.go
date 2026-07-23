@@ -128,7 +128,7 @@ func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataS
 	}
 	t, err := auth_model.GetAccessTokenBySHA(ctx, tokenSHA)
 	if err != nil {
-		if auth_model.IsErrAccessTokenNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			// check task token
 			if task, err := actions_model.GetRunningTaskByToken(ctx, tokenSHA); err == nil {
 				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)

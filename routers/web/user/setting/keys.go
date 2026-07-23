@@ -247,17 +247,17 @@ func DeleteKey(ctx *context.Context) {
 	switch ctx.FormString("type") {
 	case "gpg":
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
-			ctx.NotFound(errors.New("gpg keys setting is not allowed to be visited"))
+			ctx.JSONError("gpg keys setting is not allowed to be visited")
 			return
 		}
 		if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
-			ctx.Flash.Error("DeleteGPGKey: " + err.Error())
-		} else {
-			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
+			ctx.JSONError("Failed to delete PGP key")
+			return
 		}
+		ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 	case "ssh":
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-			ctx.NotFound(errors.New("ssh keys setting is not allowed to be visited"))
+			ctx.JSONError("ssh keys setting is not allowed to be visited")
 			return
 		}
 
@@ -268,24 +268,23 @@ func DeleteKey(ctx *context.Context) {
 			return
 		}
 		if external {
-			ctx.Flash.Error(ctx.Tr("settings.ssh_externally_managed"))
-			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			ctx.JSONError(ctx.Tr("settings.ssh_externally_managed"))
 			return
 		}
 		if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, keyID); err != nil {
-			ctx.Flash.Error("DeletePublicKey: " + err.Error())
-		} else {
-			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
+			ctx.JSONError("Failed to delete SSH key")
+			return
 		}
+		ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
 	case "principal":
 		if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
-			ctx.Flash.Error("DeletePublicKey: " + err.Error())
-		} else {
-			ctx.Flash.Success(ctx.Tr("settings.ssh_principal_deletion_success"))
+			ctx.JSONError("Failed to delete SSH principal key")
+			return
 		}
+		ctx.Flash.Success(ctx.Tr("settings.ssh_principal_deletion_success"))
 	default:
-		ctx.Flash.Warning("Function not implemented")
-		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+		ctx.JSONError("unsupported key type")
+		return
 	}
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/keys")
 }

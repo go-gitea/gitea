@@ -12,13 +12,6 @@ type swaggerResponseSecretList struct {
 	Body []api.Secret `json:"body"`
 }
 
-// Secret
-// swagger:response Secret
-type swaggerResponseSecret struct {
-	// in:body
-	Body api.Secret `json:"body"`
-}
-
 // ActionVariable
 // swagger:response ActionVariable
 type swaggerResponseActionVariable struct {

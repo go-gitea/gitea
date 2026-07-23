@@ -145,8 +145,15 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 
 	op := api.OrganizationPermissions{}
 
+	// A public-only token must not disclose membership/permission details of a
+	// non-public org, even for the token owner's own private orgs.
+	if ctx.PublicOnly && !o.Visibility.IsPublic() {
+		ctx.APIErrorNotFound()
+		return
+	}
+
 	if !organization.HasOrgOrUserVisible(ctx, o, ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -262,7 +269,7 @@ func Create(ctx *context.APIContext) {
 
 	visibility := api.VisibleTypePublic
 	if form.Visibility != "" {
-		visibility = api.VisibilityModes[string(form.Visibility)]
+		visibility = api.VisibilityModes[form.Visibility]
 	}
 
 	org := &organization.Organization{
@@ -312,7 +319,7 @@ func Get(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if !organization.HasOrgOrUserVisible(ctx, ctx.Org.Organization.AsUser(), ctx.Doer) {
-		ctx.APIErrorNotFound("HasOrgOrUserVisible", nil)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -406,7 +413,7 @@ func Edit(ctx *context.APIContext) {
 		Description:               optional.FromPtr(form.Description),
 		Website:                   optional.FromPtr(form.Website),
 		Location:                  optional.FromPtr(form.Location),
-		Visibility:                optional.FromMapLookup(api.VisibilityModes, string(optional.FromPtr(form.Visibility).Value())),
+		Visibility:                optional.FromMapLookup(api.VisibilityModes, optional.FromPtr(form.Visibility).Value()),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {

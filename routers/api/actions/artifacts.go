@@ -121,6 +121,9 @@ func ArtifactsRoutes(prefix string) *web.Router {
 		m.Get("/{artifact_id}/download", r.downloadArtifact)
 	})
 
+	// Job summary upload endpoint (GITHUB_STEP_SUMMARY).
+	m.Put(jobSummaryRouteBase, uploadJobSummary)
+
 	return m
 }
 

@@ -35,16 +35,15 @@ func Members(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 
 	opts := &organization.FindOrgMembersOpts{
-		Doer:          ctx.Doer,
-		OrgID:         org.ID,
-		Keyword:       keyword,
-		SearchByEmail: true,
+		Doer:    ctx.Doer,
+		OrgID:   org.ID,
+		Keyword: keyword,
 	}
 
 	if ctx.Doer != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx, ctx.Doer.ID)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "IsOrgMember")
+			ctx.ServerError("IsOrgMember", err)
 			return
 		}
 		opts.IsDoerMember = isMember
@@ -53,7 +52,7 @@ func Members(ctx *context.Context) {
 
 	total, err := organization.CountOrgMembers(ctx, opts)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "CountOrgMembers")
+		ctx.ServerError("CountOrgMembers", err)
 		return
 	}
 
@@ -74,8 +73,6 @@ func Members(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
-	ctx.Data["MembersShown"] = len(members)
-	ctx.Data["MembersTotal"] = total
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
 	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(ctx, members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus(ctx)
