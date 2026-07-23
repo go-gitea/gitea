@@ -368,8 +368,8 @@ func parseCommitWithSSHSignature(ctx context.Context, c *git.Commit, committerUs
 	// Now try to associate the signature with the committer, if present
 	if committerUser.ID != 0 {
 		keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
-			OwnerID:    committerUser.ID,
-			NotKeytype: asymkey_model.KeyTypePrincipal,
+			OwnerID:  committerUser.ID,
+			KeyTypes: []asymkey_model.KeyType{asymkey_model.KeyTypeUser},
 		})
 		if err != nil { // Skipping failed to get ssh keys of user
 			log.Error("ListPublicKeys: %v", err)

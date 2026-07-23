@@ -1,0 +1,39 @@
+{{if .Codespaces}}
+	<div class="ui attached table segment">
+		<table class="ui very basic table">
+			<thead>
+				<tr>
+					<th>Repository</th>
+					<th>Ref</th>
+					<th>Status</th>
+					<th>Updated</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .Codespaces}}
+					<tr>
+						<td>
+							{{if .RepoLink}}
+								<a href="{{.RepoLink}}">{{.RepoFullName}}</a>
+							{{else}}
+								<span>Repository unavailable</span>
+							{{end}}
+						</td>
+						<td><span>{{.RefType}}</span>: <span class="tw-break-anywhere">{{.RefName}}</span></td>
+						<td>
+							<a href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">{{.DisplayStatus}}</a>
+							<div class="tw-text-text-light-2">{{.StatusSummary}}</div>
+						</td>
+						<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
+						<td class="right aligned">
+							<a class="ui tiny button" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">View</a>
+						</td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+{{else}}
+	<div class="ui placeholder segment">No Codespaces.</div>
+{{end}}

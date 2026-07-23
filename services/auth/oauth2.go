@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/actions"
+	codespace_service "gitea.dev/services/codespace"
 	"gitea.dev/services/oauth2_provider"
 )
 
@@ -85,11 +86,15 @@ func parseToken(req *http.Request) (string, bool) {
 	if !setting.DisableQueryAuthToken {
 		// Check token.
 		if token := req.Form.Get("token"); token != "" {
-			return token, true
+			if !codespace_service.IsGiteaTokenCandidate(token) {
+				return token, true
+			}
 		}
 		// Check access token.
 		if token := req.Form.Get("access_token"); token != "" {
-			return token, true
+			if !codespace_service.IsGiteaTokenCandidate(token) {
+				return token, true
+			}
 		}
 	} else if req.Form.Get("token") != "" || req.Form.Get("access_token") != "" {
 		log.Warn("API token sent in query string but DISABLE_QUERY_AUTH_TOKEN=true")
@@ -109,6 +114,19 @@ func parseToken(req *http.Request) (string, bool) {
 // It will set 'IsApiToken' to true if the token is an API token and
 // set 'ApiTokenScope' to the scope of the access token (TODO: this behavior should be fixed, don't set ctx.Data)
 func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataStore) (*user_model.User, error) {
+	if codespace_service.IsGiteaTokenPlaintext(tokenSHA) && !codespaceTokenAuthAllowed(ctx) {
+		return nil, errors.Join(ErrAuthMethodTerminal, ErrCodespaceTokenForbidden)
+	}
+	codespaceToken, err := codespace_service.ResolveGiteaToken(ctx, tokenSHA)
+	if err != nil {
+		if authErr := codespaceTokenAuthError(err); authErr != nil {
+			return nil, authErr
+		}
+	} else {
+		storeCodespaceTokenAuth(store, codespaceToken)
+		return codespaceToken.User, nil
+	}
+
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
 		// First attempt to decode an actions JWT, returning the actions user

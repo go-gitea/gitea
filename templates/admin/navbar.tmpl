@@ -87,6 +87,19 @@
 			</div>
 		</details>
 		{{end}}
+		{{if .EnableCodespaces}}
+		<details class="item" {{if or .PageIsAdminCodespaces .PageIsAdminCodespaceManagers}}open{{end}}>
+			<summary>Codespaces</summary>
+			<div class="menu">
+				<a class="{{if .PageIsAdminCodespaces}}active {{end}}item" href="{{AppSubUrl}}/-/admin/codespaces">
+					Codespaces
+				</a>
+				<a class="{{if .PageIsAdminCodespaceManagers}}active {{end}}item" href="{{AppSubUrl}}/-/admin/codespaces/managers">
+					Codespace Managers
+				</a>
+			</div>
+		</details>
+		{{end}}
 		<details class="item" {{if or .PageIsAdminConfig}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "admin.config"}}</summary>
 			<div class="menu">

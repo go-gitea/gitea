@@ -9,10 +9,13 @@ import (
 	"testing"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	codespace_model "gitea.dev/models/codespace"
+	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/modules/private"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIPrivateNoServ(t *testing.T) {
@@ -34,6 +37,13 @@ func TestAPIPrivateNoServ(t *testing.T) {
 		assert.Empty(t, user)
 		assert.Equal(t, deployKey.KeyID, key.ID)
 		assert.Equal(t, "test-deploy", key.Name)
+
+		codespaceKey := insertIntegrationCodespaceKey(ctx, t, 2, 1)
+		key, user, err = private.ServNoCommand(ctx, codespaceKey.ID)
+		assert.NoError(t, err)
+		assert.Empty(t, user)
+		assert.Equal(t, codespaceKey.ID, key.ID)
+		assert.Equal(t, codespaceKey.Name, key.Name)
 	})
 }
 
@@ -149,5 +159,62 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.Equal(t, "user15", results.OwnerName)
 		assert.Equal(t, "big_test_private_2", results.RepoName)
 		assert.Equal(t, int64(20), results.RepoID)
+
+		codespaceKey := insertIntegrationCodespaceKey(ctx, t, 2, 1)
+		results, extra = private.ServCommand(ctx, codespaceKey.ID, "user2", "repo1", perm.AccessModeRead, "git-upload-pack", "")
+		assert.NoError(t, extra.Error)
+		assert.False(t, results.IsWiki)
+		assert.Zero(t, results.DeployKeyID)
+		assert.Equal(t, codespaceKey.ID, results.KeyID)
+		assert.Equal(t, codespaceKey.Name, results.KeyName)
+		assert.Equal(t, "user2", results.UserName)
+		assert.Equal(t, int64(2), results.UserID)
+		assert.Equal(t, "user2", results.OwnerName)
+		assert.Equal(t, "repo1", results.RepoName)
+		assert.Equal(t, int64(1), results.RepoID)
+
+		results, extra = private.ServCommand(ctx, codespaceKey.ID, "user15", "big_test_private_1", perm.AccessModeRead, "git-upload-pack", "")
+		assert.Error(t, extra.Error)
+		assert.Empty(t, results)
 	})
+}
+
+func insertIntegrationCodespaceKey(ctx context.Context, t *testing.T, userID, repoID int64) *asymkey_model.PublicKey {
+	t.Helper()
+
+	const publicKeyContent = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH6Y4idVaW3E+bLw1uqoAfJD7o5Siu+HqS51E9oQLPE9"
+	fingerprint, err := asymkey_model.CalcFingerprint(publicKeyContent)
+	require.NoError(t, err)
+
+	codespaceUUID := codespace_model.NewUUID()
+	key := &asymkey_model.PublicKey{
+		OwnerID:     userID,
+		Name:        "codespace-" + codespaceUUID,
+		Fingerprint: fingerprint,
+		Content:     publicKeyContent,
+		Mode:        perm.AccessModeWrite,
+		Type:        asymkey_model.KeyTypeCodespace,
+		Verified:    false,
+	}
+	require.NoError(t, db.Insert(ctx, key))
+	require.NoError(t, db.Insert(ctx, &codespace_model.Codespace{
+		UUID:        codespaceUUID,
+		UserID:      userID,
+		RepoID:      repoID,
+		RefType:     "branch",
+		RefName:     "main",
+		RepoTag:     "default",
+		GitProtocol: codespace_model.GitProtocolHTTP,
+		CommitSHA:   "0123456789abcdef0123456789abcdef01234567",
+		Status:      codespace_model.StatusRunning,
+		CreatedUnix: 1,
+		UpdatedUnix: 1,
+		LogFilename: codespaceUUID + ".log",
+	}))
+	require.NoError(t, db.Insert(ctx, &codespace_model.SSHKey{
+		CodespaceUUID: codespaceUUID,
+		KeyID:         key.ID,
+		CreatedUnix:   1,
+	}))
+	return key
 }

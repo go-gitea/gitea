@@ -1,0 +1,9 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content">
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h2 class="ui header">Codespaces</h2>
+		{{template "codespace/list_rows" .}}
+	</div>
+</div>
+{{template "base/footer" .}}

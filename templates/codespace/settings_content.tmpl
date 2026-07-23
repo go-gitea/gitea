@@ -1,0 +1,86 @@
+<h4 class="ui top attached header">
+	Codespace Managers ({{ctx.Locale.Tr "admin.total" .ManagerTotal}})
+	<div class="ui right">
+		<div class="ui top right pointing dropdown jump">
+			<button class="ui primary tiny button">
+				New
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</button>
+			<div class="menu">
+				<div class="header">Registration Token</div>
+				<div class="ui action input">
+					<input type="text" value="{{.ManagerSettings.RegistrationToken}}" readonly>
+					<button class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.ManagerSettings.RegistrationToken}}">
+						{{svg "octicon-copy" 14}}
+					</button>
+				</div>
+				<div class="divider"></div>
+				<div class="item">
+					<a class="link-action" data-url="{{$.ActionBase}}/reset_registration_token" data-modal-confirm="Reset registration token?">
+						Reset registration token
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</h4>
+{{if .ManagerSettings.Managers}}
+	<div class="ui attached table segment">
+		<table class="ui very basic table">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Name</th>
+					{{if .IsSiteManagerSettings}}<th>Owner</th>{{end}}
+					<th>Version</th>
+					<th>State</th>
+					<th>Tags</th>
+					<th>Gateway</th>
+					<th>SSH</th>
+					<th>SSH Host Key</th>
+					<th>Codespaces</th>
+					<th>Last Online</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .ManagerSettings.Managers}}
+					<tr>
+						<td>{{.ID}}</td>
+						<td>{{.Name}}</td>
+						{{if $.IsSiteManagerSettings}}<td>{{.OwnerDisplayName}}</td>{{end}}
+						<td>{{if .Version}}{{.Version}}{{else}}-{{end}}</td>
+						<td>{{.RuntimeDisplayState}}</td>
+						<td>
+							{{range .Tags}}<span class="ui tiny label">{{.}}</span>{{end}}
+						</td>
+						<td>{{if .GatewayURL}}{{.GatewayURL}}{{else}}-{{end}}</td>
+						<td>{{if .GatewaySSHAddr}}{{.GatewaySSHAddr}}{{else}}-{{end}}</td>
+						<td>
+							{{if .GatewaySSHHostKeyFingerprintSHA256}}
+								{{if .GatewaySSHHostKeyAlgorithm}}{{.GatewaySSHHostKeyAlgorithm}} {{end}}{{.GatewaySSHHostKeyFingerprintSHA256}}
+								{{if .GatewaySSHHostKeyUpdatedUnix}}<br><span class="text small">{{DateUtils.AbsoluteShort .GatewaySSHHostKeyUpdatedUnix}}</span>{{end}}
+							{{else}}
+								-
+							{{end}}
+						</td>
+						<td>{{.BoundCodespaces}}</td>
+						<td>{{if .LastOnlineUnix}}{{DateUtils.AbsoluteShort .LastOnlineUnix}}{{else}}Never{{end}}</td>
+						<td class="right aligned">
+							{{if .CanDelete}}
+								<form class="tw-inline-flex tw-items-center tw-gap-2" method="post" action="{{$.ActionBase}}">
+									<input type="hidden" name="action" value="delete_manager">
+									<input type="hidden" name="manager_id" value="{{.ID}}">
+									<label><input type="checkbox" name="confirm" value="delete-manager"> Confirm</label>
+									<button class="ui tiny red button" type="submit">Delete</button>
+								</form>
+							{{end}}
+						</td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+{{else}}
+	<div class="ui attached placeholder segment">No Codespace Managers.</div>
+{{end}}

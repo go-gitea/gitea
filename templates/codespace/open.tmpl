@@ -1,0 +1,41 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content">
+	<div class="ui container tw-max-w-[720px]">
+		{{template "base/alert" .}}
+		<h3 class="ui top attached header">Open Codespace</h3>
+		<div class="ui attached segment">
+			<div class="tw-font-semibold">{{.OpenEndpoint.Label}}</div>
+			<div class="tw-mt-2 tw-break-anywhere">
+				{{if .OpenEndpoint.Public}}
+					Public Endpoint
+				{{else}}
+					Authenticated Endpoint
+				{{end}}
+			</div>
+			{{if .OpenEndpoint.TargetURL}}
+				<div class="tw-mt-2 tw-break-anywhere">
+					<a href="{{.OpenEndpoint.TargetURL}}" rel="noreferrer">{{.OpenEndpoint.TargetURL}}</a>
+				</div>
+			{{end}}
+			{{if not .OpenEndpoint.Available}}
+				<div class="ui warning message tw-mt-4">
+					Codespace endpoint is not currently available.
+				</div>
+			{{end}}
+		</div>
+		<div class="ui bottom attached segment">
+			{{if .OpenEndpoint.Available}}
+				{{if .OpenEndpoint.Public}}
+					<a class="ui primary button" href="{{.OpenEndpoint.TargetURL}}" rel="noreferrer">Open</a>
+				{{else}}
+					<form method="post" action="{{.OpenAction}}">
+						<button class="ui primary button" type="submit">Open</button>
+					</form>
+				{{end}}
+			{{else}}
+				<a class="ui button" href="{{AppSubUrl}}/-/codespaces/{{.OpenEndpoint.CodespaceUUID}}">Back</a>
+			{{end}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

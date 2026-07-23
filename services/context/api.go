@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -48,10 +49,36 @@ type APIContext struct {
 }
 
 // TokenCanAccessRepo reports whether the current API token is allowed to access the repository.
-// A public-only token cannot reach a private repo or a repo owned by a non-public (limited or
-// private) owner; any other token is unrestricted by this check.
+// Codespace Tokens use their binding for authenticated repo operations, while public read
+// requests still follow Gitea's public visibility rules.
 func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
+	if repoID, ok := ctx.CodespaceTokenRepoID(); ok {
+		return codespaceTokenCanAccessRepo(ctx, repo, repoID, ctx.requiredScopeLevel())
+	}
 	return !ctx.PublicOnly || !publicOnlyTokenDeniedRepo(ctx, repo)
+}
+
+func (ctx *APIContext) requiredScopeLevel() auth_model.AccessTokenScopeLevel {
+	if ctx.Req == nil {
+		return auth_model.Read
+	}
+	switch ctx.Req.Method {
+	case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+		return auth_model.Write
+	default:
+		return auth_model.Read
+	}
+}
+
+// CodespaceTokenRepoID returns the repository bound to the current Codespace Token.
+func (ctx *APIContext) CodespaceTokenRepoID() (int64, bool) {
+	return codespaceTokenRepoIDFromData(ctx.GetData())
+}
+
+// CodespaceTokenRepoBindingMismatch reports whether this request has a Codespace Token for another repo.
+func (ctx *APIContext) CodespaceTokenRepoBindingMismatch(repo *repo_model.Repository) bool {
+	repoID, ok := ctx.CodespaceTokenRepoID()
+	return ok && (repo == nil || repoID == 0 || repo.ID != repoID)
 }
 
 func init() {

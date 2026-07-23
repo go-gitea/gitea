@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
@@ -117,35 +118,51 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, readO
 		accessMode = perm.AccessModeWrite
 	}
 
-	return db.WithTx2(ctx, func(ctx context.Context) (*DeployKey, error) {
-		pkey, exist, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
-		if err != nil {
-			return nil, err
-		} else if exist {
-			if pkey.Type != KeyTypeDeploy {
-				return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
+	var key *DeployKey
+	err = globallock.LockAndDo(ctx, PublicKeyFingerprintLockKey(fingerprint), func(ctx context.Context) error {
+		createdKey, err := db.WithTx2(ctx, func(ctx context.Context) (*DeployKey, error) {
+			pkeys, err := db.Find[PublicKey](ctx, FindPublicKeyOptions{Fingerprint: fingerprint})
+			if err != nil {
+				return nil, err
 			}
-		} else {
-			// First time use this deploy key.
-			pkey = &PublicKey{
-				Fingerprint: fingerprint,
-				Mode:        accessMode,
-				Type:        KeyTypeDeploy,
-				Content:     content,
-				Name:        name,
+			if len(pkeys) > 1 {
+				return nil, fmt.Errorf("public key fingerprint %q has multiple rows", fingerprint)
 			}
-			if err = addKey(ctx, pkey); err != nil {
-				return nil, fmt.Errorf("addKey: %w", err)
-			}
-		}
 
-		key, err := addDeployKey(ctx, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
-		if err != nil {
-			return nil, err
-		}
+			var pkey *PublicKey
+			if len(pkeys) == 1 {
+				pkey = pkeys[0]
+				if pkey.Type != KeyTypeDeploy {
+					return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
+				}
+			} else {
+				// First time use this deploy key.
+				pkey = &PublicKey{
+					Fingerprint: fingerprint,
+					Mode:        accessMode,
+					Type:        KeyTypeDeploy,
+					Content:     content,
+					Name:        name,
+				}
+				if err = addKey(ctx, pkey); err != nil {
+					return nil, fmt.Errorf("addKey: %w", err)
+				}
+			}
 
-		return key, nil
+			key, err := addDeployKey(ctx, pkey.ID, repoID, name, pkey.Fingerprint, accessMode)
+			if err != nil {
+				return nil, err
+			}
+
+			return key, nil
+		})
+		if err != nil {
+			return err
+		}
+		key = createdKey
+		return nil
 	})
+	return key, err
 }
 
 // GetDeployKeyByID returns deploy key by given ID.

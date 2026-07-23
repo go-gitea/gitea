@@ -1,0 +1,51 @@
+{{template "org/settings/layout_head" (dict "pageClass" "organization settings codespaces")}}
+	{{template "codespace/settings_content" .}}
+	<h4 class="ui top attached header tw-mt-4">Codespace Governance</h4>
+	{{if .Codespaces}}
+		<div class="ui attached table segment">
+			<table class="ui very basic table">
+				<thead>
+					<tr>
+						<th>Codespace</th>
+						<th>Creator</th>
+						<th>Manager</th>
+						<th>Status</th>
+						<th>Updated</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Codespaces}}
+						<tr>
+							<td><span class="tw-font-mono">{{.ShortUUID}}</span></td>
+							<td>{{if .UserDisplayName}}{{.UserDisplayName}}{{else}}User {{.UserID}}{{end}}</td>
+							<td>
+								{{if .ManagerDisplayName}}{{.ManagerDisplayName}}{{else}}Waiting for Manager{{end}}
+								<div class="tw-text-text-light-2">{{.ManagerRuntimeState}}</div>
+							</td>
+							<td>
+								<span>{{.DisplayStatus}}</span>
+								<div class="tw-text-text-light-2">{{.StatusSummary}}</div>
+							</td>
+							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
+							<td class="right aligned">
+								{{if .CanStop}}
+									<form class="tw-inline-block" method="post" action="{{$.ActionBase}}/{{.UUID}}/stop">
+										<button class="ui tiny button" type="submit">Stop</button>
+									</form>
+								{{end}}
+								{{if .CanDelete}}
+									<form class="tw-inline-block" method="post" action="{{$.ActionBase}}/{{.UUID}}/delete">
+										<button class="ui tiny button" type="submit">Delete</button>
+									</form>
+								{{end}}
+							</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	{{else}}
+		<div class="ui attached placeholder segment">No Codespaces.</div>
+	{{end}}
+{{template "org/settings/layout_footer" .}}

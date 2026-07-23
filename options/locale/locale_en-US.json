@@ -2977,6 +2977,7 @@
   "admin.dashboard.sync_external_users": "Synchronize external user data",
   "admin.dashboard.cleanup_hook_task_table": "Clean up hook_task table",
   "admin.dashboard.cleanup_packages": "Clean up expired packages",
+  "admin.dashboard.reconcile_codespaces": "Reconcile Codespaces",
   "admin.dashboard.cleanup_actions": "Clean up expired actions' resources",
   "admin.dashboard.server_uptime": "Server Uptime",
   "admin.dashboard.current_goroutine": "Current Goroutines",

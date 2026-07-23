@@ -35,13 +35,14 @@ func IsRepositoryLimitReached(err error) bool {
 	return ok
 }
 
-func getRepoWorkingLockKey(repoID int64) string {
+// WorkingLockKey returns the repository write-side coordination lock key.
+func WorkingLockKey(repoID int64) string {
 	return fmt.Sprintf("repo_working_%d", repoID)
 }
 
 // AcceptTransferOwnership transfers all corresponding setting from old user to new one.
 func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
-	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	releaser, err := globallock.Lock(ctx, WorkingLockKey(repo.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
@@ -403,7 +404,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	// repo so that we can automatically rename the repo path and updates the
 	// local copy's origin accordingly.
 
-	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	releaser, err := globallock.Lock(ctx, WorkingLockKey(repo.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
 		return fmt.Errorf("lock.Lock: %w", err)
@@ -424,7 +425,7 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it make repository into pending transfer state, if doer can not create repo for new owner.
 func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
-	releaser, err := globallock.Lock(ctx, getRepoWorkingLockKey(repo.ID))
+	releaser, err := globallock.Lock(ctx, WorkingLockKey(repo.ID))
 	if err != nil {
 		return fmt.Errorf("lock.Lock: %w", err)
 	}

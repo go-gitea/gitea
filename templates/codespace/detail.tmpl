@@ -1,0 +1,24 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content">
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h2 class="ui header">Codespace</h2>
+		{{template "codespace/state" .}}
+		<h3 class="ui top attached header">Operation Log</h3>
+		<div class="ui attached segment">
+			{{if .LogLines}}
+				<pre class="code-block tw-m-0">{{range .LogLines}}{{.}}{{end}}</pre>
+				{{if not .LogEOF}}
+					<div class="tw-mt-2">More log lines.</div>
+				{{end}}
+			{{else}}
+				<div>No log lines.</div>
+			{{end}}
+		</div>
+		<div class="ui bottom attached segment">
+			<a class="ui button" href="{{AppSubUrl}}/-/codespaces/{{.Codespace.UUID}}/logs">Open JSON</a>
+			<a class="ui button" href="{{AppSubUrl}}/-/codespaces/{{.Codespace.UUID}}/logs/download">Download logs</a>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

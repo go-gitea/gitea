@@ -96,6 +96,27 @@ func TestAPIPullUpdatePublicOnlyToken(t *testing.T) {
 	})
 }
 
+func TestAPIPullUpdateCodespaceTokenAllowsForkHead(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+		pr := createOutdatedPR(t, user, org26)
+		require.NoError(t, pr.LoadBaseRepo(t.Context()))
+		require.NoError(t, pr.LoadHeadRepo(t.Context()))
+		require.NoError(t, pr.LoadIssue(t.Context()))
+		require.NotEqual(t, pr.BaseRepoID, pr.HeadRepoID)
+
+		token := createRunningCodespaceTokenForRepo(t, pr.BaseRepo)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		assert.Equal(t, 0, diffCount.Behind)
+	})
+}
+
 func updateRepoPullRequestConfig(t *testing.T, repoID int64, update func(*repo_model.PullRequestsConfig)) {
 	t.Helper()
 

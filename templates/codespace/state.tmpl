@@ -1,0 +1,73 @@
+{{$cs := .Codespace}}
+<div id="codespace-live-state" data-state-url="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/state" data-refresh-after-ms="{{$cs.RefreshAfterMillis}}">
+	<h3 class="ui top attached header">
+		{{$cs.DisplayStatus}}
+	</h3>
+	<div class="ui attached segment">
+		<div class="tw-mb-2">{{$cs.StatusSummary}}</div>
+		{{if $cs.RepoLink}}
+			<div>Repository: <a href="{{$cs.RepoLink}}">{{$cs.RepoFullName}}</a></div>
+		{{else}}
+			<div>Repository: unavailable</div>
+		{{end}}
+		<div>Ref: {{$cs.RefType}} <span class="tw-break-anywhere">{{$cs.RefName}}</span></div>
+		<div>Commit: <span class="tw-break-anywhere">{{$cs.CommitSHA}}</span></div>
+		<div>Auto-stop: {{$cs.AutoStopMode}}</div>
+		{{if $cs.Workspace}}
+			<div class="tw-mt-4">
+				<a class="ui primary button" href="{{AppSubUrl}}{{$cs.Workspace.OpenPath}}">Open Workspace</a>
+			</div>
+		{{end}}
+		{{if $cs.Endpoints}}
+			<h4 class="ui header">Endpoints</h4>
+			<div class="ui list">
+				{{range $cs.Endpoints}}
+					<div class="item">
+						<a href="{{AppSubUrl}}{{.OpenPath}}">{{.Label}}</a>
+						{{if .Public}}<span class="ui tiny label">public</span>{{end}}
+					</div>
+				{{end}}
+			</div>
+		{{end}}
+	</div>
+	<div class="ui bottom attached segment">
+		{{if $cs.CanContinue}}
+			<form class="tw-inline-block" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/continue">
+				<button class="ui button" type="submit">Continue</button>
+			</form>
+		{{end}}
+		{{if $cs.CanStop}}
+			<form class="tw-inline-block" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/stop">
+				<button class="ui button" type="submit">Stop</button>
+			</form>
+		{{end}}
+		{{if $cs.CanResume}}
+			<form class="tw-inline-block" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/resume">
+				<button class="ui primary button" type="submit">Resume</button>
+			</form>
+		{{end}}
+		{{if $cs.CanDelete}}
+			<form class="tw-inline-block" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/delete">
+				<button class="ui red button" type="submit">Delete</button>
+			</form>
+		{{end}}
+		{{if $cs.CanConfigureAutoStop}}
+			<form class="ui form tw-mt-4" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/auto-stop">
+				<div class="inline fields">
+					<label>Auto-stop</label>
+					<div class="field">
+						<select name="mode">
+							<option value="default" {{if eq $cs.AutoStopMode "default"}}selected{{end}}>default</option>
+							<option value="custom" {{if eq $cs.AutoStopMode "custom"}}selected{{end}}>custom</option>
+							<option value="never" {{if eq $cs.AutoStopMode "never"}}selected{{end}}>never</option>
+						</select>
+					</div>
+					<div class="field">
+						<input name="timeout_seconds" value="{{$cs.AutoStopTimeoutSeconds}}" inputmode="numeric">
+					</div>
+					<button class="ui button" type="submit">Save</button>
+				</div>
+			</form>
+		{{end}}
+	</div>
+</div>

@@ -26,6 +26,13 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 			Note:   "public",
 		}
 	}
+	if key.Type == asymkey_model.KeyTypeCodespace {
+		return asymkey_model.ErrKeyAccessDenied{
+			UserID: doer.ID,
+			KeyID:  key.ID,
+			Note:   "codespace",
+		}
+	}
 
 	if _, err = db.DeleteByID[asymkey_model.PublicKey](ctx, id); err != nil {
 		return err

@@ -181,6 +181,12 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 		log.Error("Unable to register cron task with name: %s Error: %v", name, err)
 		return err
 	}
+	if validatable, ok := config.(interface{ Validate() error }); ok {
+		if err := validatable.Validate(); err != nil {
+			log.Error("Invalid cron task config for name: %s Error: %v", name, err)
+			return err
+		}
+	}
 
 	task := &Task{
 		Name:   name,

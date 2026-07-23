@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -49,6 +50,9 @@ func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		if err != nil {
 			if retErr == nil {
 				retErr = err
+			}
+			if errors.Is(err, ErrAuthMethodTerminal) {
+				return nil, err
 			}
 			// Try other methods if this one failed.
 			// Some methods may share the same protocol to detect if they are matched.

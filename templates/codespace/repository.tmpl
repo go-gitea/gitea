@@ -1,0 +1,27 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository">
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<h2 class="ui header">Codespaces</h2>
+		<form class="ui form segment" method="post" action="{{.RepoLink}}/codespaces">
+			<div class="two fields">
+				<div class="field">
+					<label for="ref_type">Ref type</label>
+					<select id="ref_type" name="ref_type">
+						<option value="branch" {{if or (eq .RefType "") (eq .RefType "branch")}}selected{{end}}>branch</option>
+						<option value="tag" {{if eq .RefType "tag"}}selected{{end}}>tag</option>
+						<option value="commit" {{if eq .RefType "commit"}}selected{{end}}>commit</option>
+						<option value="pull" {{if eq .RefType "pull"}}selected{{end}}>pull</option>
+					</select>
+				</div>
+				<div class="field">
+					<label for="ref_name">Ref name</label>
+					<input id="ref_name" name="ref_name" value="{{.RefName}}">
+				</div>
+			</div>
+			<button class="ui primary button" type="submit">Create Codespace</button>
+		</form>
+		{{template "codespace/list_rows" .}}
+	</div>
+</div>
+{{template "base/footer" .}}
