@@ -89,7 +89,7 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	//	so just keep error logs of those operations.
 	path := user_model.UserPath(org.Name)
 
-	if err := util.RemoveAll(path); err != nil {
+	if err := util.RemoveAllWithRetry(path); err != nil {
 		return fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 	}
 

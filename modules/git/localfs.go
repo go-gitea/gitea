@@ -23,7 +23,7 @@ func IsRepositoryExist(ctx context.Context, repo RepositoryFacade) (bool, error)
 // DeleteRepository deletes the repository directory from the disk, it will return
 // nil if the repository does not exist.
 func DeleteRepository(ctx context.Context, repo RepositoryFacade) error {
-	return util.RemoveAll(gitrepo.RepoLocalPath(repo))
+	return util.RemoveAllWithRetry(gitrepo.RepoLocalPath(repo))
 }
 
 // RenameRepository renames a repository's name on disk
@@ -33,7 +33,7 @@ func RenameRepository(ctx context.Context, repo, newRepo RepositoryFacade) error
 		return fmt.Errorf("Failed to create dir %s: %w", filepath.Dir(dstDir), err)
 	}
 
-	if err := util.Rename(gitrepo.RepoLocalPath(repo), dstDir); err != nil {
+	if err := util.RenameWithRetry(gitrepo.RepoLocalPath(repo), dstDir); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	return nil
@@ -59,7 +59,7 @@ func IsRepoDirExist(ctx context.Context, repo RepositoryFacade, relativeDirPath 
 
 func RemoveRepoFileOrDir(ctx context.Context, repo RepositoryFacade, relativeFileOrDirPath string) error {
 	absoluteFilePath := filepath.Join(gitrepo.RepoLocalPath(repo), relativeFileOrDirPath)
-	return util.Remove(absoluteFilePath)
+	return util.RemoveWithRetry(absoluteFilePath)
 }
 
 func CreateRepoFile(ctx context.Context, repo RepositoryFacade, relativeFilePath string) (io.WriteCloser, error) {
