@@ -146,18 +146,6 @@ export function initRepoCloneButtons() {
   registerGlobalInitFunc('initRepoCloneButtonsCombo', initRepoCloneButtonsCombo);
 }
 
-export async function updateIssuesMeta(url: string, action: string, issue_ids: string, id: string) {
-  const response = await POST(url, {data: new URLSearchParams({action, issue_ids, id})});
-  if (!response.ok) {
-    let message = 'Failed to update issues meta';
-    try {
-      const json = await response.json();
-      if (json.error) message = json.error;
-    } catch {}
-    throw new Error(message);
-  }
-}
-
 export function sanitizeRepoName(name: string): string {
   name = name.trim().replace(/[^-.\w]/g, '-');
   for (let lastName = ''; lastName !== name;) {
