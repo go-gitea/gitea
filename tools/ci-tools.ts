@@ -153,7 +153,6 @@ async function setPrLabels(): Promise<void> {
     return false;
   });
 
-  // PR_TITLE_BEFORE is only set on the "edited" event.
   const stale = new Set([...removableLabels, ...labelsForPrTitle(env.PR_TITLE_BEFORE ?? '')]);
   const toAdd = desired.filter((name) => !current.includes(name));
   const toRemove = current.filter((name) => stale.has(name) && !desired.includes(name));
