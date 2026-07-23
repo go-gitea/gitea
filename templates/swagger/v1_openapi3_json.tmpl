@@ -1452,10 +1452,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "items": {
-                "$ref": "#/components/schemas/TopicResponse"
-              },
-              "type": "array"
+              "$ref": "#/components/schemas/TopicListResponse"
             }
           }
         },
@@ -1534,10 +1531,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "items": {
-                "$ref": "#/components/schemas/UserSettings"
-              },
-              "type": "array"
+              "$ref": "#/components/schemas/UserSettings"
             }
           }
         },
@@ -10105,6 +10099,20 @@
           },
           "user": {
             "$ref": "#/components/schemas/User"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "TopicListResponse": {
+        "description": "TopicListResponse returns a list of TopicResponse",
+        "properties": {
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicResponse"
+            },
+            "type": "array",
+            "x-go-name": "Topics"
           }
         },
         "type": "object",
