@@ -196,6 +196,13 @@ func TestActionsRunnerModify(t *testing.T) {
 			doBulk(t, sessionAdmin, "evict", allIDs, http.StatusBadRequest)
 		})
 
+		t.Run("EmptyIDs", func(t *testing.T) {
+			doBulk(t, sessionAdmin, "delete", nil, http.StatusBadRequest)
+			for _, id := range allIDs {
+				unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunner{ID: id})
+			}
+		})
+
 		t.Run("DisableEnable", func(t *testing.T) {
 			doBulk(t, sessionAdmin, "disable", allIDs, http.StatusOK)
 			for _, id := range allIDs {

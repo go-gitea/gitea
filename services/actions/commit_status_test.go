@@ -15,7 +15,6 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -48,11 +47,11 @@ func TestCreateCommitStatus_Dedupe(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := git.OpenRepository(repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	commit, err := gitRepo.GetBranchCommit(t.Context(), repo.DefaultBranch)
 	require.NoError(t, err)
 
 	run := &actions_model.ActionRun{

@@ -14,8 +14,8 @@ import (
 	"gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
@@ -50,28 +50,28 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", util.ErrPermissionDenied
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, dbRepo)
+	gitRepo, err := git.OpenRepository(dbRepo)
 	if err != nil {
 		return "", err
 	}
 	defer gitRepo.Close()
 
-	commit, err := gitRepo.GetCommit(opts.CommitID)
+	commit, err := gitRepo.GetCommit(ctx, opts.CommitID)
 	if err != nil {
 		return "", err
 	}
 
 	language, _ := languagestats.GetFileLanguage(ctx, gitRepo, opts.CommitID, opts.FilePath)
-	blob, err := commit.GetBlobByPath(opts.FilePath)
+	blob, err := commit.GetBlobByPath(ctx, gitRepo, opts.FilePath)
 	if err != nil {
 		return "", err
 	}
 
-	if blob.Size() > setting.UI.MaxDisplayFileSize {
+	if blob.Size(ctx) > setting.UI.MaxDisplayFileSize {
 		return "", errors.New("file is too large")
 	}
 
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx)
 	if err != nil {
 		return "", err
 	}

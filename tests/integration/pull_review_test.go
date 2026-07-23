@@ -18,7 +18,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/test"
 	issue_service "gitea.dev/services/issue"
 	repo_service "gitea.dev/services/repository"
@@ -100,10 +99,10 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			// capture the current PR head ref so we can wait for the async
 			// refs/pull/N/head sync triggered by the next push to complete
-			baseGitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+			baseGitRepo, err := git.OpenRepository(repo)
 			require.NoError(t, err)
 			defer baseGitRepo.Close()
-			headRefBefore, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+			headRefBefore, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 			require.NoError(t, err)
 
 			// update the file on the pr branch
@@ -123,7 +122,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 			// it before evaluating code owners, otherwise the changed-file set may not
 			// yet include user8-file.md and the review request would be missed
 			require.Eventually(t, func() bool {
-				headRefAfter, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+				headRefAfter, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 				return err == nil && headRefAfter != headRefBefore
 			}, 30*time.Second, 100*time.Millisecond)
 

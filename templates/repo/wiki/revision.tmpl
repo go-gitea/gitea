@@ -15,7 +15,7 @@
 				</div>
 			</div>
 			<div class="flex-text-block">
-				{{template "repo/clone_panel" .}}
+				{{template "repo/clone_panel" dict "CloneButtonOriginLink" $.CloneButtonOriginLink}}
 			</div>
 		</div>
 		<h2 class="ui top header">{{ctx.Locale.Tr "repo.wiki.wiki_page_revisions"}}</h2>
