@@ -103,7 +103,7 @@ func TestReadWritePullHead(t *testing.T) {
 	newCommit := "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"
 	_, _, err = gitcmd.NewCommand("update-ref").
 		AddDynamicArguments(PullPrefix+"1/head", newCommit).
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(t.Context())
 	if err != nil {
 		assert.NoError(t, err)
@@ -123,7 +123,7 @@ func TestReadWritePullHead(t *testing.T) {
 	// Remove file after the test
 	_, _, err = gitcmd.NewCommand("update-ref", "--no-deref", "-d").
 		AddDynamicArguments(PullPrefix + "1/head").
-		WithDir(repo.Path).
+		WithRepo(repo).
 		RunStdString(t.Context())
 	assert.NoError(t, err)
 }

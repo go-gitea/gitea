@@ -14,8 +14,8 @@ import (
 	"gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/indexer/code"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
@@ -50,7 +50,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", util.ErrPermissionDenied
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(dbRepo)
+	gitRepo, err := git.OpenRepository(dbRepo)
 	if err != nil {
 		return "", err
 	}

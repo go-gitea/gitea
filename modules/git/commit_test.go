@@ -14,17 +14,13 @@ import (
 )
 
 func TestGetFullCommitID(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-
-	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "8006ff9a")
+	id, err := GetFullCommitID(t.Context(), mockRepository("repo1_bare"), "8006ff9a")
 	assert.NoError(t, err)
 	assert.Equal(t, "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0", id)
 }
 
 func TestGetFullCommitIDError(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-
-	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "unknown")
+	id, err := GetFullCommitID(t.Context(), mockRepository("repo1_bare"), "unknown")
 	assert.Empty(t, id)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
