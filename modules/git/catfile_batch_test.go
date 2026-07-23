@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -26,10 +26,10 @@ func TestCatFileBatch(t *testing.T) {
 
 func testCatFileBatch(t *testing.T) {
 	repo1Path, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
-	repo1 := gitcmd.RepositoryUnmanaged(repo1Path)
+	repo1 := gitrepo.RepositoryUnmanaged(repo1Path)
 	t.Run("CorruptedGitRepo", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		batch, err := NewBatch(t.Context(), gitcmd.RepositoryUnmanaged(tmpDir))
+		batch, err := NewBatch(t.Context(), gitrepo.RepositoryUnmanaged(tmpDir))
 		// as long as the directory exists, no error, because we can't really know whether the git repo is valid until we run commands
 		require.NoError(t, err)
 		defer batch.Close()

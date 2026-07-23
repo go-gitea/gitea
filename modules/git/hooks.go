@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -109,7 +109,7 @@ done
 
 // CreateDelegateHooks creates all the hooks scripts for the repo
 func CreateDelegateHooks(_ context.Context, repo RepositoryFacade) (err error) {
-	return createDelegateHooks(filepath.Join(gitcmd.RepoLocalPath(repo), "hooks"))
+	return createDelegateHooks(filepath.Join(gitrepo.RepoLocalPath(repo), "hooks"))
 }
 
 func createDelegateHooks(hookDir string) (err error) {
@@ -176,7 +176,7 @@ func ensureExecutable(filename string) error {
 
 // CheckDelegateHooks checks the hooks scripts for the repo
 func CheckDelegateHooks(_ context.Context, repo RepositoryFacade) ([]string, error) {
-	return checkDelegateHooks(filepath.Join(gitcmd.RepoLocalPath(repo), "hooks"))
+	return checkDelegateHooks(filepath.Join(gitrepo.RepoLocalPath(repo), "hooks"))
 }
 
 func checkDelegateHooks(hookDir string) ([]string, error) {

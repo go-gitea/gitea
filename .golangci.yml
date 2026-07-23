@@ -55,10 +55,10 @@ linters:
           files:
             - '**/modelmigration/**/*.go'
           deny:
-            - pkg: gitea.dev/models$ # FIXME: it should deny all sub packages like "gitea.dev/models/repo"
-              desc: migrations must not depend on the models package
+            - pkg: gitea.dev/models
+              desc: "migrations must not depend on the models package. HINT: MIGRATION-STRUCT-FROZEN"
             - pkg: gitea.dev/modules/structs
-              desc: migrations must not depend on modules/structs (API structures change over time)
+              desc: "migrations must not depend on modules/structs. HINT: MIGRATION-STRUCT-FROZEN"
     nolintlint:
       allow-unused: false
       require-explanation: true

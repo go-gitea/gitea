@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 
 	commitgraph "github.com/go-git/go-git/v5/plumbing/format/commitgraph/v2"
@@ -19,7 +19,7 @@ import (
 
 // CommitNodeIndex returns the index for walking commit graph
 func (repo *Repository) CommitNodeIndex() (_ cgobject.CommitNodeIndex, closer func()) {
-	indexPath := filepath.Join(gitcmd.RepoLocalPath(repo), "objects", "info", "commit-graph")
+	indexPath := filepath.Join(gitrepo.RepoLocalPath(repo), "objects", "info", "commit-graph")
 	file, err := os.Open(indexPath)
 	if err == nil {
 		var index commitgraph.Index

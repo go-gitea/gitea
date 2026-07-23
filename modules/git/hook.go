@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/util"
 )
 
@@ -41,7 +41,7 @@ type Hook struct {
 
 // GetHook returns a Git hook by given name and repository.
 func GetHook(repo RepositoryFacade, name string) (*Hook, error) {
-	repoPath := gitcmd.RepoLocalPath(repo)
+	repoPath := gitrepo.RepoLocalPath(repo)
 	if !IsValidHookName(name) {
 		return nil, ErrNotValidHook
 	}
@@ -100,7 +100,7 @@ func (h *Hook) Update() error {
 
 // ListHooks returns a list of Git hooks of given repository.
 func ListHooks(repo RepositoryFacade) (_ []*Hook, err error) {
-	exist, err := util.IsDir(filepath.Join(gitcmd.RepoLocalPath(repo), "hooks"))
+	exist, err := util.IsDir(filepath.Join(gitrepo.RepoLocalPath(repo), "hooks"))
 	if err != nil {
 		return nil, err
 	} else if !exist {
