@@ -28,7 +28,6 @@ func init() {
 	commonMarshalOptions := []jsonv2.Options{
 		jsonv2.FormatNilSliceAsNull(true),
 		jsonv2.FormatNilMapAsNull(true),
-		// v1 marshals maps in a deterministic order, v2 doesn't unless this option is set
 		jsonv2.Deterministic(true),
 	}
 	jsonV2.marshalOptions = jsonv2.JoinOptions(commonMarshalOptions...)
