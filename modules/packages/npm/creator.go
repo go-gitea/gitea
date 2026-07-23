@@ -256,13 +256,38 @@ type packageUpload struct {
 	Attachments map[string]*PackageAttachment `json:"_attachments"`
 }
 
-// ParsePackage parses the content into a npm package
-func ParsePackage(r io.Reader) (*Package, error) {
+// ParseUpload decodes an npm PUT body and returns either a Package to
+// publish or a PackageDeprecation to apply. Exactly one of the returned
+// pointers is non-nil on success. A body without `_attachments` is treated
+// as a deprecate request; a body with attachments is parsed as a publish.
+func ParseUpload(r io.Reader) (*Package, *PackageDeprecation, error) {
 	var upload packageUpload
 	if err := json.NewDecoder(r).Decode(&upload); err != nil {
+		return nil, nil, err
+	}
+	if len(upload.Attachments) == 0 {
+		dep, err := parseUploadDeprecation(&upload)
+		return nil, dep, err
+	}
+	p, err := parseUploadPackage(&upload)
+	return p, nil, err
+}
+
+// ParsePackage parses the content of a npm publish PUT body.
+// A body without `_attachments` is rejected with ErrInvalidAttachment.
+func ParsePackage(r io.Reader) (*Package, error) {
+	p, _, err := ParseUpload(r)
+	if err != nil {
 		return nil, err
 	}
+	if p == nil {
+		return nil, ErrInvalidAttachment
+	}
+	return p, nil
+}
 
+// parseUploadPackage builds a Package from a decoded publish body.
+func parseUploadPackage(upload *packageUpload) (*Package, error) {
 	for _, meta := range upload.Versions {
 		if !validateName(meta.Name) {
 			return nil, ErrInvalidPackageName
@@ -434,52 +459,23 @@ type PackageDeprecation struct {
 	Versions    map[string]string
 }
 
-// IsDeprecateRequest returns true if the body looks like an npm deprecate
-// request: it must not contain package attachments and must include at least
-// one version object with an explicit `deprecated` field. It does not validate
-// the rest of the document.
-func IsDeprecateRequest(body []byte) bool {
-	// Fast path: a deprecate request always carries a literal `"deprecated"`
-	// key on at least one version object; a normal publish does not. The
-	// substring check is O(n) memchr, orders of magnitude cheaper than a
-	// full json.Unmarshal of the (up to ~1 MiB) probe buffer that runs on
-	// every publish.
-	if !bytes.Contains(body, []byte(`"deprecated"`)) {
-		return false
-	}
-
-	var u struct {
-		Attachments map[string]*PackageAttachment `json:"_attachments"`
-		Versions    map[string]map[string]any     `json:"versions"`
-	}
-	if err := json.Unmarshal(body, &u); err != nil {
-		return false
-	}
-
-	if len(u.Attachments) > 0 {
-		return false
-	}
-	for _, meta := range u.Versions {
-		if meta == nil {
-			continue
-		}
-		if _, ok := meta["deprecated"]; ok {
-			return true
-		}
-	}
-
-	return false
-}
-
-// ParsePackageDeprecation parses an npm deprecate request body into a list of
-// per-version deprecation messages. The npm CLI sends the full package
-// document with the `deprecated` string field set (or cleared) on each
-// affected version.
+// ParsePackageDeprecation parses an npm deprecate PUT body. The npm CLI sends
+// the full package document (no `_attachments`) with the `deprecated` string
+// field set or cleared on each affected version.
 func ParsePackageDeprecation(r io.Reader) (*PackageDeprecation, error) {
-	var upload packageUpload
-	if err := json.NewDecoder(r).Decode(&upload); err != nil {
+	_, dep, err := ParseUpload(r)
+	if err != nil {
 		return nil, err
 	}
+	if dep == nil {
+		return nil, ErrInvalidPackage
+	}
+	return dep, nil
+}
+
+// parseUploadDeprecation builds a PackageDeprecation from a decoded body that
+// carries no `_attachments`.
+func parseUploadDeprecation(upload *packageUpload) (*PackageDeprecation, error) {
 	if !validateName(upload.Name) {
 		return nil, ErrInvalidPackageName
 	}

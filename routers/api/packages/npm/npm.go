@@ -33,15 +33,6 @@ import (
 // errInvalidTagName indicates an invalid tag name
 var errInvalidTagName = errors.New("The tag name is invalid")
 
-// maxNpmDeprecateProbeBytes bounds the prefix of an npm publish PUT body
-// that UploadPackage buffers in order to distinguish a `npm deprecate`
-// request (no `_attachments`, a small versions map) from a regular publish
-// (carries a base64-encoded tarball, can be many MiB). Real deprecate
-// payloads are well under this limit; anything larger is treated as a
-// publish and streamed through to ParsePackage so peak memory stays bounded
-// regardless of LimitSizeNpm.
-const maxNpmDeprecateProbeBytes = int64(1 << 20) // 1 MiB
-
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
 	ctx.JSON(status, map[string]string{
@@ -164,32 +155,20 @@ func DownloadPackageFileByName(ctx *context.Context) {
 
 // UploadPackage creates a new package
 func UploadPackage(ctx *context.Context) {
-	// Buffer only enough of the body to distinguish a deprecate request
-	// (small JSON, no _attachments) from a publish (large, base64 tarball).
-	// Anything bigger than the probe limit cannot be a deprecate payload, so
-	// we splice the buffered prefix back onto the live request body via
-	// io.MultiReader and let ParsePackage stream it as before.
-	probe := &io.LimitedReader{R: ctx.Req.Body, N: maxNpmDeprecateProbeBytes + 1}
-	head, err := io.ReadAll(probe)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	if int64(len(head)) <= maxNpmDeprecateProbeBytes && npm_module.IsDeprecateRequest(head) {
-		deprecatePackage(ctx, head)
-		return
-	}
-
-	body := io.MultiReader(bytes.NewReader(head), ctx.Req.Body)
-
-	npmPackage, err := npm_module.ParsePackage(body)
+	npmPackage, deprecation, err := npm_module.ParseUpload(ctx.Req.Body)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
+		return
+	}
+
+	// A body without `_attachments` is an `npm deprecate` PUT reusing the
+	// publish endpoint.
+	if deprecation != nil {
+		deprecatePackage(ctx, deprecation)
 		return
 	}
 
@@ -284,17 +263,7 @@ func DeletePreview(ctx *context.Context) {
 // deprecatePackage handles an `npm deprecate` request, which is a PUT to the
 // package URL with no attachments and a `deprecated` string set on each
 // affected version (empty string means undeprecate).
-func deprecatePackage(ctx *context.Context, body []byte) {
-	dep, err := npm_module.ParsePackageDeprecation(bytes.NewReader(body))
-	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			apiError(ctx, http.StatusBadRequest, err)
-		} else {
-			apiError(ctx, http.StatusInternalServerError, err)
-		}
-		return
-	}
-
+func deprecatePackage(ctx *context.Context, dep *npm_module.PackageDeprecation) {
 	if len(dep.Versions) == 0 {
 		apiError(ctx, http.StatusBadRequest, "npm deprecate request contains no versions")
 		return
@@ -302,7 +271,7 @@ func deprecatePackage(ctx *context.Context, body []byte) {
 
 	// Run the per-version updates in a single transaction so a partial
 	// failure does not leave some versions deprecated and others untouched.
-	err = db.WithTx(ctx, func(txCtx std_ctx.Context) error {
+	err := db.WithTx(ctx, func(txCtx std_ctx.Context) error {
 		for version, message := range dep.Versions {
 			pv, err := packages_model.GetVersionByNameAndVersion(txCtx, ctx.Package.Owner.ID, packages_model.TypeNpm, dep.PackageName, version)
 			if err != nil {
