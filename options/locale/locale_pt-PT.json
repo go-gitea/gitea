@@ -1383,7 +1383,7 @@
   "repo.projects.column.new": "Nova coluna",
   "repo.projects.column.set_default": "Tornar predefinida",
   "repo.projects.column.set_default_desc": "Definir esta coluna como a predefinida para questões e pedidos de integração não categorizados",
-  "repo.projects.column.default_column_hint": "Novas questões adicionadas a este planeamento serão adicionadas a esta coluna",
+  "repo.projects.column.default_column_hint": "Novas questões adicionadas a este planeamento serão adicionadas nesta coluna",
   "repo.projects.column.delete": "Eliminar coluna",
   "repo.projects.column.deletion_desc": "Eliminar uma coluna de um planeamento faz com que todas as questões que nela constam sejam movidas para a coluna predefinida. Continuar?",
   "repo.projects.column.color": "Colorido",
