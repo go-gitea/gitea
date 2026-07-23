@@ -120,7 +120,7 @@ func FromAlias(alias string) *Emoji {
 	return &GemojiData[i]
 }
 
-// ReplaceCodes replaces all emoji codes with the first corresponding emoji alias (in the form of ":alias:"
+// ReplaceCodes replaces all emoji codes with the first corresponding emoji alias in the form of ":alias:"
 // e.g.: "\u2618" will be converted to ":shamrock:".
 func ReplaceCodes(s string) string {
 	return globalVars().codeReplacer.Replace(s)

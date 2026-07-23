@@ -90,6 +90,13 @@ func TestFindEmojiSubmatchIndex(t *testing.T) {
 			[]int{1, 1 + len("\U0001f44d")},
 		},
 		{
+			// This package can handle keycap emoji if it is registered in the emoji data.
+			// However, many other places (e.g.: markup rendering) also might not handle such cases correctly.
+			// For example: how is "**{U+FE0F}{U+20E3}**" rendered in Markdown/Markup?
+			"a 8\U0000fe0f\U000020e3 b", // keycap emoji "8\ufe0f\u20e3" in emoji data
+			[]int{2, 2 + len("8\U0000fe0f\U000020e3")},
+		},
+		{
 			testInputWithEmojis,
 			[]int{50, 54},
 		},
