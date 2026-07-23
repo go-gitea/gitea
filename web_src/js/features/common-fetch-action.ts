@@ -121,6 +121,7 @@ function buildFetchActionUrl(el: HTMLElement, opt: FetchActionOpts) {
   return url;
 }
 
+// Use "fetch" to send a request and handle the error cases, return the success response and let caller handle
 export async function performFetchActionRequest(el: HTMLElement, opt: FetchActionOpts): Promise<Response | null> {
   const attrIsLoading = 'data-fetch-is-loading';
   if (el.getAttribute(attrIsLoading)) return null;
@@ -133,9 +134,7 @@ export async function performFetchActionRequest(el: HTMLElement, opt: FetchActio
     const headers = new Headers(opt.headers);
     headers.set('X-Gitea-Fetch-Action', '1');
     const resp = await request(url, {method: opt.method, data: opt.data, headers});
-    if (resp.ok) {
-      return resp;
-    }
+    if (resp.ok) return resp;
     await handleFetchActionError(resp);
   } catch (err) {
     if (errorName(err) !== 'AbortError') {
@@ -149,6 +148,7 @@ export async function performFetchActionRequest(el: HTMLElement, opt: FetchActio
   return null;
 }
 
+// Use "fetch" to send a request and fully handle its response
 export async function performFetchAction(el: HTMLElement, opt: FetchActionOpts) {
   if (!await confirmFetchAction(opt.formSubmitter ?? el)) return;
   const resp = await performFetchActionRequest(el, opt);
