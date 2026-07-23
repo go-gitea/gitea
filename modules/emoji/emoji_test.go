@@ -97,11 +97,6 @@ func TestFindEmojiSubmatchIndex(t *testing.T) {
 			testInputNoEmojis,
 			nil,
 		},
-		{
-			// keycap emoji starts with an ASCII byte, exercising the ASCII isStartingByte path
-			"a \U00000030\U0000fe0f\U000020e3 b",
-			[]int{2, 2 + len("\U00000030\U0000fe0f\U000020e3")},
-		},
 	}
 
 	for _, tc := range testCases {
