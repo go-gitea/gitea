@@ -24,7 +24,6 @@ type Metadata struct {
 	Bin                     map[string]string `json:"bin,omitempty"`
 	Readme                  string            `json:"readme,omitempty"`
 	Repository              Repository        `json:"repository"`
-	Scripts                 map[string]string `json:"scripts,omitempty"`
 	HasInstallScript        bool              `json:"has_install_script,omitempty"`
 	HasShrinkwrap           bool              `json:"has_shrinkwrap,omitempty"`
 	Engines                 map[string]string `json:"engines,omitempty"`

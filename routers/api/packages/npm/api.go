@@ -71,7 +71,6 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		OptionalDependencies: metadata.OptionalDependencies,
 		Readme:               metadata.Readme,
 		Bin:                  metadata.Bin,
-		Scripts:              metadata.Scripts,
 		HasInstallScript:     metadata.HasInstallScript,
 		HasShrinkwrap:        metadata.HasShrinkwrap,
 		Engines:              metadata.Engines,

@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
@@ -111,7 +110,6 @@ type PackageMetadataVersion struct {
 	Readme               string              `json:"readme,omitempty"`
 	Dist                 PackageDistribution `json:"dist"`
 	Maintainers          []User              `json:"maintainers,omitempty"`
-	Scripts              map[string]string   `json:"scripts,omitempty"`
 	HasInstallScript     bool                `json:"hasInstallScript,omitempty"`
 	HasShrinkwrap        bool                `json:"_hasShrinkwrap,omitempty"`
 	Engines              map[string]string   `json:"engines,omitempty"`
@@ -319,16 +317,6 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 			meta.Bin = Bin{name: cmd}
 		}
 
-		hasInstallScript := meta.HasInstallScript
-		if !hasInstallScript {
-			for _, scriptName := range []string{"preinstall", "install", "postinstall"} {
-				if script, ok := meta.Scripts[scriptName]; ok && strings.TrimSpace(script) != "" {
-					hasInstallScript = true
-					break
-				}
-			}
-		}
-
 		p := &Package{
 			Name:     meta.Name,
 			Version:  v.String(),
@@ -350,8 +338,6 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,
 				Repository:              meta.Repository,
-				Scripts:                 meta.Scripts,
-				HasInstallScript:        hasInstallScript,
 				Engines:                 meta.Engines,
 				CPU:                     meta.CPU,
 				OS:                      meta.OS,
@@ -405,9 +391,9 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 			return nil, ErrInvalidIntegrity
 		}
 
-		// Detect npm-shrinkwrap.json inside the tarball; this is authoritative
-		// for _hasShrinkwrap and overrides whatever the client claimed.
-		p.Metadata.HasShrinkwrap = tarballHasShrinkwrap(data)
+		// Derive _hasShrinkwrap and hasInstallScript from the tarball rather
+		// than the packument; a client can lie in either direction otherwise.
+		p.Metadata.HasShrinkwrap, p.Metadata.HasInstallScript = inspectTarball(data)
 
 		return p, nil
 	}
@@ -415,34 +401,68 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 	return nil, ErrInvalidPackage
 }
 
-// tarballHasShrinkwrap reports whether the npm tarball contains an
-// npm-shrinkwrap.json file at the package root (one directory deep, as
-// produced by `npm pack`). Failures to decompress or read the archive return
-// false rather than an error so publishing is not blocked.
-func tarballHasShrinkwrap(data []byte) bool {
+// maxNpmTarballScanBytes bounds how much of the decompressed publish tarball
+// inspectTarball will read. Defends against gzip bombs; a legitimate npm
+// package would never approach this.
+const maxNpmTarballScanBytes = int64(32 * 1024 * 1024) // 32 MiB
+
+// maxNpmPackageJSONBytes caps how much of a tarball's package.json we will
+// decode when deriving hasInstallScript.
+const maxNpmPackageJSONBytes = int64(1 * 1024 * 1024) // 1 MiB
+
+// inspectTarball scans the npm tarball for facts that must be derived
+// server-side because the client's packument can lie about them:
+//   - hasShrinkwrap: presence of package/npm-shrinkwrap.json.
+//   - hasInstallScript: package/package.json declares any of the three
+//     install lifecycle hooks (preinstall, install, postinstall).
+//
+// Failures to decompress or read the archive return zero values so a
+// malformed publish is not blocked on this scan.
+func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 	gr, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
-		log.Debug("npm: tarballHasShrinkwrap: gzip reader: %v", err)
-		return false
+		return false, false
 	}
 	defer gr.Close()
 
-	tr := tar.NewReader(gr)
+	tr := tar.NewReader(io.LimitReader(gr, maxNpmTarballScanBytes))
 	for {
 		hdr, err := tr.Next()
-		if err == io.EOF {
-			return false
-		}
 		if err != nil {
-			log.Debug("npm: tarballHasShrinkwrap: tar next: %v", err)
-			return false
+			return
 		}
-		name := strings.TrimPrefix(hdr.Name, "./")
 		// npm pack puts files under a single root directory (usually "package/").
-		if strings.Count(name, "/") == 1 && strings.HasSuffix(name, "/npm-shrinkwrap.json") {
+		name := strings.TrimPrefix(hdr.Name, "./")
+		if strings.Count(name, "/") != 1 {
+			continue
+		}
+		switch {
+		case strings.HasSuffix(name, "/npm-shrinkwrap.json"):
+			hasShrinkwrap = true
+		case strings.HasSuffix(name, "/package.json"):
+			hasInstallScript = tarballDeclaresInstallScript(tr)
+		}
+		if hasShrinkwrap && hasInstallScript {
+			return
+		}
+	}
+}
+
+// tarballDeclaresInstallScript decodes a package.json entry and reports
+// whether "scripts" declares any of the three install lifecycle hooks.
+func tarballDeclaresInstallScript(r io.Reader) bool {
+	var pkg struct {
+		Scripts map[string]string `json:"scripts"`
+	}
+	if err := json.NewDecoder(io.LimitReader(r, maxNpmPackageJSONBytes)).Decode(&pkg); err != nil {
+		return false
+	}
+	for _, name := range []string{"preinstall", "install", "postinstall"} {
+		if strings.TrimSpace(pkg.Scripts[name]) != "" {
 			return true
 		}
 	}
+	return false
 }
 
 func validateName(name string) bool {

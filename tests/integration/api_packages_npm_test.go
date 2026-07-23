@@ -43,7 +43,7 @@ func TestPackageNpm(t *testing.T) {
 	repoURL := "http://localhost:3000/gitea/test.git"
 	repoDirectory := "package-subdir"
 
-	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
+	data := "H4sIAAAAAAAAA+3WXWuDMBQG4F77K4LXqyaaqB0MBtvFoDDG2B8INqxurYpJR6H0vy+2Cl0/2MZs9/U+N5acU5Ji36OefyfnN0qOVKX9UqbP8lH1OkatiPPV1dq+UhrbWigiyqiII7vOWMSiHpl3fZB9ZtrIyh7lFHv9QCEl0mRTdcHihCc8ZoPEY7EYUB7Q0LHVdLc6qKsidr777PB1TeT9Y+6xirgQh/Nff36TfzsuWI+IYx6q1VX+t3/cL9He/92ngPeki7yTPT4//zkNOOb/Keyf/+2Ex/z/69r8dx76De/lP+DhVv5DFtj3v5Nk8p/P/4VDiJvLqXLPiXup06JUvlHa9Js/hHtWN7zY50JW5HUP86jH+mXVVEZKp1VWmqb6YL9KrjfWVk1yZsZFVdeHt/xqGN6vl9dd2q4v3LLQJsvtvZhM6j6Vjgsyztyls8SYAQAAAAAAAAAAAAAAAPioVyo2wyEAKAAA"
 
 	buildUpload := func(version string) string {
 		return `{
@@ -65,8 +65,8 @@ func TestPackageNpm(t *testing.T) {
         	  "` + packageBinName + `": "` + packageBinPath + `"
       	  },
 					"dist": {
-					  "integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
-					  "shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
+					  "integrity": "sha512-LAy2TsMvXUKBPHi7NCHHZKhrDt43Uz9Gd5eeK617bE0+3eMMpWYQ3yZ+aocbVY5iF8YHupE5mPpSUqfTju+i8A==",
+					  "shasum": "97bd871c24af7a7acbaa2e64038599c570d876e3"
 					},
 					"repository": {
 						"type": "` + repoType + `",
@@ -143,7 +143,7 @@ func TestPackageNpm(t *testing.T) {
 
 		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(192), pb.Size)
+		assert.Equal(t, int64(363), pb.Size)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
@@ -202,14 +202,13 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageDescription, pmv.Description)
 		assert.Equal(t, packageAuthor, pmv.Author.Name)
 		assert.Equal(t, packageBinPath, pmv.Bin[packageBinName])
-		assert.Equal(t, "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==", pmv.Dist.Integrity)
-		assert.Equal(t, "aaa7eaf852a948b0aa05afeda35b1badca155d90", pmv.Dist.Shasum)
+		assert.Equal(t, "sha512-LAy2TsMvXUKBPHi7NCHHZKhrDt43Uz9Gd5eeK617bE0+3eMMpWYQ3yZ+aocbVY5iF8YHupE5mPpSUqfTju+i8A==", pmv.Dist.Integrity)
+		assert.Equal(t, "97bd871c24af7a7acbaa2e64038599c570d876e3", pmv.Dist.Shasum)
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
 		assert.Equal(t, repoType, result.Repository.Type)
 		assert.Equal(t, repoURL, result.Repository.URL)
 		assert.Equal(t, map[string]string{"tea": "2.x", "soy-milk": "1.2"}, pmv.PeerDependencies)
 		assert.Equal(t, map[string]any{"soy-milk": map[string]any{"optional": true}}, pmv.PeerDependenciesMeta)
-		assert.Equal(t, map[string]string{"postinstall": "echo hi"}, pmv.Scripts)
 		assert.True(t, pmv.HasInstallScript)
 		assert.False(t, pmv.HasShrinkwrap)
 		assert.Equal(t, map[string]string{"node": ">=22.7.0", "npm": ">=10.8.2"}, pmv.Engines)
@@ -442,8 +441,8 @@ func TestPackageNpm(t *testing.T) {
 					"version": "` + claimVersion + `",
 					"_hasShrinkwrap": true,
 					"dist": {
-						"integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
-						"shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
+						"integrity": "sha512-LAy2TsMvXUKBPHi7NCHHZKhrDt43Uz9Gd5eeK617bE0+3eMMpWYQ3yZ+aocbVY5iF8YHupE5mPpSUqfTju+i8A==",
+						"shasum": "97bd871c24af7a7acbaa2e64038599c570d876e3"
 					}
 				}
 			},
