@@ -254,10 +254,9 @@ type packageUpload struct {
 	Attachments map[string]*PackageAttachment `json:"_attachments"`
 }
 
-// ParseUpload decodes an npm PUT body and returns either a Package to
-// publish or a PackageDeprecation to apply. Exactly one of the returned
-// pointers is non-nil on success. A body without `_attachments` is treated
-// as a deprecate request; a body with attachments is parsed as a publish.
+// ParseUpload decodes an npm PUT body. Exactly one of the returned pointers
+// is non-nil on success; a body without `_attachments` is a deprecate request,
+// otherwise it is a publish.
 func ParseUpload(r io.Reader) (*Package, *PackageDeprecation, error) {
 	body, err := io.ReadAll(r)
 	if err != nil {
@@ -275,8 +274,7 @@ func ParseUpload(r io.Reader) (*Package, *PackageDeprecation, error) {
 	return p, nil, err
 }
 
-// ParsePackage parses the content of a npm publish PUT body.
-// A body without `_attachments` is rejected with ErrInvalidAttachment.
+// ParsePackage parses an npm publish PUT body. Deprecate bodies are rejected.
 func ParsePackage(r io.Reader) (*Package, error) {
 	p, _, err := ParseUpload(r)
 	if err != nil {
@@ -391,8 +389,8 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 			return nil, ErrInvalidIntegrity
 		}
 
-		// Derive _hasShrinkwrap and hasInstallScript from the tarball rather
-		// than the packument; a client can lie in either direction otherwise.
+		// Derive _hasShrinkwrap and hasInstallScript from the tarball; the
+		// packument can lie about either.
 		p.Metadata.HasShrinkwrap, p.Metadata.HasInstallScript = inspectTarball(data)
 
 		return p, nil
@@ -401,23 +399,18 @@ func parseUploadPackage(upload *packageUpload) (*Package, error) {
 	return nil, ErrInvalidPackage
 }
 
-// maxNpmTarballScanBytes bounds how much of the decompressed publish tarball
-// inspectTarball will read. Defends against gzip bombs; a legitimate npm
-// package would never approach this.
+// maxNpmTarballScanBytes caps the decompressed tarball bytes inspectTarball
+// will read; defends against gzip bombs.
 const maxNpmTarballScanBytes = int64(32 * 1024 * 1024) // 32 MiB
 
-// maxNpmPackageJSONBytes caps how much of a tarball's package.json we will
-// decode when deriving hasInstallScript.
+// maxNpmPackageJSONBytes caps the package.json bytes decoded from the tarball.
 const maxNpmPackageJSONBytes = int64(1 * 1024 * 1024) // 1 MiB
 
-// inspectTarball scans the npm tarball for facts that must be derived
-// server-side because the client's packument can lie about them:
-//   - hasShrinkwrap: presence of package/npm-shrinkwrap.json.
-//   - hasInstallScript: package/package.json declares any of the three
-//     install lifecycle hooks (preinstall, install, postinstall).
-//
-// Failures to decompress or read the archive return zero values so a
-// malformed publish is not blocked on this scan.
+// inspectTarball reports hasShrinkwrap (presence of package/npm-shrinkwrap.json)
+// and hasInstallScript (package/package.json declares any of preinstall,
+// install, postinstall). Both must be derived server-side because the client
+// can lie in the packument. Any read/decode error yields (false, false) so a
+// malformed archive does not block publishing.
 func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 	gr, err := gzip.NewReader(bytes.NewReader(data))
 	if err != nil {
@@ -448,8 +441,8 @@ func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 	}
 }
 
-// tarballDeclaresInstallScript decodes a package.json entry and reports
-// whether "scripts" declares any of the three install lifecycle hooks.
+// tarballDeclaresInstallScript reports whether a package.json declares any
+// of preinstall, install, postinstall.
 func tarballDeclaresInstallScript(r io.Reader) bool {
 	var pkg struct {
 		Scripts map[string]string `json:"scripts"`
@@ -497,12 +490,10 @@ func ParsePackageDeprecation(r io.Reader) (*PackageDeprecation, error) {
 	return dep, nil
 }
 
-// parseUploadDeprecation builds a PackageDeprecation from a decoded body that
-// carries no `_attachments`. Only versions whose object contained an explicit
-// `deprecated` key are emitted; versions where the field was simply absent
-// are skipped so a client PUT'ing a subset of the packument does not
-// silently undeprecate the ones it omitted. An empty string still means
-// "undeprecate" because npm sets the key explicitly in that case.
+// parseUploadDeprecation builds a PackageDeprecation from a body with no
+// `_attachments`. Only versions whose object explicitly contained a
+// `deprecated` key are emitted, so a subset PUT cannot silently undeprecate
+// versions it omitted. An empty string still means "undeprecate".
 func parseUploadDeprecation(upload *packageUpload, body []byte) (*PackageDeprecation, error) {
 	if !validateName(upload.Name) {
 		return nil, ErrInvalidPackageName

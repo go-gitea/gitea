@@ -165,8 +165,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	// A body without `_attachments` is an `npm deprecate` PUT reusing the
-	// publish endpoint.
+	// `npm deprecate` reuses the publish endpoint with no `_attachments`.
 	if deprecation != nil {
 		deprecatePackage(ctx, deprecation)
 		return
@@ -269,8 +268,8 @@ func deprecatePackage(ctx *context.Context, dep *npm_module.PackageDeprecation) 
 		return
 	}
 
-	// Run the per-version updates in a single transaction so a partial
-	// failure does not leave some versions deprecated and others untouched.
+	// Run per-version updates in one transaction so a partial failure does
+	// not leave the package in a half-applied state.
 	err := db.WithTx(ctx, func(txCtx std_ctx.Context) error {
 		for version, message := range dep.Versions {
 			pv, err := packages_model.GetVersionByNameAndVersion(txCtx, ctx.Package.Owner.ID, packages_model.TypeNpm, dep.PackageName, version)
