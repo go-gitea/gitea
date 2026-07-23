@@ -14,7 +14,7 @@ import (
 func AddMaxParallelAndRunJobIndex(x base.EngineMigration) error {
 	type ActionRunJob struct {
 		MaxParallel int    `xorm:"NOT NULL DEFAULT 0"`
-		RunID       int64  `xorm:"index index(idx_run_id_job_id)"`
+		RunID       int64  `xorm:"index(idx_run_id_job_id)"`
 		JobID       string `xorm:"VARCHAR(255) index(idx_run_id_job_id)"`
 	}
 
