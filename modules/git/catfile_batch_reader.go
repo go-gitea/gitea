@@ -47,7 +47,6 @@ func newCatFileBatch(ctx context.Context, repo RepositoryFacade, cmdCatFile *git
 		respReader:  bufio.NewReaderSize(stdoutReader, 32*1024), // use a buffered reader for rich operations
 		closed:      make(chan struct{}),
 	}
-
 	ret.closeFunc.Store(new(func(err error) {
 		ctxCancel(err)
 		stdPipeClose()
