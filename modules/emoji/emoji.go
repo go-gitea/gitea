@@ -26,7 +26,7 @@ type Emoji struct {
 }
 
 type globalVarsStruct struct {
-	codeMap        map[string]int    // emoji unicode code to its emoji data.
+	codeMap        map[string]int    // emoji Unicode code to its emoji data.
 	aliasMap       map[string]int    // the alias to its emoji data.
 	trie           *util.TrieNode    // trie for finding emoji positions.
 	isStartingByte [256]bool         // fast-path skip for starting bytes.
@@ -94,8 +94,8 @@ func globalVars() *globalVarsStruct {
 	return vars
 }
 
-// FromCode retrieves the emoji data based on the provided unicode code (ie,
-// "\u2618" will return the Gemoji data for "shamrock").
+// FromCode retrieves the emoji data based on the provided Unicode code
+// e.g.: "\u2618" will return the Gemoji data for "shamrock".
 func FromCode(code string) *Emoji {
 	i, ok := globalVars().codeMap[code]
 	if !ok {
@@ -105,9 +105,8 @@ func FromCode(code string) *Emoji {
 	return &GemojiData[i]
 }
 
-// FromAlias retrieves the emoji data based on the provided alias in the form
-// "alias" or ":alias:" (ie, "shamrock" or ":shamrock:" will return the Gemoji
-// data for "shamrock").
+// FromAlias retrieves the emoji data based on the provided alias in the form "alias" or ":alias:"
+// e.g.: "shamrock" or ":shamrock:" will return the Gemoji data for "shamrock".
 func FromAlias(alias string) *Emoji {
 	if strings.HasPrefix(alias, ":") && strings.HasSuffix(alias, ":") {
 		alias = alias[1 : len(alias)-1]
@@ -121,20 +120,18 @@ func FromAlias(alias string) *Emoji {
 	return &GemojiData[i]
 }
 
-// ReplaceCodes replaces all emoji codes with the first corresponding emoji
-// alias (in the form of ":alias:") (ie, "\u2618" will be converted to
-// ":shamrock:").
+// ReplaceCodes replaces all emoji codes with the first corresponding emoji alias (in the form of ":alias:"
+// e.g.: "\u2618" will be converted to ":shamrock:".
 func ReplaceCodes(s string) string {
 	return globalVars().codeReplacer.Replace(s)
 }
 
-// ReplaceAliases replaces all aliases of the form ":alias:" with its
-// corresponding unicode value.
+// ReplaceAliases replaces all aliases of the form ":alias:" with its corresponding Unicode value.
 func ReplaceAliases(s string) string {
 	return globalVars().aliasReplacer.Replace(s)
 }
 
-// FindEmojiSubmatchIndex returns index pair of longest emoji in a string
+// FindEmojiSubmatchIndex returns index-pair of the first emoji in a string
 func FindEmojiSubmatchIndex(s string) []int {
 	vars := globalVars()
 	for i := 0; i < len(s); i++ {
