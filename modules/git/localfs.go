@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -41,10 +40,6 @@ func RenameRepository(ctx context.Context, repo, newRepo RepositoryFacade) error
 
 func InitRepository(ctx context.Context, repo RepositoryFacade, objectFormatName string) error {
 	return InitRepositoryLocal(ctx, gitrepo.RepoLocalPath(repo), true, objectFormatName)
-}
-
-func GetRepoFS(repo RepositoryFacade) fs.FS {
-	return os.DirFS(gitrepo.RepoLocalPath(repo))
 }
 
 func IsRepoFileExist(ctx context.Context, repo RepositoryFacade, relativeFilePath string) (bool, error) {

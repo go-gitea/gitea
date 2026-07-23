@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -35,7 +36,7 @@ func TestMirrorPull(t *testing.T) {
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+	repoPath := gitrepo.RepoLocalPath(repo)
 
 	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
@@ -140,7 +141,7 @@ func TestMirrorPullSSRFRevalidation(t *testing.T) {
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+	repoPath := gitrepo.RepoLocalPath(repo)
 
 	// an "internal" server that records whether it was reached
 	var reached atomic.Bool
