@@ -198,7 +198,7 @@ func runDump(ctx context.Context, cmd *cli.Command) error {
 		}
 		defer func() {
 			_ = dbDump.Close()
-			if err := util.Remove(dbDump.Name()); err != nil {
+			if err := os.Remove(dbDump.Name()); err != nil {
 				log.Warn("Unable to remove temporary file: %s: Error: %v", dbDump.Name(), err)
 			}
 		}()
