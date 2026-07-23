@@ -1186,9 +1186,9 @@ revert
 from :2
 D test2.txt
 D test10.txt`
-	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(pull.BaseRepo.RepoPath()).WithStdinBytes([]byte(stdin)).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("fast-import").WithRepo(pull.BaseRepo).WithStdinBytes([]byte(stdin)).Run(t.Context()))
 
-	gitRepo, err := git.OpenRepositoryLocal(pull.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(pull.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
