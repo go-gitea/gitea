@@ -19,6 +19,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	git2 "gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/graceful"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/log"
@@ -331,7 +332,7 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{Uname: owner.Name, Name: name}
 	}
-	repo := repo_model.CodeRepoByName(owner.Name, name)
+	repo := gitrepo.CodeRepoByName(owner.Name, name)
 	isExist, err := git2.IsRepositoryExist(ctx, repo)
 	if err != nil {
 		log.Error("Unable to check if repo %s/%s exists, error: %v", owner.Name, name, err)
