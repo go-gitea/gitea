@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 )
 
@@ -48,7 +49,7 @@ func CreateBundle(ctx context.Context, repo RepositoryFacade, commit string, out
 	}
 	defer cleanup()
 
-	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(gitcmd.RepoLocalPath(repo), "objects"))
+	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(gitrepo.RepoLocalPath(repo), "objects"))
 	gitTmpCmd := func() *gitcmd.Command {
 		return gitcmd.NewCommand().WithDir(tmpDir).WithEnv(env)
 	}
