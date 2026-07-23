@@ -20,7 +20,7 @@ type CommitType = typeof allowedTypes[number];
 const allowedTypesList = allowedTypes.join(', ');
 const titlePattern = new RegExp(`^(${allowedTypes.join('|')})(\\([\\w/.-]+\\))?(!)?: .+$`);
 
-function parsePrTitle(title: string): {type: CommitType; scope: string; breaking: boolean} | null {
+function parsePrTitle(title: string): {type: CommitType, scope: string, breaking: boolean} | null {
   const match = titlePattern.exec(title);
   if (!match) return null;
   // strip the parens and keep only the first segment, so "webhook/discord" matches "webhook"
