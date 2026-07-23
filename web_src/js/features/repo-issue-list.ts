@@ -1,4 +1,3 @@
-import type {SortableEvent} from 'sortablejs';
 import {toggleElem, queryElems, isElemVisible} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
@@ -7,6 +6,7 @@ import {DELETE, POST} from '../modules/fetch.ts';
 import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {performFetchAction} from './common-fetch-action.ts';
+import type {SortableEvent} from 'sortablejs';
 
 function initRepoIssueListCheckboxes() {
   const issueSelectAll = document.querySelector<HTMLInputElement>('.issue-checkbox-all');

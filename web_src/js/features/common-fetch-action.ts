@@ -1,4 +1,3 @@
-import type {RequestData} from '../types.ts';
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
 import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
@@ -9,6 +8,7 @@ import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {Idiomorph} from 'idiomorph';
 import {parseDom} from '../utils.ts';
 import {html} from '../utils/html.ts';
+import type {RequestData} from '../types.ts';
 
 const {appSubUrl, runModeIsProd} = window.config;
 
