@@ -261,12 +261,16 @@ type packageUpload struct {
 // pointers is non-nil on success. A body without `_attachments` is treated
 // as a deprecate request; a body with attachments is parsed as a publish.
 func ParseUpload(r io.Reader) (*Package, *PackageDeprecation, error) {
+	body, err := io.ReadAll(r)
+	if err != nil {
+		return nil, nil, err
+	}
 	var upload packageUpload
-	if err := json.NewDecoder(r).Decode(&upload); err != nil {
+	if err := json.Unmarshal(body, &upload); err != nil {
 		return nil, nil, err
 	}
 	if len(upload.Attachments) == 0 {
-		dep, err := parseUploadDeprecation(&upload)
+		dep, err := parseUploadDeprecation(&upload, body)
 		return nil, dep, err
 	}
 	p, err := parseUploadPackage(&upload)
@@ -474,17 +478,30 @@ func ParsePackageDeprecation(r io.Reader) (*PackageDeprecation, error) {
 }
 
 // parseUploadDeprecation builds a PackageDeprecation from a decoded body that
-// carries no `_attachments`.
-func parseUploadDeprecation(upload *packageUpload) (*PackageDeprecation, error) {
+// carries no `_attachments`. Only versions whose object contained an explicit
+// `deprecated` key are emitted; versions where the field was simply absent
+// are skipped so a client PUT'ing a subset of the packument does not
+// silently undeprecate the ones it omitted. An empty string still means
+// "undeprecate" because npm sets the key explicitly in that case.
+func parseUploadDeprecation(upload *packageUpload, body []byte) (*PackageDeprecation, error) {
 	if !validateName(upload.Name) {
 		return nil, ErrInvalidPackageName
 	}
+	var raw struct {
+		Versions map[string]map[string]any `json:"versions"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, err
+	}
 	d := &PackageDeprecation{
 		PackageName: upload.Name,
-		Versions:    make(map[string]string, len(upload.Versions)),
+		Versions:    make(map[string]string, len(raw.Versions)),
 	}
 	for v, meta := range upload.Versions {
 		if meta == nil {
+			continue
+		}
+		if _, ok := raw.Versions[v]["deprecated"]; !ok {
 			continue
 		}
 		d.Versions[v] = meta.Deprecated
