@@ -34,10 +34,12 @@ func TestTeam_AddMember(t *testing.T) {
 	team3 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 3})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	user9 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 9})
 
 	test(team1, user2)
 	test(team1, user4)
 	test(team3, user2)
+	test(team1, user9)
 }
 
 func TestTeam_RemoveMember(t *testing.T) {
