@@ -31,8 +31,6 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
-	"gitea.dev/modules/gitrepo"
-	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -243,7 +241,6 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	if err := t.Job.Run.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
-
 	return &api.ActionTask{
 		ID:           t.ID,
 		Name:         t.Job.Name,
