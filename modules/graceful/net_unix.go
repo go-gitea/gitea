@@ -18,7 +18,6 @@ import (
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 )
 
 const (
@@ -121,8 +120,7 @@ func getProvidedFDs() (savedErr error) {
 				continue
 			}
 
-			// If needed we can handle packetconns here.
-			savedErr = fmt.Errorf("Error getting provided socket fd %d: %w", i, err)
+			savedErr = fmt.Errorf("error getting provided socket fd %d: %w", i, err)
 			return
 		}
 	})
@@ -228,8 +226,8 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 	}
 
 	// make a fresh listener
-	if err := util.Remove(address.Name); err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("Failed to remove unix socket %s: %w", address.Name, err)
+	if err := os.Remove(address.Name); err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to remove unix socket %s: %w", address.Name, err)
 	}
 
 	l, err := net.ListenUnix(network, address)
@@ -239,7 +237,7 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 
 	fileMode := os.FileMode(setting.UnixSocketPermission)
 	if err = os.Chmod(address.Name, fileMode); err != nil {
-		return nil, fmt.Errorf("Failed to set permission of unix socket to %s: %w", fileMode.String(), err)
+		return nil, fmt.Errorf("failed to set permission of unix socket to %s: %w", fileMode.String(), err)
 	}
 
 	activeListeners = append(activeListeners, l)

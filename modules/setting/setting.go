@@ -17,7 +17,8 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// settings
+const IsWindows = runtime.GOOS == "windows"
+
 var (
 	// AppVer is the version of the current build of Gitea. It is set in main.go from main.Version.
 	AppVer string
@@ -27,7 +28,6 @@ var (
 	AppStartTime time.Time
 
 	CfgProvider ConfigProvider
-	IsWindows   bool
 
 	// IsInTesting indicates whether the testing is running (unit test or integration test). It can be used for:
 	// * Skip nonsense error logs during testing caused by unreliable code (TODO: this is only a temporary solution, we should make the test code more reliable)
@@ -37,7 +37,6 @@ var (
 )
 
 func init() {
-	IsWindows = runtime.GOOS == "windows"
 	if AppVer == "" {
 		AppVer = "dev"
 	}
