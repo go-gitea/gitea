@@ -27,7 +27,10 @@ affects a version outside the supported range will be closed as out of scope
 ## Reporting a Vulnerability
 
 Please **DO NOT** file a public issue. Instead, report the vulnerability privately by opening a [GitHub security advisory](https://github.com/go-gitea/gitea/security/advisories/new), or optionally by sending your report to `security@gitea.io`.
+If reporting via GitHub, open an advisory per found issue. You can group the found issues if they relate to a single area (same feature, same fault present in multiple routes) but do not group unrelated reports into one as it makes it much harder to assess and track for duplicates.
+Do not use LLM to write the reports. It's meant for people to read so take your time and use your own words to write it. If you have used LLM to find the bug, be transparent about it and verify that it is not hallucination before submitting the report.
 
+If your report turns out to be a duplicate, you will be credited in the original report.
 ## Protecting Security Information
 
 Due to the sensitive nature of security information, you can use the below GPG public key to encrypt your mail body.
