@@ -274,14 +274,12 @@ func ParseUpload(r io.Reader) (*Package, *PackageDeprecation, error) {
 	return p, nil, err
 }
 
-// ParsePackage parses an npm publish PUT body. Deprecate bodies are rejected.
+// ParsePackage parses an npm publish PUT body. Bodies without `_attachments`
+// surface as ErrInvalidAttachment once name/version validation has passed.
 func ParsePackage(r io.Reader) (*Package, error) {
 	var upload packageUpload
 	if err := json.NewDecoder(r).Decode(&upload); err != nil {
 		return nil, err
-	}
-	if len(upload.Attachments) == 0 {
-		return nil, ErrInvalidPackage
 	}
 	return parseUploadPackage(&upload)
 }
