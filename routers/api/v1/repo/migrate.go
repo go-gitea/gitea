@@ -146,6 +146,7 @@ func Migrate(ctx *context.APIContext) {
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
+		SSHKeyOwnerID:  form.SSHKeyOwnerID,
 		Wiki:           form.Wiki,
 		Issues:         form.Issues,
 		Milestones:     form.Milestones,

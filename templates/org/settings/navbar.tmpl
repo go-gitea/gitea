@@ -12,6 +12,9 @@
 		<a class="{{if .PageIsOrgSettingsLabels}}active {{end}}item" href="{{.OrgLink}}/settings/labels">
 			{{ctx.Locale.Tr "repo.labels"}}
 		</a>
+		<a class="{{if .PageIsOrgSettingsSSHKeys}}active {{end}}item" href="{{.OrgLink}}/settings/ssh_keys">
+			{{ctx.Locale.Tr "org.settings.ssh_keys"}}
+		</a>
 		{{if .EnableOAuth2}}
 		<a class="{{if .PageIsSettingsApplications}}active {{end}}item" href="{{.OrgLink}}/settings/applications">
 			{{ctx.Locale.Tr "settings.applications"}}

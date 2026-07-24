@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/gtprof"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
@@ -61,12 +62,45 @@ type Command struct {
 	cmdEnv     []string
 	cmdTimeout time.Duration
 
+	// cmdSSHAuth carries the managed SSH authentication context. When AuthSock is
+	// set, SSH_AUTH_SOCK and GIT_SSH_COMMAND are configured for the command.
+	cmdSSHAuth SSHAuth
+
 	// only os.Pipe and in-memory buffers can work with Stdin safely, see https://github.com/golang/go/issues/77227 if the command would exit unexpectedly
 	cmdStdin  io.Reader
 	cmdStdout io.Writer
 	cmdStderr io.Writer
 
 	cmdManagedStderr *bytes.Buffer
+}
+
+// managedSSHCommand builds the GIT_SSH_COMMAND used for Gitea-managed SSH
+// operations (migration / mirror with a generated keypair). ssh runs
+// non-interactively (BatchMode) so the worker never hangs on an unknown host,
+// and the configured host-key policy is applied. The ssh executable is
+// configurable (Migrations.SSHCommand) for hosts where "ssh" is not on PATH.
+func managedSSHCommand(identityFile string) string {
+	ssh := util.ShellEscape(setting.Migrations.SSHCommand)
+	var cmd string
+	mode := setting.Migrations.SSHHostKeyChecking
+	if mode == "no" {
+		cmd = ssh + " -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=" + util.ShellEscape(os.DevNull)
+	} else {
+		cmd = ssh + " -o BatchMode=yes -o StrictHostKeyChecking=" + mode
+		// Persist accepted host keys in a Gitea-managed file so a later key change
+		// is detected (TOFU); fall back to ssh's default known_hosts if unset.
+		if setting.AppDataPath != "" {
+			knownHosts := filepath.Join(setting.AppDataPath, "home", ".ssh", "known_hosts")
+			if err := os.MkdirAll(filepath.Dir(knownHosts), 0o700); err == nil {
+				cmd += " -o UserKnownHostsFile=" + util.ShellEscape(knownHosts)
+			}
+		}
+	}
+	// pin auth to the managed key so ssh ignores the OS user's $HOME/.ssh identities
+	if identityFile != "" {
+		cmd += " -o IdentitiesOnly=yes -i " + util.ShellEscape(identityFile)
+	}
+	return cmd
 }
 
 func logArgSanitize(arg string) string {
@@ -217,6 +251,13 @@ func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 	return ret
 }
 
+// SSHAuth bundles the managed SSH authentication context: the agent socket that
+// serves the private key and the public key file used to pin authentication.
+type SSHAuth struct {
+	AuthSock     string
+	IdentityFile string
+}
+
 func commonBaseEnvs() []string {
 	envs := []string{
 		// Make Gitea use internal git config only, to prevent conflicts with user's git config
@@ -274,6 +315,11 @@ func (c *Command) WithEnv(env []string) *Command {
 
 func (c *Command) WithTimeout(timeout time.Duration) *Command {
 	c.cmdTimeout = timeout
+	return c
+}
+
+func (c *Command) WithSSHAuth(sshAuth SSHAuth) *Command {
+	c.cmdSSHAuth = sshAuth
 	return c
 }
 
@@ -444,6 +490,12 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 
 	process.SetSysProcAttribute(c.cmd)
 	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
+
+	if c.cmdSSHAuth.AuthSock != "" {
+		c.cmd.Env = append(c.cmd.Env, "SSH_AUTH_SOCK="+c.cmdSSHAuth.AuthSock)
+		c.cmd.Env = append(c.cmd.Env, "GIT_SSH_COMMAND="+managedSSHCommand(c.cmdSSHAuth.IdentityFile))
+	}
+
 	c.cmd.Dir = c.gitDir
 	c.cmd.Stdout = c.cmdStdout
 	c.cmd.Stdin = c.cmdStdin

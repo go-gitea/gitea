@@ -1,0 +1,36 @@
+<div class="inline field ssh-key-fingerprint-only tw-hidden">
+	<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_label"}}</label>
+	<div class="inline-right">
+		<span class="ssh-key-label">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}</span>
+		<code class="ssh-key-fingerprint">{{.SignedUserSSHFingerprint}}</code>
+	</div>
+</div>
+<div class="inline field ssh-key-owner-selector tw-hidden"
+	data-signed-user-id="{{.SignedUser.ID}}"
+	data-signed-user-fingerprint="{{.SignedUserSSHFingerprint}}"
+	data-owner-fingerprints="{{.OwnerSSHFingerprintsJSON}}"
+	data-owner-keys-links="{{.OwnerSSHKeysURLsJSON}}"
+	data-personal-keys-link="{{AppSubUrl}}/user/settings/keys">
+	<label>{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_label"}}</label>
+	<div class="ui selection dropdown">
+		<input id="ssh_key_owner_id" name="ssh_key_owner_id" type="hidden" value="0">
+		<div class="default text">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}</div>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		<div class="menu">
+			<div class="item" data-value="0" data-text="{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}">
+				<span class="ssh-key-label">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_org_default"}}</span>
+				<code class="item-fingerprint ssh-key-fingerprint"></code>
+			</div>
+			<div class="item" data-value="{{.SignedUser.ID}}" data-text="{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}">
+				<span class="ssh-key-label">{{ctx.Locale.Tr "repo.migrate.ssh_key_owner_personal" .SignedUser.Name}}</span>
+				<code class="item-fingerprint ssh-key-fingerprint">{{.SignedUserSSHFingerprint}}</code>
+			</div>
+		</div>
+	</div>
+</div>
+<div class="inline field tw-hidden ssh-help-field">
+	<span class="help">
+		<strong>{{ctx.Locale.Tr "repo.migrate.ssh_helper_title"}}:</strong> {{ctx.Locale.Tr "repo.migrate.ssh_helper_desc"}}
+		<a class="js-ssh-keys-link" href="{{AppSubUrl}}/user/settings/keys" target="_blank">{{ctx.Locale.Tr "repo.migrate.ssh_key_manage_link"}}</a>
+	</span>
+</div>

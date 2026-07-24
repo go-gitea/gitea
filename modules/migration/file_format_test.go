@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/json"
+
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 )
@@ -35,4 +37,17 @@ func TestMigrationJSON_MilestoneOK(t *testing.T) {
 	milestones := make([]*Milestone, 0, 10)
 	err := Load("file_format_testdata/milestones.json", &milestones, true)
 	assert.NoError(t, err)
+}
+
+// TestMigrateOptionsSSHKeyOwnerIDRoundtrip guards against the regression where
+// SSHKeyOwnerID was tagged `json:"-"` and silently lost when the task layer
+// serialised/deserialised MigrateOptions through the task table, breaking the
+// "use a specific owner's managed key" override for org migrations.
+func TestMigrateOptionsSSHKeyOwnerIDRoundtrip(t *testing.T) {
+	data, err := json.Marshal(MigrateOptions{SSHKeyOwnerID: 42})
+	assert.NoError(t, err)
+
+	var got MigrateOptions
+	assert.NoError(t, json.Unmarshal(data, &got))
+	assert.Equal(t, int64(42), got.SSHKeyOwnerID)
 }

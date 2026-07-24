@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	ssh_module "gitea.dev/modules/ssh"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/migrations"
@@ -92,7 +93,10 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
-	_ = m.GetRepository(ctx)
+	if m.GetRepository(ctx) == nil {
+		log.Error("GetRepository [%d]: repository not found", mirrorID)
+		return false
+	}
 
 	m.LastError = ""
 
@@ -156,13 +160,25 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing %s remote %s", mirrorLogName, m.ID, m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
-		if err := git.PushToExternal(ctx, storageRepo, git.PushOptions{
+
+		pushOpts := git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
 			Timeout: timeout,
 			Env:     envs,
-		}); err != nil {
+		}
+
+		// Setup SSH authentication
+		sshAuth, cleanup, err := ssh_module.SetupManagedSSHAgent(ctx, repo, remoteURL.String(), 0)
+		if err != nil {
+			log.Error("Failed to set up SSH agent for push mirror %s: %v", repo.FullName(), err)
+			return util.SanitizeErrorCredentialURLs(err)
+		}
+		defer cleanup()
+		pushOpts.SSHAuth = sshAuth
+
+		if err := git.PushToExternal(ctx, storageRepo, pushOpts); err != nil {
 			log.Error("Error pushing %s remote %s: %v", mirrorLogName, m.RemoteName, err)
 			return util.SanitizeErrorCredentialURLs(err)
 		}
