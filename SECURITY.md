@@ -8,10 +8,7 @@ Previous vulnerabilities are listed at https://about.gitea.com/security.
 
 ## Supported Versions
 
-We only provide security fixes for the two most recent minor release lines:
-
-- the version currently under development on the `main` branch, and
-- the latest published release line.
+We only provide security fixes for the most recent recent major release and main branch
 
 For example, while `1.28` is being developed on `main`, the `1.27.x` release
 line receives security fixes. Older release lines (`1.26.x` and earlier) are no
