@@ -5,7 +5,7 @@ import ActionStatusIcon from './ActionStatusIcon.vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
 import {trN} from '../modules/i18n.ts';
-import {debounce} from 'throttle-debounce';
+import {debounce} from '../utils/func.ts';
 import type {ActionsJob} from '../modules/gitea-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
 import {
@@ -178,7 +178,7 @@ function handleWheel(event: WheelEvent) {
 
 onMounted(() => {
   loadSavedState();
-  watch([translateX, translateY, scale], debounce(500, saveState));
+  watch([translateX, translateY, scale], debounce(saveState, 500));
   document.addEventListener('mousemove', handleMouseMoveOnDocument);
   document.addEventListener('mouseup', handleMouseUpOnDocument);
 });

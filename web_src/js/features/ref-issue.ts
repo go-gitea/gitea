@@ -3,7 +3,7 @@ import {GET} from '../modules/fetch.ts';
 import {createApp} from 'vue';
 import {createTippy, getAttachedTippyInstance} from '../modules/tippy.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
-import type {Issue} from '../types.ts';
+import type {Issue, TimeoutId} from '../types.ts';
 
 type IssueInfo = {
   convertedIssue: Issue,
@@ -55,7 +55,7 @@ export function initRefIssueContextPopup() {
     link.setAttribute('data-ref-issue-popup', '');
 
     // delay so a mouse passing over the link doesn't fire a fetch
-    let timer: ReturnType<typeof setTimeout>;
+    let timer: TimeoutId;
     const cancel = () => {
       clearTimeout(timer);
       link.removeAttribute('data-ref-issue-popup');
