@@ -49,7 +49,7 @@ export function initTextExpander(expander: TextExpanderElement) {
     return keyStart > lineStart;
   };
 
-  let suggestionsController: AbortController | null = null;
+  let suggestionsController = new AbortController();
   const debouncedIssueSuggestions = debounce(async (key: string, text: string): Promise<TextExpanderResult> => {
     // https://github.com/github/text-expander-element/issues/71
     // Upstream bug: when using "multiword+promise", TextExpander will get wrong "key" position.
@@ -60,7 +60,7 @@ export function initTextExpander(expander: TextExpanderElement) {
     // check the input before the request, to avoid emitting empty query to backend (still related to the upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     // await sleep(Math.random() * 1000); // help to reproduce the text-expander bug
-    suggestionsController?.abort(); // only the newest request may answer
+    suggestionsController.abort(); // only the newest request may answer
     suggestionsController = new AbortController();
     try {
       const ret = await fetchIssueSuggestions(key, text, suggestionsController.signal);
