@@ -6,6 +6,7 @@
 package git
 
 import (
+	"context"
 	"io"
 
 	"gitea.dev/modules/log"
@@ -23,8 +24,8 @@ type Blob struct {
 
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
-func (b *Blob) DataAsync() (_ io.ReadCloser, retErr error) {
-	batch, cancel, err := b.repo.CatFileBatch(b.repo.Ctx)
+func (b *Blob) DataAsync(ctx context.Context) (_ io.ReadCloser, retErr error) {
+	batch, cancel, err := b.repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,20 +51,20 @@ func (b *Blob) DataAsync() (_ io.ReadCloser, retErr error) {
 }
 
 // Size returns the uncompressed size of the blob
-func (b *Blob) Size() int64 {
+func (b *Blob) Size(ctx context.Context) int64 {
 	if b.gotSize {
 		return b.size
 	}
 
-	batch, cancel, err := b.repo.CatFileBatch(b.repo.Ctx)
+	batch, cancel, err := b.repo.CatFileBatch(ctx)
 	if err != nil {
-		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.LogString(), err)
 		return 0
 	}
 	defer cancel()
 	info, err := batch.QueryInfo(b.ID.String())
 	if err != nil {
-		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.LogString(), err)
 		return 0
 	}
 	b.gotSize = true

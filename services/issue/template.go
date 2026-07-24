@@ -58,7 +58,7 @@ func GetTemplateConfig(ctx context.Context, gitRepo *git.Repository, path string
 		return GetDefaultTemplateConfig(), err
 	}
 
-	reader, err := treeEntry.Blob(gitRepo).DataAsync()
+	reader, err := treeEntry.Blob(gitRepo).DataAsync(ctx)
 	if err != nil {
 		log.Debug("DataAsync: %v", err)
 		return GetDefaultTemplateConfig(), nil
@@ -120,7 +120,7 @@ func ParseTemplatesFromDefaultBranch(ctx context.Context, repo *repo.Repository,
 		return ret
 	}
 
-	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	commit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return ret
 	}
@@ -141,7 +141,7 @@ func ParseTemplatesFromDefaultBranch(ctx context.Context, repo *repo.Repository,
 				continue
 			}
 			fullName := path.Join(dirName, entry.Name())
-			if it, err := template.UnmarshalFromEntry(gitRepo, entry, dirName); err != nil {
+			if it, err := template.UnmarshalFromEntry(ctx, gitRepo, entry, dirName); err != nil {
 				ret.TemplateErrors[fullName] = err
 			} else {
 				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
@@ -161,7 +161,7 @@ func GetTemplateConfigFromDefaultBranch(ctx context.Context, repo *repo.Reposito
 		return GetDefaultTemplateConfig(), nil
 	}
 
-	commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+	commit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return GetDefaultTemplateConfig(), err
 	}

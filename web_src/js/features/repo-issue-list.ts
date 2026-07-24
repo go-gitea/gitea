@@ -1,13 +1,11 @@
-import {updateIssuesMeta} from './repo-common.ts';
 import {toggleElem, queryElems, isElemVisible} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
-import {errorMessage} from '../modules/errors.ts';
-import {showErrorToast} from '../modules/toast.ts';
 import {createSortable} from '../modules/sortable.ts';
 import {DELETE, POST} from '../modules/fetch.ts';
 import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {performFetchAction} from './common-fetch-action.ts';
 import type {SortableEvent} from 'sortablejs';
 
 function initRepoIssueListCheckboxes() {
@@ -57,18 +55,12 @@ function initRepoIssueListCheckboxes() {
 
       const url = el.getAttribute('data-url')!;
       let action = el.getAttribute('data-action')!;
-      let elementId = el.getAttribute('data-element-id')!;
+      const elementId = el.getAttribute('data-element-id')!;
       const issueIDList: string[] = Array.from(document.querySelectorAll('.issue-checkbox:checked'), (el) => (el.getAttribute('data-issue-id')!));
       const issueIDs = issueIDList.join(',');
       if (!issueIDs) return;
 
-      // for assignee
-      if (elementId === '0' && url.endsWith('/assignee')) {
-        elementId = '';
-        action = 'clear';
-      }
-
-      // for toggle
+      // for label toggle
       if (action === 'toggle' && e.altKey) {
         action = 'toggle-alt';
       }
@@ -81,14 +73,8 @@ function initRepoIssueListCheckboxes() {
         }
       }
 
-      try {
-        await updateIssuesMeta(url, action, issueIDs, elementId);
-        window.location.reload();
-      } catch (err) {
-        // FIXME: this logic (including updateIssuesMeta) is not right, should refactor to our JSONError framework
-        const e = err as {responseJSON?: {error: string}};
-        showErrorToast(e.responseJSON?.error ?? errorMessage(err));
-      }
+      const data = new URLSearchParams({action, issue_ids: issueIDs, id: elementId});
+      await performFetchAction(el, {method: 'post', url, data});
     },
   ));
 }
@@ -139,7 +125,7 @@ function initDropdownUserRemoteSearch(el: Element) {
         processedResults.length = 0;
         for (const item of resp.results) {
           const htmlAvatar = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20">`;
-          const htmlFullName = item.full_name ? html`<span class="username-fullname gt-ellipsis">(${item.full_name})</span>` : '';
+          const htmlFullName = item.full_name ? html`<span class="username-fullname">(${item.full_name})</span>` : '';
           const htmlItem = html`<span class="username-display">${htmlRaw(htmlAvatar)}<span>${item.username}</span>${htmlRaw(htmlFullName)}</span>`;
           if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
           processedResults.push({value: item.username, name: htmlItem});

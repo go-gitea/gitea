@@ -13,8 +13,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/common"
@@ -182,12 +182,12 @@ func TestResolveRefWithSuffixContract(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := git.OpenRepository(repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
 	// a nil error guarantees a usable RefName
-	ref, err := common.ResolveRefWithSuffix(gitRepo, "add-csv", "^")
+	ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, "add-csv", "^")
 	require.NoError(t, err)
 	assert.NotEmpty(t, ref)
 	// a ref resolved with a suffix must be a commit SHA, not a branch ref
@@ -199,7 +199,7 @@ func TestResolveRefWithSuffixContract(t *testing.T) {
 		{"does-not-exist", ""},
 		{"add-csv", "~50"},
 	} {
-		ref, err := common.ResolveRefWithSuffix(gitRepo, tc.oriRef, tc.suffix)
+		ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, tc.oriRef, tc.suffix)
 		assert.ErrorIs(t, err, util.ErrNotExist, "ref %q suffix %q", tc.oriRef, tc.suffix)
 		assert.Empty(t, ref, "ref %q suffix %q", tc.oriRef, tc.suffix)
 	}
@@ -211,8 +211,7 @@ func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
 
-	repoPath := repo_model.RepoPath(user2.Name, repo1.Name)
-	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(strings.TrimSpace(`
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithRepo(repo1).WithStdinBytes([]byte(strings.TrimSpace(`
 commit refs/heads/unrelated-history
 committer User <user@example.com> 1714310400 +0000
 data 13

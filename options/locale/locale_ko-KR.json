@@ -3296,7 +3296,6 @@
   "admin.config.default_enable_timetracking": "기본 타임 트래킹 활성화",
   "admin.config.default_allow_only_contributors_to_track_time": "기여자 트랙 타임만",
   "admin.config.no_reply_address": "답변 받지 않을 이메일 주소",
-  "admin.config.default_visibility_organization": "새 조직의 기본 공개범위",
   "admin.config.default_enable_dependencies": "기본적으로 이슈 종속성을 활성화",
   "admin.config.webhook_config": "웹훅 설정",
   "admin.config.queue_length": "큐 길이",

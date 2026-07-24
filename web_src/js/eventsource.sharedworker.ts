@@ -26,6 +26,11 @@ class Source {
       type: 'status',
       message: `registered to ${this.url}`,
     });
+
+    // replay the "open" event to ports attaching to an already-open source
+    if (this.eventSource?.readyState === EventSource.OPEN) {
+      port.postMessage({type: 'open'});
+    }
   }
 
   deregister(port: MessagePort) {
