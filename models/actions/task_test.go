@@ -307,6 +307,80 @@ func TestStopTaskCancellingFallsBackForMissingRunner(t *testing.T) {
 	assert.NotZero(t, jobAfterStop.Stopped)
 }
 
+// TestStopTaskCancellingFallsBackForSilentRunner covers a runner that stopped reporting
+// state for the task, e.g. because it gave up while Gitea was restarting. Such a runner
+// never picks up the cancelling request, so the task must be cancelled right away instead
+// of waiting for the zombie task cleanup.
+func TestStopTaskCancellingFallsBackForSilentRunner(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	run := &ActionRun{
+		Title:         "cancelling-test-run",
+		RepoID:        1,
+		OwnerID:       2,
+		WorkflowID:    "test.yaml",
+		Index:         999,
+		TriggerUserID: 2,
+		Ref:           "refs/heads/master",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		Status:        StatusRunning,
+		Started:       timeutil.TimeStampNow(),
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	job := &ActionRunJob{
+		RunID:     run.ID,
+		RepoID:    run.RepoID,
+		OwnerID:   run.OwnerID,
+		CommitSHA: run.CommitSHA,
+		Name:      "silent-runner-cancelling-job",
+		Attempt:   1,
+		JobID:     "silent-runner-cancelling-job",
+		Status:    StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	runner := &ActionRunner{
+		UUID:                 "runner-silent-before-cancel",
+		Name:                 "runner-silent-before-cancel",
+		HasCancellingSupport: true,
+	}
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	task := &ActionTask{
+		JobID:     job.ID,
+		Attempt:   1,
+		RunnerID:  runner.ID,
+		Status:    StatusRunning,
+		Started:   timeutil.TimeStampNow(),
+		RepoID:    run.RepoID,
+		OwnerID:   run.OwnerID,
+		CommitSHA: run.CommitSHA,
+	}
+	require.NoError(t, db.Insert(t.Context(), task))
+
+	job.TaskID = task.ID
+	_, err := UpdateRunJob(t.Context(), job, nil, "task_id")
+	require.NoError(t, err)
+
+	// NoAutoTime because the point of the test is an "updated" older than xorm would write
+	task.Updated = timeutil.TimeStampNow().AddDuration(-2 * TaskReportTimeout)
+	_, err = db.GetEngine(t.Context()).ID(task.ID).Cols("updated").NoAutoTime().Update(task)
+	require.NoError(t, err)
+
+	require.NoError(t, StopTask(t.Context(), task.ID, StatusCancelling))
+
+	taskAfterStop := unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
+	assert.Equal(t, StatusCancelled, taskAfterStop.Status)
+	assert.NotZero(t, taskAfterStop.Stopped)
+
+	jobAfterStop := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+	assert.Equal(t, StatusCancelled, jobAfterStop.Status)
+	assert.NotZero(t, jobAfterStop.Stopped)
+}
+
 // TestReleaseTaskForRunner verifies that releasing a freshly-claimed task returns
 // its job to the waiting queue and deletes the task and its steps, so a failure
 // while assembling the runner response cannot strand the job in running state.

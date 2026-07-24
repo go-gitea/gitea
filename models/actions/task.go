@@ -60,6 +60,14 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
+// TaskReportTimeout is how long a task may go without a state report from its runner
+// before the runner is assumed to have abandoned it. Runners report the state of a
+// running task every few seconds, so this much silence means the runner is gone (it
+// crashed, or it gave up while Gitea was unreachable).
+// It is much shorter than setting.Actions.ZombieTaskTimeout because it only decides
+// whether a runner can still be talked to, not whether a task should be killed.
+const TaskReportTimeout = time.Minute
+
 var successfulTokenTaskCache *lru.Cache[string, any]
 
 func init() {
@@ -562,6 +570,11 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			}
 			status = StatusCancelled
 		} else if !runner.HasCancellingSupport {
+			status = StatusCancelled
+		} else if task.Updated.AddDuration(TaskReportTimeout) < now {
+			// The runner stopped reporting state for this task, so it will never acknowledge
+			// the cancellation either. Cancel right away instead of leaving the job stuck in
+			// "cancelling" until the zombie task cleanup picks it up.
 			status = StatusCancelled
 		}
 	}
