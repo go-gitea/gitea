@@ -11,6 +11,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"gitea.dev/modules/json"
 
@@ -194,5 +195,17 @@ func TestParsePackage(t *testing.T) {
 			return gzip.NewWriter(w)
 		}, map[string]string{"composer.json": buildComposerContent(""), "README.md": readme})
 		assertValidPackage(t, data, "", "gitea-composer-package.tar.gz")
+	})
+
+	t.Run("InvalidUTF8Readme", func(t *testing.T) {
+		data := createArchive(map[string]string{"composer.json": buildComposerContent(""), "README.md": "readme\xffcontent"})
+
+		cp, err := ParsePackage(bytes.NewReader(data))
+		require.NoError(t, err)
+		require.NotNil(t, cp)
+
+		assert.True(t, utf8.ValidString(cp.Metadata.Readme))
+		_, err = json.Marshal(cp.Metadata)
+		assert.NoError(t, err)
 	})
 }
