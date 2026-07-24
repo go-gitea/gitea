@@ -111,15 +111,22 @@ func Dashboard(ctx *context.Context) {
 
 	prepareHeatmapURL(ctx)
 
+	year := ctx.FormInt("year")
+	showPrivate := true
+	if ctx.FormString("show-private") != "" {
+		showPrivate = ctx.FormBool("show-private")
+	}
+
 	pageSize := setting.UI.User.RepoPagingNum
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.Doer,
-		IncludePrivate:  true,
+		IncludePrivate:  showPrivate,
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
+		Year:            year,
 		ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
 	})
 	if err != nil {
