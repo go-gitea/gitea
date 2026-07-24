@@ -58,10 +58,7 @@ export function initTextExpander(expander: TextExpanderElement) {
     // check the input before the request, to avoid emitting empty query to backend (still related to the upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     // await sleep(Math.random() * 1000); // help to reproduce the text-expander bug
-    const valueBefore = textarea.value;
     const ret = await fetchIssueSuggestions(key, text);
-    // check the input after the request, to avoid replacing or closing a newer request's menu
-    if (textarea.value !== valueBefore) return new Promise<TextExpanderResult>(() => {});
     // check the input again to avoid text-expander using incorrect position (upstream bug)
     if (!shouldShowIssueSuggestions()) return {matched: false};
     return ret;
