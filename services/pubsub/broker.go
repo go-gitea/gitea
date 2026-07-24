@@ -24,9 +24,10 @@ type Broker interface {
 	HasTopicSubscribers(topic string) bool
 }
 
-// DefaultBroker is set by Init. Tests and standalone callers that need a
-// broker without Init can assign a fresh MemoryBroker.
-var DefaultBroker Broker = NewMemoryBroker()
+// DefaultBroker is wired by Init from setting.Websocket; nil until then.
+// Non-web entry points (e.g. CLI) skip Init, so publishers must nil-check.
+// Tests construct a broker explicitly (NewMemoryBroker) instead of relying on this.
+var DefaultBroker Broker
 
 func UserTopic(userID int64) string {
 	return fmt.Sprintf("user-%d", userID)

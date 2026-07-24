@@ -17,6 +17,10 @@ const (
 )
 
 func publishUserEvent(userID int64, event any) {
+	// nil when Init was skipped (e.g. CLI user delete): no web subscribers exist, nothing to publish.
+	if pubsub.DefaultBroker == nil {
+		return
+	}
 	msg, err := json.Marshal(event)
 	if err != nil {
 		log.Error("websocket: marshal event: %v", err)
