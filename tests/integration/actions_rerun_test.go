@@ -144,8 +144,8 @@ jobs:
 		assert.Equal(t, runLatestAttempt.LatestAttemptID, job2LatestAttempt.RunAttemptID)
 
 		t.Run("RerunFailedWithNoFailedJobs", func(t *testing.T) {
-			// The run is fully successful, so "re-run failed jobs" must be rejected and must not create a
-			// new attempt (an empty failed-job list must not fall through to re-running the whole run).
+			// The run is fully successful, so an empty failed-job list must be rejected rather than fall
+			// through to re-running the whole run.
 			before := getRunLatestAttemptNum(t, run.ID)
 			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun-failed", user2.Name, repo.Name, run.ID))
 			resp := session.MakeRequest(t, req, http.StatusBadRequest)

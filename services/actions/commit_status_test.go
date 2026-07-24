@@ -259,10 +259,8 @@ func TestCreateCommitStatus_LegacyHashRecovery(t *testing.T) {
 	assert.Equal(t, 1, matches)
 }
 
-// TestCreateCommitStatus_LegacyHashExternalNotAdopted: a status posted by a
-// non-Actions creator (an external integration or the API) that happens to share
-// a workflow's Context must not pull the workflow into the legacy Context-only
-// hash group, or two same-named workflows would collapse into a single check again.
+// TestCreateCommitStatus_LegacyHashExternalNotAdopted: a status from a non-Actions creator sharing a
+// workflow's Context must not pull the workflow into the legacy Context-only hash group.
 func TestCreateCommitStatus_LegacyHashExternalNotAdopted(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

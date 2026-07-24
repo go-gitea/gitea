@@ -33,11 +33,8 @@ import (
 const MaxReusableCallLevels = 9
 
 // checkRunJobLimit rejects an expansion that would push the attempt over actions_model.MaxJobNumPerRun.
-// checkCallerChain bounds nesting *depth*, but a reusable graph can also fan out in *breadth*: every
-// caller inserts its callees, and each callee that is itself a caller is expanded on a later resolver
-// pass. Without a cumulative cap a tiny set of files can drive exponential, server-side job-row
-// insertion and exhaust the database. This guard counts the jobs already in the attempt and refuses
-// to insert more once the limit is reached.
+// checkCallerChain bounds nesting *depth*, but a reusable graph also fans out in *breadth*: without a
+// cumulative cap a tiny set of files can drive exponential job-row insertion and exhaust the database.
 func checkRunJobLimit(ctx context.Context, runID, attemptID int64, adding int) error {
 	existing, err := actions_model.CountRunJobsByRunAndAttemptID(ctx, runID, attemptID)
 	if err != nil {
@@ -306,8 +303,6 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		return fmt.Errorf("called workflow for caller %d (uses %q) has no jobs", caller.ID, caller.CallUses)
 	}
 
-	// Bound the cumulative number of jobs in the attempt so a nested reusable-workflow graph
-	// cannot insert an unbounded number of rows (depth is capped separately by checkCallerChain).
 	if err := checkRunJobLimit(ctx, run.ID, attempt.ID, len(childWorkflows)); err != nil {
 		return err
 	}

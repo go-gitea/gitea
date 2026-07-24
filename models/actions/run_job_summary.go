@@ -192,13 +192,10 @@ WHEN NOT MATCHED THEN
 	return util.ErrInvalidArgument
 }
 
-// GetActionRunJobSummariesVersion returns a cheap DB-side fingerprint of a run attempt's summaries
-// (same optional jobID scoping as ListActionRunJobSummaries) so the poll can tell whether any summary
-// changed without loading content. Empty means no summaries. COUNT(*) is required alongside MAX(updated):
-// "updated" has 1s granularity, so MAX alone would miss a cleared summary (a non-latest row deleted) and a
-// step summary inserted in the same second as the previous one. The only change it still misses is an
-// in-place edit of an existing step within that same second, which the runner never does — it uploads each
-// step's summary once.
+// GetActionRunJobSummariesVersion returns a cheap DB-side fingerprint of a run attempt's summaries (same
+// optional jobID scoping as ListActionRunJobSummaries) so the poll can tell whether any changed without
+// loading content. Empty means no summaries. COUNT is needed alongside MAX(updated) because "updated" has
+// 1s granularity: MAX alone misses a deleted row and a step inserted in the same second as the previous one.
 func GetActionRunJobSummariesVersion(ctx context.Context, repoID, runID, runAttemptID, jobID int64) (string, error) {
 	sess := db.GetEngine(ctx).Table(new(ActionRunJobSummary)).
 		Where("repo_id=? AND run_id=? AND run_attempt_id=?", repoID, runID, runAttemptID)

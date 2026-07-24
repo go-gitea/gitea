@@ -216,24 +216,25 @@ func TestCheckRunJobLimit(t *testing.T) {
 		attemptB = 910002
 	)
 
-	seed := func(runID, attemptID int64, n int) {
+	seed := func(attemptID int64, n int) {
 		for i := range n {
+			name := fmt.Sprintf("job-%d-%d", attemptID, i)
 			require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunJob{
 				RunID:        runID,
 				RunAttemptID: attemptID,
 				RepoID:       1,
 				OwnerID:      1,
 				CommitSHA:    "abcdef",
-				Name:         fmt.Sprintf("job-%d-%d", attemptID, i),
-				JobID:        fmt.Sprintf("job-%d-%d", attemptID, i),
+				Name:         name,
+				JobID:        name,
 				AttemptJobID: attemptID*1000 + int64(i),
 				Status:       actions_model.StatusBlocked,
 			}))
 		}
 	}
 
-	seed(runID, attemptA, 5)
-	seed(runID, attemptB, 3) // a different attempt of the same run must not count toward attempt A
+	seed(attemptA, 5)
+	seed(attemptB, 3) // a different attempt of the same run must not count toward attempt A
 
 	limit := actions_model.MaxJobNumPerRun
 

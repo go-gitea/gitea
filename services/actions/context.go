@@ -134,9 +134,8 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 
 	if attempt != nil {
 		gitContext["run_attempt"] = strconv.FormatInt(attempt.Attempt, 10)
-		// Only the attempt's trigger user is needed for triggering_actor. Avoid attempt.LoadAttributes,
-		// which also re-loads the run and the run's attributes that this function already holds (run is a
-		// parameter) — several needless queries on the hot task-dispatch path.
+		// Only the trigger user is needed for triggering_actor. attempt.LoadAttributes would also re-load
+		// the run this function already holds as a parameter, on the hot task-dispatch path.
 		if err := attempt.LoadTriggerUser(ctx); err != nil {
 			log.Error("GenerateGiteaContext: load trigger user of attempt %d: %v", attempt.ID, err)
 		}

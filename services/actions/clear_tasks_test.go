@@ -95,9 +95,8 @@ func TestShouldBlockRunByConcurrency_CancellingJobBlocks(t *testing.T) {
 	assert.True(t, shouldBlock)
 }
 
-// TestStopEndlessTasksSkipsCancelling verifies that a task running its post-cancel cleanup
-// (StatusCancelling) is not force-stopped by the endless-task sweep just because the job started
-// long ago; only a genuinely long-running (StatusRunning) task is stopped.
+// TestStopEndlessTasksSkipsCancelling verifies that a task running its post-cancel cleanup is not
+// force-stopped by the endless-task sweep just because the job started long ago.
 func TestStopEndlessTasksSkipsCancelling(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
