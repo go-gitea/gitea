@@ -321,9 +321,9 @@ func TestFindTaskNeeds(t *testing.T) {
 	assert.Equal(t, "bbb", ret["job1"].Outputs["output_b"])
 }
 
-// TestGenerateGiteaContext_TriggeringActor verifies that, with no explicit attempt, the context still
-// resolves triggering_actor from the run's latest attempt (distinct from actor, the run's trigger user).
-func TestGenerateGiteaContext_TriggeringActor(t *testing.T) {
+// TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,
+// use GetLatestAttempt to load the latest attempt and resolve attempt-related context variables.
+func TestGenerateGiteaContext_NilAttempt(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
