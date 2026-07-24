@@ -121,7 +121,7 @@ func TestToActionWorkflowRun_UsesTriggerEvent(t *testing.T) {
 	run.TriggerEvent = "schedule"
 
 	run.Repo = repo
-	apiRun, err := ToActionWorkflowRun(t.Context(), run, nil, false)
+	apiRun, err := ToActionWorkflowRun(t.Context(), run, repo, nil, false)
 	require.NoError(t, err)
 	assert.Equal(t, "schedule", apiRun.Event)
 }
