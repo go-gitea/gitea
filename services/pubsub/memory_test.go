@@ -67,7 +67,7 @@ func TestMemoryBroker_ConcurrentPublishSubscribeCancel(t *testing.T) {
 					return
 				default:
 					ch, cancel := b.Subscribe("topic")
-					// Drain a few messages then cancel — this exercises the
+					// Drain a few messages then cancel - this exercises the
 					// cancel/Publish interlock that prevents send-on-closed.
 					for range 3 {
 						select {

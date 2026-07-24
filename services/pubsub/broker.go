@@ -25,7 +25,7 @@ type Broker interface {
 }
 
 // DefaultBroker is wired by Init from setting.Websocket; nil until then.
-// Non-web entry points (e.g. CLI) skip Init, so publishers must nil-check.
+// Non-web entry points (e.g. CLI) skip Init, so publishers reachable without Init must nil-check.
 // Tests construct a broker explicitly (NewMemoryBroker) instead of relying on this.
 var DefaultBroker Broker
 

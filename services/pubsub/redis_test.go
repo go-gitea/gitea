@@ -47,7 +47,7 @@ func TestRedisBroker_CancelCleansTopicState(t *testing.T) {
 }
 
 // Backend-specific: two RedisBroker instances sharing one Redis simulate two
-// Gitea processes — a publish on one must reach a subscriber on the other.
+// Gitea processes - a publish on one must reach a subscriber on the other.
 func TestRedisBroker_CrossBroker(t *testing.T) {
 	mr := miniredis.RunT(t)
 	conn := "redis://" + mr.Addr() + "/0"
