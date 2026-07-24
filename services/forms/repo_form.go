@@ -375,6 +375,8 @@ func (f *NewMSTeamsHookForm) Validate(req *http.Request, errs binding.Errors) bi
 // NewFeishuHookForm form for creating feishu hook
 type NewFeishuHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
+	AppID      string `binding:"Required"`
+	AppSecret  string `binding:"Required"`
 	WebhookForm
 }
 
