@@ -239,4 +239,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest
+
+	// in:body
+	ComposerDevBranchOption api.ComposerDevBranchOption
 }

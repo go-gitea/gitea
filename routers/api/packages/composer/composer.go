@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
@@ -128,8 +129,20 @@ func EnumeratePackages(ctx *context.Context) {
 func PackageMetadata(ctx *context.Context) {
 	vendorName := ctx.PathParam("vendorname")
 	projectName := ctx.PathParam("projectname")
+	packageName := vendorName + "/" + projectName
+	includeDev := strings.HasSuffix(ctx.Req.URL.Path, "~dev.json")
 
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer, vendorName+"/"+projectName)
+	pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer, packageName)
+	if err != nil {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeComposer, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -148,7 +161,9 @@ func PackageMetadata(ctx *context.Context) {
 	resp := createPackageMetadataResponse(
 		ctx,
 		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/composer",
+		pkg,
 		pds,
+		includeDev,
 	)
 
 	ctx.JSON(http.StatusOK, resp)
@@ -220,7 +235,7 @@ func UploadPackage(ctx *context.Context) {
 				Name:        cp.Name,
 				Version:     cp.Version,
 			},
-			SemverCompatible: true,
+			SemverCompatible: false,
 			Creator:          ctx.Doer,
 			Metadata:         cp.Metadata,
 			VersionProperties: map[string]string{

@@ -27,3 +27,10 @@ type swaggerResponsePackageFileList struct {
 	// in:body
 	Body []api.PackageFile `json:"body"`
 }
+
+// ComposerDevBranch
+// swagger:response ComposerDevBranch
+type swaggerResponseComposerDevBranch struct {
+	// in:body
+	Body api.ComposerDevBranch `json:"body"`
+}

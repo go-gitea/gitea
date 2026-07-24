@@ -1685,6 +1685,8 @@ func Routes() *web.Router {
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
 		m.Group("/packages/{username}", func() {
+			m.Post("/composer/{vendor}/{project}/-/composer/dev-branch", bind(api.ComposerDevBranchOption{}), packages.CreateComposerDevBranch)
+
 			m.Group("/{type}/{name}", func() {
 				m.Get("/", packages.ListPackageVersions)
 				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)

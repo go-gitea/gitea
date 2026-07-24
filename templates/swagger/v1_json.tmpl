@@ -3908,6 +3908,53 @@
         }
       }
     },
+    "/packages/{owner}/composer/{vendor}/{project}/-/composer/dev-branch": {
+      "post": {
+        "tags": [
+          "package"
+        ],
+        "summary": "Create or update a Composer dev branch link",
+        "operationId": "createComposerDevBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the package",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "vendor of the Composer package",
+            "name": "vendor",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project of the Composer package",
+            "name": "project",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/ComposerDevBranchOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ComposerDevBranch"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/packages/{owner}/{type}/{name}": {
       "get": {
         "produces": [
@@ -23732,6 +23779,44 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "ComposerDevBranch": {
+      "description": "ComposerDevBranch represents a Composer dev branch link",
+      "type": "object",
+      "properties": {
+        "branch": {
+          "type": "string",
+          "x-go-name": "Branch"
+        },
+        "package": {
+          "type": "string",
+          "x-go-name": "Package"
+        },
+        "repo": {
+          "type": "string",
+          "x-go-name": "Repo"
+        },
+        "version": {
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "ComposerDevBranchOption": {
+      "description": "ComposerDevBranchOption describes a Composer dev branch link",
+      "type": "object",
+      "properties": {
+        "branch": {
+          "type": "string",
+          "x-go-name": "Branch"
+        },
+        "repo": {
+          "type": "string",
+          "x-go-name": "Repo"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "ContentsExtResponse": {
       "type": "object",
       "properties": {
@@ -31138,6 +31223,12 @@
       "description": "",
       "schema": {
         "$ref": "#/definitions/Compare"
+      }
+    },
+    "ComposerDevBranch": {
+      "description": "ComposerDevBranch",
+      "schema": {
+        "$ref": "#/definitions/ComposerDevBranch"
       }
     },
     "ContentsExtResponse": {

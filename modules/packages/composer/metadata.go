@@ -25,6 +25,13 @@ import (
 // TypeProperty is the name of the property for Composer package types
 const TypeProperty = "composer.type"
 
+const (
+	// DevBranchProperty is the version property for the linked Composer branch
+	DevBranchProperty = "composer.dev_branch"
+	// DevBranchRepoProperty is the version property for the linked Composer repository ID
+	DevBranchRepoProperty = "composer.dev_branch.repo_id"
+)
+
 var (
 	// ErrMissingComposerFile indicates a missing composer.json file
 	ErrMissingComposerFile = util.NewInvalidArgumentErrorf("composer.json file is missing")
