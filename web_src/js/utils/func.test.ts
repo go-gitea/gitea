@@ -1,6 +1,6 @@
 import {debounce, throttle} from './func.ts';
 
-test('debounce', () => {
+test('debounce', {concurrent: false}, () => {
   vi.useFakeTimers();
   const spy = vi.fn();
   const fn = debounce(spy, 10);
@@ -13,7 +13,7 @@ test('debounce', () => {
   vi.useRealTimers();
 });
 
-test('debounce leading', () => {
+test('debounce leading', {concurrent: false}, () => {
   vi.useFakeTimers();
   const spy = vi.fn();
   const fn = debounce(spy, 10, {leading: true, trailing: false});
@@ -25,7 +25,7 @@ test('debounce leading', () => {
   vi.useRealTimers();
 });
 
-test('debounce result', async () => {
+test('debounce result', {concurrent: false}, async () => {
   vi.useFakeTimers();
   const fn = debounce((value: number) => value * 2, 10);
   const first = fn(1);
@@ -36,7 +36,7 @@ test('debounce result', async () => {
   vi.useRealTimers();
 });
 
-test('debounce cancel', () => {
+test('debounce cancel', {concurrent: false}, () => {
   vi.useFakeTimers();
   const spy = vi.fn();
   const fn = debounce(spy, 10);
@@ -47,7 +47,7 @@ test('debounce cancel', () => {
   vi.useRealTimers();
 });
 
-test('throttle', () => {
+test('throttle', {concurrent: false}, () => {
   vi.useFakeTimers();
   const spy = vi.fn();
   const fn = throttle(spy, 10);
@@ -60,7 +60,7 @@ test('throttle', () => {
   vi.useRealTimers();
 });
 
-test('throttle trailing only', () => {
+test('throttle trailing only', {concurrent: false}, () => {
   vi.useFakeTimers();
   const spy = vi.fn();
   const fn = throttle(spy, 10, {leading: false});

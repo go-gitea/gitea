@@ -16,9 +16,9 @@ export type ThrottleOpts = {
   trailing?: boolean,
 };
 
-/** A debounced or throttled function. Calls collapsed into one invocation all settle with its result. */
+/** A debounced or throttled function. Calls collapsed into one invocation settle with its result, dropped calls never settle. */
 export type TimedFunction<T extends (...args: Array<any>) => any> = ((...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>) & {
-  /** Drop the pending invocation. Promises of dropped calls never settle. */
+  /** Drop the pending invocation */
   cancel: () => void,
 };
 
