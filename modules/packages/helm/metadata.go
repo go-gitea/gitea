@@ -5,6 +5,7 @@ package helm
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"io"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
+	"github.com/ProtonMail/go-crypto/openpgp/clearsign"
 	"github.com/hashicorp/go-version"
 	"go.yaml.in/yaml/v4"
 )
@@ -25,6 +27,8 @@ var (
 	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 	// ErrInvalidChart indicates an invalid chart
 	ErrInvalidChart = util.NewInvalidArgumentErrorf("chart is invalid")
+	// ErrInvalidProvenance indicates an invalid provenance file
+	ErrInvalidProvenance = util.NewInvalidArgumentErrorf("provenance file is invalid")
 )
 
 // Metadata for a Chart file. This models the structure of a Chart.yaml file.
@@ -127,4 +131,21 @@ func ParseChartFile(r io.Reader) (*Metadata, error) {
 	}
 
 	return metadata, nil
+}
+
+// ParseProvenanceFile parses a provenance file to retrieve the metadata of a Helm chart
+func ParseProvenanceFile(r io.Reader) (*Metadata, error) {
+	data, err := io.ReadAll(io.LimitReader(r, 1<<20))
+	if err != nil {
+		return nil, err
+	}
+
+	// A provenance file must be a clearsigned PGP message
+	block, _ := clearsign.Decode(data)
+	if block == nil {
+		return nil, ErrInvalidProvenance
+	}
+
+	// Use the plaintext content from the clearsigned message
+	return ParseChartFile(bytes.NewReader(block.Plaintext))
 }
