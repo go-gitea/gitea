@@ -8,17 +8,25 @@ const replacements: Array<[RegExp, string]> = [
 
 // render ANSI to HTML
 export function renderAnsiInto(el: HTMLElement, line: string) {
-  // create a fresh ansi_up instance because otherwise previous renders can influence
-  // the output of future renders, because ansi_up is stateful and remembers things like
-  // unclosed opening tags for colors.
-  const ansi_up = new AnsiUp();
-  ansi_up.use_classes = true;
-
   if (line.endsWith('\r\n')) {
     line = line.substring(0, line.length - 2);
   } else if (line.endsWith('\n')) {
     line = line.substring(0, line.length - 1);
   }
+
+  // skip ansi_up for lines that don't contain escape sequences
+  const needsAnsiRender = line.includes('\x1b') || line.includes('\r');
+  if (!needsAnsiRender) {
+    el.textContent = line;
+    if (line.includes('://')) renderAnsiPostProcessNode(el);
+    return;
+  }
+
+  // create a fresh ansi_up instance because otherwise previous renders can influence
+  // the output of future renders, because ansi_up is stateful and remembers things like
+  // unclosed opening tags for colors.
+  const ansi_up = new AnsiUp();
+  ansi_up.use_classes = true;
 
   if (line.includes('\x1b')) {
     for (const [regex, replacement] of replacements) {
