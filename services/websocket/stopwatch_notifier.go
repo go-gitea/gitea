@@ -15,11 +15,6 @@ import (
 	"gitea.dev/services/pubsub"
 )
 
-type stopwatchesEvent struct {
-	Type string          `json:"type"`
-	Data api.StopWatches `json:"data"`
-}
-
 // Call after any stopwatch start/stop/cancel so connected tabs refresh.
 func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
 	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(user.ID)) {
@@ -44,5 +39,5 @@ func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
 		data = apiSWs
 	}
 
-	publishUserEvent(user.ID, stopwatchesEvent{Type: EventStopwatches, Data: data})
+	publishUserEvent(user.ID, userEvent[api.StopWatches]{Type: EventStopwatches, Data: data})
 }

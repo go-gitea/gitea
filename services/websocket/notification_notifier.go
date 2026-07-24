@@ -13,6 +13,8 @@ import (
 	"gitea.dev/services/pubsub"
 )
 
+// Flat "count" sibling of "type", not the {type, data} userEvent envelope, so
+// it keeps its own struct to preserve the wire format.
 type notificationCountEvent struct {
 	Type  string `json:"type"`
 	Count int64  `json:"count"`
