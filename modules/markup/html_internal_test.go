@@ -355,62 +355,195 @@ func TestRegExp_sha1CurrentPattern(t *testing.T) {
 }
 
 func TestRegExp_anySHA1Pattern(t *testing.T) {
+	defer testModule.MockVariableValue(&setting.AppURL, TestAppURL)()
+	defer testModule.MockVariableValue(&setting.AppSubURL, "")()
+
 	testCases := map[string]anyHashPatternResult{
-		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js#L2703": {
-			CommitID:  "a644101ed04d0beacea864ce805e0c4f86ba1cd1",
-			SubPath:   "/test/unit/event.js",
-			QueryHash: "L2703",
-		},
-		"https://github.com/jquery/jquery/blob/a644101ed04d0beacea864ce805e0c4f86ba1cd1/test/unit/event.js": {
-			CommitID: "a644101ed04d0beacea864ce805e0c4f86ba1cd1",
-			SubPath:  "/test/unit/event.js",
-		},
-		"https://github.com/jquery/jquery/commit/0705be475092aede1eddae01319ec931fb9c65fc": {
+		"http://localhost:3000/jquery/jquery/commit/0705be475092aede1eddae01319ec931fb9c65fc": {
 			CommitID: "0705be475092aede1eddae01319ec931fb9c65fc",
 		},
-		"https://github.com/jquery/jquery/tree/0705be475092aede1eddae01319ec931fb9c65fc/src": {
-			CommitID: "0705be475092aede1eddae01319ec931fb9c65fc",
-			SubPath:  "/src",
-		},
-		"https://try.gogs.io/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2": {
+		"http://localhost:3000/gogs/gogs/commit/d8a994ef243349f321568f9e36d5c3f444b99cae#diff-2": {
 			CommitID:  "d8a994ef243349f321568f9e36d5c3f444b99cae",
 			QueryHash: "diff-2",
 		},
-		"non-url": {},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678?a=b#L1-L2": {
+		"http://localhost:3000/jquery/jquery/commit/0705be475092aede1eddae01": {
+			CommitID: "0705be475092aede1eddae01",
+		},
+		"http://localhost:3000/jquery/jquery/commit/0705be4": {
+			CommitID: "0705be4",
+		},
+		"http://localhost:3000/org/repo/commit/abc1234/file.go": {
+			CommitID: "abc1234",
+			SubPath:  "/file.go",
+		},
+		"http://localhost:3000/org/repo/commit/abc1234#L5-L10": {
+			CommitID:  "abc1234",
+			QueryHash: "L5-L10",
+		},
+		"http://localhost:3000/org/repo/commit/abc1234?w=1": {
+			CommitID: "abc1234",
+		},
+		// .patch/.diff are Gitea routes for the commit's raw diff
+		"http://localhost:3000/org/repo/commit/abc1234.patch": {
+			CommitID:  "abc1234",
+			CommitExt: ".patch",
+		},
+		"http://localhost:3000/org/repo/commit/abc1234d.diff": {
+			CommitID:  "abc1234d",
+			CommitExt: ".diff",
+		},
+		// /archive/{hash}.tar.gz is a Gitea route for downloading a commit archive
+		"http://localhost:3000/org/repo/archive/0123456789012345678901234567890123456789.tar.gz": {
+			CommitID:  "0123456789012345678901234567890123456789",
+			CommitExt: ".tar.gz",
+		},
+		"http://localhost:3000/org/repo/commit/1234567812345678123456781234567812345678123456781234567812345678?a=b#L1-L2": {
 			CommitID:  "1234567812345678123456781234567812345678123456781234567812345678",
 			QueryHash: "L1-L2",
 		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678.": {
-			CommitID: "1234567812345678123456781234567812345678123456781234567812345678",
+		"http://localhost:3000/org/repo/commit/1234567812345678123456781234567812345678.": {
+			CommitID: "1234567812345678123456781234567812345678",
 		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678/sub.": {
-			CommitID: "1234567812345678123456781234567812345678123456781234567812345678",
-			SubPath:  "/sub",
-		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678?a=b.": {
-			CommitID: "1234567812345678123456781234567812345678123456781234567812345678",
-		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678?a=b&c=d": {
-			CommitID: "1234567812345678123456781234567812345678123456781234567812345678",
-		},
-		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678#hash.": {
-			CommitID:  "1234567812345678123456781234567812345678123456781234567812345678",
+		"http://localhost:3000/org/repo/commit/abc1234#hash.": {
+			CommitID:  "abc1234",
 			QueryHash: "hash",
 		},
+		// Gitea routes that reference a commit by hash (RefTypeCommit)
+		"http://localhost:3000/org/repo/src/commit/abc1234/README.md": {
+			CommitID: "abc1234",
+			SubPath:  "/README.md",
+		},
+		"http://localhost:3000/org/repo/src/commit/abc1234/README.md#L5-L10": {
+			CommitID:  "abc1234",
+			SubPath:   "/README.md",
+			QueryHash: "L5-L10",
+		},
+		"http://localhost:3000/org/repo/raw/commit/abc1234/README.md": {
+			CommitID: "abc1234",
+			SubPath:  "/README.md",
+		},
+		"http://localhost:3000/org/repo/render/commit/abc1234/README.md": {
+			CommitID: "abc1234",
+			SubPath:  "/README.md",
+		},
+		"http://localhost:3000/org/repo/blame/commit/abc1234/README.md": {
+			CommitID: "abc1234",
+			SubPath:  "/README.md",
+		},
+		"http://localhost:3000/org/repo/commits/commit/abc1234": {
+			CommitID: "abc1234",
+		},
+
+		// cross-site URLs are rejected
+		"https://github.com/jquery/jquery/commit/0705be475092aede1eddae01319ec931fb9c65fc": {},
+		// directory named `commit` deep in a file path
+		"http://localhost:3000/org/repo/src/main/sub-dir/commit/20260304.txt": {},
+		// file-view URLs by branch name are not hash-referencing
+		"http://localhost:3000/foo/bar/src/main/20260304.txt": {},
+		// GitHub-style /blob/ and /tree/ URLs redirect to /src/... and are never hash-anchored commit URLs directly
+		"http://localhost:3000/foo/bar/blob/main/abcdef1/file":            {},
+		"http://localhost:3000/foo/bar/tree/0705be475092aede1eddae01/src": {},
+		"non-url": {},
 	}
 
 	for k, v := range testCases {
-		ret, ok := anyHashPatternExtract(k)
+		ret, ok := anyHashPatternExtract(t.Context(), k)
 		if v.CommitID == "" {
-			assert.False(t, ok)
+			assert.False(t, ok, "expected no match for %q", k)
 		} else {
 			assert.Equal(t, strings.TrimSuffix(k, "."), ret.FullURL)
 			assert.Equal(t, v.CommitID, ret.CommitID)
+			assert.Equal(t, v.CommitExt, ret.CommitExt)
 			assert.Equal(t, v.SubPath, ret.SubPath)
 			assert.Equal(t, v.QueryHash, ret.QueryHash)
 		}
 	}
+}
+
+func TestRegExp_anySHA1Pattern_AppSubURL(t *testing.T) {
+	// multi-segment AppSubURL deployments are supported: ParseGiteaSiteURL strips the prefix.
+	defer testModule.MockVariableValue(&setting.AppURL, "http://localhost:3000/a/b/c/")()
+	defer testModule.MockVariableValue(&setting.AppSubURL, "/a/b/c")()
+
+	ret, ok := anyHashPatternExtract(t.Context(), "http://localhost:3000/a/b/c/org/repo/commit/abc1234")
+	assert.True(t, ok)
+	assert.Equal(t, "abc1234", ret.CommitID)
+
+	_, ok = anyHashPatternExtract(t.Context(), "http://localhost:3000/org/repo/commit/abc1234")
+	assert.False(t, ok, "URL outside AppSubURL must be rejected")
+}
+
+func TestRegExp_comparePattern(t *testing.T) {
+	defer testModule.MockVariableValue(&setting.AppURL, TestAppURL)()
+	defer testModule.MockVariableValue(&setting.AppSubURL, "")()
+
+	hash1 := "0705be475092aede1eddae01319ec931fb9c65fc"
+	hash2 := "d8a994ef243349f321568f9e36d5c3f444b99cae"
+
+	testCases := map[string]comparePatternResult{
+		"http://localhost:3000/org/repo/compare/" + hash1 + "..." + hash2: {
+			Hash1: hash1, Dots: "...", Hash2: hash2,
+		},
+		// two-dot form
+		"http://localhost:3000/org/repo/compare/" + hash1 + ".." + hash2: {
+			Hash1: hash1, Dots: "..", Hash2: hash2,
+		},
+		// short hashes
+		"http://localhost:3000/org/repo/compare/0705be4...d8a994e": {
+			Hash1: "0705be4", Dots: "...", Hash2: "d8a994e",
+		},
+		// fragment
+		"http://localhost:3000/org/repo/compare/" + hash1 + "..." + hash2 + "#diff-2": {
+			Hash1: hash1, Dots: "...", Hash2: hash2, Fragment: "diff-2",
+		},
+		// trailing sentence period after hash2 is stripped
+		"http://localhost:3000/org/repo/compare/" + hash1 + "..." + hash2 + ".": {
+			Hash1: hash1, Dots: "...", Hash2: hash2,
+		},
+		// trailing sentence period after fragment is stripped
+		"http://localhost:3000/org/repo/compare/" + hash1 + "..." + hash2 + "#diff-2.": {
+			Hash1: hash1, Dots: "...", Hash2: hash2, Fragment: "diff-2",
+		},
+
+		// false positives that the old regex accepted (directory/file named with hash-range shape)
+		"http://localhost:3000/org/repo/src/" + hash1 + "..." + hash2:                             {},
+		"http://localhost:3000/org/repo/releases/" + hash1 + "..." + hash2:                        {},
+		"http://localhost:3000/org/repo/src/branch/main/sub-dir/compare/" + hash1 + "..." + hash2: {},
+		// missing second hash (compare requires both)
+		"http://localhost:3000/org/repo/compare/" + hash1 + "...": {},
+		// cross-site
+		"https://github.com/jquery/jquery/compare/" + hash1 + "..." + hash2: {},
+		"non-url": {},
+	}
+
+	for k, v := range testCases {
+		ret, ok := comparePatternExtract(t.Context(), k)
+		if v.Hash1 == "" {
+			assert.False(t, ok, "expected no match for %q", k)
+		} else {
+			assert.Equal(t, strings.TrimSuffix(k, "."), ret.FullURL)
+			assert.Equal(t, v.Hash1, ret.Hash1)
+			assert.Equal(t, v.Dots, ret.Dots)
+			assert.Equal(t, v.Hash2, ret.Hash2)
+			assert.Equal(t, v.Fragment, ret.Fragment)
+		}
+	}
+}
+
+func TestRegExp_comparePattern_AppSubURL(t *testing.T) {
+	defer testModule.MockVariableValue(&setting.AppURL, "http://localhost:3000/a/b/c/")()
+	defer testModule.MockVariableValue(&setting.AppSubURL, "/a/b/c")()
+
+	hash1 := "0705be475092aede1eddae01319ec931fb9c65fc"
+	hash2 := "d8a994ef243349f321568f9e36d5c3f444b99cae"
+
+	ret, ok := comparePatternExtract(t.Context(), "http://localhost:3000/a/b/c/org/repo/compare/"+hash1+"..."+hash2)
+	assert.True(t, ok)
+	assert.Equal(t, hash1, ret.Hash1)
+	assert.Equal(t, hash2, ret.Hash2)
+
+	_, ok = comparePatternExtract(t.Context(), "http://localhost:3000/org/repo/compare/"+hash1+"..."+hash2)
+	assert.False(t, ok, "URL outside AppSubURL must be rejected")
 }
 
 func TestRegExp_shortLinkPattern(t *testing.T) {
