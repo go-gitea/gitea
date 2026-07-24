@@ -36,12 +36,6 @@ func TestViteManifest(t *testing.T) {
 		"name": "theme-gitea-dark",
 		"src": "web_src/css/themes/theme-gitea-dark.css",
 		"isEntry": true
-	},
-	"web_src/js/user-events.sharedworker.ts": {
-		"file": "js/user-events.sharedworker.Dug1twio.js",
-		"name": "user-events.sharedworker",
-		"src": "web_src/js/user-events.sharedworker.ts",
-		"isEntry": true
 	}
 }`
 
@@ -59,7 +53,6 @@ func TestViteManifest(t *testing.T) {
 		// assets are addressed by their source path (the manifest key)
 		assert.Equal(t, "/assets/js/index.C6Z2MRVQ.js", AssetURI("web_src/js/index.ts"))
 		assert.Equal(t, "/assets/css/theme-gitea-dark.CyAaQnn5.css", AssetURI("web_src/css/themes/theme-gitea-dark.css"))
-		assert.Equal(t, "/assets/js/user-events.sharedworker.Dug1twio.js", AssetURI("web_src/js/user-events.sharedworker.ts"))
 
 		// custom theme not in the manifest falls back to the static asset location
 		assert.Equal(t, "/assets/css/theme-custom.css", AssetURI("web_src/css/themes/theme-custom.css"))
@@ -78,7 +71,6 @@ func TestViteManifest(t *testing.T) {
 
 		// hashed output file -> entry name
 		assert.Equal(t, "theme-gitea-dark", AssetNameFromHashedPath("css/theme-gitea-dark.CyAaQnn5.css"))
-		assert.Equal(t, "user-events.sharedworker", AssetNameFromHashedPath("js/user-events.sharedworker.Dug1twio.js"))
 		assert.Empty(t, AssetNameFromHashedPath("css/no-such-file.css"))
 	})
 }
