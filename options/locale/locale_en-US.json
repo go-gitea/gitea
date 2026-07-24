@@ -3038,6 +3038,7 @@
   "admin.users.send_register_notify": "Send User Registration Notification",
   "admin.users.new_success": "The user account \"%s\" has been created.",
   "admin.users.edit": "Edit",
+  "admin.users.impersonate": "Impersonate",
   "admin.users.auth_source": "Authentication Source",
   "admin.users.local": "Local",
   "admin.users.auth_login_name": "Authentication Sign-In Name",

@@ -48,19 +48,8 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		sess = newSess
 	}
 
-	_ = sess.Delete("openid_verified_uri")
-	_ = sess.Delete("openid_signin_remember")
-	_ = sess.Delete("openid_determined_email")
-	_ = sess.Delete("openid_determined_username")
-	_ = sess.Delete("twofaUid")
-	_ = sess.Delete("twofaRemember")
-	_ = sess.Delete("webauthnAssertion")
-	_ = sess.Delete("linkAccount")
-	err = sess.Set("uid", user.ID)
-	if err != nil {
-		log.Error(fmt.Sprintf("Error setting session: %v", err))
-	}
-	err = sess.Set("uname", user.Name)
+	ClearSessionKeysForSignIn(sess)
+	err = sess.Set(session.KeyUID, user.ID)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
