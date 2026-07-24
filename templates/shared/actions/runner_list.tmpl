@@ -62,6 +62,10 @@
 					{{if .AllowBulkActions}}
 					<th class="tw-w-8"><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select-all" aria-label="{{ctx.Locale.Tr "admin.notices.select_all"}}"></div></th>
 					{{end}}
+					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
+						{{ctx.Locale.Tr "actions.runners.name"}}
+						{{SortArrow "alphabetically" "reversealphabetically" .SortType false}}
+					</th>
 					<th data-sortt-asc="online" data-sortt-desc="offline">
 						{{ctx.Locale.Tr "actions.runners.status"}}
 						{{SortArrow "online" "offline" .SortType false}}
@@ -69,10 +73,6 @@
 					<th data-sortt-asc="newest" data-sortt-desc="oldest">
 						{{ctx.Locale.Tr "actions.runners.id"}}
 						{{SortArrow "oldest" "newest" .SortType false}}
-					</th>
-					<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
-						{{ctx.Locale.Tr "actions.runners.name"}}
-						{{SortArrow "alphabetically" "reversealphabetically" .SortType false}}
 					</th>
 					<th>{{ctx.Locale.Tr "actions.runners.version"}}</th>
 					<th>{{ctx.Locale.Tr "actions.runners.owner_type"}}</th>
@@ -87,12 +87,12 @@
 						{{if $.AllowBulkActions}}
 						<td><div class="ui checkbox tw-flex"><input type="checkbox" class="runner-bulk-select" data-runner-id="{{.ID}}" aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}}: {{.Name}}"></div></td>
 						{{end}}
+						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>
-							<span class="ui label {{if eq .StatusName "active"}}green{{else if eq .StatusName "idle"}}yellow{{end}}">{{.StatusLocaleName ctx.Locale}}</span>
+							<span class="ui label {{if eq .StatusName "active"}}green{{else if eq .StatusName "idle"}}yellow{{else if eq .StatusName "offline"}}red{{end}}">{{.StatusLocaleName ctx.Locale}}</span>
 							{{if .IsDisabled}}<span class="ui grey label">{{ctx.Locale.Tr "disabled"}}</span>{{end}}
 						</td>
 						<td>{{.ID}}</td>
-						<td><p data-tooltip-content="{{.Description}}">{{.Name}}</p></td>
 						<td>{{if .Version}}{{.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</td>
 						<td><span data-tooltip-content="{{.BelongsToOwnerName}}">{{.BelongsToOwnerType.LocaleString ctx.Locale}}</span></td>
 						<td>
