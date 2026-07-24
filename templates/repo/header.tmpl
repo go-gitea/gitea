@@ -7,6 +7,7 @@
 				{{template "repo/icon" .}}
 				<div class="flex-text-block tw-flex-wrap tw-text-18">
 					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
+					{{template "shared/badges" .Badges}}
 				</div>
 				<div class="flex-text-block tw-flex-wrap">
 					{{if .IsArchived}}

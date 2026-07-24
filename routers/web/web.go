@@ -808,6 +808,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/slug/{badge_slug}/delete", admin.DeleteBadge)
 			m.Combo("/slug/{badge_slug}/users").Get(admin.BadgeUsers).Post(admin.BadgeUsersPost)
 			m.Post("/slug/{badge_slug}/users/delete", admin.DeleteBadgeUser)
+			m.Combo("/slug/{badge_slug}/repos").Get(admin.BadgeRepos).Post(admin.BadgeReposPost)
+			m.Post("/slug/{badge_slug}/repos/delete", admin.DeleteBadgeRepo)
+			m.Combo("/slug/{badge_slug}/orgs").Get(admin.BadgeOrgs).Post(admin.BadgeOrgsPost)
+			m.Post("/slug/{badge_slug}/orgs/delete", admin.DeleteBadgeOrg)
 		})
 
 		m.Group("/emails", func() {

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -193,8 +194,9 @@ type Repository struct {
 
 	commonRenderingMetas map[string]string `xorm:"-"`
 
-	Units           []*RepoUnit   `xorm:"-"`
-	PrimaryLanguage *LanguageStat `xorm:"-"`
+	Units           []*RepoUnit     `xorm:"-"`
+	PrimaryLanguage *LanguageStat   `xorm:"-"`
+	Badges          []*badges.Badge `xorm:"-"`
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -346,6 +348,19 @@ func (repo *Repository) HTMLURL(ctxs ...context.Context) string {
 	// FIXME: this HTMLURL is still used in mail templates, so the "ctx" is not provided.
 	ctx := util.OptionalArg(ctxs, context.TODO())
 	return httplib.MakeAbsoluteURL(ctx, repo.Link())
+}
+
+// LoadBadges loads the badges of the repository
+func (repo *Repository) LoadBadges(ctx context.Context) error {
+	if repo.Badges != nil {
+		return nil
+	}
+	badges, _, err := GetRepoBadges(ctx, repo)
+	if err != nil {
+		return err
+	}
+	repo.Badges = badges
+	return nil
 }
 
 // CommitLink make link to by commit full ID

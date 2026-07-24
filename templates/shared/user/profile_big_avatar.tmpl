@@ -101,15 +101,7 @@
 			{{if .Badges}}
 			<li>
 				<div class="user-badges">
-				{{range .Badges}}
-					<span class="user-badge-item">
-						{{if .ImageURL}}
-						<img loading="lazy" width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-tooltip-content="{{.Description}}">
-						{{else}}
-						<span class="ui label user-badge-chip" data-tooltip-content="{{if .Description}}{{.Description}}{{else}}{{.Slug}}{{end}}">{{.Slug}}</span>
-						{{end}}
-					</span>
-				{{end}}
+				{{template "shared/badges" .Badges}}
 				</div>
 			</li>
 			{{end}}

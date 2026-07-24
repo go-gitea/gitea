@@ -132,6 +132,10 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		return
 	}
 
+	if err := repo_model.RepositoryList(repos).LoadBadges(ctx); err != nil {
+		log.Error("Failed loading badges: %v", err)
+	}
+
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Repos"] = repos
