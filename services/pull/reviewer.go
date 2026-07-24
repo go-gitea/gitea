@@ -61,12 +61,28 @@ func GetReviewers(ctx context.Context, repo *repo_model.Repository, doerID, post
 		}
 	}
 
+	var doer *user_model.User
+	if doerID > 0 {
+		var err error
+		doer, err = user_model.GetUserByID(ctx, doerID)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
+			return nil, err
+		}
+	}
+
 	// add owner after all users are loaded because we can avoid load owner twice
 	if repo.OwnerID != posterID && !repo.Owner.IsOrganization() && !uniqueUserIDs.Contains(repo.OwnerID) {
 		users = append(users, repo.Owner)
 	}
 
-	return users, nil
+	visibleUsers := users[:0]
+	for _, user := range users {
+		if user_model.IsUserVisibleToViewer(ctx, user, doer) {
+			visibleUsers = append(visibleUsers, user)
+		}
+	}
+
+	return visibleUsers, nil
 }
 
 // GetReviewerTeams get all teams can be requested to review
