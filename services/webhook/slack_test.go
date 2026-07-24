@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"strings"
 	"testing"
 
 	webhook_model "gitea.dev/models/webhook"
@@ -191,30 +190,4 @@ func TestSlackJSONPayload(t *testing.T) {
 	err = json.NewDecoder(req.Body).Decode(&body)
 	assert.NoError(t, err)
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>:<http://localhost:3000/test/repo/src/branch/test|test>] 2 new commits pushed by user1", body.Text)
-}
-
-func TestIsValidSlackChannel(t *testing.T) {
-	tt := []struct {
-		channelName string
-		expected    bool
-	}{
-		{"gitea", true},
-		{"#gitea", true},
-		{"개발알림", true},
-		{"#개발알림", true},
-		{"Gitea", false},
-		{"개발 알림", false},
-		{"개발!알림", false},
-		{strings.Repeat("가", 80), true},
-		{strings.Repeat("가", 81), false},
-		{"  ", false},
-		{"#", false},
-		{" #", false},
-		{"gitea   ", false},
-		{"  gitea", false},
-	}
-
-	for _, v := range tt {
-		assert.Equal(t, v.expected, IsValidSlackChannel(v.channelName))
-	}
 }

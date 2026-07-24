@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
 	webhook_model "gitea.dev/models/webhook"
@@ -317,10 +316,10 @@ func init() {
 	RegisterWebhookRequester(webhook_module.SLACK, newSlackRequest)
 }
 
-var slackChannel = regexp.MustCompile(`^#?[\p{Ll}\p{Lo}\p{Lm}\p{M}\p{Nd}_-]{1,80}$`)
-
-// IsValidSlackChannel validates a channel name against Slack's documented naming rules.
-// Gitea additionally accepts uncased Unicode letters and marks supported by Slack clients, and an optional leading #.
 func IsValidSlackChannel(name string) bool {
-	return slackChannel.MatchString(name)
+	// Some documents: https://api.slack.com/methods/conversations.rename#naming
+	// 1. Internal channel name should "only contain lowercase letters, numbers, hyphens, and underscores, and must be 80 characters or less"
+	// 2. Slack would also "modify it to meet the above criteria"
+	// Since we know nothing about the details, don't do any validation here.
+	return name != ""
 }
