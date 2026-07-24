@@ -232,7 +232,7 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 	if err != nil {
 		return nil, err
 	}
-	if err = util.RemoveAll(util.FilePathJoinAbs(tmpDir, ".git")); err != nil {
+	if err = util.RemoveAllWithRetry(util.FilePathJoinAbs(tmpDir, ".git")); err != nil {
 		return nil, err
 	}
 	return skippedFiles, nil
@@ -256,7 +256,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("GetTemplateSubmoduleCommits: %w", err)
 	}
 
-	if err = util.RemoveAll(filepath.Join(tmpDir, ".git")); err != nil {
+	if err = util.RemoveAllWithRetry(filepath.Join(tmpDir, ".git")); err != nil {
 		return fmt.Errorf("remove git dir: %w", err)
 	}
 
