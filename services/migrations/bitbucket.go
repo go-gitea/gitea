@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 var (
@@ -462,30 +463,16 @@ func bitbucketClosedTime(state string, updated time.Time) *time.Time {
 func bitbucketIssueLabels(issue bitbucketIssue) []*base.Label {
 	labels := make([]*base.Label, 0, 4)
 	for _, label := range []string{
-		bitbucketPrefixedLabel("kind", issue.Kind),
-		bitbucketPrefixedLabel("priority", issue.Priority),
-		bitbucketNamedLabel("component", issue.Component),
-		bitbucketNamedLabel("version", issue.Version),
+		util.Iif(issue.Kind == "", "", "kind/"+issue.Kind),
+		util.Iif(issue.Priority == "", "", "priority/"+issue.Priority),
+		util.Iif(issue.Component == nil || issue.Component.Name == "", "", "component/"+issue.Component.Name),
+		util.Iif(issue.Version == nil || issue.Version.Name == "", "", "version/"+issue.Version.Name),
 	} {
 		if label != "" {
 			labels = append(labels, &base.Label{Name: label, Color: bitbucketLabelColor(label)})
 		}
 	}
 	return labels
-}
-
-func bitbucketPrefixedLabel(prefix, value string) string {
-	if value == "" {
-		return ""
-	}
-	return prefix + "/" + value
-}
-
-func bitbucketNamedLabel(prefix string, value *bitbucketNamedValue) string {
-	if value == nil || value.Name == "" {
-		return ""
-	}
-	return bitbucketPrefixedLabel(prefix, value.Name)
 }
 
 func bitbucketLabelColor(name string) string {
@@ -535,13 +522,8 @@ func (b *BitbucketDownloader) fetchAllIssues(ctx context.Context) ([]bitbucketIs
 	return all, nil
 }
 
-func (b *BitbucketDownloader) ensureIssueIDs(ctx context.Context) error {
-	_, err := b.fetchAllIssues(ctx)
-	return err
-}
-
 func (b *BitbucketDownloader) bitbucketPRNumber(ctx context.Context, prID int64) (int64, error) {
-	if err := b.ensureIssueIDs(ctx); err != nil {
+	if _, err := b.fetchAllIssues(ctx); err != nil {
 		return 0, err
 	}
 	b.prIDFrozen = true
