@@ -11,9 +11,8 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -100,12 +99,8 @@ func TestShouldBlockRunByConcurrency_CancellingJobBlocks(t *testing.T) {
 func TestStopEndlessTasksSkipsCancelling(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	// StopEndlessTasks emits ready jobs onto the emitter queue, which is otherwise only set up by Init.
-	if jobEmitterQueue == nil {
-		jobEmitterQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "actions_ready_job_test", jobEmitterQueueHandler)
-		require.NotNil(t, jobEmitterQueue)
-		t.Cleanup(func() { jobEmitterQueue = nil }) // don't leak this test's queue into the rest of the package
-	}
+	// StopEndlessTasks emits ready jobs onto the emitter queue, mock it
+	defer test.MockVariableValue(&EmitJobsIfReadyByRun, func(runID int64) error { return nil })()
 
 	// well past the endless-task threshold, keyed on the task's start time
 	longAgo := timeutil.TimeStamp(time.Now().Add(-2 * setting.Actions.EndlessTaskTimeout).Unix())
