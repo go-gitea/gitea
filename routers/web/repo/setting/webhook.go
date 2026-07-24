@@ -47,11 +47,28 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Repo.RepoLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://docs.gitea.com/usage/webhooks")
 
-	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{RepoID: ctx.Repo.Repository.ID})
+	// Get the current page from the request
+	page := max(ctx.FormInt("page"), 1)
+
+	// Define the search options with pagination
+	opts := webhook.ListWebhookOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
+	}
+
+	// Get the count and the list (FindAndCount handles both)
+	ws, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
 	if err != nil {
-		ctx.ServerError("GetWebhooksByRepoID", err)
+		ctx.ServerError("FindAndCount", err)
 		return
 	}
+
+	// Create the Pager for the frontend
+	pager := context.NewPagination(int(count), opts.PageSize, page, 5)
+	ctx.Data["Page"] = pager
 	ctx.Data["Webhooks"] = ws
 
 	ctx.HTML(http.StatusOK, tplHooks)
