@@ -15,8 +15,8 @@ func repoCodeGitRepoManagedID(repoID int64) string {
 
 func (repo *Repository) CodeStorageRepo() gitrepo.RepositoryFacade {
 	id := repoCodeGitRepoManagedID(repo.ID)
-	repoPath := gitrepo.RepoCodeGitRepoRelativePath(repo.OwnerName, repo.Name)
-	return gitrepo.RepositoryManaged(id, repoPath)
+	relPath := gitrepo.RepoCodeGitRepoRelativePath(repo.OwnerName, repo.Name)
+	return gitrepo.RepositoryManaged(id, relPath)
 }
 
 func (repo *Repository) GitRepoLocation() string {

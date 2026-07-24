@@ -72,15 +72,10 @@ func (h *Hook) Name() string {
 // Update updates hook settings.
 func (h *Hook) Update() error {
 	if len(strings.TrimSpace(h.Content)) == 0 {
-		exist, err := util.IsExist(h.path)
-		if err != nil {
+		// empty content means to remove the file
+		err := util.RemoveWithRetry(h.path)
+		if err != nil && !os.IsNotExist(err) {
 			return err
-		}
-		if exist {
-			err := util.Remove(h.path)
-			if err != nil {
-				return err
-			}
 		}
 		h.IsActive = false
 		return nil
