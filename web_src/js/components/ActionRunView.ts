@@ -174,7 +174,8 @@ export function createActionRunViewStore(viewUrl: string) {
       viewData.runArtifacts = runResp.artifacts || [];
       const newRun = runResp.state.run;
       // Unchanged version: keep the summaries we already rendered (server omitted them).
-      if (newRun.jobSummariesVersion === viewData.currentRun.jobSummariesVersion) {
+      // An empty version never matches: it is both "no summaries" and the initial client state.
+      if (newRun.jobSummariesVersion && newRun.jobSummariesVersion === viewData.currentRun.jobSummariesVersion) {
         newRun.jobSummaries = viewData.currentRun.jobSummaries;
       }
       viewData.currentRun = newRun;

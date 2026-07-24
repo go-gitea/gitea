@@ -105,6 +105,7 @@ func TestStopEndlessTasksSkipsCancelling(t *testing.T) {
 	if jobEmitterQueue == nil {
 		jobEmitterQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "actions_ready_job_test", jobEmitterQueueHandler)
 		require.NotNil(t, jobEmitterQueue)
+		t.Cleanup(func() { jobEmitterQueue = nil }) // don't leak this test's queue into the rest of the package
 	}
 
 	// well past the endless-task threshold, keyed on the task's start time
