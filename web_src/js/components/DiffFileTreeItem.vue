@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {SvgIcon, type SvgName} from '../svg.ts';
-import {shallowRef} from 'vue';
+import {computed, shallowRef} from 'vue';
 import {type DiffStatus, type DiffTreeEntry, diffTreeStore} from '../modules/diff-file.ts';
 
 const props = defineProps<{
@@ -9,6 +9,7 @@ const props = defineProps<{
 
 const store = diffTreeStore();
 const collapsed = shallowRef(props.item.IsViewed);
+const diffStatusIcon = computed(() => getIconForDiffStatus(props.item.DiffStatus));
 
 function getIconForDiffStatus(pType: DiffStatus) {
   const diffTypes: Record<DiffStatus, { name: SvgName, classes: Array<string> }> = {
@@ -35,7 +36,7 @@ function getIconForDiffStatus(pType: DiffStatus) {
     </div>
 
     <div v-show="!collapsed" class="sub-items">
-      <DiffFileTreeItem v-for="childItem in item.Children" :key="childItem.DisplayName" :item="childItem"/>
+      <DiffFileTreeItem v-for="childItem in item.Children!" :key="childItem.DisplayName" :item="childItem"/>
     </div>
   </template>
   <a
@@ -48,8 +49,8 @@ function getIconForDiffStatus(pType: DiffStatus) {
     <span class="tw-contents" v-html="item.FileIcon"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.DisplayName }}</span>
     <SvgIcon
-      :name="getIconForDiffStatus(item.DiffStatus).name"
-      :class="getIconForDiffStatus(item.DiffStatus).classes"
+      :name="diffStatusIcon.name"
+      :class="diffStatusIcon.classes"
     />
   </a>
 </template>

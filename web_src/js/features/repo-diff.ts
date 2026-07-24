@@ -13,6 +13,7 @@ import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {performFetchActionTrigger} from './common-fetch-action.ts';
+import {applyFiltersToFileBoxes, diffTreeStore} from '../modules/diff-file.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -149,9 +150,10 @@ function initDiffHeaderPopup() {
   }
 }
 
-// Will be called when the show more (files) button has been pressed
+// Will be called when the show more (files) button has loaded more files
 function onShowMoreFiles() {
-  // TODO: replace these calls with the "observer.ts" methods
+  applyFiltersToFileBoxes(diffTreeStore());
+  // TODO: replace these calls with the "data-global-init" methods
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   initImageDiff();
@@ -170,9 +172,7 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
     const resp = await response.text();
     const respDoc = parseDom(resp, 'text/html');
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
-    // the response is a full HTML page, we need to extract the relevant contents:
-    // * append the newly loaded file list items to the existing list
-    const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
+    const respFileBoxesChildren = Array.from(respFileBoxes.children);
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
     onShowMoreFiles();
     return true;

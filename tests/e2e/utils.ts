@@ -67,11 +67,15 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
   }), 'apiStartStopwatch');
 }
 
-export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, newBranch, message}: {branch?: string; newBranch?: string; message?: string} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
-    headers: apiHeaders(),
-    data: {content: Buffer.from(content, 'utf8').toString('base64'), branch, new_branch: newBranch, message},
-  }), 'apiCreateFile');
+/** Commit one or more files in a single API call. */
+export async function apiCreateFiles(requestContext: APIRequestContext, owner: string, repo: string, files: Array<{path: string; content: string}>, {branch, newBranch, headers}: {branch?: string; newBranch?: string; headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents`, {
+    headers: headers || apiHeaders(),
+    data: {
+      branch, new_branch: newBranch,
+      files: files.map((file) => ({operation: 'create', path: file.path, content: Buffer.from(file.content, 'utf8').toString('base64')})),
+    },
+  }), 'apiCreateFiles');
 }
 
 export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, newBranch: string) {
