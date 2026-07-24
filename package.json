@@ -98,6 +98,7 @@
     "globals": "17.7.0",
     "happy-dom": "20.10.6",
     "jiti": "2.7.0",
+    "linguist-languages": "9.4.0",
     "markdownlint-cli": "0.49.1",
     "material-icon-theme": "5.36.1",
     "postcss-html": "1.8.1",
