@@ -260,22 +260,30 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	// TODO: a more efficient way to filter labels
 	log.Trace("runner labels: %v", runner.AgentLabels)
 
-	// Page through the waiting jobs oldest-first instead of loading the whole backlog into memory on every poll.
-	// Keyset pagination on (updated, id) is safe under concurrent claims:
-	// updated only moves forward, so the advancing cursor never skips a still-waiting job even as claimed jobs drop out.
+	// Page through the waiting jobs in pickup order instead of loading the whole backlog into memory on every poll.
+	// Order is (queue_rank ASC, updated ASC, id ASC): admins can promote a job by giving it a negative
+	// queue_rank (see MoveQueuedJob), so it sorts ahead of the natural rank-0 FIFO block.
+	// Keyset pagination on (queue_rank, updated, id) is safe under concurrent claims: updated only moves
+	// forward and reorders keep it unchanged (NoAutoTime), so the advancing cursor never skips a still-waiting
+	// job as claimed jobs drop out. queue_rank is the only mutable lead key: an admin reordering mid-scan can,
+	// in the rare >batch-size backlog case, cause a job to be re-visited (a harmless optimistic-lock no-op) or
+	// skipped this scan (recovered on the next poll, which the reorder's IncreaseTaskVersion triggers promptly).
+	var cursorRank int64
 	var cursorUpdated timeutil.TimeStamp
 	var cursorID int64
+	haveCursor := false
 	for {
 		cond := baseCond
-		if cursorID > 0 {
+		if haveCursor {
 			cond = cond.And(builder.Or(
-				builder.Gt{"updated": cursorUpdated},
-				builder.And(builder.Eq{"updated": cursorUpdated}, builder.Gt{"id": cursorID}),
+				builder.Gt{"queue_rank": cursorRank},
+				builder.And(builder.Eq{"queue_rank": cursorRank}, builder.Gt{"updated": cursorUpdated}),
+				builder.And(builder.Eq{"queue_rank": cursorRank}, builder.Eq{"updated": cursorUpdated}, builder.Gt{"id": cursorID}),
 			))
 		}
 
 		var jobs []*ActionRunJob
-		if err := e.Where(cond).Asc("updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
+		if err := e.Where(cond).Asc("queue_rank", "updated", "id").Limit(pickTaskBatchSize).Find(&jobs); err != nil {
 			return nil, false, err
 		}
 
@@ -298,7 +306,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			return nil, false, nil
 		}
 		last := jobs[len(jobs)-1]
-		cursorUpdated, cursorID = last.Updated, last.ID
+		cursorRank, cursorUpdated, cursorID = last.QueueRank, last.Updated, last.ID
+		haveCursor = true
 	}
 }
 

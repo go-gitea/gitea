@@ -9,5 +9,8 @@
 	{{if eq .PageType "scoped-workflows"}}
 		{{template "shared/actions/scoped_workflows" .}}
 	{{end}}
+	{{if eq .PageType "queue"}}
+		{{template "shared/actions/queue_list" .}}
+	{{end}}
 	</div>
 {{template "admin/layout_footer" .}}
