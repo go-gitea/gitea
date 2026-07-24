@@ -133,6 +133,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
+
+		// waitingCountByJobID limits initial Waiting slots per JobID to MaxParallel.
+		waitingCountByJobID := make(map[string]int)
+
 		for _, v := range jobs {
 			runJob, jobsToCancel, jobNeedsPostCommitEmit, err := insertRunJob(ctx, run, runAttempt, v, vars, inputs)
 			if err != nil {
@@ -140,6 +144,20 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 			}
 			cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 			needPostCommitEmit = needPostCommitEmit || jobNeedsPostCommitEmit
+
+			// Enforce max-parallel: excess jobs start as Blocked and are promoted
+			// by jobStatusResolver when a slot opens.
+			if runJob.Status == actions_model.StatusWaiting && runJob.MaxParallel > 0 {
+				if waitingCountByJobID[runJob.JobID] >= runJob.MaxParallel {
+					runJob.Status = actions_model.StatusBlocked
+					if _, err := actions_model.UpdateRunJob(ctx, runJob, nil, "status"); err != nil {
+						return err
+					}
+				} else {
+					waitingCountByJobID[runJob.JobID]++
+				}
+			}
+
 			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
 			hasWaitingJobs = hasWaitingJobs || (runJob.Status == actions_model.StatusWaiting && !runJob.IsReusableCaller)
 			runJobs = append(runJobs, runJob)
