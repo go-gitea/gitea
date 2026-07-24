@@ -39,17 +39,19 @@ func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) 
 
 	token, err := oauth2_provider.ParseToken(accessToken, oauth2_provider.DefaultSigningKey)
 	if err != nil {
-		log.Trace("oauth2.ParseToken: %v", err)
+		log.Warn("oauth2.ParseToken: %v", err)
 		return accessTokenScope, 0
 	}
 	var grant *auth_model.OAuth2Grant
 	if grant, err = auth_model.GetOAuth2GrantByID(ctx, token.GrantID); err != nil || grant == nil {
+		log.Warn("oauth2: grant not found for token grantID=%d: %v", token.GrantID, err)
 		return accessTokenScope, 0
 	}
 	if token.Kind != oauth2_provider.KindAccessToken {
 		return accessTokenScope, 0
 	}
 	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
+		log.Warn("oauth2: token expired or not yet valid, grantID=%d expiresAt=%v issuedAt=%v", token.GrantID, token.ExpiresAt, token.IssuedAt)
 		return accessTokenScope, 0
 	}
 	accessTokenScope = oauth2_provider.GrantAdditionalScopes(grant.Scope)
