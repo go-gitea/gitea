@@ -87,6 +87,11 @@ linters:
         - name: increment-decrement
         - name: modifies-value-receiver
         - name: package-comments
+        - name: package-naming
+          arguments:
+            - conventionNameCheckRegex: '^[a-z][a-z0-9_]*$' # underscores are used by migration packages
+              skipDefaultBadNameCheck: true
+              skipCollisionWithCommonStd: true
         - name: redefines-builtin-id
         - name: superfluous-else
         - name: time-naming
@@ -96,7 +101,7 @@ linters:
           arguments:
             - [] # AllowList - do not remove as args for the rule are positional and won't work without lists first
             - [] # DenyList
-            - - skip-package-name-checks: true # supress errors from underscore in migration packages
+            - - skipInitialismNameChecks: true
     staticcheck:
       checks:
         - all
@@ -158,9 +163,6 @@ linters:
       - .venv
       - public
       - web_src
-      - third_party$
-      - builtin$
-      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
