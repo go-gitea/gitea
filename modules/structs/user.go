@@ -80,8 +80,9 @@ type UserSettings struct {
 	Theme         string `json:"theme"`
 	DiffViewStyle string `json:"diff_view_style"`
 	// Privacy
-	HideEmail    bool `json:"hide_email"`
-	HideActivity bool `json:"hide_activity"`
+	HideEmail           bool `json:"hide_email"`
+	HideActivity        bool `json:"hide_activity"`
+	ShowPrivateActivity bool `json:"show_private_activity"`
 }
 
 // UserSettingsOptions represents options to change user settings
@@ -95,8 +96,9 @@ type UserSettingsOptions struct {
 	Theme         *string `json:"theme"`
 	DiffViewStyle *string `json:"diff_view_style"`
 	// Privacy
-	HideEmail    *bool `json:"hide_email"`
-	HideActivity *bool `json:"hide_activity"`
+	HideEmail           *bool `json:"hide_email"`
+	HideActivity        *bool `json:"hide_activity"`
+	ShowPrivateActivity *bool `json:"show_private_activity"`
 }
 
 // RenameUserOption options when renaming a user

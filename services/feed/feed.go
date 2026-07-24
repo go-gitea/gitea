@@ -29,6 +29,36 @@ func GetFeeds(ctx context.Context, opts activities_model.GetFeedsOptions) (activ
 	return activities_model.GetFeeds(ctx, opts)
 }
 
+// BuildHiddenActivityRollups fetches the requested user's per-day rollups of
+// private-repository contributions for the given visible feed page and maps
+// each rollup to the feed position it renders after (key -1 renders before the
+// first entry), so the caller can interleave them chronologically with the
+// visible feed. It returns nil when there is nothing to show.
+func BuildHiddenActivityRollups(ctx context.Context, opts activities_model.GetFeedsOptions, items activities_model.ActionList) (map[int][]*activities_model.HiddenActivityRollup, error) {
+	rollups, err := activities_model.FindHiddenUserActivityRollups(ctx, opts, items)
+	if err != nil {
+		return nil, err
+	}
+	if len(rollups) == 0 {
+		return nil, nil //nolint:nilnil // nil map signals "no rollups to render"
+	}
+
+	// rollups and items are both newest-first; a rollup, anchored at its day's
+	// midnight, renders after that day's last visible item
+	feedRollups := make(map[int][]*activities_model.HiddenActivityRollup)
+	ri := 0
+	for i, item := range items {
+		for ri < len(rollups) && rollups[ri].Time > item.CreatedUnix {
+			feedRollups[i-1] = append(feedRollups[i-1], rollups[ri])
+			ri++
+		}
+	}
+	for ; ri < len(rollups); ri++ {
+		feedRollups[len(items)-1] = append(feedRollups[len(items)-1], rollups[ri])
+	}
+	return feedRollups, nil
+}
+
 // notifyWatchers creates batch of actions for every watcher.
 // It could insert duplicate actions for a repository action, like this:
 // * Original action: UserID=1 (the real actor), ActUserID=1

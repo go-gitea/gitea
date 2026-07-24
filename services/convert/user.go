@@ -88,15 +88,16 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 // User2UserSettings return UserSettings based on a user
 func User2UserSettings(user *user_model.User) api.UserSettings {
 	return api.UserSettings{
-		FullName:      user.FullName,
-		Website:       user.Website,
-		Location:      user.Location,
-		Language:      user.Language,
-		Description:   user.Description,
-		Theme:         user.Theme,
-		HideEmail:     user.KeepEmailPrivate,
-		HideActivity:  user.KeepActivityPrivate,
-		DiffViewStyle: user.DiffViewStyle,
+		FullName:            user.FullName,
+		Website:             user.Website,
+		Location:            user.Location,
+		Language:            user.Language,
+		Description:         user.Description,
+		Theme:               user.Theme,
+		HideEmail:           user.KeepEmailPrivate,
+		HideActivity:        user.KeepActivityPrivate,
+		ShowPrivateActivity: user.ShowPrivateActivity,
+		DiffViewStyle:       user.DiffViewStyle,
 	}
 }
 

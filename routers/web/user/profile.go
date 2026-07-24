@@ -174,7 +174,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		if showPrivate && context.TokenIsPublicOnly(ctx) {
 			showPrivate = false
 		}
-		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
+		feedsOpts := activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
@@ -185,13 +185,31 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 				PageSize: pagingNum,
 				Page:     page,
 			},
-		})
+		}
+		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, feedsOpts)
 		if err != nil {
 			ctx.ServerError("GetFeeds", err)
 			return
 		}
 		ctx.Data["Feeds"] = items
 		ctx.Data["Date"] = date
+
+		// when the user opted in to showing private contributions, tell viewers
+		// how many actions per day they cannot see (counts only, no details),
+		// interleaved chronologically with the visible entries; gated on the
+		// heatmap being enabled since these counts mirror it
+		if !showPrivate && setting.Service.EnableUserHeatmap &&
+			!ctx.ContextUser.IsOrganization() && ctx.ContextUser.ShowPrivateActivity &&
+			activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
+			feedRollups, err := feed_service.BuildHiddenActivityRollups(ctx, feedsOpts, items)
+			if err != nil {
+				ctx.ServerError("BuildHiddenActivityRollups", err)
+				return
+			}
+			if len(feedRollups) > 0 {
+				ctx.Data["FeedRollups"] = feedRollups
+			}
+		}
 		curRows = len(items)
 		total = feedCount
 	case "stars":
