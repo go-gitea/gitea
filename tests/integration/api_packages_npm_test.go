@@ -4,8 +4,13 @@
 package integration
 
 import (
+	"compress/gzip"
+	"crypto/sha1"
+	"crypto/sha512"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -18,6 +23,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/packages/npm"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +49,18 @@ func TestPackageNpm(t *testing.T) {
 	repoURL := "http://localhost:3000/gitea/test.git"
 	repoDirectory := "package-subdir"
 
-	data := "H4sIAAAAAAAAA+3WXWuDMBQG4F77K4LXqyaaqB0MBtvFoDDG2B8INqxurYpJR6H0vy+2Cl0/2MZs9/U+N5acU5Ji36OefyfnN0qOVKX9UqbP8lH1OkatiPPV1dq+UhrbWigiyqiII7vOWMSiHpl3fZB9ZtrIyh7lFHv9QCEl0mRTdcHihCc8ZoPEY7EYUB7Q0LHVdLc6qKsidr777PB1TeT9Y+6xirgQh/Nff36TfzsuWI+IYx6q1VX+t3/cL9He/92ngPeki7yTPT4//zkNOOb/Keyf/+2Ex/z/69r8dx76De/lP+DhVv5DFtj3v5Nk8p/P/4VDiJvLqXLPiXup06JUvlHa9Js/hHtWN7zY50JW5HUP86jH+mXVVEZKp1VWmqb6YL9KrjfWVk1yZsZFVdeHt/xqGN6vl9dd2q4v3LLQJsvtvZhM6j6Vjgsyztyls8SYAQAAAAAAAAAAAAAAAPioVyo2wyEAKAAA"
+	// Build a fresh tarball at test time so future edits (e.g. flipping the
+	// install-script hook) don't need re-baked shasum/integrity/size constants.
+	tarball := test.WriteTarCompression(func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }, map[string]string{
+		"package/package.json": `{"name":"` + packageName + `","version":"` + packageVersion + `","scripts":{"postinstall":"echo hi"}}`,
+	})
+	tarballBytes := tarball.Bytes()
+	tarballSize := int64(len(tarballBytes))
+	data := base64.StdEncoding.EncodeToString(tarballBytes)
+	sha1Sum := sha1.Sum(tarballBytes)
+	shasum := hex.EncodeToString(sha1Sum[:])
+	sha512Sum := sha512.Sum512(tarballBytes)
+	integrity := "sha512-" + base64.StdEncoding.EncodeToString(sha512Sum[:])
 
 	buildUpload := func(version string) string {
 		return `{
@@ -65,8 +82,8 @@ func TestPackageNpm(t *testing.T) {
         	  "` + packageBinName + `": "` + packageBinPath + `"
       	  },
 					"dist": {
-					  "integrity": "sha512-LAy2TsMvXUKBPHi7NCHHZKhrDt43Uz9Gd5eeK617bE0+3eMMpWYQ3yZ+aocbVY5iF8YHupE5mPpSUqfTju+i8A==",
-					  "shasum": "97bd871c24af7a7acbaa2e64038599c570d876e3"
+					  "integrity": "` + integrity + `",
+					  "shasum": "` + shasum + `"
 					},
 					"repository": {
 						"type": "` + repoType + `",
@@ -143,7 +160,7 @@ func TestPackageNpm(t *testing.T) {
 
 		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(363), pb.Size)
+		assert.Equal(t, tarballSize, pb.Size)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
@@ -202,8 +219,8 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageDescription, pmv.Description)
 		assert.Equal(t, packageAuthor, pmv.Author.Name)
 		assert.Equal(t, packageBinPath, pmv.Bin[packageBinName])
-		assert.Equal(t, "sha512-LAy2TsMvXUKBPHi7NCHHZKhrDt43Uz9Gd5eeK617bE0+3eMMpWYQ3yZ+aocbVY5iF8YHupE5mPpSUqfTju+i8A==", pmv.Dist.Integrity)
-		assert.Equal(t, "97bd871c24af7a7acbaa2e64038599c570d876e3", pmv.Dist.Shasum)
+		assert.Equal(t, integrity, pmv.Dist.Integrity)
+		assert.Equal(t, shasum, pmv.Dist.Shasum)
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
 		assert.Equal(t, repoType, result.Repository.Type)
 		assert.Equal(t, repoURL, result.Repository.URL)
@@ -441,8 +458,8 @@ func TestPackageNpm(t *testing.T) {
 					"version": "` + claimVersion + `",
 					"_hasShrinkwrap": true,
 					"dist": {
-						"integrity": "sha512-LAy2TsMvXUKBPHi7NCHHZKhrDt43Uz9Gd5eeK617bE0+3eMMpWYQ3yZ+aocbVY5iF8YHupE5mPpSUqfTju+i8A==",
-						"shasum": "97bd871c24af7a7acbaa2e64038599c570d876e3"
+						"integrity": "` + integrity + `",
+						"shasum": "` + shasum + `"
 					}
 				}
 			},
