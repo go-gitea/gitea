@@ -186,7 +186,6 @@ export default defineComponent({
       this.reposFilter = filter;
       this.repos = [];
       this.page = 1;
-      this.counts[`${filter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
       this.searchRepos();
     },
 
@@ -247,7 +246,6 @@ export default defineComponent({
       }
       this.page = 1;
       this.repos = [];
-      this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
       this.searchRepos();
     },
 
@@ -261,7 +259,6 @@ export default defineComponent({
       }
       this.page = 1;
       this.repos = [];
-      this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
       this.searchRepos();
     },
 
@@ -276,7 +273,6 @@ export default defineComponent({
         this.page = 1;
       }
       this.repos = [];
-      this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
       await this.searchRepos();
     },
 
@@ -453,23 +449,23 @@ export default defineComponent({
           <div class="overflow-menu-items tw-justify-center">
             <a class="item" tabindex="0" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
               {{ textAll }}
-              <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+              <div v-show="reposFilter === 'all'" :class="{'tw-invisible': repoTypeCount === undefined}" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
             <a class="item" tabindex="0" :class="{active: reposFilter === 'sources'}" @click="changeReposFilter('sources')">
               {{ textSources }}
-              <div v-show="reposFilter === 'sources'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+              <div v-show="reposFilter === 'sources'" :class="{'tw-invisible': repoTypeCount === undefined}" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
             <a class="item" tabindex="0" :class="{active: reposFilter === 'forks'}" @click="changeReposFilter('forks')">
               {{ textForks }}
-              <div v-show="reposFilter === 'forks'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+              <div v-show="reposFilter === 'forks'" :class="{'tw-invisible': repoTypeCount === undefined}" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
             <a class="item" tabindex="0" :class="{active: reposFilter === 'mirrors'}" @click="changeReposFilter('mirrors')" v-if="isMirrorsEnabled">
               {{ textMirrors }}
-              <div v-show="reposFilter === 'mirrors'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+              <div v-show="reposFilter === 'mirrors'" :class="{'tw-invisible': repoTypeCount === undefined}" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
             <a class="item" tabindex="0" :class="{active: reposFilter === 'collaborative'}" @click="changeReposFilter('collaborative')">
               {{ textCollaborative }}
-              <div v-show="reposFilter === 'collaborative'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
+              <div v-show="reposFilter === 'collaborative'" :class="{'tw-invisible': repoTypeCount === undefined}" class="ui circular mini grey label">{{ repoTypeCount }}</div>
             </a>
           </div>
         </overflow-menu>
