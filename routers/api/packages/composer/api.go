@@ -4,6 +4,7 @@
 package composer
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -12,6 +13,9 @@ import (
 	packages_model "gitea.dev/models/packages"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	composer_module "gitea.dev/modules/packages/composer"
 	"gitea.dev/modules/util"
@@ -75,19 +79,42 @@ type PackageMetadataResponse struct {
 // https://getcomposer.org/doc/05-repositories.md#package
 type PackageVersionMetadata struct {
 	*composer_module.Metadata
-	Name    string    `json:"name"`
-	Version string    `json:"version"`
-	Type    string    `json:"type"`
-	Created time.Time `json:"time"`
-	Dist    Dist      `json:"dist"`
-	Source  Source    `json:"source"`
+	RawMetadata       map[string]any `json:"-"`
+	Name              string         `json:"name"`
+	Version           string         `json:"version"`
+	VersionNormalized string         `json:"version_normalized,omitempty"`
+	Type              string         `json:"type"`
+	Created           time.Time      `json:"time"`
+	PublishedTime     time.Time      `json:"published-time,omitempty"`
+	DefaultBranch     bool           `json:"default-branch,omitempty"`
+	Dist              Dist           `json:"dist"`
+	Source            Source         `json:"source"`
+}
+
+func (p PackageVersionMetadata) MarshalJSON() ([]byte, error) {
+	type packageVersionMetadata PackageVersionMetadata
+	data := make(map[string]any, len(p.RawMetadata)+8)
+	for key, value := range p.RawMetadata {
+		if key != "name" && key != "version" && key != "type" {
+			data[key] = value
+		}
+	}
+	bytes, err := json.Marshal((*packageVersionMetadata)(&p))
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(bytes, &data); err != nil {
+		return nil, err
+	}
+	return json.Marshal(data)
 }
 
 // Dist contains package download information
 type Dist struct {
-	Type     string `json:"type"`
-	URL      string `json:"url"`
-	Checksum string `json:"shasum"`
+	Type      string `json:"type"`
+	URL       string `json:"url"`
+	Checksum  string `json:"shasum"`
+	Reference string `json:"reference,omitempty"`
 }
 
 // Source contains package source information
@@ -193,21 +220,67 @@ func createDevBranchPackageMetadata(ctx *context.Context, packageType string, pd
 	if branch == "" {
 		branch = pd.Version.Version[len("dev-"):]
 	}
+	commit, rawMetadata := loadDevBranchComposerMetadata(ctx, repo, branch)
+	reference := branch
+	created := pd.Version.CreatedUnix.AsLocalTime()
+	if commit != nil {
+		reference = commit.ID.String()
+		created = commit.Committer.When
+	}
+	if rawPackageType, ok := rawMetadata["type"].(string); ok && rawPackageType != "" {
+		packageType = rawPackageType
+	}
 
 	return &PackageVersionMetadata{
-		Name:     pd.Package.Name,
-		Version:  pd.Version.Version,
-		Type:     packageType,
-		Created:  pd.Version.CreatedUnix.AsLocalTime(),
-		Metadata: pd.Metadata.(*composer_module.Metadata),
+		Name:              pd.Package.Name,
+		Version:           pd.Version.Version,
+		VersionNormalized: pd.Version.Version,
+		Type:              packageType,
+		Created:           created,
+		PublishedTime:     pd.Version.CreatedUnix.AsLocalTime(),
+		DefaultBranch:     branch == repo.DefaultBranch,
+		RawMetadata:       rawMetadata,
+		Metadata:          pd.Metadata.(*composer_module.Metadata),
 		Dist: Dist{
-			Type: "zip",
-			URL:  repo.HTMLURL(ctx) + "/archive/" + util.PathEscapeSegments(branch) + ".zip",
+			Type:      "zip",
+			URL:       repo.HTMLURL(ctx) + "/archive/" + util.PathEscapeSegments(branch) + ".zip",
+			Reference: reference,
 		},
 		Source: Source{
 			URL:       repo.HTMLURL(ctx),
 			Type:      "git",
-			Reference: branch,
+			Reference: reference,
 		},
 	}, true
+}
+
+func loadDevBranchComposerMetadata(ctx *context.Context, repo *repo_model.Repository, branch string) (*git.Commit, map[string]any) {
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		log.Error("OpenRepository[%s]: %v", repo.FullName(), err)
+		return nil, nil
+	}
+	defer gitRepo.Close()
+
+	commit, err := gitRepo.GetBranchCommit(branch)
+	if err != nil {
+		log.Error("GetBranchCommit[%s:%s]: %v", repo.FullName(), branch, err)
+		return nil, nil
+	}
+
+	content, err := commit.GetFileContent("composer.json", 10*1024*1024)
+	if err != nil {
+		if !git.IsErrNotExist(err) && !errors.Is(err, git.ErrNotExist{}) {
+			log.Error("GetFileContent[%s:%s:composer.json]: %v", repo.FullName(), branch, err)
+		}
+		return commit, nil
+	}
+
+	var metadata map[string]any
+	if err := json.Unmarshal([]byte(content), &metadata); err != nil {
+		log.Error("Unmarshal composer.json metadata[%s:%s]: %v", repo.FullName(), branch, err)
+		return commit, nil
+	}
+
+	return commit, metadata
 }

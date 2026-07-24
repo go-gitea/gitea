@@ -15,6 +15,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/gitrepo"
 	composer_module "gitea.dev/modules/packages/composer"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -302,17 +303,23 @@ func TestPackageComposer(t *testing.T) {
 		devPackageName := devVendorName + "/" + devProjectName
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+		masterCommitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
+		assert.NoError(t, err)
+
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/packages/%s/composer/%s/%s/-/composer/dev-branch", user.Name, devVendorName, devProjectName), api.ComposerDevBranchOption{
 			Repo:   repo1.Name,
-			Branch: "feature/1",
+			Branch: repo1.DefaultBranch,
 		}).AddTokenAuth(writePackageToken)
 		resp := MakeRequest(t, req, http.StatusCreated)
 
 		devBranch := DecodeJSON(t, resp, &api.ComposerDevBranch{})
 		assert.Equal(t, devPackageName, devBranch.Package)
-		assert.Equal(t, "dev-feature/1", devBranch.Version)
+		assert.Equal(t, "dev-master", devBranch.Version)
 		assert.Equal(t, repo1.Name, devBranch.Repo)
-		assert.Equal(t, "feature/1", devBranch.Branch)
+		assert.Equal(t, repo1.DefaultBranch, devBranch.Branch)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, devVendorName, devProjectName)).
 			AddBasicAuth(user.Name)
@@ -332,14 +339,17 @@ func TestPackageComposer(t *testing.T) {
 		pkgs = result.Packages[devPackageName]
 		assert.Len(t, pkgs, 1)
 		assert.Equal(t, devPackageName, pkgs[0].Name)
-		assert.Equal(t, "dev-feature/1", pkgs[0].Version)
+		assert.Equal(t, "dev-master", pkgs[0].Version)
+		assert.Equal(t, "dev-master", pkgs[0].VersionNormalized)
 		assert.Equal(t, "library", pkgs[0].Type)
+		assert.True(t, pkgs[0].DefaultBranch)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, repo1.HTMLURL()+"/archive/feature/1.zip", pkgs[0].Dist.URL)
+		assert.Equal(t, repo1.HTMLURL()+"/archive/master.zip", pkgs[0].Dist.URL)
 		assert.Empty(t, pkgs[0].Dist.Checksum)
+		assert.Equal(t, masterCommitID, pkgs[0].Dist.Reference)
 		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
 		assert.Equal(t, "git", pkgs[0].Source.Type)
-		assert.Equal(t, "feature/1", pkgs[0].Source.Reference)
+		assert.Equal(t, masterCommitID, pkgs[0].Source.Reference)
 
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/packages/%s/composer/%s/%s/-/composer/dev-branch", user.Name, devVendorName, "missing-repo-package"), api.ComposerDevBranchOption{
 			Branch: "master",
@@ -356,7 +366,7 @@ func TestPackageComposer(t *testing.T) {
 			LowerName:        linkedPackageName,
 			SemverCompatible: false,
 		}
-		_, err := packages.TryInsertPackage(t.Context(), linkedPkg)
+		_, err = packages.TryInsertPackage(t.Context(), linkedPkg)
 		assert.NoError(t, err)
 
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/packages/%s/composer/%s/%s/-/composer/dev-branch", user.Name, devVendorName, linkedProjectName), api.ComposerDevBranchOption{
@@ -380,7 +390,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.Equal(t, "dev-master", pkgs[0].Version)
 		assert.Equal(t, repo1.HTMLURL()+"/archive/master.zip", pkgs[0].Dist.URL)
 		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
-		assert.Equal(t, "master", pkgs[0].Source.Reference)
+		assert.Equal(t, masterCommitID, pkgs[0].Source.Reference)
 	})
 
 	t.Run("WebVisibilityBadge", func(t *testing.T) {
