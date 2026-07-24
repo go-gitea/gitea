@@ -16,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitrepo"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
@@ -87,9 +88,9 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := user_model.UserPath(org.Name)
+	path := gitrepo.UserLocalPath(org.Name)
 
-	if err := util.RemoveAll(path); err != nil {
+	if err := util.RemoveAllWithRetry(path); err != nil {
 		return fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 	}
 
