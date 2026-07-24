@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web/middleware"
+	oauth2_source "gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/webtheme"
 )
 
@@ -76,6 +77,14 @@ func (c TemplateContext) CurrentWebBanner() *setting.WebBannerType {
 		return &banner
 	}
 	return nil
+}
+
+func (c TemplateContext) CurrentRequiredAdditionalInfoFailureWarning() *oauth2_source.RequiredAdditionalInfoFailureWarning {
+	webCtx := GetWebContext(c)
+	if webCtx == nil || webCtx.Doer == nil || !webCtx.Doer.IsAdmin {
+		return nil
+	}
+	return oauth2_source.GetRequiredAdditionalInfoFailureWarning(webCtx.Cache)
 }
 
 // AppFullLink returns a full URL link with AppSubURL for the given app link (no AppSubURL)
