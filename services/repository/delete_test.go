@@ -62,7 +62,7 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 	// One row per table that repository deletion used to leave behind (#38494).
 	assert.NoError(t, db.Insert(t.Context(),
 		&actions_model.ActionVariable{RepoID: 1, Name: "to_purge", Data: "value"},
-		&actions_model.ActionRunAttempt{RepoID: 1, RunID: 791, Attempt: 1},
+		&actions_model.ActionRunAttempt{RepoID: 1, RunID: unittest.NonexistentID, Attempt: 1},
 		&actions_model.ActionTasksVersion{RepoID: 1, Version: 1},
 		&git_model.RenamedBranch{RepoID: 1, From: "old-name", To: "new-name"},
 		&git_model.CommitStatusSummary{RepoID: 1, SHA: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef", State: "success"},
