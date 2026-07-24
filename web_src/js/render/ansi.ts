@@ -14,8 +14,7 @@ export function renderAnsiInto(el: HTMLElement, line: string) {
     line = line.substring(0, line.length - 1);
   }
 
-  // skip ansi_up for lines that don't contain escape sequences
-  if (!line.includes('\x1b') && !line.includes('\r')) {
+  // skip ansi_up for plain lines (no ANSI escapes) and no carriage-return ("\r") progress updates
     el.textContent = line;
   } else {
     el.innerHTML = renderAnsiToHtml(line);
