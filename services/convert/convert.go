@@ -258,9 +258,13 @@ func ToActionTask(ctx context.Context, t *actions_model.ActionTask) (*api.Action
 	}, nil
 }
 
-func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, excludePullRequests bool) (_ *api.ActionWorkflowRun, err error) {
+func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, repo *repo_model.Repository, attempt *actions_model.ActionRunAttempt, excludePullRequests bool) (_ *api.ActionWorkflowRun, err error) {
 	if err := run.LoadAttributes(ctx); err != nil {
 		return nil, err
+	}
+
+	if repo == nil {
+		repo = run.Repo
 	}
 
 	if attempt == nil {
@@ -293,7 +297,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
 		if attempt.Attempt > 1 {
-			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1)
+			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", repo.APIURL(ctx), run.ID, attempt.Attempt-1)
 			previousAttemptURL = &url
 		}
 	}
@@ -307,7 +311,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 
 	return &api.ActionWorkflowRun{
 		ID:                 run.ID,
-		URL:                fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
+		URL:                fmt.Sprintf("%s/actions/runs/%d", repo.APIURL(ctx), run.ID),
 		PreviousAttemptURL: previousAttemptURL,
 		HTMLURL:            run.HTMLURL(ctx),
 		RunNumber:          run.Index,
@@ -322,7 +326,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		Status:             status,
 		Conclusion:         conclusion,
 		Path:               fmt.Sprintf("%s@%s", run.WorkflowID, run.Ref),
-		Repository:         ToRepo(ctx, run.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Repository:         ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		TriggerActor:       ToUser(ctx, triggerUser, nil),
 		Actor:              ToUser(ctx, actor, nil),
 		PullRequests:       pullRequests,

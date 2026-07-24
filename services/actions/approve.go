@@ -103,5 +103,9 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
+	for _, runID := range runIDs {
+		NotifyWorkflowRunStatusUpdateWithReload(ctx, repo.ID, runID)
+	}
+
 	return nil
 }
