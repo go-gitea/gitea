@@ -152,31 +152,31 @@
 	</div><!-- end full right menu -->
 
 	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
-	{{if $activeStopwatch}}
-		<div class="active-stopwatch-popup tippy-target">
-			<div class="flex-text-block tw-p-3">
-				<a class="stopwatch-link flex-text-block muted" href="{{$activeStopwatch.IssueLink}}">
-					{{svg "octicon-issue-opened" 16}}
-					<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
-				</a>
-				<div class="tw-flex tw-gap-1">
-					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
-						<button
-							type="submit"
-							class="ui button mini compact basic icon tw-mr-0"
-							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
-						>{{svg "octicon-square-fill"}}</button>
-					</form>
-					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
-						<button
-							type="submit"
-							class="ui button mini compact basic icon tw-mr-0"
-							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
-						>{{svg "octicon-trash"}}</button>
-					</form>
-				</div>
+	{{/* always rendered so the Tippy popup has content to clone if the icon appears via a real-time push */}}
+	<div class="active-stopwatch-popup tippy-target">
+		<div class="flex-text-block tw-p-3">
+			<a class="stopwatch-link flex-text-block muted" {{if $activeStopwatch}}href="{{$activeStopwatch.IssueLink}}"{{end}}>
+				{{svg "octicon-issue-opened" 16}}
+				<span class="stopwatch-issue">{{if $activeStopwatch}}{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}{{end}}</span>
+			</a>
+			<div class="tw-flex tw-gap-1">
+				{{/* form-fetch-action is set only when the stopwatch is active so generic .form-fetch-action lookups don't match empty forms; stopwatch.ts re-adds it when the icon appears via a real-time push */}}
+				<form class="stopwatch-commit{{if $activeStopwatch}} form-fetch-action{{end}}" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop"{{end}}>
+					<button
+						type="submit"
+						class="ui button mini compact basic icon tw-mr-0"
+						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
+					>{{svg "octicon-square-fill"}}</button>
+				</form>
+				<form class="stopwatch-cancel{{if $activeStopwatch}} form-fetch-action{{end}}" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel"{{end}}>
+					<button
+						type="submit"
+						class="ui button mini compact basic icon tw-mr-0"
+						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
+					>{{svg "octicon-trash"}}</button>
+				</form>
 			</div>
 		</div>
-	{{end}}
+	</div>
 </nav>
 {{template "base/head_banner"}}

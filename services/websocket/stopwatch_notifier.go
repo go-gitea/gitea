@@ -1,0 +1,43 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package websocket
+
+import (
+	"context"
+
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/services/convert"
+	"gitea.dev/services/pubsub"
+)
+
+// Call after any stopwatch start/stop/cancel so connected tabs refresh.
+func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
+	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(user.ID)) {
+		return
+	}
+
+	sws, err := issues_model.GetUserStopwatches(ctx, user.ID, db.ListOptions{})
+	if err != nil {
+		log.Error("websocket: GetUserStopwatches %d: %v", user.ID, err)
+		return
+	}
+
+	data := api.StopWatches{}
+	if len(sws) > 0 {
+		apiSWs, err := convert.ToStopWatches(ctx, user, sws)
+		if err != nil {
+			if !issues_model.IsErrIssueNotExist(err) {
+				log.Error("websocket: ToStopWatches: %v", err)
+			}
+			return
+		}
+		data = apiSWs
+	}
+
+	publishUserEvent(user.ID, userEvent[api.StopWatches]{Type: EventStopwatches, Data: data})
+}

@@ -3,14 +3,13 @@
 {{if and $data $data.IsSigned}}{{/* data may not exist, for example: rendering 503 page before the PageGlobalData middleware */}}
 	{{- $activeStopwatch := call $data.GetActiveStopwatch -}}
 	{{- $notificationUnreadCount := call $data.GetNotificationUnreadCount -}}
-	{{if $activeStopwatch}}
-	<a class="item active-stopwatch {{$itemExtraClass}}" href="{{$activeStopwatch.IssueLink}}" title="{{ctx.Locale.Tr "active_stopwatch"}}" data-seconds="{{$activeStopwatch.Seconds}}">
+	{{/* always rendered so a real-time push can reveal it without a reload */}}
+	<a class="item active-stopwatch{{if not $activeStopwatch}} tw-hidden{{end}} {{$itemExtraClass}}" {{if $activeStopwatch}}data-seconds="{{$activeStopwatch.Seconds}}"{{end}} title="{{ctx.Locale.Tr "active_stopwatch"}}">
 		<div class="tw-relative flex-text-block">
 			{{svg "octicon-stopwatch"}}
 			<span class="header-stopwatch-dot"></span>
 		</div>
 	</a>
-	{{end}}
 	<a class="item {{$itemExtraClass}}" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}">
 		<div class="tw-relative flex-text-block">
 			{{svg "octicon-bell"}}
