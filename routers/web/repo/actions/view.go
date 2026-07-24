@@ -572,9 +572,6 @@ func ViewPost(ctx *context_module.Context) {
 }
 
 func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, jobs []*actions_model.ActionRunJob) {
-	// Latest when the run has no attempts yet (legacy) or the viewed attempt is the run's latest.
-	isLatestAttempt := run.LatestAttemptID == 0 || (attempt != nil && attempt.ID == run.LatestAttemptID)
-
 	resp.State.Run.RepoID = ctx.Repo.Repository.ID
 	resp.State.Run.Index = run.Index
 	// the title for the "run" is from the commit message
@@ -583,8 +580,12 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	resp.State.Run.Link = run.Link()
 	resp.State.Run.ViewLink = getRunViewLink(run, attempt)
 	resp.State.Run.Attempts = make([]*ViewRunAttempt, 0)
+	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts and summaries all
+	// share run_attempt_id=0, so passing 0 here scopes to this run's legacy rows only.
+	var runAttemptID int64
 	var effectiveStatus actions_model.Status
 	if attempt != nil {
+		runAttemptID = attempt.ID
 		effectiveStatus = attempt.Status
 		resp.State.Run.RunAttempt = attempt.Attempt
 		resp.State.Run.Duration = attempt.Duration().String()
@@ -594,6 +595,9 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		resp.State.Run.Duration = run.Duration().String()
 		resp.State.Run.TriggeredAt = run.Created.AsTime().Unix()
 	}
+	// Latest when the run has no attempts yet (legacy) or the viewed attempt is the run's latest.
+	isLatestAttempt := run.LatestAttemptID == 0 || runAttemptID == run.LatestAttemptID
+
 	resp.State.Run.Status = effectiveStatus.String()
 	resp.State.Run.Done = effectiveStatus.IsDone()
 
@@ -653,7 +657,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			Status:            runAttempt.Status.String(),
 			Done:              runAttempt.Status.IsDone(),
 			Link:              getRunViewLink(run, runAttempt),
-			Current:           runAttempt.ID == attempt.ID,
+			Current:           runAttempt.ID == runAttemptID,
 			Latest:            runAttempt.ID == run.LatestAttemptID,
 			TriggeredAt:       runAttempt.Created.AsTime().Unix(),
 			TriggerUserName:   runAttempt.TriggerUser.GetDisplayName(),
@@ -677,13 +681,6 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	resp.State.Run.PullRequest = refInfo.PullRequest
 	resp.State.Run.TriggerEvent = run.TriggerEvent
-
-	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts and summaries all
-	// share run_attempt_id=0, so passing 0 here scopes to this run's legacy rows only.
-	var runAttemptID int64
-	if attempt != nil {
-		runAttemptID = attempt.ID
-	}
 
 	// jobID>0 scopes to a single job (job view); 0 returns all jobs (run view).
 	jobID := ctx.PathParamInt64("job")
