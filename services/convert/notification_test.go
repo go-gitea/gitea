@@ -139,6 +139,82 @@ func TestToNotificationThread(t *testing.T) {
 		assert.Equal(t, api.NotifySubjectPull, thread.Subject.Type)
 		assert.Equal(t, api.NotifySubjectStateOpen, thread.Subject.State)
 	})
+
+	t.Run("commit notification includes commit urls", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		n := &activities_model.Notification{
+			ID:         997,
+			UserID:     2,
+			RepoID:     repo.ID,
+			Status:     activities_model.NotificationStatusUnread,
+			Source:     activities_model.NotificationSourceCommit,
+			CommitID:   "feature/test commit",
+			Repository: repo,
+		}
+
+		thread := ToNotificationThread(t.Context(), n)
+		require.NotNil(t, thread.Subject)
+		assert.Equal(t, api.NotifySubjectCommit, thread.Subject.Type)
+		assert.Equal(t, n.CommitID, thread.Subject.Title)
+		assert.Equal(t, repo.HTMLURL()+"/commit/feature%2Ftest%20commit", thread.Subject.URL)
+		assert.Equal(t, thread.Subject.URL, thread.Subject.HTMLURL)
+	})
+
+	t.Run("repository notification includes repository urls", func(t *testing.T) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+		n := &activities_model.Notification{
+			ID:         996,
+			UserID:     2,
+			RepoID:     repo.ID,
+			Status:     activities_model.NotificationStatusUnread,
+			Source:     activities_model.NotificationSourceRepository,
+			Repository: repo,
+		}
+
+		thread := ToNotificationThread(t.Context(), n)
+		require.NotNil(t, thread.Subject)
+		assert.Equal(t, api.NotifySubjectRepository, thread.Subject.Type)
+		assert.Equal(t, repo.FullName(), thread.Subject.Title)
+		assert.Equal(t, repo.Link(), thread.Subject.URL)
+		assert.Equal(t, repo.HTMLURL(), thread.Subject.HTMLURL)
+	})
+
+	t.Run("commit notification tolerates missing repository", func(t *testing.T) {
+		n := &activities_model.Notification{
+			ID:       995,
+			UserID:   2,
+			RepoID:   1,
+			Status:   activities_model.NotificationStatusUnread,
+			Source:   activities_model.NotificationSourceCommit,
+			CommitID: "deadbeef",
+		}
+
+		thread := ToNotificationThread(t.Context(), n)
+		require.NotNil(t, thread.Subject)
+		assert.Equal(t, api.NotifySubjectCommit, thread.Subject.Type)
+		assert.Equal(t, n.CommitID, thread.Subject.Title)
+		assert.Empty(t, thread.Subject.URL)
+		assert.Empty(t, thread.Subject.HTMLURL)
+	})
+
+	t.Run("repository notification tolerates missing repository", func(t *testing.T) {
+		n := &activities_model.Notification{
+			ID:     994,
+			UserID: 2,
+			RepoID: 1,
+			Status: activities_model.NotificationStatusUnread,
+			Source: activities_model.NotificationSourceRepository,
+		}
+
+		thread := ToNotificationThread(t.Context(), n)
+		require.NotNil(t, thread.Subject)
+		assert.Equal(t, api.NotifySubjectRepository, thread.Subject.Type)
+		assert.Empty(t, thread.Subject.Title)
+		assert.Empty(t, thread.Subject.URL)
+		assert.Empty(t, thread.Subject.HTMLURL)
+	})
 }
 
 func newRepoNotification(t *testing.T, repoID, userID int64) *activities_model.Notification {
