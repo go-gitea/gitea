@@ -2,7 +2,7 @@
 import {writeFile} from 'node:fs/promises';
 import {languages as cmLanguages} from '@codemirror/language-data';
 import * as linguist from 'linguist-languages';
-import type {Language as LinguistLanguage} from 'linguist-languages';
+import type {Language} from 'linguist-languages';
 
 const renames: Record<string, string> = {
   'Protocol Buffer': 'ProtoBuf',
@@ -55,7 +55,7 @@ for (const lang of cmLanguages) {
 
 const out: CmLanguage[] = [];
 const seen = new Set<string>();
-for (const [linguistName, entry] of Object.entries(linguist as Record<string, LinguistLanguage>)) {
+for (const [linguistName, entry] of Object.entries(linguist as Record<string, Language>)) {
   const cmName = renames[linguistName] ?? cmByAlias.get(linguistName.toLowerCase());
   // Multiple Linguist entries can alias to the same CM language (e.g. JSON5 → JSON).
   if (!cmName || skipNames.has(cmName) || seen.has(cmName)) continue;
