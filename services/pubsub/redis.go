@@ -95,8 +95,8 @@ func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
 	subscribeCtx, subscribeCancel := context.WithTimeout(ctx, redisSubscribeTimeout)
 	// ps.Subscribe sends SUBSCRIBE but does not block for the server ack —
 	// without this Receive a Publish that fires immediately after Subscribe
-	// returns can outrun the server-side registration (notably miniredis in
-	// tests, where there's no network latency to mask the race).
+	// returns can outrun the server-side registration (visible against a
+	// low-latency local redis, where no network delay masks the race).
 	_, err := ps.Receive(subscribeCtx)
 	subscribeCancel()
 	if err != nil {
