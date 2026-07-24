@@ -279,9 +279,6 @@ type LogCursor struct {
 
 type ViewRequest struct {
 	LogCursors []LogCursor `json:"logCursors"`
-	// JobSummariesVersion is the summaries fingerprint the client holds; when it matches, the response
-	// omits jobSummaries. Empty on first load.
-	JobSummariesVersion string `json:"jobSummariesVersion"`
 }
 
 type ArtifactsViewItem struct {
@@ -329,9 +326,6 @@ type ViewResponse struct {
 			TriggerEvent string `json:"triggerEvent"` // e.g. pull_request, push, schedule
 
 			JobSummaries []*ViewJobSummary `json:"jobSummaries,omitempty"`
-			// JobSummariesVersion is the current summaries fingerprint; jobSummaries is only sent when it
-			// differs from the client's.
-			JobSummariesVersion string `json:"jobSummariesVersion"`
 		} `json:"run"`
 		CurrentJob struct {
 			Title  string         `json:"title"`
@@ -559,20 +553,19 @@ func ViewPost(ctx *context_module.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*ViewRequest)
 	resp := &ViewResponse{}
-	fillViewRunResponseSummary(ctx, form, resp, run, attempt, jobs)
+	fillViewRunResponseSummary(ctx, resp, run, attempt, jobs)
 	if ctx.Written() {
 		return
 	}
-	fillViewRunResponseCurrentJob(ctx, form, resp, run, jobs)
+	fillViewRunResponseCurrentJob(ctx, resp, run, jobs)
 	if ctx.Written() {
 		return
 	}
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func fillViewRunResponseSummary(ctx *context_module.Context, form *ViewRequest, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, jobs []*actions_model.ActionRunJob) {
+func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, jobs []*actions_model.ActionRunJob) {
 	resp.State.Run.RepoID = ctx.Repo.Repository.ID
 	resp.State.Run.Index = run.Index
 	// the title for the "run" is from the commit message
@@ -683,26 +676,16 @@ func fillViewRunResponseSummary(ctx *context_module.Context, form *ViewRequest, 
 	resp.State.Run.PullRequest = refInfo.PullRequest
 	resp.State.Run.TriggerEvent = run.TriggerEvent
 
-	// jobID>0 scopes to a single job (job view); 0 returns all jobs (run view).
-	jobID := ctx.PathParamInt64("job")
-
-	// Send a cheap fingerprint and skip the content load, render and payload when the client already
-	// holds this version — so the ~1s poll only re-renders summaries that actually changed.
-	summariesVersion, err := actions_model.GetActionRunJobSummariesVersion(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, jobID)
+	// Each step's markdown is rendered independently so an unclosed construct
+	// in one step can't bleed into the next.
+	// On a single-job view only that job's summaries are needed; the run view shows all.
+	// Scoping server-side avoids rendering every job's markdown on each 1s poll.
+	summaries, err := actions_model.ListActionRunJobSummaries(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, ctx.PathParamInt64("job"))
 	if err != nil {
-		ctx.ServerError("GetActionRunJobSummariesVersion", err)
+		ctx.ServerError("ListActionRunJobSummaries", err)
 		return
 	}
-	resp.State.Run.JobSummariesVersion = summariesVersion
-
-	if form.JobSummariesVersion != summariesVersion {
-		summaries, err := actions_model.ListActionRunJobSummaries(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, jobID)
-		if err != nil {
-			ctx.ServerError("ListActionRunJobSummaries", err)
-			return
-		}
-		// Version changed: send the current set (empty clears the client's; jobSummaries is then omitted).
-		resp.State.Run.JobSummaries = make([]*ViewJobSummary, 0, len(summaries))
+	if len(summaries) > 0 {
 		jobNameByID := make(map[int64]string, len(jobs))
 		for _, j := range jobs {
 			jobNameByID[j.ID] = j.Name
@@ -718,7 +701,6 @@ func fillViewRunResponseSummary(ctx *context_module.Context, form *ViewRequest, 
 				current = &ViewJobSummary{JobID: s.JobID, JobName: jobNameByID[s.JobID]}
 				resp.State.Run.JobSummaries = append(resp.State.Run.JobSummaries, current)
 			}
-			// Render each step independently so an unclosed construct can't bleed into the next.
 			current.SummaryHTML += renderUtils.MarkdownToHtml(s.Content)
 		}
 	}
@@ -739,7 +721,8 @@ func fillViewRunResponseSummary(ctx *context_module.Context, form *ViewRequest, 
 	}
 }
 
-func fillViewRunResponseCurrentJob(ctx *context_module.Context, form *ViewRequest, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
+func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
+	req := web.GetForm(ctx).(*ViewRequest)
 	current, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
 	if current == nil {
 		if hasPathParam {
@@ -773,7 +756,7 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, form *ViewReques
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
-		steps, logs, err := convertToViewModel(ctx, ctx.Locale, form.LogCursors, task)
+		steps, logs, err := convertToViewModel(ctx, ctx.Locale, req.LogCursors, task)
 		if err != nil {
 			ctx.ServerError("convertToViewModel", err)
 			return

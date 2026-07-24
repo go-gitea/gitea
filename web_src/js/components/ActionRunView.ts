@@ -131,7 +131,6 @@ export function createEmptyActionsRun(): ActionsRun {
     pullRequest: null,
     jobs: [] as Array<ActionsJob>,
     jobSummaries: [],
-    jobSummariesVersion: '',
     commit: {
       localeCommit: '',
       localePushedBy: '',
@@ -163,22 +162,12 @@ export function createActionRunViewStore(viewUrl: string) {
     const abortController = new AbortController();
     loadingAbortController = abortController;
     try {
-      const resp = await POST(viewUrl, {
-        signal: abortController.signal,
-        // Let the server skip re-sending summaries we already hold.
-        data: {jobSummariesVersion: viewData.currentRun.jobSummariesVersion},
-      });
+      const resp = await POST(viewUrl, {signal: abortController.signal, data: {}});
       const runResp = await resp.json();
       if (loadingAbortController !== abortController) return;
 
       viewData.runArtifacts = runResp.artifacts || [];
-      const newRun = runResp.state.run;
-      // Unchanged version: keep the summaries we already rendered (server omitted them).
-      // An empty version never matches: it is both "no summaries" and the initial client state.
-      if (newRun.jobSummariesVersion && newRun.jobSummariesVersion === viewData.currentRun.jobSummariesVersion) {
-        newRun.jobSummaries = viewData.currentRun.jobSummaries;
-      }
-      viewData.currentRun = newRun;
+      viewData.currentRun = runResp.state.run;
       // clear the interval timer if the job is done
       if (viewData.currentRun.done && intervalID) {
         clearInterval(intervalID);

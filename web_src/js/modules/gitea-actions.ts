@@ -31,8 +31,6 @@ export type ActionsRun = {
   } | null,
   jobs: Array<ActionsJob>,
   jobSummaries?: Array<ActionsJobSummary>,
-  // Fingerprint of jobSummaries; the poll only re-sends them when this changes.
-  jobSummariesVersion: string,
   commit: {
     localeCommit: string,
     localePushedBy: string,

@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"fmt"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/setting"
@@ -190,31 +189,6 @@ WHEN NOT MATCHED THEN
 	}
 
 	return util.ErrInvalidArgument
-}
-
-// GetActionRunJobSummariesVersion returns a cheap DB-side fingerprint of a run attempt's summaries (same
-// optional jobID scoping as ListActionRunJobSummaries) so the poll can tell whether any changed without
-// loading content. Empty means no summaries. COUNT is needed alongside MAX(updated) because "updated" has
-// 1s granularity: MAX alone misses a deleted row and a step inserted in the same second as the previous one.
-func GetActionRunJobSummariesVersion(ctx context.Context, repoID, runID, runAttemptID, jobID int64) (string, error) {
-	sess := db.GetEngine(ctx).Table(new(ActionRunJobSummary)).
-		Where("repo_id=? AND run_id=? AND run_attempt_id=?", repoID, runID, runAttemptID)
-	if jobID > 0 {
-		sess = sess.And("job_id=?", jobID)
-	}
-	var agg struct {
-		Count      int64 `xorm:"count"`
-		MaxUpdated int64 `xorm:"max_updated"`
-	}
-	if _, err := sess.
-		Select("COUNT(*) AS count, COALESCE(MAX(updated), 0) AS max_updated").
-		Get(&agg); err != nil {
-		return "", err
-	}
-	if agg.Count == 0 {
-		return "", nil
-	}
-	return fmt.Sprintf("%d-%d", agg.Count, agg.MaxUpdated), nil
 }
 
 // ListActionRunJobSummaries lists the stored summaries for a run attempt, ordered by job
