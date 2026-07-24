@@ -26,7 +26,7 @@ func loadWebsocketFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("websocket")
 	Websocket.PubsubType = sec.Key("PUBSUB_TYPE").In(PubsubTypeMemory, []string{PubsubTypeMemory, PubsubTypeRedis})
 	if Websocket.PubsubType == PubsubTypeRedis {
-		Websocket.PubsubConnStr = sec.Key("PUBSUB_CONN_STR").String()
+		Websocket.PubsubConnStr = sec.Key("PUBSUB_CONN_STR").MustString(Redis.ConnStr)
 		if Websocket.PubsubConnStr == "" {
 			log.Fatal("[websocket].PUBSUB_CONN_STR is required when PUBSUB_TYPE = redis")
 		}
