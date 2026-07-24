@@ -5,7 +5,6 @@ package v1_19
 
 import (
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
 )
 
@@ -96,7 +95,7 @@ func AddActionsTables(x base.EngineMigration) error {
 		NumClosedActionRuns int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	type ActionRunIndex db.ResourceIndex
+	type ActionRunIndex base.ResourceIndex
 
 	type ActionTask struct {
 		ID       int64
