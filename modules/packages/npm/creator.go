@@ -422,7 +422,7 @@ func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 	for {
 		hdr, err := tr.Next()
 		if err != nil {
-			return
+			return hasShrinkwrap, hasInstallScript
 		}
 		// npm pack puts files under a single root directory (usually "package/").
 		name := strings.TrimPrefix(hdr.Name, "./")
@@ -436,7 +436,7 @@ func inspectTarball(data []byte) (hasShrinkwrap, hasInstallScript bool) {
 			hasInstallScript = tarballDeclaresInstallScript(tr)
 		}
 		if hasShrinkwrap && hasInstallScript {
-			return
+			return hasShrinkwrap, hasInstallScript
 		}
 	}
 }
