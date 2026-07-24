@@ -1,0 +1,13 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest">
+	<div class="ui container">
+		<h2 class="ui header">Actions build queue (drag to reorder)</h2>
+		<p>
+			Mock admin view of the build queue. Drag a queued row by its handle ({{svg "octicon-grabber"}}) to reorder it.
+			The move POSTs <code>id</code> / <code>after</code> / <code>before</code> / <code>page</code> to a mock endpoint
+			that logs them and returns 204, so the new order sticks visually (it is not persisted — reload resets the mock).
+		</p>
+		{{template "shared/actions/queue_list" .}}
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

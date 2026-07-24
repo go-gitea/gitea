@@ -1,0 +1,92 @@
+<div id="actions-queue-list" data-global-init="initActionQueueList"
+	data-queue-refresh-link="{{.QueueRefreshLink}}"
+	data-queue-refresh-interval="{{.QueueRefreshIntervalMs}}"
+	{{if .CanReorder}}data-queue-move-link="{{.QueueMoveLink}}" data-queue-page="{{.QueuePage}}"{{end}}
+>
+<div class="runner-container">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.queue.running_jobs"}} ({{ctx.Locale.Tr "admin.total" (len .RunningJobs)}})
+	</h4>
+	{{if .RunningJobs}}
+	<div class="ui attached table segment">
+		<table class="ui very basic table unstackable">
+			<thead>
+				<tr>
+					<th>{{ctx.Locale.Tr "actions.runs.status"}}</th>
+					{{if .ShowRepoColumn}}<th>{{ctx.Locale.Tr "repository"}}</th>{{end}}
+					<th>{{ctx.Locale.Tr "actions.queue.job"}}</th>
+					{{if .ShowRunnerColumn}}<th>{{ctx.Locale.Tr "actions.queue.agent"}}</th>{{end}}
+					<th>{{ctx.Locale.Tr "actions.runs.commit"}}</th>
+					<th>{{ctx.Locale.Tr "actions.queue.started"}}</th>
+					<th>{{ctx.Locale.Tr "actions.queue.duration"}}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .RunningJobs}}
+				<tr>
+					<td>
+						<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" .Status.String)}}">
+							{{template "repo/icons/action_status" (dict "Status" .Status.String "IconVariant" "circle-fill")}}
+						</span>
+					</td>
+					{{if $.ShowRepoColumn}}<td>{{if .Repo}}<a href="{{.Repo.Link}}">{{.Repo.FullName}}</a>{{end}}</td>{{end}}
+					<td>{{if .Run}}<a href="{{.Run.Link}}">{{.Name}} <span class="text grey">#{{.Run.Index}}</span></a>{{else}}{{.Name}}{{end}}</td>
+					{{if $.ShowRunnerColumn}}<td>{{index $.RunningJobRunners .ID}}</td>{{end}}
+					<td>{{if and .Run .Repo}}<a href="{{.Repo.Link}}/commit/{{.Run.CommitSHA}}">{{ShortSha .Run.CommitSHA}}</a>{{end}}</td>
+					<td>{{if .Started}}{{DateUtils.TimeSince .Started}}{{else}}-{{end}}</td>
+					<td>{{.Duration}}</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{else}}
+	<div class="ui attached segment tw-text-center">{{ctx.Locale.Tr "actions.queue.no_running_jobs"}}</div>
+	{{end}}
+</div>
+
+<div class="runner-container tw-mt-4">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.queue.queued_jobs"}} ({{ctx.Locale.Tr "admin.total" .QueuedTotal}})
+	</h4>
+	{{if .CanReorder}}<div class="ui attached info message tw-py-2">{{ctx.Locale.Tr "actions.queue.reorder_hint"}}</div>{{end}}
+	{{if .QueuedJobs}}
+	<div class="ui attached table segment">
+		<table class="ui very basic table unstackable">
+			<thead>
+				<tr>
+					{{if .CanReorder}}<th></th>{{end}}
+					<th>{{ctx.Locale.Tr "actions.queue.position"}}</th>
+					<th>{{ctx.Locale.Tr "actions.runs.status"}}</th>
+					{{if .ShowRepoColumn}}<th>{{ctx.Locale.Tr "repository"}}</th>{{end}}
+					<th>{{ctx.Locale.Tr "actions.queue.job"}}</th>
+					<th>{{ctx.Locale.Tr "actions.queue.runs_on"}}</th>
+					<th>{{ctx.Locale.Tr "actions.queue.waiting_since"}}</th>
+				</tr>
+			</thead>
+			<tbody id="actions-queue-tbody">
+				{{range $idx, $job := .QueuedJobs}}
+				<tr id="actions-queue-job-{{$job.ID}}" data-job-id="{{$job.ID}}">
+					{{if $.CanReorder}}<td class="tw-w-1"><span class="drag-handle tw-cursor-grab" data-tooltip-content="{{ctx.Locale.Tr "actions.queue.reorder"}}">{{svg "octicon-grabber"}}</span></td>{{end}}
+					<td>{{Eval $.QueueOffset "+" $idx "+" 1}}</td>
+					<td>
+						<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $job.Status.String)}}">
+							{{template "repo/icons/action_status" (dict "Status" $job.Status.String "IconVariant" "circle-fill")}}
+						</span>
+					</td>
+					{{if $.ShowRepoColumn}}<td>{{if $job.Repo}}<a href="{{$job.Repo.Link}}">{{$job.Repo.FullName}}</a>{{end}}</td>{{end}}
+					<td>{{if $job.Run}}<a href="{{$job.Run.Link}}">{{$job.Name}} <span class="text grey">#{{$job.Run.Index}}</span></a>{{else}}{{$job.Name}}{{end}}</td>
+					<td><span class="flex-text-inline tw-flex-wrap">{{range $job.RunsOn}}<span class="ui label">{{.}}</span>{{end}}</span></td>
+					<td>{{DateUtils.TimeSince $job.Updated}}</td>
+				</tr>
+				{{end}}
+			</tbody>
+		</table>
+	</div>
+	{{else}}
+	<div class="ui attached segment tw-text-center">{{ctx.Locale.Tr "actions.queue.no_queued_jobs"}}</div>
+	{{end}}
+
+	{{template "base/paginate" .}}
+</div>
+</div>
