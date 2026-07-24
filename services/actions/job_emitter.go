@@ -269,6 +269,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 			return result, nil
 		}
 	}
+
 	vars, err := actions_model.GetVariablesOfRun(ctx, run)
 	if err != nil {
 		return nil, err
@@ -335,7 +336,18 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 		return nil, err
 	}
 
-	if expandedAnyCaller {
+	// Matrix re-evaluation can insert new jobs in this attempt; reload so callers see them.
+	if resolver.matrixExpanded {
+		jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	result.Jobs = jobs
+	// Caller expansion inserts Blocked children, and matrix expansion inserts Blocked siblings; both
+	// need a follow-up resolver pass to evaluate their needs/`if:`/concurrency and start them.
+	if expandedAnyCaller || resolver.matrixExpanded {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
 	result.CancelledJobs = resolver.cancelledJobs
@@ -343,11 +355,12 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 }
 
 type jobStatusResolver struct {
-	statuses      map[int64]actions_model.Status
-	needs         map[int64][]int64
-	jobMap        map[int64]*actions_model.ActionRunJob
-	vars          map[string]string
-	cancelledJobs []*actions_model.ActionRunJob
+	statuses       map[int64]actions_model.Status
+	needs          map[int64][]int64
+	jobMap         map[int64]*actions_model.ActionRunJob
+	vars           map[string]string
+	cancelledJobs  []*actions_model.ActionRunJob
+	matrixExpanded bool // set when matrix re-evaluation inserted new jobs, so callers reload
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]string) *jobStatusResolver {
@@ -436,8 +449,23 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			continue
 		}
 
+		// Expand a needs-dependent matrix now that needs are done; on success the job is no
+		// longer Blocked (placeholder becomes the first combination, siblings inserted).
+		children, err := ReEvaluateMatrixForJobWithNeeds(ctx, actionRunJob, r.vars)
+		if err != nil {
+			log.Error("ReEvaluateMatrixForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
+			continue
+		}
+		if len(children) > 0 {
+			r.matrixExpanded = true
+		}
+		if actionRunJob.Status != actions_model.StatusBlocked {
+			r.statuses[id] = actionRunJob.Status
+			continue
+		}
+
 		// update concurrency and check whether the job can run now
-		err := updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
+		err = updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
 		if err != nil {
 			// The err can be caused by different cases: database error, or syntax error, or the needed jobs haven't completed
 			// At the moment there is no way to distinguish them.

@@ -221,6 +221,17 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		runJob.TokenPermissions = perms
 	}
 
+	// Matrix references needs outputs: jobparser emitted a placeholder. Store the raw
+	// strategy for ReEvaluateMatrixForJobWithNeeds to expand once the needs finish.
+	isDeferredMatrix := len(needs) > 0 && jobparser.RawMatrixHasExpression(job)
+	if isDeferredMatrix {
+		rawStrategy, err := yaml.Marshal(&job.Strategy)
+		if err != nil {
+			return nil, nil, false, fmt.Errorf("marshal raw strategy for job %s: %w", id, err)
+		}
+		runJob.RawStrategy = string(rawStrategy)
+	}
+
 	if isReusableWorkflowCaller {
 		runJob.IsReusableCaller = true
 		runJob.CallUses = job.Uses

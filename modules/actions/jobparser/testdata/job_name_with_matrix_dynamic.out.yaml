@@ -1,0 +1,66 @@
+name: test
+jobs:
+  job1:
+    name: job1
+    runs-on: ubuntu-latest
+    steps:
+      - id: version-map
+        name: Generate the version map
+        run: |
+          echo "versions=[1.17, 1.18, 1.19]" >> $GITHUB_OUTPUT
+    outputs:
+      versions: ${{ steps.version-map.outputs.versions }}
+---
+name: test
+jobs:
+  job2:
+    name: test_version_1.17_on_ubuntu-24.04
+    needs: job1
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+        version:
+          - 1.17
+---
+name: test
+jobs:
+  job2:
+    name: test_version_1.18_on_ubuntu-24.04
+    needs: job1
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+        version:
+          - 1.18
+---
+name: test
+jobs:
+  job2:
+    name: test_version_1.19_on_ubuntu-24.04
+    needs: job1
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+        version:
+          - 1.19
