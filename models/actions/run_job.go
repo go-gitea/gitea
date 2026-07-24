@@ -236,12 +236,17 @@ func GetLatestAttemptJobsByRepoAndRunID(ctx context.Context, repoID, runID int64
 	if err != nil {
 		return nil, err
 	}
+	return GetLatestAttemptJobsByRun(ctx, run)
+}
+
+// GetLatestAttemptJobsByRun is GetLatestAttemptJobsByRepoAndRunID for a run that is already loaded.
+func GetLatestAttemptJobsByRun(ctx context.Context, run *ActionRun) (ActionJobList, error) {
 	if run.LatestAttemptID > 0 {
-		return GetRunJobsByRunAndAttemptID(ctx, runID, run.LatestAttemptID)
+		return GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
 	}
 
 	var jobs []*ActionRunJob
-	if err := db.GetEngine(ctx).Where("repo_id=? AND run_id=? AND run_attempt_id=0", repoID, runID).OrderBy("id").Find(&jobs); err != nil {
+	if err := db.GetEngine(ctx).Where("repo_id=? AND run_id=? AND run_attempt_id=0", run.RepoID, run.ID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
 	return jobs, nil

@@ -1315,6 +1315,16 @@ func getCurrentRepoActionRunAttemptByNumber(ctx *context.APIContext) (*actions_m
 	return run, attempt
 }
 
+// respondRepoActionWorkflowRun responds with a run resolved by getCurrentRepoActionRunByID, which already attached ctx.Repo.Repository.
+func respondRepoActionWorkflowRun(ctx *context.APIContext, run *actions_model.ActionRun) {
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, ctx.Repo.Repository, nil, false)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
+}
+
 // GetWorkflowRun Gets a specific workflow run.
 func GetWorkflowRun(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/runs/{run} repository GetWorkflowRun
@@ -1351,12 +1361,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	ctx.JSON(http.StatusOK, convertedRun)
+	respondRepoActionWorkflowRun(ctx, run)
 }
 
 // GetWorkflowRunAttempt Gets a specific workflow run attempt.
@@ -1400,7 +1405,7 @@ func GetWorkflowRunAttempt(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, attempt, false)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, ctx.Repo.Repository, attempt, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1455,7 +1460,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, ctx.Repo.Repository, nil, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
