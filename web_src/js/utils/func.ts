@@ -1,3 +1,5 @@
+import type {TimeoutId} from '../types.ts';
+
 /** Options for `debounce` */
 export type DebounceOpts = {
   /** Invoke on the leading edge of the wait period. Default: `false` */
@@ -21,7 +23,7 @@ export type TimedFunction<T extends (...args: Array<any>) => any> = ((...args: P
 };
 
 function createTimed<T extends (...args: Array<any>) => any>(func: T, wait: number, leading: boolean, trailing: boolean, isThrottle: boolean): TimedFunction<T> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
+  let timer: TimeoutId | null = null;
   let pendingArgs: Parameters<T> | null = null;
   let resolvers: Array<{resolve: (value: any) => void, reject: (reason: any) => void}> = [];
 
