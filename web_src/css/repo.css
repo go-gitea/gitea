@@ -1836,10 +1836,14 @@ tbody.commit-list {
   align-items: center;
   max-width: 100%; /* min/max widths are for "gt-ellipsis", see the comment of other "flex-xxx" family classes */
   min-width: 0;
+  overflow: hidden;
 }
 
 .username-display > .username-fullname {
   color: var(--color-text-light-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 #issue-pins {

@@ -7,12 +7,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGrepSearch(t *testing.T) {
+	defer test.MockVariableValue(&setting.RepoRootPath, t.TempDir())()
 	repo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "language_stats_repo"))
 	assert.NoError(t, err)
 	defer repo.Close()
@@ -76,7 +79,7 @@ func TestGrepSearch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 
-	nonExistingRepo := &Repository{RepositoryBase: RepositoryBase{Path: "no-such-git-repo", repoFacade: gitcmd.RepositoryUnmanaged("no-such-git-repo")}}
+	nonExistingRepo := &Repository{RepositoryBase: RepositoryBase{repoFacade: gitrepo.RepositoryUnmanaged("no-such-git-repo")}}
 	res, err = GrepSearch(t.Context(), nonExistingRepo, "no-such-content", GrepOptions{})
 	assert.Error(t, err)
 	assert.Empty(t, res)

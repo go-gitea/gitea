@@ -258,7 +258,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			if err == nil {
 				commitID = commit.ID.String()
 			} else if !isErrBlameNotFoundOrNotEnoughLines(err) {
-				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitHeadRefName(), gitRepo.Path, treePath, line, err)
+				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitHeadRefName(), gitRepo.LogString(), treePath, line, err)
 			}
 		}
 	}

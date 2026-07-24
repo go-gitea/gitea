@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/repostats"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
@@ -966,7 +966,7 @@ func (g *GiteaLocalUploader) Finish(ctx context.Context) error {
 		return err
 	}
 
-	if err := models.UpdateRepoStats(ctx, g.repo.ID); err != nil {
+	if err := repostats.UpdateRepoStats(ctx, g.repo.ID); err != nil {
 		return err
 	}
 

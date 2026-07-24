@@ -75,7 +75,22 @@ func (w *SingleWorkflow) SetJob(id string, job *Job) error {
 }
 
 func (w *SingleWorkflow) Marshal() ([]byte, error) {
-	return yaml.Marshal(w)
+	// Encode with the same indentation SetJob uses (2). yaml.Marshal's default
+	// indentation (4) makes the encoder emit multi-line block scalars (e.g. a
+	// `run:` step that begins with blank lines) with a wrong explicit indentation
+	// indicator (`run: |4`) that then fails to re-parse, which silently strands
+	// the job during concurrency evaluation. Keeping both encoders at indent 2
+	// makes the serialized single workflow round-trip.
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	if err := enc.Encode(w); err != nil {
+		return nil, err
+	}
+	if err := enc.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 type Job struct {
@@ -490,7 +505,19 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 			RawMatrix:         job.Strategy.RawMatrix,
 		},
 	}
-	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, toGitContext(gitCtx), results, vars, inputs))
+	// Each per-matrix job carries its single matrix combination in RawMatrix so resolve it and pass it in;
+	// otherwise `matrix.*` references in `if:` evaluate to null.
+	// GetMatrixes always returns at least one element (an empty map for a job without a matrix),
+	// so only a non-empty combination should populate `matrix.*`, leaving it nil otherwise.
+	var matrix map[string]any
+	matrixes, err := actJob.GetMatrixes()
+	if err != nil {
+		return false, err
+	}
+	if len(matrixes) > 0 && len(matrixes[0]) > 0 {
+		matrix = matrixes[0]
+	}
+	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
 	expr, err := rewriteSubExpression(job.If.Value, false)
 	if err != nil {
 		return false, err
