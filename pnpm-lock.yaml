@@ -155,9 +155,6 @@ importers:
       pdfobject:
         specifier: 2.3.1
         version: 2.3.1
-      perfect-debounce:
-        specifier: 2.1.0
-        version: 2.1.0
       postcss:
         specifier: 8.5.19
         version: 8.5.19
@@ -173,9 +170,6 @@ importers:
       tailwindcss:
         specifier: 3.4.19
         version: 3.4.19(yaml@2.9.0)
-      throttle-debounce:
-        specifier: 5.0.2
-        version: 5.0.2
       tippy.js:
         specifier: 6.3.7
         version: 6.3.7
@@ -237,9 +231,6 @@ importers:
       '@types/swagger-ui-dist':
         specifier: 3.30.6
         version: 3.30.6
-      '@types/throttle-debounce':
-        specifier: 5.0.2
-        version: 5.0.2
       '@types/toastify-js':
         specifier: 1.12.4
         version: 1.12.4
@@ -1334,9 +1325,6 @@ packages:
 
   '@types/tern@0.23.9':
     resolution: {integrity: sha512-ypzHFE/wBzh+BlH6rrBgS5I/Z7RD21pGhZ2rltb/+ZrVM1awdZwjx7hE5XfuYgHWk9uvV5HLZN3SloevCAp3Bw==}
-
-  '@types/throttle-debounce@5.0.2':
-    resolution: {integrity: sha512-pDzSNulqooSKvSNcksnV72nk8p7gRqN8As71Sp28nov1IgmPKWbOEIwAWvBME5pPTtaXJAvG3O4oc76HlQ4kqQ==}
 
   '@types/toastify-js@1.12.4':
     resolution: {integrity: sha512-zfZHU4tKffPCnZRe7pjv/eFKzTVHozKewFCKaCjZ4gFinKgJRz/t0bkZiMCXJxPhv/ZoeDGNOeRD09R0kQZ/nw==}
@@ -3546,9 +3534,6 @@ packages:
   pdfobject@2.3.1:
     resolution: {integrity: sha512-vluuGiSDmMGpOvWFGiUY4trNB8aGKLDVxIXuuGHjX0kK3bMxCANUVtLivctE7uejLBScWCnbVarKatFVvdwXaQ==}
 
-  perfect-debounce@2.1.0:
-    resolution: {integrity: sha512-LjgdTytVFXeUgtHZr9WYViYSM/g8MkcTPYDlPa3cDqMirHjKiSZPYd6DoL7pK8AJQr+uWkQvCjHNdiMqsrJs+g==}
-
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
@@ -4067,10 +4052,6 @@ packages:
 
   three@0.176.0:
     resolution: {integrity: sha512-PWRKYWQo23ojf9oZSlRGH8K09q7nRSWx6LY/HF/UUrMdYgN9i1e2OwJYHoQjwc6HF/4lvvYLC5YC1X8UJL2ZpA==}
-
-  throttle-debounce@5.0.2:
-    resolution: {integrity: sha512-B71/4oyj61iNH0KeCamLuE2rmKuTO5byTOSVwECM5FA7TiAiAW+UqTKZ9ERueC4qvgSttUhdmq1mXC3kJqGX7A==}
-    engines: {node: '>=12.22'}
 
   time-span@5.1.0:
     resolution: {integrity: sha512-75voc/9G4rDIJleOo4jPvN4/YC4GRZrY8yy1uU4lwrB3XEQbWve8zXoO5No4eFrGcTAMYyoY67p8jRQdtA1HbA==}
@@ -5578,8 +5559,6 @@ snapshots:
   '@types/tern@0.23.9':
     dependencies:
       '@types/estree': 1.0.9
-
-  '@types/throttle-debounce@5.0.2': {}
 
   '@types/toastify-js@1.12.4': {}
 
@@ -8155,8 +8134,6 @@ snapshots:
 
   pdfobject@2.3.1: {}
 
-  perfect-debounce@2.1.0: {}
-
   picocolors@1.1.1: {}
 
   picomatch@2.3.2: {}
@@ -8773,8 +8750,6 @@ snapshots:
       any-promise: 1.3.0
 
   three@0.176.0: {}
-
-  throttle-debounce@5.0.2: {}
 
   time-span@5.1.0:
     dependencies:
