@@ -4,16 +4,17 @@
 package npm
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -358,25 +359,9 @@ func TestParsePackage(t *testing.T) {
 	})
 }
 
-// buildTarball assembles a gzipped tar with the given files under
-// package/ and returns the bytes.
-func buildTarball(t *testing.T, files map[string]string) []byte {
-	t.Helper()
-	var buf bytes.Buffer
-	gw := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gw)
-	for name, body := range files {
-		require.NoError(t, tw.WriteHeader(&tar.Header{
-			Name: name,
-			Mode: 0o644,
-			Size: int64(len(body)),
-		}))
-		_, err := tw.Write([]byte(body))
-		require.NoError(t, err)
-	}
-	require.NoError(t, tw.Close())
-	require.NoError(t, gw.Close())
-	return buf.Bytes()
+// buildTarball assembles a gzipped tar with the given entries.
+func buildTarball(files map[string]string) []byte {
+	return test.WriteTarCompression(func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }, files).Bytes()
 }
 
 func TestInspectTarball(t *testing.T) {
@@ -441,7 +426,7 @@ func TestInspectTarball(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			data := buildTarball(t, c.files)
+			data := buildTarball(c.files)
 			gotShrink, gotInstaller := inspectTarball(data)
 			assert.Equal(t, c.wantShrinkwrap, gotShrink, "shrinkwrap")
 			assert.Equal(t, c.wantInstaller, gotInstaller, "installScript")
@@ -455,7 +440,7 @@ func TestInspectTarball(t *testing.T) {
 	})
 
 	t.Run("malformed package.json falls through", func(t *testing.T) {
-		data := buildTarball(t, map[string]string{"package/package.json": "{ this is not json"})
+		data := buildTarball(map[string]string{"package/package.json": "{ this is not json"})
 		_, hasInstaller := inspectTarball(data)
 		assert.False(t, hasInstaller)
 	})
@@ -520,7 +505,7 @@ func TestParseUpload(t *testing.T) {
 
 	t.Run("dispatches publish when _attachments present", func(t *testing.T) {
 		// Reuse a minimal tarball with a package.json.
-		data := buildTarball(t, map[string]string{"package/package.json": `{}`})
+		data := buildTarball(map[string]string{"package/package.json": `{}`})
 		integrity := "sha512-" + base64Sha512(t, data)
 		body := fmt.Sprintf(
 			`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","dist":{"integrity":%q}}},"_attachments":{"x.tgz":{"data":%q}}}`,
@@ -536,7 +521,7 @@ func TestParseUpload(t *testing.T) {
 	t.Run("publish whose readme mentions deprecated is not misrouted", func(t *testing.T) {
 		// The old fast-path used a substring check for "deprecated"; make sure
 		// the new dispatch keys off _attachments only.
-		data := buildTarball(t, map[string]string{"package/package.json": `{}`})
+		data := buildTarball(map[string]string{"package/package.json": `{}`})
 		integrity := "sha512-" + base64Sha512(t, data)
 		body := fmt.Sprintf(
 			`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","readme":"this package is deprecated!","dist":{"integrity":%q}}},"_attachments":{"x.tgz":{"data":%q}}}`,
