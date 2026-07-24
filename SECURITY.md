@@ -8,18 +8,9 @@ Previous vulnerabilities are listed at https://about.gitea.com/security.
 
 ## Supported Versions
 
-We only provide security fixes for the most recent recent major release and main branch
+Security fixes follow our [support policy](docs/release-management.md#end-of-life-eol): only the most recent major release and the `main` branch receive them.
 
-For example, while `1.28` is being developed on `main`, the `1.27.x` release
-line receives security fixes. Older release lines (`1.26.x` and earlier) are no
-longer supported; please upgrade to a supported version to receive security
-updates.
-
-We do not issue security fixes or publish advisories for unsupported versions.
-Reports must always be filed against a supported version; before reporting,
-verify that the issue reproduces on a supported version. Any report that only
-affects a version outside the supported range will be closed as out of scope
-(for example, a report that only reproduces on `1.25.3` or any earlier release).
+Reports must be filed against a supported version. Before reporting, verify that the issue reproduces on a supported version; any report that only affects an unsupported version will be closed as out of scope.
 
 ## Reporting a Vulnerability
 
@@ -28,6 +19,7 @@ If reporting via GitHub, open an advisory per found issue. You can group the fou
 Do not use LLM to write the reports. It's meant for people to read so take your time and use your own words to write it. If you have used LLM to find the bug, be transparent about it and verify that it is not hallucination before submitting the report.
 
 If your report turns out to be a duplicate, you will be credited in the original report.
+
 ## Protecting Security Information
 
 Due to the sensitive nature of security information, you can use the below GPG public key to encrypt your mail body.
