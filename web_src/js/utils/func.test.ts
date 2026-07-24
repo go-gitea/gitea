@@ -1,7 +1,5 @@
 import {debounce, throttle} from './func.ts';
 
-afterEach(() => vi.useRealTimers());
-
 test('debounce', () => {
   vi.useFakeTimers();
   const spy = vi.fn();
@@ -12,6 +10,7 @@ test('debounce', () => {
   expect(spy).toHaveBeenCalledTimes(0);
   vi.advanceTimersByTime(30);
   expect(spy).toHaveBeenCalledTimes(1);
+  vi.useRealTimers();
 });
 
 test('debounce leading', () => {
@@ -23,6 +22,7 @@ test('debounce leading', () => {
   fn();
   vi.advanceTimersByTime(30);
   expect(spy).toHaveBeenCalledTimes(1);
+  vi.useRealTimers();
 });
 
 test('debounce result', async () => {
@@ -33,6 +33,7 @@ test('debounce result', async () => {
   vi.advanceTimersByTime(10);
   expect(await first).toEqual(4); // both calls collapse into the last one
   expect(await second).toEqual(4);
+  vi.useRealTimers();
 });
 
 test('debounce cancel', () => {
@@ -43,6 +44,7 @@ test('debounce cancel', () => {
   fn.cancel();
   vi.advanceTimersByTime(30);
   expect(spy).toHaveBeenCalledTimes(0);
+  vi.useRealTimers();
 });
 
 test('throttle', () => {
@@ -55,6 +57,7 @@ test('throttle', () => {
   expect(spy).toHaveBeenCalledTimes(1); // leading
   vi.advanceTimersByTime(30);
   expect(spy).toHaveBeenCalledTimes(2); // plus one trailing for the collapsed rest
+  vi.useRealTimers();
 });
 
 test('throttle trailing only', () => {
@@ -67,4 +70,5 @@ test('throttle trailing only', () => {
   expect(spy).toHaveBeenCalledTimes(0);
   vi.advanceTimersByTime(30);
   expect(spy).toHaveBeenCalledTimes(1);
+  vi.useRealTimers();
 });
