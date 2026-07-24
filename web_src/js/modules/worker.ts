@@ -71,7 +71,6 @@ function init() {
       return;
     }
     if (msg.type === 'logout') {
-      if (msg.data !== 'here') return;
       sharedWorker!.port.postMessage({type: 'close'});
       sharedWorker!.port.close();
       // slightly delay our "logout" for a short while, in case there are other logout requests in-flight.

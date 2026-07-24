@@ -6,68 +6,59 @@ package websocket
 import (
 	"testing"
 
-	"gitea.dev/modules/json"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestRewriteLogout(t *testing.T) {
+func TestFilterLogout(t *testing.T) {
 	cases := []struct {
 		name       string
 		brokerMsg  string
 		connSessID string
-		wantData   string // expected "data" field after rewrite; "" means message unchanged
-		wantDrop   bool
+		want       string // expected payload forwarded to the client
+		wantDrop   bool   // message dropped, nothing forwarded
 	}{
 		{
-			name:       "originating session sees here",
+			name:       "originating session gets a session-free logout",
 			brokerMsg:  `{"type":"logout","sessionID":"sess-A"}`,
 			connSessID: "sess-A",
-			wantData:   "here",
+			want:       `{"type":"logout"}`,
 		},
 		{
-			name:       "other session sees elsewhere",
+			name:       "other session is dropped",
 			brokerMsg:  `{"type":"logout","sessionID":"sess-A"}`,
 			connSessID: "sess-B",
-			wantData:   "elsewhere",
+			wantDrop:   true,
 		},
 		{
-			name:       "empty sessionID broadcasts as here",
+			name:       "empty sessionID reaches every session",
 			brokerMsg:  `{"type":"logout"}`,
 			connSessID: "sess-A",
-			wantData:   "here",
+			want:       `{"type":"logout"}`,
 		},
 		{
 			name:       "non-logout message passes through unchanged",
 			brokerMsg:  `{"type":"notification-count","count":3}`,
 			connSessID: "sess-A",
-			wantData:   "",
+			want:       `{"type":"notification-count","count":3}`,
 		},
 		{
 			name:       "malformed JSON with logout marker passes through unchanged",
 			brokerMsg:  `not json but mentions "type":"logout" somewhere`,
 			connSessID: "sess-A",
-			wantData:   "",
+			want:       `not json but mentions "type":"logout" somewhere`,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			out := rewriteLogout([]byte(tc.brokerMsg), tc.connSessID)
+			out := filterLogout([]byte(tc.brokerMsg), tc.connSessID)
 			if tc.wantDrop {
 				assert.Nil(t, out)
 				return
 			}
 			require.NotNil(t, out)
-			if tc.wantData == "" {
-				assert.Equal(t, tc.brokerMsg, string(out), "unchanged passthrough expected")
-				return
-			}
-			var m logoutClientMsg
-			require.NoError(t, json.Unmarshal(out, &m))
-			assert.Equal(t, "logout", m.Type)
-			assert.Equal(t, tc.wantData, m.Data)
+			assert.Equal(t, tc.want, string(out))
 		})
 	}
 }

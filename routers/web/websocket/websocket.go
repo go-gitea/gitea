@@ -30,15 +30,15 @@ const (
 	closeCodeUnauthenticated gitea_ws.StatusCode = 3000
 )
 
-type logoutClientMsg struct {
-	Type string `json:"type"`
-	Data string `json:"data"`
-}
-
 var logoutTypeMarker = []byte(`"type":"logout"`)
 
-// Returns nil to drop the message rather than leak the raw session ID on marshal failure.
-func rewriteLogout(msg []byte, connSessionID string) []byte {
+// Bare client payload; the broker's session ID is never serialized to the browser.
+var logoutClientPayload = []byte(`{"type":"logout"}`)
+
+// filterLogout forwards a session-free logout only to the targeted connection
+// (its own session, or every session when SessionID is empty) and drops it for
+// the rest. Non-logout messages pass through untouched.
+func filterLogout(msg []byte, connSessionID string) []byte {
 	if !bytes.Contains(msg, logoutTypeMarker) {
 		return msg
 	}
@@ -46,16 +46,10 @@ func rewriteLogout(msg []byte, connSessionID string) []byte {
 	if err := json.Unmarshal(msg, &lm); err != nil || lm.Type != websocket_service.EventLogout {
 		return msg
 	}
-	where := "elsewhere"
 	if lm.SessionID == "" || lm.SessionID == connSessionID {
-		where = "here"
+		return logoutClientPayload
 	}
-	out, err := json.Marshal(logoutClientMsg{Type: websocket_service.EventLogout, Data: where})
-	if err != nil {
-		log.Error("websocket: marshal logout: %v", err)
-		return nil
-	}
-	return out
+	return nil
 }
 
 func Serve(ctx *context.Context) {
@@ -100,7 +94,7 @@ func Serve(ctx *context.Context) {
 			if !ok {
 				return
 			}
-			msg = rewriteLogout(msg, sessionID)
+			msg = filterLogout(msg, sessionID)
 			if msg == nil {
 				continue
 			}
