@@ -15,8 +15,7 @@ export function renderAnsiInto(el: HTMLElement, line: string) {
   }
 
   // skip ansi_up for lines that don't contain escape sequences
-  const needsAnsiRender = line.includes('\x1b') || line.includes('\r');
-  if (!needsAnsiRender) {
+  if (!line.includes('\x1b') && !line.includes('\r')) {
     el.textContent = line;
     if (line.includes('://')) renderAnsiPostProcessNode(el);
     return;
