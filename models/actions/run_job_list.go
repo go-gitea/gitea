@@ -159,3 +159,12 @@ func (opts FindRunJobOptions) ToOrders() string {
 }
 
 var _ db.FindOptionsOrder = FindRunJobOptions{}
+
+// CountRunJobsByRunAndAttemptID counts the jobs belonging to the given run attempt.
+// It is used to enforce MaxJobNumPerRun when reusable-workflow expansion inserts new jobs.
+func CountRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64) (int64, error) {
+	return db.Count[ActionRunJob](ctx, FindRunJobOptions{
+		RunID:        runID,
+		RunAttemptID: optional.Some(runAttemptID),
+	})
+}

@@ -566,9 +566,6 @@ func ViewPost(ctx *context_module.Context) {
 }
 
 func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, jobs []*actions_model.ActionRunJob) {
-	// Latest when the run has no attempts yet (legacy) or the viewed attempt is the run's latest.
-	isLatestAttempt := run.LatestAttemptID == 0 || (attempt != nil && attempt.ID == run.LatestAttemptID)
-
 	resp.State.Run.RepoID = ctx.Repo.Repository.ID
 	resp.State.Run.Index = run.Index
 	// the title for the "run" is from the commit message
@@ -577,8 +574,12 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	resp.State.Run.Link = run.Link()
 	resp.State.Run.ViewLink = getRunViewLink(run, attempt)
 	resp.State.Run.Attempts = make([]*ViewRunAttempt, 0)
+	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts and summaries all
+	// share run_attempt_id=0, so passing 0 here scopes to this run's legacy rows only.
+	var runAttemptID int64
 	var effectiveStatus actions_model.Status
 	if attempt != nil {
+		runAttemptID = attempt.ID
 		effectiveStatus = attempt.Status
 		resp.State.Run.RunAttempt = attempt.Attempt
 		resp.State.Run.Duration = attempt.Duration().String()
@@ -588,6 +589,9 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 		resp.State.Run.Duration = run.Duration().String()
 		resp.State.Run.TriggeredAt = run.Created.AsTime().Unix()
 	}
+	// Latest when the run has no attempts yet (legacy) or the viewed attempt is the run's latest.
+	isLatestAttempt := run.LatestAttemptID == 0 || runAttemptID == run.LatestAttemptID
+
 	resp.State.Run.Status = effectiveStatus.String()
 	resp.State.Run.Done = effectiveStatus.IsDone()
 
@@ -647,7 +651,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 			Status:            runAttempt.Status.String(),
 			Done:              runAttempt.Status.IsDone(),
 			Link:              getRunViewLink(run, runAttempt),
-			Current:           runAttempt.ID == attempt.ID,
+			Current:           runAttempt.ID == runAttemptID,
 			Latest:            runAttempt.ID == run.LatestAttemptID,
 			TriggeredAt:       runAttempt.Created.AsTime().Unix(),
 			TriggerUserName:   runAttempt.TriggerUser.GetDisplayName(),
@@ -671,13 +675,6 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	resp.State.Run.PullRequest = refInfo.PullRequest
 	resp.State.Run.TriggerEvent = run.TriggerEvent
-
-	// Legacy runs (LatestAttemptID == 0) have no attempt; their artifacts and summaries all
-	// share run_attempt_id=0, so passing 0 here scopes to this run's legacy rows only.
-	var runAttemptID int64
-	if attempt != nil {
-		runAttemptID = attempt.ID
-	}
 
 	// Each step's markdown is rendered independently so an unclosed construct
 	// in one step can't bleed into the next.
@@ -1006,7 +1003,15 @@ func RerunFailed(ctx *context_module.Context) {
 		return
 	}
 
-	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, actions_service.GetFailedJobsForRerun(jobs)); err != nil {
+	// An empty job list means "re-run the whole run" to RerunWorkflowRunJobs, which is right for the plain
+	// rerun button but wrong here, so a direct POST on a fully successful run cannot re-run everything.
+	failedJobs := actions_service.GetFailedJobsForRerun(jobs)
+	if len(failedJobs) == 0 {
+		ctx.JSONError(ctx.Locale.Tr("actions.runs.no_failed_jobs"))
+		return
+	}
+
+	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, failedJobs); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}

@@ -1503,7 +1503,14 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, actions_service.GetFailedJobsForRerun(jobs)); err != nil {
+	failedJobs := actions_service.GetFailedJobsForRerun(jobs)
+	// Empty failedJobs means no failed jobs to re-run
+	if len(failedJobs) == 0 {
+		ctx.APIError(http.StatusBadRequest, "this workflow run has no failed jobs to re-run")
+		return
+	}
+
+	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, failedJobs); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}
