@@ -3,17 +3,23 @@ import {GET} from './fetch.ts';
 import {errorName} from './errors.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {urlQueryEscape} from '../utils/url.ts';
+import {svg} from '../svg.ts';
 
 export type SearchResult = {
   title: string;
   description?: string;
   image?: string;
+  icon?: string; // raw SVG html, rendered before the content
+  link?: string;
+  active?: boolean; // when defined, reserve a leading column and show a check on the active result
 };
 
 function buildResultHTML(result: SearchResult): string {
+  const check = result.active === undefined ? '' : html`<div class="result-check">${htmlRaw(result.active ? svg('octicon-check', 16) : '')}</div>`;
+  const icon = result.icon ? html`<div class="result-icon">${htmlRaw(result.icon)}</div>` : '';
   const img = result.image ? html`<div class="image"><img src="${result.image}" alt=""></div>` : '';
   const desc = result.description ? html`<div class="description">${result.description}</div>` : '';
-  return html`${htmlRaw(img)}<div class="content"><div class="title">${result.title}</div>${htmlRaw(desc)}</div>`;
+  return html`${htmlRaw(check)}${htmlRaw(icon)}${htmlRaw(img)}<div class="content"><div class="title">${result.title}</div>${htmlRaw(desc)}</div>`;
 }
 
 function buildResultElement(result: SearchResult): HTMLElement {
@@ -31,10 +37,15 @@ document.addEventListener('click', (event) => {
   }
 });
 
+export type SearchBox = {
+  /** run a fetch+render immediately for the current input value, bypassing the debounce */
+  refresh: () => void;
+};
+
 /** Attach an API-driven autocomplete to `container`. `parse` maps the raw JSON response into the rendered result list. The selected result's title is written to the input on selection. */
-export function attachSearchBox<T = unknown>(container: HTMLElement, url: string, parse: (raw: T, query: string) => SearchResult[], {minCharacters = 2}: {minCharacters?: number} = {}): void {
+export function attachSearchBox<T = unknown>(container: HTMLElement, url: string, parse: (raw: T, query: string) => SearchResult[], {minCharacters = 2, onSelect}: {minCharacters?: number; onSelect?: (result: SearchResult) => void} = {}): SearchBox {
   const input = container.querySelector<HTMLInputElement>('input.prompt') ?? container.querySelector<HTMLInputElement>('input');
-  if (!input) return;
+  if (!input) return {refresh: () => {}};
 
   let resultsEl = container.querySelector<HTMLElement>(':scope > .results');
   if (!resultsEl) {
@@ -44,6 +55,7 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
   }
   const itemResults = new Map<HTMLElement, SearchResult>();
   let fetchController: AbortController | null = null;
+  let blurHideTimer = 0;
 
   const hide = () => {
     fetchController?.abort();
@@ -64,12 +76,17 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
   };
 
   const select = (item: HTMLElement) => {
-    input.value = itemResults.get(item)!.title;
-    input.dispatchEvent(new Event('change', {bubbles: true}));
+    const result = itemResults.get(item)!;
+    if (onSelect) {
+      onSelect(result);
+    } else {
+      input.value = result.title;
+      input.dispatchEvent(new Event('change', {bubbles: true}));
+    }
     hide();
   };
 
-  const search = debounce(200, async (query: string) => {
+  const doSearch = async (query: string) => {
     fetchController?.abort();
     if (query.length < minCharacters) return hide();
     const ctrl = (fetchController = new AbortController());
@@ -82,13 +99,15 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
     } catch (err) {
       if (errorName(err) !== 'AbortError') hide();
     }
-  });
+  };
+  const search = debounce(200, doSearch);
   // cancel + hide ensures a debounced fetch scheduled before any of these can't fire afterwards
   const dismiss = () => { search.cancel(); hide() };
 
   input.addEventListener('input', () => search(input.value));
-  input.addEventListener('focus', () => { if (itemResults.size) resultsEl.style.display = 'block'; });
-  input.addEventListener('blur', () => { search.cancel(); setTimeout(hide, 150) }); // hide deferred so a result mousedown can land first
+  // clear any pending deferred hide so a quick refocus/reopen doesn't get its fresh results wiped
+  input.addEventListener('focus', () => { clearTimeout(blurHideTimer); if (itemResults.size) resultsEl.style.display = 'block'; });
+  input.addEventListener('blur', () => { search.cancel(); blurHideTimer = window.setTimeout(hide, 150) }); // hide deferred so a result mousedown can land first
   input.addEventListener('keydown', (event) => {
     const resultEls = Array.from(resultsEl.querySelectorAll<HTMLElement>('.result'));
     if (!resultEls.length) return;
@@ -113,4 +132,6 @@ export function attachSearchBox<T = unknown>(container: HTMLElement, url: string
     select(target);
   });
   outsideClickBoxes.add({container, hide: dismiss});
+
+  return {refresh: () => { search.cancel(); doSearch(input.value) }};
 }
