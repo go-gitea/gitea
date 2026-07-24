@@ -4,6 +4,7 @@
 package webhook
 
 import (
+	"strings"
 	"testing"
 
 	webhook_model "gitea.dev/models/webhook"
@@ -199,6 +200,13 @@ func TestIsValidSlackChannel(t *testing.T) {
 	}{
 		{"gitea", true},
 		{"#gitea", true},
+		{"개발알림", true},
+		{"#개발알림", true},
+		{"Gitea", false},
+		{"개발 알림", false},
+		{"개발!알림", false},
+		{strings.Repeat("가", 80), true},
+		{strings.Repeat("가", 81), false},
 		{"  ", false},
 		{"#", false},
 		{" #", false},
