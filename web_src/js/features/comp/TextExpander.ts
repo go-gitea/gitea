@@ -4,7 +4,7 @@ import {svg} from '../../svg.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
 import {getIssueColorClass, getIssueIcon} from '../issue.ts';
-import {debounce} from 'perfect-debounce';
+import {debounce} from '../../utils/func.ts';
 import type TextExpanderElement from '@github/text-expander-element';
 import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
 
