@@ -125,13 +125,13 @@ func newMailRenderer() (*MailRender, error) {
 				return !strings.HasPrefix(file, "mail/") || !strings.HasSuffix(file, ".tmpl")
 			})
 			for i, name := range names {
-				names[i] = strings.TrimSuffix(strings.TrimPrefix(name, "mail/"), ".tmpl")
+				names[i] = strings.TrimSuffix(name, ".tmpl")
 			}
 			renderer.TemplateNames = names
 			return names, nil
 		},
 		readTemplateContent: func(name string) ([]byte, error) {
-			content, err := assetFS.ReadFile("mail/" + name + ".tmpl")
+			content, err := assetFS.ReadFile(name + ".tmpl")
 			if err != nil {
 				return nil, err
 			}

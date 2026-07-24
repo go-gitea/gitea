@@ -99,6 +99,34 @@ func TestToMessage(t *testing.T) {
 	}, header)
 }
 
+func TestToMessageEmbeds(t *testing.T) {
+	oldConf := setting.MailService
+	defer func() {
+		setting.MailService = oldConf
+	}()
+	setting.MailService = &setting.Mailer{
+		From: "test@gitea.com",
+	}
+
+	m := Message{
+		FromAddress:     "test@gitea.com",
+		FromDisplayName: "Test Gitea",
+		To:              "a@b.com",
+		Subject:         "Workflow Run",
+		Body:            `<html><img src="cid:status-success.png"></html>`,
+		Embeds:          []*EmbeddedFile{{Name: "status-success.png", Content: []byte("fake png")}},
+	}
+
+	buf := &strings.Builder{}
+	_, err := m.ToMessage().WriteTo(buf)
+	assert.NoError(t, err)
+	header, content := extractMailHeaderAndContent(t, buf.String())
+	assert.Equal(t, "multipart/related;", header["Content-Type"])
+	assert.Contains(t, content, "Content-Id: <status-success.png>")
+	assert.Contains(t, content, "Content-Type: image/png; name=\"status-success.png\"")
+	assert.Contains(t, content, "Content-Disposition: inline; filename=\"status-success.png\"")
+}
+
 func extractMailHeaderAndContent(t *testing.T, mail string) (map[string]string, string) {
 	header := make(map[string]string)
 
