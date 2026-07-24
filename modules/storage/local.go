@@ -84,7 +84,7 @@ func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error)
 	tmpRemoved := false
 	defer func() {
 		if !tmpRemoved {
-			_ = util.Remove(tmp.Name())
+			_ = util.RemoveWithRetry(tmp.Name())
 		}
 	}()
 
@@ -97,7 +97,7 @@ func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error)
 		return 0, err
 	}
 
-	if err := util.Rename(tmp.Name(), p); err != nil {
+	if err := util.RenameWithRetry(tmp.Name(), p); err != nil {
 		return 0, err
 	}
 	// Golang's tmp file (os.CreateTemp) always have 0o600 mode, so we need to change the file to follow the umask (as what Create/MkDir does)
@@ -118,7 +118,7 @@ func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
 
 func (l *LocalStorage) deleteEmptyParentDirs(localFullPath string) {
 	for parent := filepath.Dir(localFullPath); len(parent) > len(l.dir); parent = filepath.Dir(parent) {
-		if err := os.Remove(parent); err != nil {
+		if err := util.RemoveWithRetry(parent); err != nil && !os.IsNotExist(err) {
 			// since the target file has been deleted, parent dir error is not related to the file deletion itself.
 			break
 		}
@@ -128,7 +128,7 @@ func (l *LocalStorage) deleteEmptyParentDirs(localFullPath string) {
 // Delete deletes the file in storage and removes the empty parent directories (if possible)
 func (l *LocalStorage) Delete(path string) error {
 	localFullPath := l.buildLocalPath(path)
-	err := util.Remove(localFullPath)
+	err := util.RemoveWithRetry(localFullPath)
 	l.deleteEmptyParentDirs(localFullPath)
 	return err
 }

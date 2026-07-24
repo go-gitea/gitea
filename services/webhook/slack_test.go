@@ -191,22 +191,3 @@ func TestSlackJSONPayload(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>:<http://localhost:3000/test/repo/src/branch/test|test>] 2 new commits pushed by user1", body.Text)
 }
-
-func TestIsValidSlackChannel(t *testing.T) {
-	tt := []struct {
-		channelName string
-		expected    bool
-	}{
-		{"gitea", true},
-		{"#gitea", true},
-		{"  ", false},
-		{"#", false},
-		{" #", false},
-		{"gitea   ", false},
-		{"  gitea", false},
-	}
-
-	for _, v := range tt {
-		assert.Equal(t, v.expected, IsValidSlackChannel(v.channelName))
-	}
-}

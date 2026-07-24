@@ -66,10 +66,10 @@ func testMain(m *testing.M) int {
 	// Instead, "No tests were found",  last nonsense log is "According to the configuration, subsequent logs will not be printed to the console"
 	exitCode := m.Run()
 
-	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
+	if err = os.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		log.Error("Failed to remove indexer path: %v", err)
 	}
-	if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
+	if err = os.RemoveAll(setting.Indexer.RepoPath); err != nil {
 		log.Error("Failed to remove indexer path: %v", err)
 	}
 	return exitCode
