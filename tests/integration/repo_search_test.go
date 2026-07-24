@@ -46,10 +46,20 @@ func TestSearchRepo(t *testing.T) {
 
 	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
 	testSearch(t, "/user2/glob/search?q=loren&page=1&t=match", []string{"a.txt"})
-	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt", "a.txt"})
-	testSearch(t, "/user2/glob/search?q=file3&page=1&t=match", []string{"x/b.txt", "a.txt"})
-	testSearch(t, "/user2/glob/search?q=file4&page=1&t=match", []string{"x/b.txt", "a.txt"})
-	testSearch(t, "/user2/glob/search?q=file5&page=1&t=match", []string{"x/b.txt", "a.txt"})
+	// a.txt contains "file1", x/b.txt contains "file3" verbatim, so "file3" only
+	// matches x/b.txt. Before #37221 was fixed, the bleve tokenizer dropped digit
+	// runs entirely, collapsing "file1" and "file3" to the same "file" token, so
+	// this assertion used to (incidentally, not by design) also match a.txt.
+	testSearch(t, "/user2/glob/search?q=file3&page=1", []string{"x/b.txt"})
+	testSearch(t, "/user2/glob/search?q=file3&page=1&t=match", []string{"x/b.txt"})
+	// "file4"/"file5" only appear in x/y/a.txt and x/y/z/a.txt, both excluded by the
+	// "**/y/**" ExcludePatterns above — so these correctly match nothing now that
+	// digit-aware tokenization (#37221) makes "file4"/"file5" distinct search terms
+	// instead of everything collapsing to a bare "file" token. This is a stronger
+	// check of ExcludePatterns than before: previously these assertions passed only
+	// because of the digit-dropping bug, not because exclusion was actually verified.
+	testSearch(t, "/user2/glob/search?q=file4&page=1&t=match", []string{})
+	testSearch(t, "/user2/glob/search?q=file5&page=1&t=match", []string{})
 }
 
 func testSearch(t *testing.T, url string, expected []string) {
