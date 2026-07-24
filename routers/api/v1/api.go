@@ -69,6 +69,7 @@ import (
 	"strings"
 
 	auth_model "gitea.dev/models/auth"
+	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -76,10 +77,12 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	web_types "gitea.dev/modules/web/types"
 	"gitea.dev/routers/api/v1/activitypub"
 	"gitea.dev/routers/api/v1/admin"
 	"gitea.dev/routers/api/v1/misc"
@@ -111,6 +114,10 @@ func sudo() func(ctx *context.APIContext) {
 		}
 
 		if len(sudo) > 0 {
+			if _, ok := ctx.CodespaceTokenRepoID(); ok {
+				ctx.APIError(http.StatusForbidden, "codespace token cannot use sudo")
+				return
+			}
 			if ctx.IsSigned && ctx.Doer.IsAdmin {
 				user, err := user_model.GetUserByName(ctx, sudo)
 				if err != nil {
@@ -216,6 +223,10 @@ func repoAssignment() func(ctx *context.APIContext) {
 		}
 
 		if !ctx.TokenCanAccessRepo(repo) {
+			if ctx.CodespaceTokenRepoBindingMismatch(repo) {
+				ctx.APIError(http.StatusForbidden, "codespace token is bound to another repository")
+				return
+			}
 			ctx.APIErrorNotFound()
 			return
 		}
@@ -316,6 +327,38 @@ func contextAuthenticatedUser() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		ctx.ContextUser = ctx.Doer
 	}
+}
+
+func codespaceTokenRoute(policy string) web_types.PreMiddlewareProvider {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if store := reqctx.GetRequestDataStore(req.Context()); store != nil {
+				store.GetData()[codespace_model.GiteaTokenRoutePolicyDataKey] = policy
+			}
+			next.ServeHTTP(w, req)
+		})
+	}
+}
+
+func codespaceTokenRouteGuard(ctx *context.APIContext) {
+	if _, ok := ctx.CodespaceTokenRepoID(); !ok {
+		return
+	}
+	policy, _ := ctx.GetData()[codespace_model.GiteaTokenRoutePolicyDataKey].(string)
+	switch policy {
+	case codespace_model.GiteaTokenRoutePolicySelf,
+		codespace_model.GiteaTokenRoutePolicyPublicInfo,
+		codespace_model.GiteaTokenRoutePolicyRepositoryGroup,
+		codespace_model.GiteaTokenRoutePolicySignedArtifact:
+		return
+	default:
+		ctx.APIError(http.StatusForbidden, "codespace token is not allowed for this API route")
+	}
+}
+
+func codespaceTokenRoutePolicy(ctx *context.APIContext) string {
+	policy, _ := ctx.GetData()[codespace_model.GiteaTokenRoutePolicyDataKey].(string)
+	return policy
 }
 
 // if a token is being used for auth, we check that it contains the required scope
@@ -849,8 +892,15 @@ func buildAuthGroup() *auth.Group {
 
 func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if codespaceTokenRoutePolicy(ctx) == codespace_model.GiteaTokenRoutePolicySignedArtifact {
+			return
+		}
 		ar, err := common.AuthShared(ctx.Base, nil, authMethod)
 		if err != nil {
+			if auth.IsCodespaceTokenForbidden(err) {
+				ctx.APIError(http.StatusForbidden, "codespace token is not allowed for this request")
+				return
+			}
 			msg, ok := auth.ErrAsUserAuthMessage(err)
 			msg = util.Iif(ok, msg, "invalid username, password or token")
 			ctx.APIError(http.StatusUnauthorized, msg)
@@ -865,6 +915,9 @@ func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 // verifyAuthWithOptions checks authentication according to options
 func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if codespaceTokenRoutePolicy(ctx) == codespace_model.GiteaTokenRoutePolicySignedArtifact {
+			return
+		}
 		// Check prohibit login users.
 		if ctx.IsSigned {
 			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
@@ -971,6 +1024,7 @@ func Routes() *web.Router {
 
 	// Get user from session if logged in.
 	m.AfterRouting(apiAuth(buildAuthGroup()))
+	m.AfterRouting(codespaceTokenRouteGuard)
 
 	m.AfterRouting(verifyAuthWithOptions(&common.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInViewStrict,
@@ -1026,9 +1080,9 @@ func Routes() *web.Router {
 
 		// Misc (public accessible)
 		m.Group("", func() {
-			m.Get("/version", misc.Version)
-			m.Get("/signing-key.gpg", misc.SigningKeyGPG)
-			m.Get("/signing-key.pub", misc.SigningKeySSH)
+			m.Get("/version", codespaceTokenRoute(codespace_model.GiteaTokenRoutePolicyPublicInfo), misc.Version)
+			m.Get("/signing-key.gpg", codespaceTokenRoute(codespace_model.GiteaTokenRoutePolicyPublicInfo), misc.SigningKeyGPG)
+			m.Get("/signing-key.pub", codespaceTokenRoute(codespace_model.GiteaTokenRoutePolicyPublicInfo), misc.SigningKeySSH)
 			m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
 			m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
 			m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
@@ -1107,7 +1161,7 @@ func Routes() *web.Router {
 
 		// Users (requires user scope)
 		m.Group("/user", func() {
-			m.Get("", user.GetAuthenticatedUser)
+			m.Get("", codespaceTokenRoute(codespace_model.GiteaTokenRoutePolicySelf), user.GetAuthenticatedUser)
 			m.Group("/settings", func() {
 				m.Get("", user.GetUserSettings)
 				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
@@ -1544,12 +1598,12 @@ func Routes() *web.Router {
 				}, reqAdmin(), reqToken())
 
 				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.DownloadArchive)
-			}, repoAssignment(), checkTokenPublicOnly())
+			}, repoAssignment(), checkTokenPublicOnly(), codespaceTokenRoute(codespace_model.GiteaTokenRoutePolicyRepositoryGroup))
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
-		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
+		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", codespaceTokenRoute(codespace_model.GiteaTokenRoutePolicySignedArtifact), repo.DownloadArtifactRaw)
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {
@@ -1680,7 +1734,7 @@ func Routes() *web.Router {
 						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
 				})
-			}, repoAssignment(), checkTokenPublicOnly())
+			}, repoAssignment(), checkTokenPublicOnly(), codespaceTokenRoute(codespace_model.GiteaTokenRoutePolicyRepositoryGroup))
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs

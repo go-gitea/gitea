@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	codespace_service "gitea.dev/services/codespace"
 )
 
 // Ensure the struct implements the interface.
@@ -69,6 +70,19 @@ func (b *Basic) parseAuthBasic(req *http.Request) (ret struct{ authToken, uname,
 
 // VerifyAuthToken only the access token provided as parameter, used by other auth methods that want to reuse access token verification logic
 func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore, authToken string) (*user_model.User, error) {
+	if codespace_service.IsGiteaTokenPlaintext(authToken) && !codespaceTokenAuthAllowed(req.Context()) {
+		return nil, errors.Join(ErrAuthMethodTerminal, ErrCodespaceTokenForbidden)
+	}
+	codespaceToken, err := codespace_service.ResolveGiteaToken(req.Context(), authToken)
+	if err != nil {
+		if authErr := codespaceTokenAuthError(err); authErr != nil {
+			return nil, authErr
+		}
+	} else {
+		storeCodespaceTokenAuth(store, codespaceToken)
+		return codespaceToken.User, nil
+	}
+
 	// get oauth2 token's user's ID
 	accessTokenScope, uid := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
 	if uid != 0 {
@@ -195,6 +209,8 @@ func GetAccessScope(store DataStore) auth_model.AccessTokenScope {
 		fallthrough
 	case BasicMethodName, AccessTokenMethodName:
 		return auth_model.AccessTokenScopeAll
+	case CodespaceTokenMethodName:
+		return auth_model.AccessTokenScope(codespace_service.GiteaTokenScope)
 	case ActionTokenMethodName:
 		fallthrough
 	default:

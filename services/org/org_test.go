@@ -6,6 +6,8 @@ package org
 import (
 	"testing"
 
+	codespace_model "gitea.dev/models/codespace"
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -87,4 +89,71 @@ func TestOrg(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &repo_model.Watch{UserID: watcher.ID, RepoID: repo.ID})
 		unittest.AssertNotExistsBean(t, &repo_model.Star{UID: watcher.ID, RepoID: repo.ID})
 	})
+}
+
+func TestDeleteOrganizationCleansCodespaceOwnerResources(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 6})
+	manager := insertOrgTestCodespaceManager(t, org.ID)
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.ManagerToken{
+		OwnerID: org.ID,
+		Token:   "org-delete-codespace-token",
+	}))
+	codespaceUUID := "72727272-7272-4272-8272-727272727272"
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
+		UUID:              codespaceUUID,
+		UserID:            1,
+		RepoID:            0,
+		ManagerID:         manager.ID,
+		RefType:           "branch",
+		RefName:           "main",
+		RepoTag:           "default",
+		GitProtocol:       codespace_model.GitProtocolHTTP,
+		CommitSHA:         "0123456789abcdef0123456789abcdef01234567",
+		Status:            codespace_model.StatusRunning,
+		OperationRVersion: 72,
+		AutoStopMode:      codespace_model.AutoStopModeDefault,
+		CreatedUnix:       1,
+		UpdatedUnix:       1,
+		LogFilename:       codespaceUUID + ".log",
+	}))
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
+		CodespaceUUID:  codespaceUUID,
+		TokenHash:      "org-delete-hash",
+		TokenSalt:      "salt",
+		TokenLastEight: "last0072",
+		TokenEncrypted: "encrypted",
+	}))
+
+	require.NoError(t, DeleteOrganization(t.Context(), org, false))
+
+	unittest.AssertNotExistsBean(t, &organization.Organization{ID: org.ID})
+	assertOrgTestNotExists(t, new(codespace_model.Manager), "id = ?", manager.ID)
+	assertOrgTestNotExists(t, new(codespace_model.ManagerToken), "owner_id = ?", org.ID)
+	assertOrgTestNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
+	assertOrgTestNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+}
+
+func insertOrgTestCodespaceManager(t *testing.T, ownerID int64) *codespace_model.Manager {
+	t.Helper()
+	manager := &codespace_model.Manager{
+		Name:           "org-delete-manager",
+		OwnerID:        ownerID,
+		RuntimeState:   codespace_model.ManagerRuntimeStateOnline,
+		TagsJSON:       "[]",
+		CreatedUnix:    1,
+		LastOnlineUnix: 1,
+		MetaJSON:       "{}",
+	}
+	manager.GenerateManagerSecret()
+	require.NoError(t, db.Insert(t.Context(), manager))
+	return manager
+}
+
+func assertOrgTestNotExists(t *testing.T, bean any, query string, args ...any) {
+	t.Helper()
+	has, err := db.GetEngine(t.Context()).Where(query, args...).Exist(bean)
+	require.NoError(t, err)
+	assert.False(t, has)
 }

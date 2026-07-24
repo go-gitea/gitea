@@ -4,10 +4,15 @@
 package context
 
 import (
+	"net/http"
 	"net/url"
 	"strconv"
 	"testing"
 
+	codespace_model "gitea.dev/models/codespace"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -47,4 +52,33 @@ func TestGenAPILinks(t *testing.T) {
 
 		assert.Equal(t, links, response)
 	}
+}
+
+func TestAPIContextTokenCanAccessRepoForCodespaceToken(t *testing.T) {
+	ctx := &APIContext{Base: &Base{RequestContext: reqctx.NewRequestContextForTest(t.Context())}}
+	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/repos/user5/repo4", nil)
+	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 2}
+
+	assert.True(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2}))
+	assert.True(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 3, Owner: &user_model.User{}, IsPrivate: false}))
+	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 4, Owner: &user_model.User{}, IsPrivate: true}))
+	assert.False(t, ctx.TokenCanAccessRepo(nil))
+	assert.False(t, ctx.CodespaceTokenRepoBindingMismatch(&repo_model.Repository{ID: 2}))
+	assert.True(t, ctx.CodespaceTokenRepoBindingMismatch(&repo_model.Repository{ID: 3}))
+	assert.True(t, ctx.CodespaceTokenRepoBindingMismatch(nil))
+
+	ctx.GetData()[codespace_model.GiteaTokenAuthDataKey] = testCodespaceTokenSnapshot{repoID: 0}
+	assert.True(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2, Owner: &user_model.User{}, IsPrivate: false}))
+	assert.True(t, ctx.CodespaceTokenRepoBindingMismatch(&repo_model.Repository{ID: 2}))
+
+	ctx.Req, _ = http.NewRequestWithContext(t.Context(), http.MethodPost, "/api/v1/repos/user5/repo4", nil)
+	assert.False(t, ctx.TokenCanAccessRepo(&repo_model.Repository{ID: 2, Owner: &user_model.User{}, IsPrivate: false}))
+}
+
+type testCodespaceTokenSnapshot struct {
+	repoID int64
+}
+
+func (s testCodespaceTokenSnapshot) CodespaceTokenRepoID() int64 {
+	return s.repoID
 }

@@ -11,6 +11,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/auth"
+	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
@@ -144,6 +145,58 @@ func TestCreateUser(t *testing.T) {
 	assert.NoError(t, DeleteUser(t.Context(), user, false))
 }
 
+func TestDeleteUserCleansCodespaceOwnerResources(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	user := &user_model.User{
+		Name:               "CodespaceDeleteUser",
+		Email:              "codespace-delete-user@gitea.io",
+		Passwd:             "password",
+		IsAdmin:            false,
+		Theme:              setting.UI.DefaultTheme,
+		MustChangePassword: false,
+	}
+	require.NoError(t, user_model.CreateUser(t.Context(), user, &user_model.Meta{}))
+	manager := insertUserTestCodespaceManager(t, user.ID)
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.ManagerToken{
+		OwnerID: user.ID,
+		Token:   "user-delete-codespace-token",
+	}))
+	codespaceUUID := "71717171-7171-4171-8171-717171717171"
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
+		UUID:              codespaceUUID,
+		UserID:            user.ID,
+		RepoID:            0,
+		ManagerID:         manager.ID,
+		RefType:           "branch",
+		RefName:           "main",
+		RepoTag:           "default",
+		GitProtocol:       codespace_model.GitProtocolHTTP,
+		CommitSHA:         "0123456789abcdef0123456789abcdef01234567",
+		Status:            codespace_model.StatusRunning,
+		OperationRVersion: 71,
+		AutoStopMode:      codespace_model.AutoStopModeDefault,
+		CreatedUnix:       1,
+		UpdatedUnix:       1,
+		LogFilename:       codespaceUUID + ".log",
+	}))
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
+		CodespaceUUID:  codespaceUUID,
+		TokenHash:      "user-delete-hash",
+		TokenSalt:      "salt",
+		TokenLastEight: "last0071",
+		TokenEncrypted: "encrypted",
+	}))
+
+	require.NoError(t, DeleteUser(t.Context(), user, false))
+
+	unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID})
+	assertUserTestNotExists(t, new(codespace_model.Manager), "id = ?", manager.ID)
+	assertUserTestNotExists(t, new(codespace_model.ManagerToken), "owner_id = ?", user.ID)
+	assertUserTestNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
+	assertUserTestNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+}
+
 func TestRenameUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 21})
@@ -262,4 +315,27 @@ func TestDeleteInactiveUsers(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-inactive-5"})
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-active-10"})
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user-active-5"})
+}
+
+func insertUserTestCodespaceManager(t *testing.T, ownerID int64) *codespace_model.Manager {
+	t.Helper()
+	manager := &codespace_model.Manager{
+		Name:           "user-delete-manager",
+		OwnerID:        ownerID,
+		RuntimeState:   codespace_model.ManagerRuntimeStateOnline,
+		TagsJSON:       "[]",
+		CreatedUnix:    1,
+		LastOnlineUnix: 1,
+		MetaJSON:       "{}",
+	}
+	manager.GenerateManagerSecret()
+	require.NoError(t, db.Insert(t.Context(), manager))
+	return manager
+}
+
+func assertUserTestNotExists(t *testing.T, bean any, query string, args ...any) {
+	t.Helper()
+	has, err := db.GetEngine(t.Context()).Where(query, args...).Exist(bean)
+	require.NoError(t, err)
+	assert.False(t, has)
 }

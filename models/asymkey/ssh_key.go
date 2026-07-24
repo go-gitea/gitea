@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -33,9 +34,11 @@ const (
 	KeyTypeDeploy
 	// KeyTypePrincipal specifies the authorized principal key
 	KeyTypePrincipal
+	// KeyTypeCodespace specifies a Codespace Git SSH key
+	KeyTypeCodespace
 )
 
-// PublicKey represents a user or deploy SSH public key.
+// PublicKey represents a user, deploy, principal, or Codespace SSH public key.
 type PublicKey struct {
 	ID            int64           `xorm:"pk autoincr"`
 	OwnerID       int64           `xorm:"INDEX NOT NULL"`
@@ -98,37 +101,46 @@ func AddPublicKey(ctx context.Context, ownerID int64, name, content string, auth
 		return nil, err
 	}
 
-	return db.WithTx2(ctx, func(ctx context.Context) (*PublicKey, error) {
-		if err := checkKeyFingerprint(ctx, fingerprint); err != nil {
-			return nil, err
-		}
+	var key *PublicKey
+	err = globallock.LockAndDo(ctx, PublicKeyFingerprintLockKey(fingerprint), func(ctx context.Context) error {
+		createdKey, err := db.WithTx2(ctx, func(ctx context.Context) (*PublicKey, error) {
+			if err := checkKeyFingerprint(ctx, fingerprint); err != nil {
+				return nil, err
+			}
 
-		// Key name of same user cannot be duplicated.
-		has, err := db.GetEngine(ctx).
-			Where("owner_id = ? AND name = ?", ownerID, name).
-			Get(new(PublicKey))
+			// Key name of same user cannot be duplicated.
+			has, err := db.GetEngine(ctx).
+				Where("owner_id = ? AND name = ?", ownerID, name).
+				Get(new(PublicKey))
+			if err != nil {
+				return nil, err
+			} else if has {
+				return nil, ErrKeyNameAlreadyUsed{ownerID, name}
+			}
+
+			key := &PublicKey{
+				OwnerID:       ownerID,
+				Name:          name,
+				Fingerprint:   fingerprint,
+				Content:       content,
+				Mode:          perm.AccessModeWrite,
+				Type:          KeyTypeUser,
+				LoginSourceID: authSourceID,
+				Verified:      verified,
+			}
+			if err = addKey(ctx, key); err != nil {
+				return nil, fmt.Errorf("addKey: %w", err)
+			}
+
+			return key, nil
+		})
 		if err != nil {
-			return nil, err
-		} else if has {
-			return nil, ErrKeyNameAlreadyUsed{ownerID, name}
+			return err
 		}
-
-		key := &PublicKey{
-			OwnerID:       ownerID,
-			Name:          name,
-			Fingerprint:   fingerprint,
-			Content:       content,
-			Mode:          perm.AccessModeWrite,
-			Type:          KeyTypeUser,
-			LoginSourceID: authSourceID,
-			Verified:      verified,
-		}
-		if err = addKey(ctx, key); err != nil {
-			return nil, fmt.Errorf("addKey: %w", err)
-		}
-
-		return key, nil
+		key = createdKey
+		return nil
 	})
+	return key, err
 }
 
 // GetPublicKeyByID returns public key by given ID.

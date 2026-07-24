@@ -49,3 +49,44 @@ PROPORTION_TO_CHECK_PER_REPO = 0.1
 	assert.Equal(t, int64(10), config.NumberToCheckPerRepo)
 	assert.InDelta(t, 0.1, config.ProportionToCheckPerRepo, 0.001)
 }
+
+func Test_ReconcileCodespacesConfig(t *testing.T) {
+	cfg, err := setting.NewConfigProviderFromData(`
+[cron.reconcile_codespaces]
+ENABLED = true
+RUN_AT_START = true
+SCHEDULE = "@every 2m"
+OLDER_THAN = "24h"
+`)
+	assert.NoError(t, err)
+	defer test.MockVariableValue(&setting.CfgProvider, cfg)()
+
+	config := &ReconcileCodespacesConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@every 1m",
+		},
+		OlderThan: 8760 * time.Hour,
+	}
+
+	_, err = setting.GetCronSettings("reconcile_codespaces", config)
+	assert.NoError(t, err)
+	assert.NoError(t, config.Validate())
+	assert.True(t, config.Enabled)
+	assert.True(t, config.RunAtStart)
+	assert.Equal(t, "@every 2m", config.Schedule)
+	assert.Equal(t, 24*time.Hour, config.OlderThan)
+}
+
+func Test_ReconcileCodespacesConfigRejectsInvalidRetention(t *testing.T) {
+	config := &ReconcileCodespacesConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@every 1m",
+		},
+	}
+
+	assert.Error(t, config.Validate())
+}

@@ -1250,9 +1250,10 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	// a public-only token must not update (push into) a private head repo,
-	// even when the base repo named in the route is public
-	if !ctx.TokenCanAccessRepo(pr.HeadRepo) {
+	// A public-only token must not update a private head repo, even when the
+	// base repo named in the route is public. Codespace tokens are bound to the
+	// route's base repo; fork head permission is checked below by Gitea's PR rules.
+	if ctx.PublicOnly && !ctx.TokenCanAccessRepo(pr.HeadRepo) {
 		ctx.APIErrorNotFound()
 		return
 	}

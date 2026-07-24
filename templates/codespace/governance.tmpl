@@ -1,0 +1,56 @@
+{{template "admin/layout_head" (dict "pageClass" "admin codespaces")}}
+		<h2 class="ui header">Codespaces</h2>
+		{{if .Codespaces}}
+			<div class="ui attached table segment">
+				<table class="ui very basic table">
+					<thead>
+						<tr>
+							<th>Codespace</th>
+							<th>Creator</th>
+							<th>Manager</th>
+							<th>Status</th>
+							<th>Updated</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						{{range .Codespaces}}
+							<tr>
+								<td><span class="tw-font-mono">{{.ShortUUID}}</span></td>
+								<td>{{if .UserDisplayName}}{{.UserDisplayName}}{{else}}User {{.UserID}}{{end}}</td>
+								<td>
+									{{if .ManagerDisplayName}}{{.ManagerDisplayName}}{{else}}Waiting for Manager{{end}}
+									<div class="tw-text-text-light-2">{{.ManagerRuntimeState}}</div>
+								</td>
+								<td>
+									<span>{{.DisplayStatus}}</span>
+									<div class="tw-text-text-light-2">{{.StatusSummary}}</div>
+								</td>
+								<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
+								<td class="right aligned">
+									{{if .CanStop}}
+										<form class="tw-inline-block" method="post" action="{{$.ActionBase}}/{{.UUID}}/stop">
+											<button class="ui tiny button" type="submit">Stop</button>
+										</form>
+									{{end}}
+									{{if .CanDelete}}
+										<form class="tw-inline-block" method="post" action="{{$.ActionBase}}/{{.UUID}}/delete">
+											<button class="ui tiny button" type="submit">Delete</button>
+										</form>
+									{{end}}
+									{{if and $.IsSiteGovernance .CanForceDelete}}
+										<form class="tw-inline-flex tw-items-center tw-gap-2" method="post" action="{{$.ActionBase}}/{{.UUID}}/force-delete">
+											<label><input type="checkbox" name="confirm" value="force-delete"> Confirm</label>
+											<button class="ui tiny red button" type="submit">Force Delete</button>
+										</form>
+									{{end}}
+								</td>
+							</tr>
+						{{end}}
+					</tbody>
+				</table>
+			</div>
+		{{else}}
+			<div class="ui placeholder segment">No Codespaces.</div>
+		{{end}}
+{{template "admin/layout_footer" .}}
