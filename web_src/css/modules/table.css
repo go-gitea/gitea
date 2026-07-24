@@ -161,15 +161,6 @@
 .ui.fixed.table {
   table-layout: fixed;
 }
-.ui.fixed.table th,
-.ui.fixed.table td {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* while a dropdown in the cell is open, its absolutely-positioned menu must not be clipped by the cell */
-.ui.fixed.table td:has(.ui.dropdown.active) {
-  overflow: visible;
-}
 
 .ui.selectable.table > tbody > tr:hover,
 .ui.table tbody tr td.selectable:hover {
