@@ -355,6 +355,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 4px;
   margin-top: 8px;
+  min-height: 50px; /* reserve the back link and title height so the body does not shift when the run data arrives */
 }
 
 .action-view-back {
