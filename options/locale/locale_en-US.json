@@ -3741,7 +3741,7 @@
   "actions.runners.runner_title": "Runner",
   "actions.runners.task_list": "Recent tasks on this runner",
   "actions.runners.task_list.no_tasks": "There is no task yet.",
-  "actions.runners.task_list.run": "Run",
+  "actions.runners.task_list.job": "Job",
   "actions.runners.task_list.status": "Status",
   "actions.runners.task_list.repository": "Repository",
   "actions.runners.task_list.commit": "Commit",
