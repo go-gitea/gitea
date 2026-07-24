@@ -24,7 +24,7 @@ import (
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash (id of a commit or a tree)
 func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
-	gitTree, err := gitRepo.GetTree(sha)
+	gitTree, err := gitRepo.GetTree(ctx, sha)
 	if err != nil {
 		return nil, util.NewInvalidArgumentErrorf("sha not found [%s]", sha)
 	}
@@ -170,7 +170,7 @@ func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *filei
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]
 			}
-			subNodes, err := listTreeNodes(ctx, repoLink, renderedIconPool, gitRepo, commit, entry.Tree(gitRepo), subTreePath, subPathRemaining)
+			subNodes, err := listTreeNodes(ctx, repoLink, renderedIconPool, gitRepo, commit, entry.Tree(ctx, gitRepo), subTreePath, subPathRemaining)
 			if err != nil {
 				log.Error("listTreeNodes: %v", err)
 			} else {
@@ -187,5 +187,5 @@ func GetTreeViewNodes(ctx context.Context, repoLink string, renderedIconPool *fi
 	if err != nil {
 		return nil, err
 	}
-	return listTreeNodes(ctx, repoLink, renderedIconPool, gitRepo, commit, entry.Tree(gitRepo), treePath, subPath)
+	return listTreeNodes(ctx, repoLink, renderedIconPool, gitRepo, commit, entry.Tree(ctx, gitRepo), treePath, subPath)
 }

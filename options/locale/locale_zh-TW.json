@@ -2823,7 +2823,6 @@
   "admin.config.default_enable_timetracking": "預設啟用時間追蹤",
   "admin.config.default_allow_only_contributors_to_track_time": "只讓貢獻者追蹤時間",
   "admin.config.no_reply_address": "隱藏電子信箱域名",
-  "admin.config.default_visibility_organization": "新組織的預設瀏覽權限",
   "admin.config.default_enable_dependencies": "預設啟用問題的先決條件",
   "admin.config.webhook_config": "Webhook 組態",
   "admin.config.queue_length": "佇列長度",

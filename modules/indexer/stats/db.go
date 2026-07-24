@@ -9,7 +9,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/languagestats"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -37,7 +36,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return err
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		if err.Error() == "no such file or directory" {
 			return nil
@@ -47,7 +46,7 @@ func (db *DBIndexer) Index(id int64) error {
 	defer gitRepo.Close()
 
 	// Get latest commit for default branch
-	commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
+	commitID, err := gitRepo.GetBranchCommitID(ctx, repo.DefaultBranch)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) || git.IsErrNotExist(err) || setting.IsInTesting {
 			log.Debug("Unable to get commit ID for default branch %s in %s ... skipping this repository", repo.DefaultBranch, repo.FullName())

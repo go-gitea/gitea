@@ -13,8 +13,9 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -91,35 +92,39 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 func TestAdoptRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	testRepoName := "test-adopt"
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	destDir := filepath.Join(setting.RepoRootPath, user2.Name, testRepoName+".git")
 
-	// a successful adopt
-	destDir := filepath.Join(setting.RepoRootPath, user2.Name, "test-adopt.git")
-	assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.RepoRootPath, user2.Name, "repo1.git"), destDir))
+	t.Run("Success", func(t *testing.T) {
+		// a successful adopt
+		assert.NoError(t, unittest.SyncDirs(filepath.Join(setting.RepoRootPath, user2.Name, "repo1.git"), destDir))
 
-	adoptedRepo, err := AdoptRepository(t.Context(), user2, user2, CreateRepoOptions{Name: "test-adopt"})
-	assert.NoError(t, err)
-	repoTestAdopt := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "test-adopt"})
-	assert.Equal(t, "sha1", repoTestAdopt.ObjectFormatName)
+		adoptedRepo, err := AdoptRepository(t.Context(), user2, user2, CreateRepoOptions{Name: testRepoName})
+		assert.NoError(t, err)
+		repoTestAdopt := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: testRepoName})
+		assert.Equal(t, "sha1", repoTestAdopt.ObjectFormatName)
 
-	// just delete the adopted repo's db records
-	err = deleteFailedAdoptRepository(adoptedRepo.ID)
-	assert.NoError(t, err)
+		// just delete the adopted repo's db records
+		err = deleteFailedAdoptRepository(adoptedRepo.ID)
+		assert.NoError(t, err)
+	})
 
-	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: "test-adopt"})
+	t.Run("Failure", func(t *testing.T) {
+		unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: testRepoName})
+		// a failed adopt because some mock data
+		// remove the hooks directory and create a file so that we cannot create the hooks successfully
+		_ = os.RemoveAll(filepath.Join(destDir, "hooks", "update.d"))
+		assert.NoError(t, os.WriteFile(filepath.Join(destDir, "hooks", "update.d"), []byte("dummy-content"), os.ModePerm))
 
-	// a failed adopt because some mock data
-	// remove the hooks directory and create a file so that we cannot create the hooks successfully
-	_ = os.RemoveAll(filepath.Join(destDir, "hooks", "update.d"))
-	assert.NoError(t, os.WriteFile(filepath.Join(destDir, "hooks", "update.d"), []byte("tests"), os.ModePerm))
+		adoptedRepo, err := AdoptRepository(t.Context(), user2, user2, CreateRepoOptions{Name: testRepoName})
+		assert.Error(t, err)
+		assert.Nil(t, adoptedRepo)
 
-	adoptedRepo, err = AdoptRepository(t.Context(), user2, user2, CreateRepoOptions{Name: "test-adopt"})
-	assert.Error(t, err)
-	assert.Nil(t, adoptedRepo)
+		unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: testRepoName})
 
-	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: "test-adopt"})
-
-	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, "test-adopt"))
-	assert.NoError(t, err)
-	assert.True(t, exist) // the repository should be still in the disk
+		exist, err := git.IsRepositoryExist(t.Context(), gitrepo.CodeRepoByName(user2.Name, testRepoName))
+		assert.NoError(t, err)
+		assert.True(t, exist) // the repository should be still in the disk
+	})
 }

@@ -15,7 +15,6 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/markdown"
@@ -110,13 +109,13 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 		return nil, nil
 	}
 
-	profileGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, profileDbRepo)
+	profileGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, profileDbRepo)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to OpenRepository: %v", err)
 		return nil, nil
 	}
 
-	commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch)
+	commit, err := profileGitRepo.GetBranchCommit(ctx, profileDbRepo.DefaultBranch)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to GetBranchCommit: %v", err)
 		return nil, nil

@@ -144,6 +144,14 @@ const wsSourcesByUrl = new Map<string, WsSource>();
           // we have a Source registered to this url
           source.register(port);
           sourcesByPort.set(port, source);
+          // A port attaching to an already-open socket won't observe the next
+          // "open", so replay "ws-connected" to it directly; otherwise a late tab
+          // never learns the stream is live (mirrors the SSE sharedworker replaying
+          // its built-in "open" event to late-attaching ports).
+          const openWs = wsSourcesByUrl.get(url);
+          if (openWs?.ws?.readyState === WebSocket.OPEN) {
+            port.postMessage({type: 'ws-connected'});
+          }
           return;
         }
         source = sourcesByPort.get(port);

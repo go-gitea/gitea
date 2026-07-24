@@ -68,8 +68,8 @@ test.describe('events', () => {
     await expect(stopwatch).toHaveCount(1);
     await expect(stopwatch).toBeHidden();
 
-    // Wait for the SharedWorker WS to subscribe; pushes before that are dropped.
-    await page.waitForTimeout(1000 * timeoutFactor); // eslint-disable-line playwright/no-wait-for-timeout
+    // Wait until the SharedWorker WS is connected; pushes before that are dropped.
+    await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
     // Start the stopwatch from outside this tab; the push should reveal the icon
     await apiStartStopwatch(request, name, name, 1, {headers});
@@ -92,7 +92,8 @@ test.describe('events', () => {
     await page.goto('/');
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     await expect(stopwatch).toBeVisible();
-    await page.waitForTimeout(1000 * timeoutFactor); // eslint-disable-line playwright/no-wait-for-timeout
+    // Wait until the SharedWorker WS is connected; pushes before that are dropped.
+    await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
     await apiCancelStopwatch(request, name, name, 1, {headers});
     await expect(stopwatch).toBeHidden({timeout: 5000 * timeoutFactor});
@@ -143,7 +144,9 @@ test.describe('events', () => {
 
     // Verify page2 is logged in
     await expect(page2.getByRole('link', {name: 'Sign In'})).toBeHidden();
-    await page2.waitForTimeout(1000 * timeoutFactor); // eslint-disable-line playwright/no-wait-for-timeout
+    // Wait until page2's event stream is connected, otherwise the logout event
+    // can race the connection and be silently dropped.
+    await expect(page2.locator('html[data-user-events-connected]')).toBeAttached();
 
     // Logout from page1 — this sends a logout event to all tabs
     await page1.goto('/user/logout');

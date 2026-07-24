@@ -17,7 +17,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/setting"
@@ -171,7 +170,7 @@ Loop:
 // SignWikiCommit determines if we should sign the commits to this repository wiki
 func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
-	signingKey, sig := gitrepo.GetSigningKey(ctx)
+	signingKey, sig := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -200,7 +199,7 @@ Loop:
 				return false, nil, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			commit, err := gitRepo.GetCommit("HEAD")
+			commit, err := gitRepo.GetCommit(ctx, "HEAD")
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -248,12 +247,12 @@ Loop:
 				return false, nil, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			isEmpty, err := gitRepo.IsEmpty()
+			isEmpty, err := gitRepo.IsEmpty(ctx)
 			if err != nil {
 				return false, nil, nil, err
 			}
 			if !isEmpty {
-				commit, err := gitRepo.GetCommit(parentCommit)
+				commit, err := gitRepo.GetCommit(ctx, parentCommit)
 				if err != nil {
 					return false, nil, nil, err
 				}
@@ -270,24 +269,26 @@ Loop:
 	return true, signingKey, sig, nil
 }
 
-// SignMerge determines if we should sign a PR merge commit to the base repository
-func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, gitRepo *git.Repository) (bool, *git.SigningKey, *git.Signature, error) {
+// SignMerge determines if we should sign a PR merge commit to the base repository.
+// baseRef and headRef must resolve in gitRepo. Callers pass the temporary merge repo's own
+// refs for an update by merge, whose fake reverse PR has no head ref in the base repository.
+func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, gitRepo *git.Repository, baseRef, headRef string) (bool, *git.SigningKey, *git.Signature, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, nil, nil, err
 	}
 	repo := pr.BaseRepo
 
-	baseCommit, err := gitRepo.GetCommit(pr.BaseBranch)
+	baseCommit, err := gitRepo.GetCommit(ctx, baseRef)
 	if err != nil {
 		return false, nil, nil, err
 	}
-	headCommit, err := gitRepo.GetCommit(pr.GetGitHeadRefName())
+	headCommit, err := gitRepo.GetCommit(ctx, headRef)
 	if err != nil {
 		return false, nil, nil, err
 	}
 
-	signingKey, signer := gitrepo.GetSigningKey(ctx)
+	signingKey, signer := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -338,7 +339,7 @@ Loop:
 				return false, nil, nil, &ErrWontSign{headSigned}
 			}
 		case commitsSigned:
-			verified, err := AllHeadCommitsVerified(ctx, pr, gitRepo)
+			verified, err := allCommitsVerified(ctx, gitRepo, baseCommit, headCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}
@@ -353,19 +354,21 @@ Loop:
 // AllHeadCommitsVerified checks that every new commit in the PR head has a
 // verified signature.
 func AllHeadCommitsVerified(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) (bool, error) {
-	baseCommit, err := gitRepo.GetCommit(pr.BaseBranch)
+	baseCommit, err := gitRepo.GetCommit(ctx, pr.BaseBranch)
 	if err != nil {
 		return false, err
 	}
-	headCommit, err := gitRepo.GetCommit(pr.GetGitHeadRefName())
+	headCommit, err := gitRepo.GetCommit(ctx, pr.GetGitHeadRefName())
 	if err != nil {
 		return false, err
 	}
-	mergeBaseCommit, err := gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommit.ID.String(), headCommit.ID.String())
-	if err != nil {
-		return false, err
-	}
-	commitList, err := headCommit.CommitsBeforeUntil(gitRepo, git.RefNameFromCommit(mergeBaseCommit))
+	return allCommitsVerified(ctx, gitRepo, baseCommit, headCommit)
+}
+
+// allCommitsVerified checks the commits a merge would introduce, those reachable from
+// headCommit but not from baseCommit. Both commits must come from gitRepo.
+func allCommitsVerified(ctx context.Context, gitRepo *git.Repository, baseCommit, headCommit *git.Commit) (bool, error) {
+	commitList, err := headCommit.CommitsBeforeUntil(ctx, gitRepo, baseCommit.ID.RefName())
 	if err != nil {
 		return false, err
 	}

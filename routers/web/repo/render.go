@@ -32,7 +32,7 @@ func RenderFile(ctx *context.Context) {
 		return
 	}
 
-	blobReader, err := blob.DataAsync()
+	blobReader, err := blob.DataAsync(ctx)
 	if err != nil {
 		ctx.ServerError("DataAsync", err)
 		return

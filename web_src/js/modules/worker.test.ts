@@ -68,4 +68,6 @@ test('ws-connected clears the dedup cache so a repeat-value push dispatches agai
 
   expect(connects).toBe(1);
   expect(received).toEqual([1, 1]);
+  // ws-connected also flags the page so e2e tests can wait for a live event stream
+  expect(document.documentElement.getAttribute('data-user-events-connected')).toBe('true');
 });

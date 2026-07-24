@@ -86,11 +86,11 @@ func EntryFollowLink(ctx context.Context, gitRepo *Repository, commit *Commit, f
 
 	// git's filename max length is 4096, hopefully a link won't be longer than multiple of that
 	const maxSymlinkSize = 20 * 4096
-	if te.Blob(gitRepo).Size() > maxSymlinkSize {
+	if te.Blob(gitRepo).Size(ctx) > maxSymlinkSize {
 		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "%q content exceeds symlink limit", fullPath)
 	}
 
-	link, err := te.Blob(gitRepo).GetBlobContent(maxSymlinkSize)
+	link, err := te.Blob(gitRepo).GetBlobContent(ctx, maxSymlinkSize)
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +126,8 @@ func EntryFollowLinks(ctx context.Context, gitRepo *Repository, commit *Commit, 
 	return res, nil
 }
 
-func (te *TreeEntry) Tree(gitRepo *Repository) *Tree {
-	t, err := gitRepo.getTree(te.ID)
+func (te *TreeEntry) Tree(ctx context.Context, gitRepo *Repository) *Tree {
+	t, err := gitRepo.getTree(ctx, te.ID)
 	if err != nil {
 		return nil
 	}

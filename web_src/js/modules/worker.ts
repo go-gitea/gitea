@@ -16,6 +16,8 @@ function dispatch(msg: UserEventMessage) {
     // otherwise a later push whose value matches a pre-reconnect one would be
     // suppressed. Then let subscribers reconcile from the server.
     lastPayload.clear();
+    // e2e tests wait for this attribute to know the event stream is live and pushes cannot be missed anymore
+    document.documentElement.setAttribute('data-user-events-connected', 'true');
     const set = subscribers.get(msg.type);
     if (set) for (const cb of set) cb(msg);
     return;
