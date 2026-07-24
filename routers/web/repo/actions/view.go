@@ -559,19 +559,20 @@ func ViewPost(ctx *context_module.Context) {
 		return
 	}
 
+	form := web.GetForm(ctx).(*ViewRequest)
 	resp := &ViewResponse{}
-	fillViewRunResponseSummary(ctx, resp, run, attempt, jobs)
+	fillViewRunResponseSummary(ctx, form, resp, run, attempt, jobs)
 	if ctx.Written() {
 		return
 	}
-	fillViewRunResponseCurrentJob(ctx, resp, run, jobs)
+	fillViewRunResponseCurrentJob(ctx, form, resp, run, jobs)
 	if ctx.Written() {
 		return
 	}
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, jobs []*actions_model.ActionRunJob) {
+func fillViewRunResponseSummary(ctx *context_module.Context, form *ViewRequest, resp *ViewResponse, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, jobs []*actions_model.ActionRunJob) {
 	resp.State.Run.RepoID = ctx.Repo.Repository.ID
 	resp.State.Run.Index = run.Index
 	// the title for the "run" is from the commit message
@@ -694,7 +695,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 	resp.State.Run.JobSummariesVersion = summariesVersion
 
-	if req := web.GetForm(ctx).(*ViewRequest); req.JobSummariesVersion != summariesVersion {
+	if form.JobSummariesVersion != summariesVersion {
 		summaries, err := actions_model.ListActionRunJobSummaries(ctx, ctx.Repo.Repository.ID, run.ID, runAttemptID, jobID)
 		if err != nil {
 			ctx.ServerError("ListActionRunJobSummaries", err)
@@ -738,8 +739,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 	}
 }
 
-func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
-	req := web.GetForm(ctx).(*ViewRequest)
+func fillViewRunResponseCurrentJob(ctx *context_module.Context, form *ViewRequest, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
 	current, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
 	if current == nil {
 		if hasPathParam {
@@ -773,7 +773,7 @@ func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewRespon
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
-		steps, logs, err := convertToViewModel(ctx, ctx.Locale, req.LogCursors, task)
+		steps, logs, err := convertToViewModel(ctx, ctx.Locale, form.LogCursors, task)
 		if err != nil {
 			ctx.ServerError("convertToViewModel", err)
 			return
