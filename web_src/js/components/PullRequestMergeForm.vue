@@ -39,6 +39,7 @@ const mergeButtonStyleClass = computed(() => {
 const mergeSelectStyleClass = computed(() => {
   if (mergeForm.emptyCommit) return '';
   if (mergeStyle.value === mergeStyleManuallyMerged) return 'red';
+  if (!mergeForm.allOverridableChecksOk) return 'red';
   return 'primary';
 });
 

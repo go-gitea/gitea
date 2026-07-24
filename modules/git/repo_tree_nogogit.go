@@ -6,11 +6,12 @@
 package git
 
 import (
+	"context"
 	"io"
 )
 
-func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error) {
+	batch, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +24,6 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 
 	switch info.Type {
 	case "tag":
-		resolvedID := id
 		data, err := io.ReadAll(io.LimitReader(rd, info.Size))
 		if err != nil {
 			return nil, err
@@ -37,22 +37,21 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		commit.Tree.ResolvedID = resolvedID
-		return &commit.Tree, nil
+		tree := commit.Tree()
+		return tree, nil
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, info.Size))
+		commit, err := CommitFromReader(id, io.LimitReader(rd, info.Size))
 		if err != nil {
 			return nil, err
 		}
 		if _, err := rd.Discard(1); err != nil {
 			return nil, err
 		}
-		commit.Tree.ResolvedID = commit.ID
-		return &commit.Tree, nil
+		tree := commit.Tree()
+		return tree, nil
 	case "tree":
-		tree := NewTree(repo, id)
-		tree.ResolvedID = id
-		objectFormat, err := repo.GetObjectFormat()
+		tree := newTree(id)
+		objectFormat, err := repo.GetObjectFormat(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -73,13 +72,13 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 }
 
 // GetTree find the tree object in the repository.
-func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) GetTree(ctx context.Context, idStr string) (*Tree, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if len(idStr) != objectFormat.FullLength() {
-		res, err := repo.GetRefCommitID(idStr)
+		res, err := repo.GetRefCommitID(ctx, idStr)
 		if err != nil {
 			return nil, err
 		}
@@ -92,5 +91,5 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 		return nil, err
 	}
 
-	return repo.getTree(id)
+	return repo.getTree(ctx, id)
 }

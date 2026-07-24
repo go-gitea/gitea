@@ -24,7 +24,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -266,20 +266,20 @@ var (
 
 func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
-		tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
+		tmpEmptyRepoDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
 		if err != nil {
 			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
 			return
 		}
 		defer cleanup()
 
-		if err := git.InitRepository(ctx, tmpDir, true, git.Sha1ObjectFormat.Name()); err != nil {
+		if err := git.InitRepositoryLocal(ctx, tmpEmptyRepoDir, true, git.Sha1ObjectFormat.Name()); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
 			return
 		}
 
 		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").
-			WithDir(tmpDir).
+			WithDir(tmpEmptyRepoDir).
 			RunStdBytes(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
@@ -306,11 +306,11 @@ type serviceHandler struct {
 	environ []string
 }
 
-func (h *serviceHandler) getStorageRepo() gitrepo.Repository {
+func (h *serviceHandler) getStorageRepo() git.RepositoryFacade {
 	if h.isWiki {
 		return h.repo.WikiStorageRepo()
 	}
-	return h.repo
+	return h.repo.CodeStorageRepo()
 }
 
 func setHeaderNoCache(ctx *context.Context) {
@@ -343,7 +343,7 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 		return
 	}
 
-	fs := gitrepo.GetRepoFS(h.getStorageRepo())
+	fs := gitrepo.RepoLocalFS(h.getStorageRepo())
 	ctx.Resp.Header().Set("Content-Type", contentType)
 	http.ServeFileFS(ctx.Resp, ctx.Req, fs, path.Clean(file))
 }
@@ -412,13 +412,15 @@ func serviceRPC(ctx *context.Context, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	if err := gitrepo.RunCmdWithStderr(ctx, h.getStorageRepo(), cmd.AddArguments(".").
-		WithEnv(append(os.Environ(), h.environ...)).
+	err := cmd.AddArguments(".").
+		WithRepo(h.getStorageRepo()).WithEnv(append(os.Environ(), h.environ...)).
 		WithStdinCopy(reqBody).
-		WithStdoutCopy(ctx.Resp),
-	); err != nil {
+		WithStdoutCopy(ctx.Resp).
+		RunWithStderr(ctx)
+	if err != nil {
 		if !gitcmd.IsErrorCanceledOrKilled(err) {
-			log.Error("Fail to serve RPC(%s) in %s: %v", service, h.getStorageRepo().RelativePath(), err)
+			repoLogName := h.repo.FullName() + util.Iif(h.isWiki, ".wiki", "")
+			log.Error("Fail to serve RPC(%s) for repo %s: %v", service, repoLogName, err)
 		}
 	}
 }
@@ -461,7 +463,7 @@ func GetInfoRefs(ctx *context.Context) {
 	if h.serviceType == "" {
 		// it's said that some legacy git clients will send requests to "/info/refs" without "service" parameter,
 		// although there should be no such case client in the modern days. TODO: not quite sure why we need this UpdateServerInfo logic
-		if err := gitrepo.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
+		if err := git.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
 			ctx.ServerError("UpdateServerInfo", err)
 			return
 		}
@@ -481,7 +483,7 @@ func GetInfoRefs(ctx *context.Context) {
 	h.environ = append(os.Environ(), h.environ...)
 
 	cmd = cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").WithEnv(h.environ)
-	refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd)
+	refs, _, err := cmd.WithRepo(h.getStorageRepo()).RunStdBytes(ctx)
 	if err != nil {
 		ctx.ServerError("RunGitServiceAdvertiseRefs", err)
 		return

@@ -303,6 +303,84 @@ func testGitSigning(t *testing.T) {
 				assert.True(t, branch.Commit.Verification.Verified)
 			}))
 		})
+
+		t.Run("UpdateMergeSigned", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			testCtx := NewAPITestContext(t, username, "update-merge-signed", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
+
+			t.Run("CreateFeatureCommit", crudActionCreateFile(
+				t, testCtx, user, "master", "feature", "signed-feature.txt"))
+			pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "feature")(t)
+			require.NoError(t, err)
+
+			content := base64.StdEncoding.EncodeToString([]byte("update base"))
+			t.Run("UpdateBase", doAPICreateFile(testCtx, "signed-base.txt", &api.CreateFileOptions{
+				FileOptions: api.FileOptions{
+					BranchName: "master",
+					Message:    "update base",
+					Author: api.Identity{
+						Name:  user.FullName,
+						Email: user.Email,
+					},
+					Committer: api.Identity{
+						Name:  user.FullName,
+						Email: user.Email,
+					},
+				},
+				ContentBase64: content,
+			}))
+
+			req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=merge", testCtx.Username, testCtx.Reponame, pr.Index).
+				AddTokenAuth(testCtx.Token)
+			testCtx.Session.MakeRequest(t, req, http.StatusOK)
+
+			t.Run("CheckFeatureBranchSigned", doAPIGetBranch(testCtx, "feature", func(t *testing.T, branch api.Branch) {
+				require.NotNil(t, branch.Commit)
+				require.NotNil(t, branch.Commit.Verification)
+				assert.True(t, branch.Commit.Verification.Verified)
+			}))
+		})
+
+		setting.Repository.Signing.CRUDActions = []string{"never"}
+		t.Run("UpdateMergeUnsigned", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			testCtx := NewAPITestContext(t, username, "update-merge-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
+
+			t.Run("CreateFeatureCommit", crudActionCreateFile(
+				t, testCtx, user, "master", "feature", "unsigned-feature.txt"))
+			pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "feature")(t)
+			require.NoError(t, err)
+
+			// the base commit the update merges in is unsigned, so the commitssigned rule must refuse
+			content := base64.StdEncoding.EncodeToString([]byte("update base"))
+			t.Run("UpdateBase", doAPICreateFile(testCtx, "unsigned-base.txt", &api.CreateFileOptions{
+				FileOptions: api.FileOptions{
+					BranchName: "master",
+					Message:    "update base",
+					Author: api.Identity{
+						Name:  user.FullName,
+						Email: user.Email,
+					},
+					Committer: api.Identity{
+						Name:  user.FullName,
+						Email: user.Email,
+					},
+				},
+				ContentBase64: content,
+			}))
+
+			req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=merge", testCtx.Username, testCtx.Reponame, pr.Index).
+				AddTokenAuth(testCtx.Token)
+			testCtx.Session.MakeRequest(t, req, http.StatusOK)
+
+			t.Run("CheckFeatureBranchUnsigned", doAPIGetBranch(testCtx, "feature", func(t *testing.T, branch api.Branch) {
+				require.NotNil(t, branch.Commit)
+				require.NotNil(t, branch.Commit.Verification)
+				assert.False(t, branch.Commit.Verification.Verified)
+			}))
+		})
 	})
 }
 

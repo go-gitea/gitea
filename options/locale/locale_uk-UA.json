@@ -2732,7 +2732,6 @@
   "admin.config.default_enable_timetracking": "Увімкнути відстеження часу за замовчуванням",
   "admin.config.default_allow_only_contributors_to_track_time": "Враховувати тільки учасників розробки в підрахунку часу",
   "admin.config.no_reply_address": "Прихований домен електронної пошти",
-  "admin.config.default_visibility_organization": "Видимість за замовчуванням для нових організацій",
   "admin.config.default_enable_dependencies": "Увімкнути залежності задачі за замовчуванням",
   "admin.config.webhook_config": "Конфігурація web-хуків",
   "admin.config.queue_length": "Довжина черги",
