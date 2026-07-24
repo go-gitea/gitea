@@ -85,11 +85,11 @@ func (task *ActionTask) IsStopped() bool {
 	return task.Stopped > 0
 }
 
-func (task *ActionTask) GetRunLink() string {
-	if task.Job == nil || task.Job.Run == nil {
+func (task *ActionTask) GetRunJobLink() string {
+	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
-	return task.Job.Run.Link()
+	return fmt.Sprintf("%s/jobs/%d", task.Job.Run.Link(), task.Job.ID)
 }
 
 func (task *ActionTask) GetCommitLink() string {

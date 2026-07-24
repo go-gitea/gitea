@@ -75,7 +75,7 @@
 			<tbody>
 				{{range .Tasks}}
 				<tr>
-					<td><a href="{{.GetRunLink}}" target="_blank">{{.ID}}</a></td>
+					<td><a href="{{.GetRunJobLink}}" target="_blank">{{.ID}}</a></td>
 					<td><span class="ui label task-status-{{.Status.String}}">{{.Status.LocaleString ctx.Locale}}</span></td>
 					<td><a href="{{.GetRepoLink}}" target="_blank">{{.GetRepoName}}</a></td>
 					<td>
