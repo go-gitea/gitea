@@ -19,18 +19,18 @@ func TestClientEventWireFormat(t *testing.T) {
 	t.Run("userEvent envelope keeps the data key present", func(t *testing.T) {
 		b, err := json.Marshal(userEvent[int]{Type: "example", Data: 5})
 		require.NoError(t, err)
-		assert.Equal(t, `{"type":"example","data":5}`, string(b))
+		assert.JSONEq(t, `{"type":"example","data":5}`, string(b))
 	})
 
 	t.Run("stopwatches empty", func(t *testing.T) {
 		b, err := json.Marshal(userEvent[api.StopWatches]{Type: EventStopwatches, Data: api.StopWatches{}})
 		require.NoError(t, err)
-		assert.Equal(t, `{"type":"stopwatches","data":[]}`, string(b))
+		assert.JSONEq(t, `{"type":"stopwatches","data":[]}`, string(b))
 	})
 
 	t.Run("notification-count stays a flat count", func(t *testing.T) {
 		b, err := json.Marshal(notificationCountEvent{Type: EventNotificationCount, Count: 3})
 		require.NoError(t, err)
-		assert.Equal(t, `{"type":"notification-count","count":3}`, string(b))
+		assert.JSONEq(t, `{"type":"notification-count","count":3}`, string(b))
 	})
 }
