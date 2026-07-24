@@ -1745,15 +1745,9 @@ tbody.commit-list {
 
 .migrate-entries {
   display: grid !important;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 25px;
   margin: 0 !important;
-}
-
-@media (max-width: 767.98px) {
-  .migrate-entries {
-    grid-template-columns: repeat(1, 1fr);
-  }
 }
 
 .migrate-entry {
@@ -1763,6 +1757,11 @@ tbody.commit-list {
   color: var(--color-text) !important;
   width: auto !important;
   margin: 0 !important;
+}
+
+.migrate-entry .svg {
+  align-self: center;
+  margin: 1rem 0;
 }
 
 .migrate-entry:hover {

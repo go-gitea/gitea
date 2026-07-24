@@ -5,15 +5,17 @@
 			{{template "repo/migrate/helper" .}}
 			<div class="ui cards migrate-entries">
 				{{range .Services}}
-					<a class="ui card migrate-entry flex-text-block" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
+					<a class="ui card migrate-entry" href="{{AppSubUrl}}/repo/migrate?service_type={{.}}&org={{$.Org}}&mirror={{$.Mirror}}">
 						{{if eq .Name "github"}}
-							{{svg "octicon-mark-github" 184 "tw-p-4"}}
+							{{svg "octicon-mark-github" 120 "tw-p-4"}}
 						{{else if eq .Name "gitlab"}}
-							{{svg "gitea-gitlab" 184 "tw-p-4"}}
+							{{svg "gitea-gitlab" 120 "tw-p-4"}}
 						{{else if eq .Name "gitbucket"}}
-							{{svg "gitea-gitbucket" 184 "tw-p-4"}}
+							{{svg "gitea-gitbucket" 120 "tw-p-4"}}
+						{{else if eq .Name "bitbucket"}}
+							{{svg "gitea-bitbucket" 120 "tw-p-4"}}
 						{{else}}
-							{{svg (printf "gitea-%s" .Name) 184}}
+							{{svg (printf "gitea-%s" .Name) 120}}
 						{{end}}
 						<div class="content">
 							<div class="header tw-text-center">

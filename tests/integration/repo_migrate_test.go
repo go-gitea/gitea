@@ -42,3 +42,25 @@ func TestRepoMigrate(t *testing.T) {
 	session := loginUser(t, "user2")
 	testRepoMigrate(t, session, "https://github.com/go-gitea/test_repo.git", "git")
 }
+
+// TestRepoMigrationUI verifies the per-service migration forms render, including the
+// newly added bitbucket.org service so its UI does not regress.
+func TestRepoMigrationUI(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+
+	for _, service := range []structs.GitServiceType{
+		structs.PlainGitService,
+		structs.GithubService,
+		structs.GitlabService,
+		structs.BitbucketService,
+	} {
+		req := NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", service))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		serviceValue, exists := htmlDoc.doc.Find(`#service_type`).Attr("value")
+		assert.True(t, exists, "service_type input missing for %s", service.Title())
+		assert.Equal(t, fmt.Sprintf("%d", service), serviceValue)
+	}
+}

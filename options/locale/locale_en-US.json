@@ -1132,6 +1132,8 @@
   "repo.migrate.onedev.description": "Migrate data from code.onedev.io or other OneDev instances.",
   "repo.migrate.codebase.description": "Migrate data from codebasehq.com.",
   "repo.migrate.gitbucket.description": "Migrate data from GitBucket instances.",
+  "repo.migrate.bitbucket.description": "Migrate data from bitbucket.org.",
+  "repo.migrate.bitbucket_token_desc": "Enter a Bitbucket username and app password (or an access token) so private repositories and metadata can be migrated. Leave blank for public repositories.",
   "repo.migrate.codecommit.description": "Migrate data from AWS CodeCommit.",
   "repo.migrate.codecommit.aws_access_key_id": "AWS Access Key ID",
   "repo.migrate.codecommit.aws_secret_access_key": "AWS Secret Access Key",
