@@ -86,10 +86,10 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text tw-flex tw-items-center">
+			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}" data-signed-in-username="{{.SignedUser.Name}}">
+				<span class="flex-text-block">
 					<span class="navbar-avatar">
-						{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-2"}}
+						{{ctx.AvatarUtils.Avatar .SignedUser 24}}
 						{{if .IsAdmin}}{{svg "octicon-shield-check" 16 "navbar-admin-badge"}}{{end}}
 					</span>
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
