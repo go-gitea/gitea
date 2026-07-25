@@ -57,53 +57,51 @@ function initDevtestPage() {
   }
 }
 
-// Showcase for every feature of the ANSI renderer, generated so the palettes stay exhaustive.
+// Showcase for every feature of the ANSI renderer.
 function initDevtestAnsiRender(container: HTMLElement) {
   const esc = '\x1b';
-  const sgr = (params: string, text: string) => `${esc}[${params}m${text}${esc}[0m`;
-  const row = (count: number, cell: (index: number) => string) => Array.from({length: count}, (_value, index) => cell(index)).join('');
-  const palette = (params: (index: number) => string) => Array.from({length: 16}, (_value, line) =>
-    row(16, (col) => sgr(params(line * 16 + col), String(line * 16 + col).padStart(4))));
+  const join = (count: number, cell: (index: number) => string) => Array.from({length: count}, (_value, index) => cell(index)).join('');
+  const attr = (params: string, label: string) => ` ${esc}[${params}m${label}${esc}[m `;
+  const swatch = (params: string) => `${esc}[${params}m ${params.padEnd(8)}${esc}[0m`; // padded, so every cell is equal width
+  const palette = (params: string) => Array.from({length: 16}, (_value, line) =>
+    join(16, (col) => `${esc}[${params};5;${line * 16 + col}m${String(line * 16 + col).padStart(4)}${esc}[0m`));
 
   const sections: Array<{title: string, lines: string[], source?: boolean}> = [
-    {title: '16 colors, foreground over background, normal / bold / bright', lines: [
-      ...['0', '1'].flatMap((attrs) => Array.from({length: 8}, (_value, fg) =>
-        row(8, (bg) => sgr(`${attrs};${30 + fg};${40 + bg}`, ` ${attrs};${30 + fg};${40 + bg} `)))),
-      ...Array.from({length: 8}, (_value, fg) =>
-        row(8, (bg) => sgr(`${90 + fg};${100 + bg}`, ` ${90 + fg};${100 + bg} `))),
+    {title: '16 colors', lines: ['0', '1'].flatMap((bold) => [30, 90].flatMap((base) =>
+      Array.from({length: 8}, (_value, fg) => join(8, (bg) => swatch(`${bold};${base + fg};${base + 10 + bg}`))))),
+    },
+    {title: 'attributes', lines: [
+      `${join(10, (code) => attr(String(code), `SGR ${String(code).padStart(2)}`))}${attr('53', 'SGR 53')}`,
+      ' ',
+      `${join(5, (index) => attr(`4:${index + 1}`, `SGR 4:${index + 1}`))}${attr('21', 'SGR 21')}` +
+        ` ${esc}[4:3m${esc}[58;2;135;0;255mtruecolor underline${esc}[59m${esc}[4:0m` +
+        ` ${esc}]8;;https://example.com${esc}\\hyperlink${esc}]8;;${esc}\\`,
     ]},
-    {title: 'attributes, in the layout of the colors.py sample from ansi_up issue 78', lines: [
-      `${row(10, (code) => ` ${esc}[${code}mSGR ${String(code).padStart(2)}${esc}[m `)} ${esc}[53mSGR 53${esc}[m`,
-      `${row(5, (idx) => ` ${esc}[4:${idx + 1}mSGR 4:${idx + 1}${esc}[m `)} ${esc}[21mSGR 21${esc}[m`,
-      ` ${esc}[4:3m${esc}[58;2;135;0;255mtruecolor underline${esc}[59m${esc}[4:0m  ${esc}]8;;https://example.com${esc}\\hyperlink${esc}]8;;${esc}\\`,
-      `${esc}[1;3;4;31mall on${esc}[22m no bold${esc}[23m no italic${esc}[24m no underline${esc}[39m default color`,
-    ]},
-    {title: '256 colors, foreground (0-15 use css classes, the rest inline colors)', lines: palette((index) => `38;5;${index}`)},
-    {title: '256 colors, faint (SGR 2)', lines: palette((index) => `2;38;5;${index}`)},
-    {title: '256 colors, background', lines: palette((index) => `48;5;${index}`)},
-    {title: 'truecolor gradient', lines: [row(77, (col) => {
+    {title: '256 colors', lines: palette('38')},
+    {title: '256 colors, faint', lines: palette('2;38')},
+    {title: '256 colors, background', lines: palette('48')},
+    {title: 'truecolor', lines: [join(77, (col) => {
       const r = 255 - Math.floor(col * 255 / 76);
       const b = Math.floor(col * 255 / 76);
       const g = Math.min(Math.floor(col * 510 / 76), 510 - Math.floor(col * 510 / 76));
       return `${esc}[48;2;${r};${g};${b}m${esc}[38;2;${255 - r};${255 - g};${255 - b}m${'/\\'[col % 2]}${esc}[0m`;
     })]},
-    {title: 'style carries into the following lines, like a terminal', lines: [
+    {title: 'style carries between lines', lines: [
       `${esc}[31man unterminated color`,
       'carries into the following lines',
       `${esc}[1mand combines with attributes set later`,
       `${esc}[0muntil something resets it`,
       'back to plain',
     ]},
-    {title: 'sequences that are handled but not displayed', source: true, lines: [
+    {title: 'other sequences', source: true, lines: [
       'Reading... 1%\rReading... 50%\rReading... 100%',
       `first${esc}[Ksecond${esc}[2Jthird`,
       `cursor movement ${esc}[3Ais dropped`,
       `private CSI ${esc}[?25lis dropped`,
-      `${esc}]0;window title${esc}\\OSC window title is dropped`,
-      `${esc}]8;;https://example.com${esc}\\OSC 8 hyperlink becomes a link${esc}]8;;${esc}\\`,
+      `${esc}]0;window title${esc}\\a window title is dropped`,
       `a sequence cut off by the line end is dropped${esc}[38;5;`,
       '<script>alert(1)</script> & "quotes" are escaped',
-      'urls such as https://example.com/path?a=b&c=d become links',
+      'a bare url such as https://example.com becomes a link',
     ]},
   ];
 

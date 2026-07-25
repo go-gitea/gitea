@@ -67,14 +67,17 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
   const next = {...style};
   const codes = params.split(';');
   for (let idx = 0; idx < codes.length; idx++) {
-    const code = parseInt(codes[idx], 10);
+    // a parameter may carry colon separated sub-parameters, as in "4:3" for a curly underline
+    const [param, subParam] = codes[idx].split(':');
+    const code = parseInt(param, 10);
     if (isNaN(code) || code === 0) {
       next.fg = next.bg = null;
       next.bold = next.faint = next.italic = next.underline = false;
     } else if (code === 1) next.bold = true;
     else if (code === 2) next.faint = true;
     else if (code === 3) next.italic = true;
-    else if (code === 4) next.underline = true;
+    // "4:0" turns the underline off, "4:1" to "4:5" pick a style that all render the same here
+    else if (code === 4) next.underline = subParam !== '0';
     else if (code === 21) next.bold = false;
     else if (code === 22) next.bold = next.faint = false;
     else if (code === 23) next.italic = false;
@@ -85,10 +88,11 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
     else if (code >= 40 && code < 48) next.bg = palette256[code - 40];
     else if (code >= 90 && code < 98) next.fg = palette256[code - 82]; // 8 + code - 90
     else if (code >= 100 && code < 108) next.bg = palette256[code - 92]; // 8 + code - 100
-    else if ((code === 38 || code === 48) && idx + 1 < codes.length) {
+    else if ((code === 38 || code === 48 || code === 58) && idx + 1 < codes.length) {
       // extended color: "5;<index>" selects from the 256-color palette, "2;<r>;<g>;<b>" is truecolor.
       // A spec that runs off the end of the parameters consumes nothing beyond the mode, so the
-      // remaining parameters stay available and are read as ordinary codes.
+      // remaining parameters stay available and are read as ordinary codes. 58 sets the underline
+      // color, which is not rendered, but its parameters are consumed so they are not read as codes.
       const mode = codes[++idx];
       let color: AnsiColor | null = null;
       if (mode === '5' && idx + 1 < codes.length) {
@@ -102,7 +106,7 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
         if (isByte(r) && isByte(g) && isByte(b)) color = {rgb: `${r},${g},${b}`, className: ''};
       }
       if (color && code === 38) next.fg = color;
-      else if (color) next.bg = color;
+      else if (color && code === 48) next.bg = color;
     }
   }
   return next;

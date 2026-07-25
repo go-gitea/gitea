@@ -61,6 +61,14 @@ test('renderAnsi colors and attributes', () => {
   expect(renderAnsi('\x1b[48;2;1;2;3mx')).toEqual('<span style="background-color:rgb(1,2,3)">x</span>');
   expect(renderAnsi('\x1b[38;2;300;0;0mx')).toEqual('x'); // out of range, ignored
 
+  // colon sub-parameters: "4:0" turns the underline off, the other styles all render as underline
+  expect(renderAnsi('\x1b[4:3mcurly')).toEqual('<span style="text-decoration:underline">curly</span>');
+  expect(renderAnsi('\x1b[4:3mon\x1b[4:0moff')).toEqual('<span style="text-decoration:underline">on</span>off');
+
+  // 58 sets an underline color that is not rendered, its parameters must not be read as codes
+  expect(renderAnsi('\x1b[4m\x1b[58;2;135;0;255mstill underlined')).toEqual('<span style="text-decoration:underline">still underlined</span>');
+  expect(renderAnsi('\x1b[58;5;9mno color')).toEqual('no color');
+
   // "\x1b[m" resets everything, same as "\x1b[0m"
   expect(renderAnsi('\x1b[1;31mx\x1b[my')).toEqual('<span style="font-weight:bold" class="ansi-red-fg">x</span>y');
 });
