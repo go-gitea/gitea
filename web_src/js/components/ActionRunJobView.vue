@@ -326,7 +326,6 @@ async function loadJob() {
       if (!currentJobStepsStates.value[i]) {
         // initial states for job steps
         currentJobStepsStates.value[i] = {cursor: null, expanded: autoExpand, manuallyCollapsed: false};
-        stepAnsiRenderers[i] = new AnsiLineRenderer();
       } else {
         // if the step is not manually collapsed by user, then auto-expand it if option is enabled
         if (autoExpand && !currentJobStepsStates.value[i].manuallyCollapsed) {
@@ -562,7 +561,7 @@ async function hashChangeListener() {
   position: sticky;
   top: 0;
   height: 60px;
-  z-index: 1; /* above .job-step-container */
+  z-index: 1; /* above the step container and its sticky step headers */
   background: var(--color-console-bg);
   border-radius: 3px;
 }
@@ -605,7 +604,6 @@ async function hashChangeListener() {
 .job-step-container {
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-  z-index: 0;
 }
 
 .job-step-container .job-step-summary {
@@ -658,9 +656,6 @@ async function hashChangeListener() {
   background-color: var(--color-console-active-bg);
   position: sticky;
   top: 60px;
-  /* the ANSI faint attribute renders as an `opacity` inline style, which creates a CSS stacking
-     context, so without this such elements render above the .job-step-summary header. */
-  z-index: 1;
 }
 </style>
 

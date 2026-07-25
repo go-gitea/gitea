@@ -21,11 +21,35 @@
   text-underline-position: auto; /* the global "a:hover" sets "under", which would shift the underline */
 }
 
+/* blinks the text away by color, not by "visibility", which would make it unselectable */
 @keyframes blink-animation {
   to {
-    visibility: hidden;
+    color: transparent;
   }
 }
+
+/* SGR attributes emitted by web_src/js/render/ansi.ts. "faint" dims via a translucent color rather
+   than opacity, which would create a stacking context and paint log lines over the sticky step header. */
+
+.ansi-bold { font-weight: var(--font-weight-semibold); }
+.ansi-italic { font-style: italic; }
+.ansi-faint { color: color-mix(in srgb, currentcolor 70%, transparent); }
+.ansi-inverse-fg { color: var(--color-console-bg); }
+.ansi-inverse-bg { background-color: var(--color-console-fg); }
+
+/* underline, line-through and overline are one css property, so a class per line cannot simply set
+   it. Each contributes a value instead, with an empty fallback when its class is absent. */
+.ansi-underline,
+.ansi-line-through,
+.ansi-overline { text-decoration-line: var(--ansi-underline, ) var(--ansi-line-through, ) var(--ansi-overline, ); }
+.ansi-underline { --ansi-underline: underline; }
+.ansi-line-through { --ansi-line-through: line-through; }
+.ansi-overline { --ansi-overline: overline; }
+
+.ansi-double { text-decoration-style: double; }
+.ansi-wavy { text-decoration-style: wavy; }
+.ansi-dotted { text-decoration-style: dotted; }
+.ansi-dashed { text-decoration-style: dashed; }
 
 /* ANSI colors used in actions, see the palette in web_src/js/render/ansi.ts */
 
@@ -64,6 +88,10 @@
 .ansi-bright-magenta-bg { background-color: var(--color-ansi-bright-magenta); }
 .ansi-bright-cyan-bg { background-color: var(--color-ansi-bright-cyan); }
 .ansi-bright-white-bg { background-color: var(--color-ansi-bright-white); }
+
+/* conceal paints the text in the background color, so it stays invisible but selectable. It has to
+   come after the color rules to win the cascade against a foreground set on the same element. */
+.ansi-conceal { color: var(--color-console-bg); }
 
 /* term colors used in console rendering */
 

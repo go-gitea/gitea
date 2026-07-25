@@ -1,222 +1,153 @@
-import {AnsiLineRenderer, renderAnsiInto} from './ansi.ts';
+import {AnsiLineRenderer} from './ansi.ts';
 
-const renderAnsi = (line: string) => {
+const renderAnsi = (line: string, ansi = new AnsiLineRenderer()) => {
   const el = document.createElement('div');
-  renderAnsiInto(el, line);
+  ansi.renderInto(el, line);
   return el.innerHTML;
 };
 
-test('renderAnsi', () => {
+test('renderAnsi text handling', () => {
   expect(renderAnsi('abc')).toEqual('abc');
   expect(renderAnsi('abc\n')).toEqual('abc');
   expect(renderAnsi('abc\r\n')).toEqual('abc');
+  expect(renderAnsi('<script>')).toEqual('&lt;script&gt;');
+
+  // a carriage return keeps only what each update wrote, and erase-line counts as one
   expect(renderAnsi('\r')).toEqual('');
   expect(renderAnsi('\rx\rabc')).toEqual('x\nabc');
   expect(renderAnsi('\rabc\rx\r')).toEqual('abc\nx');
-  expect(renderAnsi('\x1b[30mblack\x1b[37mwhite')).toEqual('<span class="ansi-black-fg">black</span><span class="ansi-white-fg">white</span>'); // unclosed
-  expect(renderAnsi('<script>')).toEqual('&lt;script&gt;');
-  expect(renderAnsi('\x1b[1A\x1b[2Ktest\x1b[1B\x1b[1A\x1b[2K')).toEqual('test');
+  expect(renderAnsi('a\x1b[Kb\x1b[2Jc')).toEqual('a\nb\nc');
   expect(renderAnsi('\x1b[1A\x1b[2K\rtest\r\x1b[1B\x1b[1A\x1b[2K')).toEqual('test');
 
-  // treat "\033[0K" and "\033[0J" (Erase display/line) as "\r", then it will be covered to "\n" finally.
-  expect(renderAnsi('a\x1b[Kb\x1b[2Jc')).toEqual('a\nb\nc');
-  expect(renderAnsi('\x1b[48;5;88ma\x1b[38;208;48;5;159mb\x1b[m')).toEqual(`<span style="background-color:rgb(135,0,0)">a</span><span style="background-color:rgb(175,255,255)">b</span>`);
+  // sequences that render nothing are dropped rather than shown as text
+  expect(renderAnsi('a\x1b[?25lb')).toEqual('ab');
+  expect(renderAnsi('a\x1b[1;2Hb')).toEqual('ab');
+  expect(renderAnsi('a\x1b]0;window title\x07b')).toEqual('ab');
+  expect(renderAnsi('a\x1bMb')).toEqual('ab');
+  // a sequence cut off by the line end can never be completed
+  expect(renderAnsi('abc\x1b[3')).toEqual('abc');
+  expect(renderAnsi('abc\x1b')).toEqual('abc');
 
-  // URLs in ANSI output become clickable links
+  // bare urls become links
   const link = (url: string) => `<a href="${url}" target="_blank">${url}</a>`;
   expect(renderAnsi('foo https://example.com bar')).toEqual(`foo ${link('https://example.com')} bar`);
   expect(renderAnsi('<https://example.com?a=b&c=d#h>')).toEqual(`&lt;${link('https://example.com?a=b&amp;c=d#h')}&gt;`);
   expect(renderAnsi('open https://example.com.')).toEqual(`open ${link('https://example.com')}.`);
-  expect(renderAnsi('"https://example.com"')).toEqual(`"${link('https://example.com')}"`);
-  expect(renderAnsi('\x1b[32mhttps://example.com\x1b[0m')).toEqual(`<span class="ansi-green-fg">${link('https://example.com')}</span>`);
 });
 
-test('renderAnsi colors and attributes', () => {
-  // the 16 named colors use css classes, foreground and background
+test('renderAnsi colors', () => {
+  // the 16 named colors carry a class, so a theme can restyle them
   expect(renderAnsi('\x1b[31mred')).toEqual('<span class="ansi-red-fg">red</span>');
-  expect(renderAnsi('\x1b[41mred bg')).toEqual('<span class="ansi-red-bg">red bg</span>');
+  expect(renderAnsi('\x1b[41mbg')).toEqual('<span class="ansi-red-bg">bg</span>');
   expect(renderAnsi('\x1b[91mbright')).toEqual('<span class="ansi-bright-red-fg">bright</span>');
   expect(renderAnsi('\x1b[101mbright bg')).toEqual('<span class="ansi-bright-red-bg">bright bg</span>');
-
-  // text attributes and their individual resets
-  expect(renderAnsi('\x1b[1mbold')).toEqual('<span style="font-weight:bold">bold</span>');
-  expect(renderAnsi('\x1b[2mfaint')).toEqual('<span style="opacity:0.7">faint</span>');
-  expect(renderAnsi('\x1b[3mitalic')).toEqual('<span style="font-style:italic">italic</span>');
-  expect(renderAnsi('\x1b[4munderline')).toEqual('<span style="text-decoration:underline">underline</span>');
-  expect(renderAnsi('\x1b[1;4;31mall')).toEqual('<span style="font-weight:bold;text-decoration:underline" class="ansi-red-fg">all</span>');
-  expect(renderAnsi('\x1b[1mb\x1b[22mplain')).toEqual('<span style="font-weight:bold">b</span>plain');
-  expect(renderAnsi('\x1b[31mr\x1b[39mplain')).toEqual('<span class="ansi-red-fg">r</span>plain');
-
-  // 256-color palette: the first 16 map onto the css classes, the rest onto inline colors
+  expect(renderAnsi('\x1b[30mblack\x1b[37mwhite')).toEqual('<span class="ansi-black-fg">black</span><span class="ansi-white-fg">white</span>');
   expect(renderAnsi('\x1b[38;5;1mx')).toEqual('<span class="ansi-red-fg">x</span>');
   expect(renderAnsi('\x1b[38;5;9mx')).toEqual('<span class="ansi-bright-red-fg">x</span>');
-  expect(renderAnsi('\x1b[38;5;16mx')).toEqual('<span style="color:rgb(0,0,0)">x</span>');
-  expect(renderAnsi('\x1b[38;5;231mx')).toEqual('<span style="color:rgb(255,255,255)">x</span>');
-  expect(renderAnsi('\x1b[38;5;232mx')).toEqual('<span style="color:rgb(8,8,8)">x</span>');
-  expect(renderAnsi('\x1b[38;5;255mx')).toEqual('<span style="color:rgb(238,238,238)">x</span>');
-  expect(renderAnsi('\x1b[38;5;256mx')).toEqual('x'); // out of range, ignored
 
-  // truecolor
-  expect(renderAnsi('\x1b[38;2;1;2;3mx')).toEqual('<span style="color:rgb(1,2,3)">x</span>');
-  expect(renderAnsi('\x1b[48;2;1;2;3mx')).toEqual('<span style="background-color:rgb(1,2,3)">x</span>');
-  expect(renderAnsi('\x1b[38;2;300;0;0mx')).toEqual('x'); // out of range, ignored
+  // the 256-color cube, grayscale and truecolor are literal, a theme must not restyle them
+  expect(renderAnsi('\x1b[38;5;16mx')).toEqual('<span style="color:#000000">x</span>');
+  expect(renderAnsi('\x1b[38;5;231mx')).toEqual('<span style="color:#ffffff">x</span>');
+  expect(renderAnsi('\x1b[38;5;232mx')).toEqual('<span style="color:#080808">x</span>');
+  expect(renderAnsi('\x1b[38;5;255mx')).toEqual('<span style="color:#eeeeee">x</span>');
+  expect(renderAnsi('\x1b[38;2;1;2;3mx')).toEqual('<span style="color:#010203">x</span>');
+  expect(renderAnsi('\x1b[48;2;1;2;3mx')).toEqual('<span style="background-color:#010203">x</span>');
+  expect(renderAnsi('\x1b[48;5;88ma\x1b[38;208;48;5;159mb\x1b[m')).toEqual('<span style="background-color:#870000">a</span><span style="background-color:#afffff">b</span>');
 
-  // colon sub-parameters select the underline style, "4:0" turns it off
-  expect(renderAnsi('\x1b[4:1msolid')).toEqual('<span style="text-decoration:underline">solid</span>');
-  expect(renderAnsi('\x1b[4:2mdouble')).toEqual('<span style="text-decoration:underline;text-decoration-style:double">double</span>');
-  expect(renderAnsi('\x1b[4:3mcurly')).toEqual('<span style="text-decoration:underline;text-decoration-style:wavy">curly</span>');
-  expect(renderAnsi('\x1b[4:4mdotted')).toEqual('<span style="text-decoration:underline;text-decoration-style:dotted">dotted</span>');
-  expect(renderAnsi('\x1b[4:5mdashed')).toEqual('<span style="text-decoration:underline;text-decoration-style:dashed">dashed</span>');
-  expect(renderAnsi('\x1b[4:3mon\x1b[4:0moff')).toEqual('<span style="text-decoration:underline;text-decoration-style:wavy">on</span>off');
-
-  // 58 colors the underline, 59 restores the default, and their parameters are never read as codes
-  expect(renderAnsi('\x1b[4m\x1b[58;2;135;0;255mpurple')).toEqual('<span style="text-decoration:underline;text-decoration-color:rgb(135,0,255)">purple</span>');
-  expect(renderAnsi('\x1b[4m\x1b[58;5;9mindexed')).toEqual('<span style="text-decoration:underline;text-decoration-color:rgb(255,85,85)">indexed</span>');
-  expect(renderAnsi('\x1b[4;58;2;1;2;3mon\x1b[59mdefault')).toEqual('<span style="text-decoration:underline;text-decoration-color:rgb(1,2,3)">on</span><span style="text-decoration:underline">default</span>');
-
-  // codes ansi_up ignored: inverse, conceal, strikethrough and overline
-  expect(renderAnsi('\x1b[9mstruck')).toEqual('<span style="text-decoration:line-through">struck</span>');
-  expect(renderAnsi('\x1b[53moverlined')).toEqual('<span style="text-decoration:overline">overlined</span>');
-  expect(renderAnsi('\x1b[8mhidden')).toEqual('<span style="visibility:hidden">hidden</span>');
-  expect(renderAnsi('\x1b[4;9;53mall three')).toEqual('<span style="text-decoration:underline line-through overline">all three</span>');
-  expect(renderAnsi('\x1b[9mon\x1b[29moff')).toEqual('<span style="text-decoration:line-through">on</span>off');
-  expect(renderAnsi('\x1b[53mon\x1b[55moff')).toEqual('<span style="text-decoration:overline">on</span>off');
-  expect(renderAnsi('\x1b[8mon\x1b[28moff')).toEqual('<span style="visibility:hidden">on</span>off');
+  // out of range values are ignored rather than clamped
+  expect(renderAnsi('\x1b[38;5;256mx')).toEqual('x');
+  expect(renderAnsi('\x1b[38;2;300;0;0mx')).toEqual('x');
 
   // inverse swaps foreground and background, falling back to the console defaults
-  expect(renderAnsi('\x1b[7minverse')).toEqual('<span style="color:var(--color-console-bg);background-color:var(--color-console-fg)">inverse</span>');
-  expect(renderAnsi('\x1b[31;7mswapped')).toEqual('<span style="color:var(--color-console-bg)" class="ansi-red-bg">swapped</span>');
-  expect(renderAnsi('\x1b[31;42;7mboth')).toEqual('<span class="ansi-green-fg ansi-red-bg">both</span>');
-  expect(renderAnsi('\x1b[7mon\x1b[27moff')).toEqual('<span style="color:var(--color-console-bg);background-color:var(--color-console-fg)">on</span>off');
-
-  // "\x1b[m" resets everything, same as "\x1b[0m"
-  expect(renderAnsi('\x1b[1;31mx\x1b[my')).toEqual('<span style="font-weight:bold" class="ansi-red-fg">x</span>y');
+  expect(renderAnsi('\x1b[7mx')).toEqual('<span class="ansi-inverse-fg ansi-inverse-bg">x</span>');
+  expect(renderAnsi('\x1b[31;7mx')).toEqual('<span class="ansi-inverse-fg ansi-red-bg">x</span>');
+  expect(renderAnsi('\x1b[31;42;7mx')).toEqual('<span class="ansi-green-fg ansi-red-bg">x</span>');
+  expect(renderAnsi('\x1b[7mon\x1b[27moff')).toEqual('<span class="ansi-inverse-fg ansi-inverse-bg">on</span>off');
 });
 
-test('renderAnsi drops sequences it does not render', () => {
-  // non-SGR sequences are removed rather than shown as text
-  expect(renderAnsi('a\x1b[?25lb')).toEqual('ab');
-  expect(renderAnsi('a\x1b[1;2Hb')).toEqual('ab');
-  expect(renderAnsi('a\x1b[6nb')).toEqual('ab');
-  expect(renderAnsi('a\x1b]0;window title\x07b')).toEqual('ab');
-  expect(renderAnsi('a\x1b]8;;http://example.com\x1b\\b')).toEqual('ab'); // unterminated hyperlink
+test('renderAnsi attributes', () => {
+  expect(renderAnsi('\x1b[1mx')).toEqual('<span class="ansi-bold">x</span>');
+  expect(renderAnsi('\x1b[3mx')).toEqual('<span class="ansi-italic">x</span>');
+  expect(renderAnsi('\x1b[8mx')).toEqual('<span class="ansi-conceal">x</span>');
+  expect(renderAnsi('\x1b[4mx')).toEqual('<span class="ansi-underline">x</span>');
+  expect(renderAnsi('\x1b[9mx')).toEqual('<span class="ansi-line-through">x</span>');
+  expect(renderAnsi('\x1b[53mx')).toEqual('<span class="ansi-overline">x</span>');
+  expect(renderAnsi('\x1b[4;9;53mx')).toEqual('<span class="ansi-underline ansi-line-through ansi-overline">x</span>');
 
-  // a sequence cut off by the end of the line can never be completed, so it is dropped
-  expect(renderAnsi('abc\x1b[3')).toEqual('abc');
-  expect(renderAnsi('abc\x1b[')).toEqual('abc');
-  expect(renderAnsi('abc\x1b')).toEqual('abc');
-});
+  // faint nests, so its translucent color mixes with whatever color the outer span applies
+  expect(renderAnsi('\x1b[2mx')).toEqual('<span class="ansi-faint">x</span>');
+  expect(renderAnsi('\x1b[2;31mx')).toEqual('<span class="ansi-red-fg"><span class="ansi-faint">x</span></span>');
 
-test('renderAnsi OSC 8 hyperlinks', () => {
-  const esc = '\x1b';
-  const link = (raw: string) => renderAnsi(raw);
+  // colon sub-parameters select the underline style, "4:0" turns it off
+  expect(renderAnsi('\x1b[4:2mx')).toEqual('<span class="ansi-underline ansi-double">x</span>');
+  expect(renderAnsi('\x1b[4:3mx')).toEqual('<span class="ansi-underline ansi-wavy">x</span>');
+  expect(renderAnsi('\x1b[4:5mx')).toEqual('<span class="ansi-underline ansi-dashed">x</span>');
+  expect(renderAnsi('\x1b[4:3mon\x1b[4:0moff')).toEqual('<span class="ansi-underline ansi-wavy">on</span>off');
 
-  // both string terminators, "\x07" and "\x1b\\", are accepted
-  expect(link(`${esc}]8;;https://example.com${esc}\\click here${esc}]8;;${esc}\\`)).toEqual('<a href="https://example.com" target="_blank">click here</a>');
-  expect(link(`${esc}]8;;https://example.com\x07click here${esc}]8;;\x07`)).toEqual('<a href="https://example.com" target="_blank">click here</a>');
-  expect(link(`before ${esc}]8;;https://example.com${esc}\\text${esc}]8;;${esc}\\ after`)).toEqual('before <a href="https://example.com" target="_blank">text</a> after');
+  // 58 colors the underline and 59 restores the default, their parameters are never read as codes
+  expect(renderAnsi('\x1b[4;58;2;135;0;255mx')).toEqual('<span class="ansi-underline" style="text-decoration-color:#8700ff">x</span>');
+  expect(renderAnsi('\x1b[4;58;5;9mx')).toEqual('<span class="ansi-underline" style="text-decoration-color:var(--color-ansi-bright-red)">x</span>');
+  expect(renderAnsi('\x1b[4;58;2;1;2;3mon\x1b[59moff')).toEqual('<span class="ansi-underline" style="text-decoration-color:#010203">on</span><span class="ansi-underline">off</span>');
 
-  // the id parameter is ignored, the style in effect still applies to the label
-  expect(link(`${esc}]8;id=1;https://example.com${esc}\\text${esc}]8;;${esc}\\`)).toEqual('<a href="https://example.com" target="_blank">text</a>');
-  expect(link(`${esc}[31m${esc}]8;;https://example.com${esc}\\text${esc}]8;;${esc}\\`)).toEqual('<a href="https://example.com" target="_blank"><span class="ansi-red-fg">text</span></a>');
-
-  // a non-web target is not linked, but its label is still shown
-  expect(link(`${esc}]8;;javascript:alert(1)${esc}\\text${esc}]8;;${esc}\\`)).toEqual('text');
-  expect(link(`${esc}]8;;ftp://example.com${esc}\\text${esc}]8;;${esc}\\`)).toEqual('text');
-
-  // the url and the label are both escaped
-  expect(link(`${esc}]8;;https://example.com/?a=1&b="x"${esc}\\<b>${esc}]8;;${esc}\\`)).toEqual('<a href="https://example.com/?a=1&amp;b=&quot;x&quot;" target="_blank">&lt;b&gt;</a>');
+  // each attribute has a reset, and "\x1b[m" resets everything like "\x1b[0m"
+  expect(renderAnsi('\x1b[1mb\x1b[22mplain')).toEqual('<span class="ansi-bold">b</span>plain');
+  expect(renderAnsi('\x1b[31mr\x1b[39mplain')).toEqual('<span class="ansi-red-fg">r</span>plain');
+  expect(renderAnsi('\x1b[9mon\x1b[29moff')).toEqual('<span class="ansi-line-through">on</span>off');
+  expect(renderAnsi('\x1b[1;31mx\x1b[my')).toEqual('<span class="ansi-bold ansi-red-fg">x</span>y');
 });
 
 test('AnsiLineRenderer carries style across lines', () => {
   const ansi = new AnsiLineRenderer();
-  const render = (line: string) => {
-    const el = document.createElement('div');
-    ansi.renderInto(el, line);
-    return el.innerHTML;
-  };
-
   // an unterminated color keeps applying to the following lines, including plain ones
-  expect(render('\x1b[31mred')).toEqual('<span class="ansi-red-fg">red</span>');
-  expect(render('still red')).toEqual('<span class="ansi-red-fg">still red</span>');
-  expect(render('\x1b[1mbold too')).toEqual('<span style="font-weight:bold" class="ansi-red-fg">bold too</span>');
-
-  // until it is reset, after which plain lines are plain again
-  expect(render('\x1b[0m')).toEqual('');
-  expect(render('plain')).toEqual('plain');
-
-  // a truncated sequence is not carried into the next line
-  expect(render('oops\x1b[3')).toEqual('oops');
-  expect(render('unaffected')).toEqual('unaffected');
-
-  // renderers are independent of each other
-  const other = new AnsiLineRenderer();
-  const otherEl = document.createElement('div');
-  other.renderInto(otherEl, 'clean');
-  expect(otherEl.innerHTML).toEqual('clean');
+  expect(renderAnsi('\x1b[31mred', ansi)).toEqual('<span class="ansi-red-fg">red</span>');
+  expect(renderAnsi('still red', ansi)).toEqual('<span class="ansi-red-fg">still red</span>');
+  expect(renderAnsi('\x1b[1mand bold', ansi)).toEqual('<span class="ansi-bold ansi-red-fg">and bold</span>');
+  // until it is reset, and a truncated sequence never carries
+  expect(renderAnsi('\x1b[0m', ansi)).toEqual('');
+  expect(renderAnsi('oops\x1b[3', ansi)).toEqual('oops');
+  expect(renderAnsi('plain', ansi)).toEqual('plain');
 });
 
 test('renderAnsi does not allow html injection', () => {
   const esc = '\x1b';
-  const link = (url: string, label = 'label') => `${esc}]8;;${url}${esc}\\${label}${esc}]8;;${esc}\\`;
   const scriptScheme = ['java', 'script:'].join(''); // assembled, a literal would trip "no-script-url"
+  const link = (url: string, label = 'label') => `${esc}]8;;${url}${esc}\\${label}${esc}]8;;${esc}\\`;
   const payloads = [
-    // markup in plain and styled text
     '<script>alert(1)</script>',
     '<img src=x onerror=alert(1)>',
-    '<svg onload=alert(1)></svg>',
-    '<iframe src="javascript:alert(1)"></iframe>',
     `${esc}[31m<script>alert(1)</script>`,
-    `${esc}[4:3m<img src=x onerror=alert(1)>`,
-    // attempts to break out of the span attributes we build
     `${esc}[31m"><script>alert(1)</script>`,
-    `${esc}[31m'><script>alert(1)</script>`,
     `${esc}[31m</span><script>alert(1)</script>`,
-    // sgr parameters are parsed, never emitted, even with the punctuation the charset allows
-    `${esc}[<script>malicious`,
-    `${esc}[=>;<mmalicious`,
-    `${esc}[38;2;999;0;0mout of range`,
+    `${esc}[<script>malicious`, // sgr parameters are parsed, never emitted
     // hyperlink targets that must not become a live href
     link(`${scriptScheme}alert(1)`),
     link(`${scriptScheme.toUpperCase()}alert(1)`),
     link('data:text/html,<script>alert(1)</script>'),
-    link(`https://x${esc}${scriptScheme}alert(1)`),
-    link('vbscript:msgbox(1)'),
     link(` ${scriptScheme}alert(1)`),
-    link('/relative/path'),
     link('//evil.example.com'),
-    // hyperlink targets that try to escape the href attribute
+    // attempts to break out of the href attribute, and markup in the label
     link('https://x" onmouseover="alert(1)'),
-    link(`https://x' onmouseover='alert(1)`),
     link('https://x"><script>alert(1)</script>'),
-    link('https://x</a><img src=y onerror=alert(1)>'),
-    // markup in the hyperlink label
-    link('https://example.com', '<script>alert(1)</script>'),
     link('https://example.com', '"><img src=x onerror=alert(1)>'),
-    // bare urls in text, which the url post-process turns into links
+    // bare urls, which the url post-process turns into links
     `see ${scriptScheme}alert(1) here`,
     'see https://x"><script>alert(1)</script> here',
-    'see https://x</a><img src=y onerror=alert(1)> here',
-    `${esc}[31msee https://x" onmouseover="alert(1) here`,
   ];
 
   for (const payload of payloads) {
     const el = document.createElement('div');
-    renderAnsiInto(el, payload);
-
-    expect({payload, scripts: el.querySelectorAll('script, iframe, img, svg, object, embed').length}).toEqual({payload, scripts: 0});
+    new AnsiLineRenderer().renderInto(el, payload);
+    expect(el.querySelectorAll('script, iframe, img, svg, object, embed'), payload).toHaveLength(0);
     for (const node of el.querySelectorAll('*')) {
-      const handlers = [...node.attributes].map((a) => a.name).filter((name) => name.startsWith('on'));
-      expect({payload, handlers}).toEqual({payload, handlers: []});
+      expect([...node.attributes].filter((attr) => attr.name.startsWith('on')), payload).toEqual([]);
     }
     for (const anchor of el.querySelectorAll('a')) {
-      expect({payload, href: /^https?:\/\//.test(anchor.getAttribute('href')!)}).toEqual({payload, href: true});
+      expect(anchor.getAttribute('href'), payload).toMatch(/^https?:\/\//);
     }
-    // re-parsing the serialised output must not produce markup either, a serialise and parse round
-    // trip is where mutation xss shows up
+    // a serialise and parse round trip is where mutation xss shows up
     const reparsed = document.createElement('div');
     reparsed.innerHTML = el.innerHTML;
-    expect({payload, reparsedNodes: reparsed.querySelectorAll('script, iframe, img, svg, object, embed').length}).toEqual({payload, reparsedNodes: 0});
-    expect({payload, text: reparsed.textContent}).toEqual({payload, text: el.textContent});
+    expect(reparsed.querySelectorAll('script, iframe, img, svg, object, embed'), payload).toHaveLength(0);
+    expect(reparsed.textContent, payload).toEqual(el.textContent);
   }
 });

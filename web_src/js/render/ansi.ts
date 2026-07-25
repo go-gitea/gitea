@@ -1,82 +1,64 @@
 import {trimUrlPunctuation, urlRawRegex} from '../utils/url.ts';
 import {htmlEscape} from '../utils/html.ts';
 
-// A minimal ANSI renderer for action logs, covering only what the log viewer needs: SGR colors and
-// text attributes, with the 256-color palette and truecolor. It is intentionally line-oriented, so
-// an escape sequence is never carried across a line boundary. Rendering is a pure function of the
-// line and the incoming AnsiStyle, so callers hold the style themselves and nothing is shared.
-
-const replacements: Array<[RegExp, string]> = [
-  [/\x1b\[\d+[A-H]/g, ''], // Move cursor, treat them as no-op
-  [/\x1b\[\d?[JK]/g, '\r'], // Erase display/line, treat them as a Carriage Return
-];
-
-// In order: a CSI "\x1b[params final", an OSC 8 hyperlink, any other OSC, or "\x1b" plus one byte.
-// Only SGR (a CSI with final "m") and OSC 8 are rendered, the others are recognised purely so they
-// can be dropped instead of showing up as text. The OSC 8 alternative has to precede the general
-// OSC one to win, and the last alternative excludes "[" and "]" so it cannot swallow an introducer.
-const escapeSequence = /\x1b\[(?<params>[0-9;:?<=>]*)[\x20-\x2f]*(?<final>[\x40-\x7e])|\x1b\]8;[^;]*;(?<url>[^\x07\x1b]*)(?:\x07|\x1b\\)(?<text>[\s\S]*?)\x1b\]8;;(?:\x07|\x1b\\)|\x1b\][\s\S]*?(?:\x07|\x1b\\)|\x1b[\x20-\x5a\x5c\x5e-\x7e]/g;
-// a hyperlink target has to be a web url, anything else is rendered as plain text instead
+// erase display/line, treated as a carriage return so the line is overwritten
+const eraseInLine = /\x1b\[\d?[JK]/g;
+// A CSI, an OSC 8 hyperlink, any other OSC, then "\x1b" plus one byte. Only SGR (a CSI ending in
+// "m") and OSC 8 render, the rest are matched so they can be dropped rather than shown as text.
+// Groups are numbered because named ones cost a groups object per match, including dropped ones.
+const escapeSequence = /\x1b\[([0-9;:?<=>]*)[\x20-\x2f]*([\x40-\x7e])|\x1b\]8;[^;]*;([^\x07\x1b]*)(?:\x07|\x1b\\)([\s\S]*?)\x1b\]8;;(?:\x07|\x1b\\)|\x1b\][\s\S]*?(?:\x07|\x1b\\)|\x1b[\x20-\x5a\x5c\x5e-\x7e]/g;
+// a hyperlink target has to be a web url, anything else renders as plain text instead
 const hyperlinkUrl = /^https?:\/\//i;
-
-type AnsiColor = {
-  rgb: string, // pre-joined "r,g,b", it is only ever used to build a css color
-  className: string, // empty for 256-color and truecolor, which have no css class and use a style
-};
-
-// "4:1" to "4:5" select an underline style, which map onto css text-decoration-style. Indexed by
-// number so that a non-numeric sub-parameter can never reach an inherited property of the lookup.
+// "4:1" to "4:5" select an underline style, "4:0" turns it off. Indexed by number, so a non-numeric
+// sub-parameter cannot reach an inherited property.
 const underlineStyles = ['', 'solid', 'double', 'wavy', 'dotted', 'dashed'];
 
-export type AnsiStyle = {
+// A palette entry is either the name of a css class for one of the 16 named colors, which themes
+// restyle, or a literal "#rrggbb" for the 256-color cube and truecolor, which they must not.
+type AnsiColor = string;
+
+const isThemed = (color: AnsiColor) => color[0] !== '#';
+// for the slots that have no class, a themed color still has to resolve to the theme's value
+const cssColor = (color: AnsiColor) => isThemed(color) ? `var(--color-${color})` : color;
+
+type AnsiStyle = {
   fg: AnsiColor | null,
   bg: AnsiColor | null,
+  underlineColor: AnsiColor | null,
+  underline: string, // '' when off, otherwise the css text-decoration-style
   bold: boolean,
   faint: boolean,
   italic: boolean,
-  underline: boolean,
-  underlineStyle: string,
-  underlineColor: AnsiColor | null,
   strikethrough: boolean,
   overline: boolean,
   inverse: boolean,
   conceal: boolean,
 };
 
-export const ansiStyleInitial: AnsiStyle = Object.freeze({
-  fg: null, bg: null, bold: false, faint: false, italic: false,
-  underline: false, underlineStyle: 'solid', underlineColor: null,
+const ansiStyleInitial: AnsiStyle = Object.freeze({
+  fg: null, bg: null, underlineColor: null, underline: '',
+  bold: false, faint: false, italic: false,
   strikethrough: false, overline: false, inverse: false, conceal: false,
 });
 
 function isAnsiStyleInitial(style: AnsiStyle): boolean {
-  return !style.fg && !style.bg && !style.bold && !style.faint && !style.italic && !style.underline &&
-    !style.strikethrough && !style.overline && !style.inverse && !style.conceal;
+  return !style.fg && !style.bg && !style.underline && !style.bold && !style.faint &&
+    !style.italic && !style.strikethrough && !style.overline && !style.inverse && !style.conceal;
 }
 
-// The 256-color palette: 0-7 normal, 8-15 bright, 16-231 a 6x6x6 rgb cube, 232-255 grayscale.
-// Only the first 16 have css classes, see the "ansi-*" rules in the actions log styles.
-const palette256: AnsiColor[] = (() => {
-  const names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
-  const normal = ['0,0,0', '187,0,0', '0,187,0', '187,187,0', '0,0,187', '187,0,187', '0,187,187', '255,255,255'];
-  const bright = ['85,85,85', '255,85,85', '0,255,0', '255,255,85', '85,85,255', '255,85,255', '85,255,255', '255,255,255'];
-  const palette: AnsiColor[] = [
-    ...normal.map((rgb, idx) => ({rgb, className: `ansi-${names[idx]}`})),
-    ...bright.map((rgb, idx) => ({rgb, className: `ansi-bright-${names[idx]}`})),
-  ];
-  const levels = [0, 95, 135, 175, 215, 255];
-  for (const r of levels) {
-    for (const g of levels) {
-      for (const b of levels) {
-        palette.push({rgb: `${r},${g},${b}`, className: ''});
-      }
-    }
-  }
-  for (let grey = 8; grey <= 238; grey += 10) {
-    palette.push({rgb: `${grey},${grey},${grey}`, className: ''});
-  }
-  return palette;
-})();
+// 0-7 normal, 8-15 bright, 16-231 a 6x6x6 rgb cube, 232-255 grayscale
+const colorNames = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
+const cubeLevels = [0, 95, 135, 175, 215, 255];
+const palette256: AnsiColor[] = [
+  ...colorNames.map((name) => `ansi-${name}`),
+  ...colorNames.map((name) => `ansi-bright-${name}`),
+  ...cubeLevels.flatMap((r) => cubeLevels.flatMap((g) => cubeLevels.map((b) => rgbHex(r, g, b)))),
+  ...Array.from({length: 24}, (_value, idx) => rgbHex(8 + idx * 10, 8 + idx * 10, 8 + idx * 10)),
+];
+
+function rgbHex(r: number, g: number, b: number): string {
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
 
 function applySgr(style: AnsiStyle, params: string): AnsiStyle {
   const next = {...style};
@@ -86,22 +68,18 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
     const [param, subParam] = codes[idx].split(':');
     const code = parseInt(param, 10);
     if (isNaN(code) || code === 0) {
-      next.fg = next.bg = next.underlineColor = null;
-      next.bold = next.faint = next.italic = next.underline = false;
-      next.strikethrough = next.overline = next.inverse = next.conceal = false;
+      Object.assign(next, ansiStyleInitial);
     } else if (code === 1) next.bold = true;
     else if (code === 2) next.faint = true;
     else if (code === 3) next.italic = true;
-    else if (code === 4) {
-      next.underline = subParam !== '0';
-      next.underlineStyle = underlineStyles[Number(subParam)] || 'solid';
-    } else if (code === 7) next.inverse = true;
+    else if (code === 4) next.underline = underlineStyles[Number(subParam)] ?? 'solid';
+    else if (code === 7) next.inverse = true;
     else if (code === 8) next.conceal = true;
     else if (code === 9) next.strikethrough = true;
     else if (code === 21) next.bold = false;
     else if (code === 22) next.bold = next.faint = false;
     else if (code === 23) next.italic = false;
-    else if (code === 24) next.underline = false;
+    else if (code === 24) next.underline = '';
     else if (code === 27) next.inverse = false;
     else if (code === 28) next.conceal = false;
     else if (code === 29) next.strikethrough = false;
@@ -115,70 +93,69 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
     else if (code >= 90 && code < 98) next.fg = palette256[code - 82]; // 8 + code - 90
     else if (code >= 100 && code < 108) next.bg = palette256[code - 92]; // 8 + code - 100
     else if ((code === 38 || code === 48 || code === 58) && idx + 1 < codes.length) {
-      // extended color: "5;<index>" selects from the 256-color palette, "2;<r>;<g>;<b>" is truecolor.
-      // A spec that runs off the end of the parameters consumes nothing beyond the mode, so the
-      // remaining parameters stay available and are read as ordinary codes. 58 does the same for
-      // the underline color.
+      // "5;<index>" picks from the palette, "2;<r>;<g>;<b>" is truecolor, 58 colors the underline.
+      // A spec running off the end consumes only the mode, leaving the rest to be read as codes.
       const mode = codes[++idx];
       let color: AnsiColor | null = null;
       if (mode === '5' && idx + 1 < codes.length) {
         const paletteIndex = parseInt(codes[++idx], 10);
         if (paletteIndex >= 0 && paletteIndex <= 255) color = palette256[paletteIndex];
       } else if (mode === '2' && idx + 3 < codes.length) {
-        const isByte = (value: number) => value >= 0 && value <= 255;
         const r = parseInt(codes[++idx], 10);
         const g = parseInt(codes[++idx], 10);
         const b = parseInt(codes[++idx], 10);
-        if (isByte(r) && isByte(g) && isByte(b)) color = {rgb: `${r},${g},${b}`, className: ''};
+        if (Math.min(r, g, b) >= 0 && Math.max(r, g, b) <= 255) color = rgbHex(r, g, b);
       }
-      if (color && code === 38) next.fg = color;
-      else if (color && code === 48) next.bg = color;
-      else if (color) next.underlineColor = color;
+      if (color) next[code === 38 ? 'fg' : code === 48 ? 'bg' : 'underlineColor'] = color;
     }
   }
   return next;
 }
 
+/** Wraps one run of text in the markup for the style in effect. Everything is a class except the
+ * colors a theme must not touch. "faint" nests, so its translucent color mixes with the outer one.
+ */
 function renderText(text: string, style: AnsiStyle): string {
   if (text === '') return '';
-  const escaped = htmlEscape(text);
-  if (isAnsiStyleInitial(style)) return escaped;
+  let html = htmlEscape(text);
+  if (isAnsiStyleInitial(style)) return html;
+  if (style.faint) html = `<span class="ansi-faint">${html}</span>`;
 
   const styles: string[] = [];
   const classes: string[] = [];
-  if (style.bold) styles.push('font-weight:bold');
-  if (style.faint) styles.push('opacity:0.7');
-  if (style.italic) styles.push('font-style:italic');
-  if (style.conceal) styles.push('visibility:hidden');
-
-  const decorations: string[] = [];
-  if (style.underline) decorations.push('underline');
-  if (style.strikethrough) decorations.push('line-through');
-  if (style.overline) decorations.push('overline');
-  if (decorations.length) {
-    styles.push(`text-decoration:${decorations.join(' ')}`);
-    if (style.underlineStyle !== 'solid') styles.push(`text-decoration-style:${style.underlineStyle}`);
-    if (style.underlineColor) styles.push(`text-decoration-color:rgb(${style.underlineColor.rgb})`);
+  if (style.bold) classes.push('ansi-bold');
+  if (style.italic) classes.push('ansi-italic');
+  if (style.conceal) classes.push('ansi-conceal');
+  if (style.underline || style.strikethrough || style.overline) {
+    if (style.underline) classes.push('ansi-underline');
+    if (style.strikethrough) classes.push('ansi-line-through');
+    if (style.overline) classes.push('ansi-overline');
+    if (style.underline && style.underline !== 'solid') classes.push(`ansi-${style.underline}`);
+    if (style.underlineColor) styles.push(`text-decoration-color:${cssColor(style.underlineColor)}`);
   }
 
   // inverse swaps foreground and background, including the terminal defaults when either is unset
   const fg = style.inverse ? style.bg : style.fg;
   const bg = style.inverse ? style.fg : style.bg;
-  if (fg) {
-    if (fg.className) classes.push(`${fg.className}-fg`);
-    else styles.push(`color:rgb(${fg.rgb})`);
-  } else if (style.inverse) {
-    styles.push('color:var(--color-console-bg)');
+  if (!fg) {
+    if (style.inverse) classes.push('ansi-inverse-fg');
+  } else if (isThemed(fg)) {
+    classes.push(`${fg}-fg`);
+  } else {
+    styles.push(`color:${fg}`);
   }
-  if (bg) {
-    if (bg.className) classes.push(`${bg.className}-bg`);
-    else styles.push(`background-color:rgb(${bg.rgb})`);
-  } else if (style.inverse) {
-    styles.push('background-color:var(--color-console-fg)');
+  if (!bg) {
+    if (style.inverse) classes.push('ansi-inverse-bg');
+  } else if (isThemed(bg)) {
+    classes.push(`${bg}-bg`);
+  } else {
+    styles.push(`background-color:${bg}`);
   }
-  const styleAttr = styles.length ? ` style="${styles.join(';')}"` : '';
+
+  if (!classes.length && !styles.length) return html; // nothing left to apply, faint stands alone
   const classAttr = classes.length ? ` class="${classes.join(' ')}"` : '';
-  return `<span${styleAttr}${classAttr}>${escaped}</span>`;
+  const styleAttr = styles.length ? ` style="${styles.join(';')}"` : '';
+  return `<span${classAttr}${styleAttr}>${html}</span>`;
 }
 
 function renderPart(part: string, style: AnsiStyle): {html: string, style: AnsiStyle} {
@@ -190,12 +167,12 @@ function renderPart(part: string, style: AnsiStyle): {html: string, style: AnsiS
   for (let match = escapeSequence.exec(part); match; match = escapeSequence.exec(part)) {
     if (match.index > pos) html += renderText(part.slice(pos, match.index), style);
     pos = match.index + match[0].length;
-    const {params, final, url, text} = match.groups!;
+    const [, params, final, url, label] = match; // see the group order on escapeSequence
     if (final === 'm') {
       style = applySgr(style, params);
     } else if (url !== undefined) {
-      const label = renderText(text, style);
-      html += hyperlinkUrl.test(url) ? `<a href="${htmlEscape(url)}" target="_blank">${label}</a>` : label;
+      const text = renderText(label, style);
+      html += hyperlinkUrl.test(url) ? `<a href="${htmlEscape(url)}" target="_blank">${text}</a>` : text;
     }
   }
   if (pos < part.length) {
@@ -208,9 +185,9 @@ function renderPart(part: string, style: AnsiStyle): {html: string, style: AnsiS
   return {html, style};
 }
 
-/** Renders the lines of one log stream, carrying the ANSI style from each line into the next, so an
- * unterminated color keeps applying like it would in a terminal. Holds nothing but that style, and
- * each stream owns its own instance, so no state is shared between steps, jobs or runs.
+/** A minimal ANSI renderer for action logs: SGR attributes and colors, the 256-color palette and
+ * truecolor. Renders one log stream, carrying the style between its lines the way a terminal does,
+ * while never carrying an escape sequence across a line. Each stream owns an instance.
  */
 export class AnsiLineRenderer {
   private style: AnsiStyle = ansiStyleInitial;
@@ -221,7 +198,7 @@ export class AnsiLineRenderer {
 }
 
 /** Render one log line into el, returning the style that the next line should start from. */
-export function renderAnsiInto(el: HTMLElement, line: string, style: AnsiStyle = ansiStyleInitial): AnsiStyle {
+function renderAnsiInto(el: HTMLElement, line: string, style: AnsiStyle): AnsiStyle {
   if (line.endsWith('\r\n')) {
     line = line.substring(0, line.length - 2);
   } else if (line.endsWith('\n')) {
@@ -229,38 +206,26 @@ export function renderAnsiInto(el: HTMLElement, line: string, style: AnsiStyle =
   }
 
   // fast path: a plain line inheriting no style renders as text, skipping the parser entirely
-  if (!line.includes('\x1b') && !line.includes('\r') && isAnsiStyleInitial(style)) {
+  const hasEscape = line.includes('\x1b');
+  if (isAnsiStyleInitial(style) && !hasEscape && !line.includes('\r')) {
     el.textContent = line;
     if (line.includes('://')) renderAnsiPostProcessNode(el);
     return style;
   }
 
-  if (line.includes('\x1b')) {
-    for (const [regex, replacement] of replacements) {
-      line = line.replace(regex, replacement);
-    }
+  if (hasEscape) line = line.replace(eraseInLine, '\r');
+
+  // "\rReading...1%\rReading...5%\rReading...100%" becomes one rendered part per update, joined by
+  // "\n" because the log message element is styled "white-space: break-spaces"
+  const parts: Array<string> = [];
+  for (const part of line.split('\r')) {
+    if (part === '') continue;
+    const rendered = renderPart(part, style);
+    style = rendered.style;
+    if (rendered.html !== '') parts.push(rendered.html);
   }
 
-  let html: string;
-  if (!line.includes('\r')) {
-    ({html, style} = renderPart(line, style));
-  } else {
-    // handle "\rReading...1%\rReading...5%\rReading...100%",
-    // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
-    const lines: Array<string> = [];
-    for (const part of line.split('\r')) {
-      if (part === '') continue;
-      const rendered = renderPart(part, style);
-      style = rendered.style;
-      if (rendered.html !== '') {
-        lines.push(rendered.html);
-      }
-    }
-    // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
-    html = lines.join('\n');
-  }
-
-  el.innerHTML = html;
+  el.innerHTML = parts.join('\n');
   // at the moment, only need to do post-process when there are potential URL links
   if (line.includes('://')) renderAnsiPostProcessNode(el);
   return style;

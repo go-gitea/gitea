@@ -60,40 +60,43 @@ function initDevtestPage() {
 // Showcase for every feature of the ANSI renderer.
 function initDevtestAnsiRender(container: HTMLElement) {
   const esc = '\x1b';
-  const join = (count: number, cell: (index: number) => string) => Array.from({length: count}, (_value, index) => cell(index)).join('');
-  const attr = (params: string, label: string) => ` ${esc}[${params}m${label}${esc}[m `;
-  const swatch = (params: string) => `${esc}[${params}m ${params.padEnd(8)}${esc}[0m`; // padded, so every cell is equal width
-  const palette = (params: string) => Array.from({length: 16}, (_value, line) =>
-    join(16, (col) => `${esc}[${params};5;${line * 16 + col}m${String(line * 16 + col).padStart(4)}${esc}[0m`));
+  const cells = (count: number, cell: (index: number) => string) => Array.from({length: count}, (_value, index) => cell(index));
+  const join = (count: number, cell: (index: number) => string) => cells(count, cell).join('');
+  const attr = (params: string, label: string) => `${esc}[${params}m${label}${esc}[m`;
 
   const sections: Array<{title: string, lines: string[], source?: boolean}> = [
-    {title: '16 colors', lines: ['0', '1'].flatMap((bold) => [30, 90].flatMap((base) =>
-      Array.from({length: 8}, (_value, fg) => join(8, (bg) => swatch(`${bold};${base + fg};${base + 10 + bg}`))))),
-    },
-    {title: 'attributes', lines: [
-      `${join(10, (code) => attr(String(code), `SGR ${String(code).padStart(2)}`))}${attr('53', 'SGR 53')}`,
+    // indexes 0-15 are the named colors a theme restyles, the rest are literal
+    {title: 'colors', lines: [
+      ...Array.from({length: 16}, (_value, row) =>
+        join(16, (col) => `${esc}[38;5;${row * 16 + col}m${String(row * 16 + col).padStart(4)}${esc}[0m`)),
       ' ',
-      `${join(5, (index) => attr(`4:${index + 1}`, `SGR 4:${index + 1}`))}${attr('21', 'SGR 21')}` +
-        ` ${esc}[4:3m${esc}[58;2;135;0;255mtruecolor underline${esc}[59m${esc}[4:0m` +
-        ` ${esc}]8;;https://example.com${esc}\\hyperlink${esc}]8;;${esc}\\`,
+      join(16, (index) => `${esc}[48;5;${index}m ${String(index).padStart(3)} ${esc}[0m`),
+      join(16, (index) => `${esc}[48;5;${16 + index * 13}m ${String(16 + index * 13).padStart(3)} ${esc}[0m`),
+      ' ',
+      join(77, (col) => { // truecolor, a gradient no palette index can express
+        const r = 255 - Math.floor(col * 255 / 76);
+        const b = Math.floor(col * 255 / 76);
+        const g = Math.min(Math.floor(col * 510 / 76), 510 - Math.floor(col * 510 / 76));
+        return `${esc}[48;2;${r};${g};${b}m${esc}[38;2;${255 - r};${255 - g};${255 - b}m${'/\\'[col % 2]}${esc}[0m`;
+      }),
     ]},
-    {title: '256 colors', lines: palette('38')},
-    {title: '256 colors, faint', lines: palette('2;38')},
-    {title: '256 colors, background', lines: palette('48')},
-    {title: 'truecolor', lines: [join(77, (col) => {
-      const r = 255 - Math.floor(col * 255 / 76);
-      const b = Math.floor(col * 255 / 76);
-      const g = Math.min(Math.floor(col * 510 / 76), 510 - Math.floor(col * 510 / 76));
-      return `${esc}[48;2;${r};${g};${b}m${esc}[38;2;${255 - r};${255 - g};${255 - b}m${'/\\'[col % 2]}${esc}[0m`;
-    })]},
-    {title: 'style carries between lines', lines: [
+
+    {title: 'attributes', lines: [
+      [...cells(10, (code) => attr(String(code), `SGR ${code}`)), attr('53', 'SGR 53')].join('  '),
+      ' ',
+      [
+        ...cells(5, (index) => attr(`4:${index + 1}`, `SGR 4:${index + 1}`)),
+        attr('21', 'SGR 21'),
+        `${esc}[4:3m${esc}[58;2;135;0;255mtruecolor underline${esc}[59m${esc}[4:0m`,
+        `${esc}]8;;https://example.com${esc}\\hyperlink${esc}]8;;${esc}\\`,
+      ].join('  '),
+    ]},
+
+    // rendered under its own escaped source, since what these do is not visible from the output alone
+    {title: 'behavior', source: true, lines: [
       `${esc}[31man unterminated color`,
       'carries into the following lines',
-      `${esc}[1mand combines with attributes set later`,
       `${esc}[0muntil something resets it`,
-      'back to plain',
-    ]},
-    {title: 'other sequences', source: true, lines: [
       'Reading... 1%\rReading... 50%\rReading... 100%',
       `first${esc}[Ksecond${esc}[2Jthird`,
       `cursor movement ${esc}[3Ais dropped`,
