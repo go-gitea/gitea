@@ -591,10 +591,6 @@ overflow-menu .overflow-menu-items .item-flex-space {
   flex: 1;
 }
 
-overflow-menu .overflow-menu-items .ui.label {
-  font-variant-numeric: tabular-nums; /* equal-width digits so counts don't reflow the row */
-}
-
 overflow-menu .overflow-menu-button {
   background: transparent;
   border: none;
@@ -618,6 +614,7 @@ overflow-menu .overflow-menu-button:hover {
 
 overflow-menu .ui.label {
   margin-left: 7px !important; /* save some space */
+  font-variant-numeric: tabular-nums; /* equal-width digits so counts don't reflow the row */
 }
 
 .activity-bar-graph {

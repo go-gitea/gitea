@@ -63,6 +63,7 @@ export default defineComponent({
       finalPage: 1,
       searchQuery,
       isLoading: false,
+      initialSearchDone: false,
       staticPrefix: assetUrlPrefix,
       counts: {} as Record<string, number>,
       repoTypes: {
@@ -304,6 +305,7 @@ export default defineComponent({
       } catch {
         if (searchedURL === this.searchURL) {
           this.isLoading = false;
+          this.initialSearchDone = true;
         }
         return;
       }
@@ -325,6 +327,7 @@ export default defineComponent({
         this.finalPage = Math.ceil(count / this.searchLimit);
         this.updateHistory();
         this.isLoading = false;
+        this.initialSearchDone = true;
       }
     },
 
@@ -445,7 +448,8 @@ export default defineComponent({
             </div>
           </div>
         </div>
-        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
+        <!-- stay hidden until the first count arrives, otherwise the label resizes after paint -->
+        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter" :class="{'tw-invisible': !initialSearchDone}">
           <div class="overflow-menu-items tw-justify-center">
             <a class="item" tabindex="0" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
               {{ textAll }}
