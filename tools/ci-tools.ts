@@ -37,6 +37,7 @@ const typeLabels: Partial<Record<CommitType, string>> = {
   fix: 'type/bug',
   docs: 'type/docs',
   test: 'type/testing',
+  refactor: 'type/refactoring',
 };
 
 // Non-type labels, removed only when the previous title implied them.
