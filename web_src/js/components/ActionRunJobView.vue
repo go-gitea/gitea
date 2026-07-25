@@ -245,8 +245,7 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
   const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
     formatDatetime(line.timestamp * 1000), // for "Show timestamps"
   );
-  stepAnsiRenderers[stepIndex] ??= new AnsiLineRenderer();
-  const logMsg = createLogLineMessage(stepAnsiRenderers[stepIndex], line, cmd);
+  const logMsg = createLogLineMessage(stepAnsiRenderers[stepIndex] ??= new AnsiLineRenderer(), line, cmd);
   const seconds = Math.floor(line.timestamp - startTime);
   const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
     `${seconds}s`, // for "Show seconds"

@@ -21,27 +21,27 @@
   text-underline-position: auto; /* the global "a:hover" sets "under", which would shift the underline */
 }
 
-/* blinks the text away by color, not by "visibility", which would make it unselectable */
 @keyframes blink-animation {
-  to {
+  50% {
     color: transparent;
   }
 }
 
-/* SGR attributes emitted by web_src/js/render/ansi.ts. "faint" dims via a translucent color rather
-   than opacity, which would create a stacking context and paint log lines over the sticky step header. */
+/* SGR attributes emitted by web_src/js/render/ansi.ts */
 
 .ansi-bold { font-weight: var(--font-weight-semibold); }
 .ansi-italic { font-style: italic; }
+.ansi-blink { animation: blink-animation 1s step-end infinite; }
 .ansi-faint { color: color-mix(in srgb, currentcolor 70%, transparent); }
+.ansi-conceal { color: transparent; }
 .ansi-inverse-fg { color: var(--color-console-bg); }
 .ansi-inverse-bg { background-color: var(--color-console-fg); }
 
-/* underline, line-through and overline are one css property, so a class per line cannot simply set
-   it. Each contributes a value instead, with an empty fallback when its class is absent. */
+/* the three lines share one css property, so each class contributes a value to it and the empty
+   fallback is what a class that is absent contributes */
 .ansi-underline,
 .ansi-line-through,
-.ansi-overline { text-decoration-line: var(--ansi-underline, ) var(--ansi-line-through, ) var(--ansi-overline, ); }
+.ansi-overline { text-decoration-line: var(--ansi-underline,) var(--ansi-line-through,) var(--ansi-overline,); }
 .ansi-underline { --ansi-underline: underline; }
 .ansi-line-through { --ansi-line-through: line-through; }
 .ansi-overline { --ansi-overline: overline; }
@@ -89,16 +89,12 @@
 .ansi-bright-cyan-bg { background-color: var(--color-ansi-bright-cyan); }
 .ansi-bright-white-bg { background-color: var(--color-ansi-bright-white); }
 
-/* conceal paints the text in the background color, so it stays invisible but selectable. It has to
-   come after the color rules to win the cascade against a foreground set on the same element. */
-.ansi-conceal { color: var(--color-console-bg); }
-
 /* term colors used in console rendering */
 
 .term-fg2 { color: var(--color-ansi-bright-black); } /* faint (decreased intensity) - same as gray really */
 .term-fg3 { font-style: italic; } /* italic */
 .term-fg4 { text-decoration: underline; } /* underline */
-.term-fg5 { animation: blink-animation 1s steps(3, start) infinite; } /* blink */
+.term-fg5 { animation: blink-animation 1s step-end infinite; } /* blink, see also .ansi-blink */
 .term-fg9 { text-decoration: line-through; } /* crossed-out */
 
 .term-fg30 { color: var(--color-ansi-black); } /* black (but we can't use black, so a diff color) */

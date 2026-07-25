@@ -9,6 +9,8 @@ const eraseInLine = /\x1b\[\d?[JK]/g;
 const escapeSequence = /\x1b\[([0-9;:?<=>]*)[\x20-\x2f]*([\x40-\x7e])|\x1b\]8;[^;]*;([^\x07\x1b]*)(?:\x07|\x1b\\)([\s\S]*?)\x1b\]8;;(?:\x07|\x1b\\)|\x1b\][\s\S]*?(?:\x07|\x1b\\)|\x1b[\x20-\x5a\x5c\x5e-\x7e]/g;
 // a hyperlink target has to be a web url, anything else renders as plain text instead
 const hyperlinkUrl = /^https?:\/\//i;
+// what htmlEscape replaces, checked first because most log text contains none of it
+const needsHtmlEscape = /["&'<>]/;
 // "4:1" to "4:5" select an underline style, "4:0" turns it off. Indexed by number, so a non-numeric
 // sub-parameter cannot reach an inherited property.
 const underlineStyles = ['', 'solid', 'double', 'wavy', 'dotted', 'dashed'];
@@ -29,6 +31,7 @@ type AnsiStyle = {
   bold: boolean,
   faint: boolean,
   italic: boolean,
+  blink: boolean,
   strikethrough: boolean,
   overline: boolean,
   inverse: boolean,
@@ -37,13 +40,13 @@ type AnsiStyle = {
 
 const ansiStyleInitial: AnsiStyle = Object.freeze({
   fg: null, bg: null, underlineColor: null, underline: '',
-  bold: false, faint: false, italic: false,
+  bold: false, faint: false, italic: false, blink: false,
   strikethrough: false, overline: false, inverse: false, conceal: false,
 });
 
 function isAnsiStyleInitial(style: AnsiStyle): boolean {
   return !style.fg && !style.bg && !style.underline && !style.bold && !style.faint &&
-    !style.italic && !style.strikethrough && !style.overline && !style.inverse && !style.conceal;
+    !style.italic && !style.blink && !style.strikethrough && !style.overline && !style.inverse && !style.conceal;
 }
 
 // 0-7 normal, 8-15 bright, 16-231 a 6x6x6 rgb cube, 232-255 grayscale
@@ -61,25 +64,29 @@ function rgbHex(r: number, g: number, b: number): string {
 }
 
 function applySgr(style: AnsiStyle, params: string): AnsiStyle {
+  if (params === '' || params === '0') return ansiStyleInitial; // the most common sequence by far
   const next = {...style};
   const codes = params.split(';');
   for (let idx = 0; idx < codes.length; idx++) {
-    // a parameter may carry colon separated sub-parameters, as in "4:3" for a curly underline
-    const [param, subParam] = codes[idx].split(':');
-    const code = parseInt(param, 10);
+    const code = parseInt(codes[idx], 10); // parseInt stops at a ":" sub-parameter on its own
     if (isNaN(code) || code === 0) {
       Object.assign(next, ansiStyleInitial);
     } else if (code === 1) next.bold = true;
     else if (code === 2) next.faint = true;
     else if (code === 3) next.italic = true;
-    else if (code === 4) next.underline = underlineStyles[Number(subParam)] ?? 'solid';
-    else if (code === 7) next.inverse = true;
+    else if (code === 5) next.blink = true;
+    else if (code === 4) {
+      // a colon sub-parameter selects the style, as in "4:3" for a curly underline and "4:0" for off
+      const colon = codes[idx].indexOf(':');
+      next.underline = colon === -1 ? 'solid' : underlineStyles[Number(codes[idx].slice(colon + 1))] ?? 'solid';
+    } else if (code === 7) next.inverse = true;
     else if (code === 8) next.conceal = true;
     else if (code === 9) next.strikethrough = true;
     else if (code === 21) next.bold = false;
     else if (code === 22) next.bold = next.faint = false;
     else if (code === 23) next.italic = false;
     else if (code === 24) next.underline = '';
+    else if (code === 25) next.blink = false;
     else if (code === 27) next.inverse = false;
     else if (code === 28) next.conceal = false;
     else if (code === 29) next.strikethrough = false;
@@ -117,14 +124,14 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
  */
 function renderText(text: string, style: AnsiStyle): string {
   if (text === '') return '';
-  let html = htmlEscape(text);
-  if (isAnsiStyleInitial(style)) return html;
+  let html = needsHtmlEscape.test(text) ? htmlEscape(text) : text;
   if (style.faint) html = `<span class="ansi-faint">${html}</span>`;
 
   const styles: string[] = [];
   const classes: string[] = [];
   if (style.bold) classes.push('ansi-bold');
   if (style.italic) classes.push('ansi-italic');
+  if (style.blink) classes.push('ansi-blink');
   if (style.conceal) classes.push('ansi-conceal');
   if (style.underline || style.strikethrough || style.overline) {
     if (style.underline) classes.push('ansi-underline');
@@ -135,22 +142,18 @@ function renderText(text: string, style: AnsiStyle): string {
   }
 
   // inverse swaps foreground and background, including the terminal defaults when either is unset
-  const fg = style.inverse ? style.bg : style.fg;
-  const bg = style.inverse ? style.fg : style.bg;
-  if (!fg) {
-    if (style.inverse) classes.push('ansi-inverse-fg');
-  } else if (isThemed(fg)) {
-    classes.push(`${fg}-fg`);
-  } else {
-    styles.push(`color:${fg}`);
-  }
-  if (!bg) {
-    if (style.inverse) classes.push('ansi-inverse-bg');
-  } else if (isThemed(bg)) {
-    classes.push(`${bg}-bg`);
-  } else {
-    styles.push(`background-color:${bg}`);
-  }
+  const applyColor = (color: AnsiColor | null, slot: string, property: string) => {
+    if (!color) {
+      if (style.inverse) classes.push(`ansi-inverse-${slot}`);
+    } else if (isThemed(color)) {
+      classes.push(`${color}-${slot}`);
+    } else {
+      styles.push(`${property}:${color}`);
+    }
+  };
+  // conceal emits no foreground at all, so an inline color can never outrank the concealing class
+  if (!style.conceal) applyColor(style.inverse ? style.bg : style.fg, 'fg', 'color');
+  applyColor(style.inverse ? style.fg : style.bg, 'bg', 'background-color');
 
   if (!classes.length && !styles.length) return html; // nothing left to apply, faint stands alone
   const classAttr = classes.length ? ` class="${classes.join(' ')}"` : '';
@@ -175,13 +178,10 @@ function renderPart(part: string, style: AnsiStyle): {html: string, style: AnsiS
       html += hyperlinkUrl.test(url) ? `<a href="${htmlEscape(url)}" target="_blank">${text}</a>` : text;
     }
   }
-  if (pos < part.length) {
-    // any "\x1b" still left did not form a complete sequence above, so it is cut off by the end of
-    // the line and can never be completed: drop it along with the rest of the line
-    const tail = part.slice(pos);
-    const truncated = tail.indexOf('\x1b');
-    html += renderText(truncated === -1 ? tail : tail.slice(0, truncated), style);
-  }
+  // any "\x1b" left did not form a complete sequence, so it is cut off by the end of the line and
+  // can never be completed: drop it along with the rest of the line
+  const cutOff = part.indexOf('\x1b', pos);
+  html += renderText(part.slice(pos, cutOff === -1 ? part.length : cutOff), style);
   return {html, style};
 }
 
