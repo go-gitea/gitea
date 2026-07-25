@@ -4,17 +4,16 @@
 package v1_28
 
 import (
-	"gitea.dev/models/db"
+	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-// AddMatrixEvaluationColumnsToActionRunJob adds RawStrategy and IsMatrixEvaluated columns
-// to support deferred matrix expansion for jobs whose matrix depends on other jobs' outputs.
-func AddMatrixEvaluationColumnsToActionRunJob(x db.EngineMigration) error {
+// AddMatrixDeferredColumnToActionRunJob adds the IsMatrixDeferred column, marking jobs whose
+// matrix depends on other jobs' outputs and is therefore expanded only once those jobs finish.
+func AddMatrixDeferredColumnToActionRunJob(x base.EngineMigration) error {
 	type ActionRunJob struct {
-		RawStrategy       string `xorm:"TEXT"`
-		IsMatrixEvaluated bool
+		IsMatrixDeferred bool `xorm:"NOT NULL DEFAULT FALSE"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,

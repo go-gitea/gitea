@@ -55,8 +55,8 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 
 	for _, job := range jobs {
 		// A deferred-matrix placeholder's name changes when it expands, so a status created now
-		// would be orphaned; the job emitter creates the combos' statuses after expansion.
-		if job.RawStrategy != "" && !job.IsMatrixEvaluated {
+		// would be orphaned. The emitter reloads the jobs after expanding and creates them then.
+		if job.IsMatrixDeferred {
 			continue
 		}
 		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job); err != nil {

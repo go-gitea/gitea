@@ -282,7 +282,10 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 			job.Run = run
 		}
 
-		updates := resolver.Resolve(ctx)
+		updates, err := resolver.Resolve(ctx)
+		if err != nil {
+			return err
+		}
 		for _, job := range jobs {
 			status, ok := updates[job.ID]
 			if !ok {
@@ -336,18 +339,10 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 		return nil, err
 	}
 
-	// Matrix re-evaluation can insert new jobs in this attempt; reload so callers see them.
-	if resolver.matrixExpanded {
-		jobs, err = actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	result.Jobs = jobs
-	// Caller expansion inserts Blocked children, and matrix expansion inserts Blocked siblings; both
-	// need a follow-up resolver pass to evaluate their needs/`if:`/concurrency and start them.
-	if expandedAnyCaller || resolver.matrixExpanded {
+	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
+	// Caller and matrix expansion both insert Blocked jobs, which only a follow-up pass resolves.
+	// Like the caller's children, matrix siblings are left out of result.Jobs and picked up there.
+	if expandedAnyCaller || resolver.matrixChanged {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
 	result.CancelledJobs = resolver.cancelledJobs
@@ -355,12 +350,17 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 }
 
 type jobStatusResolver struct {
-	statuses       map[int64]actions_model.Status
-	needs          map[int64][]int64
-	jobMap         map[int64]*actions_model.ActionRunJob
-	vars           map[string]string
-	cancelledJobs  []*actions_model.ActionRunJob
-	matrixExpanded bool // set when matrix re-evaluation inserted new jobs, so callers reload
+	statuses      map[int64]actions_model.Status
+	needs         map[int64][]int64
+	jobMap        map[int64]*actions_model.ActionRunJob
+	vars          map[string]string
+	cancelledJobs []*actions_model.ActionRunJob
+	// matrixChanged is set when matrix expansion inserted siblings or failed a placeholder, both of
+	// which need a follow-up pass to resolve the dependents.
+	matrixChanged bool
+	// matrixUpdatedJobs holds jobs whose status matrix expansion persisted itself, so they are
+	// notified like the ones the caller updates from the resolved status map.
+	matrixUpdatedJobs []*actions_model.ActionRunJob
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]string) *jobStatusResolver {
@@ -397,19 +397,22 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 	}
 }
 
-func (r *jobStatusResolver) Resolve(ctx context.Context) map[int64]actions_model.Status {
+func (r *jobStatusResolver) Resolve(ctx context.Context) (map[int64]actions_model.Status, error) {
 	ret := map[int64]actions_model.Status{}
 	for i := 0; i < len(r.statuses); i++ {
-		updated := r.resolve(ctx)
+		updated, err := r.resolve(ctx)
+		if err != nil {
+			return nil, err
+		}
 		if len(updated) == 0 {
-			return ret
+			return ret, nil
 		}
 		for k, v := range updated {
 			ret[k] = v
 			r.statuses[k] = v
 		}
 	}
-	return ret
+	return ret, nil
 }
 
 func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed bool) {
@@ -431,7 +434,7 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 	return allDone, allSucceed
 }
 
-func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
+func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_model.Status, error) {
 	ret := map[int64]actions_model.Status{}
 	for id, status := range r.statuses {
 		actionRunJob := r.jobMap[id]
@@ -449,20 +452,21 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			continue
 		}
 
-		// Expand a needs-dependent matrix now that needs are done; on success the job is no
-		// longer Blocked (placeholder becomes the first combination, siblings inserted).
-		children, err := ReEvaluateMatrixForJobWithNeeds(ctx, actionRunJob, r.vars)
+		// Expand a needs-dependent matrix now that its needs are done. Aborting the pass on error is
+		// required: the placeholder may already be claimed as the first combination, so committing
+		// here would drop the remaining ones for good.
+		siblings, err := expandDeferredMatrix(ctx, actionRunJob, r.vars)
 		if err != nil {
-			log.Error("ReEvaluateMatrixForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
-			continue
-		}
-		if len(children) > 0 {
-			r.matrixExpanded = true
+			return nil, fmt.Errorf("expand matrix of job %d: %w", id, err)
 		}
 		if actionRunJob.Status != actions_model.StatusBlocked {
+			// expandDeferredMatrix already persisted the failure, so it bypasses `ret`.
 			r.statuses[id] = actionRunJob.Status
+			r.matrixUpdatedJobs = append(r.matrixUpdatedJobs, actionRunJob)
+			r.matrixChanged = true
 			continue
 		}
+		r.matrixChanged = r.matrixChanged || len(siblings) > 0
 
 		// update concurrency and check whether the job can run now
 		err = updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
@@ -496,7 +500,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			ret[id] = newStatus
 		}
 	}
-	return ret
+	return ret, nil
 }
 
 func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJob *actions_model.ActionRunJob, vars map[string]string) error {

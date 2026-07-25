@@ -183,6 +183,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, workflowJob *jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, bool, error) {
 	id, job := workflowJob.Job()
 	needs := job.Needs()
+	isMatrixDeferred := len(needs) > 0 && jobparser.HasUnevaluatedMatrix(job)
 	if err := workflowJob.SetJob(id, job.EraseNeeds()); err != nil {
 		return nil, nil, false, err
 	}
@@ -215,21 +216,11 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		WorkflowSourceRepoID:    run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 		ContinueOnError:         job.GetContinueOnError(),
+		IsMatrixDeferred:        isMatrixDeferred,
 	}
 	// Parse workflow/job permissions (no clamping here)
 	if perms := ExtractJobPermissionsFromWorkflow(workflowJob, job); perms != nil {
 		runJob.TokenPermissions = perms
-	}
-
-	// Matrix references needs outputs: jobparser emitted a placeholder. Store the raw
-	// strategy for ReEvaluateMatrixForJobWithNeeds to expand once the needs finish.
-	isDeferredMatrix := len(needs) > 0 && jobparser.RawMatrixHasExpression(job)
-	if isDeferredMatrix {
-		rawStrategy, err := yaml.Marshal(&job.Strategy)
-		if err != nil {
-			return nil, nil, false, fmt.Errorf("marshal raw strategy for job %s: %w", id, err)
-		}
-		runJob.RawStrategy = string(rawStrategy)
 	}
 
 	if isReusableWorkflowCaller {

@@ -300,6 +300,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			continue
 		}
 		needs := parsedChild.Needs()
+		isMatrixDeferred := len(needs) > 0 && jobparser.HasUnevaluatedMatrix(parsedChild)
 		if err := sw.SetJob(jobID, parsedChild.EraseNeeds()); err != nil {
 			return err
 		}
@@ -340,6 +341,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    sourceRepoID,
 			WorkflowSourceCommitSHA: sourceCommitSHA,
+			IsMatrixDeferred:        isMatrixDeferred,
 		}
 		if perms := ExtractJobPermissionsFromWorkflow(sw, parsedChild); perms != nil {
 			child.TokenPermissions = perms

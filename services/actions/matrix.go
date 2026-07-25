@@ -9,214 +9,135 @@ import (
 	"fmt"
 
 	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
 )
 
-// markMatrixEvaluated marks a job as evaluated with a terminal status (skipped or failure) so it is
-// not re-evaluated. Used when the matrix cannot be expanded (failure) or expands to nothing (skipped).
-func markMatrixEvaluated(ctx context.Context, job *actions_model.ActionRunJob, status actions_model.Status, reason string) error {
-	job.IsMatrixEvaluated = true
-	job.Status = status
-	if _, err := actions_model.UpdateRunJob(ctx, job, nil, "is_matrix_evaluated", "status"); err != nil {
-		log.Error("Failed to mark job %d (JobID: %s) as evaluated (%s): %v", job.ID, job.JobID, status, err)
-		return err
-	}
-	log.Debug("Marked job %d (JobID: %s) as evaluated with status %s: %s", job.ID, job.JobID, status, reason)
-	return nil
-}
-
-// checkTaskNeedsReady verifies if all task dependencies are completed.
-// Returns (taskNeeds, allDone, error)
-func checkTaskNeedsReady(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*TaskNeed, bool, error) {
-	taskNeeds, err := FindTaskNeeds(ctx, job)
-	if err != nil {
-		return nil, false, fmt.Errorf("find task needs: %w", err)
-	}
-
-	for _, taskNeed := range taskNeeds {
-		if !taskNeed.Result.IsDone() {
-			return taskNeeds, false, nil
-		}
-	}
-
-	return taskNeeds, true, nil
-}
-
-// ReEvaluateMatrixForJobWithNeeds expands the matrix strategy of a job once all its dependent
-// jobs are done, using their outputs, and inserts the resulting ActionRunJobs. The original
-// placeholder job is reused as the first combination and kept Blocked so the caller's resolver
-// still evaluates its `if:` and job-level concurrency; the inserted siblings are also Blocked and
-// resolved on the follow-up pass triggered by the returned slice being non-empty.
-// Returns nil, nil if the job is not ready yet or has nothing to do; the returned slice holds only
-// the newly-inserted siblings (empty when nothing was inserted, e.g. a single combination or a
-// lost expansion race).
-func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.ActionRunJob, vars map[string]string) ([]*actions_model.ActionRunJob, error) {
-	if job.IsMatrixEvaluated || job.RawStrategy == "" {
+// expandDeferredMatrix expands a deferred-matrix placeholder once its needs are done, using their
+// outputs: the placeholder becomes the first combination and the rest are returned as inserted
+// siblings, all left Blocked so the caller's resolver still applies the `if:`/concurrency gates.
+//
+// It runs inside the caller's transaction (job_emitter's resolver) and must not open a nested
+// db.WithTx, which would reuse the ambient session and roll the whole emitter pass back on error.
+// A returned error is always an infrastructure failure and must roll that transaction back, since
+// the placeholder may already be claimed; a bad matrix is the workflow's fault and is instead
+// persisted as a terminal job status, reported by job.Status leaving StatusBlocked.
+func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, vars map[string]string) ([]*actions_model.ActionRunJob, error) {
+	if !job.IsMatrixDeferred {
 		return nil, nil
 	}
 
-	log.Debug("Starting matrix re-evaluation for job %d (JobID: %s)", job.ID, job.JobID)
-
-	// failWithError marks the job as evaluated+failed and wraps any secondary error. A genuine error
-	// (malformed needs output, internal decode failure) must surface as a failure, not a silent skip.
-	failWithError := func(origErr error) ([]*actions_model.ActionRunJob, error) {
-		if markErr := markMatrixEvaluated(ctx, job, actions_model.StatusFailure, origErr.Error()); markErr != nil {
-			return nil, fmt.Errorf("%w; additionally failed to mark as evaluated: %v", origErr, markErr)
+	// failTerminal fails the job here rather than through the resolver's status map, which a
+	// reusable caller (a job may be both) would drop: its branch only handles waiting and skipped.
+	failTerminal := func(cause error) ([]*actions_model.ActionRunJob, error) {
+		log.Warn("Matrix expansion failed for job %d (JobID: %s): %v", job.ID, job.JobID, cause)
+		job.IsMatrixDeferred, job.Status = false, actions_model.StatusFailure
+		job.Stopped = timeutil.TimeStampNow()
+		if _, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"is_matrix_deferred": true},
+			"is_matrix_deferred", "status", "stopped"); err != nil {
+			return nil, fmt.Errorf("fail deferred matrix job %d: %w", job.ID, err)
 		}
-		return nil, origErr
+		return nil, nil
 	}
 
-	taskNeeds, allDone, err := checkTaskNeedsReady(ctx, job)
+	// The resolver only calls this once every need is done, as it does for job concurrency.
+	results, err := findJobNeedsAndFillJobResults(ctx, job)
 	if err != nil {
-		log.Error("Matrix re-evaluation error for job %d: check task needs: %v", job.ID, err)
-		return failWithError(fmt.Errorf("check task needs: %w", err))
-	}
-	if !allDone {
-		return nil, nil
+		return nil, fmt.Errorf("find needs of job %d: %w", job.ID, err)
 	}
 
 	if err := job.LoadAttributes(ctx); err != nil {
-		return nil, fmt.Errorf("load job attributes: %w", err)
+		return nil, fmt.Errorf("load attributes of job %d: %w", job.ID, err)
 	}
 
-	giteaCtx := GenerateGiteaContext(ctx, job.Run, nil, job)
-
-	results := make(map[string]*jobparser.JobResult, len(taskNeeds))
-	for needID, need := range taskNeeds {
-		results[needID] = &jobparser.JobResult{Result: need.Result.String(), Outputs: need.Outputs}
-	}
-
-	// Rebuild the job from its own payload + stored raw strategy and re-attach needs (erased from
-	// the payload) so needs.*.outputs.* resolves. No synthetic workflow, no stub jobs, no re-parse.
+	// The payload still carries the raw, unevaluated matrix: planning only erases the needs.
 	var baseSWF jobparser.SingleWorkflow
 	if err := yaml.Unmarshal(job.WorkflowPayload, &baseSWF); err != nil {
-		return failWithError(fmt.Errorf("unmarshal payload: %w", err))
+		return failTerminal(fmt.Errorf("unmarshal payload: %w", err))
 	}
 	_, parsedJob := baseSWF.Job()
 	if parsedJob == nil {
-		return failWithError(errors.New("payload contains no job"))
-	}
-	var rawStrategy jobparser.Strategy
-	if err := yaml.Unmarshal([]byte(job.RawStrategy), &rawStrategy); err != nil {
-		return failWithError(fmt.Errorf("unmarshal raw strategy: %w", err))
-	}
-	parsedJob.Strategy = rawStrategy
-	if err := parsedJob.RawNeeds.Encode(job.Needs); err != nil {
-		return failWithError(fmt.Errorf("encode needs: %w", err))
+		return failTerminal(errors.New("payload contains no job"))
 	}
 
-	expandedJobs, err := jobparser.ExpandMatrixWithNeeds(job.JobID, parsedJob, giteaCtx.ToGitHubContext(), results, vars, nil)
+	// `strategy` may reference the inputs context as well as needs, so resolve it like `if:` does.
+	inputs, err := getInputsForJob(ctx, job.Run, job)
 	if err != nil {
-		return failWithError(fmt.Errorf("matrix expansion failed: %w", err))
+		return nil, fmt.Errorf("get inputs for job %d: %w", job.ID, err)
 	}
-
-	// An empty matrix (e.g. fromJson('[]')) yields no combinations: skip the job, matching GitHub.
-	if len(expandedJobs) == 0 {
-		return nil, markMatrixEvaluated(ctx, job, actions_model.StatusSkipped, "matrix expanded to no combinations")
+	giteaCtx := GenerateGiteaContext(ctx, job.Run, nil, job)
+	expandedJobs, err := jobparser.ExpandMatrixWithNeeds(job.JobID, parsedJob, giteaCtx.ToGitHubContext(), results, vars, inputs)
+	if err != nil {
+		return failTerminal(fmt.Errorf("expand matrix: %w", err))
 	}
-
-	// One workflow payload per combination; needs are kept on the model and erased from the
-	// payload, as at initial planning time.
-	type matrixCombo struct {
-		name            string
-		payload         []byte
-		runsOn          []string
-		needs           []string
-		continueOnError bool
-	}
-	combos := make([]matrixCombo, 0, len(expandedJobs))
-	for _, expanded := range expandedJobs {
-		combo := matrixCombo{
-			name:            expanded.Name,
-			runsOn:          expanded.RunsOn(),
-			needs:           expanded.Needs(),
-			continueOnError: expanded.GetContinueOnError(),
-		}
+	// Combinations differ only in what the matrix feeds: the name, the payload, and a
+	// runs-on/continue-on-error that may interpolate matrix.*.
+	applyCombo := func(dst *actions_model.ActionRunJob, combo *jobparser.Job) error {
 		swf := baseSWF
-		if err := swf.SetJob(job.JobID, expanded.EraseNeeds()); err != nil {
-			return nil, fmt.Errorf("set expanded job %s: %w", job.JobID, err)
+		if err := swf.SetJob(job.JobID, combo.EraseNeeds()); err != nil {
+			return fmt.Errorf("set expanded job: %w", err)
 		}
-		if combo.payload, err = swf.Marshal(); err != nil {
-			return nil, fmt.Errorf("marshal expanded job %s: %w", job.JobID, err)
+		payload, err := swf.Marshal()
+		if err != nil {
+			return fmt.Errorf("marshal expanded job: %w", err)
 		}
-		combos = append(combos, combo)
+		dst.Name = util.EllipsisDisplayString(combo.Name, 255)
+		dst.WorkflowPayload, dst.RunsOn = payload, combo.RunsOn()
+		dst.ContinueOnError = combo.GetContinueOnError()
+		return nil
 	}
 
-	// Cap expansion at MaxJobNumPerRun: a runtime fromJson() value must not create unbounded jobs.
-	maxAttemptJobID, err := actions_model.GetMaxAttemptJobID(ctx, job.RunID, job.RunAttemptID)
-	if err != nil {
-		return nil, fmt.Errorf("get max attempt job id for job %d: %w", job.ID, err)
-	}
-	if maxAttemptJobID+int64(len(combos))-1 >= actions_model.MaxJobNumPerRun {
-		return failWithError(fmt.Errorf("matrix expansion to %d combinations would exceed the per-run job limit of %d", len(combos), actions_model.MaxJobNumPerRun))
+	siblings := make([]*actions_model.ActionRunJob, 0, len(expandedJobs)-1)
+	for _, combo := range expandedJobs[1:] {
+		// Inherit from the placeholder rather than listing fields, so a sibling cannot silently lose
+		// one (scope, permissions, `uses:`) as the job model grows.
+		sibling := *job
+		sibling.ID, sibling.TaskID, sibling.SourceTaskID = 0, 0, 0
+		sibling.Started, sibling.Stopped, sibling.IsMatrixDeferred = 0, 0, false
+		sibling.Status = actions_model.StatusBlocked
+		if err := applyCombo(&sibling, combo); err != nil {
+			return failTerminal(err)
+		}
+		// Allocate from the run-wide counter so the ids cannot collide with ones handed out later by
+		// reusable-caller expansion or reruns. Job URLs encode an AttemptJobID below
+		// MaxJobNumPerRun, so a runtime fromJson() must not push past it.
+		if sibling.AttemptJobID, err = actions_model.GetNextAttemptJobID(ctx, job.RunID); err != nil {
+			return nil, fmt.Errorf("alloc attempt_job_id for job %d: %w", job.ID, err)
+		}
+		if sibling.AttemptJobID >= actions_model.MaxJobNumPerRun {
+			return failTerminal(fmt.Errorf("expanding the matrix to %d combinations exceeds the per-run job limit of %d", len(expandedJobs), actions_model.MaxJobNumPerRun))
+		}
+		siblings = append(siblings, &sibling)
 	}
 
-	// Reuse the placeholder as the first combination and insert the rest as siblings: no phantom
-	// skipped job is left to poison downstream needs, and siblings inherit attempt + permissions.
-	// This runs inside the caller's transaction (job_emitter's resolver); do NOT open a nested
-	// db.WithTx here, as reusing the ambient session and closing it on error would roll back the
-	// whole emitter pass.
-	//
-	// Atomic claim: only one concurrent caller flips is_matrix_evaluated for this placeholder. The
-	// placeholder stays Blocked so the resolver still runs its `if:`/concurrency gates on combo 0.
-	job.Name = combos[0].name
-	job.WorkflowPayload = combos[0].payload
-	job.RunsOn = combos[0].runsOn
-	job.ContinueOnError = combos[0].continueOnError
-	job.IsMatrixEvaluated = true
+	// Reusing the placeholder leaves no phantom skipped job behind to poison downstream needs. The
+	// conditional update is an atomic claim: only the caller that flips IsMatrixDeferred inserts.
+	if err := applyCombo(job, expandedJobs[0]); err != nil {
+		return failTerminal(err)
+	}
+	job.IsMatrixDeferred = false
 	affected, err := actions_model.UpdateRunJob(ctx, job,
-		builder.Eq{"is_matrix_evaluated": false, "status": actions_model.StatusBlocked},
-		"name", "workflow_payload", "runs_on", "continue_on_error", "is_matrix_evaluated")
+		builder.Eq{"is_matrix_deferred": true, "status": actions_model.StatusBlocked},
+		"name", "workflow_payload", "runs_on", "continue_on_error", "is_matrix_deferred")
 	if err != nil {
-		return nil, fmt.Errorf("claim placeholder for job %d: %w", job.ID, err)
+		return nil, fmt.Errorf("claim placeholder of job %d: %w", job.ID, err)
 	}
 	if affected != 1 {
 		// Another concurrent caller won the claim; leave the siblings to it.
 		return nil, nil
 	}
 
-	children := make([]*actions_model.ActionRunJob, 0, len(combos)-1)
-	for i := 1; i < len(combos); i++ {
-		// Allocate AttemptJobIDs from the run-wide atomic counter so they never collide with IDs
-		// handed out later by reusable-caller expansion or reruns.
-		attemptJobID, err := actions_model.GetNextAttemptJobID(ctx, job.RunID)
-		if err != nil {
-			return nil, fmt.Errorf("alloc attempt_job_id for job %d: %w", job.ID, err)
-		}
-		children = append(children, &actions_model.ActionRunJob{
-			RunID:             job.RunID,
-			RunAttemptID:      job.RunAttemptID,
-			RepoID:            job.RepoID,
-			OwnerID:           job.OwnerID,
-			CommitSHA:         job.CommitSHA,
-			IsForkPullRequest: job.IsForkPullRequest,
-			Name:              combos[i].name,
-			Attempt:           job.Attempt,
-			WorkflowPayload:   combos[i].payload,
-			JobID:             job.JobID,
-			AttemptJobID:      attemptJobID,
-			Needs:             combos[i].needs,
-			RunsOn:            combos[i].runsOn,
-			ContinueOnError:   combos[i].continueOnError,
-			RawConcurrency:    job.RawConcurrency,
-			TokenPermissions:  job.TokenPermissions,
-			Status:            actions_model.StatusBlocked,
-		})
+	if len(siblings) == 0 {
+		return nil, nil
 	}
-
-	if err := actions_model.InsertActionRunJobs(ctx, children); err != nil {
-		return nil, fmt.Errorf("insert matrix siblings for job %d: %w", job.ID, err)
+	if err := db.Insert(ctx, siblings); err != nil {
+		return nil, fmt.Errorf("insert matrix siblings of job %d: %w", job.ID, err)
 	}
-
-	if len(children) > 0 {
-		if err := actions_model.IncreaseTaskVersion(ctx, job.OwnerID, job.RepoID); err != nil {
-			log.Error("IncreaseTaskVersion after matrix expand for job %d: %v", job.ID, err)
-		}
-	}
-
-	return children, nil
+	return siblings, nil
 }

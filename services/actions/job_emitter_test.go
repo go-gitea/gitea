@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_jobStatusResolver_Resolve(t *testing.T) {
@@ -191,7 +192,9 @@ jobs:
 			}
 
 			r := newJobStatusResolver(tt.jobs, nil)
-			assert.Equal(t, want, r.Resolve(ctx))
+			got, err := r.Resolve(ctx)
+			require.NoError(t, err)
+			assert.Equal(t, want, got)
 		})
 	}
 }

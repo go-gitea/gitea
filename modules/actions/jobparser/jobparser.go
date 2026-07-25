@@ -5,53 +5,25 @@ package jobparser
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"slices"
 	"sort"
 	"strings"
-
-	"gitea.dev/modules/log"
 
 	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
-// deepCopyYamlNode creates a deep copy of a yaml.Node tree so mutations (e.g. matrix evaluation) do
-// not affect the original. yaml.Node.Content holds pointers, so a shallow copy would share the
-// children; the Alias pointer is likewise re-pointed at the corresponding copied anchor node so an
-// aliased matrix value is evaluated on the copy instead of resolving back into the original tree.
-func deepCopyYamlNode(node *yaml.Node) *yaml.Node {
-	return copyYamlNode(node, map[*yaml.Node]*yaml.Node{})
+// HasUnevaluatedMatrix reports whether the job's matrix still holds a ${{ }} expression, so Parse
+// emitted it as a placeholder rather than one job per combination. A caller that also knows the job
+// has needs knows the matrix is built from their outputs and will be expanded once they finish.
+func HasUnevaluatedMatrix(job *Job) bool {
+	return rawMatrixHasExpression(&job.Strategy.RawMatrix)
 }
 
-// copyYamlNode deep-copies node, memoizing original->copy in seen so an anchor reached both through
-// Content and through an Alias maps to a single copy (and cycles terminate).
-func copyYamlNode(node *yaml.Node, seen map[*yaml.Node]*yaml.Node) *yaml.Node {
-	if node == nil {
-		return nil
-	}
-	if c, ok := seen[node]; ok {
-		return c
-	}
-	nodeCopy := *node
-	seen[node] = &nodeCopy
-	if node.Content != nil {
-		nodeCopy.Content = make([]*yaml.Node, len(node.Content))
-		for i, child := range node.Content {
-			nodeCopy.Content[i] = copyYamlNode(child, seen)
-		}
-	}
-	nodeCopy.Alias = copyYamlNode(node.Alias, seen)
-	return &nodeCopy
-}
-
-// rawMatrixHasExpression reports whether any scalar in the matrix node contains a
-// ${{ }} expression, i.e. the matrix must be evaluated rather than used verbatim.
 func rawMatrixHasExpression(node *yaml.Node) bool {
-	if node == nil {
-		return false
-	}
 	if node.Kind == yaml.ScalarNode {
 		return strings.Contains(node.Value, "${{")
 	}
@@ -78,11 +50,10 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		if job == nil {
 			return nil, fmt.Errorf("needed job not found: %q", id)
 		}
-		outputs := pc.jobOutputs[id]
 		results[id] = &JobResult{
 			Needs:   job.Needs(),
 			Result:  pc.jobResults[id],
-			Outputs: outputs,
+			Outputs: nil, // resolved at expansion time, not at plan time
 		}
 	}
 
@@ -103,42 +74,24 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			return nil, fmt.Errorf("job %s not found in origin workflow", id)
 		}
 
-		// Clone + pre-evaluate only when the matrix has a ${{ }} expression; static matrices use
-		// the origin job as-is.
-		evaluatedJob := originJob
-		if originJob.Strategy != nil && rawMatrixHasExpression(&originJob.Strategy.RawMatrix) {
-			jobCopy := *originJob
-			stratCopy := *originJob.Strategy
-			stratCopy.RawMatrix = *deepCopyYamlNode(&originJob.Strategy.RawMatrix)
-			jobCopy.Strategy = &stratCopy
-			evaluatedJob = &jobCopy
-			matrixEvaluator := NewExpressionEvaluator(NewInterpeter(id, evaluatedJob, nil, pc.gitContext, results, pc.vars, pc.inputs))
-			if err := matrixEvaluator.EvaluateYamlNode(&evaluatedJob.Strategy.RawMatrix); err != nil {
-				// Matrix references needs.*.outputs.* (unavailable now). Emit one placeholder
-				// keeping the raw strategy; the server expands it once the needs finish.
-				if len(originJob.Needs()) > 0 {
-					placeholder := job.Clone()
-					if placeholder.Name == "" {
-						placeholder.Name = id
-					}
-					swf := workflow.Clone()
-					if err := swf.SetJob(id, placeholder); err != nil {
-						return nil, fmt.Errorf("SetJob: %w", err)
-					}
-					ret = append(ret, swf)
-					continue
-				}
-				log.Debug("matrix evaluation for job %s left unresolved (no needs): %v", id, err)
+		var combos []*Job
+		if HasUnevaluatedMatrix(job) {
+			// The matrix reads values that do not exist yet (a needs output), so emit a single
+			// placeholder keeping it raw. Re-parsing that placeholder's payload yields it again,
+			// and the server expands it once the needs finish.
+			placeholder := job.Clone()
+			if placeholder.Name == "" {
+				placeholder.Name = id
 			}
-		}
-
-		matricxes, err := getMatrixes(evaluatedJob)
-		if err != nil {
-			return nil, fmt.Errorf("getMatrixes: %w", err)
-		}
-		combos, err := buildMatrixCombos(id, job, matricxes, evaluatedJob, pc.gitContext, results, pc.vars, pc.inputs)
-		if err != nil {
-			return nil, err
+			combos = []*Job{placeholder}
+		} else {
+			matricxes, err := getMatrixes(originJob)
+			if err != nil {
+				return nil, fmt.Errorf("getMatrixes: %w", err)
+			}
+			if combos, err = buildMatrixCombos(id, job, matricxes, originJob, pc.gitContext, results, pc.vars, pc.inputs); err != nil {
+				return nil, err
+			}
 		}
 		for _, combo := range combos {
 			swf := workflow.Clone()
@@ -163,50 +116,15 @@ func (w *SingleWorkflow) Clone() *SingleWorkflow {
 	}
 }
 
-// expandJobCombo builds the Job for one matrix combination: it bakes the matrix into the strategy
-// and interpolates the name and runs-on. actJob drives the interpreter (it supplies the job's
-// needs and strategy contexts) and may differ from src (an act model.Job vs the source *Job).
-func expandJobCombo(jobID string, src *Job, matrix map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (*Job, error) {
-	combo := src.Clone()
-	if combo.Name == "" {
-		combo.Name = jobID
-	}
-	combo.Strategy.RawMatrix = encodeMatrix(matrix)
-	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs))
-	combo.Name = nameWithMatrix(combo.Name, matrix, evaluator)
-	runsOn := combo.RunsOn()
-	for i := range runsOn {
-		runsOn[i] = evaluator.Interpolate(runsOn[i])
-	}
-	combo.RawRunsOn = encodeRunsOn(runsOn)
-	if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
-		return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
-	}
-	return combo, nil
-}
-
-// RawMatrixHasExpression reports whether the job's matrix contains a ${{ }} expression.
-// With needs present, this marks a matrix whose expansion is deferred until they complete.
-func RawMatrixHasExpression(job *Job) bool {
-	return rawMatrixHasExpression(&job.Strategy.RawMatrix)
-}
-
-// ExpandMatrixWithNeeds expands job's matrix once its needs complete, returning one Job per
-// combination. Like EvaluateConcurrency it evaluates against the needs context via NewInterpeter,
-// with no workflow re-parse or stub jobs. job must carry its raw matrix and needs (RawNeeds).
+// ExpandMatrixWithNeeds returns one Job per combination of job's matrix, resolved against the
+// completed needs in results. As for EvaluateConcurrency, results must also describe jobID itself,
+// which is where NewInterpeter reads the job's own needs from.
 func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
-	var rawNeeds yaml.Node
-	if err := rawNeeds.Encode(job.Needs()); err != nil {
-		return nil, fmt.Errorf("encode needs: %w", err)
-	}
-	actJob := &model.Job{
-		RawNeeds: rawNeeds,
-		Strategy: &model.Strategy{
-			FailFastString:    job.Strategy.FailFastString,
-			MaxParallelString: job.Strategy.MaxParallelString,
-			RawMatrix:         *deepCopyYamlNode(&job.Strategy.RawMatrix),
-		},
-	}
+	actJob := &model.Job{Strategy: &model.Strategy{
+		FailFastString:    job.Strategy.FailFastString,
+		MaxParallelString: job.Strategy.MaxParallelString,
+		RawMatrix:         job.Strategy.RawMatrix,
+	}}
 
 	// Resolve fromJson(needs.*.outputs.*) and friends into concrete matrix values.
 	if err := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, gitCtx, results, vars, inputs)).
@@ -217,38 +135,39 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	if err != nil {
 		return nil, fmt.Errorf("getMatrixes: %w", err)
 	}
-	// A matrix whose every dimension resolved to an empty list produces a single empty combination
-	// from act; report zero combinations so the caller skips the job, matching GitHub semantics.
+	// act collapses a matrix that yields no combination (an empty vector or include, everything
+	// excluded, a whole-matrix expression that is not a mapping) into one empty combination, which
+	// would run the job once unparameterized. GitHub rejects such a matrix, so reject it too.
 	if len(matrixes) == 1 && len(matrixes[0]) == 0 {
-		return nil, nil
+		return nil, errors.New("matrix must define at least one vector")
 	}
 	return buildMatrixCombos(jobID, job, matrixes, actJob, gitCtx, results, vars, inputs)
 }
 
-// buildMatrixCombos builds one Job per matrix combination from src, driving the interpreter with
-// actJob. Shared by Parse (plan time) and ExpandMatrixWithNeeds (defer time).
+// buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
+// strategy and interpolating the name, runs-on and continue-on-error with it.
 func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
-	expanded := make([]*Job, 0, len(matrixes))
+	srcRunsOn := src.RunsOn()
+	combos := make([]*Job, 0, len(matrixes))
 	for _, matrix := range matrixes {
-		combo, err := expandJobCombo(jobID, src, matrix, actJob, gitCtx, results, vars, inputs)
-		if err != nil {
-			return nil, err
+		combo := src.Clone()
+		if combo.Name == "" {
+			combo.Name = jobID
 		}
-		expanded = append(expanded, combo)
+		combo.Strategy.RawMatrix = encodeMatrix(matrix)
+		evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs))
+		combo.Name = nameWithMatrix(combo.Name, matrix, evaluator)
+		runsOn := slices.Clone(srcRunsOn)
+		for i := range runsOn {
+			runsOn[i] = evaluator.Interpolate(runsOn[i])
+		}
+		combo.RawRunsOn = encodeRunsOn(runsOn)
+		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
+			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
+		}
+		combos = append(combos, combo)
 	}
-	return expanded, nil
-}
-
-func WithJobResults(results map[string]string) ParseOption {
-	return func(c *parseContext) {
-		c.jobResults = results
-	}
-}
-
-func WithJobOutputs(outputs map[string]map[string]string) ParseOption {
-	return func(c *parseContext) {
-		c.jobOutputs = outputs
-	}
+	return combos, nil
 }
 
 func WithGitContext(context *model.GithubContext) ParseOption {
@@ -271,7 +190,6 @@ func WithInputs(inputs map[string]any) ParseOption {
 
 type parseContext struct {
 	jobResults map[string]string
-	jobOutputs map[string]map[string]string
 	gitContext *model.GithubContext
 	vars       map[string]string
 	inputs     map[string]any
