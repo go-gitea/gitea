@@ -10,12 +10,12 @@ import (
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
-	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/pubsub"
 )
 
-// Call after any stopwatch start/stop/cancel so connected tabs refresh.
+// PublishStopwatchesForUser should be called after any stopwatch start/stop/cancel so connected tabs refresh.
 func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
 	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(user.ID)) {
 		return
@@ -27,17 +27,12 @@ func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
 		return
 	}
 
-	data := api.StopWatches{}
-	if len(sws) > 0 {
-		apiSWs, err := convert.ToStopWatches(ctx, user, sws)
-		if err != nil {
-			if !issues_model.IsErrIssueNotExist(err) {
-				log.Error("websocket: ToStopWatches: %v", err)
-			}
-			return
+	apiStopWatches, err := convert.ToStopWatches(ctx, user, sws)
+	if err != nil {
+		if !issues_model.IsErrIssueNotExist(err) {
+			log.Error("websocket: ToStopWatches: %v", err)
 		}
-		data = apiSWs
+		return
 	}
-
-	publishUserEvent(user.ID, userEvent[api.StopWatches]{Type: EventStopwatches, Data: data})
+	publishUserEvent(user.ID, EventStopwatches, util.SliceNilAsEmpty(apiStopWatches))
 }

@@ -4,8 +4,10 @@
 package websocket
 
 import (
+	"bytes"
+
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 	"gitea.dev/services/pubsub"
 )
 
@@ -16,26 +18,28 @@ const (
 	EventLogout            = "logout"
 )
 
-// userEvent is the {type, data} envelope for data-carrying client events. Go
-// generics let one type serialize any payload; the client (types.ts)
-// discriminates on Type. Deliberately no omitempty: an empty payload must still
-// serialize its data key (e.g. stopwatches sends "data":[] when the list is
-// empty). Events with a non-"data" shape (notification-count's flat "count") or
-// no data (logout) are not this envelope and stay their own types.
-type userEvent[T any] struct {
-	Type string `json:"type"`
-	Data T      `json:"data"`
+type UserEventData[T any] struct {
+	EventType string `json:"eventType"`
+	EventData T      `json:"eventData"`
 }
 
-func publishUserEvent(userID int64, event any) {
-	// nil when Init was skipped (e.g. CLI user delete): no web subscribers exist, nothing to publish.
+func publishUserEvent(userID int64, eventType string, eventData any) {
 	if pubsub.DefaultBroker == nil {
 		return
 	}
-	msg, err := json.Marshal(event)
+
+	buf := &bytes.Buffer{}
+	buf.WriteString(eventType)
+	buf.WriteByte('\n')
+	err := json.MarshalWrite(buf, &UserEventData[any]{EventType: eventType, EventData: eventData})
 	if err != nil {
-		log.Error("websocket: marshal event: %v", err)
+		setting.PanicInDevOrTesting("websocket: marshal event: %v", err)
 		return
 	}
-	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), msg)
+	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), buf.Bytes())
+}
+
+func ExtractUserEventMessage(b []byte) (string, []byte) {
+	eventType, eventDataBytes, _ := bytes.Cut(b, []byte("\n"))
+	return string(eventType), eventDataBytes
 }

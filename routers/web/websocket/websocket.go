@@ -4,7 +4,6 @@
 package websocket
 
 import (
-	"bytes"
 	gocontext "context"
 	"time"
 
@@ -30,24 +29,19 @@ const (
 	closeCodeUnauthenticated gitea_ws.StatusCode = 3000
 )
 
-var logoutTypeMarker = []byte(`"type":"logout"`)
-
-// Bare client payload; the broker's session ID is never serialized to the browser.
-var logoutClientPayload = []byte(`{"type":"logout"}`)
-
 // filterLogout forwards a session-free logout only to the targeted connection
 // (its own session, or every session when SessionID is empty) and drops it for
 // the rest. Non-logout messages pass through untouched.
-func filterLogout(msg []byte, connSessionID string) []byte {
-	if !bytes.Contains(msg, logoutTypeMarker) {
-		return msg
+func filterLogout(eventType string, eventDataBytes []byte, connSessionID string) []byte {
+	if eventType != websocket_service.EventLogout {
+		return eventDataBytes
 	}
-	var lm websocket_service.LogoutBrokerMsg
-	if err := json.Unmarshal(msg, &lm); err != nil || lm.Type != websocket_service.EventLogout {
-		return msg
+	var lm websocket_service.UserEventData[websocket_service.LogoutEventData]
+	if err := json.Unmarshal(eventDataBytes, &lm); err != nil {
+		return eventDataBytes
 	}
-	if lm.SessionID == "" || lm.SessionID == connSessionID {
-		return logoutClientPayload
+	if lm.EventData.SessionID == "" || lm.EventData.SessionID == connSessionID {
+		return []byte(`{"type":"logout"}`)
 	}
 	return nil
 }
@@ -90,18 +84,19 @@ func Serve(ctx *context.Context) {
 				log.Trace("websocket: ping failed: %v", err)
 				return
 			}
-		case msg, ok := <-ch:
+		case brokerPayload, ok := <-ch:
 			if !ok {
 				return
 			}
-			msg = filterLogout(msg, sessionID)
-			if msg == nil {
+			eventType, eventDataBytes := websocket_service.ExtractUserEventMessage(brokerPayload)
+			eventDataBytes = filterLogout(eventType, eventDataBytes, sessionID)
+			if eventDataBytes == nil {
 				continue
 			}
 			// Bound the write so a stalled/slow peer can't block this goroutine
 			// indefinitely and starve the ping ticker.
 			writeCtx, cancelWrite := gocontext.WithTimeout(wsCtx, writeTimeout)
-			err := conn.Write(writeCtx, gitea_ws.MessageText, msg)
+			err := conn.Write(writeCtx, gitea_ws.MessageText, eventDataBytes)
 			cancelWrite()
 			if err != nil {
 				log.Trace("websocket: write failed: %v", err)

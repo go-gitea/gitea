@@ -13,11 +13,8 @@ import (
 	"gitea.dev/services/pubsub"
 )
 
-// Flat "count" sibling of "type", not the {type, data} userEvent envelope, so
-// it keeps its own struct to preserve the wire format.
-type notificationCountEvent struct {
-	Type  string `json:"type"`
-	Count int64  `json:"count"`
+type notificationCountEventData struct {
+	Count int64 `json:"count"`
 }
 
 type wsNotifier struct {
@@ -38,8 +35,5 @@ func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) 
 		log.Error("websocket: count notifications for user %d: %v", userID, err)
 		return
 	}
-	publishUserEvent(userID, notificationCountEvent{
-		Type:  EventNotificationCount,
-		Count: count,
-	})
+	publishUserEvent(userID, EventNotificationCount, notificationCountEventData{Count: count})
 }

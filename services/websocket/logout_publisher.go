@@ -3,17 +3,10 @@
 
 package websocket
 
-// LogoutBrokerMsg is the bus-side wire format; the WS handler forwards a bare
-// logout to the matching session and drops it for others, so SessionID never
-// reaches the browser. Empty SessionID targets all sessions.
-type LogoutBrokerMsg struct {
-	Type      string `json:"type"`
+type LogoutEventData struct {
 	SessionID string `json:"sessionID,omitempty"`
 }
 
 func PublishLogout(userID int64, sessionID string) {
-	publishUserEvent(userID, LogoutBrokerMsg{
-		Type:      EventLogout,
-		SessionID: sessionID,
-	})
+	publishUserEvent(userID, EventLogout, LogoutEventData{SessionID: sessionID})
 }
