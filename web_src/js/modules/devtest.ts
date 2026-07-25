@@ -57,7 +57,6 @@ function initDevtestPage() {
   }
 }
 
-// Showcase for every feature of the ANSI renderer, rendered as one continuous console output.
 function initDevtestAnsiRender(container: HTMLElement) {
   const esc = '\x1b';
   const cells = (count: number, cell: (index: number) => string, separator = '') =>
@@ -88,12 +87,8 @@ function initDevtestAnsiRender(container: HTMLElement) {
     ' ',
     ...withSource('Reading... 1%\rReading... 50%\rReading... 100%'),
     ...withSource(`first${esc}[Ksecond${esc}[2Jthird`),
-    ...withSource(`cursor movement ${esc}[3Ais dropped`),
-    ...withSource(`private CSI ${esc}[?25lis dropped`),
-    ...withSource(`${esc}]0;window title${esc}\\a window title is dropped`),
-    ...withSource(`cut off by the line end${esc}[38;5;`),
-    ...withSource('<script>alert(1)</script> & "quotes" are escaped'),
-    ...withSource('a bare url such as https://example.com becomes a link'),
+    ...withSource(`cursor ${esc}[3Amovement, private ${esc}[?25lCSI, ${esc}]0;title${esc}\\titles, truncated${esc}[38;5;`),
+    ...withSource('<script>alert(1)</script> & "quotes", and a bare url https://example.com'),
     ' ',
     `${esc}[31man unterminated color`,
     'carries into the following lines',
@@ -104,7 +99,7 @@ function initDevtestAnsiRender(container: HTMLElement) {
   const ansi = new AnsiLineRenderer();
   for (const line of lines) {
     const el = document.createElement('div');
-    ansi.renderInto(el, line);
+    ansi.renderLine(el, line);
     elConsole.append(el);
   }
   container.append(elConsole);
