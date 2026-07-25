@@ -108,7 +108,11 @@ function init() {
 
   sharedWorker.port.start();
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  postSharedWorkerControlMessage(sharedWorker, {type: 'start', url: `${wsProtocol}//${window.location.host}${appSubUrl}/-/ws`});
+  postSharedWorkerControlMessage(sharedWorker, {
+    type: 'start',
+    url: `${wsProtocol}//${window.location.host}${appSubUrl}/-/ws`,
+    showDebugLog: !window.config.runModeIsProd,
+  });
   window.addEventListener('beforeunload', () => {
     // FIXME: this logic is not quite right.
     // "beforeunload" can be canceled by some actions like "are-you-sure" and the navigation can be cancelled.

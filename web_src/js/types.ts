@@ -93,4 +93,8 @@ export type WorkerInboundMessage =
   {msgType: 'user-event', msgData: UserEventMessage} |
   {msgType: 'worker-event', msgData: WorkerEventMessage};
 
-export type SharedWorkerControlMessage = {type: 'start', url: string} | {type: 'close'};
+export type SharedWorkerControlMessage = {
+  type: 'start',
+  url: string,
+  showDebugLog: boolean,
+} | {type: 'close'};

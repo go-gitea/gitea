@@ -6,17 +6,28 @@ import {
 } from './types.ts';
 import type {UserEventMessage} from './types.ts';
 
+// chrome://inspect/#workers
+let showDebugLog = false;
+
+function logDebug(...args: any[]) {
+  if (!showDebugLog) return;
+  console.debug('[user-events.sharedworker]', ...args);
+}
+
 function isServerEventMessage(msg: unknown): msg is UserEventMessage {
-  if (!msg || typeof msg !== 'object' || !('type' in msg)) return false;
-  return (serverUserEventTypes as ReadonlyArray<string>).includes(msg.type as string);
+  if (!msg || typeof msg !== 'object') return false;
+  const userEvent = msg as UserEventMessage;
+  return (serverUserEventTypes as ReadonlyArray<string>).includes(userEvent.eventType ?? '');
 }
 
 function postUserEventMessage(client: MessagePort, msgData: UserEventMessage) {
+  logDebug('postUserEventMessage', msgData);
   const msg: WorkerInboundMessage = {msgType: 'user-event', msgData};
   client.postMessage(msg);
 }
 
 function postWorkerEventMessage(client: MessagePort, msgData: WorkerEventMessage) {
+  logDebug('postWorkerEventMessage', msgData);
   const msg: WorkerInboundMessage = {msgType: 'worker-event', msgData};
   client.postMessage(msg);
 }
@@ -94,9 +105,14 @@ class WsSource {
     this.ws.addEventListener('message', (event: MessageEvent<string>) => {
       try {
         const msg: unknown = JSON.parse(event.data);
-        if (isServerEventMessage(msg)) this.source.notifyClientsUserEvent(msg);
+        logDebug('websocket message', event.data);
+        if (!isServerEventMessage(msg)) {
+          console.error('websocket message is not a valid server user event', msg);
+          return;
+        }
+        this.source.notifyClientsUserEvent(msg);
       } catch (err) {
-        console.warn('user-events: dropping malformed WebSocket message', err);
+        console.error('user-events: dropping malformed WebSocket message', err);
       }
     });
 
@@ -132,7 +148,9 @@ class WsSource {
     if (this.reconnectTimer !== null) return;
     // Jitter 50%–150% of base delay to prevent thundering-herd reconnects after a server restart.
     const delay = this.reconnectDelay * (0.5 + Math.random());
+    logDebug(`scheduling reconnect in ${delay}ms`);
     this.reconnectTimer = setTimeout(() => {
+      logDebug(`reconnecting ...`);
       this.reconnectTimer = null;
       this.connect();
     }, delay);
@@ -158,6 +176,8 @@ const wsSourcesByUrl = new Map<string, WsSource>();
   for (const port of e.ports) {
     port.addEventListener('message', (event: MessageEvent<SharedWorkerControlMessage>) => {
       if (event.data.type === 'start') {
+        logDebug('received control message start', event.data);
+        showDebugLog = event.data.showDebugLog;
         const url = event.data.url;
         let source = sourcesByUrl.get(url);
         if (source) {
@@ -198,6 +218,7 @@ const wsSourcesByUrl = new Map<string, WsSource>();
         sourcesByPort.set(port, source);
         wsSourcesByUrl.set(url, new WsSource(url, source));
       } else if (event.data.type === 'close') {
+        logDebug('received control message close', event.data);
         const source = sourcesByPort.get(port);
         if (!source) return;
 
@@ -213,6 +234,7 @@ const wsSourcesByUrl = new Map<string, WsSource>();
         }
       } else {
         // just send it back
+        console.error('received control message unknown', event.data);
         postWorkerEventMessage(port, {workerEvent: 'error', message: `received but don't know how to handle: ${JSON.stringify(event.data)}`});
       }
     });
