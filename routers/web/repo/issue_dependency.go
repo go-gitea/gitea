@@ -35,7 +35,11 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	defer ctx.Redirect(issue.Link())
+	defer func() {
+		if !ctx.Written() {
+			ctx.Redirect(issue.Link())
+		}
+	}()
 
 	// Dependency
 	dep, err := issues_model.GetIssueByID(ctx, depID)
