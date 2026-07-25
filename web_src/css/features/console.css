@@ -37,14 +37,13 @@
 .ansi-inverse-fg { color: var(--color-console-bg); }
 .ansi-inverse-bg { background-color: var(--color-console-fg); }
 
-/* one css property for three lines, so each class contributes a value and an absent one contributes
-   its empty fallback */
-.ansi-underline,
-.ansi-line-through,
-.ansi-overline { text-decoration-line: var(--ansi-underline,) var(--ansi-line-through,) var(--ansi-overline,); }
-.ansi-underline { --ansi-underline: underline; }
-.ansi-line-through { --ansi-line-through: line-through; }
-.ansi-overline { --ansi-overline: overline; }
+.ansi-underline { text-decoration-line: underline; }
+.ansi-line-through { text-decoration-line: line-through; }
+.ansi-overline { text-decoration-line: overline; }
+.ansi-underline.ansi-line-through { text-decoration-line: underline line-through; }
+.ansi-underline.ansi-overline { text-decoration-line: underline overline; }
+.ansi-line-through.ansi-overline { text-decoration-line: line-through overline; }
+.ansi-underline.ansi-line-through.ansi-overline { text-decoration-line: underline line-through overline; }
 
 .ansi-double { text-decoration-style: double; }
 .ansi-wavy { text-decoration-style: wavy; }
