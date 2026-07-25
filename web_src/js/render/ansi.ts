@@ -115,6 +115,17 @@ function renderText(text: string, style: Readonly<AnsiStyle>, linkify = true): s
 
   const styles: string[] = [];
   const classes: string[] = [];
+  // the one place deciding class vs inline: a named color has a class per slot, the rest are
+  // literal, and a slot with no class of its own resolves a themed color through its variable
+  const applyColor = (color: AnsiColor | null, property: string, slot?: string) => {
+    if (!color) {
+      if (slot && style.inverse) classes.push(`ansi-inverse-${slot}`);
+    } else if (slot && isThemed(color)) {
+      classes.push(`${color}-${slot}`);
+    } else {
+      styles.push(`${property}:${isThemed(color) ? `var(--color-${color})` : color}`);
+    }
+  };
   if (style.bold) classes.push('ansi-bold');
   if (style.italic) classes.push('ansi-italic');
   if (style.blink) classes.push('ansi-blink');
@@ -123,22 +134,12 @@ function renderText(text: string, style: Readonly<AnsiStyle>, linkify = true): s
   if (style.strikethrough) classes.push('ansi-line-through');
   if (style.overline) classes.push('ansi-overline');
   if (style.underline && style.underline !== 'solid') classes.push(`ansi-${style.underline}`);
-  // this slot has no class of its own, so a themed color still has to resolve to the theme's value
-  if (style.underlineColor && classes.length) styles.push(`text-decoration-color:${isThemed(style.underlineColor) ? `var(--color-${style.underlineColor})` : style.underlineColor}`);
+  if (style.underlineColor && classes.length) applyColor(style.underlineColor, 'text-decoration-color');
 
-  // inverse swaps foreground and background, including the terminal defaults when either is unset
-  const applyColor = (color: AnsiColor | null, slot: string, property: string) => {
-    if (!color) {
-      if (style.inverse) classes.push(`ansi-inverse-${slot}`);
-    } else if (isThemed(color)) {
-      classes.push(`${color}-${slot}`);
-    } else {
-      styles.push(`${property}:${color}`);
-    }
-  };
+  // inverse swaps foreground and background, including the terminal defaults when either is unset.
   // conceal emits no foreground at all, so an inline color can never outrank the concealing class
-  if (!style.conceal) applyColor(style.inverse ? style.bg : style.fg, 'fg', 'color');
-  applyColor(style.inverse ? style.fg : style.bg, 'bg', 'background-color');
+  if (!style.conceal) applyColor(style.inverse ? style.bg : style.fg, 'color', 'fg');
+  applyColor(style.inverse ? style.fg : style.bg, 'background-color', 'bg');
 
   if (!classes.length && !styles.length) return html; // nothing left to apply, faint stands alone
   return `<span${classes.length ? ` class="${classes.join(' ')}"` : ''}${styles.length ? ` style="${styles.join(';')}"` : ''}>${html}</span>`;
