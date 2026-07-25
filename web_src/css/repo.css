@@ -645,6 +645,10 @@ td .commit-summary {
   width: 100%;
 }
 
+.repository.view.issue .ui.depending .item.dependency {
+  display: flex;
+}
+
 .repository.view.issue .ui.depending .item.is-closed .issue-dependency-title {
   text-decoration: line-through;
 }
