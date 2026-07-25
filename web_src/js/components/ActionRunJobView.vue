@@ -12,7 +12,7 @@ import {localUserSettings} from '../modules/user-settings.ts';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import {
   type ActionRunViewStore,
-  createLogLineMessage,
+  createLogLineMessage, getAnsiRender,
   type LogLine,
   type LogLineCommand,
   parseLogLineCommand,
@@ -213,10 +213,11 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
     const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
     const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
     const lines: string[] = [];
+    const ansiRender = getAnsiRender();
     for (const line of stepLog?.lines ?? []) {
       const cmd = parseLogLineCommand(line);
       if (cmd?.name === 'hidden' || cmd?.name === 'endgroup') continue;
-      const msg = createLogLineMessage(line, cmd).textContent ?? '';
+      const msg = createLogLineMessage(ansiRender, line, cmd).textContent ?? '';
       lines.push(timeVisible.value['log-time-stamp'] ? `${formatDatetimeISO(line.timestamp)} ${msg}` : msg);
     }
     return lines.join('\n');
@@ -240,7 +241,8 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
   const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
     formatDatetime(line.timestamp * 1000), // for "Show timestamps"
   );
-  const logMsg = createLogLineMessage(line, cmd);
+  const ansiRender = getAnsiRender(stepIndex, line);
+  const logMsg = createLogLineMessage(ansiRender, line, cmd);
   const seconds = Math.floor(line.timestamp - startTime);
   const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
     `${seconds}s`, // for "Show seconds"

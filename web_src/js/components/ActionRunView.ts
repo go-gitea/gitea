@@ -1,5 +1,5 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
-import {renderAnsiInto} from '../render/ansi.ts';
+import {AnsiRender} from '../render/ansi.ts';
 import {reactive} from 'vue';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {IntervalId} from '../types.ts';
@@ -67,7 +67,29 @@ const LogLineLabelMap: Partial<Record<LogLineCommandName, string>> = {
   'debug': 'Debug',
 };
 
-export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
+const cachedAnsiRenders: Record<string, {
+  ansiRender: AnsiRender,
+  lastLineIndex: number,
+}> = {};
+
+/** getAnsiRender returns a cached AnsiRender for the given stepIndex, or a new AnsiRender if stepIndex is undefined.
+ * The cached AnsiRender is reused if the next line's index is the last line index + 1, otherwise a new AnsiRender is created.
+ */
+export function getAnsiRender(stepIndex?: number, line?: LogLine) {
+  if (stepIndex === undefined) return new AnsiRender();
+  const cacheKey = `step-${stepIndex}`;
+  let cached = cachedAnsiRenders[cacheKey];
+  const lastLineMatch = line?.index === cached?.lastLineIndex + 1;
+  if (!cached || !lastLineMatch) {
+    cached = {ansiRender: new AnsiRender(), lastLineIndex: line!.index};
+    cachedAnsiRenders[cacheKey] = cached;
+  } else if (lastLineMatch) {
+    cached.lastLineIndex = line.index;
+  }
+  return cached.ansiRender;
+}
+
+export function createLogLineMessage(ansiRender: AnsiRender, line: LogLine, cmd: LogLineCommand | null) {
   const logMsgAttrs = {class: 'log-msg'};
   if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd.name}`; // make it easier to add styles to some commands like "error"
 
@@ -80,10 +102,10 @@ export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) 
   if (label) {
     logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
     const msgSpan = document.createElement('span');
-    renderAnsiInto(msgSpan, ` ${msgContent.trimStart()}`);
+    ansiRender.renderInto(msgSpan, ` ${msgContent.trimStart()}`);
     logMsg.append(msgSpan);
   } else {
-    renderAnsiInto(logMsg, msgContent);
+    ansiRender.renderInto(logMsg, msgContent);
   }
   return logMsg;
 }

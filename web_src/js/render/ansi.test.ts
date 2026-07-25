@@ -1,9 +1,10 @@
-import {renderAnsiInto} from './ansi.ts';
+import {AnsiRender} from './ansi.ts';
 
 test('renderAnsi', () => {
+  const render = new AnsiRender();
   const renderAnsi = (line: string) => {
     const el = document.createElement('div');
-    renderAnsiInto(el, line);
+    render.renderInto(el, line);
     return el.innerHTML;
   };
 
@@ -13,7 +14,12 @@ test('renderAnsi', () => {
   expect(renderAnsi('\r')).toEqual('');
   expect(renderAnsi('\rx\rabc')).toEqual('x\nabc');
   expect(renderAnsi('\rabc\rx\r')).toEqual('abc\nx');
+
+  // the render can correctly close partial line correctly
   expect(renderAnsi('\x1b[30mblack\x1b[37mwhite')).toEqual('<span class="ansi-black-fg">black</span><span class="ansi-white-fg">white</span>'); // unclosed
+  expect(renderAnsi('continue\x1b[m')).toEqual(`<span class="ansi-white-fg">continue</span>`);
+  expect(renderAnsi('normal')).toEqual(`normal`);
+
   expect(renderAnsi('<script>')).toEqual('&lt;script&gt;');
   expect(renderAnsi('\x1b[1A\x1b[2Ktest\x1b[1B\x1b[1A\x1b[2K')).toEqual('test');
   expect(renderAnsi('\x1b[1A\x1b[2K\rtest\r\x1b[1B\x1b[1A\x1b[2K')).toEqual('test');

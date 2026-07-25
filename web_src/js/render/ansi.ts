@@ -6,54 +6,54 @@ const replacements: Array<[RegExp, string]> = [
   [/\x1b\[\d?[JK]/g, '\r'], // Erase display/line, treat them as a Carriage Return
 ];
 
-// render ANSI to HTML
-export function renderAnsiInto(el: HTMLElement, line: string) {
-  if (line.endsWith('\r\n')) {
-    line = line.substring(0, line.length - 2);
-  } else if (line.endsWith('\n')) {
-    line = line.substring(0, line.length - 1);
+export class AnsiRender {
+  private ansiUp = new AnsiUp();
+  constructor() {
+    this.ansiUp.use_classes = true;
   }
 
-  // skip ansi_up for plain lines (no ANSI escapes) and no carriage-return ("\r") progress updates
-  if (!line.includes('\x1b') && !line.includes('\r')) {
-    el.textContent = line;
-  } else {
-    el.innerHTML = renderAnsiToHtml(line);
-  }
-
-  // at the moment, only need to do post-process when there are potential URL links
-  if (line.includes('://')) renderAnsiPostProcessNode(el);
-}
-
-function renderAnsiToHtml(line: string): string {
-  // create a fresh ansi_up instance because otherwise previous renders can influence
-  // the output of future renders, because ansi_up is stateful and remembers things like
-  // unclosed opening tags for colors.
-  const ansi_up = new AnsiUp();
-  ansi_up.use_classes = true;
-
-  if (line.includes('\x1b')) {
-    for (const [regex, replacement] of replacements) {
-      line = line.replace(regex, replacement);
+  renderInto(el: HTMLElement, line: string) {
+    if (line.endsWith('\r\n')) {
+      line = line.substring(0, line.length - 2);
+    } else if (line.endsWith('\n')) {
+      line = line.substring(0, line.length - 1);
     }
-  }
 
-  if (!line.includes('\r')) {
-    return ansi_up.ansi_to_html(line);
-  }
-
-  // handle "\rReading...1%\rReading...5%\rReading...100%",
-  // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
-  const lines: Array<string> = [];
-  for (const part of line.split('\r')) {
-    if (part === '') continue;
-    const partHtml = ansi_up.ansi_to_html(part);
-    if (partHtml !== '') {
-      lines.push(partHtml);
+    // skip ansi_up for plain lines (no ANSI escapes) and no carriage-return ("\r") progress updates
+    if (!line.includes('\x1b') && !line.includes('\r')) {
+      el.textContent = line;
+    } else {
+      el.innerHTML = this.renderToHtml(line);
     }
+
+    // at the moment, only need to do post-process when there are potential URL links
+    if (line.includes('://')) renderAnsiPostProcessNode(el);
   }
-  // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
-  return lines.join('\n');
+
+  private renderToHtml(line: string): string {
+    if (line.includes('\x1b')) {
+      for (const [regex, replacement] of replacements) {
+        line = line.replace(regex, replacement);
+      }
+    }
+
+    if (!line.includes('\r')) {
+      return this.ansiUp.ansi_to_html(line);
+    }
+
+    // handle "\rReading...1%\rReading...5%\rReading...100%",
+    // convert it into a multiple-line string: "Reading...1%\nReading...5%\nReading...100%"
+    const lines: Array<string> = [];
+    for (const part of line.split('\r')) {
+      if (part === '') continue;
+      const partHtml = this.ansiUp.ansi_to_html(part);
+      if (partHtml !== '') {
+        lines.push(partHtml);
+      }
+    }
+    // the log message element is with "white-space: break-spaces;", so use "\n" to break lines
+    return lines.join('\n');
+  }
 }
 
 function renderAnsiProcessText(node: ChildNode): ChildNode {
