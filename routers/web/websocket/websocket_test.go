@@ -6,59 +6,55 @@ package websocket
 import (
 	"testing"
 
+	"gitea.dev/services/websocket"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestFilterLogout(t *testing.T) {
 	cases := []struct {
 		name       string
-		brokerMsg  string
+		brokerMsg  []byte
 		connSessID string
-		want       string // expected payload forwarded to the client
-		wantDrop   bool   // message dropped, nothing forwarded
+		want       []byte // expected payload forwarded to the client
 	}{
 		{
 			name:       "originating session gets a session-free logout",
-			brokerMsg:  `{"type":"logout","sessionID":"sess-A"}`,
+			brokerMsg:  websocket.MakeUserEventMessage("logout", websocket.LogoutEventData{SessionID: "sess-A"}),
 			connSessID: "sess-A",
-			want:       `{"type":"logout"}`,
+			want:       []byte(`{"eventType":"logout"}`),
 		},
 		{
 			name:       "other session is dropped",
-			brokerMsg:  `{"type":"logout","sessionID":"sess-A"}`,
+			brokerMsg:  websocket.MakeUserEventMessage("logout", websocket.LogoutEventData{SessionID: "sess-A"}),
 			connSessID: "sess-B",
-			wantDrop:   true,
+			want:       nil,
 		},
 		{
 			name:       "empty sessionID reaches every session",
-			brokerMsg:  `{"type":"logout"}`,
+			brokerMsg:  websocket.MakeUserEventMessage("logout", nil),
 			connSessID: "sess-A",
-			want:       `{"type":"logout"}`,
+			want:       []byte(`{"eventType":"logout"}`),
 		},
 		{
 			name:       "non-logout message passes through unchanged",
-			brokerMsg:  `{"type":"notification-count","count":3}`,
+			brokerMsg:  websocket.MakeUserEventMessage("other", map[string]any{"k": "v"}),
 			connSessID: "sess-A",
-			want:       `{"type":"notification-count","count":3}`,
+			want:       []byte(`{"eventType":"other","eventData":{"k":"v"}}`),
 		},
 		{
 			name:       "malformed JSON with logout marker passes through unchanged",
-			brokerMsg:  `not json but mentions "type":"logout" somewhere`,
+			brokerMsg:  []byte("any type\nany data"),
 			connSessID: "sess-A",
-			want:       `not json but mentions "type":"logout" somewhere`,
+			want:       []byte("any data"),
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			out := filterLogout([]byte(tc.brokerMsg), tc.connSessID)
-			if tc.wantDrop {
-				assert.Nil(t, out)
-				return
-			}
-			require.NotNil(t, out)
-			assert.Equal(t, tc.want, string(out))
+			eventType, eventData := websocket.ExtractUserEventMessage(tc.brokerMsg)
+			out := filterLogout(eventType, eventData, tc.connSessID)
+			assert.Equal(t, tc.want, out)
 		})
 	}
 }

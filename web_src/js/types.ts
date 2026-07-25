@@ -73,7 +73,7 @@ export type StopwatchData = {
 
 // keep in sync with services/websocket/events.go
 export type ServerEventMessage =
-  {type: 'notification-count', count: number} |
+  {type: 'notification-count', data: {count: number}} |
   {type: 'stopwatches', data: Array<StopwatchData>} |
   {type: 'logout'};
 

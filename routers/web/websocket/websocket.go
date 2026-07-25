@@ -36,12 +36,12 @@ func filterLogout(eventType string, eventDataBytes []byte, connSessionID string)
 	if eventType != websocket_service.EventLogout {
 		return eventDataBytes
 	}
-	var lm websocket_service.UserEventData[websocket_service.LogoutEventData]
+	var lm websocket_service.UserEventMessage[websocket_service.LogoutEventData]
 	if err := json.Unmarshal(eventDataBytes, &lm); err != nil {
 		return eventDataBytes
 	}
 	if lm.EventData.SessionID == "" || lm.EventData.SessionID == connSessionID {
-		return []byte(`{"type":"logout"}`)
+		return []byte(`{"eventType":"logout"}`)
 	}
 	return nil
 }

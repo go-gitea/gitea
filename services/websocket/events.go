@@ -18,7 +18,7 @@ const (
 	EventLogout            = "logout"
 )
 
-type UserEventData[T any] struct {
+type UserEventMessage[T any] struct {
 	EventType string `json:"eventType"`
 	EventData T      `json:"eventData"`
 }
@@ -27,16 +27,23 @@ func publishUserEvent(userID int64, eventType string, eventData any) {
 	if pubsub.DefaultBroker == nil {
 		return
 	}
+	b := MakeUserEventMessage(eventType, eventData)
+	if b == nil {
+		return
+	}
+	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), b)
+}
 
+func MakeUserEventMessage(eventType string, eventData any) []byte {
 	buf := &bytes.Buffer{}
 	buf.WriteString(eventType)
 	buf.WriteByte('\n')
-	err := json.MarshalWrite(buf, &UserEventData[any]{EventType: eventType, EventData: eventData})
+	err := json.MarshalWrite(buf, &UserEventMessage[any]{EventType: eventType, EventData: eventData})
 	if err != nil {
 		setting.PanicInDevOrTesting("websocket: marshal event: %v", err)
-		return
+		return nil
 	}
-	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), buf.Bytes())
+	return buf.Bytes()
 }
 
 func ExtractUserEventMessage(b []byte) (string, []byte) {
