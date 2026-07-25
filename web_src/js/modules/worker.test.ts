@@ -1,7 +1,7 @@
 import type {UserEventMessage} from '../types.ts';
 
 // Minimal SharedWorker/MessagePort doubles: worker.ts wires user events onto
-// `sharedWorker.port`, so we capture the port to feed it messages and assert dispatch behaviour.
+// `sharedWorker.port`, so we capture the port to feed it messages and assert dispatch behavior.
 type PortListener = (ev: {data: unknown}) => void;
 
 class MockMessagePort {
@@ -47,10 +47,10 @@ afterEach(() => {
 test('dedups identical repeat pushes', {concurrent: false}, async () => {
   const {onUserEvent} = await freshWorker();
   const received: number[] = [];
-  onUserEvent('notification-count', (msg) => { received.push(msg.count) });
+  onUserEvent('notification-count', (msg) => { received.push(msg.eventData.count) });
 
-  lastWorker.port.deliver({type: 'notification-count', count: 1});
-  lastWorker.port.deliver({type: 'notification-count', count: 1}); // identical -> suppressed
+  lastWorker.port.deliver({eventType: 'notification-count', eventData: {count: 1}});
+  lastWorker.port.deliver({eventType: 'notification-count', eventData: {count: 1}}); // identical -> suppressed
 
   expect(received).toEqual([1]);
 });
@@ -59,12 +59,12 @@ test('ws-connected clears the dedup cache so a repeat-value push dispatches agai
   const {onUserEvent} = await freshWorker();
   const received: number[] = [];
   let connects = 0;
-  onUserEvent('notification-count', (msg) => { received.push(msg.count) });
+  onUserEvent('notification-count', (msg) => { received.push(msg.eventData.count) });
   onUserEvent('ws-connected', () => { connects++ });
 
-  lastWorker.port.deliver({type: 'notification-count', count: 1});
-  lastWorker.port.deliver({type: 'ws-connected'}); // must clear lastPayload
-  lastWorker.port.deliver({type: 'notification-count', count: 1}); // same value, cache cleared -> delivered again
+  lastWorker.port.deliver({eventType: 'notification-count', eventData: {count: 1}});
+  lastWorker.port.deliver({eventType: 'ws-connected'}); // must clear lastPayload
+  lastWorker.port.deliver({eventType: 'notification-count', eventData: {count: 1}}); // same value, cache cleared -> delivered again
 
   expect(connects).toBe(1);
   expect(received).toEqual([1, 1]);

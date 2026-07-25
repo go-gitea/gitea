@@ -1,9 +1,19 @@
-import {serverEventTypes} from './types.ts';
-import type {ServerEventMessage, UserEventMessage} from './types.ts';
+import {serverUserEventTypes, type WorkerEventMessage, type WorkerInboundMessage} from './types.ts';
+import type {UserEventMessage} from './types.ts';
 
-function isServerEventMessage(msg: unknown): msg is ServerEventMessage {
+function isServerEventMessage(msg: unknown): msg is UserEventMessage {
   if (!msg || typeof msg !== 'object' || !('type' in msg)) return false;
-  return (serverEventTypes as ReadonlyArray<string>).includes(msg.type as string);
+  return (serverUserEventTypes as ReadonlyArray<string>).includes(msg.type as string);
+}
+
+function postUserEventMessage(client: MessagePort, msgData: UserEventMessage) {
+  const msg: WorkerInboundMessage = {msgType: 'user-event', msgData};
+  client.postMessage(msg);
+}
+
+function postWorkerEventMessage(client: MessagePort, msgData: WorkerEventMessage) {
+  const msg: WorkerInboundMessage = {msgType: 'worker-event', msgData};
+  client.postMessage(msg);
 }
 
 class Source {
@@ -29,9 +39,14 @@ class Source {
     return this.clients.length;
   }
 
-  notifyClients(event: UserEventMessage) {
+  notifyClientsUserEvent(event: UserEventMessage) {
     for (const client of this.clients) {
-      client.postMessage(event);
+      postUserEventMessage(client, event);
+    }
+  }
+  notifyClientsWorkerEvent(event: WorkerEventMessage) {
+    for (const client of this.clients) {
+      postWorkerEventMessage(client, event);
     }
   }
 }
@@ -68,13 +83,13 @@ class WsSource {
       // Pushes fired while no client was subscribed (initial connect gap, or a
       // reconnect window) are dropped server-side, so tell clients to reconcile
       // their state from the server on every fresh connection.
-      this.source.notifyClients({type: 'ws-connected'});
+      this.source.notifyClientsUserEvent({eventType: 'ws-connected'});
     });
 
     this.ws.addEventListener('message', (event: MessageEvent<string>) => {
       try {
         const msg: unknown = JSON.parse(event.data);
-        if (isServerEventMessage(msg)) this.source.notifyClients(msg);
+        if (isServerEventMessage(msg)) this.source.notifyClientsUserEvent(msg);
       } catch (err) {
         console.warn('user-events: dropping malformed WebSocket message', err);
       }
@@ -105,7 +120,7 @@ class WsSource {
     if (this.fallbackSignalled) return;
     if (this.failuresWithoutConnect < 3) return;
     this.fallbackSignalled = true;
-    this.source.notifyClients({type: 'push-unavailable'});
+    this.source.notifyClientsUserEvent({eventType: 'push-unavailable'});
   }
 
   scheduleReconnect() {
@@ -150,7 +165,7 @@ const wsSourcesByUrl = new Map<string, WsSource>();
           // its built-in "open" event to late-attaching ports).
           const openWs = wsSourcesByUrl.get(url);
           if (openWs?.ws?.readyState === WebSocket.OPEN) {
-            port.postMessage({type: 'ws-connected'});
+            postUserEventMessage(port, {eventType: 'ws-connected'});
           }
           return;
         }
@@ -193,10 +208,7 @@ const wsSourcesByUrl = new Map<string, WsSource>();
         }
       } else {
         // just send it back
-        port.postMessage({
-          type: 'error',
-          message: `received but don't know how to handle: ${event.data}`,
-        });
+        postWorkerEventMessage(port, {workerEvent: 'error', message: `received but don't know how to handle: ${event.data}`});
       }
     });
     port.start();

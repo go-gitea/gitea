@@ -47,7 +47,7 @@ export function initStopwatch() {
   };
 
   let pollerStarted = false;
-  onUserEvent('stopwatches', (msg) => updateStopwatchData(msg.data));
+  onUserEvent('stopwatches', (msg) => updateStopwatchData(msg.eventData));
   // On each (re)connect, reconcile stopwatch state from the server to recover any push dropped during the connect gap.
   onUserEvent('ws-connected', () => { updateStopwatch() }); // no await
   onUserEvent('push-unavailable', () => {
@@ -85,6 +85,7 @@ async function updateStopwatch() {
 }
 
 function updateStopwatchData(data: Array<StopwatchData>) {
+  if (!data) return;
   const watch = data[0];
   const btnEls = document.querySelectorAll('.active-stopwatch');
   if (!watch) {

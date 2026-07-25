@@ -72,22 +72,23 @@ export type StopwatchData = {
 };
 
 // keep in sync with services/websocket/events.go
-export type ServerEventMessage =
-  {type: 'notification-count', data: {count: number}} |
-  {type: 'stopwatches', data: Array<StopwatchData>} |
-  {type: 'logout'};
+export type ServerUserEventMessage =
+  {eventType: 'notification-count', eventData: {count: number}} |
+  {eventType: 'stopwatches', eventData: Array<StopwatchData>} |
+  {eventType: 'logout'};
 
-// `satisfies` makes adding a new variant to ServerEventMessage without updating this array a type error.
-export const serverEventTypes = ['notification-count', 'stopwatches', 'logout'] as const satisfies ReadonlyArray<ServerEventMessage['type']>;
+export const serverUserEventTypes = ['notification-count', 'stopwatches', 'logout'] as const satisfies ReadonlyArray<ServerUserEventMessage['eventType']>;
 
-export type UserEventMessage =
-  ServerEventMessage |
-  {type: 'push-unavailable'} |
-  {type: 'ws-connected'};
+export type UserEventMessage = ServerUserEventMessage |
+  {eventType: 'push-unavailable'} |
+  {eventType: 'ws-connected'};
 
-export type UserEventType = UserEventMessage['type'];
+export type UserEventType = UserEventMessage['eventType'];
+
+export type WorkerEventMessage =
+  {workerEvent: 'error', message: string} |
+  {workerEvent: 'close'};
 
 export type WorkerInboundMessage =
-  UserEventMessage |
-  {type: 'error', message?: string} |
-  {type: 'close'};
+  {msgType: 'user-event', msgData: UserEventMessage} |
+  {msgType: 'worker-event', msgData: WorkerEventMessage};
