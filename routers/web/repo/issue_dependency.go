@@ -4,8 +4,6 @@
 package repo
 
 import (
-	"net/http"
-
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/modules/setting"
@@ -23,7 +21,7 @@ func AddDependency(ctx *context.Context) {
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
-		ctx.HTTPError(http.StatusForbidden, "CanCreateIssueDependencies")
+		ctx.JSONError(ctx.Locale.TrString("error.permission_denied"))
 		return
 	}
 
@@ -37,16 +35,14 @@ func AddDependency(ctx *context.Context) {
 	// Dependency
 	dep, err := issues_model.GetIssueByID(ctx, depID)
 	if err != nil {
-		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
-		ctx.Redirect(issue.Link())
+		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
 		return
 	}
 
 	// Check if both issues are in the same repo if cross repository dependencies is not enabled
 	if issue.RepoID != dep.RepoID {
 		if !setting.Service.AllowCrossRepositoryDependencies {
-			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_dep_not_same_repo"))
 			return
 		}
 		if err := dep.LoadRepo(ctx); err != nil {
@@ -60,34 +56,29 @@ func AddDependency(ctx *context.Context) {
 			return
 		}
 		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(ctx.Locale.TrString("error.permission_denied"))
 			return
 		}
 	}
 
 	// Check if issue and dependency is the same
 	if dep.ID == issue.ID {
-		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_same_issue"))
-		ctx.Redirect(issue.Link())
+		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_same_issue"))
 		return
 	}
 
 	err = issues_model.CreateIssueDependency(ctx, ctx.Doer, issue, dep)
-	if err != nil {
-		if issues_model.IsErrDependencyExists(err) {
-			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
-			ctx.Redirect(issue.Link())
-			return
-		} else if issues_model.IsErrCircularDependency(err) {
-			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
-			ctx.Redirect(issue.Link())
-			return
-		}
+	if issues_model.IsErrDependencyExists(err) {
+		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_dep_exists"))
+		return
+	} else if issues_model.IsErrCircularDependency(err) {
+		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_cannot_create_circular"))
+		return
+	} else if err != nil {
 		ctx.ServerError("CreateOrUpdateIssueDependency", err)
 		return
 	}
-
-	ctx.Redirect(issue.Link())
+	ctx.JSONOK()
 }
 
 // RemoveDependency removes the dependency
@@ -101,7 +92,7 @@ func RemoveDependency(ctx *context.Context) {
 
 	// Check if the Repo is allowed to have dependencies
 	if !ctx.Repo.CanCreateIssueDependencies(ctx, ctx.Doer, issue.IsPull) {
-		ctx.HTTPError(http.StatusForbidden, "CanCreateIssueDependencies")
+		ctx.JSONError(ctx.Locale.TrString("error.permission_denied"))
 		return
 	}
 
@@ -123,7 +114,7 @@ func RemoveDependency(ctx *context.Context) {
 	case "blocking":
 		depType = issues_model.DependencyTypeBlocking
 	default:
-		ctx.HTTPError(http.StatusBadRequest, "GetDependencyType")
+		ctx.JSONError("invalid dependency type")
 		return
 	}
 
@@ -148,21 +139,18 @@ func RemoveDependency(ctx *context.Context) {
 			return
 		}
 		if !depRepoPerm.CanReadIssuesOrPulls(dep.IsPull) {
-			ctx.Redirect(issue.Link())
+			ctx.JSONError(ctx.Locale.TrString("error.permission_denied"))
 			return
 		}
 	}
 
-	if err = issues_model.RemoveIssueDependency(ctx, ctx.Doer, issue, dep, depType); err != nil {
-		if issues_model.IsErrDependencyNotExists(err) {
-			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
-			ctx.Redirect(issue.Link())
-			return
-		}
+	err = issues_model.RemoveIssueDependency(ctx, ctx.Doer, issue, dep, depType)
+	if issues_model.IsErrDependencyNotExists(err) {
+		ctx.JSONError(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
+		return
+	} else if err != nil {
 		ctx.ServerError("RemoveIssueDependency", err)
 		return
 	}
-
-	// Redirect
-	ctx.Redirect(issue.Link())
+	ctx.JSONOK()
 }
