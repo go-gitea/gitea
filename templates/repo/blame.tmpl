@@ -19,9 +19,9 @@
 			<div class="ui buttons">
 				<a class="ui tiny button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
 				{{if or .RefFullName.IsBranch .RefFullName.IsTag}}
-					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID | PathEscape}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
+					<a id="file-permalink-button" class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID | PathEscape}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
 				{{end}}
-				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
+				<a id="file-blame-button" class="ui tiny button" href="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.normal_view"}}</a>
 				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
 				<button class="ui tiny button unescape-button">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
 				<button class="ui tiny button escape-button tw-hidden">{{ctx.Locale.Tr "repo.escape_control_characters"}}</button>

@@ -1,0 +1,108 @@
+{{/* Keyboard Shortcuts Help Modal */}}
+<div id="keyboard-shortcuts-modal" class="hidden">
+	<div class="modal-backdrop"></div>
+	<div class="ui small modal active tw-relative tw-my-0">
+		<div class="header flex-left-right">
+			<span>{{ctx.Locale.Tr "keyboard_shortcuts.title"}}</span>
+			<button class="close-button btn-octicon" aria-label="{{ctx.Locale.Tr "close"}}">
+				{{svg "octicon-x" 16}}
+			</button>
+		</div>
+		<div class="content">
+			<div class="shortcut-section">
+				<h3>{{ctx.Locale.Tr "keyboard_shortcuts.navigation"}}</h3>
+				<div class="shortcut-list">
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>g</kbd> <kbd>i</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "issues"}}</div>
+					</div>
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>g</kbd> <kbd>p</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "pull_requests"}}</div>
+					</div>
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>g</kbd> <kbd>d</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "keyboard_shortcuts.go_to_dashboard"}}</div>
+					</div>
+				</div>
+			</div>
+			{{if .Repository}}
+			<div class="shortcut-section">
+				<h3>{{ctx.Locale.Tr "repository"}}</h3>
+				<div class="shortcut-list">
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>g</kbd> <kbd>c</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "keyboard_shortcuts.go_to_code"}}</div>
+					</div>
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>w</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "repo.branches"}} / {{ctx.Locale.Tr "repo.tags"}}</div>
+					</div>
+					{{if or .PageIsRepoHome .IsViewFile}}
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>t</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</div>
+					</div>
+					{{end}}
+					{{if or .IsViewFile .PageIsViewCode}}
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>y</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "repo.file_permalink"}}</div>
+					</div>
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>b</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "repo.blame"}}</div>
+					</div>
+					{{end}}
+					{{if .PageIsRepoHome}}
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>s</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "search"}}</div>
+					</div>
+					{{end}}
+				</div>
+			</div>
+			{{end}}
+			<div class="shortcut-section">
+				<h3>{{ctx.Locale.Tr "keyboard_shortcuts.general"}}</h3>
+				<div class="shortcut-list">
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>?</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "keyboard_shortcuts.show_this_help"}}</div>
+					</div>
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>Esc</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "keyboard_shortcuts.close_modal"}}</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="actions">
+			<button class="ui button primary">
+				{{ctx.Locale.Tr "close"}}
+			</button>
+		</div>
+	</div>
+</div>

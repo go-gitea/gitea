@@ -48,10 +48,10 @@
 				<div class="ui buttons tw-mr-1">
 					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{ctx.Locale.Tr "repo.file_raw"}}</a>
 					{{if or .RefFullName.IsBranch .RefFullName.IsTag}}
-						<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
+						<a id="file-permalink-button" class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_permalink"}}</a>
 					{{end}}
 					{{if .IsRepresentableAsText}}
-						<a class="ui mini basic button" href="{{.RepoLink}}/blame/{{.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.blame"}}</a>
+						<a id="file-blame-button" class="ui mini basic button" href="{{.RepoLink}}/blame/{{.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.blame"}}</a>
 					{{end}}
 					<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{ctx.Locale.Tr "repo.file_history"}}</a>
 					{{if .EscapeStatus.Escaped}}

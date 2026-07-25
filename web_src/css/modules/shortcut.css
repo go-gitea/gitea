@@ -24,3 +24,101 @@ kbd {
   transform: translateY(-50%);
   pointer-events: none;
 }
+
+/* Keyboard Shortcuts Modal Backdrop & Dialog Container */
+#keyboard-shortcuts-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#keyboard-shortcuts-modal.hidden {
+  display: none !important;
+}
+
+#keyboard-shortcuts-modal .modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+#keyboard-shortcuts-modal .shortcut-section {
+  margin-bottom: 24px;
+}
+
+#keyboard-shortcuts-modal .shortcut-section:last-child {
+  margin-bottom: 0;
+}
+
+#keyboard-shortcuts-modal .shortcut-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-light-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#keyboard-shortcuts-modal .shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#keyboard-shortcuts-modal .shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#keyboard-shortcuts-modal .shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+}
+
+#keyboard-shortcuts-modal .shortcut-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--color-secondary);
+  border: 1px solid var(--color-secondary-dark-2);
+  border-radius: 4px;
+  box-shadow: 0 2px 0 var(--color-secondary-dark-2);
+  color: var(--color-text);
+}
+
+#keyboard-shortcuts-modal .shortcut-description {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+@media (max-width: 768px) {
+  #keyboard-shortcuts-modal .shortcut-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  #keyboard-shortcuts-modal .shortcut-keys {
+    min-width: auto;
+  }
+}
