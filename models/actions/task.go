@@ -86,6 +86,10 @@ func (task *ActionTask) IsStopped() bool {
 }
 
 func (task *ActionTask) GetRunJobLink() string {
+	// Run.Repo can be nil when the repository was deleted while task/run rows remain
+	// (TaskList.LoadAttributes copies job.Repo into run.Repo, leaving it nil on a miss).
+	// Run.Link() already returns "" in that case, so guard here to avoid emitting a
+	// broken relative "/jobs/N" link from the Sprintf below.
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
