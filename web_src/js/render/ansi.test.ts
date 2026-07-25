@@ -37,10 +37,9 @@ test('renderAnsi', () => {
   expect(renderAnsi('\x1b[4:3;9;53mx')).toEqual('<span class="ansi-underline ansi-line-through ansi-overline ansi-wavy">x</span>');
   expect(renderAnsi('\x1b[4;58;5;9mx')).toEqual('<span class="ansi-underline" style="text-decoration-color:var(--color-ansi-bright-red)">x</span>');
 
-  // OSC 8 hyperlinks, but only to a web target
-  const scriptScheme = ['java', 'script:'].join(''); // a literal would trip "no-script-url"
+  // OSC 8 hyperlinks
   expect(renderAnsi('\x1b]8;;https://example.com\x1b\\text\x1b]8;;\x1b\\')).toEqual(`<a href="https://example.com" target="_blank">text</a>`);
-  expect(renderAnsi(`\x1b]8;;${scriptScheme}alert(1)\x1b\\text\x1b]8;;\x1b\\`)).toEqual('text');
+  expect(renderAnsi('\x1b]8;;javascript:alert(1)\x1b\\text\x1b]8;;\x1b\\')).toEqual('text');
 
   // a sequence cut off by the line end is dropped, and style carries on to the next line
   const ansi = new AnsiLineRenderer();
