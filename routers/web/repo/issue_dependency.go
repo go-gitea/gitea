@@ -35,7 +35,11 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	defer ctx.Redirect(issue.Link())
+	defer func() {
+		if !ctx.Written() {
+			ctx.Redirect(issue.Link())
+		}
+	}()
 
 	// Dependency
 	dep, err := issues_model.GetIssueByID(ctx, depID)
@@ -152,6 +156,7 @@ func RemoveDependency(ctx *context.Context) {
 	if err = issues_model.RemoveIssueDependency(ctx, ctx.Doer, issue, dep, depType); err != nil {
 		if issues_model.IsErrDependencyNotExists(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_not_exist"))
+			ctx.Redirect(issue.Link())
 			return
 		}
 		ctx.ServerError("RemoveIssueDependency", err)
