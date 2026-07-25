@@ -29,7 +29,7 @@
 								{{.Repository.OwnerName}}/{{.Repository.Name}}
 							</div>
 						</div>
-						<div>
+						<div class="item-right">
 							{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 								<a class="muted show-modal" data-modal="#issue-remove-dependency-confirm"
 									data-modal-remove-dependency-id="{{.Issue.ID}}" data-modal-dependency-type="blocking"
@@ -63,7 +63,7 @@
 								{{.Repository.OwnerName}}/{{.Repository.Name}}
 							</div>
 						</div>
-						<div>
+						<div class="item-right">
 							{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 								<a class="muted show-modal" data-modal="#issue-remove-dependency-confirm"
 									data-modal-remove-dependency-id="{{.Issue.ID}}" data-modal-dependency-type="blockedBy"
@@ -88,7 +88,7 @@
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
 								</div>
 							</div>
-							<div>
+							<div class="item-right">
 								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 									<a class="muted show-modal" data-modal="#issue-remove-dependency-confirm"
 										data-modal-remove-dependency-id="{{.Issue.ID}}" data-modal-dependency-type="blocking"
