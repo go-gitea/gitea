@@ -57,69 +57,57 @@ function initDevtestPage() {
   }
 }
 
-// Showcase for every feature of the ANSI renderer.
+// Showcase for every feature of the ANSI renderer, rendered as one continuous console output.
 function initDevtestAnsiRender(container: HTMLElement) {
   const esc = '\x1b';
-  const cells = (count: number, cell: (index: number) => string) => Array.from({length: count}, (_value, index) => cell(index));
-  const join = (count: number, cell: (index: number) => string) => cells(count, cell).join('');
+  const cells = (count: number, cell: (index: number) => string, separator = '') =>
+    Array.from({length: count}, (_value, index) => cell(index)).join(separator);
   const attr = (params: string, label: string) => `${esc}[${params}m${label}${esc}[m`;
+  // the escaped source above the line it produced, for the cases the output alone does not explain
+  const withSource = (line: string) => [attr('2', line.replaceAll(esc, '\\e')), line];
 
-  const sections: Array<{title: string, lines: string[], source?: boolean}> = [
-    // indexes 0-15 are the named colors a theme restyles, the rest are literal
-    {title: 'colors', lines: [
-      ...Array.from({length: 16}, (_value, row) =>
-        join(16, (col) => `${esc}[38;5;${row * 16 + col}m${String(row * 16 + col).padStart(4)}${esc}[0m`)),
-      ' ',
-      join(16, (index) => `${esc}[48;5;${index}m ${String(index).padStart(3)} ${esc}[0m`),
-      join(16, (index) => `${esc}[48;5;${16 + index * 13}m ${String(16 + index * 13).padStart(3)} ${esc}[0m`),
-      ' ',
-      join(77, (col) => { // truecolor, a gradient no palette index can express
-        const r = 255 - Math.floor(col * 255 / 76);
-        const b = Math.floor(col * 255 / 76);
-        const g = Math.min(Math.floor(col * 510 / 76), 510 - Math.floor(col * 510 / 76));
-        return `${esc}[48;2;${r};${g};${b}m${esc}[38;2;${255 - r};${255 - g};${255 - b}m${'/\\'[col % 2]}${esc}[0m`;
-      }),
-    ]},
-
-    {title: 'attributes', lines: [
-      [...cells(10, (code) => attr(String(code), `SGR ${code}`)), attr('53', 'SGR 53')].join('  '),
-      ' ',
-      [
-        ...cells(5, (index) => attr(`4:${index + 1}`, `SGR 4:${index + 1}`)),
-        attr('21', 'SGR 21'),
-        `${esc}[4:3m${esc}[58;2;135;0;255mtruecolor underline${esc}[59m${esc}[4:0m`,
-        `${esc}]8;;https://example.com${esc}\\hyperlink${esc}]8;;${esc}\\`,
-      ].join('  '),
-    ]},
-
-    // rendered under its own escaped source, since what these do is not visible from the output alone
-    {title: 'behavior', source: true, lines: [
-      `${esc}[31man unterminated color`,
-      'carries into the following lines',
-      `${esc}[0muntil something resets it`,
-      'Reading... 1%\rReading... 50%\rReading... 100%',
-      `first${esc}[Ksecond${esc}[2Jthird`,
-      `cursor movement ${esc}[3Ais dropped`,
-      `private CSI ${esc}[?25lis dropped`,
-      `${esc}]0;window title${esc}\\a window title is dropped`,
-      `a sequence cut off by the line end is dropped${esc}[38;5;`,
-      '<script>alert(1)</script> & "quotes" are escaped',
-      'a bare url such as https://example.com becomes a link',
-    ]},
+  const lines = [
+    ...Array.from({length: 16}, (_value, row) =>
+      cells(16, (col) => `${esc}[38;5;${row * 16 + col}m${String(row * 16 + col).padStart(4)}${esc}[0m`)),
+    ' ',
+    cells(16, (index) => `${esc}[48;5;${index}m ${String(index).padStart(3)} ${esc}[0m`),
+    cells(77, (col) => { // truecolor, a gradient no palette index can express
+      const red = 255 - Math.floor(col * 255 / 76);
+      const blue = Math.floor(col * 255 / 76);
+      return `${esc}[48;2;${red};0;${blue}m${esc}[38;2;${blue};0;${red}m/${esc}[0m`;
+    }),
+    ' ',
+    [cells(10, (code) => attr(String(code), `SGR ${code}`), '  '), attr('53', 'SGR 53')].join('  '),
+    ' ',
+    [
+      cells(5, (index) => attr(`4:${index + 1}`, `SGR 4:${index + 1}`), '  '),
+      attr('21', 'SGR 21'),
+      `${esc}[4:3m${esc}[58;2;135;0;255mtruecolor underline${esc}[59m${esc}[4:0m`,
+      `${esc}]8;;https://example.com${esc}\\hyperlink${esc}]8;;${esc}\\`,
+    ].join('  '),
+    ' ',
+    ...withSource('Reading... 1%\rReading... 50%\rReading... 100%'),
+    ...withSource(`first${esc}[Ksecond${esc}[2Jthird`),
+    ...withSource(`cursor movement ${esc}[3Ais dropped`),
+    ...withSource(`private CSI ${esc}[?25lis dropped`),
+    ...withSource(`${esc}]0;window title${esc}\\a window title is dropped`),
+    ...withSource(`cut off by the line end${esc}[38;5;`),
+    ...withSource('<script>alert(1)</script> & "quotes" are escaped'),
+    ...withSource('a bare url such as https://example.com becomes a link'),
+    ' ',
+    `${esc}[31man unterminated color`,
+    'carries into the following lines',
+    `${esc}[0muntil something resets it`,
   ];
 
-  for (const {title, lines, source} of sections) {
-    container.append(createElementFromHTML(html`<h2>${title}</h2>`));
-    const elConsole = createElementFromHTML(html`<div class="console tw-p-2 tw-mb-4 tw-whitespace-pre-wrap"></div>`);
-    const ansi = new AnsiLineRenderer(); // one per section, so a section cannot bleed into the next
-    for (const line of lines) {
-      if (source) elConsole.append(createElementFromHTML(html`<div class="tw-mt-2 tw-opacity-50">${line.replaceAll(esc, '\\e')}</div>`));
-      const el = document.createElement('div');
-      ansi.renderInto(el, line);
-      elConsole.append(el);
-    }
-    container.append(elConsole);
+  const elConsole = createElementFromHTML(html`<div class="console tw-p-2 tw-whitespace-pre-wrap"></div>`);
+  const ansi = new AnsiLineRenderer();
+  for (const line of lines) {
+    const el = document.createElement('div');
+    ansi.renderInto(el, line);
+    elConsole.append(el);
   }
+  container.append(elConsole);
 }
 
 export function initDevtest() {

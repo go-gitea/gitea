@@ -20,8 +20,6 @@ const underlineStyles = ['', 'solid', 'double', 'wavy', 'dotted', 'dashed'];
 type AnsiColor = string;
 
 const isThemed = (color: AnsiColor) => color[0] !== '#';
-// for the slots that have no class, a themed color still has to resolve to the theme's value
-const cssColor = (color: AnsiColor) => isThemed(color) ? `var(--color-${color})` : color;
 
 type AnsiStyle = {
   fg: AnsiColor | null,
@@ -53,8 +51,7 @@ function isAnsiStyleInitial(style: AnsiStyle): boolean {
 const colorNames = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
 const cubeLevels = [0, 95, 135, 175, 215, 255];
 const palette256: AnsiColor[] = [
-  ...colorNames.map((name) => `ansi-${name}`),
-  ...colorNames.map((name) => `ansi-bright-${name}`),
+  ...['ansi-', 'ansi-bright-'].flatMap((prefix) => colorNames.map((name) => `${prefix}${name}`)),
   ...cubeLevels.flatMap((r) => cubeLevels.flatMap((g) => cubeLevels.map((b) => rgbHex(r, g, b)))),
   ...Array.from({length: 24}, (_value, idx) => rgbHex(8 + idx * 10, 8 + idx * 10, 8 + idx * 10)),
 ];
@@ -62,6 +59,15 @@ const palette256: AnsiColor[] = [
 function rgbHex(r: number, g: number, b: number): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
+
+// the codes that only set fields, mapped to the fields they set
+const sgrFields: Record<number, Partial<AnsiStyle>> = {
+  1: {bold: true}, 2: {faint: true}, 3: {italic: true}, 5: {blink: true}, 7: {inverse: true},
+  8: {conceal: true}, 9: {strikethrough: true}, 21: {bold: false}, 22: {bold: false, faint: false},
+  23: {italic: false}, 24: {underline: ''}, 25: {blink: false}, 27: {inverse: false},
+  28: {conceal: false}, 29: {strikethrough: false}, 39: {fg: null}, 49: {bg: null},
+  53: {overline: true}, 55: {overline: false}, 59: {underlineColor: null},
+};
 
 function applySgr(style: AnsiStyle, params: string): AnsiStyle {
   if (params === '' || params === '0') return ansiStyleInitial; // the most common sequence by far
@@ -71,31 +77,12 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
     const code = parseInt(codes[idx], 10); // parseInt stops at a ":" sub-parameter on its own
     if (isNaN(code) || code === 0) {
       Object.assign(next, ansiStyleInitial);
-    } else if (code === 1) next.bold = true;
-    else if (code === 2) next.faint = true;
-    else if (code === 3) next.italic = true;
-    else if (code === 5) next.blink = true;
+    } else if (sgrFields[code]) Object.assign(next, sgrFields[code]);
     else if (code === 4) {
       // a colon sub-parameter selects the style, as in "4:3" for a curly underline and "4:0" for off
       const colon = codes[idx].indexOf(':');
       next.underline = colon === -1 ? 'solid' : underlineStyles[Number(codes[idx].slice(colon + 1))] ?? 'solid';
-    } else if (code === 7) next.inverse = true;
-    else if (code === 8) next.conceal = true;
-    else if (code === 9) next.strikethrough = true;
-    else if (code === 21) next.bold = false;
-    else if (code === 22) next.bold = next.faint = false;
-    else if (code === 23) next.italic = false;
-    else if (code === 24) next.underline = '';
-    else if (code === 25) next.blink = false;
-    else if (code === 27) next.inverse = false;
-    else if (code === 28) next.conceal = false;
-    else if (code === 29) next.strikethrough = false;
-    else if (code === 53) next.overline = true;
-    else if (code === 55) next.overline = false;
-    else if (code === 59) next.underlineColor = null;
-    else if (code === 39) next.fg = null;
-    else if (code === 49) next.bg = null;
-    else if (code >= 30 && code < 38) next.fg = palette256[code - 30];
+    } else if (code >= 30 && code < 38) next.fg = palette256[code - 30];
     else if (code >= 40 && code < 48) next.bg = palette256[code - 40];
     else if (code >= 90 && code < 98) next.fg = palette256[code - 82]; // 8 + code - 90
     else if (code >= 100 && code < 108) next.bg = palette256[code - 92]; // 8 + code - 100
@@ -138,7 +125,9 @@ function renderText(text: string, style: AnsiStyle): string {
     if (style.strikethrough) classes.push('ansi-line-through');
     if (style.overline) classes.push('ansi-overline');
     if (style.underline && style.underline !== 'solid') classes.push(`ansi-${style.underline}`);
-    if (style.underlineColor) styles.push(`text-decoration-color:${cssColor(style.underlineColor)}`);
+    // a slot with no class of its own still has to resolve a themed color to the theme's value
+    const decorationColor = style.underlineColor && (isThemed(style.underlineColor) ? `var(--color-${style.underlineColor})` : style.underlineColor);
+    if (decorationColor) styles.push(`text-decoration-color:${decorationColor}`);
   }
 
   // inverse swaps foreground and background, including the terminal defaults when either is unset
@@ -156,9 +145,7 @@ function renderText(text: string, style: AnsiStyle): string {
   applyColor(style.inverse ? style.fg : style.bg, 'bg', 'background-color');
 
   if (!classes.length && !styles.length) return html; // nothing left to apply, faint stands alone
-  const classAttr = classes.length ? ` class="${classes.join(' ')}"` : '';
-  const styleAttr = styles.length ? ` style="${styles.join(';')}"` : '';
-  return `<span${classAttr}${styleAttr}>${html}</span>`;
+  return `<span${classes.length ? ` class="${classes.join(' ')}"` : ''}${styles.length ? ` style="${styles.join(';')}"` : ''}>${html}</span>`;
 }
 
 function renderPart(part: string, style: AnsiStyle): {html: string, style: AnsiStyle} {
@@ -193,42 +180,32 @@ export class AnsiLineRenderer {
   private style: AnsiStyle = ansiStyleInitial;
 
   renderInto(el: HTMLElement, line: string): void {
-    this.style = renderAnsiInto(el, line, this.style);
-  }
-}
+    if (line.endsWith('\n')) line = line.slice(0, line.endsWith('\r\n') ? -2 : -1);
 
-/** Render one log line into el, returning the style that the next line should start from. */
-function renderAnsiInto(el: HTMLElement, line: string, style: AnsiStyle): AnsiStyle {
-  if (line.endsWith('\r\n')) {
-    line = line.substring(0, line.length - 2);
-  } else if (line.endsWith('\n')) {
-    line = line.substring(0, line.length - 1);
-  }
+    // fast path: a plain line inheriting no style renders as text, skipping the parser entirely
+    const hasEscape = line.includes('\x1b');
+    if (isAnsiStyleInitial(this.style) && !hasEscape && !line.includes('\r')) {
+      el.textContent = line;
+      if (line.includes('://')) renderAnsiPostProcessNode(el);
+      return;
+    }
 
-  // fast path: a plain line inheriting no style renders as text, skipping the parser entirely
-  const hasEscape = line.includes('\x1b');
-  if (isAnsiStyleInitial(style) && !hasEscape && !line.includes('\r')) {
-    el.textContent = line;
+    if (hasEscape) line = line.replace(eraseInLine, '\r');
+
+    // "\rReading...1%\rReading...5%\rReading...100%" becomes one rendered part per update, joined by
+    // "\n" because the log message element is styled "white-space: break-spaces"
+    const parts: Array<string> = [];
+    for (const part of line.split('\r')) {
+      if (part === '') continue;
+      const rendered = renderPart(part, this.style);
+      this.style = rendered.style;
+      if (rendered.html !== '') parts.push(rendered.html);
+    }
+
+    el.innerHTML = parts.join('\n');
+    // at the moment, only need to do post-process when there are potential URL links
     if (line.includes('://')) renderAnsiPostProcessNode(el);
-    return style;
   }
-
-  if (hasEscape) line = line.replace(eraseInLine, '\r');
-
-  // "\rReading...1%\rReading...5%\rReading...100%" becomes one rendered part per update, joined by
-  // "\n" because the log message element is styled "white-space: break-spaces"
-  const parts: Array<string> = [];
-  for (const part of line.split('\r')) {
-    if (part === '') continue;
-    const rendered = renderPart(part, style);
-    style = rendered.style;
-    if (rendered.html !== '') parts.push(rendered.html);
-  }
-
-  el.innerHTML = parts.join('\n');
-  // at the moment, only need to do post-process when there are potential URL links
-  if (line.includes('://')) renderAnsiPostProcessNode(el);
-  return style;
 }
 
 function renderAnsiProcessText(node: ChildNode): ChildNode {
