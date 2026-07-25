@@ -183,7 +183,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, workflowJob *jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, bool, error) {
 	id, job := workflowJob.Job()
 	needs := job.Needs()
-	isMatrixDeferred := len(needs) > 0 && jobparser.HasUnevaluatedMatrix(job)
+	isMatrixDeferred := jobparser.HasDeferredMatrix(job)
 	if err := workflowJob.SetJob(id, job.EraseNeeds()); err != nil {
 		return nil, nil, false, err
 	}

@@ -16,7 +16,6 @@ import (
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -318,7 +317,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 					}
 				case actions_model.StatusSkipped:
 					job.Status = actions_model.StatusSkipped
-					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status"); err != nil {
+					if _, err := actions_model.UpdateRunJob(ctx, job, nil, statusUpdateCols(job)...); err != nil {
 						return err
 					}
 				}
@@ -327,7 +326,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 
 			// Non-caller: standard status update.
 			job.Status = status
-			if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
+			if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, statusUpdateCols(job)...); err != nil {
 				return err
 			} else if n != 1 {
 				return fmt.Errorf("no affected for updating blocked job %v", job.ID)
@@ -347,6 +346,17 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 	result.CancelledJobs = resolver.cancelledJobs
 	return result, nil
+}
+
+// statusUpdateCols returns the columns to persist for a job leaving StatusBlocked, clearing the
+// deferred-matrix flag on the way out. Only a skipped placeholder can still carry it here, and it
+// will never expand now, so keeping the flag would suppress its commit status for good.
+func statusUpdateCols(job *actions_model.ActionRunJob) []string {
+	if !job.IsMatrixDeferred {
+		return []string{"status"}
+	}
+	job.IsMatrixDeferred = false
+	return []string{"status", "is_matrix_deferred"}
 }
 
 type jobStatusResolver struct {
@@ -452,11 +462,26 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			continue
 		}
 
-		// Expand a needs-dependent matrix now that its needs are done. Aborting the pass on error is
-		// required: the placeholder may already be claimed as the first combination, so committing
-		// here would drop the remaining ones for good.
+		// Decide whether the job runs at all before expanding a deferred matrix: a job whose needs
+		// failed or were skipped has to be skipped too, not failed for a matrix those needs never
+		// produced the outputs for. A job-level `if:` cannot read `matrix.*`, so it does not need
+		// the combination, unlike the concurrency expression evaluated below.
+		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
+		if err != nil {
+			// TODO: surface deterministic expression errors to users by failing the job with a message.
+			log.Error("evaluateJobIf failed, job will stay blocked: job: %d, err: %v", id, err)
+			continue
+		}
+		if !shouldStartJob {
+			ret[id] = actions_model.StatusSkipped
+			continue
+		}
+
+		// Expand a needs-dependent matrix now that its needs are done and the job is going to run.
 		siblings, err := expandDeferredMatrix(ctx, actionRunJob, r.vars)
 		if err != nil {
+			// Aborting the pass is required: the placeholder is already claimed as the first
+			// combination, so committing here would drop the remaining ones for good.
 			return nil, fmt.Errorf("expand matrix of job %d: %w", id, err)
 		}
 		if actionRunJob.Status != actions_model.StatusBlocked {
@@ -465,6 +490,9 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			r.matrixUpdatedJobs = append(r.matrixUpdatedJobs, actionRunJob)
 			r.matrixChanged = true
 			continue
+		}
+		if actionRunJob.IsMatrixDeferred {
+			continue // could not be expanded yet, it stays blocked and is retried on the next pass
 		}
 		r.matrixChanged = r.matrixChanged || len(siblings) > 0
 
@@ -478,22 +506,11 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			continue
 		}
 
-		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
+		newStatus, cancelledJobs, err := PrepareToStartJobWithConcurrency(ctx, actionRunJob)
 		if err != nil {
-			// TODO: surface deterministic expression errors to users by failing the job with a message.
-			log.Error("evaluateJobIf failed, job will stay blocked: job: %d, err: %v", id, err)
-			continue
-		}
-
-		newStatus := util.Iif(shouldStartJob, actions_model.StatusWaiting, actions_model.StatusSkipped)
-		if newStatus == actions_model.StatusWaiting {
-			var cancelledJobs []*actions_model.ActionRunJob
-			newStatus, cancelledJobs, err = PrepareToStartJobWithConcurrency(ctx, actionRunJob)
-			if err != nil {
-				log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
-			} else {
-				r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
-			}
+			log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
+		} else {
+			r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
 		}
 
 		if newStatus != actions_model.StatusBlocked {

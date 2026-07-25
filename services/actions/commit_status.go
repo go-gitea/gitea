@@ -54,9 +54,11 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 
 	for _, job := range jobs {
-		// A deferred-matrix placeholder's name changes when it expands, so a status created now
-		// would be orphaned. The emitter reloads the jobs after expanding and creates them then.
-		if job.IsMatrixDeferred {
+		// A deferred-matrix placeholder's name changes when it expands, so a status created while it
+		// waits would be orphaned. The emitter reloads the jobs after expanding and creates them
+		// then. A placeholder that reached a final status (a cancelled run) never expands, so it
+		// keeps its own name and still deserves a status.
+		if job.IsMatrixDeferred && !job.Status.IsDone() {
 			continue
 		}
 		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job); err != nil {

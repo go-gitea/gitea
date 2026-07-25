@@ -20,8 +20,8 @@ import (
 
 // TestDynamicMatrixEvaluation covers a job whose matrix references ${{ needs.*.outputs.* }}: it is
 // planned as a single placeholder and expanded once its dependency completes. `build` exercises the
-// expansion, `report` that a downstream job sees the combinations' outputs, and `gated` that
-// expansion does not bypass the job-level `if:`.
+// expansion, `report` that a downstream job sees the combinations' outputs, and `gated` that a job
+// the `if:` skips is never expanded and never dispatched.
 func TestDynamicMatrixEvaluation(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -102,7 +102,7 @@ jobs:
 		assert.Contains(t, []string{"built-1", "built-2"}, buildNeed.Outputs["result"])
 		runner.execTask(t, reportTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 
-		// `gated` expanded too, but `if: false` must keep every combination from being dispatched.
+		// `if: false` is decided before the matrix is touched, so `gated` is skipped as one job.
 		runner.fetchNoTask(t, 300*time.Millisecond)
 	})
 }

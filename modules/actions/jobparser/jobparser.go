@@ -16,11 +16,12 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
-// HasUnevaluatedMatrix reports whether the job's matrix still holds a ${{ }} expression, so Parse
-// emitted it as a placeholder rather than one job per combination. A caller that also knows the job
-// has needs knows the matrix is built from their outputs and will be expanded once they finish.
-func HasUnevaluatedMatrix(job *Job) bool {
-	return rawMatrixHasExpression(&job.Strategy.RawMatrix)
+// HasDeferredMatrix reports whether the job's matrix can only be expanded once its needs finish:
+// it still holds a ${{ }} expression and the job has needs to resolve that expression against.
+// Parse emits such a job as a single placeholder rather than one job per combination, so every
+// caller that persists a job must agree with Parse on this condition.
+func HasDeferredMatrix(job *Job) bool {
+	return len(job.Needs()) > 0 && rawMatrixHasExpression(&job.Strategy.RawMatrix)
 }
 
 func rawMatrixHasExpression(node *yaml.Node) bool {
@@ -75,7 +76,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		}
 
 		var combos []*Job
-		if HasUnevaluatedMatrix(job) {
+		if HasDeferredMatrix(job) {
 			// The matrix reads values that do not exist yet (a needs output), so emit a single
 			// placeholder keeping it raw. Re-parsing that placeholder's payload yields it again,
 			// and the server expands it once the needs finish.
@@ -94,7 +95,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			}
 		}
 		for _, combo := range combos {
-			swf := workflow.Clone()
+			swf := workflow.cloneHeader()
 			if err := swf.SetJob(id, combo); err != nil {
 				return nil, fmt.Errorf("SetJob: %w", err)
 			}
@@ -104,8 +105,8 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	return ret, nil
 }
 
-// Clone returns a copy of w with its global fields but no jobs.
-func (w *SingleWorkflow) Clone() *SingleWorkflow {
+// cloneHeader returns a copy of w with its workflow-global fields but no jobs.
+func (w *SingleWorkflow) cloneHeader() *SingleWorkflow {
 	return &SingleWorkflow{
 		Name:           w.Name,
 		RawOn:          w.RawOn,

@@ -119,7 +119,7 @@ jobs:
   setup:
     steps: [{run: echo}]
   build:
-    needs: setup
+    %s
     strategy:
       matrix:
         os: [a, b]
@@ -128,15 +128,19 @@ jobs:
 `
 	for _, tt := range []struct {
 		name     string
+		needs    string
 		version  string
 		deferred bool
 		want     int
 	}{
-		{"needs outputs", "${{ fromJson(needs.setup.outputs.v) }}", true, 1},
-		{"static", "[1, 2]", false, 4},
+		{"needs outputs", "needs: setup", "${{ fromJson(needs.setup.outputs.v) }}", true, 1},
+		{"static", "needs: setup", "[1, 2]", false, 4},
+		// Without needs there is nothing to resolve the expression from later, so deferring would
+		// strand the job as a single combination that never expands.
+		{"expression without needs", "", `["${{ github.sha }}"]`, false, 2},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := Parse(fmt.Appendf(nil, workflow, tt.version))
+			result, err := Parse(fmt.Appendf(nil, workflow, tt.needs, tt.version))
 			require.NoError(t, err)
 
 			var builds []*Job
@@ -146,7 +150,7 @@ jobs:
 				}
 			}
 			require.Len(t, builds, tt.want)
-			assert.Equal(t, tt.deferred, HasUnevaluatedMatrix(builds[0]))
+			assert.Equal(t, tt.deferred, HasDeferredMatrix(builds[0]))
 		})
 	}
 }

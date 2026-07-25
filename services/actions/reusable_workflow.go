@@ -300,7 +300,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			continue
 		}
 		needs := parsedChild.Needs()
-		isMatrixDeferred := len(needs) > 0 && jobparser.HasUnevaluatedMatrix(parsedChild)
+		isMatrixDeferred := jobparser.HasDeferredMatrix(parsedChild)
 		if err := sw.SetJob(jobID, parsedChild.EraseNeeds()); err != nil {
 			return err
 		}

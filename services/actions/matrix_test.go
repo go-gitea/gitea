@@ -159,3 +159,43 @@ func TestExpandDeferredMatrix(t *testing.T) {
 		})
 	}
 }
+
+// TestDeferredMatrixWithUnsuccessfulNeed covers the resolver deciding the job's fate before touching
+// the matrix: a need that did not succeed leaves no outputs to build it from, so the placeholder has
+// to be skipped like any other job with such a need, not failed over a matrix it never had to
+// evaluate. Expanding first would also insert combinations that can only be skipped.
+func TestDeferredMatrixWithUnsuccessfulNeed(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	for _, tt := range []struct {
+		name       string
+		needStatus actions_model.Status
+	}{
+		{"failed need", actions_model.StatusFailure},
+		{"skipped need", actions_model.StatusSkipped},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", nil)
+			_, err := db.Exec(ctx, "UPDATE `action_run_job` SET status = ? WHERE run_id = ? AND job_id = ?", int(tt.needStatus), job.RunID, "generate")
+			require.NoError(t, err)
+
+			jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
+			require.NoError(t, err)
+			run, err := actions_model.GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
+			require.NoError(t, err)
+			for _, runJob := range jobs {
+				runJob.Run = run
+			}
+
+			updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
+			require.NoError(t, err)
+			assert.Equal(t, actions_model.StatusSkipped, updates[job.ID])
+
+			// The matrix was never evaluated, so no combination was inserted.
+			after, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
+			require.NoError(t, err)
+			assert.Len(t, after, len(jobs))
+		})
+	}
+}

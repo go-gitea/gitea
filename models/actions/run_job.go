@@ -133,6 +133,19 @@ func GetNextAttemptJobID(ctx context.Context, runID int64) (int64, error) {
 	return db.GetNextResourceIndex(ctx, "action_run_attempt_job_id_index", runID)
 }
 
+// GetMaxAttemptJobID returns the highest AttemptJobID handed out for the run so far without
+// allocating a new one, so a bulk allocation can be checked against MaxJobNumPerRun up front.
+func GetMaxAttemptJobID(ctx context.Context, runID int64) (int64, error) {
+	var index ActionRunAttemptJobIDIndex
+	has, err := db.GetEngine(ctx).Where("group_id = ?", runID).Get(&index)
+	if err != nil {
+		return 0, err
+	} else if !has {
+		return 0, nil
+	}
+	return index.MaxIndex, nil
+}
+
 func init() {
 	db.RegisterModel(new(ActionRunJob))
 	db.RegisterModel(new(ActionRunAttemptJobIDIndex))
