@@ -61,9 +61,9 @@ kbd {
 }
 
 #keyboard-shortcuts-modal .shortcut-section h3 {
-  margin: 0 0 12px 0;
+  margin: 0 0 12px;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-light-2);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -96,7 +96,7 @@ kbd {
   height: 28px;
   padding: 0 6px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-family: inherit;
   background: var(--color-secondary);
   border: 1px solid var(--color-secondary-dark-2);

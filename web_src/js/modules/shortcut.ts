@@ -102,7 +102,7 @@ export function initGlobalShortcut() {
     helpModal.querySelector('.ui.button.primary')?.addEventListener('click', closeModal);
     helpModal.querySelector('.modal-backdrop')?.addEventListener('click', closeModal);
 
-    document.getElementById('show-keyboard-shortcuts')?.addEventListener('click', (e) => {
+    document.querySelector('#show-keyboard-shortcuts')?.addEventListener('click', (e) => {
       e.preventDefault();
       helpModal.classList.remove('hidden');
     });
@@ -161,18 +161,14 @@ export function initGlobalShortcut() {
         branchDropdown.click();
         return;
       }
-    }
-
-    if (key === 'y') {
+    } else if (key === 'y') {
       const permalinkBtn = document.querySelector<HTMLAnchorElement>('#file-permalink-button');
       if (permalinkBtn) {
         e.preventDefault();
         window.location.assign(permalinkBtn.href);
         return;
       }
-    }
-
-    if (key === 'b') {
+    } else if (key === 'b') {
       const blameBtn = document.querySelector<HTMLAnchorElement>('#file-blame-button');
       if (blameBtn) {
         e.preventDefault();
