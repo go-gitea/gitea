@@ -260,22 +260,13 @@ func Test_maxParallelConverges(t *testing.T) {
 		}
 	}
 
-	countStatus := func(s actions_model.Status) int {
-		n := 0
-		for _, job := range jobs {
-			if job.Status == s {
-				n++
-			}
-		}
-		return n
-	}
-
 	for cycle := range totalJobs + 1 {
 		for id, status := range newJobStatusResolver(jobs, nil).Resolve(ctx) {
 			jobs[id-1].Status = status
 		}
-		done := countStatus(actions_model.StatusSuccess)
-		assert.Equal(t, min(totalJobs-done, maxParallel), countStatus(actions_model.StatusWaiting)+countStatus(actions_model.StatusRunning),
+		counts := statusCounts(jobs)
+		remaining := totalJobs - counts[actions_model.StatusSuccess]
+		assert.Equal(t, min(remaining, maxParallel), counts[actions_model.StatusWaiting]+counts[actions_model.StatusRunning],
 			"cycle %d: active jobs must fill every free slot without exceeding max-parallel", cycle)
 
 		for _, job := range jobs { // a runner picks up every waiting job
@@ -291,7 +282,7 @@ func Test_maxParallelConverges(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, totalJobs, countStatus(actions_model.StatusSuccess))
+	assert.Equal(t, totalJobs, statusCounts(jobs)[actions_model.StatusSuccess])
 }
 
 // Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck verifies that when a run's
