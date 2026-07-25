@@ -8,25 +8,33 @@ import (
 	"errors"
 	"fmt"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 )
 
 // TeamAddRepository adds new repository to team of organization.
-func TeamAddRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository) (err error) {
+func TeamAddRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository) error {
 	if repo.OwnerID != t.OrgID {
 		return errors.New("repository does not belong to organization")
 	} else if organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
 		return nil
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		return addRepositoryToTeam(ctx, t, repo)
-	})
+	}); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, repo, "team", t.Name)
+
+	return nil
 }
 
 func addRepositoryToTeam(ctx context.Context, t *organization.Team, repo *repo_model.Repository) (err error) {
@@ -62,7 +70,8 @@ func addRepositoryToTeam(ctx context.Context, t *organization.Team, repo *repo_m
 // AddAllRepositoriesToTeam adds all repositories to the team.
 // If the team already has some repositories they will be left unchanged.
 func AddAllRepositoriesToTeam(ctx context.Context, t *organization.Team) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	added := make([]*repo_model.Repository, 0, 5)
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		orgRepos, err := repo_model.GetOrgRepositories(ctx, t.OrgID)
 		if err != nil {
 			return fmt.Errorf("get org repos: %w", err)
@@ -73,11 +82,20 @@ func AddAllRepositoriesToTeam(ctx context.Context, t *organization.Team) error {
 				if err := addRepositoryToTeam(ctx, t, repo); err != nil {
 					return fmt.Errorf("AddRepository: %w", err)
 				}
+				added = append(added, repo)
 			}
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	for _, repo := range added {
+		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, repo, "team", t.Name)
+	}
+
+	return nil
 }
 
 // RemoveAllRepositoriesFromTeam removes all repositories from team and recalculates access
@@ -86,9 +104,22 @@ func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 		return nil
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	removed, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
+	if err != nil {
+		return fmt.Errorf("GetTeamRepositories: %w", err)
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		return removeAllRepositoriesFromTeam(ctx, t)
-	})
+	}); err != nil {
+		return err
+	}
+
+	for _, repo := range removed {
+		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamRemove, repo, "team", t.Name)
+	}
+
+	return nil
 }
 
 // removeAllRepositoriesFromTeam removes all repositories from team and recalculates access
@@ -159,9 +190,15 @@ func RemoveRepositoryFromTeam(ctx context.Context, t *organization.Team, repoID 
 		return err
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		return removeRepositoryFromTeam(ctx, t, repo, true)
-	})
+	}); err != nil {
+		return err
+	}
+
+	audit.Record(ctx, audit_model.RepositoryCollaboratorTeamRemove, repo, "team", t.Name)
+
+	return nil
 }
 
 // removeRepositoryFromTeam removes a repository from a team and recalculates access

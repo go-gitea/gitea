@@ -79,6 +79,32 @@ func (u *User) IsGiteaActions() bool {
 	return u != nil && u.ID == ActionsUserID
 }
 
+const (
+	CLIUserID   int64 = -3
+	CLIUserName       = "CLI"
+)
+
+func NewCLIUser() *User {
+	return &User{
+		ID:        CLIUserID,
+		Name:      CLIUserName,
+		LowerName: strings.ToLower(CLIUserName),
+	}
+}
+
+const (
+	AuthenticationSourceUserID   int64 = -4
+	AuthenticationSourceUserName       = "AuthenticationSource"
+)
+
+func NewAuthenticationSourceUser() *User {
+	return &User{
+		ID:        AuthenticationSourceUserID,
+		Name:      AuthenticationSourceUserName,
+		LowerName: strings.ToLower(AuthenticationSourceUserName),
+	}
+}
+
 func GetSystemUserByName(name string) *User {
 	if strings.EqualFold(name, GhostUserName) {
 		return NewGhostUser()

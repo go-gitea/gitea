@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/updatechecker"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	repo_service "gitea.dev/services/repository"
 	archiver_service "gitea.dev/services/repository/archiver"
 	user_service "gitea.dev/services/user"
@@ -28,9 +29,9 @@ func registerDeleteInactiveUsers() {
 			Schedule:   "@annually",
 		},
 		OlderThan: time.Minute * time.Duration(setting.Service.ActiveCodeLives),
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+	}, func(ctx context.Context, doer *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return user_service.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
+		return user_service.DeleteInactiveUsers(audit.WithDoer(ctx, doer), olderThanConfig.OlderThan)
 	})
 }
 

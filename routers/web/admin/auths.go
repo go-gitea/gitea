@@ -302,14 +302,16 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.CreateSource(ctx, &auth.Source{
-		Type:            auth.Type(form.Type),
-		Name:            form.Name,
-		IsActive:        form.IsActive,
-		IsSyncEnabled:   form.IsSyncEnabled,
-		TwoFactorPolicy: form.TwoFactorPolicy,
-		Cfg:             config,
-	}); err != nil {
+	if err := auth_service.CreateSource(
+		ctx,
+		&auth.Source{
+			Type:            auth.Type(form.Type),
+			Name:            form.Name,
+			IsActive:        form.IsActive,
+			IsSyncEnabled:   form.IsSyncEnabled,
+			TwoFactorPolicy: form.TwoFactorPolicy,
+			Cfg:             config,
+		}); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthNew, form)
@@ -318,7 +320,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			unwrapped := err.(oauth2.ErrOpenIDConnectInitialize).Unwrap()
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.unable_to_initialize_openid", unwrapped), tplAuthNew, form)
 		} else {
-			ctx.ServerError("auth.CreateSource", err)
+			ctx.ServerError("auth_service.CreateSource", err)
 		}
 		return
 	}
@@ -424,7 +426,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
 	source.TwoFactorPolicy = form.TwoFactorPolicy
-	if err := auth.UpdateSource(ctx, source); err != nil {
+	if err := auth_service.UpdateSource(ctx, source); err != nil {
 		if auth.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", err.(auth.ErrSourceAlreadyExist).Name), tplAuthEdit, form)
@@ -433,7 +435,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 			ctx.Data["Err_DiscoveryURL"] = true
 			ctx.HTML(http.StatusOK, tplAuthEdit)
 		} else {
-			ctx.ServerError("UpdateSource", err)
+			ctx.ServerError("auth_service.UpdateSource", err)
 		}
 		return
 	}

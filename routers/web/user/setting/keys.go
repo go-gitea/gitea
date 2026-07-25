@@ -9,12 +9,14 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -68,7 +70,8 @@ func KeysPost(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
-		if _, err = asymkey_service.AddPrincipalKey(ctx, ctx.Doer.ID, content, 0); err != nil {
+		key, err := asymkey_service.AddPrincipalKey(ctx, ctx.Doer.ID, content, 0)
+		if err != nil {
 			ctx.Data["HasPrincipalError"] = true
 			switch {
 			case asymkey_model.IsErrKeyAlreadyExist(err), asymkey_model.IsErrKeyNameAlreadyUsed(err):
@@ -81,6 +84,9 @@ func KeysPost(ctx *context.Context) {
 			}
 			return
 		}
+
+		audit.Record(ctx, audit_model.UserKeyPrincipalAdd, ctx.Doer, "key", key.Name)
+
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
@@ -133,6 +139,8 @@ func KeysPost(ctx *context.Context) {
 		for _, key := range keys {
 			keyIDs += key.KeyID
 			keyIDs += ", "
+
+			audit.Record(ctx, audit_model.UserKeyGPGAdd, ctx.Doer, "gpg_key_id", key.KeyID)
 		}
 		if len(keyIDs) > 0 {
 			keyIDs = keyIDs[:len(keyIDs)-2]
@@ -185,7 +193,8 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		if _, err = asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0, false); err != nil {
+		key, err := asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0, false)
+		if err != nil {
 			ctx.Data["HasSSHError"] = true
 			switch {
 			case asymkey_model.IsErrKeyAlreadyExist(err):
@@ -206,6 +215,9 @@ func KeysPost(ctx *context.Context) {
 			}
 			return
 		}
+
+		audit.Record(ctx, audit_model.UserKeySSHAdd, ctx.Doer, "fingerprint", key.Fingerprint)
+
 		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "verify_ssh":
@@ -250,9 +262,17 @@ func DeleteKey(ctx *context.Context) {
 			ctx.JSONError("gpg keys setting is not allowed to be visited")
 			return
 		}
+		key, err := asymkey_model.GetGPGKeyForUserByID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
+		if err != nil && !asymkey_model.IsErrGPGKeyNotExist(err) {
+			ctx.ServerError("GetGPGKeyForUserByID", err)
+			return
+		}
 		if err := asymkey_model.DeleteGPGKey(ctx, ctx.Doer, ctx.FormInt64("id")); err != nil {
 			ctx.JSONError("Failed to delete PGP key")
 			return
+		}
+		if key != nil {
+			audit.Record(ctx, audit_model.UserKeyGPGRemove, ctx.Doer, "gpg_key_id", key.KeyID)
 		}
 		ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 	case "ssh":

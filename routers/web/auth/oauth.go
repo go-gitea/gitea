@@ -26,6 +26,7 @@ import (
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 	source_service "gitea.dev/services/auth/source"
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/services/context"
@@ -418,7 +419,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		// Register last login
 		opts.SetLastLogin = true
 
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthenticationSourceUser()), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -447,7 +448,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 	}
 
 	if opts.IsActive.Has() || opts.IsAdmin.Has() || opts.IsRestricted.Has() {
-		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+		if err := user_service.UpdateUser(audit.WithDoer(ctx, user_model.NewAuthenticationSourceUser()), u, opts); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}

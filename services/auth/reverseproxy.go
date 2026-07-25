@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 
 	gouuid "github.com/google/uuid"
 )
@@ -169,6 +171,8 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		log.Error("CreateUser: %v", err)
 		return nil
 	}
+
+	audit.RecordAs(req.Context(), user_model.NewAuthenticationSourceUser(), audit_model.UserCreate, user)
 
 	return user
 }

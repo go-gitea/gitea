@@ -1,0 +1,6 @@
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings audit")}}
+	<div class="user-setting-content">
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "admin.monitor.audit.title"}}</h4>
+		{{template "shared/audit/list" .}}
+	</div>
+{{template "user/settings/layout_footer" .}}

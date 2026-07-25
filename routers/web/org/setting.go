@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
@@ -24,6 +25,7 @@ import (
 	"gitea.dev/modules/web"
 	shared_user "gitea.dev/routers/web/shared/user"
 	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	org_service "gitea.dev/services/org"
@@ -172,9 +174,18 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	hook, err := webhook.GetWebhookByOwnerID(ctx, ctx.Org.Organization.ID, ctx.FormInt64("id"))
+	if err != nil {
+		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
+		ctx.JSONRedirect(ctx.Org.OrgLink + "/settings/hooks")
+		return
+	}
+
+	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.OrganizationWebhookRemove, ctx.Org.Organization.AsUser(), "webhook", hook.URL)
+
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
