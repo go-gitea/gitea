@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"hash"
 
+	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -32,8 +33,8 @@ type CommitVerification struct {
 
 // SignCommit represents a commit with validation of signature.
 type SignCommit struct {
-	Verification *CommitVerification
-	*user_model.UserCommit
+	Verification        *CommitVerification
+	*gituser.UserCommit // TODO: need to use a explicit field name, avoid anonymous field
 }
 
 const (

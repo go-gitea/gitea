@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"strings"
 
 	"gitea.dev/modules/git/gitcmd"
@@ -17,13 +18,16 @@ import (
 )
 
 // GetRefCommitID returns the last commit ID string of given reference.
-func (repo *Repository) GetRefCommitID(name string) (string, error) {
+func (repo *Repository) GetRefCommitID(_ context.Context, name string) (string, error) {
 	if plumbing.IsHash(name) {
 		return name, nil
 	}
 	refName := plumbing.ReferenceName(name)
 	if err := refName.Validate(); err != nil {
-		return "", err
+		// Match the nogogit behavior: an unresolvable/invalid ref name
+		// is reported as not-existing rather than a generic validation error,
+		// so callers can rely on IsErrNotExist regardless of build tag.
+		return "", ErrNotExist{ID: name}
 	}
 	ref, err := repo.gogitRepo.Reference(refName, true)
 	if err != nil {
@@ -39,8 +43,8 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 }
 
 // ConvertToHash returns a Hash object from a potential ID string
-func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) ConvertToGitID(ctx context.Context, commitID string) (ObjectID, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +57,8 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 
 	actualCommitID, _, err := gitcmd.NewCommand("rev-parse", "--verify").
 		AddDynamicArguments(commitID).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+		WithRepo(repo).
+		RunStdString(ctx)
 	actualCommitID = strings.TrimSpace(actualCommitID)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||
@@ -67,7 +71,7 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 	return NewIDFromString(actualCommitID)
 }
 
-func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
+func (repo *Repository) getCommit(_ context.Context, id ObjectID) (*Commit, error) {
 	var tagObject *object.Tag
 
 	commitID := plumbing.Hash(id.RawValue())
@@ -89,15 +93,14 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 	}
 
 	commit := convertCommit(gogitCommit)
-	commit.repo = repo
 
 	tree, err := gogitCommit.Tree()
 	if err != nil {
 		return nil, err
 	}
 
-	commit.Tree.ID = ParseGogitHash(tree.Hash)
-	commit.Tree.resolvedGogitTreeObject = tree
+	commit.TreeID = ParseGogitHash(tree.Hash)
+	commit.Tree().resolvedGogitTreeObject = tree
 
 	return commit, nil
 }

@@ -24,8 +24,8 @@ export async function initHeatmap() {
       heatmap[dateStr] = (heatmap[dateStr] || 0) + contributions;
     }
 
-    const values = Object.keys(heatmap).map((v) => {
-      return {date: new Date(v), count: heatmap[v]};
+    const values = Object.entries(heatmap).map(([dateStr, count]) => {
+      return {date: new Date(dateStr), count};
     });
 
     const totalFormatted = totalContributions.toLocaleString();

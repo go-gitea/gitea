@@ -3,7 +3,11 @@
 
 package fileicon
 
-import "gitea.dev/modules/git"
+import (
+	"context"
+
+	"gitea.dev/modules/git"
+)
 
 type EntryInfo struct {
 	BaseName      string
@@ -12,10 +16,10 @@ type EntryInfo struct {
 	IsOpen        bool
 }
 
-func EntryInfoFromGitTreeEntry(commit *git.Commit, fullPath string, gitEntry *git.TreeEntry) *EntryInfo {
+func EntryInfoFromGitTreeEntry(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, fullPath string, gitEntry *git.TreeEntry) *EntryInfo {
 	ret := &EntryInfo{BaseName: gitEntry.Name(), EntryMode: gitEntry.Mode()}
 	if gitEntry.IsLink() {
-		if res, err := git.EntryFollowLink(commit, fullPath, gitEntry); err == nil && res.TargetEntry.IsDir() {
+		if res, err := git.EntryFollowLink(ctx, gitRepo, commit, fullPath, gitEntry); err == nil && res.TargetEntry.IsDir() {
 			ret.SymlinkToMode = res.TargetEntry.Mode()
 		}
 	}

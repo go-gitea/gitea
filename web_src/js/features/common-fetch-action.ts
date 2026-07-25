@@ -1,6 +1,6 @@
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
-import {addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
+import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
 import {errorMessage, errorName} from '../modules/errors.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
@@ -8,6 +8,7 @@ import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {Idiomorph} from 'idiomorph';
 import {parseDom} from '../utils.ts';
 import {html} from '../utils/html.ts';
+import type {RequestData} from '../types.ts';
 
 const {appSubUrl, runModeIsProd} = window.config;
 
@@ -15,15 +16,16 @@ type FetchActionOpts = {
   method: string;
   url: string;
   headers?: HeadersInit;
-  body?: FormData;
+  data?: RequestData;
+  formSubmitter?: HTMLElement | null;
 
   // pseudo selectors/commands to update the current page with the response text when the response is text (html)
   // e.g.: "$this", "$innerHTML", "$closest(tr) td .the-class", "$body #the-id"
-  successSync: string;
+  successSync?: string;
 
   // the loading indicator element selector, it uses the same syntax as "data-fetch-sync" to find the element(s)
   // empty means no loading indicator, "$this" means the element itself
-  loadingIndicator: string;
+  loadingIndicator?: string;
 };
 
 // fetchActionDoRedirect does real redirection to bypass the browser's limitations of "location"
@@ -113,16 +115,16 @@ function buildFetchActionUrl(el: HTMLElement, opt: FetchActionOpts) {
     const u = new URL(url, window.location.href);
     if (name && !u.searchParams.has(name)) {
       u.searchParams.set(name, val);
-      url = u.toString();
+      url = u.href;
     }
   }
   return url;
 }
 
-async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
+// Use "fetch" to send a request and handle the error cases, return the success response and let caller handle
+export async function performFetchActionRequest(el: HTMLElement, opt: FetchActionOpts): Promise<Response | null> {
   const attrIsLoading = 'data-fetch-is-loading';
-  if (el.getAttribute(attrIsLoading)) return;
-  if (!await confirmFetchAction(el)) return;
+  if (el.getAttribute(attrIsLoading)) return null;
 
   el.setAttribute(attrIsLoading, 'true');
   toggleLoadingIndicator(el, opt, true);
@@ -131,11 +133,8 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
     const url = buildFetchActionUrl(el, opt);
     const headers = new Headers(opt.headers);
     headers.set('X-Gitea-Fetch-Action', '1');
-    const resp = await request(url, {method: opt.method, body: opt.body, headers});
-    if (resp.ok) {
-      await handleFetchActionSuccess(el, opt, resp);
-      return;
-    }
+    const resp = await request(url, {method: opt.method, data: opt.data, headers});
+    if (resp.ok) return resp;
     await handleFetchActionError(resp);
   } catch (err) {
     if (errorName(err) !== 'AbortError') {
@@ -146,6 +145,14 @@ async function performActionRequest(el: HTMLElement, opt: FetchActionOpts) {
     toggleLoadingIndicator(el, opt, false);
     el.removeAttribute(attrIsLoading);
   }
+  return null;
+}
+
+// Use "fetch" to send a request and fully handle its response
+export async function performFetchAction(el: HTMLElement, opt: FetchActionOpts) {
+  if (!await confirmFetchAction(opt.formSubmitter ?? el)) return;
+  const resp = await performFetchActionRequest(el, opt);
+  if (resp) await handleFetchActionSuccess(el, opt, resp);
 }
 
 type SubmitFormFetchActionOpts = {
@@ -180,7 +187,8 @@ function prepareFormFetchActionOpts(formEl: HTMLFormElement, opts: SubmitFormFet
   return {
     method: formMethodUpper,
     url: reqUrl,
-    body: reqBody,
+    data: reqBody,
+    formSubmitter: opts.formSubmitter,
     loadingIndicator: '$this', // for form submit, by default, the loading indicator is the whole form
     successSync: formEl.getAttribute('data-fetch-sync') ?? '', // by default, no fetch sync for form submit
   };
@@ -188,7 +196,7 @@ function prepareFormFetchActionOpts(formEl: HTMLFormElement, opts: SubmitFormFet
 
 export async function submitFormFetchAction(formEl: HTMLFormElement, opts: SubmitFormFetchActionOpts = {}) {
   hideToastsAll();
-  await performActionRequest(formEl, prepareFormFetchActionOpts(formEl, opts));
+  await performFetchAction(formEl, prepareFormFetchActionOpts(formEl, opts));
 }
 
 async function confirmFetchAction(el: HTMLElement) {
@@ -219,7 +227,7 @@ async function confirmFetchAction(el: HTMLElement) {
 
 async function performLinkFetchAction(el: HTMLElement) {
   hideToastsAll();
-  await performActionRequest(el, {
+  await performFetchAction(el, {
     method: el.getAttribute('data-fetch-method') || 'POST', // by default, the method is POST for link-action
     url: el.getAttribute('data-url')!,
     loadingIndicator: el.getAttribute('data-fetch-indicator') ?? '$this', // by default, the link-action itself is the loading indicator
@@ -235,7 +243,7 @@ export async function performFetchActionTrigger(el: HTMLElement, triggerType: Fe
   const defaultLoadingIndicator = isUserInitiated ? '$this' : '';
 
   if (isUserInitiated) hideToastsAll();
-  await performActionRequest(el, {
+  await performFetchAction(el, {
     method: el.getAttribute('data-fetch-method') || 'GET', // by default, the method is GET for fetch trigger action
     url: el.getAttribute('data-fetch-url')!,
     loadingIndicator: el.getAttribute('data-fetch-indicator') ?? defaultLoadingIndicator,
@@ -328,17 +336,10 @@ function initFetchActionTriggerEvery(el: HTMLElement, trigger: string) {
 
   const num = parseInt(match[1], 10), unit = match[2];
   const intervalMs = unit === 's' ? num * 1000 : num;
-  const fn = async () => {
-    try {
-      await performFetchActionTrigger(el, 'every');
-    } finally {
-      // only continue if the element is still in the document
-      if (document.contains(el)) {
-        setTimeout(fn, intervalMs);
-      }
-    }
-  };
-  setTimeout(fn, intervalMs);
+  activePageTimerRefresh({
+    interval: () => document.contains(el) ? intervalMs : 0, // only continue if the element is still in the document
+    async callback() { await performFetchActionTrigger(el, 'every') },
+  });
 }
 
 function initFetchActionTrigger(el: HTMLElement) {

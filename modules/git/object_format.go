@@ -10,10 +10,10 @@ import (
 	"strconv"
 )
 
-// sha1Pattern can be used to determine if a string is an valid sha
+// sha1Pattern can be used to determine if a string is a valid sha
 var sha1Pattern = regexp.MustCompile(`^[0-9a-f]{4,40}$`)
 
-// sha256Pattern can be used to determine if a string is an valid sha
+// sha256Pattern can be used to determine if a string is a valid sha
 var sha256Pattern = regexp.MustCompile(`^[0-9a-f]{4,64}$`)
 
 type ObjectFormat interface {

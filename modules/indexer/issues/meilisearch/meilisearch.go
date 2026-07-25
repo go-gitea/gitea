@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 5
+	issueIndexerLatestVersion = 6
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -74,7 +74,8 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"project_ids",
 			"no_project",
 			"poster_id",
-			"assignee_id",
+			"assignee_ids",
+			"no_assignee",
 			"mention_ids",
 			"reviewed_ids",
 			"review_requested_ids",
@@ -195,14 +196,15 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 		query.And(inner_meilisearch.NewFilterEq("poster_id", posterIDInt64))
 	}
 
-	if options.AssigneeID != "" {
-		if options.AssigneeID == "(any)" {
-			query.And(inner_meilisearch.NewFilterGte("assignee_id", 1))
-		} else {
-			// "(none)" becomes 0, it means no assignee
-			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			query.And(inner_meilisearch.NewFilterEq("assignee_id", assigneeIDInt64))
-		}
+	switch options.AssigneeID {
+	case "":
+	case "(any)":
+		query.And(inner_meilisearch.NewFilterEq("no_assignee", false))
+	case "(none)":
+		query.And(inner_meilisearch.NewFilterEq("no_assignee", true))
+	default:
+		assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
+		query.And(inner_meilisearch.NewFilterEq("assignee_ids", assigneeIDInt64))
 	}
 
 	if options.MentionID.Has() {

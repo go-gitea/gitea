@@ -79,6 +79,14 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
+	if err := comments.loadResolveDoers(ctx); err != nil {
+		return nil, err
+	}
+
+	if err := comments.loadReactions(ctx, issue.Repo); err != nil {
+		return nil, err
+	}
+
 	// Find all reviews by ReviewID
 	reviews := make(map[int64]*Review)
 	ids := make([]int64, 0, len(comments))
@@ -106,14 +114,6 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		}
 		comments[n] = comment
 		n++
-
-		if err := comment.LoadResolveDoer(ctx); err != nil {
-			return nil, err
-		}
-
-		if err := comment.LoadReactions(ctx, issue.Repo); err != nil {
-			return nil, err
-		}
 
 		var err error
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{

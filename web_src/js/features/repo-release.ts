@@ -12,7 +12,7 @@ export function initRepoReleaseNew() {
   registerGlobalEventFunc('click', 'onReleaseEditAttachmentDelete', (el) => {
     const uuid = el.getAttribute('data-uuid')!;
     const id = el.getAttribute('data-id')!;
-    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`)!.value = 'true';
+    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${CSS.escape(uuid)}']`)!.value = 'true';
     hideElem(`#attachment-${id}`);
   });
   registerGlobalInitFunc('initReleaseEditForm', (elForm: HTMLFormElement) => {

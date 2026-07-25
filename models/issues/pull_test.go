@@ -4,7 +4,9 @@
 package issues_test
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -39,6 +41,7 @@ func TestPullRequest(t *testing.T) {
 	t.Run("DeleteOrphanedObjects", testDeleteOrphanedObjects)
 	t.Run("ParseCodeOwnersLine", testParseCodeOwnersLine)
 	t.Run("CodeOwnerAbsolutePathPatterns", testCodeOwnerAbsolutePathPatterns)
+	t.Run("CodeOwnerPatternMatchTimeout", testCodeOwnerPatternMatchTimeout)
 	t.Run("GetApprovers", testGetApprovers)
 	t.Run("GetPullRequestByMergedCommit", testGetPullRequestByMergedCommit)
 	t.Run("Migrate_InsertPullRequests", testMigrateInsertPullRequests)
@@ -374,6 +377,22 @@ func testCodeOwnerAbsolutePathPatterns(t *testing.T) {
 		ruleMatched := regexpMatched == !rule.Negative
 		assert.Equal(t, c.expected, ruleMatched, "pattern %q against file %q", c.content, c.file)
 	}
+}
+
+// testCodeOwnerPatternMatchTimeout ensures user-supplied CODEOWNERS patterns
+// cannot stall pull request processing through catastrophic regex backtracking:
+// each compiled rule must enforce a bounded match time.
+func testCodeOwnerPatternMatchTimeout(t *testing.T) {
+	rules, _ := issues_model.GetCodeOwnersFromContent(t.Context(), "(a+)+ @user5\n")
+	require.Len(t, rules, 1)
+
+	maliciousInput := strings.Repeat("a", 30) + "X"
+	start := time.Now()
+	_, err := rules[0].Rule.MatchString(maliciousInput)
+	elapsed := time.Since(start)
+
+	require.Error(t, err, "expected MatchTimeout error on pathological input")
+	assert.Less(t, elapsed, time.Second, "match timeout did not bound regex evaluation; took %s", elapsed)
 }
 
 func testGetApprovers(t *testing.T) {

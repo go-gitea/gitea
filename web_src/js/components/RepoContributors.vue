@@ -270,7 +270,7 @@ export default defineComponent({
         plugins: {
           title: {
             display: type === 'main',
-            text: 'drag: zoom, shift+drag: pan, double click: reset zoom',
+            text: this.locale.chartZoomHint,
             position: 'top',
             align: 'center',
           },

@@ -90,7 +90,7 @@ export default {
       '8xl': '96px',
       '9xl': '128px',
       ...Object.fromEntries(Array.from({length: 100}, (_, i) => {
-        return [`${i}`, `${i === 0 ? '0' : `${i}px`}`];
+        return [String(i), i === 0 ? '0' : `${i}px`];
       })),
     },
     extend: {

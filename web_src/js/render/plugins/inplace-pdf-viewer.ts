@@ -4,9 +4,7 @@ export function newInplacePluginPdfViewer(): InplaceRenderPlugin {
   return {
     name: 'pdf-viewer',
 
-    canHandle(filename: string, _mimeType: string): boolean {
-      return filename.toLowerCase().endsWith('.pdf');
-    },
+    canHandle: (filename: string, _mimeType: string): boolean => filename.toLowerCase().endsWith('.pdf'),
 
     async render(container: HTMLElement, fileUrl: string): Promise<void> {
       const PDFObject = await import('pdfobject');

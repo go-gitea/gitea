@@ -79,13 +79,12 @@ func RemoveLock(ctx context.Context, packageID int64) error {
 }
 
 func updateLock(ctx context.Context, refID int64, value string, cond builder.Cond) error {
-	pp := packages_model.PackageProperty{RefType: packages_model.PropertyTypePackage, RefID: refID, Name: LockFile}
-	ok, err := db.GetEngine(ctx).Get(&pp)
+	pp, ok, err := db.Get[packages_model.PackageProperty](ctx, builder.Eq{"ref_type": packages_model.PropertyTypePackage, "ref_id": refID, "`name`": LockFile})
 	if err != nil {
 		return err
 	}
 	if ok {
-		n, err := db.GetEngine(ctx).Where("ref_type=? AND ref_id=? AND name=?", packages_model.PropertyTypePackage, refID, LockFile).And(cond).Cols("value").Update(&packages_model.PackageProperty{Value: value})
+		n, err := db.GetEngine(ctx).ID(pp.ID).And(cond).Cols("value").Update(&packages_model.PackageProperty{Value: value})
 		if err != nil {
 			return err
 		}

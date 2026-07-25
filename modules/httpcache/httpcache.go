@@ -15,9 +15,8 @@ import (
 )
 
 type CacheControlOptions struct {
-	IsPublic    bool
-	MaxAge      time.Duration
-	NoTransform bool
+	IsPublic bool
+	MaxAge   time.Duration
 }
 
 // SetCacheControlInHeader sets suitable cache-control headers in the response
@@ -38,25 +37,19 @@ func SetCacheControlInHeader(h http.Header, opts *CacheControlOptions) {
 		directives = append(directives, "max-age=0", publicPrivate, "must-revalidate")
 		h.Set("X-Gitea-Debug", fmt.Sprintf("RUN_MODE=%v, MaxAge=%s", setting.RunMode, opts.MaxAge))
 	}
-
-	if opts.NoTransform {
-		directives = append(directives, "no-transform")
-	}
 	h.Set("Cache-Control", strings.Join(directives, ", "))
 }
 
 func CacheControlForPublicStatic() *CacheControlOptions {
 	return &CacheControlOptions{
-		IsPublic:    true,
-		MaxAge:      setting.StaticCacheTime,
-		NoTransform: true,
+		IsPublic: true,
+		MaxAge:   setting.StaticCacheTime,
 	}
 }
 
 func CacheControlForPrivateStatic() *CacheControlOptions {
 	return &CacheControlOptions{
-		MaxAge:      setting.StaticCacheTime,
-		NoTransform: true,
+		MaxAge: setting.StaticCacheTime,
 	}
 }
 

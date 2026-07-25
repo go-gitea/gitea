@@ -69,6 +69,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 				runsOn[i] = evaluator.Interpolate(v)
 			}
 			job.RawRunsOn = encodeRunsOn(runsOn)
+			if err := evaluator.EvaluateYamlNode(&job.RawContinueOnError); err != nil {
+				return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", id, err)
+			}
 			swf := &SingleWorkflow{
 				Name:           workflow.Name,
 				RawOn:          workflow.RawOn,

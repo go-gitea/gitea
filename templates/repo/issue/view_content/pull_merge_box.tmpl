@@ -32,7 +32,7 @@
 				{{if $infoSection.InfoItems}}
 				<div class="item">
 					{{range $infoItem := $infoSection.InfoItems}}
-						<div class="flex-text-block {{$infoItem.ItemClass}}">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
+						<div class="flex-text-block">{{$infoItem.SvgIconHTML}} {{$infoItem.InfoHTML}}</div>
 						{{if $infoItem.ListItems}}
 							<ul class="tw-pl-[36px]">{{/* align with the info icon and text */}}
 								{{range $listItem := $infoItem.ListItems}}

@@ -90,7 +90,7 @@ func CreateLabel(ctx *context.APIContext) {
 	form.Color = strings.Trim(form.Color, " ")
 	color, err := label.NormalizeColor(form.Color)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 	form.Color = color
@@ -209,7 +209,7 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Color != nil {
 		color, err := label.NormalizeColor(*form.Color)
 		if err != nil {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		l.Color = color

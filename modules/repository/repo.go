@@ -14,7 +14,6 @@ import (
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -47,7 +46,7 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 		return err
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		return err
 	}
@@ -181,7 +180,7 @@ func (shortRelease) TableName() string {
 // repositories like https://github.com/vim/vim (with over 13000 tags).
 func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) ([]*SyncResult, error) {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
-	tags, _, err := gitRepo.GetTagInfos(0, 0)
+	tags, _, err := gitRepo.GetTagInfos(ctx, 0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
@@ -210,7 +209,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromTag(tag.Name),
 				OldCommitID: "",
-				NewCommitID: tag.Object.String(),
+				NewCommitID: tag.Object.RefName(),
 			})
 		}
 		for _, deleteID := range deletes {
@@ -220,20 +219,20 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 			}
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromTag(release.TagName),
-				OldCommitID: release.Sha1,
+				OldCommitID: git.RefNameFromCommit(release.Sha1),
 				NewCommitID: "",
 			})
 		}
 		for _, tag := range updates {
 			release := dbReleasesByTag[tag.Name]
-			oldSha := ""
+			var oldCommitID git.RefName
 			if release != nil {
-				oldSha = release.Sha1
+				oldCommitID = git.RefNameFromCommit(release.Sha1)
 			}
 			syncResults = append(syncResults, &SyncResult{
 				RefName:     git.RefNameFromTag(tag.Name),
-				OldCommitID: oldSha,
-				NewCommitID: tag.Object.String(),
+				OldCommitID: oldCommitID,
+				NewCommitID: tag.Object.RefName(),
 			})
 		}
 		//

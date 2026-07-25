@@ -34,7 +34,7 @@ import (
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
 	issueList := htmlDoc.doc.Find("#issue-list")
 	assert.Equal(t, 1, issueList.Length())
-	return issueList.Find(".item").Find(".issue-item-title")
+	return issueList.Find(".item").Find(".list-item-large-title")
 }
 
 func getIssue(t *testing.T, repoID int64, issueSelection *goquery.Selection) *issues_model.Issue {
@@ -678,6 +678,59 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 	issueAfter = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 	assert.True(t, issueAfter.DeadlineUnix.IsZero())
+}
+
+func TestUpdateIssueRefByPoster(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user4 is a non-admin, non-collaborator on user2/repo1.
+	// They create an issue, making them the poster.
+	posterSession := loginUser(t, "user4")
+	issueURL := testNewIssue(t, posterSession, "user2", "repo1", "Poster ref test", "body")
+	refURL := issueURL + "/ref"
+
+	// The poster (non-collaborator) must be able to update the ref.
+	req := NewRequestWithValues(t, "POST", refURL, map[string]string{"ref": "refs/heads/main"})
+	posterSession.MakeRequest(t, req, http.StatusOK)
+
+	// A different non-collaborator non-poster must be forbidden.
+	otherSession := loginUser(t, "user5")
+	req = NewRequestWithValues(t, "POST", refURL, map[string]string{"ref": "refs/heads/main"})
+	otherSession.MakeRequest(t, req, http.StatusForbidden)
+}
+
+func TestIssueRefSelectorEnabledForPoster(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user4 creates an issue in user2/repo1 (user4 has no write permission there).
+	posterSession := loginUser(t, "user4")
+	issueURL := testNewIssue(t, posterSession, "user2", "repo1", "Ref selector test", "body")
+
+	resp := posterSession.MakeRequest(t, NewRequest(t, "GET", issueURL), http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	// The branch selector must not carry the "disabled" CSS class for the poster.
+	sel := htmlDoc.Find(".branch-selector-dropdown")
+	assert.Equal(t, 1, sel.Length())
+	assert.False(t, sel.HasClass("disabled"), "branch selector should be enabled for the issue poster")
+	// The update-ref URL must be present so JS can send the POST request.
+	_, hasURL := sel.Attr("data-url-update-issueref")
+	assert.True(t, hasURL, "data-url-update-issueref must be set for the issue poster")
+}
+
+func TestIssueRefSelectorEnabledForNewIssue(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user4 (non-collaborator on user2/repo1) must see an enabled ref selector
+	// when creating a new issue.
+	session := loginUser(t, "user4")
+	req := NewRequest(t, "GET", "/user2/repo1/issues/new")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+
+	sel := htmlDoc.Find(".branch-selector-dropdown")
+	assert.Equal(t, 1, sel.Length())
+	assert.False(t, sel.HasClass("disabled"), "branch selector should be enabled on the new issue form")
 }
 
 func TestIssueReferenceURL(t *testing.T) {

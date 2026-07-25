@@ -240,9 +240,14 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.Equal(t, "Size must be less than or equal to 2", br.Objects[0].Error.Message)
 		})
 
-		t.Run("AddMeta", func(t *testing.T) {
+		t.Run("CrossRepoObjectRequiresUpload", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
+			// An object whose bytes already exist in the store but which is not
+			// linked to this repo must not be silently linked, even when the
+			// caller can access it in another repo. Auto-linking let a deploy key
+			// (whose token carries the repo owner's identity) exfiltrate objects
+			// across repos without proving possession. The client must upload.
 			p := lfs.Pointer{Oid: "05eeb4eb5be71f2dd291ca39157d6d9effd7d1ea19cbdc8a99411fe2a8f26a00", Size: 6}
 
 			contentStore := lfs.NewContentStore()
@@ -250,6 +255,7 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, exist)
 
+			// The object is linked to another repo owned by the same user.
 			repo2 := createLFSTestRepository(t, "lfs-batch2-repo")
 			storeObjectInRepo(t, repo2.ID, "dummy0")
 
@@ -266,11 +272,13 @@ func TestAPILFSBatch(t *testing.T) {
 			br := decodeResponse(t, resp.Body)
 			assert.Len(t, br.Objects, 1)
 			assert.Nil(t, br.Objects[0].Error)
-			assert.Empty(t, br.Objects[0].Actions)
+			// The client is told to upload instead of the object being linked.
+			assert.Contains(t, br.Objects[0].Actions, "upload")
 
+			// No meta object may have been created for this repo.
 			meta, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
-			assert.NoError(t, err)
-			assert.NotNil(t, meta)
+			assert.Nil(t, meta)
+			assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
 			// Cleanup
 			err = contentStore.Delete(p.RelativePath())

@@ -5,13 +5,12 @@ package integration
 
 import (
 	"io"
-	"slices"
-	"strings"
 	"testing"
+
+	"gitea.dev/modules/test"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/html"
 )
 
 // HTMLDoc struct
@@ -42,6 +41,7 @@ func (doc *HTMLDoc) Find(selector string) *goquery.Selection {
 
 // AssertHTMLElement check if the element by selector exists or does not exist depending on checkExists
 func AssertHTMLElement[T int | bool](t testing.TB, doc *HTMLDoc, selector string, checkExists T) {
+	t.Helper()
 	sel := doc.doc.Find(selector)
 	switch v := any(checkExists).(type) {
 	case bool:
@@ -53,36 +53,10 @@ func AssertHTMLElement[T int | bool](t testing.TB, doc *HTMLDoc, selector string
 
 func assertHTMLEq(t testing.TB, expected, actual string) {
 	t.Helper()
-	if expected == actual {
+	if expected == actual { // fast path
 		return
 	}
-	exp, err := html.Parse(strings.NewReader(expected))
-	if !assert.NoError(t, err) {
-		return
-	}
-	act, err := html.Parse(strings.NewReader(actual))
-	if !assert.NoError(t, err) {
-		return
-	}
-	var normalize func(n *html.Node)
-	normalize = func(n *html.Node) {
-		slices.SortFunc(n.Attr, func(a, b html.Attribute) int {
-			if cmp := strings.Compare(a.Namespace, b.Namespace); cmp != 0 {
-				return cmp
-			}
-			if cmp := strings.Compare(a.Key, b.Key); cmp != 0 {
-				return cmp
-			}
-			return strings.Compare(a.Val, b.Val)
-		})
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			normalize(c)
-		}
-	}
-	normalize(exp)
-	normalize(act)
-	var expNormalized, actNormalized strings.Builder
-	assert.NoError(t, html.Render(&expNormalized, exp))
-	assert.NoError(t, html.Render(&actNormalized, act))
-	assert.Equal(t, expNormalized.String(), actNormalized.String())
+	exp := test.NormalizeHTMLAttributes(t, expected)
+	act := test.NormalizeHTMLAttributes(t, actual)
+	assert.Equal(t, exp, act)
 }

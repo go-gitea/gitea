@@ -32,10 +32,10 @@ func TestHandlePullRequestMerging(t *testing.T) {
 	autoMerge := unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
 
 	ctx, resp := contexttest.MockPrivateContext(t, "/")
-	handlePullRequestMerging(ctx, &private.HookOptions{
+	hookPostReceiveHandlePullRequestMerging(ctx, &private.HookOptions{
 		PullRequestID: pr.ID,
 		UserID:        2,
-	}, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, []*repo_module.PushUpdateOptions{
+	}, []*repo_module.PushUpdateOptions{
 		{NewCommitID: "01234567"},
 	})
 	assert.Empty(t, resp.Body.String())

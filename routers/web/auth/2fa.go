@@ -58,14 +58,14 @@ func TwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	// Validate the passcode with the stored TOTP secret.
-	ok, err := twofa.ValidateTOTP(form.Passcode)
+	// Validate the passcode and atomically consume it to prevent reuse/replay.
+	ok, err := twofa.ValidateAndConsumeTOTP(ctx, form.Passcode)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	if ok && twofa.LastUsedPasscode != form.Passcode {
+	if ok {
 		remember := ctx.Session.Get("twofaRemember").(bool)
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
@@ -79,12 +79,6 @@ func TwoFactorPost(ctx *context.Context) {
 				ctx.ServerError("UserSignIn", err)
 				return
 			}
-		}
-
-		twofa.LastUsedPasscode = form.Passcode
-		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
-			ctx.ServerError("UserSignIn", err)
-			return
 		}
 
 		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)

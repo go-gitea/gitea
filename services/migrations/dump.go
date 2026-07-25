@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -19,6 +18,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/repository"
@@ -49,7 +49,7 @@ type RepositoryDumper struct {
 	prHeadCache map[string]string
 }
 
-// NewRepositoryDumper creates an gitea Uploader
+// NewRepositoryDumper creates a gitea Uploader
 func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName string, opts base.MigrateOptions) (*RepositoryDumper, error) {
 	baseDir = filepath.Join(baseDir, repoOwner, repoName)
 	if err := os.MkdirAll(baseDir, os.ModePerm); err != nil {
@@ -137,8 +137,11 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		return err
 	}
 
-	repoPath := g.gitPath()
-	if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
+	repoAbsPath, err := filepath.Abs(g.gitPath())
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(repoAbsPath, os.ModePerm); err != nil {
 		return err
 	}
 
@@ -149,45 +152,50 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		return err
 	}
 
-	err = git.Clone(ctx, remoteAddr, repoPath, git.CloneRepoOptions{
+	err = git.Clone(ctx, remoteAddr, repoAbsPath, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
 		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	})
 	if err != nil {
-		return fmt.Errorf("Clone: %w", err)
+		return fmt.Errorf("clone code: %w", err)
 	}
-	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+
+	repoLocal := gitrepo.RepositoryUnmanaged(repoAbsPath)
+	if err := git.WriteCommitGraph(ctx, repoLocal); err != nil {
 		return err
 	}
 
 	if opts.Wiki {
-		wikiPath := g.wikiPath()
+		wikiAbsPath, err := filepath.Abs(g.wikiPath())
+		if err != nil {
+			return err
+		}
 		wikiRemotePath := repository.WikiRemoteURL(ctx, remoteAddr)
 		if len(wikiRemotePath) > 0 {
-			if err := os.MkdirAll(wikiPath, os.ModePerm); err != nil {
-				return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+			if err := os.MkdirAll(wikiAbsPath, os.ModePerm); err != nil {
+				return fmt.Errorf("failed to create %s: %w", wikiAbsPath, err)
 			}
-
-			if err := git.Clone(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+			wikiLocal := gitrepo.RepositoryUnmanaged(wikiAbsPath)
+			if err := git.Clone(ctx, wikiRemotePath, wikiAbsPath, git.CloneRepoOptions{
 				Mirror:        true,
 				Quiet:         true,
 				Timeout:       migrateTimeout,
 				Branch:        "master",
 				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
-				log.Warn("Clone wiki: %v", err)
-				if err := os.RemoveAll(wikiPath); err != nil {
-					return fmt.Errorf("Failed to remove %s: %w", wikiPath, err)
+				log.Warn("Failed to clone wiki: %v", err)
+				if err := os.RemoveAll(wikiAbsPath); err != nil {
+					return fmt.Errorf("failed to remove %s: %w", wikiAbsPath, err)
 				}
-			} else if err := git.WriteCommitGraph(ctx, wikiPath); err != nil {
+			} else if err := git.WriteCommitGraph(ctx, wikiLocal); err != nil {
 				return err
 			}
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(ctx, g.gitPath())
+	g.gitRepo, err = git.OpenRepositoryLocal(repoAbsPath)
 	return err
 }
 
@@ -310,7 +318,9 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 						}
 						defer rc.Close()
 					} else {
-						resp, err := http.Get(*asset.DownloadURL)
+						// use the migration client so the fetch (including any redirect) is
+						// validated against the migration host allow/block list
+						resp, err := getMigrationHTTPClient().Get(*asset.DownloadURL)
 						if err != nil {
 							return err
 						}
@@ -450,8 +460,10 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 		}
 
 		// SECURITY: We will assume that the pr.PatchURL has been checked
-		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
-		resp, err := http.Get(u) // TODO: This probably needs to use the downloader as there may be rate limiting issues here
+		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe.
+		// Use the migration client so an http(s) PatchURL (and any redirect it follows) is
+		// validated against the migration host allow/block list at dial time.
+		resp, err := getMigrationHTTPClient().Get(u)
 		if err != nil {
 			return err
 		}
@@ -497,7 +509,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 	if pr.Head.CloneURL == "" || pr.Head.Ref == "" {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithDir(g.gitPath()).RunStdString(ctx)
+			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithRepo(g.gitRepo).RunStdString(ctx)
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -516,7 +528,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 			remote = "head-pr-" + strconv.FormatInt(pr.Number, 10)
 		}
 		// ... now add the remote
-		err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
+		err := g.gitRepo.AddRemote(ctx, remote, pr.Head.CloneURL, true)
 		if err != nil {
 			log.Error("PR #%d in %s/%s AddRemote[%s] failed: %v", pr.Number, g.repoOwner, g.repoName, remote, err)
 		} else {
@@ -527,7 +539,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 	if !ok {
 		// Set head information if pr.Head.SHA is available
 		if pr.Head.SHA != "" {
-			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithDir(g.gitPath()).RunStdString(ctx)
+			_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithRepo(g.gitRepo).RunStdString(ctx)
 			if err != nil {
 				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}
@@ -543,10 +555,10 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 		localRef = git.SanitizeRefPattern(oldHeadOwnerName + "/" + pr.Head.Ref)
 
 		// ... Now we must assert that this does not exist
-		if g.gitRepo.IsBranchExist(localRef) {
+		if g.gitRepo.IsBranchExist(ctx, localRef) {
 			localRef = "head-pr-" + strconv.FormatInt(pr.Number, 10) + "/" + localRef
 			i := 0
-			for g.gitRepo.IsBranchExist(localRef) {
+			for g.gitRepo.IsBranchExist(ctx, localRef) {
 				if i > 5 {
 					// ... We tried, we really tried but this is just a seriously unfriendly repo
 					return fmt.Errorf("unable to create unique local reference from %s", pr.Head.Ref)
@@ -562,7 +574,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 			fetchArg = git.BranchPrefix + fetchArg
 		}
 
-		_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithDir(g.gitPath()).RunStdString(ctx)
+		_, _, err = gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).WithRepo(g.gitRepo).RunStdString(ctx)
 		if err != nil {
 			log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 			// We need to continue here so that the Head.Ref is reset and we attempt to set the gitref for the PR
@@ -578,7 +590,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 
 	// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
 	if pr.Head.SHA == "" {
-		headSha, err := g.gitRepo.GetBranchCommitID(localRef)
+		headSha, err := g.gitRepo.GetBranchCommitID(ctx, localRef)
 		if err != nil {
 			log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			return nil
@@ -586,7 +598,7 @@ func (g *RepositoryDumper) handlePullRequest(ctx context.Context, pr *base.PullR
 		pr.Head.SHA = headSha
 	}
 	if pr.Head.SHA != "" {
-		_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithDir(g.gitPath()).RunStdString(ctx)
+		_, _, err = gitcmd.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitHeadRefName(), pr.Head.SHA).WithRepo(g.gitRepo).RunStdString(ctx)
 		if err != nil {
 			log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 		}

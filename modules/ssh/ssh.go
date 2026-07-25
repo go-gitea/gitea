@@ -6,9 +6,6 @@ package ssh
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"io"
@@ -23,11 +20,11 @@ import (
 	"syscall"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/modules/generate"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"github.com/gliderlabs/ssh"
 	gossh "golang.org/x/crypto/ssh"
@@ -59,7 +56,7 @@ func getExitStatusFromError(err error) int {
 		return 0
 	}
 
-	exitErr, ok := err.(*exec.ExitError)
+	exitErr, ok := errors.AsType[*exec.ExitError](err)
 	if !ok {
 		return 1
 	}
@@ -322,7 +319,7 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 }
 
 // sshConnectionFailed logs a failed connection
-// -  this mainly exists to give a nice function name in logging
+// - this mainly exists to give a nice function name in logging
 func sshConnectionFailed(conn net.Conn, err error) {
 	// Log the underlying error with a specific message
 	log.Warn("Failed connection from %s with error: %v", conn.RemoteAddr(), err)
@@ -351,40 +348,37 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 		},
 	}
 
-	keys := make([]string, 0, len(setting.SSH.ServerHostKeys))
+	hostKeyFiles := make([]string, 0, len(setting.SSH.ServerHostKeys))
 	for _, key := range setting.SSH.ServerHostKeys {
-		isExist, err := util.IsExist(key)
+		_, err := os.Stat(key)
 		if err != nil {
-			log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKeys, err)
+			if !errors.Is(err, os.ErrNotExist) {
+				log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKeys, err)
+			}
+			continue
 		}
-		if isExist {
-			keys = append(keys, key)
-		}
+		hostKeyFiles = append(hostKeyFiles, key)
 	}
 
-	if len(keys) == 0 {
-		filePath := filepath.Dir(setting.SSH.ServerHostKeys[0])
-
-		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
-			log.Error("Failed to create dir %s: %v", filePath, err)
+	if len(hostKeyFiles) == 0 {
+		hostKeyDir := filepath.Dir(setting.SSH.ServerHostKeys[0])
+		err := os.MkdirAll(hostKeyDir, os.ModePerm)
+		if err != nil {
+			log.Error("Failed to create dir %s: %v", hostKeyDir, err)
 		}
-
-		err := GenKeyPair(setting.SSH.ServerHostKeys[0])
+		hostKeyFiles, err = InitDefaultHostKeys(hostKeyDir)
 		if err != nil {
 			log.Fatal("Failed to generate private key: %v", err)
 		}
-		log.Trace("New private key is generated: %s", setting.SSH.ServerHostKeys[0])
-		keys = append(keys, setting.SSH.ServerHostKeys[0])
 	}
 
-	for _, key := range keys {
-		log.Info("Adding SSH host key: %s", key)
-		err := srv.SetOption(ssh.HostKeyFile(key))
+	for _, keyFile := range hostKeyFiles {
+		log.Info("Adding SSH host key: %s", keyFile)
+		err := srv.SetOption(ssh.HostKeyFile(keyFile))
 		if err != nil {
 			log.Error("Failed to set Host Key. %s", err)
 		}
 	}
-
 	go func() {
 		_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Service: Built-in SSH server", process.SystemProcessType, true)
 		defer finished()
@@ -395,43 +389,44 @@ func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 // GenKeyPair make a pair of public and private keys for SSH access.
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
-func GenKeyPair(keyPath string) error {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+func GenKeyPair(keyPath string, keyType generate.SSHKeyType, bits int) error {
+	publicKey, privateKeyPEM, err := generate.NewSSHKey(keyType, bits)
 	if err != nil {
 		return err
 	}
 
-	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
+	public := gossh.MarshalAuthorizedKey(publicKey)
+	privateKeyBuf := &bytes.Buffer{}
+	err = pem.Encode(privateKeyBuf, privateKeyPEM)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err = f.Close(); err != nil {
-			log.Error("Close: %v", err)
+
+	err = os.WriteFile(keyPath, privateKeyBuf.Bytes(), 0o600)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(keyPath+".pub", public, 0o644)
+}
+
+// InitDefaultHostKeys mirrors how ssh-keygen -A operates
+// it runs checks if public and private keys are already defined and creates new ones if not present
+// key naming does not follow the OpenSSH convention due to existing settings being gitea.{KeyType} so generation follows gitea convention
+func InitDefaultHostKeys(path string) (keyFiles []string, _ error) {
+	var errs []error
+	keyTypes := []generate.SSHKeyType{generate.SSHKeyRSA, generate.SSHKeyECDSA, generate.SSHKeyED25519}
+	for _, keyType := range keyTypes {
+		keyPath := filepath.Join(path, "gitea."+string(keyType))
+		_, errStatPriv := os.Stat(keyPath)
+		if errStatPriv != nil {
+			err := GenKeyPair(keyPath, keyType, 0)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 		}
-	}()
-
-	if err := pem.Encode(f, privateKeyPEM); err != nil {
-		return err
+		keyFiles = append(keyFiles, keyPath)
 	}
-
-	// generate public key
-	pub, err := gossh.NewPublicKey(&privateKey.PublicKey)
-	if err != nil {
-		return err
-	}
-
-	public := gossh.MarshalAuthorizedKey(pub)
-	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err = p.Close(); err != nil {
-			log.Error("Close: %v", err)
-		}
-	}()
-	_, err = p.Write(public)
-	return err
+	return keyFiles, errors.Join(errs...)
 }

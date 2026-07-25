@@ -232,6 +232,10 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 		RepoID: repoID,
 		RunID:  run.ID,
 	})
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionRunJobSummary{
+		RepoID: repoID,
+		RunID:  run.ID,
+	})
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// TODO: Deleting task records could break current ephemeral runner implementation. This is a temporary workaround suggested by ChristopherHX.

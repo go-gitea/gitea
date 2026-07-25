@@ -96,17 +96,17 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				iframe := NewHTMLParser(t, respParent.Body).Find("iframe.external-render-iframe")
 				assert.Empty(t, iframe.AttrOr("src", "")) // src should be empty, "data-src" is used instead
 
-				// default sandbox on parent page
-				assert.Equal(t, "allow-scripts allow-popups", iframe.AttrOr("sandbox", ""))
+				// no sandbox on parent page because the rendered response should always have correct sandbox
+				assert.Equal(t, "(non-existing)", iframe.AttrOr("sandbox", "(non-existing)"))
 				assert.Equal(t, "/user2/repo1/render/branch/master/test.html", iframe.AttrOr("data-src", ""))
 			})
-			t.Run("SubPage", func(t *testing.T) {
+			t.Run("FramePage", func(t *testing.T) {
 				req = NewRequest(t, "GET", "/user2/repo1/render/branch/master/test.html")
 				respSub := MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, "text/html; charset=utf-8", respSub.Header().Get("Content-Type"))
 
-				// default sandbox in sub page response
-				assert.Equal(t, "frame-src 'self'; sandbox allow-scripts allow-popups", respSub.Header().Get("Content-Security-Policy"))
+				// default sandbox in sub-page response (there should be no "allow-same-origin")
+				assert.Equal(t, "sandbox allow-scripts allow-forms allow-modals allow-popups allow-downloads", respSub.Header().Get("Content-Security-Policy"))
 				// FIXME: actually here is a bug (legacy design problem), the "PostProcess" will escape "<script>" tag, but it indeed is the sanitizer's job
 				assert.Equal(t,
 					`<script nonce crossorigin src="`+public.AssetURI("web_src/js/external-render-helper.ts")+`" id="gitea-external-render-helper" data-render-query-string=""></script>`+
@@ -127,10 +127,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 				req = NewRequest(t, "GET", "/user2/repo1/render/branch/master/bin.no-sanitizer")
 				respSub := MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, binaryContent, respSub.Body.String()) // raw content should keep the raw bytes (including invalid UTF-8 bytes), and no "external-render-iframe" helpers
-
-				// no sandbox (disabled by RENDER_CONTENT_SANDBOX)
-				assert.Empty(t, iframe.AttrOr("sandbox", ""))
-				assert.Equal(t, "frame-src 'self'", respSub.Header().Get("Content-Security-Policy"))
+				assert.Empty(t, respSub.Header().Get("Content-Security-Policy"), "sandbox is disabled by RENDER_CONTENT_SANDBOX")
 			})
 
 			t.Run("HTMLContentWithExternalRenderIframeHelper", func(t *testing.T) {
@@ -142,7 +139,7 @@ func TestExternalMarkupRenderer(t *testing.T) {
 						`<script>foo("raw")</script>`,
 					respSub.Body.String(),
 				)
-				assert.Equal(t, "frame-src 'self'", respSub.Header().Get("Content-Security-Policy"))
+				assert.Empty(t, respSub.Header().Get("Content-Security-Policy"))
 			})
 		})
 	})

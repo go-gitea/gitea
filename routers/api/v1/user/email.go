@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -56,6 +57,11 @@ func AddEmail(ctx *context.APIContext) {
 	//     "$ref": "#/responses/EmailList"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
+		ctx.APIErrorNotFound("emails are not allowed to be changed")
+		return
+	}
 
 	form := web.GetForm(ctx).(*api.CreateEmailOption)
 	if len(form.Emails) == 0 {
@@ -114,6 +120,11 @@ func DeleteEmail(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
+		ctx.APIErrorNotFound("emails are not allowed to be changed")
+		return
+	}
+
 	form := web.GetForm(ctx).(*api.DeleteEmailOption)
 	if len(form.Emails) == 0 {
 		ctx.Status(http.StatusNoContent)
@@ -122,7 +133,7 @@ func DeleteEmail(ctx *context.APIContext) {
 
 	if err := user_service.DeleteEmailAddresses(ctx, ctx.Doer, form.Emails); err != nil {
 		if user_model.IsErrEmailAddressNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

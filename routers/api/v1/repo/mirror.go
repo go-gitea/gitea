@@ -5,6 +5,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -112,7 +113,7 @@ func PushMirrorSync(ctx *context.APIContext) {
 	// Get All push mirrors of a specific repo
 	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIError(http.StatusNotFound, err.Error())
 		return
 	}
 
@@ -175,7 +176,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 	// Get all push mirrors for the specified repository.
 	pushMirrors, count, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIError(http.StatusNotFound, err.Error())
 		return
 	}
 
@@ -239,7 +240,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !exist {
-		ctx.APIError(http.StatusNotFound, nil)
+		ctx.APIErrorNotFound()
 		return
 	}
 
@@ -334,7 +335,7 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	// Delete push mirror on repo by name.
 	err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{RepoID: ctx.Repo.Repository.ID, RemoteName: remoteName})
 	if err != nil {
-		ctx.APIError(http.StatusNotFound, err)
+		ctx.APIError(http.StatusNotFound, err.Error())
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -344,8 +345,12 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	repo := ctx.Repo.Repository
 
 	interval, err := time.ParseDuration(mirrorOption.Interval)
-	if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
-		ctx.APIError(http.StatusBadRequest, err)
+	if err != nil {
+		ctx.APIError(http.StatusBadRequest, fmt.Sprintf("invalid interval: %v", err))
+		return
+	}
+	if interval != 0 && interval < setting.Mirror.MinInterval {
+		ctx.APIError(http.StatusBadRequest, fmt.Sprintf("interval is shorter than minimum %v", setting.Mirror.MinInterval.String()))
 		return
 	}
 

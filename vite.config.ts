@@ -45,7 +45,7 @@ function failOnWarningsPlugin(): Rolldown.Plugin {
     onLog(level) {
       if (level === 'warn') warningCount++;
     },
-    buildEnd() {
+    closeBundle() {
       if (!warningCount) return;
       throw new Error(`${warningCount} warnings present`);
     },
@@ -56,7 +56,7 @@ const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
     pluginTimings: false,
   },
-  ...(env.CI ? {plugins: [failOnWarningsPlugin()]} : {}),
+  ...(env.CI && {plugins: [failOnWarningsPlugin()]}),
 };
 
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {

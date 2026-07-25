@@ -15,7 +15,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	repo_service "gitea.dev/services/repository"
@@ -78,20 +78,20 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo, err := git.OpenRepository(repo1)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	err = repo_service.CreateNewBranch(t.Context(), user2, repo1, repo1.DefaultBranch, newBranch)
+	err = repo_service.CreateNewBranch(t.Context(), user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
 	require.NoError(t, err)
 
-	commitID, err := gitRepo.GetBranchCommitID(repo1.DefaultBranch)
+	commitID, err := gitRepo.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 	require.NoError(t, err)
 	// Make a new tag in repo1
 	newTag := "test_tag"
-	err = gitRepo.CreateTag(newTag, commitID)
+	err = gitRepo.CreateTag(t.Context(), newTag, commitID)
 	require.NoError(t, err)
 	/*** END SETUP ***/
 
@@ -106,7 +106,7 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse := DecodeJSON(t, resp, &api.ContentsResponse{})
-	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
+	lastCommit, _ := gitRepo.GetCommitByPath(t.Context(), "README.md")
 	expectedContentsResponse := getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
@@ -124,8 +124,8 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
-	branchCommit, _ := gitRepo.GetBranchCommit(ref)
-	lastCommit, _ = branchCommit.GetCommitByPath("README.md")
+	branchCommit, _ := gitRepo.GetBranchCommit(t.Context(), ref)
+	lastCommit, _ = branchCommit.GetCommitByPath(t.Context(), gitRepo, "README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
@@ -135,8 +135,8 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
-	tagCommit, _ := gitRepo.GetTagCommit(ref)
-	lastCommit, _ = tagCommit.GetCommitByPath("README.md")
+	tagCommit, _ := gitRepo.GetTagCommit(t.Context(), ref)
+	lastCommit, _ = tagCommit.GetCommitByPath(t.Context(), gitRepo, "README.md")
 	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 

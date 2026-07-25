@@ -72,7 +72,7 @@ func Migrate(ctx *context.APIContext) {
 	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -110,12 +110,12 @@ func Migrate(ctx *context.APIContext) {
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
-		ctx.APIError(http.StatusForbidden, errors.New("the site administrator has disabled the creation of new pull mirrors"))
+		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new pull mirrors")
 		return
 	}
 
 	if setting.Repository.DisableMigrations {
-		ctx.APIError(http.StatusForbidden, errors.New("the site administrator has disabled migrations"))
+		ctx.APIError(http.StatusForbidden, "the site administrator has disabled migrations")
 		return
 	}
 
@@ -235,9 +235,9 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 	case db.IsErrNamePatternNotAllowed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(db.ErrNamePatternNotAllowed).Pattern))
 	case git.IsErrInvalidCloneAddr(err):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	case base.IsErrNotSupported(err):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
 		if strings.Contains(err.Error(), "Authentication failed") ||

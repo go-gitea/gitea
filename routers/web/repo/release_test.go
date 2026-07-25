@@ -4,12 +4,14 @@
 package repo
 
 import (
+	"net/http/httptest"
 	"testing"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
 	"gitea.dev/services/contexttest"
@@ -39,15 +41,15 @@ func TestNewReleasePost(t *testing.T) {
 		assert.NotEmpty(t, ctx.Data["ShowCreateTagOnlyButton"])
 	})
 
-	post := func(t *testing.T, form forms.NewReleaseForm) *context.Context {
-		ctx, _ := contexttest.MockContext(t, "user2/repo1/releases/new")
+	post := func(t *testing.T, form forms.NewReleaseForm) (*context.Context, *httptest.ResponseRecorder) {
+		ctx, resp := contexttest.MockContext(t, "user2/repo1/releases/new")
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, 1)
 		contexttest.LoadGitRepo(t, ctx)
 		defer ctx.Repo.GitRepo.Close()
 		web.SetForm(ctx, &form)
 		NewReleasePost(ctx)
-		return ctx
+		return ctx, resp
 	}
 
 	loadRelease := func(t *testing.T, tagName string) *repo_model.Release {
@@ -70,7 +72,7 @@ func TestNewReleasePost(t *testing.T) {
 	})
 
 	t.Run("ReleaseExistsDoUpdate(non-tag)", func(t *testing.T) {
-		ctx := post(t, forms.NewReleaseForm{
+		_, resp := post(t, forms.NewReleaseForm{
 			TagName: "v1.1",
 			Target:  "master",
 			Title:   "updated-title",
@@ -80,11 +82,11 @@ func TestNewReleasePost(t *testing.T) {
 		require.NotNil(t, rel)
 		assert.False(t, rel.IsTag)
 		assert.Equal(t, "testing-release", rel.Title)
-		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 	})
 
 	t.Run("ReleaseExistsDoUpdate(tag-only)", func(t *testing.T) {
-		ctx := post(t, forms.NewReleaseForm{
+		ctx, resp := post(t, forms.NewReleaseForm{
 			TagName: "delete-tag", // a strange name, but it is the only "is_tag=true" fixture
 			Target:  "master",
 			Title:   "updated-title",
@@ -95,12 +97,12 @@ func TestNewReleasePost(t *testing.T) {
 		require.NotNil(t, rel)
 		assert.True(t, rel.IsTag) // the record should not be updated because the request is "tag-only". TODO: need to improve the logic?
 		assert.Equal(t, "delete-tag", rel.Title)
-		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 		assert.NotEmpty(t, ctx.Data["ShowCreateTagOnlyButton"]) // still show the "tag-only" button
 	})
 
 	t.Run("ReleaseExistsDoUpdate(tag-release)", func(t *testing.T) {
-		ctx := post(t, forms.NewReleaseForm{
+		ctx, _ := post(t, forms.NewReleaseForm{
 			TagName: "delete-tag", // a strange name, but it is the only "is_tag=true" fixture
 			Target:  "master",
 			Title:   "updated-title",
@@ -114,7 +116,7 @@ func TestNewReleasePost(t *testing.T) {
 	})
 
 	t.Run("TagOnly", func(t *testing.T) {
-		ctx := post(t, forms.NewReleaseForm{
+		ctx, _ := post(t, forms.NewReleaseForm{
 			TagName: "new-tag-only",
 			Target:  "master",
 			Title:   "title",
@@ -128,7 +130,7 @@ func TestNewReleasePost(t *testing.T) {
 	})
 
 	t.Run("TagOnlyConflict", func(t *testing.T) {
-		ctx := post(t, forms.NewReleaseForm{
+		_, resp := post(t, forms.NewReleaseForm{
 			TagName: "v1.1",
 			Target:  "master",
 			Title:   "title",
@@ -138,7 +140,7 @@ func TestNewReleasePost(t *testing.T) {
 		rel := loadRelease(t, "v1.1")
 		require.NotNil(t, rel)
 		assert.False(t, rel.IsTag)
-		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 	})
 }
 

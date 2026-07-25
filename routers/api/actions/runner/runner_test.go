@@ -12,47 +12,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type capabilityRegisterRequest struct {
-	*runnerv1.RegisterRequest
-	capabilities []string
-}
-
-func (r *capabilityRegisterRequest) GetCapabilities() []string {
-	return r.capabilities
-}
-
-type capabilityDeclareRequest struct {
-	*runnerv1.DeclareRequest
-	capabilities []string
-}
-
-func (r *capabilityDeclareRequest) GetCapabilities() []string {
-	return r.capabilities
-}
-
-func TestRunnerRequestHasCancellingCapabilityTypedAccessor(t *testing.T) {
-	registerReq := &capabilityRegisterRequest{
-		RegisterRequest: &runnerv1.RegisterRequest{},
-		capabilities:    []string{runnerCapabilityCancelling, "other"},
+func TestApplyDeclareRequestToRunnerAdvertisedCapabilityEnablesCancelling(t *testing.T) {
+	runner := &actions_model.ActionRunner{}
+	req := &runnerv1.DeclareRequest{
+		Version:      "1.2.3",
+		Labels:       []string{"linux"},
+		Capabilities: []string{runnerCapabilityCancelling, "other"},
 	}
-	hasCapability, known := runnerRequestHasCancellingCapability(registerReq)
-	assert.True(t, hasCapability)
-	assert.True(t, known)
 
-	declareReq := &capabilityDeclareRequest{
-		DeclareRequest: &runnerv1.DeclareRequest{},
-		capabilities:   nil,
-	}
-	hasCapability, known = runnerRequestHasCancellingCapability(declareReq)
-	assert.False(t, hasCapability)
-	assert.True(t, known)
-
-	hasCapability, known = runnerRequestHasCancellingCapability(nil)
-	assert.False(t, hasCapability)
-	assert.False(t, known)
+	cols := applyDeclareRequestToRunner(runner, req)
+	assert.Equal(t, []string{"agent_labels", "version", "has_cancelling_support"}, cols)
+	assert.True(t, runner.HasCancellingSupport)
+	assert.Equal(t, "1.2.3", runner.Version)
+	assert.Equal(t, []string{"linux"}, runner.AgentLabels)
 }
 
-func TestApplyDeclareRequestToRunnerPreservesUnknownCapabilityState(t *testing.T) {
+func TestApplyDeclareRequestToRunnerMissingCapabilityDisablesCancelling(t *testing.T) {
 	runner := &actions_model.ActionRunner{
 		HasCancellingSupport: true,
 	}
@@ -62,25 +37,21 @@ func TestApplyDeclareRequestToRunnerPreservesUnknownCapabilityState(t *testing.T
 	}
 
 	cols := applyDeclareRequestToRunner(runner, req)
-	assert.Equal(t, []string{"agent_labels", "version"}, cols)
-	assert.True(t, runner.HasCancellingSupport)
-	assert.Equal(t, "1.2.3", runner.Version)
-	assert.Equal(t, []string{"linux"}, runner.AgentLabels)
+	assert.Equal(t, []string{"agent_labels", "version", "has_cancelling_support"}, cols)
+	assert.False(t, runner.HasCancellingSupport)
 }
 
-func TestApplyDeclareRequestToRunnerUpdatesTypedCapabilityState(t *testing.T) {
+func TestApplyDeclareRequestToRunnerUnchangedCapabilityOmitsColumn(t *testing.T) {
 	runner := &actions_model.ActionRunner{
 		HasCancellingSupport: true,
 	}
-	req := &capabilityDeclareRequest{
-		DeclareRequest: &runnerv1.DeclareRequest{
-			Version: "1.2.3",
-			Labels:  []string{"linux"},
-		},
-		capabilities: []string{},
+	req := &runnerv1.DeclareRequest{
+		Version:      "1.2.3",
+		Labels:       []string{"linux"},
+		Capabilities: []string{runnerCapabilityCancelling},
 	}
 
 	cols := applyDeclareRequestToRunner(runner, req)
-	assert.Equal(t, []string{"agent_labels", "version", "has_cancelling_support"}, cols)
-	assert.False(t, runner.HasCancellingSupport)
+	assert.Equal(t, []string{"agent_labels", "version"}, cols)
+	assert.True(t, runner.HasCancellingSupport)
 }
