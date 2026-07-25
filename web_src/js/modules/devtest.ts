@@ -72,12 +72,14 @@ function initDevtestAnsiRender(container: HTMLElement) {
       ...Array.from({length: 8}, (_value, fg) =>
         row(8, (bg) => sgr(`${90 + fg};${100 + bg}`, ` ${90 + fg};${100 + bg} `))),
     ]},
-    {title: 'attributes and resets', lines: [
-      row(10, (code) => `${sgr(String(code), ` SGR ${code} `)} `),
+    {title: 'attributes, in the layout of the colors.py sample from ansi_up issue 78', lines: [
+      `${row(10, (code) => ` ${esc}[${code}mSGR ${String(code).padStart(2)}${esc}[m `)} ${esc}[53mSGR 53${esc}[m`,
+      `${row(5, (idx) => ` ${esc}[4:${idx + 1}mSGR 4:${idx + 1}${esc}[m `)} ${esc}[21mSGR 21${esc}[m`,
+      ` ${esc}[4:3m${esc}[58;2;135;0;255mtruecolor underline${esc}[59m${esc}[4:0m  ${esc}]8;;https://example.com${esc}\\hyperlink${esc}]8;;${esc}\\`,
       `${esc}[1;3;4;31mall on${esc}[22m no bold${esc}[23m no italic${esc}[24m no underline${esc}[39m default color`,
     ]},
     {title: '256 colors, foreground (0-15 use css classes, the rest inline colors)', lines: palette((index) => `38;5;${index}`)},
-    {title: '256 colors, faint — the case reported in ansi_up issue 78', lines: palette((index) => `2;38;5;${index}`)},
+    {title: '256 colors, faint (SGR 2)', lines: palette((index) => `2;38;5;${index}`)},
     {title: '256 colors, background', lines: palette((index) => `48;5;${index}`)},
     {title: 'truecolor gradient', lines: [row(77, (col) => {
       const r = 255 - Math.floor(col * 255 / 76);
@@ -98,7 +100,7 @@ function initDevtestAnsiRender(container: HTMLElement) {
       `cursor movement ${esc}[3Ais dropped`,
       `private CSI ${esc}[?25lis dropped`,
       `${esc}]0;window title${esc}\\OSC window title is dropped`,
-      `${esc}]8;;https://example.com${esc}\\OSC 8 hyperlink is dropped, its text kept${esc}]8;;${esc}\\`,
+      `${esc}]8;;https://example.com${esc}\\OSC 8 hyperlink becomes a link${esc}]8;;${esc}\\`,
       `a sequence cut off by the line end is dropped${esc}[38;5;`,
       '<script>alert(1)</script> & "quotes" are escaped',
       'urls such as https://example.com/path?a=b&c=d become links',
@@ -107,7 +109,7 @@ function initDevtestAnsiRender(container: HTMLElement) {
 
   for (const {title, lines, source} of sections) {
     container.append(createElementFromHTML(html`<h2>${title}</h2>`));
-    const elConsole = createElementFromHTML(html`<div class="console tw-p-2 tw-mb-4"></div>`);
+    const elConsole = createElementFromHTML(html`<div class="console tw-p-2 tw-mb-4 tw-whitespace-pre-wrap"></div>`);
     const ansi = new AnsiLineRenderer(); // one per section, so a section cannot bleed into the next
     for (const line of lines) {
       if (source) elConsole.append(createElementFromHTML(html`<div class="tw-mt-2 tw-opacity-50">${line.replaceAll(esc, '\\e')}</div>`));

@@ -71,12 +71,33 @@ test('renderAnsi drops sequences it does not render', () => {
   expect(renderAnsi('a\x1b[1;2Hb')).toEqual('ab');
   expect(renderAnsi('a\x1b[6nb')).toEqual('ab');
   expect(renderAnsi('a\x1b]0;window title\x07b')).toEqual('ab');
-  expect(renderAnsi('a\x1b]8;;http://example.com\x1b\\b')).toEqual('ab');
+  expect(renderAnsi('a\x1b]8;;http://example.com\x1b\\b')).toEqual('ab'); // unterminated hyperlink
 
   // a sequence cut off by the end of the line can never be completed, so it is dropped
   expect(renderAnsi('abc\x1b[3')).toEqual('abc');
   expect(renderAnsi('abc\x1b[')).toEqual('abc');
   expect(renderAnsi('abc\x1b')).toEqual('abc');
+});
+
+test('renderAnsi OSC 8 hyperlinks', () => {
+  const esc = '\x1b';
+  const link = (raw: string) => renderAnsi(raw);
+
+  // both string terminators, "\x07" and "\x1b\\", are accepted
+  expect(link(`${esc}]8;;https://example.com${esc}\\click here${esc}]8;;${esc}\\`)).toEqual('<a href="https://example.com" target="_blank">click here</a>');
+  expect(link(`${esc}]8;;https://example.com\x07click here${esc}]8;;\x07`)).toEqual('<a href="https://example.com" target="_blank">click here</a>');
+  expect(link(`before ${esc}]8;;https://example.com${esc}\\text${esc}]8;;${esc}\\ after`)).toEqual('before <a href="https://example.com" target="_blank">text</a> after');
+
+  // the id parameter is ignored, the style in effect still applies to the label
+  expect(link(`${esc}]8;id=1;https://example.com${esc}\\text${esc}]8;;${esc}\\`)).toEqual('<a href="https://example.com" target="_blank">text</a>');
+  expect(link(`${esc}[31m${esc}]8;;https://example.com${esc}\\text${esc}]8;;${esc}\\`)).toEqual('<a href="https://example.com" target="_blank"><span class="ansi-red-fg">text</span></a>');
+
+  // a non-web target is not linked, but its label is still shown
+  expect(link(`${esc}]8;;javascript:alert(1)${esc}\\text${esc}]8;;${esc}\\`)).toEqual('text');
+  expect(link(`${esc}]8;;ftp://example.com${esc}\\text${esc}]8;;${esc}\\`)).toEqual('text');
+
+  // the url and the label are both escaped
+  expect(link(`${esc}]8;;https://example.com/?a=1&b="x"${esc}\\<b>${esc}]8;;${esc}\\`)).toEqual('<a href="https://example.com/?a=1&amp;b=&quot;x&quot;" target="_blank">&lt;b&gt;</a>');
 });
 
 test('AnsiLineRenderer carries style across lines', () => {

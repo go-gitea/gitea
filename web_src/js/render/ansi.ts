@@ -1,4 +1,5 @@
 import {trimUrlPunctuation, urlRawRegex} from '../utils/url.ts';
+import {htmlEscape} from '../utils/html.ts';
 
 // A minimal ANSI renderer for action logs, covering only what the log viewer needs: SGR colors and
 // text attributes, with the 256-color palette and truecolor. It is intentionally line-oriented, so
@@ -10,12 +11,13 @@ const replacements: Array<[RegExp, string]> = [
   [/\x1b\[\d?[JK]/g, '\r'], // Erase display/line, treat them as a Carriage Return
 ];
 
-// "\x1b[params final" (CSI), "\x1b]...ST" (OSC), or "\x1b" plus one byte. Only SGR (final "m") is
-// rendered, the rest are recognised purely so they can be dropped instead of showing up as text.
-// The last alternative excludes "[" and "]" so it cannot swallow the introducer of the other two.
-const escapeSequence = /\x1b\[([0-9;:?<=>]*)[\x20-\x2f]*([\x40-\x7e])|\x1b\][\s\S]*?(?:\x07|\x1b\\)|\x1b[^[\]]/g;
-
-const htmlEscapes: Record<string, string> = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;'};
+// In order: a CSI "\x1b[params final", an OSC 8 hyperlink, any other OSC, or "\x1b" plus one byte.
+// Only SGR (a CSI with final "m") and OSC 8 are rendered, the others are recognised purely so they
+// can be dropped instead of showing up as text. The OSC 8 alternative has to precede the general
+// OSC one to win, and the last alternative excludes "[" and "]" so it cannot swallow an introducer.
+const escapeSequence = /\x1b\[(?<params>[0-9;:?<=>]*)[\x20-\x2f]*(?<final>[\x40-\x7e])|\x1b\]8;[^;]*;(?<url>[^\x07\x1b]*)(?:\x07|\x1b\\)(?<text>[\s\S]*?)\x1b\]8;;(?:\x07|\x1b\\)|\x1b\][\s\S]*?(?:\x07|\x1b\\)|\x1b[\x20-\x5a\x5c\x5e-\x7e]/g;
+// a hyperlink target has to be a web url, anything else is rendered as plain text instead
+const hyperlinkUrl = /^https?:\/\//i;
 
 type AnsiColor = {
   rgb: string, // pre-joined "r,g,b", it is only ever used to build a css color
@@ -108,7 +110,7 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
 
 function renderText(text: string, style: AnsiStyle): string {
   if (text === '') return '';
-  const escaped = text.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
+  const escaped = htmlEscape(text);
   if (isAnsiStyleInitial(style)) return escaped;
 
   const styles: string[] = [];
@@ -139,7 +141,13 @@ function renderPart(part: string, style: AnsiStyle): {html: string, style: AnsiS
   for (let match = escapeSequence.exec(part); match; match = escapeSequence.exec(part)) {
     if (match.index > pos) html += renderText(part.slice(pos, match.index), style);
     pos = match.index + match[0].length;
-    if (match[2] === 'm') style = applySgr(style, match[1]);
+    const {params, final, url, text} = match.groups!;
+    if (final === 'm') {
+      style = applySgr(style, params);
+    } else if (url !== undefined) {
+      const label = renderText(text, style);
+      html += hyperlinkUrl.test(url) ? `<a href="${htmlEscape(url)}" target="_blank">${label}</a>` : label;
+    }
   }
   if (pos < part.length) {
     // any "\x1b" still left did not form a complete sequence above, so it is cut off by the end of
