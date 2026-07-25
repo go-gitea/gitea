@@ -218,6 +218,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		WorkflowSourceRepoID:    run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 		ContinueOnError:         job.GetContinueOnError(),
+		MaxParallel:             parseMaxParallel(id, job.Strategy.MaxParallelString),
 	}
 	// Parse workflow/job permissions (no clamping here)
 	if perms := ExtractJobPermissionsFromWorkflow(workflowJob, job); perms != nil {

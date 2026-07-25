@@ -4,8 +4,28 @@
 package actions
 
 import (
+	"math"
+	"strconv"
+
 	actions_model "gitea.dev/models/actions"
+	"gitea.dev/modules/log"
 )
+
+// parseMaxParallel returns strategy.max-parallel for a job, 0 meaning unlimited.
+// GitHub accepts any YAML number here and casts it to an int, so 1.5 truncates to 1.
+// Expressions are not evaluated yet and fall back to unlimited.
+func parseMaxParallel(jobID, maxParallelString string) int {
+	if maxParallelString == "" {
+		return 0
+	}
+	maxParallel, err := strconv.ParseFloat(maxParallelString, 64)
+	if err != nil || math.IsNaN(maxParallel) {
+		log.Debug("job %s: unsupported max-parallel value %q, treating as unlimited", jobID, maxParallelString)
+		return 0
+	}
+	// a run can never hold more jobs than MaxJobNumPerRun, so clamping there keeps the cast total
+	return int(min(max(maxParallel, 0), actions_model.MaxJobNumPerRun))
+}
 
 // maxParallelSlots counts the jobs holding a max-parallel slot. Slots are scoped by ParentJobID as
 // well as JobID so the same job name in two reusable workflow calls does not cross-link, matching
