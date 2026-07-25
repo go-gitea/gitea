@@ -3806,6 +3806,7 @@
   "actions.runs.cancel": "Cancel workflow run",
   "actions.runs.delete.description": "Are you sure you want to permanently delete this workflow run? This action cannot be undone.",
   "actions.runs.not_done": "This workflow run is not done.",
+  "actions.runs.no_failed_jobs": "This workflow run has no failed jobs to re-run.",
   "actions.runs.view_workflow_file": "View workflow file",
   "actions.runs.summary": "Summary",
   "actions.runs.all_jobs": "All jobs",
