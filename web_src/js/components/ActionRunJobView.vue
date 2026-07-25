@@ -560,7 +560,7 @@ async function hashChangeListener() {
   position: sticky;
   top: 0;
   height: 60px;
-  z-index: 1; /* above the step container and its sticky step headers */
+  z-index: 1; /* above .job-step-container */
   background: var(--color-console-bg);
   border-radius: 3px;
 }

@@ -70,11 +70,8 @@ function initDevtestAnsiRender(container: HTMLElement) {
       cells(16, (col) => `${esc}[38;5;${row * 16 + col}m${String(row * 16 + col).padStart(4)}${esc}[0m`)),
     ' ',
     cells(16, (index) => `${esc}[48;5;${index}m ${String(index).padStart(3)} ${esc}[0m`),
-    cells(77, (col) => { // truecolor, a gradient no palette index can express
-      const red = 255 - Math.floor(col * 255 / 76);
-      const blue = Math.floor(col * 255 / 76);
-      return `${esc}[48;2;${red};0;${blue}m${esc}[38;2;${blue};0;${red}m/${esc}[0m`;
-    }),
+    // truecolor, a gradient no palette index can express
+    cells(77, (col) => `${esc}[48;2;${255 - col * 3};0;${col * 3}m${esc}[38;2;${col * 3};0;${255 - col * 3}m/${esc}[0m`),
     ' ',
     [cells(10, (code) => attr(String(code), `SGR ${code}`), '  '), attr('53', 'SGR 53')].join('  '),
     ' ',

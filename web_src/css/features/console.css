@@ -37,8 +37,8 @@
 .ansi-inverse-fg { color: var(--color-console-bg); }
 .ansi-inverse-bg { background-color: var(--color-console-fg); }
 
-/* the three lines share one css property, so each class contributes a value to it and the empty
-   fallback is what a class that is absent contributes */
+/* one css property for three lines, so each class contributes a value and an absent one contributes
+   its empty fallback */
 .ansi-underline,
 .ansi-line-through,
 .ansi-overline { text-decoration-line: var(--ansi-underline,) var(--ansi-line-through,) var(--ansi-overline,); }
@@ -51,7 +51,7 @@
 .ansi-dotted { text-decoration-style: dotted; }
 .ansi-dashed { text-decoration-style: dashed; }
 
-/* ANSI colors used in actions, see the palette in web_src/js/render/ansi.ts */
+/* ANSI colors used in actions */
 
 .ansi-black-fg { color: var(--color-ansi-black); }
 .ansi-red-fg { color: var(--color-ansi-red); }
@@ -94,7 +94,7 @@
 .term-fg2 { color: var(--color-ansi-bright-black); } /* faint (decreased intensity) - same as gray really */
 .term-fg3 { font-style: italic; } /* italic */
 .term-fg4 { text-decoration: underline; } /* underline */
-.term-fg5 { animation: blink-animation 1s step-end infinite; } /* blink, see also .ansi-blink */
+.term-fg5 { animation: blink-animation 1s step-end infinite; } /* blink */
 .term-fg9 { text-decoration: line-through; } /* crossed-out */
 
 .term-fg30 { color: var(--color-ansi-black); } /* black (but we can't use black, so a diff color) */
