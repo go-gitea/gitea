@@ -136,8 +136,10 @@ func ParseDiffHunkString(diffHunk string) (leftLine, leftHunk, rightLine, rightH
 
 const cmdDiffHead = "diff --git "
 
+var cmdDiffHeadBytes = []byte(cmdDiffHead)
+
 func isHeader(lof []byte, inHunk bool) bool {
-	return bytes.HasPrefix(lof, []byte(cmdDiffHead)) || (!inHunk && (bytes.HasPrefix(lof, []byte("---")) || bytes.HasPrefix(lof, []byte("+++"))))
+	return bytes.HasPrefix(lof, cmdDiffHeadBytes) || (!inHunk && (bytes.HasPrefix(lof, []byte("---")) || bytes.HasPrefix(lof, []byte("+++"))))
 }
 
 // CutDiffAroundLine cuts a diff of a file in way that only the given line + numberOfLine above it will be shown
@@ -145,67 +147,43 @@ func isHeader(lof []byte, inHunk bool) bool {
 // Warning: Only one-file diffs are allowed.
 func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLine int) (string, error) {
 	if line == 0 || numbersOfLine == 0 {
-		// no line or num of lines => no diff
 		return "", nil
 	}
 
-	data, err := io.ReadAll(originalDiff)
-	if err != nil {
-		return "", fmt.Errorf("CutDiffAroundLine: read: %w", err)
+	scanner := bufio.NewScanner(originalDiff)
+
+	// Keep headers as strings
+	headers := make([]string, 0, 4)
+
+	// Ring buffer of size numbersOfLine to hold the rolling window of hunk lines.
+	// We also need to store the hunk header separately.
+	var hunkHeader []byte
+
+	ring := make([][]byte, numbersOfLine)
+	for i := range ring {
+		ring[i] = make([]byte, 0, 128)
 	}
 
-	// We'll store start/end offsets of the lines we want to include
-	type offset struct {
-		start, end int
-	}
-
-	headerOffsets := make([]offset, 0, 8)
-	hunkOffsets := make([]offset, 0, 64)
-
-	// begin is the start of the hunk containing searched line
-	// end is the end of the hunk ...
-	// currentLine is the line number on the side of the searched line (differentiated by old)
-	// otherLine is the line number on the opposite side of the searched line (differentiated by old)
 	var begin, end, currentLine, otherLine int64
 
 	inHunk := false
-	pos := 0
+	hunkLineCount := 0 // Total lines processed inside the target hunk
 
-	nextLine := func() (int, int, bool) {
-		if pos >= len(data) {
-			return 0, 0, false
-		}
-		start := pos
-		idx := bytes.IndexByte(data[pos:], '\n')
-		if idx == -1 {
-			pos = len(data)
-			return start, len(data), true
-		}
-		pos += idx + 1
-		return start, start + idx, true
-	}
-
-	for {
-		lStart, lEnd, ok := nextLine()
-		if !ok {
-			break
-		}
-		lof := data[lStart:lEnd]
+	for scanner.Scan() {
+		lof := scanner.Bytes()
 
 		if isHeader(lof, inHunk) {
-			if bytes.HasPrefix(lof, []byte(cmdDiffHead)) {
+			if bytes.HasPrefix(lof, cmdDiffHeadBytes) {
 				inHunk = false
 			}
-			headerOffsets = append(headerOffsets, offset{lStart, lEnd})
+			headers = append(headers, string(lof))
 		}
 		if currentLine > line {
 			break
 		}
-		// Detect "hunk" with contains commented lof
 		if bytes.HasPrefix(lof, []byte("@@")) {
 			inHunk = true
-			// Already got our hunk. End of hunk detected!
-			if len(hunkOffsets) > 0 {
+			if hunkLineCount > 0 {
 				break
 			}
 
@@ -217,25 +195,25 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			if old {
 				begin = beginOld
 				end = endOld
-				// init otherLine with begin of opposite side
 				otherLine = beginNew
 			} else {
 				begin = beginNew
 				end = endNew
-				// init otherLine with begin of opposite side
 				otherLine = beginOld
 			}
 
-			end += begin // end is for real only the number of lines in hunk
-			// lof is between begin and end
+			end += begin
 			if begin <= line && end >= line {
-				hunkOffsets = append(hunkOffsets, offset{lStart, lEnd})
+				hunkHeader = bytes.Clone(lof)
 				currentLine = begin
 				continue
 			}
-		} else if len(hunkOffsets) > 0 {
-			hunkOffsets = append(hunkOffsets, offset{lStart, lEnd})
-			// Count lines in context
+		} else if hunkHeader != nil { // Inside the target hunk
+			// Store in ring buffer
+			writeIdx := hunkLineCount % numbersOfLine
+			ring[writeIdx] = append(ring[writeIdx][:0], lof...)
+			hunkLineCount++
+
 			if len(lof) > 0 {
 				switch lof[0] {
 				case '+':
@@ -262,42 +240,37 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			}
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("CutDiffAroundLine: scan: %w", err)
+	}
 
-	// No hunk found
 	if currentLine == 0 {
 		return "", nil
 	}
 
-	headerLines := len(headerOffsets)
-
-	// headerLines + hunkLine (1) = totalNonCodeLines
-	if len(hunkOffsets)-1 <= numbersOfLine {
-		// No need to cut the hunk => return existing hunk
+	// If the total lines in hunk is less than or equal to numbersOfLine, we return everything.
+	if hunkLineCount <= numbersOfLine {
 		var sb strings.Builder
-		totalSize := 0
-		for _, off := range headerOffsets {
-			totalSize += off.end - off.start + 1
+		for idx, h := range headers {
+			if idx > 0 {
+				sb.WriteByte('\n')
+			}
+			sb.WriteString(h)
 		}
-		for _, off := range hunkOffsets {
-			totalSize += off.end - off.start + 1
+		if len(headers) > 0 {
+			sb.WriteByte('\n')
 		}
-		sb.Grow(totalSize)
+		sb.Write(hunkHeader)
 
-		for i, off := range headerOffsets {
-			if i > 0 {
-				sb.WriteByte('\n')
-			}
-			sb.Write(data[off.start:off.end])
-		}
-		for _, off := range hunkOffsets {
-			if sb.Len() > 0 {
-				sb.WriteByte('\n')
-			}
-			sb.Write(data[off.start:off.end])
+		// Output the ring buffer in correct chronological order
+		for i := 0; i < hunkLineCount; i++ {
+			sb.WriteByte('\n')
+			sb.Write(ring[i])
 		}
 		return sb.String(), nil
 	}
 
+	// Otherwise, we calculate oldBegin/newBegin and slice the ring buffer
 	var oldBegin, oldNumOfLines, newBegin, newNumOfLines int64
 	if old {
 		oldBegin = currentLine
@@ -307,21 +280,17 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 		newBegin = currentLine
 	}
 
-	// headers + hunk header
-	resOffsets := make([]offset, 0, headerLines+numbersOfLine+1)
-	// transfer existing headers
-	resOffsets = append(resOffsets, headerOffsets...)
-	// placeholder for new hunk header
-	resOffsets = append(resOffsets, offset{0, 0})
-	// transfer last n lines
-	resOffsets = append(resOffsets, hunkOffsets[len(hunkOffsets)-numbersOfLine:]...)
+	// We need to count backwards from the last numbersOfLine lines.
+	// Since it's a ring buffer, the last lines are the ones in the ring buffer.
+	// The oldest line in the ring buffer is at writeIdx = hunkLineCount % numbersOfLine.
+	// The chronological order starts at writeIdx and wraps around.
+	startIdx := hunkLineCount % numbersOfLine
 
-	// calculate newBegin, ... by counting lines
-	for idx := len(hunkOffsets) - 1; idx >= len(hunkOffsets)-numbersOfLine; idx-- {
-		off := hunkOffsets[idx]
-		lof := data[off.start:off.end]
-		if len(lof) > 0 {
-			switch lof[0] {
+	for i := 0; i < numbersOfLine; i++ {
+		idx := (startIdx + i) % numbersOfLine
+		lineBytes := ring[idx]
+		if len(lineBytes) > 0 {
+			switch lineBytes[0] {
 			case '+':
 				newBegin--
 				newNumOfLines++
@@ -347,17 +316,22 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 	// It may generate incorrect results for difference cases, for example: delete 2 line add 1 line, delete 2 line add 2 line etc, need to double check.
 	// For example: "L1\nL2" => "A\nB", then the patch shows "L2" as line 1 on the left (deleted part)
 
-	// construct the new hunk header
 	var sb strings.Builder
-	for idx, off := range resOffsets {
+	for idx, h := range headers {
 		if idx > 0 {
 			sb.WriteByte('\n')
 		}
-		if idx == headerLines {
-			fmt.Fprintf(&sb, "@@ -%d,%d +%d,%d @@", oldBegin, oldNumOfLines, newBegin, newNumOfLines)
-		} else {
-			sb.Write(data[off.start:off.end])
-		}
+		sb.WriteString(h)
+	}
+	if len(headers) > 0 {
+		sb.WriteByte('\n')
+	}
+	fmt.Fprintf(&sb, "@@ -%d,%d +%d,%d @@", oldBegin, oldNumOfLines, newBegin, newNumOfLines)
+
+	for i := 0; i < numbersOfLine; i++ {
+		idx := (startIdx + i) % numbersOfLine
+		sb.WriteByte('\n')
+		sb.Write(ring[idx])
 	}
 	return sb.String(), nil
 }
