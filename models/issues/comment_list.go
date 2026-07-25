@@ -81,7 +81,9 @@ func (comments CommentList) loadLabels(ctx context.Context) error {
 	}
 
 	for _, comment := range comments {
-		comment.Label = commentLabels[comment.ID]
+		if comment.LabelID > 0 {
+			comment.Label = commentLabels[comment.LabelID]
+		}
 	}
 	return nil
 }
