@@ -344,7 +344,10 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 }
 
 type jobStatusResolver struct {
-	statuses      map[int64]actions_model.Status
+	statuses map[int64]actions_model.Status
+	// sortedIDs are the keys of statuses, so blocked jobs are resolved in insertion order.
+	// Resolve only ever rewrites statuses values, never its key set.
+	sortedIDs     []int64
 	needs         map[int64][]int64
 	jobMap        map[int64]*actions_model.ActionRunJob
 	vars          map[string]string
@@ -368,8 +371,10 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 
 	statuses := make(map[int64]actions_model.Status, len(jobs))
 	needs := make(map[int64][]int64, len(jobs))
+	sortedIDs := make([]int64, 0, len(jobs))
 	for _, job := range jobs {
 		statuses[job.ID] = job.Status
+		sortedIDs = append(sortedIDs, job.ID)
 		scope := scopedIDToJobs[job.ParentJobID]
 		for _, need := range job.Needs {
 			for _, v := range scope[need] {
@@ -377,11 +382,13 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 			}
 		}
 	}
+	slices.Sort(sortedIDs)
 	return &jobStatusResolver{
-		statuses: statuses,
-		needs:    needs,
-		jobMap:   jobMap,
-		vars:     vars,
+		statuses:  statuses,
+		sortedIDs: sortedIDs,
+		needs:     needs,
+		jobMap:    jobMap,
+		vars:      vars,
 	}
 }
 
@@ -422,24 +429,12 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
 
-	// Pre-calculate the number of running-or-waiting jobs per JobID
-	runningOrWaiting := make(map[string]int)
+	slots := maxParallelSlots{}
 	for id, status := range r.statuses {
-		if status == actions_model.StatusRunning || status == actions_model.StatusWaiting || status == actions_model.StatusCancelling {
-			runningOrWaiting[r.jobMap[id].JobID]++
-		}
+		slots.hold(r.jobMap[id], status)
 	}
 
-	// Sort IDs so blocked jobs are promoted in insertion order
-	ids := slices.Sorted(func(yield func(int64) bool) {
-		for id := range r.statuses {
-			if !yield(id) {
-				return
-			}
-		}
-	})
-
-	for _, id := range ids {
+	for _, id := range r.sortedIDs {
 		status := r.statuses[id]
 		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
@@ -484,13 +479,8 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			}
 		}
 
-		// Enforce max-parallel: if the number of running-or-waiting jobs of the same
-		// JobID already fills the limit, leave this job blocked.
-		if newStatus == actions_model.StatusWaiting && actionRunJob.MaxParallel > 0 {
-			if runningOrWaiting[actionRunJob.JobID] >= actionRunJob.MaxParallel {
-				continue // no free slot; leave blocked
-			}
-			runningOrWaiting[actionRunJob.JobID]++
+		if newStatus == actions_model.StatusWaiting && !slots.take(actionRunJob) {
+			continue // no free slot, leave blocked
 		}
 
 		if newStatus != actions_model.StatusBlocked {
