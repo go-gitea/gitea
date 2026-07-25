@@ -5,7 +5,7 @@ import {colord} from 'colord';
 // erase display/line, treated as a carriage return
 const eraseInLine = /\x1b\[\d?[JK]/g;
 // a CSI, an OSC 8 hyperlink, any other OSC, then "\x1b" plus one byte. Only SGR ("m") and OSC 8
-// render, the rest are matched to be dropped. Named groups would cost an object per match.
+// render, the rest are matched to be dropped.
 const escapeSequence = /\x1b\[([0-9;:?<=>]*)[\x20-\x2f]*([\x40-\x7e])|\x1b\]8;[^;]*;([^\x07\x1b]*)(?:\x07|\x1b\\)([\s\S]*?)\x1b\]8;;(?:\x07|\x1b\\)|\x1b\][\s\S]*?(?:\x07|\x1b\\)|\x1b[\x20-\x5a\x5c\x5e-\x7e]/g;
 const hyperlinkUrl = /^https?:\/\//i;
 // checked first, most log text has nothing to escape
