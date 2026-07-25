@@ -1,4 +1,9 @@
-import {serverUserEventTypes, type WorkerEventMessage, type WorkerInboundMessage} from './types.ts';
+import {
+  serverUserEventTypes,
+  type SharedWorkerControlMessage,
+  type WorkerEventMessage,
+  type WorkerInboundMessage,
+} from './types.ts';
 import type {UserEventMessage} from './types.ts';
 
 function isServerEventMessage(msg: unknown): msg is UserEventMessage {
@@ -151,7 +156,7 @@ const wsSourcesByUrl = new Map<string, WsSource>();
 
 (self as unknown as SharedWorkerGlobalScope).addEventListener('connect', (e: MessageEvent) => {
   for (const port of e.ports) {
-    port.addEventListener('message', (event: MessageEvent) => {
+    port.addEventListener('message', (event: MessageEvent<SharedWorkerControlMessage>) => {
       if (event.data.type === 'start') {
         const url = event.data.url;
         let source = sourcesByUrl.get(url);
@@ -208,7 +213,7 @@ const wsSourcesByUrl = new Map<string, WsSource>();
         }
       } else {
         // just send it back
-        postWorkerEventMessage(port, {workerEvent: 'error', message: `received but don't know how to handle: ${event.data}`});
+        postWorkerEventMessage(port, {workerEvent: 'error', message: `received but don't know how to handle: ${JSON.stringify(event.data)}`});
       }
     });
     port.start();

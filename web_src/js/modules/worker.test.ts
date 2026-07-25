@@ -1,8 +1,8 @@
-import type {UserEventMessage} from '../types.ts';
+import type {UserEventMessage, WorkerInboundMessage} from '../types.ts';
 
 // Minimal SharedWorker/MessagePort doubles: worker.ts wires user events onto
 // `sharedWorker.port`, so we capture the port to feed it messages and assert dispatch behavior.
-type PortListener = (ev: {data: unknown}) => void;
+type PortListener = (ev: {data: WorkerInboundMessage}) => void;
 
 class MockMessagePort {
   listeners: Record<string, PortListener[]> = {};
@@ -16,7 +16,7 @@ class MockMessagePort {
   close() {}
   // Simulate the underlying worker delivering a message to the page.
   deliver(msg: UserEventMessage) {
-    for (const cb of this.listeners['message'] || []) cb({data: msg});
+    for (const cb of this.listeners['message'] || []) cb({data: {msgType: 'user-event', msgData: msg}});
   }
 }
 

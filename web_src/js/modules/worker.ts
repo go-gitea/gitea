@@ -1,4 +1,10 @@
-import type {UserEventMessage, UserEventType, WorkerEventMessage, WorkerInboundMessage} from '../types.ts';
+import type {
+  SharedWorkerControlMessage,
+  UserEventMessage,
+  UserEventType,
+  WorkerEventMessage,
+  WorkerInboundMessage,
+} from '../types.ts';
 
 const {appSubUrl, sharedWorkerUri} = window.config;
 
@@ -56,11 +62,15 @@ function init() {
     console.error('worker port error', e);
   });
 
+  const postSharedWorkerControlMessage = (sw: SharedWorker, msg: SharedWorkerControlMessage) => {
+    sw.port.postMessage(msg);
+  };
+
   const handleWorkerEvent = (msg: WorkerEventMessage) => {
     if (msg.workerEvent === 'error') {
       console.error('worker port event error', msg);
     } else if (msg.workerEvent === 'close') {
-      sharedWorker!.port.postMessage({type: 'close'});
+      postSharedWorkerControlMessage(sharedWorker!, {type: 'close'});
       sharedWorker!.port.close();
     } else {
       console.error('unknown worker port event', msg);
@@ -68,7 +78,7 @@ function init() {
   };
 
   const handleLogout = () => {
-    sharedWorker!.port.postMessage({type: 'close'});
+    postSharedWorkerControlMessage(sharedWorker!, {type: 'close'});
     sharedWorker!.port.close();
     // slightly delay our "logout" for a short while, in case there are other logout requests in-flight.
     // * if the logout is triggered by a page redirection (e.g.: user clicks "/user/logout")
@@ -98,15 +108,12 @@ function init() {
 
   sharedWorker.port.start();
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  sharedWorker.port.postMessage({
-    type: 'start',
-    url: `${wsProtocol}//${window.location.host}${appSubUrl}/-/ws`,
-  });
+  postSharedWorkerControlMessage(sharedWorker, {type: 'start', url: `${wsProtocol}//${window.location.host}${appSubUrl}/-/ws`});
   window.addEventListener('beforeunload', () => {
     // FIXME: this logic is not quite right.
     // "beforeunload" can be canceled by some actions like "are-you-sure" and the navigation can be cancelled.
     // In this case: the worker port is incorrectly closed while the page is still there.
-    sharedWorker!.port.postMessage({type: 'close'});
+    postSharedWorkerControlMessage(sharedWorker!, {type: 'close'});
     sharedWorker!.port.close();
   });
 }
