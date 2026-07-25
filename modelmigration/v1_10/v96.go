@@ -4,11 +4,11 @@
 package v1_10
 
 import (
+	"os"
 	"path/filepath"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 )
 
 func DeleteOrphanedAttachments(x base.EngineMigration) error {
@@ -52,7 +52,7 @@ func DeleteOrphanedAttachments(x base.EngineMigration) error {
 
 		for _, attachment := range attachments {
 			uuid := attachment.UUID
-			if err := util.RemoveAll(filepath.Join(setting.Attachment.Storage.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
+			if err := os.RemoveAll(filepath.Join(setting.Attachment.Storage.Path, uuid[0:1], uuid[1:2], uuid)); err != nil {
 				return err
 			}
 		}

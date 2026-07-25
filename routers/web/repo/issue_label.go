@@ -11,7 +11,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	"gitea.dev/modules/label"
-	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -224,8 +223,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 			}
 		}
 	default:
-		log.Warn("Unrecognized action: %s", action)
-		ctx.HTTPError(http.StatusInternalServerError)
+		ctx.JSONError("invalid action: " + action)
 		return
 	}
 

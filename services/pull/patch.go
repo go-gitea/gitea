@@ -188,7 +188,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, t
 		}
 		root = strings.TrimSpace(root)
 		defer func() {
-			_ = util.Remove(filepath.Join(tmpBasePath, root))
+			_ = util.RemoveWithRetry(filepath.Join(tmpBasePath, root))
 		}()
 
 		base, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage2.sha).WithRepo(tmpGitRepo).RunStdString(ctx)
@@ -197,7 +197,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, t
 		}
 		base = strings.TrimSpace(filepath.Join(tmpBasePath, base))
 		defer func() {
-			_ = util.Remove(base)
+			_ = util.RemoveWithRetry(base)
 		}()
 		head, _, err := gitcmd.NewCommand("unpack-file").AddDynamicArguments(file.stage3.sha).WithRepo(tmpGitRepo).RunStdString(ctx)
 		if err != nil {
@@ -205,7 +205,7 @@ func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, t
 		}
 		head = strings.TrimSpace(head)
 		defer func() {
-			_ = util.Remove(filepath.Join(tmpBasePath, head))
+			_ = util.RemoveWithRetry(filepath.Join(tmpBasePath, head))
 		}()
 
 		// now git merge-file annoyingly takes a different order to the merge-tree ...

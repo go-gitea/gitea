@@ -385,13 +385,12 @@ func TestCantMergeUnrelated(t *testing.T) {
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		})
-		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		err := gitcmd.NewCommand("read-tree", "--empty").WithDir(path).Run(t.Context())
+		err := gitcmd.NewCommand("read-tree", "--empty").WithRepo(repo1).Run(t.Context())
 		assert.NoError(t, err)
 
 		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
-			WithDir(path).
+			WithRepo(repo1).
 			WithStdinBytes([]byte("Unrelated File")).
 			RunStdString(t.Context())
 
@@ -400,11 +399,11 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
 			AddDynamicArguments("100644", sha, "somewhere-over-the-rainbow").
-			WithDir(path).
+			WithRepo(repo1).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
 
-		treeSha, _, err := gitcmd.NewCommand("write-tree").WithDir(path).RunStdString(t.Context())
+		treeSha, _, err := gitcmd.NewCommand("write-tree").WithRepo(repo1).RunStdString(t.Context())
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -425,7 +424,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		stdout, _, err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
 			WithEnv(env).
-			WithDir(path).
+			WithRepo(repo1).
 			WithStdinBytes(messageBytes.Bytes()).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
@@ -433,7 +432,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		_, _, err = gitcmd.NewCommand("branch", "unrelated").
 			AddDynamicArguments(commitSha).
-			WithDir(path).
+			WithRepo(repo1).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
 
