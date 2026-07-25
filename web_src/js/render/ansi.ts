@@ -36,7 +36,7 @@ function renderRunText(text: string, linkify: boolean): string {
 
 type AnsiStyle = {
   fg: AnsiColor | null, bg: AnsiColor | null, underlineColor: AnsiColor | null,
-  underline: string, // '' when off, otherwise the css text-decoration-style
+  underline: string,
   bold: boolean, faint: boolean, italic: boolean, blink: boolean,
   strikethrough: boolean, overline: boolean, inverse: boolean, conceal: boolean,
 };
@@ -47,8 +47,10 @@ const ansiStyleInitial: Readonly<AnsiStyle> = {
   strikethrough: false, overline: false, inverse: false, conceal: false,
 };
 
-const isAnsiStyleInitial = (style: Readonly<AnsiStyle>) => !style.fg && !style.bg && !style.underline &&
-  !style.bold && !style.faint && !style.italic && !style.blink && !style.strikethrough && !style.overline && !style.inverse && !style.conceal;
+const isAnsiStyleInitial = (style: Readonly<AnsiStyle>) =>
+  !style.fg && !style.bg && !style.underline &&
+  !style.bold && !style.faint && !style.italic && !style.blink &&
+  !style.strikethrough && !style.overline && !style.inverse && !style.conceal;
 
 // 0-7 normal, 8-15 bright, 16-231 a 6x6x6 rgb cube, 232-255 grayscale
 const colorNames = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
