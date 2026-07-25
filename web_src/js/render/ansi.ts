@@ -24,6 +24,10 @@ type AnsiColor = {
   className: string, // empty for 256-color and truecolor, which have no css class and use a style
 };
 
+// "4:1" to "4:5" select an underline style, which map onto css text-decoration-style. Indexed by
+// number so that a non-numeric sub-parameter can never reach an inherited property of the lookup.
+const underlineStyles = ['', 'solid', 'double', 'wavy', 'dotted', 'dashed'];
+
 export type AnsiStyle = {
   fg: AnsiColor | null,
   bg: AnsiColor | null,
@@ -31,12 +35,23 @@ export type AnsiStyle = {
   faint: boolean,
   italic: boolean,
   underline: boolean,
+  underlineStyle: string,
+  underlineColor: AnsiColor | null,
+  strikethrough: boolean,
+  overline: boolean,
+  inverse: boolean,
+  conceal: boolean,
 };
 
-export const ansiStyleInitial: AnsiStyle = Object.freeze({fg: null, bg: null, bold: false, faint: false, italic: false, underline: false});
+export const ansiStyleInitial: AnsiStyle = Object.freeze({
+  fg: null, bg: null, bold: false, faint: false, italic: false,
+  underline: false, underlineStyle: 'solid', underlineColor: null,
+  strikethrough: false, overline: false, inverse: false, conceal: false,
+});
 
 function isAnsiStyleInitial(style: AnsiStyle): boolean {
-  return !style.fg && !style.bg && !style.bold && !style.faint && !style.italic && !style.underline;
+  return !style.fg && !style.bg && !style.bold && !style.faint && !style.italic && !style.underline &&
+    !style.strikethrough && !style.overline && !style.inverse && !style.conceal;
 }
 
 // The 256-color palette: 0-7 normal, 8-15 bright, 16-231 a 6x6x6 rgb cube, 232-255 grayscale.
@@ -71,17 +86,28 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
     const [param, subParam] = codes[idx].split(':');
     const code = parseInt(param, 10);
     if (isNaN(code) || code === 0) {
-      next.fg = next.bg = null;
+      next.fg = next.bg = next.underlineColor = null;
       next.bold = next.faint = next.italic = next.underline = false;
+      next.strikethrough = next.overline = next.inverse = next.conceal = false;
     } else if (code === 1) next.bold = true;
     else if (code === 2) next.faint = true;
     else if (code === 3) next.italic = true;
-    // "4:0" turns the underline off, "4:1" to "4:5" pick a style that all render the same here
-    else if (code === 4) next.underline = subParam !== '0';
+    else if (code === 4) {
+      next.underline = subParam !== '0';
+      next.underlineStyle = underlineStyles[Number(subParam)] || 'solid';
+    } else if (code === 7) next.inverse = true;
+    else if (code === 8) next.conceal = true;
+    else if (code === 9) next.strikethrough = true;
     else if (code === 21) next.bold = false;
     else if (code === 22) next.bold = next.faint = false;
     else if (code === 23) next.italic = false;
     else if (code === 24) next.underline = false;
+    else if (code === 27) next.inverse = false;
+    else if (code === 28) next.conceal = false;
+    else if (code === 29) next.strikethrough = false;
+    else if (code === 53) next.overline = true;
+    else if (code === 55) next.overline = false;
+    else if (code === 59) next.underlineColor = null;
     else if (code === 39) next.fg = null;
     else if (code === 49) next.bg = null;
     else if (code >= 30 && code < 38) next.fg = palette256[code - 30];
@@ -91,8 +117,8 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
     else if ((code === 38 || code === 48 || code === 58) && idx + 1 < codes.length) {
       // extended color: "5;<index>" selects from the 256-color palette, "2;<r>;<g>;<b>" is truecolor.
       // A spec that runs off the end of the parameters consumes nothing beyond the mode, so the
-      // remaining parameters stay available and are read as ordinary codes. 58 sets the underline
-      // color, which is not rendered, but its parameters are consumed so they are not read as codes.
+      // remaining parameters stay available and are read as ordinary codes. 58 does the same for
+      // the underline color.
       const mode = codes[++idx];
       let color: AnsiColor | null = null;
       if (mode === '5' && idx + 1 < codes.length) {
@@ -107,6 +133,7 @@ function applySgr(style: AnsiStyle, params: string): AnsiStyle {
       }
       if (color && code === 38) next.fg = color;
       else if (color && code === 48) next.bg = color;
+      else if (color) next.underlineColor = color;
     }
   }
   return next;
@@ -122,14 +149,32 @@ function renderText(text: string, style: AnsiStyle): string {
   if (style.bold) styles.push('font-weight:bold');
   if (style.faint) styles.push('opacity:0.7');
   if (style.italic) styles.push('font-style:italic');
-  if (style.underline) styles.push('text-decoration:underline');
-  if (style.fg) {
-    if (style.fg.className) classes.push(`${style.fg.className}-fg`);
-    else styles.push(`color:rgb(${style.fg.rgb})`);
+  if (style.conceal) styles.push('visibility:hidden');
+
+  const decorations: string[] = [];
+  if (style.underline) decorations.push('underline');
+  if (style.strikethrough) decorations.push('line-through');
+  if (style.overline) decorations.push('overline');
+  if (decorations.length) {
+    styles.push(`text-decoration:${decorations.join(' ')}`);
+    if (style.underlineStyle !== 'solid') styles.push(`text-decoration-style:${style.underlineStyle}`);
+    if (style.underlineColor) styles.push(`text-decoration-color:rgb(${style.underlineColor.rgb})`);
   }
-  if (style.bg) {
-    if (style.bg.className) classes.push(`${style.bg.className}-bg`);
-    else styles.push(`background-color:rgb(${style.bg.rgb})`);
+
+  // inverse swaps foreground and background, including the terminal defaults when either is unset
+  const fg = style.inverse ? style.bg : style.fg;
+  const bg = style.inverse ? style.fg : style.bg;
+  if (fg) {
+    if (fg.className) classes.push(`${fg.className}-fg`);
+    else styles.push(`color:rgb(${fg.rgb})`);
+  } else if (style.inverse) {
+    styles.push('color:var(--color-console-bg)');
+  }
+  if (bg) {
+    if (bg.className) classes.push(`${bg.className}-bg`);
+    else styles.push(`background-color:rgb(${bg.rgb})`);
+  } else if (style.inverse) {
+    styles.push('background-color:var(--color-console-fg)');
   }
   const styleAttr = styles.length ? ` style="${styles.join(';')}"` : '';
   const classAttr = classes.length ? ` class="${classes.join(' ')}"` : '';

@@ -61,13 +61,33 @@ test('renderAnsi colors and attributes', () => {
   expect(renderAnsi('\x1b[48;2;1;2;3mx')).toEqual('<span style="background-color:rgb(1,2,3)">x</span>');
   expect(renderAnsi('\x1b[38;2;300;0;0mx')).toEqual('x'); // out of range, ignored
 
-  // colon sub-parameters: "4:0" turns the underline off, the other styles all render as underline
-  expect(renderAnsi('\x1b[4:3mcurly')).toEqual('<span style="text-decoration:underline">curly</span>');
-  expect(renderAnsi('\x1b[4:3mon\x1b[4:0moff')).toEqual('<span style="text-decoration:underline">on</span>off');
+  // colon sub-parameters select the underline style, "4:0" turns it off
+  expect(renderAnsi('\x1b[4:1msolid')).toEqual('<span style="text-decoration:underline">solid</span>');
+  expect(renderAnsi('\x1b[4:2mdouble')).toEqual('<span style="text-decoration:underline;text-decoration-style:double">double</span>');
+  expect(renderAnsi('\x1b[4:3mcurly')).toEqual('<span style="text-decoration:underline;text-decoration-style:wavy">curly</span>');
+  expect(renderAnsi('\x1b[4:4mdotted')).toEqual('<span style="text-decoration:underline;text-decoration-style:dotted">dotted</span>');
+  expect(renderAnsi('\x1b[4:5mdashed')).toEqual('<span style="text-decoration:underline;text-decoration-style:dashed">dashed</span>');
+  expect(renderAnsi('\x1b[4:3mon\x1b[4:0moff')).toEqual('<span style="text-decoration:underline;text-decoration-style:wavy">on</span>off');
 
-  // 58 sets an underline color that is not rendered, its parameters must not be read as codes
-  expect(renderAnsi('\x1b[4m\x1b[58;2;135;0;255mstill underlined')).toEqual('<span style="text-decoration:underline">still underlined</span>');
-  expect(renderAnsi('\x1b[58;5;9mno color')).toEqual('no color');
+  // 58 colors the underline, 59 restores the default, and their parameters are never read as codes
+  expect(renderAnsi('\x1b[4m\x1b[58;2;135;0;255mpurple')).toEqual('<span style="text-decoration:underline;text-decoration-color:rgb(135,0,255)">purple</span>');
+  expect(renderAnsi('\x1b[4m\x1b[58;5;9mindexed')).toEqual('<span style="text-decoration:underline;text-decoration-color:rgb(255,85,85)">indexed</span>');
+  expect(renderAnsi('\x1b[4;58;2;1;2;3mon\x1b[59mdefault')).toEqual('<span style="text-decoration:underline;text-decoration-color:rgb(1,2,3)">on</span><span style="text-decoration:underline">default</span>');
+
+  // codes ansi_up ignored: inverse, conceal, strikethrough and overline
+  expect(renderAnsi('\x1b[9mstruck')).toEqual('<span style="text-decoration:line-through">struck</span>');
+  expect(renderAnsi('\x1b[53moverlined')).toEqual('<span style="text-decoration:overline">overlined</span>');
+  expect(renderAnsi('\x1b[8mhidden')).toEqual('<span style="visibility:hidden">hidden</span>');
+  expect(renderAnsi('\x1b[4;9;53mall three')).toEqual('<span style="text-decoration:underline line-through overline">all three</span>');
+  expect(renderAnsi('\x1b[9mon\x1b[29moff')).toEqual('<span style="text-decoration:line-through">on</span>off');
+  expect(renderAnsi('\x1b[53mon\x1b[55moff')).toEqual('<span style="text-decoration:overline">on</span>off');
+  expect(renderAnsi('\x1b[8mon\x1b[28moff')).toEqual('<span style="visibility:hidden">on</span>off');
+
+  // inverse swaps foreground and background, falling back to the console defaults
+  expect(renderAnsi('\x1b[7minverse')).toEqual('<span style="color:var(--color-console-bg);background-color:var(--color-console-fg)">inverse</span>');
+  expect(renderAnsi('\x1b[31;7mswapped')).toEqual('<span style="color:var(--color-console-bg)" class="ansi-red-bg">swapped</span>');
+  expect(renderAnsi('\x1b[31;42;7mboth')).toEqual('<span class="ansi-green-fg ansi-red-bg">both</span>');
+  expect(renderAnsi('\x1b[7mon\x1b[27moff')).toEqual('<span style="color:var(--color-console-bg);background-color:var(--color-console-fg)">on</span>off');
 
   // "\x1b[m" resets everything, same as "\x1b[0m"
   expect(renderAnsi('\x1b[1;31mx\x1b[my')).toEqual('<span style="font-weight:bold" class="ansi-red-fg">x</span>y');
@@ -134,4 +154,69 @@ test('AnsiLineRenderer carries style across lines', () => {
   const otherEl = document.createElement('div');
   other.renderInto(otherEl, 'clean');
   expect(otherEl.innerHTML).toEqual('clean');
+});
+
+test('renderAnsi does not allow html injection', () => {
+  const esc = '\x1b';
+  const link = (url: string, label = 'label') => `${esc}]8;;${url}${esc}\\${label}${esc}]8;;${esc}\\`;
+  const scriptScheme = ['java', 'script:'].join(''); // assembled, a literal would trip "no-script-url"
+  const payloads = [
+    // markup in plain and styled text
+    '<script>alert(1)</script>',
+    '<img src=x onerror=alert(1)>',
+    '<svg onload=alert(1)></svg>',
+    '<iframe src="javascript:alert(1)"></iframe>',
+    `${esc}[31m<script>alert(1)</script>`,
+    `${esc}[4:3m<img src=x onerror=alert(1)>`,
+    // attempts to break out of the span attributes we build
+    `${esc}[31m"><script>alert(1)</script>`,
+    `${esc}[31m'><script>alert(1)</script>`,
+    `${esc}[31m</span><script>alert(1)</script>`,
+    // sgr parameters are parsed, never emitted, even with the punctuation the charset allows
+    `${esc}[<script>malicious`,
+    `${esc}[=>;<mmalicious`,
+    `${esc}[38;2;999;0;0mout of range`,
+    // hyperlink targets that must not become a live href
+    link(`${scriptScheme}alert(1)`),
+    link(`${scriptScheme.toUpperCase()}alert(1)`),
+    link('data:text/html,<script>alert(1)</script>'),
+    link(`https://x${esc}${scriptScheme}alert(1)`),
+    link('vbscript:msgbox(1)'),
+    link(` ${scriptScheme}alert(1)`),
+    link('/relative/path'),
+    link('//evil.example.com'),
+    // hyperlink targets that try to escape the href attribute
+    link('https://x" onmouseover="alert(1)'),
+    link(`https://x' onmouseover='alert(1)`),
+    link('https://x"><script>alert(1)</script>'),
+    link('https://x</a><img src=y onerror=alert(1)>'),
+    // markup in the hyperlink label
+    link('https://example.com', '<script>alert(1)</script>'),
+    link('https://example.com', '"><img src=x onerror=alert(1)>'),
+    // bare urls in text, which the url post-process turns into links
+    `see ${scriptScheme}alert(1) here`,
+    'see https://x"><script>alert(1)</script> here',
+    'see https://x</a><img src=y onerror=alert(1)> here',
+    `${esc}[31msee https://x" onmouseover="alert(1) here`,
+  ];
+
+  for (const payload of payloads) {
+    const el = document.createElement('div');
+    renderAnsiInto(el, payload);
+
+    expect({payload, scripts: el.querySelectorAll('script, iframe, img, svg, object, embed').length}).toEqual({payload, scripts: 0});
+    for (const node of el.querySelectorAll('*')) {
+      const handlers = [...node.attributes].map((a) => a.name).filter((name) => name.startsWith('on'));
+      expect({payload, handlers}).toEqual({payload, handlers: []});
+    }
+    for (const anchor of el.querySelectorAll('a')) {
+      expect({payload, href: /^https?:\/\//.test(anchor.getAttribute('href')!)}).toEqual({payload, href: true});
+    }
+    // re-parsing the serialised output must not produce markup either, a serialise and parse round
+    // trip is where mutation xss shows up
+    const reparsed = document.createElement('div');
+    reparsed.innerHTML = el.innerHTML;
+    expect({payload, reparsedNodes: reparsed.querySelectorAll('script, iframe, img, svg, object, embed').length}).toEqual({payload, reparsedNodes: 0});
+    expect({payload, text: reparsed.textContent}).toEqual({payload, text: el.textContent});
+  }
 });
