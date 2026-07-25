@@ -180,6 +180,33 @@ func TestStopTaskCancellingFallsBackToCancelled(t *testing.T) {
 	})
 }
 
+// TestStopTaskCancellingKeepsReportTime makes sure persisting the cancelling status does not
+// refresh "updated". It tracks the runner's last state report, so cancelling an already
+// cancelling task repeatedly would otherwise keep deferring the fallback to cancelled as well
+// as the zombie task cleanup, no matter how long the runner has been silent.
+func TestStopTaskCancellingKeepsReportTime(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	task, _ := newRunningTaskForCancelling(t, "repeated-cancelling-job", true)
+
+	// NoAutoTime because the point of the test is an "updated" older than xorm would write
+	lastReport := timeutil.TimeStampNow().AddDuration(-taskReportTimeout / 2)
+	task.Updated = lastReport
+	_, err := db.GetEngine(t.Context()).ID(task.ID).Cols("updated").NoAutoTime().Update(task)
+	require.NoError(t, err)
+
+	// the runner reported recently enough, so the task waits for it to acknowledge
+	require.NoError(t, StopTask(t.Context(), task.ID, StatusCancelling))
+	taskAfterStop := unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
+	assert.Equal(t, StatusCancelling, taskAfterStop.Status)
+	assert.Equal(t, lastReport, taskAfterStop.Updated)
+
+	// cancelling it again does not reset the clock either
+	require.NoError(t, StopTask(t.Context(), task.ID, StatusCancelling))
+	taskAfterSecondStop := unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
+	assert.Equal(t, StatusCancelling, taskAfterSecondStop.Status)
+	assert.Equal(t, lastReport, taskAfterSecondStop.Updated)
+}
+
 // TestReleaseTaskForRunner verifies that releasing a freshly-claimed task returns
 // its job to the waiting queue and deletes the task and its steps, so a failure
 // while assembling the runner response cannot strand the job in running state.

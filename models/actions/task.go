@@ -590,7 +590,11 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			return err
 		}
 
-		return UpdateTask(ctx, task, "status")
+		// NoAutoTime keeps "updated" at the runner's last state report, which is what the
+		// timeout above and the zombie task cleanup measure. Otherwise cancelling an already
+		// cancelling task again would keep pushing both of them into the future.
+		_, err := e.ID(task.ID).Cols("status").NoAutoTime().Update(task)
+		return err
 	}
 
 	task.Status = status
