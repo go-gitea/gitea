@@ -24,7 +24,7 @@
   }
 }
 
-/* ansi_up colors used in actions */
+/* ANSI colors used in actions, see the palette in web_src/js/render/ansi.ts */
 
 .ansi-black-fg { color: var(--color-ansi-black); }
 .ansi-red-fg { color: var(--color-ansi-red); }

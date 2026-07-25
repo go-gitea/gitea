@@ -5,6 +5,7 @@ import {showFomanticModal} from './fomantic/modal.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 import {showGlobalErrorMessage} from './errors.ts';
+import {AnsiLineRenderer} from '../render/ansi.ts';
 
 type LevelMap = Record<string, (message: string) => Toast | null>;
 
@@ -56,8 +57,71 @@ function initDevtestPage() {
   }
 }
 
+// Showcase for every feature of the ANSI renderer, generated so the palettes stay exhaustive.
+function initDevtestAnsiRender(container: HTMLElement) {
+  const esc = '\x1b';
+  const sgr = (params: string, text: string) => `${esc}[${params}m${text}${esc}[0m`;
+  const row = (count: number, cell: (index: number) => string) => Array.from({length: count}, (_value, index) => cell(index)).join('');
+  const palette = (params: (index: number) => string) => Array.from({length: 16}, (_value, line) =>
+    row(16, (col) => sgr(params(line * 16 + col), String(line * 16 + col).padStart(4))));
+
+  const sections: Array<{title: string, lines: string[], source?: boolean}> = [
+    {title: '16 colors, foreground over background, normal / bold / bright', lines: [
+      ...['0', '1'].flatMap((attrs) => Array.from({length: 8}, (_value, fg) =>
+        row(8, (bg) => sgr(`${attrs};${30 + fg};${40 + bg}`, ` ${attrs};${30 + fg};${40 + bg} `)))),
+      ...Array.from({length: 8}, (_value, fg) =>
+        row(8, (bg) => sgr(`${90 + fg};${100 + bg}`, ` ${90 + fg};${100 + bg} `))),
+    ]},
+    {title: 'attributes and resets', lines: [
+      row(10, (code) => `${sgr(String(code), ` SGR ${code} `)} `),
+      `${esc}[1;3;4;31mall on${esc}[22m no bold${esc}[23m no italic${esc}[24m no underline${esc}[39m default color`,
+    ]},
+    {title: '256 colors, foreground (0-15 use css classes, the rest inline colors)', lines: palette((index) => `38;5;${index}`)},
+    {title: '256 colors, faint — the case reported in ansi_up issue 78', lines: palette((index) => `2;38;5;${index}`)},
+    {title: '256 colors, background', lines: palette((index) => `48;5;${index}`)},
+    {title: 'truecolor gradient', lines: [row(77, (col) => {
+      const r = 255 - Math.floor(col * 255 / 76);
+      const b = Math.floor(col * 255 / 76);
+      const g = Math.min(Math.floor(col * 510 / 76), 510 - Math.floor(col * 510 / 76));
+      return `${esc}[48;2;${r};${g};${b}m${esc}[38;2;${255 - r};${255 - g};${255 - b}m${'/\\'[col % 2]}${esc}[0m`;
+    })]},
+    {title: 'style carries into the following lines, like a terminal', lines: [
+      `${esc}[31man unterminated color`,
+      'carries into the following lines',
+      `${esc}[1mand combines with attributes set later`,
+      `${esc}[0muntil something resets it`,
+      'back to plain',
+    ]},
+    {title: 'sequences that are handled but not displayed', source: true, lines: [
+      'Reading... 1%\rReading... 50%\rReading... 100%',
+      `first${esc}[Ksecond${esc}[2Jthird`,
+      `cursor movement ${esc}[3Ais dropped`,
+      `private CSI ${esc}[?25lis dropped`,
+      `${esc}]0;window title${esc}\\OSC window title is dropped`,
+      `${esc}]8;;https://example.com${esc}\\OSC 8 hyperlink is dropped, its text kept${esc}]8;;${esc}\\`,
+      `a sequence cut off by the line end is dropped${esc}[38;5;`,
+      '<script>alert(1)</script> & "quotes" are escaped',
+      'urls such as https://example.com/path?a=b&c=d become links',
+    ]},
+  ];
+
+  for (const {title, lines, source} of sections) {
+    container.append(createElementFromHTML(html`<h2>${title}</h2>`));
+    const elConsole = createElementFromHTML(html`<div class="console tw-p-2 tw-mb-4"></div>`);
+    const ansi = new AnsiLineRenderer(); // one per section, so a section cannot bleed into the next
+    for (const line of lines) {
+      if (source) elConsole.append(createElementFromHTML(html`<div class="tw-mt-2 tw-opacity-50">${line.replaceAll(esc, '\\e')}</div>`));
+      const el = document.createElement('div');
+      ansi.renderInto(el, line);
+      elConsole.append(el);
+    }
+    container.append(elConsole);
+  }
+}
+
 export function initDevtest() {
   registerGlobalInitFunc('initDevtestPage', initDevtestPage);
+  registerGlobalInitFunc('initDevtestAnsiRender', initDevtestAnsiRender);
   registerGlobalInitFunc('initDevtestDetailsErrorMessage', () => {
     for (let i = 0; i < 2; i++) {
       showGlobalErrorMessage('showGlobalErrorMessage single message', 'warning');
