@@ -15,8 +15,8 @@ function shortcutWrapper(el: HTMLElement): HTMLElement | null {
   return parent?.matches('.global-shortcut-wrapper') ? parent : null;
 }
 
-function elemFromKbd(kbd: HTMLElement): HTMLInputElement | HTMLTextAreaElement | null {
-  return shortcutWrapper(kbd)?.querySelector<HTMLInputElement>('input, textarea') || null;
+function elemFromKbd(kbd: HTMLElement): HTMLElement | null {
+  return shortcutWrapper(kbd)?.querySelector<HTMLElement>('input, textarea, select, a, button, .button') || null;
 }
 
 function kbdFromElem(input: HTMLElement): HTMLElement | null {
@@ -108,10 +108,9 @@ export function initGlobalShortcut() {
     });
   }
 
-  // A <kbd> element next to an <input> declares a keyboard shortcut for that input.
-  // When the matching key is pressed, the sibling input is focused.
-  // When Escape is pressed inside such an input, the input is cleared and blurred.
-  // The <kbd> element is shown/hidden automatically based on input focus and value.
+  // A <kbd> element next to an element declares a keyboard shortcut for that element.
+  // When the matching key is pressed, inputs are focused and buttons/links are clicked.
+  // When Escape is pressed inside an input, the input is cleared and blurred.
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     // Modifier keys are not supported yet
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -153,55 +152,43 @@ export function initGlobalShortcut() {
       return;
     }
 
-    // Handle specific page shortcuts
-    if (key === 'w') {
-      const branchDropdown = document.querySelector<HTMLElement>('.branch-dropdown-button');
-      if (branchDropdown) {
-        e.preventDefault();
-        branchDropdown.click();
-        return;
-      }
-    } else if (key === 'y') {
-      const permalinkBtn = document.querySelector<HTMLAnchorElement>('#file-permalink-button');
-      if (permalinkBtn) {
-        e.preventDefault();
-        window.location.assign(permalinkBtn.href);
-        return;
-      }
-    } else if (key === 'b') {
-      const blameBtn = document.querySelector<HTMLAnchorElement>('#file-blame-button');
-      if (blameBtn) {
-        e.preventDefault();
-        window.location.assign(blameBtn.href);
-        return;
-      }
-    }
-
     // Handle sequence shortcuts (g + key)
     if (handleSequenceShortcut(key)) {
       e.preventDefault();
       return;
     }
 
-    // Find kbd element with matching shortcut (case-insensitive), then focus its sibling input
-    // At the moment, only a simple match. In the future, it can be extended to support modifiers and key combinations
+    // Find kbd element with matching shortcut (case-insensitive), then focus or click its target element
     const kbd = document.querySelector<HTMLElement>(`.global-shortcut-wrapper > kbd[data-shortcut-keys="${CSS.escape(key)}"]`);
     if (!kbd) return;
+
+    const elem = elemFromKbd(kbd);
+    if (!elem) return;
+
     e.preventDefault();
-    elemFromKbd(kbd)!.focus();
+    if (elem.matches('input, textarea, select')) {
+      elem.focus();
+    } else {
+      elem.click();
+    }
   });
 
   // Toggle kbd shortcut hint visibility on input focus/blur
   document.addEventListener('focusin', (e) => {
-    const kbd = kbdFromElem(e.target as HTMLElement);
-    if (!kbd) return;
-    hideElem(kbd);
+    const target = e.target as HTMLElement;
+    if (target.matches('input, textarea')) {
+      const kbd = kbdFromElem(target);
+      if (kbd) hideElem(kbd);
+    }
   });
 
   document.addEventListener('focusout', (e) => {
-    const kbd = kbdFromElem(e.target as HTMLElement);
-    if (!kbd) return;
-    const hasContent = Boolean((e.target as HTMLInputElement).value);
-    toggleElem(kbd, !hasContent);
+    const target = e.target as HTMLElement;
+    if (target.matches('input, textarea')) {
+      const kbd = kbdFromElem(target);
+      if (!kbd) return;
+      const hasContent = Boolean((target as HTMLInputElement).value);
+      toggleElem(kbd, !hasContent);
+    }
   });
 }
