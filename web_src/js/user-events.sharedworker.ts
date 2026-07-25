@@ -88,7 +88,7 @@ class WsSource {
       // Pushes fired while no client was subscribed (initial connect gap, or a
       // reconnect window) are dropped server-side, so tell clients to reconcile
       // their state from the server on every fresh connection.
-      this.source.notifyClientsUserEvent({eventType: 'ws-connected'});
+      this.source.notifyClientsUserEvent({eventType: 'worker-connected'});
     });
 
     this.ws.addEventListener('message', (event: MessageEvent<string>) => {
@@ -125,7 +125,7 @@ class WsSource {
     if (this.fallbackSignalled) return;
     if (this.failuresWithoutConnect < 3) return;
     this.fallbackSignalled = true;
-    this.source.notifyClientsUserEvent({eventType: 'push-unavailable'});
+    this.source.notifyClientsUserEvent({eventType: 'worker-unavailable'});
   }
 
   scheduleReconnect() {
@@ -165,12 +165,12 @@ const wsSourcesByUrl = new Map<string, WsSource>();
           source.register(port);
           sourcesByPort.set(port, source);
           // A port attaching to an already-open socket won't observe the next
-          // "open", so replay "ws-connected" to it directly; otherwise a late tab
+          // "open", so replay "worker-connected" to it directly; otherwise a late tab
           // never learns the stream is live (mirrors the SSE sharedworker replaying
           // its built-in "open" event to late-attaching ports).
           const openWs = wsSourcesByUrl.get(url);
           if (openWs?.ws?.readyState === WebSocket.OPEN) {
-            postUserEventMessage(port, {eventType: 'ws-connected'});
+            postUserEventMessage(port, {eventType: 'worker-connected'});
           }
           return;
         }

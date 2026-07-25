@@ -17,7 +17,7 @@ let fallbackSignalled = false;
 let sharedWorker: SharedWorker | null = null;
 
 function dispatch(msg: UserEventMessage) {
-  if (msg.eventType === 'ws-connected') {
+  if (msg.eventType === 'worker-connected') {
     // A fresh connection may have missed pushes, so drop the dedup state:
     // otherwise a later push whose value matches a pre-reconnect one would be
     // suppressed. Then let subscribers reconcile from the server.
@@ -39,7 +39,7 @@ function dispatch(msg: UserEventMessage) {
 function signalFallback() {
   if (fallbackSignalled) return;
   fallbackSignalled = true;
-  dispatch({eventType: 'push-unavailable'});
+  dispatch({eventType: 'worker-unavailable'});
 }
 
 function init() {

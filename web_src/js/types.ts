@@ -80,8 +80,8 @@ export type ServerUserEventMessage =
 export const serverUserEventTypes = ['notification-count', 'stopwatches', 'logout'] as const satisfies ReadonlyArray<ServerUserEventMessage['eventType']>;
 
 export type UserEventMessage = ServerUserEventMessage |
-  {eventType: 'push-unavailable'} |
-  {eventType: 'ws-connected'};
+  {eventType: 'worker-unavailable'} |
+  {eventType: 'worker-connected'};
 
 export type UserEventType = UserEventMessage['eventType'];
 

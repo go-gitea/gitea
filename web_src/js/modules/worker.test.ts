@@ -55,19 +55,19 @@ test('dedups identical repeat pushes', {concurrent: false}, async () => {
   expect(received).toEqual([1]);
 });
 
-test('ws-connected clears the dedup cache so a repeat-value push dispatches again', {concurrent: false}, async () => {
+test('worker-connected clears the dedup cache so a repeat-value push dispatches again', {concurrent: false}, async () => {
   const {onUserEvent} = await freshWorker();
   const received: number[] = [];
   let connects = 0;
   onUserEvent('notification-count', (msg) => { received.push(msg.eventData.count) });
-  onUserEvent('ws-connected', () => { connects++ });
+  onUserEvent('worker-connected', () => { connects++ });
 
   lastWorker.port.deliver({eventType: 'notification-count', eventData: {count: 1}});
-  lastWorker.port.deliver({eventType: 'ws-connected'}); // must clear lastPayload
+  lastWorker.port.deliver({eventType: 'worker-connected'}); // must clear lastPayload
   lastWorker.port.deliver({eventType: 'notification-count', eventData: {count: 1}}); // same value, cache cleared -> delivered again
 
   expect(connects).toBe(1);
   expect(received).toEqual([1, 1]);
-  // ws-connected also flags the page so e2e tests can wait for a live event stream
+  // worker-connected also flags the page so e2e tests can wait for a live event stream
   expect(document.documentElement.getAttribute('data-user-events-connected')).toBe('true');
 });
