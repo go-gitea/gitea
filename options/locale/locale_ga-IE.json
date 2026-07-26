@@ -3741,7 +3741,6 @@
   "actions.runners.runner_title": "Reathaí",
   "actions.runners.task_list": "Tascanna le déanaí ar an reathaí seo",
   "actions.runners.task_list.no_tasks": "Níl aon tasc ann fós.",
-  "actions.runners.task_list.run": "Rith",
   "actions.runners.task_list.status": "Stádas",
   "actions.runners.task_list.repository": "Stóras",
   "actions.runners.task_list.commit": "Tiomantas",

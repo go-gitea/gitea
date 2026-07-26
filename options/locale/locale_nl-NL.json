@@ -2064,7 +2064,6 @@
   "secrets.creation.description": "Omschrijving",
   "actions.runners.name": "Naam",
   "actions.runners.description": "Omschrijving",
-  "actions.runners.task_list.run": "Uitvoeren",
   "actions.runners.task_list.repository": "Opslagplaats",
   "actions.runners.status.active": "Actief",
   "actions.runners.version": "Versie",
