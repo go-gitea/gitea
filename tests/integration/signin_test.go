@@ -177,8 +177,6 @@ func TestRequireSignInView(t *testing.T) {
 		require.False(t, setting.Service.BlockAnonymousAccessExpensive)
 		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		MakeRequest(t, req, http.StatusOK)
-		// /-/ws is the WebSocket endpoint (formerly the /user/events SSE stream).
-		// A plain GET has no Upgrade header → 426 Upgrade Required.
 		req = NewRequest(t, "GET", "/-/ws")
 		MakeRequest(t, req, http.StatusUpgradeRequired)
 	})
