@@ -118,7 +118,16 @@ func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				delTags = append(delTags, tagName)
 				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
-			} else { // is new tag
+			} else { // tag create or update
+				// Create/delete tag webhooks must not depend on loading the
+				// peeled commit: a missing/unreadable object still means the
+				// ref was created, and create subscribers need the event
+				// (#38438). Push payloads still require a readable commit.
+				if opts.IsNewRef() {
+					addTags = append(addTags, tagName)
+					notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
+				}
+
 				newCommit, err := gitRepo.GetCommit(ctx, opts.NewCommitID)
 				if err != nil {
 					// in case there is dirty data, for example, the "github.com/git/git" repository has tags pointing to non-existing commits
@@ -138,8 +147,10 @@ func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 							NewCommitID: opts.NewCommitID,
 						}, commits)
 
-					addTags = append(addTags, tagName)
-					notify_service.CreateRef(ctx, pusher, repo, opts.RefFullName, opts.NewCommitID)
+					// Force-updating an existing tag is not a create; keep DB tag sync.
+					if !opts.IsNewRef() {
+						addTags = append(addTags, tagName)
+					}
 				}
 			}
 		} else if opts.RefFullName.IsBranch() {
