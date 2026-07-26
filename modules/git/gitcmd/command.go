@@ -38,11 +38,13 @@ type Command struct {
 	configArgs []string
 
 	// Dir is the working dir for the git command, however:
-	// FIXME: this could be incorrect in many cases, for example:
+	// FIXME: GIT-DIR-ARGUMENT: this could be incorrect in many cases, for example:
 	// * /some/path/.git
 	// * /some/path/.git/gitea-data/data/repositories/user/repo.git
 	// If "user/repo.git" is invalid/broken, then running git command in it will use "/some/path/.git", and produce unexpected results
 	// The correct approach is to use `--git-dir" global argument or "GIT_DIR=..." environment variable.
+	// Actually, when working with a bare repo, the current directory should not be the git dir,
+	// otherwise some git commands might overwrite git dir internal files by a repo file.
 	gitDir string
 
 	cmd *exec.Cmd
