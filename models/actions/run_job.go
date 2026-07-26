@@ -333,6 +333,14 @@ func GetDirectChildJobsByParent(ctx context.Context, parentJob *ActionRunJob) (A
 	return jobs, nil
 }
 
+// DeleteDirectChildJobsByParent deletes the direct child jobs of a parent job.
+func DeleteDirectChildJobsByParent(ctx context.Context, parentJob *ActionRunJob) error {
+	_, err := db.GetEngine(ctx).
+		Where("run_id=? AND parent_job_id=?", parentJob.RunID, parentJob.ID).
+		Delete(new(ActionRunJob))
+	return err
+}
+
 // CollectAllDescendantJobs returns every job in `allJobs` that lives under parent's subtree (recursively), excluding `parent` itself
 func CollectAllDescendantJobs(parent *ActionRunJob, allJobs []*ActionRunJob) []*ActionRunJob {
 	parents := map[int64]bool{parent.ID: true}

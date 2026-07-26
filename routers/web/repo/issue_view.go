@@ -334,7 +334,7 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanRead(unit.TypeProjects)
@@ -495,7 +495,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 
 	wontSignReason := ""
 	if ctx.Doer != nil {
-		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo)
+		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo, pull.BaseBranch, pull.GetGitHeadRefName())
 		data.willSign = sign
 		data.signingKeyMergeDisplay = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {

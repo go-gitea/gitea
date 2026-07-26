@@ -12,10 +12,21 @@ type TippyOpts = {
 const visibleInstances = new Set<Instance>();
 const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
+// shrink tippy's default 3px arrow padding so the arrow can point at the center of
+// narrow references like 16px icons with "start"/"end" placements
+function arrowPadding({placement, reference}: {placement: Placement, reference: {width: number, height: number}}): number {
+  const isVertical = placement.startsWith('left') || placement.startsWith('right');
+  const referenceLength = isVertical ? reference.height : reference.width;
+  return Math.max(0, Math.min(3, referenceLength / 2 - 8)); // 8 = half of arrow width
+}
+
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
+  // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
+  const resolvedTheme = theme || role || 'default';
+  const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
 
   const instance: Instance = tippy(target, {
     appendTo: document.body,
@@ -44,12 +55,12 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       target.setAttribute('aria-controls', instance.popper.id);
       return onShow?.(instance);
     },
-    arrow: arrow ?? (theme === 'bare' ? false : arrowSvg),
+    arrow: resolvedArrow,
+    popperOptions: {modifiers: [{name: 'arrow', options: {padding: arrowPadding}}]},
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
-    // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
-    theme: theme || role || 'default',
-    offset: [0, arrow ? 10 : 6],
+    theme: resolvedTheme,
+    offset: [0, resolvedArrow ? 10 : 6],
     plugins: [followCursor],
     ...other,
   } satisfies Partial<Props>);
@@ -87,7 +98,7 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
     theme: 'tooltip',
     hideOnClick,
     allowHTML: target.getAttribute('data-tooltip-render') === 'html',
-    placement: target.getAttribute('data-tooltip-placement') as Placement || 'top-start',
+    placement: target.getAttribute('data-tooltip-placement') as Placement || 'top',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
     ...((target.getAttribute('data-tooltip-interactive') === 'true') && {interactive: true, aria: {content: 'describedby', expanded: false}}),
   };
@@ -115,9 +126,14 @@ function switchTitleToTooltip(target: Element): void {
  * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  */
-function lazyTooltipOnMouseHover(this: HTMLElement, e: Event): void {
-  (e.target as HTMLElement).removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
-  attachTooltip(this);
+function lazyTooltipOnMouseHover(e: Event): void {
+  const el = e.currentTarget as HTMLElement;
+  el.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
+  // Firefox skips enter/leave dispatch when the window had no such listeners at the time of the
+  // pointer crossing, so the new tippy misses its first "mouseenter". Show via a synthetic event,
+  // carrying over the cursor position for "followCursor" tooltips.
+  const {clientX, clientY} = e as MouseEvent;
+  attachTooltip(el)?.reference.dispatchEvent(new MouseEvent('mouseenter', {clientX, clientY}));
 }
 
 // Activate the tooltip for current element.

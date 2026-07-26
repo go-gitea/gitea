@@ -15,17 +15,13 @@ import (
 )
 
 func TestGetFullCommitIDSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
-
-	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "f004f4")
+	id, err := GetFullCommitID(t.Context(), mockRepository("repo1_bare_sha256"), "f004f4")
 	assert.NoError(t, err)
 	assert.Equal(t, "f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc", id)
 }
 
 func TestGetFullCommitIDErrorSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
-
-	id, err := GetFullCommitID(t.Context(), bareRepo1Path, "unknown")
+	id, err := GetFullCommitID(t.Context(), mockRepository("repo1_bare_sha256"), "unknown")
 	assert.Empty(t, id)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, "object does not exist [id: unknown, rel_path: ]")
@@ -60,12 +56,12 @@ signed commit`
 		0x94, 0x33, 0xb2, 0xa6, 0x2b, 0x96, 0x4c, 0x17, 0xa4, 0x48, 0x5a, 0xe1, 0x80, 0xf4, 0x5f, 0x59,
 		0x5d, 0x3e, 0x69, 0xd3, 0x1b, 0x78, 0x60, 0x87, 0x77, 0x5e, 0x28, 0xc6, 0xb6, 0x39, 0x9d, 0xf0,
 	}
-	gitRepo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare_sha256"))
+	gitRepo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare_sha256"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
 	defer gitRepo.Close()
 
-	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
+	commitFromReader, err := CommitFromReader(sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
 	require.NotNil(t, commitFromReader)
 	assert.EqualValues(t, sha, commitFromReader.ID)
@@ -93,7 +89,7 @@ committer Adam Majer <amajer@suse.de> 1698676906 +0100
 signed commit`, commitFromReader.Signature.Payload)
 	assert.Equal(t, "Adam Majer <amajer@suse.de>", commitFromReader.Author.String())
 
-	commitFromReader2, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString+"\n\n"))
+	commitFromReader2, err := CommitFromReader(sha, strings.NewReader(commitString+"\n\n"))
 	assert.NoError(t, err)
 	commitFromReader.CommitMessage.MessageRaw += "\n\n"
 	commitFromReader.Signature.Payload += "\n\n"
@@ -103,14 +99,14 @@ signed commit`, commitFromReader.Signature.Payload)
 func TestHasPreviousCommitSha256(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
 
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
+	repo, err := OpenRepositoryLocal(bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 
-	commit, err := repo.GetCommit("f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc")
+	commit, err := repo.GetCommit(t.Context(), "f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc")
 	assert.NoError(t, err)
 
-	objectFormat, err := repo.GetObjectFormat()
+	objectFormat, err := repo.GetObjectFormat(t.Context())
 	assert.NoError(t, err)
 
 	parentSHA := MustIDFromString("b0ec7af4547047f12d5093e37ef8f1b3b5415ed8ee17894d43a34d7d34212e9c")
@@ -118,15 +114,15 @@ func TestHasPreviousCommitSha256(t *testing.T) {
 	assert.Equal(t, objectFormat, parentSHA.Type())
 	assert.Equal(t, "sha256", objectFormat.Name())
 
-	haz, err := commit.HasPreviousCommit(parentSHA)
+	haz, err := commit.HasPreviousCommit(t.Context(), repo, parentSHA)
 	assert.NoError(t, err)
 	assert.True(t, haz)
 
-	hazNot, err := commit.HasPreviousCommit(notParentSHA)
+	hazNot, err := commit.HasPreviousCommit(t.Context(), repo, notParentSHA)
 	assert.NoError(t, err)
 	assert.False(t, hazNot)
 
-	selfNot, err := commit.HasPreviousCommit(commit.ID)
+	selfNot, err := commit.HasPreviousCommit(t.Context(), repo, commit.ID)
 	assert.NoError(t, err)
 	assert.False(t, selfNot)
 }

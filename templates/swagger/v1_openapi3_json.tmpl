@@ -1402,10 +1402,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "items": {
-                "$ref": "#/components/schemas/TopicResponse"
-              },
-              "type": "array"
+              "$ref": "#/components/schemas/TopicListResponse"
             }
           }
         },
@@ -1484,10 +1481,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "items": {
-                "$ref": "#/components/schemas/UserSettings"
-              },
-              "type": "array"
+              "$ref": "#/components/schemas/UserSettings"
             }
           }
         },
@@ -4312,7 +4306,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "possible values are `public` (default), `limited` or `private`"
@@ -4853,7 +4847,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "User visibility level: public, limited, or private"
@@ -5561,7 +5555,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "possible values are `public`, `limited` or `private`"
@@ -6087,7 +6081,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "User visibility level: public, limited, or private"
@@ -7961,7 +7955,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "The visibility level of the organization (public, limited, private)"
@@ -9975,6 +9969,20 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
+      "TopicListResponse": {
+        "description": "TopicListResponse returns a list of TopicResponse",
+        "properties": {
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicResponse"
+            },
+            "type": "array",
+            "x-go-name": "Topics"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
       "TopicName": {
         "description": "TopicName a list of repo topic names",
         "properties": {
@@ -10355,7 +10363,7 @@
           "visibility": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserVisibility"
+                "$ref": "#/components/schemas/VisibilityString"
               }
             ],
             "description": "User visibility level option: public, limited, private"
@@ -10508,7 +10516,7 @@
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
       },
-      "UserVisibility": {
+      "VisibilityString": {
         "enum": [
           "public",
           "limited",

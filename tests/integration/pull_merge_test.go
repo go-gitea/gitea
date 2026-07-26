@@ -29,7 +29,6 @@ import (
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
@@ -386,13 +385,12 @@ func TestCantMergeUnrelated(t *testing.T) {
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		})
-		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		err := gitcmd.NewCommand("read-tree", "--empty").WithDir(path).Run(t.Context())
+		err := gitcmd.NewCommand("read-tree", "--empty").WithRepo(repo1).Run(t.Context())
 		assert.NoError(t, err)
 
 		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
-			WithDir(path).
+			WithRepo(repo1).
 			WithStdinBytes([]byte("Unrelated File")).
 			RunStdString(t.Context())
 
@@ -401,11 +399,11 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
 			AddDynamicArguments("100644", sha, "somewhere-over-the-rainbow").
-			WithDir(path).
+			WithRepo(repo1).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
 
-		treeSha, _, err := gitcmd.NewCommand("write-tree").WithDir(path).RunStdString(t.Context())
+		treeSha, _, err := gitcmd.NewCommand("write-tree").WithRepo(repo1).RunStdString(t.Context())
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -426,7 +424,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		stdout, _, err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
 			WithEnv(env).
-			WithDir(path).
+			WithRepo(repo1).
 			WithStdinBytes(messageBytes.Bytes()).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
@@ -434,7 +432,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		_, _, err = gitcmd.NewCommand("branch", "unrelated").
 			AddDynamicArguments(commitSha).
-			WithDir(path).
+			WithRepo(repo1).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
 
@@ -838,11 +836,11 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := git.OpenRepository(baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
-		branches, _, err := baseGitRepo.GetBranchNames(0, 100)
+		branches, _, err := baseGitRepo.GetBranchNames(t.Context(), 0, 100)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, []string{"sub-home-md-img-check", "home-md-img-check", "pr-to-update", "branch2", "DefaultBranch", "develop", "feature/1", "master"}, branches)
 		baseGitRepo.Close()
@@ -910,9 +908,9 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := git.OpenRepository(baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 
@@ -1023,9 +1021,9 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		assert.Empty(t, pr.MergedCommitID)
 
 		// update commit status to success, then it should be merged automatically
-		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
+		baseGitRepo, err := git.OpenRepository(baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		baseGitRepo.Close()
 		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
@@ -1321,7 +1319,8 @@ Co-authored-by: user4 <user4@example.com>
 				pullIndex, err := strconv.ParseInt(elems[4], 10, 64)
 				assert.NoError(t, err)
 				pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: pullIndex})
-				squashMergeCommitMessage := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				squashMergeCommitMessage, err := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)
 			})
 		}

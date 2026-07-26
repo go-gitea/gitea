@@ -46,9 +46,8 @@ func (opts *StarredReposOptions) ToConds() builder.Cond {
 		// only include private repos the actor can still access, so metadata does not leak after access revocation
 		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 	} else {
-		cond = cond.And(builder.Eq{
-			"repository.is_private": false,
-		})
+		// a public repo under a limited/private owner is not publicly reachable, so exclude it too
+		cond = cond.And(PublicRepoUnderPublicOwnerCond())
 	}
 	return cond
 }
@@ -96,9 +95,8 @@ func (opts *WatchedReposOptions) ToConds() builder.Cond {
 		// only include private repos the actor can still access, so metadata does not leak after access revocation
 		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 	} else {
-		cond = cond.And(builder.Eq{
-			"repository.is_private": false,
-		})
+		// a public repo under a limited/private owner is not publicly reachable, so exclude it too
+		cond = cond.And(PublicRepoUnderPublicOwnerCond())
 	}
 	return cond.And(builder.Neq{
 		"watch.mode": WatchModeDont,

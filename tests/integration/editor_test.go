@@ -20,7 +20,6 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
@@ -221,10 +220,10 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 	require.True(t, user.KeepEmailPrivate)
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, _ := gitrepo.OpenRepository(t.Context(), repo1)
+	gitRepo, _ := git.OpenRepository(repo1)
 	defer gitRepo.Close()
 	getLastCommit := func(t *testing.T) *git.Commit {
-		c, err := gitRepo.GetBranchCommit("master")
+		c, err := gitRepo.GetBranchCommit(t.Context(), "master")
 		require.NoError(t, err)
 		return c
 	}
@@ -349,9 +348,9 @@ index 0000000000..bbbbbbbbbb
 			},
 		)
 
-		commit1, err := gitRepo.GetCommitByPath("patch-file-1.txt")
+		commit1, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-1.txt")
 		require.NoError(t, err)
-		commit2, err := gitRepo.GetCommitByPath("patch-file-2.txt")
+		commit2, err := gitRepo.GetCommitByPath(t.Context(), "patch-file-2.txt")
 		require.NoError(t, err)
 		resp1, _ := testWebGit(t,
 			"/user2/repo1/_cherrypick/"+commit1.ID.String()+"/master", map[string]string{"revert": "true"},

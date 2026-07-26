@@ -14,7 +14,6 @@ import (
 	org_model "gitea.dev/models/organization"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -108,14 +107,14 @@ func getMatchingCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *is
 	}
 
 	// get the mergebase
-	mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
+	mergeBase, err := git.MergeBase(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, false, err
 	}
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitHeadRefName())
+	changedFiles, err := repo.GetFilesChangedBetween(ctx, mergeBase, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, false, err
 	}

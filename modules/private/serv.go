@@ -43,6 +43,8 @@ type ServCommandResults struct {
 	OwnerName   string
 	RepoName    string
 	RepoID      int64
+
+	RepoStoragePath string
 }
 
 // ServCommand preps for a serv call

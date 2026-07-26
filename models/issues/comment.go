@@ -627,11 +627,18 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 		return nil
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		issue, err := GetIssueByID(ctx, c.IssueID)
+		if err != nil {
+			return err
+		}
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
 		for i := range attachments {
+			if err := validateAttachmentForIssue(ctx, issue, attachments[i]); err != nil {
+				return err
+			}
 			attachments[i].IssueID = c.IssueID
 			attachments[i].CommentID = c.ID
 			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {

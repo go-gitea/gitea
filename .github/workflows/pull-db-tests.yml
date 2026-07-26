@@ -131,7 +131,7 @@ jobs:
         ports:
           - "7700:7700"
       redis:
-        image: redis:latest@sha256:c904002d182255b6db3cbe3a1e8ce6c187d15390c39500b59fc07181aabff7bf
+        image: redis:latest@sha256:5d2c689b4b55fc3fab4b0cc8aaa950f85b508c76c1e0f35a90d8f411d55a8b2b
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -147,7 +147,7 @@ jobs:
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:7aee5546ecffb850634c5f67ed87f59dba02a0eb24b7c7e01f5bd9148bd5edd9
         ports:
           - 10000:10000
     steps:
@@ -237,7 +237,7 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:7aee5546ecffb850634c5f67ed87f59dba02a0eb24b7c7e01f5bd9148bd5edd9
         ports:
           - 10000:10000
     steps:

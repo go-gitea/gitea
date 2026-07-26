@@ -24569,7 +24569,7 @@
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "x-go-enum-desc": "public VisibilityStringPublic\nlimited VisibilityStringLimited\nprivate VisibilityStringPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -25139,7 +25139,7 @@
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "x-go-enum-desc": "public VisibilityStringPublic\nlimited VisibilityStringLimited\nprivate VisibilityStringPrivate",
           "x-go-name": "Visibility"
         }
       },
@@ -25845,7 +25845,7 @@
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "x-go-enum-desc": "public VisibilityStringPublic\nlimited VisibilityStringLimited\nprivate VisibilityStringPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -26387,7 +26387,7 @@
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "x-go-enum-desc": "public VisibilityStringPublic\nlimited VisibilityStringLimited\nprivate VisibilityStringPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -28239,7 +28239,7 @@
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "x-go-enum-desc": "public VisibilityStringPublic\nlimited VisibilityStringLimited\nprivate VisibilityStringPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -30220,6 +30220,20 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "TopicListResponse": {
+      "description": "TopicListResponse returns a list of TopicResponse",
+      "type": "object",
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TopicResponse"
+          },
+          "x-go-name": "Topics"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "TopicName": {
       "description": "TopicName a list of repo topic names",
       "type": "object",
@@ -30602,7 +30616,7 @@
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "x-go-enum-desc": "public VisibilityStringPublic\nlimited VisibilityStringLimited\nprivate VisibilityStringPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -31816,10 +31830,7 @@
     "TopicListResponse": {
       "description": "TopicListResponse",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/TopicResponse"
-        }
+        "$ref": "#/definitions/TopicListResponse"
       }
     },
     "TopicNames": {
@@ -31870,10 +31881,7 @@
     "UserSettings": {
       "description": "UserSettings",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/UserSettings"
-        }
+        "$ref": "#/definitions/UserSettings"
       }
     },
     "VariableList": {
