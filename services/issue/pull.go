@@ -155,13 +155,13 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 		return false
 	}
 
-	repo, err := git.OpenRepository(pr.BaseRepo)
+	repo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		log.Error("HasAllRequiredCodeownerReviews: failed to open base repository for PR %d: %v", pr.ID, err)
 		return false
 	}
 
-	defer repo.Close()
+	defer closer.Close()
 
 	matchingRules, complete, err := getMatchingCodeOwnerRules(ctx, repo, pr)
 	if err != nil {
@@ -265,12 +265,12 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 
 	pr.Issue.Repo = pr.BaseRepo
 
-	repo, err := git.OpenRepository(pr.BaseRepo)
+	repo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, err
 	}
 
-	defer repo.Close()
+	defer closer.Close()
 
 	// The notifier only requests reviews, so a partial (budget-truncated) rule set is
 	// acceptable here; the complete flag matters only for the merge gate.
