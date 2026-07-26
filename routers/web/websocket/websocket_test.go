@@ -11,48 +11,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFilterLogout(t *testing.T) {
+func TestPayloadForSession(t *testing.T) {
 	cases := []struct {
 		name       string
 		brokerMsg  []byte
 		connSessID string
-		want       []byte // expected payload forwarded to the client
+		want       []byte // payload forwarded to the client, nil to drop
 	}{
 		{
-			name:       "originating session gets a session-free logout",
-			brokerMsg:  websocket.MakeUserEventMessage("logout", websocket.LogoutEventData{SessionID: "sess-A"}),
+			name:       "targeted session receives the payload",
+			brokerMsg:  websocket.MakeBrokerMessage("sess-A", websocket.EventLogout, nil),
 			connSessID: "sess-A",
-			want:       []byte(`{"eventType":"logout"}`),
+			want:       []byte(`{"eventType":"logout","eventData":null}`),
 		},
 		{
 			name:       "other session is dropped",
-			brokerMsg:  websocket.MakeUserEventMessage("logout", websocket.LogoutEventData{SessionID: "sess-A"}),
+			brokerMsg:  websocket.MakeBrokerMessage("sess-A", websocket.EventLogout, nil),
 			connSessID: "sess-B",
 			want:       nil,
 		},
 		{
-			name:       "empty sessionID reaches every session",
-			brokerMsg:  websocket.MakeUserEventMessage("logout", nil),
+			name:       "no target reaches every session",
+			brokerMsg:  websocket.MakeBrokerMessage("", websocket.EventLogout, nil),
 			connSessID: "sess-A",
-			want:       []byte(`{"eventType":"logout"}`),
+			want:       []byte(`{"eventType":"logout","eventData":null}`),
 		},
 		{
-			name:       "non-logout message passes through unchanged",
-			brokerMsg:  websocket.MakeUserEventMessage("other", map[string]any{"k": "v"}),
+			name:       "routing never reaches the client",
+			brokerMsg:  websocket.MakeBrokerMessage("sess-A", websocket.EventNotificationCount, map[string]any{"count": 1}),
 			connSessID: "sess-A",
-			want:       []byte(`{"eventType":"other","eventData":{"k":"v"}}`),
+			want:       []byte(`{"eventType":"notification-count","eventData":{"count":1}}`),
 		},
 		{
-			name:       "malformed payload passes through unchanged",
+			name:       "malformed broker message is dropped",
 			brokerMsg:  []byte("not json"),
 			connSessID: "sess-A",
-			want:       []byte("not json"),
+			want:       nil,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, filterLogout(tc.brokerMsg, tc.connSessID))
+			assert.Equal(t, tc.want, payloadForSession(tc.brokerMsg, tc.connSessID))
 		})
 	}
 }
