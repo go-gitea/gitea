@@ -29,7 +29,11 @@ import (
 	repo_service "gitea.dev/services/repository"
 )
 
-// UpdateAddress writes new address to Git repository and database
+// UpdateAddress updates git remotes and persists the sanitized address.
+// It is the single owner of address-related DB fields (mirror.remote_address and
+// repository.original_url). Callers must not set those fields separately; they
+// may still call UpdateMirror afterward for unrelated columns (interval, LFS, …)
+// — RemoteAddress is updated on m so a later AllCols update will not wipe it.
 func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
 	u, err := giturl.ParseGitURL(addr)
 	if err != nil {
@@ -65,12 +69,15 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 
 	// erase authentication before storing in database
 	u.User = nil
-	m.RemoteAddress = u.String()
-	m.Repo.OriginalURL = u.String()
-	if err = repo_model.UpdateMirror(ctx, m); err != nil {
+	sanitized := u.String()
+	m.RemoteAddress = sanitized
+	m.Repo.OriginalURL = sanitized
+
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url"); err != nil {
 		return err
 	}
-	return repo_model.UpdateRepositoryColsNoAutoTime(ctx, m.Repo, "original_url")
+	// Only the address column — do not AllCols-overwrite interval/LFS/etc.
+	return repo_model.UpdateMirrorCols(ctx, m, "remote_address")
 }
 
 func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, repoLogName string, gitRepo git.RepositoryFacade, timeout time.Duration) error {

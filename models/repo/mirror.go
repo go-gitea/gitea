@@ -93,6 +93,12 @@ func UpdateMirror(ctx context.Context, m *Mirror) error {
 	return err
 }
 
+// UpdateMirrorCols updates only the given columns on the mirror row.
+func UpdateMirrorCols(ctx context.Context, m *Mirror, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).Cols(cols...).Update(m)
+	return err
+}
+
 // TouchMirror updates the mirror updatedUnix
 func TouchMirror(ctx context.Context, m *Mirror) error {
 	m.UpdatedUnix = timeutil.TimeStampNow()

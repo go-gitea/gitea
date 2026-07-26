@@ -1105,17 +1105,15 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 			return err
 		}
 
+		// Address fields are owned by UpdateAddress (sets mirror.RemoteAddress
+		// and repo.OriginalURL); do not reassign them here.
 		if err := mirror_service.UpdateAddress(ctx, mirror, composedAddress); err != nil {
 			ctx.APIErrorInternal(err)
 			return err
 		}
-
-		if sanitized, err := util.SanitizeURL(repo.OriginalURL); err == nil {
-			mirror.RemoteAddress = sanitized
-		}
 	}
 
-	// finally update the mirror in the DB
+	// finally update the mirror in the DB (interval/prune; RemoteAddress already on m)
 	if err := repo_model.UpdateMirror(ctx, mirror); err != nil {
 		log.Error("Failed to Set Mirror Interval: %s", err)
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())

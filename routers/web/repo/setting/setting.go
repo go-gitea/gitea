@@ -287,14 +287,6 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		return
 	}
 
-	pullMirror.EnablePrune = form.EnablePrune
-	pullMirror.Interval = interval
-	pullMirror.ScheduleNextUpdate()
-	if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
-		ctx.ServerError("UpdateMirror", err)
-		return
-	}
-
 	u, err := git.ParseRemoteAddressURL(ctx, ctx.Repo.Repository, pullMirror.GetRemoteName())
 	if err != nil {
 		ctx.Data["Err_MirrorAddress"] = true
@@ -320,18 +312,11 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		return
 	}
 
+	// Address fields (remote_address + original_url) are owned by UpdateAddress.
 	if err := mirror_service.UpdateAddress(ctx, pullMirror, address); err != nil {
 		ctx.ServerError("UpdateAddress", err)
 		return
 	}
-
-	remoteAddress, err := util.SanitizeURL(form.MirrorAddress)
-	if err != nil {
-		ctx.Data["Err_MirrorAddress"] = true
-		handleSettingRemoteAddrError(ctx, err, form)
-		return
-	}
-	pullMirror.RemoteAddress = remoteAddress
 
 	form.LFS = form.LFS && setting.LFS.StartServer
 
@@ -350,6 +335,11 @@ func handleSettingsPostMirror(ctx *context.Context) {
 		}
 	}
 
+	// One write for non-address mirror settings (interval/prune/LFS).
+	// RemoteAddress is already set on pullMirror by UpdateAddress.
+	pullMirror.EnablePrune = form.EnablePrune
+	pullMirror.Interval = interval
+	pullMirror.ScheduleNextUpdate()
 	pullMirror.LFS = form.LFS
 	pullMirror.LFSEndpoint = form.LFSEndpoint
 	if err := repo_model.UpdateMirror(ctx, pullMirror); err != nil {
