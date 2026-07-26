@@ -1457,7 +1457,6 @@
   "actions.runners.owner_type": "Tyyppi",
   "actions.runners.description": "Kuvaus",
   "actions.runners.labels": "Tunnisteet",
-  "actions.runners.task_list.run": "Suorita",
   "actions.runners.task_list.repository": "Repo",
   "actions.runners.version": "Versio",
   "actions.runs.branch": "Haara",

@@ -27,7 +27,7 @@ type jobUpdate struct {
 	RunID int64
 }
 
-func EmitJobsIfReadyByRun(runID int64) error {
+var EmitJobsIfReadyByRun = func(runID int64) error {
 	err := jobEmitterQueue.Push(&jobUpdate{
 		RunID: runID,
 	})
