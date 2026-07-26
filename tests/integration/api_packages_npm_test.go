@@ -48,17 +48,13 @@ func TestPackageNpm(t *testing.T) {
 	repoURL := "http://localhost:3000/gitea/test.git"
 	repoDirectory := "package-subdir"
 
-	// Build a fresh tarball at test time so future edits (e.g. flipping the
-	// install-script hook) don't need re-baked shasum/integrity/size constants.
-	tarball := test.WriteTarCompression(gzip.NewWriter, map[string]string{
+	attachmentBytes := test.WriteTarCompression(gzip.NewWriter, map[string]string{
 		"package/package.json": `{"name":"` + packageName + `","version":"` + packageVersion + `","scripts":{"postinstall":"echo hi"}}`,
-	})
-	tarballBytes := tarball.Bytes()
-	tarballSize := int64(len(tarballBytes))
-	data := base64.StdEncoding.EncodeToString(tarballBytes)
-	sha1Sum := sha1.Sum(tarballBytes)
-	shasum := hex.EncodeToString(sha1Sum[:])
-	sha512Sum := sha512.Sum512(tarballBytes)
+	}).Bytes()
+	attachmentData := base64.StdEncoding.EncodeToString(attachmentBytes)
+	sha1Sum := sha1.Sum(attachmentBytes)
+	sha1SumHex := hex.EncodeToString(sha1Sum[:])
+	sha512Sum := sha512.Sum512(attachmentBytes)
 	integrity := "sha512-" + base64.StdEncoding.EncodeToString(sha512Sum[:])
 
 	buildUpload := func(version string) string {
@@ -82,7 +78,7 @@ func TestPackageNpm(t *testing.T) {
       	  },
 					"dist": {
 					  "integrity": "` + integrity + `",
-					  "shasum": "` + shasum + `"
+					  "shasum": "` + sha1SumHex + `"
 					},
 					"repository": {
 						"type": "` + repoType + `",
@@ -120,7 +116,7 @@ func TestPackageNpm(t *testing.T) {
 			},
 			"_attachments": {
 			  "` + packageName + `-` + version + `.tgz": {
-				"data": "` + data + `"
+				"data": "` + attachmentData + `"
 			  }
 			}
 		  }`
@@ -159,7 +155,7 @@ func TestPackageNpm(t *testing.T) {
 
 		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
-		assert.Equal(t, tarballSize, pb.Size)
+		assert.EqualValues(t, len(attachmentBytes), pb.Size)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
@@ -177,7 +173,7 @@ func TestPackageNpm(t *testing.T) {
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		b, _ := base64.StdEncoding.DecodeString(data)
+		b, _ := base64.StdEncoding.DecodeString(attachmentData)
 		assert.Equal(t, b, resp.Body.Bytes())
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/-/%s", root, filename)).
@@ -219,7 +215,7 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageAuthor, pmv.Author.Name)
 		assert.Equal(t, packageBinPath, pmv.Bin[packageBinName])
 		assert.Equal(t, integrity, pmv.Dist.Integrity)
-		assert.Equal(t, shasum, pmv.Dist.Shasum)
+		assert.Equal(t, sha1SumHex, pmv.Dist.Shasum)
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
 		assert.Equal(t, repoType, result.Repository.Type)
 		assert.Equal(t, repoURL, result.Repository.URL)
@@ -458,13 +454,13 @@ func TestPackageNpm(t *testing.T) {
 					"_hasShrinkwrap": true,
 					"dist": {
 						"integrity": "` + integrity + `",
-						"shasum": "` + shasum + `"
+						"shasum": "` + sha1SumHex + `"
 					}
 				}
 			},
 			"_attachments": {
 				"` + claimPackageName + `-` + claimVersion + `.tgz": {
-					"data": "` + data + `"
+					"data": "` + attachmentData + `"
 				}
 			}
 		}`
