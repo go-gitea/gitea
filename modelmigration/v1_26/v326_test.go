@@ -11,10 +11,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
-	_ "gitea.dev/models/actions"
-	_ "gitea.dev/models/git"
-	_ "gitea.dev/models/repo"
-
 	"github.com/stretchr/testify/require"
 )
 

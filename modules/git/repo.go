@@ -17,12 +17,13 @@ import (
 	"time"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
 
-type RepositoryFacade = gitcmd.RepositoryFacade
+type RepositoryFacade = gitrepo.RepositoryFacade
 
 type RepositoryBase struct {
 	LastCommitCache *LastCommitCache
@@ -36,7 +37,7 @@ type RepositoryBase struct {
 	catFileBatchInUse  bool
 }
 
-var _ gitcmd.RepositoryFacade = (*Repository)(nil)
+var _ RepositoryFacade = (*Repository)(nil)
 
 func (repo *Repository) GitRepoManagedID() string {
 	return repo.repoFacade.GitRepoManagedID()
@@ -51,7 +52,7 @@ func (repo *Repository) LogString() string {
 }
 
 func OpenRepository(repo RepositoryFacade) (*Repository, error) {
-	repoPath := gitcmd.RepoLocalPath(repo)
+	repoPath := gitrepo.RepoLocalPath(repo)
 	exist, err := util.IsDir(repoPath)
 	if err != nil {
 		return nil, err
@@ -77,7 +78,7 @@ func OpenRepositoryLocal(localPath string) (_ *Repository, err error) {
 			return nil, err
 		}
 	}
-	return OpenRepository(gitcmd.RepositoryUnmanaged(localPath))
+	return OpenRepository(gitrepo.RepositoryUnmanaged(localPath))
 }
 
 func (repo *Repository) Close() error {
@@ -105,8 +106,8 @@ func IsRepoURLAccessible(ctx context.Context, url string) bool {
 }
 
 // InitRepositoryLocal initializes a new Git repository.
-func InitRepositoryLocal(ctx context.Context, repoPath string, bare bool, objectFormatName string) error {
-	err := os.MkdirAll(repoPath, os.ModePerm)
+func InitRepositoryLocal(ctx context.Context, localRepoPath string, bare bool, objectFormatName string) error {
+	err := os.MkdirAll(localRepoPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -123,14 +124,14 @@ func InitRepositoryLocal(ctx context.Context, repoPath string, bare bool, object
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, _, err = cmd.WithDir(repoPath).RunStdString(ctx)
+	_, _, err = cmd.WithDir(localRepoPath).RunStdString(ctx)
 	return err
 }
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty(ctx context.Context) (bool, error) {
 	stdout, _, err := gitcmd.NewCommand().
-		AddOptionFormat("--git-dir=%s", gitcmd.RepoLocalPath(repo)). // TODO: all git commands should use "--git-dir" or "GIT_DIR=..."
+		AddOptionFormat("--git-dir=%s", gitrepo.RepoLocalPath(repo)). // TODO: all git commands should use "--git-dir" or "GIT_DIR=..."
 		AddArguments("rev-list", "-n", "1", "--all").
 		WithRepo(repo).
 		RunStdString(ctx)
@@ -234,7 +235,7 @@ type PushOptions struct {
 }
 
 // Push pushs local commits to given remote branch.
-func Push(ctx context.Context, repoPath string, opts PushOptions) error {
+func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 	cmd := gitcmd.NewCommand("push")
 	if opts.ForceWithLease != "" {
 		cmd.AddOptionFormat("--force-with-lease=%s", opts.ForceWithLease)
@@ -256,7 +257,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
-	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(repoPath).RunStdString(ctx)
+	stdout, stderr, err := cmd.WithEnv(opts.Env).WithTimeout(opts.Timeout).WithDir(localRepoPath).RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(stderr, "non-fast-forward") {
 			return &ErrPushOutOfDate{StdOut: stdout, StdErr: stderr, Err: err}

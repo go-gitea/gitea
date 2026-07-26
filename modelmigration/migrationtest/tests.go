@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
-	"gitea.dev/models/unittest"
+	"gitea.dev/models/db"       //nolint:depguard // allow to access db in migration tests
+	"gitea.dev/models/unittest" //nolint:depguard // allow to access db in migration tests
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/testlogger"
@@ -58,7 +58,11 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (base.EngineMigra
 		}
 	}
 
+	db.ResetModels()
 	if len(syncModels) > 0 {
+		for _, syncModel := range syncModels {
+			db.RegisterModel(syncModel)
+		}
 		if err := x.Sync(syncModels...); err != nil {
 			t.Errorf("error during sync: %v", err)
 			return x, deferFn

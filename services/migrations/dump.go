@@ -18,6 +18,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/repository"
@@ -161,7 +162,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 		return fmt.Errorf("clone code: %w", err)
 	}
 
-	repoLocal := gitcmd.RepositoryUnmanaged(repoAbsPath)
+	repoLocal := gitrepo.RepositoryUnmanaged(repoAbsPath)
 	if err := git.WriteCommitGraph(ctx, repoLocal); err != nil {
 		return err
 	}
@@ -176,7 +177,7 @@ func (g *RepositoryDumper) CreateRepo(ctx context.Context, repo *base.Repository
 			if err := os.MkdirAll(wikiAbsPath, os.ModePerm); err != nil {
 				return fmt.Errorf("failed to create %s: %w", wikiAbsPath, err)
 			}
-			wikiLocal := gitcmd.RepositoryUnmanaged(wikiAbsPath)
+			wikiLocal := gitrepo.RepositoryUnmanaged(wikiAbsPath)
 			if err := git.Clone(ctx, wikiRemotePath, wikiAbsPath, git.CloneRepoOptions{
 				Mirror:        true,
 				Quiet:         true,

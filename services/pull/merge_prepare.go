@@ -38,7 +38,7 @@ type mergeContext struct {
 func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
 	return cmd.WithEnv(ctx.env).
-		WithDir(ctx.tmpBasePath).
+		WithRepo(ctx.tmpRepo).
 		WithParentCallerInfo().
 		WithStdoutBuffer(ctx.outbuf)
 }
@@ -77,7 +77,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 		trackingCommitID, _, err := gitcmd.NewCommand("show-ref", "--hash").
 			AddDynamicArguments(git.BranchPrefix + tmpRepoTrackingBranch).
 			WithEnv(mergeCtx.env).
-			WithDir(mergeCtx.tmpBasePath).
+			WithRepo(mergeCtx.tmpRepo).
 			RunStdString(ctx)
 		if err != nil {
 			defer cancel()
@@ -154,7 +154,7 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 	}
 	defer sparseCheckoutListFile.Close() // we will close it earlier but we need to ensure it is closed if there is an error
 
-	if err := getDiffTree(ctx, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, sparseCheckoutListFile); err != nil {
+	if err := getDiffTree(ctx, ctx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch, sparseCheckoutListFile); err != nil {
 		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, err)
 		return fmt.Errorf("getDiffTree: %w", err)
 	}
@@ -206,13 +206,13 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 }
 
 // getDiffTree returns a string containing all the files that were changed between headBranch and baseBranch
-// the filenames are escaped so as to fit the format required for .git/info/sparse-checkout
-func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, out io.Writer) error {
+// the filenames are escaped to fit the format required for .git/info/sparse-checkout
+func getDiffTree(ctx context.Context, repo git.RepositoryFacade, baseBranch, headBranch string, out io.Writer) error {
 	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root")
 	diffOutReader, diffOutReaderClose := cmd.MakeStdoutPipe()
 	defer diffOutReaderClose()
 	err := cmd.AddDynamicArguments(baseBranch, headBranch).
-		WithDir(repoPath).
+		WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(diffOutReader)

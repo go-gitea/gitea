@@ -1,9 +1,10 @@
 module gitea.dev
 
-go 1.26.5
+go 1.26.0
+
+toolchain go1.26.5
 
 require (
-	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	connectrpc.com/connect v1.20.0
 	gitea.com/gitea/runner v1.0.8
 	gitea.com/go-chi/binding v0.0.0-20260414111559-654cea7ac60a
@@ -42,7 +43,7 @@ require (
 	github.com/ethantkoenig/rupture v1.0.1
 	github.com/felixge/fgprof v0.9.5
 	github.com/fsnotify/fsnotify v1.10.1
-	github.com/getkin/kin-openapi v0.142.0
+	github.com/getkin/kin-openapi v0.144.0
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-chi/cors v1.2.2
@@ -111,7 +112,7 @@ require (
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.40.0
-	google.golang.org/grpc v1.82.0
+	google.golang.org/grpc v1.82.1
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/ini.v1 v1.67.3
 	modernc.org/sqlite v1.53.0

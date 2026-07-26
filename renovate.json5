@@ -98,10 +98,18 @@
     {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
-      "matchDepTypes": ["golang"],
+      "matchDepTypes": ["golang", "toolchain"], // fast-track go and toolchain in their own PR
+      "groupName": "golang",
       "rangeStrategy": "bump",
       "schedule": ["at any time"],
       "minimumReleaseAge": "0",
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "matchUpdateTypes": ["patch", "major"], // go minimum bumps on minor only
+      "enabled": false,
     },
     {
       "matchManagers": ["npm"],

@@ -9,6 +9,24 @@ import (
 	"gitea.dev/modules/timeutil"
 )
 
+type ProjectBoardV293 struct {
+	ID      int64 `xorm:"pk autoincr"`
+	Title   string
+	Default bool   `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
+	Sorting int8   `xorm:"NOT NULL DEFAULT 0"`
+	Color   string `xorm:"VARCHAR(7)"`
+
+	ProjectID int64 `xorm:"INDEX NOT NULL"`
+	CreatorID int64 `xorm:"NOT NULL"`
+
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+}
+
+func (ProjectBoardV293) TableName() string {
+	return "project_board"
+}
+
 // CheckProjectColumnsConsistency ensures there is exactly one default board per project present
 func CheckProjectColumnsConsistency(x base.EngineMigration) error {
 	sess := x.NewSession()
@@ -23,20 +41,6 @@ func CheckProjectColumnsConsistency(x base.EngineMigration) error {
 		ID        int64
 		CreatorID int64
 		BoardID   int64
-	}
-
-	type ProjectBoard struct {
-		ID      int64 `xorm:"pk autoincr"`
-		Title   string
-		Default bool   `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
-		Sorting int8   `xorm:"NOT NULL DEFAULT 0"`
-		Color   string `xorm:"VARCHAR(7)"`
-
-		ProjectID int64 `xorm:"INDEX NOT NULL"`
-		CreatorID int64 `xorm:"NOT NULL"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
 	for {
@@ -56,7 +60,7 @@ func CheckProjectColumnsConsistency(x base.EngineMigration) error {
 		}
 
 		for _, p := range projects {
-			if _, err := sess.Insert(ProjectBoard{
+			if _, err := sess.Insert(ProjectBoardV293{
 				ProjectID: p.ID,
 				Default:   true,
 				Title:     "Uncategorized",
