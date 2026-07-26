@@ -862,6 +862,51 @@ func Test_WebhookRepository(t *testing.T) {
 	})
 }
 
+func Test_WebhookRepositoryRename(t *testing.T) {
+	// Regression for #34891: repository rename must fire repository webhook.
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		var payloads []api.RepositoryPayload
+		var triggeredEvent string
+		provider := newMockWebhookProvider(func(r *http.Request) {
+			content, _ := io.ReadAll(r.Body)
+			var payload api.RepositoryPayload
+			err := json.Unmarshal(content, &payload)
+			assert.NoError(t, err)
+			payloads = append(payloads, payload)
+			triggeredEvent = "repository"
+		}, http.StatusOK)
+		defer provider.Close()
+
+		session := loginUser(t, "user2")
+		// repo-level repository event webhook on user2/repo1
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "repository")
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		newName := "repo1-renamed-34891"
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1", &api.EditRepoOption{
+			Name: &newName,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		require.Equal(t, "repository", triggeredEvent)
+		require.Len(t, payloads, 1)
+		assert.EqualValues(t, api.HookRepoRenamed, payloads[0].Action)
+		assert.Equal(t, newName, payloads[0].Repository.Name)
+		assert.Equal(t, "user2/"+newName, payloads[0].Repository.FullName)
+		require.NotNil(t, payloads[0].Changes)
+		require.NotNil(t, payloads[0].Changes.Name)
+		assert.Equal(t, "repo1", payloads[0].Changes.Name.From)
+		assert.Equal(t, "user2", payloads[0].Sender.UserName)
+
+		// restore original name so other tests keep using repo1
+		oldName := "repo1"
+		req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/"+newName, &api.EditRepoOption{
+			Name: &oldName,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+	})
+}
+
 func Test_WebhookPackage(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		var payloads []api.PackagePayload

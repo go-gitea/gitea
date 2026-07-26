@@ -276,6 +276,12 @@ func (s slackConvertor) Repository(p *api.RepositoryPayload) (SlackPayload, erro
 		text = fmt.Sprintf("[%s] Repository created by %s", repoLink, senderLink)
 	case api.HookRepoDeleted:
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
+	case api.HookRepoRenamed:
+		oldName := ""
+		if p.Changes != nil && p.Changes.Name != nil {
+			oldName = p.Changes.Name.From
+		}
+		text = fmt.Sprintf("[%s] Repository renamed from %s by %s", repoLink, oldName, senderLink)
 	}
 
 	return s.createPayload(text, nil), nil

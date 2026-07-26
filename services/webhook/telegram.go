@@ -154,6 +154,13 @@ func (t telegramConvertor) Repository(p *api.RepositoryPayload) (TelegramPayload
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", html.EscapeString(p.Repository.FullName))
 		return createTelegramPayloadHTML(title), nil
+	case api.HookRepoRenamed:
+		oldName := ""
+		if p.Changes != nil && p.Changes.Name != nil {
+			oldName = p.Changes.Name.From
+		}
+		title = fmt.Sprintf("[%s] Repository renamed from %s", htmlLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName), html.EscapeString(oldName))
+		return createTelegramPayloadHTML(title), nil
 	}
 	return TelegramPayload{}, nil
 }

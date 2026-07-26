@@ -241,6 +241,14 @@ func (d discordConvertor) Repository(p *api.RepositoryPayload) (DiscordPayload, 
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
 		color = redColor
+	case api.HookRepoRenamed:
+		oldName := ""
+		if p.Changes != nil && p.Changes.Name != nil {
+			oldName = p.Changes.Name.From
+		}
+		title = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, oldName)
+		url = p.Repository.HTMLURL
+		color = greenColor
 	}
 
 	return d.createPayload(p.Sender, title, "", url, color), nil
