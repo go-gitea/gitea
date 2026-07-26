@@ -29,8 +29,10 @@ func TestGitPatchPrepare(t *testing.T) {
 	tmpRepo, err := gitPatchPrepare(t.Context(), repo1, gitRepo, user2, opts)
 	require.NoError(t, err)
 	defer tmpRepo.Close()
-	// temporary repository for patch should not be a bare repo because "--index" argument is used,
-	// while it is questionable whether "--index" argument should be really used, need to figure out in the future.
+	// Temporary repository for patch should not be a bare repo because "--index" argument is used in some cases:
+	// * repo files might be written into current working tree when "applying the patch" then overwrite bare repo's git dir internal files.
+	// * see also "FIXME: GIT-DIR-ARGUMENT"
+	// While it is also questionable whether "--index" argument should really be used, need to figure out in the future.
 	_, err = os.Stat(filepath.Join(tmpRepo.basePath, ".git"))
 	require.NoError(t, err)
 }
