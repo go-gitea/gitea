@@ -38,8 +38,7 @@ func TestParsePackage(t *testing.T) {
 		"package/package.json": `{"name": "@scope/test-package","version": "1.0.1-pre","description": "Test Description","author": "KN4CK3R"}`,
 	})
 	data := base64.StdEncoding.EncodeToString(dataBytes)
-	sha512Sum := sha512.Sum512(dataBytes)
-	integrity := "sha512-" + base64.StdEncoding.EncodeToString(sha512Sum[:])
+	integrity := "sha512-" + base64Sha512(dataBytes)
 
 	t.Run("InvalidUpload", func(t *testing.T) {
 		p, err := ParsePackage(bytes.NewReader([]byte{0}))
@@ -465,7 +464,7 @@ func TestParseUpload(t *testing.T) {
 	t.Run("dispatches publish when _attachments present", func(t *testing.T) {
 		// Reuse a minimal tarball with a package.json.
 		data := buildTarball(map[string]string{"package/package.json": `{}`})
-		integrity := "sha512-" + base64Sha512(t, data)
+		integrity := "sha512-" + base64Sha512(data)
 		body := fmt.Sprintf(
 			`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","dist":{"integrity":%q}}},"_attachments":{"x.tgz":{"data":%q}}}`,
 			pkg, pkg, integrity, base64.StdEncoding.EncodeToString(data),
@@ -481,7 +480,7 @@ func TestParseUpload(t *testing.T) {
 		// The old fast-path used a substring check for "deprecated"; make sure
 		// the new dispatch keys off _attachments only.
 		data := buildTarball(map[string]string{"package/package.json": `{}`})
-		integrity := "sha512-" + base64Sha512(t, data)
+		integrity := "sha512-" + base64Sha512(data)
 		body := fmt.Sprintf(
 			`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","readme":"this package is deprecated!","dist":{"integrity":%q}}},"_attachments":{"x.tgz":{"data":%q}}}`,
 			pkg, pkg, integrity, base64.StdEncoding.EncodeToString(data),
@@ -498,8 +497,7 @@ func TestParseUpload(t *testing.T) {
 	})
 }
 
-func base64Sha512(t *testing.T, data []byte) string {
-	t.Helper()
+func base64Sha512(data []byte) string {
 	h := sha512.Sum512(data)
 	return base64.StdEncoding.EncodeToString(h[:])
 }
