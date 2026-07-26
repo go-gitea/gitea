@@ -3731,7 +3731,6 @@
   "actions.runners.runner_title": "러너",
   "actions.runners.task_list": "이 러너의 최근 작업",
   "actions.runners.task_list.no_tasks": "아직 작업이 없습니다.",
-  "actions.runners.task_list.run": "실행",
   "actions.runners.task_list.status": "상태",
   "actions.runners.task_list.repository": "리포지토리",
   "actions.runners.task_list.commit": "커밋",

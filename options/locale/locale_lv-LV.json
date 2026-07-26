@@ -2946,7 +2946,6 @@
   "actions.runners.runner_title": "Izpildītājs",
   "actions.runners.task_list": "Pēdējās darbības, kas izpildītas",
   "actions.runners.task_list.no_tasks": "Vēl nav uzdevumu.",
-  "actions.runners.task_list.run": "Izpildīt",
   "actions.runners.task_list.status": "Statuss",
   "actions.runners.task_list.repository": "Repozitorijs",
   "actions.runners.task_list.commit": "Revīzija",
