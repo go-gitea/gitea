@@ -2892,7 +2892,6 @@
   "actions.runners.runner_title": "Раннер",
   "actions.runners.task_list": "Недавние задания на раннере",
   "actions.runners.task_list.no_tasks": "Задания пока нет.",
-  "actions.runners.task_list.run": "Запуск",
   "actions.runners.task_list.status": "Статус",
   "actions.runners.task_list.repository": "Репозиторий",
   "actions.runners.task_list.commit": "коммит",

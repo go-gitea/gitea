@@ -3072,7 +3072,6 @@
   "actions.runners.labels": "Мітки",
   "actions.runners.last_online": "Останній раз онлайн",
   "actions.runners.task_list.no_tasks": "Наразі завдань немає.",
-  "actions.runners.task_list.run": "Запустити",
   "actions.runners.task_list.status": "Статус",
   "actions.runners.task_list.repository": "Репозиторій",
   "actions.runners.task_list.commit": "Коміт",

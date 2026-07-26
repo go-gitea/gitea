@@ -2346,7 +2346,6 @@
   "actions.runners.owner_type": "Tipo",
   "actions.runners.description": "Descrizione",
   "actions.runners.labels": "Etichette",
-  "actions.runners.task_list.run": "Esegui",
   "actions.runners.status.active": "Attivo",
   "actions.runners.version": "Versione",
   "actions.runs.branch": "Ramo",
