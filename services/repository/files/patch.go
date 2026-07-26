@@ -13,6 +13,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
@@ -161,7 +163,11 @@ func gitPatchPrepare(ctx context.Context, repo *repo_model.Repository, gitRepo *
 }
 
 // ApplyDiffPatch applies a patch to the given repository
-func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+func ApplyDiffPatch(ctx reqctx.RequestContext, repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
 	t, err := gitPatchPrepare(ctx, repo, gitRepo, doer, opts)
 	if err != nil {
 		return nil, err
