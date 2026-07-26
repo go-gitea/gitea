@@ -133,9 +133,8 @@ func TestTaskCancellingFinalizesToCancelled(t *testing.T) {
 	})
 }
 
-// TestStopTaskCancellingFallsBackToCancelled covers the cases where the cancelling handshake
-// can never complete, so StopTask must cancel the task right away instead of leaving it stuck
-// in "cancelling" until the zombie task cleanup picks it up.
+// TestStopTaskCancellingFallsBackToCancelled covers the cases where the cancelling handshake can
+// never complete, so StopTask must cancel right away instead of waiting for the zombie task cleanup.
 func TestStopTaskCancellingFallsBackToCancelled(t *testing.T) {
 	assertCancelled := func(t *testing.T, task *ActionTask, job *ActionRunJob) {
 		t.Helper()
@@ -170,7 +169,7 @@ func TestStopTaskCancellingFallsBackToCancelled(t *testing.T) {
 		assertCancelled(t, task, job)
 	})
 
-	// The runner stopped reporting state, e.g. it gave up while Gitea was restarting, so it will never pick up the cancelling request.
+	// The runner went silent, e.g. it gave up while Gitea was restarting, so it never picks up the request.
 	t.Run("silent runner", func(t *testing.T) {
 		require.NoError(t, unittest.PrepareTestDatabase())
 		task, job := newRunningTaskForCancelling(t, "silent-runner-cancelling-job", true)
@@ -196,10 +195,9 @@ func TestStopTaskCancellingFallsBackToCancelled(t *testing.T) {
 	})
 }
 
-// TestStopTaskCancellingKeepsReportTime makes sure persisting the cancelling status does not
-// refresh "updated". It tracks the runner's last state report, so cancelling an already
-// cancelling task repeatedly would otherwise keep deferring the fallback to cancelled as well
-// as the zombie task cleanup, no matter how long the runner has been silent.
+// TestStopTaskCancellingKeepsReportTime makes sure persisting the cancelling status does not refresh
+// "updated": re-cancelling would otherwise defer both the fallback to cancelled and the zombie task
+// cleanup, no matter how long the runner has been silent.
 func TestStopTaskCancellingKeepsReportTime(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	task, _ := newRunningTaskForCancelling(t, "repeated-cancelling-job", true)

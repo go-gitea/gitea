@@ -60,12 +60,10 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
-// taskReportTimeout is how long a task may go without a state report from its runner
-// before the runner is assumed to have abandoned it. Runners report the state of a
-// running task every few seconds, so this much silence means the runner is gone (it
-// crashed, or it gave up while Gitea was unreachable).
-// It is much shorter than setting.Actions.ZombieTaskTimeout because it only decides
-// whether a runner can still be talked to, not whether a task should be killed.
+// taskReportTimeout is how long a task may go without contact from its runner before the
+// runner is assumed gone. Runners report state and stream logs every few seconds, both of
+// which refresh ActionTask.Updated. Shorter than setting.Actions.ZombieTaskTimeout because
+// it only decides whether the runner is reachable, not whether the task should be killed.
 const taskReportTimeout = time.Minute
 
 var successfulTokenTaskCache *lru.Cache[string, any]
@@ -576,9 +574,8 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 		} else if !runner.HasCancellingSupport {
 			status = StatusCancelled
 		} else if task.Updated.AddDuration(taskReportTimeout) < now {
-			// The runner stopped reporting state for this task, so it will never acknowledge
-			// the cancellation either. Cancel right away instead of leaving the job stuck in
-			// "cancelling" until the zombie task cleanup picks it up.
+			// A runner that stopped reporting will never acknowledge the cancellation either,
+			// so skip the handshake instead of waiting for the zombie task cleanup.
 			status = StatusCancelled
 		}
 	}
@@ -594,9 +591,8 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			return err
 		}
 
-		// NoAutoTime keeps "updated" at the runner's last state report, which is what the
-		// timeout above and the zombie task cleanup measure. Otherwise cancelling an already
-		// cancelling task again would keep pushing both of them into the future.
+		// NoAutoTime keeps "updated" at the runner's last contact: re-cancelling an already
+		// cancelling task must not defer the timeout above or the zombie task cleanup.
 		_, err := e.ID(task.ID).Cols("status").NoAutoTime().Update(task)
 		return err
 	}
