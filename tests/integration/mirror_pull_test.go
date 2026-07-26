@@ -176,3 +176,23 @@ func TestMirrorPullSSRFRevalidation(t *testing.T) {
 	assert.False(t, mirror_service.SyncPullMirror(ctx, mirrorRepo.ID))
 	assert.False(t, reached.Load(), "the disallowed internal remote must not be reached")
 }
+
+// TestUpdateAddressPersistsRemoteAddress ensures UpdateAddress writes the sanitized
+// remote URL to mirror.RemoteAddress (settings UI reads this column).
+func TestUpdateAddressPersistsRemoteAddress(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	ctx := t.Context()
+	// Fixture mirror repo with a git repository on disk (org3/repo5).
+	mirrorRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 5})
+	mirror := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: 5})
+
+	newAddr := "https://token-user:s3cret@example.com/org/mirror-source.git"
+	require.NoError(t, mirror_service.UpdateAddress(ctx, mirror, newAddr))
+
+	updated := unittest.AssertExistsAndLoadBean(t, &repo_model.Mirror{RepoID: mirrorRepo.ID})
+	assert.Equal(t, "https://example.com/org/mirror-source.git", updated.RemoteAddress)
+
+	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
+	assert.Equal(t, "https://example.com/org/mirror-source.git", updatedRepo.OriginalURL)
+}
