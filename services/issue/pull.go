@@ -52,7 +52,7 @@ func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_mod
 		return nil, nil
 	}
 
-	commit, err := repo.GetBranchCommit(pr.BaseBranch)
+	commit, err := repo.GetBranchCommit(ctx, pr.BaseBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -60,18 +60,18 @@ func getCodeOwnerRules(ctx context.Context, repo *git.Repository, pr *issues_mod
 	var data string
 
 	for _, file := range codeOwnerFiles {
-		blob, err := commit.GetBlobByPath(file)
+		blob, err := commit.GetBlobByPath(ctx, repo, file)
 		if err != nil {
 			continue // no CODEOWNERS at this path, try the next candidate
 		}
 		// A truncated CODEOWNERS would silently drop rules, so fail closed rather
 		// than evaluate an incomplete file (the gate must not under-enforce).
-		if blob.Size() > setting.UI.MaxDisplayFileSize {
+		if blob.Size(ctx) > setting.UI.MaxDisplayFileSize {
 			return nil, fmt.Errorf("CODEOWNERS file %q exceeds the maximum readable size", file)
 		}
 		// The file exists but is unreadable: propagate instead of swallowing, so
 		// callers can fail closed instead of treating it as "no code owners".
-		data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+		data, err = blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 		if err != nil {
 			return nil, err
 		}
@@ -155,7 +155,7 @@ func HasAllRequiredCodeownerReviews(ctx context.Context, pb *git_model.Protected
 		return false
 	}
 
-	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	repo, err := git.OpenRepository(pr.BaseRepo)
 	if err != nil {
 		log.Error("HasAllRequiredCodeownerReviews: failed to open base repository for PR %d: %v", pr.ID, err)
 		return false
@@ -265,7 +265,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 
 	pr.Issue.Repo = pr.BaseRepo
 
-	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	repo, err := git.OpenRepository(pr.BaseRepo)
 	if err != nil {
 		return nil, err
 	}

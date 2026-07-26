@@ -32,6 +32,7 @@ import (
 	"gitea.dev/modelmigration/v1_7"
 	"gitea.dev/modelmigration/v1_8"
 	"gitea.dev/modelmigration/v1_9"
+	"gitea.dev/modelmigration/v28"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -422,7 +423,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
 		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
 
-		newMigration(343, "Add block on codeowner reviews branch protection", v1_27.AddBlockOnCodeownerReviews),
+		newMigration(343, "Add block on CODEOWNERS reviews branch protection", v28.AddBlockOnCodeownerReviews),
 	}
 	return preparedMigrations
 }
