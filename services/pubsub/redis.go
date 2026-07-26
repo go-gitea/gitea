@@ -16,11 +16,10 @@ import (
 )
 
 const (
-	redisPingTimeout      = 3 * time.Second
-	redisPingRetries      = 10
-	redisPingRetryDelay   = time.Second
-	redisSubscribeTimeout = 5 * time.Second
-	redisPublishTimeout   = 2 * time.Second
+	redisPingTimeout    = 3 * time.Second
+	redisPingRetries    = 10
+	redisPingRetryDelay = time.Second
+	redisPublishTimeout = 2 * time.Second
 )
 
 // RedisBroker fans out across processes via Redis pub/sub. Each topic is
@@ -90,23 +89,10 @@ func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
 	// other Subscribe/cancel calls aren't blocked on the network round-trip.
 	// graceful.ShutdownContext so the reader loop dies cleanly on Gitea
 	// shutdown even if every local subscriber has already cancelled.
+	// readLoop consumes the SUBSCRIBE ack; don't wait for it here, a direct
+	// ps.Receive blocks for its whole timeout instead of returning on the ack.
 	ctx, cancelCtx := context.WithCancel(graceful.GetManager().ShutdownContext())
 	ps := b.client.Subscribe(ctx, topic)
-	subscribeCtx, subscribeCancel := context.WithTimeout(ctx, redisSubscribeTimeout)
-	// ps.Subscribe sends SUBSCRIBE but does not block for the server ack —
-	// without this Receive a Publish that fires immediately after Subscribe
-	// returns can outrun the server-side registration (visible against a
-	// low-latency local redis, where no network delay masks the race).
-	_, err := ps.Receive(subscribeCtx)
-	subscribeCancel()
-	if err != nil {
-		cancelCtx()
-		_ = ps.Close()
-		close(sub.ch)
-		log.Error("pubsub redis: subscribe %q: %v", topic, err)
-		return sub.ch, func() {}
-	}
-
 	b.mu.Lock()
 	if existing, exists := b.topics[topic]; exists {
 		// Another goroutine won the create race; merge into theirs and discard ours.

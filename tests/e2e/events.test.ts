@@ -20,14 +20,10 @@ test.describe('events', () => {
     const badge = page.locator('a.not-mobile .notification_count');
     await expect(badge).toBeHidden();
 
-    // Pushes fired before the SharedWorker subscribes are dropped, so retry
-    // the trigger until one lands. Extra notifications are harmless here.
-    const commenterHeaders = apiUserHeaders(commenter);
-    await expect.poll(async () => {
-      await apiCreateIssue(request, {owner, repo: repoName, title: `events-notif-${Date.now()}`, headers: commenterHeaders});
-      await page.waitForTimeout(300 * timeoutFactor); // eslint-disable-line playwright/no-wait-for-timeout
-      return await badge.isVisible();
-    }, {timeout: 10000 * timeoutFactor, intervals: [0]}).toBe(true);
+    await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
+
+    await apiCreateIssue(request, {owner, repo: repoName, title: 'events-notif', headers: apiUserHeaders(commenter)});
+    await expect(badge).toBeVisible({timeout: 5000 * timeoutFactor});
   });
 
   test('stopwatch appears on active-at-page-load', async ({page, request}) => {
@@ -68,7 +64,6 @@ test.describe('events', () => {
     await expect(stopwatch).toHaveCount(1);
     await expect(stopwatch).toBeHidden();
 
-    // Wait until the SharedWorker WS is connected; pushes before that are dropped.
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
     // Start the stopwatch from outside this tab; the push should reveal the icon
@@ -92,7 +87,6 @@ test.describe('events', () => {
     await page.goto('/');
     const stopwatch = page.locator('.active-stopwatch.not-mobile');
     await expect(stopwatch).toBeVisible();
-    // Wait until the SharedWorker WS is connected; pushes before that are dropped.
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
     await apiCancelStopwatch(request, name, name, 1, {headers});
