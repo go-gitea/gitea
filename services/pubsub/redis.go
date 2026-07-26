@@ -11,6 +11,7 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/nosql"
+	"gitea.dev/modules/util"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -74,7 +75,7 @@ func NewRedisBroker(connStr string) (*RedisBroker, error) {
 }
 
 func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
-	sub := &redisSub{ch: make(chan []byte, 8)}
+	sub := &redisSub{ch: make(chan []byte, subChanBuffer)}
 
 	// Fast path: topic already has a Redis subscription, just attach locally.
 	b.mu.Lock()
@@ -117,12 +118,7 @@ func (b *RedisBroker) makeCancel(topic string, sub *redisSub) func() {
 			sub.close()
 			return
 		}
-		for i, s := range state.subs {
-			if s == sub {
-				state.subs = append(state.subs[:i], state.subs[i+1:]...)
-				break
-			}
-		}
+		state.subs = util.SliceRemoveAll(state.subs, sub)
 		if len(state.subs) == 0 {
 			state.cancel()
 			_ = state.ps.Close()

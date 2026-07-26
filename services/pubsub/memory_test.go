@@ -17,7 +17,16 @@ import (
 func TestMemoryBroker(t *testing.T) {
 	testBrokerBasic(t, func(t *testing.T) Broker {
 		return NewMemoryBroker()
-	}, time.Second, true)
+	}, time.Second)
+}
+
+// MemoryBroker tracks live subscribers exactly, so it reports none once the last cancels.
+func TestMemoryBroker_HasNoTopicSubscribers(t *testing.T) {
+	b := NewMemoryBroker()
+	assert.False(t, b.HasTopicSubscribers("topic"))
+	_, cancel := b.Subscribe("topic")
+	cancel()
+	assert.False(t, b.HasTopicSubscribers("topic"))
 }
 
 // Backend-specific: MemoryBroker prunes empty topics from its internal map so

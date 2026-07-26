@@ -13,13 +13,13 @@ import (
 	notify_service "gitea.dev/services/notify"
 )
 
-func SetIssueReadBy(ctx context.Context, issueID int64, user *user_model.User) error {
-	changed, err := activities_model.SetIssueReadBy(ctx, issueID, user.ID)
+func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
+	changed, err := activities_model.SetIssueReadBy(ctx, issueID, userID)
 	if err != nil {
 		return err
 	}
 	if changed {
-		notify_service.NotificationCountChange(ctx, user.ID)
+		notify_service.NotificationCountChange(ctx, userID)
 	}
 	return nil
 }

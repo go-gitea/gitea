@@ -20,15 +20,20 @@ import (
 // One redis-server is shared by all of them; starting one per test dominated
 // the package runtime.
 func TestRedisBroker(t *testing.T) {
-	redisConn, redisCancel := test.PrepareTestRedis(t)
-	defer redisCancel()
+	redisConn := test.PrepareTestRedis(t)
 
 	newBroker := func(t *testing.T) Broker {
 		broker, err := NewRedisBroker(redisConn)
 		require.NoError(t, err)
 		return broker
 	}
-	testBrokerBasic(t, newBroker, 2*time.Second, false)
+	testBrokerBasic(t, newBroker, 2*time.Second)
+
+	// RedisBroker cannot see other processes' subscribers, so it answers true even
+	// with none locally rather than risk dropping a push.
+	t.Run("HasTopicSubscribersWithoutAny", func(t *testing.T) {
+		assert.True(t, newBroker(t).HasTopicSubscribers("topic"))
+	})
 
 	// RedisBroker tears down its per-topic Redis subscription and internal
 	// state once the last local subscriber cancels.

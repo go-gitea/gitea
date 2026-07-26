@@ -19,10 +19,7 @@ type newBrokerFunc func(t *testing.T) Broker
 // memory and redis prove identical semantics against the same scenarios.
 //
 // recvTimeout absorbs redis's network round-trip (memory delivers synchronously).
-// exactHasSubscribers is true when HasTopicSubscribers tracks live local
-// subscribers (memory) and false when the backend answers conservatively true to
-// avoid missing cross-process subscribers (redis).
-func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Duration, exactHasSubscribers bool) {
+func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Duration) {
 	t.Run("PublishWithoutSubscribers", func(t *testing.T) {
 		b := newBroker(t)
 		b.Publish("nobody", []byte("msg")) // must not block or panic
@@ -83,15 +80,13 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 		assert.NotPanics(t, cancel, "cancel must be safe to call more than once")
 	})
 
+	// What each backend reports with no live subscriber differs, so that stays in
+	// the backend's own test file.
 	t.Run("HasTopicSubscribers", func(t *testing.T) {
 		b := newBroker(t)
-		assertNoLiveSubscribers(t, b, "topic", exactHasSubscribers) // none subscribed yet
-
 		_, cancel := b.Subscribe("topic")
+		defer cancel()
 		assert.True(t, b.HasTopicSubscribers("topic"), "must report subscribers while one is live")
-
-		cancel()
-		assertNoLiveSubscribers(t, b, "topic", exactHasSubscribers) // last subscriber gone
 	})
 
 	t.Run("SlowSubscriberDropsWithoutBlocking", func(t *testing.T) {
@@ -166,18 +161,6 @@ func assertQuiet(t *testing.T, ch <-chan []byte, d time.Duration) {
 	case msg := <-ch:
 		t.Fatalf("unexpected message: %s", msg)
 	case <-time.After(d):
-	}
-}
-
-// assertNoLiveSubscribers asserts HasTopicSubscribers for a topic with no live
-// subscriber, parameterized by whether the backend answers exactly (memory:
-// false) or conservatively (redis: always true).
-func assertNoLiveSubscribers(t *testing.T, b Broker, topic string, exact bool) {
-	t.Helper()
-	if exact {
-		assert.False(t, b.HasTopicSubscribers(topic), "exact backend must report no subscribers")
-	} else {
-		assert.True(t, b.HasTopicSubscribers(topic), "conservative backend must report subscribers to stay safe across processes")
 	}
 }
 

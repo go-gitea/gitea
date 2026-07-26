@@ -49,28 +49,30 @@ func redisServerCmd(t TestingT) *exec.Cmd {
 	}
 }
 
-func PrepareTestRedis(t TestingT) (string, func()) {
-	var redisServer *exec.Cmd
-	if !waitRedisReady(0) {
-		redisServer = redisServerCmd(t)
-		if redisServer == nil {
-			if AllowSkipExternalService() {
-				t.Skipf("redis-server command not found, skipped")
-			} else {
-				t.Fatalf("no redis server or command, but skipping is not allowed")
-			}
-		}
-		if err := redisServer.Start(); err != nil {
-			t.Fatalf("failed to start redis-server: %v", err)
-		}
-		if !waitRedisReady(5 * time.Second) {
-			t.Fatalf("failed to start redis-server")
-		}
+// PrepareTestRedis returns a connection string to a running redis, starting one
+// for the duration of the test if the port is free.
+func PrepareTestRedis(t TestingT) string {
+	if waitRedisReady(0) {
+		return testRedisConnStr
 	}
-	return testRedisConnStr, func() {
-		if redisServer != nil {
-			_ = redisServer.Process.Signal(os.Interrupt)
-			_ = redisServer.Wait()
+	redisServer := redisServerCmd(t)
+	if redisServer == nil {
+		if AllowSkipExternalService() {
+			t.Skipf("redis-server command not found, skipped")
+		} else {
+			t.Fatalf("no redis server or command, but skipping is not allowed")
 		}
+		return testRedisConnStr
 	}
+	if err := redisServer.Start(); err != nil {
+		t.Fatalf("failed to start redis-server: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = redisServer.Process.Signal(os.Interrupt)
+		_ = redisServer.Wait()
+	})
+	if !waitRedisReady(5 * time.Second) {
+		t.Fatalf("failed to start redis-server")
+	}
+	return testRedisConnStr
 }

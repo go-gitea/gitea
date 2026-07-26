@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
 // MemoryBroker fans out within a single process. Suitable for single-instance
@@ -25,7 +26,7 @@ func NewMemoryBroker() *MemoryBroker {
 }
 
 func (b *MemoryBroker) Subscribe(topic string) (<-chan []byte, func()) {
-	ch := make(chan []byte, 8)
+	ch := make(chan []byte, subChanBuffer)
 
 	b.mu.Lock()
 	b.subs[topic] = append(b.subs[topic], ch)
@@ -36,13 +37,7 @@ func (b *MemoryBroker) Subscribe(topic string) (<-chan []byte, func()) {
 		once.Do(func() {
 			b.mu.Lock()
 			defer b.mu.Unlock()
-			subs := b.subs[topic]
-			for i, sub := range subs {
-				if sub == ch {
-					subs = append(subs[:i], subs[i+1:]...)
-					break
-				}
-			}
+			subs := util.SliceRemoveAll(b.subs[topic], ch)
 			if len(subs) == 0 {
 				delete(b.subs, topic)
 			} else {

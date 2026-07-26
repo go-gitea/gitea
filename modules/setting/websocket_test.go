@@ -12,86 +12,52 @@ import (
 )
 
 func TestLoadWebsocketConfig(t *testing.T) {
-	t.Run("DefaultWebsocketConfig", func(t *testing.T) {
-		defer test.MockVariableValue(&Websocket)()
-		defer test.MockVariableValue(&Redis)()
-		iniStr := ``
-		cfg, err := NewConfigProviderFromData(iniStr)
-		assert.NoError(t, err)
-		loadRedisFrom(cfg)
-		loadWebsocketFrom(cfg)
-		assert.Equal(t, PubsubTypeMemory, Websocket.PubsubType)
-		assert.Empty(t, Websocket.PubsubConnStr)
-	})
+	cases := []struct {
+		name     string
+		ini      string
+		wantType string
+		wantConn string
+	}{
+		{
+			name:     "defaults to memory",
+			wantType: PubsubTypeMemory,
+		},
+		{
+			name:     "redis with its own conn str",
+			ini:      "[websocket]\nPUBSUB_TYPE = redis\nPUBSUB_CONN_STR = redis://127.0.0.1:6379/0",
+			wantType: PubsubTypeRedis,
+			wantConn: "redis://127.0.0.1:6379/0",
+		},
+		{
+			name:     "redis falls back to the shared [redis] section",
+			ini:      "[redis]\nCONN_STR = redis://127.0.0.1:6379/0\n[websocket]\nPUBSUB_TYPE = redis",
+			wantType: PubsubTypeRedis,
+			wantConn: "redis://127.0.0.1:6379/0",
+		},
+		{
+			name:     "own conn str wins over the shared one",
+			ini:      "[redis]\nCONN_STR = redis://127.0.0.1:6379/0\n[websocket]\nPUBSUB_TYPE = redis\nPUBSUB_CONN_STR = redis://10.0.0.1:6379/1",
+			wantType: PubsubTypeRedis,
+			wantConn: "redis://10.0.0.1:6379/1",
+		},
+		{
+			name:     "memory ignores the shared [redis] section",
+			ini:      "[redis]\nCONN_STR = redis://127.0.0.1:6379/0\n[websocket]\nPUBSUB_TYPE = memory",
+			wantType: PubsubTypeMemory,
+		},
+	}
 
-	t.Run("RedisWebsocketConfig", func(t *testing.T) {
-		defer test.MockVariableValue(&Websocket)()
-		defer test.MockVariableValue(&Redis)()
-		iniStr := `
-[websocket]
-PUBSUB_TYPE = redis
-PUBSUB_CONN_STR = redis://127.0.0.1:6379/0
-`
-		cfg, err := NewConfigProviderFromData(iniStr)
-		assert.NoError(t, err)
-		loadRedisFrom(cfg)
-		loadWebsocketFrom(cfg)
-		assert.Equal(t, PubsubTypeRedis, Websocket.PubsubType)
-		assert.Equal(t, "redis://127.0.0.1:6379/0", Websocket.PubsubConnStr)
-	})
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			defer test.MockVariableValue(&Websocket)()
+			defer test.MockVariableValue(&Redis)()
+			cfg, err := NewConfigProviderFromData(tc.ini)
+			assert.NoError(t, err)
 
-	t.Run("RedisWebsocketFallsBackToSharedRedis", func(t *testing.T) {
-		defer test.MockVariableValue(&Websocket)()
-		defer test.MockVariableValue(&Redis)()
-		iniStr := `
-[redis]
-CONN_STR = redis://127.0.0.1:6379/0
-[websocket]
-PUBSUB_TYPE = redis
-`
-		cfg, err := NewConfigProviderFromData(iniStr)
-		assert.NoError(t, err)
-
-		loadRedisFrom(cfg)
-		loadWebsocketFrom(cfg)
-		assert.Equal(t, PubsubTypeRedis, Websocket.PubsubType)
-		assert.Equal(t, "redis://127.0.0.1:6379/0", Websocket.PubsubConnStr)
-	})
-
-	t.Run("RedisWebsocketOwnConnWinsOverSharedRedis", func(t *testing.T) {
-		defer test.MockVariableValue(&Websocket)()
-		defer test.MockVariableValue(&Redis)()
-		iniStr := `
-[redis]
-CONN_STR = redis://127.0.0.1:6379/0
-[websocket]
-PUBSUB_TYPE = redis
-PUBSUB_CONN_STR = redis://10.0.0.1:6379/1
-`
-		cfg, err := NewConfigProviderFromData(iniStr)
-		assert.NoError(t, err)
-
-		loadRedisFrom(cfg)
-		loadWebsocketFrom(cfg)
-		assert.Equal(t, PubsubTypeRedis, Websocket.PubsubType)
-		assert.Equal(t, "redis://10.0.0.1:6379/1", Websocket.PubsubConnStr)
-	})
-
-	t.Run("MemoryWebsocketNeverAffectedBySharedRedis", func(t *testing.T) {
-		defer test.MockVariableValue(&Websocket)()
-		defer test.MockVariableValue(&Redis)()
-		iniStr := `
-[redis]
-CONN_STR = redis://127.0.0.1:6379/0
-[websocket]
-PUBSUB_TYPE = memory
-`
-		cfg, err := NewConfigProviderFromData(iniStr)
-		assert.NoError(t, err)
-
-		loadRedisFrom(cfg)
-		loadWebsocketFrom(cfg)
-		assert.Equal(t, PubsubTypeMemory, Websocket.PubsubType)
-		assert.Empty(t, Websocket.PubsubConnStr)
-	})
+			loadRedisFrom(cfg)
+			loadWebsocketFrom(cfg)
+			assert.Equal(t, tc.wantType, Websocket.PubsubType)
+			assert.Equal(t, tc.wantConn, Websocket.PubsubConnStr)
+		})
+	}
 }

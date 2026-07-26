@@ -154,10 +154,11 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 
 		if notificationExists(notifications, issue.ID, userID) {
-			if err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID); err != nil {
-				return nil, err
-			}
-		} else if err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID); err != nil {
+			err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID)
+		} else {
+			err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID)
+		}
+		if err != nil {
 			return nil, err
 		}
 		notifiedIDs = append(notifiedIDs, userID)

@@ -11,8 +11,7 @@ import (
 )
 
 func TestBaseRedis(t *testing.T) {
-	redisConn, redisCancel := test.PrepareTestRedis(t)
-	defer redisCancel()
+	redisConn := test.PrepareTestRedis(t)
 	queueSetting := setting.QueueSettings{Length: 10, ConnStr: redisConn}
 	testQueueBasic(t, newBaseRedisSimple, toBaseConfig("baseRedis", queueSetting), false)
 	testQueueBasic(t, newBaseRedisUnique, toBaseConfig("baseRedisUnique", queueSetting), true)

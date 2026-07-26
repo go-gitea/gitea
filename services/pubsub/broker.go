@@ -8,6 +8,10 @@ package pubsub
 
 import "fmt"
 
+// subChanBuffer is how many messages a subscriber may fall behind before its
+// messages are dropped instead of stalling the publisher.
+const subChanBuffer = 8
+
 type Broker interface {
 	// Subscribe returns a buffered channel of messages for topic, and a cancel
 	// func that closes the channel and removes the subscription. cancel is

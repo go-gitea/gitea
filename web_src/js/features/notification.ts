@@ -6,8 +6,8 @@ const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
 
 async function receiveUpdateCount(count: number) {
+  toggleElem('.notification_count', count !== 0);
   for (const el of document.querySelectorAll('.notification_count')) {
-    el.classList.toggle('tw-hidden', count === 0);
     el.textContent = String(count);
   }
   await updateNotificationTable();
