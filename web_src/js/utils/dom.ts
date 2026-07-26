@@ -1,4 +1,4 @@
-import {debounce} from 'throttle-debounce';
+import {debounce} from './func.ts';
 import type {Promisable} from '../types.ts';
 import type $ from 'jquery';
 import {isInFrontendUnitTest} from './testhelper.ts';
@@ -242,7 +242,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
 }
 
 export function onInputDebounce(fn: () => Promisable<any>) {
-  return debounce(300, fn);
+  return debounce(fn, 300);
 }
 
 type LoadableElement = HTMLEmbedElement | HTMLIFrameElement | HTMLImageElement | HTMLScriptElement | HTMLTrackElement;

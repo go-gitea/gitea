@@ -1365,7 +1365,6 @@
   "actions.runners.owner_type": "Típus",
   "actions.runners.description": "Leírás",
   "actions.runners.labels": "Címkék",
-  "actions.runners.task_list.run": "Futtatás",
   "actions.runners.task_list.repository": "Tároló",
   "actions.runners.status.active": "Aktív",
   "actions.runners.version": "Verzió",

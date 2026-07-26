@@ -3191,7 +3191,6 @@
   "actions.runners.last_online": "Poslední čas online",
   "actions.runners.task_list": "Nedávné úlohy na tomto runneru",
   "actions.runners.task_list.no_tasks": "Zatím zde nejsou žádné úlohy.",
-  "actions.runners.task_list.run": "Spustit",
   "actions.runners.task_list.repository": "Repozitář",
   "actions.runners.task_list.done_at": "Dokončeno v",
   "actions.runners.edit_runner": "Upravit Runner",
