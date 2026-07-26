@@ -70,5 +70,5 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, gitRepo *git.R
 		return nil, errors.New("failed to merge due to conflicts")
 	}
 
-	return gitPatchCommitPush(ctx, t, repo, gitRepo, doer, opts)
+	return gitPatchCommitPush(ctx, t, repo, doer, opts)
 }

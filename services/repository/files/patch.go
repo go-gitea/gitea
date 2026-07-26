@@ -179,10 +179,10 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 		return nil, fmt.Errorf("git apply error: %w", err)
 	}
 
-	return gitPatchCommitPush(ctx, t, repo, gitRepo, doer, opts)
+	return gitPatchCommitPush(ctx, t, repo, doer, opts)
 }
 
-func gitPatchCommitPush(ctx context.Context, t *TemporaryUploadRepository, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+func gitPatchCommitPush(ctx context.Context, t *TemporaryUploadRepository, repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
 	treeHash, err := t.WriteTree(ctx)
 	if err != nil {
 		return nil, err
