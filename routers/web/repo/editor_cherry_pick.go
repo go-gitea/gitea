@@ -59,7 +59,7 @@ func CherryPickPost(ctx *context.Context) {
 
 	// First try the simple plain read-tree -m approach
 	opts.Content = fromCommitID
-	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Doer, parsed.form.Revert, opts); err != nil {
+	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.Doer, parsed.form.Revert, opts); err != nil {
 		// Drop through to the "apply" method
 		buf := &bytes.Buffer{}
 		if parsed.form.Revert {
@@ -69,7 +69,7 @@ func CherryPickPost(ctx *context.Context) {
 		}
 		if err == nil {
 			opts.Content = buf.String()
-			_, err = files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Doer, opts)
+			_, err = files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 			if err != nil {
 				err = util.ErrorWrapTranslatable(err, "repo.editor.fail_to_apply_patch")
 			}
