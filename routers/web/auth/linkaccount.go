@@ -169,7 +169,7 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 		return
 	}
 
-	if err := regenerateSession(ctx, nil, map[string]any{
+	if err := regenerateSession(ctx, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
 		"twofaRemember": remember,
