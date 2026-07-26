@@ -49,7 +49,7 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 		// In GitHub's documentation, ref should be the branch or tag that triggered workflow. But when the TriggerEvent is pull_request_target,
 		// the ref will be the base branch.
 		if run.TriggerEvent == actions_module.GithubEventPullRequestTarget {
-			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Name
+			ref = git.BranchPrefix + pullPayload.PullRequest.Base.Ref
 			sha = pullPayload.PullRequest.Base.Sha
 		}
 	}
