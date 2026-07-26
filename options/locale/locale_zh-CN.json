@@ -3740,7 +3740,6 @@
   "actions.runners.runner_title": "运行器",
   "actions.runners.task_list": "最近在此运行器上的任务",
   "actions.runners.task_list.no_tasks": "目前还没有任务。",
-  "actions.runners.task_list.run": "执行",
   "actions.runners.task_list.status": "状态",
   "actions.runners.task_list.repository": "仓库",
   "actions.runners.task_list.commit": "提交",

@@ -3740,7 +3740,6 @@
   "actions.runners.runner_title": "Runner",
   "actions.runners.task_list": "Letzte Aufgaben dieses Runners",
   "actions.runners.task_list.no_tasks": "Es gibt noch keine Aufgabe.",
-  "actions.runners.task_list.run": "Ausführen",
   "actions.runners.task_list.status": "Status",
   "actions.runners.task_list.repository": "Repository",
   "actions.runners.task_list.commit": "Commit",

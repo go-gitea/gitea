@@ -1104,7 +1104,6 @@
   "actions.runners.owner_type": "Tegund",
   "actions.runners.description": "Lýsing",
   "actions.runners.labels": "Lýsingar",
-  "actions.runners.task_list.run": "Keyra",
   "actions.runners.task_list.repository": "Hugbúnaðarsafn",
   "actions.runners.task_list.commit": "Framlag",
   "actions.runners.status.active": "Virkt",
