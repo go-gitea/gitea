@@ -450,61 +450,16 @@ func TestInspectTarball(t *testing.T) {
 	})
 }
 
-func TestParsePackageDeprecation(t *testing.T) {
-	pkg := "@scope/test-package"
-	t.Run("InvalidName", func(t *testing.T) {
-		body := `{"name":"","versions":{"1.0.0":{"deprecated":"msg"}}}`
-		_, err := ParsePackageDeprecation(strings.NewReader(body))
-		assert.ErrorIs(t, err, ErrInvalidPackageName)
-	})
-
-	t.Run("PublishRejected", func(t *testing.T) {
-		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"name":%q,"version":"1.0.0","deprecated":"msg"}},"_attachments":{"x.tgz":{"data":"AAAA"}}}`, pkg, pkg)
-		_, err := ParsePackageDeprecation(strings.NewReader(body))
-		assert.ErrorIs(t, err, ErrInvalidPackage)
-	})
-
-	t.Run("ExplicitKeyPresent", func(t *testing.T) {
-		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"gone"},"1.0.1":{"deprecated":""}}}`, pkg)
-		dep, err := ParsePackageDeprecation(strings.NewReader(body))
-		require.NoError(t, err)
-		assert.Equal(t, pkg, dep.PackageName)
-		assert.Equal(t, "gone", dep.Versions["1.0.0"])
-		gotEmpty, hasEmpty := dep.Versions["1.0.1"]
-		assert.True(t, hasEmpty, "empty-string deprecated key should be preserved")
-		assert.Empty(t, gotEmpty)
-	})
-
-	t.Run("AbsentKeySkipped", func(t *testing.T) {
-		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"gone"},"1.0.1":{"version":"1.0.1"}}}`, pkg)
-		dep, err := ParsePackageDeprecation(strings.NewReader(body))
-		require.NoError(t, err)
-		assert.Contains(t, dep.Versions, "1.0.0")
-		assert.NotContains(t, dep.Versions, "1.0.1", "absent deprecated key must not surface as empty string")
-	})
-
-	t.Run("MixedShapes", func(t *testing.T) {
-		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"msg"},"1.0.1":{},"1.0.2":{"deprecated":""},"1.0.3":null}}`, pkg)
-		dep, err := ParsePackageDeprecation(strings.NewReader(body))
-		require.NoError(t, err)
-		assert.Equal(t, "msg", dep.Versions["1.0.0"])
-		assert.NotContains(t, dep.Versions, "1.0.1")
-		_, has102 := dep.Versions["1.0.2"]
-		assert.True(t, has102)
-		assert.NotContains(t, dep.Versions, "1.0.3")
-	})
-}
-
 func TestParseUpload(t *testing.T) {
 	pkg := "@scope/test-package"
 
 	t.Run("dispatches deprecate on missing _attachments", func(t *testing.T) {
-		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"gone"}}}`, pkg)
+		body := fmt.Sprintf(`{"name":%q,"versions":{"1.0.0":{"deprecated":"gone"},"1.0.1":{"deprecated":""},"1.0.2":{},"1.0.3":null}}`, pkg)
 		p, dep, err := ParseUpload(strings.NewReader(body))
 		require.NoError(t, err)
 		assert.Nil(t, p)
 		require.NotNil(t, dep)
-		assert.Equal(t, "gone", dep.Versions["1.0.0"])
+		assert.Equal(t, map[string]string{"1.0.0": "gone", "1.0.1": ""}, dep.Versions)
 	})
 
 	t.Run("dispatches publish when _attachments present", func(t *testing.T) {
