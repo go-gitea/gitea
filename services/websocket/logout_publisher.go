@@ -3,7 +3,10 @@
 
 package websocket
 
-// PublishLogout logs out one session of the user, or all of them when sessionID is empty.
+type LogoutEventData struct {
+	SessionID string `json:"sessionID,omitempty"`
+}
+
 func PublishLogout(userID int64, sessionID string) {
-	publishSessionEvent(userID, sessionID, EventLogout, nil)
+	publishUserEvent(userID, EventLogout, LogoutEventData{SessionID: sessionID})
 }

@@ -29,18 +29,21 @@ const (
 	closeCodeUnauthenticated gitea_ws.StatusCode = 3000
 )
 
-// payloadForSession returns the bytes to forward to a connection, or nil when
-// the message targets another session or cannot be decoded.
-func payloadForSession(brokerMsg []byte, connSessionID string) []byte {
-	var msg websocket_service.BrokerMessage
-	if err := json.Unmarshal(brokerMsg, &msg); err != nil {
-		log.Error("websocket: dropping malformed broker message: %v", err)
-		return nil
+// filterLogout forwards a session-free logout only to the targeted connection
+// (its own session, or every session when SessionID is empty) and drops it for
+// the rest. Non-logout messages pass through untouched.
+func filterLogout(eventType string, eventDataBytes []byte, connSessionID string) []byte {
+	if eventType != websocket_service.EventLogout {
+		return eventDataBytes
 	}
-	if msg.TargetSessionID != "" && msg.TargetSessionID != connSessionID {
-		return nil
+	var lm websocket_service.UserEventMessage[websocket_service.LogoutEventData]
+	if err := json.Unmarshal(eventDataBytes, &lm); err != nil {
+		return eventDataBytes
 	}
-	return []byte(msg.Payload)
+	if lm.EventData.SessionID == "" || lm.EventData.SessionID == connSessionID {
+		return []byte(`{"eventType":"logout"}`)
+	}
+	return nil
 }
 
 func Serve(ctx *context.Context) {
@@ -85,7 +88,8 @@ func Serve(ctx *context.Context) {
 			if !ok {
 				return
 			}
-			eventDataBytes := payloadForSession(brokerPayload, sessionID)
+			eventType, eventDataBytes := websocket_service.ExtractUserEventMessage(brokerPayload)
+			eventDataBytes = filterLogout(eventType, eventDataBytes, sessionID)
 			if eventDataBytes == nil {
 				continue
 			}

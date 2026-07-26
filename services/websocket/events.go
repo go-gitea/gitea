@@ -4,6 +4,8 @@
 package websocket
 
 import (
+	"bytes"
+
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/pubsub"
@@ -16,44 +18,36 @@ const (
 	EventLogout            = "logout"
 )
 
-// UserEventMessage is the message the browser receives.
-type UserEventMessage struct {
+type UserEventMessage[T any] struct {
 	EventType string `json:"eventType"`
-	EventData any    `json:"eventData"` // no omitempty: an empty stopwatch list must stay an empty array
+	EventData T      `json:"eventData"`
 }
 
-// BrokerMessage is what travels through the broker: the client payload plus the
-// routing a connection needs to decide whether the payload is for it. Routing
-// stays out of Payload so it never reaches the browser.
-type BrokerMessage struct {
-	// TargetSessionID limits delivery to one session of the user; empty means all of them.
-	TargetSessionID string     `json:"targetSessionID,omitempty"`
-	Payload         json.Value `json:"payload"`
-}
-
-// MakeBrokerMessage encodes an event for the broker, returning nil if it cannot be marshalled.
-func MakeBrokerMessage(targetSessionID, eventType string, eventData any) []byte {
-	payload, err := json.Marshal(&UserEventMessage{EventType: eventType, EventData: eventData})
-	if err != nil {
-		setting.PanicInDevOrTesting("websocket: marshal %q event: %v", eventType, err)
-		return nil
-	}
-	b, err := json.Marshal(&BrokerMessage{TargetSessionID: targetSessionID, Payload: payload})
-	if err != nil {
-		setting.PanicInDevOrTesting("websocket: marshal broker message: %v", err)
-		return nil
-	}
-	return b
-}
-
-// publishUserEvent sends an event to every session of the user.
 func publishUserEvent(userID int64, eventType string, eventData any) {
-	publishSessionEvent(userID, "", eventType, eventData)
+	if pubsub.DefaultBroker == nil {
+		return
+	}
+	b := MakeUserEventMessage(eventType, eventData)
+	if b == nil {
+		return
+	}
+	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), b)
 }
 
-// publishSessionEvent sends an event to one session of the user, or to all of them when sessionID is empty.
-func publishSessionEvent(userID int64, sessionID, eventType string, eventData any) {
-	if b := MakeBrokerMessage(sessionID, eventType, eventData); b != nil {
-		pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), b)
+func MakeUserEventMessage(eventType string, eventData any) []byte {
+	buf := &bytes.Buffer{}
+	buf.WriteString(eventType)
+	buf.WriteByte('\n')
+	err := json.MarshalWrite(buf, &UserEventMessage[any]{EventType: eventType, EventData: eventData})
+	payloadBytes := bytes.TrimSuffix(buf.Bytes(), []byte("\n")) // json v1 adds extra "\n" but we don't want it
+	if err != nil {
+		setting.PanicInDevOrTesting("websocket: marshal event: %v", err)
+		return nil
 	}
+	return payloadBytes
+}
+
+func ExtractUserEventMessage(b []byte) (string, []byte) {
+	eventType, eventDataBytes, _ := bytes.Cut(b, []byte("\n"))
+	return string(eventType), eventDataBytes
 }
