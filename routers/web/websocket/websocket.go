@@ -5,6 +5,7 @@ package websocket
 
 import (
 	gocontext "context"
+	"net/http"
 	"time"
 
 	"gitea.dev/modules/graceful"
@@ -47,6 +48,15 @@ func filterLogout(eventType string, eventDataBytes []byte, connSessionID string)
 }
 
 func Serve(ctx *context.Context) {
+	// Answer plain GETs (health checks, crawlers) here; letting Accept reject them
+	// would log an error per request. Same reply it would have sent.
+	if ctx.Req.Header.Get("Upgrade") == "" {
+		ctx.Resp.Header().Set("Connection", "Upgrade")
+		ctx.Resp.Header().Set("Upgrade", "websocket")
+		ctx.Resp.WriteHeader(http.StatusUpgradeRequired)
+		return
+	}
+
 	conn, err := gitea_ws.Accept(ctx.Resp, ctx.Req, nil)
 	if err != nil {
 		log.Error("websocket: accept failed: %v", err)
