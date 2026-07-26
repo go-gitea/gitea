@@ -1159,7 +1159,7 @@ func Delete(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	} else if !canDelete {
-		ctx.APIError(http.StatusForbidden, "Given user is not owner of organization.")
+		ctx.APIError(http.StatusForbidden, "User does not have permission to delete this repository.")
 		return
 	}
 

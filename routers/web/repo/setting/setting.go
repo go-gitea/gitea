@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/indexer/stats"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
@@ -67,6 +68,14 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
+
+	// Repo admins (including org-repo creators) may delete even without AccessModeOwner.
+	canDeleteRepo, err := repo_module.CanUserDelete(ctx, ctx.Repo.Repository, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("CanUserDelete", err)
+		return
+	}
+	ctx.Data["CanDeleteRepo"] = canDeleteRepo
 
 	signing, _ := git.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
@@ -936,7 +945,12 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 func handleSettingsPostDelete(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.Permission.IsOwner() {
+	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("CanUserDelete", err)
+		return
+	}
+	if !canDelete {
 		ctx.JSONErrorNotFound()
 		return
 	}

@@ -780,12 +780,13 @@
 		</div>
 		{{end}}
 
-		{{if .Permission.IsOwner}}
+		{{if or .Permission.IsOwner .CanDeleteRepo}}
 		<h4 class="ui top attached error header">
 			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 		</h4>
 		<div class="ui attached error danger segment">
 			<div class="flex-divided-list items-with-main">
+				{{if .Permission.IsOwner}}
 				{{if not .Repository.IsFork}}
 					<div class="item tw-items-center">
 						<div class="item-main">
@@ -862,6 +863,8 @@
 						</div>
 					</div>
 				{{end}}
+				{{end}}{{/* end Permission.IsOwner-only danger items */}}
+				{{if .CanDeleteRepo}}
 				<div class="item">
 					<div class="item-main">
 						<div class="item-title">{{ctx.Locale.Tr "repo.settings.delete"}}</div>
@@ -871,7 +874,8 @@
 						<button class="ui basic red show-modal button" data-modal="#delete-repo-modal">{{ctx.Locale.Tr "repo.settings.delete"}}</button>
 					</div>
 				</div>
-				{{if not .Repository.IsMirror}}
+				{{end}}
+				{{if and .Permission.IsOwner (not .Repository.IsMirror)}}
 					<div class="item tw-items-center">
 						<div class="item-main">
 							{{if .Repository.IsArchived}}
@@ -899,7 +903,8 @@
 	</div>
 {{template "repo/settings/layout_footer" .}}
 
-{{if .Permission.IsOwner}}
+{{if or .Permission.IsOwner .CanDeleteRepo}}
+	{{if .Permission.IsOwner}}
 	{{if .Repository.IsMirror}}
 		<div class="ui small modal" id="convert-mirror-repo-modal">
 			<div class="header">
@@ -954,26 +959,6 @@
 				</div>
 
 				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.transfer_perform"))}}
-			</form>
-		</div>
-	</div>
-
-	<div class="ui small modal" id="delete-repo-modal">
-		<div class="header">
-			{{ctx.Locale.Tr "repo.settings.delete"}}
-		</div>
-		<div class="content">
-			<div class="ui warning message">
-				{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
-				{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName}}
-				{{if .Repository.NumForks}}<br>
-				{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
-				{{end}}
-			</div>
-			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
-				<input type="hidden" name="action" value="delete">
-				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
-				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.confirm_delete"))}}
 			</form>
 		</div>
 	</div>
@@ -1069,6 +1054,29 @@
 				{{template "base/modal_actions_confirm" .}}
 			</form>
 		</div>
+	{{end}}
+	{{end}}{{/* end Permission.IsOwner modals */}}
+
+	{{if .CanDeleteRepo}}
+	<div class="ui small modal" id="delete-repo-modal">
+		<div class="header">
+			{{ctx.Locale.Tr "repo.settings.delete"}}
+		</div>
+		<div class="content">
+			<div class="ui warning message">
+				{{ctx.Locale.Tr "repo.settings.delete_notices_1"}}<br>
+				{{ctx.Locale.Tr "repo.settings.delete_notices_2" .Repository.FullName}}
+				{{if .Repository.NumForks}}<br>
+				{{ctx.Locale.Tr "repo.settings.delete_notices_fork_1"}}
+				{{end}}
+			</div>
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
+				<input type="hidden" name="action" value="delete">
+				{{template "repo/settings/repo_name_confirm_fields" (dict "RepoName" .Repository.Name)}}
+				{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "repo.settings.confirm_delete"))}}
+			</form>
+		</div>
+	</div>
 	{{end}}
 {{end}}
 
