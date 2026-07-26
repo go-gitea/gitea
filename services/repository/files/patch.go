@@ -109,31 +109,27 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 	return nil
 }
 
-// ApplyDiffPatch applies a patch to the given repository
-func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+func gitPatchPrepare(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (_ *TemporaryUploadRepository, retErr error) {
 	err := repo.MustNotBeArchived()
 	if err != nil {
 		return nil, err
 	}
 
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
-	defer closer.Close()
-
 	if err := opts.Validate(ctx, repo, gitRepo, doer); err != nil {
 		return nil, err
 	}
-
-	message := strings.TrimSpace(opts.Message)
 
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
 		log.Error("NewTemporaryUploadRepository failed: %v", err)
 	}
-	defer t.Close()
-	if err := t.Clone(ctx, opts.OldBranch, true); err != nil {
+	defer func() {
+		if retErr != nil {
+			t.Close()
+		}
+	}()
+	// here must NOT use bare repo, because the following git commands might operate working tree ("--index") directly
+	if err := t.Clone(ctx, opts.OldBranch, false); err != nil {
 		return nil, err
 	}
 	if err := t.SetDefaultIndex(ctx); err != nil {
@@ -152,7 +148,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	} else {
 		lastCommitID, err := t.gitRepo.ConvertToGitID(ctx, opts.LastCommitID)
 		if err != nil {
-			return nil, fmt.Errorf("ApplyPatch: Invalid last commit ID: %w", err)
+			return nil, fmt.Errorf("invalid last commit ID: %w", err)
 		}
 		opts.LastCommitID = lastCommitID.String()
 		if commit.ID.String() != opts.LastCommitID {
@@ -162,6 +158,16 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 			}
 		}
 	}
+	return t, nil
+}
+
+// ApplyDiffPatch applies a patch to the given repository
+func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+	t, err := gitPatchPrepare(ctx, repo, gitRepo, doer, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer t.Close()
 
 	cmdApply := gitcmd.NewCommand("apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
 	if git.DefaultFeatures().CheckVersionAtLeast("2.32") {
@@ -174,17 +180,19 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		return nil, fmt.Errorf("git apply error: %w", err)
 	}
 
-	// Now write the tree
+	return gitPatchCommitPush(ctx, t, repo, gitRepo, doer, opts)
+}
+
+func gitPatchCommitPush(ctx context.Context, t *TemporaryUploadRepository, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
 	treeHash, err := t.WriteTree(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Now commit the tree
 	commitOpts := &CommitTreeUserOptions{
 		ParentCommitID:    "HEAD",
 		TreeHash:          treeHash,
-		CommitMessage:     message,
+		CommitMessage:     strings.TrimSpace(opts.Message),
 		SignOff:           opts.Signoff,
 		DoerUser:          doer,
 		AuthorIdentity:    opts.Author,
@@ -205,7 +213,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		return nil, err
 	}
 
-	commit, err = t.GetCommit(ctx, commitHash)
+	commit, err := t.GetCommit(ctx, commitHash)
 	if err != nil {
 		return nil, err
 	}
