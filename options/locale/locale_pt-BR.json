@@ -3185,7 +3185,6 @@
   "actions.runners.last_online": "Última Vez Online",
   "actions.runners.task_list": "Tarefas recentes neste runner",
   "actions.runners.task_list.no_tasks": "Ainda não há nenhuma tarefa.",
-  "actions.runners.task_list.run": "Executar",
   "actions.runners.task_list.repository": "Repositório",
   "actions.runners.task_list.done_at": "Feito em",
   "actions.runners.edit_runner": "Editar Runner",

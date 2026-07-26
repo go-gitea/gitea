@@ -118,9 +118,8 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
-	if err := regenerateSession(ctx, nil, map[string]any{
+	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
-		session.KeyUname:                u.Name,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
@@ -357,7 +356,7 @@ func SignInPost(ctx *context.Context) {
 		// User will need to use WebAuthn, save data
 		updates["totpEnrolled"] = u.ID
 	}
-	if err := regenerateSession(ctx, nil, updates); err != nil {
+	if err := regenerateSession(ctx, updates); err != nil {
 		ctx.ServerError("UserSignIn: Unable to update session", err)
 		return
 	}
@@ -398,19 +397,9 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		return
 	}
 
-	if err := regenerateSession(ctx, []string{
-		// Delete the openid, 2fa and link_account data
-		"openid_verified_uri",
-		"openid_signin_remember",
-		"openid_determined_email",
-		"openid_determined_username",
-		"twofaUid",
-		"twofaRemember",
-		"linkAccount",
-		"linkAccountData",
-	}, map[string]any{
+	auth_service.ClearSessionKeysForSignIn(ctx.Session)
+	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
-		session.KeyUname:                u.Name,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
@@ -475,6 +464,16 @@ func SignOut(ctx *context.Context) {
 			Name: "logout",
 			Data: ctx.Session.ID(),
 		})
+	}
+
+	exitedImpersonated, err := auth_service.ExitImpersonatedUser(ctx.Session)
+	if err != nil {
+		ctx.ServerError("ExitImpersonatedUser", err)
+		return
+	}
+	if exitedImpersonated {
+		ctx.Redirect(setting.AppSubURL + "/-/admin")
+		return
 	}
 
 	// prepare the sign-out URL before destroying the session
@@ -884,10 +883,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	log.Trace("User activated: %s", user.Name)
 
-	if err := regenerateSession(ctx, nil, map[string]any{
-		"uid":   user.ID,
-		"uname": user.Name,
-	}); err != nil {
+	if err := regenerateSession(ctx, map[string]any{session.KeyUID: user.ID}); err != nil {
 		log.Error("Unable to regenerate session for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
@@ -936,17 +932,12 @@ func ActivateEmail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
-func regenerateSession(ctx *context.Context, deletes []string, updates map[string]any) error {
+func regenerateSession(ctx *context.Context, updates map[string]any) error {
 	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
 		return fmt.Errorf("regenerate session: %w", err)
 	}
 	sess := ctx.Session
 	sessID := sess.ID()
-	for _, k := range deletes {
-		if err := sess.Delete(k); err != nil {
-			return fmt.Errorf("delete %v in session[%s]: %w", k, sessID, err)
-		}
-	}
 	for k, v := range updates {
 		if err := sess.Set(k, v); err != nil {
 			return fmt.Errorf("set %v in session[%s]: %w", k, sessID, err)

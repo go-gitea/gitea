@@ -114,17 +114,22 @@
     {
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
+    },
+    {
+      "matchPackageNames": ["@primer/octicons", "material-icon-theme", "svgo"],
       "postUpgradeTasks": {
-        "commands": ["make svg", "make generate-codemirror-languages"],
+        "commands": ["make svg"],
         "fileFilters": [
-          "package.json",
-          "pnpm-lock.yaml",
-          "pnpm-workspace.yaml",
           "public/assets/img/svg/**",
           "options/fileicon/**",
-          "assets/codemirror-languages.json",
         ],
-        "executionMode": "branch",
+      },
+    },
+    {
+      "matchPackageNames": ["@codemirror/language-data", "linguist-languages"],
+      "postUpgradeTasks": {
+        "commands": ["make generate-codemirror-languages"],
+        "fileFilters": ["assets/codemirror-languages.json"],
       },
     },
   ],

@@ -3740,7 +3740,6 @@
   "actions.runners.runner_title": "ランナー",
   "actions.runners.task_list": "このランナーの最近のタスク",
   "actions.runners.task_list.no_tasks": "タスクはまだありません。",
-  "actions.runners.task_list.run": "実行",
   "actions.runners.task_list.status": "ステータス",
   "actions.runners.task_list.repository": "リポジトリ",
   "actions.runners.task_list.commit": "コミット",
