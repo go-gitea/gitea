@@ -84,4 +84,6 @@ type Notifier interface {
 	WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask)
 
 	NotificationCountChange(ctx context.Context, userID int64)
+
+	StopwatchChanged(ctx context.Context, user *user_model.User)
 }

@@ -6,7 +6,7 @@ package repo
 import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/services/context"
-	websocket_service "gitea.dev/services/websocket"
+	notify_service "gitea.dev/services/notify"
 )
 
 // IssueStartStopwatch creates a stopwatch for the given issue.
@@ -28,7 +28,7 @@ func IssueStartStopwatch(c *context.Context) {
 		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_created"))
 	} else {
 		c.Flash.Success(c.Tr("repo.issues.tracker_auto_close"))
-		websocket_service.PublishStopwatchesForUser(c, c.Doer)
+		notify_service.StopwatchChanged(c, c.Doer)
 	}
 	c.JSONRedirect("")
 }
@@ -51,7 +51,7 @@ func IssueStopStopwatch(c *context.Context) {
 	} else if !ok {
 		c.Flash.Warning(c.Tr("repo.issues.stopwatch_already_stopped"))
 	} else {
-		websocket_service.PublishStopwatchesForUser(c, c.Doer)
+		notify_service.StopwatchChanged(c, c.Doer)
 	}
 	c.JSONRedirect("")
 }
@@ -72,6 +72,6 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 
-	websocket_service.PublishStopwatchesForUser(c, c.Doer)
+	notify_service.StopwatchChanged(c, c.Doer)
 	c.JSONRedirect("")
 }

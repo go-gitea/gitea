@@ -222,3 +222,6 @@ func (*NullNotifier) WorkflowJobStatusUpdate(ctx context.Context, repo *repo_mod
 
 func (*NullNotifier) NotificationCountChange(_ context.Context, _ int64) {
 }
+
+func (*NullNotifier) StopwatchChanged(_ context.Context, _ *user_model.User) {
+}

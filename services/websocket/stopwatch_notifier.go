@@ -15,8 +15,7 @@ import (
 	"gitea.dev/services/pubsub"
 )
 
-// PublishStopwatchesForUser should be called after any stopwatch start/stop/cancel so connected tabs refresh.
-func PublishStopwatchesForUser(ctx context.Context, user *user_model.User) {
+func (n *wsNotifier) StopwatchChanged(ctx context.Context, user *user_model.User) {
 	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(user.ID)) {
 		return
 	}

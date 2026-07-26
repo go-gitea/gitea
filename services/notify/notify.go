@@ -423,3 +423,10 @@ func NotificationCountChange(ctx context.Context, userID int64) {
 		notifier.NotificationCountChange(ctx, userID)
 	}
 }
+
+// Callers must invoke this after any stopwatch start/stop/cancel so the user's connected tabs refresh.
+func StopwatchChanged(ctx context.Context, user *user_model.User) {
+	for _, notifier := range notifiers {
+		notifier.StopwatchChanged(ctx, user)
+	}
+}

@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCancelStopwatch, timeoutFactor, randomString} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCancelStopwatch, apiCloseIssue, timeoutFactor, randomString} from './utils.ts';
 
 // The /-/ws WebSocket pipeline is push-only: every event is fired by the server
 // immediately on the DB write. These tests exercise that each event type
@@ -24,25 +24,6 @@ test.describe('events', () => {
 
     await apiCreateIssue(request, {owner, repo: repoName, title: 'events-notif', headers: apiUserHeaders(commenter)});
     await expect(badge).toBeVisible({timeout: 5000 * timeoutFactor});
-  });
-
-  test('stopwatch appears on active-at-page-load', async ({page, request}) => {
-    const name = `ev-sw-${randomString(8)}`;
-    const headers = apiUserHeaders(name);
-
-    await apiCreateUser(request, name);
-    await Promise.all([
-      loginUser(page, name),
-      (async () => {
-        await apiCreateRepo(request, {name, autoInit: false, headers});
-        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch test', headers});
-        await apiStartStopwatch(request, name, name, 1, {headers});
-      })(),
-    ]);
-    await page.goto('/');
-
-    const stopwatch = page.locator('.active-stopwatch.not-mobile');
-    await expect(stopwatch).toBeVisible();
   });
 
   test('stopwatch appears and hides via real-time push', async ({page, request}) => {
@@ -71,6 +52,29 @@ test.describe('events', () => {
     await expect(stopwatch).toBeVisible({timeout: 5000 * timeoutFactor});
 
     await apiCancelStopwatch(request, name, name, 1, {headers});
+    await expect(stopwatch).toBeHidden({timeout: 5000 * timeoutFactor});
+  });
+
+  // Closing an issue stops the timer away from any stopwatch route handler.
+  test('stopwatch renders when already active and hides when the issue is closed', async ({page, request}) => {
+    const name = `ev-sw-close-${randomString(8)}`;
+    const headers = apiUserHeaders(name);
+
+    await apiCreateUser(request, name);
+    await Promise.all([
+      loginUser(page, name),
+      (async () => {
+        await apiCreateRepo(request, {name, autoInit: false, headers});
+        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch close test', headers});
+        await apiStartStopwatch(request, name, name, 1, {headers});
+      })(),
+    ]);
+    await page.goto('/');
+    const stopwatch = page.locator('.active-stopwatch.not-mobile');
+    await expect(stopwatch).toBeVisible();
+    await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
+
+    await apiCloseIssue(request, name, name, 1, {headers});
     await expect(stopwatch).toBeHidden({timeout: 5000 * timeoutFactor});
   });
 
