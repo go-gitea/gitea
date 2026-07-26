@@ -276,6 +276,9 @@ importers:
       jiti:
         specifier: 2.7.0
         version: 2.7.0
+      linguist-languages:
+        specifier: 9.4.0
+        version: 9.4.0
       markdownlint-cli:
         specifier: 0.49.1
         version: 0.49.1
@@ -3189,6 +3192,9 @@ packages:
 
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
+
+  linguist-languages@9.4.0:
+    resolution: {integrity: sha512-mYnFVrsWg5Bex0Kl5EDcXhrjXZ5DqMlBDXo7EUWLMTLDpxbuHvgBb2aOvGWC5ZmMJ2HXEKJiuFie9NEs8NUMXg==}
 
   linkify-it@5.0.2:
     resolution: {integrity: sha512-ONTm2jCMAVZjgQa/Fy1kScXsuOoF5NPTsoFBdE1KVIZ2vAh/r9+Bqo+0jINCBYnavTPQZz38QzFTme79ENoN3Q==}
@@ -7652,6 +7658,8 @@ snapshots:
   lilconfig@3.1.3: {}
 
   lines-and-columns@1.2.4: {}
+
+  linguist-languages@9.4.0: {}
 
   linkify-it@5.0.2:
     dependencies:
