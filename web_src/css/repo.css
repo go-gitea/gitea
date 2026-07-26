@@ -649,6 +649,13 @@ td .commit-summary {
   text-decoration: line-through;
 }
 
+.repository.view.issue .ui.depending .item .item-left {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .repository .comment.form .content .field:first-child {
   clear: none;
 }

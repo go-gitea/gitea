@@ -2871,7 +2871,6 @@
   "actions.runners.runner_title": "Nodo",
   "actions.runners.task_list": "Tareas recientes en este nodo",
   "actions.runners.task_list.no_tasks": "Todavía no hay tarea.",
-  "actions.runners.task_list.run": "Ejecutar",
   "actions.runners.task_list.status": "Estado",
   "actions.runners.task_list.repository": "Repositorio",
   "actions.runners.task_list.done_at": "Hecho en",
