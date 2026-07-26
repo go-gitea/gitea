@@ -4,7 +4,7 @@
 package common
 
 import (
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/modules/optional"
 )
 
 func ParseIssueFilterStateIsClosed(state string) optional.Option[bool] {

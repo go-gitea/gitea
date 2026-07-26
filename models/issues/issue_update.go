@@ -9,17 +9,17 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/references"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/references"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -91,12 +91,6 @@ type ErrIssueIsOpen struct {
 	RepoID int64
 	IsPull bool
 	Index  int64
-}
-
-// IsErrIssueIsOpen checks if an error is a ErrIssueIsOpen.
-func IsErrIssueIsOpen(err error) bool {
-	_, ok := err.(ErrIssueIsOpen)
-	return ok
 }
 
 func (err ErrIssueIsOpen) Error() string {
@@ -269,14 +263,46 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 	return err
 }
 
+// validateAttachmentForIssue rejects a foreign or already-linked attachment before it is linked to
+// issue: a known UUID could otherwise re-link (and expose) another repo's private attachment. A
+// legacy attachment predating repo_id-on-upload is adopted into the issue's repo.
+func validateAttachmentForIssue(ctx context.Context, issue *Issue, attachment *repo_model.Attachment) error {
+	if attachment.RepoID == 0 && attachment.CreatedUnix < repo_model.LegacyAttachmentMissingRepoIDCutoff {
+		attachment.RepoID = issue.RepoID
+		if err := repo_model.UpdateAttachmentByUUID(ctx, attachment, "repo_id"); err != nil {
+			return fmt.Errorf("update attachment repo_id [id: %d]: %w", attachment.ID, err)
+		}
+	}
+	if attachment.RepoID != issue.RepoID {
+		return util.NewPermissionDeniedErrorf("attachment belongs to a different repository")
+	}
+	if attachment.IssueID != 0 && attachment.IssueID != issue.ID {
+		return util.NewPermissionDeniedErrorf("attachment is already linked to another issue")
+	}
+	if attachment.ReleaseID != 0 {
+		return util.NewPermissionDeniedErrorf("attachment is already linked to a release")
+	}
+	return nil
+}
+
 // UpdateIssueAttachments update attachments by UUIDs for the issue
 func UpdateIssueAttachments(ctx context.Context, issueID int64, uuids []string) (err error) {
+	if len(uuids) == 0 {
+		return nil
+	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		issue, err := GetIssueByID(ctx, issueID)
+		if err != nil {
+			return err
+		}
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
 		for i := range attachments {
+			if err := validateAttachmentForIssue(ctx, issue, attachments[i]); err != nil {
+				return err
+			}
 			attachments[i].IssueID = issueID
 			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
 				return fmt.Errorf("update attachment [id: %d]: %w", attachments[i].ID, err)
@@ -441,7 +467,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, la
 			LabelIDs:    labelIDs,
 			Attachments: uuids,
 		}); err != nil {
-			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 				return err
 			}
 			return fmt.Errorf("newIssue: %w", err)
@@ -605,7 +631,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
 				}
-				has, err := db.GetEngine(ctx).Get(&organization.TeamUnit{OrgID: issue.Repo.Owner.ID, TeamID: team.ID, Type: unittype})
+				has, err := db.Exist[organization.TeamUnit](ctx, builder.Eq{"org_id": issue.Repo.Owner.ID, "team_id": team.ID, "`type`": unittype})
 				if err != nil {
 					return nil, fmt.Errorf("get team units (%d): %w", team.ID, err)
 				}

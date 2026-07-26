@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"os"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/private"
 
 	"github.com/urfave/cli/v3"
 )

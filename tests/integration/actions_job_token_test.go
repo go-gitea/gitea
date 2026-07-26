@@ -12,19 +12,19 @@ import (
 	"strconv"
 	"testing"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	org_model "code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	org_model "gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -137,7 +137,7 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 				require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoActionsUnit))
 
 				// prepare task and its token
-				require.NoError(t, task.GenerateToken())
+				task.GenerateAndFillToken()
 				task.Status = actions_model.StatusRunning
 				task.IsForkPullRequest = tt.isFork
 				err := actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status", "is_fork_pull_request")
@@ -208,8 +208,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 				AutoInit: true,
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusCreated)
-			var repo structs.Repository
-			DecodeJSON(t, resp, &repo)
+			repo := DecodeJSON(t, resp, &structs.Repository{})
 			return repo.ID
 		}
 
@@ -309,7 +308,7 @@ func TestActionsJobTokenPermissionsWriteIssue(t *testing.T) {
 	repoActionsCfg.MaxTokenPermissions = nil
 	require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoActionsUnit))
 
-	require.NoError(t, task.GenerateToken())
+	task.GenerateAndFillToken()
 	task.Status = actions_model.StatusRunning
 	require.NoError(t, actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status"))
 
@@ -359,7 +358,7 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 		Status:            actions_model.StatusRunning,
 		IsForkPullRequest: isFork,
 	}
-	require.NoError(t, task.GenerateToken())
+	task.GenerateAndFillToken()
 	require.NoError(t, db.Insert(t.Context(), task))
 	return task
 }

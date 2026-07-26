@@ -10,26 +10,26 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/services/migrations"
-	notify_service "code.gitea.io/gitea/services/notify"
-	repo_service "code.gitea.io/gitea/services/repository"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/log"
+	base "gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	"gitea.dev/services/migrations"
+	notify_service "gitea.dev/services/notify"
+	repo_service "gitea.dev/services/repository"
 )
 
 // Migrate migrate remote git repository to gitea
@@ -72,15 +72,10 @@ func Migrate(ctx *context.APIContext) {
 	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
-		return
-	}
-
-	if ctx.HasAPIError() {
-		ctx.APIError(http.StatusUnprocessableEntity, ctx.GetErrMsg())
 		return
 	}
 
@@ -115,12 +110,12 @@ func Migrate(ctx *context.APIContext) {
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
-		ctx.APIError(http.StatusForbidden, errors.New("the site administrator has disabled the creation of new pull mirrors"))
+		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new pull mirrors")
 		return
 	}
 
 	if setting.Repository.DisableMigrations {
-		ctx.APIError(http.StatusForbidden, errors.New("the site administrator has disabled migrations"))
+		ctx.APIError(http.StatusForbidden, "the site administrator has disabled migrations")
 		return
 	}
 
@@ -240,9 +235,9 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 	case db.IsErrNamePatternNotAllowed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(db.ErrNamePatternNotAllowed).Pattern))
 	case git.IsErrInvalidCloneAddr(err):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	case base.IsErrNotSupported(err):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
 		if strings.Contains(err.Error(), "Authentication failed") ||
@@ -262,7 +257,7 @@ func handleRemoteAddrError(ctx *context.APIContext, err error) {
 		addrErr := err.(*git.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsURLError:
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, "The provided URL is invalid.")
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.APIError(http.StatusUnprocessableEntity, "You are not allowed to import local repositories.")

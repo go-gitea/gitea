@@ -37,3 +37,5 @@
   comment_id: 2
   user_id: 1
   created_unix: 1573248005
+
+# DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly

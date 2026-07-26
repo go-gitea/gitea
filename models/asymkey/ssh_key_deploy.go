@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -103,14 +103,6 @@ func addDeployKey(ctx context.Context, keyID, repoID int64, name, fingerprint st
 		Mode:        mode,
 	}
 	return key, db.Insert(ctx, key)
-}
-
-// HasDeployKey returns true if public key is a deploy key of given repository.
-func HasDeployKey(ctx context.Context, keyID, repoID int64) bool {
-	has, _ := db.GetEngine(ctx).
-		Where("key_id = ? AND repo_id = ?", keyID, repoID).
-		Get(new(DeployKey))
-	return has
 }
 
 // AddDeployKey add new deploy key to database and authorized_keys file.

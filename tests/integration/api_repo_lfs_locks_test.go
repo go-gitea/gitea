@@ -9,20 +9,21 @@ import (
 	"testing"
 	"time"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPILFSLocksNotStarted(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setting.LFS.StartServer = false
+	defer test.MockVariableValue(&setting.LFS.StartServer, false)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
@@ -38,21 +39,20 @@ func TestAPILFSLocksNotStarted(t *testing.T) {
 
 func TestAPILFSLocksNotLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	req.Header.Set("Accept", lfs.MediaType)
 	resp := MakeRequest(t, req, http.StatusUnauthorized)
-	var lfsLockError api.LFSLockError
-	DecodeJSON(t, resp, &lfsLockError)
+	lfsLockError := DecodeJSON(t, resp, &api.LFSLockError{})
 	assert.Equal(t, "You must have pull access to list locks", lfsLockError.Message)
 }
 
 func TestAPILFSLocksLogged(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // in org 3
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // in org 3
 
@@ -109,8 +109,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		req.Header.Set("Content-Type", lfs.MediaType)
 		resp := session.MakeRequest(t, req, test.httpResult)
 		if len(test.addTime) > 0 {
-			var lfsLock api.LFSLockResponse
-			DecodeJSON(t, resp, &lfsLock)
+			lfsLock := DecodeJSON(t, resp, &api.LFSLockResponse{})
 			assert.Equal(t, test.user.Name, lfsLock.Lock.Owner.Name)
 			assert.Equal(t, lfsLock.Lock.LockedAt.Format(time.RFC3339), lfsLock.Lock.LockedAt.Format(time.RFC3339Nano)) // locked at should be rounded to second
 			for _, id := range test.addTime {
@@ -125,8 +124,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
 		req.Header.Set("Accept", lfs.AcceptHeader)
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		var lfsLocks api.LFSLockList
-		DecodeJSON(t, resp, &lfsLocks)
+		lfsLocks := DecodeJSON(t, resp, &api.LFSLockList{})
 		assert.Len(t, lfsLocks.Locks, test.totalCount)
 		for i, lock := range lfsLocks.Locks {
 			assert.Equal(t, test.locksOwners[i].Name, lock.Owner.Name)
@@ -138,8 +136,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		req.Header.Set("Accept", lfs.AcceptHeader)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		resp = session.MakeRequest(t, req, http.StatusOK)
-		var lfsLocksVerify api.LFSLockListVerify
-		DecodeJSON(t, resp, &lfsLocksVerify)
+		lfsLocksVerify := DecodeJSON(t, resp, &api.LFSLockListVerify{})
 		assert.Len(t, lfsLocksVerify.Ours, test.oursCount)
 		assert.Len(t, lfsLocksVerify.Theirs, test.theirsCount)
 		for _, lock := range lfsLocksVerify.Ours {
@@ -162,8 +159,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		req.Header.Set("Accept", lfs.AcceptHeader)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		var lfsLockRep api.LFSLockResponse
-		DecodeJSON(t, resp, &lfsLockRep)
+		lfsLockRep := DecodeJSON(t, resp, &api.LFSLockResponse{})
 		assert.Equal(t, test.lockID, lfsLockRep.Lock.ID)
 		assert.Equal(t, test.user.Name, lfsLockRep.Lock.Owner.Name)
 	}
@@ -174,8 +170,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
 		req.Header.Set("Accept", lfs.AcceptHeader)
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		var lfsLocks api.LFSLockList
-		DecodeJSON(t, resp, &lfsLocks)
+		lfsLocks := DecodeJSON(t, resp, &api.LFSLockList{})
 		assert.Empty(t, lfsLocks.Locks)
 	}
 }

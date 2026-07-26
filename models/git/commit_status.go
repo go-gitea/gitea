@@ -13,19 +13,19 @@ import (
 	"strings"
 	"time"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/commitstatus"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // CommitStatus holds a single Status of a single Commit
@@ -120,7 +120,7 @@ WHEN NOT MATCHED
 func GetNextCommitStatusIndex(ctx context.Context, repoID int64, sha string) (int64, error) {
 	_, err := git.NewIDFromString(sha)
 	if err != nil {
-		return 0, git.ErrInvalidSHA{SHA: sha}
+		return 0, util.NewInvalidArgumentErrorf("invalid sha: %v", err)
 	}
 
 	switch {
@@ -329,7 +329,7 @@ type CommitStatusIndex struct {
 	MaxIndex int64  `xorm:"index"`
 }
 
-func makeRepoCommitQuery(ctx context.Context, repoID int64, sha string) *xorm.Session {
+func makeRepoCommitQuery(ctx context.Context, repoID int64, sha string) db.Session {
 	return db.GetEngine(ctx).Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha)
 }
@@ -337,12 +337,10 @@ func makeRepoCommitQuery(ctx context.Context, repoID int64, sha string) *xorm.Se
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
 	indices := make([]int64, 0, 10)
-	sess := makeRepoCommitQuery(ctx, repoID, sha).
-		Select("max( `index` ) as `index`").
-		GroupBy("context_hash").
-		OrderBy("max( `index` ) desc")
+	sess := makeRepoCommitQuery(ctx, repoID, sha)
+	sess.Select("max( `index` ) as `index`").GroupBy("context_hash").OrderBy("max( `index` ) desc")
 	if !listOptions.IsListAll() {
-		sess = db.SetSessionPagination(sess, &listOptions)
+		db.SetSessionPagination(sess, &listOptions)
 	}
 	if err := sess.Find(&indices); err != nil {
 		return nil, err
@@ -372,7 +370,7 @@ func GetLatestCommitStatusForPairs(ctx context.Context, repoSHAs []RepoSHA) (map
 
 	results := make([]result, 0, len(repoSHAs))
 
-	getBase := func() *xorm.Session {
+	getBase := func() db.Session {
 		return db.GetEngine(ctx).Table(&CommitStatus{})
 	}
 
@@ -425,7 +423,7 @@ func GetLatestCommitStatusForRepoCommitIDs(ctx context.Context, repoID int64, co
 		SHA   string
 	}
 
-	getBase := func() *xorm.Session {
+	getBase := func() db.Session {
 		return db.GetEngine(ctx).Table(&CommitStatus{}).Where("repo_id = ?", repoID)
 	}
 	results := make([]result, 0, len(commitIDs))
@@ -508,13 +506,19 @@ func NewCommitStatus(ctx context.Context, opts NewCommitStatusOptions) error {
 		opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 		opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
 		opts.CommitStatus.TargetURL = strings.TrimSpace(opts.CommitStatus.TargetURL)
+		opts.CommitStatus.ContextHash = strings.TrimSpace(opts.CommitStatus.ContextHash)
 		opts.CommitStatus.SHA = opts.SHA.String()
 		opts.CommitStatus.CreatorID = opts.Creator.ID
 		opts.CommitStatus.RepoID = opts.Repo.ID
 		opts.CommitStatus.Index = idx
 		log.Debug("NewCommitStatus[%s, %s]: %d", opts.Repo.FullName(), opts.SHA, opts.CommitStatus.Index)
 
-		opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
+		// Callers may pre-compute a ContextHash to keep entries that share a
+		// human-readable Context separated (e.g. two workflow files with the
+		// same `name:` — issue #35699). Only derive from Context when unset.
+		if opts.CommitStatus.ContextHash == "" {
+			opts.CommitStatus.ContextHash = HashCommitStatusContext(opts.CommitStatus.Context)
+		}
 
 		// Insert new CommitStatus
 		if err = db.Insert(ctx, opts.CommitStatus); err != nil {
@@ -532,8 +536,11 @@ type SignCommitWithStatuses struct {
 	*asymkey_model.SignCommit
 }
 
-// hashCommitStatusContext hash context
-func hashCommitStatusContext(context string) string {
+// HashCommitStatusContext returns the sha1 hash used to dedupe commit statuses
+// by Context. Callers that need to keep statuses with the same display Context
+// separated (e.g. distinct workflow files sharing a `name:`) can mix extra
+// disambiguating data into the input.
+func HashCommitStatusContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
 

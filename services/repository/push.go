@@ -10,32 +10,47 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/process"
-	"code.gitea.io/gitea/modules/queue"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-	issue_service "code.gitea.io/gitea/services/issue"
-	notify_service "code.gitea.io/gitea/services/notify"
-	pull_service "code.gitea.io/gitea/services/pull"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/cache"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/process"
+	"gitea.dev/modules/queue"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
+	issue_service "gitea.dev/services/issue"
+	notify_service "gitea.dev/services/notify"
+	pull_service "gitea.dev/services/pull"
 )
 
 // pushQueue represents a queue to handle update pull request tests
 var pushQueue *queue.WorkerPoolQueue[[]*repo_module.PushUpdateOptions]
 
-// handle passed PR IDs and test the PRs
-func handler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpdateOptions {
+func initPushQueue() error {
+	pushQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "push_update", pushQueueHandler)
+	if pushQueue == nil {
+		return errors.New("unable to create push_update queue")
+	}
+	go graceful.GetManager().RunWithCancel(pushQueue)
+	return nil
+}
+
+// PushUpdates adds a push update to push queue, each call must pass the same repo updates
+func PushUpdates(opts ...*repo_module.PushUpdateOptions) error {
+	if len(opts) == 0 {
+		return nil
+	}
+	return pushQueue.Push(opts)
+}
+
+func pushQueueHandler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpdateOptions {
 	for _, opts := range items {
-		if err := pushUpdates(opts); err != nil {
+		if err := pushQueueHandleUpdates(opts); err != nil {
 			// Username and repository stays the same between items in opts.
 			pushUpdate := opts[0]
 			log.Error("pushUpdate[%s/%s] failed: %v", pushUpdate.RepoUserName, pushUpdate.RepoName, err)
@@ -44,37 +59,8 @@ func handler(items ...[]*repo_module.PushUpdateOptions) [][]*repo_module.PushUpd
 	return nil
 }
 
-func initPushQueue() error {
-	pushQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "push_update", handler)
-	if pushQueue == nil {
-		return errors.New("unable to create push_update queue")
-	}
-	go graceful.GetManager().RunWithCancel(pushQueue)
-	return nil
-}
-
-// PushUpdate is an alias of PushUpdates for single push update options
-func PushUpdate(opts *repo_module.PushUpdateOptions) error {
-	return PushUpdates([]*repo_module.PushUpdateOptions{opts})
-}
-
-// PushUpdates adds a push update to push queue
-func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
-	if len(opts) == 0 {
-		return nil
-	}
-
-	for _, opt := range opts {
-		if opt.IsNewRef() && opt.IsDelRef() {
-			return errors.New("Old and new revisions are both NULL")
-		}
-	}
-
-	return pushQueue.Push(opts)
-}
-
-// pushUpdates generates push action history feeds for push updating multiple refs
-func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
+// pushQueueHandleUpdates generates push action history feeds for push updating multiple refs
+func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	if len(optsList) == 0 {
 		return nil
 	}
@@ -87,14 +73,14 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %w", err)
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}
 	defer gitRepo.Close()
 
 	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
-		return fmt.Errorf("Failed to update size for repository: %v", err)
+		return fmt.Errorf("failed to update size for repository: %v", err)
 	}
 
 	addTags := make([]string, 0, len(optsList))
@@ -104,10 +90,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	for _, opts := range optsList {
 		log.Trace("pushUpdates: %-v %s %s %s", repo, opts.OldCommitID, opts.NewCommitID, opts.RefFullName)
-
 		if opts.IsNewRef() && opts.IsDelRef() {
-			return fmt.Errorf("old and new revisions are both %s", objectFormat.EmptyObjectID())
+			setting.PanicInDevOrTesting("invalid push update (add+del): %+v", opts)
+			continue
 		}
+
 		if opts.RefFullName.IsTag() {
 			if pusher == nil || pusher.ID != opts.PusherID {
 				if opts.PusherID == user_model.ActionsUserID {
@@ -132,11 +119,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				delTags = append(delTags, tagName)
 				notify_service.DeleteRef(ctx, pusher, repo, opts.RefFullName)
 			} else { // is new tag
-				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+				newCommit, err := gitRepo.GetCommit(ctx, opts.NewCommitID)
 				if err != nil {
 					// in case there is dirty data, for example, the "github.com/git/git" repository has tags pointing to non-existing commits
 					if !errors.Is(err, util.ErrNotExist) {
-						log.Error("Unable to get tag commit: gitRepo.GetCommit(%s) in %s/%s[%d]: %v", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
+						log.Error("Unable to get tag commit: gitRepo.GetCommit(ctx, %s) in %s/%s[%d]: %v", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 					}
 				} else {
 					commits := repo_module.NewPushCommits()
@@ -172,26 +159,29 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				log.Trace("TriggerTask '%s/%s' by %s", repo.Name, branch, pusher.Name)
 
-				newCommit, err := gitRepo.GetCommit(opts.NewCommitID)
+				newCommit, err := gitRepo.GetCommit(ctx, opts.NewCommitID)
 				if err != nil {
-					return fmt.Errorf("gitRepo.GetCommit(%s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
+					return fmt.Errorf("gitRepo.GetCommit(ctx, %s) in %s/%s[%d]: %w", opts.NewCommitID, repo.OwnerName, repo.Name, repo.ID, err)
 				}
 
 				// Push new branch.
 				var l []*git.Commit
 				if opts.IsNewRef() {
-					l, err = pushNewBranch(ctx, repo, pusher, opts, newCommit)
+					l, err = pushNewBranch(ctx, repo, gitRepo, pusher, opts, newCommit)
 				} else {
-					l, err = pushUpdateBranch(ctx, repo, pusher, opts, newCommit)
+					l, err = pushUpdateBranch(ctx, repo, gitRepo, pusher, opts, newCommit)
 				}
 				if err != nil {
 					return err
 				}
 
-				// delete cache for divergence
+				// sync branch related database data
 				if branch == repo.DefaultBranch {
 					if err := DelRepoDivergenceFromCache(ctx, repo.ID); err != nil {
 						log.Error("DelRepoDivergenceFromCache: %v", err)
+					}
+					if err := AddRepoToLicenseUpdaterQueue(&LicenseUpdaterOptions{RepoID: repo.ID}); err != nil {
+						log.Error("AddRepoToLicenseUpdaterQueue: %v", err)
 					}
 				} else {
 					if err := DelDivergenceFromCache(repo.ID, branch); err != nil {
@@ -206,7 +196,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					log.Error("updateIssuesCommit: %v", err)
 				}
 
-				commits.CompareURL = getCompareURL(repo, gitRepo, objectFormat, commits.Commits, opts)
+				commits.CompareURL = getCompareURL(ctx, repo, gitRepo, objectFormat, commits.Commits, opts)
 
 				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
@@ -245,10 +235,10 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	return nil
 }
 
-func getCompareURL(repo *repo_model.Repository, gitRepo *git.Repository, objectFormat git.ObjectFormat, commits []*repo_module.PushCommit, opts *repo_module.PushUpdateOptions) string {
+func getCompareURL(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, objectFormat git.ObjectFormat, commits []*repo_module.PushCommit, opts *repo_module.PushUpdateOptions) string {
 	oldCommitID := opts.OldCommitID
 	if oldCommitID == objectFormat.EmptyObjectID().String() && len(commits) > 0 {
-		oldCommit, err := gitRepo.GetCommit(commits[len(commits)-1].Sha1)
+		oldCommit, err := gitRepo.GetCommit(ctx, commits[len(commits)-1].Sha1)
 		if err != nil && !git.IsErrNotExist(err) {
 			log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
 		}
@@ -273,12 +263,12 @@ func getCompareURL(repo *repo_model.Repository, gitRepo *git.Repository, objectF
 	return ""
 }
 
-func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+func pushNewBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
 	if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
 		repo.DefaultBranch = opts.RefName()
 		repo.IsEmpty = false
 		if repo.DefaultBranch != setting.Repository.DefaultBranch {
-			if err := gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+			if err := git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 				return nil, err
 			}
 		}
@@ -288,7 +278,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 		}
 	}
 
-	l, err := newCommit.CommitsBeforeLimit(10)
+	l, err := newCommit.CommitsBeforeLimit(ctx, gitRepo, 10)
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeLimit: %w", err)
 	}
@@ -296,15 +286,15 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 	return l, nil
 }
 
-func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
-	l, err := newCommit.CommitsBeforeUntil(opts.OldCommitID)
+func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+	l, err := newCommit.CommitsBeforeUntil(ctx, gitRepo, git.RefNameFromCommit(opts.OldCommitID))
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
 	}
 
 	branch := opts.RefFullName.BranchName()
 
-	isForcePush, err := newCommit.IsForcePush(opts.OldCommitID)
+	isForcePush, err := newCommit.IsForcePush(ctx, gitRepo, opts.OldCommitID)
 	if err != nil {
 		log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 	}
@@ -379,11 +369,11 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
 
 	for i, lowerTag := range lowerTags {
-		tag, err := gitRepo.GetTag(tags[i])
+		tag, err := gitRepo.GetTag(ctx, tags[i])
 		if err != nil {
 			return fmt.Errorf("GetTag: %w", err)
 		}
-		commit, err := gitRepo.GetTagCommit(tag.Name)
+		commit, err := gitRepo.GetTagCommit(ctx, tag.Name)
 		if err != nil {
 			return fmt.Errorf("Commit: %w", err)
 		}
@@ -402,7 +392,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		}
 
 		rel, has := relMap[lowerTag]
-		title, note := git.SplitCommitTitleBody(tag.Message, 255)
+		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {
 			rel = &repo_model.Release{
 				RepoID:       repo.ID,

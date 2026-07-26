@@ -12,23 +12,23 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	webhook_module "code.gitea.io/gitea/modules/webhook"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	"code.gitea.io/gitea/services/forms"
-	webhook_service "code.gitea.io/gitea/services/webhook"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/models/webhook"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	webhook_module "gitea.dev/modules/webhook"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	"gitea.dev/services/forms"
+	webhook_service "gitea.dev/services/webhook"
 )
 
 const (
@@ -429,7 +429,7 @@ func telegramHookParams(ctx *context.Context) webhookParams {
 
 	return webhookParams{
 		Type:        webhook_module.TELEGRAM,
-		URL:         fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&message_thread_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID), url.QueryEscape(form.ThreadID)),
+		URL:         fmt.Sprintf("https://api.telegram.org/bot%s/sendRichMessage?chat_id=%s&message_thread_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID), url.QueryEscape(form.ThreadID)),
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
 		Meta: &webhook_service.TelegramMeta{
@@ -450,12 +450,21 @@ func MatrixHooksEditPost(ctx *context.Context) {
 	editWebhook(ctx, matrixHookParams(ctx))
 }
 
+func matrixRoomIDEncode(roomID string) string {
+	// See https://spec.matrix.org/latest/appendices/#room-ids
+	// Some (unrelated) demo links: https://spec.matrix.org/latest/appendices/#matrixto-navigation
+	// API spec: https://spec.matrix.org/v1.18/client-server-api/#sending-events-to-a-room
+	// Some of their examples show links like: "PUT /rooms/!roomid:domain/state/m.example.event"
+	return strings.NewReplacer("%21", "!", "%3A", ":").Replace(url.PathEscape(roomID))
+}
+
 func matrixHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
 
+	// TODO: need to migrate to the latest (v3) API: https://spec.matrix.org/v1.18/client-server-api/
 	return webhookParams{
 		Type:        webhook_module.MATRIX,
-		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
+		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, matrixRoomIDEncode(form.RoomID)),
 		ContentType: webhook.ContentTypeJSON,
 		HTTPMethod:  http.MethodPut,
 		WebhookForm: form.WebhookForm,
@@ -655,26 +664,21 @@ func TestWebhook(ctx *context.Context) {
 		return
 	}
 
-	// Grab latest commit or fake one if it's empty repository.
-	// Note: in old code, the "ctx.Repo.Commit" is the last commit of the default branch.
-	// New code doesn't set that commit, so it always uses the fake commit to test webhook.
-	commit := ctx.Repo.Commit
-	if commit == nil {
-		ghost := user_model.NewGhostUser()
-		objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
-		commit = &git.Commit{
-			ID:            objectFormat.EmptyObjectID(),
-			Author:        ghost.NewGitSig(),
-			Committer:     ghost.NewGitSig(),
-			CommitMessage: "This is a fake commit",
-		}
+	// use a fake commit to test webhook
+	ghostUser := user_model.NewGhostUser()
+	objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
+	commit := &git.Commit{
+		ID:            objectFormat.EmptyObjectID(),
+		Author:        ghostUser.NewGitSig(),
+		Committer:     ghostUser.NewGitSig(),
+		CommitMessage: git.CommitMessage{MessageRaw: "This is a fake commit for webhook push test"},
 	}
 
 	apiUser := convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
-		Message: commit.Message(),
+		Message: commit.MessageUTF8(),
 		URL:     ctx.Repo.Repository.HTMLURL() + "/commit/" + url.PathEscape(commit.ID.String()),
 		Author: &api.PayloadUser{
 			Name:  commit.Author.Name,
@@ -688,7 +692,7 @@ func TestWebhook(ctx *context.Context) {
 
 	commitID := commit.ID.String()
 	p := &api.PushPayload{
-		Ref:          git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Ref:          git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch).String(),
 		Before:       commitID,
 		After:        commitID,
 		CompareURL:   setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
@@ -699,8 +703,8 @@ func TestWebhook(ctx *context.Context) {
 		Pusher:       apiUser,
 		Sender:       apiUser,
 	}
-	if err := webhook_service.PrepareWebhook(ctx, w, webhook_module.HookEventPush, p); err != nil {
-		ctx.Flash.Error("PrepareWebhook: " + err.Error())
+	if err := webhook_service.PrepareTestWebhook(ctx, w, webhook_module.HookEventPush, p); err != nil {
+		ctx.Flash.Error("PrepareTestWebhook: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))

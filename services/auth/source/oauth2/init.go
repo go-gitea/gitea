@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"sync"
 
-	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
@@ -72,7 +72,7 @@ func initOAuth2Sources(ctx context.Context) error {
 		}
 		err := oauth2Source.RegisterSource()
 		if err != nil {
-			log.Critical("Unable to register source: %s due to Error: %v.", source.Name, err)
+			log.Error("Unable to register source: %s due to Error: %v.", source.Name, err)
 		}
 	}
 	return nil

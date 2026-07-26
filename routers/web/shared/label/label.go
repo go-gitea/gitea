@@ -4,16 +4,16 @@
 package label
 
 import (
-	"code.gitea.io/gitea/modules/label"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/modules/label"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 func GetLabelEditForm(ctx *context.Context) *forms.CreateLabelForm {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
 	if ctx.HasError() {
-		ctx.JSONError(ctx.Data["ErrorMsg"].(string))
+		ctx.JSONError(ctx.GetErrMsg())
 		return nil
 	}
 	var err error

@@ -4,7 +4,7 @@ import {GET} from '../modules/fetch.ts';
 async function loadBranchesAndTags(area: Element, loadingButton: Element) {
   loadingButton.classList.add('disabled');
   try {
-    const res = await GET(loadingButton.getAttribute('data-fetch-url')!);
+    const res = await GET(loadingButton.getAttribute('data-url')!);
     const data = await res.json();
     hideElem(loadingButton);
     addTags(area, data.tags);

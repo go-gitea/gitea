@@ -8,8 +8,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	pingv1 "code.gitea.io/actions-proto-go/ping/v1"
-	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
+	pingv1 "gitea.dev/actions-proto-go/ping/v1"
+	"gitea.dev/actions-proto-go/ping/v1/pingv1connect"
+
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

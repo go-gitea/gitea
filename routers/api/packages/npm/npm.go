@@ -12,19 +12,19 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/optional"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	npm_module "code.gitea.io/gitea/modules/packages/npm"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/optional"
+	packages_module "gitea.dev/modules/packages"
+	npm_module "gitea.dev/modules/packages/npm"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/packages/helper"
+	"gitea.dev/services/context"
+	packages_service "gitea.dev/services/packages"
 
 	"github.com/hashicorp/go-version"
 )
@@ -333,9 +333,16 @@ func ListPackageTags(ctx *context.Context) {
 func AddPackageTag(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
 
-	body, err := io.ReadAll(ctx.Req.Body)
+	// the dist-tag body is only a quoted version string; bound it to avoid an unbounded
+	// read that could exhaust memory
+	const maxDistTagBodySize = 4 * 1024
+	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, maxDistTagBodySize+1))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(body) > maxDistTagBodySize {
+		apiError(ctx, http.StatusRequestEntityTooLarge, errors.New("request body too large"))
 		return
 	}
 	version := strings.Trim(string(body), "\"") // is as "version" in the body

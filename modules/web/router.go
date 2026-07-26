@@ -9,21 +9,15 @@ import (
 	"reflect"
 	"strings"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/reqctx"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/modules/web/types"
 
 	"gitea.com/go-chi/binding"
 	"github.com/go-chi/chi/v5"
 )
-
-// PreMiddlewareProvider is a special middleware provider which will be executed
-// before other middlewares on the same "routing" level (AfterRouting/Group/Methods/Any, but not BeforeRouting).
-// A route can do something (e.g.: set middleware options) at the place where it is declared,
-// and the code will be executed before other middlewares which are added before the declaration.
-// Use cases: mark a route with some meta info, set some options for middlewares, etc.
-type PreMiddlewareProvider func(next http.Handler) http.Handler
 
 // Bind binding an obj to a handler's context data
 func Bind[T any](_ T) http.HandlerFunc {
@@ -112,7 +106,7 @@ func isNilOrFuncNil(v any) bool {
 
 func wrapMiddlewareAppendPre(all []middlewareProvider, middlewares []any) []middlewareProvider {
 	for _, m := range middlewares {
-		if h, ok := m.(PreMiddlewareProvider); ok && h != nil {
+		if h, ok := m.(types.PreMiddlewareProvider); ok && h != nil {
 			all = append(all, toHandlerProvider(middlewareProvider(h)))
 		}
 	}
@@ -121,7 +115,7 @@ func wrapMiddlewareAppendPre(all []middlewareProvider, middlewares []any) []midd
 
 func wrapMiddlewareAppendNormal(all []middlewareProvider, middlewares []any) []middlewareProvider {
 	for _, m := range middlewares {
-		if _, ok := m.(PreMiddlewareProvider); !ok && !isNilOrFuncNil(m) {
+		if _, ok := m.(types.PreMiddlewareProvider); !ok && !isNilOrFuncNil(m) {
 			all = append(all, toHandlerProvider(m))
 		}
 	}
@@ -266,7 +260,7 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 			// do not respond to other requests, to simulate a real sub-path environment
 			resp.Header().Add("Content-Type", "text/html; charset=utf-8")
 			resp.WriteHeader(http.StatusNotFound)
-			_, _ = resp.Write([]byte(htmlutil.HTMLFormat(`404 page not found, sub-path is: <a href="%s">%s</a>`, setting.AppSubURL, setting.AppSubURL)))
+			_, _ = htmlutil.HTMLPrintf(resp, `404 page not found, sub-path is: <a href="%s">%s</a>`, setting.AppSubURL, setting.AppSubURL)
 			return
 		}
 		normalized = true

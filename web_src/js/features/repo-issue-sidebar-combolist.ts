@@ -2,6 +2,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {addDelegatedEventListener, queryElemChildren, queryElems, toggleElem} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {parseDom} from '../utils.ts';
 
 export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMainContent: Element) {
@@ -28,12 +29,10 @@ export function syncIssueMainContentTimelineItems(oldMainContent: Element, newMa
         // for event item (e.g.: "add & remove labels"), we want to replace the existing one if exists
         // because the label operations can be merged into one event item, so the new item might be different from the old one
         oldItem.replaceWith(newItem);
-        window.htmx.process(newItem);
       }
       continue;
     }
     timelineEnd.insertAdjacentElement('beforebegin', newItem);
-    window.htmx.process(newItem);
   }
 }
 
@@ -44,7 +43,7 @@ export class IssueSidebarComboList {
   elDropdown: HTMLElement;
   elList: HTMLElement | null;
   elComboValue: HTMLInputElement;
-  initialValues: string[];
+  initialValues: string[] = [];
   container: HTMLElement;
 
   elIssueMainContent: HTMLElement;
@@ -71,7 +70,7 @@ export class IssueSidebarComboList {
 
   updateUiList(changedValues: Array<string>) {
     if (!this.elList) return;
-    const elEmptyTip = this.elList.querySelector('.item.empty-list')!;
+    const elEmptyTip = this.elList.querySelector(':scope > .item.empty-list')!;
     queryElemChildren(this.elList, '.item:not(.empty-list)', (el) => el.remove());
     for (const value of changedValues) {
       const el = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
@@ -92,7 +91,6 @@ export class IssueSidebarComboList {
     // we can safely replace the whole right part (sidebar) because there are only some dropdowns and lists
     const newSidebar = doc.querySelector('.issue-content-right')!;
     this.elIssueSidebar.replaceWith(newSidebar);
-    window.htmx.process(newSidebar);
 
     // for the main content (left side), at the moment we only support handling known timeline items
     const newMainContent = doc.querySelector('.issue-content-left')!;
@@ -132,7 +130,7 @@ export class IssueSidebarComboList {
       await this.reloadPagePartially();
     } catch (e) {
       console.error('Failed to update to backend', e);
-      showErrorToast(`Failed to update to backend: ${e}`);
+      showErrorToast(`Failed to update to backend: ${errorMessage(e)}`);
     } finally {
       this.elIssueSidebar.classList.remove('is-loading');
     }
@@ -141,7 +139,7 @@ export class IssueSidebarComboList {
   async doUpdate() {
     const changedValues = this.collectCheckedValues();
     if (this.initialValues.join(',') === changedValues.join(',')) return;
-    this.updateUiList(changedValues);
+    if (!this.updateUrl) this.updateUiList(changedValues);
     if (this.updateUrl) await this.updateToBackend(changedValues);
     this.initialValues = changedValues;
   }
@@ -198,7 +196,9 @@ export class IssueSidebarComboList {
         const elItem = this.elDropdown.querySelector<HTMLElement>(`.menu > .item[data-value="${CSS.escape(value)}"]`);
         elItem?.classList.add('checked');
       }
-      this.updateUiList(values);
+      if (this.elList && this.elList.getAttribute('data-combo-list-inited') !== 'true') {
+        this.updateUiList(values);
+      }
     }
     this.initialValues = this.collectCheckedValues();
 

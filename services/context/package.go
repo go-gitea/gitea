@@ -4,17 +4,18 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/organization"
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
+	"gitea.dev/models/organization"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
 )
 
 // Package contains owner, access mode and optional the package descriptor
@@ -33,11 +34,8 @@ type packageAssignmentCtx struct {
 // PackageAssignment returns a middleware to handle Context.Package assignment
 func PackageAssignment() func(ctx *Context) {
 	return func(ctx *Context) {
-		errorFn := func(status int, obj any) {
-			err, ok := obj.(error)
-			if !ok {
-				err = fmt.Errorf("%s", obj)
-			}
+		errorFn := func(status int, msg string) {
+			err := fmt.Errorf("%s", msg)
 			if status == http.StatusNotFound {
 				ctx.NotFound(err)
 			} else {
@@ -57,42 +55,62 @@ func PackageAssignmentAPI() func(ctx *APIContext) {
 	}
 }
 
-func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package {
-	pkg := &Package{
-		Owner: ctx.ContextUser,
-	}
-	var err error
-	pkg.AccessMode, err = determineAccessMode(ctx.Base, pkg, ctx.Doer)
+func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, string)) *Package {
+	pkgOwner := ctx.ContextUser
+	accessMode, err := determineAccessMode(ctx.Base, pkgOwner, ctx.Doer)
 	if err != nil {
-		errCb(http.StatusInternalServerError, fmt.Errorf("determineAccessMode: %w", err))
+		errCb(http.StatusInternalServerError, fmt.Sprintf("determineAccessMode: %v", err))
+		return nil
+	}
+
+	pkg := &Package{
+		Owner:      pkgOwner,
+		AccessMode: accessMode,
+	}
+	packageType := ctx.PathParam("type")
+	name := ctx.PathParam("name")
+	if packageType == "" || name == "" {
 		return pkg
 	}
 
-	packageType := ctx.PathParam("type")
-	name := ctx.PathParam("name")
 	version := ctx.PathParam("version")
-	if packageType != "" && name != "" && version != "" {
+	if version != "" {
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
 		if err != nil {
-			if err == packages_model.ErrPackageNotExist {
-				errCb(http.StatusNotFound, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
+			if errors.Is(err, packages_model.ErrPackageNotExist) {
+				errCb(http.StatusNotFound, fmt.Sprintf("GetVersionByNameAndVersion: %v", err))
 			} else {
-				errCb(http.StatusInternalServerError, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
+				errCb(http.StatusInternalServerError, fmt.Sprintf("GetVersionByNameAndVersion: %v", err))
 			}
 			return pkg
 		}
 
 		pkg.Descriptor, err = packages_model.GetPackageDescriptor(ctx, pv)
 		if err != nil {
-			errCb(http.StatusInternalServerError, fmt.Errorf("GetPackageDescriptor: %w", err))
+			errCb(http.StatusInternalServerError, fmt.Sprintf("GetPackageDescriptor: %v", err))
 			return pkg
+		}
+	} else {
+		p, err := packages_model.GetPackageByName(ctx, pkg.Owner.ID, packages_model.Type(packageType), name)
+		if err != nil {
+			if errors.Is(err, packages_model.ErrPackageNotExist) {
+				errCb(http.StatusNotFound, fmt.Sprintf("GetPackageByName: %v", err))
+			} else {
+				errCb(http.StatusInternalServerError, fmt.Sprintf("GetPackageByName: %v", err))
+			}
+			return pkg
+		}
+
+		pkg.Descriptor = &packages_model.PackageDescriptor{
+			Package: p,
+			Owner:   pkg.Owner,
 		}
 	}
 
 	return pkg
 }
 
-func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.AccessMode, error) {
+func determineAccessMode(ctx *Base, pkgOwner, doer *user_model.User) (perm.AccessMode, error) {
 	if setting.Service.RequireSignInViewStrict && (doer == nil || doer.IsGhost()) {
 		return perm.AccessModeNone, nil
 	}
@@ -103,8 +121,8 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 
 	// TODO: ActionUser permission check
 	accessMode := perm.AccessModeNone
-	if pkg.Owner.IsOrganization() {
-		org := organization.OrgFromUser(pkg.Owner)
+	if pkgOwner.IsOrganization() {
+		org := organization.OrgFromUser(pkgOwner)
 
 		if doer != nil && !doer.IsGhost() {
 			// 1. If user is logged in, check all team packages permissions
@@ -128,19 +146,19 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 				}
 			}
 		}
-		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, pkg.Owner, doer) {
+		if accessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, pkgOwner, doer) {
 			// 2. If user is unauthorized or no org member, check if org is visible
 			accessMode = perm.AccessModeRead
 		}
 	} else {
 		if doer != nil && !doer.IsGhost() {
 			// 1. Check if user is package owner
-			if doer.ID == pkg.Owner.ID {
+			if doer.ID == pkgOwner.ID {
 				accessMode = perm.AccessModeOwner
-			} else if pkg.Owner.Visibility == structs.VisibleTypePublic || pkg.Owner.Visibility == structs.VisibleTypeLimited { // 2. Check if package owner is public or limited
+			} else if pkgOwner.Visibility == structs.VisibleTypePublic || pkgOwner.Visibility == structs.VisibleTypeLimited { // 2. Check if package owner is public or limited
 				accessMode = perm.AccessModeRead
 			}
-		} else if pkg.Owner.Visibility == structs.VisibleTypePublic { // 3. Check if package owner is public
+		} else if pkgOwner.Visibility == structs.VisibleTypePublic { // 3. Check if package owner is public
 			accessMode = perm.AccessModeRead
 		}
 	}

@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 )
 
 // IssueUser represents an issue-user relation.

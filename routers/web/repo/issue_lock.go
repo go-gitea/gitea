@@ -4,10 +4,10 @@
 package repo
 
 import (
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 // LockIssue locks an issue. This would limit commenting abilities to

@@ -34,7 +34,7 @@
 
               # only bump toolchain versions here
               go = pkgs.go_1_26;
-              nodejs = pkgs.nodejs_24;
+              nodejs = pkgs.nodejs_26;
               python3 = pkgs.python314;
               pnpm = pkgs.pnpm_10;
 
@@ -83,7 +83,7 @@
                 GO = "${go}/bin/go";
                 GOROOT = "${go}/share/go";
 
-                TAGS = "sqlite sqlite_unlock_notify";
+                TAGS = "";
                 STATIC = "true";
               }
               // linuxOnlyEnv;

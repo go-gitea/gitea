@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // Based on https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#secure-remember-me-cookies
@@ -57,6 +57,10 @@ func CheckAuthToken(ctx context.Context, value string) (*auth_model.AuthToken, e
 	if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(hex.EncodeToString(hashedToken[:]))) == 0 {
 		// If an attacker steals a token and uses the token to create a new session the hash gets updated.
 		// When the victim uses the old token the hashes don't match anymore and the victim should be notified about the compromised token.
+		// Revoke the token so the attacker's rotated token (which shares this ID) can no longer be used.
+		if err := auth_model.DeleteAuthTokenByID(ctx, t.ID); err != nil {
+			return nil, err
+		}
 		return nil, ErrAuthTokenInvalidHash
 	}
 
@@ -64,10 +68,7 @@ func CheckAuthToken(ctx context.Context, value string) (*auth_model.AuthToken, e
 }
 
 func RegenerateAuthToken(ctx context.Context, t *auth_model.AuthToken) (*auth_model.AuthToken, string, error) {
-	token, hash, err := generateTokenAndHash()
-	if err != nil {
-		return nil, "", err
-	}
+	token, hash := generateTokenAndHash()
 
 	newToken := &auth_model.AuthToken{
 		ID:          t.ID,
@@ -89,16 +90,9 @@ func CreateAuthTokenForUserID(ctx context.Context, userID int64) (*auth_model.Au
 		ExpiresUnix: timeutil.TimeStampNow().AddDuration(time.Duration(setting.LogInRememberDays*24) * time.Hour),
 	}
 
-	var err error
-	t.ID, err = util.CryptoRandomString(10)
-	if err != nil {
-		return nil, "", err
-	}
+	t.ID = util.CryptoRandomString(10)
 
-	token, hash, err := generateTokenAndHash()
-	if err != nil {
-		return nil, "", err
-	}
+	token, hash := generateTokenAndHash()
 
 	t.TokenHash = hash
 
@@ -109,15 +103,12 @@ func CreateAuthTokenForUserID(ctx context.Context, userID int64) (*auth_model.Au
 	return t, token, nil
 }
 
-func generateTokenAndHash() (string, string, error) {
-	buf, err := util.CryptoRandomBytes(32)
-	if err != nil {
-		return "", "", err
-	}
+func generateTokenAndHash() (string, string) {
+	buf := util.CryptoRandomBytes(32)
 
 	token := hex.EncodeToString(buf)
 
 	hashedToken := sha256.Sum256([]byte(token))
 
-	return token, hex.EncodeToString(hashedToken[:]), nil
+	return token, hex.EncodeToString(hashedToken[:])
 }

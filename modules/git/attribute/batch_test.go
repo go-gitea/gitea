@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -118,7 +118,8 @@ func expectedAttrs() *Attributes {
 func Test_BatchChecker(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
 	repoPath := "../tests/repos/language_stats_repo"
-	gitRepo, err := git.OpenRepository(t.Context(), repoPath)
+	ctx := t.Context()
+	gitRepo, err := git.OpenRepositoryLocal(repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -126,7 +127,7 @@ func Test_BatchChecker(t *testing.T) {
 
 	t.Run("Create index file to run git check-attr", func(t *testing.T) {
 		defer test.MockVariableValue(&git.DefaultFeatures().SupportCheckAttrOnBare, false)()
-		checker, err := NewBatchChecker(gitRepo, commitID, LinguistAttributes)
+		checker, err := NewBatchChecker(ctx, gitRepo, commitID, LinguistAttributes)
 		assert.NoError(t, err)
 		defer checker.Close()
 		attributes, err := checker.CheckPath("i-am-a-python.p")
@@ -143,11 +144,11 @@ func Test_BatchChecker(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		tempRepo, err := git.OpenRepository(t.Context(), dir)
+		tempRepo, err := git.OpenRepositoryLocal(dir)
 		assert.NoError(t, err)
 		defer tempRepo.Close()
 
-		checker, err := NewBatchChecker(tempRepo, "", LinguistAttributes)
+		checker, err := NewBatchChecker(t.Context(), tempRepo, "", LinguistAttributes)
 		assert.NoError(t, err)
 		defer checker.Close()
 		attributes, err := checker.CheckPath("i-am-a-python.p")
@@ -161,7 +162,7 @@ func Test_BatchChecker(t *testing.T) {
 	}
 
 	t.Run("Run git check-attr in bare repository", func(t *testing.T) {
-		checker, err := NewBatchChecker(gitRepo, commitID, LinguistAttributes)
+		checker, err := NewBatchChecker(ctx, gitRepo, commitID, LinguistAttributes)
 		assert.NoError(t, err)
 		defer checker.Close()
 

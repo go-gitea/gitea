@@ -4,7 +4,10 @@ import {stringPlugin} from 'vite-string-plugin';
 
 export default defineConfig({
   test: {
-    include: ['web_src/**/*.test.ts'],
+    include: [
+      'web_src/**/*.test.ts',
+      'tools/eslint-rules/**/*.test.ts',
+    ],
     setupFiles: ['web_src/js/vitest.setup.ts'],
     environment: 'happy-dom',
     testTimeout: 20000,

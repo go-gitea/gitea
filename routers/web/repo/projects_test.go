@@ -6,8 +6,8 @@ package repo
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/services/contexttest"
+	"gitea.dev/models/unittest"
+	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
 )

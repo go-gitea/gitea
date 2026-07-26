@@ -6,10 +6,12 @@ package repo
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // WatchMode specifies what kind of watch the user has on a repository
@@ -41,11 +43,13 @@ func init() {
 }
 
 // GetWatch gets what kind of subscription a user has on a given repository; returns dummy record if none found
-func GetWatch(ctx context.Context, userID, repoID int64) (Watch, error) {
-	watch := Watch{UserID: userID, RepoID: repoID}
-	has, err := db.GetEngine(ctx).Get(&watch)
+func GetWatch(ctx context.Context, userID, repoID int64) (*Watch, error) {
+	watch, has, err := db.Get[Watch](ctx, builder.Eq{"user_id": userID, "repo_id": repoID})
 	if err != nil {
 		return watch, err
+	}
+	if watch == nil {
+		watch = &Watch{UserID: userID, RepoID: repoID}
 	}
 	if !has {
 		watch.Mode = WatchModeNone
@@ -64,7 +68,7 @@ func IsWatching(ctx context.Context, userID, repoID int64) bool {
 	return err == nil && IsWatchMode(watch.Mode)
 }
 
-func watchRepoMode(ctx context.Context, watch Watch, mode WatchMode) (err error) {
+func watchRepoMode(ctx context.Context, watch *Watch, mode WatchMode) (err error) {
 	if watch.Mode == mode {
 		return nil
 	}
@@ -152,7 +156,7 @@ func GetRepoWatchers(ctx context.Context, repoID int64, opts db.ListOptions) ([]
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", WatchModeDont)
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, &opts)
+		db.SetSessionPagination(sess, &opts)
 		users := make([]*user_model.User, 0, opts.PageSize)
 
 		return users, sess.Find(&users)

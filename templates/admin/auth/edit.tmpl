@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin edit authentication")}}
+{{template "admin/layout_head" (dict "pageClass" "admin edit authentication")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.auths.edit"}}
@@ -329,6 +329,11 @@
 					<div class="field oauth2_ssh_public_key_claim_name">
 						<label>{{ctx.Locale.Tr "admin.auths.oauth2_ssh_public_key_claim_name"}}</label>
 						<input name="oauth2_ssh_public_key_claim_name" value="{{$cfg.SSHPublicKeyClaimName}}" placeholder="sshpubkey">
+					</div>
+					<div class="open_id_connect_external_id_claim field">
+						<label for="open_id_connect_external_id_claim">{{ctx.Locale.Tr "admin.auths.open_id_connect_external_id_claim"}}</label>
+						<input id="open_id_connect_external_id_claim" name="open_id_connect_external_id_claim" value="{{$cfg.ExternalIDClaim}}" placeholder="sub">
+						<p class="help">{{ctx.Locale.Tr "admin.auths.open_id_connect_external_id_claim_helper"}}</p>
 					</div>
 					<div class="field">
 						<label for="oauth2_required_claim_name">{{ctx.Locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>

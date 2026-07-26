@@ -7,10 +7,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
 )
 
 func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
@@ -109,10 +108,4 @@ func (e *Event) WriteTo(w io.Writer) (int64, error) {
 	sum += int64(nint)
 
 	return sum, err
-}
-
-func (e *Event) String() string {
-	buf := new(strings.Builder)
-	_, _ = e.WriteTo(buf)
-	return buf.String()
 }

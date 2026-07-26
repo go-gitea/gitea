@@ -15,24 +15,25 @@ import (
 	"strings"
 	"sync"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/packages/helper"
-	auth_service "code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/context"
-	packages_service "code.gitea.io/gitea/services/packages"
-	container_service "code.gitea.io/gitea/services/packages/container"
+	auth_model "gitea.dev/models/auth"
+	packages_model "gitea.dev/models/packages"
+	container_model "gitea.dev/models/packages/container"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	packages_module "gitea.dev/modules/packages"
+	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/packages/helper"
+	auth_service "gitea.dev/services/auth"
+	"gitea.dev/services/context"
+	packages_service "gitea.dev/services/packages"
+	container_service "gitea.dev/services/packages/container"
 
 	"github.com/opencontainers/go-digest"
 )
@@ -125,8 +126,15 @@ func APIUnauthorizedError(ctx *context.Context) {
 	// container registry requires that the "/v2" must be in the root, so the sub-path in AppURL should be removed
 	realmURL := httplib.GuessCurrentHostURL(ctx) + "/v2/token"
 	ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+realmURL+`",service="container_registry",scope="*"`)
-	// support apple container like: container registry login <gitea-host> -u
-	ctx.Resp.Header().Add("WWW-Authenticate", `Basic realm="Gitea Container Registry"`)
+
+	ownerName := ctx.PathParam("username")
+	owner, _ := user_model.GetUserByName(ctx, ownerName)
+	requireSignIn := owner != nil && owner.Visibility != structs.VisibleTypePublic
+	requireSignIn = requireSignIn || setting.Service.RequireSignInViewStrict
+	if requireSignIn {
+		// support apple container like: container registry login <gitea-host> -u
+		ctx.Resp.Header().Add("WWW-Authenticate", `Basic realm="Gitea Container Registry"`)
+	}
 	apiErrorDefined(ctx, errUnauthorized)
 }
 

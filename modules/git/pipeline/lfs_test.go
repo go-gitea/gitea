@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
+	"gitea.dev/modules/git"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,13 +15,13 @@ import (
 
 func TestFindLFSFile(t *testing.T) {
 	repoPath := "../../../tests/gitea-repositories-meta/user2/lfs.git"
-	gitRepo, err := git.OpenRepository(t.Context(), repoPath)
+	gitRepo, err := git.OpenRepositoryLocal(repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
 	objectID := git.MustIDFromString("2b6c6c4eaefa24b22f2092c3d54b263ff26feb58")
 
-	stats, err := FindLFSFile(gitRepo, objectID)
+	stats, err := FindLFSFile(t.Context(), gitRepo, objectID)
 	require.NoError(t, err)
 
 	tm, err := time.Parse(time.RFC3339, "2022-12-21T17:56:42-05:00")

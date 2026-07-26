@@ -58,7 +58,19 @@ func TestParse(t *testing.T) {
 			options: nil,
 			wantErr: false,
 		},
+		{
+			name:    "continue_on_error_expr",
+			options: nil,
+			wantErr: false,
+		},
 	}
+	invalidFileTests := []struct {
+		name string
+	}{
+		{name: "null_job_implicit"},
+		{name: "null_job_explicit"},
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			content := ReadTestdata(t, tt.name+".in.yaml")
@@ -82,6 +94,16 @@ func TestParse(t *testing.T) {
 				assert.NotNil(t, job)
 			}
 			assert.Equal(t, string(want), builder.String())
+		})
+	}
+
+	for _, tt := range invalidFileTests {
+		t.Run(tt.name, func(t *testing.T) {
+			content := ReadTestdata(t, tt.name+".in.yaml")
+			require.NotPanics(t, func() {
+				_, err := Parse(content)
+				require.Error(t, err)
+			})
 		})
 	}
 }

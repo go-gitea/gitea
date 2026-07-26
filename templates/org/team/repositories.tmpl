@@ -31,18 +31,18 @@
 					<div class="ui top attached segment">{{ctx.Locale.Tr "org.teams.all_repositories"}}</div>
 				{{end}}
 				<div class="ui {{if not $hasTopAttachedSegment}}top{{end}} attached segment">
-					<div class="flex-list">
+					<div class="flex-divided-list items-with-main">
 						{{range $.TeamRepos}}
-							<div class="flex-item tw-items-center">
-								<div class="flex-item-leading">
+							<div class="item tw-items-center">
+								<div class="item-leading">
 									{{template "repo/icon" .}}
 								</div>
-								<div class="flex-item-main">
-									<a class="flex-item-title tw-text-primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
+								<div class="item-main">
+									<a class="item-title tw-text-primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
 										{{$.Org.Name}}/{{.Name}}
 									</a>
 								</div>
-								<div class="flex-item-trailing">
+								<div class="item-trailing">
 									{{if $canAddRemove}}
 										<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
 											<button type="submit" class="ui red small button" name="repoid" value="{{.ID}}">{{ctx.Locale.Tr "remove"}}</button>
@@ -51,7 +51,7 @@
 								</div>
 							</div>
 						{{else}}
-							<div class="flex-item">
+							<div class="item">
 								<span class="tw-text-text-light tw-italic">{{ctx.Locale.Tr "org.teams.repos.none"}}</span>
 							</div>
 						{{end}}

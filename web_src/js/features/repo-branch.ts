@@ -1,5 +1,5 @@
 import {toggleElem} from '../utils/dom.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {showFomanticModal} from '../modules/fomantic/modal.ts';
 
 export function initRepoBranchButton() {
   initRepoCreateBranchButton();
@@ -18,7 +18,7 @@ function initRepoCreateBranchButton() {
       const fromSpanName = el.getAttribute('data-modal-from-span') || '#modal-create-branch-from-span';
       document.querySelector(fromSpanName)!.textContent = el.getAttribute('data-branch-from');
 
-      fomanticQuery(el.getAttribute('data-modal')!).modal('show');
+      showFomanticModal(document.querySelector(el.getAttribute('data-modal')!));
     });
   }
 }

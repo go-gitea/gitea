@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/webhook"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
 
 	"xorm.io/builder"
 )
@@ -31,12 +31,12 @@ func SyncRepositoryHooks(ctx context.Context) error {
 			default:
 			}
 
-			if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
+			if err := git.CreateDelegateHooks(ctx, repo); err != nil {
 				return fmt.Errorf("CreateDelegateHooks: %w", err)
 			}
 
 			if HasWiki(ctx, repo) {
-				if err := gitrepo.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
+				if err := git.CreateDelegateHooks(ctx, repo.WikiStorageRepo()); err != nil {
 					return fmt.Errorf("CreateDelegateHooks: %w", err)
 				}
 			}
@@ -52,25 +52,25 @@ func SyncRepositoryHooks(ctx context.Context) error {
 
 // GenerateGitHooks generates git hooks from a template repository
 func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	generateGitRepo, err := gitrepo.OpenRepository(ctx, generateRepo)
+	generateGitRepo, err := git.OpenRepository(generateRepo)
 	if err != nil {
 		return err
 	}
 	defer generateGitRepo.Close()
 
-	templateGitRepo, err := gitrepo.OpenRepository(ctx, templateRepo)
+	templateGitRepo, err := git.OpenRepository(templateRepo)
 	if err != nil {
 		return err
 	}
 	defer templateGitRepo.Close()
 
-	templateHooks, err := templateGitRepo.Hooks()
+	templateHooks, err := git.ListHooks(templateGitRepo)
 	if err != nil {
 		return err
 	}
 
 	for _, templateHook := range templateHooks {
-		generateHook, err := generateGitRepo.GetHook(templateHook.Name())
+		generateHook, err := git.GetHook(generateGitRepo, templateHook.Name())
 		if err != nil {
 			return err
 		}

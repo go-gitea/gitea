@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/json"
 )
 
 // ErrInvalidReceiveHook FIXME
@@ -434,6 +434,10 @@ type ChangesPayload struct {
 type PullRequestPayload struct {
 	// The action performed on the pull request
 	Action HookIssueAction `json:"action"`
+	// The SHA of the most recent commit on the PR head branch before the push
+	Before string `json:"before,omitempty"`
+	// The SHA of the most recent commit on the PR head branch after the push
+	After string `json:"after,omitempty"`
 	// The index number of the pull request
 	Index int64 `json:"number"`
 	// Changes made to the pull request (for edit actions)
@@ -568,6 +572,20 @@ type WorkflowDispatchPayload struct {
 
 // JSONPayload implements Payload
 func (p *WorkflowDispatchPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}
+
+// WorkflowCallPayload is persisted on a reusable workflow caller job's CallPayload field.
+type WorkflowCallPayload struct {
+	Workflow   string         `json:"workflow"`
+	Ref        string         `json:"ref"`
+	Inputs     map[string]any `json:"inputs"`
+	Repository *Repository    `json:"repository"`
+	Sender     *User          `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *WorkflowCallPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
 

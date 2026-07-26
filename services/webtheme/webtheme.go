@@ -5,6 +5,7 @@ package webtheme
 
 import (
 	"io/fs"
+	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -13,11 +14,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 type themeCollectionStruct struct {
@@ -41,6 +42,10 @@ type ThemeMetaInfo struct {
 	DisplayName    string
 	ColorblindType string
 	ColorScheme    string
+}
+
+func (info *ThemeMetaInfo) PublicAssetURI() string {
+	return public.AssetURI("web_src/css/themes/theme-" + url.PathEscape(info.InternalName) + ".css")
 }
 
 func (info *ThemeMetaInfo) GetDescription() string {

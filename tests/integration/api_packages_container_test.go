@@ -15,16 +15,16 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	package_service "code.gitea.io/gitea/services/packages"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	container_module "gitea.dev/modules/packages/container"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	package_service "gitea.dev/services/packages"
+	"gitea.dev/tests"
 
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
@@ -88,37 +88,34 @@ func TestPackageContainer(t *testing.T) {
 			Token string `json:"token"`
 		}
 
-		defaultAuthenticateValues := []string{
+		wwwAuthenticateForPublic := []string{
+			`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`,
+		}
+		wwwAuthenticateForRequiredSignIn := []string{
 			`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`,
 			`Basic realm="Gitea Container Registry"`,
 		}
-
 		t.Run("Anonymous", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", setting.AppURL+"v2")
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
-
-			assert.ElementsMatch(t, defaultAuthenticateValues, resp.Header().Values("WWW-Authenticate"))
+			assert.ElementsMatch(t, wwwAuthenticateForPublic, resp.Header().Values("WWW-Authenticate"))
 
 			req = NewRequest(t, "GET", setting.AppURL+"v2/token")
 			resp = MakeRequest(t, req, http.StatusOK)
-
-			tokenResponse := &TokenResponse{}
-			DecodeJSON(t, resp, &tokenResponse)
-
-			assert.NotEmpty(t, tokenResponse.Token)
-
+			tokenResponse := DecodeJSON(t, resp, &TokenResponse{})
+			require.NotEmpty(t, tokenResponse.Token)
 			anonymousToken = "Bearer " + tokenResponse.Token
 
-			req = NewRequest(t, "GET", setting.AppURL+"v2").
-				AddTokenAuth(anonymousToken)
+			req = NewRequest(t, "GET", setting.AppURL+"v2").AddTokenAuth(anonymousToken)
 			MakeRequest(t, req, http.StatusOK)
 
 			defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 
 			req = NewRequest(t, "GET", setting.AppURL+"v2")
-			MakeRequest(t, req, http.StatusUnauthorized)
+			resp = MakeRequest(t, req, http.StatusUnauthorized)
+			assert.ElementsMatch(t, wwwAuthenticateForRequiredSignIn, resp.Header().Values("WWW-Authenticate"))
 
 			req = NewRequest(t, "GET", setting.AppURL+"v2/token")
 			MakeRequest(t, req, http.StatusUnauthorized)
@@ -135,17 +132,13 @@ func TestPackageContainer(t *testing.T) {
 
 			req := NewRequest(t, "GET", setting.AppURL+"v2")
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
+			assert.ElementsMatch(t, wwwAuthenticateForPublic, resp.Header().Values("WWW-Authenticate"))
 
-			assert.ElementsMatch(t, defaultAuthenticateValues, resp.Header().Values("WWW-Authenticate"))
-
-			req = NewRequest(t, "GET", setting.AppURL+"v2/token").
-				AddBasicAuth(user.Name)
+			req = NewRequest(t, "GET", setting.AppURL+"v2/token").AddBasicAuth(user.Name)
 			resp = MakeRequest(t, req, http.StatusOK)
-
-			tokenResponse := &TokenResponse{}
-			DecodeJSON(t, resp, &tokenResponse)
-
+			tokenResponse := DecodeJSON(t, resp, &TokenResponse{})
 			assert.NotEmpty(t, tokenResponse.Token)
+
 			pkgMeta, err := package_service.ParseAuthorizationToken(tokenResponse.Token)
 			assert.NoError(t, err)
 			assert.Equal(t, user.ID, pkgMeta.UserID)
@@ -168,8 +161,7 @@ func TestPackageContainer(t *testing.T) {
 			req := NewRequest(t, "GET", setting.AppURL+"v2/token")
 			req.Request.SetBasicAuth(user.Name, readToken)
 			resp := MakeRequest(t, req, http.StatusOK)
-			tokenResponse := &TokenResponse{}
-			DecodeJSON(t, resp, &tokenResponse)
+			tokenResponse := DecodeJSON(t, resp, &TokenResponse{})
 
 			readToken = "Bearer " + tokenResponse.Token
 
@@ -189,8 +181,7 @@ func TestPackageContainer(t *testing.T) {
 					return
 				}
 
-				tokenResponse := &TokenResponse{}
-				DecodeJSON(t, resp, &tokenResponse)
+				tokenResponse := DecodeJSON(t, resp, &TokenResponse{})
 
 				assert.NotEmpty(t, tokenResponse.Token)
 
@@ -712,8 +703,7 @@ func TestPackageContainer(t *testing.T) {
 						Tags []string `json:"tags"`
 					}
 
-					tagList := &TagList{}
-					DecodeJSON(t, resp, &tagList)
+					tagList := DecodeJSON(t, resp, &TagList{})
 
 					assert.Equal(t, user.Name+"/"+image, tagList.Name)
 					assert.Equal(t, c.ExpectedTags, tagList.Tags)
@@ -724,8 +714,7 @@ func TestPackageContainer(t *testing.T) {
 					AddTokenAuth(token)
 				resp := MakeRequest(t, req, http.StatusOK)
 
-				var apiPackages []*api.Package
-				DecodeJSON(t, resp, &apiPackages)
+				apiPackages := DecodeJSON(t, resp, []*api.Package{})
 				assert.Len(t, apiPackages, 4) // "latest", "main", "multi", "sha256:..."
 			})
 
@@ -777,20 +766,16 @@ func TestPackageContainer(t *testing.T) {
 
 		var wg sync.WaitGroup
 		for i := range 10 {
-			wg.Add(1)
-
 			content := []byte{byte(i)}
 			digest := fmt.Sprintf("sha256:%x", sha256.Sum256(content))
 
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, digest), bytes.NewReader(content)).
 					AddTokenAuth(userToken)
 				resp := MakeRequest(t, req, http.StatusCreated)
 
 				assert.Equal(t, digest, resp.Header().Get("Docker-Content-Digest"))
-			}()
+			})
 		}
 		wg.Wait()
 	})
@@ -810,8 +795,7 @@ func TestPackageContainer(t *testing.T) {
 					Repositories []string `json:"repositories"`
 				}
 
-				repoList := &RepositoryList{}
-				DecodeJSON(t, resp, &repoList)
+				repoList := DecodeJSON(t, resp, &RepositoryList{})
 
 				assert.Len(t, repoList.Repositories, len(images))
 				names := make([]string, 0, len(images))

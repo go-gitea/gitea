@@ -1,15 +1,13 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build !gogit
-
 package languagestats
 
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,11 +16,11 @@ import (
 func TestRepository_GetLanguageStats(t *testing.T) {
 	setting.AppDataPath = t.TempDir()
 	repoPath := "../tests/repos/language_stats_repo"
-	gitRepo, err := git.OpenRepository(t.Context(), repoPath)
+	gitRepo, err := git.OpenRepositoryLocal(repoPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
-	stats, err := GetLanguageStats(gitRepo, "8fee858da5796dfb37704761701bb8e800ad9ef3")
+	stats, err := GetLanguageStats(t.Context(), gitRepo, "8fee858da5796dfb37704761701bb8e800ad9ef3")
 	require.NoError(t, err)
 
 	assert.Equal(t, map[string]int64{

@@ -10,10 +10,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/routers"
+	"gitea.dev/tests"
 
 	"gitea.com/go-chi/session"
 	"github.com/stretchr/testify/assert"
@@ -52,16 +53,11 @@ func sessionFileExist(t *testing.T, tmpDir, sessionID string) bool {
 
 func TestSessionFileCreation(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	oldSessionConfig := setting.SessionConfig.ProviderConfig
-	defer func() {
-		setting.SessionConfig.ProviderConfig = oldSessionConfig
-		testWebRoutes = routers.NormalRoutes()
-	}()
+	defer test.MockVariableValue(&setting.SessionConfig.ProviderConfig)()
+	defer test.MockVariableValue(&testWebRoutes)()
 
 	var config session.Options
-
-	err := json.Unmarshal([]byte(oldSessionConfig), &config)
+	err := json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &config)
 	assert.NoError(t, err)
 
 	config.Provider = "file"

@@ -7,18 +7,18 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	git_model "code.gitea.io/gitea/models/git"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/auth"
-	"code.gitea.io/gitea/services/migrations"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	packages_cleanup_service "code.gitea.io/gitea/services/packages/cleanup"
-	repo_service "code.gitea.io/gitea/services/repository"
-	archiver_service "code.gitea.io/gitea/services/repository/archiver"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/repostats"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/models/webhook"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/auth"
+	"gitea.dev/services/migrations"
+	mirror_service "gitea.dev/services/mirror"
+	packages_cleanup_service "gitea.dev/services/packages/cleanup"
+	repo_service "gitea.dev/services/repository"
+	archiver_service "gitea.dev/services/repository/archiver"
 )
 
 func registerUpdateMirrorTask() {
@@ -69,7 +69,7 @@ func registerCheckRepoStats() {
 		RunAtStart: true,
 		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return models.CheckRepoStats(ctx)
+		return repostats.CheckRepoStats(ctx)
 	})
 }
 

@@ -22,6 +22,10 @@
   overflow-wrap: anywhere;
 }
 
+.toast-body pre {
+  white-space: pre-wrap; /* online editor, when git hook fails, the rendered message uses "pre" */
+}
+
 .toast-close {
   border-radius: var(--border-radius);
   width: 30px;

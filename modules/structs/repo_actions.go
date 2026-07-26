@@ -105,27 +105,58 @@ type ActionArtifact struct {
 
 // ActionWorkflowRun represents a WorkflowRun
 type ActionWorkflowRun struct {
-	ID             int64       `json:"id"`
-	URL            string      `json:"url"`
-	HTMLURL        string      `json:"html_url"`
-	DisplayTitle   string      `json:"display_title"`
-	Path           string      `json:"path"`
-	Event          string      `json:"event"`
-	RunAttempt     int64       `json:"run_attempt"`
-	RunNumber      int64       `json:"run_number"`
-	RepositoryID   int64       `json:"repository_id,omitempty"`
-	HeadSha        string      `json:"head_sha"`
-	HeadBranch     string      `json:"head_branch,omitempty"`
-	Status         string      `json:"status"`
-	Actor          *User       `json:"actor,omitempty"`
-	TriggerActor   *User       `json:"trigger_actor,omitempty"`
-	Repository     *Repository `json:"repository,omitempty"`
-	HeadRepository *Repository `json:"head_repository,omitempty"`
-	Conclusion     string      `json:"conclusion,omitempty"`
+	ID  int64  `json:"id"`
+	URL string `json:"url"`
+	// PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. ".../actions/runs/{run_id}/attempts/{attempt-1}".
+	// It is set only when the current attempt is > 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.
+	PreviousAttemptURL *string `json:"previous_attempt_url"`
+	HTMLURL            string  `json:"html_url"`
+	DisplayTitle       string  `json:"display_title"`
+	Path               string  `json:"path"`
+	Event              string  `json:"event"`
+	// RunAttempt is 1-based for runs created after ActionRunAttempt was introduced.
+	// A value of 0 is a legacy-only sentinel for runs created before attempts existed
+	// and indicates no corresponding /attempts/{n} resource is available.
+	RunAttempt     int64                 `json:"run_attempt"`
+	RunNumber      int64                 `json:"run_number"`
+	RepositoryID   int64                 `json:"repository_id,omitempty"`
+	HeadSha        string                `json:"head_sha"`
+	HeadBranch     string                `json:"head_branch,omitempty"`
+	Status         string                `json:"status"`
+	Actor          *User                 `json:"actor,omitempty"`
+	TriggerActor   *User                 `json:"trigger_actor,omitempty"`
+	Repository     *Repository           `json:"repository,omitempty"`
+	HeadRepository *Repository           `json:"head_repository,omitempty"`
+	Conclusion     string                `json:"conclusion,omitempty"`
+	PullRequests   []*PullRequestMinimal `json:"pull_requests"`
 	// swagger:strfmt date-time
 	StartedAt time.Time `json:"started_at"`
 	// swagger:strfmt date-time
 	CompletedAt time.Time `json:"completed_at"`
+}
+
+// PullRequestMinimal is the minimal information about a pull request, as
+// returned in the `pull_requests` field of a workflow run.
+type PullRequestMinimal struct {
+	ID     int64                  `json:"id"`
+	Number int64                  `json:"number"`
+	URL    string                 `json:"url"`
+	Head   PullRequestMinimalHead `json:"head"`
+	Base   PullRequestMinimalHead `json:"base"`
+}
+
+// PullRequestMinimalHead is a minimal description of one side of a pull request.
+type PullRequestMinimalHead struct {
+	Ref  string                     `json:"ref"`
+	SHA  string                     `json:"sha"`
+	Repo PullRequestMinimalHeadRepo `json:"repo"`
+}
+
+// PullRequestMinimalHeadRepo is a minimal description of the repository on one side of a pull request.
+type PullRequestMinimalHeadRepo struct {
+	ID   int64  `json:"id"`
+	URL  string `json:"url"`
+	Name string `json:"name"`
 }
 
 // ActionWorkflowRunsResponse returns ActionWorkflowRuns

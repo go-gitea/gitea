@@ -10,7 +10,7 @@ async function receiveUpdateCount(event: MessageEvent<{type: string, data: strin
     const data = JSON.parse(event.data.data);
     for (const count of document.querySelectorAll('.notification_count')) {
       count.classList.toggle('tw-hidden', data.Count === 0);
-      count.textContent = `${data.Count}`;
+      count.textContent = String(data.Count);
     }
     await updateNotificationTable();
   } catch (error) {
@@ -76,28 +76,26 @@ async function updateNotificationCountWithCallback(callback: (timeout: number, n
 }
 
 async function updateNotificationTable() {
-  let notificationDiv = document.querySelector('#notification_div');
-  if (notificationDiv) {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      params.set('div-only', 'true');
-      params.set('sequence-number', String(++notificationSequenceNumber));
-      const response = await GET(`${appSubUrl}/notifications?${params.toString()}`);
+  const notificationDiv = document.querySelector('#notification_div');
+  if (!notificationDiv) return;
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch notification table');
-      }
+  try {
+    const params = new URLSearchParams(window.location.search);
+    params.set('div-only', 'true');
+    params.set('sequence-number', String(++notificationSequenceNumber));
+    const response = await GET(`${appSubUrl}/notifications?${params.toString()}`);
 
-      const data = await response.text();
-      const el = createElementFromHTML(data);
-      if (parseInt(el.getAttribute('data-sequence-number')!) === notificationSequenceNumber) {
-        notificationDiv.outerHTML = data;
-        notificationDiv = document.querySelector('#notification_div')!;
-        window.htmx.process(notificationDiv); // when using htmx, we must always remember to process the new content changed by us
-      }
-    } catch (error) {
-      console.error(error);
+    if (!response.ok) {
+      throw new Error('Failed to fetch notification table');
     }
+
+    const data = await response.text();
+    const el = createElementFromHTML(data);
+    if (parseInt(el.getAttribute('data-sequence-number')!) === notificationSequenceNumber) {
+      notificationDiv.outerHTML = data;
+    }
+  } catch (error) {
+    console.error(error);
   }
 }
 
@@ -114,7 +112,7 @@ async function updateNotificationCount(): Promise<number> {
     toggleElem('.notification_count', data.new !== 0);
 
     for (const el of document.querySelectorAll('.notification_count')) {
-      el.textContent = `${data.new}`;
+      el.textContent = String(data.new);
     }
 
     return data.new as number;

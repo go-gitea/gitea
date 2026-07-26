@@ -6,11 +6,13 @@ package user
 import (
 	"errors"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
-	user_service "code.gitea.io/gitea/services/user"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
+	user_service "gitea.dev/services/user"
 )
 
 func BlockedUsers(ctx *context.Context, blocker *user_model.User) {
@@ -28,49 +30,51 @@ func BlockedUsers(ctx *context.Context, blocker *user_model.User) {
 	ctx.Data["UserBlocks"] = blocks
 }
 
-func BlockedUsersPost(ctx *context.Context, blocker *user_model.User) {
-	form := web.GetForm(ctx).(*forms.BlockUserForm)
-	if ctx.HasError() {
-		ctx.ServerError("FormValidation", nil)
-		return
-	}
-
+func blockedUsersPost(ctx *context.Context, form *forms.BlockUserForm, blocker *user_model.User) error {
 	blockee, err := user_model.GetUserByName(ctx, form.Blockee)
 	if err != nil {
-		ctx.ServerError("GetUserByName", nil)
-		return
+		return err
 	}
 
 	switch form.Action {
 	case "block":
-		if err := user_service.BlockUser(ctx, ctx.Doer, blocker, blockee, form.Note); err != nil {
-			if errors.Is(err, user_model.ErrCanNotBlock) || errors.Is(err, user_model.ErrBlockOrganization) {
-				ctx.Flash.Error(ctx.Tr("user.block.block.failure", err.Error()))
-			} else {
-				ctx.ServerError("BlockUser", err)
-				return
-			}
+		err = user_service.BlockUser(ctx, ctx.Doer, blocker, blockee, form.Note)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			return util.ErrorWrapTranslatable(err, "user.block.block.failure", err.Error())
 		}
+		return err
 	case "unblock":
-		if err := user_service.UnblockUser(ctx, ctx.Doer, blocker, blockee); err != nil {
-			if errors.Is(err, user_model.ErrCanNotUnblock) || errors.Is(err, user_model.ErrBlockOrganization) {
-				ctx.Flash.Error(ctx.Tr("user.block.unblock.failure", err.Error()))
-			} else {
-				ctx.ServerError("UnblockUser", err)
-				return
-			}
+		err = user_service.UnblockUser(ctx, ctx.Doer, blocker, blockee)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			return util.ErrorWrapTranslatable(err, "user.block.unblock.failure", err.Error())
 		}
+		return err
 	case "note":
 		block, err := user_model.GetBlocking(ctx, blocker.ID, blockee.ID)
 		if err != nil {
-			ctx.ServerError("GetBlocking", err)
-			return
+			return err
 		}
-		if block != nil {
-			if err := user_model.UpdateBlockingNote(ctx, block.ID, form.Note); err != nil {
-				ctx.ServerError("UpdateBlockingNote", err)
-				return
-			}
-		}
+		return user_model.UpdateBlockingNote(ctx, block.ID, form.Note)
+	}
+	setting.PanicInDevOrTesting("Unknown action: %q", form.Action)
+	return errors.New("unknown action")
+}
+
+func BlockedUsersPost(ctx *context.Context, blocker *user_model.User, redirect string) {
+	if ctx.HasError() {
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.BlockUserForm)
+	err := blockedUsersPost(ctx, form, blocker)
+	if err == nil {
+		ctx.JSONRedirect(redirect)
+	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+		ctx.JSONError(errTr.Translate(ctx.Locale))
+	} else if errors.Is(err, util.ErrNotExist) {
+		ctx.JSONError(ctx.Locale.Tr("error.not_found"))
+	} else {
+		ctx.ServerError("BlockedUsersPost", err)
 	}
 }

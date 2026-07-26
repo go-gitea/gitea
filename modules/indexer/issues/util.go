@@ -8,12 +8,12 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	issue_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/indexer/issues/internal"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
+	"gitea.dev/models/db"
+	issue_model "gitea.dev/models/issues"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/indexer/issues/internal"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/queue"
 )
 
 // getIssueIndexerData returns the indexer data of an issue and a bool value indicating whether the issue exists.
@@ -87,14 +87,14 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		return nil, false, err
 	}
 
-	var projectID int64
-	if issue.Project != nil {
-		projectID = issue.Project.ID
+	assigneeIDs := make([]int64, 0, len(issue.Assignees))
+	for _, a := range issue.Assignees {
+		assigneeIDs = append(assigneeIDs, a.ID)
 	}
 
-	projectColumnID, err := issue.ProjectColumnID(ctx)
-	if err != nil {
-		return nil, false, err
+	projectIDs := make([]int64, 0, len(issue.Projects))
+	for _, project := range issue.Projects {
+		projectIDs = append(projectIDs, project.ID)
 	}
 
 	if err := issue.Repo.LoadOwner(ctx); err != nil {
@@ -114,10 +114,11 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		LabelIDs:           labels,
 		NoLabel:            len(labels) == 0,
 		MilestoneID:        issue.MilestoneID,
-		ProjectID:          projectID,
-		ProjectColumnID:    projectColumnID,
+		ProjectIDs:         projectIDs,
+		NoProject:          len(projectIDs) == 0,
 		PosterID:           issue.PosterID,
-		AssigneeID:         issue.AssigneeID,
+		AssigneeIDs:        assigneeIDs,
+		NoAssignee:         len(assigneeIDs) == 0,
 		MentionIDs:         mentionIDs,
 		ReviewedIDs:        reviewedIDs,
 		ReviewRequestedIDs: reviewRequestedIDs,

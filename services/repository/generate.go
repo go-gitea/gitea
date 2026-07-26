@@ -18,15 +18,14 @@ import (
 	"sync"
 	"time"
 
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/huandu/xstrings"
 )
@@ -101,37 +100,51 @@ func generateExpansion(ctx context.Context, src string, templateRepo, generateRe
 	})
 }
 
-// giteaTemplateFileMatcher holds information about a .gitea/template file
 type giteaTemplateFileMatcher struct {
-	relPath string
-	globs   []glob.Glob
+	relPath      string
+	globsExpand  []glob.Glob
+	globsExclude []glob.Glob
 }
 
 func newGiteaTemplateFileMatcher(relPath string, content []byte) *giteaTemplateFileMatcher {
 	gt := &giteaTemplateFileMatcher{relPath: relPath}
-	gt.globs = make([]glob.Glob, 0)
 	scanner := bufio.NewScanner(bytes.NewReader(content))
+	addGlob := func(globs *[]glob.Glob, pattern string) {
+		g, err := glob.Compile(pattern, '/')
+		if err != nil {
+			log.Debug("Invalid gitea template glob expression %q (skipped): %v", pattern, err)
+			return
+		}
+		*globs = append(*globs, g)
+	}
+	curGlobs := &gt.globsExpand
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		g, err := glob.Compile(line, '/')
-		if err != nil {
-			log.Debug("Invalid glob expression '%s' (skipped): %v", line, err)
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			switch line {
+			case "[expand]":
+				curGlobs = &gt.globsExpand
+			case "[exclude]":
+				curGlobs = &gt.globsExclude
+			default:
+				log.Debug("Invalid gitea template glob section %q", line)
+			}
 			continue
 		}
-		gt.globs = append(gt.globs, g)
+		addGlob(curGlobs, line)
 	}
 	return gt
 }
 
-func (gt *giteaTemplateFileMatcher) HasRules() bool {
-	return len(gt.globs) != 0
+func (gt *giteaTemplateFileMatcher) hasAnyRules() bool {
+	return len(gt.globsExpand) != 0 || len(gt.globsExclude) != 0
 }
 
-func (gt *giteaTemplateFileMatcher) Match(s string) bool {
-	for _, g := range gt.globs {
+func (gt *giteaTemplateFileMatcher) matchRules(globs []glob.Glob, s string) bool {
+	for _, g := range globs {
 		if g.Match(s) {
 			return true
 		}
@@ -165,14 +178,15 @@ func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, t
 	return util.WriteRegularPathFile(tmpDir, substSubPath, []byte(generatedContent), 0o755, 0o644)
 }
 
-// processGiteaTemplateFile processes and removes the .gitea/template file, does variable expansion for template files
-// and save the processed files to the filesystem. It returns a list of skipped files that are not regular paths.
+// processGiteaTemplateFile processes and removes the .gitea/template file,
+// does file exclusion and variable expansion for template files, and save the processed files to the filesystem.
+// It returns a list of skipped files that are not regular paths.
 func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, fileMatcher *giteaTemplateFileMatcher) (skippedFiles []string, _ error) {
 	// Why not use "os.Root" here: symlink is unsafe even in the same root but "os.Root" can't help, it's more difficult to use "os.Root" to do the WalkDir.
 	if err := os.Remove(util.FilePathJoinAbs(tmpDir, fileMatcher.relPath)); err != nil {
 		return nil, fmt.Errorf("unable to remove .gitea/template: %w", err)
 	}
-	if !fileMatcher.HasRules() {
+	if !fileMatcher.hasAnyRules() {
 		return skippedFiles, nil // Avoid walking tree if there are no globs
 	}
 
@@ -180,17 +194,35 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 		if walkErr != nil {
 			return walkErr
 		}
-		if d.IsDir() {
-			return nil
-		}
-		tmpDirSubPath, err := filepath.Rel(tmpDir, fullPath)
+		relPath, err := filepath.Rel(tmpDir, fullPath)
 		if err != nil {
 			return err
 		}
-		if fileMatcher.Match(filepath.ToSlash(tmpDirSubPath)) {
-			err := substGiteaTemplateFile(ctx, tmpDir, tmpDirSubPath, templateRepo, generateRepo)
+		if relPath == "." {
+			// WalkDir always visits the root "." first, don't process it (don't "exclude" to remove, or "expand" to subst)
+			return nil
+		}
+
+		treePath := filepath.ToSlash(relPath)
+
+		// try to "exclude" (remove) first
+		if fileMatcher.matchRules(fileMatcher.globsExclude, treePath) {
+			isDir := d.IsDir()
+			// if the target is a symlink, only the symlink is unlinked, so it is safe
+			if err := os.RemoveAll(fullPath); err != nil {
+				return err
+			}
+			return util.Iif(isDir, filepath.SkipDir, nil)
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+		// try to expand variables for regular files
+		if fileMatcher.matchRules(fileMatcher.globsExpand, treePath) {
+			err := substGiteaTemplateFile(ctx, tmpDir, relPath, templateRepo, generateRepo)
 			if errors.Is(err, util.ErrNotRegularPathFile) {
-				skippedFiles = append(skippedFiles, tmpDirSubPath)
+				skippedFiles = append(skippedFiles, relPath)
 			} else if err != nil {
 				return err
 			}
@@ -200,15 +232,18 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 	if err != nil {
 		return nil, err
 	}
-	if err = util.RemoveAll(util.FilePathJoinAbs(tmpDir, ".git")); err != nil {
+	if err = util.RemoveAllWithRetry(util.FilePathJoinAbs(tmpDir, ".git")); err != nil {
 		return nil, err
 	}
 	return skippedFiles, nil
 }
 
 func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository, tmpDir string) error {
+	// set default branch based on whether it's specified in the newly generated repo or not
+	repo.DefaultBranch = util.IfZero(repo.DefaultBranch, util.IfZero(templateRepo.DefaultBranch, setting.Repository.DefaultBranch))
+
 	// Clone to temporary path and do the init commit.
-	if err := gitrepo.CloneRepoToLocal(ctx, templateRepo, tmpDir, git.CloneRepoOptions{
+	if err := git.CloneRepoToLocal(ctx, templateRepo, tmpDir, git.CloneRepoOptions{
 		Depth:  1,
 		Branch: templateRepo.DefaultBranch,
 	}); err != nil {
@@ -216,12 +251,12 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	}
 
 	// Get active submodules from the template
-	submodules, err := git.GetTemplateSubmoduleCommits(ctx, tmpDir)
+	submodules, err := git.GetTemplateSubmoduleCommits(ctx, templateRepo)
 	if err != nil {
 		return fmt.Errorf("GetTemplateSubmoduleCommits: %w", err)
 	}
 
-	if err = util.RemoveAll(filepath.Join(tmpDir, ".git")); err != nil {
+	if err = util.RemoveAllWithRetry(filepath.Join(tmpDir, ".git")); err != nil {
 		return fmt.Errorf("remove git dir: %w", err)
 	}
 
@@ -238,7 +273,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("readGiteaTemplateFile: %w", err)
 	}
 
-	if err = git.InitRepository(ctx, tmpDir, false, templateRepo.ObjectFormatName); err != nil {
+	if err = git.InitRepositoryLocal(ctx, tmpDir, false, templateRepo.ObjectFormatName); err != nil {
 		return err
 	}
 
@@ -246,13 +281,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("failed to add submodules: %v", err)
 	}
 
-	// set default branch based on whether it's specified in the newly generated repo or not
-	defaultBranch := repo.DefaultBranch
-	if strings.TrimSpace(defaultBranch) == "" {
-		defaultBranch = templateRepo.DefaultBranch
-	}
-
-	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, defaultBranch)
+	return initRepoCommit(ctx, tmpDir, repo, repo.Owner)
 }
 
 // GenerateGitContent generates git content from a template repository
@@ -266,18 +295,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 	if err = generateRepoCommit(ctx, generateRepo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %w", err)
 	}
-
-	// re-fetch repo
-	if generateRepo, err = repo_model.GetRepositoryByID(ctx, generateRepo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %w", err)
-	}
-
-	// if there was no default branch supplied when generating the repo, use the default one from the template
-	if strings.TrimSpace(generateRepo.DefaultBranch) == "" {
-		generateRepo.DefaultBranch = templateRepo.DefaultBranch
-	}
-
-	if err = gitrepo.SetDefaultBranch(ctx, generateRepo, generateRepo.DefaultBranch); err != nil {
+	if err = git.SetDefaultBranch(ctx, generateRepo, generateRepo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %w", err)
 	}
 	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, generateRepo, "default_branch"); err != nil {
@@ -290,6 +308,10 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 
 	if err := git_model.CopyLFS(ctx, generateRepo, templateRepo); err != nil {
 		return fmt.Errorf("failed to copy LFS: %w", err)
+	}
+
+	if _, err := repo_module.SyncRepoBranches(ctx, generateRepo.ID, 0); err != nil {
+		return fmt.Errorf("SyncRepoBranches: %w", err)
 	}
 	return nil
 }

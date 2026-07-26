@@ -1,5 +1,6 @@
 import {getCurrentLocale} from '../utils.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {errorMessage} from '../modules/errors.ts';
+import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 
 const {pageData} = window.config;
@@ -46,7 +47,7 @@ export async function initCitationFileCopyContent() {
     try {
       await initInputCitationValue(citationCopyApa, citationCopyBibtex);
     } catch (e) {
-      console.error(`initCitationFileCopyContent error: ${e}`, e);
+      console.error(`initCitationFileCopyContent error: ${errorMessage(e)}`, e);
       return;
     }
     updateUi();
@@ -65,6 +66,6 @@ export async function initCitationFileCopyContent() {
       inputContent.select();
     });
 
-    fomanticQuery('#cite-repo-modal').modal('show');
+    showFomanticModal(document.querySelector('#cite-repo-modal'));
   });
 }

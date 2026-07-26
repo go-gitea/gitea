@@ -1,0 +1,21 @@
+Cache-Control: max-age=0, private, must-revalidate
+Cf-Cache-Status: MISS
+Content-Security-Policy: default-src 'none'
+Content-Type: application/json
+Etag: W/"03275c2a6cc732959835fa9ad779f0ae"
+Gitlab-Lb: haproxy-main-14-lb-gprd
+Gitlab-Sv: api-gke-us-east1-c
+Ratelimit-Limit: 2000
+Ratelimit-Name: throttle_authenticated_api
+Ratelimit-Observed: 22
+Ratelimit-Remaining: 1978
+Ratelimit-Reset: 1776937500
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000
+Vary: Origin, Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+X-Gitlab-Meta: {"correlation_id":"9f0bee9a6be9c27f-VIE","version":"1"}
+X-Runtime: 0.110926
+
+{"id":43486906,"iid":1,"project_id":15578026,"title":"Update README.md","description":"add warning to readme","state":"merged","created_at":"2019-11-28T08:54:41.034Z","updated_at":"2019-11-28T16:02:08.377Z","merge_status":"can_be_merged","approved":true,"approvals_required":0,"approvals_left":0,"require_password_to_approve":false,"approved_by":[{"user":{"id":527793,"username":"axifive","public_email":"","name":"Alexey Terentyev","state":"active","locked":false,"avatar_url":"https://secure.gravatar.com/avatar/b5eee878c9129969b55d221a823fd15e55aad8dc15d521f4170e3c93728e02b6?s=80\u0026d=identicon","web_url":"https://gitlab.com/axifive"},"approved_at":"2019-11-28T12:58:33.257Z"},{"user":{"id":4102996,"username":"zeripath","public_email":"","name":"zeripath","state":"active","locked":false,"avatar_url":"https://secure.gravatar.com/avatar/3bad2cdad37aa0bbb3ad276ce8f77e32a1a9567a7083f0866d8df8ed0e92e5b5?s=80\u0026d=identicon","web_url":"https://gitlab.com/zeripath"},"approved_at":"2019-11-28T13:10:47.321Z"}],"suggested_approvers":[],"approvers":[],"approver_groups":[],"user_has_approved":false,"user_can_approve":false,"approval_rules_left":[],"has_approval_rules":true,"merge_request_approvers_available":false,"multiple_approval_rules_available":false,"invalid_approvers_rules":[]}

@@ -20,12 +20,47 @@
 		<p>This is an info message using --color-info-* variables.</p>
 	</div>
 
+	<h2>Markdown Attention Blocks</h2>
+	<div class="markup render-content">
+		<blockquote class="attention-header attention-note"><p>{{svg "octicon-info" 16 "attention-icon attention-note"}}<strong class="attention-note">Note</strong></p>
+			<p>Useful information that users should know, even when skimming content.</p>
+		</blockquote>
+		<blockquote class="attention-header attention-tip"><p>{{svg "octicon-light-bulb" 16 "attention-icon attention-tip"}}<strong class="attention-tip">Tip</strong></p>
+			<p>Helpful advice for doing things better or more easily.</p>
+		</blockquote>
+		<blockquote class="attention-header attention-important"><p>{{svg "octicon-report" 16 "attention-icon attention-important"}}<strong class="attention-important">Important</strong></p>
+			<p>Key information users need to know to achieve their goal.</p>
+		</blockquote>
+		<blockquote class="attention-header attention-warning"><p>{{svg "octicon-alert" 16 "attention-icon attention-warning"}}<strong class="attention-warning">Warning</strong></p>
+			<p>Urgent info that needs immediate user attention to avoid problems.</p>
+		</blockquote>
+		<blockquote class="attention-header attention-caution"><p>{{svg "octicon-stop" 16 "attention-icon attention-caution"}}<strong class="attention-caution">Caution</strong></p>
+			<p>Advises about risks or negative outcomes of certain actions.</p>
+		</blockquote>
+	</div>
+
 	<h2>Form Fields</h2>
 	<div class="ui form">
 		<div class="field error">
 			<label>Error Field</label>
 			<input type="text" value="Invalid input" readonly>
 		</div>
+	</div>
+
+	<h2>Error Input</h2>
+	<div class="ui input error">
+		<input type="text" value="Invalid input" readonly>
+	</div>
+
+	<h2>Attached Section Boxes</h2>
+	<h3 class="ui top attached error header">Error Header</h3>
+	<div class="ui attached error segment">Error section body content.</div>
+	<h3 class="ui top attached warning header tw-mt-3">Warning Header</h3>
+	<div class="ui attached warning segment">Warning section body content.</div>
+
+<h2>Banner Preview (info-tinted)</h2>
+	<div class="web-banner-content-editor">
+		<div class="render-content render-preview">Banner preview content</div>
 	</div>
 
 	<h2>Labels</h2>

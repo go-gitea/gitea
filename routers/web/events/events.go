@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/modules/eventsource"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/routers/web/auth"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/modules/eventsource"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/routers/web/auth"
+	"gitea.dev/services/context"
 )
 
 // Events listens for events
@@ -38,7 +38,6 @@ func Events(ctx *context.Context) {
 
 	// Listen to connection close and un-register messageChan
 	notify := ctx.Done()
-	ctx.Resp.Flush()
 
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 
@@ -57,11 +56,14 @@ func Events(ctx *context.Context) {
 		}
 	}
 
+	// send the initial response bytes only after registering messageChan, so a client whose
+	// connection is open can rely on receiving all subsequent events
 	if _, err := ctx.Resp.Write([]byte("\n")); err != nil {
 		log.Error("Unable to write to EventStream: %v", err)
 		unregister()
 		return
 	}
+	ctx.Resp.Flush()
 
 	timer := time.NewTicker(30 * time.Second)
 

@@ -6,7 +6,7 @@ package regexplru
 import (
 	"regexp"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 )

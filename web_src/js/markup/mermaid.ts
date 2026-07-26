@@ -1,4 +1,4 @@
-import {isDarkTheme, parseDom} from '../utils.ts';
+import {isDarkTheme} from '../utils.ts';
 import {displayError} from './common.ts';
 import {createElementFromAttrs, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
@@ -81,7 +81,7 @@ async function loadMermaid(needElkRender: boolean) {
   };
 }
 
-function initMermaidViewController(viewController: HTMLElement, dragElement: SVGSVGElement) {
+function initMermaidViewController(viewController: Element, dragElement: SVGSVGElement) {
   let inited = false, isDragging = false;
   let currentScale = 1, initLeft = 0, lastLeft = 0, lastTop = 0, lastPageX = 0, lastPageY = 0;
 
@@ -201,8 +201,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     try {
       // render the mermaid diagram to svg text, and parse it to a DOM node
       const {svg: svgText, bindFunctions} = await mermaid.render('mermaid', source, parentContainer);
-      const svgDoc = parseDom(svgText, 'image/svg+xml');
-      const svgNode = (svgDoc.documentElement as unknown) as SVGSVGElement;
+      const svgNode = createElementFromHTML<SVGSVGElement>(svgText);
 
       const viewControllerHtml = html`
         <div class="view-controller auto-hide-control flex-text-block">

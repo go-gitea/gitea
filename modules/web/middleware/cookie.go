@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 const (
@@ -35,6 +35,11 @@ func DeleteRedirectToCookie(resp http.ResponseWriter) {
 }
 
 func RedirectLinkUserLogin(req *http.Request) string {
+	if req.Header.Get("X-Gitea-Fetch-Action") != "" {
+		// when building the redirect link for a fetch request, the current link might be a partial page,
+		// so we only redirect to the login page without redirect_to parameter
+		return setting.AppSubURL + "/user/login"
+	}
 	return setting.AppSubURL + "/user/login?redirect_to=" + url.QueryEscape(setting.AppSubURL+req.URL.RequestURI())
 }
 

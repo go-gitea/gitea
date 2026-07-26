@@ -6,18 +6,14 @@ package doctor
 import (
 	"context"
 	"fmt"
-	"os/exec"
-	"strings"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/repostats"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/structs"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"xorm.io/builder"
@@ -34,26 +30,16 @@ func iterateRepositories(ctx context.Context, each func(*repo_model.Repository) 
 	return err
 }
 
-func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error {
-	path, err := exec.LookPath(setting.ScriptType)
-	if err != nil {
-		logger.Critical("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
-		return fmt.Errorf("ScriptType \"%q\" is not on the current PATH. Error: %w", setting.ScriptType, err)
-	}
-	logger.Info("ScriptType %s is on the current PATH at %s", setting.ScriptType, path)
-	return nil
-}
-
 func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
-		results, err := gitrepo.CheckDelegateHooks(ctx, repo)
+		results, err := git.CheckDelegateHooks(ctx, repo)
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
 			return fmt.Errorf("Unable to check delegate hooks for repo %-v. ERROR: %w", repo, err)
 		}
 		if len(results) > 0 && autofix {
 			logger.Warn("Regenerated hooks for %s", repo.FullName())
-			if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
+			if err := git.CreateDelegateHooks(ctx, repo); err != nil {
 				logger.Critical("Unable to recreate delegate hooks for %-v. ERROR: %v", repo, err)
 				return fmt.Errorf("Unable to recreate delegate hooks for %-v. ERROR: %w", repo, err)
 			}
@@ -71,7 +57,7 @@ func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 
 func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) error {
 	if autofix {
-		if err := models.DoctorUserStarNum(ctx); err != nil {
+		if err := repostats.DoctorUserStarNum(ctx); err != nil {
 			logger.Critical("Unable update User Stars numbers")
 			return err
 		}
@@ -79,42 +65,6 @@ func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) erro
 	} else {
 		logger.Info("No check available for User Stars numbers (skipped)")
 	}
-	return nil
-}
-
-func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool) error {
-	numRepos := 0
-	numNeedUpdate := 0
-
-	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
-		numRepos++
-
-		if autofix {
-			return gitrepo.GitConfigSet(ctx, repo, "receive.advertisePushOptions", "true")
-		}
-
-		value, err := gitrepo.GitConfigGet(ctx, repo, "receive.advertisePushOptions")
-		if err != nil {
-			return err
-		}
-
-		result, valid := git.ParseBool(strings.TrimSpace(value))
-		if !result || !valid {
-			numNeedUpdate++
-			logger.Info("%s: does not have receive.advertisePushOptions set correctly: %q", repo.FullName(), value)
-		}
-		return nil
-	}); err != nil {
-		logger.Critical("Unable to EnablePushOptions: %v", err)
-		return err
-	}
-
-	if autofix {
-		logger.Info("Enabled push options for %d repositories.", numRepos)
-	} else {
-		logger.Info("Checked %d repositories, %d need updates.", numRepos, numNeedUpdate)
-	}
-
 	return nil
 }
 
@@ -140,7 +90,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := `git-daemon-export-ok`
-		isExist, err := gitrepo.IsRepoFileExist(ctx, repo, daemonExportFile)
+		isExist, err := git.IsRepoFileExist(ctx, repo, daemonExportFile)
 		if err != nil {
 			log.Error("Unable to check if %s:%s exists. Error: %v", repo.FullName(), daemonExportFile, err)
 			return err
@@ -151,11 +101,11 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 			numNeedUpdate++
 			if autofix {
 				if !isPublic && isExist {
-					if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
+					if err = git.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
 						log.Error("Failed to remove %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					}
 				} else if isPublic && !isExist {
-					if f, err := gitrepo.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
+					if f, err := git.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
 						log.Error("Failed to create %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					} else {
 						f.Close()
@@ -188,7 +138,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 		commitGraphExists := func() (bool, error) {
 			// Check commit-graph exists
 			commitGraphFile := `objects/info/commit-graph`
-			isExist, err := gitrepo.IsRepoFileExist(ctx, repo, commitGraphFile)
+			isExist, err := git.IsRepoFileExist(ctx, repo, commitGraphFile)
 			if err != nil {
 				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
 				return false, err
@@ -196,7 +146,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 
 			if !isExist {
 				commitGraphsDir := `objects/info/commit-graphs`
-				isExist, err = gitrepo.IsRepoDirExist(ctx, repo, commitGraphsDir)
+				isExist, err = git.IsRepoDirExist(ctx, repo, commitGraphsDir)
 				if err != nil {
 					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)
 					return false, err
@@ -212,7 +162,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 		if !isExist {
 			numNeedUpdate++
 			if autofix {
-				if err := gitrepo.WriteCommitGraph(ctx, repo); err != nil {
+				if err := git.WriteCommitGraph(ctx, repo); err != nil {
 					logger.Error("Unable to write commit-graph in %s. Error: %v", repo.FullName(), err)
 					return err
 				}
@@ -245,13 +195,6 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 
 func init() {
 	Register(&Check{
-		Title:     "Check if SCRIPT_TYPE is available",
-		Name:      "script-type",
-		IsDefault: false,
-		Run:       checkScriptType,
-		Priority:  5,
-	})
-	Register(&Check{
 		Title:     "Check if hook files are up-to-date and executable",
 		Name:      "hooks",
 		IsDefault: false,
@@ -264,13 +207,6 @@ func init() {
 		IsDefault: false,
 		Run:       checkUserStarNum,
 		Priority:  6,
-	})
-	Register(&Check{
-		Title:     "Check that all git repositories have receive.advertisePushOptions set to true",
-		Name:      "enable-push-options",
-		IsDefault: false,
-		Run:       checkEnablePushOptions,
-		Priority:  7,
 	})
 	Register(&Check{
 		Title:     "Check git-daemon-export-ok files",

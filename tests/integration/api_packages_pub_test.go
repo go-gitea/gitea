@@ -15,12 +15,12 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	pub_module "code.gitea.io/gitea/modules/packages/pub"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	pub_module "gitea.dev/modules/packages/pub"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -74,8 +74,7 @@ description: ` + packageDescription
 			Fields map[string]string `json:"fields"`
 		}
 
-		var result UploadRequest
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &UploadRequest{})
 
 		assert.Empty(t, result.Fields)
 
@@ -136,8 +135,7 @@ description: ` + packageDescription
 			Pubspec    any       `json:"pubspec,omitempty"`
 		}
 
-		var result VersionMetadata
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &VersionMetadata{})
 
 		assert.Equal(t, packageVersion, result.Version)
 		assert.NotNil(t, result.Pubspec)
@@ -167,8 +165,7 @@ description: ` + packageDescription
 			Versions []*VersionMetadata `json:"versions"`
 		}
 
-		var result PackageVersions
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &PackageVersions{})
 
 		assert.Equal(t, packageName, result.Name)
 		assert.NotNil(t, result.Latest)

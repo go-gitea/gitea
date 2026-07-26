@@ -12,10 +12,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	gouuid "github.com/google/uuid"
 )
@@ -127,7 +127,7 @@ func DeleteUploads(ctx context.Context, uploads ...*Upload) (err error) {
 
 	for _, upload := range uploads {
 		localPath := upload.LocalPath()
-		if err := util.Remove(localPath); err != nil {
+		if err := util.RemoveWithRetry(localPath); err != nil {
 			// just continue, don't fail the whole operation if a file is missing (removed by others)
 			log.Error("unable to remove upload file %s: %v", localPath, err)
 		}

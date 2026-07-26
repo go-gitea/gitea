@@ -1,5 +1,5 @@
-import {clippie} from 'clippie';
 import {createTippy} from '../tippy.ts';
+import {copyToClipboard} from '../clipboard.ts';
 import {keySymbols} from '../../utils.ts';
 import {goToDefinitionAt} from './utils.ts';
 import type {Instance} from 'tippy.js';
@@ -95,13 +95,13 @@ function buildMenuItems(cm: CodemirrorModules, view: EditorView, togglePalette: 
     'separator',
     {label: 'Cut', keys: 'Mod+X', disabled: !hasSelection, run: async (v) => {
       const {from, to} = v.state.selection.main;
-      if (await clippie(v.state.doc.sliceString(from, to))) {
+      if (await copyToClipboard(v.state.doc.sliceString(from, to))) {
         v.dispatch({changes: {from, to}});
       }
     }},
     {label: 'Copy', keys: 'Mod+C', disabled: !hasSelection, run: async (v) => {
       const {from, to} = v.state.selection.main;
-      await clippie(v.state.doc.sliceString(from, to));
+      await copyToClipboard(v.state.doc.sliceString(from, to));
     }},
     {label: 'Paste', keys: 'Mod+V', run: async (view) => {
       try {

@@ -5,13 +5,13 @@
 package admin
 
 import (
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/routers/web/explore"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/routers/web/explore"
+	"gitea.dev/services/context"
 )
 
 const (
@@ -23,10 +23,7 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.organizations")
 	ctx.Data["PageIsAdminOrganizations"] = true
 
-	if ctx.FormString("sort") == "" {
-		ctx.SetFormString("sort", UserSearchDefaultAdminSort)
-	}
-
+	sortOrder := ctx.FormString("sort", UserSearchDefaultAdminSort)
 	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor:           ctx.Doer,
 		Types:           []user_model.UserType{user_model.UserTypeOrganization},
@@ -35,5 +32,6 @@ func Organizations(ctx *context.Context) {
 			PageSize: setting.UI.Admin.OrgPagingNum,
 		},
 		Visible: []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		OrderBy: db.SearchOrderBy(sortOrder),
 	}, tplOrgs)
 }

@@ -1,0 +1,22 @@
+name: node-setup
+description: Set up pnpm and node and restore caches
+
+inputs:
+  cache:
+    description: Cache pnpm downloads
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+    - if: ${{ inputs.cache == 'true' }}
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      with:
+        node-version: 26
+        cache: pnpm
+        cache-dependency-path: pnpm-lock.yaml
+    - if: ${{ inputs.cache != 'true' }}
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      with:
+        node-version: 26

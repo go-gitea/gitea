@@ -6,8 +6,8 @@ package issue
 import (
 	"context"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	user_model "code.gitea.io/gitea/models/user"
+	issues_model "gitea.dev/models/issues"
+	user_model "gitea.dev/models/user"
 )
 
 // CreateIssueReaction creates a reaction on an issue.

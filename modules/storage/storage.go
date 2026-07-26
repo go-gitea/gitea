@@ -12,33 +12,14 @@ import (
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
 )
 
 // ErrURLNotSupported represents url is not supported
 var ErrURLNotSupported = errors.New("url method not supported")
-
-// ErrInvalidConfiguration is called when there is invalid configuration for a storage
-type ErrInvalidConfiguration struct {
-	cfg any
-	err error
-}
-
-func (err ErrInvalidConfiguration) Error() string {
-	if err.err != nil {
-		return fmt.Sprintf("Invalid Configuration Argument: %v: Error: %v", err.cfg, err.err)
-	}
-	return fmt.Sprintf("Invalid Configuration Argument: %v", err.cfg)
-}
-
-// IsErrInvalidConfiguration checks if an error is an ErrInvalidConfiguration
-func IsErrInvalidConfiguration(err error) bool {
-	_, ok := err.(ErrInvalidConfiguration)
-	return ok
-}
 
 type Type = setting.StorageType
 

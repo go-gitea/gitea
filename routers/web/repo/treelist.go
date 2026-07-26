@@ -9,26 +9,26 @@ import (
 	"path"
 	"strings"
 
-	pull_model "code.gitea.io/gitea/models/pull"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/fileicon"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/gitdiff"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	pull_model "gitea.dev/models/pull"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/fileicon"
+	"gitea.dev/modules/git"
+	"gitea.dev/services/context"
+	"gitea.dev/services/gitdiff"
+	files_service "gitea.dev/services/repository/files"
 
 	"github.com/go-enry/go-enry/v2"
 )
 
 // TreeList get all files' entries of a repository
 func TreeList(ctx *context.Context) {
-	tree, err := ctx.Repo.Commit.SubTree("/")
+	tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, "/")
 	if err != nil {
 		ctx.ServerError("Repo.Commit.SubTree", err)
 		return
 	}
 
-	entries, err := tree.ListEntriesRecursiveFast()
+	entries, err := tree.ListEntriesRecursiveFast(ctx, ctx.Repo.GitRepo)
 	if err != nil {
 		ctx.ServerError("ListEntriesRecursiveFast", err)
 		return
@@ -144,7 +144,7 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 
 func TreeViewNodes(ctx *context.Context) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
-	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.RepoLink, renderedIconPool, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
+	results, err := files_service.GetTreeViewNodes(ctx, ctx.Repo.RepoLink, renderedIconPool, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, ctx.FormString("sub_path"))
 	if err != nil {
 		ctx.ServerError("GetTreeViewNodes", err)
 		return

@@ -7,15 +7,59 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	secret_model "code.gitea.io/gitea/models/secret"
-	notify_service "code.gitea.io/gitea/services/notify"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	secret_model "gitea.dev/models/secret"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+var (
+	taskPickSem     chan struct{}
+	taskPickSemOnce sync.Once
+)
+
+func taskPickLimiter() chan struct{} {
+	taskPickSemOnce.Do(func() {
+		taskPickSem = make(chan struct{}, setting.Actions.MaxConcurrentTaskPicks)
+	})
+	return taskPickSem
+}
+
+// TryPickTask attempts to assign a task to the runner, bounding the number of
+// concurrent assignment transactions to avoid a thundering herd when many
+// runners poll at once. When the concurrency limit is reached it returns
+// throttled=true without touching the DB, so the caller can let the runner
+// retry on its next poll instead of advancing its tasks version.
+func TryPickTask(ctx context.Context, runner *actions_model.ActionRunner) (task *runnerv1.Task, ok, throttled bool, err error) {
+	sem := taskPickLimiter()
+	select {
+	case sem <- struct{}{}:
+		defer func() { <-sem }()
+	default:
+		return nil, false, true, nil
+	}
+	task, ok, err = PickTask(ctx, runner)
+	return task, ok, false, err
+}
+
+// releaseTaskForRunnerCleanup releases a claimed task using a fresh, bounded context. The request context
+// is typically already canceled when we reach the release paths below, and a DB transaction on a canceled
+// context fails immediately, which would strand the claimed job in running state.
+func releaseTaskForRunnerCleanup(t *actions_model.ActionTask) {
+	ctx, cancel := context.WithTimeout(graceful.GetManager().ShutdownContext(), 10*time.Second)
+	defer cancel()
+	if relErr := actions_model.ReleaseTaskForRunner(ctx, t); relErr != nil {
+		log.Error("ReleaseTaskForRunner [task_id: %d]: %v", t.ID, relErr)
+	}
+}
 
 func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
 	var (
@@ -36,7 +80,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 			return nil, false, err
 		}
 		if has {
-			if task.Status == actions_model.StatusWaiting || task.Status == actions_model.StatusRunning || task.Status == actions_model.StatusBlocked {
+			if task.Status.In(actions_model.StatusWaiting, actions_model.StatusRunning, actions_model.StatusBlocked, actions_model.StatusCancelling) {
 				return nil, false, nil
 			}
 			// task has been finished, remove it
@@ -48,77 +92,87 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		}
 	}
 
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
-		if err != nil {
-			return fmt.Errorf("CreateTaskForRunner: %w", err)
-		}
-		if !ok {
-			return nil
-		}
-
-		if err := t.LoadAttributes(ctx); err != nil {
-			return fmt.Errorf("task LoadAttributes: %w", err)
-		}
-		job = t.Job
-		actionTask = t
-
-		secrets, err := secret_model.GetSecretsOfTask(ctx, t)
-		if err != nil {
-			return fmt.Errorf("GetSecretsOfTask: %w", err)
-		}
-
-		vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
-		if err != nil {
-			return fmt.Errorf("GetVariablesOfRun: %w", err)
-		}
-
-		needs, err := findTaskNeeds(ctx, job)
-		if err != nil {
-			return fmt.Errorf("findTaskNeeds: %w", err)
-		}
-
-		taskContext, err := generateTaskContext(t)
-		if err != nil {
-			return fmt.Errorf("generateTaskContext: %w", err)
-		}
-
-		task = &runnerv1.Task{
-			Id:              t.ID,
-			WorkflowPayload: t.Job.WorkflowPayload,
-			Context:         taskContext,
-			Secrets:         secrets,
-			Vars:            vars,
-			Needs:           needs,
-		}
-
-		return nil
-	}); err != nil {
-		return nil, false, err
+	t, ok, err := actions_model.CreateTaskForRunner(ctx, runner)
+	if err != nil {
+		return nil, false, fmt.Errorf("CreateTaskForRunner: %w", err)
 	}
-
-	if task == nil {
+	if !ok {
 		return nil, false, nil
 	}
 
+	task, job, err = buildRunnerTask(ctx, t)
+	if err != nil {
+		// The job was already claimed but assembling its payload failed; release the
+		// claim so the job returns to the waiting queue instead of being stranded in
+		// running state with no runner ever executing it.
+		releaseTaskForRunnerCleanup(t)
+		return nil, false, err
+	}
+	actionTask = t
+
 	CreateCommitStatusForRunJobs(ctx, job.Run, job)
-	notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, actionTask)
+	NotifyWorkflowJobStatusUpdateWithTask(ctx, job, actionTask)
 	// job.Run is loaded inside the transaction before UpdateRunJob sets run.Started,
 	// so Started is zero only on the very first pick-up of that run.
 	if job.Run.Started.IsZero() {
-		NotifyWorkflowRunStatusUpdateWithReload(ctx, job)
+		NotifyWorkflowRunStatusUpdateWithReload(ctx, job.RepoID, job.RunID)
+	}
+
+	// The job is claimed and its payload assembled, but if the request context was cancelled meanwhile, response can no longer reach the runner.
+	// Release the claim so another runner can pick the job up.
+	if err := ctx.Err(); err != nil {
+		releaseTaskForRunnerCleanup(t)
+		return nil, false, err
 	}
 
 	return task, true, nil
 }
 
-func generateTaskContext(t *actions_model.ActionTask) (*structpb.Struct, error) {
+// buildRunnerTask assembles the runner-facing task payload for an already-claimed
+// task. All operations are read-only; on error the caller releases the claim.
+func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
+	if err := t.LoadAttributes(ctx); err != nil {
+		return nil, nil, fmt.Errorf("task LoadAttributes: %w", err)
+	}
+	job := t.Job
+
+	secrets, err := secret_model.GetSecretsOfTask(ctx, t)
+	if err != nil {
+		return nil, nil, fmt.Errorf("GetSecretsOfTask: %w", err)
+	}
+
+	vars, err := actions_model.GetVariablesOfRun(ctx, t.Job.Run)
+	if err != nil {
+		return nil, nil, fmt.Errorf("GetVariablesOfRun: %w", err)
+	}
+
+	needs, err := findTaskNeeds(ctx, job)
+	if err != nil {
+		return nil, nil, fmt.Errorf("findTaskNeeds: %w", err)
+	}
+
+	taskContext, err := generateTaskContext(ctx, t)
+	if err != nil {
+		return nil, nil, fmt.Errorf("generateTaskContext: %w", err)
+	}
+
+	return &runnerv1.Task{
+		Id:              t.ID,
+		WorkflowPayload: t.Job.WorkflowPayload,
+		Context:         taskContext,
+		Secrets:         secrets,
+		Vars:            vars,
+		Needs:           needs,
+	}, job, nil
+}
+
+func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {
 	giteaRuntimeToken, err := CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
 	if err != nil {
 		return nil, err
 	}
 
-	gitCtx := GenerateGiteaContext(t.Job.Run, t.Job)
+	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
 

@@ -16,6 +16,7 @@ test('LogLineMessage', () => {
     '::warning file=test.js,line=1::foo': '<span class="log-msg log-cmd-warning"><span class="log-msg-label">Warning:</span><span> foo</span></span>',
     '::notice::foo': '<span class="log-msg log-cmd-notice"><span class="log-msg-label">Notice:</span><span> foo</span></span>',
     '::debug::foo': '<span class="log-msg log-cmd-debug"><span class="log-msg-label">Debug:</span><span> foo</span></span>',
+    '##[command] foo': '<span class="log-msg log-cmd-command"> foo</span>',
     '[command] foo': '<span class="log-msg log-cmd-command"> foo</span>',
 
     // hidden is special, it is actually skipped before creating

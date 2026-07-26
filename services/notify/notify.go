@@ -6,15 +6,15 @@ package notify
 import (
 	"context"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	packages_model "code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
+	actions_model "gitea.dev/models/actions"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	packages_model "gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/repository"
 )
 
 var notifiers []Notifier
@@ -120,9 +120,9 @@ func NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions 
 }
 
 // PullRequestSynchronized notifies Synchronized pull request
-func PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
+func PullRequestSynchronized(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, before, after string) {
 	for _, notifier := range notifiers {
-		notifier.PullRequestSynchronized(ctx, doer, pr)
+		notifier.PullRequestSynchronized(ctx, doer, pr, before, after)
 	}
 }
 
@@ -399,12 +399,18 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit
 	}
 }
 
+// WorkflowRunStatusUpdate dispatches a workflow run status change to every registered notifier.
+// Prefer the helpers in services/actions/notify.go over calling this directly;
+// unless you are sure the caller has already resolved the correct sender and paired notifications.
 func WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
 	for _, notifier := range notifiers {
 		notifier.WorkflowRunStatusUpdate(ctx, repo, sender, run)
 	}
 }
 
+// WorkflowJobStatusUpdate dispatches a workflow job status change to every registered notifier.
+// Prefer the helpers in services/actions/notify.go over calling this directly;
+// unless you are sure the caller has already resolved the correct sender and paired notifications.
 func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, job *actions_model.ActionRunJob, task *actions_model.ActionTask) {
 	for _, notifier := range notifiers {
 		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)

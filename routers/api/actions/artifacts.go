@@ -69,18 +69,19 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	web_types "code.gitea.io/gitea/modules/web/types"
-	actions_service "code.gitea.io/gitea/services/actions"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	web_types "gitea.dev/modules/web/types"
+	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/context"
 )
 
 const artifactRouteBase = "/_apis/pipelines/workflows/{run_id}/artifacts"
@@ -119,6 +120,9 @@ func ArtifactsRoutes(prefix string) *web.Router {
 		m.Get("/{artifact_hash}/download_url", r.getDownloadArtifactURL)
 		m.Get("/{artifact_id}/download", r.downloadArtifact)
 	})
+
+	// Job summary upload endpoint (GITHUB_STEP_SUMMARY).
+	m.Put(jobSummaryRouteBase, uploadJobSummary)
 
 	return m
 }
@@ -310,7 +314,7 @@ func (ar artifactRoutes) confirmUploadArtifact(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusBadRequest, "Error artifact name is empty")
 		return
 	}
-	if err := mergeChunksForRun(ctx, ar.fs, runID, artifactName); err != nil {
+	if err := mergeChunksForRun(ctx, ar.fs, runID, ctx.ActionTask.Job.RunAttemptID, artifactName); err != nil {
 		log.Error("Error merge chunks: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 		return
@@ -338,8 +342,9 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 	}
 
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
-		RunID:  runID,
-		Status: int(actions.ArtifactStatusUploadConfirmed),
+		RunID:        runID,
+		RunAttemptID: optional.Some(ctx.ActionTask.Job.RunAttemptID),
+		Status:       int(actions.ArtifactStatusUploadConfirmed),
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
@@ -404,6 +409,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
 		RunID:        runID,
+		RunAttemptID: optional.Some(ctx.ActionTask.Job.RunAttemptID),
 		ArtifactName: itemPath,
 		Status:       int(actions.ArtifactStatusUploadConfirmed),
 	})
@@ -474,6 +480,11 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 	}
 	if artifact.RunID != runID {
 		log.Error("Error mismatch runID and artifactID, task: %v, artifact: %v", runID, artifactID)
+		ctx.HTTPError(http.StatusBadRequest)
+		return
+	}
+	if ctx.ActionTask.Job.RunAttemptID > 0 && artifact.RunAttemptID != ctx.ActionTask.Job.RunAttemptID {
+		log.Error("Error mismatch runAttemptID and artifactID, task: %v, artifact: %v", ctx.ActionTask.Job.RunAttemptID, artifactID)
 		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}

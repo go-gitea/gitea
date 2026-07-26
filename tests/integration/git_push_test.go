@@ -8,14 +8,15 @@ import (
 	"net/url"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	repo_service "code.gitea.io/gitea/services/repository"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -140,6 +141,43 @@ func testGitPush(t *testing.T, u *url.URL) {
 	})
 }
 
+func TestGitPushVisibilityOption(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
+			Name:          "repo-visibility-option",
+			AutoInit:      false,
+			DefaultBranch: "master",
+			IsPrivate:     false,
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, repo)
+
+		gitPath := t.TempDir()
+		doGitInitTestRepository(gitPath)(t)
+
+		oldPath, oldUser := u.Path, u.User
+		defer func() { u.Path, u.User = oldPath, oldUser }()
+		u.Path = repo.FullName() + ".git"
+		u.User = url.UserPassword(user.LowerName, userPassword)
+		doGitAddRemote(gitPath, "origin", u)(t)
+
+		// The first push into an empty repository is a "push-to-create", so the
+		// repo.private push option is honored to set the initial visibility.
+		doGitPushTestRepository(gitPath, "origin", "master", "-o", "repo.private=true")(t)
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.True(t, repo.IsPrivate, "repo.private option should apply on push-to-create")
+
+		// The repository is now populated; a later push must NOT silently flip
+		// visibility, otherwise a repo admin could change it bypassing the audit
+		// trail, webhooks, and notifications a proper settings change would fire.
+		doGitCreateBranch(gitPath, "branch2")(t)
+		doGitPushTestRepository(gitPath, "origin", "branch2", "-o", "repo.private=false")(t)
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.True(t, repo.IsPrivate, "repo.private option must be ignored on an existing repository")
+	})
+}
+
 func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gitPath string) (pushed, deleted []string)) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
@@ -167,7 +205,7 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 
 	doGitAddRemote(gitPath, "origin", u)(t)
 
-	gitRepo, err := git.OpenRepository(t.Context(), gitPath)
+	gitRepo, err := git.OpenRepositoryLocal(gitPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -191,7 +229,7 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 		deleted := deletedBranchesMap[branchName]
 		assert.True(t, ok, "branch %s not found in database", branchName)
 		assert.Equal(t, deleted, branch.IsDeleted, "IsDeleted of %s is %v, but it's expected to be %v", branchName, branch.IsDeleted, deleted)
-		commitID, err := gitRepo.GetBranchCommitID(branchName)
+		commitID, err := gitRepo.GetBranchCommitID(t.Context(), branchName)
 		require.NoError(t, err)
 		assert.Equal(t, commitID, branch.CommitID)
 	}
