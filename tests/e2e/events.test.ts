@@ -45,7 +45,7 @@ test.describe('events', () => {
     await expect(stopwatch).toBeVisible();
   });
 
-  test('stopwatch appears via real-time push', async ({page, request}) => {
+  test('stopwatch appears and hides via real-time push', async ({page, request}) => {
     const name = `ev-sw-push-${randomString(8)}`;
     const headers = apiUserHeaders(name);
 
@@ -66,28 +66,9 @@ test.describe('events', () => {
 
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
-    // Start the stopwatch from outside this tab; the push should reveal the icon
+    // Drive both directions from outside this tab; each push must reach it
     await apiStartStopwatch(request, name, name, 1, {headers});
     await expect(stopwatch).toBeVisible({timeout: 5000 * timeoutFactor});
-  });
-
-  test('stopwatch hides via real-time push on cancel', async ({page, request}) => {
-    const name = `ev-sw-stop-${randomString(8)}`;
-    const headers = apiUserHeaders(name);
-
-    await apiCreateUser(request, name);
-    await Promise.all([
-      loginUser(page, name),
-      (async () => {
-        await apiCreateRepo(request, {name, headers});
-        await apiCreateIssue(request, {owner: name, repo: name, title: 'events stopwatch stop test', headers});
-        await apiStartStopwatch(request, name, name, 1, {headers});
-      })(),
-    ]);
-    await page.goto('/');
-    const stopwatch = page.locator('.active-stopwatch.not-mobile');
-    await expect(stopwatch).toBeVisible();
-    await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
     await apiCancelStopwatch(request, name, name, 1, {headers});
     await expect(stopwatch).toBeHidden({timeout: 5000 * timeoutFactor});

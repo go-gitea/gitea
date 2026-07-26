@@ -4,23 +4,31 @@
 package test
 
 import (
-	"context"
+	"net"
 	"os"
 	"os/exec"
 	"time"
-
-	"gitea.dev/modules/nosql"
 )
 
-func waitRedisReady(t TestingT, conn string, dur time.Duration) (ready bool) {
-	ctxTimed, cancel := context.WithTimeout(t.Context(), time.Second*5)
-	defer cancel()
-	for t := time.Now(); ; time.Sleep(50 * time.Millisecond) {
-		ret := nosql.GetManager().GetRedisClient(conn).Ping(ctxTimed)
-		if ret.Err() == nil {
+const (
+	testRedisHost    = "127.0.0.1"
+	testRedisPort    = "6379"
+	testRedisAddr    = testRedisHost + ":" + testRedisPort
+	testRedisConnStr = "redis://" + testRedisAddr + "/0"
+)
+
+// waitRedisReady reports whether redis accepts connections within dur. Redis
+// binds its listener last during startup, so a successful dial means it can
+// serve. A plain dial, not a redis PING: the client retries its pool on a
+// refused connect, which makes the "is one already running" probe take ~1s.
+func waitRedisReady(dur time.Duration) bool {
+	for start := time.Now(); ; time.Sleep(50 * time.Millisecond) {
+		conn, err := net.DialTimeout("tcp", testRedisAddr, time.Second)
+		if err == nil {
+			_ = conn.Close()
 			return true
 		}
-		if time.Since(t) > dur {
+		if time.Since(start) > dur {
 			return false
 		}
 	}
@@ -31,21 +39,19 @@ func redisServerCmd(t TestingT) *exec.Cmd {
 	if err != nil {
 		return nil
 	}
-	c := &exec.Cmd{
+	return &exec.Cmd{
 		Path:   redisServerProg,
-		Args:   []string{redisServerProg, "--bind", "127.0.0.1", "--port", "6379"},
+		Args:   []string{redisServerProg, "--bind", testRedisHost, "--port", testRedisPort},
 		Dir:    t.TempDir(),
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
-	return c
 }
 
 func PrepareTestRedis(t TestingT) (string, func()) {
-	redisConn := "redis://127.0.0.1:6379/0"
 	var redisServer *exec.Cmd
-	if !waitRedisReady(t, redisConn, 0) {
+	if !waitRedisReady(0) {
 		redisServer = redisServerCmd(t)
 		if redisServer == nil {
 			if AllowSkipExternalService() {
@@ -57,11 +63,11 @@ func PrepareTestRedis(t TestingT) (string, func()) {
 		if err := redisServer.Start(); err != nil {
 			t.Fatalf("failed to start redis-server: %v", err)
 		}
-		if !waitRedisReady(t, redisConn, 5*time.Second) {
+		if !waitRedisReady(5 * time.Second) {
 			t.Fatalf("failed to start redis-server")
 		}
 	}
-	return redisConn, func() {
+	return testRedisConnStr, func() {
 		if redisServer != nil {
 			_ = redisServer.Process.Signal(os.Interrupt)
 			_ = redisServer.Wait()
