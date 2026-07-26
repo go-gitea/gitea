@@ -32,15 +32,12 @@ const (
 // filterLogout forwards a session-free logout only to the targeted connection
 // (its own session, or every session when SessionID is empty) and drops it for
 // the rest. Non-logout messages pass through untouched.
-func filterLogout(eventType string, eventDataBytes []byte, connSessionID string) []byte {
-	if eventType != websocket_service.EventLogout {
-		return eventDataBytes
+func filterLogout(payload []byte, connSessionID string) []byte {
+	var msg websocket_service.UserEventMessage[websocket_service.LogoutEventData]
+	if err := json.Unmarshal(payload, &msg); err != nil || msg.EventType != websocket_service.EventLogout {
+		return payload
 	}
-	var lm websocket_service.UserEventMessage[websocket_service.LogoutEventData]
-	if err := json.Unmarshal(eventDataBytes, &lm); err != nil {
-		return eventDataBytes
-	}
-	if lm.EventData.SessionID == "" || lm.EventData.SessionID == connSessionID {
+	if msg.EventData.SessionID == "" || msg.EventData.SessionID == connSessionID {
 		return []byte(`{"eventType":"logout"}`)
 	}
 	return nil
@@ -88,8 +85,7 @@ func Serve(ctx *context.Context) {
 			if !ok {
 				return
 			}
-			eventType, eventDataBytes := websocket_service.ExtractUserEventMessage(brokerPayload)
-			eventDataBytes = filterLogout(eventType, eventDataBytes, sessionID)
+			eventDataBytes := filterLogout(brokerPayload, sessionID)
 			if eventDataBytes == nil {
 				continue
 			}

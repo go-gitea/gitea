@@ -43,18 +43,16 @@ func TestFilterLogout(t *testing.T) {
 			want:       []byte(`{"eventType":"other","eventData":{"k":"v"}}`),
 		},
 		{
-			name:       "malformed JSON with logout marker passes through unchanged",
-			brokerMsg:  []byte("any type\nany data"),
+			name:       "malformed payload passes through unchanged",
+			brokerMsg:  []byte("not json"),
 			connSessID: "sess-A",
-			want:       []byte("any data"),
+			want:       []byte("not json"),
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			eventType, eventData := websocket.ExtractUserEventMessage(tc.brokerMsg)
-			out := filterLogout(eventType, eventData, tc.connSessID)
-			assert.Equal(t, tc.want, out)
+			assert.Equal(t, tc.want, filterLogout(tc.brokerMsg, tc.connSessID))
 		})
 	}
 }

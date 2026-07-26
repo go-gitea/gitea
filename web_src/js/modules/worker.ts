@@ -11,26 +11,13 @@ const {appSubUrl, sharedWorkerUri} = window.config;
 type EventOf<T extends UserEventType> = Extract<UserEventMessage, {eventType: T}>;
 type Subscriber<T extends UserEventType = UserEventType> = (msg: EventOf<T>) => void;
 const subscribers = new Map<UserEventType, Set<Subscriber>>();
-// Suppress identical repeat pushes (Redis fan-out can emit dup counts) so subscribers don't refetch on no-ops.
-const lastPayload = new Map<UserEventType, string>();
 let fallbackSignalled = false;
 let sharedWorker: SharedWorker | null = null;
 
 function dispatch(msg: UserEventMessage) {
   if (msg.eventType === 'worker-connected') {
-    // A fresh connection may have missed pushes, so drop the dedup state:
-    // otherwise a later push whose value matches a pre-reconnect one would be
-    // suppressed. Then let subscribers reconcile from the server.
-    lastPayload.clear();
-    // e2e tests wait for this attribute to know the event stream is live and pushes cannot be missed anymore
     document.documentElement.setAttribute('data-user-events-connected', 'true');
-    const set = subscribers.get(msg.eventType);
-    if (set) for (const cb of set) cb(msg);
-    return;
   }
-  const serialized = JSON.stringify(msg);
-  if (lastPayload.get(msg.eventType) === serialized) return;
-  lastPayload.set(msg.eventType, serialized);
   const set = subscribers.get(msg.eventType);
   if (!set) return;
   for (const cb of set) cb(msg);

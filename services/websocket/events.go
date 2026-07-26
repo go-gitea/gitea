@@ -4,8 +4,6 @@
 package websocket
 
 import (
-	"bytes"
-
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/pubsub"
@@ -24,9 +22,6 @@ type UserEventMessage[T any] struct {
 }
 
 func publishUserEvent(userID int64, eventType string, eventData any) {
-	if pubsub.DefaultBroker == nil {
-		return
-	}
 	b := MakeUserEventMessage(eventType, eventData)
 	if b == nil {
 		return
@@ -34,20 +29,13 @@ func publishUserEvent(userID int64, eventType string, eventData any) {
 	pubsub.DefaultBroker.Publish(pubsub.UserTopic(userID), b)
 }
 
+// MakeUserEventMessage encodes an event for the broker. The payload reaches the
+// browser verbatim, so it is plain JSON with no extra framing.
 func MakeUserEventMessage(eventType string, eventData any) []byte {
-	buf := &bytes.Buffer{}
-	buf.WriteString(eventType)
-	buf.WriteByte('\n')
-	err := json.MarshalWrite(buf, &UserEventMessage[any]{EventType: eventType, EventData: eventData})
-	payloadBytes := bytes.TrimSuffix(buf.Bytes(), []byte("\n")) // json v1 adds extra "\n" but we don't want it
+	b, err := json.Marshal(&UserEventMessage[any]{EventType: eventType, EventData: eventData})
 	if err != nil {
 		setting.PanicInDevOrTesting("websocket: marshal event: %v", err)
 		return nil
 	}
-	return payloadBytes
-}
-
-func ExtractUserEventMessage(b []byte) (string, []byte) {
-	eventType, eventDataBytes, _ := bytes.Cut(b, []byte("\n"))
-	return string(eventType), eventDataBytes
+	return b
 }

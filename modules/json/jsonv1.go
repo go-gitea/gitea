@@ -17,10 +17,6 @@ func (jsonV1) Marshal(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-func (jsonV1) MarshalWrite(w io.Writer, v any) error {
-	return json.NewEncoder(w).Encode(v)
-}
-
 func (jsonV1) Unmarshal(data []byte, v any) error {
 	return json.Unmarshal(data, v)
 }
