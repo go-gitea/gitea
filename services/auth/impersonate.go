@@ -11,6 +11,9 @@ import (
 )
 
 func ImpersonateUser(sess SessionStore, u *user_model.User) error {
+	if sess.Get(session.KeyImpersonatorData) != nil {
+		return fmt.Errorf("already impersonating a user")
+	}
 	// TODO: in the future, we need to process all sessions keys, but the session store doesn't have the ability to list keys
 	// So we need to refactor all "Session.Get" to use consts, then we can enumerate the pre-defined keys.
 	backupKeys := []string{session.KeyUID, session.KeyUserHasTwoFactorAuth}
