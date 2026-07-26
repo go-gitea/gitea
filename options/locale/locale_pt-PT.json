@@ -3741,7 +3741,6 @@
   "actions.runners.runner_title": "Executor",
   "actions.runners.task_list": "Tarefas recentes deste executor",
   "actions.runners.task_list.no_tasks": "Ainda não há tarefas.",
-  "actions.runners.task_list.run": "Executar",
   "actions.runners.task_list.status": "Estado",
   "actions.runners.task_list.repository": "Repositório",
   "actions.runners.task_list.commit": "Cometimento",
