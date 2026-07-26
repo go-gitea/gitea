@@ -890,7 +890,7 @@ func Test_WebhookRepositoryRename(t *testing.T) {
 
 		require.Equal(t, "repository", triggeredEvent)
 		require.Len(t, payloads, 1)
-		assert.EqualValues(t, api.HookRepoRenamed, payloads[0].Action)
+		assert.Equal(t, api.HookRepoRenamed, payloads[0].Action)
 		assert.Equal(t, newName, payloads[0].Repository.Name)
 		assert.Equal(t, "user2/"+newName, payloads[0].Repository.FullName)
 		require.NotNil(t, payloads[0].Changes)
