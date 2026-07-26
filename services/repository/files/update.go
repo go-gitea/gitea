@@ -175,7 +175,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
-		log.Error("NewTemporaryUploadRepository failed: %v", err)
+		return nil, fmt.Errorf("NewTemporaryUploadRepository failed: %w", err)
 	}
 	defer t.Close()
 	hasOldBranch := true
