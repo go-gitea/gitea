@@ -141,7 +141,7 @@ function renderText(text: string, style: Readonly<AnsiStyle>, linkify = true): s
   if (!style.conceal) applyColor(style.inverse ? style.bg : style.fg, 'color', 'fg');
   applyColor(style.inverse ? style.fg : style.bg, 'background-color', 'bg');
 
-  if (!classes.length && !styles.length) return html; // nothing left to apply, faint stands alone
+  if (!classes.length && !styles.length) return html;
   return `<span${classes.length ? ` class="${classes.join(' ')}"` : ''}${styles.length ? ` style="${styles.join(';')}"` : ''}>${html}</span>`;
 }
 
