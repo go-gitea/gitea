@@ -57,7 +57,7 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 		Signoff:   changeRepoFileOpts.Signoff,
 	}
 
-	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts)
+	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Doer, opts)
 	if err != nil {
 		handleChangeRepoFilesError(ctx, err)
 	} else {
