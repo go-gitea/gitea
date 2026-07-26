@@ -9,7 +9,6 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"strings"
 	"testing"
 
@@ -29,13 +28,18 @@ func TestParsePackage(t *testing.T) {
 	packageAuthor := "KN4CK3R"
 	packageBin := "gitea"
 	packageDescription := "Test Description"
-	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
-	integrity := "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg=="
 	repository := Repository{
 		Type:      "gitea",
 		URL:       "http://localhost:3000/gitea/test.git",
 		Directory: "packages/test-package",
 	}
+
+	dataBytes := buildTarball(map[string]string{
+		"package/package.json": `{"name": "@scope/test-package","version": "1.0.1-pre","description": "Test Description","author": "KN4CK3R"}`,
+	})
+	data := base64.StdEncoding.EncodeToString(dataBytes)
+	sha512Sum := sha512.Sum512(dataBytes)
+	integrity := "sha512-" + base64.StdEncoding.EncodeToString(sha512Sum[:])
 
 	t.Run("InvalidUpload", func(t *testing.T) {
 		p, err := ParsePackage(bytes.NewReader([]byte{0}))
@@ -361,7 +365,7 @@ func TestParsePackage(t *testing.T) {
 
 // buildTarball assembles a gzipped tar with the given entries.
 func buildTarball(files map[string]string) []byte {
-	return test.WriteTarCompression(func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }, files).Bytes()
+	return test.WriteTarCompression(gzip.NewWriter, files).Bytes()
 }
 
 func TestInspectTarball(t *testing.T) {

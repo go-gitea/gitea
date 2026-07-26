@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -51,7 +50,7 @@ func TestPackageNpm(t *testing.T) {
 
 	// Build a fresh tarball at test time so future edits (e.g. flipping the
 	// install-script hook) don't need re-baked shasum/integrity/size constants.
-	tarball := test.WriteTarCompression(func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }, map[string]string{
+	tarball := test.WriteTarCompression(gzip.NewWriter, map[string]string{
 		"package/package.json": `{"name":"` + packageName + `","version":"` + packageVersion + `","scripts":{"postinstall":"echo hi"}}`,
 	})
 	tarballBytes := tarball.Bytes()

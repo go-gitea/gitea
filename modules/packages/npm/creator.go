@@ -254,11 +254,11 @@ type packageUpload struct {
 	Attachments map[string]*PackageAttachment `json:"_attachments"`
 }
 
-// ParseUpload decodes an npm PUT body. Exactly one of the returned pointers
+// ParseUpload decodes a npm PUT body. Exactly one of the returned pointers
 // is non-nil on success; a body without `_attachments` is a deprecate request,
-// otherwise it is a publish.
+// otherwise it is a "publish".
 func ParseUpload(r io.Reader) (*Package, *PackageDeprecation, error) {
-	body, err := io.ReadAll(r)
+	body, err := io.ReadAll(io.LimitReader(r, 10*1024*1024))
 	if err != nil {
 		return nil, nil, err
 	}
