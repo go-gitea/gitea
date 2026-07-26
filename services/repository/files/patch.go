@@ -13,7 +13,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
@@ -121,7 +120,7 @@ func gitPatchPrepare(ctx context.Context, repo *repo_model.Repository, gitRepo *
 
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
-		log.Error("NewTemporaryUploadRepository failed: %v", err)
+		return nil, fmt.Errorf("NewTemporaryUploadRepository failed: %w", err)
 	}
 	defer func() {
 		if retErr != nil {
