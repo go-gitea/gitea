@@ -291,7 +291,9 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryPackage:
-				if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+				// a public-only token must not reach limited-visibility owners either,
+				// matching the org/user public-only enforcement above
+				if ctx.Package != nil && !ctx.Package.Owner.Visibility.IsPublic() {
 					ctx.APIError(http.StatusForbidden, "token scope is limited to public packages")
 					return
 				}

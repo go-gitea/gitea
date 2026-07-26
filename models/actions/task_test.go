@@ -9,6 +9,7 @@ import (
 
 	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/timeutil"
@@ -17,6 +18,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func TestActionTask_GetRunJobLink(t *testing.T) {
+	repo := &repo_model.Repository{OwnerName: "org", Name: "consumer"}
+	run := &ActionRun{ID: 10, Repo: repo}
+	job := &ActionRunJob{ID: 42, Run: run}
+
+	// a task with a loaded job links to that specific job, not just the run
+	task := &ActionTask{Job: job}
+	assert.Equal(t, run.Link()+"/jobs/42", task.GetRunJobLink())
+
+	// missing job, run or repo yields an empty link instead of a broken URL
+	assert.Empty(t, (&ActionTask{}).GetRunJobLink())
+	assert.Empty(t, (&ActionTask{Job: &ActionRunJob{ID: 42}}).GetRunJobLink())
+	assert.Empty(t, (&ActionTask{Job: &ActionRunJob{ID: 42, Run: &ActionRun{ID: 10}}}).GetRunJobLink())
+}
 
 func TestMakeTaskStepDisplayName(t *testing.T) {
 	tests := []struct {
@@ -370,4 +386,75 @@ func TestReleaseTaskForRunner(t *testing.T) {
 	// The task and its steps are gone.
 	unittest.AssertNotExistsBean(t, &ActionTask{ID: task.ID})
 	unittest.AssertNotExistsBean(t, &ActionTaskStep{TaskID: task.ID})
+}
+
+// TestCreateTaskForRunnerPagination verifies that a job sitting beyond the first page is still claimed
+func TestCreateTaskForRunnerPagination(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	defer func(orig int) { pickTaskBatchSize = orig }(pickTaskBatchSize)
+	pickTaskBatchSize = 2
+
+	run := &ActionRun{
+		Title:         "pagination-test-run",
+		RepoID:        1,
+		OwnerID:       2,
+		WorkflowID:    "test.yaml",
+		Index:         9903,
+		TriggerUserID: 2,
+		Ref:           "refs/heads/main",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		Status:        StatusWaiting,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	// Five waiting jobs the runner cannot run, then one it can.
+	// With a page size of 2 the matching job only appears on the third page.
+	for i := range 5 {
+		mismatch := &ActionRunJob{
+			RunID:     run.ID,
+			RepoID:    run.RepoID,
+			OwnerID:   run.OwnerID,
+			CommitSHA: run.CommitSHA,
+			Name:      "mismatch-" + string(rune('a'+i)),
+			Attempt:   1,
+			JobID:     "mismatch-" + string(rune('a'+i)),
+			Status:    StatusWaiting,
+			RunsOn:    []string{"windows-latest"},
+		}
+		require.NoError(t, db.Insert(t.Context(), mismatch))
+	}
+
+	target := &ActionRunJob{
+		RunID:           run.ID,
+		RepoID:          run.RepoID,
+		OwnerID:         run.OwnerID,
+		CommitSHA:       run.CommitSHA,
+		Name:            "target-job",
+		Attempt:         1,
+		JobID:           "target-job",
+		Status:          StatusWaiting,
+		RunsOn:          []string{"ubuntu-latest"},
+		WorkflowPayload: []byte("on: push\njobs:\n  target-job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n"),
+	}
+	require.NoError(t, db.Insert(t.Context(), target))
+
+	runner := &ActionRunner{
+		UUID:        "pagination-runner-uuid",
+		Name:        "pagination-runner",
+		AgentLabels: []string{"ubuntu-latest"},
+	}
+	runner.GenerateAndFillToken()
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	task, ok, err := CreateTaskForRunner(t.Context(), runner)
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.NotNil(t, task)
+
+	claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: target.ID})
+	assert.Equal(t, StatusRunning, claimed.Status)
+	assert.Equal(t, task.ID, claimed.TaskID)
 }

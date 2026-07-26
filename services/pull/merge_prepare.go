@@ -18,7 +18,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
@@ -39,7 +38,7 @@ type mergeContext struct {
 func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
 	return cmd.WithEnv(ctx.env).
-		WithDir(ctx.tmpBasePath).
+		WithRepo(ctx.tmpRepo).
 		WithParentCallerInfo().
 		WithStdoutBuffer(ctx.outbuf)
 }
@@ -78,7 +77,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 		trackingCommitID, _, err := gitcmd.NewCommand("show-ref", "--hash").
 			AddDynamicArguments(git.BranchPrefix + tmpRepoTrackingBranch).
 			WithEnv(mergeCtx.env).
-			WithDir(mergeCtx.tmpBasePath).
+			WithRepo(mergeCtx.tmpRepo).
 			RunStdString(ctx)
 		if err != nil {
 			defer cancel()
@@ -103,15 +102,18 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	mergeCtx.sig = doer.NewGitSig()
 	mergeCtx.committer = mergeCtx.sig
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	gitRepo, err := git.OpenRepositoryLocal(mergeCtx.tmpBasePath)
 	if err != nil {
 		defer cancel()
 		return nil, nil, fmt.Errorf("failed to open temp git repo for pr[%d]: %w", mergeCtx.pr.ID, err)
 	}
 	defer gitRepo.Close()
 
-	// Determine if we should sign
-	sign, key, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, gitRepo)
+	// Determine if we should sign, using the temp repo's own refs (see SignMerge for why)
+	sign, key, signer, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo, git.BranchPrefix+tmpRepoBaseBranch, git.BranchPrefix+tmpRepoTrackingBranch)
+	if err != nil && !asymkey_service.IsErrWontSign(err) {
+		log.Error("%-v SignMerge: %v", mergeCtx.pr, err) // the merge proceeds unsigned regardless, so log it here
+	}
 	if sign {
 		mergeCtx.signKey = key
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -152,7 +154,7 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 	}
 	defer sparseCheckoutListFile.Close() // we will close it earlier but we need to ensure it is closed if there is an error
 
-	if err := getDiffTree(ctx, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, sparseCheckoutListFile); err != nil {
+	if err := getDiffTree(ctx, ctx.tmpRepo, tmpRepoBaseBranch, tmpRepoTrackingBranch, sparseCheckoutListFile); err != nil {
 		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, err)
 		return fmt.Errorf("getDiffTree: %w", err)
 	}
@@ -204,13 +206,13 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 }
 
 // getDiffTree returns a string containing all the files that were changed between headBranch and baseBranch
-// the filenames are escaped so as to fit the format required for .git/info/sparse-checkout
-func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, out io.Writer) error {
+// the filenames are escaped to fit the format required for .git/info/sparse-checkout
+func getDiffTree(ctx context.Context, repo git.RepositoryFacade, baseBranch, headBranch string, out io.Writer) error {
 	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root")
 	diffOutReader, diffOutReaderClose := cmd.MakeStdoutPipe()
 	defer diffOutReaderClose()
 	err := cmd.AddDynamicArguments(baseBranch, headBranch).
-		WithDir(repoPath).
+		WithRepo(repo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(diffOutReader)

@@ -203,7 +203,7 @@ func Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
 
-	// Run A: the triggering run of attempt A
+	// Run A: the triggering run of attempt A. It is done, so it no longer holds "test-cg", which is what lets checkRunConcurrency wake the blocked waiter.
 	runA := &actions_model.ActionRun{
 		RepoID:        4,
 		OwnerID:       1,
@@ -211,16 +211,16 @@ func Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck(t *testing.T) {
 		WorkflowID:    "test.yml",
 		Index:         9901,
 		Ref:           "refs/heads/main",
-		Status:        actions_model.StatusRunning,
+		Status:        actions_model.StatusSuccess,
 	}
 	assert.NoError(t, db.Insert(ctx, runA))
 
-	// Attempt A: an attempt of run A with concurrency group "test-cg"
+	// Attempt A: a done attempt of run A with concurrency group "test-cg"
 	runAAttempt := &actions_model.ActionRunAttempt{
 		RepoID:           4,
 		RunID:            runA.ID,
 		Attempt:          1,
-		Status:           actions_model.StatusRunning,
+		Status:           actions_model.StatusSuccess,
 		ConcurrencyGroup: "test-cg",
 	}
 	assert.NoError(t, db.Insert(ctx, runAAttempt))
@@ -283,9 +283,11 @@ func Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck(t *testing.T) {
 	result, err := checkRunConcurrency(ctx, runA)
 	assert.NoError(t, err)
 
-	if assert.Len(t, result.Jobs, 1) {
-		assert.Equal(t, jobBBlocked.ID, result.Jobs[0].ID)
+	// "test-cg" is free, so the single blocked waiter (run B) is collected for re-emit.
+	if assert.Len(t, result.RunIDsToReEmit, 1) {
+		assert.Equal(t, runB.ID, result.RunIDsToReEmit[0])
 	}
+	assert.Empty(t, result.Jobs)
 }
 
 // Test_checkJobsOfCurrentRunAttempt_RunLevelConcurrencyKeepsJobsBlocked verifies that
@@ -351,4 +353,83 @@ jobs:
 
 	refreshed := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: blockedJob.ID})
 	assert.Equal(t, actions_model.StatusBlocked, refreshed.Status)
+}
+
+// Test_checkRunConcurrency_HeldGroupDoesNotWake verifies that only an unoccupied concurrency group can wake up a blocked run/job.
+func Test_checkRunConcurrency_HeldGroupDoesNotWake(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// Run A holds "test-cg": its attempt is still running.
+	runA := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, TriggerUserID: 1, WorkflowID: "test.yml",
+		Index: 9911, Ref: "refs/heads/main", Status: actions_model.StatusRunning,
+	}
+	assert.NoError(t, db.Insert(ctx, runA))
+	runAAttempt := &actions_model.ActionRunAttempt{
+		RepoID: 4, RunID: runA.ID, Attempt: 1, Status: actions_model.StatusRunning, ConcurrencyGroup: "test-cg",
+	}
+	assert.NoError(t, db.Insert(ctx, runAAttempt))
+	_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", runAAttempt.ID, runA.ID)
+	assert.NoError(t, err)
+
+	// Run B is blocked on the same group.
+	runB := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, TriggerUserID: 1, WorkflowID: "test.yml",
+		Index: 9912, Ref: "refs/heads/main", Status: actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, runB))
+	runBAttempt := &actions_model.ActionRunAttempt{
+		RepoID: 4, RunID: runB.ID, Attempt: 1, Status: actions_model.StatusBlocked, ConcurrencyGroup: "test-cg",
+	}
+	assert.NoError(t, db.Insert(ctx, runBAttempt))
+	_, err = db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", runBAttempt.ID, runB.ID)
+	assert.NoError(t, err)
+
+	runA, _, _ = db.GetByID[actions_model.ActionRun](ctx, runA.ID)
+	result, err := checkRunConcurrency(ctx, runA)
+	assert.NoError(t, err)
+
+	// The group is held by run A, so run B must not be woken; A will wake it when it releases the group.
+	assert.Empty(t, result.RunIDsToReEmit)
+}
+
+// Test_findConcurrencyWaiterToWake covers the finder's contract: it skips the run being processed (excludeRunID),
+// returns another blocked waiter when the group is free, and returns 0 while the group is still held.
+func Test_findConcurrencyWaiterToWake(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	const repoID int64 = 4
+	seed := func(index int64, group string, status actions_model.Status) *actions_model.ActionRun {
+		run := &actions_model.ActionRun{
+			RepoID: repoID, OwnerID: 1, TriggerUserID: 1, WorkflowID: "test.yml",
+			Index: index, Ref: "refs/heads/main", Status: status,
+		}
+		assert.NoError(t, db.Insert(ctx, run))
+		assert.NoError(t, db.Insert(ctx, &actions_model.ActionRunAttempt{
+			RepoID: repoID, RunID: run.ID, Attempt: 1, Status: status, ConcurrencyGroup: group,
+		}))
+		return run
+	}
+
+	// Free group "excl-cg" with two blocked runs: excluding self returns the other waiter, not self.
+	self := seed(99701, "excl-cg", actions_model.StatusBlocked)
+	other := seed(99702, "excl-cg", actions_model.StatusBlocked)
+	id, err := findConcurrencyWaiterToWake(ctx, repoID, self.ID, "excl-cg")
+	assert.NoError(t, err)
+	assert.Equal(t, other.ID, id)
+
+	// Free group "solo-cg" with only self blocked: excluding it leaves no waiter.
+	solo := seed(99703, "solo-cg", actions_model.StatusBlocked)
+	id, err = findConcurrencyWaiterToWake(ctx, repoID, solo.ID, "solo-cg")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), id)
+
+	// Held group "held-cg" (a running holder) has a blocked waiter, but nothing is woken while held.
+	seed(99704, "held-cg", actions_model.StatusRunning)
+	seed(99705, "held-cg", actions_model.StatusBlocked)
+	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "held-cg")
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), id)
 }

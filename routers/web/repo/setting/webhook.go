@@ -664,19 +664,14 @@ func TestWebhook(ctx *context.Context) {
 		return
 	}
 
-	// Grab latest commit or fake one if it's empty repository.
-	// Note: in old code, the "ctx.Repo.Commit" is the last commit of the default branch.
-	// New code doesn't set that commit, so it always uses the fake commit to test webhook.
-	commit := ctx.Repo.Commit
-	if commit == nil {
-		ghost := user_model.NewGhostUser()
-		objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
-		commit = &git.Commit{
-			ID:            objectFormat.EmptyObjectID(),
-			Author:        ghost.NewGitSig(),
-			Committer:     ghost.NewGitSig(),
-			CommitMessage: git.CommitMessage{MessageRaw: "This is a fake commit"},
-		}
+	// use a fake commit to test webhook
+	ghostUser := user_model.NewGhostUser()
+	objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
+	commit := &git.Commit{
+		ID:            objectFormat.EmptyObjectID(),
+		Author:        ghostUser.NewGitSig(),
+		Committer:     ghostUser.NewGitSig(),
+		CommitMessage: git.CommitMessage{MessageRaw: "This is a fake commit for webhook push test"},
 	}
 
 	apiUser := convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone)
@@ -697,7 +692,7 @@ func TestWebhook(ctx *context.Context) {
 
 	commitID := commit.ID.String()
 	p := &api.PushPayload{
-		Ref:          git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Ref:          git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch).String(),
 		Before:       commitID,
 		After:        commitID,
 		CompareURL:   setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
@@ -708,8 +703,8 @@ func TestWebhook(ctx *context.Context) {
 		Pusher:       apiUser,
 		Sender:       apiUser,
 	}
-	if err := webhook_service.PrepareWebhook(ctx, w, webhook_module.HookEventPush, p); err != nil {
-		ctx.Flash.Error("PrepareWebhook: " + err.Error())
+	if err := webhook_service.PrepareTestWebhook(ctx, w, webhook_module.HookEventPush, p); err != nil {
+		ctx.Flash.Error("PrepareTestWebhook: " + err.Error())
 		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))

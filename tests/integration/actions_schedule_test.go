@@ -18,12 +18,16 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/migration"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	migrations_service "gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	repo_service "gitea.dev/services/repository"
 	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScheduleUpdate(t *testing.T) {
@@ -144,6 +148,11 @@ jobs:
 
 func testScheduleUpdateMirrorSync(t *testing.T) {
 	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
+		// the mirror sync re-validates the remote URL, which rejects the local test server unless local
+		// networks are allowed; migrations.Init rebuilds the host allow-list from the setting
+		defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+		require.NoError(t, migrations_service.Init())
+
 		// create mirror repo
 		opts := migration.MigrateOptions{
 			RepoName:    "actions-schedule-mirror",
