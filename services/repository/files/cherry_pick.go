@@ -4,7 +4,6 @@
 package files
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,7 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
-	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/structs"
 	"gitea.dev/services/pull"
 )
@@ -35,57 +34,23 @@ func (err ErrCommitIDDoesNotMatch) Error() string {
 }
 
 // CherryPick cherry-picks or reverts a commit to the given repository
-func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, revert bool, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+func CherryPick(ctx reqctx.RequestContext, repo *repo_model.Repository, doer *user_model.User, revert bool, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
-	defer closer.Close()
-
-	if err := opts.Validate(ctx, repo, gitRepo, doer); err != nil {
-		return nil, err
-	}
-	message := strings.TrimSpace(opts.Message)
-
-	t, err := NewTemporaryUploadRepository(repo)
+	t, err := gitPatchPrepare(ctx, repo, gitRepo, doer, opts)
 	if err != nil {
-		log.Error("NewTemporaryUploadRepository failed: %v", err)
+		return nil, err
 	}
 	defer t.Close()
-	if err := t.Clone(ctx, opts.OldBranch, false); err != nil {
-		return nil, err
-	}
-	if err := t.SetDefaultIndex(ctx); err != nil {
-		return nil, err
-	}
-	if err := t.RefreshIndex(ctx); err != nil {
-		return nil, err
-	}
 
-	// Get the commit of the original branch
-	commit, err := t.GetBranchCommit(opts.OldBranch)
+	err = t.RefreshIndex(ctx)
 	if err != nil {
-		return nil, err // Couldn't get a commit for the branch
+		return nil, err
 	}
 
-	// Assigned LastCommitID in opts if it hasn't been set
-	if opts.LastCommitID == "" {
-		opts.LastCommitID = commit.ID.String()
-	} else {
-		lastCommitID, err := t.gitRepo.ConvertToGitID(opts.LastCommitID)
-		if err != nil {
-			return nil, fmt.Errorf("CherryPick: Invalid last commit ID: %w", err)
-		}
-		opts.LastCommitID = lastCommitID.String()
-		if commit.ID.String() != opts.LastCommitID {
-			return nil, ErrCommitIDDoesNotMatch{
-				GivenCommitID:   opts.LastCommitID,
-				CurrentCommitID: opts.LastCommitID,
-			}
-		}
-	}
-
-	commit, err = t.GetCommit(strings.TrimSpace(opts.Content))
+	commit, err := t.GetCommit(strings.TrimSpace(opts.Content))
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +66,7 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	}
 
 	description := fmt.Sprintf("CherryPick %s onto %s", right, opts.OldBranch)
-	conflict, _, err := pull.AttemptThreeWayMerge(ctx,
-		t.basePath, t.gitRepo, base, opts.LastCommitID, right, description)
+	conflict, _, err := pull.AttemptThreeWayMerge(ctx, t.basePath, t.gitRepo, base, opts.LastCommitID, right, description)
 	if err != nil {
 		return nil, fmt.Errorf("failed to three-way merge %s onto %s: %w", right, opts.OldBranch, err)
 	}
@@ -111,48 +75,5 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 		return nil, errors.New("failed to merge due to conflicts")
 	}
 
-	treeHash, err := t.WriteTree(ctx)
-	if err != nil {
-		// likely non-sensical tree due to merge conflicts...
-		return nil, err
-	}
-
-	// Now commit the tree
-	commitOpts := &CommitTreeUserOptions{
-		ParentCommitID:    "HEAD",
-		TreeHash:          treeHash,
-		CommitMessage:     message,
-		SignOff:           opts.Signoff,
-		DoerUser:          doer,
-		AuthorIdentity:    opts.Author,
-		AuthorTime:        nil,
-		CommitterIdentity: opts.Committer,
-		CommitterTime:     nil,
-	}
-	if opts.Dates != nil {
-		commitOpts.AuthorTime, commitOpts.CommitterTime = &opts.Dates.Author, &opts.Dates.Committer
-	}
-	commitHash, err := t.CommitTree(ctx, commitOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	// Then push this tree to NewBranch
-	if err := t.Push(ctx, doer, commitHash, opts.NewBranch, false); err != nil {
-		return nil, err
-	}
-
-	commit, err = t.GetCommit(commitHash)
-	if err != nil {
-		return nil, err
-	}
-
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
-	fileResponse := &structs.FileResponse{
-		Commit:       fileCommitResponse,
-		Verification: verification,
-	}
-
-	return fileResponse, nil
+	return gitPatchCommitPush(ctx, t, repo, doer, opts)
 }
