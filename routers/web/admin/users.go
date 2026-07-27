@@ -599,6 +599,14 @@ func ImpersonateUser(ctx *context.Context) {
 		ctx.JSONError("unable to get user")
 		return
 	}
+
+	// Bot accounts are non-interactive; impersonating one would grant a session
+	// that signing in could never produce.
+	if u.IsTypeBot() {
+		ctx.JSONError(ctx.Tr("admin.users.impersonate_bot_not_allowed"))
+		return
+	}
+
 	err = auth_service.ImpersonateUser(ctx.Session, u)
 	if err != nil {
 		ctx.ServerError("unable to impersonate user", err)

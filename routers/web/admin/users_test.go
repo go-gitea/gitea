@@ -4,10 +4,12 @@
 package admin
 
 import (
+	"net/http"
 	"testing"
 
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
@@ -171,6 +173,38 @@ func TestConvertUserType(t *testing.T) {
 		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 		assert.True(t, u.IsIndividual())
+	})
+}
+
+func TestImpersonateUser(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{IsAdmin: true, ID: 2})
+
+	t.Run("individual", func(t *testing.T) {
+		sess := session.NewMockMemStore("dummy-sid")
+		ctx, _ := contexttest.MockContext(t, "admin/users/4/impersonate", contexttest.MockContextOption{SessionStore: sess})
+		ctx.Doer = doer
+		ctx.SetPathParam("userid", "4")
+		ImpersonateUser(ctx)
+
+		assert.EqualValues(t, 4, sess.Get(session.KeyUID))
+	})
+
+	t.Run("bot", func(t *testing.T) {
+		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		u.Type = user_model.UserTypeBot
+		assert.NoError(t, user_model.UpdateUserCols(t.Context(), u, "type"))
+
+		sess := session.NewMockMemStore("dummy-sid")
+		ctx, resp := contexttest.MockContext(t, "admin/users/4/impersonate", contexttest.MockContextOption{SessionStore: sess})
+		ctx.Doer = doer
+		ctx.SetPathParam("userid", "4")
+		ImpersonateUser(ctx)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.Nil(t, sess.Get(session.KeyUID))
+		assert.Nil(t, sess.Get(session.KeyImpersonatorData))
 	})
 }
 
