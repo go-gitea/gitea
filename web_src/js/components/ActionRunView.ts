@@ -30,8 +30,9 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '::remove-matcher': 'hidden', // it has arguments
 };
 
-// Pattern for ::cmd:: and ::cmd args:: format (args are stripped for display)
-const LogLineCmdPattern = /^::(error|warning|notice|debug)(?:\s[^:]*)?::/;
+// Pattern for ::cmd:: and ::cmd args:: format (args are stripped for display),
+// lazy so the command ends at the first "::" even when an arg value contains ":"
+const LogLineCmdPattern = /^::(error|warning|notice|debug)(?:\s.*?)?::/;
 
 export type LogLine = {
   index: number;
@@ -43,7 +44,6 @@ export type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'w
 export type LogLineCommand = {
   name: LogLineCommandName,
   prefix: string,
-  decodeMode?: 'multiple-line',
 };
 
 export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
@@ -56,7 +56,7 @@ export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
   // Handle ::cmd:: and ::cmd args:: format (runner may pass these through raw)
   const match = LogLineCmdPattern.exec(line.message);
   if (match) {
-    return {name: match[1] as LogLineCommandName, prefix: match[0], decodeMode: 'multiple-line'};
+    return {name: match[1] as LogLineCommandName, prefix: match[0]};
   }
   return null;
 }
@@ -71,11 +71,12 @@ const LogLineLabelMap: Partial<Record<LogLineCommandName, string>> = {
 function decodeLineMessage(line: LogLine, cmd: LogLineCommand | null): string {
   // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
   // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
-  let msg = cmd ? line.message.substring(cmd.prefix.length) : line.message;
-  if (cmd?.decodeMode === 'multiple-line') {
-    msg = msg.replace(/%0D/g, '\r').replace(/%0A/g, '\n').replace(/%25/g, '%');
-  }
-  return msg;
+  if (!cmd) return line.message;
+  let msg = line.message.substring(cmd.prefix.length);
+  // "##[cmd]" also escapes ";" and "]" which delimit its header, "::cmd::" does not
+  if (!cmd.prefix.startsWith('::')) msg = msg.replace(/%3B/g, ';').replace(/%5D/g, ']');
+  // renderAnsiInto breaks a line per "\r", so "%0D%0A" is one break. "%25" last keeps "%250A" literal
+  return msg.replace(/(?:%0D)?%0A/g, '\n').replace(/%0D/g, '\r').replace(/%25/g, '%');
 }
 
 export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
