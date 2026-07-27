@@ -28,6 +28,7 @@ import (
 	"gitea.dev/modelmigration/v1_25"
 	"gitea.dev/modelmigration/v1_26"
 	"gitea.dev/modelmigration/v1_27"
+	"gitea.dev/modelmigration/v1_28"
 	"gitea.dev/modelmigration/v1_6"
 	"gitea.dev/modelmigration/v1_7"
 	"gitea.dev/modelmigration/v1_8"
@@ -421,6 +422,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
 		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
+
+		newMigration(343, "Add show_private_activity column to user", v1_28.AddShowPrivateActivityUserColumn),
 	}
 	return preparedMigrations
 }

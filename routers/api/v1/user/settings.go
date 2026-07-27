@@ -55,6 +55,7 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		DiffViewStyle:       optional.FromPtr(form.DiffViewStyle),
 		KeepEmailPrivate:    optional.FromPtr(form.HideEmail),
 		KeepActivityPrivate: optional.FromPtr(form.HideActivity),
+		ShowPrivateActivity: optional.FromPtr(form.ShowPrivateActivity),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
 		ctx.APIErrorInternal(err)

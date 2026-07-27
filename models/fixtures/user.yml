@@ -36,6 +36,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 2
@@ -74,6 +75,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 3
@@ -111,6 +113,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 4
@@ -148,6 +151,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 5
@@ -185,6 +189,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 6
@@ -222,6 +227,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 7
@@ -259,6 +265,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 8
@@ -296,6 +303,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 9
@@ -333,6 +341,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
   created_unix: 1730468968
 
 -
@@ -371,6 +380,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 11
@@ -408,6 +418,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 12
@@ -445,6 +456,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 13
@@ -482,6 +494,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 14
@@ -519,6 +532,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 15
@@ -556,6 +570,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 16
@@ -593,6 +608,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 17
@@ -630,6 +646,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 18
@@ -667,6 +684,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 19
@@ -704,6 +722,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 20
@@ -741,6 +760,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 21
@@ -778,6 +798,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 22
@@ -815,6 +836,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 23
@@ -852,6 +874,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 24
@@ -889,6 +912,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 25
@@ -926,6 +950,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 26
@@ -963,6 +988,7 @@
   repo_admin_change_team_access: true
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 27
@@ -1000,6 +1026,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 28
@@ -1037,6 +1064,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 29
@@ -1074,6 +1102,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 30
@@ -1111,6 +1140,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 31
@@ -1148,6 +1178,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 32
@@ -1185,6 +1216,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 33
@@ -1222,6 +1254,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 34
@@ -1260,6 +1293,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 35
@@ -1297,6 +1331,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 36
@@ -1334,6 +1369,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 37
@@ -1371,6 +1407,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 38
@@ -1408,6 +1445,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 39
@@ -1445,6 +1483,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 40
@@ -1482,6 +1521,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 41
@@ -1519,6 +1559,7 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 -
   id: 42
@@ -1556,5 +1597,6 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+  show_private_activity: false
 
 # DO NOT add more test data in the fixtures, test case should prepare their own test data separately and clearly
