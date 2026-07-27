@@ -38,7 +38,7 @@ func checkOutdatedBranch(ctx *context.Context) {
 		return
 	}
 
-	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.ShortName())
+	dbBranch, err := git_model.GetBranchExisting(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.ShortName())
 	if err != nil {
 		return // ignore the error which can only be "not exists"
 	}

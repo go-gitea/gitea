@@ -480,7 +480,7 @@ jobs:
 		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		// create a branch
@@ -964,7 +964,7 @@ jobs:
 		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		values := url.Values{}
 		values.Set("ref", "main")
@@ -1135,7 +1135,7 @@ jobs:
 		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		values := url.Values{}
 		values.Set("ref", "main")
@@ -1226,7 +1226,7 @@ jobs:
 		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
@@ -1312,7 +1312,7 @@ jobs:
 		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		inputs := &api.CreateActionWorkflowDispatch{
 			Ref: "main",
@@ -1640,7 +1640,7 @@ jobs:
 		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 		inputs = &api.CreateActionWorkflowDispatch{
 			Ref: "main",
@@ -1811,7 +1811,7 @@ jobs:
 		defer gitRepo.Close()
 
 		// Get the commit ID of the default branch
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		// create a branch
@@ -1889,7 +1889,7 @@ jobs:
 		defer gitRepo.Close()
 
 		// Get the commit ID of the default branch
-		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
+		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		// create a branch

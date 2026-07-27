@@ -168,12 +168,12 @@ func getBranchWithDeleted(ctx context.Context, repoID int64, branchName string, 
 	return &branch, nil
 }
 
-// GetBranch retrieves a branch that exists in git repository (excluding soft-deleted ones in database)
-func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
+// GetBranchExisting retrieves a branch that should exist in git repository (excluding soft-deleted ones in database)
+func GetBranchExisting(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
 	return getBranchWithDeleted(ctx, repoID, branchName, false)
 }
 
-// IsBranchExist returns true if the branch exists in the git repository
+// IsBranchExist returns true if the branch should exist in the git repository
 func IsBranchExist(ctx context.Context, repoID int64, branchName string) (bool, error) {
 	return db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).
 		And("is_deleted=?", false).Exist(&Branch{})
@@ -480,14 +480,14 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 	}
 
 	var ignoredCommitIDs []string
-	baseDefaultBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
+	baseDefaultBranch, err := GetBranchExisting(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
 	if err == nil {
 		ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultBranch.CommitID)
 	}
 
 	baseDefaultTargetBranchName := opts.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultTargetBranch
 	if baseDefaultTargetBranchName != "" && baseDefaultTargetBranchName != opts.BaseRepo.DefaultBranch {
-		baseDefaultTargetBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
+		baseDefaultTargetBranch, err := GetBranchExisting(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
 		if err == nil {
 			ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultTargetBranch.CommitID)
 		}
