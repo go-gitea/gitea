@@ -301,7 +301,6 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 	if opts.TagPrefix != "" {
 		cond = cond.And(builder.Like{"tag_name", opts.TagPrefix + "%"})
 	}
-	
 	return cond
 }
 
