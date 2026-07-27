@@ -28,6 +28,9 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err != nil {
 				return err
 			}
+			if !run.NeedApproval {
+				continue
+			}
 			run.NeedApproval = false
 			run.ApprovedBy = doer.ID
 			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
