@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/metrics"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
@@ -159,7 +160,7 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		ctx.IsBasicAuth = ar.IsBasicAuth
 		if ctx.Doer == nil {
 			// ensure the session uid is deleted
-			_ = ctx.Session.Delete("uid")
+			_ = ctx.Session.Delete(session.KeyUID)
 		}
 	}
 	return webAuth
@@ -795,6 +796,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("/new").Get(admin.NewUser).Post(web.Bind(forms.AdminCreateUserForm{}), admin.NewUserPost)
 			m.Get("/{userid}", admin.ViewUser)
 			m.Combo("/{userid}/edit").Get(admin.EditUser).Post(web.Bind(forms.AdminEditUserForm{}), admin.EditUserPost)
+			m.Post("/{userid}/impersonate", admin.ImpersonateUser)
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
