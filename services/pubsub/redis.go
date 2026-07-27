@@ -50,6 +50,10 @@ func (s *redisSub) close() { s.once.Do(func() { close(s.ch) }) }
 
 var _ Broker = (*RedisBroker)(nil)
 
+func redisChannelForTopic(s string) string {
+	return "gitea-ws-topic:" + s
+}
+
 func NewRedisBroker(connStr string) (*RedisBroker, error) {
 	client := nosql.GetManager().GetRedisClient(connStr)
 	// context.Background not graceful.ShutdownContext: shutdown ctx may not be initialized at boot.
@@ -93,7 +97,7 @@ func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
 	// readLoop consumes the SUBSCRIBE ack; don't wait for it here, a direct
 	// ps.Receive blocks for its whole timeout instead of returning on the ack.
 	ctx, cancelCtx := context.WithCancel(graceful.GetManager().ShutdownContext())
-	ps := b.client.Subscribe(ctx, topic)
+	ps := b.client.Subscribe(ctx, redisChannelForTopic(topic))
 	b.mu.Lock()
 	if existing, exists := b.topics[topic]; exists {
 		// Another goroutine won the create race; merge into theirs and discard ours.
@@ -173,7 +177,7 @@ func (b *RedisBroker) readLoop(ctx context.Context, topic string, ps *redis.PubS
 func (b *RedisBroker) Publish(topic string, msg []byte) {
 	ctx, cancel := context.WithTimeout(graceful.GetManager().HammerContext(), redisPublishTimeout)
 	defer cancel()
-	if err := b.client.Publish(ctx, topic, msg).Err(); err != nil {
+	if err := b.client.Publish(ctx, redisChannelForTopic(topic), msg).Err(); err != nil {
 		log.Error("pubsub redis: publish to %q: %v", topic, err)
 	}
 }
