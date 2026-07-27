@@ -5,6 +5,7 @@ package utils
 
 import (
 	"errors"
+	"strings"
 
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
@@ -20,35 +21,49 @@ type RefCommit struct {
 	CommitID string
 }
 
-// ResolveRefCommit resolve ref to a commit if exist.
+// ResolveRefCommit resolve ref to a commit if it exists.
 // inputRef may be a short branch/tag name, a commit ID, or a fully-qualified
-// branch/tag ref (refs/heads/…, refs/tags/…) for GitHub client compatibility.
-// Other refs/* names (e.g. refs/pull/, refs/for/) are rejected.
+// git ref (e.g. refs/heads/main, refs/tags/v1.0) for GitHub client compatibility.
 func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, inputRef string, minCommitIDLen ...int) (_ *RefCommit, err error) {
+	refCommit := RefCommit{InputRef: inputRef}
+
+	var testRefBranch, testRefTag git.RefName
+	if strings.HasPrefix(inputRef, "refs/") {
+		// Fully-qualified refs first so clients can pass unambiguous names.
+		testRef := git.RefName(inputRef)
+		if testRef.IsBranch() {
+			testRefBranch = testRef
+		} else if testRef.IsTag() {
+			testRefTag = testRef
+		}
+	} else {
+		testRefBranch, testRefTag = git.RefNameFromBranch(inputRef), git.RefNameFromTag(inputRef)
+	}
+
+	if testRefBranch != "" {
+		if exist, _ := git_model.IsBranchExist(ctx, repo.ID, testRefBranch.ShortName()); exist {
+			refCommit.RefName = testRefBranch
+		}
+	}
+	if testRefTag != "" {
+		// TODO: use git model instead of git command in the future? Model seems to be faster.
+		if git.IsTagExist(ctx, repo, inputRef) {
+			refCommit.RefName = testRefTag
+		}
+	}
+	if refCommit.RefName == "" {
+		if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.ObjectFormatName), inputRef, minCommitIDLen...) {
+			refCommit.RefName = git.RefNameFromCommit(inputRef)
+		}
+	}
+
+	if refCommit.RefName == "" {
+		return nil, git.ErrNotExist{ID: inputRef}
+	}
+
 	gitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, repo)
 	if err != nil {
 		return nil, err
-	}
-	refCommit := RefCommit{InputRef: inputRef}
-	refName := git.RefName(inputRef)
-	// Fully-qualified branch/tag only — never expose internal refs to API callers.
-	if refName.IsBranch() {
-		if exist, _ := git_model.IsBranchExist(ctx, repo.ID, refName.BranchName()); exist {
-			refCommit.RefName = refName
-		}
-	} else if refName.IsTag() {
-		if git.IsTagExist(ctx, repo, refName.TagName()) {
-			refCommit.RefName = refName
-		}
-	} else if exist, _ := git_model.IsBranchExist(ctx, repo.ID, inputRef); exist {
-		refCommit.RefName = git.RefNameFromBranch(inputRef)
-	} else if git.IsTagExist(ctx, repo, inputRef) {
-		refCommit.RefName = git.RefNameFromTag(inputRef)
-	} else if git.IsStringLikelyCommitID(git.ObjectFormatFromName(repo.ObjectFormatName), inputRef, minCommitIDLen...) {
-		refCommit.RefName = git.RefNameFromCommit(inputRef)
-	}
-	if refCommit.RefName == "" {
-		return nil, git.ErrNotExist{ID: inputRef}
 	}
 	if refCommit.Commit, err = gitRepo.GetCommit(ctx, refCommit.RefName.String()); err != nil {
 		return nil, err
