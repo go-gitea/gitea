@@ -266,7 +266,7 @@ type FindReleasesOptions struct {
 	TagNames      []string
 	HasSha1       optional.Option[bool] // useful to find draft releases which are created with existing tags
 	NamePattern   optional.Option[string]
-    TagPrefix     string
+	TagPrefix     string
 }
 
 func (opts FindReleasesOptions) ToConds() builder.Cond {
