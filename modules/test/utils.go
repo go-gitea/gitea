@@ -8,6 +8,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -156,10 +157,13 @@ var AllowSkipExternalService = sync.OnceValue(func() bool {
 })
 
 type TestingT interface {
-	Helper()
-	Skipf(format string, args ...any)
+	Cleanup(func())
+	Context() context.Context
 	Errorf(format string, args ...any)
 	Fatalf(format string, args ...any)
+	Helper()
+	Skipf(format string, args ...any)
+	TempDir() string
 }
 
 func ExternalServiceHTTP(t TestingT, envVarName, def string) string {

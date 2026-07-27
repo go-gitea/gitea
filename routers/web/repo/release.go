@@ -19,7 +19,6 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -47,7 +46,7 @@ func calReleaseNumCommitsBehind(ctx stdCtx.Context, repoCtx *context.Repository,
 	}
 	// Get count if not cached
 	if _, ok := countCache[target]; !ok {
-		commit, err := repoCtx.GitRepo.GetBranchCommit(target)
+		commit, err := repoCtx.GitRepo.GetBranchCommit(ctx, target)
 		if err != nil {
 			var errNotExist git.ErrNotExist
 			if target == repoCtx.Repository.DefaultBranch || !errors.As(err, &errNotExist) {
@@ -55,12 +54,12 @@ func calReleaseNumCommitsBehind(ctx stdCtx.Context, repoCtx *context.Repository,
 			}
 			// fallback to default branch
 			target = repoCtx.Repository.DefaultBranch
-			commit, err = repoCtx.GitRepo.GetBranchCommit(target)
+			commit, err = repoCtx.GitRepo.GetBranchCommit(ctx, target)
 			if err != nil {
 				return fmt.Errorf("GetBranchCommit(DefaultBranch): %w", err)
 			}
 		}
-		countCache[target], err = gitrepo.CommitsCountOfCommit(ctx, repoCtx.Repository, commit.ID.String())
+		countCache[target], err = git.CommitsCountOfCommit(ctx, repoCtx.Repository, commit.ID.String())
 		if err != nil {
 			return fmt.Errorf("CommitsCount: %w", err)
 		}
@@ -500,7 +499,7 @@ func NewReleasePost(ctx *context.Context) {
 			IsPrerelease: form.Prerelease,
 			IsTag:        false,
 		}
-		if err = release_service.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs, newTagMsg); err != nil {
+		if err = release_service.CreateRelease(ctx, ctx.Repo.GitRepo, rel, attachmentUUIDs, newTagMsg); err != nil {
 			handleTagReleaseError(err)
 			return
 		}

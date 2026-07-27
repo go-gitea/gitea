@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	issue_service "gitea.dev/services/issue"
+	"gitea.dev/services/notifications"
 	pull_service "gitea.dev/services/pull"
 )
 
@@ -175,7 +176,7 @@ func NotificationStatusPost(ctx *context.Context) {
 	default:
 		return // ignore user's invalid input
 	}
-	if _, err := activities_model.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
+	if _, err := notifications.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
 		ctx.ServerError("SetNotificationStatus", err)
 		return
 	}
@@ -189,9 +190,8 @@ func NotificationStatusPost(ctx *context.Context) {
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
 func NotificationPurgePost(ctx *context.Context) {
-	err := activities_model.UpdateNotificationStatuses(ctx, ctx.Doer, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead)
-	if err != nil {
-		ctx.ServerError("UpdateNotificationStatuses", err)
+	if err := notifications.MarkAllRead(ctx, ctx.Doer); err != nil {
+		ctx.ServerError("MarkAllRead", err)
 		return
 	}
 

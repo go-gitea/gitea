@@ -3,7 +3,6 @@ import globals from 'globals';
 import importPlugin from 'eslint-plugin-import-x';
 import playwright from 'eslint-plugin-playwright';
 import regexp from 'eslint-plugin-regexp';
-import sonarjs from 'eslint-plugin-sonarjs';
 import stylistic from '@stylistic/eslint-plugin';
 import typescriptParser from '@typescript-eslint/parser';
 import typescriptPlugin from 'typescript-eslint';
@@ -64,7 +63,6 @@ export default defineConfig([
       'gitea': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
       'import-x': importPlugin,
       regexp,
-      sonarjs,
       unicorn,
       wc,
     },
@@ -570,7 +568,7 @@ export default defineConfig([
       'no-useless-constructor': [2],
       'no-useless-escape': [2],
       'no-useless-rename': [2],
-      'no-useless-return': [0], // handled by sonarjs/no-redundant-jump
+      'no-useless-return': [2],
       'no-var': [2],
       'no-void': [2],
       'no-warning-comments': [0],
@@ -676,37 +674,6 @@ export default defineConfig([
       'require-await': [0], // handled by @typescript-eslint/require-await
       'require-unicode-regexp': [0],
       'require-yield': [2],
-      'sonarjs/cognitive-complexity': [0],
-      'sonarjs/elseif-without-else': [0],
-      'sonarjs/max-switch-cases': [0],
-      'sonarjs/no-all-duplicated-branches': [2],
-      'sonarjs/no-collapsible-if': [0],
-      'sonarjs/no-collection-size-mischeck': [2],
-      'sonarjs/no-duplicate-string': [0],
-      'sonarjs/no-duplicated-branches': [0],
-      'sonarjs/no-element-overwrite': [2],
-      'sonarjs/no-empty-collection': [2],
-      'sonarjs/no-extra-arguments': [2],
-      'sonarjs/no-gratuitous-expressions': [2],
-      'sonarjs/no-identical-conditions': [0], // handled by no-dupe-else-if
-      'sonarjs/no-identical-expressions': [2],
-      'sonarjs/no-identical-functions': [2, 5],
-      'sonarjs/no-ignored-return': [2],
-      'sonarjs/no-inverted-boolean-check': [2],
-      'sonarjs/no-nested-switch': [0],
-      'sonarjs/no-nested-template-literals': [0],
-      'sonarjs/no-redundant-boolean': [2],
-      'sonarjs/no-redundant-jump': [2],
-      'sonarjs/no-same-line-conditional': [2],
-      'sonarjs/no-small-switch': [0],
-      'sonarjs/no-unused-collection': [2],
-      'sonarjs/no-use-of-empty-return-value': [2],
-      'sonarjs/no-useless-catch': [0], // handled by no-useless-catch
-      'sonarjs/non-existent-operator': [2],
-      'sonarjs/prefer-immediate-return': [0],
-      'sonarjs/prefer-object-literal': [0],
-      'sonarjs/prefer-single-boolean-return': [0],
-      'sonarjs/prefer-while': [2],
       'sort-imports': [0],
       'sort-keys': [0],
       'sort-vars': [0],
@@ -813,6 +780,8 @@ export default defineConfig([
       'unicorn/no-manually-wrapped-comments': [0], // too opinionated
       'unicorn/no-mismatched-map-key': [2],
       'unicorn/no-misrefactored-assignment': [2],
+      'unicorn/no-missing-local-resource': [0], // only applies to html/css/markdown languages
+      'unicorn/no-multiple-promise-resolver-calls': [2],
       'unicorn/no-named-default': [2],
       'unicorn/no-negated-array-predicate': [2],
       'unicorn/no-negated-comparison': [2],
@@ -831,6 +800,7 @@ export default defineConfig([
       'unicorn/no-redundant-comparison': [2],
       'unicorn/no-return-array-push': [2],
       'unicorn/no-selector-as-dom-name': [2],
+      'unicorn/no-shorthand-property-overrides': [0], // only applies to css language
       'unicorn/no-single-promise-in-promise-methods': [2],
       'unicorn/no-static-only-class': [2],
       'unicorn/no-subtraction-comparison': [2],
@@ -839,6 +809,7 @@ export default defineConfig([
       'unicorn/no-this-outside-of-class': [0], // gitea uses `this` in non-class functions
       'unicorn/no-top-level-assignment-in-function': [0],
       'unicorn/no-top-level-side-effects': [0],
+      'unicorn/no-transition-all': [2],
       'unicorn/no-typeof-undefined': [2],
       'unicorn/no-uncalled-method': [2],
       'unicorn/no-undeclared-class-members': [2],
@@ -853,6 +824,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-polyfills': [2],
       'unicorn/no-unnecessary-slice-end': [2],
       'unicorn/no-unnecessary-splice': [2],
+      'unicorn/no-unnecessary-string-trim': [2],
       'unicorn/no-unreadable-array-destructuring': [0],
       'unicorn/no-unreadable-for-of-expression': [0],
       'unicorn/no-unreadable-iife': [0],
@@ -880,6 +852,7 @@ export default defineConfig([
       'unicorn/no-useless-logical-operand': [2],
       'unicorn/no-useless-override': [2],
       'unicorn/no-useless-promise-resolve-reject': [2],
+      'unicorn/no-useless-re-export': [2],
       'unicorn/no-useless-recursion': [0],
       'unicorn/no-useless-spread': [2],
       'unicorn/no-useless-switch-case': [2],
@@ -929,6 +902,7 @@ export default defineConfig([
       'unicorn/prefer-else-if': [2],
       'unicorn/prefer-error-is-error': [0],
       'unicorn/prefer-event-target': [2],
+      'unicorn/prefer-explicit-viewport-units': [0], // only applies to css language
       'unicorn/prefer-export-from': [0],
       'unicorn/prefer-flat-math-min-max': [2],
       'unicorn/prefer-get-or-insert-computed': [2],
@@ -1009,6 +983,7 @@ export default defineConfig([
       'unicorn/prefer-switch': [0],
       'unicorn/prefer-temporal': [0],
       'unicorn/prefer-ternary': [0],
+      'unicorn/prefer-then-catch': [2],
       'unicorn/prefer-toggle-attribute': [2],
       'unicorn/prefer-top-level-await': [0],
       'unicorn/prefer-type-error': [0],
@@ -1025,6 +1000,7 @@ export default defineConfig([
       'unicorn/require-array-join-separator': [2],
       'unicorn/require-array-sort-compare': [0],
       'unicorn/require-css-escape': [2],
+      'unicorn/require-frontmatter-fields': [0], // only applies to markdown language
       'unicorn/require-module-attributes': [2],
       'unicorn/require-module-specifiers': [0],
       'unicorn/require-number-to-fixed-digits-argument': [2],

@@ -16,7 +16,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -109,7 +110,7 @@ func AdoptRepository(ctx context.Context, doer, owner *user_model.User, opts Cre
 }
 
 func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBranch string) (err error) {
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	isExist, err := git.IsRepositoryExist(ctx, repo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return err
@@ -118,7 +119,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 		return fmt.Errorf("adoptRepository: path does not already exist: %s", repo.FullName())
 	}
 
-	if err := gitrepo.CreateDelegateHooks(ctx, repo); err != nil {
+	if err := git.CreateDelegateHooks(ctx, repo); err != nil {
 		return fmt.Errorf("createDelegateHooks: %w", err)
 	}
 
@@ -127,21 +128,21 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 	if len(defaultBranch) > 0 {
 		repo.DefaultBranch = defaultBranch
 
-		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+		if err = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	} else {
-		repo.DefaultBranch, err = gitrepo.GetDefaultBranch(ctx, repo)
+		repo.DefaultBranch, err = git.GetDefaultBranch(ctx, repo)
 		if err != nil {
 			repo.DefaultBranch = setting.Repository.DefaultBranch
-			if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+			if err = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 				return fmt.Errorf("setDefaultBranch: %w", err)
 			}
 		}
 	}
 
 	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		return fmt.Errorf("openRepository: %w", err)
 	}
@@ -191,7 +192,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 			repo.DefaultBranch = setting.Repository.DefaultBranch
 		}
 
-		if err = gitrepo.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
+		if err = git.SetDefaultBranch(ctx, repo, repo.DefaultBranch); err != nil {
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
@@ -213,10 +214,10 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		return err
 	}
 
-	relativePath := repo_model.RelativePath(u.Name, repoName)
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(relativePath))
+	codeRepo := gitrepo.CodeRepoByName(u.Name, repoName)
+	exist, err := git.IsRepositoryExist(ctx, codeRepo)
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", relativePath, err)
+		log.Error("Unable to check if repo %s/%s exists. Error: %v", u.Name, repoName, err)
 		return err
 	}
 	if !exist {
@@ -235,7 +236,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	return gitrepo.DeleteRepository(ctx, repo_model.StorageRepo(relativePath))
+	return git.DeleteRepository(ctx, codeRepo)
 }
 
 type unadoptedRepositories struct {

@@ -278,7 +278,7 @@ func alterRepositoryContent(ctx context.Context, doer *user_model.User, repo *re
 			return err
 		}
 
-		commit, err := t.GetBranchCommit(repo.DefaultBranch)
+		commit, err := t.GetBranchCommit(ctx, repo.DefaultBranch)
 		if err != nil {
 			return err
 		}

@@ -18,7 +18,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -104,13 +103,13 @@ func StartPRCheckAndAutoMergeBySHA(ctx context.Context, sha string, repo *repo_m
 }
 
 func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	gitRepo, err := git.OpenRepository(repo)
 	if err != nil {
 		return nil, err
 	}
 	defer gitRepo.Close()
 
-	refs, err := gitRepo.GetRefsBySha(sha, "")
+	refs, err := gitRepo.GetRefsBySha(ctx, sha, "")
 	if err != nil {
 		return nil, err
 	}
@@ -181,14 +180,14 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	// check the sha is the same as pull request head commit id
-	baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
+	baseGitRepo, err := git.OpenRepository(pr.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return
 	}
 	defer baseGitRepo.Close()
 
-	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if err != nil {
 		log.Error("GetRefCommitID: %v", err)
 		return
@@ -217,7 +216,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 			return
 		}
 	case issues_model.PullRequestFlowAGit:
-		headBranchExist := gitrepo.IsReferenceExist(ctx, pr.BaseRepo, pr.GetGitHeadRefName())
+		headBranchExist := git.IsReferenceExist(ctx, pr.BaseRepo, pr.GetGitHeadRefName())
 		if !headBranchExist {
 			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch(Agit): %s]", pr, pr.HeadRepoID, pr.HeadBranch)
 			return

@@ -265,7 +265,10 @@ func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 	for _, v := range statuses {
-		if v.ContextHash == legacyHash && v.Context == ctxName {
+		// Only adopt the legacy (Context-only) hash from a row the Actions user itself created before the
+		// #35699 fix, i.e. a pre-upgrade in-flight run. Adopting it from an external integration or the API
+		// would collapse two same-named workflows back into a single check.
+		if v.ContextHash == legacyHash && v.Context == ctxName && v.CreatorID == user_model.ActionsUserID {
 			ctxHash = legacyHash
 			break
 		}
