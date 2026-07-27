@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCancelStopwatch, apiCloseIssue, timeoutFactor, randomString} from './utils.ts';
+import {loginUser, baseUrl, apiUserHeaders, apiCreateUser, apiCreateRepo, apiCreateIssue, apiStartStopwatch, apiCancelStopwatch, apiCloseIssue, randomString} from './utils.ts';
 
 // The /-/ws WebSocket pipeline is push-only: every event is fired by the server
 // immediately on the DB write. These tests exercise that each event type
@@ -23,7 +23,7 @@ test.describe('events', () => {
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
     await apiCreateIssue(request, {owner, repo: repoName, title: 'events-notif', headers: apiUserHeaders(commenter)});
-    await expect(badge).toBeVisible({timeout: 5000 * timeoutFactor});
+    await expect(badge).toBeVisible();
   });
 
   test('stopwatch appears and hides via real-time push', async ({page, request}) => {
@@ -49,10 +49,10 @@ test.describe('events', () => {
 
     // Drive both directions from outside this tab; each push must reach it
     await apiStartStopwatch(request, name, name, 1, {headers});
-    await expect(stopwatch).toBeVisible({timeout: 5000 * timeoutFactor});
+    await expect(stopwatch).toBeVisible();
 
     await apiCancelStopwatch(request, name, name, 1, {headers});
-    await expect(stopwatch).toBeHidden({timeout: 5000 * timeoutFactor});
+    await expect(stopwatch).toBeHidden();
   });
 
   // Closing an issue stops the timer away from any stopwatch route handler.
@@ -75,7 +75,7 @@ test.describe('events', () => {
     await expect(page.locator('html[data-user-events-connected]')).toBeAttached();
 
     await apiCloseIssue(request, name, name, 1, {headers});
-    await expect(stopwatch).toBeHidden({timeout: 5000 * timeoutFactor});
+    await expect(stopwatch).toBeHidden();
   });
 
   // Repro for https://github.com/go-gitea/gitea/pull/36965#issuecomment-4321282667:
