@@ -215,7 +215,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 func GetIssueSubscribers(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/subscriptions issue issueSubscriptions
 	// ---
-	// summary: Get users who subscribed on an issue.
+	// summary: Get users effectively subscribed to an issue (explicit watches, participants, repo watchers).
 	// consumes:
 	// - application/json
 	// produces:
@@ -262,18 +262,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	iwl, err := issues_model.GetIssueWatchers(ctx, issue.ID, utils.GetListOptions(ctx))
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	userIDs := make([]int64, 0, len(iwl))
-	for _, iw := range iwl {
-		userIDs = append(userIDs, iw.UserID)
-	}
-
-	users, err := user_model.GetUsersByIDs(ctx, userIDs)
+	users, err := issues_model.GetIssueSubscribers(ctx, issue, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -283,7 +272,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		apiUsers = append(apiUsers, convert.ToUser(ctx, v, ctx.Doer))
 	}
 
-	count, err := issues_model.CountIssueWatchers(ctx, issue.ID)
+	count, err := issues_model.CountIssueSubscribers(ctx, issue)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

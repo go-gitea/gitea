@@ -65,3 +65,28 @@ func TestGetIssueWatchers(t *testing.T) {
 	// Issue has one watcher
 	assert.Len(t, iws, 1)
 }
+
+func TestGetIssueSubscribers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	checkSubscribers := func(issueID int64, expectedNames []string, expectedCount int64) {
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueID})
+		users, err := issues_model.GetIssueSubscribers(t.Context(), issue, db.ListOptions{})
+		assert.NoError(t, err)
+		names := make([]string, 0, len(users))
+		for _, user := range users {
+			names = append(names, user.Name)
+		}
+		assert.ElementsMatch(t, expectedNames, names)
+
+		count, err := issues_model.CountIssueSubscribers(t.Context(), issue)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedCount, count)
+	}
+
+	// issue1: poster user1, commenters user5 (+ inactive org3), repo watchers user1/user4/user11
+	// (user9 inactive explicit watcher excluded; user8 WatchModeDont excluded)
+	checkSubscribers(1, []string{"user1", "user4", "user5", "user11"}, 4)
+	// issue7: poster/explicit watcher user2; user1 explicitly unsubscribed
+	checkSubscribers(7, []string{"user2"}, 1)
+}
