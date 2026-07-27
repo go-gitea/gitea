@@ -24,10 +24,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) *api.ContentsResponse {
+func getExpectedContentsResponseForContents(inputRef string, expectedRef git.RefName, lastCommitSHA string) *api.ContentsResponse {
 	treePath := "README.md"
-	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + ref
-	htmlURL := setting.AppURL + "user2/repo1/src/" + refType + "/" + ref + "/" + treePath
+	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + url.QueryEscape(inputRef)
+	htmlURL := setting.AppURL + "user2/repo1/src/" + expectedRef.RefWebLinkPath() + "/" + treePath
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/4b4851ad51df6a7d9f25c979345979eaeb5b349f"
 	return &api.ContentsResponse{
 		Name:              treePath,
@@ -43,7 +43,7 @@ func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) 
 		URL:               &selfURL,
 		HTMLURL:           &htmlURL,
 		GitURL:            &gitURL,
-		DownloadURL:       new(setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath),
+		DownloadURL:       new(setting.AppURL + "user2/repo1/raw/" + expectedRef.RefWebLinkPath() + "/" + treePath),
 		Links: &api.FileLinksResponse{
 			Self:    &selfURL,
 			GitURL:  &gitURL,
@@ -101,52 +101,47 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	assert.Contains(t, resp.Body.String(), "object does not exist [id: , rel_path: no-such]")
 
 	// ref is default ref
-	ref := repo1.DefaultBranch
-	refType := "branch"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	ref := git.RefNameFromBranch(repo1.DefaultBranch)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref.ShortName())
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse := DecodeJSON(t, resp, &api.ContentsResponse{})
 	lastCommit, _ := gitRepo.GetCommitByPath(t.Context(), "README.md")
-	expectedContentsResponse := getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
+	expectedContentsResponse := getExpectedContentsResponseForContents(ref.ShortName(), ref, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// No ref
-	refType = "branch"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo1.Name, treePath)
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
-	expectedContentsResponse = getExpectedContentsResponseForContents(repo1.DefaultBranch, refType, lastCommit.ID.String())
+	expectedContentsResponse = getExpectedContentsResponseForContents("", ref, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// ref is the branch we created above in setup
-	ref = newBranch
-	refType = "branch"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	ref = git.RefNameFromBranch(newBranch)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref.ShortName())
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
-	branchCommit, _ := gitRepo.GetBranchCommit(t.Context(), ref)
+	branchCommit, _ := gitRepo.GetBranchCommit(t.Context(), ref.ShortName())
 	lastCommit, _ = branchCommit.GetCommitByPath(t.Context(), gitRepo, "README.md")
-	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
+	expectedContentsResponse = getExpectedContentsResponseForContents(ref.ShortName(), ref, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// ref is the new tag we created above in setup
-	ref = newTag
-	refType = "tag"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	ref = git.RefNameFromTag(newTag)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref.ShortName())
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
-	tagCommit, _ := gitRepo.GetTagCommit(t.Context(), ref)
+	tagCommit, _ := gitRepo.GetTagCommit(t.Context(), ref.ShortName())
 	lastCommit, _ = tagCommit.GetCommitByPath(t.Context(), gitRepo, "README.md")
-	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
+	expectedContentsResponse = getExpectedContentsResponseForContents(ref.ShortName(), ref, lastCommit.ID.String())
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// ref is a commit
-	ref = commitID
-	refType = "commit"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
+	ref = git.RefNameFromCommit(commitID)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref.ShortName())
 	resp = MakeRequest(t, req, http.StatusOK)
 	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
-	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, commitID)
+	expectedContentsResponse = getExpectedContentsResponseForContents(ref.ShortName(), ref, commitID)
 	assert.Equal(t, *expectedContentsResponse, *contentsResponse)
 
 	// Test file contents a file with a bad ref

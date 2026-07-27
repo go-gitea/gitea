@@ -47,7 +47,7 @@ func ResolveRefCommit(ctx reqctx.RequestContext, repo *repo_model.Repository, in
 	}
 	if testRefTag != "" {
 		// TODO: use git model instead of git command in the future? Model seems to be faster.
-		if git.IsTagExist(ctx, repo, inputRef) {
+		if git.IsTagExist(ctx, repo, testRefTag.ShortName()) {
 			refCommit.RefName = testRefTag
 		}
 	}
