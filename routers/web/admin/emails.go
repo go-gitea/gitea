@@ -132,14 +132,12 @@ func ActivateEmail(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
 		}
 	} else {
-		if activate {
-			if u, err := user_model.GetUserByID(ctx, uid); err != nil {
-				log.Error("GetUserByID(%d): %v", uid, err)
-			} else if emailAddress, err := user_model.GetEmailAddressOfUser(ctx, email, uid); err != nil {
-				log.Error("GetEmailAddressOfUser(%s, %d): %v", email, uid, err)
-			} else {
-				audit.Record(ctx, audit_model.UserEmailActivate, u, "email", emailAddress.Email)
-			}
+		if u, err := user_model.GetUserByID(ctx, uid); err != nil {
+			log.Error("GetUserByID(%d): %v", uid, err)
+		} else if emailAddress, err := user_model.GetEmailAddressOfUser(ctx, email, uid); err != nil {
+			log.Error("GetEmailAddressOfUser(%s, %d): %v", email, uid, err)
+		} else {
+			audit.Record(ctx, audit_model.UserEmailActivate, u, "email", emailAddress.Email, "activated", activate)
 		}
 
 		log.Info("Activation for User ID: %d, email: %s, primary: %v changed to %v", uid, email, primary, activate)

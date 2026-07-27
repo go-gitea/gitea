@@ -58,7 +58,13 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 			u.Name = oldUserName
 			return err
 		}
-		return repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName)
+		if err := repo_model.UpdateRepositoryOwnerNames(ctx, u.ID, newUserName); err != nil {
+			return err
+		}
+
+		recordNameAudit(ctx, u)
+
+		return nil
 	}
 
 	ctx, committer, err := db.TxContext(ctx)
@@ -117,13 +123,17 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 		return err
 	}
 
+	recordNameAudit(ctx, u)
+
+	return nil
+}
+
+func recordNameAudit(ctx context.Context, u *user_model.User) {
 	if u.IsOrganization() {
 		audit.Record(ctx, audit_model.OrganizationName, u)
 	} else {
 		audit.Record(ctx, audit_model.UserName, u)
 	}
-
-	return nil
 }
 
 // DeleteUser completely and permanently deletes everything of a user,

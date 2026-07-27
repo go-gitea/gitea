@@ -158,7 +158,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserAccessTokenAdd, ctx.Doer, "token", t.Name, "scope", t.Scope)
+	audit.Record(ctx, audit_model.UserAccessTokenAdd, ctx.ContextUser, "token", t.Name, "token_scope", t.Scope)
 
 	ctx.JSON(http.StatusCreated, &api.AccessToken{
 		Name:           t.Name,
@@ -236,7 +236,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserAccessTokenRemove, ctx.Doer, "token", t.Name)
+	audit.Record(ctx, audit_model.UserAccessTokenRemove, ctx.ContextUser, "token", t.Name)
 
 	ctx.Status(http.StatusNoContent)
 }

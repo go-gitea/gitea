@@ -98,7 +98,7 @@ pseudo user (`CLI`, `AuthenticationSource`) named by the background task that tr
 | `user:visibility` | Changed visibility of user |
 | `user:email:primary` | Changed primary email of user |
 | `user:email:add` | Added email to user |
-| `user:email:activate` | Activated email of user |
+| `user:email:activate` | Changed activation status of email of user |
 | `user:email:remove` | Removed email from user |
 | `user:twofactor:enable` | User enabled two-factor authentication |
 | `user:twofactor:regenerate` | User regenerated two-factor authentication secret |

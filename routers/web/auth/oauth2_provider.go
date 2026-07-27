@@ -442,7 +442,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 			return
 		}
 
-		audit.Record(ctx, audit_model.UserOAuth2ApplicationGrant, ctx.Doer, "application", app.Name, "scope", form.Scope)
+		audit.Record(ctx, audit_model.UserOAuth2ApplicationGrant, ctx.Doer, "oauth2_application", app.Name, "granted_scope", form.Scope)
 	} else if grant.Scope != form.Scope {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,

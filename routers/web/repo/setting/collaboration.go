@@ -128,17 +128,20 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 
 	accessMode := perm.AccessMode(ctx.FormInt("mode"))
 
-	if err := repo_model.ChangeCollaborationAccessMode(
+	changed, err := repo_model.ChangeCollaborationAccessMode(
 		ctx,
 		ctx.Repo.Repository,
 		u.ID,
-		accessMode); err != nil {
+		accessMode)
+	if err != nil {
 		log.Error("ChangeCollaborationAccessMode: %v", err)
 		return
 	}
 
-	audit.Record(ctx, audit_model.RepositoryCollaboratorAccess, ctx.Repo.Repository,
-		"collaborator", u.Name, "access_mode", accessMode.ToString())
+	if changed {
+		audit.Record(ctx, audit_model.RepositoryCollaboratorAccess, ctx.Repo.Repository,
+			"collaborator", u.Name, "access_mode", accessMode.ToString())
+	}
 }
 
 // DeleteCollaboration delete a collaboration for a repository

@@ -112,7 +112,7 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	audit.Record(ctx, audit_model.UserAccessTokenAdd, ctx.Doer, "token", t.Name, "scope", t.Scope)
+	audit.Record(ctx, audit_model.UserAccessTokenAdd, ctx.Doer, "token", t.Name, "token_scope", t.Scope)
 
 	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
 	ctx.Flash.Info(t.Token)

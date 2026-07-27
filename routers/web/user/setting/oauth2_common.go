@@ -227,7 +227,7 @@ func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2GrantByID", err)
 		return
 	}
-	if grant == nil {
+	if grant == nil || grant.UserID != oa.ownerID() {
 		ctx.NotFound(nil)
 		return
 	}
