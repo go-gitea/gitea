@@ -176,6 +176,61 @@ func TestConvertUserType(t *testing.T) {
 	})
 }
 
+func TestUsersUserTypeFilter(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{IsAdmin: true, ID: 1})
+	bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	bot.Type = user_model.UserTypeBot
+	assert.NoError(t, user_model.UpdateUserCols(t.Context(), bot, "type"))
+
+	listUsers := func(t *testing.T, query string) []*user_model.User {
+		t.Helper()
+		ctx, _ := contexttest.MockContext(t, "admin/users"+query)
+		ctx.Doer = doer
+		Users(ctx)
+		users, ok := ctx.Data["Users"].([]*user_model.User)
+		assert.True(t, ok)
+		return users
+	}
+
+	t.Run("unfiltered lists bots alongside individuals", func(t *testing.T) {
+		users := listUsers(t, "")
+		assert.Contains(t, userTypes(users), user_model.UserTypeBot)
+		assert.Contains(t, userTypes(users), user_model.UserTypeIndividual)
+	})
+
+	t.Run("bot", func(t *testing.T) {
+		users := listUsers(t, "?user_type=bot")
+		assert.NotEmpty(t, users)
+		for _, u := range users {
+			assert.True(t, u.IsTypeBot(), "user %d is not a bot", u.ID)
+		}
+	})
+
+	t.Run("individual", func(t *testing.T) {
+		users := listUsers(t, "?user_type=individual")
+		assert.NotEmpty(t, users)
+		for _, u := range users {
+			assert.True(t, u.IsIndividual(), "user %d is not an individual", u.ID)
+		}
+	})
+
+	t.Run("unknown value falls back to unfiltered", func(t *testing.T) {
+		users := listUsers(t, "?user_type=nonsense")
+		assert.Contains(t, userTypes(users), user_model.UserTypeBot)
+		assert.Contains(t, userTypes(users), user_model.UserTypeIndividual)
+	})
+}
+
+func userTypes(users []*user_model.User) []user_model.UserType {
+	types := make([]user_model.UserType, 0, len(users))
+	for _, u := range users {
+		types = append(types, u.Type)
+	}
+	return types
+}
+
 func TestImpersonateUser(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 

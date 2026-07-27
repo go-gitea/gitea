@@ -16,22 +16,32 @@ export function initAdminUserListSearchForm(): void {
     }
   }
 
+  if (searchForm.UserTypeFilter) {
+    for (const input of form.querySelectorAll<HTMLInputElement>(`input[name="user_type"][value="${CSS.escape(searchForm.UserTypeFilter)}"]`)) {
+      input.checked = true;
+    }
+  }
+
   for (const radio of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
     radio.addEventListener('click', () => {
       form.submit();
     });
   }
 
-  const resetButtons = form.querySelectorAll<HTMLAnchorElement>('.j-reset-status-filter');
-  for (const button of resetButtons) {
-    button.addEventListener('click', (e) => {
-      e.preventDefault();
-      for (const input of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
-        if (input.name.startsWith('status_filter[')) {
-          input.checked = false;
+  const resetFilter = (selector: string, matchName: (name: string) => boolean) => {
+    for (const button of form.querySelectorAll<HTMLAnchorElement>(selector)) {
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        for (const input of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
+          if (matchName(input.name)) {
+            input.checked = false;
+          }
         }
-      }
-      form.submit();
-    });
-  }
+        form.submit();
+      });
+    }
+  };
+
+  resetFilter('.j-reset-status-filter', (name) => name.startsWith('status_filter['));
+  resetFilter('.j-reset-type-filter', (name) => name === 'user_type');
 }
