@@ -55,6 +55,13 @@ type ActionRunJob struct {
 
 	Status Status `xorm:"index"`
 
+	// QueueRank positions a waiting job in the build queue for runner pickup.
+	// 0 (default) means the natural FIFO position; manually reordered jobs get a negative,
+	// spaced rank (more negative = picked earlier), so the 0-block always sorts at the tail.
+	// It is only meaningful while the job is waiting and unclaimed; stale ranks on
+	// running/finished jobs are never read.
+	QueueRank int64 `xorm:"index NOT NULL DEFAULT 0"`
+
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 
 	// IsConcurrencyEvaluated is only valid/needed when this job's RawConcurrency is not empty.

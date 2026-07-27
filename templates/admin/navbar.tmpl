@@ -72,7 +72,7 @@
 			{{end}}
 		{{end}}
 		{{if .EnableActions}}
-		<details class="item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsVariables .PageIsSharedSettingsScopedWorkflows}}open{{end}}>
+		<details class="item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsVariables .PageIsSharedSettingsScopedWorkflows .PageIsSharedSettingsQueue}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsSharedSettingsRunners}}active {{end}}item" href="{{AppSubUrl}}/-/admin/actions/runners">
@@ -83,6 +83,9 @@
 				</a>
 				<a class="{{if .PageIsSharedSettingsScopedWorkflows}}active {{end}}item" href="{{AppSubUrl}}/-/admin/actions/scoped-workflows">
 					{{ctx.Locale.Tr "actions.scoped_workflows"}}
+				</a>
+				<a class="{{if .PageIsSharedSettingsQueue}}active {{end}}item" href="{{AppSubUrl}}/-/admin/actions/queue">
+					{{ctx.Locale.Tr "actions.queue"}}
 				</a>
 			</div>
 		</details>

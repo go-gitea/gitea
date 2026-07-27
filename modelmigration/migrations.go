@@ -421,6 +421,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
 		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
+		newMigration(343, "Add QueueRank column to ActionRunJob for build queue reordering", v1_27.AddQueueRankToActionRunJob),
 	}
 	return preparedMigrations
 }
