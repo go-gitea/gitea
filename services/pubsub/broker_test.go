@@ -22,15 +22,16 @@ type newBrokerFunc func(t *testing.T) Broker
 func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Duration) {
 	t.Run("PublishWithoutSubscribers", func(t *testing.T) {
 		b := newBroker(t)
-		b.Publish("nobody", []byte("msg")) // must not block or panic
+		b.Publish(t.Name(), []byte("msg")) // must not block or panic
 	})
 
 	t.Run("SubscribeReceivesPublished", func(t *testing.T) {
 		b := newBroker(t)
-		ch, cancel := b.Subscribe("topic")
+		ch, cancel := b.Subscribe(t.Name())
 		defer cancel()
+		waitSubscribed(t, b, t.Name())
 
-		b.Publish("topic", []byte("hello"))
+		b.Publish(t.Name(), []byte("hello"))
 		assert.Equal(t, []byte("hello"), recvWithin(t, ch, recvTimeout))
 	})
 
@@ -39,12 +40,13 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 		const n = 3
 		channels := make([]<-chan []byte, n)
 		for i := range n {
-			ch, cancel := b.Subscribe("topic")
+			ch, cancel := b.Subscribe(t.Name())
 			defer cancel()
 			channels[i] = ch
 		}
+		waitSubscribed(t, b, t.Name()) // one Redis SUBSCRIBE is shared by all local subscribers
 
-		b.Publish("topic", []byte("broadcast"))
+		b.Publish(t.Name(), []byte("broadcast"))
 		for i, ch := range channels {
 			assert.Equal(t, []byte("broadcast"), recvWithin(t, ch, recvTimeout), "subscriber %d", i)
 		}
@@ -52,30 +54,33 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 
 	t.Run("TopicIsolation", func(t *testing.T) {
 		b := newBroker(t)
-		chA, cancelA := b.Subscribe("a")
+		topicA, topicB := t.Name()+"-a", t.Name()+"-b"
+		chA, cancelA := b.Subscribe(topicA)
 		defer cancelA()
-		chB, cancelB := b.Subscribe("b")
+		chB, cancelB := b.Subscribe(topicB)
 		defer cancelB()
+		waitSubscribed(t, b, topicA)
+		waitSubscribed(t, b, topicB)
 
-		b.Publish("a", []byte("only-a"))
+		b.Publish(topicA, []byte("only-a"))
 		assert.Equal(t, []byte("only-a"), recvWithin(t, chA, recvTimeout))
 		assertQuiet(t, chB, 100*time.Millisecond) // topic b must stay silent
 	})
 
 	t.Run("CancelStopsDelivery", func(t *testing.T) {
 		b := newBroker(t)
-		ch, cancel := b.Subscribe("topic")
+		ch, cancel := b.Subscribe(t.Name())
 
 		cancel()
 		_, ok := <-ch
 		assert.False(t, ok, "channel must be closed after cancel")
 
-		b.Publish("topic", []byte("after-cancel")) // must not panic or block
+		b.Publish(t.Name(), []byte("after-cancel")) // must not panic or block
 	})
 
 	t.Run("CancelIsIdempotent", func(t *testing.T) {
 		b := newBroker(t)
-		_, cancel := b.Subscribe("topic")
+		_, cancel := b.Subscribe(t.Name())
 		cancel()
 		assert.NotPanics(t, cancel, "cancel must be safe to call more than once")
 	})
@@ -84,17 +89,18 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 	// the backend's own test file.
 	t.Run("HasTopicSubscribers", func(t *testing.T) {
 		b := newBroker(t)
-		_, cancel := b.Subscribe("topic")
+		_, cancel := b.Subscribe(t.Name())
 		defer cancel()
-		assert.True(t, b.HasTopicSubscribers("topic"), "must report subscribers while one is live")
+		assert.True(t, b.HasTopicSubscribers(t.Name()), "must report subscribers while one is live")
 	})
 
 	t.Run("SlowSubscriberDropsWithoutBlocking", func(t *testing.T) {
 		b := newBroker(t)
-		_, cancelSlow := b.Subscribe("topic") // never drained, buffer overflows
+		_, cancelSlow := b.Subscribe(t.Name()) // never drained, buffer overflows
 		defer cancelSlow()
-		fast, cancelFast := b.Subscribe("topic")
+		fast, cancelFast := b.Subscribe(t.Name())
 		defer cancelFast()
+		waitSubscribed(t, b, t.Name())
 
 		// Drain fast concurrently so it keeps up while slow's buffer fills.
 		got := make(chan struct{}, 1)
@@ -122,7 +128,7 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 		published := make(chan struct{})
 		go func() {
 			for i := range n {
-				b.Publish("topic", []byte{byte(i)})
+				b.Publish(t.Name(), []byte{byte(i)})
 			}
 			close(published)
 		}()
@@ -139,6 +145,26 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 			t.Fatal("fast subscriber received nothing while slow subscriber stalled")
 		}
 	})
+}
+
+// waitSubscribed blocks until Redis has registered the broker's subscription on
+// topic. RedisBroker.Subscribe deliberately returns before the server acks
+// SUBSCRIBE, so a publish issued right after it would otherwise race the
+// subscription and be dropped. MemoryBroker registers synchronously, so this is
+// a no-op for it.
+//
+// Each scenario uses its own topic, so any registered subscriber is this one.
+func waitSubscribed(t *testing.T, b Broker, topic string) {
+	t.Helper()
+	rb, ok := b.(*RedisBroker)
+	if !ok {
+		return
+	}
+	channel := redisChannelForTopic(topic)
+	require.Eventually(t, func() bool {
+		res, err := rb.client.PubSubNumSub(t.Context(), channel).Result()
+		return err == nil && res[channel] > 0
+	}, 5*time.Second, 10*time.Millisecond, "redis did not register a subscriber on %q", topic)
 }
 
 // recvWithin returns the next message or fails if none arrives before timeout.
