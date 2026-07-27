@@ -722,7 +722,7 @@ async function hashChangeListener() {
 
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
-  white-space: break-spaces;
+  white-space: break-spaces; /* commands like "error" support multi-lines and can be encoded as "::error:: foo%0Abar" */
   margin-left: 12px;
   overflow-wrap: anywhere;
 }

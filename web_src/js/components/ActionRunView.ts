@@ -43,6 +43,7 @@ export type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'w
 export type LogLineCommand = {
   name: LogLineCommandName,
   prefix: string,
+  decodeMode?: 'multiple-line',
 };
 
 export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
@@ -55,7 +56,7 @@ export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
   // Handle ::cmd:: and ::cmd args:: format (runner may pass these through raw)
   const match = LogLineCmdPattern.exec(line.message);
   if (match) {
-    return {name: match[1] as LogLineCommandName, prefix: match[0]};
+    return {name: match[1] as LogLineCommandName, prefix: match[0], decodeMode: 'multiple-line'};
   }
   return null;
 }
@@ -67,14 +68,21 @@ const LogLineLabelMap: Partial<Record<LogLineCommandName, string>> = {
   'debug': 'Debug',
 };
 
+function decodeLineMessage(line: LogLine, cmd: LogLineCommand | null): string {
+  // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
+  // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
+  let msg = cmd ? line.message.substring(cmd.prefix.length) : line.message;
+  if (cmd?.decodeMode === 'multiple-line') {
+    msg = msg.replace(/%0D/g, '\r').replace(/%0A/g, '\n').replace(/%25/g, '%');
+  }
+  return msg;
+}
+
 export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
   const logMsgAttrs = {class: 'log-msg'};
   if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd.name}`; // make it easier to add styles to some commands like "error"
 
-  // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
-  // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
-  const msgContent = cmd ? line.message.substring(cmd.prefix.length) : line.message;
-
+  const msgContent = decodeLineMessage(line, cmd);
   const logMsg = createElementFromAttrs('span', logMsgAttrs);
   const label = cmd ? LogLineLabelMap[cmd.name] : null;
   if (label) {

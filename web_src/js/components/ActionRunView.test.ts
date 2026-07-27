@@ -12,7 +12,7 @@ test('LogLineMessage', () => {
     '##[warning] foo': '<span class="log-msg log-cmd-warning"><span class="log-msg-label">Warning:</span><span> foo</span></span>',
     '##[notice] foo': '<span class="log-msg log-cmd-notice"><span class="log-msg-label">Notice:</span><span> foo</span></span>',
     '##[debug] foo': '<span class="log-msg log-cmd-debug"><span class="log-msg-label">Debug:</span><span> foo</span></span>',
-    '::error::foo': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> foo</span></span>',
+    '::error::foo%0Abar': '<span class="log-msg log-cmd-error"><span class="log-msg-label">Error:</span><span> foo\nbar</span></span>',
     '::warning file=test.js,line=1::foo': '<span class="log-msg log-cmd-warning"><span class="log-msg-label">Warning:</span><span> foo</span></span>',
     '::notice::foo': '<span class="log-msg log-cmd-notice"><span class="log-msg-label">Notice:</span><span> foo</span></span>',
     '::debug::foo': '<span class="log-msg log-cmd-debug"><span class="log-msg-label">Debug:</span><span> foo</span></span>',
