@@ -201,7 +201,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		// UUID-based web endpoints would leak draft attachments to any recipient of
 		// the (leaked) download URL.
 		if unitType == unit.TypeReleases && attach.ReleaseID != 0 && !perm.CanWrite(unit.TypeReleases) {
-			rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, attach.ReleaseID)
+			rel, err := repo_model.GetReleaseForRepoByID(ctx, repo.ID, attach.ReleaseID)
 			if err != nil {
 				ctx.ServerError("GetReleaseForRepoByID", err)
 				return
