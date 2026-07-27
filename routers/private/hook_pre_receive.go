@@ -18,7 +18,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/util"
@@ -31,9 +30,7 @@ import (
 type preReceiveContext struct {
 	*gitea_context.PrivateContext
 
-	// loadedPusher indicates that where the following information are loaded
-	loadedPusher        bool
-	user                *user_model.User // it's the org user if a DeployKey is used
+	user                *user_model.User // the "pusher", it's the org user if a DeployKey is used
 	userPerm            access_model.Permission
 	deployKeyAccessMode perm_model.AccessMode
 
@@ -53,10 +50,7 @@ type preReceiveContext struct {
 
 func (ctx *preReceiveContext) canWriteCodeUnit() bool {
 	if ctx.canWriteCodeUnitCached == nil {
-		var canWrite bool
-		if ctx.loadPusherAndPermission() {
-			canWrite = ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
-		}
+		canWrite := ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.canWriteCodeUnitCached = &canWrite
 	}
 	return *ctx.canWriteCodeUnitCached
@@ -91,9 +85,6 @@ func (ctx *preReceiveContext) assertCanWriteRef(refFullName git.RefName) bool {
 // CanCreatePullRequest returns true if pusher can create pull requests
 func (ctx *preReceiveContext) CanCreatePullRequest() bool {
 	if !ctx.checkedCanCreatePullRequest {
-		if !ctx.loadPusherAndPermission() {
-			return false
-		}
 		ctx.canCreatePullRequest = ctx.userPerm.CanRead(unit.TypePullRequests)
 		ctx.checkedCanCreatePullRequest = true
 	}
@@ -122,6 +113,10 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		PrivateContext: ctx,
 		env:            generateGitEnv(opts), // Generate git environment for checking commits
 		opts:           opts,
+	}
+
+	if !ourCtx.loadPusherAndPermission() {
+		return // if error occurs, loadPusherAndPermission had written the error response
 	}
 
 	// Iterate across the provided old commit IDs
@@ -203,12 +198,9 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	// 2. Disallow force pushes to protected branches
 	if oldCommitID != objectFormat.EmptyObjectID().String() {
-		output, _, err := gitrepo.RunCmdString(ctx,
-			repo,
-			gitcmd.NewCommand("rev-list", "--max-count=1").
-				AddDynamicArguments(oldCommitID, "^"+newCommitID).
-				WithEnv(ctx.env),
-		)
+		output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
+			AddDynamicArguments(oldCommitID, "^"+newCommitID).
+			WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -230,7 +222,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	// 3. Enforce require signed commits
 	if protectBranch.RequireSignedCommits {
-		err := verifyCommits(oldCommitID, newCommitID, gitRepo, ctx.env)
+		err := verifyCommits(ctx, oldCommitID, newCommitID, gitRepo, ctx.env)
 		if err != nil {
 			if !isErrUnverifiedCommit(err) {
 				log.Error("Unable to check commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
@@ -256,7 +248,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	globs := protectBranch.GetProtectedFilePatterns()
 	if len(globs) > 0 {
-		_, err := pull_service.CheckFileProtection(gitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
+		_, err := pull_service.CheckFileProtection(ctx, gitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
 		if err != nil {
 			if !pull_service.IsErrFilePathProtected(err) {
 				log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
@@ -281,18 +273,10 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 		}
 	} else {
-		user, err := user_model.GetUserByID(ctx, ctx.opts.UserID)
-		if err != nil {
-			log.Error("Unable to GetUserByID for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unable to GetUserByID for commits from %s to %s: %v", oldCommitID, newCommitID, err),
-			})
-			return
-		}
 		if isForcePush {
-			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, user)
+			canPush = !changedProtectedfiles && protectBranch.CanUserForcePush(ctx, ctx.user)
 		} else {
-			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, user)
+			canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx, ctx.user)
 		}
 	}
 
@@ -314,7 +298,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			// Allow commits that only touch unprotected files
 			globs := protectBranch.GetUnprotectedFilePatterns()
 			if len(globs) > 0 {
-				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(gitRepo, branchName, oldCommitID, newCommitID, globs, ctx.env)
+				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(ctx, gitRepo, branchName, oldCommitID, newCommitID, globs, ctx.env)
 				if err != nil {
 					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 					ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -351,12 +335,6 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: fmt.Sprintf("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err),
 			})
-			return
-		}
-
-		// although we should have called `loadPusherAndPermission` before, here we call it explicitly again because we need to access ctx.user below
-		if !ctx.loadPusherAndPermission() {
-			// if error occurs, loadPusherAndPermission had written the error response
 			return
 		}
 
@@ -499,10 +477,6 @@ func generateGitEnv(opts *private.HookOptions) (env []string) {
 
 // loadPusherAndPermission returns false if an error occurs, and it writes the error response
 func (ctx *preReceiveContext) loadPusherAndPermission() bool {
-	if ctx.loadedPusher {
-		return true
-	}
-
 	if ctx.opts.UserID == user_model.ActionsUserID {
 		taskID := ctx.opts.ActionsTaskID
 		ctx.user = user_model.NewActionsUserWithTaskID(taskID)
@@ -555,7 +529,5 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 		}
 		ctx.deployKeyAccessMode = deployKey.Mode
 	}
-
-	ctx.loadedPusher = true
 	return true
 }

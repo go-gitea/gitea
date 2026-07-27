@@ -54,7 +54,7 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Allow 'color' and 'background-color' properties for the style attribute on text elements.
 	policy.AllowStyles("color", "background-color").OnElements("div", "span", "p", "tr", "th", "td")
 
-	policy.AllowAttrs("src", "autoplay", "controls").OnElements("video")
+	policy.AllowAttrs("src", "autoplay", "controls", "muted", "loop", "playsinline").OnElements("video")
 
 	// Native support of "<picture><source media=... srcset=...><img src=...></picture>"
 	// ATTENTION: it only works with "auto" theme, because "media" query doesn't work with the theme chosen by end user manually.

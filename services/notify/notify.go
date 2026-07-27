@@ -430,3 +430,17 @@ func WorkflowJobStatusUpdate(ctx context.Context, repo *repo_model.Repository, s
 		notifier.WorkflowJobStatusUpdate(ctx, repo, sender, job, task)
 	}
 }
+
+// Callers must invoke this after any DB write affecting the user's unread count.
+func NotificationCountChange(ctx context.Context, userID int64) {
+	for _, notifier := range notifiers {
+		notifier.NotificationCountChange(ctx, userID)
+	}
+}
+
+// Callers must invoke this after any stopwatch start/stop/cancel so the user's connected tabs refresh.
+func StopwatchChanged(ctx context.Context, user *user_model.User) {
+	for _, notifier := range notifiers {
+		notifier.StopwatchChanged(ctx, user)
+	}
+}

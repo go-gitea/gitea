@@ -73,8 +73,11 @@ func TestGetStatusInfoList(t *testing.T) {
 	assert.Equal(t, []StatusInfo{
 		{Status: int(StatusSuccess), StatusName: StatusSuccess.String(), DisplayedStatus: "actions.status.success"},
 		{Status: int(StatusFailure), StatusName: StatusFailure.String(), DisplayedStatus: "actions.status.failure"},
+		{Status: int(StatusCancelled), StatusName: StatusCancelled.String(), DisplayedStatus: "actions.status.cancelled"},
+		{Status: int(StatusSkipped), StatusName: StatusSkipped.String(), DisplayedStatus: "actions.status.skipped"},
 		{Status: int(StatusWaiting), StatusName: StatusWaiting.String(), DisplayedStatus: "actions.status.waiting"},
 		{Status: int(StatusRunning), StatusName: StatusRunning.String(), DisplayedStatus: "actions.status.running"},
+		{Status: int(StatusBlocked), StatusName: StatusBlocked.String(), DisplayedStatus: "actions.status.blocked"},
 		{Status: int(StatusCancelling), StatusName: StatusCancelling.String(), DisplayedStatus: "actions.status.cancelling"},
 	}, statusInfoList)
 }

@@ -69,6 +69,8 @@ type ActionRunJob struct {
 	// Org/repo clamps are enforced when the token is used at runtime.
 	// It is JSON-encoded repo_model.ActionsTokenPermissions and may be empty if not specified.
 	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON TEXT"`
+	// MaxParallel is strategy.max-parallel, shared by all matrix jobs with the same JobID (0 = unlimited).
+	MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
 
 	// RunAttemptID identifies the ActionRunAttempt this job belongs to.
 	// A value of 0 indicates a legacy job created before ActionRunAttempt existed.
@@ -331,6 +333,14 @@ func GetDirectChildJobsByParent(ctx context.Context, parentJob *ActionRunJob) (A
 		return nil, err
 	}
 	return jobs, nil
+}
+
+// DeleteDirectChildJobsByParent deletes the direct child jobs of a parent job.
+func DeleteDirectChildJobsByParent(ctx context.Context, parentJob *ActionRunJob) error {
+	_, err := db.GetEngine(ctx).
+		Where("run_id=? AND parent_job_id=?", parentJob.RunID, parentJob.ID).
+		Delete(new(ActionRunJob))
+	return err
 }
 
 // CollectAllDescendantJobs returns every job in `allJobs` that lives under parent's subtree (recursively), excluding `parent` itself

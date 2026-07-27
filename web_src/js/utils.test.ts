@@ -113,6 +113,12 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
   expect(encodeURLEncodedBase64(uint8array('a'))).toEqual('YQ'); // standard base64: "YQ=="
   expect(new Uint8Array(decodeURLEncodedBase64('YQ'))).toEqual(uint8array('a'));
   expect(new Uint8Array(decodeURLEncodedBase64('YQ=='))).toEqual(uint8array('a'));
+
+  expect(encodeURLEncodedBase64(uint8array('AA'))).toEqual('QUE'); // standard base64: "QUE="
+  expect(new Uint8Array(decodeURLEncodedBase64('QUE'))).toEqual(uint8array('AA'));
+
+  const allBytes = Uint8Array.from({length: 256}, (_, i) => i);
+  expect(new Uint8Array(decodeURLEncodedBase64(encodeURLEncodedBase64(allBytes)))).toEqual(allBytes);
 });
 
 test('formatBytes', () => {

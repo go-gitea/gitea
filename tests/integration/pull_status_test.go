@@ -210,7 +210,7 @@ func TestPullStatusDelayCheck(t *testing.T) {
 		})
 		assert.Equal(t, issues.PullRequestStatusChecking, issue3.PullRequest.Status)
 		assert.Zero(t, checkedPrID)
-		assertReloadingInterval(t, "2000") // the PR status is "checking", so try to reload the merge box
+		assertReloadingInterval(t, "5000") // the PR status is "checking", so try to reload the merge box
 
 		// view a PR with status=checking, it starts the real check
 		issue3, checkedPrID = run(t, func(t *testing.T) {

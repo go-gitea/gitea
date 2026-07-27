@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -15,6 +16,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
@@ -26,7 +28,7 @@ type jobUpdate struct {
 	RunID int64
 }
 
-func EmitJobsIfReadyByRun(runID int64) error {
+var EmitJobsIfReadyByRun = func(runID int64) error {
 	err := jobEmitterQueue.Push(&jobUpdate{
 		RunID: runID,
 	})
@@ -96,7 +98,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 			continue
 		}
 		if err := EmitJobsIfReadyByRun(rid); err != nil {
-			log.Error("re-emit run %d after caller expansion: %v", rid, err)
+			log.Error("re-emit run %d: %v", rid, err)
 		}
 	}
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, result.CancelledJobs)
@@ -147,57 +149,66 @@ func createCommitStatusesForJobsByRun(ctx context.Context, jobs []*actions_model
 	return nil
 }
 
-// findBlockedRunIDByConcurrency finds a blocked concurrent run in a repo and returns 0 when there is no blocked run.
-func findBlockedRunIDByConcurrency(ctx context.Context, repoID int64, concurrencyGroup string) (int64, error) {
+// findConcurrencyWaiterToWake returns a run (other than excludeRunID) blocked on the group that can be woken now
+func findConcurrencyWaiterToWake(ctx context.Context, repoID, excludeRunID int64, concurrencyGroup string) (int64, error) {
 	if concurrencyGroup == "" {
 		return 0, nil
 	}
+
+	// The slot should be free before any waiter can proceed.
+	holderAttempts, holderJobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, repoID, concurrencyGroup, []actions_model.Status{actions_model.StatusRunning, actions_model.StatusCancelling})
+	if err != nil {
+		return 0, fmt.Errorf("find concurrency-group holders: %w", err)
+	}
+	if len(holderAttempts) > 0 || len(holderJobs) > 0 {
+		return 0, nil
+	}
+
 	cAttempts, cJobs, err := actions_model.GetConcurrentRunAttemptsAndJobs(ctx, repoID, concurrencyGroup, []actions_model.Status{actions_model.StatusBlocked})
 	if err != nil {
-		return 0, fmt.Errorf("find concurrent runs and jobs: %w", err)
+		return 0, fmt.Errorf("find blocked concurrent runs: %w", err)
 	}
-
-	if len(cAttempts) > 0 {
-		return cAttempts[0].RunID, nil
+	for _, a := range cAttempts {
+		if a.RunID != excludeRunID {
+			return a.RunID, nil
+		}
 	}
-	if len(cJobs) > 0 {
-		return cJobs[0].RunID, nil
+	for _, j := range cJobs {
+		if j.RunID != excludeRunID {
+			return j.RunID, nil
+		}
 	}
-
 	return 0, nil
 }
 
-func checkBlockedConcurrentRun(ctx context.Context, repoID, runID int64) (*jobsCheckResult, error) {
-	concurrentRun, err := actions_model.GetRunByRepoAndID(ctx, repoID, runID)
-	if err != nil {
-		return nil, fmt.Errorf("get run %d: %w", runID, err)
-	}
-	if concurrentRun.NeedApproval {
-		return &jobsCheckResult{}, nil
-	}
-
-	return checkJobsOfCurrentRunAttempt(ctx, concurrentRun)
-}
-
-// checkRunConcurrency rechecks runs blocked by concurrency that may become unblocked after the current run releases a workflow-level or job-level concurrency group.
-// RunIDsToReEmit propagates from inner checkJobsOfCurrentRunAttempt calls; see that function's doc.
+// checkRunConcurrency wakes a run blocked by concurrency that may become runnable now that
+// the current run's activity may have freed a workflow-level or job-level concurrency group.
 func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (*jobsCheckResult, error) {
 	result := &jobsCheckResult{}
 	checkedConcurrencyGroup := make(container.Set[string])
 
 	collect := func(concurrencyGroup string) error {
-		concurrentRunID, err := findBlockedRunIDByConcurrency(ctx, run.RepoID, concurrencyGroup)
-		if err != nil {
-			return fmt.Errorf("find blocked run by concurrency: %w", err)
-		}
-		if concurrentRunID > 0 {
-			r, err := checkBlockedConcurrentRun(ctx, run.RepoID, concurrentRunID)
-			if err != nil {
-				return err
-			}
-			result.merge(r)
-		}
 		checkedConcurrencyGroup.Add(concurrencyGroup)
+
+		// Exclude run.ID: this run's own jobs are resolved by checkJobsOfCurrentRunAttempt, no need to re-emit.
+		concurrentRunID, err := findConcurrencyWaiterToWake(ctx, run.RepoID, run.ID, concurrencyGroup)
+		if err != nil {
+			return err
+		}
+		if concurrentRunID == 0 {
+			return nil
+		}
+
+		concurrentRun, err := actions_model.GetRunByRepoAndID(ctx, run.RepoID, concurrentRunID)
+		if err != nil {
+			return fmt.Errorf("get concurrent run %d: %w", concurrentRunID, err)
+		}
+		// A run awaiting approval is not advanced by concurrency; ApproveRuns emits it once approved.
+		if concurrentRun.NeedApproval {
+			return nil
+		}
+
+		result.RunIDsToReEmit = append(result.RunIDsToReEmit, concurrentRunID)
 		return nil
 	}
 
@@ -282,10 +293,26 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 				switch status {
 				case actions_model.StatusWaiting:
 					if err := expandReusableWorkflowCaller(ctx, run, attempt, job, vars); err != nil {
-						return fmt.Errorf("trigger caller-ready %d: %w", job.ID, err)
+						// Terminal expansion failure (an invalid/unresolvable reusable workflow): fail this caller.
+						log.Warn("caller %d cannot be expanded: %v", job.ID, err)
+						job.Status = actions_model.StatusFailure
+						job.Stopped = timeutil.TimeStampNow()
+						if n, uerr := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked, "is_expanded": false}, "status", "stopped"); uerr != nil {
+							return fmt.Errorf("mark unexpandable caller %d failed: %w", job.ID, uerr)
+						} else if n == 1 {
+							log.Warn("unexpandable caller %d has been marked as failed", job.ID)
+							result.UpdatedJobs = append(result.UpdatedJobs, job)
+							// Re-emit so the failed caller's dependents get resolved on the next pass.
+							expandedAnyCaller = true
+						} else {
+							// A concurrent writer advanced the caller; restore the in-memory state.
+							log.Warn("unexpandable caller %d has been advanced by a concurrent writer, not marking it failed", job.ID)
+							job.Status = actions_model.StatusBlocked
+							job.Stopped = 0
+						}
+					} else {
+						expandedAnyCaller = true
 					}
-					// expandReusableWorkflowCaller inserts children as Blocked. They need a follow-up resolver pass.
-					expandedAnyCaller = true
 				case actions_model.StatusSkipped:
 					job.Status = actions_model.StatusSkipped
 					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status"); err != nil {
@@ -317,7 +344,10 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 }
 
 type jobStatusResolver struct {
-	statuses      map[int64]actions_model.Status
+	statuses map[int64]actions_model.Status
+	// sortedIDs are the keys of statuses, so blocked jobs are resolved in insertion order.
+	// Resolve only ever rewrites statuses values, never its key set.
+	sortedIDs     []int64
 	needs         map[int64][]int64
 	jobMap        map[int64]*actions_model.ActionRunJob
 	vars          map[string]string
@@ -341,8 +371,10 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 
 	statuses := make(map[int64]actions_model.Status, len(jobs))
 	needs := make(map[int64][]int64, len(jobs))
+	sortedIDs := make([]int64, 0, len(jobs))
 	for _, job := range jobs {
 		statuses[job.ID] = job.Status
+		sortedIDs = append(sortedIDs, job.ID)
 		scope := scopedIDToJobs[job.ParentJobID]
 		for _, need := range job.Needs {
 			for _, v := range scope[need] {
@@ -350,11 +382,13 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 			}
 		}
 	}
+	slices.Sort(sortedIDs)
 	return &jobStatusResolver{
-		statuses: statuses,
-		needs:    needs,
-		jobMap:   jobMap,
-		vars:     vars,
+		statuses:  statuses,
+		sortedIDs: sortedIDs,
+		needs:     needs,
+		jobMap:    jobMap,
+		vars:      vars,
 	}
 }
 
@@ -394,9 +428,20 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 
 func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
+
+	slots := maxParallelSlots{}
 	for id, status := range r.statuses {
+		slots.hold(r.jobMap[id], status)
+	}
+
+	for _, id := range r.sortedIDs {
+		status := r.statuses[id]
 		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
+			continue
+		}
+		// An expanded caller has been resolved in an earlier pass, skip.
+		if actionRunJob.IsReusableCaller && actionRunJob.IsExpanded {
 			continue
 		}
 		// A child of a caller cannot start until the caller has become "ready" (children inserted, CallPayload populated).
@@ -407,6 +452,11 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 		}
 		allDone, allSucceed := r.resolveCheckNeeds(id)
 		if !allDone {
+			continue
+		}
+
+		// A slot-starved job cannot start, skip the following checks.
+		if !slots.available(actionRunJob) {
 			continue
 		}
 
@@ -436,6 +486,10 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			} else {
 				r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
 			}
+		}
+
+		if newStatus == actions_model.StatusWaiting && !slots.take(actionRunJob) {
+			continue // no free slot, leave blocked
 		}
 
 		if newStatus != actions_model.StatusBlocked {
@@ -477,7 +531,7 @@ type jobsCheckResult struct {
 	UpdatedJobs []*actions_model.ActionRunJob
 	// CancelledJobs are jobs cancelled by job-level concurrency while preparing to start.
 	CancelledJobs []*actions_model.ActionRunJob
-	// RunIDsToReEmit are runs whose newly expanded reusable workflow callers need another resolver pass.
+	// RunIDsToReEmit are runs that need another resolver pass in their own transaction.
 	RunIDsToReEmit []int64
 }
 

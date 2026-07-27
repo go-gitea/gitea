@@ -26,6 +26,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/explore"
 	user_setting "gitea.dev/routers/web/user/setting"
+	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
@@ -450,32 +451,28 @@ func EditUserPost(ctx *context.Context) {
 	log.Trace("Account profile updated by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	if form.Reset2FA {
-		tf, err := auth.GetTwoFactorByUID(ctx, u.ID)
-		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("auth.GetTwoFactorByUID", err)
+		if _, _, err := auth.DisableTwoFactor(ctx, u.ID); err != nil {
+			ctx.ServerError("auth.DisableTwoFactor", err)
 			return
-		} else if tf != nil {
-			if err := auth.DeleteTwoFactorByID(ctx, tf.ID, u.ID); err != nil {
-				ctx.ServerError("auth.DeleteTwoFactorByID", err)
-				return
-			}
-		}
-
-		wn, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
-		if err != nil {
-			ctx.ServerError("auth.GetTwoFactorByUID", err)
-			return
-		}
-		for _, cred := range wn {
-			if _, err := auth.DeleteCredential(ctx, cred.ID, u.ID); err != nil {
-				ctx.ServerError("auth.DeleteCredential", err)
-				return
-			}
 		}
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+}
+
+func ImpersonateUser(ctx *context.Context) {
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
+	if err != nil {
+		ctx.JSONError("unable to get user")
+		return
+	}
+	err = auth_service.ImpersonateUser(ctx.Session, u)
+	if err != nil {
+		ctx.ServerError("unable to impersonate user", err)
+		return
+	}
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 
 // DeleteUser response for deleting a user

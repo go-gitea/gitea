@@ -92,9 +92,12 @@ func TestTemplateEscape(t *testing.T) {
 	}
 
 	t.Run("Golang URL Escape", func(t *testing.T) {
-		// Golang template considers "href", "*src*", "*uri*", "*url*" (and more) ... attributes as contentTypeURL and does auto-escaping
+		// HINT: GOLANG-HTML-TEMPLATE-URL-ESCAPING: demo cases (html/template/attr.go):
+		// Golang template considers "href", "data-href", "*src*", "*uri*", "*url*" (and more) ... attributes as contentTypeURL and does auto-escaping
 		actual := execTmpl(`<a href="?a={{"%"}}"></a>`)
 		assert.Equal(t, `<a href="?a=%25"></a>`, actual)
+		actual = execTmpl(`<a data-href="?a={{"%"}}"></a>`)
+		assert.Equal(t, `<a data-href="?a=%25"></a>`, actual)
 		actual = execTmpl(`<a data-xxx-url="?a={{"%"}}"></a>`)
 		assert.Equal(t, `<a data-xxx-url="?a=%25"></a>`, actual)
 	})
@@ -102,6 +105,10 @@ func TestTemplateEscape(t *testing.T) {
 		// non-URL content isn't auto-escaped
 		actual := execTmpl(`<a data-link="?a={{"%"}}"></a>`)
 		assert.Equal(t, `<a data-link="?a=%"></a>`, actual)
+		// the attr names like "data-href" and "data-action" are treated as URL (as the "data-" prefix is stripped)
+		// but "data-xxx-href" and "data-xxx-action" are not, so no escaping.
+		actual = execTmpl(`<a data-xxx-href="?a={{"%"}}"></a>`)
+		assert.Equal(t, `<a data-xxx-href="?a=%"></a>`, actual)
 	})
 	t.Run("QueryBuild", func(t *testing.T) {
 		actual := execTmpl(`<a href="{{QueryBuild "?" "a" "%"}}"></a>`)

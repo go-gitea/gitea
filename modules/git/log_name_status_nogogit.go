@@ -21,7 +21,7 @@ import (
 )
 
 // logNameStatusRepo opens git log --raw in the provided repo and returns a parser
-func logNameStatusRepo(ctx context.Context, repository, head, treepath string, paths ...string) *logNameStatusRepoParser {
+func logNameStatusRepo(ctx context.Context, repo RepositoryFacade, head, treepath string, paths ...string) *logNameStatusRepoParser {
 	cmd := gitcmd.NewCommand()
 	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
 
@@ -53,7 +53,7 @@ func logNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	ctx, ctxCancel := context.WithCancel(ctx)
 	go func() {
-		err := cmd.WithDir(repository).RunWithStderr(ctx)
+		err := cmd.WithRepo(repo).RunWithStderr(ctx)
 		if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 			log.Error("Unable to run git command %v: %v", cmd.LogString(), err)
 		}
@@ -263,13 +263,12 @@ var walkGitLogDebugBeforeNext func() // is used to simulate various edge git pro
 // walkGitLog walks the git log --name-status for the head commit in the provided treepath and files
 func walkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
 	headRef := head.ID.String()
-
-	tree, err := head.SubTree(treepath)
+	tree, err := head.SubTree(ctx, repo, treepath)
 	if err != nil {
 		return nil, err
 	}
 
-	entries, err := tree.ListEntries()
+	entries, err := tree.ListEntries(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -304,7 +303,7 @@ func walkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 		}
 	}
 
-	g := logNameStatusRepo(ctx, repo.Path, head.ID.String(), treepath, paths...)
+	g := logNameStatusRepo(ctx, repo, head.ID.String(), treepath, paths...)
 	// don't use defer g.cancel() here as g may change its value - instead wrap in a func
 	defer func() { g.close() }()
 
@@ -373,7 +372,7 @@ heaploop:
 					}
 				}
 				g.close()
-				g = logNameStatusRepo(ctx, repo.Path, lastEmptyParent, treepath, remainingPaths...)
+				g = logNameStatusRepo(ctx, repo, lastEmptyParent, treepath, remainingPaths...)
 				parentRemaining = make(container.Set[string])
 				nextRestart = (remaining * 3) / 4
 				continue heaploop

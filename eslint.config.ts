@@ -1,11 +1,8 @@
-import arrayFunc from 'eslint-plugin-array-func';
 import comments from '@eslint-community/eslint-plugin-eslint-comments';
-import deMorgan from 'eslint-plugin-de-morgan';
 import globals from 'globals';
 import importPlugin from 'eslint-plugin-import-x';
 import playwright from 'eslint-plugin-playwright';
 import regexp from 'eslint-plugin-regexp';
-import sonarjs from 'eslint-plugin-sonarjs';
 import stylistic from '@stylistic/eslint-plugin';
 import typescriptParser from '@typescript-eslint/parser';
 import typescriptPlugin from 'typescript-eslint';
@@ -15,7 +12,6 @@ import vue from 'eslint-plugin-vue';
 import vueScopedCss from 'eslint-plugin-vue-scoped-css';
 import wc from 'eslint-plugin-wc';
 import {defineConfig, globalIgnores} from 'eslint/config';
-import type {ESLint} from 'eslint';
 
 import unescapedHtmlLiteral from './tools/eslint-rules/unescaped-html-literal.ts';
 
@@ -64,12 +60,9 @@ export default defineConfig([
       '@eslint-community/eslint-comments': comments,
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
-      'array-func': arrayFunc,
-      'de-morgan': deMorgan,
       'gitea': {rules: {'unescaped-html-literal': unescapedHtmlLiteral}},
-      'import-x': importPlugin as unknown as ESLint.Plugin, // https://github.com/un-ts/eslint-plugin-import-x/issues/203
+      'import-x': importPlugin,
       regexp,
-      sonarjs,
       unicorn,
       wc,
     },
@@ -278,12 +271,6 @@ export default defineConfig([
       '@typescript-eslint/unified-signatures': [2],
       'accessor-pairs': [2],
       'array-callback-return': [2, {checkForEach: true}],
-      'array-func/avoid-reverse': [2],
-      'array-func/from-map': [2],
-      'array-func/no-unnecessary-this-arg': [2],
-      'array-func/prefer-array-from': [2],
-      'array-func/prefer-flat-map': [0], // handled by unicorn/prefer-array-flat-map
-      'array-func/prefer-flat': [0], // handled by unicorn/prefer-array-flat
       'arrow-body-style': [0],
       'block-scoped-var': [2],
       'camelcase': [0],
@@ -294,8 +281,6 @@ export default defineConfig([
       'consistent-this': [0],
       'constructor-super': [2],
       'curly': [0],
-      'de-morgan/no-negated-conjunction': [2],
-      'de-morgan/no-negated-disjunction': [2],
       'default-case-last': [2],
       'default-case': [0],
       'default-param-last': [0],
@@ -583,7 +568,7 @@ export default defineConfig([
       'no-useless-constructor': [2],
       'no-useless-escape': [2],
       'no-useless-rename': [2],
-      'no-useless-return': [0], // handled by sonarjs/no-redundant-jump
+      'no-useless-return': [2],
       'no-var': [2],
       'no-void': [2],
       'no-warning-comments': [0],
@@ -689,37 +674,6 @@ export default defineConfig([
       'require-await': [0], // handled by @typescript-eslint/require-await
       'require-unicode-regexp': [0],
       'require-yield': [2],
-      'sonarjs/cognitive-complexity': [0],
-      'sonarjs/elseif-without-else': [0],
-      'sonarjs/max-switch-cases': [0],
-      'sonarjs/no-all-duplicated-branches': [2],
-      'sonarjs/no-collapsible-if': [0],
-      'sonarjs/no-collection-size-mischeck': [2],
-      'sonarjs/no-duplicate-string': [0],
-      'sonarjs/no-duplicated-branches': [0],
-      'sonarjs/no-element-overwrite': [2],
-      'sonarjs/no-empty-collection': [2],
-      'sonarjs/no-extra-arguments': [2],
-      'sonarjs/no-gratuitous-expressions': [2],
-      'sonarjs/no-identical-conditions': [0], // handled by no-dupe-else-if
-      'sonarjs/no-identical-expressions': [2],
-      'sonarjs/no-identical-functions': [2, 5],
-      'sonarjs/no-ignored-return': [2],
-      'sonarjs/no-inverted-boolean-check': [2],
-      'sonarjs/no-nested-switch': [0],
-      'sonarjs/no-nested-template-literals': [0],
-      'sonarjs/no-redundant-boolean': [2],
-      'sonarjs/no-redundant-jump': [2],
-      'sonarjs/no-same-line-conditional': [2],
-      'sonarjs/no-small-switch': [0],
-      'sonarjs/no-unused-collection': [2],
-      'sonarjs/no-use-of-empty-return-value': [2],
-      'sonarjs/no-useless-catch': [0], // handled by no-useless-catch
-      'sonarjs/non-existent-operator': [2],
-      'sonarjs/prefer-immediate-return': [0],
-      'sonarjs/prefer-object-literal': [0],
-      'sonarjs/prefer-single-boolean-return': [0],
-      'sonarjs/prefer-while': [2],
       'sort-imports': [0],
       'sort-keys': [0],
       'sort-vars': [0],
@@ -745,6 +699,7 @@ export default defineConfig([
       'unicorn/consistent-json-file-read': [2],
       'unicorn/consistent-optional-chaining': [2],
       'unicorn/consistent-template-literal-escape': [2],
+      'unicorn/consistent-tuple-labels': [2],
       'unicorn/custom-error-definition': [0],
       'unicorn/default-export-style': [2],
       'unicorn/dom-node-dataset': [2, {preferAttributes: true}],
@@ -778,6 +733,7 @@ export default defineConfig([
       'unicorn/no-array-sort-for-min-max': [2],
       'unicorn/no-array-splice': [0],
       'unicorn/no-asterisk-prefix-in-documentation-comments': [0],
+      'unicorn/no-async-promise-finally': [2],
       'unicorn/no-await-expression-member': [0],
       'unicorn/no-await-in-promise-methods': [2],
       'unicorn/no-blob-to-file': [2],
@@ -814,14 +770,18 @@ export default defineConfig([
       'unicorn/no-invalid-fetch-options': [2],
       'unicorn/no-invalid-file-input-accept': [2],
       'unicorn/no-invalid-remove-event-listener': [2],
+      'unicorn/no-invalid-well-known-symbol-methods': [2],
       'unicorn/no-keyword-prefix': [0],
       'unicorn/no-late-current-target-access': [2],
+      'unicorn/no-late-event-control': [2],
       'unicorn/no-lonely-if': [2],
       'unicorn/no-loop-iterable-mutation': [2],
       'unicorn/no-magic-array-flat-depth': [0],
       'unicorn/no-manually-wrapped-comments': [0], // too opinionated
       'unicorn/no-mismatched-map-key': [2],
       'unicorn/no-misrefactored-assignment': [2],
+      'unicorn/no-missing-local-resource': [0], // only applies to html/css/markdown languages
+      'unicorn/no-multiple-promise-resolver-calls': [2],
       'unicorn/no-named-default': [2],
       'unicorn/no-negated-array-predicate': [2],
       'unicorn/no-negated-comparison': [2],
@@ -840,6 +800,7 @@ export default defineConfig([
       'unicorn/no-redundant-comparison': [2],
       'unicorn/no-return-array-push': [2],
       'unicorn/no-selector-as-dom-name': [2],
+      'unicorn/no-shorthand-property-overrides': [0], // only applies to css language
       'unicorn/no-single-promise-in-promise-methods': [2],
       'unicorn/no-static-only-class': [2],
       'unicorn/no-subtraction-comparison': [2],
@@ -848,18 +809,22 @@ export default defineConfig([
       'unicorn/no-this-outside-of-class': [0], // gitea uses `this` in non-class functions
       'unicorn/no-top-level-assignment-in-function': [0],
       'unicorn/no-top-level-side-effects': [0],
+      'unicorn/no-transition-all': [2],
       'unicorn/no-typeof-undefined': [2],
       'unicorn/no-uncalled-method': [2],
       'unicorn/no-undeclared-class-members': [2],
       'unicorn/no-unnecessary-array-flat-depth': [2],
+      'unicorn/no-unnecessary-array-flat-map': [2],
       'unicorn/no-unnecessary-array-splice-count': [2],
       'unicorn/no-unnecessary-await': [2],
       'unicorn/no-unnecessary-boolean-comparison': [2],
+      'unicorn/no-unnecessary-fetch-options': [0],
       'unicorn/no-unnecessary-global-this': [0],
       'unicorn/no-unnecessary-nested-ternary': [2],
       'unicorn/no-unnecessary-polyfills': [2],
       'unicorn/no-unnecessary-slice-end': [2],
       'unicorn/no-unnecessary-splice': [2],
+      'unicorn/no-unnecessary-string-trim': [2],
       'unicorn/no-unreadable-array-destructuring': [0],
       'unicorn/no-unreadable-for-of-expression': [0],
       'unicorn/no-unreadable-iife': [0],
@@ -867,6 +832,7 @@ export default defineConfig([
       'unicorn/no-unreadable-object-destructuring': [0],
       'unicorn/no-unsafe-buffer-conversion': [2],
       'unicorn/no-unsafe-dom-html': [0],
+      'unicorn/no-unsafe-promise-all-settled-values': [2],
       'unicorn/no-unsafe-property-key': [0],
       'unicorn/no-unsafe-string-replacement': [0],
       'unicorn/no-unused-array-method-return': [2],
@@ -886,6 +852,7 @@ export default defineConfig([
       'unicorn/no-useless-logical-operand': [2],
       'unicorn/no-useless-override': [2],
       'unicorn/no-useless-promise-resolve-reject': [2],
+      'unicorn/no-useless-re-export': [2],
       'unicorn/no-useless-recursion': [0],
       'unicorn/no-useless-spread': [2],
       'unicorn/no-useless-switch-case': [2],
@@ -896,13 +863,17 @@ export default defineConfig([
       'unicorn/number-literal-case': [0],
       'unicorn/numeric-separators-style': [0],
       'unicorn/operator-assignment': [2],
+      'unicorn/prefer-abort-signal-any': [2],
+      'unicorn/prefer-abort-signal-timeout': [2],
       'unicorn/prefer-add-event-listener': [2],
       'unicorn/prefer-add-event-listener-options': [2],
+      'unicorn/prefer-aggregate-error': [2],
       'unicorn/prefer-array-find': [0], // handled by @typescript-eslint/prefer-find
       'unicorn/prefer-array-flat': [2],
       'unicorn/prefer-array-flat-map': [2],
       'unicorn/prefer-array-from-async': [2],
       'unicorn/prefer-array-from-map': [2],
+      'unicorn/prefer-array-from-range': [2],
       'unicorn/prefer-array-index-of': [2],
       'unicorn/prefer-array-iterable-methods': [2],
       'unicorn/prefer-array-last-methods': [2],
@@ -912,6 +883,7 @@ export default defineConfig([
       'unicorn/prefer-await': [2],
       'unicorn/prefer-bigint-literals': [2],
       'unicorn/prefer-blob-reading-methods': [2],
+      'unicorn/prefer-block-statement-over-iife': [2],
       'unicorn/prefer-boolean-return': [2],
       'unicorn/prefer-class-fields': [2],
       'unicorn/prefer-classlist-toggle': [2],
@@ -924,15 +896,19 @@ export default defineConfig([
       'unicorn/prefer-dom-node-append': [2],
       'unicorn/prefer-dom-node-html-methods': [0],
       'unicorn/prefer-dom-node-remove': [2],
+      'unicorn/prefer-dom-node-replace-children': [2],
       'unicorn/prefer-dom-node-text-content': [2],
       'unicorn/prefer-early-return': [0],
       'unicorn/prefer-else-if': [2],
+      'unicorn/prefer-error-is-error': [0],
       'unicorn/prefer-event-target': [2],
+      'unicorn/prefer-explicit-viewport-units': [0], // only applies to css language
       'unicorn/prefer-export-from': [0],
       'unicorn/prefer-flat-math-min-max': [2],
       'unicorn/prefer-get-or-insert-computed': [2],
       'unicorn/prefer-global-number-constants': [2],
       'unicorn/prefer-global-this': [0],
+      'unicorn/prefer-group-by': [2],
       'unicorn/prefer-has-check': [2],
       'unicorn/prefer-hoisting-branch-code': [2],
       'unicorn/prefer-https': [0], // false-positives on namespace and schema URIs
@@ -942,6 +918,7 @@ export default defineConfig([
       'unicorn/prefer-includes-over-repeated-comparisons': [0], // too opinionated
       'unicorn/prefer-iterable-in-constructor': [2],
       'unicorn/prefer-iterator-concat': [0], // too opinionated
+      'unicorn/prefer-iterator-helpers': [2],
       'unicorn/prefer-iterator-to-array': [2],
       'unicorn/prefer-iterator-to-array-at-end': [2],
       'unicorn/prefer-keyboard-event-key': [2],
@@ -966,9 +943,11 @@ export default defineConfig([
       'unicorn/prefer-object-destructuring-defaults': [2],
       'unicorn/prefer-object-from-entries': [2],
       'unicorn/prefer-object-iterable-methods': [2],
+      'unicorn/prefer-observer-apis': [2],
       'unicorn/prefer-optional-catch-binding': [2],
       'unicorn/prefer-path2d': [2],
       'unicorn/prefer-private-class-fields': [0],
+      'unicorn/prefer-promise-try': [2],
       'unicorn/prefer-promise-with-resolvers': [2],
       'unicorn/prefer-prototype-methods': [0],
       'unicorn/prefer-query-selector': [2],
@@ -979,10 +958,12 @@ export default defineConfig([
       'unicorn/prefer-response-static-json': [2],
       'unicorn/prefer-scoped-selector': [0],
       'unicorn/prefer-set-has': [0],
+      'unicorn/prefer-set-methods': [0],
       'unicorn/prefer-set-size': [2],
       'unicorn/prefer-short-arrow-method': [2],
       'unicorn/prefer-simple-condition-first': [0],
       'unicorn/prefer-simple-sort-comparator': [2],
+      'unicorn/prefer-simplified-conditions': [2],
       'unicorn/prefer-single-array-predicate': [2],
       'unicorn/prefer-single-call': [2],
       'unicorn/prefer-single-object-destructuring': [2],
@@ -1002,6 +983,8 @@ export default defineConfig([
       'unicorn/prefer-switch': [0],
       'unicorn/prefer-temporal': [0],
       'unicorn/prefer-ternary': [0],
+      'unicorn/prefer-then-catch': [2],
+      'unicorn/prefer-toggle-attribute': [2],
       'unicorn/prefer-top-level-await': [0],
       'unicorn/prefer-type-error': [0],
       'unicorn/prefer-type-literal-last': [0],
@@ -1010,12 +993,14 @@ export default defineConfig([
       'unicorn/prefer-unicode-code-point-escapes': [0],
       'unicorn/prefer-url-can-parse': [2],
       'unicorn/prefer-url-href': [2],
+      'unicorn/prefer-url-search-parameters': [2],
       'unicorn/prefer-while-loop-condition': [2],
       'unicorn/prevent-abbreviations': [0],
       'unicorn/relative-url-style': [2],
       'unicorn/require-array-join-separator': [2],
       'unicorn/require-array-sort-compare': [0],
       'unicorn/require-css-escape': [2],
+      'unicorn/require-frontmatter-fields': [0], // only applies to markdown language
       'unicorn/require-module-attributes': [2],
       'unicorn/require-module-specifiers': [0],
       'unicorn/require-number-to-fixed-digits-argument': [2],

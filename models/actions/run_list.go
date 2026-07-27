@@ -70,6 +70,10 @@ type FindRunOptions struct {
 	Status           []Status
 	ConcurrencyGroup string
 	CommitSHA        string
+	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
+	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
+	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
+	AccessibleRepoIDsSubQuery *builder.Builder
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -100,6 +104,9 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.CommitSHA != "" {
 		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
+	}
+	if opts.AccessibleRepoIDsSubQuery != nil {
+		cond = cond.And(builder.In("`action_run`.repo_id", opts.AccessibleRepoIDsSubQuery))
 	}
 	return cond
 }
@@ -135,8 +142,8 @@ type StatusInfo struct {
 
 // GetStatusInfoList returns a slice of StatusInfo
 func GetStatusInfoList(ctx context.Context, lang translation.Locale) []StatusInfo {
-	// same as those in aggregateJobStatus
-	allStatus := []Status{StatusSuccess, StatusFailure, StatusWaiting, StatusRunning, StatusCancelling}
+	// same as those in aggregateJobStatus (StatusUnknown excluded; it's the "shouldn't happen" fallback)
+	allStatus := []Status{StatusSuccess, StatusFailure, StatusCancelled, StatusSkipped, StatusWaiting, StatusRunning, StatusBlocked, StatusCancelling}
 	statusInfoList := make([]StatusInfo, 0, len(allStatus))
 	for _, s := range allStatus {
 		statusInfoList = append(statusInfoList, StatusInfo{
