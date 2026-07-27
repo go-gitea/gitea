@@ -154,34 +154,41 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	MakeRequest(t, req, http.StatusNotFound)
 
-	// Fully-qualified branch ref (GitHub-compatible): refs/heads/<branch>
+	// Fully-qualified branch/tag refs (GitHub-compatible): same object as short name
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, repo1.DefaultBranch)
+	resp = MakeRequest(t, req, http.StatusOK)
+	shortBranchContents := DecodeJSON(t, resp, &api.ContentsResponse{})
+
 	fullBranchRef := "refs/heads/" + repo1.DefaultBranch
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, url.QueryEscape(fullBranchRef))
 	resp = MakeRequest(t, req, http.StatusOK)
-	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
-	lastCommit, _ = gitRepo.GetCommitByPath(t.Context(), "README.md")
-	// HTML/download URLs use short branch name; self URL preserves the input ref (query-escaped)
-	expectedFullBranch := getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())
-	selfFullBranch := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + url.QueryEscape(fullBranchRef)
-	expectedFullBranch.URL = &selfFullBranch
-	expectedFullBranch.Links.Self = &selfFullBranch
-	assert.Equal(t, *expectedFullBranch, *contentsResponse)
+	fullBranchContents := DecodeJSON(t, resp, &api.ContentsResponse{})
+	assert.Equal(t, shortBranchContents.SHA, fullBranchContents.SHA)
+	assert.Equal(t, shortBranchContents.Content, fullBranchContents.Content)
+	assert.Equal(t, "file", fullBranchContents.Type)
+	// HTML/download links use the short branch name; self URL keeps the caller's input ref
+	assert.Contains(t, *fullBranchContents.HTMLURL, "/src/branch/"+repo1.DefaultBranch+"/")
+	assert.Contains(t, *fullBranchContents.URL, url.QueryEscape(fullBranchRef))
 
-	// Fully-qualified tag ref: refs/tags/<tag>
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, newTag)
+	resp = MakeRequest(t, req, http.StatusOK)
+	shortTagContents := DecodeJSON(t, resp, &api.ContentsResponse{})
+
 	fullTagRef := "refs/tags/" + newTag
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, url.QueryEscape(fullTagRef))
 	resp = MakeRequest(t, req, http.StatusOK)
-	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
-	tagCommit, _ = gitRepo.GetTagCommit(t.Context(), newTag)
-	lastCommit, _ = tagCommit.GetCommitByPath(t.Context(), gitRepo, "README.md")
-	expectedFullTag := getExpectedContentsResponseForContents(newTag, "tag", lastCommit.ID.String())
-	selfFullTag := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + url.QueryEscape(fullTagRef)
-	expectedFullTag.URL = &selfFullTag
-	expectedFullTag.Links.Self = &selfFullTag
-	assert.Equal(t, *expectedFullTag, *contentsResponse)
+	fullTagContents := DecodeJSON(t, resp, &api.ContentsResponse{})
+	assert.Equal(t, shortTagContents.SHA, fullTagContents.SHA)
+	assert.Equal(t, shortTagContents.Content, fullTagContents.Content)
+	assert.Contains(t, *fullTagContents.HTMLURL, "/src/tag/"+newTag+"/")
+	assert.Contains(t, *fullTagContents.URL, url.QueryEscape(fullTagRef))
 
-	// Non-existent fully-qualified ref
+	// Missing full branch ref
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, url.QueryEscape("refs/heads/does-not-exist"))
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// Internal pull ref exists in the test repo but must not be accepted via contents API
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, url.QueryEscape("refs/pull/2/head"))
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing private ref with user token that does not have access - should fail

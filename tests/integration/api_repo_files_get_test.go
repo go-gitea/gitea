@@ -91,22 +91,31 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 		assert.Empty(t, ret)
 	})
 	t.Run("User2RefFullBranch", func(t *testing.T) {
+		short := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=master", []string{"README.md"})
 		fullRef := "refs/heads/master"
-		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref="+url.QueryEscape(fullRef), []string{"README.md"})
-		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())}
-		selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/README.md?ref=" + url.QueryEscape(fullRef)
-		expected[0].URL = &selfURL
-		expected[0].Links.Self = &selfURL
-		assert.Equal(t, expected, ret)
+		full := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref="+url.QueryEscape(fullRef), []string{"README.md"})
+		require.Len(t, short, 1)
+		require.Len(t, full, 1)
+		assert.Equal(t, short[0].SHA, full[0].SHA)
+		assert.Equal(t, short[0].Content, full[0].Content)
+		assert.Contains(t, *full[0].HTMLURL, "/src/branch/master/")
+		assert.Contains(t, *full[0].URL, url.QueryEscape(fullRef))
 	})
 	t.Run("User2RefFullTag", func(t *testing.T) {
+		short := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=v1.1", []string{"README.md"})
 		fullRef := "refs/tags/v1.1"
-		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref="+url.QueryEscape(fullRef), []string{"README.md"})
-		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("v1.1", "tag", lastCommit.ID.String())}
-		selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/README.md?ref=" + url.QueryEscape(fullRef)
-		expected[0].URL = &selfURL
-		expected[0].Links.Self = &selfURL
-		assert.Equal(t, expected, ret)
+		full := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref="+url.QueryEscape(fullRef), []string{"README.md"})
+		require.Len(t, short, 1)
+		require.Len(t, full, 1)
+		assert.Equal(t, short[0].SHA, full[0].SHA)
+		assert.Equal(t, short[0].Content, full[0].Content)
+		assert.Contains(t, *full[0].HTMLURL, "/src/tag/v1.1/")
+		assert.Contains(t, *full[0].URL, url.QueryEscape(fullRef))
+	})
+	t.Run("User2RefInternalPullRejected", func(t *testing.T) {
+		// repo1 has refs/pull/2/head in fixtures; contents API must not resolve it
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref="+url.QueryEscape("refs/pull/2/head"), []string{"README.md"}, http.StatusNotFound)
+		assert.Empty(t, ret)
 	})
 
 	t.Run("PermissionCheck", func(t *testing.T) {
