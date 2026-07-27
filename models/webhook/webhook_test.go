@@ -151,6 +151,71 @@ func TestWebhook_EventsArray(t *testing.T) {
 			HookEvent: &webhook_module.HookEvent{PushOnly: true},
 		}).EventsArray(),
 	)
+
+	// Only main pull_request event → pull_request_only (round-trips with API create/edit)
+	assert.Equal(t, []string{"pull_request_only"},
+		(&Webhook{
+			HookEvent: &webhook_module.HookEvent{
+				ChooseEvents: true,
+				HookEvents: webhook_module.HookEvents{
+					webhook_module.HookEventPullRequest: true,
+				},
+			},
+		}).EventsArray(),
+	)
+
+	// Only main issues event → issues_only
+	assert.Equal(t, []string{"issues_only"},
+		(&Webhook{
+			HookEvent: &webhook_module.HookEvent{
+				ChooseEvents: true,
+				HookEvents: webhook_module.HookEvents{
+					webhook_module.HookEventIssues: true,
+				},
+			},
+		}).EventsArray(),
+	)
+
+	// All PR-related events → collapsed to pull_request
+	allPR := webhook_module.HookEvents{}
+	for _, evt := range pullRequestHookEventTypes {
+		allPR[evt] = true
+	}
+	assert.Equal(t, []string{"pull_request"},
+		(&Webhook{
+			HookEvent: &webhook_module.HookEvent{
+				ChooseEvents: true,
+				HookEvents:   allPR,
+			},
+		}).EventsArray(),
+	)
+
+	// All issue-related events → collapsed to issues
+	allIssues := webhook_module.HookEvents{}
+	for _, evt := range issueHookEventTypes {
+		allIssues[evt] = true
+	}
+	assert.Equal(t, []string{"issues"},
+		(&Webhook{
+			HookEvent: &webhook_module.HookEvent{
+				ChooseEvents: true,
+				HookEvents:   allIssues,
+			},
+		}).EventsArray(),
+	)
+
+	// Partial PR selection uses pull_request_only for the main event
+	partial := (&Webhook{
+		HookEvent: &webhook_module.HookEvent{
+			ChooseEvents: true,
+			HookEvents: webhook_module.HookEvents{
+				webhook_module.HookEventPullRequest:       true,
+				webhook_module.HookEventPullRequestAssign: true,
+				webhook_module.HookEventPush:              true,
+			},
+		},
+	}).EventsArray()
+	assert.ElementsMatch(t, []string{"pull_request_only", "pull_request_assign", "push"}, partial)
 }
 
 func TestCreateWebhook(t *testing.T) {

@@ -59,7 +59,10 @@ type CreateHookOption struct {
 	// required: true
 	// Configuration settings for the webhook
 	Config CreateHookOptionConfig `json:"config" binding:"Required"`
-	// List of events that will trigger this webhook
+	// List of events that will trigger this webhook.
+	// Special values: "issues" / "pull_request" enable all related issue or PR events;
+	// "issues_only" / "pull_request_only" enable only the main issues or pull_request event.
+	// GET responses use the same names so create/edit round-trips cleanly.
 	Events []string `json:"events"`
 	// Branch filter pattern to determine which branches trigger the webhook
 	BranchFilter string `json:"branch_filter" binding:"GlobPattern"`
@@ -76,7 +79,9 @@ type CreateHookOption struct {
 type EditHookOption struct {
 	// Configuration settings for the webhook
 	Config map[string]string `json:"config"`
-	// List of events that trigger this webhook
+	// List of events that trigger this webhook.
+	// Special values: "issues" / "pull_request" enable all related issue or PR events;
+	// "issues_only" / "pull_request_only" enable only the main issues or pull_request event.
 	Events []string `json:"events"`
 	// Branch filter pattern to determine which branches trigger the webhook
 	BranchFilter string `json:"branch_filter" binding:"GlobPattern"`

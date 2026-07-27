@@ -183,7 +183,33 @@ func (w *Webhook) HasEvent(evt webhook_module.HookEventType) bool {
 	return w.HookEvents[checkEvt]
 }
 
-// EventsArray returns an array of hook events
+// issueHookEventTypes are issue-related events stored in HookEvents.
+// Used for API create/edit: "issues" enables all; "issues_only" enables only HookEventIssues.
+var issueHookEventTypes = []webhook_module.HookEventType{
+	webhook_module.HookEventIssues,
+	webhook_module.HookEventIssueAssign,
+	webhook_module.HookEventIssueLabel,
+	webhook_module.HookEventIssueMilestone,
+	webhook_module.HookEventIssueComment,
+}
+
+// pullRequestHookEventTypes are pull-request-related events stored in HookEvents.
+// Used for API create/edit: "pull_request" enables all; "pull_request_only" enables only HookEventPullRequest.
+var pullRequestHookEventTypes = []webhook_module.HookEventType{
+	webhook_module.HookEventPullRequest,
+	webhook_module.HookEventPullRequestAssign,
+	webhook_module.HookEventPullRequestLabel,
+	webhook_module.HookEventPullRequestMilestone,
+	webhook_module.HookEventPullRequestComment,
+	webhook_module.HookEventPullRequestReview,
+	webhook_module.HookEventPullRequestReviewRequest,
+	webhook_module.HookEventPullRequestSync,
+}
+
+// EventsArray returns an array of hook events suitable for the API.
+// Issue and pull-request related events are collapsed so the list round-trips
+// through create/edit: "issues" / "pull_request" mean all related events, while
+// "issues_only" / "pull_request_only" mean only the main event (see updateHookEvents).
 func (w *Webhook) EventsArray() []string {
 	if w.SendEverything {
 		events := make([]string, 0, len(webhook_module.AllEvents()))
@@ -198,12 +224,65 @@ func (w *Webhook) EventsArray() []string {
 	}
 
 	events := make([]string, 0, len(w.HookEvents))
+	issueHandled := appendGroupedHookEvents(&events, w.HookEvents, issueHookEventTypes,
+		string(webhook_module.HookEventIssues), "issues_only", webhook_module.HookEventIssues)
+	prHandled := appendGroupedHookEvents(&events, w.HookEvents, pullRequestHookEventTypes,
+		string(webhook_module.HookEventPullRequest), "pull_request_only", webhook_module.HookEventPullRequest)
+
 	for event, enabled := range w.HookEvents {
-		if enabled {
-			events = append(events, string(event))
+		if !enabled {
+			continue
 		}
+		if issueHandled[event] || prHandled[event] {
+			continue
+		}
+		events = append(events, string(event))
 	}
 	return events
+}
+
+// appendGroupedHookEvents collapses a family of related hook events into API names
+// that round-trip with updateHookEvents. Returns the set of event keys already handled.
+func appendGroupedHookEvents(events *[]string, enabled webhook_module.HookEvents, group []webhook_module.HookEventType, allName, onlyName string, mainEvt webhook_module.HookEventType) map[webhook_module.HookEventType]bool {
+	handled := make(map[webhook_module.HookEventType]bool, len(group))
+	enabledCount := 0
+	for _, evt := range group {
+		if enabled[evt] {
+			enabledCount++
+		}
+	}
+	if enabledCount == 0 {
+		return handled
+	}
+
+	for _, evt := range group {
+		handled[evt] = true
+	}
+
+	// All related events on → single group name ("issues" / "pull_request")
+	if enabledCount == len(group) {
+		*events = append(*events, allName)
+		return handled
+	}
+
+	// Only the main event → "issues_only" / "pull_request_only" so create/edit does not expand to all
+	if enabledCount == 1 && enabled[mainEvt] {
+		*events = append(*events, onlyName)
+		return handled
+	}
+
+	// Partial selection → list each enabled event; use onlyName for the main event
+	for _, evt := range group {
+		if !enabled[evt] {
+			continue
+		}
+		if evt == mainEvt {
+			*events = append(*events, onlyName)
+		} else {
+			*events = append(*events, string(evt))
+		}
+	}
+	return handled
 }
 
 // HeaderAuthorization returns the decrypted Authorization header.
