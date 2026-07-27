@@ -34,6 +34,7 @@ require (
 	github.com/caddyserver/certmagic v0.25.4
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260309112543-12416315a635
 	github.com/chi-middleware/proxy v1.1.1
+	github.com/coder/websocket v1.8.14
 	github.com/dlclark/regexp2/v2 v2.5.0
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.0.1
