@@ -12,7 +12,6 @@ import (
 	"gitea.dev/models"
 	authmodel "gitea.dev/models/auth"
 	"gitea.dev/modules/cache"
-	"gitea.dev/modules/eventsource"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
@@ -55,6 +54,7 @@ import (
 	"gitea.dev/services/task"
 	"gitea.dev/services/uinotification"
 	"gitea.dev/services/webhook"
+	websocket_service "gitea.dev/services/websocket"
 )
 
 func mustInit(fn func() error) {
@@ -155,7 +155,7 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
-	eventsource.GetManager().Init()
+	mustInit(websocket_service.Init)
 	mustInitCtx(ctx, mailer_incoming.Init)
 
 	mustInitCtx(ctx, syncAppConfForGit)
