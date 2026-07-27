@@ -156,46 +156,23 @@ func init() {
 	db.RegisterModel(new(RenamedBranch))
 }
 
-// getBranch is the shared implementation for branch retrieval.
-// If includeDeleted is false, soft-deleted branches are excluded.
-func getBranch(ctx context.Context, repoID int64, branchName string, includeDeleted bool) (*Branch, error) {
+// GetBranchExisting retrieves a branch that exists in git repository (excluding soft-deleted ones in database)
+func GetBranchExisting(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
 	var branch Branch
-	sess := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName)
-	if !includeDeleted {
-		sess = sess.And("is_deleted=?", false)
-	}
+	sess := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).And("is_deleted=?", false)
 	has, err := sess.Get(&branch)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrBranchNotExist{
-			RepoID:     repoID,
-			BranchName: branchName,
-		}
+		return nil, ErrBranchNotExist{RepoID: repoID, BranchName: branchName}
 	}
 	return &branch, nil
 }
 
-// GetBranchExisting retrieves a branch, excluding soft-deleted ones.
-func GetBranchExisting(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
-	return getBranch(ctx, repoID, branchName, false)
-}
-
-// GetBranchWithDeleted retrieves a branch, including soft-deleted ones.
-func GetBranchWithDeleted(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
-	return getBranch(ctx, repoID, branchName, true)
-}
-
-// IsBranchExist returns true if the branch exists in the repository.
+// IsBranchExist returns true if the branch exists in the git repository
 func IsBranchExist(ctx context.Context, repoID int64, branchName string) (bool, error) {
-	var branch Branch
-	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
-	if err != nil {
-		return false, err
-	} else if !has {
-		return false, nil
-	}
-	return !branch.IsDeleted, nil
+	return db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).
+		And("is_deleted=?", false).Exist(&Branch{})
 }
 
 func GetBranches(ctx context.Context, repoID int64, branchNames []string, includeDeleted bool) ([]*Branch, error) {
@@ -283,14 +260,6 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 
 // MarkBranchAsDeleted marks branch as deleted
 func MarkBranchAsDeleted(ctx context.Context, repoID int64, branchName string, deletedByID int64) error {
-	branch, err := GetBranchWithDeleted(ctx, repoID, branchName)
-	if err != nil {
-		return err
-	}
-	if branch.IsDeleted {
-		return nil
-	}
-
 	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=? AND is_deleted=?", repoID, branchName, false).
 		Cols("is_deleted, deleted_by_id, deleted_unix").
 		Update(&Branch{
@@ -302,7 +271,7 @@ func MarkBranchAsDeleted(ctx context.Context, repoID int64, branchName string, d
 		return err
 	}
 	if cnt == 0 {
-		return fmt.Errorf("branch %s not found or has been deleted", branchName)
+		return ErrBranchNotExist{RepoID: repoID, BranchName: branchName}
 	}
 	return err
 }
