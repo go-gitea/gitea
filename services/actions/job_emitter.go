@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -343,7 +344,10 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 }
 
 type jobStatusResolver struct {
-	statuses      map[int64]actions_model.Status
+	statuses map[int64]actions_model.Status
+	// sortedIDs are the keys of statuses, so blocked jobs are resolved in insertion order.
+	// Resolve only ever rewrites statuses values, never its key set.
+	sortedIDs     []int64
 	needs         map[int64][]int64
 	jobMap        map[int64]*actions_model.ActionRunJob
 	vars          map[string]string
@@ -367,8 +371,10 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 
 	statuses := make(map[int64]actions_model.Status, len(jobs))
 	needs := make(map[int64][]int64, len(jobs))
+	sortedIDs := make([]int64, 0, len(jobs))
 	for _, job := range jobs {
 		statuses[job.ID] = job.Status
+		sortedIDs = append(sortedIDs, job.ID)
 		scope := scopedIDToJobs[job.ParentJobID]
 		for _, need := range job.Needs {
 			for _, v := range scope[need] {
@@ -376,11 +382,13 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 			}
 		}
 	}
+	slices.Sort(sortedIDs)
 	return &jobStatusResolver{
-		statuses: statuses,
-		needs:    needs,
-		jobMap:   jobMap,
-		vars:     vars,
+		statuses:  statuses,
+		sortedIDs: sortedIDs,
+		needs:     needs,
+		jobMap:    jobMap,
+		vars:      vars,
 	}
 }
 
@@ -420,9 +428,20 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 
 func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
+
+	slots := maxParallelSlots{}
 	for id, status := range r.statuses {
+		slots.hold(r.jobMap[id], status)
+	}
+
+	for _, id := range r.sortedIDs {
+		status := r.statuses[id]
 		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
+			continue
+		}
+		// An expanded caller has been resolved in an earlier pass, skip.
+		if actionRunJob.IsReusableCaller && actionRunJob.IsExpanded {
 			continue
 		}
 		// A child of a caller cannot start until the caller has become "ready" (children inserted, CallPayload populated).
@@ -433,6 +452,11 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 		}
 		allDone, allSucceed := r.resolveCheckNeeds(id)
 		if !allDone {
+			continue
+		}
+
+		// A slot-starved job cannot start, skip the following checks.
+		if !slots.available(actionRunJob) {
 			continue
 		}
 
@@ -462,6 +486,10 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			} else {
 				r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
 			}
+		}
+
+		if newStatus == actions_model.StatusWaiting && !slots.take(actionRunJob) {
+			continue // no free slot, leave blocked
 		}
 
 		if newStatus != actions_model.StatusBlocked {

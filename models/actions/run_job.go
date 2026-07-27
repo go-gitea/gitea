@@ -69,6 +69,8 @@ type ActionRunJob struct {
 	// Org/repo clamps are enforced when the token is used at runtime.
 	// It is JSON-encoded repo_model.ActionsTokenPermissions and may be empty if not specified.
 	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON TEXT"`
+	// MaxParallel is strategy.max-parallel, shared by all matrix jobs with the same JobID (0 = unlimited).
+	MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
 
 	// RunAttemptID identifies the ActionRunAttempt this job belongs to.
 	// A value of 0 indicates a legacy job created before ActionRunAttempt existed.

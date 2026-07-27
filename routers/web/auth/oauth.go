@@ -431,6 +431,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		if err := regenerateSession(ctx, map[string]any{
 			session.KeyUID:                  u.ID,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+			session.KeySignInMethod:         session.SignInMethodOAuth2,
 		}); err != nil {
 			ctx.ServerError("updateSession", err)
 			return
@@ -454,8 +455,9 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	if err := regenerateSession(ctx, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
-		"twofaUid":      u.ID,
-		"twofaRemember": false,
+		"twofaUid":              u.ID,
+		"twofaRemember":         false,
+		session.KeySignInMethod: session.SignInMethodOAuth2,
 	}); err != nil {
 		ctx.ServerError("updateSession", err)
 		return

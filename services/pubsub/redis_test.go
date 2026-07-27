@@ -39,14 +39,14 @@ func TestRedisBroker(t *testing.T) {
 	// state once the last local subscriber cancels.
 	t.Run("CancelCleansTopicState", func(t *testing.T) {
 		b := newBroker(t).(*RedisBroker)
-		ch, cancel := b.Subscribe("topic")
+		ch, cancel := b.Subscribe(t.Name())
 		cancel()
 
 		_, ok := <-ch
 		assert.False(t, ok, "channel must be closed after cancel")
 
 		b.mu.RLock()
-		_, present := b.topics["topic"]
+		_, present := b.topics[t.Name()]
 		b.mu.RUnlock()
 		assert.False(t, present, "topic state must be removed after last subscriber cancels")
 	})
@@ -56,10 +56,11 @@ func TestRedisBroker(t *testing.T) {
 	t.Run("CrossBroker", func(t *testing.T) {
 		publisher, subscriber := newBroker(t), newBroker(t)
 
-		ch, cancel := subscriber.Subscribe("topic")
+		ch, cancel := subscriber.Subscribe(t.Name())
 		defer cancel()
+		waitSubscribed(t, subscriber, t.Name())
 
-		publisher.Publish("topic", []byte("cross-process"))
+		publisher.Publish(t.Name(), []byte("cross-process"))
 
 		select {
 		case msg := <-ch:
