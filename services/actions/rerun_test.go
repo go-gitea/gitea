@@ -94,6 +94,13 @@ func TestCloneRunJobForAttempt(t *testing.T) {
 		clone := cloneRunJobForAttempt(template, attempt)
 		assert.False(t, clone.ContinueOnError)
 	})
+
+	// without this the rerun of a capped matrix would run unlimited
+	t.Run("preserves max-parallel", func(t *testing.T) {
+		template := &actions_model.ActionRunJob{MaxParallel: 3}
+		clone := cloneRunJobForAttempt(template, attempt)
+		assert.Equal(t, 3, clone.MaxParallel)
+	})
 }
 
 func TestRerunValidation(t *testing.T) {
