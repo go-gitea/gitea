@@ -16,7 +16,9 @@ import (
 	"gitea.dev/modules/log"
 )
 
-func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) error {
+// ApproveRuns approves the given runs and returns their post-approval state, in the same
+// order as runIDs, so callers don't need to re-fetch the runs themselves.
+func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) ([]*actions_model.ActionRun, error) {
 	updatedJobs := make([]*actions_model.ActionRunJob, 0)
 	cancelledConcurrencyJobs := make([]*actions_model.ActionRunJob, 0)
 	// Track runs whose reusable callers were just expanded so we can re-emit after the tx commits.
@@ -107,7 +109,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Re-emit AFTER the tx commits so the newly inserted callee rows transition Blocked -> Waiting.
@@ -122,9 +124,30 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
-	for _, runID := range runIDs {
-		NotifyWorkflowRunStatusUpdateWithReload(ctx, repo.ID, runID)
+	// Runs whose jobs actually changed above were already notified as part of that batch;
+	// only notify the remaining runs here so approving doesn't emit duplicate run updates.
+	alreadyNotified := make(container.Set[int64])
+	for _, job := range updatedJobs {
+		alreadyNotified.Add(job.RunID)
+	}
+	for _, job := range cancelledConcurrencyJobs {
+		alreadyNotified.Add(job.RunID)
 	}
 
-	return nil
+	// Reload each run once to hand its post-approval state back to the caller, reusing that
+	// same reload to notify whichever runs weren't already covered above.
+	approvedRuns := make([]*actions_model.ActionRun, 0, len(runIDs))
+	for _, runID := range runIDs {
+		run, err := actions_model.GetRunByRepoAndID(ctx, repo.ID, runID)
+		if err != nil {
+			log.Error("GetRunByRepoAndID %d after approval: %v", runID, err)
+			continue
+		}
+		if !alreadyNotified.Contains(runID) {
+			NotifyWorkflowRunStatusUpdate(ctx, run)
+		}
+		approvedRuns = append(approvedRuns, run)
+	}
+
+	return approvedRuns, nil
 }

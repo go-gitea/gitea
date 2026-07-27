@@ -263,10 +263,6 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, repo
 		return nil, err
 	}
 
-	if repo == nil {
-		repo = run.Repo
-	}
-
 	if attempt == nil {
 		if latestAttempt, has, err := run.GetLatestAttempt(ctx); err != nil {
 			return nil, err

@@ -13,7 +13,8 @@ import (
 
 // CancelRun cancels all cancellable jobs in a run, updates commit statuses,
 // and fires downstream notifications including job-emitter queue entries.
-func CancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) error {
+// It returns the run's post-cancellation state so callers don't need to re-fetch it.
+func CancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (*actions_model.ActionRun, error) {
 	var updatedJobs []*actions_model.ActionRunJob
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		cancelled, err := actions_model.CancelJobs(ctx, jobs)
@@ -23,14 +24,20 @@ func CancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*action
 		updatedJobs = cancelled
 		return nil
 	}); err != nil {
-		return err
+		return nil, err
 	}
 
 	CreateCommitStatusForRunJobs(ctx, run, jobs...)
 	EmitJobsIfReadyByJobs(updatedJobs)
 	NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
-	if len(updatedJobs) > 0 {
-		NotifyWorkflowRunStatusUpdateWithReload(ctx, run.RepoID, run.ID)
+	if len(updatedJobs) == 0 {
+		return run, nil
 	}
-	return nil
+
+	reloaded, err := actions_model.GetRunByRepoAndID(ctx, run.RepoID, run.ID)
+	if err != nil {
+		return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
+	}
+	NotifyWorkflowRunStatusUpdate(ctx, reloaded)
+	return reloaded, nil
 }

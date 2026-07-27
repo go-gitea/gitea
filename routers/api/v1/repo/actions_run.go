@@ -91,13 +91,9 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if err := actions_service.CancelRun(ctx, run, jobs); err != nil {
+	run, err := actions_service.CancelRun(ctx, run, jobs)
+	if err != nil {
 		ctx.APIErrorAuto(err)
-		return
-	}
-
-	run = getCurrentRepoActionRunByID(ctx)
-	if ctx.Written() {
 		return
 	}
 	respondRepoActionWorkflowRun(ctx, run)
@@ -153,16 +149,16 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
+	approvedRuns, err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID})
+	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
-
-	run = getCurrentRepoActionRunByID(ctx)
-	if ctx.Written() {
+	if len(approvedRuns) == 0 {
+		ctx.APIErrorNotFound()
 		return
 	}
-	respondRepoActionWorkflowRun(ctx, run)
+	respondRepoActionWorkflowRun(ctx, approvedRuns[0])
 }
 
 func GetWorkflowRunLogs(ctx *context.APIContext) {

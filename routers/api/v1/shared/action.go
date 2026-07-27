@@ -228,8 +228,12 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
 	for i := range runs {
 		if runs[i].Repo == nil {
+			// Orphaned row (repo_id no longer has a matching repository); drop it from this
+			// page and keep the total/link headers in sync with what is actually returned.
+			total--
 			continue
 		}
+		// TODO: load run attempts in batch
 		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], runs[i].Repo, nil, excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)

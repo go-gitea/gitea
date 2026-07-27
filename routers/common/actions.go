@@ -141,53 +141,39 @@ func DownloadActionsRunAllJobLogs(ctx *context_module.Base, run *actions_model.A
 		return err
 	}
 
-	// Open the first readable log before writing anything: once the response headers and
-	// the zip stream are committed, a failure can no longer be reported to the client.
-	firstIdx := -1
-	var firstReader io.ReadSeekCloser
-	for i, entry := range entries {
+	// Headers and the zip stream are only committed once the first log opens successfully:
+	// once that happens, a later failure can no longer be reported to the client, so every
+	// entry after that point is best-effort - log and skip instead of aborting the archive.
+	var zipWriter *zip.Writer
+	for _, entry := range entries {
 		reader, err := openTaskLogs(ctx, entry.task)
 		if err != nil {
 			log.Error("Failed to open logs of job %d: %v", entry.job.ID, err)
 			continue
 		}
-		firstIdx, firstReader = i, reader
-		break
-	}
-	if firstReader == nil {
-		return util.NewNotExistErrorf("logs not found")
-	}
-	defer firstReader.Close()
 
-	ctx.SetServeHeaders(context_module.ServeHeaderOptions{
-		Filename:           fmt.Sprintf("%s-run-%d-logs.zip", sanitizeWorkflowFileName(run.WorkflowID), run.ID),
-		ContentType:        "application/zip",
-		ContentDisposition: httplib.ContentDispositionAttachment,
-	})
-
-	zipWriter := zip.NewWriter(ctx.Resp)
-	defer func() {
-		if err := zipWriter.Close(); err != nil {
-			log.Error("Failed to finalize logs zip of run %d: %v", run.ID, err)
+		if zipWriter == nil {
+			ctx.SetServeHeaders(context_module.ServeHeaderOptions{
+				Filename:           fmt.Sprintf("%s-run-%d-logs.zip", sanitizeWorkflowFileName(run.WorkflowID), run.ID),
+				ContentType:        "application/zip",
+				ContentDisposition: httplib.ContentDispositionAttachment,
+			})
+			zipWriter = zip.NewWriter(ctx.Resp)
+			defer func() {
+				if err := zipWriter.Close(); err != nil {
+					log.Error("Failed to finalize logs zip of run %d: %v", run.ID, err)
+				}
+			}()
 		}
-	}()
 
-	// Best-effort from here on: the response is already committed, so a failure to read
-	// one job's logs must not abort the whole archive. Log and skip.
-	if err := writeJobLogToZip(zipWriter, run.WorkflowID, entries[firstIdx], firstReader); err != nil {
-		log.Error("Failed to add logs of job %d to zip: %v", entries[firstIdx].job.ID, err)
-	}
-	for _, entry := range entries[firstIdx+1:] {
-		reader, err := openTaskLogs(ctx, entry.task)
-		if err != nil {
-			log.Error("Failed to open logs of job %d: %v", entry.job.ID, err)
-			continue
-		}
 		err = writeJobLogToZip(zipWriter, run.WorkflowID, entry, reader)
 		reader.Close()
 		if err != nil {
 			log.Error("Failed to add logs of job %d to zip: %v", entry.job.ID, err)
 		}
+	}
+	if zipWriter == nil {
+		return util.NewNotExistErrorf("logs not found")
 	}
 	return nil
 }
