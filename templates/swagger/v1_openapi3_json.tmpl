@@ -3989,7 +3989,7 @@
             "$ref": "#/components/schemas/CreateHookOptionConfig"
           },
           "events": {
-            "description": "List of events that will trigger this webhook",
+            "description": "List of events that will trigger this webhook.\nSpecial values: \"issues\" / \"pull_request\" enable all related issue or PR events;\n\"issues_only\" / \"pull_request_only\" enable only the main issues or pull_request event.\nGET responses use the same names so create/edit round-trips cleanly.",
             "items": {
               "type": "string"
             },
@@ -5353,7 +5353,7 @@
             "x-go-name": "Config"
           },
           "events": {
-            "description": "List of events that trigger this webhook",
+            "description": "List of events that trigger this webhook.\nSpecial values: \"issues\" / \"pull_request\" enable all related issue or PR events;\n\"issues_only\" / \"pull_request_only\" enable only the main issues or pull_request event.",
             "items": {
               "type": "string"
             },
