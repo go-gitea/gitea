@@ -561,6 +561,11 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		repoChanged = true
 	}
 
+	if repo.ImmutableReleases != form.EnableImmutableReleases {
+		repo.ImmutableReleases = form.EnableImmutableReleases
+		repoChanged = true
+	}
+
 	if form.EnableCode && !unit_model.TypeCode.UnitGlobalDisabled() {
 		units = append(units, newRepoUnit(repo, unit_model.TypeCode, nil))
 	} else if !unit_model.TypeCode.UnitGlobalDisabled() {

@@ -387,3 +387,109 @@ func TestCreateNewTag(t *testing.T) {
 	assert.NoError(t, CreateNewTag(t.Context(), user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
 }
+
+func TestRelease_Immutable(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	gitRepo, err := git.OpenRepository(repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	newRelease := func(t *testing.T, tagName string) *repo_model.Release {
+		rel := &repo_model.Release{
+			RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user,
+			TagName: tagName, Target: "master", Title: tagName + " is released",
+		}
+		assert.NoError(t, CreateRelease(t.Context(), gitRepo, rel, nil, ""))
+		return rel
+	}
+
+	t.Run("NotAppliedRetroactively", func(t *testing.T) {
+		repo.ImmutableReleases = false
+		rel := newRelease(t, "v9.6")
+		assert.False(t, rel.IsImmutable)
+
+		// enabling the setting must not lock releases that are already published
+		repo.ImmutableReleases = true
+		rel.Note = "typo fixed"
+		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
+		assert.False(t, rel.IsImmutable)
+
+		immutable, err := repo_model.IsTagImmutable(t.Context(), repo.ID, "v9.6")
+		assert.NoError(t, err)
+		assert.False(t, immutable)
+	})
+
+	repo.ImmutableReleases = true
+	rel := newRelease(t, "v9.0")
+
+	t.Run("StampedOnPublish", func(t *testing.T) {
+		assert.True(t, rel.IsImmutable)
+		immutable, err := repo_model.IsTagImmutable(t.Context(), repo.ID, "v9.0")
+		assert.NoError(t, err)
+		assert.True(t, immutable)
+	})
+
+	t.Run("TitleAndNotesStayEditable", func(t *testing.T) {
+		rel.Title = "changed title"
+		rel.Note = "changed note"
+		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
+	})
+
+	// one case per rejected field, the three attachment slices share a single branch
+	lockedCases := []struct {
+		name   string
+		mutate func(rel *repo_model.Release)
+		attach []string
+	}{
+		{name: "tag_name", mutate: func(rel *repo_model.Release) { rel.TagName = "v9.1" }},
+		{name: "target_commitish", mutate: func(rel *repo_model.Release) { rel.Target = "develop" }},
+		{name: "state", mutate: func(rel *repo_model.Release) { rel.IsDraft = true }},
+		{name: "assets", attach: []string{"uuid"}},
+	}
+	for _, c := range lockedCases {
+		t.Run("Locked/"+c.name, func(t *testing.T) {
+			current, err := repo_model.GetReleaseByID(t.Context(), rel.ID)
+			assert.NoError(t, err)
+			current.Repo = repo
+			if c.mutate != nil {
+				c.mutate(current)
+			}
+			err = UpdateRelease(t.Context(), user, gitRepo, current, c.attach, nil, nil)
+			assert.True(t, IsErrImmutableRelease(err), "expected ErrImmutableRelease, got %v", err)
+		})
+	}
+
+	t.Run("TagLifecycle", func(t *testing.T) {
+		rel := newRelease(t, "v9.2")
+
+		// the tag cannot be deleted while the release exists
+		err := DeleteReleaseByID(t.Context(), repo, rel, user, true)
+		assert.True(t, IsErrImmutableTag(err), "expected ErrImmutableTag, got %v", err)
+
+		// deleting the release itself is allowed, the tag remains as a locked tag
+		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, rel, user, false))
+		tag, err := repo_model.GetRelease(t.Context(), repo.ID, "v9.2")
+		assert.NoError(t, err)
+		assert.True(t, tag.IsTag)
+		assert.True(t, tag.IsImmutable)
+
+		// it cannot be turned back into a release, not even a draft
+		tag.Repo, tag.IsTag, tag.IsDraft = repo, false, true
+		err = UpdateRelease(t.Context(), user, gitRepo, tag, nil, nil, nil)
+		assert.True(t, IsErrImmutableTag(err), "expected ErrImmutableTag, got %v", err)
+
+		// once the release is gone the tag itself can be deleted, but the name stays claimed
+		tag, err = repo_model.GetRelease(t.Context(), repo.ID, "v9.2")
+		assert.NoError(t, err)
+		tag.Repo = repo
+		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, tag, user, true))
+		assert.True(t, IsErrImmutableTag(CreateRelease(t.Context(), gitRepo, &repo_model.Release{
+			RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user,
+			TagName: "v9.2", Target: "master", Title: "reuse",
+		}, nil, "")))
+	})
+}

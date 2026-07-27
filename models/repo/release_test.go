@@ -90,3 +90,34 @@ func TestAddReleaseAttachmentsRejectsRecentZeroRepoID(t *testing.T) {
 	assert.Zero(t, attach.ReleaseID)
 	assert.Zero(t, attach.RepoID)
 }
+
+func TestImmutableTag(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	isImmutable := func(repoID int64, tagName string) bool {
+		immutable, err := IsTagImmutable(t.Context(), repoID, tagName)
+		assert.NoError(t, err)
+		return immutable
+	}
+	hasRelease := func(rel *Release) bool {
+		has, err := HasImmutableRelease(t.Context(), rel.RepoID, rel.TagName)
+		assert.NoError(t, err)
+		return has
+	}
+
+	assert.False(t, isImmutable(1, "v1.1"))
+	assert.NoError(t, AddImmutableTag(t.Context(), 1, "V1.1")) // names are matched case insensitively
+	assert.NoError(t, AddImmutableTag(t.Context(), 1, "v1.1"))
+	assert.True(t, isImmutable(1, "v1.1"))
+	assert.False(t, isImmutable(2, "v1.1")) // locks are per repository
+
+	// only a release that still exists blocks its tag from being deleted
+	rel := unittest.AssertExistsAndLoadBean(t, &Release{ID: 1})
+	rel.IsImmutable = true
+	assert.NoError(t, UpdateRelease(t.Context(), rel))
+	assert.True(t, hasRelease(rel))
+
+	rel.IsTag = true
+	assert.NoError(t, UpdateRelease(t.Context(), rel))
+	assert.False(t, hasRelease(rel))
+}

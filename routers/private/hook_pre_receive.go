@@ -14,6 +14,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -129,7 +130,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case refFullName.IsBranch():
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
-			preReceiveTag(ourCtx, refFullName)
+			preReceiveTag(ourCtx, newCommitID, refFullName)
 		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
@@ -389,12 +390,16 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	}
 }
 
-func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
+func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.RefName) {
 	if !ctx.assertCanWriteRef(refFullName) {
 		return
 	}
 
 	tagName := refFullName.TagName()
+
+	if !preReceiveImmutableTag(ctx, newCommitID, tagName) {
+		return
+	}
 
 	if !ctx.gotProtectedTags {
 		var err error
@@ -423,6 +428,32 @@ func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
 		})
 		return
 	}
+}
+
+// preReceiveImmutableTag reports whether the tag update may proceed. An immutable tag name can never be
+// created or moved again, deleting it is only allowed once its release is gone.
+func preReceiveImmutableTag(ctx *preReceiveContext, newCommitID, tagName string) bool {
+	repo := ctx.Repo.Repository
+
+	blocked, err := repo_model.IsTagImmutable(ctx, repo.ID, tagName)
+	if blocked && err == nil && newCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
+		blocked, err = repo_model.HasImmutableRelease(ctx, repo.ID, tagName)
+	}
+	if err != nil {
+		log.Error("Unable to check immutable tag %s in %-v Error: %v", tagName, repo, err)
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
+		})
+		return false
+	}
+	if blocked {
+		log.Warn("Forbidden: Tag %s in %-v is immutable", tagName, repo)
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: fmt.Sprintf("Tag %s is immutable", tagName),
+		})
+		return false
+	}
+	return true
 }
 
 func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {

@@ -5821,6 +5821,11 @@
             "type": "boolean",
             "x-go-name": "IgnoreWhitespaceConflicts"
           },
+          "immutable_releases": {
+            "description": "Whether newly published releases become immutable, existing releases are not affected",
+            "type": "boolean",
+            "x-go-name": "ImmutableReleases"
+          },
           "internal_tracker": {
             "$ref": "#/components/schemas/InternalTracker"
           },
@@ -8963,6 +8968,11 @@
             "type": "integer",
             "x-go-name": "ID"
           },
+          "immutable": {
+            "description": "Whether the release, its assets and its tag are locked against changes",
+            "type": "boolean",
+            "x-go-name": "IsImmutable"
+          },
           "name": {
             "description": "The display title of the release",
             "type": "string",
@@ -9324,6 +9334,11 @@
           "ignore_whitespace_conflicts": {
             "type": "boolean",
             "x-go-name": "IgnoreWhitespaceConflicts"
+          },
+          "immutable_releases": {
+            "description": "Whether newly published releases are immutable",
+            "type": "boolean",
+            "x-go-name": "ImmutableReleases"
           },
           "internal": {
             "type": "boolean",

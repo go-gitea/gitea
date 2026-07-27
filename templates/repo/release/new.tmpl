@@ -12,6 +12,11 @@
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
+		{{if .IsImmutable}}
+			<div class="ui info message">{{ctx.Locale.Tr "repo.release.immutable_locked"}}</div>
+		{{else if and .Repository.ImmutableReleases (or (not .PageIsEditRelease) .IsDraft)}}
+			<div class="ui info message">{{ctx.Locale.Tr "repo.release.immutable_notice"}}</div>
+		{{end}}
 
 		<form class="ui form form-fetch-action" action="{{.Link}}" method="post" data-global-init="initReleaseEditForm"
 			data-existing-tags="{{JsonUtils.EncodeToString .Tags}}"
@@ -77,22 +82,33 @@
 				)}}
 			</div>
 
+			{{if and .IsImmutable .attachments}}
+				<div class="field">
+					<label><b>{{ctx.Locale.Tr "repo.release.assets"}}</b></label>
+				</div>
+			{{end}}
 			{{range .attachments}}
 				<div class="field flex-text-block" id="attachment-{{.ID}}">
 					<div class="flex-text-block tw-flex-1">
-						<input name="attachment-edit-{{.UUID}}" class="tw-max-w-[48em]" required value="{{.Name}}">
-						<input name="attachment-del-{{.UUID}}" type="hidden" value="false">
+						{{if $.IsImmutable}}
+							<span class="gt-ellipsis">{{.Name}}</span>
+						{{else}}
+							<input name="attachment-edit-{{.UUID}}" class="tw-max-w-[48em]" required value="{{.Name}}">
+							<input name="attachment-del-{{.UUID}}" type="hidden" value="false">
+						{{end}}
 						<span class="tw-text-text-light tw-flex-shrink-0">{{.Size | FileSize}}</span>
 						<span data-tooltip-content="{{ctx.Locale.Tr "repo.release.download_count" (ctx.Locale.PrettyNumber .DownloadCount)}}">
 							{{svg "octicon-info"}}
 						</span>
 					</div>
-					<a class="ui mini compact red button" data-global-click="onReleaseEditAttachmentDelete"  data-id="{{.ID}}" data-uuid="{{.UUID}}">
-						{{ctx.Locale.Tr "remove"}}
-					</a>
+					{{if not $.IsImmutable}}
+						<a class="ui mini compact red button" data-global-click="onReleaseEditAttachmentDelete"  data-id="{{.ID}}" data-uuid="{{.UUID}}">
+							{{ctx.Locale.Tr "remove"}}
+						</a>
+					{{end}}
 				</div>
 			{{end}}
-			{{if .IsAttachmentEnabled}}
+			{{if and .IsAttachmentEnabled (not .IsImmutable)}}
 				<div class="field">
 					{{template "repo/upload" .}}
 				</div>

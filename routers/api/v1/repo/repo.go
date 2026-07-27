@@ -702,6 +702,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.IsTemplate = *opts.Template
 	}
 
+	if opts.ImmutableReleases != nil {
+		repo.ImmutableReleases = *opts.ImmutableReleases
+	}
+
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
 		ctx.Repo.GitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, repo)
