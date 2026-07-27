@@ -104,6 +104,31 @@ func actionIcon(opType activities_model.ActionType) string {
 	}
 }
 
+// actionIconColor accepts an action operation type and returns a text color class
+// for its icon. It follows the same color conventions as the issue and pull
+// request icons, see templates/shared/issueicon.tmpl.
+func actionIconColor(opType activities_model.ActionType) string {
+	switch opType {
+	case activities_model.ActionCreateRepo, activities_model.ActionTransferRepo, activities_model.ActionRenameRepo, activities_model.ActionCommitRepo:
+		return "tw-text-blue"
+	case activities_model.ActionDeleteBranch:
+		return "tw-text-orange"
+	case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
+		return "tw-text-purple"
+	case activities_model.ActionCreatePullRequest, activities_model.ActionCreateIssue,
+		activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest,
+		activities_model.ActionApprovePullRequest:
+		return "tw-text-green"
+	case activities_model.ActionClosePullRequest, activities_model.ActionCloseIssue,
+		activities_model.ActionRejectPullRequest, activities_model.ActionPullReviewDismissed:
+		return "tw-text-red"
+	case activities_model.ActionPublishRelease, activities_model.ActionPushTag, activities_model.ActionDeleteTag:
+		return "tw-text-yellow"
+	default:
+		return "tw-text-text-light"
+	}
+}
+
 // ActionContent2Commits converts action content to push commits
 func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	push := repository.NewPushCommits()
