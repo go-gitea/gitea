@@ -16,9 +16,7 @@
 		data-tooltip-content="{{ctx.Locale.Tr "repo.fork_from_self"}}"
 	{{end}}
 >
-	<a role="button" class="ui compact small basic button {{if $.ShowForkModal}}show-modal{{end}}" href="{{$forkHref}}"
-		{{if and $.IsSigned $.ShowForkModal}}data-modal="#fork-repo-modal"{{end}}
-	>
+	<a role="button" class="ui compact small basic button {{if $.ShowForkModal}}show-modal{{end}}" href="{{$forkHref}}"{{if and $.IsSigned $.ShowForkModal}} data-modal="#fork-repo-modal"{{end}}>
 		{{svg "octicon-repo-forked"}}<span class="text not-mobile">{{ctx.Locale.Tr "repo.fork"}}</span>
 	</a>
 	<a class="ui basic label" href="{{$.Repository.Link}}/forks">
