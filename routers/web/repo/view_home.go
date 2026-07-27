@@ -27,6 +27,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/web/feed"
 	"gitea.dev/services/context"
+	"gitea.dev/services/notifications"
 	repo_service "gitea.dev/services/repository"
 )
 
@@ -405,6 +406,16 @@ func Home(ctx *context.Context) {
 	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
 	if ctx.Written() {
 		return
+	}
+
+	// Clear any repository notification before checkHomeCodeViewable runs: it may redirect to
+	// another unit when the code unit is not readable, and visiting the repo home should mark
+	// the notification read either way.
+	if ctx.IsSigned {
+		if err := notifications.SetRepoReadBy(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID); err != nil {
+			ctx.ServerError("SetRepoReadBy", err)
+			return
+		}
 	}
 
 	// Check whether the repo is viewable: not in migration, and the code unit should be enabled

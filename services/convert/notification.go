@@ -9,9 +9,9 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	access_model "gitea.dev/models/perm/access"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 // ToNotificationThread convert a Notification to api.NotificationThread
@@ -43,25 +43,16 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 		repository.Permissions = nil
 	}
 
-	// handle Subject
+	// Handle Subject. The subject may be gone (deleted issue, GC'd commit, removed release),
+	// so every branch falls back to the title snapshotted on the notification row.
 	switch n.Source {
-	case activities_model.NotificationSourceIssue:
-		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectIssue}
-		if n.Issue != nil {
-			result.Subject.Title = n.Issue.Title
-			result.Subject.URL = n.Issue.APIURL(ctx)
-			result.Subject.HTMLURL = n.Issue.HTMLURL(ctx)
-			result.Subject.State = api.NotifySubjectStateType(n.Issue.State())
-			comment, err := n.Issue.GetLastComment(ctx)
-			if err == nil && comment != nil {
-				result.Subject.LatestCommentURL = comment.APIURL(ctx)
-				result.Subject.LatestCommentHTMLURL = comment.HTMLURL(ctx)
-			}
+	case activities_model.NotificationSourceIssue, activities_model.NotificationSourcePullRequest:
+		isPull := n.Source == activities_model.NotificationSourcePullRequest
+		result.Subject = &api.NotificationSubject{
+			Type:  util.Iif(isPull, api.NotifySubjectPull, api.NotifySubjectIssue),
+			Title: n.DisplayTitle(),
 		}
-	case activities_model.NotificationSourcePullRequest:
-		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectPull}
 		if n.Issue != nil {
-			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL(ctx)
 			result.Subject.HTMLURL = n.Issue.HTMLURL(ctx)
 			result.Subject.State = api.NotifySubjectStateType(n.Issue.State())
@@ -71,23 +62,21 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 				result.Subject.LatestCommentHTMLURL = comment.HTMLURL(ctx)
 			}
 
-			if err := n.Issue.LoadPullRequest(ctx); err == nil &&
-				n.Issue.PullRequest != nil &&
-				n.Issue.PullRequest.HasMerged {
-				result.Subject.State = api.NotifySubjectStateMerged
+			if isPull {
+				if err := n.Issue.LoadPullRequest(ctx); err == nil &&
+					n.Issue.PullRequest != nil &&
+					n.Issue.PullRequest.HasMerged {
+					result.Subject.State = api.NotifySubjectStateMerged
+				}
 			}
 		}
 	case activities_model.NotificationSourceCommit:
-		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
-		title := n.CommitID
-		if n.Commit != nil {
-			title, _ = git.SplitCommitTitleBody(n.Commit.MessageUTF8(), 255)
-		}
+		commitURL := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID())
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
-			Title:   title,
-			URL:     url,
-			HTMLURL: url,
+			Title:   util.IfZero(n.Title, n.CommitID()),
+			URL:     commitURL,
+			HTMLURL: commitURL,
 		}
 	case activities_model.NotificationSourceRepository:
 		result.Subject = &api.NotificationSubject{
@@ -99,10 +88,12 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 		}
 	case activities_model.NotificationSourceRelease:
 		result.Subject = &api.NotificationSubject{
-			Type:    api.NotifySubjectRelease,
-			Title:   n.Release.Title,
-			URL:     n.Release.Link(),
-			HTMLURL: n.Release.HTMLURL(),
+			Type:  api.NotifySubjectRelease,
+			Title: n.DisplayTitle(),
+		}
+		if n.Release != nil {
+			result.Subject.URL = n.Release.Link()
+			result.Subject.HTMLURL = n.Release.HTMLURL()
 		}
 	}
 

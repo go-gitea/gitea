@@ -420,7 +420,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
-		newMigration(343, "Add notification dedupe columns to notification table", v1_27.AddReleaseNotification),
+		newMigration(343, "Replace notification subject columns with a typed subject identity", v1_27.AddNotificationSubjectIdentity),
 		// Gitea 1.27.0 ends at migration ID number 343 (database version 344)
 	}
 	return preparedMigrations

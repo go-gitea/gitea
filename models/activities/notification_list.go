@@ -13,7 +13,6 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 
@@ -30,7 +29,10 @@ type FindNotificationOptions struct {
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
 
-	uniqueKey string
+	// SubjectID and SubjectRef narrow the search to one subject. Combine them with Source
+	// to hit the unique index on (user_id, source, subject_id, subject_ref).
+	SubjectID  int64
+	SubjectRef string
 }
 
 // ToCond will convert each condition into a xorm-Cond
@@ -42,8 +44,11 @@ func (opts FindNotificationOptions) ToConds() builder.Cond {
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"notification.repo_id": opts.RepoID})
 	}
-	if opts.uniqueKey != "" {
-		cond = cond.And(builder.Eq{"notification.unique_key": opts.uniqueKey})
+	if opts.SubjectID != 0 {
+		cond = cond.And(builder.Eq{"notification.subject_id": opts.SubjectID})
+	}
+	if opts.SubjectRef != "" {
+		cond = cond.And(builder.Eq{"notification.subject_ref": opts.SubjectRef})
 	}
 	if len(opts.Status) > 0 {
 		if len(opts.Status) == 1 {
@@ -68,20 +73,20 @@ func (opts FindNotificationOptions) ToOrders() string {
 	return "notification.updated_unix DESC"
 }
 
-func (opts *FindNotificationOptions) setUniqueKey(uniqueKey string) {
-	opts.uniqueKey = uniqueKey
-}
-
 func (opts *FindNotificationOptions) FilterByIssue(issueID int64, isPull bool) {
-	opts.setUniqueKey(uniqueKeyForIssueNotification(issueID, isPull))
+	opts.Source = []NotificationSource{util.Iif(isPull, NotificationSourcePullRequest, NotificationSourceIssue)}
+	opts.SubjectID = issueID
 }
 
 func (opts *FindNotificationOptions) FilterByCommit(repoID int64, commitID string) {
-	opts.setUniqueKey(uniqueKeyForCommitNotification(repoID, commitID))
+	opts.Source = []NotificationSource{NotificationSourceCommit}
+	opts.RepoID = repoID
+	opts.SubjectRef = commitID
 }
 
 func (opts *FindNotificationOptions) FilterByRelease(releaseID int64) {
-	opts.setUniqueKey(UniqueKeyForReleaseNotification(releaseID))
+	opts.Source = []NotificationSource{NotificationSourceRelease}
+	opts.SubjectID = releaseID
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification
@@ -145,7 +150,6 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		return nil, err
 	}
 
-	uniqueKey := uniqueKeyForIssueNotification(issue.ID, issue.IsPull)
 	requiredUnit := util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)
 
 	// notify
@@ -164,7 +168,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 			continue
 		}
 
-		existing, err := getIssueNotificationByUniqueKey(ctx, userID, uniqueKey, issue.ID)
+		existing, err := GetIssueNotification(ctx, userID, issue.ID)
 		if err != nil && !db.IsErrNotExist(err) {
 			return nil, err
 		}
@@ -186,34 +190,42 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 // NotificationList contains a list of notifications
 type NotificationList []*Notification
 
-// LoadAttributes load Repo Issue User and Comment if not loaded
-func (nl NotificationList) LoadAttributes(ctx context.Context) error {
-	repos, _, err := nl.LoadRepos(ctx)
+// LoadAttributes loads the repo, user and comment of every notification, then makes a
+// best-effort attempt at the subjects. It returns the indices of notifications whose
+// repository could not be loaded — those are the only ones that cannot be rendered.
+// A missing issue or release is not a failure: the notification still has its Title.
+func (nl NotificationList) LoadAttributes(ctx context.Context) ([]int, error) {
+	repos, failures, err := nl.LoadRepos(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := repos.LoadAttributes(ctx); err != nil {
-		return err
-	}
-	if _, err := nl.LoadIssues(ctx); err != nil {
-		return err
-	}
-	if err = nl.LoadIssuePullRequests(ctx); err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := nl.LoadUsers(ctx); err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := nl.LoadComments(ctx); err != nil {
-		return err
+		return nil, err
 	}
-	if _, err = nl.LoadCommits(ctx); err != nil {
-		return err
+	nl.LoadSubjects(ctx)
+	return failures, nil
+}
+
+// LoadSubjects enriches the list with the live issues and releases that still exist, so a
+// renamed issue shows its current title. Every error is swallowed — notifications render
+// from their stored Title when the subject is gone.
+func (nl NotificationList) LoadSubjects(ctx context.Context) {
+	if _, err := nl.LoadIssues(ctx); err != nil {
+		log.Debug("LoadIssues: %v", err)
+		return
+	}
+	if err := nl.LoadIssuePullRequests(ctx); err != nil {
+		log.Debug("LoadIssuePullRequests: %v", err)
 	}
 	if _, err := nl.LoadReleases(ctx); err != nil {
-		return err
+		log.Debug("LoadReleases: %v", err)
 	}
-	return nil
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {
@@ -288,10 +300,10 @@ func (nl NotificationList) LoadRepos(ctx context.Context) (repo_model.Repository
 func (nl NotificationList) getPendingIssueIDs() []int64 {
 	ids := make(container.Set[int64], len(nl))
 	for _, notification := range nl {
-		if notification.Issue != nil {
+		if notification.Issue != nil || notification.IssueID() == 0 {
 			continue
 		}
-		ids.Add(notification.IssueID)
+		ids.Add(notification.IssueID())
 	}
 	return ids.Values()
 }
@@ -333,17 +345,17 @@ func (nl NotificationList) LoadIssues(ctx context.Context) ([]int, error) {
 	failures := []int{}
 
 	for i, notification := range nl {
-		if notification.Issue == nil {
-			notification.Issue = issues[notification.IssueID]
-			if notification.Issue == nil {
-				if notification.IssueID != 0 {
-					log.Error("Notification[%d]: IssueID: %d Not Found", notification.ID, notification.IssueID)
-					failures = append(failures, i)
-				}
-				continue
-			}
-			notification.Issue.Repo = notification.Repository
+		if notification.Issue != nil || notification.IssueID() == 0 {
+			continue
 		}
+		notification.Issue = issues[notification.IssueID()]
+		if notification.Issue == nil {
+			// the issue is gone; the notification still renders from its stored Title
+			log.Debug("Notification[%d]: issue %d not found", notification.ID, notification.IssueID())
+			failures = append(failures, i)
+			continue
+		}
+		notification.Issue.Repo = notification.Repository
 	}
 	return failures, nil
 }
@@ -488,12 +500,10 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 func (nl NotificationList) getPendingReleaseIDs() []int64 {
 	ids := make(container.Set[int64], len(nl))
 	for _, notification := range nl {
-		if notification.Release != nil {
+		if notification.Release != nil || notification.ReleaseID() == 0 {
 			continue
 		}
-		if notification.ReleaseID > 0 {
-			ids.Add(notification.ReleaseID)
-		}
+		ids.Add(notification.ReleaseID())
 	}
 	return ids.Values()
 }
@@ -511,60 +521,19 @@ func (nl NotificationList) LoadReleases(ctx context.Context) ([]int, error) {
 
 	failures := []int{}
 	for i, notification := range nl {
-		if notification.ReleaseID > 0 && notification.Release == nil {
-			if releases[notification.ReleaseID] == nil {
-				log.Error("Notification[%d]: ReleaseID[%d] failed to load", notification.ID, notification.ReleaseID)
-				failures = append(failures, i)
-				continue
-			}
-			notification.Release = releases[notification.ReleaseID]
-			notification.Release.Repo = notification.Repository
-		}
-	}
-	return failures, nil
-}
-
-func (nl NotificationList) LoadCommits(ctx context.Context) ([]int, error) {
-	if len(nl) == 0 {
-		return []int{}, nil
-	}
-
-	_, _, err := nl.LoadRepos(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	failures := []int{}
-	repos := make(map[int64]*git.Repository, len(nl))
-	for i, n := range nl {
-		if n.Source != NotificationSourceCommit || n.CommitID == "" {
+		if notification.Release != nil || notification.ReleaseID() == 0 {
 			continue
 		}
-
-		repo, ok := repos[n.RepoID]
-		if !ok {
-			repo, err = git.OpenRepository(n.Repository)
-			if err != nil {
-				log.Error("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
-				failures = append(failures, i)
-				continue
-			}
-			repos[n.RepoID] = repo
-		}
-		n.Commit, err = repo.GetCommit(ctx, n.CommitID)
-		if err != nil {
-			log.Error("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
+		release := releases[notification.ReleaseID()]
+		if release == nil {
+			// the release is gone; the notification still renders from its stored Title
+			log.Debug("Notification[%d]: release %d not found", notification.ID, notification.ReleaseID())
 			failures = append(failures, i)
 			continue
 		}
+		notification.Release = release
+		notification.Release.Repo = notification.Repository
 	}
-
-	for _, repo := range repos {
-		if err := repo.Close(); err != nil {
-			log.Error("Failed to close repository: %v", err)
-		}
-	}
-
 	return failures, nil
 }
 

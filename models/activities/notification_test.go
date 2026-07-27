@@ -10,10 +10,12 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateOrUpdateIssueNotifications(t *testing.T) {
@@ -24,12 +26,31 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 	assert.NoError(t, err)
 
 	// User 9 is inactive, thus notifications for user 1 and 4 are created
-	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 1, IssueID: issue.ID})
+	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{
+		UserID: 1, Source: activities_model.NotificationSourceIssue, SubjectID: issue.ID,
+	})
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
 	unittest.CheckConsistencyFor(t, &issues_model.Issue{ID: issue.ID})
 
-	notf = unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 4, IssueID: issue.ID})
+	notf = unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{
+		UserID: 4, Source: activities_model.NotificationSourceIssue, SubjectID: issue.ID,
+	})
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
+}
+
+// The title is snapshotted when the notification is written so the list never has to load
+// the issue to render a row.
+func TestCreateOrUpdateIssueNotificationsSnapshotsTitle(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+
+	_, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0)
+	require.NoError(t, err)
+
+	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{
+		UserID: 4, Source: activities_model.NotificationSourceIssue, SubjectID: issue.ID,
+	})
+	assert.Equal(t, issue.Title, notf.Title)
 }
 
 func TestNotificationsForUser(t *testing.T) {
@@ -68,7 +89,7 @@ func TestNotification_GetIssue(t *testing.T) {
 	issue, err := notf.GetIssue(t.Context())
 	assert.NoError(t, err)
 	assert.Equal(t, issue, notf.Issue)
-	assert.Equal(t, notf.IssueID, issue.ID)
+	assert.Equal(t, notf.IssueID(), issue.ID)
 }
 
 func TestGetNotificationCount(t *testing.T) {
@@ -133,7 +154,8 @@ func TestSetIssueReadBy(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	assert.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
-		_, err := activities_model.SetIssueReadBy(ctx, issue.ID, user.ID)
+		changed, err := activities_model.SetIssueReadBy(ctx, issue.ID, user.ID)
+		assert.True(t, changed, "an unread notification must report that it changed")
 		return err
 	}))
 
@@ -142,7 +164,33 @@ func TestSetIssueReadBy(t *testing.T) {
 	assert.Equal(t, activities_model.NotificationStatusRead, nt.Status)
 }
 
-func TestGetIssueNotificationUsesUniqueKeyForPullRequests(t *testing.T) {
+// Callers use the bool to decide whether to push an unread-count update, so a second read
+// of the same notification must report no change.
+func TestSetIssueReadByReportsNoChangeWhenAlreadyRead(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+
+	changed, err := activities_model.SetIssueReadBy(t.Context(), issue.ID, user.ID)
+	require.NoError(t, err)
+	require.True(t, changed)
+
+	changed, err = activities_model.SetIssueReadBy(t.Context(), issue.ID, user.ID)
+	require.NoError(t, err)
+	assert.False(t, changed, "reading an already-read notification must not report a change")
+}
+
+// A user with no notification for the issue at all is a no-op, not an error.
+func TestSetIssueReadByIsNoOpWhenNoNotificationExists(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+
+	changed, err := activities_model.SetIssueReadBy(t.Context(), issue.ID, 4)
+	assert.NoError(t, err)
+	assert.False(t, changed)
+}
+
+func TestGetIssueNotificationMatchesPullRequestSource(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2, IsPull: true})
@@ -151,7 +199,7 @@ func TestGetIssueNotificationUsesUniqueKeyForPullRequests(t *testing.T) {
 
 	nt, err := activities_model.GetIssueNotification(t.Context(), 4, issue.ID)
 	assert.NoError(t, err)
-	assert.Equal(t, issue.ID, nt.IssueID)
+	assert.Equal(t, issue.ID, nt.IssueID())
 	assert.Equal(t, activities_model.NotificationSourcePullRequest, nt.Source)
 }
 
@@ -169,7 +217,7 @@ func TestGetIssueNotificationReturnsErrNotExistWhenMissing(t *testing.T) {
 	assert.True(t, db.IsErrNotExist(err))
 }
 
-func TestCreateCommitNotificationsDeduplicatesByRepoAndCommit(t *testing.T) {
+func TestCreateCommitNotificationDeduplicatesByRepoAndCommit(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const receiverID = int64(2)
@@ -177,18 +225,21 @@ func TestCreateCommitNotificationsDeduplicatesByRepoAndCommit(t *testing.T) {
 	const firstRepoID = int64(1)
 	const secondRepoID = int64(2)
 
-	assert.NoError(t, activities_model.CreateCommitNotifications(t.Context(), 1, firstRepoID, commitID, receiverID))
-	assert.NoError(t, activities_model.CreateCommitNotifications(t.Context(), 3, firstRepoID, commitID, receiverID))
-	assert.NoError(t, activities_model.CreateCommitNotifications(t.Context(), 4, secondRepoID, commitID, receiverID))
+	_, err := activities_model.CreateCommitNotification(t.Context(), 1, firstRepoID, commitID, receiverID, "first title")
+	require.NoError(t, err)
+	_, err = activities_model.CreateCommitNotification(t.Context(), 3, firstRepoID, commitID, receiverID, "second title")
+	require.NoError(t, err)
+	_, err = activities_model.CreateCommitNotification(t.Context(), 4, secondRepoID, commitID, receiverID, "other repo")
+	require.NoError(t, err)
 
 	notfs, err := db.Find[activities_model.Notification](t.Context(), activities_model.FindNotificationOptions{
 		UserID: receiverID,
 		Source: []activities_model.NotificationSource{activities_model.NotificationSourceCommit},
 	})
 	assert.NoError(t, err)
-	if assert.Len(t, notfs, 2) {
-		assert.Equal(t, commitID, notfs[0].CommitID)
-		assert.Equal(t, commitID, notfs[1].CommitID)
+	if assert.Len(t, notfs, 2, "the same sha in two repos stays two notifications") {
+		assert.Equal(t, commitID, notfs[0].CommitID())
+		assert.Equal(t, commitID, notfs[1].CommitID())
 		assert.ElementsMatch(t, []int64{firstRepoID, secondRepoID}, []int64{notfs[0].RepoID, notfs[1].RepoID})
 
 		var firstRepoNotification *activities_model.Notification
@@ -205,20 +256,19 @@ func TestCreateCommitNotificationsDeduplicatesByRepoAndCommit(t *testing.T) {
 	}
 }
 
-func TestCreateOrUpdateReleaseNotificationsDeduplicatesByRelease(t *testing.T) {
+func TestCreateReleaseNotificationDeduplicatesByRelease(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const receiverID = int64(2)
 	const repoID = int64(1)
 	const releaseID = int64(1)
 
-	assert.NoError(t, activities_model.CreateOrUpdateReleaseNotifications(t.Context(), 1, repoID, releaseID, receiverID))
-	assert.NoError(t, activities_model.CreateOrUpdateReleaseNotifications(t.Context(), 3, repoID, releaseID, receiverID))
+	_, err := activities_model.CreateReleaseNotification(t.Context(), 1, repoID, releaseID, receiverID, "v1.0")
+	require.NoError(t, err)
+	_, err = activities_model.CreateReleaseNotification(t.Context(), 3, repoID, releaseID, receiverID, "v1.0")
+	require.NoError(t, err)
 
-	opts := activities_model.FindNotificationOptions{
-		UserID: receiverID,
-		Source: []activities_model.NotificationSource{activities_model.NotificationSourceRelease},
-	}
+	opts := activities_model.FindNotificationOptions{UserID: receiverID}
 	opts.FilterByRelease(releaseID)
 
 	notfs, err := db.Find[activities_model.Notification](t.Context(), opts)
@@ -226,7 +276,7 @@ func TestCreateOrUpdateReleaseNotificationsDeduplicatesByRelease(t *testing.T) {
 	if assert.Len(t, notfs, 1) {
 		assert.Equal(t, activities_model.NotificationStatusUnread, notfs[0].Status)
 		assert.EqualValues(t, 3, notfs[0].UpdatedBy)
-		assert.Equal(t, releaseID, notfs[0].ReleaseID)
+		assert.Equal(t, releaseID, notfs[0].ReleaseID())
 	}
 }
 
@@ -238,40 +288,67 @@ func TestSetCommitReadByScopesToRepo(t *testing.T) {
 	const firstRepoID = int64(1)
 	const secondRepoID = int64(2)
 
-	assert.NoError(t, activities_model.CreateCommitNotifications(t.Context(), 1, firstRepoID, commitID, receiverID))
-	assert.NoError(t, activities_model.CreateCommitNotifications(t.Context(), 1, secondRepoID, commitID, receiverID))
-	assert.NoError(t, activities_model.SetCommitReadBy(t.Context(), firstRepoID, receiverID, commitID))
+	_, err := activities_model.CreateCommitNotification(t.Context(), 1, firstRepoID, commitID, receiverID, "title")
+	require.NoError(t, err)
+	_, err = activities_model.CreateCommitNotification(t.Context(), 1, secondRepoID, commitID, receiverID, "title")
+	require.NoError(t, err)
+
+	changed, err := activities_model.SetCommitReadBy(t.Context(), firstRepoID, receiverID, commitID)
+	require.NoError(t, err)
+	assert.True(t, changed)
 
 	firstRepoNotification := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{
-		UserID:   receiverID,
-		RepoID:   firstRepoID,
-		Source:   activities_model.NotificationSourceCommit,
-		CommitID: commitID,
+		UserID:     receiverID,
+		RepoID:     firstRepoID,
+		Source:     activities_model.NotificationSourceCommit,
+		SubjectRef: commitID,
 	})
 	secondRepoNotification := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{
-		UserID:   receiverID,
-		RepoID:   secondRepoID,
-		Source:   activities_model.NotificationSourceCommit,
-		CommitID: commitID,
+		UserID:     receiverID,
+		RepoID:     secondRepoID,
+		Source:     activities_model.NotificationSourceCommit,
+		SubjectRef: commitID,
 	})
 
 	assert.Equal(t, activities_model.NotificationStatusRead, firstRepoNotification.Status)
 	assert.Equal(t, activities_model.NotificationStatusUnread, secondRepoNotification.Status)
 }
 
-func TestFindNotificationOptionsCombinesUniqueKeyWithStatusAndSource(t *testing.T) {
+func TestSetRepoReadByScopesToRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const receiverID = int64(2)
-	const repoID = int64(1)
+
+	_, err := activities_model.CreateRepoTransferNotification(t.Context(), 1, 1, receiverID, "user2/repo1")
+	require.NoError(t, err)
+	_, err = activities_model.CreateRepoTransferNotification(t.Context(), 1, 2, receiverID, "user2/repo2")
+	require.NoError(t, err)
+
+	changed, err := activities_model.SetRepoReadBy(t.Context(), receiverID, 1)
+	require.NoError(t, err)
+	assert.True(t, changed)
+
+	first := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{
+		UserID: receiverID, Source: activities_model.NotificationSourceRepository, RepoID: 1,
+	})
+	second := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{
+		UserID: receiverID, Source: activities_model.NotificationSourceRepository, RepoID: 2,
+	})
+	assert.Equal(t, activities_model.NotificationStatusRead, first.Status)
+	assert.Equal(t, activities_model.NotificationStatusUnread, second.Status, "reading one repo must not read another")
+}
+
+// Filters must compose: the subject filter narrows the query, it does not replace the
+// status filter. An earlier design silently dropped Status when a subject key was set.
+func TestFindNotificationOptionsCombineSubjectAndStatus(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const receiverID = int64(2)
 	const releaseID = int64(1)
 
-	// Seed an unread release notification.
-	assert.NoError(t, activities_model.CreateOrUpdateReleaseNotifications(t.Context(), 1, repoID, releaseID, receiverID))
+	_, err := activities_model.CreateReleaseNotification(t.Context(), 1, 1, releaseID, receiverID, "v1.0")
+	require.NoError(t, err)
 
-	// Combining FilterByRelease with a Status filter that excludes the row must
-	// return an empty result. The previous implementation silently dropped the
-	// Status filter when a unique key was set, masking this kind of query bug.
 	opts := activities_model.FindNotificationOptions{
 		UserID: receiverID,
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusRead},
@@ -280,30 +357,42 @@ func TestFindNotificationOptionsCombinesUniqueKeyWithStatusAndSource(t *testing.
 
 	notfs, err := db.Find[activities_model.Notification](t.Context(), opts)
 	assert.NoError(t, err)
-	assert.Empty(t, notfs, "Status filter must be honoured when uniqueKey is set")
-
-	// And combining with a Source filter that does not match must also return empty.
-	opts = activities_model.FindNotificationOptions{
-		UserID: receiverID,
-		Source: []activities_model.NotificationSource{activities_model.NotificationSourceIssue},
-	}
-	opts.FilterByRelease(releaseID)
-	notfs, err = db.Find[activities_model.Notification](t.Context(), opts)
-	assert.NoError(t, err)
-	assert.Empty(t, notfs, "Source filter must be honoured when uniqueKey is set")
+	assert.Empty(t, notfs, "Status filter must be honoured alongside the subject filter")
 }
 
-func TestUpsertNotificationByUniqueKeyIsIdempotent(t *testing.T) {
+// An issue and a release can share a numeric id. Because the subject filter also pins the
+// source, they must never match each other.
+func TestFindNotificationOptionsDoNotCollideAcrossSources(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const receiverID = int64(2)
+	const sharedID = int64(1)
+
+	_, err := activities_model.CreateReleaseNotification(t.Context(), 1, 1, sharedID, receiverID, "v1.0")
+	require.NoError(t, err)
+
+	opts := activities_model.FindNotificationOptions{UserID: receiverID}
+	opts.FilterByIssue(sharedID, false)
+	notfs, err := db.Find[activities_model.Notification](t.Context(), opts)
+	assert.NoError(t, err)
+	for _, notf := range notfs {
+		assert.NotEqual(t, activities_model.NotificationSourceRelease, notf.Source,
+			"an issue filter must not match a release with the same id")
+	}
+}
+
+func TestUpsertNotificationIsIdempotent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const receiverID = int64(2)
 	const repoID = int64(1)
 	const releaseID = int64(1)
 
-	// Repeated calls for the same release/user must converge to one row regardless
-	// of how many times the upsert runs (covers the retry-on-conflict path).
+	// Repeated calls for the same release/user must converge to one row, covering both the
+	// insert and the update-on-conflict path.
 	for range 5 {
-		assert.NoError(t, activities_model.CreateOrUpdateReleaseNotifications(t.Context(), 1, repoID, releaseID, receiverID))
+		_, err := activities_model.CreateReleaseNotification(t.Context(), 1, repoID, releaseID, receiverID, "v1.0")
+		require.NoError(t, err)
 	}
 
 	opts := activities_model.FindNotificationOptions{UserID: receiverID}
@@ -313,14 +402,45 @@ func TestUpsertNotificationByUniqueKeyIsIdempotent(t *testing.T) {
 	assert.Len(t, notfs, 1)
 }
 
+// Re-notifying an already-read notification must flip it back to unread and report the
+// change, otherwise the unread badge never comes back.
+func TestUpsertNotificationReopensReadNotification(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	const receiverID = int64(2)
+	const releaseID = int64(1)
+
+	changed, err := activities_model.CreateReleaseNotification(t.Context(), 1, 1, releaseID, receiverID, "v1.0")
+	require.NoError(t, err)
+	require.True(t, changed)
+
+	_, err = activities_model.SetReleaseReadBy(t.Context(), releaseID, receiverID)
+	require.NoError(t, err)
+
+	changed, err = activities_model.CreateReleaseNotification(t.Context(), 3, 1, releaseID, receiverID, "v1.0")
+	require.NoError(t, err)
+	assert.True(t, changed)
+
+	opts := activities_model.FindNotificationOptions{UserID: receiverID}
+	opts.FilterByRelease(releaseID)
+	notfs, err := db.Find[activities_model.Notification](t.Context(), opts)
+	require.NoError(t, err)
+	if assert.Len(t, notfs, 1) {
+		assert.Equal(t, activities_model.NotificationStatusUnread, notfs[0].Status)
+		assert.EqualValues(t, 3, notfs[0].UpdatedBy, "updated_by must move so the notification is reordered")
+	}
+}
+
 func TestCreateRepoTransferNotificationDeduplicatesByRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const receiverID = int64(2)
 	const repoID = int64(1)
 
-	assert.NoError(t, activities_model.CreateRepoTransferNotification(t.Context(), 1, repoID, receiverID))
-	assert.NoError(t, activities_model.CreateRepoTransferNotification(t.Context(), 3, repoID, receiverID))
+	_, err := activities_model.CreateRepoTransferNotification(t.Context(), 1, repoID, receiverID, "user2/repo1")
+	require.NoError(t, err)
+	_, err = activities_model.CreateRepoTransferNotification(t.Context(), 3, repoID, receiverID, "user2/repo1")
+	require.NoError(t, err)
 
 	notfs, err := db.Find[activities_model.Notification](t.Context(), activities_model.FindNotificationOptions{
 		UserID: receiverID,
@@ -332,4 +452,63 @@ func TestCreateRepoTransferNotificationDeduplicatesByRepo(t *testing.T) {
 		assert.Equal(t, activities_model.NotificationStatusUnread, notfs[0].Status)
 		assert.EqualValues(t, 3, notfs[0].UpdatedBy)
 	}
+}
+
+// The notification page must render even when the subject is gone: a deleted release, a
+// GC'd commit or a removed issue used to take the whole page down with a 500.
+func TestNotificationRendersWithoutSubject(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	for _, tc := range []struct {
+		name string
+		notf *activities_model.Notification
+	}{
+		{"release", &activities_model.Notification{
+			Source: activities_model.NotificationSourceRelease, RepoID: repo.ID,
+			SubjectID: unittest.NonexistentID, Title: "v9.9.9", Repository: repo,
+		}},
+		{"commit", &activities_model.Notification{
+			Source: activities_model.NotificationSourceCommit, RepoID: repo.ID,
+			SubjectRef: "deadbeef", Title: "a commit message", Repository: repo,
+		}},
+		{"issue", &activities_model.Notification{
+			Source: activities_model.NotificationSourceIssue, RepoID: repo.ID,
+			SubjectID: unittest.NonexistentID, Title: "a deleted issue", Repository: repo,
+		}},
+		{"pull request", &activities_model.Notification{
+			Source: activities_model.NotificationSourcePullRequest, RepoID: repo.ID,
+			SubjectID: unittest.NonexistentID, Title: "a deleted pull", Repository: repo,
+		}},
+		{"repository", &activities_model.Notification{
+			Source: activities_model.NotificationSourceRepository, RepoID: repo.ID,
+			Title: repo.FullName(), Repository: repo,
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.NotPanics(t, func() {
+				assert.NotEmpty(t, tc.notf.DisplayTitle())
+				assert.NotEmpty(t, tc.notf.Link(t.Context()))
+				assert.NotEmpty(t, tc.notf.HTMLURL(t.Context()))
+				assert.NotEmpty(t, tc.notf.IconHTML(t.Context()))
+			})
+		})
+	}
+}
+
+// A live subject wins over the snapshot, so a renamed issue shows its current title.
+func TestNotificationDisplayTitlePrefersLoadedSubject(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+
+	notf := &activities_model.Notification{
+		Source:    activities_model.NotificationSourceIssue,
+		SubjectID: issue.ID,
+		Title:     "the title when the notification was created",
+		Issue:     issue,
+	}
+	assert.Equal(t, issue.Title, notf.DisplayTitle())
+
+	notf.Issue = nil
+	assert.Equal(t, "the title when the notification was created", notf.DisplayTitle())
 }

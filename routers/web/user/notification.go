@@ -88,8 +88,9 @@ func prepareUserNotificationsData(ctx *context.Context) {
 
 	notifications := activities_model.NotificationList(nls)
 
-	failCount := 0
-
+	// A notification is only unrenderable when its repository is gone or the user lost access
+	// to it. Its subject (issue, release, commit) is loaded best-effort by LoadAttributes:
+	// when the subject is missing the notification still renders from its stored Title.
 	repos, failures, err := notifications.LoadRepos(ctx)
 	if err != nil {
 		ctx.ServerError("LoadRepos", err)
@@ -100,55 +101,18 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		ctx.ServerError("LoadAttributes", err)
 		return
 	}
-	failCount += len(failures)
-	notifications, failures, err = filterNotificationsByRepoAccess(ctx, ctx.Doer, notifications)
+
+	notifications, _, err = filterNotificationsByRepoAccess(ctx, ctx.Doer, notifications)
 	if err != nil {
 		ctx.ServerError("filterNotificationsByRepoAccess", err)
 		return
 	}
-	failCount += len(failures)
 
-	failures, err = notifications.LoadIssues(ctx)
-	if err != nil {
-		ctx.ServerError("LoadIssues", err)
-		return
-	}
-
-	if err = notifications.LoadIssuePullRequests(ctx); err != nil {
-		ctx.ServerError("LoadIssuePullRequests", err)
-		return
-	}
-
-	notifications = notifications.Without(failures)
-	failCount += len(failures)
-
-	failures, err = notifications.LoadComments(ctx)
-	if err != nil {
+	if _, err := notifications.LoadComments(ctx); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
-	notifications = notifications.Without(failures)
-	failCount += len(failures)
-
-	failures, err = notifications.LoadCommits(ctx)
-	if err != nil {
-		ctx.ServerError("LoadCommits", err)
-		return
-	}
-	notifications = notifications.Without(failures)
-	failCount += len(failures)
-
-	failures, err = notifications.LoadReleases(ctx)
-	if err != nil {
-		ctx.ServerError("LoadReleases", err)
-		return
-	}
-	notifications = notifications.Without(failures)
-	failCount += len(failures)
-
-	if failCount > 0 {
-		ctx.Flash.Error(fmt.Sprintf("ERROR: %d notifications were removed due to missing parts - check the logs", failCount))
-	}
+	notifications.LoadSubjects(ctx)
 
 	ctx.Data["Title"] = ctx.Tr("notifications")
 	ctx.Data["PageType"] = pageType

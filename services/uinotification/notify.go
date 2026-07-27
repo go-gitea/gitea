@@ -11,11 +11,11 @@ import (
 	activities_model "gitea.dev/models/activities"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
-	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/queue"
@@ -38,6 +38,7 @@ type (
 		CommitID             string // commit ID for commit notifications
 		RepoID               int64
 		ReleaseID            int64
+		Title                string // snapshotted so the notification renders without loading the subject
 		NotificationAuthorID int64
 		ReceiverID           int64 // 0 -- ALL Watcher
 	}
@@ -64,34 +65,49 @@ func NewNotifier() notify_service.Notifier {
 func handler(items ...notificationOpts) []notificationOpts {
 	ctx := graceful.GetManager().ShutdownContext()
 	for _, opts := range items {
+		var notifiedIDs []int64
+		var err error
+
 		switch opts.Source {
 		case activities_model.NotificationSourceRepository:
-			if err := activities_model.CreateRepoTransferNotification(ctx, opts.NotificationAuthorID, opts.RepoID, opts.ReceiverID); err != nil {
-				log.Error("CreateRepoTransferNotification: %v", err)
-			}
+			notifiedIDs, err = notifyOne(opts.ReceiverID, func() (bool, error) {
+				return activities_model.CreateRepoTransferNotification(ctx, opts.NotificationAuthorID, opts.RepoID, opts.ReceiverID, opts.Title)
+			})
 		case activities_model.NotificationSourceCommit:
-			if err := activities_model.CreateCommitNotifications(ctx, opts.NotificationAuthorID, opts.RepoID, opts.CommitID, opts.ReceiverID); err != nil {
-				log.Error("Was unable to create commit notification: %v", err)
-			}
+			notifiedIDs, err = notifyOne(opts.ReceiverID, func() (bool, error) {
+				return activities_model.CreateCommitNotification(ctx, opts.NotificationAuthorID, opts.RepoID, opts.CommitID, opts.ReceiverID, opts.Title)
+			})
 		case activities_model.NotificationSourceRelease:
-			if err := activities_model.CreateOrUpdateReleaseNotifications(ctx, opts.NotificationAuthorID, opts.RepoID, opts.ReleaseID, opts.ReceiverID); err != nil {
-				log.Error("Was unable to create release notification: %v", err)
-			}
+			notifiedIDs, err = notifyOne(opts.ReceiverID, func() (bool, error) {
+				return activities_model.CreateReleaseNotification(ctx, opts.NotificationAuthorID, opts.RepoID, opts.ReleaseID, opts.ReceiverID, opts.Title)
+			})
 		case activities_model.NotificationSourceIssue, activities_model.NotificationSourcePullRequest, 0:
 			// Source==0 covers queue items persisted before this field existed, kept for rolling-upgrade safety.
-			notifiedIDs, err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
-			if err != nil {
-				log.Error("Was unable to create issue notification: %v", err)
-				continue
-			}
-			for _, userID := range notifiedIDs {
-				notify_service.NotificationCountChange(ctx, userID)
-			}
+			notifiedIDs, err = activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
 		default:
 			setting.PanicInDevOrTesting("Unknown notification source: %v", opts.Source)
+			continue
+		}
+
+		if err != nil {
+			log.Error("Was unable to create notification (source %v): %v", opts.Source, err)
+			continue
+		}
+		for _, userID := range notifiedIDs {
+			notify_service.NotificationCountChange(ctx, userID)
 		}
 	}
 	return nil
+}
+
+// notifyOne adapts the single-receiver creators to the notified-IDs shape the handler
+// uses to push unread-count updates.
+func notifyOne(receiverID int64, create func() (bool, error)) ([]int64, error) {
+	changed, err := create()
+	if err != nil || !changed {
+		return nil, err
+	}
+	return []int64{receiverID}, nil
 }
 
 func (ns *notificationService) Run() {
@@ -288,6 +304,7 @@ func (ns *notificationService) RepoPendingTransfer(ctx context.Context, doer, ne
 	opts := notificationOpts{
 		Source:               activities_model.NotificationSourceRepository,
 		RepoID:               repo.ID,
+		Title:                repo.FullName(),
 		NotificationAuthorID: doer.ID,
 	}
 
@@ -342,27 +359,35 @@ func (ns *notificationService) PushCommits(ctx context.Context, pusher *user_mod
 		return
 	}
 
+	receiverIDs := make([]int64, 0, len(receivers))
+	receiverByID := make(map[int64]*user_model.User, len(receivers))
 	for _, receiver := range receivers {
-		if user_model.IsUserBlockedBy(ctx, repo.Owner, receiver.ID) {
-			continue
-		}
-		perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, receiver)
-		if err != nil {
-			log.Error("GetIndividualUserRepoPermission [%d]: %v", receiver.ID, err)
-			continue
-		}
-		if !perm.CanRead(unit.TypeCode) {
-			continue
-		}
+		receiverIDs = append(receiverIDs, receiver.ID)
+		receiverByID[receiver.ID] = receiver
+	}
 
-		shas := mentionToCommits[receiver.LowerName]
-		for _, sha := range shas {
+	allowedIDs, err := filterRecipientsByRepoAccess(ctx, repo, receiverIDs, unit.TypeCode)
+	if err != nil {
+		log.Error("filterRecipientsByRepoAccess: %v", err)
+		return
+	}
+
+	// The commit title is snapshotted here, while the message is still in hand, so the
+	// notification never needs to open the git repository to render.
+	commitTitles := make(map[string]string, len(commits.Commits))
+	for _, commit := range commits.Commits {
+		commitTitles[commit.Sha1], _ = git.SplitCommitTitleBody(commit.Message, 255)
+	}
+
+	for _, receiverID := range allowedIDs {
+		for _, sha := range mentionToCommits[receiverByID[receiverID].LowerName] {
 			opts := notificationOpts{
 				Source:               activities_model.NotificationSourceCommit,
 				RepoID:               repo.ID,
 				CommitID:             sha,
+				Title:                commitTitles[sha],
 				NotificationAuthorID: pusher.ID,
-				ReceiverID:           receiver.ID,
+				ReceiverID:           receiverID,
 			}
 			if err := ns.queue.Push(opts); err != nil {
 				log.Error("PushCommits: %v", err)
@@ -388,6 +413,7 @@ func (ns *notificationService) UpdateRelease(ctx context.Context, doer *user_mod
 		Source:               activities_model.NotificationSourceRelease,
 		RepoID:               rel.RepoID,
 		ReleaseID:            rel.ID,
+		Title:                rel.Title,
 		NotificationAuthorID: rel.PublisherID,
 	}
 
@@ -409,7 +435,15 @@ func (ns *notificationService) UpdateRelease(ctx context.Context, doer *user_mod
 		repoWatcherIDs = append(repoWatcherIDs, rel.Repo.Owner.ID)
 	}
 
-	for _, watcherID := range repoWatcherIDs {
+	// Watching a repository does not imply still being able to read it: a watcher can lose
+	// access after the fact, so the release title must not leak to them.
+	watcherIDs, err := filterRecipientsByRepoAccess(ctx, rel.Repo, repoWatcherIDs, unit.TypeReleases)
+	if err != nil {
+		log.Error("filterRecipientsByRepoAccess: %v", err)
+		return
+	}
+
+	for _, watcherID := range watcherIDs {
 		if watcherID == doer.ID {
 			// Do not notify the publisher of the release
 			continue

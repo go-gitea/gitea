@@ -120,11 +120,12 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	err = activities_model.NotificationList(nl).LoadAttributes(ctx)
+	failures, err := activities_model.NotificationList(nl).LoadAttributes(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	nl = activities_model.NotificationList(nl).Without(failures)
 
 	ctx.SetLinkHeader(totalCount, opts.PageSize)
 	ctx.SetTotalCountHeader(totalCount)
@@ -218,7 +219,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	_ = activities_model.NotificationList(updated).LoadAttributes(ctx)
+	_, _ = activities_model.NotificationList(updated).LoadAttributes(ctx)
 	changed := make([]*structs.NotificationThread, 0, len(updated))
 	for _, notif := range updated {
 		changed = append(changed, convert.ToNotificationThread(ctx, notif))

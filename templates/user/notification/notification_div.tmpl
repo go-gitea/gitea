@@ -35,15 +35,7 @@
 							{{end}}
 						</div>
 						<div class="tw-text-16 tw-py-0.5">
-							{{if $one.Issue}}
-								{{$one.Issue.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}
-							{{else if $one.Release}}
-								{{$one.Release.Title}}
-							{{else if $one.Commit}}
-								{{$one.Commit.MessageTitle}}
-							{{else}}
-								{{$one.Repository.FullName}}
-							{{end}}
+							{{$one.DisplayTitle | ctx.RenderUtils.RenderIssueSimpleTitle}}
 						</div>
 					</a>
 					<div class="notifications-updated flex-text-inline">
@@ -51,8 +43,6 @@
 							{{DateUtils.TimeSince $one.Issue.UpdatedUnix}}
 						{{else if $one.Release}}
 							{{DateUtils.TimeSince $one.Release.CreatedUnix}}
-						{{else if $one.Commit}}
-							{{DateUtils.TimeSince $one.Commit.Committer.When}}
 						{{else}}
 							{{DateUtils.TimeSince $one.UpdatedUnix}}
 						{{end}}

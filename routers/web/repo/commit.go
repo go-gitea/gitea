@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"strings"
 
-	activities_model "gitea.dev/models/activities"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -34,6 +33,7 @@ import (
 	"gitea.dev/services/context"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	"gitea.dev/services/notifications"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/services/repository/gitgraph"
 )
@@ -314,8 +314,7 @@ func Diff(ctx *context.Context) {
 	}
 
 	if ctx.IsSigned {
-		err = activities_model.SetCommitReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, commitID)
-		if err != nil {
+		if err := notifications.SetCommitReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, commitID); err != nil {
 			ctx.ServerError("SetCommitReadBy", err)
 			return
 		}

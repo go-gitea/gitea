@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/renderhelper"
@@ -30,6 +29,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
 	"gitea.dev/services/forms"
+	"gitea.dev/services/notifications"
 	release_service "gitea.dev/services/release"
 )
 
@@ -304,8 +304,7 @@ func SingleRelease(ctx *context.Context) {
 	}
 
 	if ctx.IsSigned && !release.IsTag {
-		err = activities_model.SetReleaseReadBy(ctx, release.ID, ctx.Doer.ID)
-		if err != nil {
+		if err := notifications.SetReleaseReadBy(ctx, release.ID, ctx.Doer.ID); err != nil {
 			ctx.ServerError("SetReleaseReadBy", err)
 			return
 		}

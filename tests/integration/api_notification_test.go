@@ -12,6 +12,7 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -21,6 +22,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPINotification(t *testing.T) {
@@ -326,6 +328,45 @@ func TestAPIReleaseNotification(t *testing.T) {
 			assert.Equal(t, "v0.0.2 is released", apiNL[0].Subject.Title)
 			assert.True(t, apiNL[0].Unread)
 			assert.False(t, apiNL[0].Pinned)
+		}
+	})
+}
+
+// A user who watches a private repository but has no access to it must not receive its
+// release notifications: the release title would otherwise leak through the notification.
+func TestAPIReleaseNotificationWatcherWithoutAccess(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		// repo2 is private and owned by user2; user4 has no access to it
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		require.True(t, repo2.IsPrivate)
+
+		// user4 watches the repo even though they cannot read it
+		require.NoError(t, repo_model.WatchRepo(t.Context(), user4, repo2, true))
+
+		session2 := loginUser(t, user2.Name)
+		token2 := getTokenForLoggedInUser(t, session2, auth_model.AccessTokenScopeWriteRepository)
+		createNewReleaseUsingAPI(t, token2, user2, repo2, "v0.0.9", "", "secret release title", "should not leak")
+
+		// Assert on the stored rows, not the API response: the API additionally hides
+		// subjects the caller cannot read, which would mask a notification that should
+		// never have been written in the first place.
+		notifications, err := db.Find[activities_model.Notification](t.Context(), activities_model.FindNotificationOptions{
+			UserID: user4.ID,
+			Source: []activities_model.NotificationSource{activities_model.NotificationSourceRelease},
+		})
+		require.NoError(t, err)
+		assert.Empty(t, notifications, "a watcher without repo access must not get a release notification at all")
+
+		// the publisher, who can read the repo, is unaffected
+		notifications, err = db.Find[activities_model.Notification](t.Context(), activities_model.FindNotificationOptions{
+			UserID: user2.ID,
+			Source: []activities_model.NotificationSource{activities_model.NotificationSourceRelease},
+		})
+		require.NoError(t, err)
+		for _, n := range notifications {
+			assert.NotEqual(t, user4.ID, n.UserID)
 		}
 	})
 }

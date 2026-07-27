@@ -14,12 +14,13 @@ import (
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
+	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -61,11 +62,19 @@ type Notification struct {
 	Status NotificationStatus `xorm:"SMALLINT NOT NULL"`
 	Source NotificationSource `xorm:"SMALLINT NOT NULL"`
 
-	IssueID   int64 `xorm:"NOT NULL"`
-	CommitID  string
+	// SubjectID and SubjectRef identify what the notification is about, together with
+	// RepoID and Source. SubjectID holds an issue or release id; SubjectRef holds a commit
+	// sha. A repository notification needs neither, RepoID alone identifies it.
+	SubjectID  int64  `xorm:"NOT NULL DEFAULT 0"`
+	SubjectRef string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+
+	// Title is snapshotted when the notification is written so the list can be rendered
+	// from the row alone, without loading (or failing to load) the subject.
+	Title string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+
+	// CommentID is a cursor to the comment that last updated an issue notification,
+	// it is not part of the notification's identity.
 	CommentID int64
-	ReleaseID int64
-	UniqueKey string `xorm:"VARCHAR(255) NOT NULL"`
 
 	UpdatedBy int64 `xorm:"NOT NULL"`
 
@@ -74,10 +83,33 @@ type Notification struct {
 	Comment    *issues_model.Comment  `xorm:"-"`
 	User       *user_model.User       `xorm:"-"`
 	Release    *repo_model.Release    `xorm:"-"`
-	Commit     *git.Commit            `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
+}
+
+// IssueID returns the issue this notification is about, or 0 for other sources.
+func (n *Notification) IssueID() int64 {
+	if n.Source == NotificationSourceIssue || n.Source == NotificationSourcePullRequest {
+		return n.SubjectID
+	}
+	return 0
+}
+
+// ReleaseID returns the release this notification is about, or 0 for other sources.
+func (n *Notification) ReleaseID() int64 {
+	if n.Source == NotificationSourceRelease {
+		return n.SubjectID
+	}
+	return 0
+}
+
+// CommitID returns the commit sha this notification is about, or "" for other sources.
+func (n *Notification) CommitID() string {
+	if n.Source == NotificationSourceCommit {
+		return n.SubjectRef
+	}
+	return ""
 }
 
 // TableIndices implements xorm's TableIndices interface
@@ -103,8 +135,8 @@ func (n *Notification) TableIndices() []*schemas.Index {
 	updatedByIndex.AddColumn("updated_by")
 	indices = append(indices, updatedByIndex)
 
-	uniqueNotificationKey := schemas.NewIndex("unique_notification_key", schemas.UniqueType)
-	uniqueNotificationKey.AddColumn("user_id", "unique_key")
+	uniqueNotificationKey := schemas.NewIndex("unique_notification_subject", schemas.UniqueType)
+	uniqueNotificationKey.AddColumn("user_id", "repo_id", "source", "subject_id", "subject_ref")
 	indices = append(indices, uniqueNotificationKey)
 
 	return indices
@@ -120,126 +152,116 @@ func NotificationSourceForIssue(issue *issues_model.Issue) NotificationSource {
 	return util.Iif(issue.IsPull, NotificationSourcePullRequest, NotificationSourceIssue)
 }
 
-func uniqueKeyForIssueNotification(issueID int64, isPull bool) string {
-	return fmt.Sprintf("%s-%d", util.Iif(isPull, "pull", "issue"), issueID)
+// subjectCond matches the row identified by the unique index on
+// (user_id, repo_id, source, subject_id, subject_ref).
+func subjectCond(ctx context.Context, n *Notification) *xorm.Session {
+	return db.GetEngine(ctx).
+		Where("user_id = ?", n.UserID).
+		And("repo_id = ?", n.RepoID).
+		And("source = ?", n.Source).
+		And("subject_id = ?", n.SubjectID).
+		And("subject_ref = ?", n.SubjectRef)
 }
 
-func uniqueKeyForCommitNotification(repoID int64, commitID string) string {
-	return fmt.Sprintf("commit-%d-%s", repoID, commitID)
-}
-
-func uniqueKeyForRepositoryNotification(repoID int64) string {
-	return fmt.Sprintf("repo-%d", repoID)
-}
-
-// UniqueKeyForReleaseNotification returns the unique_key value for a release notification.
-func UniqueKeyForReleaseNotification(releaseID int64) string {
-	return fmt.Sprintf("release-%d", releaseID)
-}
-
-// upsertNotificationByUniqueKey marks an existing notification unread (updating the doer)
-// or inserts newNotification if none exists for the user/unique_key pair.
+// upsertNotification marks an existing notification unread, or inserts it when the user has
+// no notification for that subject yet. It reports whether the user's unread count changed,
+// so callers can skip the real-time push when it did not.
 //
-// The unique index on (user_id, unique_key) means two concurrent callers can race: both
-// see no existing row and both attempt to insert, but the DB rejects the second insert.
-// We retry the read-update path a small number of times to absorb that race.
-func upsertNotificationByUniqueKey(ctx context.Context, doerID int64, newNotification *Notification) error {
-	const maxAttempts = 3
-	var lastInsertErr error
-	for range maxAttempts {
-		existing := new(Notification)
-		ok, err := db.GetEngine(ctx).
-			Where("user_id = ?", newNotification.UserID).
-			And("unique_key = ?", newNotification.UniqueKey).
-			Get(existing)
-		if err != nil {
-			return err
-		}
-		if ok {
-			existing.Status = NotificationStatusUnread
-			existing.UpdatedBy = doerID
-			_, err := db.GetEngine(ctx).ID(existing.ID).Cols("status", "updated_by").Update(existing)
-			return err
-		}
-		insertErr := db.Insert(ctx, newNotification)
-		if insertErr == nil {
-			return nil
-		}
-		// Insert failed — likely a concurrent insert won the race. Loop and try the update path.
-		lastInsertErr = insertErr
-		newNotification.ID = 0
+// Look the row up first and insert only when there is none. Two concurrent callers can both
+// find nothing and both try to insert; the unique index rejects the loser, which then falls
+// back to the update path — after the constraint fires the row provably exists.
+func upsertNotification(ctx context.Context, doerID int64, n *Notification) (bool, error) {
+	existing, err := findNotificationBySubject(ctx, n)
+	if err != nil {
+		return false, err
 	}
-	return lastInsertErr
+
+	if existing == nil {
+		n.Status = NotificationStatusUnread
+		n.UpdatedBy = doerID
+		if err := db.Insert(ctx, n); err == nil {
+			return true, nil
+		}
+		// A concurrent insert won the race, so the row exists now: load and update it.
+		n.ID = 0
+		if existing, err = findNotificationBySubject(ctx, n); err != nil || existing == nil {
+			return false, err
+		}
+	}
+
+	// An already-unread notification is only reordered, the unread count does not move.
+	countChanged := existing.Status != NotificationStatusUnread
+	existing.Status = NotificationStatusUnread
+	existing.UpdatedBy = doerID
+	if _, err := db.GetEngine(ctx).ID(existing.ID).Cols("status", "updated_by").Update(existing); err != nil {
+		return false, err
+	}
+	return countChanged, nil
+}
+
+func findNotificationBySubject(ctx context.Context, subject *Notification) (*Notification, error) {
+	notification := new(Notification)
+	ok, err := subjectCond(ctx, subject).Get(notification)
+	if err != nil || !ok {
+		return nil, err
+	}
+	return notification, nil
 }
 
 // CreateRepoTransferNotification creates a notification for the user a repository was transferred to
-func CreateRepoTransferNotification(ctx context.Context, doerID, repoID, receiverID int64) error {
-	return upsertNotificationByUniqueKey(ctx, doerID, &Notification{
-		UserID:    receiverID,
-		RepoID:    repoID,
-		Status:    NotificationStatusUnread,
-		UpdatedBy: doerID,
-		Source:    NotificationSourceRepository,
-		UniqueKey: uniqueKeyForRepositoryNotification(repoID),
+func CreateRepoTransferNotification(ctx context.Context, doerID, repoID, receiverID int64, title string) (bool, error) {
+	return upsertNotification(ctx, doerID, &Notification{
+		Source: NotificationSourceRepository,
+		UserID: receiverID,
+		RepoID: repoID, // a repository notification needs no further subject
+		Title:  title,
 	})
 }
 
-func CreateCommitNotifications(ctx context.Context, doerID, repoID int64, commitID string, receiverID int64) error {
-	return upsertNotificationByUniqueKey(ctx, doerID, &Notification{
-		Source:    NotificationSourceCommit,
-		UserID:    receiverID,
-		RepoID:    repoID,
-		CommitID:  commitID,
-		UniqueKey: uniqueKeyForCommitNotification(repoID, commitID),
-		Status:    NotificationStatusUnread,
-		UpdatedBy: doerID,
+// CreateCommitNotification notifies receiverID about a commit mentioning them.
+func CreateCommitNotification(ctx context.Context, doerID, repoID int64, commitID string, receiverID int64, title string) (bool, error) {
+	return upsertNotification(ctx, doerID, &Notification{
+		Source:     NotificationSourceCommit,
+		UserID:     receiverID,
+		RepoID:     repoID,
+		SubjectRef: commitID,
+		Title:      title,
 	})
 }
 
-func CreateOrUpdateReleaseNotifications(ctx context.Context, doerID, repoID, releaseID, receiverID int64) error {
-	return upsertNotificationByUniqueKey(ctx, doerID, &Notification{
+// CreateReleaseNotification notifies receiverID about a published release.
+func CreateReleaseNotification(ctx context.Context, doerID, repoID, releaseID, receiverID int64, title string) (bool, error) {
+	return upsertNotification(ctx, doerID, &Notification{
 		Source:    NotificationSourceRelease,
-		RepoID:    repoID,
 		UserID:    receiverID,
-		Status:    NotificationStatusUnread,
-		ReleaseID: releaseID,
-		UniqueKey: UniqueKeyForReleaseNotification(releaseID),
-		UpdatedBy: doerID,
+		RepoID:    repoID,
+		SubjectID: releaseID,
+		Title:     title,
 	})
 }
 
 func createIssueNotification(ctx context.Context, userID int64, issue *issues_model.Issue, commentID, updatedByID int64) error {
-	uniqueKey := uniqueKeyForIssueNotification(issue.ID, issue.IsPull)
-	notification := &Notification{
+	return db.Insert(ctx, &Notification{
+		Source:    NotificationSourceForIssue(issue),
 		UserID:    userID,
 		RepoID:    issue.RepoID,
+		SubjectID: issue.ID,
+		Title:     issue.Title,
 		Status:    NotificationStatusUnread,
-		IssueID:   issue.ID,
 		CommentID: commentID,
-		UniqueKey: uniqueKey,
 		UpdatedBy: updatedByID,
-	}
-
-	if issue.IsPull {
-		notification.Source = NotificationSourcePullRequest
-	} else {
-		notification.Source = NotificationSourceIssue
-	}
-
-	return db.Insert(ctx, notification)
+	})
 }
 
 func updateIssueNotification(ctx context.Context, notification *Notification, commentID, updatedByID int64) error {
 	// NOTICE: Only update comment id when the before notification on this issue is read, otherwise you may miss some old comments.
 	// But we need update update_by so that the notification will be reorder
-	var cols []string
+	notification.UpdatedBy = updatedByID
+	cols := []string{"updated_by"}
 	if notification.Status == NotificationStatusRead {
 		notification.Status = NotificationStatusUnread
 		notification.CommentID = commentID
-		cols = []string{"status", "update_by", "comment_id"}
-	} else {
-		notification.UpdatedBy = updatedByID
-		cols = []string{"update_by"}
+		cols = append(cols, "status", "comment_id")
 	}
 
 	_, err := db.GetEngine(ctx).ID(notification.ID).Cols(cols...).Update(notification)
@@ -248,18 +270,11 @@ func updateIssueNotification(ctx context.Context, notification *Notification, co
 
 // GetIssueNotification return the notification about an issue
 func GetIssueNotification(ctx context.Context, userID, issueID int64) (*Notification, error) {
-	issue, err := issues_model.GetIssueByID(ctx, issueID)
-	if err != nil {
-		return nil, err
-	}
-	return getIssueNotificationByUniqueKey(ctx, userID, uniqueKeyForIssueNotification(issueID, issue.IsPull), issueID)
-}
-
-func getIssueNotificationByUniqueKey(ctx context.Context, userID int64, uniqueKey string, issueID int64) (*Notification, error) {
 	notification := new(Notification)
 	ok, err := db.GetEngine(ctx).
 		Where("user_id = ?", userID).
-		And("unique_key = ?", uniqueKey).
+		And("source IN (?, ?)", NotificationSourceIssue, NotificationSourcePullRequest).
+		And("subject_id = ?", issueID).
 		Get(notification)
 	if err != nil {
 		return nil, err
@@ -270,27 +285,33 @@ func getIssueNotificationByUniqueKey(ctx context.Context, userID int64, uniqueKe
 	return notification, nil
 }
 
-// LoadAttributes load Repo Issue User and Comment if not loaded
-func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
-	if err = n.loadRepo(ctx); err != nil {
+// LoadAttributes loads the repo, user and comment of a notification, then makes a
+// best-effort attempt at the subject. A missing or unreadable subject is not an error:
+// the notification still renders from its stored Title.
+func (n *Notification) LoadAttributes(ctx context.Context) error {
+	if err := n.loadRepo(ctx); err != nil {
 		return err
 	}
-	if err = n.loadIssue(ctx); err != nil {
+	if err := n.loadUser(ctx); err != nil {
 		return err
 	}
-	if err = n.loadUser(ctx); err != nil {
+	if err := n.loadComment(ctx); err != nil {
 		return err
 	}
-	if err = n.loadComment(ctx); err != nil {
-		return err
+	n.LoadSubject(ctx)
+	return nil
+}
+
+// LoadSubject enriches the notification with its live subject when it is still available.
+// Errors are deliberately swallowed — a deleted issue or release must not stop the
+// notification list from rendering.
+func (n *Notification) LoadSubject(ctx context.Context) {
+	if err := n.loadIssue(ctx); err != nil {
+		log.Debug("Notification[%d]: subject issue %d unavailable: %v", n.ID, n.SubjectID, err)
 	}
-	if err = n.loadCommit(ctx); err != nil {
-		return err
+	if err := n.loadRelease(ctx); err != nil {
+		log.Debug("Notification[%d]: subject release %d unavailable: %v", n.ID, n.SubjectID, err)
 	}
-	if err = n.loadRelease(ctx); err != nil {
-		return err
-	}
-	return err
 }
 
 func (n *Notification) loadRepo(ctx context.Context) (err error) {
@@ -304,10 +325,10 @@ func (n *Notification) loadRepo(ctx context.Context) (err error) {
 }
 
 func (n *Notification) loadIssue(ctx context.Context) (err error) {
-	if n.Issue == nil && n.IssueID != 0 {
-		n.Issue, err = issues_model.GetIssueByID(ctx, n.IssueID)
+	if n.Issue == nil && n.IssueID() != 0 {
+		n.Issue, err = issues_model.GetIssueByID(ctx, n.IssueID())
 		if err != nil {
-			return fmt.Errorf("getIssueByID [%d]: %w", n.IssueID, err)
+			return fmt.Errorf("getIssueByID [%d]: %w", n.IssueID(), err)
 		}
 		return n.Issue.LoadAttributes(ctx)
 	}
@@ -321,7 +342,7 @@ func (n *Notification) loadComment(ctx context.Context) (err error) {
 			if issues_model.IsErrCommentNotExist(err) {
 				return issues_model.ErrCommentNotExist{
 					ID:      n.CommentID,
-					IssueID: n.IssueID,
+					IssueID: n.IssueID(),
 				}
 			}
 			return err
@@ -330,35 +351,11 @@ func (n *Notification) loadComment(ctx context.Context) (err error) {
 	return nil
 }
 
-func (n *Notification) loadCommit(ctx context.Context) (err error) {
-	if n.Source != NotificationSourceCommit || n.CommitID == "" || n.Commit != nil {
-		return nil
-	}
-
-	if n.Repository == nil {
-		if err := n.loadRepo(ctx); err != nil {
-			return err
-		}
-	}
-
-	repo, err := git.OpenRepository(n.Repository)
-	if err != nil {
-		return fmt.Errorf("OpenRepository [%d]: %w", n.Repository.ID, err)
-	}
-	defer repo.Close()
-
-	n.Commit, err = repo.GetCommit(ctx, n.CommitID)
-	if err != nil {
-		return fmt.Errorf("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
-	}
-	return nil
-}
-
 func (n *Notification) loadRelease(ctx context.Context) (err error) {
-	if n.Release == nil && n.ReleaseID != 0 {
-		n.Release, err = repo_model.GetReleaseByID(ctx, n.ReleaseID)
+	if n.Release == nil && n.ReleaseID() != 0 {
+		n.Release, err = repo_model.GetReleaseByID(ctx, n.ReleaseID())
 		if err != nil {
-			return fmt.Errorf("GetReleaseByID [%d]: %w", n.ReleaseID, err)
+			return fmt.Errorf("GetReleaseByID [%d]: %w", n.ReleaseID(), err)
 		}
 	}
 	return nil
@@ -384,53 +381,55 @@ func (n *Notification) GetIssue(ctx context.Context) (*issues_model.Issue, error
 	return n.Issue, n.loadIssue(ctx)
 }
 
-// HTMLURL formats a URL-string to the notification
+// HTMLURL formats a URL-string to the notification. The subject may be unloaded or gone,
+// in which case it falls back to the repository, which is always loaded.
 func (n *Notification) HTMLURL(ctx context.Context) string {
 	switch n.Source {
 	case NotificationSourceIssue, NotificationSourcePullRequest:
 		if n.Comment != nil {
 			return n.Comment.HTMLURL(ctx)
 		}
-		return n.Issue.HTMLURL(ctx)
-	case NotificationSourceCommit:
-		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
-	case NotificationSourceRepository:
-		return n.Repository.HTMLURL(ctx)
-	case NotificationSourceRelease:
-		if n.Release == nil {
-			return ""
+		if n.Issue != nil {
+			return n.Issue.HTMLURL(ctx)
 		}
-		return n.Release.HTMLURL()
+	case NotificationSourceCommit:
+		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.SubjectRef)
+	case NotificationSourceRelease:
+		if n.Release != nil {
+			return n.Release.HTMLURL()
+		}
 	}
-	return ""
+	return n.Repository.HTMLURL(ctx)
 }
 
-// Link formats a relative URL-string to the notification
+// Link formats a relative URL-string to the notification, with the same fallback as HTMLURL.
 func (n *Notification) Link(ctx context.Context) string {
 	switch n.Source {
 	case NotificationSourceIssue, NotificationSourcePullRequest:
 		if n.Comment != nil {
 			return n.Comment.Link(ctx)
 		}
-		return n.Issue.Link()
-	case NotificationSourceCommit:
-		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
-	case NotificationSourceRepository:
-		return n.Repository.Link()
-	case NotificationSourceRelease:
-		if n.Release == nil {
-			return ""
+		if n.Issue != nil {
+			return n.Issue.Link()
 		}
-		return n.Release.Link()
+	case NotificationSourceCommit:
+		return n.Repository.Link() + "/commit/" + url.PathEscape(n.SubjectRef)
+	case NotificationSourceRelease:
+		if n.Release != nil {
+			return n.Release.Link()
+		}
 	}
-	return ""
+	return n.Repository.Link()
 }
 
 func (n *Notification) IconHTML(ctx context.Context) template.HTML {
 	switch n.Source {
 	case NotificationSourceIssue, NotificationSourcePullRequest:
-		// n.Issue should be loaded before calling this method
-		return n.Issue.IconHTML(ctx)
+		if n.Issue != nil {
+			return n.Issue.IconHTML(ctx)
+		}
+		// the issue is gone or was not loaded, fall back to a state-less icon
+		return svg.RenderHTML(util.Iif(n.Source == NotificationSourcePullRequest, "octicon-git-pull-request", "octicon-issue-opened"), 16, "tw-text-text-light")
 	case NotificationSourceCommit:
 		return svg.RenderHTML("octicon-git-commit", 16, "tw-text-text-light")
 	case NotificationSourceRepository:
@@ -440,6 +439,23 @@ func (n *Notification) IconHTML(ctx context.Context) template.HTML {
 	default:
 		return ""
 	}
+}
+
+// DisplayTitle returns the text to show for the notification. It prefers the live subject
+// when one was loaded, so a renamed issue shows its current title, and otherwise falls
+// back to the title snapshotted when the notification was written.
+func (n *Notification) DisplayTitle() string {
+	switch {
+	case n.Issue != nil:
+		return n.Issue.Title
+	case n.Release != nil:
+		return n.Release.Title
+	case n.Title != "":
+		return n.Title
+	case n.Repository != nil:
+		return n.Repository.FullName()
+	}
+	return ""
 }
 
 // APIURL formats a URL-string to the notification
@@ -481,50 +497,64 @@ func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID
 		}
 		return false, err
 	}
+	return markReadIfUnread(ctx, notification)
+}
 
+// SetRepoReadBy sets repo to be visited by given user.
+func SetRepoReadBy(ctx context.Context, userID, repoID int64) (bool, error) {
+	return setSubjectReadIfUnread(ctx, &Notification{
+		UserID: userID,
+		RepoID: repoID,
+		Source: NotificationSourceRepository,
+	})
+}
+
+// SetReleaseReadBy sets release notification to be read by given user.
+func SetReleaseReadBy(ctx context.Context, releaseID, userID int64) (bool, error) {
+	// The caller does not know the repository, but a release id already identifies one
+	// release, so match on the subject alone here.
+	notification := new(Notification)
+	ok, err := db.GetEngine(ctx).
+		Where("user_id = ?", userID).
+		And("source = ?", NotificationSourceRelease).
+		And("subject_id = ?", releaseID).
+		Get(notification)
+	if err != nil || !ok {
+		return false, err
+	}
+	return markReadIfUnread(ctx, notification)
+}
+
+// SetCommitReadBy sets commit notification to be read by given user.
+func SetCommitReadBy(ctx context.Context, repoID, userID int64, commitID string) (bool, error) {
+	return setSubjectReadIfUnread(ctx, &Notification{
+		UserID:     userID,
+		RepoID:     repoID,
+		Source:     NotificationSourceCommit,
+		SubjectRef: commitID,
+	})
+}
+
+func setSubjectReadIfUnread(ctx context.Context, subject *Notification) (bool, error) {
+	notification, err := findNotificationBySubject(ctx, subject)
+	if err != nil || notification == nil {
+		return false, err
+	}
+	return markReadIfUnread(ctx, notification)
+}
+
+// markReadIfUnread reports whether the unread count actually decreased, so callers can
+// skip the real-time push on a no-op.
+func markReadIfUnread(ctx context.Context, notification *Notification) (bool, error) {
 	if notification.Status != NotificationStatusUnread {
 		return false, nil
 	}
 
 	notification.Status = NotificationStatusRead
-
 	if _, err := db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification); err != nil {
 		return false, err
 	}
 	return true, nil
-}
-
-// SetRepoReadBy sets repo to be visited by given user.
-func SetRepoReadBy(ctx context.Context, userID, repoID int64) error {
-	return setNotificationStatusReadIfUnreadByUniqueKey(ctx, userID, uniqueKeyForRepositoryNotification(repoID))
-}
-
-// SetReleaseReadBy sets release notification to be read by given user.
-func SetReleaseReadBy(ctx context.Context, releaseID, userID int64) error {
-	return setNotificationStatusReadIfUnreadByUniqueKey(ctx, userID, UniqueKeyForReleaseNotification(releaseID))
-}
-
-// SetCommitReadBy sets commit notification to be read by given user.
-func SetCommitReadBy(ctx context.Context, repoID, userID int64, commitID string) error {
-	return setNotificationStatusReadIfUnreadByUniqueKey(ctx, userID, uniqueKeyForCommitNotification(repoID, commitID))
-}
-
-func setNotificationStatusReadIfUnreadByUniqueKey(ctx context.Context, userID int64, uniqueKey string) error {
-	notification := new(Notification)
-	ok, err := db.GetEngine(ctx).
-		Where("user_id = ?", userID).
-		And("unique_key = ?", uniqueKey).
-		Get(notification)
-	if err != nil || !ok {
-		return err
-	}
-	if notification.Status != NotificationStatusUnread {
-		return nil
-	}
-
-	notification.Status = NotificationStatusRead
-	_, err = db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification)
-	return err
 }
 
 // SetNotificationStatus change the notification status
@@ -558,6 +588,17 @@ func GetNotificationByID(ctx context.Context, notificationID int64) (*Notificati
 	}
 
 	return notification, nil
+}
+
+// DeleteIssueNotifications removes every notification pointing at a deleted issue.
+// It cannot be expressed as a bean literal because a bare subject id would also match
+// a release with the same id, so the source has to be part of the condition.
+func DeleteIssueNotifications(ctx context.Context, issueID int64) error {
+	_, err := db.GetEngine(ctx).
+		Where("source IN (?, ?)", NotificationSourceIssue, NotificationSourcePullRequest).
+		And("subject_id = ?", issueID).
+		Delete(new(Notification))
+	return err
 }
 
 // UpdateNotificationStatuses updates the statuses of all of a user's notifications
