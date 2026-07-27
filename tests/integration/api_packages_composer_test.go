@@ -344,10 +344,10 @@ func TestPackageComposer(t *testing.T) {
 		assert.Equal(t, "library", pkgs[0].Type)
 		assert.True(t, pkgs[0].DefaultBranch)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, repo1.HTMLURL()+"/archive/master.zip", pkgs[0].Dist.URL)
+		assert.Equal(t, repo1.APIURL()+"/archive/"+masterCommitID+".zip", pkgs[0].Dist.URL)
 		assert.Empty(t, pkgs[0].Dist.Checksum)
 		assert.Equal(t, masterCommitID, pkgs[0].Dist.Reference)
-		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
+		assert.Equal(t, repo_model.ComposeHTTPSCloneURL(t.Context(), repo1.OwnerName, repo1.Name), pkgs[0].Source.URL)
 		assert.Equal(t, "git", pkgs[0].Source.Type)
 		assert.Equal(t, masterCommitID, pkgs[0].Source.Reference)
 
@@ -388,8 +388,8 @@ func TestPackageComposer(t *testing.T) {
 		pkgs = result.Packages[linkedPackageName]
 		assert.Len(t, pkgs, 1)
 		assert.Equal(t, "dev-master", pkgs[0].Version)
-		assert.Equal(t, repo1.HTMLURL()+"/archive/master.zip", pkgs[0].Dist.URL)
-		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)
+		assert.Equal(t, repo1.APIURL()+"/archive/"+masterCommitID+".zip", pkgs[0].Dist.URL)
+		assert.Equal(t, repo_model.ComposeHTTPSCloneURL(t.Context(), repo1.OwnerName, repo1.Name), pkgs[0].Source.URL)
 		assert.Equal(t, masterCommitID, pkgs[0].Source.Reference)
 	})
 

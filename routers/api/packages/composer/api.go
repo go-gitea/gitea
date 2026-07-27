@@ -242,11 +242,11 @@ func createDevBranchPackageMetadata(ctx *context.Context, packageType string, pd
 		Metadata:          pd.Metadata.(*composer_module.Metadata),
 		Dist: Dist{
 			Type:      "zip",
-			URL:       repo.HTMLURL(ctx) + "/archive/" + util.PathEscapeSegments(branch) + ".zip",
+			URL:       repo.APIURL(ctx) + "/archive/" + util.PathEscapeSegments(reference) + ".zip",
 			Reference: reference,
 		},
 		Source: Source{
-			URL:       repo.HTMLURL(ctx),
+			URL:       repo_model.ComposeHTTPSCloneURL(ctx, repo.OwnerName, repo.Name),
 			Type:      "git",
 			Reference: reference,
 		},
