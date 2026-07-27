@@ -34,23 +34,16 @@ func checkOutdatedBranch(ctx *context.Context) {
 	if !(ctx.Repo.Permission.IsAdmin() || ctx.Repo.Permission.IsOwner()) {
 		return
 	}
-
-	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.BranchName)
-	if err != nil {
-		log.Error("GetBranchCommitID: %v", err)
-		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+	if !ctx.Repo.RefFullName.IsBranch() {
 		return
 	}
 
-	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.ShortName())
 	if err != nil {
-		log.Error("GetBranch: %v", err)
-		// Don't return an error page, as it can be rechecked the next time the user opens the page.
-		return
+		return // ignore the error which can only be "not exists"
 	}
 
-	if dbBranch.CommitID != commit.ID.String() {
+	if dbBranch.CommitID != ctx.Repo.CommitID {
 		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook", "https://docs.gitea.com/help/faq#push-hook--webhook--actions-arent-running"), true)
 	}
 }
@@ -446,13 +439,13 @@ func Home(ctx *context.Context) {
 	prepareFuncs := []func(*context.Context){
 		prepareClonePanel,
 		prepareHomeSidebarRepoTopics,
-		checkOutdatedBranch,
 		prepareToRenderDirOrFile(entry),
 		prepareRecentlyPushedNewBranches,
 	}
 
 	if isTreePathRoot {
 		prepareFuncs = append(prepareFuncs,
+			checkOutdatedBranch,
 			prepareUpstreamDivergingInfo,
 			prepareHomeSidebarLicenses,
 			prepareHomeSidebarCitationFile(entry),
