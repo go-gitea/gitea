@@ -34,6 +34,7 @@ require (
 	github.com/caddyserver/certmagic v0.25.4
 	github.com/charmbracelet/git-lfs-transfer v0.1.1-0.20260309112543-12416315a635
 	github.com/chi-middleware/proxy v1.1.1
+	github.com/coder/websocket v1.8.14
 	github.com/dlclark/regexp2/v2 v2.5.0
 	github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707
 	github.com/dustin/go-humanize v1.0.1
@@ -43,7 +44,7 @@ require (
 	github.com/ethantkoenig/rupture v1.0.1
 	github.com/felixge/fgprof v0.9.5
 	github.com/fsnotify/fsnotify v1.10.1
-	github.com/getkin/kin-openapi v0.142.0
+	github.com/getkin/kin-openapi v0.144.0
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-chi/cors v1.2.2
