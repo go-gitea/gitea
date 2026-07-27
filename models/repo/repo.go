@@ -11,7 +11,6 @@ import (
 	"maps"
 	"net"
 	"net/url"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -224,22 +223,6 @@ type Repository struct {
 
 func init() {
 	db.RegisterModel(new(Repository))
-}
-
-func RelativePath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
-}
-
-// RelativePath should be an unix style path like username/reponame.git
-func (repo *Repository) RelativePath() string {
-	return RelativePath(repo.OwnerName, repo.Name)
-}
-
-type StorageRepo string
-
-// RelativePath should be an unix style path like username/reponame.git
-func (sr StorageRepo) RelativePath() string {
-	return string(sr)
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL
@@ -580,16 +563,6 @@ func (repo *Repository) IsGenerated() bool {
 	return repo.TemplateID != 0
 }
 
-// RepoPath returns repository path by given user and repository name.
-func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)), filepath.Clean(strings.ToLower(repoName)+".git"))
-}
-
-// RepoPath returns the repository path
-func (repo *Repository) RepoPath() string {
-	return RepoPath(repo.OwnerName, repo.Name)
-}
-
 // Link returns the repository relative url
 func (repo *Repository) Link() string {
 	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
@@ -647,6 +620,10 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 
 // CloneLink represents different types of clone URLs of repository.
 type CloneLink struct {
+	IsWikiRepo   bool
+	SupportSSH   bool
+	SupportHTTPS bool
+
 	SSH   string
 	HTTPS string
 	Tea   string
@@ -698,9 +675,12 @@ func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
 
 func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
 	return &CloneLink{
-		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
-		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
-		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
+		IsWikiRepo:   strings.HasSuffix(repoPathName, ".wiki"),
+		SupportHTTPS: !setting.Repository.DisableHTTPGit,
+		SupportSSH:   !setting.SSH.Disabled && (doer != nil || setting.SSH.ExposeAnonymous),
+		SSH:          ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
+		HTTPS:        ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
+		Tea:          ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
 	}
 }
 

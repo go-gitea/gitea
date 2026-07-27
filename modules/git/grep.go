@@ -80,7 +80,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
-	err := cmd.WithDir(repo.Path).
+	err := cmd.WithRepo(repo).
 		WithTimeout(grepSearchTimeout).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			isInBlock := false

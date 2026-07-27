@@ -15,7 +15,8 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/migration"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -35,7 +36,7 @@ func TestMirrorPull(t *testing.T) {
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+	repoPath := gitrepo.RepoLocalPath(repo)
 
 	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
@@ -66,7 +67,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeReleases }))
 	assert.True(t, slices.ContainsFunc(mirrorRepo.Units, func(u *repo_model.RepoUnit) bool { return u.Type == unit.TypeWiki }))
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	gitRepo, err := git.OpenRepository(repo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -79,7 +80,7 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Zero(t, initCount) // no sync yet, so even though there is a tag in source repo, the mirror's release table is still empty
 
-	assert.NoError(t, release_service.CreateRelease(gitRepo, &repo_model.Release{
+	assert.NoError(t, release_service.CreateRelease(ctx, gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -140,7 +141,7 @@ func TestMirrorPullSSRFRevalidation(t *testing.T) {
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+	repoPath := gitrepo.RepoLocalPath(repo)
 
 	// an "internal" server that records whether it was reached
 	var reached atomic.Bool

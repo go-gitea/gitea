@@ -30,7 +30,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 		return nil
 	}
 
-	lfsPointerBuf, err := blob.GetBlobBytes(lfs.MetaFileMaxSize)
+	lfsPointerBuf, err := blob.GetBlobBytes(ctx, lfs.MetaFileMaxSize)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified *time.Tim
 }
 
 func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -82,14 +82,14 @@ func getBlobForEntry(ctx *context.Context) (*git.Blob, *time.Time) {
 		return nil, nil
 	}
 
-	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetTreePathLatestCommit", err)
 		return nil, nil
 	}
 	lastModified := &latestCommit.Committer.When
 
-	return entry.Blob(), lastModified
+	return entry.Blob(ctx.Repo.GitRepo), lastModified
 }
 
 // SingleDownload download a file by repos path

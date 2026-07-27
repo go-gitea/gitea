@@ -16,7 +16,6 @@ import (
 	system_model "gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
 	notify_service "gitea.dev/services/notify"
@@ -171,7 +170,7 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 		if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
 			return err
 		}
-		if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
+		if err := git.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}

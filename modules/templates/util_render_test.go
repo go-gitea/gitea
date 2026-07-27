@@ -68,6 +68,7 @@ func newTestRenderUtils(t *testing.T) *RenderUtils {
 }
 
 func TestRenderRepoComment(t *testing.T) {
+	defer test.MockVariableValue(&setting.RepoRootPath, t.TempDir())()
 	mockRepo := &repo.Repository{
 		ID: 1, OwnerName: "user13", Name: "repo11",
 		Owner: &user_model.User{ID: 13, Name: "user13"},
