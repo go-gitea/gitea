@@ -71,9 +71,10 @@ function decodeLineMessage(line: LogLine, cmd: LogLineCommand | null): string {
   // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
   // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
   if (!cmd) return line.message;
-  const msg = line.message.substring(cmd.prefix.length);
-  // "##[cmd]" lines come from the runner unescaped, only "::cmd::" is escaped by the workflow
-  if (!cmd.prefix.startsWith('::')) return msg;
+  let msg = line.message.substring(cmd.prefix.length);
+  if (cmd.name === 'command') return msg; // "command" is only an output tag, GitHub does not parse or escape it
+  // "##[cmd]" also escapes ";" and "]" which delimit its header, "::cmd::" does not
+  if (!cmd.prefix.startsWith('::')) msg = msg.replace(/%3B/g, ';').replace(/%5D/g, ']');
   // renderAnsiInto breaks a line per "\r", so "%0D%0A" is one break. "%25" last keeps "%250A" literal
   return msg.replace(/(?:%0D)?%0A/g, '\n').replace(/%0D/g, '\r').replace(/%25/g, '%');
 }
