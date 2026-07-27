@@ -16,6 +16,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func minimalWorkflowPayload(jobID string) []byte {
+	return fmt.Appendf(nil, `name: test
+on: push
+jobs:
+  %s:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`, jobID)
+}
+
 func Test_jobStatusResolver_Resolve(t *testing.T) {
 	tests := []struct {
 		name string
@@ -132,6 +143,68 @@ jobs:
 			want: map[int64]actions_model.Status{2: actions_model.StatusSkipped},
 		},
 		{
+			name: "max-parallel: a freed slot promotes the lowest blocked job id",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "build", Status: actions_model.StatusSuccess, Needs: []string{}, MaxParallel: 1},
+				{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+				{ID: 3, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
+		},
+		{
+			name: "max-parallel: a cancelling job still holds its slot",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "test", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 2},
+				{ID: 2, JobID: "test", Status: actions_model.StatusCancelling, Needs: []string{}, MaxParallel: 2},
+				{ID: 3, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
+			name: "max-parallel: two freed slots promote two jobs",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "test", Status: actions_model.StatusCancelled, Needs: []string{}, MaxParallel: 2},
+				{ID: 2, JobID: "test", Status: actions_model.StatusSuccess, Needs: []string{}, MaxParallel: 2},
+				{ID: 3, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+				{ID: 4, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 2},
+			},
+			want: map[int64]actions_model.Status{3: actions_model.StatusWaiting, 4: actions_model.StatusWaiting},
+		},
+		{
+			name: "max-parallel: slots are counted per job id",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "build", Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 1},
+				{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+				{ID: 3, JobID: "test", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+			},
+			want: map[int64]actions_model.Status{3: actions_model.StatusWaiting},
+		},
+		{
+			name: "max-parallel: slots are scoped per reusable workflow caller",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "build", ParentJobID: 10, Status: actions_model.StatusRunning, Needs: []string{}, MaxParallel: 1},
+				{ID: 2, JobID: "build", ParentJobID: 10, Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+				{ID: 3, JobID: "build", ParentJobID: 20, Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1},
+			},
+			want: map[int64]actions_model.Status{3: actions_model.StatusWaiting},
+		},
+		{
+			name: "max-parallel: a caller promoted in an earlier round keeps its slot",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "call", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1, IsReusableCaller: true},
+				{ID: 2, JobID: "call", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1, IsReusableCaller: true},
+			},
+			want: map[int64]actions_model.Status{1: actions_model.StatusWaiting},
+		},
+		{
+			name: "max-parallel: an expanded caller aggregated back to Blocked keeps its slot",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "call", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1, IsReusableCaller: true, IsExpanded: true},
+				{ID: 2, JobID: "call", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1, IsReusableCaller: true},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
 			name: "`if` is empty and a failed need has continue-on-error",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, ContinueOnError: true, Needs: []string{}},
@@ -171,14 +244,7 @@ jobs:
 				// The resolver evaluates Blocked jobs via evaluateJobIf, which needs a valid YAML payload;
 				// supply a minimal one when the case didn't.
 				if j.Status == actions_model.StatusBlocked && len(j.WorkflowPayload) == 0 {
-					j.WorkflowPayload = fmt.Appendf(nil, `name: test
-on: push
-jobs:
-  %s:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo
-`, j.JobID)
+					j.WorkflowPayload = minimalWorkflowPayload(j.JobID)
 				}
 
 				assert.NoError(t, db.Insert(ctx, j))
@@ -194,6 +260,45 @@ jobs:
 			assert.Equal(t, want, r.Resolve(ctx))
 		})
 	}
+}
+
+// Test_maxParallelConverges covers the liveness property the status table cannot express:
+// repeated resolve cycles never stall and never overshoot the cap.
+func Test_maxParallelConverges(t *testing.T) {
+	ctx := t.Context()
+
+	const totalJobs, maxParallel = 5, 2
+	jobs := make(actions_model.ActionJobList, totalJobs)
+	for i := range jobs {
+		jobs[i] = &actions_model.ActionRunJob{
+			ID: int64(i + 1), JobID: "matrix", Status: actions_model.StatusBlocked, MaxParallel: maxParallel,
+			WorkflowPayload: minimalWorkflowPayload("matrix"),
+		}
+	}
+
+	for cycle := range totalJobs + 1 {
+		for id, status := range newJobStatusResolver(jobs, nil).Resolve(ctx) {
+			jobs[id-1].Status = status
+		}
+		counts := statusCounts(jobs)
+		remaining := totalJobs - counts[actions_model.StatusSuccess]
+		assert.Equal(t, min(remaining, maxParallel), counts[actions_model.StatusWaiting]+counts[actions_model.StatusRunning],
+			"cycle %d: active jobs must fill every free slot without exceeding max-parallel", cycle)
+
+		for _, job := range jobs { // a runner picks up every waiting job
+			if job.Status == actions_model.StatusWaiting {
+				job.Status = actions_model.StatusRunning
+			}
+		}
+		for _, job := range jobs { // the first running job finishes
+			if job.Status == actions_model.StatusRunning {
+				job.Status = actions_model.StatusSuccess
+				break
+			}
+		}
+	}
+
+	assert.Equal(t, totalJobs, statusCounts(jobs)[actions_model.StatusSuccess])
 }
 
 // Test_checkRunConcurrency_NoDuplicateConcurrencyGroupCheck verifies that when a run's
@@ -432,4 +537,49 @@ func Test_findConcurrencyWaiterToWake(t *testing.T) {
 	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "held-cg")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
+}
+
+func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
+	ctx := t.Context()
+
+	const callerJobNum = 3
+	callers := make(actions_model.ActionJobList, callerJobNum)
+	idToCaller := make(map[int64]*actions_model.ActionRunJob, callerJobNum)
+	for i := range callers {
+		callers[i] = &actions_model.ActionRunJob{
+			ID: int64(i + 1), JobID: "call", Status: actions_model.StatusBlocked, MaxParallel: 1,
+			IsReusableCaller: true, WorkflowPayload: minimalWorkflowPayload("call"),
+		}
+		idToCaller[callers[i].ID] = callers[i]
+	}
+	underway := func() (n int) {
+		for _, caller := range callers {
+			if caller.IsExpanded && !caller.Status.IsDone() {
+				n++
+			}
+		}
+		return n
+	}
+
+	for cycle := range 2 * len(callers) {
+		promoted := newJobStatusResolver(callers, nil).Resolve(ctx)
+		for id, status := range promoted {
+			caller := idToCaller[id]
+			assert.False(t, caller.IsExpanded, "cycle %d: resolver re-promoted already-expanded caller %d", cycle, id)
+			assert.Equal(t, actions_model.StatusWaiting, status, "cycle %d: caller %d", cycle, id)
+			caller.IsExpanded = true // the emitter expands the caller; children insert as Blocked, so the aggregate keeps it Blocked
+		}
+		assert.LessOrEqual(t, underway(), 1, "cycle %d: at most one caller may be underway", cycle)
+
+		if len(promoted) == 0 { // steady state: the underway caller's children finish and cascade Success to it
+			for _, caller := range callers {
+				if caller.IsExpanded && !caller.Status.IsDone() {
+					caller.Status = actions_model.StatusSuccess
+					break
+				}
+			}
+		}
+	}
+
+	assert.Equal(t, len(callers), statusCounts(callers)[actions_model.StatusSuccess])
 }
