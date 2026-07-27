@@ -77,12 +77,7 @@ export function parseIssuePageInfo(): IssuePageInfo {
 
 /** return current locale chosen by user */
 export function getCurrentLocale(): string {
-  const locale = (document.documentElement.lang || navigator.language || 'en-US').replaceAll('_', '-');
-  try {
-    return Intl.getCanonicalLocales(locale)[0] || 'en-US';
-  } catch {
-    return 'en-US';
-  }
+  return document.documentElement.lang;
 }
 
 /** given a month (0-11), returns it in the documents language */

@@ -71,8 +71,15 @@ func convertFormToFilters(ctx stdCtx.Context, project *project_model.Project, ev
 					})
 				}
 			}
+		case project_model.WorkflowFilterTypeIssueType:
+			// an unknown value would match every item instead of filtering, so drop it
+			if strValue, ok := value.(string); ok && project_model.IsValidWorkflowIssueType(strValue) {
+				filters = append(filters, project_model.WorkflowFilter{
+					Type:  filterType,
+					Value: strValue,
+				})
+			}
 		default:
-			// Handle string values (issue_type, column)
 			if strValue, ok := value.(string); ok && strValue != "" {
 				filters = append(filters, project_model.WorkflowFilter{
 					Type:  filterType,
@@ -306,11 +313,13 @@ func prepareProject(ctx *context.Context) *project_model.Project {
 		}
 		return nil
 	}
-	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
+	// the project type must match the route the request came in on, otherwise the
+	// context holds no repository (org route) or no context user (repo route)
+	if p.Type == project_model.TypeRepository && (ctx.Repo.Repository == nil || p.RepoID != ctx.Repo.Repository.ID) {
 		ctx.NotFound(nil)
 		return nil
 	}
-	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
+	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && (ctx.ContextUser == nil || p.OwnerID != ctx.ContextUser.ID) {
 		ctx.NotFound(nil)
 		return nil
 	}
@@ -385,7 +394,7 @@ func Workflows(ctx *context.Context) {
 		}
 	}
 	ctx.Data["CurWorkflow"] = curWorkflow
-	ctx.Data["ProjectLink"] = project_model.ProjectLinkForRepo(ctx.Repo.Repository, p.ID)
+	ctx.Data["ProjectLink"] = p.Link(ctx)
 
 	if p.Type == project_model.TypeRepository {
 		ctx.HTML(http.StatusOK, tmplRepoWorkflows)
@@ -548,12 +557,12 @@ func WorkflowsStatus(ctx *context.Context) {
 	enabled, _ := strconv.ParseBool(enabledStr)
 
 	if enabled {
-		if err := project_model.EnableWorkflow(ctx, workflowID); err != nil {
+		if err := project_model.EnableWorkflow(ctx, p.ID, workflowID); err != nil {
 			ctx.ServerError("EnableWorkflow", err)
 			return
 		}
 	} else {
-		if err := project_model.DisableWorkflow(ctx, workflowID); err != nil {
+		if err := project_model.DisableWorkflow(ctx, p.ID, workflowID); err != nil {
 			ctx.ServerError("DisableWorkflow", err)
 			return
 		}
@@ -582,7 +591,7 @@ func WorkflowsDelete(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.DeleteWorkflow(ctx, wf.ID); err != nil {
+	if err := project_model.DeleteWorkflow(ctx, p.ID, wf.ID); err != nil {
 		ctx.ServerError("DeleteWorkflow", err)
 		return
 	}

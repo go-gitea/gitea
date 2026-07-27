@@ -172,6 +172,9 @@ func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *use
 	if issues_model.IsProjectWorkflowDoer(doer) {
 		return
 	}
+	if oldColumnID == newColumnID {
+		return
+	}
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("IssueChangeProjectColumn: LoadRepo: %v", err)
 		return
@@ -331,11 +334,18 @@ func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model
 			if filter.Value == "" {
 				continue
 			}
-			// Filter value can be "issue" or "pull_request"
-			if filter.Value == "issue" && issue.IsPull {
-				return false
-			}
-			if filter.Value == "pull_request" && !issue.IsPull {
+			// Filter value can be "issue" or "pull_request", anything else never matches
+			switch filter.Value {
+			case project_model.WorkflowIssueTypeIssue:
+				if issue.IsPull {
+					return false
+				}
+			case project_model.WorkflowIssueTypePullRequest:
+				if !issue.IsPull {
+					return false
+				}
+			default:
+				log.Error("Invalid issue type filter value: %s", filter.Value)
 				return false
 			}
 		case project_model.WorkflowFilterTypeTargetColumn:

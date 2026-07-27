@@ -117,15 +117,21 @@ func listAPIProjectWorkflows(ctx *api_context.APIContext, project *project_model
 	return result, nil
 }
 
-func convertAPIProjectWorkflowFilters(ctx *api_context.APIContext, project *project_model.Project, event project_model.WorkflowEvent, options api.ProjectWorkflowFilterOptions) []project_model.WorkflowFilter {
+// convertAPIProjectWorkflowFilters reports ok=false after writing an API error to the response.
+func convertAPIProjectWorkflowFilters(ctx *api_context.APIContext, project *project_model.Project, event project_model.WorkflowEvent, options api.ProjectWorkflowFilterOptions) (filters []project_model.WorkflowFilter, ok bool) {
 	caps := project_model.GetWorkflowEventCapabilities()[event]
 	allowedFilters := make(map[project_model.WorkflowFilterType]bool, len(caps.AvailableFilters))
 	for _, ft := range caps.AvailableFilters {
 		allowedFilters[ft] = true
 	}
 
-	filters := make([]project_model.WorkflowFilter, 0)
+	filters = make([]project_model.WorkflowFilter, 0)
 	if allowedFilters[project_model.WorkflowFilterTypeIssueType] && options.IssueType != "" {
+		// an unknown value would match every item instead of filtering, so reject it
+		if !project_model.IsValidWorkflowIssueType(options.IssueType) {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid issue_type: "+options.IssueType)
+			return nil, false
+		}
 		filters = append(filters, project_model.WorkflowFilter{Type: project_model.WorkflowFilterTypeIssueType, Value: options.IssueType})
 	}
 
@@ -162,7 +168,7 @@ func convertAPIProjectWorkflowFilters(ctx *api_context.APIContext, project *proj
 		}
 	}
 
-	return filters
+	return filters, true
 }
 
 func convertAPIProjectWorkflowActions(ctx *api_context.APIContext, project *project_model.Project, event project_model.WorkflowEvent, options api.ProjectWorkflowActionOptions) []project_model.WorkflowAction {
@@ -451,10 +457,14 @@ func CreateProjectWorkflow(ctx *api_context.APIContext) {
 		return
 	}
 	workflowEvent := project_model.WorkflowEvent(form.EventID)
+	workflowFilters, ok := convertAPIProjectWorkflowFilters(ctx, project, workflowEvent, form.Filters)
+	if !ok {
+		return
+	}
 	workflow := &project_model.Workflow{
 		ProjectID:       project.ID,
 		WorkflowEvent:   workflowEvent,
-		WorkflowFilters: convertAPIProjectWorkflowFilters(ctx, project, workflowEvent, form.Filters),
+		WorkflowFilters: workflowFilters,
 		WorkflowActions: convertAPIProjectWorkflowActions(ctx, project, workflowEvent, form.Actions),
 		Enabled:         true,
 	}
@@ -556,7 +566,11 @@ func UpdateProjectWorkflow(ctx *api_context.APIContext) {
 		return
 	}
 	form := web.GetForm(ctx).(*api.EditProjectWorkflowOption)
-	workflow.WorkflowFilters = convertAPIProjectWorkflowFilters(ctx, project, workflow.WorkflowEvent, form.Filters)
+	workflowFilters, ok := convertAPIProjectWorkflowFilters(ctx, project, workflow.WorkflowEvent, form.Filters)
+	if !ok {
+		return
+	}
+	workflow.WorkflowFilters = workflowFilters
 	workflow.WorkflowActions = convertAPIProjectWorkflowActions(ctx, project, workflow.WorkflowEvent, form.Actions)
 	if len(workflow.WorkflowActions) == 0 {
 		ctx.APIError(http.StatusUnprocessableEntity, "at least one action is required")
@@ -586,9 +600,9 @@ func changeProjectWorkflowEnabled(ctx *api_context.APIContext, enabled bool) {
 		return
 	}
 	if enabled {
-		err = project_model.EnableWorkflow(ctx, workflowID)
+		err = project_model.EnableWorkflow(ctx, project.ID, workflowID)
 	} else {
-		err = project_model.DisableWorkflow(ctx, workflowID)
+		err = project_model.DisableWorkflow(ctx, project.ID, workflowID)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -721,7 +735,7 @@ func DeleteProjectWorkflow(ctx *api_context.APIContext) {
 		}
 		return
 	}
-	if err := project_model.DeleteWorkflow(ctx, workflow.ID); err != nil {
+	if err := project_model.DeleteWorkflow(ctx, project.ID, workflow.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

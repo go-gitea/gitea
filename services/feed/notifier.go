@@ -68,7 +68,7 @@ func (a *actionNotifier) IssueChangeStatus(ctx context.Context, doer *user_model
 	// ID (-1) collides with GhostUserID so the feed would show "Ghost". The
 	// actionComment already carries CommentMetaData with the full context, so
 	// a separate feed entry adds no value and would be misleading.
-	if doer.ExtDoerData != nil {
+	if issues_model.IsProjectWorkflowDoer(doer) {
 		return
 	}
 

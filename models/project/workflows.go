@@ -88,6 +88,16 @@ const (
 	WorkflowFilterTypeLabels       WorkflowFilterType = "labels"        // filter by issue/PR labels
 )
 
+// accepted values of the WorkflowFilterTypeIssueType filter
+const (
+	WorkflowIssueTypeIssue       = "issue"
+	WorkflowIssueTypePullRequest = "pull_request"
+)
+
+func IsValidWorkflowIssueType(issueType string) bool {
+	return issueType == WorkflowIssueTypeIssue || issueType == WorkflowIssueTypePullRequest
+}
+
 type WorkflowFilter struct {
 	Type  WorkflowFilterType `json:"type"`
 	Value string             `json:"value"`
@@ -220,22 +230,30 @@ func CreateWorkflow(ctx context.Context, wf *Workflow) error {
 	return db.Insert(ctx, wf)
 }
 
+// the mutators below are all scoped by project_id so that a workflow ID from
+// another project can never be modified, even if a caller forgets to check
+
 func UpdateWorkflow(ctx context.Context, wf *Workflow) error {
-	_, err := db.GetEngine(ctx).ID(wf.ID).Cols("workflow_filters", "workflow_actions").Update(wf)
+	_, err := db.GetEngine(ctx).ID(wf.ID).Where("project_id=?", wf.ProjectID).
+		Cols("workflow_filters", "workflow_actions").Update(wf)
 	return err
 }
 
-func DeleteWorkflow(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).ID(id).Delete(&Workflow{})
+func DeleteWorkflow(ctx context.Context, projectID, id int64) error {
+	_, err := db.GetEngine(ctx).ID(id).Where("project_id=?", projectID).Delete(&Workflow{})
 	return err
 }
 
-func EnableWorkflow(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).ID(id).Cols("enabled").Update(&Workflow{Enabled: true})
-	return err
+func EnableWorkflow(ctx context.Context, projectID, id int64) error {
+	return setWorkflowEnabled(ctx, projectID, id, true)
 }
 
-func DisableWorkflow(ctx context.Context, id int64) error {
-	_, err := db.GetEngine(ctx).ID(id).Cols("enabled").Update(&Workflow{Enabled: false})
+func DisableWorkflow(ctx context.Context, projectID, id int64) error {
+	return setWorkflowEnabled(ctx, projectID, id, false)
+}
+
+func setWorkflowEnabled(ctx context.Context, projectID, id int64, enabled bool) error {
+	_, err := db.GetEngine(ctx).ID(id).Where("project_id=?", projectID).
+		Cols("enabled").Update(&Workflow{Enabled: enabled})
 	return err
 }

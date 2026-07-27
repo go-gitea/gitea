@@ -44,9 +44,9 @@ func GetWorkflowSummary(ctx context.Context, wf *project_model.Workflow) string 
 		switch filter.Type {
 		case project_model.WorkflowFilterTypeIssueType:
 			switch filter.Value {
-			case "issue":
+			case project_model.WorkflowIssueTypeIssue:
 				appendSummaryPart(&summary, locale.TrString("projects.workflows.issues_only"))
-			case "pull_request":
+			case project_model.WorkflowIssueTypePullRequest:
 				appendSummaryPart(&summary, locale.TrString("projects.workflows.pull_requests_only"))
 			}
 		case project_model.WorkflowFilterTypeSourceColumn:

@@ -46,7 +46,7 @@ const props = defineProps<{
   isInEditMode: boolean;
   showCancelButton: boolean;
   canCloneSelectedWorkflow: boolean;
-}>(); 
+}>();
 
 const emit = defineEmits<{
   'toggle-edit-mode': [];

@@ -53,7 +53,7 @@ const props = defineProps<{
     cloneTooltip: string;
     deleteConfirm: string;
   };
-}>(); 
+}>();
 
 const store = createWorkflowStore(props);
 

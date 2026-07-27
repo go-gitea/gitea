@@ -194,7 +194,13 @@ func TestDeleteWorkflow(t *testing.T) {
 	workflowID := workflow.ID
 
 	// Delete the workflow
-	err = DeleteWorkflow(t.Context(), workflowID)
+	// a foreign project ID must not delete the workflow
+	err = DeleteWorkflow(t.Context(), project.ID+1, workflowID)
+	assert.NoError(t, err)
+	_, err = GetWorkflowByProjectAndID(t.Context(), project.ID, workflowID)
+	assert.NoError(t, err)
+
+	err = DeleteWorkflow(t.Context(), project.ID, workflowID)
 	assert.NoError(t, err)
 
 	// Verify it was deleted
@@ -220,8 +226,15 @@ func TestEnableDisableWorkflow(t *testing.T) {
 	err := CreateWorkflow(t.Context(), workflow)
 	assert.NoError(t, err)
 
+	// a foreign project ID must not touch the workflow
+	err = DisableWorkflow(t.Context(), project.ID+1, workflow.ID)
+	assert.NoError(t, err)
+	untouchedWorkflow, err := GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
+	assert.NoError(t, err)
+	assert.True(t, untouchedWorkflow.Enabled)
+
 	// Test Disable
-	err = DisableWorkflow(t.Context(), workflow.ID)
+	err = DisableWorkflow(t.Context(), project.ID, workflow.ID)
 	assert.NoError(t, err)
 
 	disabledWorkflow, err := GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
@@ -229,7 +242,7 @@ func TestEnableDisableWorkflow(t *testing.T) {
 	assert.False(t, disabledWorkflow.Enabled)
 
 	// Test Enable
-	err = EnableWorkflow(t.Context(), workflow.ID)
+	err = EnableWorkflow(t.Context(), project.ID, workflow.ID)
 	assert.NoError(t, err)
 
 	enabledWorkflow, err := GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)

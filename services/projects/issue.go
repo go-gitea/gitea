@@ -106,6 +106,10 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 	}
 
 	for _, issue := range issues {
+		// the whole column is re-posted on every drag, so only notify for issues that actually moved
+		if oldColumnIDsMap[issue.ID] == column.ID {
+			continue
+		}
 		notify.IssueChangeProjectColumn(ctx, doer, issue, oldColumnIDsMap[issue.ID], column.ID)
 	}
 
@@ -271,7 +275,9 @@ func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue 
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if _, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=? WHERE issue_id=?", newColumn.ID, issue.ID); err != nil {
+		// project_id must be part of the WHERE clause, otherwise moving the issue in one
+		// project would also move it in every other project the issue is assigned to.
+		if _, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=? WHERE issue_id=? AND project_id=?", newColumn.ID, issue.ID, newColumn.ProjectID); err != nil {
 			return err
 		}
 
