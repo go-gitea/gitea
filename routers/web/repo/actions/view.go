@@ -492,12 +492,8 @@ func viewSummaryBranchFromRun(ctx context.Context, run *actions_model.ActionRun,
 		Link: run.RefLink(),
 	}
 	if refName.IsBranch() {
-		_, err := git_model.GetBranch(ctx, run.RepoID, refName.ShortName())
-		if err != nil && !git_model.IsErrBranchNotExist(err) {
-			log.Error("GetBranch: %v", err)
-		} else if git_model.IsErrBranchNotExist(err) {
-			branch.IsDeleted = true
-		}
+		refBranchExists, _ := git_model.IsBranchExist(ctx, run.RepoID, refName.ShortName())
+		branch.IsDeleted = !refBranchExists
 	}
 	return branch
 }
