@@ -44,7 +44,7 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 			defer cancel()
 			channels[i] = ch
 		}
-		waitSubscribed(t, b, t.Name()) // one Redis SUBSCRIBE is shared by all local subscribers
+		waitSubscribed(t, b, t.Name()) // all local subscribers share one Redis SUBSCRIBE
 
 		b.Publish(t.Name(), []byte("broadcast"))
 		for i, ch := range channels {
@@ -147,13 +147,10 @@ func testBrokerBasic(t *testing.T, newBroker newBrokerFunc, recvTimeout time.Dur
 	})
 }
 
-// waitSubscribed blocks until Redis has registered the broker's subscription on
-// topic. RedisBroker.Subscribe deliberately returns before the server acks
-// SUBSCRIBE, so a publish issued right after it would otherwise race the
-// subscription and be dropped. MemoryBroker registers synchronously, so this is
-// a no-op for it.
-//
-// Each scenario uses its own topic, so any registered subscriber is this one.
+// waitSubscribed blocks until Redis registers the subscription, since
+// RedisBroker.Subscribe returns before the server acks SUBSCRIBE and a publish
+// right after it would race it. Topics are per-scenario, so any subscriber is
+// this one. No-op for MemoryBroker, which registers synchronously.
 func waitSubscribed(t *testing.T, b Broker, topic string) {
 	t.Helper()
 	rb, ok := b.(*RedisBroker)
