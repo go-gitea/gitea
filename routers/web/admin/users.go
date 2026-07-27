@@ -57,14 +57,30 @@ func Users(ctx *context.Context) {
 	}
 
 	sortType := ctx.FormString("sort", UserSearchDefaultAdminSort)
+
+	// Unfiltered, an administrator needs to list all accounts including reserved, bot and remote ones.
+	userTypeFilter := ctx.FormString("user_type")
+	types := []user_model.UserType{user_model.UserTypeIndividual}
+	includeReserved := true
+	switch userTypeFilter {
+	case "individual":
+		includeReserved = false
+	case "bot":
+		types = []user_model.UserType{user_model.UserTypeBot}
+		includeReserved = false
+	default:
+		userTypeFilter = "" // normalize unknown values so the UI doesn't show a filter that isn't applied
+	}
+
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
 		"StatusFilterMap": statusFilterMap,
+		"UserTypeFilter":  userTypeFilter,
 		"SortType":        sortType,
 	}
 
 	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor: ctx.Doer,
-		Types: []user_model.UserType{user_model.UserTypeIndividual},
+		Types: types,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
@@ -74,7 +90,7 @@ func Users(ctx *context.Context) {
 		IsRestricted:       optional.ParseBool(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
-		IncludeReserved:    true, // administrator needs to list all accounts include reserved, bot, remote ones
+		IncludeReserved:    includeReserved,
 		OrderBy:            db.SearchOrderBy(sortType),
 	}, tplUsers)
 }
