@@ -3080,6 +3080,8 @@
   "admin.users.still_own_packages": "This user still owns one or more packages. Delete these packages first.",
   "admin.users.deletion_success": "The user account has been deleted.",
   "admin.users.reset_2fa": "Reset 2FA",
+  "admin.users.list_type_filter.menu_text": "User Type",
+  "admin.users.list_type_filter.reset": "All",
   "admin.users.list_status_filter.menu_text": "Filter",
   "admin.users.list_status_filter.reset": "Reset",
   "admin.users.list_status_filter.is_active": "Active",
