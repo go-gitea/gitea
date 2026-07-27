@@ -40,8 +40,13 @@ type maxParallelKey struct {
 // hold seeds a job's slot from a status it already holds, bypassing the limit check.
 // The status is passed separately because the job emitter tracks statuses outside the job model.
 func (s maxParallelSlots) hold(job *actions_model.ActionRunJob, status actions_model.Status) {
-	// a Cancelling job still owns its runner, so it keeps its slot until cleanup finishes
-	if status.In(actions_model.StatusRunning, actions_model.StatusWaiting, actions_model.StatusCancelling) {
+	if job.MaxParallel <= 0 {
+		return // an unlimited job's count is never read by take, don't accumulate it
+	}
+	// A Cancelling job still owns its runner, so it keeps its slot until cleanup finishes.
+	// An expanded reusable caller is underway even while its children aggregate it back to Blocked, so it holds a slot too.
+	if status.In(actions_model.StatusRunning, actions_model.StatusWaiting, actions_model.StatusCancelling) ||
+		(job.IsReusableCaller && job.IsExpanded && !status.IsDone()) {
 		s[maxParallelKey{job.ParentJobID, job.JobID}]++
 	}
 }

@@ -189,6 +189,22 @@ jobs:
 			want: map[int64]actions_model.Status{3: actions_model.StatusWaiting},
 		},
 		{
+			name: "max-parallel: a caller promoted in an earlier round keeps its slot",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "call", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1, IsReusableCaller: true},
+				{ID: 2, JobID: "call", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1, IsReusableCaller: true},
+			},
+			want: map[int64]actions_model.Status{1: actions_model.StatusWaiting},
+		},
+		{
+			name: "max-parallel: an expanded caller aggregated back to Blocked keeps its slot",
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "call", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1, IsReusableCaller: true, IsExpanded: true},
+				{ID: 2, JobID: "call", Status: actions_model.StatusBlocked, Needs: []string{}, MaxParallel: 1, IsReusableCaller: true},
+			},
+			want: map[int64]actions_model.Status{},
+		},
+		{
 			name: "`if` is empty and a failed need has continue-on-error",
 			jobs: actions_model.ActionJobList{
 				{ID: 1, JobID: "job1", Status: actions_model.StatusFailure, ContinueOnError: true, Needs: []string{}},
@@ -521,4 +537,49 @@ func Test_findConcurrencyWaiterToWake(t *testing.T) {
 	id, err = findConcurrencyWaiterToWake(ctx, repoID, 0, "held-cg")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), id)
+}
+
+func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
+	ctx := t.Context()
+
+	const callerJobNum = 3
+	callers := make(actions_model.ActionJobList, callerJobNum)
+	idToCaller := make(map[int64]*actions_model.ActionRunJob, callerJobNum)
+	for i := range callers {
+		callers[i] = &actions_model.ActionRunJob{
+			ID: int64(i + 1), JobID: "call", Status: actions_model.StatusBlocked, MaxParallel: 1,
+			IsReusableCaller: true, WorkflowPayload: minimalWorkflowPayload("call"),
+		}
+		idToCaller[callers[i].ID] = callers[i]
+	}
+	underway := func() (n int) {
+		for _, caller := range callers {
+			if caller.IsExpanded && !caller.Status.IsDone() {
+				n++
+			}
+		}
+		return n
+	}
+
+	for cycle := range 2 * len(callers) {
+		promoted := newJobStatusResolver(callers, nil).Resolve(ctx)
+		for id, status := range promoted {
+			caller := idToCaller[id]
+			assert.False(t, caller.IsExpanded, "cycle %d: resolver re-promoted already-expanded caller %d", cycle, id)
+			assert.Equal(t, actions_model.StatusWaiting, status, "cycle %d: caller %d", cycle, id)
+			caller.IsExpanded = true // the emitter expands the caller; children insert as Blocked, so the aggregate keeps it Blocked
+		}
+		assert.LessOrEqual(t, underway(), 1, "cycle %d: at most one caller may be underway", cycle)
+
+		if len(promoted) == 0 { // steady state: the underway caller's children finish and cascade Success to it
+			for _, caller := range callers {
+				if caller.IsExpanded && !caller.Status.IsDone() {
+					caller.Status = actions_model.StatusSuccess
+					break
+				}
+			}
+		}
+	}
+
+	assert.Equal(t, len(callers), statusCounts(callers)[actions_model.StatusSuccess])
 }

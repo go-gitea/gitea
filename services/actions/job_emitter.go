@@ -440,6 +440,10 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 		if status != actions_model.StatusBlocked {
 			continue
 		}
+		// An expanded caller has been resolved in an earlier pass, skip.
+		if actionRunJob.IsReusableCaller && actionRunJob.IsExpanded {
+			continue
+		}
 		// A child of a caller cannot start until the caller has become "ready" (children inserted, CallPayload populated).
 		if actionRunJob.ParentJobID > 0 {
 			if parent, ok := r.jobMap[actionRunJob.ParentJobID]; ok && !parent.IsExpanded {
