@@ -76,11 +76,13 @@ jobs:
           BRANCH: ${{ steps.clean_name.outputs.branch }}
         run: |
           aws s3 sync dist/release "s3://$AWS_S3_BUCKET/gitea/$BRANCH" --no-progress
+      # configure-aws-credentials exports AWS_REGION job-wide and it wins over AWS_DEFAULT_REGION, so pin it here
       - name: upload binaries to cloudflare r2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+          AWS_REGION: auto
           CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
           CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
           BRANCH: ${{ steps.clean_name.outputs.branch }}
