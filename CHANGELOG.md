@@ -59,10 +59,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * fix(org): align follow button and wrap description (#38448) (#38454)
   * fix(actions): populate `github.event` for scheduled runs (#38446) (#38452)
 
-* BUILD
-  * ci: set AWS_REGION for Cloudflare R2 upload steps (#38658) (#38665)
-  * chore(build): upload release to Cloudflare R2 (#38635) (#38651)
-
 * MISC
   * refactor: git patch apply (#38637) (#38638)
 
