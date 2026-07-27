@@ -138,6 +138,11 @@ jobs:
 		// Without needs there is nothing to resolve the expression from later, so deferring would
 		// strand the job as a single combination that never expands.
 		{"expression without needs", "", `["${{ github.sha }}"]`, false, 2},
+		// A context that is already available while planning must keep expanding there, otherwise
+		// such a workflow would silently lose the per-combination commit statuses it used to create.
+		{"expression over another context", "needs: setup", `["${{ github.sha }}"]`, false, 2},
+		// The needs context is looked up in the parsed expression, not in the raw text.
+		{"needs inside a string literal", "needs: setup", `["${{ format('needs.setup.outputs.v {0}', github.sha) }}"]`, false, 2},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := Parse(fmt.Appendf(nil, workflow, tt.needs, tt.version))
@@ -157,7 +162,7 @@ jobs:
 
 func TestExpandMatrixWithNeeds(t *testing.T) {
 	// matrixYAML is the YAML value of the `matrix:` key, so a case can replace the whole node.
-	expand := func(t *testing.T, matrixYAML string) ([]*Job, error) {
+	expandMax := func(t *testing.T, matrixYAML string, maxCombinations int) ([]*Job, error) {
 		t.Helper()
 		var strategy Strategy
 		require.NoError(t, yaml.Unmarshal([]byte("matrix:"+matrixYAML), &strategy))
@@ -173,7 +178,11 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 				"include":  `[{"os":"linux","fast":true},{"os":"windows","fast":false}]`,
 				"empty":    "[]",
 			}},
-		}, nil, nil)
+		}, nil, nil, maxCombinations)
+	}
+	expand := func(t *testing.T, matrixYAML string) ([]*Job, error) {
+		t.Helper()
+		return expandMax(t, matrixYAML, 256)
 	}
 
 	t.Run("expands the product and interpolates runs-on", func(t *testing.T) {
@@ -217,5 +226,12 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 	t.Run("unresolved need errors", func(t *testing.T) {
 		_, err := expand(t, "\n  v: ${{ fromJson(needs.missing.outputs.v) }}\n")
 		require.ErrorContains(t, err, "evaluate matrix")
+	})
+
+	// The combination count comes from a runtime output, so it must be rejected before one Job per
+	// combination is built rather than after.
+	t.Run("too many combinations errors", func(t *testing.T) {
+		_, err := expandMax(t, "\n  version: ${{ fromJson(needs.setup.outputs.versions) }}\n", 1)
+		require.ErrorContains(t, err, "exceeding the limit of 1")
 	})
 }

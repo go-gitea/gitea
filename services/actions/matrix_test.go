@@ -22,10 +22,15 @@ var testRunIndex int64 = 9100
 // setupDeferredMatrixJob plants a completed `generate` job exposing outputs and the blocked `build`
 // placeholder that depends on them, and returns the placeholder. Both are children of a reusable
 // workflow caller, the case where a sibling losing ParentJobID would break needs resolution.
-func setupDeferredMatrixJob(t *testing.T, matrixValue string, outputs map[string]string) *actions_model.ActionRunJob {
+// jobIf is the `build` job's `if:` expression, omitted entirely when empty.
+func setupDeferredMatrixJob(t *testing.T, matrixValue, jobIf string, outputs map[string]string) *actions_model.ActionRunJob {
 	t.Helper()
 	ctx := t.Context()
 
+	ifLine := ""
+	if jobIf != "" {
+		ifLine = "    if: " + jobIf + "\n"
+	}
 	// The `build` job takes its matrix from `generate`'s outputs, so Parse defers it.
 	workflows, err := jobparser.Parse(fmt.Appendf(nil, `
 on: push
@@ -34,11 +39,11 @@ jobs:
     steps: [{run: echo}]
   build:
     needs: generate
-    strategy:
+%s    strategy:
       matrix:
         value: %s
     steps: [{run: echo}]
-`, matrixValue))
+`, ifLine, matrixValue))
 	require.NoError(t, err)
 	var placeholder *jobparser.SingleWorkflow
 	for _, workflow := range workflows {
@@ -97,7 +102,7 @@ func TestExpandDeferredMatrix(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	t.Run("expands into siblings", func(t *testing.T) {
-		job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", map[string]string{"values": `["a","b","c"]`})
+		job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", "", map[string]string{"values": `["a","b","c"]`})
 
 		siblings, err := expandDeferredMatrix(t.Context(), job, nil)
 		require.NoError(t, err)
@@ -143,7 +148,7 @@ func TestExpandDeferredMatrix(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name+" fails the job", func(t *testing.T) {
-			job := setupDeferredMatrixJob(t, tt.matrixValue, map[string]string{"values": `["a","b","c"]`})
+			job := setupDeferredMatrixJob(t, tt.matrixValue, "", map[string]string{"values": `["a","b","c"]`})
 			if tt.prepare != nil {
 				tt.prepare(t, job)
 			}
@@ -176,7 +181,7 @@ func TestDeferredMatrixWithUnsuccessfulNeed(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
-			job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", nil)
+			job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", "", nil)
 			_, err := db.Exec(ctx, "UPDATE `action_run_job` SET status = ? WHERE run_id = ? AND job_id = ?", int(tt.needStatus), job.RunID, "generate")
 			require.NoError(t, err)
 
@@ -198,4 +203,39 @@ func TestDeferredMatrixWithUnsuccessfulNeed(t *testing.T) {
 			assert.Len(t, after, len(jobs))
 		})
 	}
+}
+
+// TestDeferredMatrixIfIsGatedPerCombination covers the placeholder reused as the first combination
+// being gated by its own `matrix.*`: the `if:` decided before expansion could only see the raw
+// matrix expression, so a combination the condition excludes would otherwise run just because it
+// happened to be the one inheriting the placeholder row.
+func TestDeferredMatrixIfIsGatedPerCombination(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}",
+		"${{ matrix.value != 'a' }}", map[string]string{"values": `["a","b"]`})
+
+	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
+	require.NoError(t, err)
+	run, err := actions_model.GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
+	require.NoError(t, err)
+	for _, runJob := range jobs {
+		runJob.Run = run
+	}
+
+	updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, actions_model.StatusSkipped, updates[job.ID], "`build (a)` is excluded by its own `if:`")
+
+	// The matrix was still expanded, so `build (b)` exists and is left for the next pass to resolve.
+	after, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
+	require.NoError(t, err)
+	var names []string
+	for _, runJob := range after {
+		if runJob.JobID == "build" {
+			names = append(names, runJob.Name)
+		}
+	}
+	assert.ElementsMatch(t, []string{"build (a)", "build (b)"}, names)
 }

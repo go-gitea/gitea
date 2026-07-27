@@ -45,11 +45,18 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 	// reusable caller (a job may be both) would drop: its branch only handles waiting and skipped.
 	failTerminal := func(cause error) ([]*actions_model.ActionRunJob, error) {
 		log.Warn("Matrix expansion failed for job %d (JobID: %s): %v", job.ID, job.JobID, cause)
+		prevStatus, prevStopped := job.Status, job.Stopped
 		job.IsMatrixDeferred, job.Status = false, actions_model.StatusFailure
 		job.Stopped = timeutil.TimeStampNow()
-		if _, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"is_matrix_deferred": true},
-			"is_matrix_deferred", "status", "stopped"); err != nil {
+		affected, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"is_matrix_deferred": true},
+			"is_matrix_deferred", "status", "stopped")
+		if err != nil {
 			return nil, fmt.Errorf("fail deferred matrix job %d: %w", job.ID, err)
+		}
+		if affected != 1 {
+			// A concurrent pass already advanced the row. Restore the in-memory state so this pass
+			// does not report a failure that was never persisted.
+			job.IsMatrixDeferred, job.Status, job.Stopped = true, prevStatus, prevStopped
 		}
 		return nil, nil
 	}
@@ -86,8 +93,19 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 	if err != nil {
 		return retryLater(fmt.Errorf("get inputs: %w", err))
 	}
+	// Job URLs encode an AttemptJobID below MaxJobNumPerRun, so a runtime fromJson() must not push
+	// past it. The headroom is read before expanding, both because rejecting the expansion has to
+	// leave the job as failTerminal expects to find it, and so an oversized output cannot make the
+	// expansion materialize one job per combination before the limit is checked.
+	maxAttemptJobID, err := actions_model.GetMaxAttemptJobID(ctx, job.RunID)
+	if err != nil {
+		return retryLater(fmt.Errorf("read attempt_job_id counter: %w", err))
+	}
+	// The placeholder already owns an id, so the last sibling takes maxAttemptJobID+len-1.
+	maxCombinations := int(actions_model.MaxJobNumPerRun - maxAttemptJobID)
+
 	giteaCtx := GenerateGiteaContext(ctx, job.Run, nil, job)
-	expandedJobs, err := jobparser.ExpandMatrixWithNeeds(job.JobID, parsedJob, giteaCtx.ToGitHubContext(), results, vars, inputs)
+	expandedJobs, err := jobparser.ExpandMatrixWithNeeds(job.JobID, parsedJob, giteaCtx.ToGitHubContext(), results, vars, inputs, maxCombinations)
 	if err != nil {
 		return failTerminal(fmt.Errorf("expand matrix: %w", err))
 	}
@@ -106,17 +124,6 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		dst.WorkflowPayload, dst.RunsOn = payload, combo.RunsOn()
 		dst.ContinueOnError = combo.GetContinueOnError()
 		return nil
-	}
-
-	// Job URLs encode an AttemptJobID below MaxJobNumPerRun, so a runtime fromJson() must not push
-	// past it. The headroom is checked before the placeholder is claimed, because rejecting the
-	// expansion has to leave the job as failTerminal expects to find it.
-	maxAttemptJobID, err := actions_model.GetMaxAttemptJobID(ctx, job.RunID)
-	if err != nil {
-		return retryLater(fmt.Errorf("read attempt_job_id counter: %w", err))
-	}
-	if maxAttemptJobID+int64(len(expandedJobs))-1 >= actions_model.MaxJobNumPerRun {
-		return failTerminal(fmt.Errorf("expanding the matrix to %d combinations exceeds the per-run job limit of %d", len(expandedJobs), actions_model.MaxJobNumPerRun))
 	}
 
 	siblings := make([]*actions_model.ActionRunJob, 0, len(expandedJobs)-1)
@@ -138,6 +145,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 	// conditional update is an atomic claim: only the caller that flips IsMatrixDeferred inserts.
 	beforeClaim := *job
 	if err := applyCombo(job, expandedJobs[0]); err != nil {
+		*job = beforeClaim // failTerminal only persists the status, so do not keep the half-applied combination
 		return failTerminal(err)
 	}
 	job.IsMatrixDeferred = false

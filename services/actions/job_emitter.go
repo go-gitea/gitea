@@ -317,7 +317,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 					}
 				case actions_model.StatusSkipped:
 					job.Status = actions_model.StatusSkipped
-					if _, err := actions_model.UpdateRunJob(ctx, job, nil, statusUpdateCols(job)...); err != nil {
+					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status"); err != nil {
 						return err
 					}
 				}
@@ -326,7 +326,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 
 			// Non-caller: standard status update.
 			job.Status = status
-			if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, statusUpdateCols(job)...); err != nil {
+			if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
 				return err
 			} else if n != 1 {
 				return fmt.Errorf("no affected for updating blocked job %v", job.ID)
@@ -346,17 +346,6 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 	result.CancelledJobs = resolver.cancelledJobs
 	return result, nil
-}
-
-// statusUpdateCols returns the columns to persist for a job leaving StatusBlocked, clearing the
-// deferred-matrix flag on the way out. Only a skipped placeholder can still carry it here, and it
-// will never expand now, so keeping the flag would suppress its commit status for good.
-func statusUpdateCols(job *actions_model.ActionRunJob) []string {
-	if !job.IsMatrixDeferred {
-		return []string{"status"}
-	}
-	job.IsMatrixDeferred = false
-	return []string{"status", "is_matrix_deferred"}
 }
 
 type jobStatusResolver struct {
@@ -478,6 +467,7 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 		}
 
 		// Expand a needs-dependent matrix now that its needs are done and the job is going to run.
+		wasDeferred := actionRunJob.IsMatrixDeferred
 		siblings, err := expandDeferredMatrix(ctx, actionRunJob, r.vars)
 		if err != nil {
 			// Aborting the pass is required: the placeholder is already claimed as the first
@@ -495,6 +485,19 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			continue // could not be expanded yet, it stays blocked and is retried on the next pass
 		}
 		r.matrixChanged = r.matrixChanged || len(siblings) > 0
+		if wasDeferred {
+			// The `if:` above was decided against the raw matrix, so this row still has to be gated
+			// by its own combination like the siblings are on the next pass.
+			shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
+			if err != nil {
+				log.Error("evaluateJobIf failed after matrix expansion, job will stay blocked: job: %d, err: %v", id, err)
+				continue
+			}
+			if !shouldStartJob {
+				ret[id] = actions_model.StatusSkipped
+				continue
+			}
+		}
 
 		// update concurrency and check whether the job can run now
 		err = updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)

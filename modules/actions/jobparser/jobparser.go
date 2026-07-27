@@ -13,22 +13,51 @@ import (
 
 	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
+	"github.com/rhysd/actionlint"
 	"go.yaml.in/yaml/v4"
 )
 
 // HasDeferredMatrix reports whether the job's matrix can only be expanded once its needs finish:
-// it still holds a ${{ }} expression and the job has needs to resolve that expression against.
+// it reads the needs context and the job has needs to resolve that context against.
 // Parse emits such a job as a single placeholder rather than one job per combination, so every
 // caller that persists a job must agree with Parse on this condition.
 func HasDeferredMatrix(job *Job) bool {
-	return len(job.Needs()) > 0 && rawMatrixHasExpression(&job.Strategy.RawMatrix)
+	return len(job.Needs()) > 0 && rawMatrixReadsNeeds(&job.Strategy.RawMatrix)
 }
 
-func rawMatrixHasExpression(node *yaml.Node) bool {
+func rawMatrixReadsNeeds(node *yaml.Node) bool {
 	if node.Kind == yaml.ScalarNode {
-		return strings.Contains(node.Value, "${{")
+		return expressionReadsNeeds(node.Value)
 	}
-	return slices.ContainsFunc(node.Content, rawMatrixHasExpression)
+	return slices.ContainsFunc(node.Content, rawMatrixReadsNeeds)
+}
+
+// expressionReadsNeeds reports whether value holds a ${{ }} expression reading the needs context.
+// Every other context (github, vars, inputs, ...) is already available while planning, so deferring
+// those too would replace their combinations with one placeholder and change the commit status
+// contexts the run publishes, which a repository's required checks are configured against.
+func expressionReadsNeeds(value string) bool {
+	for rest := value; ; {
+		start := strings.Index(rest, "${{")
+		if start < 0 {
+			return false
+		}
+		rest = rest[start+len("${{"):]
+		// The lexer ends the expression at its closing `}}`, so it can be handed the whole remainder.
+		expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(rest))
+		if err != nil {
+			return true // unparseable here, let the expansion report it against the real values
+		}
+		readsNeeds := false
+		actionlint.VisitExprNode(expr, func(node, _ actionlint.ExprNode, entering bool) {
+			if variable, ok := node.(*actionlint.VariableNode); entering && ok && strings.EqualFold(variable.Name, "needs") {
+				readsNeeds = true
+			}
+		})
+		if readsNeeds {
+			return true
+		}
+	}
 }
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
@@ -120,7 +149,9 @@ func (w *SingleWorkflow) cloneHeader() *SingleWorkflow {
 // ExpandMatrixWithNeeds returns one Job per combination of job's matrix, resolved against the
 // completed needs in results. As for EvaluateConcurrency, results must also describe jobID itself,
 // which is where NewInterpeter reads the job's own needs from.
-func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
+// maxCombinations caps how many combinations may be built: the values come from a needs output at
+// runtime, so the cap has to be enforced before one Job is materialized per combination.
+func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any, maxCombinations int) ([]*Job, error) {
 	actJob := &model.Job{Strategy: &model.Strategy{
 		FailFastString:    job.Strategy.FailFastString,
 		MaxParallelString: job.Strategy.MaxParallelString,
@@ -141,6 +172,9 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	// would run the job once unparameterized. GitHub rejects such a matrix, so reject it too.
 	if len(matrixes) == 1 && len(matrixes[0]) == 0 {
 		return nil, errors.New("matrix must define at least one vector")
+	}
+	if len(matrixes) > maxCombinations {
+		return nil, fmt.Errorf("matrix expands to %d combinations, exceeding the limit of %d", len(matrixes), maxCombinations)
 	}
 	return buildMatrixCombos(jobID, job, matrixes, actJob, gitCtx, results, vars, inputs)
 }
