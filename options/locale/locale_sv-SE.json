@@ -1717,7 +1717,6 @@
   "actions.runners.owner_type": "Typ",
   "actions.runners.description": "Beskrivning",
   "actions.runners.labels": "Etiketter",
-  "actions.runners.task_list.run": "Kör",
   "actions.runners.task_list.repository": "Utvecklingskatalog",
   "actions.runners.status.active": "Aktiv",
   "actions.runs.summary": "Översikt",

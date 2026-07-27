@@ -25,12 +25,16 @@ type catFileBatchCommunicator struct {
 	reqWriter   io.Writer
 	respReader  *bufio.Reader
 	debugGitCmd *gitcmd.Command
+	closed      chan struct{}
 }
 
 func (b *catFileBatchCommunicator) Close(err ...error) {
 	if fn := b.closeFunc.Swap(nil); fn != nil {
 		(*fn)(util.OptionalArg(err))
 	}
+	// make sure the git process has fully exited before we return from Close()
+	// otherwise, the opened files will block the directory renaming (rename a repo) on Windows
+	<-b.closed
 }
 
 // newCatFileBatch opens git cat-file --batch/--batch-check/--batch-command command and prepares the stdin/stdout pipes for communication.
@@ -41,6 +45,7 @@ func newCatFileBatch(ctx context.Context, repo RepositoryFacade, cmdCatFile *git
 		debugGitCmd: cmdCatFile,
 		reqWriter:   stdinWriter,
 		respReader:  bufio.NewReaderSize(stdoutReader, 32*1024), // use a buffered reader for rich operations
+		closed:      make(chan struct{}),
 	}
 	ret.closeFunc.Store(new(func(err error) {
 		ctxCancel(err)
@@ -52,6 +57,7 @@ func newCatFileBatch(ctx context.Context, repo RepositoryFacade, cmdCatFile *git
 		log.Error("Unable to start git command %v: %v", cmdCatFile.LogString(), err)
 		// ideally here it should return the error, but it would require refactoring all callers
 		// so just return a dummy communicator that does nothing, almost the same behavior as before, not bad
+		close(ret.closed)
 		ret.Close(err)
 		return ret
 	}
@@ -61,6 +67,7 @@ func newCatFileBatch(ctx context.Context, repo RepositoryFacade, cmdCatFile *git
 		if err != nil && !errors.Is(err, context.Canceled) {
 			log.Error("cat-file --batch command failed in repo %s, error: %v", repo.LogString(), err)
 		}
+		close(ret.closed)
 		ret.Close(err)
 	}()
 

@@ -30208,6 +30208,20 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "TopicListResponse": {
+      "description": "TopicListResponse returns a list of TopicResponse",
+      "type": "object",
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TopicResponse"
+          },
+          "x-go-name": "Topics"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "TopicName": {
       "description": "TopicName a list of repo topic names",
       "type": "object",
@@ -31804,10 +31818,7 @@
     "TopicListResponse": {
       "description": "TopicListResponse",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/TopicResponse"
-        }
+        "$ref": "#/definitions/TopicListResponse"
       }
     },
     "TopicNames": {
@@ -31858,10 +31869,7 @@
     "UserSettings": {
       "description": "UserSettings",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/UserSettings"
-        }
+        "$ref": "#/definitions/UserSettings"
       }
     },
     "VariableList": {

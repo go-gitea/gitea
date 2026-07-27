@@ -216,9 +216,8 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
     for (const line of stepLog?.lines ?? []) {
       const cmd = parseLogLineCommand(line);
       if (cmd?.name === 'hidden' || cmd?.name === 'endgroup') continue;
-      const ts = formatDatetimeISO(line.timestamp);
       const msg = createLogLineMessage(line, cmd).textContent ?? '';
-      lines.push(`${ts} ${msg}`);
+      lines.push(timeVisible.value['log-time-stamp'] ? `${formatDatetimeISO(line.timestamp)} ${msg}` : msg);
     }
     return lines.join('\n');
   });
@@ -563,6 +562,7 @@ async function hashChangeListener() {
 
 .job-info-header:has(+ .job-step-container) {
   border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-bottom: 1px solid var(--color-console-border);
 }
 
 .job-info-header .job-info-header-title {
@@ -598,7 +598,6 @@ async function hashChangeListener() {
 .job-step-container {
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-  border-top: 1px solid var(--color-console-border);
   z-index: 0;
 }
 

@@ -3,14 +3,18 @@
 
 package gitrepo
 
-import "strings"
+import (
+	"strings"
+
+	"gitea.dev/modules/util"
+)
 
 func RepoCodeGitRepoRelativePath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
+	return util.PathJoinRelX(strings.ToLower(ownerName), strings.ToLower(repoName)+".git")
 }
 
 func RepoWikiGitRepoRelativePath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".wiki.git"
+	return util.PathJoinRelX(strings.ToLower(ownerName), strings.ToLower(repoName)+".wiki.git")
 }
 
 // CodeRepoByName returns an unmanaged repository facade for the code repository of the given owner and repository name.
