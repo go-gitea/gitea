@@ -82,16 +82,11 @@
 				)}}
 			</div>
 
-			{{if and .IsImmutable .attachments}}
-				<div class="field">
-					<label><b>{{ctx.Locale.Tr "repo.release.assets"}}</b></label>
-				</div>
-			{{end}}
 			{{range .attachments}}
 				<div class="field flex-text-block" id="attachment-{{.ID}}">
 					<div class="flex-text-block tw-flex-1">
 						{{if $.IsImmutable}}
-							<span class="gt-ellipsis">{{.Name}}</span>
+							<input class="tw-max-w-[48em]" value="{{.Name}}" readonly>
 						{{else}}
 							<input name="attachment-edit-{{.UUID}}" class="tw-max-w-[48em]" required value="{{.Name}}">
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false">

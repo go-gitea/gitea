@@ -2663,7 +2663,6 @@
   "repo.release.tag_name_immutable": "The tag name was used by an immutable release and cannot be reused.",
   "repo.release.tag_already_exist": "This tag name already exists.",
   "repo.release.downloads": "Downloads",
-  "repo.release.assets": "Assets",
   "repo.release.download_count": "Downloads: %s",
   "repo.release.add_tag_msg": "Use the title and content of release as tag message.",
   "repo.release.add_tag": "Create Tag Only",
