@@ -15,6 +15,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/auth/source/sspi"
@@ -120,11 +121,16 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		}
 	}
 
-	if s.CreateSession {
-		handleSignIn(w, req, sess, user)
+	// Only establish a session (and update last login) when one is not already present for this user.
+	// Calling handleSignIn on every request would regenerate the session and write last_login_unix each time.
+	if s.CreateSession && sess != nil {
+		sessionUID, ok := sess.Get(session.KeyUID).(int64)
+		if !ok || sessionUID != user.ID {
+			handleSignIn(w, req, sess, user)
+		}
 	}
 
-	log.Trace("SSPI Authorization: Logged in user %-v", user)
+	log.Trace("SSPI Authorization: Logged *** user %-v", user)
 	return user, nil
 }
 

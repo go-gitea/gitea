@@ -38,7 +38,8 @@ func Init() {
 	webauthn.Init()
 }
 
-// handleSignIn clears existing session variables and stores new ones for the specified user object
+// handleSignIn clears existing session variables and stores new ones for the specified user object.
+// It is only called when establishing a new session (not on every authenticated request).
 func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
 	// We need to regenerate the session...
 	newSess, err := session.RegenerateSession(resp, req)
@@ -68,4 +69,10 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	}
 
 	middleware.SetLocaleCookie(resp, user.Language, 0)
+
+	// Match password/OAuth sign-in: record last login when a session is first established
+	// (e.g. reverse-proxy / SSPI auth). Callers must only invoke this on actual sign-in.
+	if err := user_service.UpdateUser(req.Context(), user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
+		log.Error("Error updating user last login [user: %d]: %v", user.ID, err)
+	}
 }
