@@ -240,6 +240,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 		// templateIDToNewID maps each template-attempt job's DB ID to its newly-inserted clone's DB ID
 		templateIDToNewID := make(map[int64]int64, len(plan.templateJobs))
+		slots := maxParallelSlots{}
 
 		for _, templateJob := range plan.templateJobs {
 			// descendants of a reset reusable caller are not cloned at all, the caller will re-insert them
@@ -276,7 +277,8 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 					newJob.CallPayload = ""
 				}
 
-				if newJob.RawConcurrency != "" && !shouldBlockJob {
+				// A slot-starved job must not cancel its group peers.
+				if newJob.RawConcurrency != "" && !shouldBlockJob && slots.available(newJob) {
 					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}
@@ -287,6 +289,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 				}
 
+				applyMaxParallel(newJob, slots)
 				newJobsToRerun = append(newJobsToRerun, newJob)
 			} else {
 				newJob.TaskID = 0
@@ -522,6 +525,7 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		ConcurrencyGroup:       templateJob.ConcurrencyGroup,
 		ConcurrencyCancel:      templateJob.ConcurrencyCancel,
 		TokenPermissions:       templateJob.TokenPermissions,
+		MaxParallel:            templateJob.MaxParallel,
 
 		// reusable workflow fields
 		IsReusableCaller:        templateJob.IsReusableCaller,

@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_27
+package v1_28
 
 import (
 	"testing"
@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// notificationBeforeV343 is the notification table as it looked before the subject
+// notificationBeforeV344 is the notification table as it looked before the subject
 // identity columns were introduced.
-type notificationBeforeV343 struct {
+type notificationBeforeV344 struct {
 	ID     int64 `xorm:"pk autoincr"`
 	UserID int64 `xorm:"NOT NULL"`
 	RepoID int64 `xorm:"NOT NULL"`
@@ -33,22 +33,22 @@ type notificationBeforeV343 struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
-func (notificationBeforeV343) TableName() string {
+func (notificationBeforeV344) TableName() string {
 	return "notification"
 }
 
 func TestAddNotificationSubjectIdentityBackfillsEachSource(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(notificationBeforeV343))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(notificationBeforeV344))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	testData := []*notificationBeforeV343{
-		{UserID: 1, RepoID: 1, Status: 1, Source: notificationSourceIssueV343, IssueID: 42, UpdatedBy: 2},
-		{UserID: 1, RepoID: 1, Status: 1, Source: notificationSourcePullRequestV343, IssueID: 43, UpdatedBy: 2},
-		{UserID: 1, RepoID: 2, Status: 1, Source: notificationSourceCommitV343, CommitID: "abc123", UpdatedBy: 2},
-		{UserID: 1, RepoID: 4, Status: 1, Source: notificationSourceRepositoryV343, UpdatedBy: 2},
+	testData := []*notificationBeforeV344{
+		{UserID: 1, RepoID: 1, Status: 1, Source: notificationSourceIssueV344, IssueID: 42, UpdatedBy: 2},
+		{UserID: 1, RepoID: 1, Status: 1, Source: notificationSourcePullRequestV344, IssueID: 43, UpdatedBy: 2},
+		{UserID: 1, RepoID: 2, Status: 1, Source: notificationSourceCommitV344, CommitID: "abc123", UpdatedBy: 2},
+		{UserID: 1, RepoID: 4, Status: 1, Source: notificationSourceRepositoryV344, UpdatedBy: 2},
 	}
 	for _, data := range testData {
 		_, err := x.Insert(data)
@@ -57,7 +57,7 @@ func TestAddNotificationSubjectIdentityBackfillsEachSource(t *testing.T) {
 
 	require.NoError(t, AddNotificationSubjectIdentity(x))
 
-	var notifications []*NotificationV343
+	var notifications []*NotificationV344
 	require.NoError(t, x.Table("notification").Asc("id").Find(&notifications))
 	require.Len(t, notifications, len(testData))
 
@@ -76,22 +76,22 @@ func TestAddNotificationSubjectIdentityBackfillsEachSource(t *testing.T) {
 // Two repository notifications for different repos must stay distinct: they carry no
 // subject at all, so only repo_id being part of the unique index keeps them apart.
 func TestAddNotificationSubjectIdentityKeepsRepositoriesDistinct(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(notificationBeforeV343))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(notificationBeforeV344))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
 	for _, repoID := range []int64{7, 8} {
-		_, err := x.Insert(&notificationBeforeV343{
-			UserID: 1, RepoID: repoID, Status: 1, Source: notificationSourceRepositoryV343, UpdatedBy: 2,
+		_, err := x.Insert(&notificationBeforeV344{
+			UserID: 1, RepoID: repoID, Status: 1, Source: notificationSourceRepositoryV344, UpdatedBy: 2,
 		})
 		require.NoError(t, err)
 	}
 
 	require.NoError(t, AddNotificationSubjectIdentity(x))
 
-	var notifications []*NotificationV343
+	var notifications []*NotificationV344
 	require.NoError(t, x.Table("notification").Asc("id").Find(&notifications))
 	require.Len(t, notifications, 2)
 	assert.Equal(t, int64(7), notifications[0].RepoID)
@@ -99,7 +99,7 @@ func TestAddNotificationSubjectIdentityKeepsRepositoriesDistinct(t *testing.T) {
 }
 
 func TestAddNotificationSubjectIdentityDedupesAndKeepsPinned(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(notificationBeforeV343))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(notificationBeforeV344))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
@@ -107,47 +107,47 @@ func TestAddNotificationSubjectIdentityDedupesAndKeepsPinned(t *testing.T) {
 
 	// Three rows for the same commit: read, unread, pinned. Only one may survive, and it
 	// must keep the pinned status so nothing the user marked is lost.
-	testData := []*notificationBeforeV343{
-		{UserID: 1, RepoID: 2, Status: 2, Source: notificationSourceCommitV343, CommitID: "abc123", UpdatedBy: 2, UpdatedUnix: 100},
-		{UserID: 1, RepoID: 2, Status: 1, Source: notificationSourceCommitV343, CommitID: "abc123", UpdatedBy: 3, UpdatedUnix: 200},
-		{UserID: 1, RepoID: 2, Status: 3, Source: notificationSourceCommitV343, CommitID: "abc123", UpdatedBy: 4, UpdatedUnix: 150},
+	testData := []*notificationBeforeV344{
+		{UserID: 1, RepoID: 2, Status: 2, Source: notificationSourceCommitV344, CommitID: "abc123", UpdatedBy: 2, UpdatedUnix: 100},
+		{UserID: 1, RepoID: 2, Status: 1, Source: notificationSourceCommitV344, CommitID: "abc123", UpdatedBy: 3, UpdatedUnix: 200},
+		{UserID: 1, RepoID: 2, Status: 3, Source: notificationSourceCommitV344, CommitID: "abc123", UpdatedBy: 4, UpdatedUnix: 150},
 	}
 	for _, data := range testData {
 		_, err := x.Insert(data)
 		require.NoError(t, err)
 	}
 
-	var existing []*notificationBeforeV343
+	var existing []*notificationBeforeV344
 	require.NoError(t, x.Table("notification").Desc("updated_unix", "id").Find(&existing))
 	require.NotEmpty(t, existing)
 	expectedKeeper := existing[0]
 
 	require.NoError(t, AddNotificationSubjectIdentity(x))
 
-	var notifications []*NotificationV343
+	var notifications []*NotificationV344
 	require.NoError(t, x.Table("notification").Find(&notifications))
 	require.Len(t, notifications, 1)
 
 	assert.Equal(t, "abc123", notifications[0].SubjectRef)
-	assert.Equal(t, uint8(notificationStatusPinnedV343), notifications[0].Status, "pinned must win over unread and read")
+	assert.Equal(t, uint8(notificationStatusPinnedV344), notifications[0].Status, "pinned must win over unread and read")
 	assert.Equal(t, expectedKeeper.UpdatedBy, notifications[0].UpdatedBy, "the most recently updated row survives")
 }
 
 // A row with a source this migration does not know about must still survive rather than
 // aborting the whole upgrade.
 func TestAddNotificationSubjectIdentityToleratesUnknownSource(t *testing.T) {
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(notificationBeforeV343))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(notificationBeforeV344))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	_, err := x.Insert(&notificationBeforeV343{UserID: 1, RepoID: 1, Status: 1, Source: 99, UpdatedBy: 2})
+	_, err := x.Insert(&notificationBeforeV344{UserID: 1, RepoID: 1, Status: 1, Source: 99, UpdatedBy: 2})
 	require.NoError(t, err)
 
 	require.NoError(t, AddNotificationSubjectIdentity(x))
 
-	var notifications []*NotificationV343
+	var notifications []*NotificationV344
 	require.NoError(t, x.Table("notification").Find(&notifications))
 	require.Len(t, notifications, 1)
 	assert.Equal(t, uint8(99), notifications[0].Source)
