@@ -153,6 +153,10 @@ func ListReleases(ctx *context.APIContext) {
 	// - name: pre-release
 	//   in: query
 	//   description: filter (exclude / include) pre-releases
+	// - name: tag_prefix
+	//   in: query
+	//   description: filter releases by tag prefix
+	//   type: string
 	//   type: boolean
 	// - name: page
 	//   in: query
@@ -178,6 +182,7 @@ func ListReleases(ctx *context.APIContext) {
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
 		RepoID:        ctx.Repo.Repository.ID,
+		TagPrefix:     ctx.FormString("tag_prefix"),
 	}
 
 	releases, err := db.Find[repo_model.Release](ctx, opts)

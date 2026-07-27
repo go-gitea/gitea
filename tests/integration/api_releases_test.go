@@ -88,6 +88,20 @@ func testAPIListReleasesWithWriteToken(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"false"}, "pre-release": {"false"}}, 1, "exclude drafts and pre-releases")
 	testFilterByLen(true, url.Values{"pre-release": {"true"}}, 1, "only get pre-release")
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
+	testFilterByLen(true, url.Values{"tag_prefix": {"v"}}, 2, "filter releases by tag prefix")
+	// test tag prefix filtering returns only matching tags
+	link.RawQuery = url.Values{"tag_prefix": {"v"}}.Encode()
+
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
+
+	apiReleases = DecodeJSON(t, resp, []*api.Release{})
+
+	if assert.Len(t, apiReleases, 2) {
+		for _, release := range apiReleases {
+			assert.True(t, strings.HasPrefix(release.TagName, "v"), release.TagName)
+		}
+	}
+
 }
 
 func testAPIListReleasesWithReadToken(t *testing.T) {
