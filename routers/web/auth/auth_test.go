@@ -171,25 +171,11 @@ func TestWebAuthOAuth2(t *testing.T) {
 			assert.Equal(t, "https://example.com/oidc-logout", u.String())
 		})
 
-		t.Run("LegacySessionFallsBackToLoginType", func(t *testing.T) {
-			// Sessions without KeySignInMethod keep prior OAuth2 LoginType behavior.
-			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-legacy")}
-			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
-			ctx.Doer = oauthUser
-			SignOut(ctx)
-			assert.Equal(t, http.StatusSeeOther, resp.Code)
-			u, err := url.Parse(test.RedirectURL(resp))
-			require.NoError(t, err)
-			u.RawQuery = ""
-			assert.Equal(t, "https://example.com/oidc-logout", u.String())
-		})
-
 		t.Run("PasswordSignInSkipsOIDC", func(t *testing.T) {
 			// OAuth2-linked account signed in via password form must not hit end_session_endpoint.
 			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-password")}
 			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
 			ctx.Doer = oauthUser
-			require.NoError(t, ctx.Session.Set(session.KeySignInMethod, session.SignInMethodPassword))
 			SignOut(ctx)
 			assert.Equal(t, http.StatusSeeOther, resp.Code)
 			assert.Equal(t, "/", test.RedirectURL(resp))

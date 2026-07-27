@@ -349,9 +349,8 @@ func SignInPost(ctx *context.Context) {
 
 	updates := map[string]any{
 		// User will need to use 2FA TOTP or WebAuthn, save data
-		"twofaUid":              u.ID,
-		"twofaRemember":         form.Remember,
-		session.KeySignInMethod: session.SignInMethodPassword,
+		"twofaUid":      u.ID,
+		"twofaRemember": form.Remember,
 	}
 	if hasTOTPtwofa {
 		// User will need to use WebAuthn, save data
@@ -402,7 +401,6 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
-		session.KeySignInMethod:         signInMethod,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
@@ -502,11 +500,7 @@ func buildSignOutRedirectURL(ctx *context.Context) string {
 // OIDC provider. Prefer the session sign-in method so an OAuth2-linked account
 // that signed in with a password does not hit end_session_endpoint.
 func shouldRedirectToOIDCEndSession(ctx *context.Context) bool {
-	if method, ok := ctx.Session.Get(session.KeySignInMethod).(string); ok && method != "" {
-		return method == session.SignInMethodOAuth2
-	}
-	// Sessions created before sign-in method tracking keep the previous behavior.
-	return ctx.Doer.LoginType == auth.OAuth2
+	return ctx.Session.Get(session.KeySignInMethod) == session.SignInMethodOAuth2
 }
 
 func prepareSignUpPageData(ctx *context.Context) bool {

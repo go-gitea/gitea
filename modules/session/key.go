@@ -14,6 +14,5 @@ const (
 	// can decide whether RP-initiated OIDC logout is appropriate.
 	KeySignInMethod = "signInMethod"
 
-	SignInMethodPassword = "password"
-	SignInMethodOAuth2   = "oauth2"
+	SignInMethodOAuth2 = "oauth2"
 )
