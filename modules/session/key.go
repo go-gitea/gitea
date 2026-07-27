@@ -9,4 +9,10 @@ const (
 	KeyImpersonatorData = "impersonatorData"
 
 	KeyUserHasTwoFactorAuth = "userHasTwoFactorAuth"
+
+	// KeySignInMethod records how the current session was authenticated so logout
+	// can decide whether RP-initiated OIDC logout is appropriate.
+	KeySignInMethod = "signInMethod"
+
+	SignInMethodOAuth2 = "oauth2"
 )
