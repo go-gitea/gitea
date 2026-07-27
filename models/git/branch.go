@@ -156,9 +156,15 @@ func init() {
 	db.RegisterModel(new(RenamedBranch))
 }
 
-func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
+// getBranch is the shared implementation for branch retrieval.
+// If includeDeleted is false, soft-deleted branches are excluded.
+func getBranch(ctx context.Context, repoID int64, branchName string, includeDeleted bool) (*Branch, error) {
 	var branch Branch
-	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
+	sess := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName)
+	if !includeDeleted {
+		sess = sess.And("is_deleted=?", false)
+	}
+	has, err := sess.Get(&branch)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -167,10 +173,17 @@ func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, e
 			BranchName: branchName,
 		}
 	}
-	// FIXME: this design is not right: it doesn't check `branch.IsDeleted`, it doesn't make sense to make callers to check IsDeleted again and again.
-	// It causes inconsistency with `GetBranches` and `git.GetBranch`, and will lead to strange bugs
-	// In the future, there should be 2 functions: `GetBranchExisting` and `GetBranchWithDeleted`
 	return &branch, nil
+}
+
+// GetBranchExisting retrieves a branch, excluding soft-deleted ones.
+func GetBranchExisting(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
+	return getBranch(ctx, repoID, branchName, false)
+}
+
+// GetBranchWithDeleted retrieves a branch, including soft-deleted ones.
+func GetBranchWithDeleted(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
+	return getBranch(ctx, repoID, branchName, true)
 }
 
 // IsBranchExist returns true if the branch exists in the repository.
@@ -270,7 +283,7 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 
 // MarkBranchAsDeleted marks branch as deleted
 func MarkBranchAsDeleted(ctx context.Context, repoID int64, branchName string, deletedByID int64) error {
-	branch, err := GetBranch(ctx, repoID, branchName)
+	branch, err := GetBranchWithDeleted(ctx, repoID, branchName)
 	if err != nil {
 		return err
 	}
@@ -491,7 +504,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 	}
 
 	var ignoredCommitIDs []string
-	baseDefaultBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
+	baseDefaultBranch, err := GetBranchExisting(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
 	if err != nil {
 		log.Warn("GetBranch:DefaultBranch: %v", err)
 	} else {
@@ -500,7 +513,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 
 	baseDefaultTargetBranchName := opts.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultTargetBranch
 	if baseDefaultTargetBranchName != "" && baseDefaultTargetBranchName != opts.BaseRepo.DefaultBranch {
-		baseDefaultTargetBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
+		baseDefaultTargetBranch, err := GetBranchExisting(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
 		if err != nil {
 			log.Warn("GetBranch:DefaultTargetBranch: %v", err)
 		} else {
