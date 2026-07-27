@@ -42,8 +42,8 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 }
 
 // UnmarshalFromEntry parses out a valid template from the blob in entry
-func UnmarshalFromEntry(gitRepo *git.Repository, entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
-	return unmarshalFromEntry(gitRepo, entry, path.Join(dir, entry.Name())) // Filepaths in Git are ALWAYS '/' separated do not use filepath here
+func UnmarshalFromEntry(ctx context.Context, gitRepo *git.Repository, entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
+	return unmarshalFromEntry(ctx, gitRepo, entry, path.Join(dir, entry.Name())) // Filepaths in Git are ALWAYS '/' separated do not use filepath here
 }
 
 // UnmarshalFromCommit parses out a valid template from the commit
@@ -52,12 +52,12 @@ func UnmarshalFromCommit(ctx context.Context, gitRepo *git.Repository, commit *g
 	if err != nil {
 		return nil, fmt.Errorf("get entry for %q: %w", filename, err)
 	}
-	return unmarshalFromEntry(gitRepo, entry, filename)
+	return unmarshalFromEntry(ctx, gitRepo, entry, filename)
 }
 
 // UnmarshalFromRepo parses out a valid template from the head commit of the branch
 func UnmarshalFromRepo(ctx context.Context, repo *git.Repository, branch, filename string) (*api.IssueTemplate, error) {
-	commit, err := repo.GetBranchCommit(branch)
+	commit, err := repo.GetBranchCommit(ctx, branch)
 	if err != nil {
 		return nil, fmt.Errorf("get commit on branch %q: %w", branch, err)
 	}
@@ -65,12 +65,12 @@ func UnmarshalFromRepo(ctx context.Context, repo *git.Repository, branch, filena
 	return UnmarshalFromCommit(ctx, repo, commit, filename)
 }
 
-func unmarshalFromEntry(gitRepo *git.Repository, entry *git.TreeEntry, filename string) (*api.IssueTemplate, error) {
-	if size := entry.Blob(gitRepo).Size(); size > setting.UI.MaxDisplayFileSize {
+func unmarshalFromEntry(ctx context.Context, gitRepo *git.Repository, entry *git.TreeEntry, filename string) (*api.IssueTemplate, error) {
+	if size := entry.Blob(gitRepo).Size(ctx); size > setting.UI.MaxDisplayFileSize {
 		return nil, fmt.Errorf("too large: %v > MaxDisplayFileSize", size)
 	}
 
-	r, err := entry.Blob(gitRepo).DataAsync()
+	r, err := entry.Blob(gitRepo).DataAsync(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("data async: %w", err)
 	}

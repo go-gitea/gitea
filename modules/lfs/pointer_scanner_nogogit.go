@@ -41,7 +41,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 
 	// 3. Take the shas of the blobs and batch read them
 	wg.Go(func() error {
-		return pipeline.CatFileBatch(ctx, cmd3BatchContent, repo.Path)
+		return pipeline.CatFileBatch(ctx, cmd3BatchContent, repo)
 	})
 
 	// 2. From the provided objects restrict to blobs <=1k
@@ -51,7 +51,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 
 	// 1. Run batch-check on all objects in the repository
 	wg.Go(func() error {
-		return pipeline.CatFileBatchCheckAllObjects(ctx, cmd1AllObjs, repo.Path)
+		return pipeline.CatFileBatchCheckAllObjects(ctx, cmd1AllObjs, repo)
 	})
 	err := wg.Wait()
 	close(pointerChan)

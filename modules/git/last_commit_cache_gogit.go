@@ -17,7 +17,8 @@ func (c *Commit) CacheCommit(ctx context.Context, gitRepo *Repository) error {
 	if gitRepo.LastCommitCache == nil {
 		return nil
 	}
-	commitNodeIndex, _ := gitRepo.CommitNodeIndex()
+	commitNodeIndex, closer := gitRepo.CommitNodeIndex()
+	defer closer()
 
 	index, err := commitNodeIndex.Get(plumbing.Hash(c.ID.RawValue()))
 	if err != nil {

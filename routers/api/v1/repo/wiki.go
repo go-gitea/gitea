@@ -11,7 +11,6 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -193,10 +192,10 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := git.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	// Get last change information.
-	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
+	lastCommit, err := wikiRepo.GetCommitByPath(ctx, pageFilename)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil
@@ -313,7 +312,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		if i < skip || i >= maxNum || !entry.IsRegular() {
 			continue
 		}
-		c, err := wikiRepo.GetCommitByPath(entry.Name())
+		c, err := wikiRepo.GetCommitByPath(ctx, entry.Name())
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -426,12 +425,12 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := git.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
-	commitsHistory, _, err := wikiRepo.CommitsByFileAndRange(
+	commitsHistory, _, err := wikiRepo.CommitsByFileAndRange(ctx,
 		git.CommitsByFileAndRangeOptions{
 			Revision: ctx.Repo.Repository.DefaultWikiBranch,
 			File:     pageFilename,
@@ -468,13 +467,13 @@ func findEntryForFile(ctx *context.APIContext, wikiRepo *git.Repository, commit 
 // findWikiRepoCommit opens the wiki repo and returns the latest commit, writing to context on error.
 // The caller is responsible for closing the returned repo again
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
-	wikiRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
+	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil, nil
 	}
 
-	commit, err := wikiRepo.GetBranchCommit(ctx.Repo.Repository.DefaultWikiBranch)
+	commit, err := wikiRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultWikiBranch)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return wikiRepo, nil
@@ -486,10 +485,10 @@ func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) 
 // given tree entry, encoded with base64. Writes to ctx if an error occurs.
 func wikiContentsByEntry(ctx *context.APIContext, wikiRepo *git.Repository, entry *git.TreeEntry) string {
 	blob := entry.Blob(wikiRepo)
-	if blob.Size() > setting.API.DefaultMaxBlobSize {
+	if blob.Size(ctx) > setting.API.DefaultMaxBlobSize {
 		return ""
 	}
-	content, err := blob.GetBlobContentBase64(nil)
+	content, err := blob.GetBlobContentBase64(ctx, nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return ""

@@ -29,7 +29,7 @@ import (
 )
 
 func prepareLatestCommitInfo(ctx *context.Context) bool {
-	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx.Repo.GitRepo, ctx.Repo.TreePath)
+	commit, err := ctx.Repo.Commit.GetCommitByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
 		return false
@@ -182,7 +182,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
 		}
 	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
-		content, err := actions.GetContentFromEntry(ctx.Repo.GitRepo, entry)
+		content, err := actions.GetContentFromEntry(ctx, ctx.Repo.GitRepo, entry)
 		if err != nil {
 			log.Error("actions.GetContentFromEntry: %v", err)
 		}
@@ -190,7 +190,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {
-		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
+		if data, err := blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")

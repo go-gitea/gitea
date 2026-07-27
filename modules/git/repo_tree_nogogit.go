@@ -6,11 +6,12 @@
 package git
 
 import (
+	"context"
 	"io"
 )
 
-func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error) {
+	batch, cancel, err := repo.CatFileBatch(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +51,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		return tree, nil
 	case "tree":
 		tree := newTree(id)
-		objectFormat, err := repo.GetObjectFormat()
+		objectFormat, err := repo.GetObjectFormat(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -71,13 +72,13 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 }
 
 // GetTree find the tree object in the repository.
-func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	objectFormat, err := repo.GetObjectFormat()
+func (repo *Repository) GetTree(ctx context.Context, idStr string) (*Tree, error) {
+	objectFormat, err := repo.GetObjectFormat(ctx)
 	if err != nil {
 		return nil, err
 	}
 	if len(idStr) != objectFormat.FullLength() {
-		res, err := repo.GetRefCommitID(idStr)
+		res, err := repo.GetRefCommitID(ctx, idStr)
 		if err != nil {
 			return nil, err
 		}
@@ -90,5 +91,5 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 		return nil, err
 	}
 
-	return repo.getTree(id)
+	return repo.getTree(ctx, id)
 }

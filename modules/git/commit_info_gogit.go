@@ -29,7 +29,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, gitRepo 
 	var err error
 	if gitRepo.LastCommitCache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, gitRepo.LastCommitCache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryPaths, gitRepo.LastCommitCache)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -132,11 +132,11 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 	return hashes, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
+func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
 	var unHitEntryPaths []string
 	results := make(map[string]*Commit)
 	for _, p := range paths {
-		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
+		lastCommit, err := cache.Get(ctx, commitID, path.Join(treePath, p))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -153,10 +153,8 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 
 // GetLastCommitForPaths returns last commit information
 func GetLastCommitForPaths(ctx context.Context, gitRepo *Repository, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
-	commitNodeIndex, commitGraphFile := gitRepo.CommitNodeIndex()
-	if commitGraphFile != nil {
-		defer commitGraphFile.Close()
-	}
+	commitNodeIndex, closer := gitRepo.CommitNodeIndex()
+	defer closer()
 
 	c, err := commitNodeIndex.Get(plumbing.Hash(commit.ID.RawValue()))
 	if err != nil {

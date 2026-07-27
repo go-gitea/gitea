@@ -13,7 +13,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	notify_service "gitea.dev/services/notify"
 )
@@ -107,7 +107,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}()
 
 	// 2 - check whether the repository with the same storage exists
-	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
+	isExist, err := git.IsRepositoryExist(ctx, generateRepo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", generateRepo.FullName(), err)
 		return nil, err
@@ -122,9 +122,9 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}
 
 	// 3 -Init git bare new repository.
-	if err = gitrepo.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName); err != nil {
+	if err = git.InitRepository(ctx, generateRepo, generateRepo.ObjectFormatName); err != nil {
 		return nil, fmt.Errorf("git.InitRepository: %w", err)
-	} else if err = gitrepo.CreateDelegateHooks(ctx, generateRepo); err != nil {
+	} else if err = git.CreateDelegateHooks(ctx, generateRepo); err != nil {
 		return nil, fmt.Errorf("createDelegateHooks: %w", err)
 	}
 

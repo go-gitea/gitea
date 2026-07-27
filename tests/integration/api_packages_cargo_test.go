@@ -16,7 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	cargo_module "gitea.dev/modules/packages/cargo"
 	"gitea.dev/modules/setting"
@@ -76,17 +76,17 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 	assert.NoError(t, err)
 
 	readGitContent := func(t *testing.T, path string) string {
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		gitRepo, err := git.OpenRepository(repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
-		commit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
+		commit, err := gitRepo.GetBranchCommit(t.Context(), repo.DefaultBranch)
 		assert.NoError(t, err)
 
 		blob, err := commit.GetBlobByPath(t.Context(), gitRepo, path)
 		assert.NoError(t, err)
 
-		content, err := blob.GetBlobContent(1024)
+		content, err := blob.GetBlobContent(t.Context(), 1024)
 		assert.NoError(t, err)
 
 		return content

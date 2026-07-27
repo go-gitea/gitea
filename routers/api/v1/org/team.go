@@ -223,7 +223,7 @@ func CreateTeam(ctx *context.APIContext) {
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		AccessMode:              teamPermission,
-		Visibility:              organization.NormalizeTeamVisibility(string(form.Visibility)),
+		Visibility:              organization.NormalizeTeamVisibility(form.Visibility),
 	}
 
 	if team.AccessMode < perm.AccessModeAdmin {
@@ -302,7 +302,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if form.Visibility != nil && !team.IsOwnerTeam() {
-		team.Visibility = organization.NormalizeTeamVisibility(string(*form.Visibility))
+		team.Visibility = organization.NormalizeTeamVisibility(*form.Visibility)
 	}
 
 	isAuthChanged := false

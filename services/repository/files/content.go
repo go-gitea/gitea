@@ -13,7 +13,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
@@ -125,7 +124,7 @@ func GetFileContents(ctx context.Context, repo *repo_model.Repository, gitRepo *
 func addLastCommitCache(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, cacheKey, fullName, sha string) error {
 	if gitRepo.LastCommitCache == nil {
 		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
-			return gitrepo.CommitsCountOfCommit(ctx, repo, sha)
+			return git.CommitsCountOfCommit(ctx, repo, sha)
 		})
 		if err != nil {
 			return err
@@ -162,7 +161,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 			return nil, err
 		}
 
-		lastCommit, err := refCommit.Commit.GetCommitByPath(gitRepo, opts.TreePath)
+		lastCommit, err := refCommit.Commit.GetCommitByPath(ctx, gitRepo, opts.TreePath)
 		if err != nil {
 			return nil, err
 		}
@@ -188,14 +187,14 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 		contentsResponse.Type = string(ContentTypeRegular)
 		// if it is listing the repo root dir, don't waste system resources on reading content
 		if opts.IncludeSingleFileContent {
-			blobResponse, err := GetBlobBySHA(repo, gitRepo, entry.ID.String())
+			blobResponse, err := GetBlobBySHA(ctx, repo, gitRepo, entry.ID.String())
 			if err != nil {
 				return nil, err
 			}
 			contentsResponse.Encoding, contentsResponse.Content = blobResponse.Encoding, blobResponse.Content
 			contentsResponse.LfsOid, contentsResponse.LfsSize = blobResponse.LfsOid, blobResponse.LfsSize
 		} else if opts.IncludeLfsMetadata {
-			contentsResponse.LfsOid, contentsResponse.LfsSize, err = parsePossibleLfsPointerBlob(gitRepo, entry.ID.String())
+			contentsResponse.LfsOid, contentsResponse.LfsSize, err = parsePossibleLfsPointerBlob(ctx, gitRepo, entry.ID.String())
 			if err != nil {
 				return nil, err
 			}
@@ -205,7 +204,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 	} else if entry.IsLink() {
 		contentsResponse.Type = string(ContentTypeLink)
 		// The target of a symlink file is the content of the file
-		targetFromContent, err := entry.Blob(gitRepo).GetBlobContent(1024)
+		targetFromContent, err := entry.Blob(gitRepo).GetBlobContent(ctx, 1024)
 		if err != nil {
 			return nil, err
 		}
@@ -250,7 +249,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 	return contentsResponse, nil
 }
 
-func GetBlobBySHA(repo *repo_model.Repository, gitRepo *git.Repository, sha string) (*api.GitBlobResponse, error) {
+func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string) (*api.GitBlobResponse, error) {
 	gitBlob, err := gitRepo.GetBlob(sha)
 	if err != nil {
 		return nil, err
@@ -258,10 +257,10 @@ func GetBlobBySHA(repo *repo_model.Repository, gitRepo *git.Repository, sha stri
 	ret := &api.GitBlobResponse{
 		SHA:  gitBlob.ID.String(),
 		URL:  repo.APIURL() + "/git/blobs/" + url.PathEscape(gitBlob.ID.String()),
-		Size: gitBlob.Size(),
+		Size: gitBlob.Size(ctx),
 	}
 
-	blobSize := gitBlob.Size()
+	blobSize := gitBlob.Size(ctx)
 	if blobSize > setting.API.DefaultMaxBlobSize {
 		return ret, nil
 	}
@@ -271,7 +270,7 @@ func GetBlobBySHA(repo *repo_model.Repository, gitRepo *git.Repository, sha stri
 		originContent = &strings.Builder{}
 	}
 
-	content, err := gitBlob.GetBlobContentBase64(originContent)
+	content, err := gitBlob.GetBlobContentBase64(ctx, originContent)
 	if err != nil {
 		return nil, err
 	}
@@ -291,15 +290,15 @@ func parsePossibleLfsPointerBuffer(r io.Reader) (*string, *int64) {
 	return nil, nil
 }
 
-func parsePossibleLfsPointerBlob(gitRepo *git.Repository, sha string) (*string, *int64, error) {
+func parsePossibleLfsPointerBlob(ctx context.Context, gitRepo *git.Repository, sha string) (*string, *int64, error) {
 	gitBlob, err := gitRepo.GetBlob(sha)
 	if err != nil {
 		return nil, nil, err
 	}
-	if gitBlob.Size() > lfs.MetaFileMaxSize {
+	if gitBlob.Size(ctx) > lfs.MetaFileMaxSize {
 		return nil, nil, nil // not a LFS pointer
 	}
-	buf, err := gitBlob.GetBlobContent(lfs.MetaFileMaxSize)
+	buf, err := gitBlob.GetBlobContent(ctx, lfs.MetaFileMaxSize)
 	if err != nil {
 		return nil, nil, err
 	}

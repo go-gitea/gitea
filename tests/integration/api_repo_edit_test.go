@@ -15,7 +15,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	mirror_service "gitea.dev/services/mirror"
 	"gitea.dev/tests"
@@ -471,7 +471,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
 		assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
 
-		remoteURL, err := gitrepo.GitRemoteGetURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
+		remoteURL, err := git.ParseRemoteAddressURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
 		require.NoError(t, err)
 		require.NotNil(t, remoteURL.User)
 		assert.Equal(t, "existing-user", remoteURL.User.Username())
@@ -495,7 +495,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		updatedRepo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
 		assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
 
-		remoteURL, err = gitrepo.GitRemoteGetURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
+		remoteURL, err = git.ParseRemoteAddressURL(ctx, updatedRepo, updatedMirror.GetRemoteName())
 		require.NoError(t, err)
 		require.NotNil(t, remoteURL.User)
 		assert.Empty(t, remoteURL.User.Username())
