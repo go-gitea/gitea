@@ -30,9 +30,8 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '::remove-matcher': 'hidden', // it has arguments
 };
 
-// Pattern for ::cmd:: and ::cmd args:: format (args are stripped for display),
-// lazy so the command ends at the first "::" even when an arg value contains ":"
-const LogLineCmdPattern = /^::(error|warning|notice|debug)(?:\s.*?)?::/;
+// Pattern for ::cmd:: and ::cmd args:: format (args are stripped for display)
+const LogLineCmdPattern = /^::(error|warning|notice|debug)(?:\s[^:]*)?::/;
 
 export type LogLine = {
   index: number;
@@ -72,9 +71,9 @@ function decodeLineMessage(line: LogLine, cmd: LogLineCommand | null): string {
   // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
   // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
   if (!cmd) return line.message;
-  let msg = line.message.substring(cmd.prefix.length);
-  // "##[cmd]" also escapes ";" and "]" which delimit its header, "::cmd::" does not
-  if (!cmd.prefix.startsWith('::')) msg = msg.replace(/%3B/g, ';').replace(/%5D/g, ']');
+  const msg = line.message.substring(cmd.prefix.length);
+  // "##[cmd]" lines come from the runner unescaped, only "::cmd::" is escaped by the workflow
+  if (!cmd.prefix.startsWith('::')) return msg;
   // renderAnsiInto breaks a line per "\r", so "%0D%0A" is one break. "%25" last keeps "%250A" literal
   return msg.replace(/(?:%0D)?%0A/g, '\n').replace(/%0D/g, '\r').replace(/%25/g, '%');
 }
