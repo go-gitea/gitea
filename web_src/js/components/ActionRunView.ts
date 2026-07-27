@@ -73,7 +73,7 @@ function decodeLineMessage(line: LogLine, cmd: LogLineCommand | null): string {
   // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
   if (!cmd) return line.message;
   let msg = line.message.substring(cmd.prefix.length);
-  if (cmd.name === 'command') return msg; // "command" is only an output tag, GitHub does not parse or escape it
+  if (cmd.name === 'command') return msg; // "command" is only an output tag, do not parse or escape it
   // "##[cmd]" also escapes ";" and "]" which delimit its header, "::cmd::" does not
   if (!cmd.prefix.startsWith('::')) msg = msg.replace(/%3B/g, ';').replace(/%5D/g, ']');
   // renderAnsiInto breaks a line per "\r", so "%0D%0A" is one break. "%25" last keeps "%250A" literal
