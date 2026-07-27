@@ -109,7 +109,6 @@ func MockActionsQueue(ctx *context.Context) {
 	ctx.Data["ShowRunnerColumn"] = true // admin "more info" view
 	ctx.Data["CanReorder"] = true
 	ctx.Data["QueueMoveLink"] = setting.AppSubURL + "/devtest/actions-queue/move"
-	ctx.Data["QueuePage"] = 1
 	ctx.Data["QueueRefreshLink"] = setting.AppSubURL + "/devtest/actions-queue?refresh=1"
 	// Refresh rarely so the auto-morph doesn't revert a manual drag while testing the interaction.
 	ctx.Data["QueueRefreshIntervalMs"] = int64(3600000)
@@ -125,8 +124,8 @@ func MockActionsQueue(ctx *context.Context) {
 // MockActionsQueueMove accepts a reorder from the devtest queue page, logs the payload the client computed,
 // and returns 204 so the dragged order sticks without touching a database.
 func MockActionsQueueMove(ctx *context.Context) {
-	log.Info("devtest actions-queue move: id=%s after=%s before=%s page=%s",
-		ctx.FormString("id"), ctx.FormString("after"), ctx.FormString("before"), ctx.FormString("page"))
+	log.Info("devtest actions-queue move: id=%s after=%s before=%s",
+		ctx.FormString("id"), ctx.FormString("after"), ctx.FormString("before"))
 	ctx.Status(http.StatusNoContent)
 }
 

@@ -55,7 +55,9 @@ func queueRankAtIndex(ctx context.Context, repoID, ownerID int64, idx int) (rank
 // scope: repoID>0 for a repo queue; ownerID>0 for an org/user queue; both 0 for the instance-wide queue.
 // afterID / beforeID are the ids of the rows that should end up immediately before / after the moved job
 // (0 when it was dropped at the top / bottom of the list). page/pageSize describe the page the admin was
-// viewing; reordering is bounded to that page so it stays cheap regardless of the total queue size.
+// viewing; reordering is bounded to that page so it stays cheap regardless of the total queue size. Only the
+// first page may be reordered in practice: the renumbering below anchors to the following page's head only,
+// so applying it to a later page would push that page ahead of the pages preceding it.
 //
 // The dropped page is renumbered into evenly spaced negative ranks (more negative = picked earlier), placed
 // strictly ahead of the following page's head. Untouched, rank-0 jobs therefore keep their natural FIFO

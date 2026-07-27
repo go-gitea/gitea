@@ -180,8 +180,7 @@ function initActionQueueList(el: HTMLElement) {
           // Neighbours after the drop tell the server exactly where the job landed on this page.
           const after = e.item.previousElementSibling?.getAttribute('data-job-id') ?? '0';
           const before = e.item.nextElementSibling?.getAttribute('data-job-id') ?? '0';
-          const page = el.getAttribute('data-queue-page') ?? '1';
-          const resp = await POST(moveLink, {data: new URLSearchParams({id: movedId, after, before, page})});
+          const resp = await POST(moveLink, {data: new URLSearchParams({id: movedId, after, before})});
           // On conflict/stale (or any error) restore the server's authoritative order.
           if (!resp.ok) await refresh();
         } catch {

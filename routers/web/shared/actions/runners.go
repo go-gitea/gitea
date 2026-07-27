@@ -171,6 +171,9 @@ func Runners(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, rCtx.RunnersTemplate)
 }
 
+// queuePageSize is the number of queued jobs per build-queue page; reordering renumbers exactly one such page.
+const queuePageSize = 50
+
 // QueueScope describes what a build-queue view should query and who may act on it.
 type QueueScope struct {
 	RepoID  int64 // >0: a single repo
@@ -215,7 +218,7 @@ func Queue(ctx *context.Context) {
 // RenderQueue queries and renders a build-queue view (queued jobs in pickup order plus running jobs) for the
 // given scope. It serves both the initial full page (s.FullTemplate) and the in-place auto-refresh fragment.
 func RenderQueue(ctx *context.Context, s QueueScope) {
-	const pageSize = 50
+	const pageSize = queuePageSize
 	page := max(ctx.FormInt("page"), 1)
 
 	scope := func(opts *actions_model.FindRunJobOptions) {
@@ -278,7 +281,6 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 	// Reordering renumbers the first page only (the head runners pick from), so gate the handles to page 1.
 	ctx.Data["CanReorder"] = s.CanReorder && page == 1
 	ctx.Data["QueueMoveLink"] = s.MoveLink
-	ctx.Data["QueuePage"] = page
 
 	pager := context.NewPagination(queuedTotal, pageSize, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
@@ -368,8 +370,9 @@ func HandleQueueMove(ctx *context.Context, repoID, ownerID int64) {
 		ctx.HTTPError(http.StatusBadRequest, "missing job id")
 		return
 	}
-	page := max(int(ctx.FormInt64("page")), 1)
-	ok, err := actions_model.MoveQueuedJob(ctx, repoID, ownerID, page, 50, movedID, ctx.FormInt64("after"), ctx.FormInt64("before"))
+	// Only the first page may be reordered: renumbering anchors to the following page's head, so applying it
+	// to a later page would push that whole page ahead of the pages before it.
+	ok, err := actions_model.MoveQueuedJob(ctx, repoID, ownerID, 1, queuePageSize, movedID, ctx.FormInt64("after"), ctx.FormInt64("before"))
 	if err != nil {
 		ctx.ServerError("MoveQueuedJob", err)
 		return
