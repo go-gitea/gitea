@@ -25,7 +25,7 @@ func TestSyncRepoBranches(t *testing.T) {
 	assert.NoError(t, err)
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "sha1", repo.ObjectFormatName)
-	branch, err := git_model.GetBranchExisting(t.Context(), 1, "master")
+	branch, err := git_model.GetBranch(t.Context(), 1, "master")
 	assert.NoError(t, err)
 	assert.Equal(t, "master", branch.Name)
 }

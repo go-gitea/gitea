@@ -43,7 +43,7 @@ func checkOutdatedBranch(ctx *context.Context) {
 		return
 	}
 
-	dbBranch, err := git_model.GetBranchExisting(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
 	if err != nil {
 		log.Error("GetBranch: %v", err)
 		// Don't return an error page, as it can be rechecked the next time the user opens the page.

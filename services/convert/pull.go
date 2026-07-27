@@ -410,7 +410,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 
 		baseBranch, ok := baseBranchCache[pr.BaseBranch]
 		if !ok {
-			baseBranch, err = git_model.GetBranchExisting(ctx, baseRepo.ID, pr.BaseBranch)
+			baseBranch, err = git_model.GetBranch(ctx, baseRepo.ID, pr.BaseBranch)
 			if err == nil {
 				baseBranchCache[pr.BaseBranch] = baseBranch
 			} else if !git_model.IsErrBranchNotExist(err) {

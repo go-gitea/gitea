@@ -38,7 +38,7 @@ func init() {
 
 // LoadParsedScopedWorkflows returns the source repo's parsed scoped workflows at its current default-branch HEAD.
 func LoadParsedScopedWorkflows(ctx context.Context, sourceRepo *repo_model.Repository) (sha string, parsed []*actions_module.ParsedScopedWorkflow, err error) {
-	branch, err := git_model.GetBranchExisting(ctx, sourceRepo.ID, sourceRepo.DefaultBranch)
+	branch, err := git_model.GetBranch(ctx, sourceRepo.ID, sourceRepo.DefaultBranch)
 	if err != nil {
 		return "", nil, fmt.Errorf("get source default branch: %w", err)
 	}

@@ -156,11 +156,11 @@ func init() {
 	db.RegisterModel(new(RenamedBranch))
 }
 
-// GetBranchExisting retrieves a branch that exists in git repository (excluding soft-deleted ones in database)
-func GetBranchExisting(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
+// GetBranch retrieves a branch that exists in git repository (excluding soft-deleted ones in database)
+func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
 	var branch Branch
-	sess := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).And("is_deleted=?", false)
-	has, err := sess.Get(&branch)
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).
+		And("is_deleted=?", false).Get(&branch)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -473,7 +473,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 	}
 
 	var ignoredCommitIDs []string
-	baseDefaultBranch, err := GetBranchExisting(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
+	baseDefaultBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
 	if err != nil {
 		log.Warn("GetBranch:DefaultBranch: %v", err)
 	} else {
@@ -482,7 +482,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 
 	baseDefaultTargetBranchName := opts.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultTargetBranch
 	if baseDefaultTargetBranchName != "" && baseDefaultTargetBranchName != opts.BaseRepo.DefaultBranch {
-		baseDefaultTargetBranch, err := GetBranchExisting(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
+		baseDefaultTargetBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
 		if err != nil {
 			log.Warn("GetBranch:DefaultTargetBranch: %v", err)
 		} else {

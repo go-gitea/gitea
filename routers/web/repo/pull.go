@@ -173,7 +173,7 @@ func (prInfo *pullRequestViewInfo) setTemplateDataMergeTarget(ctx *context.Conte
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 	headBranchLink := ""
 	if pull.Flow == issues_model.PullRequestFlowGithub {
-		_, err := git_model.GetBranchExisting(ctx, pull.HeadRepoID, pull.HeadBranch)
+		_, err := git_model.GetBranch(ctx, pull.HeadRepoID, pull.HeadBranch)
 		switch {
 		case err == nil:
 			headBranchLink = pull.GetHeadBranchLink(ctx)
