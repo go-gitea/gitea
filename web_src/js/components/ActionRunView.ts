@@ -9,7 +9,8 @@ import {POST} from '../modules/fetch.ts';
 // * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
 // * Workflow runner parses and processes the commands to "##[group]", apply "matchers", hide secrets, etc.
 // * The reported logs are the processed logs.
-// HOWEVER: Gitea runner does not completely process those commands. Many works are done by the frontend at the moment.
+// HOWEVER: Gitea cannot, a decoded message may contain newlines and FormatLog drops them,
+// so the commands arrive here still escaped and the frontend decodes them.
 const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '::group::': 'group',
   '##[group]': 'group',
