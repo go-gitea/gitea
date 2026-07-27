@@ -522,6 +522,11 @@ overflow-menu {
   position: relative;
 }
 
+/* hide until JS has arranged the items, so the un-collapsed menu is never painted */
+overflow-menu:not([data-ready]) {
+  visibility: hidden;
+}
+
 overflow-menu .overflow-menu-popup {
   position: absolute;
   top: calc(100% + 8px);
@@ -609,6 +614,12 @@ overflow-menu .overflow-menu-button:hover {
 
 overflow-menu .ui.label {
   margin-left: 7px !important; /* save some space */
+  font-variant-numeric: tabular-nums; /* equal-width digits so counts don't reflow the row */
+}
+
+/* count not loaded yet, keep the reserved space so filling it in does not shift the row */
+overflow-menu .ui.label:empty {
+  visibility: hidden;
 }
 
 .activity-bar-graph {

@@ -9,15 +9,14 @@ import (
 	"xorm.io/xorm"
 )
 
-// AddMatrixDeferredColumnToActionRunJob adds the IsMatrixDeferred column, marking jobs whose
-// matrix depends on other jobs' outputs and is therefore expanded only once those jobs finish.
-func AddMatrixDeferredColumnToActionRunJob(x base.EngineMigration) error {
+func AddMaxParallelToActionRunJob(x base.EngineMigration) error {
 	type ActionRunJob struct {
-		IsMatrixDeferred bool `xorm:"NOT NULL DEFAULT FALSE"`
+		MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
 	}
+
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,
+		IgnoreDropIndices: true,
 	}, new(ActionRunJob))
 	return err
 }

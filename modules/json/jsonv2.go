@@ -53,6 +53,10 @@ func (j *JSONv2) Marshal(v any) ([]byte, error) {
 	return jsonv2.Marshal(v, j.marshalOptions)
 }
 
+func (j *JSONv2) MarshalWrite(w io.Writer, v any) error {
+	return jsonv2.MarshalWrite(w, v, j.marshalOptions)
+}
+
 func (j *JSONv2) Unmarshal(data []byte, v any) error {
 	return jsonv2.Unmarshal(data, v, j.unmarshalOptions)
 }

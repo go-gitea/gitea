@@ -2079,7 +2079,6 @@
   "actions.runners.owner_type": "Typ",
   "actions.runners.description": "Opis",
   "actions.runners.labels": "Etykiety",
-  "actions.runners.task_list.run": "Uruchom",
   "actions.runners.task_list.repository": "Repozytorium",
   "actions.runners.status.active": "Aktywne",
   "actions.runners.version": "Wersja",

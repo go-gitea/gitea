@@ -28,6 +28,9 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err != nil {
 				return err
 			}
+			if !run.NeedApproval {
+				continue
+			}
 			run.NeedApproval = false
 			run.ApprovedBy = doer.ID
 			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
@@ -38,10 +41,23 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				return err
 			}
 
+			// approval unblocks every job at once, so max-parallel has to cap them here too
+			slots := maxParallelSlots{}
+			for _, job := range jobs {
+				slots.hold(job, job.Status)
+			}
+
 			for _, job := range jobs {
 				// Skip jobs with `needs`: they stay blocked until their dependencies finish,
 				// at which point job_emitter will evaluate and start them.
 				if len(job.Needs) > 0 {
+					continue
+				}
+				// Only a job this approval unblocks competes for a slot, one that is already
+				// active was counted by the seeding loop above and must not take a second.
+				isUnblocking := job.Status == actions_model.StatusBlocked
+				// A slot-starved job cannot start, skip the following checks.
+				if isUnblocking && !slots.available(job) {
 					continue
 				}
 				var jobsToCancel []*actions_model.ActionRunJob
@@ -50,6 +66,9 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 					return err
 				}
 				cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
+				if isUnblocking {
+					applyMaxParallel(job, slots)
+				}
 				if job.Status != actions_model.StatusWaiting {
 					continue
 				}

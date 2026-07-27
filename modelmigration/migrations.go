@@ -423,7 +423,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
 		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
 
-		newMigration(343, "Add IsMatrixDeferred column to ActionRunJob", v1_28.AddMatrixDeferredColumnToActionRunJob),
+		newMigration(343, "Add max_parallel column to action_run_job", v1_28.AddMaxParallelToActionRunJob),
+		newMigration(344, "Add IsMatrixDeferred column to ActionRunJob", v1_28.AddMatrixDeferredColumnToActionRunJob),
 	}
 	return preparedMigrations
 }

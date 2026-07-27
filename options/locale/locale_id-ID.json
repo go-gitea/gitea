@@ -1159,7 +1159,6 @@
   "actions.runners.name": "Nama",
   "actions.runners.owner_type": "Jenis",
   "actions.runners.description": "Deskripsi",
-  "actions.runners.task_list.run": "Lari",
   "actions.runners.task_list.repository": "Repositori",
   "actions.runners.task_list.commit": "Memperbuat",
   "actions.runners.status.unspecified": "Tidak diketahui",

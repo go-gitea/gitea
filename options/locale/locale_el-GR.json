@@ -2906,7 +2906,6 @@
   "actions.runners.runner_title": "Εκτελεστής",
   "actions.runners.task_list": "Πρόσφατες εργασίες στον εκτελεστή",
   "actions.runners.task_list.no_tasks": "Δεν υπάρχει καμία εργασία ακόμα.",
-  "actions.runners.task_list.run": "Εκτέλεση",
   "actions.runners.task_list.status": "Κατάσταση",
   "actions.runners.task_list.repository": "Αποθετήριο",
   "actions.runners.task_list.commit": "Υποβολή",

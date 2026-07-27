@@ -2193,7 +2193,6 @@
   "actions.runners.owner_type": "نوع",
   "actions.runners.description": "شرح",
   "actions.runners.labels": "برچسب‌ها",
-  "actions.runners.task_list.run": "اجرا",
   "actions.runners.task_list.repository": "مخزن",
   "actions.runners.task_list.commit": "کامیت",
   "actions.runners.status.active": "فعال",
