@@ -455,6 +455,11 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			continue
 		}
 
+		// A slot-starved job cannot start, skip the following checks.
+		if !slots.available(actionRunJob) {
+			continue
+		}
+
 		// update concurrency and check whether the job can run now
 		err := updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
 		if err != nil {

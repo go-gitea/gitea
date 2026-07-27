@@ -248,7 +248,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 
 		// If a job needs other jobs ("needs" is not empty), its status is set to StatusBlocked at the entry of the loop
 		// No need to check job concurrency for a blocked job (it will be checked by job emitter later)
-		if runJob.Status == actions_model.StatusWaiting {
+		// A slot-starved job skips the check too: it will not start, so it must not cancel its group peers.
+		if runJob.Status == actions_model.StatusWaiting && slots.available(runJob) {
 			var jobsToCancel []*actions_model.ActionRunJob
 			runJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, runJob)
 			if err != nil {

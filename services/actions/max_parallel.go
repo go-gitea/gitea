@@ -51,16 +51,20 @@ func (s maxParallelSlots) hold(job *actions_model.ActionRunJob, status actions_m
 	}
 }
 
+// available reports whether a slot is free without reserving it.
+// Peek it before running the concurrency check: DO NOT cancel the group's other pending jobs if no available slots.
+func (s maxParallelSlots) available(job *actions_model.ActionRunJob) bool {
+	return job.MaxParallel <= 0 || s[maxParallelKey{job.ParentJobID, job.JobID}] < job.MaxParallel
+}
+
 // take reserves a slot and reports whether one was free. A job without a limit always succeeds.
 func (s maxParallelSlots) take(job *actions_model.ActionRunJob) bool {
-	if job.MaxParallel <= 0 {
-		return true
-	}
-	key := maxParallelKey{job.ParentJobID, job.JobID}
-	if s[key] >= job.MaxParallel {
+	if !s.available(job) {
 		return false
 	}
-	s[key]++
+	if job.MaxParallel > 0 {
+		s[maxParallelKey{job.ParentJobID, job.JobID}]++
+	}
 	return true
 }
 

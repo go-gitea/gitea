@@ -53,6 +53,10 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				// Only a job this approval unblocks competes for a slot, one that is already
 				// active was counted by the seeding loop above and must not take a second.
 				isUnblocking := job.Status == actions_model.StatusBlocked
+				// A slot-starved job cannot start, skip the following checks.
+				if isUnblocking && !slots.available(job) {
+					continue
+				}
 				var jobsToCancel []*actions_model.ActionRunJob
 				job.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, job)
 				if err != nil {

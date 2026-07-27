@@ -277,7 +277,8 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 					newJob.CallPayload = ""
 				}
 
-				if newJob.RawConcurrency != "" && !shouldBlockJob {
+				// A slot-starved job must not cancel its group peers.
+				if newJob.RawConcurrency != "" && !shouldBlockJob && slots.available(newJob) {
 					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}

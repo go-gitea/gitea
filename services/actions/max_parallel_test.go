@@ -51,7 +51,7 @@ jobs:
       - run: echo hi
 `
 
-func insertMaxParallelRun(t *testing.T, needApproval bool) *actions_model.ActionRun {
+func insertMaxParallelRun(t *testing.T, workflow string, needApproval bool) *actions_model.ActionRun {
 	t.Helper()
 	run := &actions_model.ActionRun{
 		Title:             "max-parallel",
@@ -68,7 +68,7 @@ func insertMaxParallelRun(t *testing.T, needApproval bool) *actions_model.Action
 		WorkflowRepoID:    4,
 		WorkflowCommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
 	}
-	require.NoError(t, PrepareRunAndInsert(t.Context(), []byte(maxParallelWorkflow), run, nil))
+	require.NoError(t, PrepareRunAndInsert(t.Context(), []byte(workflow), run, nil))
 	return run
 }
 
@@ -90,7 +90,7 @@ func statusCounts(jobs actions_model.ActionJobList) map[actions_model.Status]int
 func TestPrepareRunAndInsert_MaxParallel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	run := insertMaxParallelRun(t, false)
+	run := insertMaxParallelRun(t, maxParallelWorkflow, false)
 	jobs := runJobs(t, run.ID, run.LatestAttemptID)
 	assert.Equal(t, map[actions_model.Status]int{
 		actions_model.StatusWaiting: 2,
@@ -150,7 +150,7 @@ jobs:
 func TestApproveRuns_MaxParallel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	run := insertMaxParallelRun(t, true)
+	run := insertMaxParallelRun(t, maxParallelWorkflow, true)
 	assert.Equal(t, map[actions_model.Status]int{actions_model.StatusBlocked: 5}, statusCounts(runJobs(t, run.ID, run.LatestAttemptID)))
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID})
@@ -161,4 +161,91 @@ func TestApproveRuns_MaxParallel(t *testing.T) {
 		actions_model.StatusWaiting: 2,
 		actions_model.StatusBlocked: 3,
 	}, statusCounts(runJobs(t, run.ID, run.LatestAttemptID)))
+}
+
+func TestPrepareRunAndInsert_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	holder := insertConcurrencyHolder(t, 9702, "cluster-b")
+	run := insertMaxParallelRun(t, maxParallelConcurrencyWorkflow, false)
+
+	assert.Equal(t, map[actions_model.Status]int{
+		actions_model.StatusWaiting: 1,
+		actions_model.StatusBlocked: 1,
+	}, statusCounts(runJobs(t, run.ID, run.LatestAttemptID)))
+
+	holder = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: holder.ID})
+	assert.Equal(t, actions_model.StatusRunning, holder.Status, "the starved job must not cancel the group holder")
+}
+
+func Test_jobStatusResolver_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	holder := insertConcurrencyHolder(t, 9703, "cluster-b")
+	run := insertMaxParallelRun(t, maxParallelConcurrencyWorkflow, false)
+
+	jobs := runJobs(t, run.ID, run.LatestAttemptID)
+	for _, job := range jobs {
+		job.Run = run
+	}
+	assert.Empty(t, newJobStatusResolver(jobs, nil).Resolve(t.Context()), "the starved job must stay blocked")
+
+	holder = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: holder.ID})
+	assert.Equal(t, actions_model.StatusRunning, holder.Status)
+}
+
+func TestApproveRuns_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	holder := insertConcurrencyHolder(t, 9704, "cluster-b")
+	run := insertMaxParallelRun(t, maxParallelConcurrencyWorkflow, true)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: run.RepoID})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	require.NoError(t, ApproveRuns(t.Context(), repo, doer, []int64{run.ID}))
+
+	assert.Equal(t, map[actions_model.Status]int{
+		actions_model.StatusWaiting: 1,
+		actions_model.StatusBlocked: 1,
+	}, statusCounts(runJobs(t, run.ID, run.LatestAttemptID)))
+
+	holder = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: holder.ID})
+	assert.Equal(t, actions_model.StatusRunning, holder.Status)
+}
+
+// a 2-job matrix capped at 1 where each matrix job has its own concurrency group that cancels in progress
+const maxParallelConcurrencyWorkflow = `name: max-parallel-concurrency
+on: push
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        cluster: [a, b]
+    concurrency:
+      group: cluster-${{ matrix.cluster }}
+      cancel-in-progress: true
+    steps:
+      - run: echo hi
+`
+
+// insertConcurrencyHolder inserts a running job occupying the given concurrency group
+func insertConcurrencyHolder(t *testing.T, index int64, group string) *actions_model.ActionRunJob {
+	t.Helper()
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, Index: index, TriggerUserID: 1, TriggerEvent: "push", EventPayload: "{}",
+		Status: actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(ctx, run))
+	attempt := &actions_model.ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, Status: actions_model.StatusRunning}
+	require.NoError(t, db.Insert(ctx, attempt))
+	holder := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, RepoID: run.RepoID, OwnerID: run.OwnerID,
+		JobID: "holder", AttemptJobID: 1, Status: actions_model.StatusRunning,
+		ConcurrencyGroup: group, IsConcurrencyEvaluated: true,
+	}
+	require.NoError(t, db.Insert(ctx, holder))
+	return holder
 }
