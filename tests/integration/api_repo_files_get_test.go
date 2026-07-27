@@ -90,6 +90,24 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref=not-exist", []string{"README.md"}, http.StatusNotFound)
 		assert.Empty(t, ret)
 	})
+	t.Run("User2RefFullBranch", func(t *testing.T) {
+		fullRef := "refs/heads/master"
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref="+url.QueryEscape(fullRef), []string{"README.md"})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())}
+		selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/README.md?ref=" + url.QueryEscape(fullRef)
+		expected[0].URL = &selfURL
+		expected[0].Links.Self = &selfURL
+		assert.Equal(t, expected, ret)
+	})
+	t.Run("User2RefFullTag", func(t *testing.T) {
+		fullRef := "refs/tags/v1.1"
+		ret := requestFiles(t, "/api/v1/repos/user2/repo1/file-contents?ref="+url.QueryEscape(fullRef), []string{"README.md"})
+		expected := []*api.ContentsResponse{getExpectedContentsResponseForContents("v1.1", "tag", lastCommit.ID.String())}
+		selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/README.md?ref=" + url.QueryEscape(fullRef)
+		expected[0].URL = &selfURL
+		expected[0].Links.Self = &selfURL
+		assert.Equal(t, expected, ret)
+	})
 
 	t.Run("PermissionCheck", func(t *testing.T) {
 		filesOptions := &api.GetFilesOptions{Files: []string{"README.md"}}

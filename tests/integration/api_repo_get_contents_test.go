@@ -154,6 +154,36 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	MakeRequest(t, req, http.StatusNotFound)
 
+	// Fully-qualified branch ref (GitHub-compatible): refs/heads/<branch>
+	fullBranchRef := "refs/heads/" + repo1.DefaultBranch
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, url.QueryEscape(fullBranchRef))
+	resp = MakeRequest(t, req, http.StatusOK)
+	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
+	lastCommit, _ = gitRepo.GetCommitByPath(t.Context(), "README.md")
+	// HTML/download URLs use short branch name; self URL preserves the input ref (query-escaped)
+	expectedFullBranch := getExpectedContentsResponseForContents(repo1.DefaultBranch, "branch", lastCommit.ID.String())
+	selfFullBranch := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + url.QueryEscape(fullBranchRef)
+	expectedFullBranch.URL = &selfFullBranch
+	expectedFullBranch.Links.Self = &selfFullBranch
+	assert.Equal(t, *expectedFullBranch, *contentsResponse)
+
+	// Fully-qualified tag ref: refs/tags/<tag>
+	fullTagRef := "refs/tags/" + newTag
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, url.QueryEscape(fullTagRef))
+	resp = MakeRequest(t, req, http.StatusOK)
+	contentsResponse = DecodeJSON(t, resp, &api.ContentsResponse{})
+	tagCommit, _ = gitRepo.GetTagCommit(t.Context(), newTag)
+	lastCommit, _ = tagCommit.GetCommitByPath(t.Context(), gitRepo, "README.md")
+	expectedFullTag := getExpectedContentsResponseForContents(newTag, "tag", lastCommit.ID.String())
+	selfFullTag := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + url.QueryEscape(fullTagRef)
+	expectedFullTag.URL = &selfFullTag
+	expectedFullTag.Links.Self = &selfFullTag
+	assert.Equal(t, *expectedFullTag, *contentsResponse)
+
+	// Non-existent fully-qualified ref
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, url.QueryEscape("refs/heads/does-not-exist"))
+	MakeRequest(t, req, http.StatusNotFound)
+
 	// Test accessing private ref with user token that does not have access - should fail
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s", user2.Name, repo16.Name, treePath).
 		AddTokenAuth(token4)
