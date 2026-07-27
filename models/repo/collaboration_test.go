@@ -73,7 +73,9 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin))
+	changed, err := repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin)
+	assert.NoError(t, err)
+	assert.True(t, changed)
 
 	collaboration := unittest.AssertExistsAndLoadBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
 	assert.Equal(t, perm.AccessModeAdmin, collaboration.Mode)
@@ -81,12 +83,20 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: repo.ID})
 	assert.Equal(t, perm.AccessModeAdmin, access.Mode)
 
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin))
+	// Same mode as before, nothing changes.
+	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin)
+	assert.NoError(t, err)
+	assert.False(t, changed)
 
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, unittest.NonexistentID, perm.AccessModeAdmin))
+	// Not a collaborator.
+	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, unittest.NonexistentID, perm.AccessModeAdmin)
+	assert.NoError(t, err)
+	assert.False(t, changed)
 
 	// Discard invalid input.
-	assert.NoError(t, repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessMode(-1)))
+	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessMode(-1))
+	assert.NoError(t, err)
+	assert.False(t, changed)
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
 }

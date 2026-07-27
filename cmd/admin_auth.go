@@ -12,6 +12,8 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 
 	"github.com/urfave/cli/v3"
@@ -105,5 +107,5 @@ func runDeleteAuth(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	return auth_service.DeleteSource(ctx, source)
+	return auth_service.DeleteSource(audit.WithDoer(ctx, user_model.NewCLIUser()), source)
 }

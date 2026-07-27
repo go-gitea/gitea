@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/password"
@@ -16,6 +17,7 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
@@ -85,6 +87,8 @@ func ForgotPasswdPost(ctx *context.Context) {
 	}
 
 	mailer.SendResetPasswordMail(u)
+
+	audit.RecordAs(ctx, user_model.NewGhostUser(), audit_model.UserPasswordResetRequest, u)
 
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)

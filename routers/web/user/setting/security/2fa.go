@@ -12,12 +12,14 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 
@@ -57,6 +59,8 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.UserTwoFactorRegenerate, ctx.Doer, "two_factor_id", t.ID)
+
 	ctx.Flash.Success(ctx.Tr("settings.twofa_scratch_token_regenerated", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 }
@@ -92,6 +96,8 @@ func DisableTwoFactor(ctx *context.Context) {
 		}
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserTwoFactorDisable, ctx.Doer, "two_factor_id", t.ID)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -274,6 +280,8 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", newTwoFactorErr)
 		return
 	}
+
+	audit.Record(ctx, audit_model.UserTwoFactorEnable, ctx.Doer)
 
 	ctx.Flash.Success(ctx.Tr("settings.twofa_enrolled", token))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")

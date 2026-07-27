@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
@@ -15,6 +16,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mailer"
 	repo_service "gitea.dev/services/repository"
@@ -118,12 +120,27 @@ func CollaborationPost(ctx *context.Context) {
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
-	if err := repo_model.ChangeCollaborationAccessMode(
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+	if err != nil {
+		log.Error("GetUserByID: %v", err)
+		return
+	}
+
+	accessMode := perm.AccessMode(ctx.FormInt("mode"))
+
+	changed, err := repo_model.ChangeCollaborationAccessMode(
 		ctx,
 		ctx.Repo.Repository,
-		ctx.FormInt64("uid"),
-		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
+		u.ID,
+		accessMode)
+	if err != nil {
 		log.Error("ChangeCollaborationAccessMode: %v", err)
+		return
+	}
+
+	if changed {
+		audit.Record(ctx, audit_model.RepositoryCollaboratorAccess, ctx.Repo.Repository,
+			"collaborator", u.Name, "access_mode", accessMode.ToString())
 	}
 }
 
