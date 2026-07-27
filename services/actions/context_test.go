@@ -12,8 +12,10 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
+	webhook_module "gitea.dev/modules/webhook"
 
 	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
@@ -319,6 +321,38 @@ func TestFindTaskNeeds(t *testing.T) {
 	assert.Len(t, ret["job1"].Outputs, 2)
 	assert.Equal(t, "abc", ret["job1"].Outputs["output_a"])
 	assert.Equal(t, "bbb", ret["job1"].Outputs["output_b"])
+}
+
+func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
+	payload := api.PullRequestPayload{
+		PullRequest: &api.PullRequest{
+			Base: &api.PRBranchInfo{
+				Name: "owner:main",
+				Ref:  "main",
+				Sha:  "1234567890abcdef",
+			},
+			Head: &api.PRBranchInfo{
+				Name: "fork:feature",
+				Ref:  "feature",
+				Sha:  "fedcba0987654321",
+			},
+		},
+	}
+	payloadBytes, err := json.Marshal(payload)
+	assert.NoError(t, err)
+
+	run := &actions_model.ActionRun{
+		Event:        webhook_module.HookEventPullRequest,
+		TriggerEvent: string(actions_module.GithubEventPullRequestTarget),
+		EventPayload: string(payloadBytes),
+		TriggerUser:  &user_model.User{Name: "test-user"},
+		Repo:         &repo_model.Repository{Name: "test-repo", OwnerName: "test-owner"},
+	}
+
+	giteaCtx := GenerateGiteaContext(t.Context(), run, nil, nil)
+
+	assert.Equal(t, "refs/heads/main", giteaCtx["ref"])
+	assert.Equal(t, "main", giteaCtx["ref_name"])
 }
 
 // TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,

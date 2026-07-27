@@ -60,6 +60,12 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
+// taskReportTimeout is how long a task may go without contact from its runner before the
+// runner is assumed gone. Runners report state and stream logs every few seconds, both of
+// which refresh ActionTask.Updated. Shorter than setting.Actions.ZombieTaskTimeout because
+// it only decides whether the runner is reachable, not whether the task should be killed.
+const taskReportTimeout = time.Minute
+
 var successfulTokenTaskCache *lru.Cache[string, any]
 
 func init() {
@@ -567,6 +573,10 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			status = StatusCancelled
 		} else if !runner.HasCancellingSupport {
 			status = StatusCancelled
+		} else if task.Updated.AddDuration(taskReportTimeout) < now {
+			// A runner that stopped reporting will never acknowledge the cancellation either,
+			// so skip the handshake instead of waiting for the zombie task cleanup.
+			status = StatusCancelled
 		}
 	}
 
@@ -581,7 +591,10 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			return err
 		}
 
-		return UpdateTask(ctx, task, "status")
+		// NoAutoTime keeps "updated" at the runner's last contact: re-cancelling an already
+		// cancelling task must not defer the timeout above or the zombie task cleanup.
+		_, err := e.ID(task.ID).Cols("status").NoAutoTime().Update(task)
+		return err
 	}
 
 	task.Status = status

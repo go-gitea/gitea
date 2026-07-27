@@ -28,6 +28,7 @@ import (
 	"gitea.dev/routers/web/explore"
 	user_setting "gitea.dev/routers/web/user/setting"
 	"gitea.dev/services/audit"
+	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
@@ -462,6 +463,20 @@ func EditUserPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+}
+
+func ImpersonateUser(ctx *context.Context) {
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
+	if err != nil {
+		ctx.JSONError("unable to get user")
+		return
+	}
+	err = auth_service.ImpersonateUser(ctx.Session, u)
+	if err != nil {
+		ctx.ServerError("unable to impersonate user", err)
+		return
+	}
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 
 // DeleteUser response for deleting a user

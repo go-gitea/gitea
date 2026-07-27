@@ -12,6 +12,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/audit"
 
@@ -119,8 +120,9 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 		}
 	}
 
-	if r.CreateSession {
-		if sess != nil && (sess.Get("uid") == nil || sess.Get("uid").(int64) != user.ID) {
+	if r.CreateSession && sess != nil {
+		sessionUID, ok := sess.Get(session.KeyUID).(int64)
+		if !ok || sessionUID != user.ID {
 			handleSignIn(w, req, sess, user)
 		}
 	}
