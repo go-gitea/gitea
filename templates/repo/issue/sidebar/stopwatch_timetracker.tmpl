@@ -52,9 +52,18 @@
 			<div class="ui mini modal" id="issue-time-manually-add-modal">
 				<div class="header">{{ctx.Locale.Tr "repo.issues.add_time_manually"}}</div>
 				<form method="post" class="ui form form-fetch-action" action="{{.Issue.Link}}/times/add">
-					<div class="content flex-text-block">
-						<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">:
-						<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes">
+					<div class="content">
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.issues.add_time_duration"}}</label>
+							<div class="flex-text-block">
+								<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">:
+								<input placeholder='{{ctx.Locale.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes">
+							</div>
+						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.issues.add_time_spent_on"}}</label>
+							<input type="date" name="spent_on">
+						</div>
 					</div>
 					<div class="actions">
 						<button class="ui cancel button">{{ctx.Locale.Tr "cancel"}}</button>
