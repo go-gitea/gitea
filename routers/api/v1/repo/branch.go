@@ -14,7 +14,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/optional"
 	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
@@ -68,7 +67,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	c, err := ctx.Repo.GitRepo.GetBranchCommit(branchName)
+	c, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, branchName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -219,14 +218,14 @@ func CreateBranch(ctx *context.APIContext) {
 	var err error
 
 	if len(opt.OldRefName) > 0 {
-		oldCommit, err = ctx.Repo.GitRepo.GetCommit(opt.OldRefName)
+		oldCommit, err = ctx.Repo.GitRepo.GetCommit(ctx, opt.OldRefName)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
 	} else if len(opt.OldBranchName) > 0 { //nolint:staticcheck // deprecated field
 		if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, opt.OldBranchName); exist { //nolint:staticcheck // deprecated field
-			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint:staticcheck // deprecated field
+			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, opt.OldBranchName) //nolint:staticcheck // deprecated field
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
@@ -236,14 +235,14 @@ func CreateBranch(ctx *context.APIContext) {
 			return
 		}
 	} else {
-		oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
 	}
 
-	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
+	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			ctx.APIError(http.StatusNotFound, "The old branch does not exist")
@@ -259,7 +258,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(opt.BranchName)
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, opt.BranchName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -360,7 +359,7 @@ func ListBranches(ctx *context.APIContext) {
 
 		apiBranches = make([]*api.Branch, 0, len(branches))
 		for i := range branches {
-			c, err := ctx.Repo.GitRepo.GetBranchCommit(branches[i].Name)
+			c, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, branches[i].Name)
 			if err != nil {
 				// Skip if this branch doesn't exist anymore.
 				if git.IsErrNotExist(err) {
@@ -1169,7 +1168,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		if !isPlainRule {
 			if ctx.Repo.GitRepo == nil {
-				ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+				ctx.Repo.GitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 				if err != nil {
 					ctx.APIErrorInternal(err)
 					return
@@ -1335,6 +1334,9 @@ func MergeUpstream(ctx *context.APIContext) {
 			return
 		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err.Error())
+			return
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.APIError(http.StatusForbidden, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)

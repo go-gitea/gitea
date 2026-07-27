@@ -3,10 +3,6 @@ dedupePeerDependents: false
 updateNotifier: false
 minimumReleaseAge: 0
 
-peerDependencyRules:
-  allowedVersions:
-    eslint-plugin-github>eslint: '>=9'
-
 allowBuilds:
   '@scarf/scarf': false
   core-js: false

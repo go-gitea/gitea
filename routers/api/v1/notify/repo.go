@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/structs"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+	"gitea.dev/services/notifications"
 )
 
 func statusStringToNotificationStatus(status string) activities_model.NotificationStatus {
@@ -212,22 +213,15 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		targetStatus = activities_model.NotificationStatusRead
 	}
 
-	changed := make([]*structs.NotificationThread, 0, len(nl))
-
-	if err := activities_model.NotificationList(nl).LoadAttributes(ctx); err != nil {
+	updated, err := notifications.SetManyNotificationStatuses(ctx, nl, ctx.Doer, targetStatus)
+	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-
-	for _, n := range nl {
-		notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		n.Status = notif.Status
-		n.UpdatedUnix = notif.UpdatedUnix
-		changed = append(changed, convert.ToNotificationThread(ctx, n))
+	_ = activities_model.NotificationList(updated).LoadAttributes(ctx)
+	changed := make([]*structs.NotificationThread, 0, len(updated))
+	for _, notif := range updated {
+		changed = append(changed, convert.ToNotificationThread(ctx, notif))
 	}
 	ctx.JSON(http.StatusResetContent, changed)
 }

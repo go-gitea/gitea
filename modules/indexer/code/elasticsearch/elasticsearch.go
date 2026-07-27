@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/indexer"
 	"gitea.dev/modules/indexer/code/internal"
 	es "gitea.dev/modules/indexer/internal/elasticsearch"
@@ -134,7 +133,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha))
+		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +182,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) es.Bul
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	ops := make([]es.BulkOp, 0)
 	if len(changes.Updates) > 0 {
-		batch, err := gitrepo.NewBatch(ctx, repo)
+		batch, err := git.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}

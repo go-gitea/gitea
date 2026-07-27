@@ -42,7 +42,7 @@ jobs:
         ports:
           - "9000:9000"
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - uses: ./.github/actions/go-setup
       - uses: ./.github/actions/pgsql-shard
         with:
@@ -78,7 +78,7 @@ jobs:
         ports:
           - "9000:9000"
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - uses: ./.github/actions/go-setup
       - uses: ./.github/actions/pgsql-shard
         with:
@@ -90,7 +90,7 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - uses: ./.github/actions/go-setup
       - run: make deps-backend
       - run: make backend
@@ -131,7 +131,7 @@ jobs:
         ports:
           - "7700:7700"
       redis:
-        image: redis:latest@sha256:e74c9b933d78e2829583d88f92793f4524752a15ac59c8baff2dd5ed000b7432
+        image: redis:latest@sha256:5d2c689b4b55fc3fab4b0cc8aaa950f85b508c76c1e0f35a90d8f411d55a8b2b
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -147,11 +147,11 @@ jobs:
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:7aee5546ecffb850634c5f67ed87f59dba02a0eb24b7c7e01f5bd9148bd5edd9
         ports:
           - 10000:10000
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
@@ -208,7 +208,7 @@ jobs:
           - "587:587"
           - "993:993"
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
@@ -237,11 +237,11 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:7aee5546ecffb850634c5f67ed87f59dba02a0eb24b7c7e01f5bd9148bd5edd9
         ports:
           - 10000:10000
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'

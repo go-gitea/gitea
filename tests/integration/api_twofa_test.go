@@ -51,6 +51,12 @@ func TestAPITwoFactor(t *testing.T) {
 		AddBasicAuth(user.Name)
 	req.Header.Set("X-Gitea-OTP", passcode)
 	MakeRequest(t, req, http.StatusOK)
+
+	// the same passcode must not be replayable on the basic-auth surface (RFC 6238 single-use)
+	req = NewRequest(t, "GET", "/api/v1/user").
+		AddBasicAuth(user.Name)
+	req.Header.Set("X-Gitea-OTP", passcode)
+	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestBasicAuthWithWebAuthn(t *testing.T) {

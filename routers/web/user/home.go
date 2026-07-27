@@ -242,13 +242,13 @@ func Milestones(ctx *context.Context) {
 	}
 	sort.Sort(showRepos)
 
+	repoByID := make(map[int64]*repo_model.Repository, len(showRepos))
+	for _, repo := range showRepos {
+		repoByID[repo.ID] = repo
+	}
+
 	for i := 0; i < len(milestones); {
-		for _, repo := range showRepos {
-			if milestones[i].RepoID == repo.ID {
-				milestones[i].Repo = repo
-				break
-			}
-		}
+		milestones[i].Repo = repoByID[milestones[i].RepoID]
 		if milestones[i].Repo == nil {
 			log.Warn("Cannot find milestone %d 's repository %d", milestones[i].ID, milestones[i].RepoID)
 			milestones = append(milestones[:i], milestones[i+1:]...)

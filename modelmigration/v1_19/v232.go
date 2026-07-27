@@ -1,0 +1,24 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package v1_19
+
+import (
+	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/setting"
+)
+
+func AlterPackageVersionMetadataToLongText(x base.EngineMigration) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if setting.Database.Type.IsMySQL() {
+		if _, err := sess.Exec("ALTER TABLE `package_version` MODIFY COLUMN `metadata_json` LONGTEXT"); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
+}

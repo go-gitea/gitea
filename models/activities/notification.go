@@ -15,7 +15,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/timeutil"
@@ -342,13 +341,13 @@ func (n *Notification) loadCommit(ctx context.Context) (err error) {
 		}
 	}
 
-	repo, err := gitrepo.OpenRepository(ctx, n.Repository)
+	repo, err := git.OpenRepository(n.Repository)
 	if err != nil {
 		return fmt.Errorf("OpenRepository [%d]: %w", n.Repository.ID, err)
 	}
 	defer repo.Close()
 
-	n.Commit, err = repo.GetCommit(n.CommitID)
+	n.Commit, err = repo.GetCommit(ctx, n.CommitID)
 	if err != nil {
 		return fmt.Errorf("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
 	}
@@ -464,32 +463,35 @@ func GetUIDsAndNotificationCounts(ctx context.Context, since, until timeutil.Tim
 	return res, db.GetEngine(ctx).SQL(sql, NotificationStatusUnread, since, until).Find(&res)
 }
 
-// SetIssueReadBy sets issue to be read by given user.
-func SetIssueReadBy(ctx context.Context, issueID, userID int64) error {
+// SetIssueReadBy sets issue to be read by given user. The bool result is true
+// when the unread count actually decreased, so callers can skip a push on no-op.
+func SetIssueReadBy(ctx context.Context, issueID, userID int64) (bool, error) {
 	if err := issues_model.UpdateIssueUserByRead(ctx, userID, issueID); err != nil {
-		return err
+		return false, err
 	}
 
 	return setIssueNotificationStatusReadIfUnread(ctx, userID, issueID)
 }
 
-func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID int64) error {
+func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID int64) (bool, error) {
 	notification, err := GetIssueNotification(ctx, userID, issueID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
-			return nil
+			return false, nil
 		}
-		return err
+		return false, err
 	}
 
 	if notification.Status != NotificationStatusUnread {
-		return nil
+		return false, nil
 	}
 
 	notification.Status = NotificationStatusRead
 
-	_, err = db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification)
-	return err
+	if _, err := db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // SetRepoReadBy sets repo to be visited by given user.
@@ -558,12 +560,13 @@ func GetNotificationByID(ctx context.Context, notificationID int64) (*Notificati
 	return notification, nil
 }
 
-// UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus
-func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, currentStatus, desiredStatus NotificationStatus) error {
+// UpdateNotificationStatuses updates the statuses of all of a user's notifications
+// that are of the currentStatus type to the desiredStatus. Returns the number of
+// rows actually changed so callers can skip downstream work on a no-op.
+func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, currentStatus, desiredStatus NotificationStatus) (int64, error) {
 	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
-	_, err := db.GetEngine(ctx).
+	return db.GetEngine(ctx).
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).
 		Cols("status", "updated_by", "updated_unix").
 		Update(n)
-	return err
 }

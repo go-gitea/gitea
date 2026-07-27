@@ -203,9 +203,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
         },
       }),
       cm.language.foldGutter({
-        markerDOM(open: boolean) {
-          return createElementFromHTML(svg(open ? 'octicon-chevron-down' : 'octicon-chevron-right', 13));
-        },
+        markerDOM: (open: boolean) => createElementFromHTML(svg(open ? 'octicon-chevron-down' : 'octicon-chevron-right', 13)),
       }),
       cm.view.highlightActiveLineGutter(),
       cm.view.highlightSpecialChars(),

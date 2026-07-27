@@ -14,7 +14,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 
@@ -88,18 +87,23 @@ func (opts *FindNotificationOptions) FilterByRelease(releaseID int64) {
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
-func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		return createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID)
+// Returns the set of user IDs whose notification rows were created or updated.
+func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
+	var notifiedIDs []int64
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		var innerErr error
+		notifiedIDs, innerErr = createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID)
+		return innerErr
 	})
+	return notifiedIDs, err
 }
 
-func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
+func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
 	// init
 	var toNotify container.Set[int64]
 	issue, err := issues_model.GetIssueByID(ctx, issueID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if receiverID > 0 {
@@ -109,19 +113,19 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		toNotify = make(container.Set[int64], 32)
 		issueWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, true)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		toNotify.AddMultiple(issueWatches...)
 		if !(issue.IsPull && issues_model.HasWorkInProgressPrefix(issue.Title)) {
 			repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			toNotify.AddMultiple(repoWatches...)
 		}
 		issueParticipants, err := issue.GetParticipantIDsByIssue(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		toNotify.AddMultiple(issueParticipants...)
 
@@ -130,22 +134,22 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		// explicit unwatch on issue
 		issueUnWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, false)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for _, id := range issueUnWatches {
 			toNotify.Remove(id)
 		}
 	}
 
-	err = issue.LoadRepo(ctx)
-	if err != nil {
-		return err
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, err
 	}
 
 	uniqueKey := uniqueKeyForIssueNotification(issue.ID, issue.IsPull)
 	requiredUnit := util.Iif(issue.IsPull, unit.TypePullRequests, unit.TypeIssues)
 
 	// notify
+	notifiedIDs := make([]int64, 0, len(toNotify))
 	for userID := range toNotify {
 		issue.Repo.Units = nil
 		user, err := user_model.GetUserByID(ctx, userID)
@@ -154,7 +158,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 				continue
 			}
 
-			return err
+			return nil, err
 		}
 		if !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, requiredUnit) {
 			continue
@@ -162,19 +166,21 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 		existing, err := getIssueNotificationByUniqueKey(ctx, userID, uniqueKey, issue.ID)
 		if err != nil && !db.IsErrNotExist(err) {
-			return err
+			return nil, err
 		}
 		if existing != nil {
 			if err = updateIssueNotification(ctx, existing, commentID, notificationAuthorID); err != nil {
-				return err
+				return nil, err
 			}
+			notifiedIDs = append(notifiedIDs, userID)
 			continue
 		}
 		if err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID); err != nil {
-			return err
+			return nil, err
 		}
+		notifiedIDs = append(notifiedIDs, userID)
 	}
-	return nil
+	return notifiedIDs, nil
 }
 
 // NotificationList contains a list of notifications
@@ -537,7 +543,7 @@ func (nl NotificationList) LoadCommits(ctx context.Context) ([]int, error) {
 
 		repo, ok := repos[n.RepoID]
 		if !ok {
-			repo, err = gitrepo.OpenRepository(ctx, n.Repository)
+			repo, err = git.OpenRepository(n.Repository)
 			if err != nil {
 				log.Error("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
 				failures = append(failures, i)
@@ -545,7 +551,7 @@ func (nl NotificationList) LoadCommits(ctx context.Context) ([]int, error) {
 			}
 			repos[n.RepoID] = repo
 		}
-		n.Commit, err = repo.GetCommit(n.CommitID)
+		n.Commit, err = repo.GetCommit(ctx, n.CommitID)
 		if err != nil {
 			log.Error("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
 			failures = append(failures, i)

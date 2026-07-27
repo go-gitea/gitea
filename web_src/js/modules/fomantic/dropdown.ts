@@ -253,22 +253,22 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   dropdown.addEventListener('mousedown', () => {
     ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
     ignoreClickPreEvents++;
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('focus', () => {
     ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
     ignoreClickPreEvents++;
     deferredRefreshAriaActiveItem();
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('blur', () => {
     ignoreClickPreVisible = ignoreClickPreEvents = 0;
     deferredRefreshAriaActiveItem(100);
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('mouseup', () => {
     setTimeout(() => {
       ignoreClickPreVisible = ignoreClickPreEvents = 0;
       deferredRefreshAriaActiveItem(100);
     }, 0);
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('click', (e: MouseEvent) => {
     if (isMenuVisible() &&
       ignoreClickPreVisible !== 2 && // dropdown is switch from invisible to visible
@@ -277,7 +277,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
       e.stopPropagation(); // if the dropdown menu has been opened by focus, do not trigger the next click event again
     }
     ignoreClickPreEvents = ignoreClickPreVisible = 0;
-  }, true);
+  }, {capture: true});
 }
 
 // Although Fomantic Dropdown supports "hideDividers", it doesn't really work with our "scoped dividers"

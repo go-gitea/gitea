@@ -40,7 +40,7 @@
 							</div>
 						</div>
 						<div class="item-trailing">
-								<button class="ui red tiny button delete-button" data-modal-id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+								<button class="ui red tiny button link-action" data-modal-confirm="#delete-token" data-url="{{$.Link}}/delete?id={{.ID}}">
 									{{svg "octicon-trash"}}
 									{{ctx.Locale.Tr "settings.delete_token"}}
 								</button>
@@ -92,7 +92,7 @@
 		{{end}}
 	</div>
 
-<div class="ui g-modal-confirm delete modal" id="delete-token">
+<div class="ui small modal" id="delete-token">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "settings.access_token_deletion"}}

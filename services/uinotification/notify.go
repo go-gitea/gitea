@@ -79,8 +79,13 @@ func handler(items ...notificationOpts) []notificationOpts {
 			}
 		case activities_model.NotificationSourceIssue, activities_model.NotificationSourcePullRequest, 0:
 			// Source==0 covers queue items persisted before this field existed, kept for rolling-upgrade safety.
-			if err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
+			notifiedIDs, err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
+			if err != nil {
 				log.Error("Was unable to create issue notification: %v", err)
+				continue
+			}
+			for _, userID := range notifiedIDs {
+				notify_service.NotificationCountChange(ctx, userID)
 			}
 		default:
 			setting.PanicInDevOrTesting("Unknown notification source: %v", opts.Source)

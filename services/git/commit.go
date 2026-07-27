@@ -7,7 +7,6 @@ import (
 	"context"
 
 	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	"gitea.dev/models/gituser"
 	repo_model "gitea.dev/models/repo"
@@ -72,20 +71,27 @@ func ConvertFromGitCommit(ctx context.Context, commits []*git.Commit, repo *repo
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
 func ParseCommitsWithStatus(ctx context.Context, oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) ([]*git_model.SignCommitWithStatuses, error) {
-	newCommits := make([]*git_model.SignCommitWithStatuses, 0, len(oldCommits))
+	if len(oldCommits) == 0 {
+		return nil, nil
+	}
 
+	commitIDs := make([]string, 0, len(oldCommits))
 	for _, c := range oldCommits {
-		commit := &git_model.SignCommitWithStatuses{
-			SignCommit: c,
-		}
-		statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commit.GitCommit.ID.String(), db.ListOptionsAll)
-		if err != nil {
-			return nil, err
-		}
+		commitIDs = append(commitIDs, c.GitCommit.ID.String())
+	}
+	statusMap, err := git_model.GetLatestCommitStatusForRepoCommitIDs(ctx, repo.ID, commitIDs)
+	if err != nil {
+		return nil, err
+	}
 
-		commit.Statuses = statuses
-		commit.Status = git_model.CalcCommitStatus(statuses)
-		newCommits = append(newCommits, commit)
+	newCommits := make([]*git_model.SignCommitWithStatuses, 0, len(oldCommits))
+	for _, c := range oldCommits {
+		statuses := statusMap[c.GitCommit.ID.String()]
+		newCommits = append(newCommits, &git_model.SignCommitWithStatuses{
+			SignCommit: c,
+			Statuses:   statuses,
+			Status:     git_model.CalcCommitStatus(statuses),
+		})
 	}
 	return newCommits, nil
 }

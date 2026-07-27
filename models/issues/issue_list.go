@@ -591,9 +591,12 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 
 func (issues IssueList) LoadIsRead(ctx context.Context, userID int64) error {
 	issueIDs := issues.getIssueIDs()
+	if len(issueIDs) == 0 {
+		return nil
+	}
 	issueUsers := make([]*IssueUser, 0, len(issueIDs))
 	if err := db.GetEngine(ctx).Where("uid =?", userID).
-		In("issue_id").
+		In("issue_id", issueIDs).
 		Find(&issueUsers); err != nil {
 		return err
 	}
