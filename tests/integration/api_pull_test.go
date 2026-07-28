@@ -485,6 +485,70 @@ func TestAPIEditPull(t *testing.T) {
 	})
 }
 
+// TestAPIEditPullByHeadCollaborator ensures head-repo collaborators can edit
+// PR title/body on the base repo (cross-fork), matching GitHub behaviour (#36860).
+func TestAPIEditPullByHeadCollaborator(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// Fixture PR #3: head user13/repo11 -> base user12/repo10, poster user11
+	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	baseOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: baseRepo.OwnerID})
+	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
+	require.Equal(t, headRepo.ID, pr.HeadRepoID)
+	require.Equal(t, baseRepo.ID, pr.BaseRepoID)
+
+	// user4 has no base-repo write access
+	headCollab := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), headRepo, headCollab, perm.AccessModeWrite))
+
+	// Stranger without head write cannot edit
+	session := loginUser(t, headCollab.Name)
+	// temporarily remove write and verify deny — actually user4 now has write. Use a different user.
+	stranger := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	strangerSession := loginUser(t, stranger.Name)
+	strangerToken := getTokenForLoggedInUser(t, strangerSession, auth_model.AccessTokenScopeWriteRepository)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", baseOwner.Name, baseRepo.Name, pr.Index)
+	req := NewRequestWithJSON(t, http.MethodPatch, urlStr, &api.EditPullRequestOption{
+		Title: "should be forbidden",
+	}).AddTokenAuth(strangerToken)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// Head collaborator can edit title and body
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	newTitle := "edited by head collaborator"
+	newBody := "body edited by head collaborator"
+	req = NewRequestWithJSON(t, http.MethodPatch, urlStr, &api.EditPullRequestOption{
+		Title: newTitle,
+		Body:  &newBody,
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusCreated)
+	apiPull := DecodeJSON(t, resp, &api.PullRequest{})
+	assert.Equal(t, newTitle, apiPull.Title)
+	assert.Equal(t, newBody, apiPull.Body)
+
+	// Head collaborator still cannot manage labels (needs base write)
+	req = NewRequestWithJSON(t, http.MethodPatch, urlStr, &api.EditPullRequestOption{
+		Labels: []int64{1},
+	}).AddTokenAuth(token)
+	// Labels are ignored without canWrite — request succeeds but labels unchanged
+	resp = MakeRequest(t, req, http.StatusCreated)
+	apiPull = DecodeJSON(t, resp, &api.PullRequest{})
+	assert.Empty(t, apiPull.Labels)
+
+	// Head owner (user13) can also edit
+	headOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: headRepo.OwnerID})
+	headOwnerSession := loginUser(t, headOwner.Name)
+	headOwnerToken := getTokenForLoggedInUser(t, headOwnerSession, auth_model.AccessTokenScopeWriteRepository)
+	ownerTitle := "edited by head owner"
+	req = NewRequestWithJSON(t, http.MethodPatch, urlStr, &api.EditPullRequestOption{
+		Title: ownerTitle,
+	}).AddTokenAuth(headOwnerToken)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	apiPull = DecodeJSON(t, resp, &api.PullRequest{})
+	assert.Equal(t, ownerTitle, apiPull.Title)
+}
+
 func testAPIPullContentVersion(t *testing.T, pullID int64) {
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pullID})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pull.BaseRepoID})

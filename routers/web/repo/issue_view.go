@@ -402,6 +402,12 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = middleware.RedirectLinkUserLogin(ctx.Req)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
+	canEditIssueMeta, err := issue_service.CanEditIssueOrPullMeta(ctx, ctx.Doer, issue, ctx.Repo.Permission)
+	if err != nil {
+		ctx.ServerError("CanEditIssueOrPullMeta", err)
+		return
+	}
+	ctx.Data["CanEditIssueMeta"] = ctx.IsSigned && canEditIssueMeta
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons

@@ -652,7 +652,13 @@ func EditPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWrite(unit.TypePullRequests) {
+	canWrite := ctx.Repo.Permission.CanWrite(unit.TypePullRequests)
+	canEditMeta, err := issue_service.CanEditIssueOrPullMeta(ctx, ctx.Doer, issue, ctx.Repo.Permission)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !canEditMeta {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -691,7 +697,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// Update or remove deadline if set
-	if form.Deadline != nil || form.RemoveDeadline != nil {
+	if canWrite && (form.Deadline != nil || form.RemoveDeadline != nil) {
 		var deadlineUnix timeutil.TimeStamp
 		if (form.RemoveDeadline == nil || !*form.RemoveDeadline) && !form.Deadline.IsZero() {
 			deadline := time.Date(form.Deadline.Year(), form.Deadline.Month(), form.Deadline.Day(),
@@ -714,7 +720,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.Permission.CanWrite(unit.TypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
+	if canWrite && (form.Assignees != nil || len(form.Assignee) > 0) {
 		err = issue_service.UpdateAssignees(ctx, issue, form.Assignee, form.Assignees, ctx.Doer)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -728,7 +734,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if ctx.Repo.Permission.CanWrite(unit.TypePullRequests) && form.Milestone != 0 &&
+	if canWrite && form.Milestone != 0 &&
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
@@ -743,7 +749,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if ctx.Repo.Permission.CanWrite(unit.TypePullRequests) && form.Labels != nil {
+	if canWrite && form.Labels != nil {
 		labels, err := issues_model.GetLabelsInRepoByIDs(ctx, ctx.Repo.Repository.ID, form.Labels)
 		if err != nil {
 			ctx.APIErrorInternal(err)

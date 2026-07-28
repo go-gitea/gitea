@@ -279,7 +279,12 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.Doer.ID) && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
+	canEdit, err := issue_service.CanEditIssueOrPullMeta(ctx, ctx.Doer, issue, ctx.Repo.Permission)
+	if err != nil {
+		ctx.ServerError("CanEditIssueOrPullMeta", err)
+		return
+	}
+	if !ctx.IsSigned || !canEdit {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
@@ -331,7 +336,12 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)) {
+	canEdit, err := issue_service.CanEditIssueOrPullMeta(ctx, ctx.Doer, issue, ctx.Repo.Permission)
+	if err != nil {
+		ctx.ServerError("CanEditIssueOrPullMeta", err)
+		return
+	}
+	if !ctx.IsSigned || !canEdit {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}

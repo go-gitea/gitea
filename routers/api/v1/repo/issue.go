@@ -778,7 +778,12 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if !issue.IsPoster(ctx.Doer.ID) && !canWrite {
+	canEditMeta, err := issue_service.CanEditIssueOrPullMeta(ctx, ctx.Doer, issue, ctx.Repo.Permission)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !canEditMeta {
 		ctx.Status(http.StatusForbidden)
 		return
 	}

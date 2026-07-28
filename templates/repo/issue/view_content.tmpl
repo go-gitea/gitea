@@ -41,11 +41,11 @@
 							{{if not $.Repository.IsArchived}}
 								{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 							{{end}}
-							{{template "repo/issue/view_content/context_menu" dict "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
+							{{template "repo/issue/view_content/context_menu" dict "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.CanEditIssueMeta}}
 						</div>
 					</div>
 					<div class="ui attached segment comment-body" role="article">
-						<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission $.IsIssuePoster}}data-can-edit="true"{{end}}>
+						<div class="render-content markup" {{if or $.Permission.IsAdmin $.CanEditIssueMeta}}data-can-edit="true"{{end}}>
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent}}
 							{{else}}

@@ -10,7 +10,7 @@
 	data-issue-repo-id="{{$.Repository.ID}}"
 ></div>
 <div class="issue-title-header">
-	{{$canEditIssueTitle := and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
+	{{$canEditIssueTitle := and .CanEditIssueMeta (not .Repository.IsArchived)}}
 	<div class="issue-title" id="issue-title-display">
 		<h1>
 			{{ctx.RenderUtils.RenderIssueTitle .Issue.Title $.Repository}}
