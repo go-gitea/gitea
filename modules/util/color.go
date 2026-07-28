@@ -47,9 +47,9 @@ func linearizeChannel(channel float64) float64 {
 	return math.Pow((srgb+0.055)/1.055, 2.4)
 }
 
-// GetRelativeLuminance returns relative luminance for a SRGB color - https://www.w3.org/TR/WCAG20/#relativeluminancedef
+// getRelativeLuminance returns relative luminance for a SRGB color - https://www.w3.org/TR/WCAG20/#relativeluminancedef
 // Keep this in sync with web_src/js/utils/color.ts
-func GetRelativeLuminance(color string) float64 {
+func getRelativeLuminance(color string) float64 {
 	r, g, b := HexToRBGColor(color)
 	return 0.2126*linearizeChannel(r) + 0.7152*linearizeChannel(g) + 0.0722*linearizeChannel(b)
 }
@@ -62,11 +62,10 @@ func GetPerceivedBrightness(color string) float64 {
 }
 
 func UseLightText(backgroundColor string) bool {
-	return GetRelativeLuminance(backgroundColor) < 0.36 // matches APCA better than WCAG's own 0.179
+	return getRelativeLuminance(backgroundColor) < 0.36 // matches APCA better than WCAG's own 0.179
 }
 
 // ContrastColor returns a black or white foreground color that the highest contrast ratio.
-// CSS `contrast-color` is no replacement, engines implement it with WCAG's worse 0.179 crossover.
 func ContrastColor(backgroundColor string) string {
 	if UseLightText(backgroundColor) {
 		return "#fff"

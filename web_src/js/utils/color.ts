@@ -19,7 +19,6 @@ function useLightText(backgroundColor: AnyColor): boolean {
 }
 
 /** Given a background color, returns a black or white foreground color with the highest contrast ratio. */
-// CSS `contrast-color` is no replacement, engines implement it with WCAG's worse 0.179 crossover.
 export function contrastColor(backgroundColor: AnyColor): string {
   return useLightText(backgroundColor) ? '#fff' : '#000';
 }
