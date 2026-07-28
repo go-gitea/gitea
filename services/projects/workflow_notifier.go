@@ -4,7 +4,9 @@
 package projects
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -109,14 +111,28 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 	if issues_model.IsProjectWorkflowDoer(doer) {
 		return
 	}
-	addedProjects := make(map[int64]*project_model.Project)
+	// Both loops below reach fireIssueWorkflow, whose actions create timeline
+	// comments against issue.Repo, so the repo has to be loaded for either path.
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("IssueChangeProjects: LoadRepo: %v", err)
+		return
+	}
+
+	// Collect into slices sorted by project ID: iterating a map would run the
+	// projects' workflows in a different order on every request, which is
+	// observable whenever two projects' workflows touch the same item.
+	var addedProjects []*project_model.Project
 	for _, newProject := range newProjects {
 		// Use key presence check; column ID 0 is technically valid.
 		if _, ok := oldProjectColumnMap[newProject.ID]; ok {
 			continue
 		}
-		addedProjects[newProject.ID] = newProject
+		addedProjects = append(addedProjects, newProject)
 	}
+	slices.SortFunc(addedProjects, func(a, b *project_model.Project) int {
+		return cmp.Compare(a.ID, b.ID)
+	})
+
 	var removedProjectIDs []int64
 	for projectID := range oldProjectColumnMap {
 		found := false
@@ -130,6 +146,7 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 			removedProjectIDs = append(removedProjectIDs, projectID)
 		}
 	}
+	slices.Sort(removedProjectIDs)
 
 	for _, removedProjectID := range removedProjectIDs {
 		workflows, err := project_model.FindWorkflowsByProjectID(ctx, removedProjectID)
@@ -147,11 +164,6 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 	}
 
 	for _, newProject := range addedProjects {
-		if err := issue.LoadRepo(ctx); err != nil {
-			log.Error("IssueChangeProjects: LoadRepo: %v", err)
-			return
-		}
-
 		workflows, err := project_model.FindWorkflowsByProjectID(ctx, newProject.ID)
 		if err != nil {
 			log.Error("IssueChangeProjects: FindWorkflowsByProjectID: %v", err)
@@ -352,12 +364,35 @@ func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, is
 	executeWorkflowActions(ctx, workflow, issue, projectID)
 }
 
-// matchWorkflowsFilters checks if the issue matches all filters of the workflow
+// matchWorkflowsFilters checks if the issue matches all filters of the workflow.
+//
+// Filters fail closed: anything that cannot be positively evaluated -- a filter type
+// the event does not support, an unparsable or non-positive ID, or a column the
+// caller never supplied -- makes the workflow NOT match. A restrictive filter must
+// never silently degrade into "match everything", because that would run a
+// workflow's actions on items the user deliberately excluded.
 func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model.Issue, sourceColumnID, targetColumnID int64) bool {
+	// A stored filter that the event does not declare cannot be evaluated meaningfully
+	// (e.g. a source_column filter on item_opened, where no column IDs are ever
+	// supplied), so treat its presence as a non-match rather than skipping over it.
+	// The capability matrix is the same source of truth the write paths validate
+	// against, so this only rejects rows written by a different version or by hand.
+	capabilities := project_model.GetWorkflowEventCapabilities()[workflow.WorkflowEvent]
+	allowedFilters := make(map[project_model.WorkflowFilterType]bool, len(capabilities.AvailableFilters))
+	for _, filterType := range capabilities.AvailableFilters {
+		allowedFilters[filterType] = true
+	}
+
 	for _, filter := range workflow.WorkflowFilters {
+		if !allowedFilters[filter.Type] {
+			log.Error("Workflow %d: filter type %q is not supported by event %q, refusing to match", workflow.ID, filter.Type, workflow.WorkflowEvent)
+			return false
+		}
+
 		switch filter.Type {
 		case project_model.WorkflowFilterTypeIssueType:
-			// If filter value is empty, match all types
+			// An empty value is the legitimate "applies to both issues and pull
+			// requests" setting, so matching everything here is intended.
 			if filter.Value == "" {
 				continue
 			}
@@ -376,37 +411,16 @@ func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model
 				return false
 			}
 		case project_model.WorkflowFilterTypeTargetColumn:
-			// If filter value is empty, match all columns
-			if filter.Value == "" {
-				continue
-			}
-			filterColumnID, _ := strconv.ParseInt(filter.Value, 10, 64)
-			if filterColumnID == 0 {
-				log.Error("Invalid column ID: %s", filter.Value)
-				return false
-			}
-			// For column changed event, check against the new column ID
-			if targetColumnID > 0 && targetColumnID != filterColumnID {
+			if !matchColumnFilter(workflow, filter, targetColumnID) {
 				return false
 			}
 		case project_model.WorkflowFilterTypeSourceColumn:
-			// If filter value is empty, match all columns
-			if filter.Value == "" {
-				continue
-			}
-			filterColumnID, _ := strconv.ParseInt(filter.Value, 10, 64)
-			if filterColumnID == 0 {
-				log.Error("Invalid column ID: %s", filter.Value)
-				return false
-			}
-			// For column changed event, check against the new column ID
-			if sourceColumnID > 0 && sourceColumnID != filterColumnID {
+			if !matchColumnFilter(workflow, filter, sourceColumnID) {
 				return false
 			}
 		case project_model.WorkflowFilterTypeLabels:
-			// Check if issue has the specified label
-			labelID, _ := strconv.ParseInt(filter.Value, 10, 64)
-			if labelID == 0 {
+			labelID, err := strconv.ParseInt(filter.Value, 10, 64)
+			if err != nil || labelID <= 0 {
 				log.Error("Invalid label ID: %s", filter.Value)
 				return false
 			}
@@ -422,11 +436,65 @@ func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model
 				return false
 			}
 		default:
+			// Unreachable while the capability matrix and this switch agree, but kept
+			// as the backstop for the next filter type: a type added to the matrix and
+			// forgotten here must not fall through the switch and match everything.
 			log.Error("Unsupported filter type: %s", filter.Type)
 			return false
 		}
 	}
 	return true
+}
+
+// matchColumnFilter compares a stored source/target column filter against the column
+// ID the notifier resolved for this event. Both sides must be a real column ID: the
+// notifier resolves the "default column" sentinel 0 to the project's actual default
+// column before matching (see IssueChangeProjectColumn), so a 0 arriving here means
+// the caller supplied no column at all and the filter cannot be satisfied.
+func matchColumnFilter(workflow *project_model.Workflow, filter project_model.WorkflowFilter, columnID int64) bool {
+	filterColumnID, err := strconv.ParseInt(filter.Value, 10, 64)
+	if err != nil || filterColumnID <= 0 {
+		log.Error("Workflow %d: invalid %s filter value %q", workflow.ID, filter.Type, filter.Value)
+		return false
+	}
+	if columnID <= 0 {
+		log.Error("Workflow %d: event %q supplied no column for the %s filter, refusing to match", workflow.ID, workflow.WorkflowEvent, filter.Type)
+		return false
+	}
+	return columnID == filterColumnID
+}
+
+// resolveWorkflowActionLabel loads the label referenced by an add_labels/remove_labels
+// action and re-checks that it still belongs to the workflow's project. Ownership is
+// validated when the workflow is saved, but a repository transfer (or a label moved
+// between orgs) invalidates that decision afterwards, and GetLabelByID resolves by ID
+// alone with no repo/org scoping -- without this check a workflow would keep applying
+// a label belonging to the previous owner's org. Returns nil if the label must be
+// skipped; the caller logs nothing further.
+func resolveWorkflowActionLabel(ctx context.Context, workflow *project_model.Workflow, actionValue string) *issues_model.Label {
+	labelID, err := strconv.ParseInt(actionValue, 10, 64)
+	if err != nil || labelID <= 0 {
+		log.Error("Invalid label ID: %s", actionValue)
+		return nil
+	}
+	// Without the project we cannot establish ownership, so fail closed rather than
+	// applying an unscoped label.
+	if workflow.Project == nil {
+		log.Error("Workflow %d: project not loaded, refusing to apply label %d", workflow.ID, labelID)
+		return nil
+	}
+	// Same ownership rule the write paths use, so execution can never be more
+	// permissive than what the editor would have accepted.
+	if !CanProjectAddLabel(ctx, workflow.Project, labelID) {
+		log.Error("Workflow %d: label %d no longer belongs to project %d, skipping", workflow.ID, labelID, workflow.Project.ID)
+		return nil
+	}
+	label, err := issues_model.GetLabelByID(ctx, labelID)
+	if err != nil {
+		log.Error("GetLabelByID: %v", err)
+		return nil
+	}
+	return label
 }
 
 func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, projectID int64) {
@@ -460,26 +528,14 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 				continue
 			}
 		case project_model.WorkflowActionTypeAddLabels:
-			labelID, _ := strconv.ParseInt(action.Value, 10, 64)
-			if labelID == 0 {
-				log.Error("Invalid label ID: %s", action.Value)
-				continue
-			}
-			label, err := issues_model.GetLabelByID(ctx, labelID)
-			if err != nil {
-				log.Error("GetLabelByID: %v", err)
+			label := resolveWorkflowActionLabel(ctx, workflow, action.Value)
+			if label == nil {
 				continue
 			}
 			toAddedLabels = append(toAddedLabels, label)
 		case project_model.WorkflowActionTypeRemoveLabels:
-			labelID, _ := strconv.ParseInt(action.Value, 10, 64)
-			if labelID == 0 {
-				log.Error("Invalid label ID: %s", action.Value)
-				continue
-			}
-			label, err := issues_model.GetLabelByID(ctx, labelID)
-			if err != nil {
-				log.Error("GetLabelByID: %v", err)
+			label := resolveWorkflowActionLabel(ctx, workflow, action.Value)
+			if label == nil {
 				continue
 			}
 			toRemovedLabels = append(toRemovedLabels, label)
