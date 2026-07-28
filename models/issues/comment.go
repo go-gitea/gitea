@@ -264,24 +264,20 @@ type projectWorkflowDoer struct {
 }
 
 func (p projectWorkflowDoer) GetDoerUserID() int64 {
-	return -1
+	return user_model.ProjectWorkflowUserID
 }
 
 func NewProjectWorkflowDoer(title string, workflowID int64, workflowEvent project_model.WorkflowEvent) *user_model.User {
-	return &user_model.User{
-		ID: -1,
-		// Name/LowerName/FullName must be set: comments and the activity feed special-case
-		// this doer via CommentMetaData/IsProjectWorkflowDoer, but every other notifier
-		// (webhook, actions, mailer, ...) uses these fields as-is for the sender/actor.
-		Name:      user_model.ProjectWorkflowDoerName,
-		LowerName: user_model.ProjectWorkflowDoerName,
-		FullName:  "Gitea Project Workflow",
-		ExtDoerData: &projectWorkflowDoer{
-			projectTitle:         title,
-			projectWorkflowID:    workflowID,
-			projectWorkflowEvent: workflowEvent,
-		},
+	// NewProjectWorkflowUser gives the doer its own dedicated ID/Name/FullName
+	// (see models/user/user_system.go), so it doesn't collide with GhostUserID
+	// and isn't left half-built for notifiers other than comments/feed.
+	doer := user_model.NewProjectWorkflowUser()
+	doer.ExtDoerData = &projectWorkflowDoer{
+		projectTitle:         title,
+		projectWorkflowID:    workflowID,
+		projectWorkflowEvent: workflowEvent,
 	}
+	return doer
 }
 
 // IsProjectWorkflowDoer reports whether the doer is the virtual project workflow actor.

@@ -33,6 +33,20 @@ func TestSystemUser(t *testing.T) {
 	require.NotNil(t, u)
 	assert.Equal(t, "Gitea Actions", u.FullName)
 
+	// project workflow doer must resolve to its own system user, not fall back to
+	// Ghost (it used to share GhostUserID, making its comments indistinguishable
+	// from a deleted user's)
+	uid, u, err = GetPossibleUserByID(t.Context(), ProjectWorkflowUserID)
+	require.NoError(t, err)
+	assert.Equal(t, ProjectWorkflowUserID, uid)
+	assert.Equal(t, "gitea-project-workflow", u.Name)
+	assert.Equal(t, "gitea-project-workflow", u.LowerName)
+	assert.True(t, u.IsProjectWorkflowUser())
+
+	u = GetSystemUserByName("Gitea-Project-Workflow")
+	require.NotNil(t, u)
+	assert.Equal(t, "Gitea Project Workflow", u.FullName)
+
 	uid, u, err = GetPossibleUserByID(t.Context(), 999999)
 	require.NoError(t, err)
 	assert.Equal(t, int64(-1), uid)

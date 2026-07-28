@@ -64,10 +64,9 @@ func (a *actionNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue
 
 // IssueChangeStatus notifies close or reopen issue to notifiers
 func (a *actionNotifier) IssueChangeStatus(ctx context.Context, doer *user_model.User, commitID string, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
-	// Virtual doers (e.g. project workflow bots) are not real DB users; their
-	// ID (-1) collides with GhostUserID so the feed would show "Ghost". The
-	// actionComment already carries CommentMetaData with the full context, so
-	// a separate feed entry adds no value and would be misleading.
+	// Virtual doers (e.g. project workflow bots) are not real DB users, and the
+	// actionComment already carries CommentMetaData with the full context, so a
+	// separate feed entry adds no value and would be misleading.
 	if issues_model.IsProjectWorkflowDoer(doer) {
 		return
 	}
