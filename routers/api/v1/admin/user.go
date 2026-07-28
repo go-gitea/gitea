@@ -604,14 +604,9 @@ func ConvertUserType(ctx *context.APIContext) {
 		return
 	}
 
-	var targetType user_model.UserType
-	switch web.GetForm(ctx).(*api.ConvertUserTypeOption).UserType {
-	case "bot":
-		targetType = user_model.UserTypeBot
-	case "individual":
-		targetType = user_model.UserTypeIndividual
-	default:
-		ctx.APIError(http.StatusUnprocessableEntity, "user_type must be one of: individual, bot")
+	targetType, err := user_model.ParseUserType(web.GetForm(ctx).(*api.ConvertUserTypeOption).UserType)
+	if err != nil {
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 

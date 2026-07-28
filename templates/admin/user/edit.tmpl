@@ -1,6 +1,7 @@
 {{template "admin/layout_head" (dict "pageClass" "admin edit user")}}
 	{{/* an admin must not convert themselves (they would lose their own session) nor turn a site administrator into a bot */}}
 	{{$canConvertType := and (ne .User.ID .SignedUserID) (or .User.IsTypeBot (and .User.IsIndividual (not .User.IsAdmin)))}}
+	{{$convertTo := Iif .User.IsTypeBot "individual" "bot"}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.edit_account"}}
@@ -215,21 +216,11 @@
 				<div class="item">
 					<div class="item-main">
 						<div class="item-title">{{ctx.Locale.Tr "admin.users.convert_type"}}</div>
-						<div class="item-body">
-							{{if .User.IsTypeBot}}
-								{{ctx.Locale.Tr "admin.users.convert_type.to_individual_desc"}}
-							{{else}}
-								{{ctx.Locale.Tr "admin.users.convert_type.to_bot_desc"}}
-							{{end}}
-						</div>
+						<div class="item-body">{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s_desc" $convertTo)}}</div>
 					</div>
 					<div class="item-trailing">
 						<button class="ui basic red show-modal button" data-modal="#convert-user-type-modal">
-							{{if .User.IsTypeBot}}
-								{{ctx.Locale.Tr "admin.users.convert_type.to_individual"}}
-							{{else}}
-								{{ctx.Locale.Tr "admin.users.convert_type.to_bot"}}
-							{{end}}
+							{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}
 						</button>
 					</div>
 				</div>
@@ -241,22 +232,12 @@
 {{if $canConvertType}}
 <div class="ui small modal" id="convert-user-type-modal">
 	<div class="header">
-		{{if .User.IsTypeBot}}
-			{{ctx.Locale.Tr "admin.users.convert_type.to_individual"}}
-		{{else}}
-			{{ctx.Locale.Tr "admin.users.convert_type.to_bot"}}
-		{{end}}
+		{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}
 	</div>
 	<form class="ui form" method="post" action="./convert_type">
-		<input type="hidden" name="user_type" value="{{if .User.IsTypeBot}}individual{{else}}bot{{end}}">
+		<input type="hidden" name="user_type" value="{{$convertTo}}">
 		<div class="content">
-			<p>
-				{{if .User.IsTypeBot}}
-					{{ctx.Locale.Tr "admin.users.convert_type.to_individual_notice"}}
-				{{else}}
-					{{ctx.Locale.Tr "admin.users.convert_type.to_bot_notice"}}
-				{{end}}
-			</p>
+			<p>{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s_notice" $convertTo)}}</p>
 		</div>
 		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "admin.users.convert_type"))}}
 	</form>

@@ -43,10 +43,9 @@ func microcmdUserCreate() *cli.Command {
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:      "user-type",
-				Usage:     "Set user's type: individual or bot",
-				Value:     "individual",
-				Validator: validateUserType,
+				Name:  "user-type",
+				Usage: "Set user's type: individual or bot",
+				Value: "individual",
 			},
 			&cli.StringFlag{
 				Name:  "password",
@@ -106,7 +105,7 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	// duplicate setting loading should be safe at the moment, but it should be refactored & improved in the future.
 	setting.LoadSettings()
 
-	userType, err := parseUserType(c.String("user-type"))
+	userType, err := user_model.ParseUserType(c.String("user-type"))
 	if err != nil {
 		return err
 	}

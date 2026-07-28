@@ -11,11 +11,11 @@
 					<label>{{ctx.Locale.Tr "admin.users.user_type"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="user_type" name="user_type" value="{{.UserType}}" required>
-						<div class="text">{{ctx.Locale.Tr "admin.users.user_type.individual"}}</div>
+						<div class="text">{{ctx.Locale.Tr "admin.users.individual"}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<div class="item" data-value="individual">{{ctx.Locale.Tr "admin.users.user_type.individual"}}</div>
-							<div class="item" data-value="bot">{{ctx.Locale.Tr "admin.users.user_type.bot"}}</div>
+							<div class="item" data-value="individual">{{ctx.Locale.Tr "admin.users.individual"}}</div>
+							<div class="item" data-value="bot">{{ctx.Locale.Tr "admin.users.bot"}}</div>
 						</div>
 					</div>
 				</div>

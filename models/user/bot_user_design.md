@@ -96,6 +96,7 @@ fate of every credential / auth artifact explicit (the exact question raised on 
 | Access tokens (`access_token`) | **kept** | they are the entire purpose of a bot |
 | OAuth2 applications + grants | **removed** (`DeleteOAuth2RelictsByUserID`) | a token-only account cannot run OAuth2 flows |
 | External login links (OAuth2/LDAP/...) | **removed** (`RemoveAllAccountLinks`) | the account is now local |
+| Notifications | **deleted** | a bot has no inbox and cannot read them |
 | Repositories, org membership, issues, other owned content | **unchanged** | only the account's type/credentials change |
 
 ### Bot → Individual

@@ -137,10 +137,7 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 					Source:    NotificationSourceRepository,
 				})
 			}
-		} else {
-			if newOwner.IsTypeBot() {
-				return nil
-			}
+		} else if !newOwner.IsTypeBot() {
 			notify = []*Notification{{
 				UserID:    newOwner.ID,
 				RepoID:    repo.ID,
@@ -428,10 +425,4 @@ func UpdateNotificationStatuses(ctx context.Context, user *user_model.User, curr
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).
 		Cols("status", "updated_by", "updated_unix").
 		Update(n)
-}
-
-// DeleteNotificationsByUserID deletes all notifications for a user.
-func DeleteNotificationsByUserID(ctx context.Context, userID int64) error {
-	_, err := db.GetEngine(ctx).Where("user_id = ?", userID).Delete(new(Notification))
-	return err
 }
