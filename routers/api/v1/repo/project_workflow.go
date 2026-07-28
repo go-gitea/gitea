@@ -13,6 +13,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/web"
 	api_context "gitea.dev/services/context"
+	"gitea.dev/services/convert"
 	project_service "gitea.dev/services/projects"
 )
 
@@ -377,20 +378,12 @@ func GetProjectWorkflowOptions(ctx *api_context.APIContext) {
 	}
 	options := &api.ProjectWorkflowOptions{
 		Columns: make([]*api.ProjectWorkflowColumnOption, 0, len(columns)),
-		Labels:  make([]*api.Label, 0, len(labels)),
+		// use the shared converter so labels look the same here as on every other label
+		// endpoint (e.g. color without the leading '#'), not a hand-rolled shape
+		Labels: convert.ToLabelList(labels, ctx.Repo.Repository, ctx.Repo.Owner),
 	}
 	for _, column := range columns {
-		options.Columns = append(options.Columns, &api.ProjectWorkflowColumnOption{ID: column.ID, Title: column.Title, Color: column.Color})
-	}
-	for _, label := range labels {
-		options.Labels = append(options.Labels, &api.Label{
-			ID:             label.ID,
-			Name:           label.Name,
-			Color:          label.Color,
-			Description:    label.Description,
-			Exclusive:      label.Exclusive,
-			ExclusiveOrder: label.ExclusiveOrder,
-		})
+		options.Columns = append(options.Columns, &api.ProjectWorkflowColumnOption{ID: column.ID, Title: column.Title})
 	}
 	ctx.JSON(http.StatusOK, options)
 }

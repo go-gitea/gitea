@@ -37,7 +37,6 @@ type ProjectWorkflow struct {
 type ProjectWorkflowColumnOption struct {
 	ID    int64  `json:"id"`
 	Title string `json:"title"`
-	Color string `json:"color"`
 }
 
 // ProjectWorkflowOptions represents the project workflow configuration options.
