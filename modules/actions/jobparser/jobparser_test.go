@@ -4,9 +4,11 @@
 package jobparser
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
+	"gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
@@ -104,6 +106,153 @@ func TestParse(t *testing.T) {
 				_, err := Parse(content)
 				require.Error(t, err)
 			})
+		})
+	}
+}
+
+func TestParseDefersDynamicMatrix(t *testing.T) {
+	// A matrix referencing needs outputs yields one placeholder keeping the raw expression, rather
+	// than one job per resolvable static value. Any other matrix expands at plan time as usual.
+	const workflow = `
+on: push
+jobs:
+  setup:
+    steps: [{run: echo}]
+  build:
+    %s
+    strategy:
+      matrix:
+        os: [a, b]
+        version: %s
+    steps: [{run: echo}]
+`
+	for _, tt := range []struct {
+		name     string
+		needs    string
+		version  string
+		deferred bool
+		want     int
+	}{
+		{"needs outputs", "needs: setup", "${{ fromJson(needs.setup.outputs.v) }}", true, 1},
+		{"static", "needs: setup", "[1, 2]", false, 4},
+		// Without needs there is nothing to resolve the expression from later, so deferring would
+		// strand the job as a single combination that never expands.
+		{"expression without needs", "", `["${{ github.sha }}"]`, false, 2},
+		// A context that is already available while planning must keep expanding there, otherwise
+		// such a workflow would silently lose the per-combination commit statuses it used to create.
+		{"expression over another context", "needs: setup", `["${{ github.sha }}"]`, false, 2},
+		// The needs context is looked up in the parsed expression, not in the raw text.
+		{"needs inside a string literal", "needs: setup", `["${{ format('needs.setup.outputs.v {0}', github.sha) }}"]`, false, 2},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := Parse(fmt.Appendf(nil, workflow, tt.needs, tt.version))
+			require.NoError(t, err)
+
+			var builds []*Job
+			for _, w := range result {
+				if id, job := w.Job(); id == "build" {
+					builds = append(builds, job)
+				}
+			}
+			require.Len(t, builds, tt.want)
+			assert.Equal(t, tt.deferred, HasDeferredMatrix(builds[0]))
+		})
+	}
+}
+
+func TestExpandMatrixWithNeeds(t *testing.T) {
+	// matrixYAML is the YAML value of the `matrix:` key, so a case can replace the whole node.
+	expandMax := func(t *testing.T, matrixYAML string, maxCombinations int) ([]*Job, error) {
+		t.Helper()
+		var strategy Strategy
+		require.NoError(t, yaml.Unmarshal([]byte("matrix:"+matrixYAML), &strategy))
+		job := &Job{Name: "build", Strategy: strategy}
+		require.NoError(t, job.RawRunsOn.Encode("${{ matrix.os || 'ubuntu-latest' }}"))
+		require.NoError(t, job.RawNeeds.Encode([]string{"setup"}))
+		// The results map must describe the job itself too, as findJobNeedsAndFillJobResults does.
+		return ExpandMatrixWithNeeds("build", job, &model.GithubContext{}, map[string]*JobResult{
+			"build": {Needs: []string{"setup"}},
+			"setup": {Result: "success", Outputs: map[string]string{
+				"versions": `["1.20", "1.21"]`,
+				"os":       `["linux", "darwin"]`,
+				"include":  `[{"os":"linux","fast":true},{"os":"windows","fast":false}]`,
+				"empty":    "[]",
+			}},
+		}, nil, nil, maxCombinations)
+	}
+	expand := func(t *testing.T, matrixYAML string) ([]*Job, error) {
+		t.Helper()
+		return expandMax(t, matrixYAML, 256)
+	}
+
+	t.Run("expands the product and interpolates runs-on", func(t *testing.T) {
+		got, err := expand(t, "\n  os: ${{ fromJson(needs.setup.outputs.os) }}\n  version: ${{ fromJson(needs.setup.outputs.versions) }}\n")
+		require.NoError(t, err)
+		names := make([]string, 0, len(got))
+		for _, combo := range got {
+			names = append(names, combo.Name)
+			assert.Contains(t, []string{"linux", "darwin"}, combo.RunsOn()[0])
+		}
+		// Dimensions are appended in key order, as GitHub names multi-dimension combinations.
+		assert.ElementsMatch(t, []string{
+			"build (linux, 1.20)", "build (linux, 1.21)", "build (darwin, 1.20)", "build (darwin, 1.21)",
+		}, names)
+	})
+
+	t.Run("static and dynamic dimensions expand together, once", func(t *testing.T) {
+		got, err := expand(t, "\n  os: [linux, darwin]\n  version: ${{ fromJson(needs.setup.outputs.versions) }}\n")
+		require.NoError(t, err)
+		assert.Len(t, got, 4)
+	})
+
+	t.Run("include-only matrix expands", func(t *testing.T) {
+		got, err := expand(t, "\n  include: ${{ fromJson(needs.setup.outputs.include) }}\n")
+		require.NoError(t, err)
+		assert.Len(t, got, 2)
+	})
+
+	// GitHub rejects a matrix that yields no combinations instead of running the job unparameterized.
+	for _, tt := range []struct{ name, matrix string }{
+		{"empty vector", "\n  version: ${{ fromJson(needs.setup.outputs.empty) }}\n"},
+		{"empty include", "\n  include: ${{ fromJson(needs.setup.outputs.empty) }}\n"},
+		{"whole matrix not a mapping", " ${{ fromJson(needs.setup.outputs.empty) }}\n"},
+	} {
+		t.Run(tt.name+" errors", func(t *testing.T) {
+			_, err := expand(t, tt.matrix)
+			require.ErrorContains(t, err, "matrix must define at least one vector")
+		})
+	}
+
+	t.Run("unresolved need errors", func(t *testing.T) {
+		_, err := expand(t, "\n  v: ${{ fromJson(needs.missing.outputs.v) }}\n")
+		require.ErrorContains(t, err, "evaluate matrix")
+	})
+
+	// The combination count comes from a runtime output, so it must be rejected before one Job per
+	// combination is built rather than after.
+	t.Run("too many combinations errors", func(t *testing.T) {
+		_, err := expandMax(t, "\n  version: ${{ fromJson(needs.setup.outputs.versions) }}\n", 1)
+		require.ErrorContains(t, err, "exceeding the limit of 1")
+	})
+}
+
+func TestRejectsUnevaluatedMatrixFilters(t *testing.T) {
+	// act dereferences include/exclude entries as mappings without checking, so an unevaluated
+	// expression panics there. Every entry point into act's matrix expansion must reject it: Parse
+	// sees one in a workflow file and in a deferred placeholder's payload, and the emitter reads a
+	// placeholder's `if:` while its matrix is still raw.
+	for _, filter := range []string{"include", "exclude"} {
+		t.Run(filter, func(t *testing.T) {
+			_, err := Parse(fmt.Appendf(nil,
+				"name: t\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        os: [a]\n        %s: ${{ fromJson(vars.MATRIX) }}\n    steps: [{run: echo}]\n", filter))
+			require.ErrorContains(t, err, "must be a list of mappings")
+
+			var strategy Strategy
+			require.NoError(t, yaml.Unmarshal(fmt.Appendf(nil, "matrix:\n  os: [a]\n  %s: ${{ fromJson(vars.MATRIX) }}\n", filter), &strategy))
+			job := &Job{Name: "build", Strategy: strategy}
+			require.NoError(t, job.If.Encode("${{ true }}"))
+			_, err = EvaluateJobIfExpression("build", job, map[string]any{}, map[string]*JobResult{"build": {}}, nil, nil)
+			require.ErrorContains(t, err, "must be a list of mappings")
 		})
 	}
 }
