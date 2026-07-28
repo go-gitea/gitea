@@ -457,6 +457,12 @@ func DeleteProjectByID(ctx context.Context, id int64) error {
 			return err
 		}
 
+		// workflows have no other cleanup path (e.g. no FK cascade), so without this
+		// they would be orphaned forever once the owning project is gone
+		if _, err := db.GetEngine(ctx).Where("project_id=?", id).Delete(new(Workflow)); err != nil {
+			return err
+		}
+
 		if _, err = db.GetEngine(ctx).ID(p.ID).Delete(new(Project)); err != nil {
 			return err
 		}
@@ -474,6 +480,10 @@ func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board WHERE project_board.id IN (SELECT project_board.id FROM project_board INNER JOIN project WHERE project.id = project_board.project_id AND project.repo_id = ?)", repoID); err != nil {
 			return err
 		}
+		// same rationale as DeleteProjectByID: workflows are otherwise orphaned once the repo (and its projects) are gone
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_workflow WHERE project_workflow.id IN (SELECT project_workflow.id FROM project_workflow INNER JOIN project WHERE project.id = project_workflow.project_id AND project.repo_id = ?)", repoID); err != nil {
+			return err
+		}
 		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
 			return err
 		}
@@ -484,6 +494,9 @@ func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board USING project WHERE project.id = project_board.project_id AND project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_workflow USING project WHERE project.id = project_workflow.project_id AND project.repo_id = ? ", repoID); err != nil {
+			return err
+		}
 		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
 			return err
 		}
@@ -492,6 +505,9 @@ func DeleteProjectByRepoID(ctx context.Context, repoID int64) error {
 			return err
 		}
 		if _, err := db.GetEngine(ctx).Exec("DELETE project_board FROM project_board INNER JOIN project ON project.id = project_board.project_id WHERE project.repo_id = ? ", repoID); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Exec("DELETE project_workflow FROM project_workflow INNER JOIN project ON project.id = project_workflow.project_id WHERE project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
 		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
