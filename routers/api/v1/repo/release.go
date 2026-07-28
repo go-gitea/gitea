@@ -153,11 +153,11 @@ func ListReleases(ctx *context.APIContext) {
 	// - name: pre-release
 	//   in: query
 	//   description: filter (exclude / include) pre-releases
+	//   type: boolean
 	// - name: tag_prefix
 	//   in: query
 	//   description: filter releases by tag prefix
 	//   type: string
-	//   type: boolean
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
