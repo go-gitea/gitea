@@ -221,15 +221,18 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
 	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
 
-	makeButton := func(direction, svgName string) template.HTML {
+	makeLink := func(direction string) string {
 		style := util.IfZero(data.DiffStyle, "unified")
 		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor)) + "&" + d.getBlobExcerptQuery()
 		if data.PullIssueIndex > 0 {
 			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
 		}
+		return link
+	}
+	makeButton := func(direction, svgName string) template.HTML {
 		return htmlutil.HTMLFormat(
 			`<button class="code-expander-button" data-fetch-sync="$closest(tr)" data-fetch-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,
-			link, dataHiddenCommentIDs, svg.RenderHTML(svgName),
+			makeLink(direction), dataHiddenCommentIDs, svg.RenderHTML(svgName),
 		)
 	}
 	var content template.HTML
@@ -249,7 +252,13 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 	if expandDirection == "single" {
 		content += makeButton("single", "octicon-fold")
 	}
-	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s">%s</div>`, expandDirection, content)
+	// a gap with nothing to expand gets no expand-all URL; "all" means "fill this whole gap in one
+	// response, without chunking", which is what the file-level "expand all lines" button uses
+	var attrExpandAllURL template.HTML
+	if expandDirection != "" {
+		attrExpandAllURL = htmlutil.HTMLFormat(` data-expand-all-url="%s"`, makeLink("all"))
+	}
+	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s"%s>%s</div>`, expandDirection, attrExpandAllURL, content)
 }
 
 // FillHiddenCommentIDsForDiffLine finds comment IDs that are in the hidden range of an expand button

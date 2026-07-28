@@ -9,10 +9,11 @@ import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventLis
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {invertFileFolding} from './file-fold.ts';
+import {invertFileFolding, setFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
-import {registerGlobalSelectorFunc} from '../modules/observer.ts';
-import {performFetchActionTrigger} from './common-fetch-action.ts';
+import {registerGlobalSelectorFunc, registerGlobalEventFunc} from '../modules/observer.ts';
+import {performFetchActionTrigger, performFetchAction} from './common-fetch-action.ts';
+import {svg} from '../svg.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -26,6 +27,14 @@ function initRepoDiffFileBox(el: HTMLElement) {
     hideElem(queryElemSiblings(target));
     showElem(target);
   }));
+
+  // only files with at least one expandable gap get the "expand all lines" button, others keep it hidden
+  const expandAllLinesBtn = el.querySelector<HTMLElement>('.diff-expand-all-lines-button');
+  if (expandAllLinesBtn) {
+    const hasExpandableGap = el.querySelector('.code-expander-buttons[data-expand-all-url]');
+    if (hasExpandableGap) showElem(expandAllLinesBtn);
+    else hideElem(expandAllLinesBtn);
+  }
 }
 
 function initRepoDiffConversationForm() {
@@ -158,6 +167,16 @@ function onShowMoreFiles() {
   initDiffHeaderPopup();
 }
 
+async function fetchDiffFileBodyChildren(url: string): Promise<Element[]> {
+  const response = await GET(url);
+  if (!response.ok) throw new Error(`Unable to load diff content: ${response.status} ${response.statusText}`);
+  const respText = await response.text();
+  const respDoc = parseDom(respText, 'text/html');
+  const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body');
+  if (!respFileBody) throw new Error('Unable to find diff file body in the response');
+  return Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
+}
+
 async function loadMoreFiles(btn: Element): Promise<boolean> {
   if (btn.classList.contains('disabled')) {
     return false;
@@ -196,14 +215,9 @@ function initRepoDiffShowMore() {
     if (el.classList.contains('disabled')) return;
 
     el.classList.add('disabled');
-    const url = el.getAttribute('data-href')!;
 
     try {
-      const response = await GET(url);
-      const resp = await response.text();
-      const respDoc = parseDom(resp, 'text/html');
-      const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!;
-      const respFileBodyChildren = Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
+      const respFileBodyChildren = await fetchDiffFileBodyChildren(el.getAttribute('data-href')!);
       el.parentElement!.replaceWith(...respFileBodyChildren);
       // FIXME: calling onShowMoreFiles is not quite right here.
       // But since onShowMoreFiles mixes "init diff box" and "init diff body" together,
@@ -213,6 +227,66 @@ function initRepoDiffShowMore() {
       console.error('Error:', error);
     } finally {
       el.classList.remove('disabled');
+    }
+  });
+}
+
+// Toggles the tooltip/aria-label/icon of the "expand all lines" button between its two states.
+function updateDiffExpandAllLinesButton(btn: HTMLElement, expanded: boolean) {
+  btn.setAttribute('data-expanded', String(expanded));
+  const tooltip = btn.getAttribute(expanded ? 'data-tooltip-content-expanded' : 'data-tooltip-content-collapsed')!;
+  btn.setAttribute('data-tooltip-content', tooltip); // there is a MutationObserver on this attribute to refresh the tippy content
+  btn.setAttribute('aria-label', tooltip);
+  btn.innerHTML = svg(expanded ? 'octicon-fold' : 'octicon-unfold', 14);
+}
+
+async function expandDiffFileAllLines(fileBox: HTMLElement, btn: HTMLElement) {
+  // a folded file (vendored/generated, or already "viewed" in a PR) hides its body via CSS, so expanding
+  // its lines would otherwise happen invisibly; unfold it first so the result is actually visible
+  if (fileBox.getAttribute('data-folded') === 'true') {
+    setFileFolding(fileBox, fileBox.querySelector<HTMLElement>('.fold-file')!, false);
+  }
+  const gapEls = queryElems<HTMLElement>(fileBox, '.code-expander-buttons[data-expand-all-url]');
+  // each gap is expanded through the same fetch-action infra as the existing single-gap expander buttons,
+  // "performFetchAction" already checks response.ok and shows an error toast, leaving a failed gap's row untouched
+  await Promise.all(Array.from(gapEls, (gapEl) => performFetchAction(gapEl, {
+    method: 'GET',
+    url: gapEl.getAttribute('data-expand-all-url')!,
+    loadingIndicator: '',
+    successSync: '$closest(tr)',
+  })));
+  // a gap element only remains in the DOM if its request failed, so only flip the button once every gap succeeded
+  if (!fileBox.querySelector('.code-expander-buttons[data-expand-all-url]')) {
+    updateDiffExpandAllLinesButton(btn, true);
+  }
+}
+
+async function collapseDiffFileAllLines(fileBox: HTMLElement, btn: HTMLElement) {
+  try {
+    const respFileBodyChildren = await fetchDiffFileBodyChildren(btn.getAttribute('data-collapse-url')!);
+    fileBox.querySelector('.diff-file-body .file-body')!.replaceChildren(...respFileBodyChildren);
+    // the restored body has fresh per-gap expander buttons/image-diffs, so it needs the same re-init as "load more files"
+    onShowMoreFiles();
+    updateDiffExpandAllLinesButton(btn, false);
+  } catch (error) {
+    console.error('Error:', error);
+    showErrorToast('An error occurred while collapsing the file.');
+  }
+}
+
+function initDiffExpandAllLinesButton() {
+  registerGlobalEventFunc('click', 'onDiffExpandAllLinesClick', async (btn: HTMLElement) => {
+    if (btn.classList.contains('is-loading')) return;
+    const fileBox = btn.closest<HTMLElement>('.diff-file-box')!;
+    btn.classList.add('is-loading');
+    try {
+      if (btn.getAttribute('data-expanded') === 'true') {
+        await collapseDiffFileAllLines(fileBox, btn);
+      } else {
+        await expandDiffFileAllLines(fileBox, btn);
+      }
+    } finally {
+      btn.classList.remove('is-loading');
     }
   });
 }
@@ -286,6 +360,7 @@ export function initRepoDiffView() {
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
   initRepoDiffHashChangeListener();
+  initDiffExpandAllLinesButton();
 
   registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
   addDelegatedEventListener(document, 'click', '.fold-file', (el) => {

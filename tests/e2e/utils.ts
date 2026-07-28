@@ -87,6 +87,18 @@ export async function apiCreateFile(requestContext: APIRequestContext, owner: st
   }), 'apiCreateFile');
 }
 
+/** Update an existing file's content on a branch (fetches the current blob sha first, as the update API requires it). */
+export async function apiUpdateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, message}: {branch?: string; message?: string} = {}) {
+  const getResponse = await requestContext.get(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}${branch ? `?ref=${encodeURIComponent(branch)}` : ''}`, {
+    headers: apiHeaders(),
+  });
+  const {sha} = await getResponse.json();
+  await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
+    headers: apiHeaders(),
+    data: {content: Buffer.from(content, 'utf8').toString('base64'), sha, branch, message},
+  }), 'apiUpdateFile');
+}
+
 export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, newBranch: string) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
     headers: apiHeaders(),
