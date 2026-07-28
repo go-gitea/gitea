@@ -950,6 +950,16 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}
 	}
 
+	// reqIndividualOwnerSelf ensures that, on a personal (non-organization) owner scope, only the
+	// owner themselves can use a write route: reqUnitAccess is a no-op for individual owners, since
+	// UnitPermission only applies to organizations.
+	reqIndividualOwnerSelf := func(ctx *context.Context) {
+		if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+			ctx.NotFound(nil)
+			return
+		}
+	}
+
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
 			m.Get("/members", org.Members)
@@ -1131,14 +1141,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			// the enclosing "/projects" group below already applies the same read check
 			m.Group("/{id}/workflows", addProjectWorkflowsRouters)
-			m.Group("/{id}/workflows", addProjectWorkflowsWriteRouters, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
-				// reqUnitAccess is a no-op for user-scoped (non-organization) owners, so without this check
-				// any signed-in user could write workflows on someone else's personal project.
-				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-					ctx.NotFound(nil)
-					return
-				}
-			})
+			m.Group("/{id}/workflows", addProjectWorkflowsWriteRouters, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), reqIndividualOwnerSelf)
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -1159,12 +1162,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Post("/move", org.MoveIssues)
 					})
 				})
-			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
-				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-					ctx.NotFound(nil)
-					return
-				}
-			})
+			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), reqIndividualOwnerSelf)
 		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
 		m.Group("", func() {
