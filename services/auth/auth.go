@@ -55,24 +55,15 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 
-	// Language setting of the user overwrites the one previously set
-	// If the user does not have a locale set, we save the current one.
+	// Single UpdateUser: optional language seed + last login (password/OAuth path also sets last login on sign-in).
+	opts := &user_service.UpdateOptions{SetLastLogin: true}
 	if len(user.Language) == 0 {
-		lc := middleware.Locale(resp, req)
-		opts := &user_service.UpdateOptions{
-			Language: optional.Some(lc.Language()),
-		}
-		if err := user_service.UpdateUser(req.Context(), user, opts); err != nil {
-			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
-			return
-		}
+		// If the user does not have a locale set, persist the current request locale.
+		opts.Language = optional.Some(middleware.Locale(resp, req).Language())
+	}
+	if err := user_service.UpdateUser(req.Context(), user, opts); err != nil {
+		log.Error("Error updating user on sign-in [user: %d]: %v", user.ID, err)
 	}
 
 	middleware.SetLocaleCookie(resp, user.Language, 0)
-
-	// Match password/OAuth sign-in: record last login when a session is first established
-	// (e.g. reverse-proxy / SSPI auth). Callers must only invoke this on actual sign-in.
-	if err := user_service.UpdateUser(req.Context(), user, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
-		log.Error("Error updating user last login [user: %d]: %v", user.ID, err)
-	}
 }
