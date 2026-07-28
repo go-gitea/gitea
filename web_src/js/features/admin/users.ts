@@ -28,12 +28,12 @@ export function initAdminUserListSearchForm(): void {
     });
   }
 
-  const resetFilter = (selector: string, matchName: (name: string) => boolean) => {
+  const resetFilter = (selector: string, namePrefix: string) => {
     for (const button of form.querySelectorAll<HTMLAnchorElement>(selector)) {
       button.addEventListener('click', (e) => {
         e.preventDefault();
         for (const input of form.querySelectorAll<HTMLInputElement>('input[type=radio]')) {
-          if (matchName(input.name)) {
+          if (input.name.startsWith(namePrefix)) {
             input.checked = false;
           }
         }
@@ -42,6 +42,6 @@ export function initAdminUserListSearchForm(): void {
     }
   };
 
-  resetFilter('.j-reset-status-filter', (name) => name.startsWith('status_filter['));
-  resetFilter('.j-reset-type-filter', (name) => name === 'user_type');
+  resetFilter('.j-reset-status-filter', 'status_filter[');
+  resetFilter('.j-reset-type-filter', 'user_type');
 }

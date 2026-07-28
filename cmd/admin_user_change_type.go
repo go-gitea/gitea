@@ -27,17 +27,16 @@ func microcmdUserChangeType() *cli.Command {
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:      "user-type",
-				Usage:     "New user type: individual or bot",
-				Required:  true,
-				Validator: validateUserType,
+				Name:     "user-type",
+				Usage:    "New user type: individual or bot",
+				Required: true,
 			},
 		},
 	}
 }
 
 func runChangeUserType(ctx context.Context, c *cli.Command) error {
-	targetType, err := parseUserType(c.String("user-type"))
+	targetType, err := user_model.ParseUserType(c.String("user-type"))
 	if err != nil {
 		return err
 	}
@@ -59,22 +58,4 @@ func runChangeUserType(ctx context.Context, c *cli.Command) error {
 
 	fmt.Printf("%s's type has been successfully changed to %s!\n", user.Name, c.String("user-type"))
 	return nil
-}
-
-// parseUserType maps a CLI user-type string to the convertible user types.
-func parseUserType(s string) (user_model.UserType, error) {
-	switch s {
-	case "individual":
-		return user_model.UserTypeIndividual, nil
-	case "bot":
-		return user_model.UserTypeBot, nil
-	default:
-		return 0, fmt.Errorf("invalid user type %q, must be one of: individual, bot", s)
-	}
-}
-
-// validateUserType rejects an unsupported --user-type before the command runs.
-func validateUserType(s string) error {
-	_, err := parseUserType(s)
-	return err
 }
