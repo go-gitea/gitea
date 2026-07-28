@@ -9,6 +9,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
@@ -39,14 +40,14 @@ func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
 	defer test.MockVariableValue(&walkGitLogDebugBeforeNext)()
 
 	walkGitLogDebugBeforeNext = cancel
-	commitInfos, _, err := entries.GetCommitsInfo(ctx, "/any/repo-link", repo, commit, "")
+	commitInfos, _, err := entries.GetCommitsInfo(ctx, time.Second, "/any/repo-link", repo, commit, "")
 	assert.NoError(t, err)
 	nilCommits, nonNilCommits := countCommitInfosCommit(commitInfos)
 	assert.Equal(t, 0, nonNilCommits) // no commit info due to canceled (or deadline-exceeded) context
 	assert.Equal(t, 3, nilCommits)
 
 	walkGitLogDebugBeforeNext = nil
-	commitInfos, _, err = entries.GetCommitsInfo(t.Context(), "/any/repo-link", repo, commit, "")
+	commitInfos, _, err = entries.GetCommitsInfo(t.Context(), time.Second, "/any/repo-link", repo, commit, "")
 	assert.NoError(t, err)
 	nilCommits, nonNilCommits = countCommitInfosCommit(commitInfos)
 	assert.Equal(t, 3, nonNilCommits)
