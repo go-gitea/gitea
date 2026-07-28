@@ -170,11 +170,15 @@ type Workflow struct {
 	ProjectID       int64    `xorm:"INDEX"`
 	Project         *Project `xorm:"-"`
 	WorkflowEvent   WorkflowEvent
-	WorkflowFilters []WorkflowFilter   `xorm:"TEXT JSON"`
-	WorkflowActions []WorkflowAction   `xorm:"TEXT JSON"`
-	Enabled         bool               `xorm:"DEFAULT true NOT NULL"`
-	CreatedUnix     timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
+	WorkflowFilters []WorkflowFilter `xorm:"TEXT JSON"`
+	WorkflowActions []WorkflowAction `xorm:"TEXT JSON"`
+	// SchemaVersion number to allow for smooth version upgrades of WorkflowFilters/
+	// WorkflowActions, following the same rationale as HookTask.PayloadVersion:
+	//  - SchemaVersion 1: WorkflowFilters/WorkflowActions use the current filter/action shape
+	SchemaVersion int                `xorm:"DEFAULT 1"`
+	Enabled       bool               `xorm:"DEFAULT true NOT NULL"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
 
 // TableName overrides the table name used by ProjectWorkflow to `project_workflow`
@@ -208,7 +212,10 @@ func init() {
 
 func FindWorkflowsByProjectID(ctx context.Context, projectID int64) ([]*Workflow, error) {
 	workflows := make([]*Workflow, 0)
-	if err := db.GetEngine(ctx).Where("project_id=?", projectID).Find(&workflows); err != nil {
+	// Explicit ORDER BY: without it the row order is engine-dependent (e.g. on
+	// Postgres an UPDATE can relocate a row), so toggling Enabled could silently
+	// reorder the workflows that run for the same event.
+	if err := db.GetEngine(ctx).Where("project_id=?", projectID).OrderBy("id ASC").Find(&workflows); err != nil {
 		return nil, err
 	}
 	return workflows, nil
@@ -226,7 +233,16 @@ func GetWorkflowByProjectAndID(ctx context.Context, projectID, workflowID int64)
 	return &workflow, nil
 }
 
+// CurrentWorkflowSchemaVersion is written to new workflows; see Workflow.SchemaVersion.
+const CurrentWorkflowSchemaVersion = 1
+
 func CreateWorkflow(ctx context.Context, wf *Workflow) error {
+	// callers don't set SchemaVersion themselves (there is only one shape today),
+	// so default it here rather than relying on the DB column default, which
+	// xorm's Insert would otherwise bypass by sending the Go zero value literally.
+	if wf.SchemaVersion == 0 {
+		wf.SchemaVersion = CurrentWorkflowSchemaVersion
+	}
 	return db.Insert(ctx, wf)
 }
 

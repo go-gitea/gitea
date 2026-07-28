@@ -250,6 +250,42 @@ func TestEnableDisableWorkflow(t *testing.T) {
 	assert.True(t, enabledWorkflow.Enabled)
 }
 
+func TestCreateWorkflowDefaultsSchemaVersion(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	project := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
+
+	// callers that don't set SchemaVersion (i.e. every caller today) must still
+	// get CurrentWorkflowSchemaVersion persisted, not the Go zero value: xorm's
+	// Insert sends the zero value literally, so the "DEFAULT 1" column default
+	// is never applied for rows inserted through CreateWorkflow.
+	workflow := &Workflow{
+		ProjectID:       project.ID,
+		WorkflowEvent:   WorkflowEventItemOpened,
+		WorkflowFilters: []WorkflowFilter{},
+		WorkflowActions: []WorkflowAction{},
+		Enabled:         true,
+	}
+	assert.NoError(t, CreateWorkflow(t.Context(), workflow))
+	assert.Equal(t, CurrentWorkflowSchemaVersion, workflow.SchemaVersion)
+
+	loadedWorkflow, err := GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, CurrentWorkflowSchemaVersion, loadedWorkflow.SchemaVersion)
+
+	// an explicitly set SchemaVersion (e.g. a future v2 caller) must be preserved as-is
+	explicitWorkflow := &Workflow{
+		ProjectID:       project.ID,
+		WorkflowEvent:   WorkflowEventItemClosed,
+		WorkflowFilters: []WorkflowFilter{},
+		WorkflowActions: []WorkflowAction{},
+		Enabled:         true,
+		SchemaVersion:   2,
+	}
+	assert.NoError(t, CreateWorkflow(t.Context(), explicitWorkflow))
+	assert.Equal(t, 2, explicitWorkflow.SchemaVersion)
+}
+
 func TestFindWorkflowsByProjectID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -287,6 +323,41 @@ func TestFindWorkflowsByProjectID(t *testing.T) {
 	assert.True(t, workflows[0].Enabled)
 	assert.Equal(t, WorkflowEventItemClosed, workflows[1].WorkflowEvent)
 	assert.False(t, workflows[1].Enabled)
+}
+
+// TestFindWorkflowsByProjectIDOrderedByID locks in the explicit ORDER BY id ASC:
+// without it, row order is engine-dependent (e.g. an UPDATE can relocate a row
+// on Postgres), so toggling Enabled could otherwise silently change the order
+// in which workflows execute for the same event.
+func TestFindWorkflowsByProjectIDOrderedByID(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	project := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
+
+	var ids []int64
+	for range 3 {
+		wf := &Workflow{
+			ProjectID:       project.ID,
+			WorkflowEvent:   WorkflowEventItemOpened,
+			WorkflowFilters: []WorkflowFilter{},
+			WorkflowActions: []WorkflowAction{},
+			Enabled:         true,
+		}
+		assert.NoError(t, CreateWorkflow(t.Context(), wf))
+		ids = append(ids, wf.ID)
+	}
+
+	// toggling Enabled on the first-created workflow must not change its position
+	assert.NoError(t, DisableWorkflow(t.Context(), project.ID, ids[0]))
+	assert.NoError(t, EnableWorkflow(t.Context(), project.ID, ids[0]))
+
+	workflows, err := FindWorkflowsByProjectID(t.Context(), project.ID)
+	assert.NoError(t, err)
+	if assert.Len(t, workflows, 3) {
+		for i, wf := range workflows {
+			assert.Equal(t, ids[i], wf.ID)
+		}
+	}
 }
 
 func TestWorkflowLoadProject(t *testing.T) {
