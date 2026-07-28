@@ -60,7 +60,6 @@ func TestApplyTLSSettingsConfigured(t *testing.T) {
 	assert.Equal(t, []uint16{tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384}, tlsConfig.CipherSuites)
 }
 
-// TestHTTPSServesTLS13 pins the regression that an unconfigured server was capped at TLS 1.2
 func TestHTTPSServesTLS13(t *testing.T) {
 	unsetTLSSettings(t)
 
