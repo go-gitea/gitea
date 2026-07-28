@@ -397,12 +397,31 @@ func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.R
 
 	tagName := refFullName.TagName()
 
-	if !preReceiveImmutableTag(ctx, newCommitID, tagName) {
+	// an immutable tag name can never be created or moved again, deleting it is
+	// only allowed once its release is gone
+	var immutable bool
+	var err error
+	if git.IsEmptyCommitID(newCommitID) {
+		immutable, err = repo_model.HasImmutableRelease(ctx, ctx.Repo.Repository.ID, tagName)
+	} else {
+		immutable, err = repo_model.IsTagImmutable(ctx, ctx.Repo.Repository, tagName)
+	}
+	if err != nil {
+		log.Error("Unable to check immutable tag %s in %-v Error: %v", tagName, ctx.Repo.Repository, err)
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
+		})
+		return
+	}
+	if immutable {
+		log.Warn("Forbidden: Tag %s in %-v is immutable", tagName, ctx.Repo.Repository)
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: fmt.Sprintf("Tag %s is immutable", tagName),
+		})
 		return
 	}
 
 	if !ctx.gotProtectedTags {
-		var err error
 		ctx.protectedTags, err = git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			log.Error("Unable to get protected tags for %-v Error: %v", ctx.Repo.Repository, err)
@@ -428,36 +447,6 @@ func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.R
 		})
 		return
 	}
-}
-
-// preReceiveImmutableTag reports whether the tag update may proceed. An immutable tag name can never be
-// created or moved again, deleting it is only allowed once its release is gone.
-func preReceiveImmutableTag(ctx *preReceiveContext, newCommitID, tagName string) bool {
-	repo := ctx.Repo.Repository
-
-	// a locked tag may still be deleted once its release is gone
-	var blocked bool
-	var err error
-	if git.IsEmptyCommitID(newCommitID) {
-		blocked, err = repo_model.HasImmutableRelease(ctx, repo.ID, tagName)
-	} else {
-		blocked, err = repo_model.IsTagImmutable(ctx, repo, tagName)
-	}
-	if err != nil {
-		log.Error("Unable to check immutable tag %s in %-v Error: %v", tagName, repo, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: err.Error(),
-		})
-		return false
-	}
-	if blocked {
-		log.Warn("Forbidden: Tag %s in %-v is immutable", tagName, repo)
-		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: fmt.Sprintf("Tag %s is immutable", tagName),
-		})
-		return false
-	}
-	return true
 }
 
 func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {

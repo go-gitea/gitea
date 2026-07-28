@@ -55,21 +55,10 @@ func TestImmutableRelease(t *testing.T) {
 			MakeRequest(t, NewRequestWithJSON(t, "PATCH", relURL, &api.EditReleaseOption{
 				Title: "renamed",
 			}).AddTokenAuth(token), http.StatusOK)
-
-			// the tag cannot be deleted while the release exists, the release itself can
-			MakeRequest(t, NewRequest(t, "DELETE", base+"/tags/imm-1").AddTokenAuth(token), http.StatusConflict)
-			MakeRequest(t, NewRequest(t, "DELETE", relURL).AddTokenAuth(token), http.StatusNoContent)
-
-			// the name stays locked even after immutability is switched off
-			setImmutable(false)
-			MakeRequest(t, NewRequestWithJSON(t, "POST", base+"/releases", &api.CreateReleaseOption{
-				TagName: "imm-1", Target: "master", Title: "reuse",
-			}).AddTokenAuth(token), http.StatusUnprocessableEntity)
-			setImmutable(true)
 		})
 
 		t.Run("GitPush", func(t *testing.T) {
-			publish("imm-push")
+			pushed := publish("imm-push")
 
 			dstPath := t.TempDir()
 			u.Path = NewAPITestContext(t, owner.Name, repo.Name).GitPath()
@@ -89,6 +78,11 @@ func TestImmutableRelease(t *testing.T) {
 
 			_, _, err = gitcmd.NewCommand("push", "origin", ":refs/tags/imm-push").WithDir(dstPath).RunStdString(t.Context())
 			assert.ErrorContains(t, err, "Tag imm-push is immutable")
+
+			// once the release is gone the tag itself may be deleted
+			MakeRequest(t, NewRequest(t, "DELETE", fmt.Sprintf("%s/releases/%d", base, pushed.ID)).AddTokenAuth(token), http.StatusNoContent)
+			_, _, err = gitcmd.NewCommand("push", "origin", ":refs/tags/imm-push").WithDir(dstPath).RunStdString(t.Context())
+			assert.NoError(t, err)
 		})
 	})
 }

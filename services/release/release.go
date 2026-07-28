@@ -65,23 +65,11 @@ func (err ErrProtectedTagName) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
-// ErrImmutableRelease represents an attempt to change a locked field of an immutable release.
-type ErrImmutableRelease struct {
-	Field string
-}
+// ErrImmutableRelease is returned when a locked field of an immutable release would be changed.
+var ErrImmutableRelease = util.ErrorWrap(util.ErrUnprocessableContent, "release is immutable")
 
-// IsErrImmutableRelease checks if an error is an ErrImmutableRelease.
-func IsErrImmutableRelease(err error) bool {
-	_, ok := err.(ErrImmutableRelease)
-	return ok
-}
-
-func (err ErrImmutableRelease) Error() string {
-	return err.Field + " cannot be changed when release is immutable"
-}
-
-func (err ErrImmutableRelease) Unwrap() error {
-	return util.ErrUnprocessableContent
+func errImmutableField(field string) error {
+	return util.ErrorWrap(ErrImmutableRelease, "%s cannot be changed when release is immutable", field)
 }
 
 // ErrImmutableTag is returned when a tag name that an immutable release used
@@ -91,13 +79,10 @@ var ErrImmutableTag = util.ErrorWrap(util.ErrUnprocessableContent, "tag_name was
 // assertTagMutable rejects tag names that an immutable release used before.
 func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName string) error {
 	immutable, err := repo_model.IsTagImmutable(ctx, repo, tagName)
-	if err != nil {
+	if err != nil || !immutable {
 		return err
 	}
-	if immutable {
-		return ErrImmutableTag
-	}
-	return nil
+	return ErrImmutableTag
 }
 
 // lockRelease locks a release being published and claims its tag name forever.
@@ -334,15 +319,15 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	if oldRelease.IsImmutable && !oldRelease.IsTag { // the release owns its immutable tag name
 		switch {
 		case rel.TagName != oldRelease.TagName:
-			return ErrImmutableRelease{Field: "tag_name"}
+			return errImmutableField("tag_name")
 		case rel.Target != oldRelease.Target:
-			return ErrImmutableRelease{Field: "target_commitish"}
+			return errImmutableField("target_commitish")
 		case rel.IsDraft:
-			return ErrImmutableRelease{Field: "state"}
+			return errImmutableField("state")
 		case len(addAttachmentUUIDs) > 0 || len(delAttachmentUUIDs) > 0 || len(editAttachments) > 0:
-			return ErrImmutableRelease{Field: "assets"}
+			return errImmutableField("assets")
 		}
-	} else if !rel.IsTag && (oldRelease.IsTag || rel.TagName != oldRelease.TagName) {
+	} else if isConvertedFromTag || rel.TagName != oldRelease.TagName {
 		if err := assertTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
 			return err
 		}

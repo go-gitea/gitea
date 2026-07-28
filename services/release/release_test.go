@@ -424,42 +424,45 @@ func TestRelease_Immutable(t *testing.T) {
 	})
 
 	repo.ImmutableReleases = true
+
+	t.Run("DraftLocksOnlyOnPublish", func(t *testing.T) {
+		draft := &repo_model.Release{
+			RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user,
+			TagName: "v9.5", Target: "master", Title: "draft", IsDraft: true,
+		}
+		assert.NoError(t, CreateRelease(t.Context(), gitRepo, draft, nil, ""))
+		assert.False(t, draft.IsImmutable)
+
+		draft.IsDraft = false
+		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, draft, nil, nil, nil))
+		assert.True(t, draft.IsImmutable)
+	})
+
 	rel := newRelease(t, "v9.0")
+	assert.True(t, rel.IsImmutable)
+	immutable, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.0")
+	assert.NoError(t, err)
+	assert.True(t, immutable)
 
-	t.Run("StampedOnPublish", func(t *testing.T) {
-		assert.True(t, rel.IsImmutable)
-		immutable, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.0")
-		assert.NoError(t, err)
-		assert.True(t, immutable)
-	})
-
-	t.Run("TitleAndNotesStayEditable", func(t *testing.T) {
-		rel.Title = "changed title"
-		rel.Note = "changed note"
-		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
-	})
+	// the title and notes of an immutable release stay editable
+	rel.Title = "changed title"
+	rel.Note = "changed note"
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
 
 	// one case per rejected field, the three attachment slices share a single branch
-	lockedCases := []struct {
-		name   string
-		mutate func(rel *repo_model.Release)
-		attach []string
-	}{
-		{name: "tag_name", mutate: func(rel *repo_model.Release) { rel.TagName = "v9.1" }},
-		{name: "target_commitish", mutate: func(rel *repo_model.Release) { rel.Target = "develop" }},
-		{name: "state", mutate: func(rel *repo_model.Release) { rel.IsDraft = true }},
-		{name: "assets", attach: []string{"uuid"}},
+	lockedCases := map[string]func(rel *repo_model.Release) (addUUIDs []string){
+		"tag_name":         func(rel *repo_model.Release) []string { rel.TagName = "v9.1"; return nil },
+		"target_commitish": func(rel *repo_model.Release) []string { rel.Target = "develop"; return nil },
+		"state":            func(rel *repo_model.Release) []string { rel.IsDraft = true; return nil },
+		"assets":           func(*repo_model.Release) []string { return []string{"uuid"} },
 	}
-	for _, c := range lockedCases {
-		t.Run("Locked/"+c.name, func(t *testing.T) {
+	for field, mutate := range lockedCases {
+		t.Run("Locked/"+field, func(t *testing.T) {
 			current, err := repo_model.GetReleaseByID(t.Context(), rel.ID)
 			assert.NoError(t, err)
-			current.Repo = repo
-			if c.mutate != nil {
-				c.mutate(current)
-			}
-			err = UpdateRelease(t.Context(), user, gitRepo, current, c.attach, nil, nil)
-			assert.True(t, IsErrImmutableRelease(err), "expected ErrImmutableRelease, got %v", err)
+			err = UpdateRelease(t.Context(), user, gitRepo, current, mutate(current), nil, nil)
+			assert.ErrorIs(t, err, ErrImmutableRelease)
+			assert.ErrorContains(t, err, field)
 		})
 	}
 
@@ -478,14 +481,13 @@ func TestRelease_Immutable(t *testing.T) {
 		assert.True(t, tag.IsImmutable)
 
 		// it cannot be turned back into a release, not even a draft
-		tag.Repo, tag.IsTag, tag.IsDraft = repo, false, true
+		tag.IsTag, tag.IsDraft = false, true
 		err = UpdateRelease(t.Context(), user, gitRepo, tag, nil, nil, nil)
 		assert.ErrorIs(t, err, ErrImmutableTag)
 
 		// once the release is gone the tag itself can be deleted, but the name stays claimed
 		tag, err = repo_model.GetRelease(t.Context(), repo.ID, "v9.2")
 		assert.NoError(t, err)
-		tag.Repo = repo
 		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, tag, user, true))
 		assert.ErrorIs(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 			RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user,

@@ -628,7 +628,7 @@ func EditReleasePost(ctx *context.Context) {
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.JSONError(err.Error())
-		} else if release_service.IsErrImmutableRelease(err) {
+		} else if errors.Is(err, release_service.ErrImmutableRelease) {
 			ctx.JSONError(ctx.Tr("repo.release.immutable_locked"))
 		} else if errors.Is(err, release_service.ErrImmutableTag) {
 			ctx.JSONError(ctx.Tr("repo.release.tag_name_immutable"))

@@ -29,7 +29,7 @@ func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64) bool {
 		return false
 	}
 	if release.IsImmutable {
-		ctx.APIErrorAuto(release_service.ErrImmutableRelease{Field: "assets"})
+		ctx.APIErrorAuto(release_service.ErrImmutableRelease)
 		return false
 	}
 	return true

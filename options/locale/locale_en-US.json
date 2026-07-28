@@ -2657,10 +2657,10 @@
   "repo.release.tag_name_protected": "The tag name is protected.",
   "repo.release.immutable": "Immutable",
   "repo.release.immutable_tooltip": "Immutable release. Only the release title and notes can be changed.",
-  "repo.release.tag_name_immutable_tooltip": "This tag is bound to an immutable release and cannot be reused.",
   "repo.release.immutable_locked": "You cannot change the tag or assets of a published immutable release.",
   "repo.release.immutable_notice": "You will not be able to change the tag or assets after publishing because immutable releases are enabled.",
   "repo.release.tag_name_immutable": "The tag name was used by an immutable release and cannot be reused.",
+  "repo.release.tag_name_immutable_delete": "The tag cannot be deleted while its immutable release exists.",
   "repo.release.tag_already_exist": "This tag name already exists.",
   "repo.release.downloads": "Downloads",
   "repo.release.download_count": "Downloads: %s",
@@ -3937,6 +3937,5 @@
   "actions.general.cross_repo_desc": "Allow the selected repositories to be accessed (read-only) by all the repositories in this owner with GITEA_TOKEN when running Actions jobs.",
   "actions.general.cross_repo_selected": "Selected repositories",
   "actions.general.cross_repo_target_repos": "Target Repositories",
-  "actions.general.cross_repo_add": "Add Target Repository",
-  "repo.release.tag_name_immutable_delete": "The tag cannot be deleted while its immutable release exists."
+  "actions.general.cross_repo_add": "Add Target Repository"
 }
