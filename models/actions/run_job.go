@@ -339,27 +339,26 @@ func GetPriorAttemptChildrenByParent(ctx context.Context, runID, currentAttemptI
 // GetPriorAttemptMatrixCombos returns the most recent prior attempt's combination rows of the given
 // dynamic-matrix job, indexed by Name, so re-expansion keeps AttemptJobIDs stable across attempts.
 func GetPriorAttemptMatrixCombos(ctx context.Context, runID, currentAttemptID, parentAttemptJobID int64, jobID string) (map[string]*ActionRunJob, error) {
+	// An unexpanded placeholder is not a combination, so it is skipped and the search looks further
+	// back past it. Only the columns the scope check and the result need are read: the rows carry
+	// two payload blobs, and every prior attempt of the job is a candidate.
 	var candidates []*ActionRunJob
 	if err := db.GetEngine(ctx).
-		Where("run_id = ? AND job_id = ? AND run_attempt_id < ?", runID, jobID, currentAttemptID).
+		Where("run_id = ? AND job_id = ? AND run_attempt_id < ? AND is_matrix_deferred = ?", runID, jobID, currentAttemptID, false).
+		Cols("id", "name", "attempt_job_id", "run_attempt_id", "parent_job_id").
+		Desc("run_attempt_id").
 		Find(&candidates); err != nil {
 		return nil, fmt.Errorf("find prior matrix combos: %w", err)
 	}
-	if len(candidates) == 0 {
-		return nil, nil //nolint:nilnil // the job is brand new in this attempt
-	}
 
 	// Every combination of one attempt shares a parent, so dedupe before the lookup.
-	parentIDs := make(container.Set[int64], 1)
-	for _, c := range candidates {
-		if c.ParentJobID > 0 {
-			parentIDs.Add(c.ParentJobID)
-		}
-	}
+	parentIDs := container.FilterSlice(candidates, func(c *ActionRunJob) (int64, bool) {
+		return c.ParentJobID, c.ParentJobID > 0
+	})
 	parentAttemptIDByRowID := make(map[int64]int64, len(parentIDs))
 	if len(parentIDs) > 0 {
 		var parents []*ActionRunJob
-		if err := db.GetEngine(ctx).In("id", parentIDs.Values()).Find(&parents); err != nil {
+		if err := db.GetEngine(ctx).In("id", parentIDs).Cols("id", "attempt_job_id").Find(&parents); err != nil {
 			return nil, fmt.Errorf("find prior matrix combo parents: %w", err)
 		}
 		for _, p := range parents {
@@ -367,26 +366,21 @@ func GetPriorAttemptMatrixCombos(ctx context.Context, runID, currentAttemptID, p
 		}
 	}
 
-	byAttempt := make(map[int64][]*ActionRunJob)
+	// Rows arrive newest-attempt-first, so the first in-scope row fixes the attempt to take.
+	combos := map[string]*ActionRunJob{}
 	newestAttemptID := int64(0)
 	for _, c := range candidates {
 		if parentAttemptIDByRowID[c.ParentJobID] != parentAttemptJobID {
 			continue
 		}
-		if c.IsMatrixDeferred {
-			continue // an unexpanded placeholder is not a combination, look further back
+		if newestAttemptID == 0 {
+			newestAttemptID = c.RunAttemptID
+		} else if c.RunAttemptID != newestAttemptID {
+			break
 		}
-		byAttempt[c.RunAttemptID] = append(byAttempt[c.RunAttemptID], c)
-		newestAttemptID = max(newestAttemptID, c.RunAttemptID)
+		combos[c.Name] = c
 	}
-	if newestAttemptID == 0 {
-		return nil, nil //nolint:nilnil // the job only exists under other caller scopes, or never expanded
-	}
-	out := make(map[string]*ActionRunJob, len(byAttempt[newestAttemptID]))
-	for _, c := range byAttempt[newestAttemptID] {
-		out[c.Name] = c
-	}
-	return out, nil
+	return combos, nil
 }
 
 // GetDirectChildJobsByParent returns the direct child jobs of a parent job (e.g. a reusable workflow caller).

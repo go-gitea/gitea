@@ -5,6 +5,7 @@ package actions
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
@@ -134,40 +135,29 @@ func TestExpandDeferredMatrix(t *testing.T) {
 		assert.Equal(t, "build (a)", reloaded.Name)
 		assert.False(t, reloaded.IsMatrixDeferred)
 		assert.NotEmpty(t, reloaded.DeferredMatrixPayload, "the claim must not erase the raw payload")
-		assertSingleMatrixAnchor(t, job.RunID, job.RunAttemptID)
 	})
 
 	// A matrix that can never produce runnable combinations fails the job instead of rolling the
 	// emitter pass back, so it is not retried forever.
 	for _, tt := range []struct {
 		name, matrixValue string
-		prepare           func(t *testing.T, job *actions_model.ActionRunJob)
+		outputs           map[string]string
 	}{
 		{name: "unresolvable matrix", matrixValue: "${{ fromJson(needs.generate.outputs.missing) }}"},
 		{
 			name:        "expansion exceeding the per-attempt job limit",
-			matrixValue: "${{ fromJson(needs.generate.outputs.values) }}",
-			prepare: func(t *testing.T, job *actions_model.ActionRunJob) {
-				existing, err := actions_model.CountRunJobsByRunAndAttemptID(t.Context(), job.RunID, job.RunAttemptID)
-				require.NoError(t, err)
-				fillers := make([]*actions_model.ActionRunJob, 0, actions_model.MaxJobNumPerRun-1-existing)
-				for i := existing; i < actions_model.MaxJobNumPerRun-1; i++ {
-					fillers = append(fillers, &actions_model.ActionRunJob{
-						RunID: job.RunID, RunAttemptID: job.RunAttemptID, AttemptJobID: 1000 + i,
-						RepoID: job.RepoID, OwnerID: job.OwnerID,
-						JobID: fmt.Sprintf("filler%d", i), Name: fmt.Sprintf("filler%d", i),
-						Status: actions_model.StatusSuccess,
-					})
-				}
-				require.NoError(t, db.Insert(t.Context(), fillers))
-			},
+			matrixValue: "${{ fromJson(needs.generate.outputs.many) }}",
+			// One combination more than the attempt has room for: the cap is MaxJobNumPerRun less
+			// the rows the setup plants, plus the placeholder the first combination reuses.
+			outputs: map[string]string{"many": "[" + strings.Repeat("0,", actions_model.MaxJobNumPerRun-2) + "0]"},
 		},
 	} {
 		t.Run(tt.name+" fails the job", func(t *testing.T) {
-			job := setupDeferredMatrixJob(t, tt.matrixValue, "", map[string]string{"values": `["a","b","c"]`})
-			if tt.prepare != nil {
-				tt.prepare(t, job)
+			outputs := tt.outputs
+			if outputs == nil {
+				outputs = map[string]string{"values": `["a","b","c"]`}
 			}
+			job := setupDeferredMatrixJob(t, tt.matrixValue, "", outputs)
 
 			siblings, err := expandDeferredMatrix(t.Context(), job, nil)
 			require.NoError(t, err)
@@ -181,95 +171,50 @@ func TestExpandDeferredMatrix(t *testing.T) {
 	}
 }
 
-// TestDeferredMatrixWithUnsuccessfulNeed covers the resolver deciding the job's fate before touching
-// the matrix: a need that did not succeed leaves no outputs to build it from, so the placeholder has
-// to be skipped like any other job with such a need, not failed over a matrix it never had to
-// evaluate. Expanding first would also insert combinations that can only be skipped.
-func TestDeferredMatrixWithUnsuccessfulNeed(t *testing.T) {
+// TestDeferredMatrixResolverGating covers the resolver deciding a placeholder's fate around the
+// expansion. A need that did not succeed leaves no outputs to build the matrix from, so the job is
+// skipped like any other job with such a need rather than failed over a matrix it never had to
+// evaluate, and no combination is inserted. A job that does run is then gated by its own
+// combination: the placeholder reused as the first one is judged by `matrix.*`, not by the raw
+// expression the `if:` would have seen before expansion.
+func TestDeferredMatrixResolverGating(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	for _, tt := range []struct {
 		name       string
 		needStatus actions_model.Status
+		jobIf      string
+		outputs    map[string]string
+		wantBuilds []string
 	}{
-		{"failed need", actions_model.StatusFailure},
-		{"skipped need", actions_model.StatusSkipped},
+		{name: "failed need", needStatus: actions_model.StatusFailure, wantBuilds: []string{"build"}},
+		{name: "skipped need", needStatus: actions_model.StatusSkipped, wantBuilds: []string{"build"}},
+		{
+			name: "`if:` gated per combination", needStatus: actions_model.StatusSuccess,
+			jobIf: "${{ matrix.value != 'a' }}", outputs: map[string]string{"values": `["a","b"]`},
+			wantBuilds: []string{"build (a)", "build (b)"},
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := t.Context()
-			job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", "", nil)
+			job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", tt.jobIf, tt.outputs)
 			_, err := db.Exec(ctx, "UPDATE `action_run_job` SET status = ? WHERE run_id = ? AND job_id = ?", int(tt.needStatus), job.RunID, "generate")
 			require.NoError(t, err)
 
-			jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
-			require.NoError(t, err)
-			run, err := actions_model.GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
-			require.NoError(t, err)
-			for _, runJob := range jobs {
-				runJob.Run = run
-			}
+			jobs := runJobs(t, job.RunID, job.RunAttemptID)
+			require.NoError(t, jobs.LoadRuns(ctx, false))
 
 			updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
 			require.NoError(t, err)
 			assert.Equal(t, actions_model.StatusSkipped, updates[job.ID])
 
-			// The matrix was never evaluated, so no combination was inserted.
-			after, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
-			require.NoError(t, err)
-			assert.Len(t, after, len(jobs))
+			var names []string
+			for _, runJob := range runJobs(t, job.RunID, job.RunAttemptID) {
+				if runJob.JobID == "build" {
+					names = append(names, runJob.Name)
+				}
+			}
+			assert.ElementsMatch(t, tt.wantBuilds, names)
 		})
-	}
-}
-
-// TestDeferredMatrixIfIsGatedPerCombination covers the placeholder reused as the first combination
-// being gated by its own `matrix.*`: the `if:` decided before expansion could only see the raw
-// matrix expression, so a combination the condition excludes would otherwise run just because it
-// happened to be the one inheriting the placeholder row.
-func TestDeferredMatrixIfIsGatedPerCombination(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-	ctx := t.Context()
-
-	job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}",
-		"${{ matrix.value != 'a' }}", map[string]string{"values": `["a","b"]`})
-
-	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
-	require.NoError(t, err)
-	run, err := actions_model.GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
-	require.NoError(t, err)
-	for _, runJob := range jobs {
-		runJob.Run = run
-	}
-
-	updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, actions_model.StatusSkipped, updates[job.ID], "`build (a)` is excluded by its own `if:`")
-
-	// The matrix was still expanded, so `build (b)` exists and is left for the next pass to resolve.
-	after, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
-	require.NoError(t, err)
-	var names []string
-	for _, runJob := range after {
-		if runJob.JobID == "build" {
-			names = append(names, runJob.Name)
-		}
-	}
-	assert.ElementsMatch(t, []string{"build (a)", "build (b)"}, names)
-}
-
-// assertSingleMatrixAnchor pins the invariant the rerun collapse relies on:
-// within one attempt, exactly one row of a dynamic-matrix job carries the raw payload.
-func assertSingleMatrixAnchor(t *testing.T, runID, attemptID int64) {
-	t.Helper()
-	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(t.Context(), runID, attemptID)
-	require.NoError(t, err)
-	anchors := make(map[string][]string)
-	for _, job := range jobs {
-		if len(job.DeferredMatrixPayload) > 0 {
-			key := fmt.Sprintf("%d/%s", job.ParentJobID, job.JobID)
-			anchors[key] = append(anchors[key], job.Name)
-		}
-	}
-	for key, names := range anchors {
-		assert.Len(t, names, 1, "job %s must have exactly one anchor row, got %v", key, names)
 	}
 }

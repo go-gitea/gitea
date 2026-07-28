@@ -135,7 +135,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		// Inherit from the placeholder rather than listing fields, so a sibling cannot silently lose
 		// one (scope, permissions, `uses:`) as the job model grows.
 		sibling := *job
-		sibling.ID, sibling.TaskID, sibling.SourceTaskID = 0, 0, 0
+		sibling.ID, sibling.TaskID, sibling.SourceTaskID, sibling.AttemptJobID = 0, 0, 0, 0
 		sibling.Started, sibling.Stopped, sibling.IsMatrixDeferred = 0, 0, false
 		sibling.Status = actions_model.StatusBlocked
 		sibling.Needs = slices.Clone(job.Needs)
@@ -147,24 +147,26 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		siblings = append(siblings, &sibling)
 	}
 
-	// Keep AttemptJobIDs stable across attempts (best-effort)
-	parentAttemptJobID := int64(0)
-	if job.ParentJobID > 0 {
-		parent, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
-		if err != nil {
-			return retryLater(fmt.Errorf("load parent of job %d: %w", job.ID, err))
+	// Keep AttemptJobIDs stable across attempts (best-effort). A single combination reuses the
+	// placeholder's row, so there is nothing to look up.
+	if len(siblings) > 0 {
+		parentAttemptJobID := int64(0)
+		if job.ParentJobID > 0 {
+			parent, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
+			if err != nil {
+				return retryLater(fmt.Errorf("load parent of job %d: %w", job.ID, err))
+			}
+			parentAttemptJobID = parent.AttemptJobID
 		}
-		parentAttemptJobID = parent.AttemptJobID
-	}
-	priorCombos, err := actions_model.GetPriorAttemptMatrixCombos(ctx, job.RunID, job.RunAttemptID, parentAttemptJobID, job.JobID)
-	if err != nil {
-		return retryLater(fmt.Errorf("lookup prior attempt combos of job %d: %w", job.ID, err))
-	}
-	usedIDs := container.SetOf(job.AttemptJobID)
-	for _, sibling := range siblings {
-		sibling.AttemptJobID = 0
-		if prior, ok := priorCombos[sibling.Name]; ok && usedIDs.Add(prior.AttemptJobID) {
-			sibling.AttemptJobID = prior.AttemptJobID
+		priorCombos, err := actions_model.GetPriorAttemptMatrixCombos(ctx, job.RunID, job.RunAttemptID, parentAttemptJobID, job.JobID)
+		if err != nil {
+			return retryLater(fmt.Errorf("lookup prior attempt combos of job %d: %w", job.ID, err))
+		}
+		usedIDs := container.SetOf(job.AttemptJobID)
+		for _, sibling := range siblings {
+			if prior, ok := priorCombos[sibling.Name]; ok && usedIDs.Add(prior.AttemptJobID) {
+				sibling.AttemptJobID = prior.AttemptJobID
+			}
 		}
 	}
 
@@ -172,7 +174,6 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 	// conditional update is an atomic claim: only the caller that flips IsMatrixDeferred inserts.
 	beforeClaim := *job
 	if err := applyCombo(job, expandedJobs[0]); err != nil {
-		*job = beforeClaim // failTerminal only persists the status, so do not keep the half-applied combination
 		return failTerminal(err)
 	}
 	job.IsMatrixDeferred = false
@@ -212,15 +213,11 @@ func restoreDeferredMatrixPlaceholder(clone *actions_model.ActionRunJob) error {
 	if err := yaml.Unmarshal(clone.DeferredMatrixPayload, &swf); err != nil {
 		return fmt.Errorf("unmarshal deferred matrix payload: %w", err)
 	}
-	jobID, parsed := swf.Job()
+	_, parsed := swf.Job()
 	if parsed == nil {
 		return errors.New("deferred matrix payload contains no job")
 	}
-	name := parsed.Name
-	if name == "" {
-		name = jobID
-	}
-	clone.Name = util.EllipsisDisplayString(name, 255)
+	clone.Name = util.EllipsisDisplayString(parsed.Name, 255)
 	clone.WorkflowPayload = slices.Clone(clone.DeferredMatrixPayload)
 	clone.RunsOn = parsed.RunsOn()
 	clone.ContinueOnError = parsed.GetContinueOnError()

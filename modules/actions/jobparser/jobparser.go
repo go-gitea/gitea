@@ -38,11 +38,11 @@ func rawMatrixReadsNeeds(node *yaml.Node) bool {
 // contexts the run publishes, which a repository's required checks are configured against.
 func expressionReadsNeeds(value string) bool {
 	for rest := value; ; {
-		start := strings.Index(rest, "${{")
-		if start < 0 {
+		_, after, found := strings.Cut(rest, "${{")
+		if !found {
 			return false
 		}
-		rest = rest[start+len("${{"):]
+		rest = after
 		// The lexer ends the expression at its closing `}}`, so it can be handed the whole remainder.
 		expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(rest))
 		if err != nil {
