@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package actions
@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	pathpkg "path"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,6 +31,8 @@ import (
 	"gitea.dev/modules/util/filebuffer"
 	actions_service "gitea.dev/services/actions"
 	context_module "gitea.dev/services/context"
+
+	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
 type ArtifactsViewItem struct {
@@ -53,18 +56,16 @@ const (
 	artifactPreviewMaxFiles                 = 2000
 )
 
-type artifactPreviewV4ZipListCacheEntry struct {
+// artifactPreviewList is one artifact's file listing for the preview browser.
+// `paths` is sorted and capped at artifactPreviewMaxFiles; `truncated` reports whether the cap dropped entries.
+type artifactPreviewList struct {
 	paths     []string
-	expiresAt time.Time
+	truncated bool
 }
 
-var artifactPreviewV4ZipListCache = struct {
-	mu      sync.Mutex
-	entries map[string]artifactPreviewV4ZipListCacheEntry
-	order   []string
-}{
-	entries: map[string]artifactPreviewV4ZipListCacheEntry{},
-}
+// artifactPreviewV4ZipListCache caches each v4 artifact's listing, keyed by artifact ID and update time.
+// Cached listings are capped, so an artifact with a huge number of entries cannot pin unbounded memory here.
+var artifactPreviewV4ZipListCache = expirable.NewLRU[string, artifactPreviewList](artifactPreviewV4ZipListCacheMaxEntries, nil, artifactPreviewV4ZipListCacheTTL)
 
 type readAtBySeeker struct {
 	rs io.ReadSeeker
@@ -127,6 +128,7 @@ func getCurrentRunAndUploadedArtifacts(ctx *context_module.Context, artifactName
 		return nil, nil, false
 	}
 
+	// if artifacts status is not uploaded-confirmed, treat it as not found
 	for _, art := range artifacts {
 		if art.Status != actions_model.ArtifactStatusUploadConfirmed {
 			ctx.HTTPError(http.StatusNotFound, "artifact not found")
@@ -217,15 +219,20 @@ func BuildArtifactPreviewFiles(paths []string, selectedPath string) []ArtifactPr
 	return previewFiles
 }
 
-func limitArtifactPreviewPaths(paths []string, selectedPath string) ([]string, bool) {
+// capArtifactPreviewPaths caps a sorted path list at artifactPreviewMaxFiles.
+// The cap bounds what the listing cache retains, so an artifact with a huge number of entries cannot pin memory.
+func capArtifactPreviewPaths(paths []string) ([]string, bool) {
 	if len(paths) <= artifactPreviewMaxFiles {
 		return paths, false
 	}
-	limited := append([]string(nil), paths[:artifactPreviewMaxFiles]...)
-	if selectedPath != "" && !util.SliceContainsString(limited, selectedPath) && util.SliceContainsString(paths, selectedPath) {
-		limited[len(limited)-1] = selectedPath
-	}
-	return limited, true
+	// copy instead of reslicing, otherwise the cached slice keeps the full backing array alive
+	return append([]string(nil), paths[:artifactPreviewMaxFiles]...), true
+}
+
+// insertArtifactPreviewPath adds a path to a sorted listing in sorted position, so the rendered tree stays grouped by directory.
+func insertArtifactPreviewPath(paths []string, path string) []string {
+	i := sort.SearchStrings(paths, path)
+	return slices.Insert(slices.Clone(paths), i, path)
 }
 
 func artifactPreviewTotalSize(artifacts []*actions_model.ActionArtifact) int64 {
@@ -271,6 +278,11 @@ func listPreviewPathsForLegacyArtifacts(artifacts []*actions_model.ActionArtifac
 	return paths
 }
 
+func listPreviewForLegacyArtifacts(artifacts []*actions_model.ActionArtifact) artifactPreviewList {
+	paths, truncated := capArtifactPreviewPaths(listPreviewPathsForLegacyArtifacts(artifacts))
+	return artifactPreviewList{paths: paths, truncated: truncated}
+}
+
 func openArtifactV4ZipReader(artifact *actions_model.ActionArtifact) (storage.Object, *zip.Reader, error) {
 	f, err := storage.ActionsArtifacts.Open(artifact.StoragePath)
 	if err != nil {
@@ -290,9 +302,9 @@ func openArtifactV4ZipReader(artifact *actions_model.ActionArtifact) (storage.Ob
 	return f, reader, nil
 }
 
-func listArtifactV4ZipFiles(reader *zip.Reader) ([]string, map[string]*zip.File) {
+func listArtifactV4ZipPaths(reader *zip.Reader) artifactPreviewList {
 	paths := make([]string, 0, len(reader.File))
-	files := make(map[string]*zip.File, len(reader.File))
+	seen := make(map[string]struct{}, len(reader.File))
 	for _, file := range reader.File {
 		if file.FileInfo().IsDir() {
 			continue
@@ -301,101 +313,77 @@ func listArtifactV4ZipFiles(reader *zip.Reader) ([]string, map[string]*zip.File)
 		if path == "" {
 			continue
 		}
-		if _, ok := files[path]; ok {
+		if _, ok := seen[path]; ok {
 			continue
 		}
-		files[path] = file
+		seen[path] = struct{}{}
 		paths = append(paths, path)
 	}
 	sort.Strings(paths)
-	return paths, files
+	capped, truncated := capArtifactPreviewPaths(paths)
+	return artifactPreviewList{paths: capped, truncated: truncated}
 }
 
-func listPreviewPathsForV4Artifact(artifact *actions_model.ActionArtifact) ([]string, error) {
-	if paths, ok := getArtifactPreviewV4ZipListFromCache(artifact); ok {
-		return paths, nil
+// findArtifactV4ZipFile locates a single entry without materializing the whole listing.
+// An empty `requested` selects the first file in sorted order, matching what the preview browser selects by default.
+func findArtifactV4ZipFile(reader *zip.Reader, requested string) (string, *zip.File) {
+	var foundPath string
+	var found *zip.File
+	for _, file := range reader.File {
+		if file.FileInfo().IsDir() {
+			continue
+		}
+		path := normalizeArtifactPreviewPath(file.Name)
+		if path == "" {
+			continue
+		}
+		if requested != "" {
+			if path == requested {
+				return path, file
+			}
+			continue
+		}
+		if found == nil || path < foundPath {
+			foundPath, found = path, file
+		}
+	}
+	if requested != "" {
+		return "", nil
+	}
+	return foundPath, found
+}
+
+func listPreviewForV4Artifact(artifact *actions_model.ActionArtifact) (artifactPreviewList, error) {
+	key := artifactPreviewV4ZipListCacheKey(artifact)
+	if list, ok := artifactPreviewV4ZipListCache.Get(key); ok {
+		return list, nil
 	}
 
 	obj, reader, err := openArtifactV4ZipReader(artifact)
 	if err != nil {
 		if errors.Is(err, zip.ErrFormat) {
-			paths := []string{artifactPreviewFallbackPath(artifact)}
-			setArtifactPreviewV4ZipListCache(artifact, paths)
-			return paths, nil
+			list := artifactPreviewList{paths: []string{artifactPreviewFallbackPath(artifact)}}
+			artifactPreviewV4ZipListCache.Add(key, list)
+			return list, nil
 		}
-		return nil, err
+		return artifactPreviewList{}, err
 	}
 	defer obj.Close()
 
-	paths, _ := listArtifactV4ZipFiles(reader)
-	setArtifactPreviewV4ZipListCache(artifact, paths)
-	return paths, nil
+	list := listArtifactV4ZipPaths(reader)
+	artifactPreviewV4ZipListCache.Add(key, list)
+	return list, nil
 }
 
 func artifactPreviewV4ZipListCacheKey(artifact *actions_model.ActionArtifact) string {
 	return strconv.FormatInt(artifact.ID, 10) + ":" + strconv.FormatInt(int64(artifact.UpdatedUnix), 10)
 }
 
-func removeArtifactPreviewV4ZipListCacheOrderKey(order []string, key string) []string {
-	for i, current := range order {
-		if current != key {
-			continue
-		}
-		return append(order[:i], order[i+1:]...)
-	}
-	return order
-}
-
-func getArtifactPreviewV4ZipListFromCache(artifact *actions_model.ActionArtifact) ([]string, bool) {
-	key := artifactPreviewV4ZipListCacheKey(artifact)
-
-	artifactPreviewV4ZipListCache.mu.Lock()
-	entry, ok := artifactPreviewV4ZipListCache.entries[key]
-	if !ok {
-		artifactPreviewV4ZipListCache.mu.Unlock()
-		return nil, false
-	}
-	if time.Now().After(entry.expiresAt) {
-		delete(artifactPreviewV4ZipListCache.entries, key)
-		artifactPreviewV4ZipListCache.order = removeArtifactPreviewV4ZipListCacheOrderKey(artifactPreviewV4ZipListCache.order, key)
-		artifactPreviewV4ZipListCache.mu.Unlock()
-		return nil, false
-	}
-	paths := append([]string(nil), entry.paths...)
-	artifactPreviewV4ZipListCache.mu.Unlock()
-	return paths, true
-}
-
-func setArtifactPreviewV4ZipListCache(artifact *actions_model.ActionArtifact, paths []string) {
-	key := artifactPreviewV4ZipListCacheKey(artifact)
-
-	artifactPreviewV4ZipListCache.mu.Lock()
-	defer artifactPreviewV4ZipListCache.mu.Unlock()
-
-	if _, ok := artifactPreviewV4ZipListCache.entries[key]; ok {
-		artifactPreviewV4ZipListCache.order = removeArtifactPreviewV4ZipListCacheOrderKey(artifactPreviewV4ZipListCache.order, key)
-	}
-	artifactPreviewV4ZipListCache.order = append(artifactPreviewV4ZipListCache.order, key)
-	artifactPreviewV4ZipListCache.entries[key] = artifactPreviewV4ZipListCacheEntry{
-		paths:     append([]string(nil), paths...),
-		expiresAt: time.Now().Add(artifactPreviewV4ZipListCacheTTL),
-	}
-
-	for len(artifactPreviewV4ZipListCache.entries) > artifactPreviewV4ZipListCacheMaxEntries && len(artifactPreviewV4ZipListCache.order) > 0 {
-		oldestKey := artifactPreviewV4ZipListCache.order[0]
-		artifactPreviewV4ZipListCache.order = artifactPreviewV4ZipListCache.order[1:]
-		if _, ok := artifactPreviewV4ZipListCache.entries[oldestKey]; !ok {
-			continue
-		}
-		delete(artifactPreviewV4ZipListCache.entries, oldestKey)
-	}
-}
-
-func listPreviewPaths(artifacts []*actions_model.ActionArtifact) ([]string, error) {
+func listPreview(artifacts []*actions_model.ActionArtifact) (artifactPreviewList, error) {
 	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
-		return listPreviewPathsForV4Artifact(artifacts[0])
+		return listPreviewForV4Artifact(artifacts[0])
 	}
-	return listPreviewPathsForLegacyArtifacts(artifacts), nil
+	return listPreviewForLegacyArtifacts(artifacts), nil
 }
 
 func isPreviewableArtifactType(st typesniffer.SniffedType) bool {
@@ -462,6 +450,23 @@ func previewArtifactByReader(ctx *context_module.Context, path string, reader io
 }
 
 func previewArtifactByReadSeeker(ctx *context_module.Context, path string, reader io.ReadSeeker) {
+	// seekable sources are served straight from storage, so the size limit has to be enforced here too
+	size, err := reader.Seek(0, io.SeekEnd)
+	if err != nil {
+		log.Error("artifact preview Seek: %v", err)
+		WritePreviewRawError(ctx, http.StatusInternalServerError, "failed to read artifact")
+		return
+	}
+	if size > setting.UI.MaxDisplayFileSize {
+		WritePreviewRawError(ctx, http.StatusRequestEntityTooLarge, "file is too large to preview, please download the artifact instead")
+		return
+	}
+	if _, err := reader.Seek(0, io.SeekStart); err != nil {
+		log.Error("artifact preview Seek: %v", err)
+		WritePreviewRawError(ctx, http.StatusInternalServerError, "failed to read artifact")
+		return
+	}
+
 	buf := make([]byte, typesniffer.SniffContentSize)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
@@ -495,19 +500,27 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 		return
 	}
 
-	var paths []string
-	if isArtifactPreviewSizeAllowed(artifacts) {
+	previewTooLarge := !isArtifactPreviewSizeAllowed(artifacts)
+	var list artifactPreviewList
+	if !previewTooLarge {
 		var err error
-		paths, err = listPreviewPaths(artifacts)
+		list, err = listPreview(artifacts)
 		if err != nil {
-			ctx.ServerError("listPreviewPaths", err)
+			ctx.ServerError("listPreview", err)
 			return
 		}
 	}
 	requested := GetRequestedPreviewPath(ctx)
-	selectedPath := ChoosePreviewPath(paths, requested)
-	limitedPaths, previewFilesTruncated := limitArtifactPreviewPaths(paths, selectedPath)
-	previewFiles := BuildArtifactPreviewFiles(limitedPaths, selectedPath)
+	selectedPath := ChoosePreviewPath(list.paths, requested)
+	if selectedPath == "" && requested != "" && list.truncated {
+		// the listing was capped, so absence from it does not prove the file is missing: select it and let the raw view report the real result
+		selectedPath = requested
+	}
+	previewPaths := list.paths
+	if selectedPath != "" && !util.SliceContainsString(previewPaths, selectedPath) {
+		previewPaths = insertArtifactPreviewPath(previewPaths, selectedPath)
+	}
+	previewFiles := BuildArtifactPreviewFiles(previewPaths, selectedPath)
 
 	runURL := run.Link()
 	artifactPath := url.PathEscape(artifactName)
@@ -529,16 +542,17 @@ func ArtifactsPreviewView(ctx *context_module.Context) {
 	ctx.Data["AttemptQuery"] = attemptQuery
 	ctx.Data["AttemptAmpQuery"] = attemptAmpQuery
 	ctx.Data["SelectedPath"] = selectedPath
-	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == ""
-	ctx.Data["PreviewTooLarge"] = !isArtifactPreviewSizeAllowed(artifacts)
-	ctx.Data["PreviewFilesTruncated"] = previewFilesTruncated
+	// only claim the file is missing when a listing was actually computed, otherwise an over-sized artifact reports both warnings
+	ctx.Data["RequestedPathMissing"] = requested != "" && selectedPath == "" && !previewTooLarge
+	ctx.Data["PreviewTooLarge"] = previewTooLarge
+	ctx.Data["PreviewFilesTruncated"] = list.truncated
 	ctx.Data["PreviewFiles"] = previewFiles
 
 	ctx.HTML(http.StatusOK, tplArtifactPreviewAction)
 }
 
 // serveArtifactV4PreviewRaw opens the v4 artifact zip once and serves a single file from it,
-// avoiding the redundant parse that listPreviewPaths would do for raw fetches.
+// avoiding the redundant parse that listPreview would do for raw fetches.
 func serveArtifactV4PreviewRaw(ctx *context_module.Context, artifact *actions_model.ActionArtifact, requested string) {
 	obj, reader, err := openArtifactV4ZipReader(artifact)
 	if err != nil {
@@ -565,13 +579,11 @@ func serveArtifactV4PreviewRaw(ctx *context_module.Context, artifact *actions_mo
 	}
 	defer obj.Close()
 
-	paths, files := listArtifactV4ZipFiles(reader)
-	selectedPath := ChoosePreviewPath(paths, requested)
-	if selectedPath == "" {
+	selectedPath, zf := findArtifactV4ZipFile(reader, requested)
+	if zf == nil {
 		WritePreviewRawError(ctx, http.StatusNotFound, "artifact file not found")
 		return
 	}
-	zf := files[selectedPath]
 	r, err := zf.Open()
 	if err != nil {
 		log.Error("artifact preview zip.File.Open: %v", err)
@@ -689,6 +701,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		return
 	}
 
+	// if artifacts status is not uploaded-confirmed, treat it as not found
 	for _, art := range artifacts {
 		if art.Status != actions_model.ArtifactStatusUploadConfirmed {
 			ctx.HTTPError(http.StatusNotFound, "artifact not found")
@@ -696,8 +709,11 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		}
 	}
 
-	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(artifactName+".zip"))
+	// A v4 Artifact may only contain a single file
+	// Multiple files are uploaded as a single file archive
+	// All other cases fall back to the legacy v1–v3 zip handling below
 	if len(artifacts) == 1 && actions_service.IsArtifactV4(artifacts[0]) {
+		// DownloadArtifactV4 sets its own headers; setting them here would make an error page download as a .zip
 		err := actions_service.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.ServerError("DownloadArtifactV4", err)
@@ -705,6 +721,8 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 		}
 		return
 	}
+
+	ctx.Resp.Header().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(artifactName+".zip"))
 
 	// Artifacts using the v1-v3 backend are stored as multiple individual files per artifact on the backend
 	// Those need to be zipped for download

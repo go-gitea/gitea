@@ -6,7 +6,6 @@ package actions
 import (
 	"strconv"
 	"testing"
-	"time"
 
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
@@ -111,104 +110,38 @@ func TestConvertToViewModel(t *testing.T) {
 	assert.Equal(t, expectedViewJobs, viewJobSteps)
 }
 
-func resetArtifactPreviewV4ZipListCacheForTest() {
-	artifactPreviewV4ZipListCache.mu.Lock()
-	defer artifactPreviewV4ZipListCache.mu.Unlock()
-	artifactPreviewV4ZipListCache.entries = map[string]artifactPreviewV4ZipListCacheEntry{}
-	artifactPreviewV4ZipListCache.order = nil
+func TestArtifactPreviewV4ZipListCacheKeyChangesOnUpdate(t *testing.T) {
+	artifact := &actions_model.ActionArtifact{ID: 1, UpdatedUnix: timeutil.TimeStamp(2)}
+	updated := &actions_model.ActionArtifact{ID: 1, UpdatedUnix: timeutil.TimeStamp(3)}
+	assert.NotEqual(t, artifactPreviewV4ZipListCacheKey(artifact), artifactPreviewV4ZipListCacheKey(updated))
 }
 
-func TestArtifactPreviewV4ZipListCacheSetGet(t *testing.T) {
-	resetArtifactPreviewV4ZipListCacheForTest()
-
-	artifact := &actions_model.ActionArtifact{
-		ID:          1,
-		UpdatedUnix: timeutil.TimeStamp(2),
-		StoragePath: "artifact/path.zip",
-	}
-	paths := []string{"index.html", "logs/output.txt"}
-	setArtifactPreviewV4ZipListCache(artifact, paths)
-
-	paths[0] = "changed"
-	got, ok := getArtifactPreviewV4ZipListFromCache(artifact)
-	require.True(t, ok)
-	assert.Equal(t, []string{"index.html", "logs/output.txt"}, got)
-
-	got[0] = "changed-again"
-	got2, ok := getArtifactPreviewV4ZipListFromCache(artifact)
-	require.True(t, ok)
-	assert.Equal(t, []string{"index.html", "logs/output.txt"}, got2)
-}
-
-func TestArtifactPreviewV4ZipListCacheExpires(t *testing.T) {
-	resetArtifactPreviewV4ZipListCacheForTest()
-
-	artifact := &actions_model.ActionArtifact{
-		ID:          2,
-		UpdatedUnix: timeutil.TimeStamp(3),
-		StoragePath: "artifact/expired.zip",
-	}
-	key := artifactPreviewV4ZipListCacheKey(artifact)
-
-	artifactPreviewV4ZipListCache.mu.Lock()
-	artifactPreviewV4ZipListCache.entries[key] = artifactPreviewV4ZipListCacheEntry{
-		paths:     []string{"expired.txt"},
-		expiresAt: time.Now().Add(-time.Second),
-	}
-	artifactPreviewV4ZipListCache.order = []string{key}
-	artifactPreviewV4ZipListCache.mu.Unlock()
-
-	_, ok := getArtifactPreviewV4ZipListFromCache(artifact)
-	require.False(t, ok)
-
-	artifactPreviewV4ZipListCache.mu.Lock()
-	_, exists := artifactPreviewV4ZipListCache.entries[key]
-	order := append([]string(nil), artifactPreviewV4ZipListCache.order...)
-	artifactPreviewV4ZipListCache.mu.Unlock()
-	assert.False(t, exists)
-	assert.NotContains(t, order, key)
-}
-
-func TestArtifactPreviewV4ZipListCacheEvictsOldest(t *testing.T) {
-	resetArtifactPreviewV4ZipListCacheForTest()
-
-	for i := range artifactPreviewV4ZipListCacheMaxEntries + 1 {
-		artifact := &actions_model.ActionArtifact{
-			ID:          int64(i + 1),
-			UpdatedUnix: timeutil.TimeStamp(i + 1),
-			StoragePath: "artifact/cache-entry.zip",
-		}
-		setArtifactPreviewV4ZipListCache(artifact, []string{"file.txt"})
-	}
-
-	oldest := &actions_model.ActionArtifact{
-		ID:          1,
-		UpdatedUnix: timeutil.TimeStamp(1),
-		StoragePath: "artifact/cache-entry.zip",
-	}
-	_, ok := getArtifactPreviewV4ZipListFromCache(oldest)
-	assert.False(t, ok)
-
-	newest := &actions_model.ActionArtifact{
-		ID:          artifactPreviewV4ZipListCacheMaxEntries + 1,
-		UpdatedUnix: timeutil.TimeStamp(artifactPreviewV4ZipListCacheMaxEntries + 1),
-		StoragePath: "artifact/cache-entry.zip",
-	}
-	_, ok = getArtifactPreviewV4ZipListFromCache(newest)
-	assert.True(t, ok)
-}
-
-func TestLimitArtifactPreviewPathsKeepsSelectedPath(t *testing.T) {
+func TestCapArtifactPreviewPaths(t *testing.T) {
 	paths := make([]string, artifactPreviewMaxFiles+10)
 	for i := range paths {
 		paths[i] = "file-" + strconv.Itoa(i) + ".txt"
 	}
-	selectedPath := paths[len(paths)-1]
 
-	limited, truncated := limitArtifactPreviewPaths(paths, selectedPath)
+	capped, truncated := capArtifactPreviewPaths(paths)
 	require.True(t, truncated)
-	require.Len(t, limited, artifactPreviewMaxFiles)
-	assert.Contains(t, limited, selectedPath)
+	require.Len(t, capped, artifactPreviewMaxFiles)
+	// the cap must copy, otherwise the cached slice keeps the full backing array alive
+	paths[0] = "changed"
+	assert.Equal(t, "file-0.txt", capped[0])
+
+	short := []string{"a.txt", "b.txt"}
+	capped, truncated = capArtifactPreviewPaths(short)
+	assert.False(t, truncated)
+	assert.Equal(t, short, capped)
+}
+
+func TestInsertArtifactPreviewPath(t *testing.T) {
+	paths := []string{"a.txt", "c.txt", "dir/a.txt"}
+
+	assert.Equal(t, []string{"a.txt", "b.txt", "c.txt", "dir/a.txt"}, insertArtifactPreviewPath(paths, "b.txt"))
+	// the source listing may be the cached slice, so it must not be modified in place
+	assert.Equal(t, []string{"a.txt", "c.txt", "dir/a.txt"}, paths)
+	assert.Equal(t, []string{"a.txt", "c.txt", "dir/a.txt", "z.txt"}, insertArtifactPreviewPath(paths, "z.txt"))
 }
 
 func TestNormalizeArtifactPreviewPath(t *testing.T) {

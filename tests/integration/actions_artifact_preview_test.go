@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -148,6 +149,38 @@ func TestActionsArtifactPreviewArtifactTooLarge(t *testing.T) {
 
 	req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw/abc.txt", repo.FullName())
 	session.MakeRequest(t, req, http.StatusRequestEntityTooLarge)
+
+	// no file list was computed, so the page must not also claim the requested file is missing
+	req = NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview?path=abc.txt", repo.FullName())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.NotContains(t, resp.Body.String(), "The requested file is not present")
+}
+
+func TestActionsArtifactPreviewFileTooLarge(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+	defer test.MockVariableValue(&setting.UI.MaxDisplayFileSize, 16)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	session := loginUser(t, "user2")
+
+	// a seekable artifact is served straight from storage, so it must hit the same size limit as the buffered paths
+	req := NewRequestf(t, "GET", "/%s/actions/runs/791/artifacts/artifact-download/preview/raw/abc.txt", repo.FullName())
+	session.MakeRequest(t, req, http.StatusRequestEntityTooLarge)
+}
+
+func TestActionsArtifactDownloadV4StorageErrorIsNotAttachment(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	artifact := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionArtifact{ID: 22})
+	require.NoError(t, storage.ActionsArtifacts.Delete(artifact.StoragePath))
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	session := loginUser(t, "user2")
+
+	// the error page must render as a page, not download as a corrupt .zip
+	req := NewRequestf(t, "GET", "/%s/actions/runs/792/artifacts/artifact-v4-download", repo.FullName())
+	resp := session.MakeRequest(t, req, http.StatusInternalServerError)
+	assert.NotContains(t, resp.Header().Get("Content-Disposition"), "attachment")
 }
 
 func TestActionsArtifactPreviewV4Zip(t *testing.T) {
