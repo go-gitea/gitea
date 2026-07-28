@@ -155,29 +155,41 @@ export async function apiDeleteUser(requestContext: APIRequestContext, username:
   }), 'apiDeleteUser');
 }
 
+/**
+ * Create a repository project and return its id.
+ *
+ * Driving the creation form through the browser cost two full page loads (the form
+ * and the redirected list) in every test that needed a project, which dominated the
+ * runtime of the project suites. Creation is a plain form POST, so it is issued
+ * directly and the id is read back off the project list, the same way
+ * createProjectColumn already avoids the browser.
+ */
 export async function createProject(
   page: Page,
   {owner, repo, title}: {owner: string; repo: string; title: string},
 ): Promise<{id: number}> {
-  // Navigate to new project page
-  await page.goto(`/${owner}/${repo}/projects/new`);
+  await apiRetry(() => page.request.post(`${baseUrl()}/${owner}/${repo}/projects/new`, {
+    headers: apiHeaders(),
+    form: {title},
+  }), 'createProject');
 
-  // Fill in project details
-  await page.getByLabel('Title').fill(title);
+  const response = await page.request.get(`${baseUrl()}/${owner}/${repo}/projects`, {headers: apiHeaders()});
+  if (!response.ok()) throw new Error(`createProject: listing ${owner}/${repo} projects failed: ${response.status()}`);
 
-  // Submit the form
-  await page.getByRole('button', {name: 'Create Project'}).click();
+  // The list renders one `<a href=".../projects/<id>">Title</a>` per project. A repo
+  // can hold several projects, so the id has to be matched against this title.
+  const escapedTitle = title.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+  const match = new RegExp(`href="[^"]*/projects/(\\d+)"[^>]*>\\s*${escapedTitle}\\s*<`).exec(await response.text());
+  if (!match) throw new Error(`createProject: no project titled ${title} in ${owner}/${repo}`);
 
-  // Wait for redirect to projects list
-  await page.waitForURL(new RegExp(`/${owner}/${repo}/projects$`));
+  return {id: parseInt(match[1])};
+}
 
-  // Extract the project ID from the project link in the list
-  const projectLink = page.locator('.milestone-list > .item').filter({hasText: title}).locator('a').first();
-  const href = await projectLink.getAttribute('href');
-  const match = /\/projects\/(\d+)/.exec(href || '');
-  const id = match ? parseInt(match[1]) : 0;
-
-  return {id};
+export async function apiAddCollaborator(requestContext: APIRequestContext, owner: string, repo: string, collaborator: string, permission: 'read' | 'write' | 'admin' = 'read') {
+  await apiRetry(() => requestContext.put(`${baseUrl()}/api/v1/repos/${owner}/${repo}/collaborators/${collaborator}`, {
+    headers: apiHeaders(),
+    data: {permission},
+  }), 'apiAddCollaborator');
 }
 
 export async function apiCreateIssue(
