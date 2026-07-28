@@ -87,6 +87,48 @@ func TestAPIModifyLabels(t *testing.T) {
 	req = NewRequest(t, "DELETE", singleURLStr).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
+
+	// EditLabel / DeleteLabel by name (parity with GetLabel; #34937)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateLabelOption{
+		Name:  "by-name-label",
+		Color: "#fedcba",
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	apiLabel = DecodeJSON(t, resp, &api.Label{})
+	assert.Equal(t, "by-name-label", apiLabel.Name)
+
+	nameURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels/%s", owner.Name, repo.Name, "by-name-label")
+	req = NewRequest(t, "GET", nameURLStr).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiLabel = DecodeJSON(t, resp, &api.Label{})
+	assert.Equal(t, "by-name-label", apiLabel.Name)
+
+	nameEdited := "by-name-edited"
+	nameColor := "112233"
+	req = NewRequestWithJSON(t, "PATCH", nameURLStr, &api.EditLabelOption{
+		Name:  &nameEdited,
+		Color: &nameColor,
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiLabel = DecodeJSON(t, resp, &api.Label{})
+	assert.Equal(t, nameEdited, apiLabel.Name)
+	assert.Equal(t, nameColor, apiLabel.Color)
+
+	// name path must track rename; old name is gone
+	req = NewRequest(t, "DELETE", nameURLStr).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+	editedURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/labels/%s", owner.Name, repo.Name, nameEdited)
+	req = NewRequest(t, "DELETE", editedURLStr).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: apiLabel.ID})
+
+	// missing name -> 404 (not silent 204)
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/labels/%s", owner.Name, repo.Name, "does-not-exist")).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPIAddIssueLabels(t *testing.T) {
@@ -291,4 +333,44 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	req = NewRequest(t, "DELETE", singleURLStr).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
+
+	// EditLabel / DeleteLabel by name (parity with GetLabel; #34937)
+	req = NewRequestWithJSON(t, "POST", urlStr, &api.CreateLabelOption{
+		Name:  "org-by-name-label",
+		Color: "#fedcba",
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	apiLabel = DecodeJSON(t, resp, &api.Label{})
+	assert.Equal(t, "org-by-name-label", apiLabel.Name)
+
+	nameURLStr := fmt.Sprintf("/api/v1/orgs/%s/labels/%s", owner.Name, "org-by-name-label")
+	req = NewRequest(t, "GET", nameURLStr).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiLabel = DecodeJSON(t, resp, &api.Label{})
+	assert.Equal(t, "org-by-name-label", apiLabel.Name)
+
+	nameEdited := "org-by-name-edited"
+	nameColor := "112233"
+	req = NewRequestWithJSON(t, "PATCH", nameURLStr, &api.EditLabelOption{
+		Name:  &nameEdited,
+		Color: &nameColor,
+	}).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiLabel = DecodeJSON(t, resp, &api.Label{})
+	assert.Equal(t, nameEdited, apiLabel.Name)
+	assert.Equal(t, nameColor, apiLabel.Color)
+
+	req = NewRequest(t, "DELETE", nameURLStr).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+	editedURLStr := fmt.Sprintf("/api/v1/orgs/%s/labels/%s", owner.Name, nameEdited)
+	req = NewRequest(t, "DELETE", editedURLStr).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: apiLabel.ID})
+
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/labels/%s", owner.Name, "does-not-exist")).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }

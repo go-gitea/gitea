@@ -17,6 +17,26 @@ import (
 	"gitea.dev/services/convert"
 )
 
+// getOrgLabelByIDOrName resolves an org label from the path param, accepting either a numeric ID or a label name.
+// Name lookup matches GetLabel; EditLabel/DeleteLabel previously only accepted numeric IDs (#34937).
+func getOrgLabelByIDOrName(ctx *context.APIContext) (*issues_model.Label, error) {
+	strID := ctx.PathParam("id")
+	if intID, err := strconv.ParseInt(strID, 10, 64); err != nil {
+		return issues_model.GetLabelInOrgByName(ctx, ctx.Org.Organization.ID, strID)
+	} else {
+		return issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, intID)
+	}
+}
+
+// writeOrgLabelNotFound maps org label not-found errors to 404 (same as GetLabel).
+func writeOrgLabelErr(ctx *context.APIContext, err error) {
+	if issues_model.IsErrOrgLabelNotExist(err) {
+		ctx.APIErrorNotFound()
+	} else {
+		ctx.APIErrorInternal(err)
+	}
+}
+
 // ListLabels list all the labels of an organization
 func ListLabels(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/labels organization orgListLabels
@@ -110,7 +130,7 @@ func CreateLabel(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToLabel(label, nil, ctx.Org.Organization.AsUser()))
 }
 
-// GetLabel get label by organization and label id
+// GetLabel get label by organization and label id or name
 func GetLabel(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/labels/{id} organization orgGetLabel
 	// ---
@@ -125,9 +145,8 @@ func GetLabel(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the label to get
-	//   type: integer
-	//   format: int64
+	//   description: id or name of the label to get
+	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
@@ -135,22 +154,9 @@ func GetLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	var (
-		label *issues_model.Label
-		err   error
-	)
-	strID := ctx.PathParam("id")
-	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
-		label, err = issues_model.GetLabelInOrgByName(ctx, ctx.Org.Organization.ID, strID)
-	} else {
-		label, err = issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, intID)
-	}
+	label, err := getOrgLabelByIDOrName(ctx)
 	if err != nil {
-		if issues_model.IsErrOrgLabelNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		writeOrgLabelErr(ctx, err)
 		return
 	}
 
@@ -174,9 +180,8 @@ func EditLabel(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the label to edit
-	//   type: integer
-	//   format: int64
+	//   description: id or name of the label to edit
+	//   type: string
 	//   required: true
 	// - name: body
 	//   in: body
@@ -190,13 +195,9 @@ func EditLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.EditLabelOption)
-	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id"))
+	l, err := getOrgLabelByIDOrName(ctx)
 	if err != nil {
-		if issues_model.IsErrOrgLabelNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		writeOrgLabelErr(ctx, err)
 		return
 	}
 
@@ -239,9 +240,8 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the label to delete
-	//   type: integer
-	//   format: int64
+	//   description: id or name of the label to delete
+	//   type: string
 	//   required: true
 	// responses:
 	//   "204":
@@ -249,7 +249,13 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, ctx.PathParamInt64("id")); err != nil {
+	l, err := getOrgLabelByIDOrName(ctx)
+	if err != nil {
+		writeOrgLabelErr(ctx, err)
+		return
+	}
+
+	if err := issues_model.DeleteLabel(ctx, ctx.Org.Organization.ID, l.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

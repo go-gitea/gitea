@@ -17,6 +17,17 @@ import (
 	"gitea.dev/services/convert"
 )
 
+// getRepoLabelByIDOrName resolves a repo label from the path param, accepting either a numeric ID or a label name.
+// Name lookup matches GetLabel; EditLabel/DeleteLabel previously only accepted numeric IDs (#34937).
+func getRepoLabelByIDOrName(ctx *context.APIContext) (*issues_model.Label, error) {
+	strID := ctx.PathParam("id")
+	if intID, err := strconv.ParseInt(strID, 10, 64); err != nil {
+		return issues_model.GetLabelInRepoByName(ctx, ctx.Repo.Repository.ID, strID)
+	} else {
+		return issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, intID)
+	}
+}
+
 // ListLabels list all the labels of a repository
 func ListLabels(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/labels issue issueListLabels
@@ -65,7 +76,7 @@ func ListLabels(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, nil))
 }
 
-// GetLabel get label by repository and label id
+// GetLabel get label by repository and label id or name
 func GetLabel(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/labels/{id} issue issueGetLabel
 	// ---
@@ -85,9 +96,8 @@ func GetLabel(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the label to get
-	//   type: integer
-	//   format: int64
+	//   description: id or name of the label to get
+	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
@@ -95,16 +105,7 @@ func GetLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	var (
-		l   *issues_model.Label
-		err error
-	)
-	strID := ctx.PathParam("id")
-	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
-		l, err = issues_model.GetLabelInRepoByName(ctx, ctx.Repo.Repository.ID, strID)
-	} else {
-		l, err = issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, intID)
-	}
+	l, err := getRepoLabelByIDOrName(ctx)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -191,9 +192,8 @@ func EditLabel(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the label to edit
-	//   type: integer
-	//   format: int64
+	//   description: id or name of the label to edit
+	//   type: string
 	//   required: true
 	// - name: body
 	//   in: body
@@ -208,7 +208,7 @@ func EditLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.EditLabelOption)
-	l, err := issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
+	l, err := getRepoLabelByIDOrName(ctx)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -258,9 +258,8 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the label to delete
-	//   type: integer
-	//   format: int64
+	//   description: id or name of the label to delete
+	//   type: string
 	//   required: true
 	// responses:
 	//   "204":
@@ -268,7 +267,13 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := issues_model.DeleteLabel(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id")); err != nil {
+	l, err := getRepoLabelByIDOrName(ctx)
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return
+	}
+
+	if err := issues_model.DeleteLabel(ctx, ctx.Repo.Repository.ID, l.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
