@@ -68,6 +68,14 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 	if err != nil {
 		return false, err
 	}
+	// GenerateGiteaContext dereferences the run's repo and trigger user, so load them here instead of
+	// relying on whatever the caller happened to load before.
+	if err := run.LoadRepo(ctx); err != nil {
+		return false, err
+	}
+	if err := run.LoadTriggerUser(ctx); err != nil {
+		return false, err
+	}
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, job)
 	return jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs)
 }

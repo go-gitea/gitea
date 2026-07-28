@@ -43,7 +43,7 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 
 		sha := resp.Commit.SHA
 
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 
 		commit, err := gitRepo.GetCommit(t.Context(), sha)
@@ -86,7 +86,7 @@ func TestAgitPullPush(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepositoryLocal(dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(t.Context(), dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -149,7 +149,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		dstPath := t.TempDir()
 		doGitClone(dstPath, u)(t)
 
-		gitRepo, err := git.OpenRepositoryLocal(dstPath)
+		gitRepo, err := git.OpenRepositoryLocal(t.Context(), dstPath)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -218,7 +218,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 
 		// For AGit PRs, HeadCommitID must be loaded from git references
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-		baseGitRepo, err := git.OpenRepository(baseRepo)
+		baseGitRepo, err := git.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
 		defer baseGitRepo.Close()
 

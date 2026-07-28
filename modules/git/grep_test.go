@@ -16,7 +16,7 @@ import (
 
 func TestGrepSearch(t *testing.T) {
 	defer test.MockVariableValue(&setting.RepoRootPath, t.TempDir())()
-	repo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "language_stats_repo"))
+	repo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "language_stats_repo"))
 	assert.NoError(t, err)
 	defer repo.Close()
 
