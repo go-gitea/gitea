@@ -233,7 +233,12 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
 
       store.saving = true;
       try {
-        const event_id = store.selectedWorkflow.event_id;
+        // Unsaved workflows (id 0) may carry a client-only temporary event_id
+        // (see ProjectWorkflow.vue cloneWorkflow's unique tempId); the backend
+        // creates by event type, so send workflow_event instead in that case.
+        const event_id = store.selectedWorkflow.id === 0 ?
+          store.selectedWorkflow.workflow_event! :
+          store.selectedWorkflow.event_id;
 
         const postData = {
           event_id,

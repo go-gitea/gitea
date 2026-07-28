@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {onMounted, onUnmounted, computed, ref, watch, provide, toRaw} from 'vue';
-import {debounce} from 'throttle-debounce';
+import {debounce} from '../../utils/func.ts';
 import {createWorkflowStore} from './WorkflowStore.ts';
 import type {WorkflowEvent} from './WorkflowStore.ts';
 import {confirmModal} from '../../features/comp/ConfirmModal.ts';
@@ -187,9 +187,9 @@ const selectWorkflowItem = async (item: WorkflowEvent) => {
   }
 };
 
-const debouncedSelectWorkflowItem = debounce(150, (item: WorkflowEvent) => {
+const debouncedSelectWorkflowItem = debounce((item: WorkflowEvent) => {
   void selectWorkflowItem(item);
-});
+}, 150);
 
 // Auto-selects first configured workflow, falling back to first item.
 const autoSelectFirstWorkflow = () => {
@@ -224,7 +224,13 @@ const toggleEditMode = async () => {
   // Cancel edit mode.
   const canceled = store.selectedWorkflow;
   const wasTemp = isTemporaryWorkflow(canceled);
-  if (wasTemp) removeTemporaryWorkflow(canceled);
+  if (wasTemp) {
+    removeTemporaryWorkflow(canceled);
+  } else if (canceled) {
+    // Discard unsaved edits so loadWorkflowData below reloads server state
+    // instead of the stale draft persisted by the workflowFilters/workflowActions watchers.
+    store.clearDraft(canceled.event_id);
+  }
 
   if (previousSelection.value) {
     store.selectedItem = previousSelection.value.selectedItem;
@@ -311,13 +317,21 @@ const deleteWorkflow = async () => {
   setEditMode(false);
 };
 
+// Unique per pending clone so two clones of the same event type never share
+// an identity; selection, draft keying and removal all key off event_id.
+let cloneIdSeq = 0;
+
 const cloneWorkflow = async (sourceWorkflow?: WorkflowEvent | null) => {
   if (!props.canWriteProjects) return;
   if (!sourceWorkflow || !canCloneSelectedWorkflow.value) return;
 
-  // Temporary clones use the event-type string as their event_id
-  // (e.g. "item_opened") so the backend's "create" path is triggered on save.
-  const tempId = sourceWorkflow.workflow_event ?? sourceWorkflow.event_id;
+  // A pending clone's event_id must be unique (unlike an unconfigured
+  // placeholder's, which reuses the event-type string): cloning two saved
+  // workflows of the same event type would otherwise collide. The backend
+  // still creates by event type on save, see workflow_event usage in
+  // WorkflowStore.saveWorkflow().
+  cloneIdSeq += 1;
+  const tempId = `clone-${sourceWorkflow.event_id}-${cloneIdSeq}`;
   const cloned: WorkflowEvent = {
     id: 0,
     event_id: tempId,
