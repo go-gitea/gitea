@@ -33,8 +33,12 @@ type RepositoryBase struct {
 	objectFormatCache ObjectFormat
 
 	mu sync.Mutex
-	// Unfortunately, we can't completely remove the ctx, because CatBatch still heavily depends on a parent context.
-	// If we remove the ctx, then CatBatch's process management will become a mess and create a lot of unnecessary git processes.
+	// Unfortunately, we can't completely remove the ctx, because CatFileBatch still heavily depends on a parent context.
+	// If we remove the ctx, then CatFileBatch's process management will become a mess and create a lot of unnecessary git processes.
+	// ref: http://localhost:3000/-/admin/monitor/perftrace
+	// The root problem is that some functions like "GetCommit" need to use CatFileBatch,
+	// if CatFileBatch accepts its own ctx, then every sub-context needs a git process.
+	// e.g.: open a repo home, dozens of git processes (duplicate cat-file)
 	// ATTENTION: this ctx is for cached cat-file process only, don't use it for other purposes.
 	catFileBatchCtx    context.Context
 	catFileBatchCloser CatFileBatchCloser
