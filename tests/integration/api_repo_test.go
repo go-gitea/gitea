@@ -43,6 +43,36 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 	}
 }
 
+// TestAPIUserReposAdminDoesNotSeePrivateRepos ensures site admins listing
+// another user's repos via the public API only see repos they can access
+// (same as a normal user). Full listing remains on the admin panel (#27258).
+func TestAPIUserReposAdminDoesNotSeePrivateRepos(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	adminSession := loginUser(t, "user1")
+	token := getTokenForLoggedInUser(t, adminSession, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopeReadUser)
+
+	// repo2 is private and owned by user2; user1 is not a collaborator.
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2, OwnerID: 2})
+	require.True(t, repo2.IsPrivate)
+
+	req := NewRequest(t, "GET", "/api/v1/users/user2/repos").AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	apiRepos := DecodeJSON(t, resp, []api.Repository{})
+
+	for _, repo := range apiRepos {
+		assert.NotEqual(t, repo2.Name, repo.Name, "admin must not see inaccessible private repo via user repos API")
+		if repo.Private {
+			// private results are only allowed when admin has real access
+			r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+			has, err := access_model.HasAnyUnitAccess(t.Context(), 1, r)
+			require.NoError(t, err)
+			assert.True(t, has, "admin-listed private repo %s must be one they can access", repo.FullName)
+		}
+	}
+	assert.NotContains(t, repoNames(apiRepos), "user2/"+repo2.Name)
+}
+
 func TestAPISearchRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const keyword = "test"
@@ -281,10 +311,12 @@ func TestAPIOrgRepos(t *testing.T) {
 		count           int
 		includesPrivate bool
 	}{
-		user:  {count: 1},
-		user:  {count: 3, includesPrivate: true},
-		user2: {count: 3, includesPrivate: true},
-		org3:  {count: 1},
+		// user2 is an org member and sees private org repos
+		user: {count: 3, includesPrivate: true},
+		// user1 is site admin but not an org member — must not see private org repos (#27258)
+		user2: {count: 1},
+		// user5 is not a member
+		org3: {count: 1},
 	}
 
 	for userToLogin, expected := range expectedResults {

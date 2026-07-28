@@ -376,8 +376,11 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	cond := builder.NewCond()
 
 	if opts.Private {
-		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
-			// OK we're in the context of a User
+		// Apply access checks for any non-owner actor, including site admins.
+		// Site admins still list all of a user's repos via the admin panel (no Actor).
+		// User-facing surfaces (profile, explore-as-user, user repo API) must not leak
+		// private repos the admin is not a collaborator on — see #27258.
+		if opts.Actor != nil && opts.Actor.ID != opts.OwnerID {
 			cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
 		}
 	} else {

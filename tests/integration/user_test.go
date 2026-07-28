@@ -37,6 +37,37 @@ func TestUser(t *testing.T) {
 	t.Run("RenameUsername", testRenameUsername)
 }
 
+// TestAdminDoesNotSeePrivateReposOnUserProfile ensures that a site admin
+// visiting another user's public profile only sees repos they can access
+// (public + collaboration), not every private repo of that user (#27258).
+func TestAdminDoesNotSeePrivateReposOnUserProfile(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2, OwnerID: 2})
+	assert.True(t, repo2.IsPrivate)
+
+	// Owner still sees their private repo on their own profile.
+	ownerSession := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2?tab=repositories")
+	resp := ownerSession.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.Contains(t, htmlDoc.Find("body").Text(), repo2.Name)
+
+	// Admin must not see that private repo on the owner's profile.
+	adminSession := loginUser(t, "user1")
+	req = NewRequest(t, "GET", "/user2?tab=repositories")
+	resp = adminSession.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	// Link to the private repo should not appear in the repo list.
+	assert.Equal(t, 0, htmlDoc.Find(`a[href="/user2/`+repo2.Name+`"]`).Length(),
+		"admin profile view must not list inaccessible private repo %s", repo2.Name)
+
+	// Admin panel still lists the private repo for the user.
+	req = NewRequest(t, "GET", "/-/admin/users/2")
+	resp = adminSession.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), repo2.Name)
+}
+
 func testViewUser(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2")
 	MakeRequest(t, req, http.StatusOK)

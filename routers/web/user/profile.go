@@ -169,7 +169,9 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
-		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+		// Only the profile owner sees their private activity here. Site admins use
+		// the admin panel for privileged inspection (#27258).
+		showPrivate := ctx.IsSigned && ctx.Doer.ID == ctx.ContextUser.ID
 		// a public-only API token must not surface private activity, even for its own owner
 		if showPrivate && context.TokenIsPublicOnly(ctx) {
 			showPrivate = false

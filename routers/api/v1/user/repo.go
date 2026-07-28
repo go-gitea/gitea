@@ -9,6 +9,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
@@ -19,15 +20,20 @@ import (
 func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
+	// Use the viewer as Actor and the listed user as OwnerID so AccessibleRepositoryCondition
+	// applies (including for site admins). Admins must not see others' private repos here (#27258);
+	// they can use the admin panel. Owner viewing themselves has Actor.ID == OwnerID so all repos show.
 	searchOpts := repo_model.SearchRepoOptions{
-		Actor:       u,
+		Actor:       ctx.Doer,
+		OwnerID:     u.ID,
 		Private:     private,
+		Collaborate: optional.Some(false),
 		ListOptions: opts,
 		OrderBy:     "id ASC",
 	}
 	searchOpts.ApplyPublicOnly(ctx.PublicOnly)
 
-	repos, count, err := repo_model.GetUserRepositories(ctx, searchOpts)
+	repos, count, err := repo_model.SearchRepository(ctx, searchOpts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -45,7 +51,8 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		if ctx.IsSigned && ctx.Doer.IsAdmin || permission.HasAnyUnitAccess() {
+		// Public repos are visible without unit access; private ones already passed SearchRepository.
+		if permission.HasAnyUnitAccessOrPublicAccess() {
 			apiRepos = append(apiRepos, convert.ToRepo(ctx, repos[i], permission))
 		}
 	}

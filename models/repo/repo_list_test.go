@@ -514,3 +514,70 @@ func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3),
 		"a non-admin team must NOT grant a unit it has no team_unit row for")
 }
+
+// TestSearchRepositoryAdminDoesNotBypassAccessOnOwnerListing ensures site admins
+// only see another user's private repos they can access when OwnerID is set
+// (profile / user repo list). Admin panel omits Actor and still sees all.
+func TestSearchRepositoryAdminDoesNotBypassAccessOnOwnerListing(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NotEqual(t, admin.ID, owner.ID)
+
+	// All of owner's private repos (what an admin previously saw on the profile).
+	allOwnerPrivate, _, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{PageSize: 100},
+		OwnerID:     owner.ID,
+		Private:     true,
+		Collaborate: optional.Some(false),
+		IsPrivate:   optional.Some(true),
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, allOwnerPrivate, "fixture owner should have private repos")
+
+	// Admin viewing owner's profile: Actor=admin, OwnerID=owner.
+	adminView, _, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{PageSize: 100},
+		Actor:       admin,
+		OwnerID:     owner.ID,
+		Private:     true,
+		Collaborate: optional.Some(false),
+	})
+	require.NoError(t, err)
+
+	adminViewPrivateIDs := make(map[int64]struct{})
+	for _, r := range adminView {
+		if r.IsPrivate {
+			adminViewPrivateIDs[r.ID] = struct{}{}
+		}
+	}
+
+	// user2/repo2 is private and not shared with user1 (admin).
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2, OwnerID: owner.ID})
+	require.True(t, repo2.IsPrivate)
+	_, seen := adminViewPrivateIDs[repo2.ID]
+	assert.False(t, seen, "admin must not see owner private repo %s on profile listing", repo2.Name)
+
+	// Admin must see fewer (or equal) private repos than the unrestricted owner listing.
+	assert.Less(t, len(adminViewPrivateIDs), len(allOwnerPrivate),
+		"admin profile view must hide at least some private repos of the owner")
+
+	// Admin panel style listing (no Actor) still sees all private repos of the owner.
+	adminPanel, _, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{PageSize: 100},
+		OwnerID:     owner.ID,
+		Private:     true,
+		Collaborate: optional.Some(false),
+		IsPrivate:   optional.Some(true),
+	})
+	require.NoError(t, err)
+	foundRepo2 := false
+	for _, r := range adminPanel {
+		if r.ID == repo2.ID {
+			foundRepo2 = true
+			break
+		}
+	}
+	assert.True(t, foundRepo2, "admin panel listing (no Actor) must still include private repo")
+}

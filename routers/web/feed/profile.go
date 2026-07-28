@@ -28,7 +28,9 @@ func ShowUserFeedAtom(ctx *context.Context) {
 
 // showUserFeed show user activity as RSS / Atom feed
 func showUserFeed(ctx *context.Context, formatType string) {
-	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+	// Only the profile owner (or org members below) sees private activity.
+	// Site admins do not get a free pass on user-facing feeds (#27258).
+	includePrivate := ctx.IsSigned && ctx.Doer.ID == ctx.ContextUser.ID
 	isOrganisation := ctx.ContextUser.IsOrganization()
 	if ctx.IsSigned && isOrganisation && !includePrivate {
 		// When feed is requested by a member of the organization,
