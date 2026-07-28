@@ -128,6 +128,29 @@ func TestCommitMessageParticipants(t *testing.T) {
 			assert.Equal(t, c.identities, c.commit.CoAuthorIdentities(), "case: %s", c.name)
 		}
 	})
+	t.Run("AllAuthors", func(t *testing.T) {
+		cases := []testCase{
+			{
+				"CommitterExcluded",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>"},
+				},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("x", "x@m.com", roleCoAuthor)},
+			},
+			{
+				"CommitterIsCoAuthor",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
+				},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("c", "c@m.com", roleCoAuthor)},
+			},
+		}
+		for _, c := range cases {
+			assert.Equal(t, c.identities, c.commit.AllAuthorIdentities(), "case: %s", c.name)
+		}
+	})
 }
 
 func TestCommitMessageMerge(t *testing.T) {

@@ -206,3 +206,10 @@ func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
 	coAuthors = append(coAuthors, all[c.committerCoAuthorIdx:]...)
 	return coAuthors
 }
+
+// AllAuthorIdentities returns the identities of all authors and co-authors, following
+// the same rules as CoAuthorIdentities.
+func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
+	author := &CommitIdentity{Name: c.Author.Name, Email: c.Author.Email, role: commitIdentityRoleAuthor}
+	return append([]*CommitIdentity{author}, c.CoAuthorIdentities()...)
+}
