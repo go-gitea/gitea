@@ -79,6 +79,10 @@ const (
 	EmailNotificationsAndYourOwn = "andyourown"
 )
 
+type ExtDoerData interface {
+	GetDoerUserID() int64
+}
+
 // User represents the object of individual and member of organization.
 type User struct {
 	ID        int64  `xorm:"pk autoincr"`
@@ -153,6 +157,11 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+
+	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
+	// * Actions task doer need to bind to the task ID
+	// * Project workflow doer need to bind to the project ID and workflow event
+	ExtDoerData ExtDoerData `xorm:"-"`
 }
 
 // Meta defines the meta information of a user, to be stored in the K/V table
@@ -624,8 +633,9 @@ var (
 		"swagger.v1.json",
 		"openapi3.v1.json",
 
-		"ghost",         // reserved name for deleted users (id: -1)
-		"gitea-actions", // gitea builtin user (id: -2)
+		"ghost",                 // reserved name for deleted users (id: -1)
+		"gitea-actions",         // gitea builtin user (id: -2)
+		ProjectWorkflowDoerName, // virtual actor for project workflow actions (id: -1, no dedicated account)
 	}
 
 	// These names are reserved for user accounts: user's keys, user's rss feed, user's avatar, etc.

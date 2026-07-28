@@ -34,6 +34,7 @@ import (
 	"gitea.dev/routers/web/healthcheck"
 	"gitea.dev/routers/web/misc"
 	"gitea.dev/routers/web/org"
+	"gitea.dev/routers/web/projects"
 	"gitea.dev/routers/web/repo"
 	"gitea.dev/routers/web/repo/actions"
 	repo_setting "gitea.dev/routers/web/repo/setting"
@@ -501,6 +502,19 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}
 
+	addProjectWorkflowsRouters := func() {
+		m.Get("", projects.Workflows)
+		m.Get("/events", projects.WorkflowsEvents)
+		m.Get("/options", projects.WorkflowsOptions)
+		m.Get("/{workflow_id}", projects.Workflows)
+	}
+
+	addProjectWorkflowsWriteRouters := func() {
+		m.Post("/{workflow_id}", projects.WorkflowsPost)
+		m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
+		m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
+	}
+
 	addSettingsScopedWorkflowsRoutes := func() {
 		m.Group("/scoped-workflows", func() {
 			m.Get("", shared_actions.ScopedWorkflows)
@@ -936,6 +950,16 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}
 	}
 
+	// reqIndividualOwnerSelf ensures that, on a personal (non-organization) owner scope, only the
+	// owner themselves can use a write route: reqUnitAccess is a no-op for individual owners, since
+	// UnitPermission only applies to organizations.
+	reqIndividualOwnerSelf := func(ctx *context.Context) {
+		if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+			ctx.NotFound(nil)
+			return
+		}
+	}
+
 	m.Group("/org", func() {
 		m.Group("/{org}", func() {
 			m.Get("/members", org.Members)
@@ -1115,7 +1139,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-			m.Group("", func() { //nolint:dupl // duplicates lines 1421-1441
+			// the enclosing "/projects" group below already applies the same read check
+			m.Group("/{id}/workflows", addProjectWorkflowsRouters)
+			m.Group("/{id}/workflows", addProjectWorkflowsWriteRouters, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), reqIndividualOwnerSelf)
+			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
@@ -1135,12 +1162,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Post("/move", org.MoveIssues)
 					})
 				})
-			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
-				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
-					ctx.NotFound(nil)
-					return
-				}
-			})
+			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), reqIndividualOwnerSelf)
 		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
 		m.Group("", func() {
@@ -1521,7 +1543,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
-		m.Group("", func() { //nolint:dupl // duplicates lines 1034-1054
+		m.Group("/{id}/workflows", addProjectWorkflowsRouters)
+		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
@@ -1540,6 +1563,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/default", repo.SetDefaultProjectColumn)
 					m.Post("/move", repo.MoveIssues)
 				})
+
+				m.Group("/workflows", addProjectWorkflowsWriteRouters)
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)
