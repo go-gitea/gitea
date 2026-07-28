@@ -12,6 +12,7 @@ import (
 	project_model "gitea.dev/models/project"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/test"
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -184,4 +185,190 @@ func TestPrepareProjectRouteScope(t *testing.T) {
 		require.NotNil(t, p)
 		assert.Equal(t, ownerProject.ID, p.ID)
 	})
+}
+
+func TestConvertFormToFiltersRejectsInvalidInput(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1}) // repo1's project
+
+	t.Run("unknown issue_type is rejected", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows")
+
+		_, ok := convertFormToFilters(ctx, project, project_model.WorkflowEventItemColumnChanged, map[string]any{
+			"issue_type": "not_a_real_type",
+		})
+
+		assert.False(t, ok)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		msg := test.ParseJSONError(resp.Body.Bytes()).ErrorMessage
+		assert.Contains(t, msg, "issue_type")
+		assert.Contains(t, msg, "not_a_real_type")
+	})
+
+	t.Run("non-numeric source_column is rejected", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows")
+
+		_, ok := convertFormToFilters(ctx, project, project_model.WorkflowEventItemColumnChanged, map[string]any{
+			"source_column": "not-a-number",
+		})
+
+		assert.False(t, ok)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		msg := test.ParseJSONError(resp.Body.Bytes()).ErrorMessage
+		assert.Contains(t, msg, "source_column")
+		assert.Contains(t, msg, "not-a-number")
+	})
+
+	t.Run("source_column pointing at a column of a different project is rejected", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows")
+
+		_, ok := convertFormToFilters(ctx, project, project_model.WorkflowEventItemColumnChanged, map[string]any{
+			"source_column": "5", // column 5 belongs to project 2, not project 1
+		})
+
+		assert.False(t, ok)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.Contains(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage, "source_column")
+	})
+
+	t.Run("label the project cannot use is rejected", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows")
+
+		_, ok := convertFormToFilters(ctx, project, project_model.WorkflowEventItemColumnChanged, map[string]any{
+			"labels": []any{"3"}, // label 3 belongs to org3, not repo1
+		})
+
+		assert.False(t, ok)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		msg := test.ParseJSONError(resp.Body.Bytes()).ErrorMessage
+		assert.Contains(t, msg, "label")
+		assert.Contains(t, msg, "3")
+	})
+}
+
+func TestConvertFormToFiltersIsDeterministic(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
+	ctx, _ := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows")
+
+	// map iteration order is random, so build the same input from a map literal and
+	// require the output to always come back in the same (sorted-key) order
+	formFilters := map[string]any{
+		"target_column": "2",
+		"issue_type":    "issue",
+		"source_column": "1",
+		"labels":        []any{"1"},
+	}
+
+	filters, ok := convertFormToFilters(ctx, project, project_model.WorkflowEventItemColumnChanged, formFilters)
+	require.True(t, ok)
+
+	gotTypes := make([]string, 0, len(filters))
+	for _, f := range filters {
+		gotTypes = append(gotTypes, string(f.Type))
+	}
+	assert.Equal(t, []string{"issue_type", "labels", "source_column", "target_column"}, gotTypes)
+}
+
+func TestConvertFormToActionsRejectsInvalidInput(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1}) // repo1's project
+
+	t.Run("unknown issue_state is rejected", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows")
+
+		_, ok := convertFormToActions(ctx, project, project_model.WorkflowEventItemColumnChanged, map[string]any{
+			"issue_state": "paused",
+		})
+
+		assert.False(t, ok)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		msg := test.ParseJSONError(resp.Body.Bytes()).ErrorMessage
+		assert.Contains(t, msg, "issue_state")
+		assert.Contains(t, msg, "paused")
+	})
+
+	t.Run("non-numeric column is rejected", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows")
+
+		_, ok := convertFormToActions(ctx, project, project_model.WorkflowEventItemOpened, map[string]any{
+			"column": "not-a-number",
+		})
+
+		assert.False(t, ok)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.Contains(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage, "column")
+	})
+
+	t.Run("label the project cannot use is rejected", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows")
+
+		_, ok := convertFormToActions(ctx, project, project_model.WorkflowEventItemColumnChanged, map[string]any{
+			"add_labels": []any{"3"}, // label 3 belongs to org3, not repo1
+		})
+
+		assert.False(t, ok)
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		msg := test.ParseJSONError(resp.Body.Bytes()).ErrorMessage
+		assert.Contains(t, msg, "label")
+		assert.Contains(t, msg, "3")
+	})
+}
+
+func TestConvertFormToActionsIsDeterministic(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
+	ctx, _ := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows")
+
+	formActions := map[string]any{
+		"remove_labels": []any{"1"},
+		"issue_state":   "close",
+		"add_labels":    []any{"1"},
+	}
+
+	actions, ok := convertFormToActions(ctx, project, project_model.WorkflowEventItemColumnChanged, formActions)
+	require.True(t, ok)
+
+	gotTypes := make([]string, 0, len(actions))
+	for _, a := range actions {
+		gotTypes = append(gotTypes, string(a.Type))
+	}
+	assert.Equal(t, []string{"add_labels", "issue_state", "remove_labels"}, gotTypes)
+}
+
+func TestWorkflowsStatusRejectsInvalidEnabledValue(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	ctx, resp := contexttest.MockContext(t, "/user2/repo1/projects/1/workflows/1/status?enabled=maybe")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+
+	wf := &project_model.Workflow{
+		ProjectID:     1,
+		WorkflowEvent: project_model.WorkflowEventItemOpened,
+		WorkflowActions: []project_model.WorkflowAction{
+			{Type: project_model.WorkflowActionTypeColumn, Value: "1"},
+		},
+		Enabled: true,
+	}
+	// use ctx (not t.Context()) for setup/cleanup: t.Context() is already canceled by the
+	// time t.Cleanup functions run, but ctx's underlying context is not test-scoped
+	require.NoError(t, project_model.CreateWorkflow(ctx, wf))
+	t.Cleanup(func() {
+		require.NoError(t, project_model.DeleteWorkflow(ctx, wf.ProjectID, wf.ID))
+	})
+	ctx.SetPathParam("id", "1")
+	ctx.SetPathParam("workflow_id", strconv.FormatInt(wf.ID, 10))
+
+	WorkflowsStatus(ctx)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	msg := test.ParseJSONError(resp.Body.Bytes()).ErrorMessage
+	assert.Contains(t, msg, "enabled")
+	assert.Contains(t, msg, "maybe")
+
+	// the workflow's enabled state must be unchanged, not silently flipped to disabled
+	reloaded, err := project_model.GetWorkflowByProjectAndID(ctx, wf.ProjectID, wf.ID)
+	require.NoError(t, err)
+	assert.True(t, reloaded.Enabled)
 }

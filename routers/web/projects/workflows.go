@@ -4,10 +4,10 @@
 package projects
 
 import (
-	stdCtx "context"
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -18,6 +18,7 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
 	project_service "gitea.dev/services/projects"
 )
 
@@ -26,9 +27,51 @@ var (
 	tmplOrgWorkflows  = templates.TplName("org/projects/workflows")
 )
 
-// convertFormToFilters converts form filters to WorkflowFilter objects
-func convertFormToFilters(ctx stdCtx.Context, project *project_model.Project, event project_model.WorkflowEvent, formFilters map[string]any) []project_model.WorkflowFilter {
-	filters := make([]project_model.WorkflowFilter, 0)
+// sortedFormKeys returns the keys of a JSON-decoded form object in a stable order, so that
+// filters/actions built from a map[string]any are stored (and diffable) in a deterministic order.
+func sortedFormKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// extractFormStringList converts a JSON-decoded value into its non-empty string entries.
+// encoding/json only ever decodes a JSON array into []any (never []string), so that's the
+// only shape handled here; anything else yields no entries.
+func extractFormStringList(value any) []string {
+	items, _ := value.([]any)
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		if s, ok := item.(string); ok && s != "" {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
+// validateFormLabels reports ok=false, after writing a JSON error to the response, if any of
+// the given label IDs is not one the project can use: silently dropping it would broaden the
+// filter/action to match every label instead of the ones the user picked.
+func validateFormLabels(ctx *context.Context, project *project_model.Project, labels []string) (validated []string, ok bool) {
+	for _, label := range labels {
+		labelID, err := strconv.ParseInt(label, 10, 64)
+		if err != nil || labelID <= 0 || !project_service.CanProjectAddLabel(ctx, project, labelID) {
+			ctx.JSONError("invalid label: " + label)
+			return nil, false
+		}
+		validated = append(validated, label)
+	}
+	return validated, true
+}
+
+// convertFormToFilters converts form filters to WorkflowFilter objects. It reports ok=false,
+// after writing a JSON error to the response, if a filter value cannot be resolved: silently
+// dropping it would broaden the workflow to match everything the user meant to filter on.
+func convertFormToFilters(ctx *context.Context, project *project_model.Project, event project_model.WorkflowEvent, formFilters map[string]any) (filters []project_model.WorkflowFilter, ok bool) {
+	filters = make([]project_model.WorkflowFilter, 0)
 
 	caps := project_model.GetWorkflowEventCapabilities()[event]
 	allowed := make(map[project_model.WorkflowFilterType]bool, len(caps.AvailableFilters))
@@ -36,65 +79,65 @@ func convertFormToFilters(ctx stdCtx.Context, project *project_model.Project, ev
 		allowed[ft] = true
 	}
 
-	for key, value := range formFilters {
+	for _, key := range sortedFormKeys(formFilters) {
+		value := formFilters[key]
 		filterType := project_model.WorkflowFilterType(key)
 		if !allowed[filterType] {
 			continue // not supported for this event
 		}
 		switch filterType {
 		case project_model.WorkflowFilterTypeLabels:
-			// Handle labels array
-			if labelInterfaces, ok := value.([]any); ok && len(labelInterfaces) > 0 {
-				for _, labelInterface := range labelInterfaces {
-					if label, ok := labelInterface.(string); ok && label != "" {
-						labelID, _ := strconv.ParseInt(label, 10, 64)
-						if project_service.CanProjectAddLabel(ctx, project, labelID) {
-							filters = append(filters, project_model.WorkflowFilter{
-								Type:  filterType,
-								Value: label,
-							})
-						}
-					}
-				}
+			labels, labelsOK := validateFormLabels(ctx, project, extractFormStringList(value))
+			if !labelsOK {
+				return nil, false
+			}
+			for _, label := range labels {
+				filters = append(filters, project_model.WorkflowFilter{Type: filterType, Value: label})
 			}
 		case project_model.WorkflowFilterTypeSourceColumn, project_model.WorkflowFilterTypeTargetColumn:
-			if strValue, ok := value.(string); ok && strValue != "" {
-				strValueInt, _ := strconv.ParseInt(strValue, 10, 64)
-				if strValueInt > 0 {
-					col, _ := project_model.GetColumnByIDAndProjectID(ctx, strValueInt, project.ID)
-					if col == nil {
-						continue
-					}
-					filters = append(filters, project_model.WorkflowFilter{
-						Type:  filterType,
-						Value: strconv.FormatInt(strValueInt, 10),
-					})
-				}
+			strValue, _ := value.(string)
+			if strValue == "" {
+				continue // not set, this filter is simply absent
 			}
+			columnID, err := strconv.ParseInt(strValue, 10, 64)
+			if err != nil || columnID <= 0 {
+				ctx.JSONError("invalid " + string(filterType) + ": " + strValue)
+				return nil, false
+			}
+			col, _ := project_model.GetColumnByIDAndProjectID(ctx, columnID, project.ID)
+			if col == nil {
+				ctx.JSONError("invalid " + string(filterType) + ": " + strValue)
+				return nil, false
+			}
+			filters = append(filters, project_model.WorkflowFilter{
+				Type:  filterType,
+				Value: strconv.FormatInt(columnID, 10),
+			})
 		case project_model.WorkflowFilterTypeIssueType:
-			// an unknown value would match every item instead of filtering, so drop it
-			if strValue, ok := value.(string); ok && project_model.IsValidWorkflowIssueType(strValue) {
-				filters = append(filters, project_model.WorkflowFilter{
-					Type:  filterType,
-					Value: strValue,
-				})
+			strValue, _ := value.(string)
+			if strValue == "" {
+				continue // not set, this filter is simply absent
 			}
-		default:
-			if strValue, ok := value.(string); ok && strValue != "" {
-				filters = append(filters, project_model.WorkflowFilter{
-					Type:  filterType,
-					Value: strValue,
-				})
+			// an unknown value would match every item instead of filtering, so reject it
+			if !project_model.IsValidWorkflowIssueType(strValue) {
+				ctx.JSONError("invalid issue_type: " + strValue)
+				return nil, false
 			}
+			filters = append(filters, project_model.WorkflowFilter{
+				Type:  filterType,
+				Value: strValue,
+			})
 		}
 	}
 
-	return filters
+	return filters, true
 }
 
-// convertFormToActions converts form actions to WorkflowAction objects
-func convertFormToActions(ctx stdCtx.Context, project *project_model.Project, event project_model.WorkflowEvent, formActions map[string]any) []project_model.WorkflowAction {
-	actions := make([]project_model.WorkflowAction, 0)
+// convertFormToActions converts form actions to WorkflowAction objects. It reports ok=false,
+// after writing a JSON error to the response, if an action value cannot be resolved: silently
+// dropping it would leave the workflow doing less than the user configured, or nothing at all.
+func convertFormToActions(ctx *context.Context, project *project_model.Project, event project_model.WorkflowEvent, formActions map[string]any) (actions []project_model.WorkflowAction, ok bool) {
+	actions = make([]project_model.WorkflowAction, 0)
 
 	caps := project_model.GetWorkflowEventCapabilities()[event]
 	allowed := make(map[project_model.WorkflowActionType]bool, len(caps.AvailableActions))
@@ -102,97 +145,58 @@ func convertFormToActions(ctx stdCtx.Context, project *project_model.Project, ev
 		allowed[at] = true
 	}
 
-	for key, value := range formActions {
+	for _, key := range sortedFormKeys(formActions) {
+		value := formActions[key]
 		actionType := project_model.WorkflowActionType(key)
 		if !allowed[actionType] {
 			continue // not supported for this event
 		}
 		switch actionType {
 		case project_model.WorkflowActionTypeColumn:
-			if colValue, ok := value.(string); ok {
-				colValueInt, _ := strconv.ParseInt(colValue, 10, 64)
-				if colValueInt > 0 {
-					col, _ := project_model.GetColumnByIDAndProjectID(ctx, colValueInt, project.ID)
-					if col == nil {
-						continue
-					}
-					actions = append(actions, project_model.WorkflowAction{
-						Type:  project_model.WorkflowActionTypeColumn,
-						Value: strconv.FormatInt(colValueInt, 10),
-					})
-				}
+			strValue, _ := value.(string)
+			if strValue == "" {
+				continue // not set, this action is simply absent
 			}
-		case project_model.WorkflowActionTypeAddLabels:
-			// Handle both []string and []any from JSON unmarshaling
-			if labels, ok := value.([]string); ok && len(labels) > 0 {
-				for _, label := range labels {
-					if label != "" {
-						labelID, _ := strconv.ParseInt(label, 10, 64)
-						if project_service.CanProjectAddLabel(ctx, project, labelID) {
-							actions = append(actions, project_model.WorkflowAction{
-								Type:  project_model.WorkflowActionTypeAddLabels,
-								Value: label,
-							})
-						}
-					}
-				}
-			} else if labelInterfaces, ok := value.([]any); ok && len(labelInterfaces) > 0 {
-				for _, labelInterface := range labelInterfaces {
-					if label, ok := labelInterface.(string); ok && label != "" {
-						labelID, _ := strconv.ParseInt(label, 10, 64)
-						if !project_service.CanProjectAddLabel(ctx, project, labelID) {
-							continue
-						}
-						actions = append(actions, project_model.WorkflowAction{
-							Type:  project_model.WorkflowActionTypeAddLabels,
-							Value: label,
-						})
-					}
-				}
+			columnID, err := strconv.ParseInt(strValue, 10, 64)
+			if err != nil || columnID <= 0 {
+				ctx.JSONError("invalid column: " + strValue)
+				return nil, false
 			}
-		case project_model.WorkflowActionTypeRemoveLabels:
-			// Handle both []string and []any from JSON unmarshaling
-			if labels, ok := value.([]string); ok && len(labels) > 0 {
-				for _, label := range labels {
-					if label != "" {
-						labelID, _ := strconv.ParseInt(label, 10, 64)
-						if !project_service.CanProjectAddLabel(ctx, project, labelID) {
-							continue
-						}
-						actions = append(actions, project_model.WorkflowAction{
-							Type:  project_model.WorkflowActionTypeRemoveLabels,
-							Value: label,
-						})
-					}
-				}
-			} else if labelInterfaces, ok := value.([]any); ok && len(labelInterfaces) > 0 {
-				for _, labelInterface := range labelInterfaces {
-					if label, ok := labelInterface.(string); ok && label != "" {
-						labelID, _ := strconv.ParseInt(label, 10, 64)
-						if !project_service.CanProjectAddLabel(ctx, project, labelID) {
-							continue
-						}
-						actions = append(actions, project_model.WorkflowAction{
-							Type:  project_model.WorkflowActionTypeRemoveLabels,
-							Value: label,
-						})
-					}
-				}
+			col, _ := project_model.GetColumnByIDAndProjectID(ctx, columnID, project.ID)
+			if col == nil {
+				ctx.JSONError("invalid column: " + strValue)
+				return nil, false
+			}
+			actions = append(actions, project_model.WorkflowAction{
+				Type:  project_model.WorkflowActionTypeColumn,
+				Value: strconv.FormatInt(columnID, 10),
+			})
+		case project_model.WorkflowActionTypeAddLabels, project_model.WorkflowActionTypeRemoveLabels:
+			labels, labelsOK := validateFormLabels(ctx, project, extractFormStringList(value))
+			if !labelsOK {
+				return nil, false
+			}
+			for _, label := range labels {
+				actions = append(actions, project_model.WorkflowAction{Type: actionType, Value: label})
 			}
 		case project_model.WorkflowActionTypeIssueState:
-			if strValue, ok := value.(string); ok {
-				v := strings.ToLower(strValue)
-				if v == "close" || v == "reopen" {
-					actions = append(actions, project_model.WorkflowAction{
-						Type:  project_model.WorkflowActionTypeIssueState,
-						Value: v,
-					})
-				}
+			strValue, _ := value.(string)
+			if strValue == "" {
+				continue // not set, this action is simply absent
 			}
+			issueState := strings.ToLower(strValue)
+			if issueState != "close" && issueState != "reopen" {
+				ctx.JSONError("invalid issue_state: " + strValue)
+				return nil, false
+			}
+			actions = append(actions, project_model.WorkflowAction{
+				Type:  project_model.WorkflowActionTypeIssueState,
+				Value: issueState,
+			})
 		}
 	}
 
-	return actions
+	return actions, true
 }
 
 type WorkflowConfig struct {
@@ -274,7 +278,6 @@ func renderWorkflowsOptions(ctx *context.Context, project *project_model.Project
 		outputColumns = append(outputColumns, &api.ProjectWorkflowColumnOption{
 			ID:    col.ID,
 			Title: col.Title,
-			Color: col.Color,
 		})
 	}
 
@@ -284,17 +287,13 @@ func renderWorkflowsOptions(ctx *context.Context, project *project_model.Project
 		return
 	}
 
-	outputLabels := make([]*api.Label, 0, len(labels))
-	for _, label := range labels {
-		outputLabels = append(outputLabels, &api.Label{
-			ID:             label.ID,
-			Name:           label.Name,
-			Color:          label.Color,
-			Description:    label.Description,
-			Exclusive:      label.Exclusive,
-			ExclusiveOrder: label.ExclusiveOrder,
-		})
-	}
+	// use the shared converter (also used by the API options endpoint) so both surfaces
+	// emit the identical label representation, e.g. color without the leading '#'.
+	// ctx.Repo.Repository is nil for org/user-scoped projects, but ToLabel only
+	// dereferences it for repo-owned labels, none of which GetProjectLabels returns in
+	// that case; ctx.ContextUser is always the correct owner for either scope (it's set
+	// to ctx.Repo.Owner on repo routes, and to the org/user itself on owner routes).
+	outputLabels := convert.ToLabelList(labels, ctx.Repo.Repository, ctx.ContextUser)
 
 	ctx.JSON(http.StatusOK, api.ProjectWorkflowOptions{
 		Columns: outputColumns,
@@ -471,8 +470,14 @@ func WorkflowsPost(ctx *context.Context) {
 	}
 
 	// Convert and validate filters/actions against the event's capabilities.
-	filters := convertFormToFilters(ctx, p, workflowEvent, form.Filters)
-	actions := convertFormToActions(ctx, p, workflowEvent, form.Actions)
+	filters, ok := convertFormToFilters(ctx, p, workflowEvent, form.Filters)
+	if !ok {
+		return
+	}
+	actions, ok := convertFormToActions(ctx, p, workflowEvent, form.Actions)
+	if !ok {
+		return
+	}
 
 	if len(actions) == 0 {
 		ctx.JSONError(ctx.Tr("projects.workflows.at_least_one_action_required"))
@@ -556,7 +561,13 @@ func WorkflowsStatus(ctx *context.Context) {
 	// Get enabled status from form
 	_ = ctx.Req.ParseForm()
 	enabledStr := ctx.Req.FormValue("enabled")
-	enabled, _ := strconv.ParseBool(enabledStr)
+	// the frontend always sends the stringified JS boolean ("true"/"false"); reject anything
+	// else explicitly instead of silently falling back to "disabled" on a malformed value
+	enabled, err := strconv.ParseBool(enabledStr)
+	if err != nil {
+		ctx.JSONError("invalid enabled: " + enabledStr)
+		return
+	}
 
 	if enabled {
 		if err := project_model.EnableWorkflow(ctx, p.ID, workflowID); err != nil {
