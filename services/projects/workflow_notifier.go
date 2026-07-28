@@ -215,6 +215,14 @@ func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *use
 			return
 		}
 	}
+	// The early oldColumnID == newColumnID check above only catches a no-op move
+	// when the raw board_id values already matched. Once oldColumnID==0 has been
+	// resolved to the project's real default column, it can turn out to equal
+	// newColumnID too (e.g. reordering within the default column), so the no-op
+	// check has to be repeated here against the resolved ID.
+	if oldColumnID == newColumnID {
+		return
+	}
 	if oldColumn.ProjectID != newColumn.ProjectID {
 		return
 	}

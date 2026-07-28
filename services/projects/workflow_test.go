@@ -82,3 +82,37 @@ func TestIssueChangeProjectColumnDefaultColumnAsSource(t *testing.T) {
 	}
 	assert.True(t, hasLabel, "item_column_changed workflow must fire when the source column is the project's default column")
 }
+
+// TestIssueChangeProjectColumnNoOpWithinDefaultColumn ensures item_column_changed
+// workflows do NOT fire for a no-op move within the project's default/unassigned
+// column. Callers (MoveIssuesOnProjectColumn, MoveIssueToAnotherColumn) pass the
+// raw project_issue.project_board_id, which is 0 for issues in the default column,
+// so a reorder/drop that leaves the issue there arrives as oldColumnID=0 with
+// newColumnID equal to the default column's real ID. Once oldColumnID=0 is
+// resolved to that same real ID, this must be treated as no move at all.
+func TestIssueChangeProjectColumnNoOpWithinDefaultColumn(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// project_issue fixture id 2: issue 2 sits in project 1's default column
+	// (project_board_id 0), project_board fixture id 1 is project 1's default column.
+	require.NoError(t, project_model.CreateWorkflow(ctx, &project_model.Workflow{
+		ProjectID:     1,
+		WorkflowEvent: project_model.WorkflowEventItemColumnChanged,
+		Enabled:       true,
+		WorkflowActions: []project_model.WorkflowAction{
+			{Type: project_model.WorkflowActionTypeAddLabels, Value: "2"},
+		},
+	}))
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+
+	// oldColumnID=0 resolves to column 1 (project 1's default column), and
+	// newColumnID=1 is that same column, so this must be a no-op.
+	(&workflowNotifier{}).IssueChangeProjectColumn(ctx, nil, issue, 0, 1)
+
+	require.NoError(t, issue.LoadLabels(ctx))
+	for _, label := range issue.Labels {
+		assert.NotEqual(t, int64(2), label.ID, "item_column_changed workflow must not fire for a no-op move within the default column")
+	}
+}
