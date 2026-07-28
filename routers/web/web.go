@@ -326,7 +326,6 @@ func Routes() *web.Router {
 //     Such requests are not cross-origin requests, so disable CrossOriginProtection.
 var optSignInFromAnyOrigin = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
-// registerWebRoutes register routes
 // addProjectBoardRoutes registers a board's column and card routes, shared by the
 // repository and owner mount points.
 func addProjectBoardRoutes(m *web.Router) {
@@ -341,6 +340,7 @@ func addProjectBoardRoutes(m *web.Router) {
 	})
 }
 
+// registerWebRoutes register routes
 func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// required to be signed in or signed out
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
