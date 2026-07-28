@@ -38,7 +38,7 @@ func ApplicationsPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	_ = ctx.Req.ParseForm()
-	scope, err := auth_model.AccessTokenScopeFromForm(ctx.Req.Form).Normalize()
+	scope, err := forms.AccessTokenScopeFromForm(ctx.Req.Form).Normalize()
 	if err != nil {
 		ctx.ServerError("GetScope", err)
 		return

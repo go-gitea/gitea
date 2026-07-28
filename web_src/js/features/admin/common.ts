@@ -98,7 +98,8 @@ function initAdminUser() {
 
   elLoginType?.addEventListener('change', onLoginTypeChange);
   elUserType?.addEventListener('change', onUserTypeChange);
-  onUserTypeChange();
+  // only the bot case needs applying up front, the templates already render the other fields
+  if (elUserType?.value === 'bot') onUserTypeChange();
 }
 
 function initAdminAuthentication() {

@@ -58,17 +58,11 @@ func Users(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort", UserSearchDefaultAdminSort)
 
-	// Unfiltered, an administrator needs to list all accounts including reserved, bot and remote ones.
 	userTypeFilter := ctx.FormString("user_type")
 	types := []user_model.UserType{user_model.UserTypeIndividual}
-	includeReserved := true
-	switch userTypeFilter {
-	case "individual":
-		includeReserved = false
-	case "bot":
-		types = []user_model.UserType{user_model.UserTypeBot}
-		includeReserved = false
-	default:
+	if t, err := user_model.ParseUserType(userTypeFilter); err == nil {
+		types = []user_model.UserType{t}
+	} else {
 		userTypeFilter = "" // normalize unknown values so the UI doesn't show a filter that isn't applied
 	}
 
@@ -90,8 +84,9 @@ func Users(ctx *context.Context) {
 		IsRestricted:       optional.ParseBool(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
-		IncludeReserved:    includeReserved,
-		OrderBy:            db.SearchOrderBy(sortType),
+		// unfiltered, an administrator needs to list all accounts including reserved, bot and remote ones
+		IncludeReserved: userTypeFilter == "",
+		OrderBy:         db.SearchOrderBy(sortType),
 	}, tplUsers)
 }
 
@@ -165,47 +160,39 @@ func NewUserPost(ctx *context.Context) {
 		}
 		u.Type = user_model.UserTypeBot
 		u.Passwd = ""
-		if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
-			handleAdminCreateUserError(ctx, err, form)
-			return
-		}
-		log.Trace("Bot account created by admin (%s): %s", ctx.Doer.Name, u.Name)
-		ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
-		return
-	}
-
-	if len(form.LoginType) > 0 {
-		fields := strings.Split(form.LoginType, "-")
-		if len(fields) == 2 {
-			lType, _ := strconv.ParseInt(fields[0], 10, 0)
-			u.LoginType = auth.Type(lType)
-			u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
-			u.LoginName = form.LoginName
-		}
-	}
-	if u.LoginType == auth.NoType || u.LoginType == auth.Plain {
-		if len(form.Password) < setting.MinPasswordLength {
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
-			return
-		}
-		if !password.IsComplexEnough(form.Password) {
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplUserNew, &form)
-			return
-		}
-		if err := password.IsPwned(ctx, form.Password); err != nil {
-			ctx.Data["Err_Password"] = true
-			errMsg := ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords")
-			if password.IsErrIsPwnedRequest(err) {
-				log.Error(err.Error())
-				errMsg = ctx.Tr("auth.password_pwned_err")
+	} else {
+		if len(form.LoginType) > 0 {
+			fields := strings.Split(form.LoginType, "-")
+			if len(fields) == 2 {
+				lType, _ := strconv.ParseInt(fields[0], 10, 0)
+				u.LoginType = auth.Type(lType)
+				u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
+				u.LoginName = form.LoginName
 			}
-			ctx.RenderWithErrDeprecated(errMsg, tplUserNew, &form)
-			return
 		}
-		u.MustChangePassword = form.MustChangePassword
+		if u.LoginType == auth.NoType || u.LoginType == auth.Plain {
+			if len(form.Password) < setting.MinPasswordLength {
+				ctx.Data["Err_Password"] = true
+				ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
+				return
+			}
+			if !password.IsComplexEnough(form.Password) {
+				ctx.Data["Err_Password"] = true
+				ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplUserNew, &form)
+				return
+			}
+			if err := password.IsPwned(ctx, form.Password); err != nil {
+				ctx.Data["Err_Password"] = true
+				errMsg := ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords")
+				if password.IsErrIsPwnedRequest(err) {
+					log.Error(err.Error())
+					errMsg = ctx.Tr("auth.password_pwned_err")
+				}
+				ctx.RenderWithErrDeprecated(errMsg, tplUserNew, &form)
+				return
+			}
+			u.MustChangePassword = form.MustChangePassword
+		}
 	}
 
 	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
@@ -377,7 +364,7 @@ func NewBotTokenPost(ctx *context.Context) {
 	}
 
 	_ = ctx.Req.ParseForm()
-	scope, err := auth.AccessTokenScopeFromForm(ctx.Req.Form).Normalize()
+	scope, err := forms.AccessTokenScopeFromForm(ctx.Req.Form).Normalize()
 	if err != nil {
 		ctx.ServerError("GetScope", err)
 		return
@@ -684,13 +671,8 @@ func ConvertUserType(ctx *context.Context) {
 
 	redirect := setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")) + "/edit"
 
-	var targetType user_model.UserType
-	switch ctx.FormString("user_type") {
-	case "bot":
-		targetType = user_model.UserTypeBot
-	case "individual":
-		targetType = user_model.UserTypeIndividual
-	default:
+	targetType, err := user_model.ParseUserType(ctx.FormString("user_type"))
+	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.users.user_type.invalid"))
 		ctx.Redirect(redirect)
 		return
