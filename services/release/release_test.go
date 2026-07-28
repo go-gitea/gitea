@@ -418,7 +418,7 @@ func TestRelease_Immutable(t *testing.T) {
 		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
 		assert.False(t, rel.IsImmutable)
 
-		immutable, err := repo_model.IsTagImmutable(t.Context(), repo.ID, "v9.6")
+		immutable, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.6")
 		assert.NoError(t, err)
 		assert.False(t, immutable)
 	})
@@ -428,7 +428,7 @@ func TestRelease_Immutable(t *testing.T) {
 
 	t.Run("StampedOnPublish", func(t *testing.T) {
 		assert.True(t, rel.IsImmutable)
-		immutable, err := repo_model.IsTagImmutable(t.Context(), repo.ID, "v9.0")
+		immutable, err := repo_model.IsTagImmutable(t.Context(), repo, "v9.0")
 		assert.NoError(t, err)
 		assert.True(t, immutable)
 	})

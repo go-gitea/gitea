@@ -94,30 +94,42 @@ func TestAddReleaseAttachmentsRejectsRecentZeroRepoID(t *testing.T) {
 func TestImmutableTag(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	isImmutable := func(repoID int64, tagName string) bool {
-		immutable, err := IsTagImmutable(t.Context(), repoID, tagName)
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1})
+	isImmutable := func(r *Repository, tagName string) bool {
+		immutable, err := IsTagImmutable(t.Context(), r, tagName)
 		assert.NoError(t, err)
 		return immutable
 	}
-	hasRelease := func(rel *Release) bool {
+
+	assert.False(t, isImmutable(repo, "v1.1"))
+	assert.NoError(t, AddImmutableTag(t.Context(), repo, "V1.1")) // names are matched case insensitively
+	assert.NoError(t, AddImmutableTag(t.Context(), repo, "v1.1"))
+	assert.True(t, isImmutable(repo, "v1.1"))
+
+	// the lock follows a rename, so it cannot be shaken off
+	renamed := &Repository{ID: repo.ID, OwnerID: repo.OwnerID, Name: "renamed"}
+	assert.True(t, isImmutable(renamed, "v1.1"))
+
+	// and a different repository recreated at the original path inherits it
+	successor := &Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, Name: repo.Name}
+	assert.True(t, isImmutable(successor, "v1.1"))
+
+	// but an unrelated repository is unaffected
+	other := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2})
+	assert.False(t, isImmutable(other, "v1.1"))
+
+	// only a release that still exists blocks its tag from being deleted
+	rel := unittest.AssertExistsAndLoadBean(t, &Release{ID: 1})
+	hasRelease := func() bool {
 		has, err := HasImmutableRelease(t.Context(), rel.RepoID, rel.TagName)
 		assert.NoError(t, err)
 		return has
 	}
-
-	assert.False(t, isImmutable(1, "v1.1"))
-	assert.NoError(t, AddImmutableTag(t.Context(), 1, "V1.1")) // names are matched case insensitively
-	assert.NoError(t, AddImmutableTag(t.Context(), 1, "v1.1"))
-	assert.True(t, isImmutable(1, "v1.1"))
-	assert.False(t, isImmutable(2, "v1.1")) // locks are per repository
-
-	// only a release that still exists blocks its tag from being deleted
-	rel := unittest.AssertExistsAndLoadBean(t, &Release{ID: 1})
 	rel.IsImmutable = true
 	assert.NoError(t, UpdateRelease(t.Context(), rel))
-	assert.True(t, hasRelease(rel))
+	assert.True(t, hasRelease())
 
 	rel.IsTag = true
 	assert.NoError(t, UpdateRelease(t.Context(), rel))
-	assert.False(t, hasRelease(rel))
+	assert.False(t, hasRelease())
 }

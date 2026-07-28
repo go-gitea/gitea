@@ -20,10 +20,12 @@ func AddImmutableReleases(x base.EngineMigration) error {
 	}
 
 	type ImmutableTag struct {
-		ID           int64              `xorm:"pk autoincr"`
-		RepoID       int64              `xorm:"UNIQUE(s) NOT NULL"`
-		LowerTagName string             `xorm:"UNIQUE(s) NOT NULL"`
-		CreatedUnix  timeutil.TimeStamp `xorm:"created"`
+		ID            int64              `xorm:"pk autoincr"`
+		RepoID        int64              `xorm:"INDEX NOT NULL"`
+		OwnerID       int64              `xorm:"UNIQUE(s) NOT NULL"`
+		LowerRepoName string             `xorm:"UNIQUE(s) NOT NULL"`
+		LowerTagName  string             `xorm:"UNIQUE(s) NOT NULL"`
+		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	}
 
 	if err := x.Sync(new(ImmutableTag)); err != nil {

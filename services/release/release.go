@@ -102,8 +102,8 @@ func (err ErrImmutableTag) Unwrap() error {
 }
 
 // assertTagMutable rejects tag names that an immutable release used before.
-func assertTagMutable(ctx context.Context, repoID int64, tagName string) error {
-	immutable, err := repo_model.IsTagImmutable(ctx, repoID, tagName)
+func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName string) error {
+	immutable, err := repo_model.IsTagImmutable(ctx, repo, tagName)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func lockRelease(ctx context.Context, rel *repo_model.Release) error {
 		return nil
 	}
 	rel.IsImmutable = true
-	return repo_model.AddImmutableTag(ctx, rel.RepoID, rel.TagName)
+	return repo_model.AddImmutableTag(ctx, rel.Repo, rel.TagName)
 }
 
 func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string) (bool, error) {
@@ -235,7 +235,7 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 		}
 	}
 
-	if err = assertTagMutable(ctx, rel.RepoID, rel.TagName); err != nil {
+	if err = assertTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
 		return err
 	}
 
@@ -294,7 +294,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		}
 	}
 
-	if err = assertTagMutable(ctx, repo.ID, tagName); err != nil {
+	if err = assertTagMutable(ctx, repo, tagName); err != nil {
 		return err
 	}
 
@@ -334,6 +334,10 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return errors.New("UpdateRelease only accepts an exist release")
 	}
 
+	if err := rel.LoadRepo(ctx); err != nil {
+		return err
+	}
+
 	oldRelease, err := repo_model.GetReleaseByID(ctx, rel.ID)
 	if err != nil {
 		return err
@@ -352,7 +356,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			return ErrImmutableRelease{Field: "assets"}
 		}
 	} else if !rel.IsTag && (oldRelease.IsTag || rel.TagName != oldRelease.TagName) {
-		if err := assertTagMutable(ctx, rel.RepoID, rel.TagName); err != nil {
+		if err := assertTagMutable(ctx, rel.Repo, rel.TagName); err != nil {
 			return err
 		}
 	}

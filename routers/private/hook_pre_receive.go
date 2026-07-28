@@ -435,7 +435,7 @@ func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.R
 func preReceiveImmutableTag(ctx *preReceiveContext, newCommitID, tagName string) bool {
 	repo := ctx.Repo.Repository
 
-	blocked, err := repo_model.IsTagImmutable(ctx, repo.ID, tagName)
+	blocked, err := repo_model.IsTagImmutable(ctx, repo, tagName)
 	if blocked && err == nil && newCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
 		blocked, err = repo_model.HasImmutableRelease(ctx, repo.ID, tagName)
 	}
