@@ -327,6 +327,20 @@ func Routes() *web.Router {
 var optSignInFromAnyOrigin = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
 // registerWebRoutes register routes
+// addProjectBoardRoutes registers a board's column and card routes, shared by the
+// repository and owner mount points.
+func addProjectBoardRoutes(m *web.Router) {
+	// TODO: improper name. Others are "delete project", "edit project", but this one is "move columns"
+	m.Post("/move", project.MoveColumns)
+	m.Post("/columns/new", web.Bind(forms.EditProjectColumnForm{}), project.AddColumnToProjectPost)
+	m.Group("/{columnID}", func() {
+		m.Put("", web.Bind(forms.EditProjectColumnForm{}), project.EditProjectColumn)
+		m.Delete("", project.DeleteProjectColumn)
+		m.Post("/default", project.SetDefaultProjectColumn)
+		m.Post("/move", project.MoveIssues)
+	})
+}
+
 func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// required to be signed in or signed out
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
@@ -1115,7 +1129,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-			m.Group("", func() { //nolint:dupl // duplicates lines 1421-1441
+			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
@@ -1125,15 +1139,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Post("/edit", web.Bind(forms.CreateProjectForm{}), org.EditProjectPost)
 					m.Post("/{action:open|close}", org.ChangeProjectStatus)
 
-					// TODO: improper name. Others are "delete project", "edit project", but this one is "move columns"
-					m.Post("/move", project.MoveColumns)
-					m.Post("/columns/new", web.Bind(forms.EditProjectColumnForm{}), org.AddColumnToProjectPost)
-					m.Group("/{columnID}", func() {
-						m.Put("", web.Bind(forms.EditProjectColumnForm{}), org.EditProjectColumn)
-						m.Delete("", org.DeleteProjectColumn)
-						m.Post("/default", org.SetDefaultProjectColumn)
-						m.Post("/move", org.MoveIssues)
-					})
+					addProjectBoardRoutes(m)
 				})
 			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
@@ -1521,7 +1527,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
-		m.Group("", func() { //nolint:dupl // duplicates lines 1034-1054
+		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
@@ -1531,15 +1537,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/edit", web.Bind(forms.CreateProjectForm{}), repo.EditProjectPost)
 				m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
-				// TODO: improper name. Others are "delete project", "edit project", but this one is "move columns"
-				m.Post("/move", project.MoveColumns)
-				m.Post("/columns/new", web.Bind(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
-				m.Group("/{columnID}", func() {
-					m.Put("", web.Bind(forms.EditProjectColumnForm{}), repo.EditProjectColumn)
-					m.Delete("", repo.DeleteProjectColumn)
-					m.Post("/default", repo.SetDefaultProjectColumn)
-					m.Post("/move", repo.MoveIssues)
-				})
+				addProjectBoardRoutes(m)
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)

@@ -187,7 +187,7 @@ func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Co
 	// Build project cards for each project
 	d.ProjectsData.ProjectCards = make([]*issueSidebarProjectCardData, 0, len(d.Issue.Projects))
 	for _, project := range d.Issue.Projects {
-		columns, err := project.GetColumns(ctx)
+		columns, err := project_model.GetProjectColumns(ctx, project.ID, db.ListOptionsAll)
 		if err != nil {
 			ctx.ServerError("GetProjectColumns", err)
 			return

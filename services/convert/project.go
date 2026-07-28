@@ -6,11 +6,14 @@ package convert
 import (
 	"context"
 	"fmt"
+	"time"
 
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
 )
 
 func ProjectTemplateTypeToString(t project_model.TemplateType) string {
@@ -70,11 +73,10 @@ func ProjectTypeToString(t project_model.Type) string {
 	}
 }
 
-// loadProjectCreators batch-fetches creators for the given projects + columns and
-// returns a map keyed by user ID. Errors are surfaced; missing users are silently
-// skipped (their creator field stays nil), matching the convention of other list
-// converters that tolerate deleted users.
-func loadProjectCreators(ctx context.Context, projects []*project_model.Project, columns []*project_model.Column) (map[int64]*user_model.User, error) {
+// loadProjectCreators batch-fetches the creators of the given projects and columns, keyed by
+// user ID. Enrichment is best-effort: on a lookup failure, or for creators that no longer
+// exist, the creator field stays nil rather than failing the whole conversion.
+func loadProjectCreators(ctx context.Context, projects []*project_model.Project, columns []*project_model.Column) map[int64]*user_model.User {
 	idSet := container.Set[int64]{}
 	for _, p := range projects {
 		if p.CreatorID > 0 {
@@ -87,15 +89,29 @@ func loadProjectCreators(ctx context.Context, projects []*project_model.Project,
 		}
 	}
 	if len(idSet) == 0 {
-		return map[int64]*user_model.User{}, nil
+		return nil
 	}
-	return user_model.GetUsersMapByIDs(ctx, idSet.Values())
+	creators, err := user_model.GetUsersMapByIDs(ctx, idSet.Values())
+	if err != nil {
+		log.Error("GetUsersMapByIDs: %v", err)
+		return nil
+	}
+	return creators
+}
+
+// timeStampPtr returns nil for the zero timestamp so that "never updated" is not
+// reported to API clients as the unix epoch.
+func timeStampPtr(ts timeutil.TimeStamp) *time.Time {
+	if ts == 0 {
+		return nil
+	}
+	return ts.AsTimePtr()
 }
 
 // ToProject converts a project_model.Project to api.Project.
 // Caller is expected to preload p.Repo / p.Owner to avoid N+1 lookups.
 func ToProject(ctx context.Context, p *project_model.Project, doer *user_model.User) *api.Project {
-	creators, _ := loadProjectCreators(ctx, []*project_model.Project{p}, nil)
+	creators := loadProjectCreators(ctx, []*project_model.Project{p}, nil)
 	return toProject(ctx, p, doer, creators)
 }
 
@@ -119,7 +135,7 @@ func toProject(ctx context.Context, p *project_model.Project, doer *user_model.U
 		NumClosedIssues: p.NumClosedIssues,
 		NumIssues:       p.NumIssues,
 		CreatedAt:       p.CreatedUnix.AsTime(),
-		UpdatedAt:       p.UpdatedUnix.AsTime(),
+		UpdatedAt:       timeStampPtr(p.UpdatedUnix),
 	}
 
 	if p.ClosedDateUnix > 0 {
@@ -141,7 +157,7 @@ func toProject(ctx context.Context, p *project_model.Project, doer *user_model.U
 }
 
 func ToProjectColumn(ctx context.Context, column *project_model.Column, doer *user_model.User) *api.ProjectColumn {
-	creators, _ := loadProjectCreators(ctx, nil, []*project_model.Column{column})
+	creators := loadProjectCreators(ctx, nil, []*project_model.Column{column})
 	return toProjectColumn(ctx, column, doer, creators)
 }
 
@@ -153,9 +169,8 @@ func toProjectColumn(ctx context.Context, column *project_model.Column, doer *us
 		Sorting:   int(column.Sorting),
 		Color:     column.Color,
 		ProjectID: column.ProjectID,
-		NumIssues: column.NumIssues,
 		CreatedAt: column.CreatedUnix.AsTime(),
-		UpdatedAt: column.UpdatedUnix.AsTime(),
+		UpdatedAt: timeStampPtr(column.UpdatedUnix),
 	}
 	if creator, ok := creators[column.CreatorID]; ok {
 		apiColumn.Creator = ToUser(ctx, creator, doer)
@@ -164,7 +179,7 @@ func toProjectColumn(ctx context.Context, column *project_model.Column, doer *us
 }
 
 func ToProjectList(ctx context.Context, projects []*project_model.Project, doer *user_model.User) []*api.Project {
-	creators, _ := loadProjectCreators(ctx, projects, nil)
+	creators := loadProjectCreators(ctx, projects, nil)
 	result := make([]*api.Project, len(projects))
 	for i, p := range projects {
 		result[i] = toProject(ctx, p, doer, creators)
@@ -173,7 +188,7 @@ func ToProjectList(ctx context.Context, projects []*project_model.Project, doer 
 }
 
 func ToProjectColumnList(ctx context.Context, columns []*project_model.Column, doer *user_model.User) []*api.ProjectColumn {
-	creators, _ := loadProjectCreators(ctx, nil, columns)
+	creators := loadProjectCreators(ctx, nil, columns)
 	result := make([]*api.ProjectColumn, len(columns))
 	for i, column := range columns {
 		result[i] = toProjectColumn(ctx, column, doer, creators)

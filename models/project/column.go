@@ -135,7 +135,7 @@ const maxProjectColumns = 20
 // NewColumn adds a new project column to a given project
 func NewColumn(ctx context.Context, column *Column) error {
 	if len(column.Color) != 0 && !ColumnColorPattern.MatchString(column.Color) {
-		return fmt.Errorf("bad color code: %s", column.Color)
+		return fmt.Errorf("invalid column color %q, expected a 6-digit hex string like #FF0000: %w", column.Color, util.ErrUnprocessableContent)
 	}
 
 	res := struct {
@@ -161,6 +161,10 @@ func DeleteColumnByID(ctx context.Context, columnID int64) error {
 	})
 }
 
+// ErrProjectColumnIsDefault is returned when deleting the column new issues land in,
+// which would leave the project without a landing column.
+var ErrProjectColumnIsDefault = fmt.Errorf("cannot delete the default column: %w", util.ErrUnprocessableContent)
+
 func deleteColumnByID(ctx context.Context, columnID int64) error {
 	column, err := GetColumn(ctx, columnID)
 	if err != nil {
@@ -172,7 +176,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 	}
 
 	if column.Default {
-		return errors.New("deleteColumnByID: cannot delete default column")
+		return ErrProjectColumnIsDefault
 	}
 
 	// move all issues to the default column
@@ -238,23 +242,13 @@ func UpdateColumn(ctx context.Context, column *Column) error {
 	}
 
 	if len(column.Color) != 0 && !ColumnColorPattern.MatchString(column.Color) {
-		return fmt.Errorf("bad color code: %s", column.Color)
+		return fmt.Errorf("invalid column color %q, expected a 6-digit hex string like #FF0000: %w", column.Color, util.ErrUnprocessableContent)
 	}
 	fieldToUpdate = append(fieldToUpdate, "color")
 
 	_, err := db.GetEngine(ctx).ID(column.ID).Cols(fieldToUpdate...).Update(column)
 
 	return err
-}
-
-// GetColumns fetches all columns related to a project
-func (p *Project) GetColumns(ctx context.Context) (ColumnList, error) {
-	columns := make([]*Column, 0, 5)
-	if err := db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting, id").Find(&columns); err != nil {
-		return nil, err
-	}
-
-	return columns, nil
 }
 
 // getDefaultColumnWithFallback return default column if one exists

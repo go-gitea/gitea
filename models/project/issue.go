@@ -33,12 +33,20 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 	return err
 }
 
-func IsIssueInColumn(ctx context.Context, issueID, projectID, columnID int64) (bool, error) {
-	return db.GetEngine(ctx).Exist(&ProjectIssue{
-		IssueID:         issueID,
-		ProjectID:       projectID,
-		ProjectColumnID: columnID,
-	})
+// ColumnIssueIDs returns the project_board_id values belonging to a column. Rows written
+// before 1.22 carry 0, which the board renders in the default column.
+func ColumnIssueIDs(column *Column) []int64 {
+	if column.Default {
+		return []int64{column.ID, 0}
+	}
+	return []int64{column.ID}
+}
+
+func IsIssueInColumn(ctx context.Context, issueID int64, column *Column) (bool, error) {
+	return db.GetEngine(ctx).Table("project_issue").
+		Where("issue_id=? AND project_id=?", issueID, column.ProjectID).
+		In("project_board_id", ColumnIssueIDs(column)).
+		Exist()
 }
 
 // GetColumnIssueNextSorting returns the sorting value to append an issue at the end of the column.
@@ -93,21 +101,5 @@ func moveIssuesToAnotherColumn(ctx context.Context, oldColumn, newColumn *Column
 // DeleteAllProjectIssueByIssueIDsAndProjectIDs delete all project's issues by issue's and project's ids
 func DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx context.Context, issueIDs, projectIDs []int64) error {
 	_, err := db.GetEngine(ctx).In("project_id", projectIDs).In("issue_id", issueIDs).Delete(&ProjectIssue{})
-	return err
-}
-
-// MoveIssueToColumn moves a single issue to a specific column within a project.
-func MoveIssueToColumn(ctx context.Context, issueID, projectID, columnID int64) error {
-	nextSorting, err := GetColumnIssueNextSorting(ctx, projectID, columnID)
-	if err != nil {
-		return err
-	}
-	_, err = db.GetEngine(ctx).
-		Where("issue_id=? AND project_id=?", issueID, projectID).
-		Cols("project_board_id", "sorting").
-		Update(&ProjectIssue{
-			ProjectColumnID: columnID,
-			Sorting:         nextSorting,
-		})
 	return err
 }

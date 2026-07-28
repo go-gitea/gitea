@@ -14,23 +14,22 @@ import (
 
 func TestProjectColumns(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	t.Run("CountProjectColumns", testCountProjectColumns)
 	t.Run("GetProjectColumns", testGetProjectColumns)
 	t.Run("GetColumnsByIDs", testGetColumnsByIDs)
-}
-
-func testCountProjectColumns(t *testing.T) {
-	project, err := GetProjectByID(t.Context(), 1)
-	assert.NoError(t, err)
-
-	count, err := CountProjectColumns(t.Context(), project.ID)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, count)
 }
 
 func testGetProjectColumns(t *testing.T) {
 	project, err := GetProjectByID(t.Context(), 1)
 	assert.NoError(t, err)
+
+	// pagination must not change the total the caller pages through
+	all, total, err := db.FindAndCount[Column](t.Context(), SearchColumnOptions{
+		ListOptions: db.ListOptions{Page: 1, PageSize: 2},
+		ProjectID:   project.ID,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, all, 2)
+	assert.EqualValues(t, 3, total)
 
 	// Page 1, limit 2 — returns first 2 columns
 	page1, err := GetProjectColumns(t.Context(), project.ID, db.ListOptions{Page: 1, PageSize: 2})

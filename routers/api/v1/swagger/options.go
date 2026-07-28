@@ -248,6 +248,9 @@ type swaggerParameterBodies struct {
 	EditProjectColumnOption api.EditProjectColumnOption
 
 	// in:body
+	MoveProjectColumnsOption api.MoveProjectColumnsOption
+
+	// in:body
 	MoveProjectIssueOption api.MoveProjectIssueOption
 
 	// in:body

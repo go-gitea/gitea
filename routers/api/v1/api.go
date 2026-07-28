@@ -88,6 +88,7 @@ import (
 	"gitea.dev/routers/api/v1/packages"
 	"gitea.dev/routers/api/v1/repo"
 	"gitea.dev/routers/api/v1/settings"
+	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/routers/api/v1/token"
 	"gitea.dev/routers/api/v1/user"
 	"gitea.dev/routers/common"
@@ -799,6 +800,60 @@ func mustEnableWiki(ctx *context.APIContext) {
 	}
 }
 
+// reqProjectsUnitAccess mirrors the web's reqUnitAccess for the Projects unit. Org
+// visibility is too permissive for reads, org ownership too strict for writes.
+func reqProjectsUnitAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.ContextUser == nil {
+			ctx.APIErrorNotFound()
+			return
+		}
+		if ctx.Doer != nil && ctx.Doer.IsAdmin {
+			return
+		}
+		// individual visibility is handled by individualPermsChecker
+		if ctx.ContextUser.IsOrganization() &&
+			organization.OrgFromUser(ctx.ContextUser).UnitPermission(ctx, ctx.Doer, unit.TypeProjects) < accessMode {
+			ctx.APIErrorNotFound()
+		}
+	}
+}
+
+// addProjectRoutes registers a scope's project tree. reqWriter guards every mutation.
+func addProjectRoutes(m *web.Router, reqWriter func(*context.APIContext)) {
+	m.Combo("").Get(shared.ListProjects).
+		Post(reqWriter, bind(api.CreateProjectOption{}), shared.CreateProject)
+	m.Group("/{id}", func() {
+		m.Combo("").Get(shared.GetProject).
+			Patch(reqWriter, bind(api.EditProjectOption{}), shared.EditProject).
+			Delete(reqWriter, shared.DeleteProject)
+		m.Combo("/columns").Get(shared.ListProjectColumns).
+			Post(reqWriter, bind(api.CreateProjectColumnOption{}), shared.CreateProjectColumn)
+		m.Post("/columns/move", reqWriter, bind(api.MoveProjectColumnsOption{}), shared.MoveProjectColumns)
+		m.Group("/columns/{column_id}", func() {
+			m.Combo("").Get(shared.GetProjectColumn).
+				Patch(reqWriter, bind(api.EditProjectColumnOption{}), shared.EditProjectColumn).
+				Delete(reqWriter, shared.DeleteProjectColumn)
+			m.Post("/default", reqWriter, shared.SetDefaultProjectColumn)
+			m.Get("/issues", shared.ListProjectColumnIssues)
+			m.Post("/issues/{issue_id}", reqWriter, shared.AddIssueToProjectColumn)
+			m.Delete("/issues/{issue_id}", reqWriter, shared.RemoveIssueFromProjectColumn)
+		})
+		m.Post("/issues/{issue_id}/move", reqWriter, bind(api.MoveProjectIssueOption{}), shared.MoveProjectIssue)
+	})
+}
+
+// chainChecks runs access checks in order, stopping at the first that answers the request.
+func chainChecks(checks ...func(ctx *context.APIContext)) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		for _, check := range checks {
+			if check(ctx); ctx.Written() {
+				return
+			}
+		}
+	}
+}
+
 // FIXME: for consistency, maybe most mustNotBeArchived checks should be replaced with mustEnableEditor
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
@@ -1077,6 +1132,8 @@ func Routes() *web.Router {
 				}
 
 				m.Get("/repos", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository), reqExploreSignIn(), user.ListUserRepos)
+				m.Get("/projects", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue), reqExploreSignIn(),
+					reqProjectsUnitAccess(perm.AccessModeRead), shared.ListProjects)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), reqToken(), user.CreateAccessToken)
@@ -1112,6 +1169,9 @@ func Routes() *web.Router {
 				m.Get("", user.GetUserSettings)
 				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
 			}, rejectPublicOnly())
+			m.Group("/projects", func() {
+				addProjectRoutes(m, reqToken())
+			}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 			// Email addresses are always private account data.
 			m.Combo("/emails", rejectPublicOnly()).
 				Get(user.ListEmails).
@@ -1681,24 +1741,7 @@ func Routes() *web.Router {
 						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
 				})
 				m.Group("/projects", func() {
-					m.Combo("").Get(repo.ListProjects).
-						Post(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.CreateProjectOption{}), repo.CreateProject)
-					m.Group("/{id}", func() {
-						m.Combo("").Get(repo.GetProject).
-							Patch(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.EditProjectOption{}), repo.EditProject).
-							Delete(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.DeleteProject)
-						m.Combo("/columns").Get(repo.ListProjectColumns).
-							Post(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.CreateProjectColumnOption{}), repo.CreateProjectColumn)
-						m.Group("/columns/{column_id}", func() {
-							m.Combo("").
-								Patch(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.EditProjectColumnOption{}), repo.EditProjectColumn).
-								Delete(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.DeleteProjectColumn)
-							m.Get("/issues", repo.ListProjectColumnIssues)
-							m.Post("/issues/{issue_id}", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.AddIssueToProjectColumn)
-							m.Delete("/issues/{issue_id}", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.RemoveIssueFromProjectColumn)
-						})
-						m.Post("/issues/{issue_id}/move", reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.MoveProjectIssueOption{}), repo.MoveProjectIssue)
-					})
+					addProjectRoutes(m, chainChecks(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived))
 				}, reqRepoReader(unit.TypeProjects))
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
@@ -1763,6 +1806,9 @@ func Routes() *web.Router {
 				m.Post("", reqOrgOwnership(), bind(api.CreateTeamOption{}), org.CreateTeam)
 				m.Get("/search", org.SearchTeam)
 			}, reqToken(), reqOrgMembership())
+			m.Group("/projects", func() {
+				addProjectRoutes(m, chainChecks(reqToken(), reqProjectsUnitAccess(perm.AccessModeWrite)))
+			}, reqProjectsUnitAccess(perm.AccessModeRead), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 			m.Group("/labels", func() {
 				m.Get("", org.ListLabels)
 				m.Post("", reqToken(), reqOrgOwnership(), bind(api.CreateLabelOption{}), org.CreateLabel)

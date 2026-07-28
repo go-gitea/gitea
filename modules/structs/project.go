@@ -7,11 +7,8 @@ import (
 	"time"
 )
 
-// Project represents a project.
-//
-// Gitea projects can only contain issues — note cards and pull requests are
-// not modeled as project items.
-//
+// Project represents a project. Projects track issues and pull requests;
+// standalone note cards are not supported.
 // swagger:model
 type Project struct {
 	ID          int64     `json:"id"`
@@ -32,8 +29,9 @@ type Project struct {
 	NumIssues       int64  `json:"num_issues,omitempty"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
+	// null when the project has never been updated
 	// swagger:strfmt date-time
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	// swagger:strfmt date-time
 	ClosedAt *time.Time `json:"closed_at,omitempty"`
 	HTMLURL  string     `json:"html_url,omitempty"`
@@ -71,11 +69,11 @@ type ProjectColumn struct {
 	Color     string `json:"color,omitempty"`
 	ProjectID int64  `json:"project_id"`
 	Creator   *User  `json:"creator,omitempty"`
-	NumIssues int64  `json:"num_issues,omitempty"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
+	// null when the column has never been updated
 	// swagger:strfmt date-time
-	UpdatedAt time.Time `json:"updated_at"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 }
 
 // CreateProjectColumnOption represents options for creating a project column
@@ -92,8 +90,17 @@ type CreateProjectColumnOption struct {
 type EditProjectColumnOption struct {
 	Title *string `json:"title,omitempty"`
 	// Column color in 6-digit hex format, e.g. #FF0000
-	Color   *string `json:"color,omitempty"`
-	Sorting *int    `json:"sorting,omitempty"`
+	Color *string `json:"color,omitempty"`
+	// Position of the column within the project, between -128 and 127
+	Sorting *int `json:"sorting,omitempty"`
+}
+
+// MoveProjectColumnsOption represents options for reordering a project's columns
+// swagger:model
+type MoveProjectColumnsOption struct {
+	// Every column ID of the project, in the desired left-to-right order
+	// required: true
+	ColumnIDs []int64 `json:"column_ids" binding:"Required"`
 }
 
 // MoveProjectIssueOption represents options for moving an issue between columns

@@ -1,0 +1,57 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package project
+
+import (
+	"testing"
+
+	"gitea.dev/models/unittest"
+	"gitea.dev/services/contexttest"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestMain(m *testing.M) {
+	unittest.MainTest(m)
+}
+
+// TestFindColumn covers the scoping rule every board handler depends on: a request only
+// resolves projects owned by the scope its route assigned, so an ID belonging to anyone
+// else reads as not found rather than leaking across owners.
+func TestFindColumn(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		projectID  string
+		columnID   string
+		repoScoped bool
+		resolves   bool
+	}{
+		{"repository project", "1", "2", true, true},
+		{"owner project", "4", "4", false, true},
+		{"repository board cannot reach an owner project", "4", "1", true, false},
+		{"owner board cannot reach another owner's project", "4", "4", false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			unittest.PrepareTestEnv(t)
+			ctx, _ := contexttest.MockContext(t, "user2/-/projects")
+			if tc.repoScoped {
+				contexttest.LoadUser(t, ctx, 2)
+				contexttest.LoadRepo(t, ctx, 1)
+			} else if tc.resolves {
+				contexttest.LoadUser(t, ctx, 2) // user2 owns project 4
+				ctx.ContextUser = ctx.Doer
+			} else {
+				contexttest.LoadUser(t, ctx, 1) // user1 does not
+				ctx.ContextUser = ctx.Doer
+			}
+			ctx.SetPathParam("id", tc.projectID)
+			ctx.SetPathParam("columnID", tc.columnID)
+
+			project, column := FindColumn(ctx)
+			assert.Equal(t, tc.resolves, project != nil)
+			assert.Equal(t, tc.resolves, column != nil)
+			assert.Equal(t, tc.resolves, !ctx.Written())
+		})
+	}
+}
