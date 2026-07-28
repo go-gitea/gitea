@@ -1,17 +1,16 @@
 import {reactive} from 'vue';
 import {GET, POST} from '../../modules/fetch.ts';
 import {showErrorToast} from '../../modules/toast.ts';
+import {isPending, saveTargetId} from './workflowIdentity.ts';
+import {mergePendingClones} from './workflowList.ts';
+import type {WorkflowLocale} from './workflowLocale.ts';
 
 // Minimum props the store needs from the Vue component
 type StoreProps = {
   projectLink: string;
-  eventId: string;
-  locale: {
-    atLeastOneActionRequired: string;
-    saveWorkflowFailed: string;
-    updateWorkflowFailed: string;
-    deleteWorkflowFailed: string;
-  };
+  locale: Pick<WorkflowLocale,
+    'atLeastOneActionRequired' | 'saveWorkflowFailed' | 'updateWorkflowFailed' |
+    'deleteWorkflowFailed' | 'unexpectedResponseFormat' | 'unexpectedError'>;
 };
 
 type WorkflowFilters = {
@@ -61,14 +60,16 @@ export type WorkflowEvent = {
   capabilities?: WorkflowCapabilities;
   filters?: Array<{type: string, value: string}>;
   actions?: Array<{type: string, value: string}>;
-  _isEditing?: boolean;
   _clonedFromEventId?: string;
   is_configured?: boolean;
 } & Record<string, unknown>;
 
 export type WorkflowStoreState = {
   workflowEvents: WorkflowEvent[];
-  selectedItem: string | null;
+  // Derived from selectedWorkflow, never assigned: a separately stored key drifted
+  // out of step with the loaded row, leaving the sidebar highlighting a workflow
+  // whose editor pane was empty.
+  readonly selectedItem: string | null;
   selectedWorkflow: WorkflowEvent | null;
   projectColumns: ProjectColumn[];
   projectLabels: ProjectLabel[];
@@ -80,6 +81,7 @@ export type WorkflowStoreState = {
   getDraft(event_id: string): WorkflowDraftState | undefined;
   updateDraft(event_id: string, filters: WorkflowFilters, actions: WorkflowActions): void;
   clearDraft(event_id: string): void;
+  removePendingRow(event_id: string): void;
   loadEvents(): Promise<WorkflowEvent[]>;
   loadProjectOptions(): Promise<void>;
   loadWorkflowData(event_id: string): Promise<void>;
@@ -150,7 +152,9 @@ const cloneActions = (actions: WorkflowActions): WorkflowActions => ({
 export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
   const store: WorkflowStoreState = reactive<WorkflowStoreState>({
     workflowEvents: [] as WorkflowEvent[],
-    selectedItem: props.eventId || null,
+    get selectedItem(): string | null {
+      return store.selectedWorkflow?.event_id ?? null;
+    },
     selectedWorkflow: null,
     projectColumns: [],
     projectLabels: [],
@@ -174,10 +178,18 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
       delete store.workflowDrafts[event_id];
     },
 
+    removePendingRow(event_id: string) {
+      const at = store.workflowEvents.findIndex((e: WorkflowEvent) => e.event_id === event_id);
+      if (at >= 0) store.workflowEvents.splice(at, 1);
+    },
+
     async loadEvents(): Promise<WorkflowEvent[]> {
       const response = await GET(`${props.projectLink}/workflows/events`);
-      const data = await response.json();
-      store.workflowEvents = data as WorkflowEvent[];
+      const data = await response.json() as WorkflowEvent[];
+      // The response only contains saved workflows and placeholders, so pending
+      // clones are re-attached: a reload triggered by saving or deleting some
+      // other workflow must not discard unsaved work.
+      store.workflowEvents = mergePendingClones(data, store.workflowEvents.filter((e: WorkflowEvent) => isPending(e)));
       return store.workflowEvents;
     },
 
@@ -233,12 +245,7 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
 
       store.saving = true;
       try {
-        // Unsaved workflows (id 0) may carry a client-only temporary event_id
-        // (see ProjectWorkflow.vue cloneWorkflow's unique tempId); the backend
-        // creates by event type, so send workflow_event instead in that case.
-        const event_id = store.selectedWorkflow.id === 0 ?
-          store.selectedWorkflow.workflow_event! :
-          store.selectedWorkflow.event_id;
+        const event_id = saveTargetId(store.selectedWorkflow);
 
         const postData = {
           event_id,
@@ -272,39 +279,31 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
         const result = await response.json();
         if (result.success && result.workflow) {
           const wasNewWorkflow = store.selectedWorkflow.id === 0;
-          // Clear draft for the old event_id before reloading (id=0 means unsaved)
-          if (wasNewWorkflow) store.clearDraft(store.selectedWorkflow.event_id);
+          if (wasNewWorkflow) {
+            // The row just persisted is no longer pending, so drop it (and its
+            // draft) before reloading rather than letting it be carried over.
+            store.clearDraft(store.selectedWorkflow.event_id);
+            store.removePendingRow(store.selectedWorkflow.event_id);
+          }
 
           await store.loadEvents();
 
           const reloadedWorkflow = store.workflowEvents.find((w: WorkflowEvent) => w.event_id === result.workflow.event_id);
-          const savedWorkflow = {
-            ...result.workflow,
-            _isEditing: false,
-            is_configured: true,
-          } satisfies WorkflowEvent;
+          const selected = reloadedWorkflow ?? {...result.workflow, is_configured: true} satisfies WorkflowEvent;
+          store.selectedWorkflow = selected;
 
-          if (reloadedWorkflow) {
-            reloadedWorkflow._isEditing = false;
-            store.selectedWorkflow = reloadedWorkflow;
-            store.selectedItem = reloadedWorkflow.event_id;
-          } else {
-            store.selectedWorkflow = savedWorkflow;
-            store.selectedItem = savedWorkflow.event_id;
-          }
+          store.workflowFilters = convertFilters(selected);
+          store.workflowActions = convertActions(selected);
+          store.updateDraft(selected.event_id, store.workflowFilters, store.workflowActions);
 
-          store.workflowFilters = convertFilters(store.selectedWorkflow);
-          store.workflowActions = convertActions(store.selectedWorkflow);
-          store.updateDraft(store.selectedWorkflow!.event_id, store.workflowFilters, store.workflowActions);
-
-          if (wasNewWorkflow && store.selectedWorkflow!.event_id) {
-            const newUrl = `${props.projectLink}/workflows/${store.selectedWorkflow!.event_id}`;
-            window.history.replaceState({event_id: store.selectedWorkflow!.event_id}, '', newUrl);
+          if (wasNewWorkflow && selected.event_id) {
+            const newUrl = `${props.projectLink}/workflows/${selected.event_id}`;
+            window.history.replaceState({event_id: selected.event_id}, '', newUrl);
           }
           return true;
         }
         console.error('Unexpected response format:', result);
-        showErrorToast(`${props.locale.saveWorkflowFailed}: Unexpected response format`);
+        showErrorToast(`${props.locale.saveWorkflowFailed}: ${props.locale.unexpectedResponseFormat}`);
         return false;
       } catch (error) {
         console.error('Failed to save workflow:', error);
@@ -349,7 +348,7 @@ export function createWorkflowStore(props: StoreProps): WorkflowStoreState {
         } else {
           // Revert the status change on failure
           selected.enabled = previousEnabled;
-          showErrorToast(`${props.locale.updateWorkflowFailed}: Unexpected error`);
+          showErrorToast(`${props.locale.updateWorkflowFailed}: ${props.locale.unexpectedError}`);
         }
       } catch (error) {
         console.error('Failed to update workflow status:', error);

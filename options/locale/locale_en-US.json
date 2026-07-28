@@ -3956,6 +3956,8 @@
   "projects.workflows.save_workflow_failed": "Failed to save workflow",
   "projects.workflows.update_workflow_failed": "Failed to update workflow",
   "projects.workflows.delete_workflow_failed": "Failed to delete workflow",
+  "projects.workflows.unexpected_response_format": "Unexpected response format",
+  "projects.workflows.unexpected_error": "Unexpected error",
   "projects.workflows.at_least_one_action_required": "At least one action must be configured",
   "projects.workflows.clone_tooltip": "Clone this workflow",
   "projects.workflows.delete_confirm": "Are you sure you want to delete this workflow?",

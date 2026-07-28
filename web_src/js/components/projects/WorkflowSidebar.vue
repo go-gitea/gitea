@@ -1,13 +1,14 @@
 <script lang="ts" setup>
 import {svg} from '../../svg.ts';
+import {statusClass} from './workflowList.ts';
 import type {WorkflowEvent} from './WorkflowStore.ts';
 
-const props = defineProps<{
+defineProps<{
   workflows: WorkflowEvent[];
   selectedId: string | null;
   heading: string;
-  getDisplayName: (item: WorkflowEvent, index: number) => string;
-  getStatusClass: (item: WorkflowEvent) => string;
+  displayNames: Map<string, string>;
+  hrefFor: (item: WorkflowEvent) => string;
 }>();
 
 const emit = defineEmits<{
@@ -16,35 +17,39 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="workflow-sidebar">
+  <nav class="workflow-sidebar" :aria-label="heading">
     <div class="sidebar-header">
       <h3>{{ heading }}</h3>
     </div>
     <div class="sidebar-content">
       <div class="workflow-items">
-        <div
-          v-for="(item, index) in workflows"
-          :key="`workflow-${item.event_id}-${item.is_configured ? 'configured' : 'unconfigured'}`"
+        <!-- Rendered as links so the list is reachable by Tab and openable in a
+             new tab; the click handler keeps navigation in-page. -->
+        <a
+          v-for="item in workflows"
+          :key="item.event_id"
           class="workflow-item"
           :class="{ active: selectedId === item.event_id }"
-          @click="emit('select', item)"
+          :href="hrefFor(item)"
+          :aria-current="selectedId === item.event_id ? 'page' : undefined"
+          @click.prevent="emit('select', item)"
         >
           <div class="workflow-content">
             <div class="workflow-info">
               <span class="status-indicator">
                 <!-- eslint-disable-next-line vue/no-v-html -->
-                <span v-html="svg('octicon-dot-fill')" :class="getStatusClass(item)"/>
+                <span v-html="svg('octicon-dot-fill')" :class="statusClass(item)"/>
               </span>
               <div class="workflow-details">
-                <div class="workflow-title">{{ getDisplayName(item, index) }}</div>
+                <div class="workflow-title">{{ displayNames.get(item.event_id) }}</div>
                 <div v-if="item.summary" class="workflow-subtitle">{{ item.summary }}</div>
               </div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
     </div>
-  </div>
+  </nav>
 </template>
 
 <style scoped>
@@ -67,7 +72,7 @@ const emit = defineEmits<{
   margin: 0;
   color: var(--color-text);
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .sidebar-content {
@@ -83,11 +88,14 @@ const emit = defineEmits<{
 }
 
 .workflow-item {
+  display: block;
   padding: 0.75rem 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 6px;
   margin-bottom: 0.25rem;
+  color: inherit;
+  text-decoration: none;
 }
 
 .workflow-item:hover { background: var(--color-hover); }
@@ -121,7 +129,7 @@ const emit = defineEmits<{
 }
 
 .workflow-title {
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--color-text);
   font-size: 0.9rem;
   line-height: 1.3;
@@ -146,6 +154,6 @@ const emit = defineEmits<{
    span — the global .svg rule has `fill:currentColor`, so the fill inherits
    through normal CSS cascade from the span's `color` value. */
 .status-inactive { color: var(--color-text-light-2); }
-.status-active   { color: var(--color-green); }
+.status-active { color: var(--color-green); }
 .status-disabled { color: var(--color-red); }
 </style>

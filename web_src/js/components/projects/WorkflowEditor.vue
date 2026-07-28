@@ -1,47 +1,13 @@
 <script lang="ts" setup>
 import {inject} from 'vue';
 import WorkflowLabelPicker from './WorkflowLabelPicker.vue';
+import type {WorkflowLocale} from './workflowLocale.ts';
 import type {WorkflowStoreState, WorkflowEvent} from './WorkflowStore.ts';
 
 const store = inject<WorkflowStoreState>('workflowStore')!;
 
-const props = defineProps<{
-  locale: {
-    when: string;
-    runWhen: string;
-    filters: string;
-    applyTo: string;
-    whenMovedFromColumn: string;
-    whenMovedToColumn: string;
-    onlyIfHasLabels: string;
-    anyColumn: string;
-    anyLabel: string;
-    issuesAndPullRequests: string;
-    issuesOnly: string;
-    pullRequestsOnly: string;
-    actions: string;
-    moveToColumn: string;
-    selectColumn: string;
-    addLabels: string;
-    removeLabels: string;
-    none: string;
-    issueState: string;
-    noChange: string;
-    closeIssue: string;
-    reopenIssue: string;
-    viewWorkflowConfiguration: string;
-    configureWorkflow: string;
-    cancel: string;
-    save: string;
-    delete: string;
-    edit: string;
-    disable: string;
-    enable: string;
-    disabled: string;
-    enabled: string;
-    clone: string;
-    cloneTooltip: string;
-  };
+defineProps<{
+  locale: WorkflowLocale;
   canWriteProjects: boolean;
   isInEditMode: boolean;
   showCancelButton: boolean;
@@ -65,16 +31,16 @@ const deferCloneWorkflow = () => {
   emitDeferred(() => emit('clone-workflow', wf!));
 };
 
-// Whether the given filter type is available for the selected workflow.
+// These three only run inside the branch that requires a selected workflow, so
+// the row itself always exists; its capabilities are genuinely optional.
 const hasFilter = (type: string) =>
-  store.selectedWorkflow?.capabilities?.available_filters?.includes(type) ?? false;
+  store.selectedWorkflow!.capabilities?.available_filters?.includes(type) ?? false;
 
-// Whether the given action type is available for the selected workflow.
 const hasAction = (type: string) =>
-  store.selectedWorkflow?.capabilities?.available_actions?.includes(type) ?? false;
+  store.selectedWorkflow!.capabilities?.available_actions?.includes(type) ?? false;
 
 const hasAvailableFilters = () =>
-  (store.selectedWorkflow?.capabilities?.available_filters?.length ?? 0) > 0;
+  (store.selectedWorkflow!.capabilities?.available_filters?.length ?? 0) > 0;
 
 const columnTitle = (id: string, fallback: string) =>
   store.projectColumns.find((c: {id: number; title: string}) => String(c.id) === id)?.title ?? fallback;
@@ -178,13 +144,13 @@ const toggleLabel = (type: string, labelId: string) => {
             <div class="segment">
               <!-- Apply to (issue type) -->
               <div v-if="hasFilter('issue_type')" class="field">
-                <label>{{ locale.applyTo }}</label>
-                <select v-if="isInEditMode" class="column-select" v-model="store.workflowFilters.issue_type">
+                <label id="wf-issue-type-label" for="wf-issue-type">{{ locale.applyTo }}</label>
+                <select v-if="isInEditMode" id="wf-issue-type" class="column-select" v-model="store.workflowFilters.issue_type">
                   <option value="">{{ locale.issuesAndPullRequests }}</option>
                   <option value="issue">{{ locale.issuesOnly }}</option>
                   <option value="pull_request">{{ locale.pullRequestsOnly }}</option>
                 </select>
-                <div v-else class="readonly-value">
+                <div v-else class="readonly-value" aria-labelledby="wf-issue-type-label">
                   {{ store.workflowFilters.issue_type === 'issue' ? locale.issuesOnly :
                     store.workflowFilters.issue_type === 'pull_request' ? locale.pullRequestsOnly :
                     locale.issuesAndPullRequests }}
@@ -193,22 +159,22 @@ const toggleLabel = (type: string, labelId: string) => {
 
               <!-- Source column -->
               <div v-if="hasFilter('source_column')" class="field">
-                <label>{{ locale.whenMovedFromColumn }}</label>
-                <select v-if="isInEditMode" v-model="store.workflowFilters.source_column" class="column-select">
+                <label id="wf-source-column-label" for="wf-source-column">{{ locale.whenMovedFromColumn }}</label>
+                <select v-if="isInEditMode" id="wf-source-column" v-model="store.workflowFilters.source_column" class="column-select">
                   <option value="">{{ locale.anyColumn }}</option>
                   <option v-for="col in store.projectColumns" :key="col.id" :value="String(col.id)">{{ col.title }}</option>
                 </select>
-                <div v-else class="readonly-value">{{ columnTitle(store.workflowFilters.source_column, locale.anyColumn) }}</div>
+                <div v-else class="readonly-value" aria-labelledby="wf-source-column-label">{{ columnTitle(store.workflowFilters.source_column, locale.anyColumn) }}</div>
               </div>
 
               <!-- Target column -->
               <div v-if="hasFilter('target_column')" class="field">
-                <label>{{ locale.whenMovedToColumn }}</label>
-                <select v-if="isInEditMode" v-model="store.workflowFilters.target_column" class="column-select">
+                <label id="wf-target-column-label" for="wf-target-column">{{ locale.whenMovedToColumn }}</label>
+                <select v-if="isInEditMode" id="wf-target-column" v-model="store.workflowFilters.target_column" class="column-select">
                   <option value="">{{ locale.anyColumn }}</option>
                   <option v-for="col in store.projectColumns" :key="col.id" :value="String(col.id)">{{ col.title }}</option>
                 </select>
-                <div v-else class="readonly-value">{{ columnTitle(store.workflowFilters.target_column, locale.anyColumn) }}</div>
+                <div v-else class="readonly-value" aria-labelledby="wf-target-column-label">{{ columnTitle(store.workflowFilters.target_column, locale.anyColumn) }}</div>
               </div>
 
               <!-- Filter labels -->
@@ -218,6 +184,7 @@ const toggleLabel = (type: string, labelId: string) => {
                   :labels="store.projectLabels"
                   :selected-ids="store.workflowFilters.labels"
                   :placeholder="locale.anyLabel"
+                  :field-label="locale.onlyIfHasLabels"
                   :readonly="!isInEditMode"
                   @toggle="id => toggleLabel('filter_labels', id)"
                 />
@@ -231,12 +198,12 @@ const toggleLabel = (type: string, labelId: string) => {
             <div class="segment">
               <!-- Move to column -->
               <div v-if="hasAction('column')" class="field">
-                <label>{{ locale.moveToColumn }}</label>
-                <select v-if="isInEditMode" v-model="store.workflowActions.column" class="column-select">
+                <label id="wf-action-column-label" for="wf-action-column">{{ locale.moveToColumn }}</label>
+                <select v-if="isInEditMode" id="wf-action-column" v-model="store.workflowActions.column" class="column-select">
                   <option value="">{{ locale.selectColumn }}</option>
                   <option v-for="col in store.projectColumns" :key="col.id" :value="String(col.id)">{{ col.title }}</option>
                 </select>
-                <div v-else class="readonly-value">{{ columnTitle(store.workflowActions.column, locale.none) }}</div>
+                <div v-else class="readonly-value" aria-labelledby="wf-action-column-label">{{ columnTitle(store.workflowActions.column, locale.none) }}</div>
               </div>
 
               <!-- Add labels -->
@@ -246,6 +213,7 @@ const toggleLabel = (type: string, labelId: string) => {
                   :labels="store.projectLabels"
                   :selected-ids="store.workflowActions.add_labels"
                   :placeholder="locale.none"
+                  :field-label="locale.addLabels"
                   :readonly="!isInEditMode"
                   @toggle="id => toggleLabel('add_labels', id)"
                 />
@@ -258,6 +226,7 @@ const toggleLabel = (type: string, labelId: string) => {
                   :labels="store.projectLabels"
                   :selected-ids="store.workflowActions.remove_labels"
                   :placeholder="locale.none"
+                  :field-label="locale.removeLabels"
                   :readonly="!isInEditMode"
                   @toggle="id => toggleLabel('remove_labels', id)"
                 />
@@ -265,10 +234,10 @@ const toggleLabel = (type: string, labelId: string) => {
 
               <!-- Issue state -->
               <div v-if="hasAction('issue_state')" class="field">
-                <label for="issue-state-action">{{ locale.issueState }}</label>
+                <label id="wf-issue-state-label" for="wf-issue-state">{{ locale.issueState }}</label>
                 <select
                   v-if="isInEditMode"
-                  id="issue-state-action"
+                  id="wf-issue-state"
                   class="column-select"
                   v-model="store.workflowActions.issue_state"
                 >
@@ -276,7 +245,7 @@ const toggleLabel = (type: string, labelId: string) => {
                   <option value="close">{{ locale.closeIssue }}</option>
                   <option value="reopen">{{ locale.reopenIssue }}</option>
                 </select>
-                <div v-else class="readonly-value">
+                <div v-else class="readonly-value" aria-labelledby="wf-issue-state-label">
                   {{ store.workflowActions.issue_state === 'close' ? locale.closeIssue :
                     store.workflowActions.issue_state === 'reopen' ? locale.reopenIssue : locale.noChange }}
                 </div>
@@ -328,7 +297,7 @@ const toggleLabel = (type: string, labelId: string) => {
 .editor-title h2 {
   margin: 0 0 0.25rem;
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -361,7 +330,7 @@ const toggleLabel = (type: string, labelId: string) => {
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .workflow-status.status-enabled {
@@ -379,7 +348,7 @@ const toggleLabel = (type: string, labelId: string) => {
 /* Form -------------------------------------------------------------- */
 .form .field { margin-bottom: 1rem; }
 .form .field label {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   margin-bottom: 0.5rem;
   display: block;
@@ -399,11 +368,11 @@ const toggleLabel = (type: string, labelId: string) => {
   border: 1px solid var(--color-secondary);
   border-radius: 4px;
   color: var(--color-text);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .readonly-value label {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   margin-bottom: 0.25rem;
   display: block;
 }
