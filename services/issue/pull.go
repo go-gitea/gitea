@@ -54,7 +54,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return nil, nil
 	}
 
-	repo, err := git.OpenRepository(pr.BaseRepo)
+	repo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		return nil, err
 	}

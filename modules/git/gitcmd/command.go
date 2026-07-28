@@ -382,12 +382,7 @@ func (c *Command) WithParentCallerInfo(optInfo ...string) *Command {
 		return c
 	}
 	skip := 1 /*parent "wrap/run" functions*/ + 1 /*this function*/
-	callerFuncName := util.CallerFuncName(skip)
-	callerInfo := callerFuncName
-	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
-		callerInfo = callerInfo[pos+1:]
-	}
-	c.callerInfo = callerInfo
+	c.callerInfo = util.CallerFuncName(skip)
 	return c
 }
 
@@ -535,7 +530,7 @@ func (c *Command) StartWithStderr(ctx context.Context) RunStdError {
 	}
 	c.cmdManagedStderr = &bytes.Buffer{}
 	c.cmdStderr = c.cmdManagedStderr
-	err := c.Start(ctx)
+	err := c.WithParentCallerInfo().Start(ctx)
 	if err != nil {
 		return &runStdError{err: err}
 	}
@@ -555,14 +550,14 @@ func (c *Command) WaitWithStderr() RunStdError {
 }
 
 func (c *Command) RunWithStderr(ctx context.Context) RunStdError {
-	if err := c.StartWithStderr(ctx); err != nil {
+	if err := c.WithParentCallerInfo().StartWithStderr(ctx); err != nil {
 		return &runStdError{err: err}
 	}
 	return c.WaitWithStderr()
 }
 
 func (c *Command) Run(ctx context.Context) (err error) {
-	if err = c.Start(ctx); err != nil {
+	if err = c.WithParentCallerInfo().Start(ctx); err != nil {
 		return err
 	}
 	return c.Wait()
@@ -585,7 +580,7 @@ func (c *Command) runStdBytes(ctx context.Context) ([]byte, []byte, RunStdError)
 		panic("stdout and stderr field must be nil when using RunStdBytes")
 	}
 	stdoutBuf := &bytes.Buffer{}
-	err := c.WithParentCallerInfo().WithStdoutBuffer(stdoutBuf).RunWithStderr(ctx)
+	err := c.WithStdoutBuffer(stdoutBuf).RunWithStderr(ctx)
 	return stdoutBuf.Bytes(), c.cmdManagedStderr.Bytes(), err
 }
 
