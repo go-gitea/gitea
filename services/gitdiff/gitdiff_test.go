@@ -5,7 +5,9 @@
 package gitdiff
 
 import (
+	"fmt"
 	"html/template"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -622,6 +624,66 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 			assert.NotEmpty(t, f.Sections, "Diff file %q should have sections", f.Name)
 		}
 	}
+}
+
+func TestGetDiffForRender_TailSectionLineCounts(t *testing.T) {
+	// This test builds a tiny throwaway repo (via git.ForceFastImport) with two commits that only
+	// differ by one line in the middle of a 30-line file, so the diff hunk stops well before the
+	// end of the file and a "tail section" (the "expand down to end of file" button) is required.
+	// It exercises the real GetDiffForRender -> prepareDiffRenderDetail -> addTailSection pipeline,
+	// so it would have caught the bug where DiffRenderDetail.leftLineCount/rightLineCount were
+	// never assigned (only local variables were), which made the tail section's SectionInfo always
+	// have LeftIdx==RightIdx==0, and therefore GetExpandDirection() never returned "down".
+	repoDir := filepath.Join(t.TempDir(), "repo.git")
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, false, git.Sha1ObjectFormat.Name()))
+
+	buildContent := func(changedLine string) string {
+		lines := make([]string, 30)
+		for i := range lines {
+			lines[i] = fmt.Sprintf("line %02d", i+1)
+		}
+		if changedLine != "" {
+			lines[4] = changedLine // 0-based index 4 == "line 05"
+		}
+		return strings.Join(lines, "\n")
+	}
+	beforeContent := buildContent("")
+	afterContent := buildContent("line 05 CHANGED")
+
+	gitRepo, err := git.OpenRepositoryLocal(repoDir)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{
+		{Ref: "refs/heads/before", Message: "before", Files: []git.FastImportFile{{Mode: git.EntryModeBlob, Path: "sample.txt", Content: beforeContent}}},
+		{Ref: "refs/heads/after", Message: "after", Files: []git.FastImportFile{{Mode: git.EntryModeBlob, Path: "sample.txt", Content: afterContent}}},
+	}))
+
+	beforeCommit, err := gitRepo.GetBranchCommit(t.Context(), "before")
+	require.NoError(t, err)
+	afterCommit, err := gitRepo.GetBranchCommit(t.Context(), "after")
+	require.NoError(t, err)
+
+	diff, err := GetDiffForRender(t.Context(), "/any/repo-link", gitRepo, &DiffOptions{
+		BeforeCommitID:    beforeCommit.ID.String(),
+		AfterCommitID:     afterCommit.ID.String(),
+		MaxLines:          setting.Git.MaxGitDiffLines,
+		MaxLineCharacters: setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:          setting.Git.MaxGitDiffFiles,
+	})
+	require.NoError(t, err)
+	require.Len(t, diff.Files, 1)
+
+	diffFile := diff.Files[0]
+	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
+	tailLine := lastSection.Lines[len(lastSection.Lines)-1]
+	require.NotNil(t, tailLine.SectionInfo)
+
+	// 30 real lines in both the before and after content, so the tail section must reflect that,
+	// not the zero value left behind by the un-assigned struct fields.
+	assert.Equal(t, 30, tailLine.SectionInfo.LeftIdx)
+	assert.Equal(t, 30, tailLine.SectionInfo.RightIdx)
+	assert.Equal(t, "down", tailLine.GetExpandDirection())
 }
 
 func TestNoCrashes(t *testing.T) {
