@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
@@ -74,8 +75,15 @@ type ActionRunJob struct {
 
 	// IsMatrixDeferred marks a placeholder for a job whose matrix references `needs.*.outputs.*` and so
 	// could not be expanded at planning time. Its WorkflowPayload still carries the raw, unevaluated
-	// matrix; the job emitter expands it once the needs finish and clears this flag.
+	// matrix; the job emitter expands it once the needs finish. Only a successful expansion clears the flag:
+	// it survives a terminal status (skipped, cancelled, failed expansion) so a rerun can recognize
+	// the row as unexpanded and re-derive the matrix instead of dispatching the raw payload.
 	IsMatrixDeferred bool `xorm:"NOT NULL DEFAULT FALSE"`
+
+	// DeferredMatrixPayload preserves a deferred-matrix placeholder's original WorkflowPayload (the raw, unevaluated matrix).
+	// A rerun whose needs re-run collapses the combinations back into a single placeholder built from this payload,
+	// so the matrix is re-derived from the fresh outputs.
+	DeferredMatrixPayload []byte `xorm:"LONGBLOB"`
 
 	// RunAttemptID identifies the ActionRunAttempt this job belongs to.
 	// A value of 0 indicates a legacy job created before ActionRunAttempt existed.
@@ -133,19 +141,6 @@ type ActionRunAttemptJobIDIndex db.ResourceIndex
 // AttemptJobIDs are unique within a single attempt and stable across attempts for the same logical job
 func GetNextAttemptJobID(ctx context.Context, runID int64) (int64, error) {
 	return db.GetNextResourceIndex(ctx, "action_run_attempt_job_id_index", runID)
-}
-
-// GetMaxAttemptJobID returns the highest AttemptJobID handed out for the run so far without
-// allocating a new one, so a bulk allocation can be checked against MaxJobNumPerRun up front.
-func GetMaxAttemptJobID(ctx context.Context, runID int64) (int64, error) {
-	var index ActionRunAttemptJobIDIndex
-	has, err := db.GetEngine(ctx).Where("group_id = ?", runID).Get(&index)
-	if err != nil {
-		return 0, err
-	} else if !has {
-		return 0, nil
-	}
-	return index.MaxIndex, nil
 }
 
 func init() {
@@ -339,6 +334,59 @@ func GetPriorAttemptChildrenByParent(ctx context.Context, runID, currentAttemptI
 	}
 
 	return nil, nil //nolint:nilnil // every prior attempt skipped this caller
+}
+
+// GetPriorAttemptMatrixCombos returns the most recent prior attempt's combination rows of the given
+// dynamic-matrix job, indexed by Name, so re-expansion keeps AttemptJobIDs stable across attempts.
+func GetPriorAttemptMatrixCombos(ctx context.Context, runID, currentAttemptID, parentAttemptJobID int64, jobID string) (map[string]*ActionRunJob, error) {
+	var candidates []*ActionRunJob
+	if err := db.GetEngine(ctx).
+		Where("run_id = ? AND job_id = ? AND run_attempt_id < ?", runID, jobID, currentAttemptID).
+		Find(&candidates); err != nil {
+		return nil, fmt.Errorf("find prior matrix combos: %w", err)
+	}
+	if len(candidates) == 0 {
+		return nil, nil //nolint:nilnil // the job is brand new in this attempt
+	}
+
+	// Every combination of one attempt shares a parent, so dedupe before the lookup.
+	parentIDs := make(container.Set[int64], 1)
+	for _, c := range candidates {
+		if c.ParentJobID > 0 {
+			parentIDs.Add(c.ParentJobID)
+		}
+	}
+	parentAttemptIDByRowID := make(map[int64]int64, len(parentIDs))
+	if len(parentIDs) > 0 {
+		var parents []*ActionRunJob
+		if err := db.GetEngine(ctx).In("id", parentIDs.Values()).Find(&parents); err != nil {
+			return nil, fmt.Errorf("find prior matrix combo parents: %w", err)
+		}
+		for _, p := range parents {
+			parentAttemptIDByRowID[p.ID] = p.AttemptJobID
+		}
+	}
+
+	byAttempt := make(map[int64][]*ActionRunJob)
+	newestAttemptID := int64(0)
+	for _, c := range candidates {
+		if parentAttemptIDByRowID[c.ParentJobID] != parentAttemptJobID {
+			continue
+		}
+		if c.IsMatrixDeferred {
+			continue // an unexpanded placeholder is not a combination, look further back
+		}
+		byAttempt[c.RunAttemptID] = append(byAttempt[c.RunAttemptID], c)
+		newestAttemptID = max(newestAttemptID, c.RunAttemptID)
+	}
+	if newestAttemptID == 0 {
+		return nil, nil //nolint:nilnil // the job only exists under other caller scopes, or never expanded
+	}
+	out := make(map[string]*ActionRunJob, len(byAttempt[newestAttemptID]))
+	for _, c := range byAttempt[newestAttemptID] {
+		out[c.Name] = c
+	}
+	return out, nil
 }
 
 // GetDirectChildJobsByParent returns the direct child jobs of a parent job (e.g. a reusable workflow caller).

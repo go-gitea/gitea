@@ -336,6 +336,85 @@ func TestRerunPlan(t *testing.T) {
 	})
 }
 
+func TestCollectMatrixCollapse(t *testing.T) {
+	// The payload content is irrelevant here; a non-empty value marks the row as the group's anchor,
+	// the placeholder the combinations expanded from. Siblings carry none.
+	payload := []byte("jobs:\n  build:\n    strategy: {}\n")
+	matrixRow := func(id, attemptJobID int64, name string, parentID int64, anchor, deferred bool) *actions_model.ActionRunJob {
+		row := templateJob(id, attemptJobID, "build", parentID, false, "generate")
+		row.Name, row.IsMatrixDeferred = name, deferred
+		if anchor {
+			row.DeferredMatrixPayload = payload
+		}
+		return row
+	}
+	generate := templateJob(101, 1, "generate", 0, false)
+	comboA := matrixRow(102, 2, "build (a)", 0, true, false)
+	comboB := matrixRow(103, 5, "build (b)", 0, false, false)
+	comboC := matrixRow(104, 6, "build (c)", 0, false, false)
+
+	newPlan := func(t *testing.T, templateJobs, jobsToRerun []*actions_model.ActionRunJob) *rerunPlan {
+		t.Helper()
+		plan := &rerunPlan{templateJobs: templateJobs}
+		require.NoError(t, plan.expandRerunJobIDs(jobsToRerun))
+		plan.skipCloneTemplateJobIDs = plan.collectResetCallerDescendants()
+		plan.collectMatrixCollapse()
+		return plan
+	}
+	group := []*actions_model.ActionRunJob{generate, comboA, comboB, comboC}
+
+	t.Run("a rerun need collapses the group onto its anchor", func(t *testing.T) {
+		plan := newPlan(t, group, []*actions_model.ActionRunJob{generate})
+		assert.ElementsMatch(t, rowIDsOf(comboA), plan.matrixPlaceholderTemplateIDs.Values())
+		assert.ElementsMatch(t, rowIDsOf(comboB, comboC), plan.matrixSiblingSkipTemplateIDs.Values())
+	})
+
+	t.Run("re-running only combinations reuses them", func(t *testing.T) {
+		plan := newPlan(t, group, []*actions_model.ActionRunJob{comboB})
+		assert.Empty(t, plan.matrixPlaceholderTemplateIDs)
+		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
+	})
+
+	t.Run("an unexpanded placeholder collapses even when its needs keep their outputs", func(t *testing.T) {
+		placeholder := matrixRow(105, 2, "build", 0, true, true)
+		plan := newPlan(t, []*actions_model.ActionRunJob{generate, placeholder}, []*actions_model.ActionRunJob{placeholder})
+		assert.ElementsMatch(t, rowIDsOf(placeholder), plan.matrixPlaceholderTemplateIDs.Values())
+		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
+	})
+
+	t.Run("a pass-through group is cloned as-is", func(t *testing.T) {
+		placeholder := matrixRow(105, 2, "build", 0, true, true)
+		other := templateJob(106, 7, "other", 0, false)
+		plan := newPlan(t,
+			[]*actions_model.ActionRunJob{generate, placeholder, other},
+			[]*actions_model.ActionRunJob{other})
+		assert.Empty(t, plan.matrixPlaceholderTemplateIDs)
+		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
+	})
+
+	t.Run("a plan-time expanded matrix is left alone", func(t *testing.T) {
+		staticA := matrixRow(120, 20, "build (a)", 0, false, false)
+		staticB := matrixRow(121, 21, "build (b)", 0, false, false)
+		plan := newPlan(t,
+			[]*actions_model.ActionRunJob{generate, staticA, staticB},
+			[]*actions_model.ActionRunJob{generate})
+		assert.Empty(t, plan.matrixPlaceholderTemplateIDs)
+		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
+	})
+
+	t.Run("a group under a reset caller is left to the caller's re-expansion", func(t *testing.T) {
+		caller := templateJob(110, 10, "call", 0, true)
+		childGenerate := templateJob(111, 11, "generate", 110, false)
+		childComboA := matrixRow(112, 12, "build (a)", 110, true, false)
+		childComboB := matrixRow(113, 13, "build (b)", 110, false, false)
+		plan := newPlan(t,
+			[]*actions_model.ActionRunJob{caller, childGenerate, childComboA, childComboB},
+			nil)
+		assert.Empty(t, plan.matrixPlaceholderTemplateIDs)
+		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
+	})
+}
+
 // templateJob is a small constructor for fixture jobs used by the rerunPlan unit tests.
 func templateJob(id, attemptJobID int64, jobID string, parentID int64, isCaller bool, needs ...string) *actions_model.ActionRunJob {
 	return &actions_model.ActionRunJob{

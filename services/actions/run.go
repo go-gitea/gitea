@@ -222,6 +222,10 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		IsMatrixDeferred:        isMatrixDeferred,
 		MaxParallel:             parseMaxParallel(id, job.Strategy.MaxParallelString),
 	}
+	if isMatrixDeferred {
+		// Expansion overwrites WorkflowPayload; keep the raw payload so a rerun can re-derive the matrix.
+		runJob.DeferredMatrixPayload = payload
+	}
 	// Parse workflow/job permissions (no clamping here)
 	if perms := ExtractJobPermissionsFromWorkflow(workflowJob, job); perms != nil {
 		runJob.TokenPermissions = perms
