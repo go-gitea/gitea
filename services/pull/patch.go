@@ -73,7 +73,7 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 	}
 	defer cancel()
 
-	tmpGitRepo, err := git.OpenRepositoryLocal(prCtx.tmpBasePath)
+	tmpGitRepo, err := git.OpenRepositoryLocal(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)
 	}

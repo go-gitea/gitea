@@ -467,7 +467,7 @@ func findEntryForFile(ctx *context.APIContext, wikiRepo *git.Repository, commit 
 // findWikiRepoCommit opens the wiki repo and returns the latest commit, writing to context on error.
 // The caller is responsible for closing the returned repo again
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
-	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiStorageRepo())
+	wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil, nil

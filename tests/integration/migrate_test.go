@@ -336,7 +336,7 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	assert.False(t, pr13.HasMerged)
 	assert.True(t, pr13.Issue.IsLocked)
 
-	gitRepo, err := git.OpenRepository(migratedRepo)
+	gitRepo, err := git.OpenRepository(t.Context(), migratedRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

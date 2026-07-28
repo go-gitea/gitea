@@ -17,7 +17,7 @@ func TestRepoCatFileBatch(t *testing.T) {
 	t.Run("MissingRepoAndClose", func(t *testing.T) {
 		testDir := filepath.Join(t.TempDir(), "testdir")
 		_ = os.Mkdir(testDir, 0o755)
-		repo, err := OpenRepositoryLocal(testDir)
+		repo, err := OpenRepositoryLocal(t.Context(), testDir)
 		require.NoError(t, err)
 		// when the repo is missing (it usually occurs during testing because the fixtures are synced frequently)
 		err = os.Remove(testDir)

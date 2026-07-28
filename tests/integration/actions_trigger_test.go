@@ -477,7 +477,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
@@ -881,7 +881,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// submit an approval review as user4
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(ctx, repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -961,7 +961,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1132,7 +1132,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1223,7 +1223,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1309,7 +1309,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1439,7 +1439,7 @@ jobs:
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
 		// Get the commit ID of the dispatch branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		commit, err := gitRepo.GetBranchCommit(t.Context(), "dispatch")
@@ -1637,7 +1637,7 @@ jobs:
 		assert.Equal(t, workflows.Workflows[0].State, workflow.State)
 
 		// Get the commit ID of the default branch
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 		branch, err := git_model.GetBranchExisting(t.Context(), repo.ID, repo.DefaultBranch)
@@ -1806,7 +1806,7 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -1884,7 +1884,7 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addWorkflowToBaseResp)
 
-		gitRepo, err := git.OpenRepository(repo)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
