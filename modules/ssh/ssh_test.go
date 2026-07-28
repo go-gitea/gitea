@@ -73,17 +73,18 @@ func TestInitKeys(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, keyFiles, len(keyTypes))
 
-	metadata := map[string]os.FileInfo{}
+	// Record file contents so regeneration can be detected
+	content := map[string][]byte{}
 	for _, keyType := range keyTypes {
 		privKeyPath := filepath.Join(tempDir, "gitea."+keyType)
 		pubKeyPath := filepath.Join(tempDir, "gitea."+keyType+".pub")
-		info, err := os.Stat(privKeyPath)
+		data, err := os.ReadFile(privKeyPath)
 		require.NoError(t, err)
-		metadata[privKeyPath] = info
+		content[privKeyPath] = data
 
-		info, err = os.Stat(pubKeyPath)
+		data, err = os.ReadFile(pubKeyPath)
 		require.NoError(t, err)
-		metadata[pubKeyPath] = info
+		content[pubKeyPath] = data
 	}
 
 	// Test recreation on missing private key and noop for missing pub key
@@ -98,26 +99,26 @@ func TestInitKeys(t *testing.T) {
 		privKeyPath := filepath.Join(tempDir, "gitea."+keyType)
 		pubKeyPath := filepath.Join(tempDir, "gitea."+keyType+".pub")
 
-		infoPriv, err := os.Stat(privKeyPath)
+		dataPriv, err := os.ReadFile(privKeyPath)
 		require.NoError(t, err)
 
 		switch keyType {
 		case "rsa":
 			// No modification to RSA key
-			infoPub, err := os.Stat(pubKeyPath)
+			dataPub, err := os.ReadFile(pubKeyPath)
 			require.NoError(t, err)
-			assert.Equal(t, metadata[privKeyPath], infoPriv)
-			assert.Equal(t, metadata[pubKeyPath], infoPub)
+			assert.Equal(t, content[privKeyPath], dataPriv)
+			assert.Equal(t, content[pubKeyPath], dataPub)
 		case "ecdsa":
 			// ECDSA public key should be missing, private unchanged
-			assert.Equal(t, metadata[privKeyPath], infoPriv)
+			assert.Equal(t, content[privKeyPath], dataPriv)
 			assert.NoFileExists(t, pubKeyPath)
 		case "ed25519":
 			// ed25519 private key was removed, so both keys regenerated
-			infoPub, err := os.Stat(pubKeyPath)
+			dataPub, err := os.ReadFile(pubKeyPath)
 			require.NoError(t, err)
-			assert.NotEqual(t, metadata[privKeyPath], infoPriv)
-			assert.NotEqual(t, metadata[pubKeyPath], infoPub)
+			assert.NotEqual(t, content[privKeyPath], dataPriv)
+			assert.NotEqual(t, content[pubKeyPath], dataPub)
 		}
 	}
 }

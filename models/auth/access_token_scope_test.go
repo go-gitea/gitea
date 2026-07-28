@@ -89,3 +89,26 @@ func TestAccessTokenScope_HasScope(t *testing.T) {
 		})
 	}
 }
+
+func TestAccessTokenScope_EnforcePublicOnlyFrom(t *testing.T) {
+	tests := []struct {
+		in     AccessTokenScope
+		parent AccessTokenScope
+		out    AccessTokenScope
+	}{
+		// public-only parent forces the restriction onto the minted scope
+		{"write:user", "write:user,public-only", "public-only,write:user"},
+		// already public-only stays public-only
+		{"public-only,read:user", "public-only", "public-only,read:user"},
+		// non-public-only parent leaves the scope untouched
+		{"write:user", "write:user", "write:user"},
+		{"all", "all", "all"},
+	}
+	for _, test := range tests {
+		t.Run(string(test.parent)+"->"+string(test.in), func(t *testing.T) {
+			got, err := test.in.EnforcePublicOnlyFrom(test.parent)
+			assert.NoError(t, err)
+			assert.Equal(t, test.out, got)
+		})
+	}
+}

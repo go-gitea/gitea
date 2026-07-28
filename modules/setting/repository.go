@@ -22,6 +22,7 @@ const (
 const (
 	RepoPRTitleSourceFirstCommit = "first-commit"
 	RepoPRTitleSourceAuto        = "auto"
+	RepoPRTitleSourceBranchName  = "branch-name"
 )
 
 // ItemsPerPage maximum items per page in forks, watchers and stars of a repo

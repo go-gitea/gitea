@@ -58,7 +58,7 @@ func TestUndoDeleteBranch(t *testing.T) {
 	}
 
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		htmlDoc, name := branchAction(t, ".delete-branch-button", "data-modal-form.action")
+		htmlDoc, name := branchAction(t, ".delete-branch-button", "data-modal-form.url")
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.positive.message").Text(),
 			translation.NewLocale("en-US").TrString("repo.branch.deletion_success", name),

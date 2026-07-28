@@ -98,6 +98,19 @@ func InfoOAuth(ctx *context.Context) {
 		return
 	}
 
+	// enforce the same user scope the REST API requires before returning identity
+	// claims; OIDC access tokens map to the "all" scope, so standard OIDC clients
+	// are unaffected and only explicitly-restricted tokens are rejected
+	tokenScope, _ := ctx.Data["ApiTokenScope"].(auth.AccessTokenScope)
+	if allowed, err := tokenScope.HasScope(auth.AccessTokenScopeReadUser); err != nil {
+		ctx.ServerError("HasScope", err)
+		return
+	} else if !allowed {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea OAuth2"`)
+		ctx.PlainText(http.StatusForbidden, "token does not have required scope: read:user")
+		return
+	}
+
 	response := &userInfoResponse{
 		Sub:               strconv.FormatInt(ctx.Doer.ID, 10),
 		Name:              ctx.Doer.DisplayName(),
@@ -194,9 +207,24 @@ func IntrospectOAuth(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+func oauthDoerAuthorizePreCheck(ctx *context.Context, formState string) bool {
+	if ctx.DoerNeedTwoFactorAuth() {
+		handleAuthorizeError(ctx, AuthorizeError{
+			ErrorCode:        ErrorCodeAccessDenied,
+			ErrorDescription: "two-factor authentication is required",
+			State:            formState,
+		}, "")
+		return false
+	}
+	return true
+}
+
 // AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AuthorizationForm)
+	if !oauthDoerAuthorizePreCheck(ctx, form.State) {
+		return
+	}
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
@@ -372,6 +400,10 @@ func AuthorizeOAuth(ctx *context.Context) {
 // GrantApplicationOAuth manages the post request submitted when a user grants access to an application
 func GrantApplicationOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.GrantApplicationForm)
+	if !oauthDoerAuthorizePreCheck(ctx, form.State) {
+		return
+	}
+
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
 		ctx.HTTPError(http.StatusBadRequest)

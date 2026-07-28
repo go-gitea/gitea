@@ -54,10 +54,10 @@ type CreateTeamOption struct {
 	// Whether the team has access to all repositories in the organization
 	IncludesAllRepositories bool                `json:"includes_all_repositories"`
 	Permission              RepoWritePermission `json:"permission"`
-	// example: ["repo.actions","repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.ext_wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
+	// example: ["repo.actions","repo.packages","repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
 	Units []string `json:"units"`
-	// example: {"repo.actions","repo.packages","repo.code":"read","repo.issues":"write","repo.ext_issues":"none","repo.wiki":"admin","repo.pulls":"owner","repo.releases":"none","repo.projects":"none","repo.ext_wiki":"none"}
+	// example: {"repo.actions":"read","repo.packages":"read","repo.code":"read","repo.issues":"write","repo.ext_issues":"none","repo.wiki":"admin","repo.pulls":"owner","repo.releases":"none","repo.projects":"none","repo.ext_wiki":"none"}
 	UnitsMap map[string]string `json:"units_map"`
 	// Whether the team can create repositories in the organization
 	CanCreateOrgRepo bool `json:"can_create_org_repo"`

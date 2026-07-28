@@ -206,3 +206,75 @@ func TestResolveUses(t *testing.T) {
 		assert.ErrorContains(t, err, "must point to this Gitea instance")
 	})
 }
+
+func TestCheckRunJobLimit(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	const (
+		runID    = 900100
+		attemptA = 910001
+		attemptB = 910002
+	)
+
+	seed := func(attemptID int64, n int) {
+		for i := range n {
+			name := fmt.Sprintf("job-%d-%d", attemptID, i)
+			require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunJob{
+				RunID:        runID,
+				RunAttemptID: attemptID,
+				RepoID:       1,
+				OwnerID:      1,
+				CommitSHA:    "abcdef",
+				Name:         name,
+				JobID:        name,
+				AttemptJobID: attemptID*1000 + int64(i),
+				Status:       actions_model.StatusBlocked,
+			}))
+		}
+	}
+
+	seed(attemptA, 5)
+	seed(attemptB, 3) // a different attempt of the same run must not count toward attempt A
+
+	limit := actions_model.MaxJobNumPerRun
+
+	// attempt A already holds 5 jobs: filling up to the cap is allowed, one more is rejected.
+	require.NoError(t, checkRunJobLimit(t.Context(), runID, attemptA, limit-5))
+	require.ErrorContains(t, checkRunJobLimit(t.Context(), runID, attemptA, limit-4), "maximum")
+	require.ErrorContains(t, checkRunJobLimit(t.Context(), runID, attemptA, limit), "maximum")
+
+	// the count is scoped to the attempt: attempt B only holds 3 jobs, so attempt A's 5 must not leak in.
+	require.NoError(t, checkRunJobLimit(t.Context(), runID, attemptB, limit-3))
+	require.ErrorContains(t, checkRunJobLimit(t.Context(), runID, attemptB, limit-2), "maximum")
+}
+
+func TestUndoExpansion(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// A claimed caller with two children inserted by the aborted expansion, plus a sibling that must survive.
+	caller := &actions_model.ActionRunJob{
+		RunID: 991, RepoID: 4, OwnerID: 1, JobID: "caller", Name: "caller",
+		Status: actions_model.StatusBlocked, IsReusableCaller: true, IsExpanded: true,
+	}
+	require.NoError(t, db.Insert(ctx, caller))
+	for _, jobID := range []string{"child1", "child2"} {
+		require.NoError(t, db.Insert(ctx, &actions_model.ActionRunJob{
+			RunID: 991, RepoID: 4, OwnerID: 1, JobID: jobID, Name: jobID,
+			Status: actions_model.StatusBlocked, ParentJobID: caller.ID,
+		}))
+	}
+	sibling := &actions_model.ActionRunJob{
+		RunID: 991, RepoID: 4, OwnerID: 1, JobID: "sibling", Name: "sibling",
+		Status: actions_model.StatusBlocked,
+	}
+	require.NoError(t, db.Insert(ctx, sibling))
+
+	require.NoError(t, undoExpansion(ctx, caller))
+
+	assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{ParentJobID: caller.ID}))
+	assert.False(t, caller.IsExpanded)
+	refreshed := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: caller.ID})
+	assert.False(t, refreshed.IsExpanded)
+	unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: sibling.ID})
+}

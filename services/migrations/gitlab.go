@@ -94,7 +94,7 @@ type GitlabDownloader struct {
 //	Use either a username/password, personal token entered into the username field, or anonymous/public access
 //	Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, token string) (*GitlabDownloader, error) {
-	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(NewMigrationHTTPClient()))
+	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(newMigrationHTTPClient()))
 	if err != nil {
 		log.Trace("Error logging into gitlab: %v", err)
 		return nil, err
@@ -314,7 +314,7 @@ func (g *GitlabDownloader) convertGitlabRelease(ctx context.Context, rel *gitlab
 		PublisherName:   rel.Author.Username,
 	}
 
-	httpClient := NewMigrationHTTPClient()
+	httpClient := newMigrationHTTPClient()
 
 	for _, asset := range rel.Assets.Links {
 		assetID := asset.ID // Don't optimize this, for closure we need a local variable

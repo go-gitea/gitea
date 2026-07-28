@@ -171,6 +171,11 @@ func testGetAttachment(t *testing.T) {
 		{"PrivateAccessibleByUser", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", true, user2Session, http.StatusOK},
 		{"RepoNotAccessibleByUser", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", true, user8Session, http.StatusNotFound},
 		{"OrgNotAccessibleByUser", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21", true, user8Session, http.StatusNotFound},
+		// draft release attachments must only be reachable by users with write access, even on a public repo
+		{"DraftReleaseByOwner", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", true, user2Session, http.StatusOK},
+		{"DraftReleaseByAdmin", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", true, adminSession, http.StatusOK},
+		{"DraftReleaseByNonCollaborator", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", true, user8Session, http.StatusNotFound},
+		{"DraftReleaseByAnonymous", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a23", true, emptySession, http.StatusNotFound},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
