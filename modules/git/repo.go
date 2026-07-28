@@ -32,7 +32,10 @@ type RepositoryBase struct {
 	tagCache          *ObjectCache[*Tag]
 	objectFormatCache ObjectFormat
 
-	mu                 sync.Mutex
+	mu sync.Mutex
+	// Unfortunately, we can't completely remove the ctx, because CatBatch still heavily depends on a parent context.
+	// If we remove the ctx, then CatBatch's process management will become a mess and create a lot of unnecessary git processes.
+	// ATTENTION: this ctx is for cached cat-file process only, don't use it for other purposes.
 	catFileBatchCtx    context.Context
 	catFileBatchCloser CatFileBatchCloser
 	catFileBatchInUse  bool
