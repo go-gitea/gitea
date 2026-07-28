@@ -8,17 +8,17 @@ import (
 	"net/http"
 	"slices"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/optional"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	project_service "code.gitea.io/gitea/services/projects"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	project_model "gitea.dev/models/project"
+	"gitea.dev/modules/optional"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/api/v1/utils"
+	"gitea.dev/routers/common"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	project_service "gitea.dev/services/projects"
 )
 
 func getRepoProjectByID(ctx *context.APIContext) *project_model.Project {

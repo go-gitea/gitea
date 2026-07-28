@@ -12,15 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/templates/eval"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/gitdiff"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/templates/eval"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/gitdiff"
 )
 
 func newFuncMapWebPage() template.FuncMap {
@@ -67,7 +67,8 @@ func newFuncMapWebPage() template.FuncMap {
 			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
 
-		"AssetURI": public.AssetURI,
+		"AssetURI":      public.AssetURI,
+		"AssetCSSLinks": public.AssetCSSLinks,
 
 		// -----------------------------------------------------------------
 		// setting
@@ -115,10 +116,9 @@ func newFuncMapWebPage() template.FuncMap {
 		},
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
-				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
-				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
-				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
-				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
+				"MinTimeout":  int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep": int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":  int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 			}
 		},
 		"MermaidMaxSourceCharacters": func() int {
@@ -132,10 +132,9 @@ func newFuncMapWebPage() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
-		"ActionContent2Commits":    ActionContent2Commits,
-		"IsMultilineCommitMessage": isMultilineCommitMessage,
-		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
-		"MirrorRemoteAddress":      mirrorRemoteAddress,
+		"ActionContent2Commits": ActionContent2Commits,
+		"CommentMustAsDiff":     gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress":   mirrorRemoteAddress,
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,

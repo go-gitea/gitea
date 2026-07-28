@@ -6,9 +6,9 @@ package terraform
 import (
 	"context"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/optional"
-	terraform_module "code.gitea.io/gitea/modules/packages/terraform"
+	packages_model "gitea.dev/models/packages"
+	"gitea.dev/modules/optional"
+	terraform_module "gitea.dev/modules/packages/terraform"
 )
 
 // IsLocked is a helper function to check if the terraform state is locked

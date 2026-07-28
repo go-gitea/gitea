@@ -7,14 +7,14 @@ import (
 	"errors"
 	"net/http"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/openid"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/openid"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 // OpenIDPost response for change user's openid

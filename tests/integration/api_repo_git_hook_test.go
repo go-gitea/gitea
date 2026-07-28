@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -57,9 +57,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
       await store.loadViewContent(url);
     },
 
-    buildTreePathWebUrl(treePath: string) {
-      return `${props.repoLink}/src/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}`;
-    },
+    buildTreePathWebUrl: (treePath: string) => `${props.repoLink}/src/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}`,
   });
   return store;
 }

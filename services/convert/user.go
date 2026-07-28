@@ -6,9 +6,9 @@ package convert
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/perm"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
+	"gitea.dev/models/perm"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
 )
 
 // ToUser convert user_model.User to api.User
@@ -65,7 +65,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		StarredRepos: user.NumStars,
 	}
 
-	result.Visibility = api.UserVisibility(user.Visibility.String())
+	result.Visibility = api.VisibilityString(user.Visibility.String())
 
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {

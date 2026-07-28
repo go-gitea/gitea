@@ -63,18 +63,18 @@
 				<div>{{.RenderedContent}}</div>
 			</div>
 		{{end -}}
-		{{if eq .ActionName "push"}}
-			<ul>
-			{{range .Comment.Commits}}
-				<li>
-					<a href="{{$.Comment.Issue.PullRequest.BaseRepo.HTMLURL}}/commit/{{.ID}}">
-						{{ShortSha .ID.String}}
-					</a>  -  {{.Summary}}
-				</li>
-			{{end}}
-			</ul>
-		{{end}}
 	</p>
+	{{if eq .ActionName "push"}}
+		<ul>
+		{{$repoURL := $.Comment.Issue.PullRequest.BaseRepo.HTMLURL}}
+		{{range $commit := $.Comment.Commits}}
+			{{$gitCommit := $commit.UserCommit.GitCommit}}
+			<li>
+				<a href="{{$repoURL}}/commit/{{$gitCommit.ID}}">{{ShortSha $gitCommit.ID.String}}</a> - {{$gitCommit.MessageTitle}}
+			</li>
+		{{end}}
+		</ul>
+	{{end}}
 	<div style="font-size:small; color:#666;">
 		<p>
 			---

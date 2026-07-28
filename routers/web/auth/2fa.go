@@ -7,14 +7,14 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models/auth"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/models/auth"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 var (
@@ -58,14 +58,14 @@ func TwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	// Validate the passcode with the stored TOTP secret.
-	ok, err := twofa.ValidateTOTP(form.Passcode)
+	// Validate the passcode and atomically consume it to prevent reuse/replay.
+	ok, err := twofa.ValidateAndConsumeTOTP(ctx, form.Passcode)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	if ok && twofa.LastUsedPasscode != form.Passcode {
+	if ok {
 		remember := ctx.Session.Get("twofaRemember").(bool)
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
@@ -79,12 +79,6 @@ func TwoFactorPost(ctx *context.Context) {
 				ctx.ServerError("UserSignIn", err)
 				return
 			}
-		}
-
-		twofa.LastUsedPasscode = form.Passcode
-		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
-			ctx.ServerError("UserSignIn", err)
-			return
 		}
 
 		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)

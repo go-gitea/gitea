@@ -8,21 +8,21 @@ import (
 	"fmt"
 	"net/http"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	pull_model "code.gitea.io/gitea/models/pull"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/forms"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
-	user_service "code.gitea.io/gitea/services/user"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	pull_model "gitea.dev/models/pull"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
+	user_service "gitea.dev/services/user"
 )
 
 const (
@@ -49,7 +49,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	ctx.Data["PageIsPullFiles"] = true
 	ctx.Data["Issue"] = issue
 	ctx.Data["CurrentReview"] = currentReview
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(issue.PullRequest.GetGitHeadRefName())
+	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return
@@ -199,7 +199,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		ctx.ServerError("comment.Issue.LoadPullRequest", err)
 		return
 	}
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitHeadRefName())
+	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, comment.Issue.PullRequest.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return

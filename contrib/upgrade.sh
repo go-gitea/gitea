@@ -126,6 +126,7 @@ giteacmd manager flush-queues
 echo "Stopping gitea at $(date)"
 $service_stop
 echo "Creating backup in $giteahome"
+# shellcheck disable=SC2086 # flag string
 giteacmd dump $backupopts
 echo "Updating binary at $giteabin"
 cp -f "$giteabin" "$giteabin.bak" && mv -f "$binname" "$giteabin"

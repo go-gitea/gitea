@@ -4,7 +4,7 @@
 package db
 
 import (
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 
 	"xorm.io/xorm/schemas"
 )

@@ -6,10 +6,10 @@ package git
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
 
 	"xorm.io/builder"
 )
@@ -101,7 +101,7 @@ func (opts FindBranchOptions) ToOrders() string {
 func FindBranchNames(ctx context.Context, opts FindBranchOptions) ([]string, error) {
 	sess := db.GetEngine(ctx).Select("name").Where(opts.ToConds())
 	if opts.PageSize > 0 && !opts.IsListAll() {
-		sess = db.SetSessionPagination(sess, &opts.ListOptions)
+		db.SetSessionPagination(sess, &opts.ListOptions)
 	}
 
 	var branches []string

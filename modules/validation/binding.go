@@ -9,10 +9,10 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/auth"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/json"
+	"gitea.dev/modules/auth"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/glob"
+	"gitea.dev/modules/json"
 
 	"gitea.com/go-chi/binding"
 )

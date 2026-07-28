@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"path"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/util"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/util"
 )
 
 type RepoWiki struct {

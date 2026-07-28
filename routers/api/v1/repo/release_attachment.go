@@ -8,16 +8,16 @@ import (
 	"net/http"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	attachment_service "code.gitea.io/gitea/services/attachment"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/convert"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	attachment_service "gitea.dev/services/attachment"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/convert"
 )
 
 func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
@@ -205,7 +205,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if attachments are enabled
 	if !setting.Attachment.Enabled {
-		ctx.APIErrorNotFound("Attachment is not enabled")
+		ctx.APIErrorNotFound("attachment is not enabled")
 		return
 	}
 
@@ -250,12 +250,12 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 			return
 		}
 
 		if errors.Is(err, util.ErrContentTooLarge) {
-			ctx.APIError(http.StatusRequestEntityTooLarge, err)
+			ctx.APIError(http.StatusRequestEntityTooLarge, err.Error())
 			return
 		}
 
@@ -340,7 +340,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 	if err := attachment_service.UpdateAttachment(ctx, setting.Repository.Release.AllowedTypes, attach); err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 			return
 		}
 		ctx.APIErrorInternal(err)

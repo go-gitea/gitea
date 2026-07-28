@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrUserRedirectNotExist represents a "UserRedirectNotExist" kind of error.
@@ -50,8 +52,8 @@ func init() {
 // LookupUserRedirect look up userID if a user has a redirect name
 func LookupUserRedirect(ctx context.Context, userName string) (int64, error) {
 	userName = strings.ToLower(userName)
-	redirect := &Redirect{LowerName: userName}
-	if has, err := db.GetEngine(ctx).Get(redirect); err != nil {
+	redirect, has, err := db.Get[Redirect](ctx, builder.Eq{"lower_name": userName})
+	if err != nil {
 		return 0, err
 	} else if !has {
 		return 0, ErrUserRedirectNotExist{Name: userName}

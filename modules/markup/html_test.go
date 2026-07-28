@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	testModule "code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	testModule "gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,10 +24,16 @@ var (
 	localMetas        = map[string]string{"user": testRepoOwnerName, "repo": testRepoName}
 )
 
+func testRenderString(ctx *markup.RenderContext, content string) (string, error) {
+	var buf strings.Builder
+	err := markup.Render(ctx, strings.NewReader(content), &buf)
+	return buf.String(), err
+}
+
 func TestRender_Commits(t *testing.T) {
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
-		buffer, err := markup.RenderString(rctx, input)
+		buffer, err := testRenderString(rctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -75,7 +81,7 @@ func TestRender_CrossReferences(t *testing.T) {
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
-		buffer, err := markup.RenderString(rctx, input)
+		buffer, err := testRenderString(rctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -119,7 +125,7 @@ func TestRender_links(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
-		buffer, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
+		buffer, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -234,7 +240,7 @@ func TestRender_email(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
-		res, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
+		res, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res), "input: %s", input)
 	}
@@ -321,7 +327,7 @@ func TestRender_emoji(t *testing.T) {
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
-		buffer, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
+		buffer, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -371,6 +377,9 @@ func TestRender_emoji(t *testing.T) {
 	test(":100:200", `<p>:100:200</p>`)
 	test("std::thread::something", `<p>std::thread::something</p>`)
 	test(":not exist:", `<p>:not exist:</p>`)
+	test("foo `:smile:", "<p>foo `:smile:</p>")
+	test("foo `:smile:`", `<p>foo <code>:smile:</code></p>`)
+	test("foo ` :smile:", "<p>foo ` <span class=\"emoji\" aria-label=\"grinning face with smiling eyes\">😄</span></p>")
 }
 
 func TestRender_ShortLinks(t *testing.T) {

@@ -7,16 +7,16 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/graceful/releasereopen"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/graceful/releasereopen"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/private"
+	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
 )
 
 // ReloadTemplates reloads all the templates

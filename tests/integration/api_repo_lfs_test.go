@@ -11,16 +11,16 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	git_model "code.gitea.io/gitea/models/git"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	git_model "gitea.dev/models/git"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/lfs"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,8 +28,7 @@ import (
 
 func TestAPILFSNotStarted(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.LFS.StartServer = false
+	defer test.MockVariableValue(&setting.LFS.StartServer, false)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -48,8 +47,7 @@ func TestAPILFSNotStarted(t *testing.T) {
 
 func TestAPILFSMediaType(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -72,8 +70,7 @@ func createLFSTestRepository(t *testing.T, repoName string) *repo_model.Reposito
 
 func TestAPILFSBatch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 
 	repo := createLFSTestRepository(t, "lfs-batch-repo")
 
@@ -243,9 +240,14 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.Equal(t, "Size must be less than or equal to 2", br.Objects[0].Error.Message)
 		})
 
-		t.Run("AddMeta", func(t *testing.T) {
+		t.Run("CrossRepoObjectRequiresUpload", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
+			// An object whose bytes already exist in the store but which is not
+			// linked to this repo must not be silently linked, even when the
+			// caller can access it in another repo. Auto-linking let a deploy key
+			// (whose token carries the repo owner's identity) exfiltrate objects
+			// across repos without proving possession. The client must upload.
 			p := lfs.Pointer{Oid: "05eeb4eb5be71f2dd291ca39157d6d9effd7d1ea19cbdc8a99411fe2a8f26a00", Size: 6}
 
 			contentStore := lfs.NewContentStore()
@@ -253,6 +255,7 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, exist)
 
+			// The object is linked to another repo owned by the same user.
 			repo2 := createLFSTestRepository(t, "lfs-batch2-repo")
 			storeObjectInRepo(t, repo2.ID, "dummy0")
 
@@ -269,11 +272,13 @@ func TestAPILFSBatch(t *testing.T) {
 			br := decodeResponse(t, resp.Body)
 			assert.Len(t, br.Objects, 1)
 			assert.Nil(t, br.Objects[0].Error)
-			assert.Empty(t, br.Objects[0].Actions)
+			// The client is told to upload instead of the object being linked.
+			assert.Contains(t, br.Objects[0].Actions, "upload")
 
+			// No meta object may have been created for this repo.
 			meta, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
-			assert.NoError(t, err)
-			assert.NotNil(t, meta)
+			assert.Nil(t, meta)
+			assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
 			// Cleanup
 			err = contentStore.Delete(p.RelativePath())
@@ -326,8 +331,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 func TestAPILFSUpload(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 
 	repo := createLFSTestRepository(t, "lfs-upload-repo")
 	oid := storeObjectInRepo(t, repo.ID, "dummy3")
@@ -428,8 +432,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 func TestAPILFSVerify(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 
 	repo := createLFSTestRepository(t, "lfs-verify-repo")
 	oid := storeObjectInRepo(t, repo.ID, "dummy3")

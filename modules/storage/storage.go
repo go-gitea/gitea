@@ -12,10 +12,10 @@ import (
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
 )
 
 // ErrURLNotSupported represents url is not supported

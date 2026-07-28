@@ -10,21 +10,20 @@ import (
 	"strconv"
 	"strings"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/indexer"
-	"code.gitea.io/gitea/modules/indexer/code/internal"
-	es "code.gitea.io/gitea/modules/indexer/internal/elasticsearch"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/modules/util"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/analyze"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/indexer"
+	"gitea.dev/modules/indexer/code/internal"
+	es "gitea.dev/modules/indexer/internal/elasticsearch"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/typesniffer"
+	"gitea.dev/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -134,7 +133,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha))
+		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +182,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) es.Bul
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	ops := make([]es.BulkOp, 0)
 	if len(changes.Updates) > 0 {
-		batch, err := gitrepo.NewBatch(ctx, repo)
+		batch, err := git.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}

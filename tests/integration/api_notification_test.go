@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	activities_model "gitea.dev/models/activities"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -208,4 +208,24 @@ func TestAPINotificationPUT(t *testing.T) {
 	assert.EqualValues(t, 2, apiNL[0].ID)
 	assert.True(t, apiNL[0].Unread)
 	assert.False(t, apiNL[0].Pinned)
+}
+
+func TestAPINotificationPublicOnly(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
+
+	token := getUserToken(t, user2.Name, auth_model.AccessTokenScopeReadNotification, auth_model.AccessTokenScopePublicOnly)
+	req := NewRequest(t, "GET", "/api/v1/notifications").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	req = NewRequest(t, "GET", "/api/v1/notifications/new").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d", thread5.ID)).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
 }

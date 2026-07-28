@@ -16,14 +16,14 @@ import (
 	"syscall"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
 )
 
 // RedirectToUser redirect to a differently-named user

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/util"
 )
 
 // FormString returns the first value matching the provided key in the form as a string
@@ -77,9 +77,4 @@ func (b *Base) FormOptionalBool(key string) optional.Option[bool] {
 	v, _ := strconv.ParseBool(s)
 	v = v || strings.EqualFold(s, "on")
 	return optional.Some(v)
-}
-
-func (b *Base) SetFormString(key, value string) {
-	_ = b.Req.FormValue(key) // force parse form
-	b.Req.Form.Set(key, value)
 }

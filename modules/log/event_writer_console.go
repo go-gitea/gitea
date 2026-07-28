@@ -6,7 +6,7 @@ package log
 import (
 	"os"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 type WriterConsoleOption struct {

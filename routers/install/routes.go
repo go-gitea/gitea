@@ -8,13 +8,13 @@ import (
 	"html"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/routers/web/healthcheck"
-	"code.gitea.io/gitea/routers/web/misc"
-	"code.gitea.io/gitea/services/forms"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/common"
+	"gitea.dev/routers/web/healthcheck"
+	"gitea.dev/routers/web/misc"
+	"gitea.dev/services/forms"
 )
 
 // Routes registers the installation routes

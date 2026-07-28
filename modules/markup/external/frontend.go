@@ -5,14 +5,15 @@ package external
 
 import (
 	"encoding/base64"
+	"errors"
 	"io"
 	"unicode/utf8"
 
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 type frontendRenderer struct {
@@ -54,14 +55,13 @@ func (p *frontendRenderer) SanitizerRules() []setting.MarkupSanitizerRule {
 func (p *frontendRenderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
-	ret.ContentSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
+	ret.ContentSandbox = setting.MarkupRenderDefaultSandbox
 	return ret
 }
 
 func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	if ctx.RenderOptions.StandalonePageOptions == nil {
-		opts := p.GetExternalRendererOptions()
-		return markup.RenderIFrame(ctx, &opts, output)
+		return errors.New("should only be rendered in standalone page")
 	}
 
 	content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))
@@ -90,6 +90,6 @@ func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, ou
 </html>`,
 		p.name, ctx.RenderOptions.RelativePath,
 		contentEncoding, contentString,
-		public.AssetURI("js/external-render-frontend.js"))
+		public.AssetURI("web_src/js/external-render-frontend.ts"))
 	return err
 }

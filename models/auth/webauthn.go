@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"

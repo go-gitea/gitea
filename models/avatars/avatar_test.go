@@ -6,10 +6,10 @@ package avatars_test
 import (
 	"testing"
 
-	avatars_model "code.gitea.io/gitea/models/avatars"
-	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/setting/config"
+	avatars_model "gitea.dev/models/avatars"
+	system_model "gitea.dev/models/system"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/setting/config"
 
 	"github.com/stretchr/testify/assert"
 )

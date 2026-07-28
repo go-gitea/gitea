@@ -6,7 +6,7 @@ package asymkey
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/util"
 )
 
 // ErrKeyUnableVerify represents a "KeyUnableVerify" kind of error.

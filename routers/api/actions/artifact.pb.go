@@ -760,7 +760,7 @@ const file_artifact_proto_rawDesc = "" +
 	"\x16DeleteArtifactResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x1f\n" +
 	"\vartifact_id\x18\x02 \x01(\x03R\n" +
-	"artifactIdB)Z'code.gitea.io/gitea/routers/api/actionsb\x06proto3"
+	"artifactIdB\x1fZ\x1dgitea.dev/routers/api/actionsb\x06proto3"
 
 var (
 	file_artifact_proto_rawDescOnce sync.Once

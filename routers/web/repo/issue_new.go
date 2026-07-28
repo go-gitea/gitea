@@ -14,31 +14,31 @@ import (
 	"strconv"
 	"strings"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/git"
-	issue_template "code.gitea.io/gitea/modules/issue/template"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/utils"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/forms"
-	issue_service "code.gitea.io/gitea/services/issue"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/git"
+	issue_template "gitea.dev/modules/issue/template"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/routers/utils"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/forms"
+	issue_service "gitea.dev/services/issue"
 )
 
 // Tries to load and set an issue template. The first return value indicates if a template was loaded.
 func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string, metaData *IssuePageMetaData) (bool, map[string]error) {
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		return false, nil
 	}
@@ -51,10 +51,10 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 
 	templateErrs := map[string]error{}
 	for _, filename := range templateCandidates {
-		if ok, _ := commit.HasFile(filename); !ok {
+		template, err := issue_template.UnmarshalFromCommit(ctx, ctx.Repo.GitRepo, commit, filename)
+		if errors.Is(err, util.ErrNotExist) {
 			continue
 		}
-		template, err := issue_template.UnmarshalFromCommit(commit, filename)
 		if err != nil {
 			templateErrs[filename] = err
 			continue
@@ -98,8 +98,8 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 
 // NewIssue render creating issue page
 func NewIssue(ctx *context.Context) {
-	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
-	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	issueConfig, _ := issue_service.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
+	hasTemplates := issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
@@ -134,7 +134,7 @@ func NewIssue(ctx *context.Context) {
 	}
 	ctx.Data["Tags"] = tags
 
-	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	templateLoaded, errs := setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates, pageMetaData)
 	maps.Copy(ret.TemplateErrors, errs)
 	if ctx.Written() {
@@ -146,6 +146,7 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWrite(unit.TypeIssues)
+	ctx.Data["IsIssuePoster"] = true // the current user will be the poster of the new issue
 
 	if !issueConfig.BlankIssuesEnabled && hasTemplates && !templateLoaded {
 		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if blank issues are disabled, just redirect to the "issues/choose" page with these parameters.
@@ -185,20 +186,20 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 
-	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ret := issue_service.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["IssueTemplates"] = ret.IssueTemplates
 
 	if len(ret.TemplateErrors) > 0 {
 		ctx.Flash.Warning(renderErrorOfTemplates(ctx, ret.TemplateErrors), true)
 	}
 
-	if !issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo) {
+	if !issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo) {
 		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
 		ctx.Redirect(fmt.Sprintf("%s/issues/new?%s", ctx.Repo.Repository.Link(), ctx.Req.URL.RawQuery), http.StatusSeeOther)
 		return
 	}
 
-	issueConfig, err := issue_service.GetTemplateConfigFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	issueConfig, err := issue_service.GetTemplateConfigFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["IssueConfig"] = issueConfig
 	ctx.Data["IssueConfigError"] = err // ctx.Flash.Err makes problems here
 
@@ -357,7 +358,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+		if template, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}
 	}

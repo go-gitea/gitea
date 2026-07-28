@@ -4,7 +4,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
+	api "gitea.dev/modules/structs"
 )
 
 // Repository
@@ -82,13 +82,6 @@ type swaggerResponseTagProtectionList struct {
 type swaggerResponseTagProtection struct {
 	// in:body
 	Body api.TagProtection `json:"body"`
-}
-
-// Reference
-// swagger:response Reference
-type swaggerResponseReference struct {
-	// in:body
-	Body api.Reference `json:"body"`
 }
 
 // ReferenceList
@@ -348,7 +341,7 @@ type swaggerFileDeleteResponse struct {
 // swagger:response TopicListResponse
 type swaggerTopicListResponse struct {
 	// in: body
-	Body []api.TopicResponse `json:"body"`
+	Body api.TopicListResponse `json:"body"`
 }
 
 // TopicNames
@@ -509,12 +502,6 @@ type swaggerRunner struct {
 type swaggerCompare struct {
 	// in:body
 	Body api.Compare `json:"body"`
-}
-
-// swagger:response MergeUpstreamRequest
-type swaggerMergeUpstreamRequest struct {
-	// in:body
-	Body api.MergeUpstreamRequest `json:"body"`
 }
 
 // swagger:response MergeUpstreamResponse

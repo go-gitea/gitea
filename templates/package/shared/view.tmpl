@@ -1,6 +1,11 @@
 <div class="issue-title-header">
 	{{$packageVersionLink := print $.PackageDescriptor.PackageWebLink "/" (PathEscape .PackageDescriptor.Version.LowerVersion)}}
-	<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
+	<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+		<h1 class="tw-mb-0">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
+		<span class="label-list">
+			{{template "package/shared/visibility_badge" dict "Package" .PackageDescriptor.Package "Owner" .PackageDescriptor.Owner}}
+		</span>
+	</div>
 	<div>
 		{{$timeStr := DateUtils.TimeSince .PackageDescriptor.Version.CreatedUnix}}
 		{{if .HasRepositoryAccess}}

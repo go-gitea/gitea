@@ -13,10 +13,10 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/git/pipeline"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/pipeline"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -41,7 +41,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 
 	// 3. Take the shas of the blobs and batch read them
 	wg.Go(func() error {
-		return pipeline.CatFileBatch(ctx, cmd3BatchContent, repo.Path)
+		return pipeline.CatFileBatch(ctx, cmd3BatchContent, repo)
 	})
 
 	// 2. From the provided objects restrict to blobs <=1k
@@ -51,7 +51,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 
 	// 1. Run batch-check on all objects in the repository
 	wg.Go(func() error {
-		return pipeline.CatFileBatchCheckAllObjects(ctx, cmd1AllObjs, repo.Path)
+		return pipeline.CatFileBatchCheckAllObjects(ctx, cmd1AllObjs, repo)
 	})
 	err := wg.Wait()
 	close(pointerChan)

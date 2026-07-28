@@ -14,19 +14,19 @@ import (
 	"sync"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/git/gitcmd"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSelf bool, targetBranch, sourceBranch, title string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo))
+	req := NewRequest(t, "GET", "/"+path.Join(user, repo))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the PR button to create a pull

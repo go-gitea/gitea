@@ -6,7 +6,7 @@ package project
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 )
 
 // CountProjectColumns returns the total number of columns for a project

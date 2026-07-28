@@ -13,11 +13,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/routing"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/routing"
 )
 
 const viteDevPortFile = "public/assets/.vite/dev-port"
@@ -140,31 +140,13 @@ func IsViteDevMode() bool {
 	return isDev
 }
 
-func detectWebSrcPath(webSrcPath string) string {
-	localPath := util.FilePathJoinAbs(setting.StaticRootPath, "web_src", webSrcPath)
-	if _, err := os.Stat(localPath); err == nil {
-		return setting.AppSubURL + "/web_src/" + webSrcPath
+// viteDevSourceURL returns the dev server URL for a source file, or "" if it doesn't exist.
+func viteDevSourceURL(srcPath string) string {
+	localPath := util.FilePathJoinAbs(setting.StaticRootPath, srcPath)
+	if _, err := os.Stat(localPath); err != nil {
+		return ""
 	}
-	return ""
-}
-
-func viteDevSourceURL(name string) string {
-	if strings.HasPrefix(name, "css/theme-") {
-		// Only redirect built-in themes to Vite source; custom themes are served from custom/public/assets/css/
-		themeFilePath := "css/themes/" + strings.TrimPrefix(name, "css/")
-		if srcPath := detectWebSrcPath(themeFilePath); srcPath != "" {
-			return srcPath
-		}
-	}
-	// try to map ".js" files to ".ts" files
-	pathPrefix, ok := strings.CutSuffix(name, ".js")
-	if ok {
-		if srcPath := detectWebSrcPath(pathPrefix + ".ts"); srcPath != "" {
-			return srcPath
-		}
-	}
-	// for all others that the names match
-	return detectWebSrcPath(name)
+	return setting.AppSubURL + "/" + srcPath
 }
 
 // isViteDevRequest returns true if the request should be proxied to the Vite dev server.
@@ -192,12 +174,13 @@ func isViteDevRequest(req *http.Request) bool {
 
 	// Vite uses a path relative to project root and adds "?import" to non-JS/CSS asset imports:
 	// - {WebSite}/public/assets/... (e.g. SVG icons from "{RepoRoot}/public/assets/img/svg/")
-	// - {WebSite}/assets/emoji.json: it is an exception for the frontend assets, it is imported by JS code, but:
+	// - {WebSite}/assets/<file>.json: exception for frontend-imported repo-root assets:
 	//   - KEEP IN MIND: all static frontend assets are served from "{AssetFS}/assets" to "{WebSite}/assets" by Gitea Web Server
 	//   - "{AssetFS}" is a layered filesystem from "{RepoRoot}/public" or embedded assets, and user's custom files in "{CustomPath}/public"
-	//   - "{RepoRoot}/assets/emoji.json" just happens to have the dir name "assets", it is not related to frontend assets
+	//   - "{RepoRoot}/assets/*.json" just happens to live under the dir name "assets"; it is not related to frontend assets
 	//   - BAD DESIGN: indeed it is a "conflicted and polluted name" sample
-	if path == "/assets/emoji.json" {
+	switch path {
+	case "/assets/emoji.json", "/assets/codemirror-languages.json":
 		return true
 	}
 	return false

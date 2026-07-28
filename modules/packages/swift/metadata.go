@@ -11,9 +11,9 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/validation"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 
 	"github.com/hashicorp/go-version"
 )

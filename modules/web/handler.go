@@ -9,10 +9,11 @@ import (
 	"net"
 	"net/http"
 	"reflect"
+	"slices"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/modules/web/types"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/web/routing"
+	"gitea.dev/modules/web/types"
 )
 
 var responseStatusProviders = map[reflect.Type]func(req *http.Request) types.ResponseStatusProvider{}
@@ -131,8 +132,8 @@ type middlewareProvider = func(next http.Handler) http.Handler
 
 func executeMiddlewaresHandler(w http.ResponseWriter, r *http.Request, middlewares []middlewareProvider, endpoint http.HandlerFunc) {
 	handler := endpoint
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		handler = middlewares[i](handler).ServeHTTP
+	for _, middleware := range slices.Backward(middlewares) {
+		handler = middleware(handler).ServeHTTP
 	}
 	handler(w, r)
 }

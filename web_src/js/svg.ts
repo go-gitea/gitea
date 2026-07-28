@@ -5,8 +5,10 @@ import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-che
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
+import giteaFavicon from '../../public/assets/img/favicon.svg';
 import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
+import octiconArrowLeft from '../../public/assets/img/svg/octicon-arrow-left.svg';
 import octiconArrowSwitch from '../../public/assets/img/svg/octicon-arrow-switch.svg';
 import octiconBlocked from '../../public/assets/img/svg/octicon-blocked.svg';
 import octiconBold from '../../public/assets/img/svg/octicon-bold.svg';
@@ -92,8 +94,10 @@ const svgs = {
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
+  'gitea-favicon': giteaFavicon,
   'gitea-running': giteaRunning,
   'octicon-archive': octiconArchive,
+  'octicon-arrow-left': octiconArrowLeft,
   'octicon-arrow-switch': octiconArrowSwitch,
   'octicon-blocked': octiconBlocked,
   'octicon-bold': octiconBold,
@@ -195,6 +199,10 @@ export function svg(name: SvgName, size = 16, classNames?: string | string[]): s
   }
   if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean as unknown as <T>(x: T | boolean) => x is T));
   return serializeXml(svgNode);
+}
+
+export function svgRaw(name: SvgName, size = 16, classNames?: string | string[]) {
+  return htmlRaw(svg(name, size, classNames));
 }
 
 export function svgParseOuterInner(name: SvgName) {

@@ -1,11 +1,11 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin badge")}}
+{{template "admin/layout_head" (dict "pageClass" "admin badge")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{.Title}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
-				<div id="search-user-box" class="ui search input tw-align-middle">
+			<form class="ui form flex-text-block" action="{{.Link}}" method="post">
+				<div id="search-user-box" class="ui search input">
 					<input class="prompt" name="user" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
 				</div>
 				<button class="ui primary button">{{ctx.Locale.Tr "admin.badges.add_user"}}</button>

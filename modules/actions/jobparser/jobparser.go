@@ -5,14 +5,60 @@ package jobparser
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
-	"github.com/nektos/act/pkg/exprparser"
-	"github.com/nektos/act/pkg/model"
+	"gitea.com/gitea/runner/act/exprparser"
+	"gitea.com/gitea/runner/act/model"
+	"github.com/rhysd/actionlint"
 	"go.yaml.in/yaml/v4"
 )
+
+// HasDeferredMatrix reports whether the job's matrix can only be expanded once its needs finish:
+// it reads the needs context and the job has needs to resolve that context against.
+// Parse emits such a job as a single placeholder rather than one job per combination, so every
+// caller that persists a job must agree with Parse on this condition.
+func HasDeferredMatrix(job *Job) bool {
+	return len(job.Needs()) > 0 && rawMatrixReadsNeeds(&job.Strategy.RawMatrix)
+}
+
+func rawMatrixReadsNeeds(node *yaml.Node) bool {
+	if node.Kind == yaml.ScalarNode {
+		return expressionReadsNeeds(node.Value)
+	}
+	return slices.ContainsFunc(node.Content, rawMatrixReadsNeeds)
+}
+
+// expressionReadsNeeds reports whether value holds a ${{ }} expression reading the needs context.
+// Every other context (github, vars, inputs, ...) is already available while planning, so deferring
+// those too would replace their combinations with one placeholder and change the commit status
+// contexts the run publishes, which a repository's required checks are configured against.
+func expressionReadsNeeds(value string) bool {
+	for rest := value; ; {
+		_, after, found := strings.Cut(rest, "${{")
+		if !found {
+			return false
+		}
+		rest = after
+		// The lexer ends the expression at its closing `}}`, so it can be handed the whole remainder.
+		expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(rest))
+		if err != nil {
+			return true // unparseable here, let the expansion report it against the real values
+		}
+		readsNeeds := false
+		actionlint.VisitExprNode(expr, func(node, _ actionlint.ExprNode, entering bool) {
+			if variable, ok := node.(*actionlint.VariableNode); entering && ok && strings.EqualFold(variable.Name, "needs") {
+				readsNeeds = true
+			}
+		})
+		if readsNeeds {
+			return true
+		}
+	}
+}
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	origin, err := model.ReadWorkflow(bytes.NewReader(content))
@@ -31,10 +77,13 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	}
 	results := map[string]*JobResult{}
 	for id, job := range origin.Jobs {
+		if job == nil {
+			return nil, fmt.Errorf("needed job not found: %q", id)
+		}
 		results[id] = &JobResult{
 			Needs:   job.Needs(),
 			Result:  pc.jobResults[id],
-			Outputs: nil, // not supported yet
+			Outputs: nil, // resolved at expansion time, not at plan time
 		}
 	}
 
@@ -49,38 +98,155 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 
 	for i, id := range ids {
 		job := jobs[i]
-		matricxes, err := getMatrixes(origin.GetJob(id))
-		if err != nil {
-			return nil, fmt.Errorf("getMatrixes: %w", err)
+		originJob := origin.GetJob(id)
+
+		if originJob == nil {
+			return nil, fmt.Errorf("job %s not found in origin workflow", id)
 		}
-		for _, matrix := range matricxes {
-			job := job.Clone()
-			if job.Name == "" {
-				job.Name = id
+
+		var combos []*Job
+		if HasDeferredMatrix(job) {
+			// The matrix reads values that do not exist yet (a needs output), so emit a single
+			// placeholder keeping it raw. Re-parsing that placeholder's payload yields it again,
+			// and the server expands it once the needs finish.
+			placeholder := job.Clone()
+			if placeholder.Name == "" {
+				placeholder.Name = id
 			}
-			job.Strategy.RawMatrix = encodeMatrix(matrix)
-			evaluator := NewExpressionEvaluator(NewInterpeter(id, origin.GetJob(id), matrix, pc.gitContext, results, pc.vars, pc.inputs))
-			job.Name = nameWithMatrix(job.Name, matrix, evaluator)
-			runsOn := origin.GetJob(id).RunsOn()
-			for i, v := range runsOn {
-				runsOn[i] = evaluator.Interpolate(v)
+			combos = []*Job{placeholder}
+		} else {
+			matricxes, err := getMatrixes(originJob)
+			if err != nil {
+				return nil, fmt.Errorf("getMatrixes: %w", err)
 			}
-			job.RawRunsOn = encodeRunsOn(runsOn)
-			swf := &SingleWorkflow{
-				Name:           workflow.Name,
-				RawOn:          workflow.RawOn,
-				Env:            workflow.Env,
-				Defaults:       workflow.Defaults,
-				RawPermissions: workflow.RawPermissions,
-				RunName:        workflow.RunName,
+			if combos, err = buildMatrixCombos(id, job, matricxes, originJob, pc.gitContext, results, pc.vars, pc.inputs); err != nil {
+				return nil, err
 			}
-			if err := swf.SetJob(id, job); err != nil {
+		}
+		for _, combo := range combos {
+			swf := workflow.cloneHeader()
+			if err := swf.SetJob(id, combo); err != nil {
 				return nil, fmt.Errorf("SetJob: %w", err)
 			}
 			ret = append(ret, swf)
 		}
 	}
 	return ret, nil
+}
+
+// cloneHeader returns a copy of w with its workflow-global fields but no jobs.
+func (w *SingleWorkflow) cloneHeader() *SingleWorkflow {
+	return &SingleWorkflow{
+		Name:           w.Name,
+		RawOn:          w.RawOn,
+		Env:            w.Env,
+		Defaults:       w.Defaults,
+		RawPermissions: w.RawPermissions,
+		RunName:        w.RunName,
+	}
+}
+
+// ExpandMatrixWithNeeds returns one Job per combination of job's matrix, resolved against the
+// completed needs in results. As for EvaluateConcurrency, results must also describe jobID itself,
+// which is where NewInterpeter reads the job's own needs from.
+// maxCombinations caps how many combinations may be built: the values come from a needs output at
+// runtime, so the cap has to be enforced before one Job is materialized per combination.
+func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any, maxCombinations int) ([]*Job, error) {
+	actJob := &model.Job{Strategy: &model.Strategy{
+		FailFastString:    job.Strategy.FailFastString,
+		MaxParallelString: job.Strategy.MaxParallelString,
+		RawMatrix:         job.Strategy.RawMatrix,
+	}}
+
+	// Resolve fromJson(needs.*.outputs.*) and friends into concrete matrix values.
+	if err := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, gitCtx, results, vars, inputs)).
+		EvaluateYamlNode(&actJob.Strategy.RawMatrix); err != nil {
+		return nil, fmt.Errorf("evaluate matrix: %w", err)
+	}
+	matrixes, err := getMatrixes(actJob)
+	if err != nil {
+		return nil, fmt.Errorf("getMatrixes: %w", err)
+	}
+	// act collapses a matrix that yields no combination (an empty vector or include, everything
+	// excluded, a whole-matrix expression that is not a mapping) into one empty combination, which
+	// would run the job once unparameterized. GitHub rejects such a matrix, so reject it too.
+	if len(matrixes) == 1 && len(matrixes[0]) == 0 {
+		return nil, errors.New("matrix must define at least one vector")
+	}
+	if len(matrixes) > maxCombinations {
+		return nil, fmt.Errorf("matrix expands to %d combinations, exceeding the limit of %d", len(matrixes), maxCombinations)
+	}
+	return buildMatrixCombos(jobID, job, matrixes, actJob, gitCtx, results, vars, inputs)
+}
+
+// matrixesOf is this package's only entry to act's GetMatrixes, so that every caller is covered by
+// the filter check below. A deferred placeholder is the first thing carrying a raw matrix this far,
+// and the emitter reads its `if:` before expanding it.
+// TODO: drop the check once gitea.com/gitea/runner validates the shape itself.
+func matrixesOf(job *model.Job) ([]map[string]any, error) {
+	if err := validateMatrixFilters(job); err != nil {
+		return nil, err
+	}
+	matrixes, err := job.GetMatrixes()
+	if err != nil {
+		return nil, fmt.Errorf("GetMatrixes: %w", err)
+	}
+	return matrixes, nil
+}
+
+// validateMatrixFilters rejects an `include`/`exclude` that is not a list of mappings. act asserts
+// that shape without checking, so anything else panics there; an unevaluated ${{ }} expression, which
+// is still a scalar, is the usual way to reach it.
+func validateMatrixFilters(job *model.Job) error {
+	if job.Strategy == nil || job.Strategy.RawMatrix.Kind != yaml.MappingNode {
+		return nil
+	}
+	content := job.Strategy.RawMatrix.Content
+	for i := 0; i+1 < len(content); i += 2 {
+		name, value := content[i].Value, content[i+1]
+		if name != "include" && name != "exclude" {
+			continue
+		}
+		entries := []*yaml.Node{value}
+		if value.Kind == yaml.SequenceNode {
+			entries = value.Content
+		}
+		for _, entry := range entries {
+			if entry.Kind == yaml.AliasNode {
+				entry = entry.Alias
+			}
+			if entry.Kind != yaml.MappingNode {
+				return fmt.Errorf("matrix %s must be a list of mappings", name)
+			}
+		}
+	}
+	return nil
+}
+
+// buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
+// strategy and interpolating the name, runs-on and continue-on-error with it.
+func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
+	srcRunsOn := src.RunsOn()
+	combos := make([]*Job, 0, len(matrixes))
+	for _, matrix := range matrixes {
+		combo := src.Clone()
+		if combo.Name == "" {
+			combo.Name = jobID
+		}
+		combo.Strategy.RawMatrix = encodeMatrix(matrix)
+		evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs))
+		combo.Name = nameWithMatrix(combo.Name, matrix, evaluator)
+		runsOn := slices.Clone(srcRunsOn)
+		for i := range runsOn {
+			runsOn[i] = evaluator.Interpolate(runsOn[i])
+		}
+		combo.RawRunsOn = encodeRunsOn(runsOn)
+		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
+			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
+		}
+		combos = append(combos, combo)
+	}
+	return combos, nil
 }
 
 func WithGitContext(context *model.GithubContext) ParseOption {
@@ -111,9 +277,9 @@ type parseContext struct {
 type ParseOption func(c *parseContext)
 
 func getMatrixes(job *model.Job) ([]map[string]any, error) {
-	ret, err := job.GetMatrixes()
+	ret, err := matrixesOf(job)
 	if err != nil {
-		return nil, fmt.Errorf("GetMatrixes: %w", err)
+		return nil, err
 	}
 	sort.Slice(ret, func(i, j int) bool {
 		return matrixName(ret[i]) < matrixName(ret[j])

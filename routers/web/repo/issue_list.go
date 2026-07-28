@@ -12,26 +12,25 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	db_indexer "code.gitea.io/gitea/modules/indexer/issues/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/routers/web/shared/issue"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/convert"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	issue_indexer "gitea.dev/modules/indexer/issues"
+	db_indexer "gitea.dev/modules/indexer/issues/db"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/common"
+	"gitea.dev/routers/web/shared/issue"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	"gitea.dev/services/convert"
+	issue_service "gitea.dev/services/issue"
+	pull_service "gitea.dev/services/pull"
 )
 
 func retrieveProjectsForIssueList(ctx *context.Context, repo *repo_model.Repository) {
@@ -407,8 +406,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 
 	action := ctx.FormString("action")
 	if action != "open" && action != "close" {
-		log.Warn("Unrecognized action: %s", action)
-		ctx.JSONOK()
+		ctx.JSONError("invalid action: " + action)
 		return
 	}
 
@@ -428,9 +426,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 		if action == "close" && !issue.IsClosed {
 			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
-					ctx.JSON(http.StatusPreconditionFailed, map[string]any{
-						"error": ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index),
-					})
+					ctx.JSONError(ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index))
 					return
 				}
 				ctx.ServerError("CloseIssue", err)
@@ -754,7 +750,7 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.issues")
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
 	projectIDs := parseProjectIDsFromQuery(ctx)

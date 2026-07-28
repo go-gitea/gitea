@@ -10,18 +10,18 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/shared/types"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/shared/types"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"xorm.io/builder"
 )
 
@@ -64,6 +64,8 @@ type ActionRunner struct {
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
 	// Store if this runner is disabled and should not pick up new jobs
 	IsDisabled bool `xorm:"is_disabled NOT NULL DEFAULT false"`
+	// Store if this runner supports the StatusCancelling flow
+	HasCancellingSupport bool `xorm:"has_cancelling_support NOT NULL DEFAULT false"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -73,7 +75,27 @@ type ActionRunner struct {
 const (
 	RunnerOfflineTime = time.Minute
 	RunnerIdleTime    = 10 * time.Second
+	// RunnerHeartbeatInterval is how often last_online is persisted on poll.
+	// Must stay well below RunnerOfflineTime so runners don't flap to offline.
+	RunnerHeartbeatInterval = 30 * time.Second
+	// RunnerActiveInterval is how often last_active is persisted while a runner
+	// streams task updates and logs. Must stay well below RunnerIdleTime so a
+	// busy runner keeps showing ACTIVE without a DB write on every RPC.
+	RunnerActiveInterval = 5 * time.Second
 )
+
+// ShouldPersistLastOnline reports whether last_online is stale enough to be
+// worth writing back. Avoids a DB write on every runner poll.
+func ShouldPersistLastOnline(last timeutil.TimeStamp, now time.Time) bool {
+	return now.Sub(last.AsTime()) >= RunnerHeartbeatInterval
+}
+
+// ShouldPersistLastActive reports whether last_active is stale enough to be
+// worth writing back. Avoids a DB write on every UpdateTask/UpdateLog RPC while
+// a runner is actively streaming logs.
+func ShouldPersistLastActive(last timeutil.TimeStamp, now time.Time) bool {
+	return now.Sub(last.AsTime()) >= RunnerActiveInterval
+}
 
 // BelongsToOwnerName before calling, should guarantee that all attributes are loaded
 func (r *ActionRunner) BelongsToOwnerName() string {
@@ -248,22 +270,41 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 	return cond
 }
 
+// runnerStatusOrderExpr builds an ORDER BY fragment that ranks runners by their
+// computed status (see ActionRunner.Status): active (0), idle (1), offline (2).
+// The thresholds are evaluated against the current time, mirroring ToConds, so
+// sorting by status groups active and idle runners instead of interleaving them
+// by raw last_online.
+func runnerStatusOrderExpr() string {
+	now := time.Now()
+	offlineThreshold := now.Add(-RunnerOfflineTime).Unix()
+	idleThreshold := now.Add(-RunnerIdleTime).Unix()
+	return fmt.Sprintf("CASE WHEN last_online <= %d THEN 2 WHEN last_active <= %d THEN 1 ELSE 0 END", offlineThreshold, idleThreshold)
+}
+
 func (opts FindRunnerOptions) ToOrders() string {
+	// A unique tiebreaker (id) is appended so that runners sharing the same
+	// status, last_online or name keep a deterministic order across paginated
+	// queries, otherwise the same runner may appear on more than one page.
+	statusRank := runnerStatusOrderExpr()
 	switch opts.Sort {
 	case "online":
-		return "last_online DESC"
+		// Rank by computed status first so idle runners are not interleaved with
+		// active ones; disabled runners sink to the bottom of their status group
+		// (is_disabled ASC), then last_online breaks ties within a group.
+		return statusRank + " ASC, is_disabled ASC, last_online DESC, id ASC"
 	case "offline":
-		return "last_online ASC"
+		return statusRank + " DESC, is_disabled ASC, last_online ASC, id ASC"
 	case "alphabetically":
-		return "name ASC"
+		return "name ASC, id ASC"
 	case "reversealphabetically":
-		return "name DESC"
+		return "name DESC, id ASC"
 	case "newest":
 		return "id DESC"
 	case "oldest":
 		return "id ASC"
 	}
-	return "last_online DESC"
+	return statusRank + " ASC, is_disabled ASC, last_online DESC, id ASC"
 }
 
 // GetRunnerByUUID returns a runner via uuid

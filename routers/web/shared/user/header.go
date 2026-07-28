@@ -7,22 +7,21 @@ import (
 	"errors"
 	"net/url"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 // prepareContextForProfileBigAvatar set the context for big avatar view on the profile page
@@ -110,19 +109,19 @@ func FindOwnerProfileReadme(ctx *context.Context, doer *user_model.User, optProf
 		return nil, nil
 	}
 
-	profileGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, profileDbRepo)
+	profileGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, profileDbRepo)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to OpenRepository: %v", err)
 		return nil, nil
 	}
 
-	commit, err := profileGitRepo.GetBranchCommit(profileDbRepo.DefaultBranch)
+	commit, err := profileGitRepo.GetBranchCommit(ctx, profileDbRepo.DefaultBranch)
 	if err != nil {
 		log.Error("FindOwnerProfileReadme failed to GetBranchCommit: %v", err)
 		return nil, nil
 	}
 
-	profileReadmeBlob, _ = commit.GetBlobByPath("README.md") // no need to handle this error
+	profileReadmeBlob, _ = commit.GetBlobByPath(ctx, profileGitRepo, "README.md") // no need to handle this error
 	return profileDbRepo, profileReadmeBlob
 }
 

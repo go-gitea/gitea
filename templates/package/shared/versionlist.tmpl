@@ -1,4 +1,10 @@
-<p><a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a> / <strong>{{ctx.Locale.Tr "packages.versions"}}</strong></p>
+<p>
+	<a href="{{.PackageDescriptor.PackageWebLink}}">{{.PackageDescriptor.Package.Name}}</a>
+	<span class="label-list">
+		{{template "package/shared/visibility_badge" dict "Package" .PackageDescriptor.Package "Owner" .PackageDescriptor.Owner}}
+	</span>
+	/ <strong>{{ctx.Locale.Tr "packages.versions"}}</strong>
+</p>
 <form class="ui form ignore-dirty">
 	<div class="ui small fluid action input">
 		{{template "shared/search/input" dict "Value" .Query "Placeholder" (ctx.Locale.Tr "search.package_kind")}}

@@ -1,7 +1,7 @@
 import {createElementFromAttrs} from '../utils/dom.ts';
-import {renderAnsi} from '../render/ansi.ts';
+import {renderAnsiInto} from '../render/ansi.ts';
 import {reactive} from 'vue';
-import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsRunStatus} from '../modules/gitea-actions.ts';
+import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import type {IntervalId} from '../types.ts';
 import {POST} from '../modules/fetch.ts';
 
@@ -9,7 +9,8 @@ import {POST} from '../modules/fetch.ts';
 // * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
 // * Workflow runner parses and processes the commands to "##[group]", apply "matchers", hide secrets, etc.
 // * The reported logs are the processed logs.
-// HOWEVER: Gitea runner does not completely process those commands. Many works are done by the frontend at the moment.
+// HOWEVER: Gitea cannot, a decoded message may contain newlines and FormatLog drops them,
+// so the commands arrive here still escaped and the frontend decodes them.
 const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '::group::': 'group',
   '##[group]': 'group',
@@ -20,6 +21,7 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '##[warning]': 'warning',
   '##[notice]': 'notice',
   '##[debug]': 'debug',
+  '##[command]': 'command',
   '[command]': 'command',
 
   // https://github.com/actions/toolkit/blob/master/docs/commands.md
@@ -46,9 +48,9 @@ export type LogLineCommand = {
 
 export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
   // TODO: in the future it can be refactored to be a general parser that can parse arguments, drop the "prefix match"
-  for (const prefix of Object.keys(LogLinePrefixCommandMap)) {
+  for (const [prefix, commandName] of Object.entries(LogLinePrefixCommandMap)) {
     if (line.message.startsWith(prefix)) {
-      return {name: LogLinePrefixCommandMap[prefix], prefix};
+      return {name: commandName, prefix};
     }
   }
   // Handle ::cmd:: and ::cmd args:: format (runner may pass these through raw)
@@ -66,35 +68,61 @@ const LogLineLabelMap: Partial<Record<LogLineCommandName, string>> = {
   'debug': 'Debug',
 };
 
+function decodeLineMessage(line: LogLine, cmd: LogLineCommand | null): string {
+  // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
+  // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
+  if (!cmd) return line.message;
+  let msg = line.message.substring(cmd.prefix.length);
+  if (cmd.name === 'command') return msg; // "command" is only an output tag, do not parse or escape it
+  // "##[cmd]" also escapes ";" and "]" which delimit its header, "::cmd::" does not
+  if (!cmd.prefix.startsWith('::')) msg = msg.replace(/%3B/g, ';').replace(/%5D/g, ']');
+  // renderAnsiInto breaks a line per "\r", so "%0D%0A" is one break. "%25" last keeps "%250A" literal
+  return msg.replace(/(?:%0D)?%0A/g, '\n').replace(/%0D/g, '\r').replace(/%25/g, '%');
+}
+
 export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
   const logMsgAttrs = {class: 'log-msg'};
   if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd.name}`; // make it easier to add styles to some commands like "error"
 
-  // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
-  // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
-  const msgContent = cmd ? line.message.substring(cmd.prefix.length) : line.message;
-
+  const msgContent = decodeLineMessage(line, cmd);
   const logMsg = createElementFromAttrs('span', logMsgAttrs);
   const label = cmd ? LogLineLabelMap[cmd.name] : null;
   if (label) {
     logMsg.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
     const msgSpan = document.createElement('span');
-    msgSpan.innerHTML = ` ${renderAnsi(msgContent.trimStart())}`;
+    renderAnsiInto(msgSpan, ` ${msgContent.trimStart()}`);
     logMsg.append(msgSpan);
   } else {
-    logMsg.innerHTML = renderAnsi(msgContent);
+    renderAnsiInto(logMsg, msgContent);
   }
   return logMsg;
+}
+
+// buildJobsByParentJobID groups jobs by their parentJobID (0 = top level).
+// Useful for rendering the reusable-workflow caller/child tree in the sidebar.
+export function buildJobsByParentJobID(jobs: ActionsJob[]): Map<number, ActionsJob[]> {
+  const childrenByParent = new Map<number, ActionsJob[]>();
+  for (const job of jobs) {
+    const parentID = job.parentJobID || 0;
+    const existing = childrenByParent.get(parentID);
+    if (existing) {
+      existing.push(job);
+    } else {
+      childrenByParent.set(parentID, [job]);
+    }
+  }
+  return childrenByParent;
 }
 
 export function createEmptyActionsRun(): ActionsRun {
   return {
     repoId: 0,
+    index: 0,
     link: '',
     viewLink: '',
     title: '',
     titleHTML: '',
-    status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
+    status: '' as ActionsStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
     canCancel: false,
     canApprove: false,
     canRerun: false,
@@ -103,13 +131,16 @@ export function createEmptyActionsRun(): ActionsRun {
     done: false,
     workflowID: '',
     workflowLink: '',
+    canViewWorkflowFile: true,
     isSchedule: false,
     runAttempt: 0,
     attempts: [],
     duration: '',
     triggeredAt: 0,
     triggerEvent: '',
+    pullRequest: null,
     jobs: [] as Array<ActionsJob>,
+    jobSummaries: [],
     commit: {
       localeCommit: '',
       localePushedBy: '',
@@ -118,6 +149,7 @@ export function createEmptyActionsRun(): ActionsRun {
       pusher: {
         displayName: '',
         link: '',
+        avatarLink: '',
       },
       branch: {
         name: '',
@@ -160,7 +192,7 @@ export function createActionRunViewStore(viewUrl: string) {
     }
   };
 
-  return reactive({
+  return {
     viewData,
 
     async startPollingCurrentRun() {
@@ -177,7 +209,7 @@ export function createActionRunViewStore(viewUrl: string) {
       clearInterval(intervalID);
       intervalID = null;
     },
-  });
+  };
 }
 
 export type ActionRunViewStore = ReturnType<typeof createActionRunViewStore>;

@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"net/http"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/auth/webauthn"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/web/middleware"
-	user_service "code.gitea.io/gitea/services/user"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/auth/webauthn"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/web/middleware"
+	user_service "gitea.dev/services/user"
 )
 
 type ErrUserAuthMessage string
@@ -48,19 +48,8 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		sess = newSess
 	}
 
-	_ = sess.Delete("openid_verified_uri")
-	_ = sess.Delete("openid_signin_remember")
-	_ = sess.Delete("openid_determined_email")
-	_ = sess.Delete("openid_determined_username")
-	_ = sess.Delete("twofaUid")
-	_ = sess.Delete("twofaRemember")
-	_ = sess.Delete("webauthnAssertion")
-	_ = sess.Delete("linkAccount")
-	err = sess.Set("uid", user.ID)
-	if err != nil {
-		log.Error(fmt.Sprintf("Error setting session: %v", err))
-	}
-	err = sess.Set("uname", user.Name)
+	ClearSessionKeysForSignIn(sess)
+	err = sess.Set(session.KeyUID, user.ID)
 	if err != nil {
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}

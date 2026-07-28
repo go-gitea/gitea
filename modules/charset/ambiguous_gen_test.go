@@ -8,7 +8,7 @@ import (
 	"testing"
 	"unicode"
 
-	"code.gitea.io/gitea/modules/translation"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )

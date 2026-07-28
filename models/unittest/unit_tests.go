@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
+	"gitea.dev/models/db"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,7 +47,7 @@ func OrderBy(orderBy string) any {
 }
 
 func whereOrderConditions(e db.Engine, conditions []any) db.Engine {
-	orderBy := "id" // query must have the "ORDER BY", otherwise the result is not deterministic
+	orderBy := "id" // query must have the "ORDER BY", otherwise the result is not deterministic. FIXME: some tables do not have "id" column
 	for _, condition := range conditions {
 		switch cond := condition.(type) {
 		case *testCond:

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // Based on https://paragonie.com/blog/2015/04/secure-authentication-php-with-long-term-persistence#secure-remember-me-cookies
@@ -57,6 +57,10 @@ func CheckAuthToken(ctx context.Context, value string) (*auth_model.AuthToken, e
 	if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(hex.EncodeToString(hashedToken[:]))) == 0 {
 		// If an attacker steals a token and uses the token to create a new session the hash gets updated.
 		// When the victim uses the old token the hashes don't match anymore and the victim should be notified about the compromised token.
+		// Revoke the token so the attacker's rotated token (which shares this ID) can no longer be used.
+		if err := auth_model.DeleteAuthTokenByID(ctx, t.ID); err != nil {
+			return nil, err
+		}
 		return nil, ErrAuthTokenInvalidHash
 	}
 

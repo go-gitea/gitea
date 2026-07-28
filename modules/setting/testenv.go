@@ -11,9 +11,9 @@ import (
 	"runtime"
 	"strings"
 
-	"code.gitea.io/gitea/modules/auth/password/hash"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/auth/password/hash"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 
 	"github.com/kballard/go-shellquote"
 )

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"gitea.dev/modules/log"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -59,7 +59,7 @@ func (m *Manager) GetLevelDB(connection string) (db *leveldb.DB, err error) {
 		defer func() {
 			recovered = recover()
 			if recovered != nil {
-				log.Critical("PANIC during GetLevelDB: %v\nStacktrace: %s", recovered, log.Stack(2))
+				log.Error("PANIC during GetLevelDB: %v\nStacktrace: %s", recovered, log.Stack(2))
 			}
 			close(done)
 		}()

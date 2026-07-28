@@ -141,19 +141,36 @@ gitea-theme-meta-info {
   --color-ansi-bright-magenta: #d74397;
   --color-ansi-bright-cyan: #00b6ad;
   --color-ansi-bright-white: var(--color-console-fg);
+  /* 16-color series */
+  --color-series-16-0: #7db233;
+  --color-series-16-1: #499a37;
+  --color-series-16-2: #ce4751;
+  --color-series-16-3: #8f9121;
+  --color-series-16-4: #ac32a6;
+  --color-series-16-5: #7445e9;
+  --color-series-16-6: #c67d28;
+  --color-series-16-7: #4db392;
+  --color-series-16-8: #aa4d30;
+  --color-series-16-9: #2a6f84;
+  --color-series-16-10: #c45327;
+  --color-series-16-11: #3d965c;
+  --color-series-16-12: #792a93;
+  --color-series-16-13: #439d73;
+  --color-series-16-14: #103aad;
+  --color-series-16-15: #982e85;
   /* other colors */
   --color-grey: #3d3f44;
   --color-grey-light: #898d96;
   --color-gold: #b1983b;
   --color-white: #ffffff;
-  --color-diff-added-fg: #87ab63;
+  --color-diff-added-fg: #93b373;
   --color-diff-added-linenum-bg: #274227;
   --color-diff-added-row-bg: #203224;
   --color-diff-added-row-border: #314a37;
   --color-diff-added-word-bg: #3c653c;
   --color-diff-moved-row-bg: #818044;
   --color-diff-moved-row-border: #bcca6f;
-  --color-diff-removed-fg: #cc4848;
+  --color-diff-removed-fg: #fb5f5b;
   --color-diff-removed-linenum-bg: #482121;
   --color-diff-removed-row-bg: #301e1e;
   --color-diff-removed-row-border: #634343;
@@ -232,7 +249,7 @@ gitea-theme-meta-info {
   --color-reaction-hover-bg: var(--color-primary-light-4);
   --color-reaction-active-bg: var(--color-primary-light-5);
   --color-tooltip-text: #fafafa;
-  --color-tooltip-bg: #0b0b0cf0;
+  --color-tooltip-bg: #2b2e33;
   --color-nav-bg: #18191b;
   --color-nav-hover-bg: var(--color-secondary-light-1);
   --color-nav-text: var(--color-text);
@@ -253,7 +270,7 @@ gitea-theme-meta-info {
   --color-syntax-keyword: #ff8854;
   --color-syntax-bool: #25bbc9;
   --color-syntax-control: #dd9e17;
-  --color-syntax-name: #c7a618;
+  --color-syntax-name: #fabd2f;
   --color-syntax-type: #eb8cb3;
   --color-syntax-number: #63b2dd;
   --color-syntax-operator: #ff8854;

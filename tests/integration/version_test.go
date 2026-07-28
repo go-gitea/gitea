@@ -7,17 +7,17 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestVersion(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.AppVer = "test-version-1"
+	defer test.MockVariableValue(&setting.AppVer, "test-version-1")()
 	req := NewRequest(t, "GET", "/api/v1/version")
 	resp := MakeRequest(t, req, http.StatusOK)
 

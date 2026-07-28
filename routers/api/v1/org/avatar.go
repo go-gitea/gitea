@@ -7,10 +7,10 @@ import (
 	"encoding/base64"
 	"net/http"
 
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	user_service "code.gitea.io/gitea/services/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	user_service "gitea.dev/services/user"
 )
 
 // UpdateAvatarupdates the Avatar of an Organisation
@@ -39,7 +39,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 
 	content, err := base64.StdEncoding.DecodeString(form.Image)
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, err)
+		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 

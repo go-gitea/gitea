@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/assetfs"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/assetfs"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/httpcache"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/go-chi/cors"
 )

@@ -7,12 +7,12 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 
 	"xorm.io/builder"
 )
@@ -22,6 +22,15 @@ type StarredReposOptions struct {
 	StarrerID      int64
 	RepoOwnerID    int64
 	IncludePrivate bool
+	// Actor is the user the private repositories are gated on: a private repo is only
+	// returned when Actor still has access to it, even if it was starred while access was granted.
+	Actor *user_model.User
+}
+
+func (opts *StarredReposOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludePrivate = false
+	}
 }
 
 func (opts *StarredReposOptions) ToConds() builder.Cond {
@@ -33,10 +42,12 @@ func (opts *StarredReposOptions) ToConds() builder.Cond {
 			"repository.owner_id": opts.RepoOwnerID,
 		})
 	}
-	if !opts.IncludePrivate {
-		cond = cond.And(builder.Eq{
-			"repository.is_private": false,
-		})
+	if opts.IncludePrivate {
+		// only include private repos the actor can still access, so metadata does not leak after access revocation
+		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
+	} else {
+		// a public repo under a limited/private owner is not publicly reachable, so exclude it too
+		cond = cond.And(PublicRepoUnderPublicOwnerCond())
 	}
 	return cond
 }
@@ -60,6 +71,15 @@ type WatchedReposOptions struct {
 	WatcherID      int64
 	RepoOwnerID    int64
 	IncludePrivate bool
+	// Actor is the user the private repositories are gated on: a private repo is only
+	// returned when Actor still has access to it, even if it was watched while access was granted.
+	Actor *user_model.User
+}
+
+func (opts *WatchedReposOptions) ApplyPublicOnly(publicOnly bool) {
+	if publicOnly {
+		opts.IncludePrivate = false
+	}
 }
 
 func (opts *WatchedReposOptions) ToConds() builder.Cond {
@@ -71,10 +91,12 @@ func (opts *WatchedReposOptions) ToConds() builder.Cond {
 			"repository.owner_id": opts.RepoOwnerID,
 		})
 	}
-	if !opts.IncludePrivate {
-		cond = cond.And(builder.Eq{
-			"repository.is_private": false,
-		})
+	if opts.IncludePrivate {
+		// only include private repos the actor can still access, so metadata does not leak after access revocation
+		cond = cond.And(AccessibleRepositoryCondition(opts.Actor, unit.TypeInvalid))
+	} else {
+		// a public repo under a limited/private owner is not publicly reachable, so exclude it too
+		cond = cond.And(PublicRepoUnderPublicOwnerCond())
 	}
 	return cond.And(builder.Neq{
 		"watch.mode": WatchModeDont,

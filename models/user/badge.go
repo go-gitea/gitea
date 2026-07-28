@@ -6,8 +6,8 @@ package user
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
@@ -69,7 +69,7 @@ func GetBadgeUsers(ctx context.Context, opts *GetBadgeUsersOptions) ([]*User, in
 		Where("badge.slug=?", opts.BadgeSlug)
 
 	if opts.Page > 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		db.SetSessionPagination(sess, opts)
 	}
 
 	users := make([]*User, 0, opts.PageSize)

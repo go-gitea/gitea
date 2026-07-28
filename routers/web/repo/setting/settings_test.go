@@ -7,21 +7,21 @@ import (
 	"net/http"
 	"testing"
 
-	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/contexttest"
-	"code.gitea.io/gitea/services/forms"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	repo_service "code.gitea.io/gitea/services/repository"
+	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
+	mirror_service "gitea.dev/services/mirror"
+	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -423,7 +423,7 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: mirrorRepo.ID})
 	assert.Equal(t, "https://example.com/user2/repo1.git", updatedRepo.OriginalURL)
 
-	remoteURL, err := gitrepo.GitRemoteGetURL(t.Context(), updatedRepo, updatedMirror.GetRemoteName())
+	remoteURL, err := git.ParseRemoteAddressURL(t.Context(), updatedRepo, updatedMirror.GetRemoteName())
 	require.NoError(t, err)
 	require.NotNil(t, remoteURL.User)
 	assert.Equal(t, "existing-user", remoteURL.User.Username())

@@ -6,9 +6,9 @@ package actions
 import (
 	"context"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/log"
-	notify_service "code.gitea.io/gitea/services/notify"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/modules/log"
+	notify_service "gitea.dev/services/notify"
 )
 
 // NotifyWorkflowJobsAndRunsStatusUpdate notifies status changes for a batch of jobs and the runs they affect.
@@ -18,8 +18,9 @@ func NotifyWorkflowJobsAndRunsStatusUpdate(ctx context.Context, jobs []*actions_
 		return
 	}
 
-	// The input jobs may belong to different runs, so track each affected run.
-	runs := make(map[int64]*actions_model.ActionRun, len(jobs))
+	// The input jobs may belong to different runs, so track each affected run ID
+	// and reload it later to avoid notifying with stale aggregate status.
+	runRepoIDs := make(map[int64]int64, len(jobs))
 	jobsByRunID := make(map[int64][]*actions_model.ActionRunJob)
 
 	for _, job := range jobs {
@@ -29,17 +30,15 @@ func NotifyWorkflowJobsAndRunsStatusUpdate(ctx context.Context, jobs []*actions_
 		}
 		CreateCommitStatusForRunJobs(ctx, job.Run, job)
 
-		if _, ok := runs[job.RunID]; !ok {
-			runs[job.RunID] = job.Run
-		}
+		runRepoIDs[job.RunID] = job.RepoID
 		if _, ok := jobsByRunID[job.RunID]; !ok {
 			jobsByRunID[job.RunID] = make([]*actions_model.ActionRunJob, 0)
 		}
 		jobsByRunID[job.RunID] = append(jobsByRunID[job.RunID], job)
 	}
 
-	for _, run := range runs {
-		NotifyWorkflowRunStatusUpdate(ctx, run)
+	for runID, repoID := range runRepoIDs {
+		NotifyWorkflowRunStatusUpdateWithReload(ctx, repoID, runID)
 	}
 
 	for _, jobs := range jobsByRunID {
@@ -78,7 +77,11 @@ func NotifyWorkflowRunStatusUpdate(ctx context.Context, run *actions_model.Actio
 		}
 		triggerUser = attempt.TriggerUser
 	}
+
 	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, triggerUser, run)
+
+	// Recomputes the repository's num_action_runs / num_closed_action_runs counters since the run's status changed
+	actions_model.UpdateRepoRunsNumbers(ctx, run.RepoID)
 }
 
 // NotifyWorkflowJobsStatusUpdate notifies status updates for jobs without task.

@@ -6,16 +6,16 @@ package uinotification
 import (
 	"context"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
-	notify_service "code.gitea.io/gitea/services/notify"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/graceful"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/queue"
+	notify_service "gitea.dev/services/notify"
 )
 
 type (
@@ -51,9 +51,15 @@ func NewNotifier() notify_service.Notifier {
 }
 
 func handler(items ...issueNotificationOpts) []issueNotificationOpts {
+	ctx := graceful.GetManager().ShutdownContext()
 	for _, opts := range items {
-		if err := activities_model.CreateOrUpdateIssueNotifications(graceful.GetManager().ShutdownContext(), opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
+		notifiedIDs, err := activities_model.CreateOrUpdateIssueNotifications(ctx, opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID)
+		if err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
+			continue
+		}
+		for _, userID := range notifiedIDs {
+			notify_service.NotificationCountChange(ctx, userID)
 		}
 	}
 	return nil

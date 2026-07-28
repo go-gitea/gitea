@@ -1,0 +1,24 @@
+name: go-setup
+description: Set up go and restore caches
+
+inputs:
+  cache:
+    description: Restore go caches
+    default: "true"
+  lint-cache:
+    description: Also restore the golangci-lint cache
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/free-disk-space
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      with:
+        go-version-file: go.mod
+        check-latest: true
+        cache: false
+    - if: ${{ inputs.cache == 'true' }}
+      uses: ./.github/actions/go-cache
+      with:
+        lint-cache: ${{ inputs.lint-cache }}

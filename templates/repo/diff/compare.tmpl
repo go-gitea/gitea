@@ -210,8 +210,8 @@
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}
-		{{else}}{{/* not singed-in or not for pull-request */}}
-			{{if not .CommitCount}}
+		{{else}}{{/* not signed-in or not for pull-request */}}
+			{{if and (not .CommitCount) $.CompareInfo.CompareBase}}
 				<div class="ui segment">{{ctx.Locale.Tr "repo.commits.nothing_to_compare"}}</div>
 			{{end}}
 		{{end}}

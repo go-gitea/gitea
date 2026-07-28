@@ -6,9 +6,9 @@ package project
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
-	project_model "code.gitea.io/gitea/models/project"
-	"code.gitea.io/gitea/modules/optional"
+	"gitea.dev/models/db"
+	project_model "gitea.dev/models/project"
+	"gitea.dev/modules/optional"
 )
 
 // UpdateProjectOptions represents updatable project fields. Fields with no value are left unchanged.

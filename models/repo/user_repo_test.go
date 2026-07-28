@@ -6,14 +6,14 @@ package repo_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	perm_model "code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	perm_model "gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,4 +83,41 @@ func testUserRepoGetIssuePostersWithSearch(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, users, 1)
 	assert.Equal(t, "user2", users[0].Name)
+}
+
+func TestStarredWatchedReposExcludeNonPublicOwners(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	const viewerID = 2
+	// repo1: public repo under a public owner; repo38: public repo under a limited org (not publicly reachable)
+	const publicOwnerRepo, limitedOwnerRepo = 1, 38
+
+	require.NoError(t, db.Insert(t.Context(), &repo_model.Star{UID: viewerID, RepoID: publicOwnerRepo}))
+	require.NoError(t, db.Insert(t.Context(), &repo_model.Star{UID: viewerID, RepoID: limitedOwnerRepo}))
+	require.NoError(t, db.Insert(t.Context(), &repo_model.Watch{UserID: viewerID, RepoID: publicOwnerRepo, Mode: repo_model.WatchModeNormal}))
+	require.NoError(t, db.Insert(t.Context(), &repo_model.Watch{UserID: viewerID, RepoID: limitedOwnerRepo, Mode: repo_model.WatchModeNormal}))
+
+	listOpts := db.ListOptions{Page: 1, PageSize: 50}
+
+	starred, err := repo_model.GetStarredRepos(t.Context(), &repo_model.StarredReposOptions{
+		ListOptions: listOpts, StarrerID: viewerID, IncludePrivate: false,
+	})
+	require.NoError(t, err)
+	assert.NotContains(t, repoIDs(starred), int64(limitedOwnerRepo), "a public repo under a limited owner must be hidden from a public star listing")
+	assert.Contains(t, repoIDs(starred), int64(publicOwnerRepo), "a public repo under a public owner stays visible")
+
+	watched, _, err := repo_model.GetWatchedRepos(t.Context(), &repo_model.WatchedReposOptions{
+		ListOptions: listOpts, WatcherID: viewerID, IncludePrivate: false,
+	})
+	require.NoError(t, err)
+	assert.NotContains(t, repoIDs(watched), int64(limitedOwnerRepo), "a public repo under a limited owner must be hidden from a public watch listing")
+	assert.Contains(t, repoIDs(watched), int64(publicOwnerRepo), "a public repo under a public owner stays visible")
+}
+
+func repoIDs(repos []*repo_model.Repository) []int64 {
+	ids := make([]int64, len(repos))
+	for i, r := range repos {
+		ids[i] = r.ID
+	}
+	return ids
 }

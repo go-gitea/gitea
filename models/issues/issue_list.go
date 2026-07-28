@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
+	"gitea.dev/models/db"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 
 	"xorm.io/builder"
 )
@@ -591,9 +591,12 @@ func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*Rev
 
 func (issues IssueList) LoadIsRead(ctx context.Context, userID int64) error {
 	issueIDs := issues.getIssueIDs()
+	if len(issueIDs) == 0 {
+		return nil
+	}
 	issueUsers := make([]*IssueUser, 0, len(issueIDs))
 	if err := db.GetEngine(ctx).Where("uid =?", userID).
-		In("issue_id").
+		In("issue_id", issueIDs).
 		Find(&issueUsers); err != nil {
 		return err
 	}

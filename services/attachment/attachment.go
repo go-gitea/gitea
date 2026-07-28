@@ -11,12 +11,12 @@ import (
 	"io"
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context/upload"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context/upload"
 
 	"github.com/google/uuid"
 )

@@ -18,21 +18,21 @@ import (
 	"testing"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/actions"
-	actions_service "code.gitea.io/gitea/services/actions"
+	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	actions_model "gitea.dev/models/actions"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/api/actions"
+	actions_service "gitea.dev/services/actions"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -398,7 +398,7 @@ func TestActionsArtifactV4UploadSingleFileWithChunksOutOfOrder(t *testing.T) {
 				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.AzureBlobConfig.ServeDirect, entry.serveDirect)()
 			default:
 				if entry.serveDirect {
-					t.Skip()
+					t.Skip("for non-serve-direct only")
 				}
 			}
 			// acquire artifact upload url
@@ -529,7 +529,7 @@ func TestActionsArtifactV4DownloadSingle(t *testing.T) {
 				defer test.MockVariableValue(&setting.Actions.ArtifactStorage.MinioConfig.ServeDirect, entry.ServeDirect)()
 			default:
 				if entry.ServeDirect {
-					t.Skip()
+					t.Skip("for non-serve-direct only")
 				}
 			}
 

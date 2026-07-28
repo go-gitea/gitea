@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )

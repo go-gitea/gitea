@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/services/webtheme"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web/middleware"
+	"gitea.dev/services/webtheme"
 )
 
 type TemplateContext map[string]any
@@ -115,6 +115,9 @@ func (c TemplateContext) CspScriptNonce() (ret string) {
 }
 
 func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
+	if setting.Security.ContentSecurityPolicyGeneral == "unset" {
+		return "" // if site admin disables the general CSP, then we don't use it
+	}
 	// The CSP problem is more complicated than it looks.
 	// Gitea was designed to support various "customizations", including:
 	// * custom themes (custom CSS and JS)
@@ -129,8 +132,9 @@ func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
 	//    * Maybe this approach should be avoided, don't make the config system too complex, just let users use A
 	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` +
 		// allow all by default (the same as old releases with no CSP)
-		// maybe some images or markup (external) renders need "data:", need to investigate
-		`default-src * data:;` +
+		// * maybe some images or markup (external) renders need "data:", need to investigate
+		// * avatar upload editor needs "blob:", at least "img-src" and "content-src"
+		`default-src * data: blob:;` +
 
 		// enforce nonce for all scripts, disallow inline scripts
 		`script-src * 'nonce-` + c.CspScriptNonce() + `';` +

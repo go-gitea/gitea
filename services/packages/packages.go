@@ -13,17 +13,18 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	packages_model "code.gitea.io/gitea/models/packages"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	notify_service "code.gitea.io/gitea/services/notify"
+	"gitea.dev/models/db"
+	packages_model "gitea.dev/models/packages"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	packages_module "gitea.dev/modules/packages"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	notify_service "gitea.dev/services/notify"
 )
 
 var (
@@ -78,8 +79,13 @@ func CreatePackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfc
 }
 
 // CreatePackageOrAddFileToExisting creates a package with a file or adds the file if the package exists already
-func CreatePackageOrAddFileToExisting(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-	return createPackageAndAddFile(ctx, pvci, pfci, true)
+func CreatePackageOrAddFileToExisting(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo) (pv *packages_model.PackageVersion, pf *packages_model.PackageFile, err error) {
+	lockKey := fmt.Sprintf("pkg-upsert-%v-%v-%v", pvci.PackageType, pvci.Name, pvci.Version)
+	err = globallock.LockAndDo(ctx, lockKey, func(ctx context.Context) error {
+		pv, pf, err = createPackageAndAddFile(ctx, pvci, pfci, true)
+		return err
+	})
+	return pv, pf, err
 }
 
 func createPackageAndAddFile(ctx context.Context, pvci *PackageCreationInfo, pfci *PackageFileCreationInfo, allowDuplicate bool) (*packages_model.PackageVersion, *packages_model.PackageFile, error) {

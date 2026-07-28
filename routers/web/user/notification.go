@@ -4,27 +4,31 @@
 package user
 
 import (
+	stdCtx "context"
 	"fmt"
 	"net/http"
 	"strings"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
-	issue_service "code.gitea.io/gitea/services/issue"
-	pull_service "code.gitea.io/gitea/services/pull"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
+	issues_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
+	issue_service "gitea.dev/services/issue"
+	"gitea.dev/services/notifications"
+	pull_service "gitea.dev/services/pull"
 )
 
 const (
@@ -97,6 +101,12 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		return
 	}
 	failCount += len(failures)
+	notifications, failures, err = filterNotificationsByRepoAccess(ctx, ctx.Doer, notifications)
+	if err != nil {
+		ctx.ServerError("filterNotificationsByRepoAccess", err)
+		return
+	}
+	failCount += len(failures)
 
 	failures, err = notifications.LoadIssues(ctx)
 	if err != nil {
@@ -135,6 +145,23 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 }
 
+func filterNotificationsByRepoAccess(ctx stdCtx.Context, doer *user_model.User, notifications activities_model.NotificationList) (activities_model.NotificationList, []int, error) {
+	failures := make([]int, 0)
+	for i, notification := range notifications {
+		if notification.Repository == nil {
+			continue
+		}
+		perm, err := access_model.GetIndividualUserRepoPermission(ctx, notification.Repository, doer)
+		if err != nil {
+			return nil, nil, err
+		}
+		if !perm.HasAnyUnitAccessOrPublicAccess() {
+			failures = append(failures, i)
+		}
+	}
+	return notifications.Without(failures), failures, nil
+}
+
 // NotificationStatusPost is a route for changing the status of a notification
 func NotificationStatusPost(ctx *context.Context) {
 	notificationID := ctx.FormInt64("notification_id")
@@ -149,7 +176,7 @@ func NotificationStatusPost(ctx *context.Context) {
 	default:
 		return // ignore user's invalid input
 	}
-	if _, err := activities_model.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
+	if _, err := notifications.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
 		ctx.ServerError("SetNotificationStatus", err)
 		return
 	}
@@ -163,9 +190,8 @@ func NotificationStatusPost(ctx *context.Context) {
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
 func NotificationPurgePost(ctx *context.Context) {
-	err := activities_model.UpdateNotificationStatuses(ctx, ctx.Doer, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead)
-	if err != nil {
-		ctx.ServerError("UpdateNotificationStatuses", err)
+	if err := notifications.MarkAllRead(ctx, ctx.Doer); err != nil {
+		ctx.ServerError("MarkAllRead", err)
 		return
 	}
 

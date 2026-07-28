@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	api "gitea.dev/modules/structs"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -40,8 +40,16 @@ func TestAPICreateHook(t *testing.T) {
 
 	apiHook := DecodeJSON(t, resp, &api.Hook{})
 	assert.Equal(t, "http://example.com/", apiHook.Config["url"])
-	assert.Equal(t, "Bearer s3cr3t", apiHook.AuthorizationHeader)
+	// the stored authorization header is a secret and must never be returned by the API
+	assert.Empty(t, apiHook.AuthorizationHeader)
 	assert.Equal(t, "CI notifications", apiHook.Name)
+
+	// a read-scoped token must not be able to read back the authorization header
+	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+	getReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d", owner.Name, repo.Name, apiHook.ID)).
+		AddTokenAuth(readToken)
+	getResp := MakeRequest(t, getReq, http.StatusOK)
+	assert.NotContains(t, getResp.Body.String(), "s3cr3t")
 
 	newName := "Deploy hook"
 	patchReq := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d", owner.Name, repo.Name, apiHook.ID), api.EditHookOption{
