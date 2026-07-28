@@ -16,7 +16,6 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/password"
-	"gitea.dev/modules/eventsource"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
@@ -34,6 +33,7 @@ import (
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
 	user_service "gitea.dev/services/user"
+	websocket_service "gitea.dev/services/websocket"
 
 	"github.com/markbates/goth"
 )
@@ -460,10 +460,7 @@ func HandleSignOut(ctx *context.Context) {
 // SignOut sign out from login status
 func SignOut(ctx *context.Context) {
 	if ctx.Doer != nil {
-		eventsource.GetManager().SendMessageBlocking(ctx.Doer.ID, &eventsource.Event{
-			Name: "logout",
-			Data: ctx.Session.ID(),
-		})
+		websocket_service.PublishLogout(ctx.Doer.ID, ctx.Session.ID())
 	}
 
 	exitedImpersonated, err := auth_service.ExitImpersonatedUser(ctx.Session)
@@ -483,18 +480,24 @@ func SignOut(ctx *context.Context) {
 }
 
 func buildSignOutRedirectURL(ctx *context.Context) string {
-	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
+	if ctx.Doer != nil && shouldRedirectToOIDCEndSession(ctx) {
 		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
 			return s
 		}
 	}
 
 	// The assumption is: if reverse proxy auth is enabled, then the users should only sign-in via reverse proxy auth.
-	// TODO: in the future, if we need to distinguish different sign-in methods, we need to save the sign-in method in session and check here
 	if setting.Service.EnableReverseProxyAuth && setting.ReverseProxyLogoutRedirect != "" {
 		return setting.ReverseProxyLogoutRedirect
 	}
 	return setting.AppSubURL + "/"
+}
+
+// shouldRedirectToOIDCEndSession reports whether this session should end at the
+// OIDC provider. Prefer the session sign-in method so an OAuth2-linked account
+// that signed in with a password does not hit end_session_endpoint.
+func shouldRedirectToOIDCEndSession(ctx *context.Context) bool {
+	return ctx.Session.Get(session.KeySignInMethod) == session.SignInMethodOAuth2
 }
 
 func prepareSignUpPageData(ctx *context.Context) bool {

@@ -133,13 +133,16 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
+		slots := maxParallelSlots{}
+
 		for _, v := range jobs {
-			runJob, jobsToCancel, jobNeedsPostCommitEmit, err := insertRunJob(ctx, run, runAttempt, v, vars, inputs)
+			runJob, jobsToCancel, jobNeedsPostCommitEmit, err := insertRunJob(ctx, run, runAttempt, v, vars, inputs, slots)
 			if err != nil {
 				return err
 			}
 			cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 			needPostCommitEmit = needPostCommitEmit || jobNeedsPostCommitEmit
+
 			// A reusable caller is never dispatched to a runner, so it must not drive the task-version bump.
 			hasWaitingJobs = hasWaitingJobs || (runJob.Status == actions_model.StatusWaiting && !runJob.IsReusableCaller)
 			runJobs = append(runJobs, runJob)
@@ -180,9 +183,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 // inline-expands (or skips) it. It returns the inserted job, any jobs cancelled by
 // job concurrency, and whether a post-commit emitter pass is needed to resolve the
 // caller's dependents.
-func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, workflowJob *jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, bool, error) {
+func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, workflowJob *jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any, slots maxParallelSlots) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, bool, error) {
 	id, job := workflowJob.Job()
 	needs := job.Needs()
+	isMatrixDeferred := jobparser.HasDeferredMatrix(job)
 	if err := workflowJob.SetJob(id, job.EraseNeeds()); err != nil {
 		return nil, nil, false, err
 	}
@@ -215,6 +219,12 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		WorkflowSourceRepoID:    run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 		ContinueOnError:         job.GetContinueOnError(),
+		IsMatrixDeferred:        isMatrixDeferred,
+		MaxParallel:             parseMaxParallel(id, job.Strategy.MaxParallelString),
+	}
+	if isMatrixDeferred {
+		// Expansion overwrites WorkflowPayload; keep the raw payload so a rerun can re-derive the matrix.
+		runJob.DeferredMatrixPayload = payload
 	}
 	// Parse workflow/job permissions (no clamping here)
 	if perms := ExtractJobPermissionsFromWorkflow(workflowJob, job); perms != nil {
@@ -244,7 +254,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 
 		// If a job needs other jobs ("needs" is not empty), its status is set to StatusBlocked at the entry of the loop
 		// No need to check job concurrency for a blocked job (it will be checked by job emitter later)
-		if runJob.Status == actions_model.StatusWaiting {
+		// A slot-starved job skips the check too: it will not start, so it must not cancel its group peers.
+		if runJob.Status == actions_model.StatusWaiting && slots.available(runJob) {
 			var jobsToCancel []*actions_model.ActionRunJob
 			runJob.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, runJob)
 			if err != nil {
@@ -253,6 +264,8 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 			cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 		}
 	}
+
+	applyMaxParallel(runJob, slots)
 
 	if err := db.Insert(ctx, runJob); err != nil {
 		return nil, nil, false, err

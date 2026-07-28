@@ -138,7 +138,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = git.OpenRepository(g.repo)
+	g.gitRepo, err = git.OpenRepository(ctx, g.repo)
 	if err != nil {
 		return err
 	}

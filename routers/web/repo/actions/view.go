@@ -492,12 +492,8 @@ func viewSummaryBranchFromRun(ctx context.Context, run *actions_model.ActionRun,
 		Link: run.RefLink(),
 	}
 	if refName.IsBranch() {
-		b, err := git_model.GetBranch(ctx, run.RepoID, refName.ShortName())
-		if err != nil && !git_model.IsErrBranchNotExist(err) {
-			log.Error("GetBranch: %v", err)
-		} else if git_model.IsErrBranchNotExist(err) || (b != nil && b.IsDeleted) {
-			branch.IsDeleted = true
-		}
+		refBranchExists, _ := git_model.IsBranchExist(ctx, run.RepoID, refName.ShortName())
+		branch.IsDeleted = !refBranchExists
 	}
 	return branch
 }
@@ -1480,7 +1476,7 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 		return
 	}
 
-	sourceGitRepo, err := git.OpenRepository(sourceRepo)
+	sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return

@@ -142,7 +142,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 	}
 
 	// Don't bother looking this repo in the context it won't be there
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("openRepository: %w", err)
 	}

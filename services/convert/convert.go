@@ -679,7 +679,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		if err != nil {
 			return nil, err
 		}
-		sourceGitRepo, err := git.OpenRepository(sourceRepo)
+		sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
 		if err != nil {
 			return nil, err
 		}
@@ -687,7 +687,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		return GetScopedActionWorkflow(ctx, sourceGitRepo, sourceRepo, run.WorkflowID, run.WorkflowCommitSHA)
 	}
 
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
