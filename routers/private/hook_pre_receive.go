@@ -437,7 +437,7 @@ func preReceiveImmutableTag(ctx *preReceiveContext, newCommitID, tagName string)
 
 	blocked, err := repo_model.IsTagImmutable(ctx, repo, tagName)
 	if blocked && err == nil && newCommitID == ctx.Repo.GetObjectFormat().EmptyObjectID().String() {
-		blocked, err = repo_model.HasImmutableRelease(ctx, repo.ID, tagName)
+		blocked, err = repo_model.HasImmutableRelease(ctx, repo, tagName)
 	}
 	if err != nil {
 		log.Error("Unable to check immutable tag %s in %-v Error: %v", tagName, repo, err)

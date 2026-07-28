@@ -15,10 +15,8 @@ import (
 
 // ImmutableTag records a tag name used by an immutable release. It outlives the release, the tag and
 // the repository itself, so the name can never back another release or be pushed again.
-//
-// The repository is recorded twice on purpose: by id so the lock follows renames and transfers, and
-// by owner and name so a repository recreated under the same path inherits the locks of its
-// predecessor. Matching either one is enough.
+// The repository is recorded twice: by id so the lock follows renames and transfers, and by owner
+// and name so a repository recreated at the same path inherits it. Matching either one is enough.
 type ImmutableTag struct {
 	ID            int64              `xorm:"pk autoincr"`
 	RepoID        int64              `xorm:"INDEX NOT NULL"`

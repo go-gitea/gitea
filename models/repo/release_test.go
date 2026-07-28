@@ -121,7 +121,7 @@ func TestImmutableTag(t *testing.T) {
 	// only a release that still exists blocks its tag from being deleted
 	rel := unittest.AssertExistsAndLoadBean(t, &Release{ID: 1})
 	hasRelease := func() bool {
-		has, err := HasImmutableRelease(t.Context(), rel.RepoID, rel.TagName)
+		has, err := HasImmutableRelease(t.Context(), repo, rel.TagName)
 		assert.NoError(t, err)
 		return has
 	}
