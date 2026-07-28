@@ -19,10 +19,10 @@ import (
 // and name so a repository recreated at the same path inherits it. Matching either one is enough.
 type ImmutableTag struct {
 	ID            int64              `xorm:"pk autoincr"`
-	RepoID        int64              `xorm:"INDEX NOT NULL"`
+	RepoID        int64              `xorm:"INDEX(r) NOT NULL"`
 	OwnerID       int64              `xorm:"UNIQUE(s) NOT NULL"`
 	LowerRepoName string             `xorm:"UNIQUE(s) NOT NULL"`
-	LowerTagName  string             `xorm:"UNIQUE(s) NOT NULL"`
+	LowerTagName  string             `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 }
 
@@ -39,7 +39,7 @@ func AddImmutableTag(ctx context.Context, repo *Repository, tagName string) erro
 	return db.Insert(ctx, &ImmutableTag{
 		RepoID:        repo.ID,
 		OwnerID:       repo.OwnerID,
-		LowerRepoName: strings.ToLower(repo.Name),
+		LowerRepoName: repo.LowerName,
 		LowerTagName:  strings.ToLower(tagName),
 	})
 }
@@ -49,6 +49,6 @@ func AddImmutableTag(ctx context.Context, repo *Repository, tagName string) erro
 func IsTagImmutable(ctx context.Context, repo *Repository, tagName string) (bool, error) {
 	return db.Exist[ImmutableTag](ctx, builder.Eq{"lower_tag_name": strings.ToLower(tagName)}.And(
 		builder.Eq{"repo_id": repo.ID}.Or(
-			builder.Eq{"owner_id": repo.OwnerID, "lower_repo_name": strings.ToLower(repo.Name)}),
+			builder.Eq{"owner_id": repo.OwnerID, "lower_repo_name": repo.LowerName}),
 	))
 }

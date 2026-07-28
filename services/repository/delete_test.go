@@ -80,3 +80,18 @@ func TestDeleteRepositoryDirectlyPurgesRepoScopedRows(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &git_model.CommitStatusIndex{RepoID: 1})
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{RepoID: 1})
 }
+
+func TestDeleteRepository_KeepsImmutableTags(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.NoError(t, repo_model.AddImmutableTag(t.Context(), repo, "v1.0.0"))
+	assert.NoError(t, repo_service.DeleteRepositoryDirectly(t.Context(), repo.ID))
+
+	// the lock has to outlive the repository, otherwise a repository recreated at the
+	// same path could reuse the tag name
+	successor := &repo_model.Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, LowerName: repo.LowerName}
+	immutable, err := repo_model.IsTagImmutable(t.Context(), successor, "v1.0.0")
+	assert.NoError(t, err)
+	assert.True(t, immutable)
+}

@@ -468,7 +468,7 @@ func TestRelease_Immutable(t *testing.T) {
 
 		// the tag cannot be deleted while the release exists
 		err := DeleteReleaseByID(t.Context(), repo, rel, user, true)
-		assert.True(t, IsErrImmutableTag(err), "expected ErrImmutableTag, got %v", err)
+		assert.ErrorIs(t, err, ErrImmutableTag)
 
 		// deleting the release itself is allowed, the tag remains as a locked tag
 		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, rel, user, false))
@@ -480,16 +480,16 @@ func TestRelease_Immutable(t *testing.T) {
 		// it cannot be turned back into a release, not even a draft
 		tag.Repo, tag.IsTag, tag.IsDraft = repo, false, true
 		err = UpdateRelease(t.Context(), user, gitRepo, tag, nil, nil, nil)
-		assert.True(t, IsErrImmutableTag(err), "expected ErrImmutableTag, got %v", err)
+		assert.ErrorIs(t, err, ErrImmutableTag)
 
 		// once the release is gone the tag itself can be deleted, but the name stays claimed
 		tag, err = repo_model.GetRelease(t.Context(), repo.ID, "v9.2")
 		assert.NoError(t, err)
 		tag.Repo = repo
 		assert.NoError(t, DeleteReleaseByID(t.Context(), repo, tag, user, true))
-		assert.True(t, IsErrImmutableTag(CreateRelease(t.Context(), gitRepo, &repo_model.Release{
+		assert.ErrorIs(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 			RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user,
 			TagName: "v9.2", Target: "master", Title: "reuse",
-		}, nil, "")))
+		}, nil, ""), ErrImmutableTag)
 	})
 }

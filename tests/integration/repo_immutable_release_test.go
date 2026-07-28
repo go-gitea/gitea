@@ -35,12 +35,7 @@ func TestImmutableRelease(t *testing.T) {
 			}).AddTokenAuth(token), http.StatusOK)
 		}
 		publish := func(tagName string) *api.Release {
-			rel := new(api.Release)
-			resp := MakeRequest(t, NewRequestWithJSON(t, "POST", base+"/releases", &api.CreateReleaseOption{
-				TagName: tagName, Target: "master", Title: tagName,
-			}).AddTokenAuth(token), http.StatusCreated)
-			DecodeJSON(t, resp, rel)
-			return rel
+			return createNewReleaseUsingAPI(t, token, owner, repo, tagName, "master", tagName, "")
 		}
 
 		setImmutable(true)

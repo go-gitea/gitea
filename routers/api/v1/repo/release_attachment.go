@@ -18,6 +18,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
 	"gitea.dev/services/convert"
+	release_service "gitea.dev/services/release"
 )
 
 // checkReleaseAssetsMutable reports whether the release exists and its assets may still be changed,
@@ -28,7 +29,7 @@ func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64) bool {
 		return false
 	}
 	if release.IsImmutable {
-		ctx.APIError(http.StatusUnprocessableEntity, "assets cannot be changed when release is immutable")
+		ctx.APIErrorAuto(release_service.ErrImmutableRelease{Field: "assets"})
 		return false
 	}
 	return true

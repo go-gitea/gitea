@@ -107,11 +107,11 @@ func TestImmutableTag(t *testing.T) {
 	assert.True(t, isImmutable(repo, "v1.1"))
 
 	// the lock follows a rename, so it cannot be shaken off
-	renamed := &Repository{ID: repo.ID, OwnerID: repo.OwnerID, Name: "renamed"}
+	renamed := &Repository{ID: repo.ID, OwnerID: repo.OwnerID, Name: "renamed", LowerName: "renamed"}
 	assert.True(t, isImmutable(renamed, "v1.1"))
 
 	// and a different repository recreated at the original path inherits it
-	successor := &Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, Name: repo.Name}
+	successor := &Repository{ID: repo.ID + 9999, OwnerID: repo.OwnerID, Name: repo.Name, LowerName: repo.LowerName}
 	assert.True(t, isImmutable(successor, "v1.1"))
 
 	// but an unrelated repository is unaffected
@@ -121,7 +121,7 @@ func TestImmutableTag(t *testing.T) {
 	// only a release that still exists blocks its tag from being deleted
 	rel := unittest.AssertExistsAndLoadBean(t, &Release{ID: 1})
 	hasRelease := func() bool {
-		has, err := HasImmutableRelease(t.Context(), repo, rel.TagName)
+		has, err := HasImmutableRelease(t.Context(), rel.RepoID, rel.TagName)
 		assert.NoError(t, err)
 		return has
 	}

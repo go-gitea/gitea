@@ -202,7 +202,7 @@ func CreateBranch(ctx *context.Context) {
 		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
-		if release_service.IsErrImmutableTag(err) {
+		if errors.Is(err, release_service.ErrImmutableTag) {
 			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_immutable"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return

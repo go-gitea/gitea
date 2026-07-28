@@ -84,22 +84,9 @@ func (err ErrImmutableRelease) Unwrap() error {
 	return util.ErrUnprocessableContent
 }
 
-// ErrImmutableTag represents an attempt to create, move or delete an immutable tag name.
-type ErrImmutableTag struct{}
-
-// IsErrImmutableTag checks if an error is an ErrImmutableTag.
-func IsErrImmutableTag(err error) bool {
-	_, ok := err.(ErrImmutableTag)
-	return ok
-}
-
-func (err ErrImmutableTag) Error() string {
-	return "tag_name was used by an immutable release"
-}
-
-func (err ErrImmutableTag) Unwrap() error {
-	return util.ErrUnprocessableContent
-}
+// ErrImmutableTag is returned when a tag name that an immutable release used
+// would be created, moved or deleted.
+var ErrImmutableTag = util.ErrorWrap(util.ErrUnprocessableContent, "tag_name was used by an immutable release")
 
 // assertTagMutable rejects tag names that an immutable release used before.
 func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName string) error {
@@ -108,7 +95,7 @@ func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName 
 		return err
 	}
 	if immutable {
-		return ErrImmutableTag{}
+		return ErrImmutableTag
 	}
 	return nil
 }
@@ -463,7 +450,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 	if delTag {
 		// the tag of an immutable release can only be deleted after the release itself is gone
 		if rel.IsImmutable && !rel.IsTag {
-			return ErrImmutableTag{}
+			return ErrImmutableTag
 		}
 
 		protectedTags, err := git_model.GetProtectedTags(ctx, rel.RepoID)
