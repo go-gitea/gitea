@@ -3038,6 +3038,7 @@
   "admin.users.send_register_notify": "Enviar notificação de registo de utilizador",
   "admin.users.new_success": "A conta de utilizador \"%s\" foi criada.",
   "admin.users.edit": "Editar",
+  "admin.users.impersonate": "Fazer-se passar por",
   "admin.users.auth_source": "Fonte de autenticação",
   "admin.users.local": "Local",
   "admin.users.auth_login_name": "Nome de autenticação",
