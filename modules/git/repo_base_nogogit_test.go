@@ -22,7 +22,7 @@ func TestRepoCatFileBatch(t *testing.T) {
 		// when the repo is missing (it usually occurs during testing because the fixtures are synced frequently)
 		err = os.Remove(testDir)
 		require.NoError(t, err)
-		_, _, err = repo.CatFileBatch(t.Context())
+		_, _, err = repo.CatFileBatch()
 		require.Error(t, err)
 		require.NoError(t, repo.Close()) // shouldn't panic
 	})

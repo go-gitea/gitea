@@ -18,7 +18,7 @@ func (te *TreeEntry) GetSize(ctx context.Context, gitRepo *Repository) int64 {
 		return te.size
 	}
 
-	batch, cancel, err := gitRepo.CatFileBatch(ctx)
+	batch, cancel, err := gitRepo.CatFileBatch()
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", te.ID.String(), gitRepo.LogString(), err)
 		return 0

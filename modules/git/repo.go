@@ -33,6 +33,7 @@ type RepositoryBase struct {
 	objectFormatCache ObjectFormat
 
 	mu                 sync.Mutex
+	catFileBatchCtx    context.Context
 	catFileBatchCloser CatFileBatchCloser
 	catFileBatchInUse  bool
 }
@@ -51,7 +52,7 @@ func (repo *Repository) LogString() string {
 	return repo.repoFacade.LogString()
 }
 
-func OpenRepository(repo RepositoryFacade) (*Repository, error) {
+func OpenRepository(catFileBatchCtx context.Context, repo RepositoryFacade) (*Repository, error) {
 	repoPath := gitrepo.RepoLocalPath(repo)
 	exist, err := util.IsDir(repoPath)
 	if err != nil {
@@ -61,7 +62,7 @@ func OpenRepository(repo RepositoryFacade) (*Repository, error) {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 	gitRepo := &Repository{
-		RepositoryBase: RepositoryBase{tagCache: newObjectCache[*Tag](), repoFacade: repo},
+		RepositoryBase: RepositoryBase{tagCache: newObjectCache[*Tag](), repoFacade: repo, catFileBatchCtx: catFileBatchCtx},
 	}
 	if err = openRepositoryInternal(gitRepo); err != nil {
 		return nil, err
@@ -71,14 +72,14 @@ func OpenRepository(repo RepositoryFacade) (*Repository, error) {
 
 // OpenRepositoryLocal opens a local repository that is not managed by Gitea
 // If the path is relative, it will be converted to an absolute path using filepath.Abs (base on current working path)
-func OpenRepositoryLocal(localPath string) (_ *Repository, err error) {
+func OpenRepositoryLocal(catFileBatchCtx context.Context, localPath string) (_ *Repository, err error) {
 	if !filepath.IsAbs(localPath) {
 		localPath, err = filepath.Abs(localPath)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return OpenRepository(gitrepo.RepositoryUnmanaged(localPath))
+	return OpenRepository(catFileBatchCtx, gitrepo.RepositoryUnmanaged(localPath))
 }
 
 func (repo *Repository) Close() error {
@@ -276,30 +277,21 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 
 // CatFileBatch obtains a "batch object provider" for this repository.
 // It reuses an existing one if available, otherwise creates a new one.
-func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, closeFunc func(), err error) {
+func (repo *Repository) CatFileBatch() (_ CatFileBatch, closeFunc func(), err error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
-	// clean up the cached but canceled batcher
-	if repo.catFileBatchCloser != nil && repo.catFileBatchCloser.Context().Err() != nil && !repo.catFileBatchInUse {
-		repo.catFileBatchCloser.Close()
-		repo.catFileBatchCloser = nil
-		repo.catFileBatchInUse = false
-	}
-
 	// if no cached batcher, make a new managed one, and cache it
 	if repo.catFileBatchCloser == nil {
-		repo.catFileBatchCloser, err = NewBatch(ctx, repo)
+		repo.catFileBatchCloser, err = NewBatch(repo.catFileBatchCtx, repo)
 		if err != nil {
 			repo.catFileBatchCloser = nil // otherwise it is "interface(nil)" and will cause wrong logic
 			return nil, nil, err
 		}
 	}
 
-	// if the cached batcher is in use, or the cached ctx is not the current ctx, then we need a new temp one
-	// for example: the cached one is from request context, the current ctx is a cancelable ctx with timeout
-	needTemp := repo.catFileBatchInUse || repo.catFileBatchCloser.Context() != ctx
-	if !needTemp {
+	// if the cached batcher is not in use, return it
+	if !repo.catFileBatchInUse {
 		repo.catFileBatchInUse = true
 		return CatFileBatch(repo.catFileBatchCloser), func() {
 			repo.mu.Lock()
@@ -308,7 +300,8 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, close
 		}, nil
 	}
 
-	tempBatch, err := NewBatch(ctx, repo)
+	// return a temp one (won't be cached or shared)
+	tempBatch, err := NewBatch(repo.catFileBatchCtx, repo)
 	if err != nil {
 		return nil, nil, err
 	}
