@@ -298,14 +298,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) (*git.Tre
 	}
 	subEntries.CustomSort(base.NaturalSortCompare)
 
-	commitInfoCtx := gocontext.Context(ctx)
-	if timeout > 0 {
-		var cancel gocontext.CancelFunc
-		commitInfoCtx, cancel = gocontext.WithTimeout(ctx, timeout)
-		defer cancel()
-	}
-
-	files, latestCommit, err := subEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.RepoLink, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := subEntries.GetCommitsInfo(ctx, timeout, ctx.Repo.RepoLink, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil, nil
