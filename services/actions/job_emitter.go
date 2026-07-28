@@ -483,8 +483,8 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 
 		// Decide whether the job runs at all before expanding a deferred matrix: a job whose needs
 		// failed or were skipped has to be skipped too, not failed for a matrix those needs never
-		// produced the outputs for. A job-level `if:` cannot read `matrix.*`, so it does not need
-		// the combination, unlike the concurrency expression evaluated below.
+		// produced the outputs for. An `if:` that reads `matrix.*` cannot be decided this early, so
+		// evaluateJobIf reduces it to that needs gate and the pass below decides it per combination.
 		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
 		if err != nil {
 			// TODO: surface deterministic expression errors to users by failing the job with a message.
@@ -520,8 +520,8 @@ func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_mode
 			r.matrixChanged, r.matrixInserted = true, true
 		}
 		if wasDeferred {
-			// The `if:` above was decided against the raw matrix, so this row still has to be gated
-			// by its own combination like the siblings are on the next pass.
+			// This row is now the first combination, and the `if:` can be evaluated.
+			// Gate it on its own combination here, as the siblings will be on the next pass.
 			shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
 			if err != nil {
 				log.Error("evaluateJobIf failed after matrix expansion, job will stay blocked: job: %d, err: %v", id, err)

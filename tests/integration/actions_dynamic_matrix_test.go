@@ -28,6 +28,8 @@ import (
 // `if:` gates on either side of it, and `static` that a matrix expanded at plan time is left alone.
 // `included` covers the placeholder shapes that only survive as long as nothing re-parses their
 // payload: `include:` is still a scalar there, which act refuses to read at all.
+// `partial` and `strict` gate on `matrix.*` from either direction: neither may be decided before the
+// combinations exist, or the whole job is skipped instead of the combinations the gate excludes.
 // A full rerun then re-derives the matrix from the new attempt's outputs instead of reusing the
 // previous combinations, keeping the AttemptJobID of every combination that recurs.
 func TestDynamicMatrixEvaluation(t *testing.T) {
@@ -100,6 +102,15 @@ jobs:
         value: ${{ fromJson(needs.generate.outputs.matrix) }}
     steps:
       - run: echo "${{ matrix.value }}"
+  strict:
+    needs: [generate]
+    if: ${{ matrix.value == 1 }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        value: ${{ fromJson(needs.generate.outputs.matrix) }}
+    steps:
+      - run: echo "${{ matrix.value }}"
   report:
     needs: [build]
     runs-on: ubuntu-latest
@@ -140,16 +151,20 @@ jobs:
 			return names
 		}
 
-		seen := execAttempt(t, 8)
+		seen := execAttempt(t, 9)
 		firstAttemptIDs := maps.Clone(attemptJobIDs)
-		//  `gated` is decided before the matrix is touched, so it never expands and is skipped as one job；
-		//  `partial (1)` is decided afterwards, against its own combination.
+		//  `gated` is decided before the matrix is touched, so it never expands and is skipped as one job;
+		//  `partial (1)` and `strict (2)` are decided afterwards, each against its own combination.
 		assert.ElementsMatch(t, []string{
 			"build (1)", "build (2)", "included (x)", "included (y)",
-			"static (a)", "static (b)", "partial (2)", "report",
+			"static (a)", "static (b)", "partial (2)", "strict (1)", "report",
 		}, seen)
-		skipped := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, Name: "partial (1)"})
-		assert.Equal(t, actions_model.StatusSkipped, skipped.Status)
+		for _, name := range []string{"partial (1)", "strict (2)"} {
+			skipped := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, Name: name})
+			assert.Equal(t, actions_model.StatusSkipped, skipped.Status)
+		}
+		// A gate reading `matrix.*` must not be decided against the unexpanded placeholder.
+		unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: run.ID, Name: "strict"})
 
 		buildNeed, ok := reportTask.Needs["build"]
 		require.True(t, ok, "report must see the expanded combinations as its 'build' need")
@@ -171,10 +186,10 @@ jobs:
 		})
 
 		// The matrix now yields a third value, while `static` is cloned as-is rather than collapsed.
-		seenRerun := execAttempt(t, 10)
+		seenRerun := execAttempt(t, 11)
 		assert.ElementsMatch(t, []string{
 			"build (1)", "build (2)", "build (3)", "included (x)", "included (y)",
-			"static (a)", "static (b)", "partial (2)", "partial (3)", "report",
+			"static (a)", "static (b)", "partial (2)", "partial (3)", "strict (1)", "report",
 		}, seenRerun)
 		for name, firstID := range firstAttemptIDs {
 			assert.Equal(t, firstID, attemptJobIDs[name], "%s keeps its AttemptJobID across attempts", name)

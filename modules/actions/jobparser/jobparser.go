@@ -65,6 +65,17 @@ func ContainsExpression(value string) bool {
 // those too would replace their combinations with one placeholder and change the commit status
 // contexts the run publishes, which a repository's required checks are configured against.
 func expressionReadsNeeds(value string) bool {
+	return expressionReadsContext(value, "needs")
+}
+
+// ExpressionReadsMatrix reports whether value holds a ${{ }} expression reading the matrix context.
+// A deferred-matrix placeholder has no combination yet, so such an expression cannot be decided.
+func ExpressionReadsMatrix(value string) bool {
+	return expressionReadsContext(value, "matrix")
+}
+
+// expressionReadsContext reports whether value holds a ${{ }} expression reading the named context.
+func expressionReadsContext(value, context string) bool {
 	for rest := value; ; {
 		_, after, found := strings.Cut(rest, "${{")
 		if !found {
@@ -76,13 +87,13 @@ func expressionReadsNeeds(value string) bool {
 		if err != nil {
 			return true // unparseable here, let the expansion report it against the real values
 		}
-		readsNeeds := false
+		readsContext := false
 		actionlint.VisitExprNode(expr, func(node, _ actionlint.ExprNode, entering bool) {
-			if variable, ok := node.(*actionlint.VariableNode); entering && ok && strings.EqualFold(variable.Name, "needs") {
-				readsNeeds = true
+			if variable, ok := node.(*actionlint.VariableNode); entering && ok && strings.EqualFold(variable.Name, context) {
+				readsContext = true
 			}
 		})
-		if readsNeeds {
+		if readsContext {
 			return true
 		}
 	}

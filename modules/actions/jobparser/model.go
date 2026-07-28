@@ -512,12 +512,10 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 	// GetMatrixes always returns at least one element (an empty map for a job without a matrix),
 	// so only a non-empty combination should populate `matrix.*`, leaving it nil otherwise.
 	//
-	// A deferred-matrix placeholder is the exception: its combinations do not exist yet, so there is
-	// nothing to resolve `matrix.*` against. Reading the raw matrix here would either fail outright
-	// (an `include` that is still a scalar expression) or bind `matrix.*` to the expression's own
-	// source text, silently deciding the placeholder's `if:` against a value no combination has. The
-	// emitter re-evaluates `if:` per combination right after expanding, so leaving it unavailable
-	// here only affects the pre-expansion pass.
+	// A deferred-matrix placeholder is the exception: its combinations do not exist yet, and reading the
+	// raw matrix here would either fail outright (an `include` that is still a scalar expression) or bind
+	// `matrix.*` to the expression's own source text. Leaving it nil is safe: the caller checks
+	// ExpressionReadsMatrix first, so an `if:` that reads `matrix.*` is deferred to the post-expansion pass.
 	var matrix map[string]any
 	if !matrixDeferred {
 		matrixes, err := matrixesOf(actJob)

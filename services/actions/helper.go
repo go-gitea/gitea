@@ -60,6 +60,11 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 	if len(parsedJob.If.Value) == 0 {
 		return allNeedsSucceed, nil
 	}
+	// A deferred-matrix placeholder has no combination yet, so an `if:` reading `matrix.*` can only be
+	// decided by the emitter's post-expansion pass, against each combination's own values.
+	if job.IsMatrixDeferred && jobparser.ExpressionReadsMatrix(parsedJob.If.Value) {
+		return allNeedsSucceed, nil
+	}
 	jobResults, err := findJobNeedsAndFillJobResults(ctx, job)
 	if err != nil {
 		return false, err

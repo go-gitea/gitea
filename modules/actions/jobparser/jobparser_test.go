@@ -379,3 +379,23 @@ func TestContainsExpression(t *testing.T) {
 		assert.Equal(t, want, ContainsExpression(value), "value %q", value)
 	}
 }
+
+func TestExpressionReadsMatrix(t *testing.T) {
+	// Erring toward true only postpones the `if:` to the pass that has the combination, which decides it correctly anyway.
+	for value, want := range map[string]bool{
+		"":                                  false,
+		"true":                              false, // a bare literal is not an expression at all
+		"${{ always() }}":                   false,
+		"${{ needs.setup.result == 'ok' }}": false,
+		"${{ vars.MATRIX }}":                false, // a name that merely looks like the context
+		"${{ matrix.os }}":                  true,
+		"${{ MATRIX.os }}":                  true, // contexts are case-insensitive
+		"${{ always() && matrix.os == 1 }}": true,
+		"${{ contains(matrix.tags, 'a') }}": true,
+		"${{ toJSON(matrix) }}":             true, // the whole context, not a property of it
+		"${{ vars.A }}${{ matrix.os }}":     true, // only the second of two expressions reads it
+		"${{ matrix.os == }}":               true, // unparseable, postpone rather than decide it here
+	} {
+		assert.Equal(t, want, ExpressionReadsMatrix(value), "value %q", value)
+	}
+}
