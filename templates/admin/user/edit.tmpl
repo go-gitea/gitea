@@ -1,4 +1,6 @@
 {{template "admin/layout_head" (dict "pageClass" "admin edit user")}}
+	{{/* an admin must not convert themselves (they would lose their own session) nor turn a site administrator into a bot */}}
+	{{$canConvertType := and (ne .User.ID .SignedUserID) (or .User.IsTypeBot (and .User.IsIndividual (not .User.IsAdmin)))}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.edit_account"}}
@@ -117,7 +119,7 @@
 						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
 					</div>
 				</div>
-				<div class="inline field">
+				<div class="inline field non-bot">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.users.is_admin"}}</strong></label>
 						<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
@@ -204,7 +206,7 @@
 				</div>
 			</form>
 		</div>
-		{{if or .User.IsIndividual .User.IsTypeBot}}
+		{{if $canConvertType}}
 		<h4 class="ui top attached error header">
 			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 		</h4>
@@ -236,7 +238,7 @@
 		{{end}}
 	</div>
 
-{{if or .User.IsIndividual .User.IsTypeBot}}
+{{if $canConvertType}}
 <div class="ui small modal" id="convert-user-type-modal">
 	<div class="header">
 		{{if .User.IsTypeBot}}

@@ -86,3 +86,25 @@ func IsErrUserIsNotLocal(err error) bool {
 	_, ok := err.(ErrUserIsNotLocal)
 	return ok
 }
+
+// ErrBotUserIsAdmin represents a "ErrBotUserIsAdmin" kind of error, a bot account
+// must never hold site administrator permissions.
+type ErrBotUserIsAdmin struct {
+	UID  int64
+	Name string
+}
+
+func (err ErrBotUserIsAdmin) Error() string {
+	return fmt.Sprintf("bot user can not be a site administrator [uid: %d, name: %s]", err.UID, err.Name)
+}
+
+// IsErrBotUserIsAdmin checks if an error is a ErrBotUserIsAdmin.
+func IsErrBotUserIsAdmin(err error) bool {
+	_, ok := err.(ErrBotUserIsAdmin)
+	return ok
+}
+
+// Unwrap unwraps this error as a ErrInvalidArgument error
+func (err ErrBotUserIsAdmin) Unwrap() error {
+	return util.ErrInvalidArgument
+}
