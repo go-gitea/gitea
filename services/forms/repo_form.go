@@ -79,6 +79,9 @@ type MigrateRepoForm struct {
 	Releases       bool   `json:"releases"`
 	MirrorInterval string `json:"mirror_interval"`
 
+	SyncIssues       bool `json:"sync_issues"`
+	SyncPullRequests bool `json:"sync_pull_requests"`
+
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`
 }
@@ -108,6 +111,12 @@ type RepoSettingForm struct {
 	PushMirrorInterval     string
 	Template               bool
 	EnablePrune            bool
+
+	// Pull-mirror metadata sync toggles. Issues and pull requests are the only
+	// choices; their comments, reviews, labels and milestones come along as
+	// part of the read-only reflection.
+	MirrorSyncIssues       bool `form:"mirror_sync_issues"`
+	MirrorSyncPullRequests bool `form:"mirror_sync_pull_requests"`
 
 	// Advanced settings
 	EnableCode bool

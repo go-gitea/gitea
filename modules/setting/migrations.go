@@ -11,6 +11,14 @@ var Migrations = struct {
 	BlockedDomains     string
 	AllowLocalNetworks bool
 	SkipTLSVerify      bool
+	// the batched GraphQL fast path (see services/migrations/github_graphql.go),
+	// cutting rate-limit pressure on large repositories. Off by default; set
+	// [migrations] USE_GRAPHQL_FOR_MIRROR = true to enable (e.g. for A/B timing).
+	// SyncReactionsForMirror opts metadata mirror syncs into fetching issue/PR/comment
+	// reactions too. Off by default because reactions are an N+1 call storm (the lowest
+	// -value, heaviest metadata for a read-only mirror); set
+	// [migrations] SYNC_REACTIONS_FOR_MIRROR = true to include them.
+	SyncReactionsForMirror bool
 }{
 	MaxAttempts:  3,
 	RetryBackoff: 3,
@@ -25,4 +33,5 @@ func loadMigrationsFrom(rootCfg ConfigProvider) {
 	Migrations.BlockedDomains = sec.Key("BLOCKED_DOMAINS").MustString("")
 	Migrations.AllowLocalNetworks = sec.Key("ALLOW_LOCALNETWORKS").MustBool(false)
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
+	Migrations.SyncReactionsForMirror = sec.Key("SYNC_REACTIONS_FOR_MIRROR").MustBool(false)
 }

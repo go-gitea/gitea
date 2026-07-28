@@ -418,6 +418,14 @@ type MigrateRepoOptions struct {
 	Releases       bool   `json:"releases"`
 	MirrorInterval string `json:"mirror_interval"`
 
+	// only used when mirror is true: keep the mirror's issues/pull requests in
+	// sync with the remote on each mirror update, shown read-only.
+	SyncIssues       bool `json:"sync_issues"`
+	SyncPullRequests bool `json:"sync_pull_requests"`
+
+	// opt into the batched GraphQL fast path for GitHub migrations (fewer API
+	// calls / less rate-limit pressure on large repos). REST is the default.
+
 	AWSAccessKeyID     string `json:"aws_access_key_id"`
 	AWSSecretAccessKey string `json:"aws_secret_access_key"`
 }
