@@ -5,6 +5,7 @@ package projects
 
 import (
 	"net/http"
+	"strconv"
 	"testing"
 
 	org_model "gitea.dev/models/organization"
@@ -119,5 +120,68 @@ func TestWorkflowsReadEndpoints(t *testing.T) {
 		WorkflowsOptions(ctx)
 
 		require.Equal(t, http.StatusOK, resp.Code)
+	})
+}
+
+func TestPrepareProjectRouteScope(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	t.Run("repo route rejects an owner-scoped project owned by the repo's owner", func(t *testing.T) {
+		// regression test: prepareProject used to key off p.OwnerID instead of the route, and
+		// context.RepoAssignment sets ctx.ContextUser to the repo owner, so an owner-level project
+		// owned by that same user used to leak through when requested via a repo route.
+		ctx, resp := contexttest.MockContext(t, "/user2/repo1/projects/999/workflows")
+		contexttest.LoadRepo(t, ctx, 1) // repo1 is owned by user2
+		ctx.ContextUser = ctx.Repo.Owner
+
+		ownerProject := project_model.Project{
+			Title:   "owner-scoped project",
+			OwnerID: ctx.ContextUser.ID,
+			Type:    project_model.TypeIndividual,
+		}
+		require.NoError(t, project_model.NewProject(ctx, &ownerProject))
+		t.Cleanup(func() {
+			require.NoError(t, project_model.DeleteProjectByID(ctx, ownerProject.ID))
+		})
+		ctx.SetPathParam("id", strconv.FormatInt(ownerProject.ID, 10))
+
+		p := prepareProject(ctx)
+
+		assert.Nil(t, p)
+		assert.Equal(t, http.StatusNotFound, resp.Code)
+	})
+
+	t.Run("owner route rejects a repository-scoped project", func(t *testing.T) {
+		ctx, resp := contexttest.MockContext(t, "/user2/-/projects/1/workflows")
+		contexttest.LoadUser(t, ctx, 2)
+		ctx.ContextUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		ctx.SetPathParam("id", "1") // project 1 is a repository-scoped project on repo1
+
+		p := prepareProject(ctx)
+
+		assert.Nil(t, p)
+		assert.Equal(t, http.StatusNotFound, resp.Code)
+	})
+
+	t.Run("owner route accepts a matching owner-scoped project", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "/user2/-/projects/1/workflows")
+		contexttest.LoadUser(t, ctx, 2)
+		ctx.ContextUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		ownerProject := project_model.Project{
+			Title:   "owner-scoped project",
+			OwnerID: ctx.ContextUser.ID,
+			Type:    project_model.TypeIndividual,
+		}
+		require.NoError(t, project_model.NewProject(ctx, &ownerProject))
+		t.Cleanup(func() {
+			require.NoError(t, project_model.DeleteProjectByID(ctx, ownerProject.ID))
+		})
+		ctx.SetPathParam("id", strconv.FormatInt(ownerProject.ID, 10))
+
+		p := prepareProject(ctx)
+
+		require.NotNil(t, p)
+		assert.Equal(t, ownerProject.ID, p.ID)
 	})
 }

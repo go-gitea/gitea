@@ -1129,8 +1129,16 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-			m.Group("/{id}/workflows", addProjectWorkflowsRouters, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-			m.Group("/{id}/workflows", addProjectWorkflowsWriteRouters, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
+			// the enclosing "/projects" group below already applies the same read check
+			m.Group("/{id}/workflows", addProjectWorkflowsRouters)
+			m.Group("/{id}/workflows", addProjectWorkflowsWriteRouters, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
+				// reqUnitAccess is a no-op for user-scoped (non-organization) owners, so without this check
+				// any signed-in user could write workflows on someone else's personal project.
+				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
+					ctx.NotFound(nil)
+					return
+				}
+			})
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)

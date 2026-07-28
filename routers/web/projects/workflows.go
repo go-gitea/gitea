@@ -313,13 +313,15 @@ func prepareProject(ctx *context.Context) *project_model.Project {
 		}
 		return nil
 	}
-	// the project type must match the route the request came in on, otherwise the
-	// context holds no repository (org route) or no context user (repo route)
-	if p.Type == project_model.TypeRepository && (ctx.Repo.Repository == nil || p.RepoID != ctx.Repo.Repository.ID) {
-		ctx.NotFound(nil)
-		return nil
-	}
-	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && (ctx.ContextUser == nil || p.OwnerID != ctx.ContextUser.ID) {
+	// the project scope must match the ROUTE, not just the project's own owner: on a repo route
+	// context.RepoAssignment sets ctx.ContextUser = ctx.Repo.Owner, so checking only p.OwnerID would
+	// let a repo route serve an unrelated org/user-level project owned by the repo's owner.
+	if ctx.Repo.Repository != nil {
+		if p.Type != project_model.TypeRepository || p.RepoID != ctx.Repo.Repository.ID {
+			ctx.NotFound(nil)
+			return nil
+		}
+	} else if p.Type == project_model.TypeRepository || ctx.ContextUser == nil || p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound(nil)
 		return nil
 	}
