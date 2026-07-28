@@ -280,14 +280,14 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, close
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
-	if repo.catFileBatchCloser != nil && !repo.catFileBatchInUse {
-		if ctx != repo.catFileBatchCloser.Context() {
-			repo.catFileBatchCloser.Close()
-			repo.catFileBatchCloser = nil
-			repo.catFileBatchInUse = false
-		}
+	// clean up the cached but canceled batcher
+	if repo.catFileBatchCloser != nil && repo.catFileBatchCloser.Context().Err() != nil && !repo.catFileBatchInUse {
+		repo.catFileBatchCloser.Close()
+		repo.catFileBatchCloser = nil
+		repo.catFileBatchInUse = false
 	}
 
+	// if no cached batcher, make a new managed one, and cache it
 	if repo.catFileBatchCloser == nil {
 		repo.catFileBatchCloser, err = NewBatch(ctx, repo)
 		if err != nil {
@@ -296,7 +296,10 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, close
 		}
 	}
 
-	if !repo.catFileBatchInUse {
+	// if the cached batcher is in use, or the cached ctx is not the current ctx, then we need a new temp one
+	// for example: the cached one is from request context, the current ctx is a cancelable ctx with timeout
+	needTemp := repo.catFileBatchInUse || repo.catFileBatchCloser.Context() != ctx
+	if !needTemp {
 		repo.catFileBatchInUse = true
 		return CatFileBatch(repo.catFileBatchCloser), func() {
 			repo.mu.Lock()

@@ -33,6 +33,11 @@ func GetCommitInfoSubmoduleFile(ctx context.Context, repoLink, fullPath string, 
 }
 
 func getLastCommitForPathsWithTimeout(ctx context.Context, timeout time.Duration, gitRepo *Repository, commit *Commit, treePath string, entryNames []string) (map[string]*Commit, error) {
+	// Actually using "timeout ctx" here is not ideal, it needs a new git cat-file batch process
+	// (the other one uses the request's ctx and is cached by the gitRepo).
+	// Ideally, the underlying functions only need to return in predictable time,
+	// so it should use the shared (cached) git cat-file batcher from the request context and just use "time" for deadline.
+	// However, it's difficult to make it right at the moment.
 	ctxInner := ctx
 	if timeout > 0 {
 		var cancel context.CancelFunc
