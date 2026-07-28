@@ -270,6 +270,12 @@ func (p projectWorkflowDoer) GetDoerUserID() int64 {
 func NewProjectWorkflowDoer(title string, workflowID int64, workflowEvent project_model.WorkflowEvent) *user_model.User {
 	return &user_model.User{
 		ID: -1,
+		// Name/LowerName/FullName must be set: comments and the activity feed special-case
+		// this doer via CommentMetaData/IsProjectWorkflowDoer, but every other notifier
+		// (webhook, actions, mailer, ...) uses these fields as-is for the sender/actor.
+		Name:      user_model.ProjectWorkflowDoerName,
+		LowerName: user_model.ProjectWorkflowDoerName,
+		FullName:  "Gitea Project Workflow",
 		ExtDoerData: &projectWorkflowDoer{
 			projectTitle:         title,
 			projectWorkflowID:    workflowID,
