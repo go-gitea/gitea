@@ -210,6 +210,10 @@ func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
 // AllAuthorIdentities returns the identities of all authors and co-authors, following
 // the same rules as CoAuthorIdentities.
 func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
+	coAuthors := c.CoAuthorIdentities()
+	if c.Author.Name == "" && c.Author.Email == "" {
+		return coAuthors // an empty identity is no participant, same as in AllParticipantIdentities
+	}
 	author := &CommitIdentity{Name: c.Author.Name, Email: c.Author.Email, role: commitIdentityRoleAuthor}
-	return append([]*CommitIdentity{author}, c.CoAuthorIdentities()...)
+	return append([]*CommitIdentity{author}, coAuthors...)
 }

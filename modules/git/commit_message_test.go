@@ -146,6 +146,14 @@ func TestCommitMessageParticipants(t *testing.T) {
 				},
 				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("c", "c@m.com", roleCoAuthor)},
 			},
+			{
+				"EmptyAuthor", // synthesized commits (push feed) may have no author signature at all
+				&Commit{
+					Author: sig("", ""), Committer: sig("", ""),
+					CommitMessage: CommitMessage{MessageRaw: "no trailer"},
+				},
+				nil,
+			},
 		}
 		for _, c := range cases {
 			assert.Equal(t, c.identities, c.commit.AllAuthorIdentities(), "case: %s", c.name)

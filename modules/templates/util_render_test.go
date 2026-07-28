@@ -333,6 +333,13 @@ func TestAvatarStack(t *testing.T) {
 		assert.Contains(t, got, `<span class="avatar-stack">`)
 	})
 
+	t.Run("identities without gitea user are de-duplicated", func(t *testing.T) {
+		// malformed trailers parse into an empty email, which AllParticipantIdentities does not de-duplicate
+		got := string(ut.AvatarStackWithNames(mkData(mkCo("Bob", ""), mkCo("Bob", ""))))
+		assert.Contains(t, got, "repo.commits.avatar_stack_and")
+		assert.NotContains(t, got, "avatar_stack_people")
+	})
+
 	t.Run("three participants switch to N people label with tippy popup", func(t *testing.T) {
 		got := string(ut.AvatarStackWithNames(mkData(mkCo("Bob", "bob@example.com"), mkCo("Carol", "carol@example.com"))))
 		assert.Contains(t, got, "repo.commits.avatar_stack_people:3")

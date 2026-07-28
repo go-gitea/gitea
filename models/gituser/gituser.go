@@ -39,7 +39,6 @@ func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit, r
 	emailSet := make(container.Set[string])
 	for _, c := range gitCommits {
 		emailSet.Add(c.Author.Email)
-		emailSet.Add(c.Committer.Email)
 		for _, p := range c.AllAuthorIdentities() {
 			emailSet.Add(p.Email)
 		}
