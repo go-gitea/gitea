@@ -563,7 +563,7 @@ func WikiPages(ctx *context.Context) {
 	}
 	allEntries.CustomSort(base.NaturalSortCompare)
 
-	entries, _, err := allEntries.GetCommitsInfo(ctx, ctx.Repo.RepoLink, wikiGitRepo, commit, treePath)
+	entries, _, err := allEntries.GetCommitsInfo(ctx, 0, ctx.Repo.RepoLink, wikiGitRepo, commit, treePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
