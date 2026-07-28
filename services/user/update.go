@@ -134,6 +134,9 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 	}
 	if opts.IsAdmin.Has() {
 		if opts.IsAdmin.Value().FieldValue /* true */ {
+			if u.IsTypeBot() {
+				return user_model.ErrBotUserIsAdmin{UID: u.ID, Name: u.Name}
+			}
 			u.IsAdmin = opts.IsAdmin.Value().FieldValue // set IsAdmin=true
 			cols = append(cols, "is_admin")
 		} else if !user_model.IsLastAdminUser(ctx, u) /* not the last admin */ {
@@ -261,6 +264,11 @@ func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_mo
 	}
 	if u.Type == targetType {
 		return nil
+	}
+	// automation does not need site-wide root access, so the admin permission has to be
+	// dropped deliberately before the account can become a bot
+	if targetType == user_model.UserTypeBot && u.IsAdmin {
+		return user_model.ErrBotUserIsAdmin{UID: u.ID, Name: u.Name}
 	}
 
 	u.Type = targetType

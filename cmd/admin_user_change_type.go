@@ -27,9 +27,10 @@ func microcmdUserChangeType() *cli.Command {
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     "user-type",
-				Usage:    "New user type: individual or bot",
-				Required: true,
+				Name:      "user-type",
+				Usage:     "New user type: individual or bot",
+				Required:  true,
+				Validator: validateUserType,
 			},
 		},
 	}
@@ -70,4 +71,10 @@ func parseUserType(s string) (user_model.UserType, error) {
 	default:
 		return 0, fmt.Errorf("invalid user type %q, must be one of: individual, bot", s)
 	}
+}
+
+// validateUserType rejects an unsupported --user-type before the command runs.
+func validateUserType(s string) error {
+	_, err := parseUserType(s)
+	return err
 }
