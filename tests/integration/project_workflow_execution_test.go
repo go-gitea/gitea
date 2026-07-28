@@ -18,7 +18,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
@@ -568,11 +568,11 @@ func TestProjectWorkflowExecutionCodeChangesRequested(t *testing.T) {
 	prURL := fmt.Sprintf("/%s/%s/pulls/%d", user.Name, repo.Name, pr.Issue.Index)
 	req := NewRequest(t, "GET", prURL+"/files")
 	user2Session.MakeRequest(t, req, http.StatusOK)
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(pr.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	commitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	commitID, err := gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 	assert.NoError(t, err)
 
 	testSubmitReview(t, user2Session, user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "reject", http.StatusOK)
@@ -642,11 +642,11 @@ func TestProjectWorkflowExecutionCodeReviewApproved(t *testing.T) {
 	req := NewRequest(t, "GET", prURL+"/files")
 	user2Session.MakeRequest(t, req, http.StatusOK)
 
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(pr.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	commitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	commitID, err := gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
 	assert.NoError(t, err)
 
 	testSubmitReview(t, user2Session, user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "approve", http.StatusOK)
