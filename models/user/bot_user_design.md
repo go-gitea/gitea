@@ -28,6 +28,7 @@ The matrix below reflects the enforced behaviour:
 | OAuth2 / OpenID Connect | No | callback checks `IsIndividual()` (`routers/web/auth/oauth.go`) |
 | Reverse proxy (user header) | No | `getUserFromAuthUser` checks `IsIndividual()` (`services/auth/reverseproxy.go`) |
 | Reverse proxy (email header) | No | `getUserFromAuthEmail` checks `IsIndividual()` (`services/auth/reverseproxy.go`) |
+| Existing session cookie | No | `Session.Verify` checks `IsIndividual()` (`services/auth/session.go`) |
 
 The LDAP/SMTP/PAM fallback and reverse-proxy guards were previously missing: a bot
 whose name (or email) matched an external/proxy identity could be returned for a
@@ -43,6 +44,7 @@ creation) always create **individual** users, so they cannot mint bots.
 |------------|-----|-----------|
 | Password | none | bots are created without a password |
 | Interactive sign-in | no | see matrix above |
+| Site administrator | no | `ErrBotUserIsAdmin` in `UpdateUser`/`ConvertUserType`, and `admin user create` |
 | Access tokens | yes | `IsTokenAccessAllowed()` (`models/user/user.go`) |
 | API / Git over token | yes | token auth applies to individuals and bots |
 | OAuth2 application links | no | external links require `IsIndividual()` |
@@ -58,11 +60,19 @@ it is called out here as a known open question rather than changed in this itera
 
 A site admin can convert an existing account between **individual** and **bot** via:
 
-- the admin *Edit User* page (the *User Type* dropdown);
+- the admin *Edit User* page (the danger zone at the bottom);
 - the API: `POST /admin/users/{username}/convert-type` with `{"user_type": "bot"|"individual"}`;
 - the CLI: `gitea admin user change-type --username <name> --user-type bot|individual`.
 
 All three call the same `ConvertUserType` (`services/user/update.go`).
+
+Two accounts are off limits:
+
+- **Site administrators**, because automation does not need site-wide root access
+  (`ErrBotUserIsAdmin`). The admin permission has to be removed first, which is a
+  deliberate second step rather than a silent side effect of the conversion.
+- **Yourself** (web and API), because converting your own account clears your
+  credentials and drops your session. Both entry points reject `doer == target`.
 
 **Only individual ↔ bot is allowed.** Organizations and reserved types cannot be
 converted, and there is no individual ↔ organization conversion. (An earlier attempt,
@@ -81,7 +91,8 @@ fate of every credential / auth artifact explicit (the exact question raised on 
 | Password (`passwd`/`salt`/`passwd_hash_algo`) | **cleared** | a bot has no interactive login |
 | `must_change_password` | reset to false | no password to change |
 | Auth source (`login_type`/`login_source`/`login_name`) | reset to **local** | bots are local accounts, never externally synced |
-| Sign-in sessions (`auth_token`) | **revoked** | the former individual must not stay logged in |
+| Remember-me tokens (`auth_token`) | **revoked** | the former individual must not stay logged in |
+| Open browser sessions | **rejected on next request** | the session store is keyed by session ID only and cannot be enumerated per user, so `Session.Verify` refuses non-individuals instead, which makes the caller drop the session |
 | Access tokens (`access_token`) | **kept** | they are the entire purpose of a bot |
 | OAuth2 applications + grants | **removed** (`DeleteOAuth2RelictsByUserID`) | a token-only account cannot run OAuth2 flows |
 | External login links (OAuth2/LDAP/...) | **removed** (`RemoveAllAccountLinks`) | the account is now local |

@@ -246,7 +246,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
-		if user_model.IsErrDeleteLastAdminUser(err) {
+		if user_model.IsErrDeleteLastAdminUser(err) || user_model.IsErrBotUserIsAdmin(err) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
@@ -598,13 +598,29 @@ func ConvertUserType(ctx *context.APIContext) {
 		return
 	}
 
-	targetType := user_model.UserTypeIndividual
-	if web.GetForm(ctx).(*api.ConvertUserTypeOption).UserType == "bot" {
+	// converting yourself into a bot would drop your own credentials and sign you out
+	if ctx.ContextUser.ID == ctx.Doer.ID {
+		ctx.APIError(http.StatusUnprocessableEntity, "you cannot convert yourself")
+		return
+	}
+
+	var targetType user_model.UserType
+	switch web.GetForm(ctx).(*api.ConvertUserTypeOption).UserType {
+	case "bot":
 		targetType = user_model.UserTypeBot
+	case "individual":
+		targetType = user_model.UserTypeIndividual
+	default:
+		ctx.APIError(http.StatusUnprocessableEntity, "user_type must be one of: individual, bot")
+		return
 	}
 
 	if err := user_service.ConvertUserType(ctx, ctx.ContextUser, targetType); err != nil {
-		ctx.APIErrorInternal(err)
+		if user_model.IsErrBotUserIsAdmin(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		} else {
+			ctx.APIErrorInternal(err)
+		}
 		return
 	}
 	ctx.Status(http.StatusNoContent)

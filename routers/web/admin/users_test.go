@@ -174,6 +174,31 @@ func TestConvertUserType(t *testing.T) {
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 		assert.True(t, u.IsIndividual())
 	})
+
+	t.Run("doer cannot convert itself", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "admin/users/2/convert_type?user_type=bot")
+		ctx.Doer = doer
+		ctx.SetPathParam("userid", "2")
+		ConvertUserType(ctx)
+
+		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		assert.True(t, u.IsIndividual())
+	})
+
+	t.Run("admin cannot become a bot", func(t *testing.T) {
+		admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		assert.True(t, admin.IsAdmin)
+
+		ctx, _ := contexttest.MockContext(t, "admin/users/1/convert_type?user_type=bot")
+		ctx.Doer = doer
+		ctx.SetPathParam("userid", "1")
+		ConvertUserType(ctx)
+
+		assert.NotEmpty(t, ctx.Flash.ErrorMsg)
+		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		assert.True(t, u.IsIndividual())
+	})
 }
 
 func TestUsersUserTypeFilter(t *testing.T) {

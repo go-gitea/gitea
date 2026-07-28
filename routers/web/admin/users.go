@@ -589,9 +589,12 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-		if user_model.IsErrDeleteLastAdminUser(err) {
+		switch {
+		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
-		} else {
+		case user_model.IsErrBotUserIsAdmin(err):
+			ctx.RenderWithErrDeprecated(ctx.Tr("admin.users.bot_no_admin"), tplUserEdit, &form)
+		default:
 			ctx.ServerError("UpdateUser", err)
 		}
 		return
@@ -698,8 +701,19 @@ func ConvertUserType(ctx *context.Context) {
 		return
 	}
 
+	// converting yourself into a bot would drop your own credentials and sign you out
+	if u.ID == ctx.Doer.ID {
+		ctx.Flash.Error(ctx.Tr("admin.users.convert_type.self_not_allowed"))
+		ctx.Redirect(redirect)
+		return
+	}
+
 	if err := user_service.ConvertUserType(ctx, u, targetType); err != nil {
-		ctx.Flash.Error(err.Error())
+		if user_model.IsErrBotUserIsAdmin(err) {
+			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
+		} else {
+			ctx.Flash.Error(err.Error())
+		}
 		ctx.Redirect(redirect)
 		return
 	}

@@ -163,6 +163,26 @@ func TestConvertUserType(t *testing.T) {
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.True(t, org.IsOrganization())
 	assert.Error(t, ConvertUserType(t.Context(), org, user_model.UserTypeBot))
+
+	// a site administrator must drop the admin permission before becoming a bot
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.True(t, admin.IsAdmin)
+	err := ConvertUserType(t.Context(), admin, user_model.UserTypeBot)
+	assert.True(t, user_model.IsErrBotUserIsAdmin(err), "expected ErrBotUserIsAdmin, got %v", err)
+	admin = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.Equal(t, user_model.UserTypeIndividual, admin.Type)
+}
+
+func TestUpdateUserBotCannotBecomeAdmin(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
+
+	err := UpdateUser(t.Context(), user, &UpdateOptions{IsAdmin: UpdateOptionFieldFromValue(true)})
+	assert.True(t, user_model.IsErrBotUserIsAdmin(err), "expected ErrBotUserIsAdmin, got %v", err)
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.False(t, user.IsAdmin)
 }
 
 func TestUpdateUserVisibility(t *testing.T) {
