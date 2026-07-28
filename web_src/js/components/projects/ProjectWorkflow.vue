@@ -179,10 +179,15 @@ const selectWorkflowItem = async (item: WorkflowEvent) => {
   if (item.is_configured) {
     await selectWorkflowEvent(item);
   } else {
-    // For unconfigured placeholders, prefer any id=0 object already in the list.
-    const existing = store.workflowEvents.find(
-      (w: WorkflowEvent) => w.id === 0 && w.workflow_event === item.workflow_event,
-    );
+    // Match the exact item by event_id first: two pending clones of the same
+    // event type share workflow_event, so matching on that alone would always
+    // resolve to whichever one is found first regardless of which was clicked.
+    // Fall back to a workflow_event match only if the item's own event_id is
+    // no longer in the (debounced) list, e.g. it was removed by a Cancel that
+    // happened while the click was still debouncing.
+    const existing =
+      store.workflowEvents.find((w: WorkflowEvent) => w.id === 0 && w.event_id === item.event_id) ??
+      store.workflowEvents.find((w: WorkflowEvent) => w.id === 0 && w.workflow_event === item.workflow_event);
     await selectWorkflowEvent(existing || item);
   }
 };
