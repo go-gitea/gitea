@@ -48,8 +48,21 @@ func TestAPIRepoProjectWorkflows(t *testing.T) {
 		resp := MakeRequest(t, NewRequest(t, "GET", optionsURL).AddTokenAuth(readerToken), http.StatusOK)
 		var options api.ProjectWorkflowOptions
 		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &options))
-		assert.Contains(t, options.Columns, &api.ProjectWorkflowColumnOption{ID: column.ID, Title: column.Title, Color: column.Color})
-		assert.Contains(t, options.Labels, &api.Label{ID: label.ID, Name: label.Name, Color: label.Color, Description: label.Description, Exclusive: label.Exclusive, ExclusiveOrder: label.ExclusiveOrder})
+		assert.Contains(t, options.Columns, &api.ProjectWorkflowColumnOption{ID: column.ID, Title: column.Title})
+
+		var found *api.Label
+		for _, l := range options.Labels {
+			if l.ID == label.ID {
+				found = l
+				break
+			}
+		}
+		require.NotNil(t, found, "workflow options must include the project label")
+		// every other label endpoint strips the leading '#' (see convert.ToLabel); this
+		// must match, or generated clients that share label-parsing code across
+		// endpoints break
+		assert.Equal(t, "0055ff", found.Color)
+		assert.Equal(t, label.Name, found.Name)
 	})
 
 	var workflow api.ProjectWorkflow

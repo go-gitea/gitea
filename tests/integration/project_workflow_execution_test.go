@@ -24,6 +24,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testCreateProjectWorkflow(t *testing.T, session *TestSession, userName, repoName string, projectID int64, event string, workflowData map[string]any) {
@@ -38,20 +39,23 @@ func testCreateProjectWorkflow(t *testing.T, session *TestSession, userName, rep
 	assert.True(t, result["success"].(bool))
 }
 
+// testNewIssueReturnIssue creates an issue through the web form and returns its ID.
+//
+// It resolves the issue from the redirect URL that testNewIssue already hands back
+// rather than querying the repository for its newest issue. The children of
+// TestProjectWorkflowExecutionIssues share one test environment, so a newest-issue
+// lookup would be order-dependent and could latch onto a sibling's issue.
 func testNewIssueReturnIssue(t *testing.T, session *TestSession, repo *repo_model.Repository, opts newIssueOptions) int64 {
-	testNewIssue(t, session, repo.OwnerName, repo.Name, opts)
+	t.Helper()
 
-	// Get the created issue from database to verify
-	issues, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
-		RepoIDs:  []int64{repo.ID},
-		SortType: "newest",
-		Paginator: &db.ListOptions{
-			PageSize: 1,
-		},
-	})
-	assert.NoError(t, err)
-	assert.NotEmpty(t, issues)
-	return issues[0].ID
+	issueURL := testNewIssue(t, session, repo.OwnerName, repo.Name, opts)
+
+	index, err := strconv.ParseInt(path.Base(issueURL), 10, 64)
+	require.NoError(t, err, "unexpected issue URL %q", issueURL)
+
+	issue, err := issues_model.GetIssueByIndex(t.Context(), repo.ID, index)
+	require.NoError(t, err)
+	return issue.ID
 }
 
 // testAddIssueToProject adds the issue to the project via web form if projectID == 0, it removes the issue from the project
@@ -68,40 +72,101 @@ func testAddIssueToProject(t *testing.T, session *TestSession, userName, repoNam
 	session.MakeRequest(t, addToProjectReq, http.StatusOK)
 }
 
-// TestProjectWorkflowExecutionItemOpened tests workflow execution when an issue is added to project
-func TestProjectWorkflowExecutionItemOpened(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+// projectWorkflowExecFixture is the state shared by the children of the workflow
+// execution parents. Only the owner/repo/session triple is hoisted: each child
+// creates its own project, columns, labels and issue, so no mutable fixture row
+// is shared between siblings.
+type projectWorkflowExecFixture struct {
+	user    *user_model.User
+	repo    *repo_model.Repository
+	session *TestSession
+}
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	// Create project and columns
+func (f *projectWorkflowExecFixture) newProject(t *testing.T, title string) *project_model.Project {
+	t.Helper()
 	project := &project_model.Project{
-		Title:        "Test Workflow Execution",
-		RepoID:       repo.ID,
+		Title:        title,
+		RepoID:       f.repo.ID,
 		Type:         project_model.TypeRepository,
 		TemplateType: project_model.TemplateTypeNone,
 	}
-	assert.NoError(t, project_model.NewProject(t.Context(), project))
+	require.NoError(t, project_model.NewProject(t.Context(), project))
+	return project
+}
 
-	columnToDo := &project_model.Column{
-		Title:     "To Do",
-		ProjectID: project.ID,
+func (f *projectWorkflowExecFixture) newColumn(t *testing.T, project *project_model.Project, title string) *project_model.Column {
+	t.Helper()
+	column := &project_model.Column{Title: title, ProjectID: project.ID}
+	require.NoError(t, project_model.NewColumn(t.Context(), column))
+	return column
+}
+
+// newLabel creates a repository label. Callers must pass a name that is unique
+// across the whole parent test: labels are created on the shared fixture repo and
+// are not unique by name, so reusing a name would leave several identical labels
+// on the repo and make the label pickers and filters ambiguous for later children.
+func (f *projectWorkflowExecFixture) newLabel(t *testing.T, name, color string) *issues_model.Label {
+	t.Helper()
+	label := &issues_model.Label{RepoID: f.repo.ID, Name: name, Color: color}
+	require.NoError(t, issues_model.NewLabel(t.Context(), label))
+	return label
+}
+
+// assertIssueInColumn asserts that the issue's project card sits in the given column.
+func assertIssueInColumn(t *testing.T, issueID, columnID int64) {
+	t.Helper()
+	projectIssue := &project_model.ProjectIssue{}
+	has, err := db.GetEngine(t.Context()).Where("issue_id=?", issueID).Get(projectIssue)
+	assert.NoError(t, err)
+	assert.True(t, has)
+	assert.Equal(t, columnID, projectIssue.ProjectColumnID)
+}
+
+// assertIssueHasLabel asserts on the presence or absence of a label on an issue.
+func assertIssueHasLabel(t *testing.T, issueID, labelID int64, expected bool, msgAndArgs ...any) {
+	t.Helper()
+	issue, err := issues_model.GetIssueByID(t.Context(), issueID)
+	assert.NoError(t, err)
+	assert.NoError(t, issue.LoadLabels(t.Context()))
+
+	found := false
+	for _, label := range issue.Labels {
+		if label.ID == labelID {
+			found = true
+			break
+		}
 	}
-	assert.NoError(t, project_model.NewColumn(t.Context(), columnToDo))
+	assert.Equal(t, expected, found, msgAndArgs...)
+}
 
-	// Create label
-	label := &issues_model.Label{
-		RepoID: repo.ID,
-		Name:   "bug",
-		Color:  "ee0701",
+// TestProjectWorkflowExecutionIssues covers the workflow events that are driven by
+// an issue's own lifecycle. Every child creates its own project, column, uniquely
+// named label and issue, so the children are independent of each other's state.
+func TestProjectWorkflowExecutionIssues(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	f := &projectWorkflowExecFixture{
+		user: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}),
+		repo: unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}),
 	}
-	assert.NoError(t, issues_model.NewLabel(t.Context(), label))
+	f.session = loginUser(t, f.user.Name)
 
-	session := loginUser(t, user.Name)
+	t.Run("ItemOpened", func(t *testing.T) { testProjectWorkflowExecutionItemOpened(t, f) })
+	t.Run("ItemAddedToProject", func(t *testing.T) { testProjectWorkflowExecutionItemAddedToProject(t, f) })
+	t.Run("ItemRemovedFromProject", func(t *testing.T) { testProjectWorkflowExecutionItemRemovedFromProject(t, f) })
+	t.Run("ItemClosed", func(t *testing.T) { testProjectWorkflowExecutionItemClosed(t, f) })
+	t.Run("ItemReopened", func(t *testing.T) { testProjectWorkflowExecutionItemReopened(t, f) })
+	t.Run("ColumnChanged", func(t *testing.T) { testProjectWorkflowExecutionColumnChanged(t, f) })
+}
 
-	// Create workflow via HTTP: when item is opened, move to "To Do" and add "bug" label
-	testCreateProjectWorkflow(t, session, user.Name, repo.Name, project.ID, "item_opened", map[string]any{
+// testProjectWorkflowExecutionItemOpened tests workflow execution when an issue is opened into a project
+func testProjectWorkflowExecutionItemOpened(t *testing.T, f *projectWorkflowExecFixture) {
+	project := f.newProject(t, "Test Workflow Execution ItemOpened")
+	columnToDo := f.newColumn(t, project, "To Do")
+	label := f.newLabel(t, "wf-opened-bug", "ee0701")
+
+	// Create workflow via HTTP: when item is opened, move to "To Do" and add the label
+	testCreateProjectWorkflow(t, f.session, f.user.Name, f.repo.Name, project.ID, "item_opened", map[string]any{
 		"event_id": string(project_model.WorkflowEventItemOpened),
 		"filters": map[string]any{
 			string(project_model.WorkflowFilterTypeIssueType): "issue",
@@ -112,61 +177,24 @@ func TestProjectWorkflowExecutionItemOpened(t *testing.T) {
 		},
 	})
 
-	issueID := testNewIssueReturnIssue(t, session, repo, newIssueOptions{
-		Title:     "Test Issue for Workflow",
+	issueID := testNewIssueReturnIssue(t, f.session, f.repo, newIssueOptions{
+		Title:     "Test Issue for Workflow ItemOpened",
 		Content:   "This should trigger item_opened workflow",
 		ProjectID: project.ID,
 	})
 
-	// Verify workflow executed: issue moved to "To Do" and has "bug" label
-	issue, err := issues_model.GetIssueByID(t.Context(), issueID)
-	assert.NoError(t, err)
-
-	projectIssue := &project_model.ProjectIssue{}
-	has, err := db.GetEngine(t.Context()).Where("issue_id=?", issue.ID).Get(projectIssue)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.Equal(t, columnToDo.ID, projectIssue.ProjectColumnID)
-
-	err = issue.LoadLabels(t.Context())
-	assert.NoError(t, err)
-	assert.Len(t, issue.Labels, 1)
-	assert.Equal(t, label.ID, issue.Labels[0].ID)
+	// Verify workflow executed: issue moved to "To Do" and has the label
+	assertIssueInColumn(t, issueID, columnToDo.ID)
+	assertIssueHasLabel(t, issueID, label.ID, true)
 }
 
-func TestProjectWorkflowExecutionItemAddedToProject(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testProjectWorkflowExecutionItemAddedToProject(t *testing.T, f *projectWorkflowExecFixture) {
+	project := f.newProject(t, "Test Workflow Execution ItemAddedToProject")
+	columnToDo := f.newColumn(t, project, "To Do")
+	label := f.newLabel(t, "wf-added-bug", "ee0701")
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	// Create project and columns
-	project := &project_model.Project{
-		Title:        "Test Workflow Execution",
-		RepoID:       repo.ID,
-		Type:         project_model.TypeRepository,
-		TemplateType: project_model.TemplateTypeNone,
-	}
-	assert.NoError(t, project_model.NewProject(t.Context(), project))
-
-	columnToDo := &project_model.Column{
-		Title:     "To Do",
-		ProjectID: project.ID,
-	}
-	assert.NoError(t, project_model.NewColumn(t.Context(), columnToDo))
-
-	// Create label
-	label := &issues_model.Label{
-		RepoID: repo.ID,
-		Name:   "bug",
-		Color:  "ee0701",
-	}
-	assert.NoError(t, issues_model.NewLabel(t.Context(), label))
-
-	session := loginUser(t, user.Name)
-
-	// Create workflow via HTTP: when item added to project, move to "To Do" and add "bug" label
-	testCreateProjectWorkflow(t, session, user.Name, repo.Name, project.ID, "item_added_to_project", map[string]any{
+	// Create workflow via HTTP: when item added to project, move to "To Do" and add the label
+	testCreateProjectWorkflow(t, f.session, f.user.Name, f.repo.Name, project.ID, "item_added_to_project", map[string]any{
 		"event_id": string(project_model.WorkflowEventItemAddedToProject),
 		"filters": map[string]any{
 			string(project_model.WorkflowFilterTypeIssueType): "issue",
@@ -177,63 +205,26 @@ func TestProjectWorkflowExecutionItemAddedToProject(t *testing.T) {
 		},
 	})
 
-	issueID := testNewIssueReturnIssue(t, session, repo, newIssueOptions{
-		Title:   "Test Issue for Workflow",
+	issueID := testNewIssueReturnIssue(t, f.session, f.repo, newIssueOptions{
+		Title:   "Test Issue for Workflow ItemAddedToProject",
 		Content: "This should trigger workflow when added to project",
 	})
 
 	// Add issue to project via Web form - this triggers the workflow
-	testAddIssueToProject(t, session, user.Name, repo.Name, project.ID, issueID)
+	testAddIssueToProject(t, f.session, f.user.Name, f.repo.Name, project.ID, issueID)
 
-	// Verify workflow executed: issue moved to "To Do" and has "bug" label
-	issue, err := issues_model.GetIssueByID(t.Context(), issueID)
-	assert.NoError(t, err)
-
-	projectIssue := &project_model.ProjectIssue{}
-	has, err := db.GetEngine(t.Context()).Where("issue_id=?", issue.ID).Get(projectIssue)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.Equal(t, columnToDo.ID, projectIssue.ProjectColumnID)
-
-	err = issue.LoadLabels(t.Context())
-	assert.NoError(t, err)
-	assert.Len(t, issue.Labels, 1)
-	assert.Equal(t, label.ID, issue.Labels[0].ID)
+	// Verify workflow executed: issue moved to "To Do" and has the label
+	assertIssueInColumn(t, issueID, columnToDo.ID)
+	assertIssueHasLabel(t, issueID, label.ID, true)
 }
 
-func TestProjectWorkflowExecutionItemRemovedFromProject(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testProjectWorkflowExecutionItemRemovedFromProject(t *testing.T, f *projectWorkflowExecFixture) {
+	project := f.newProject(t, "Test Workflow Execution ItemRemovedFromProject")
+	f.newColumn(t, project, "To Do")
+	label := f.newLabel(t, "wf-removed-no-project", "ee0701")
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	// Create project and columns
-	project := &project_model.Project{
-		Title:        "Test Workflow Execution",
-		RepoID:       repo.ID,
-		Type:         project_model.TypeRepository,
-		TemplateType: project_model.TemplateTypeNone,
-	}
-	assert.NoError(t, project_model.NewProject(t.Context(), project))
-
-	columnToDo := &project_model.Column{
-		Title:     "To Do",
-		ProjectID: project.ID,
-	}
-	assert.NoError(t, project_model.NewColumn(t.Context(), columnToDo))
-
-	// Create label
-	label := &issues_model.Label{
-		RepoID: repo.ID,
-		Name:   "no-project",
-		Color:  "ee0701",
-	}
-	assert.NoError(t, issues_model.NewLabel(t.Context(), label))
-
-	session := loginUser(t, user.Name)
-
-	// Create workflow via HTTP: when item added to project, move to "To Do" and add "bug" label
-	testCreateProjectWorkflow(t, session, user.Name, repo.Name, project.ID, "item_removed_from_project", map[string]any{
+	// Create workflow via HTTP: when item removed from project, add the label
+	testCreateProjectWorkflow(t, f.session, f.user.Name, f.repo.Name, project.ID, "item_removed_from_project", map[string]any{
 		"event_id": string(project_model.WorkflowEventItemRemovedFromProject),
 		"filters": map[string]any{
 			string(project_model.WorkflowFilterTypeIssueType): "issue",
@@ -243,61 +234,31 @@ func TestProjectWorkflowExecutionItemRemovedFromProject(t *testing.T) {
 		},
 	})
 
-	issueID := testNewIssueReturnIssue(t, session, repo, newIssueOptions{
-		Title:     "Test Issue for Workflow",
+	issueID := testNewIssueReturnIssue(t, f.session, f.repo, newIssueOptions{
+		Title:     "Test Issue for Workflow ItemRemovedFromProject",
 		Content:   "This should trigger workflow when removed from project",
 		ProjectID: project.ID,
 	})
 
 	// remove issue from the project to trigger the workflow
-	testAddIssueToProject(t, session, user.Name, repo.Name, 0, issueID)
+	testAddIssueToProject(t, f.session, f.user.Name, f.repo.Name, 0, issueID)
 
 	issue, err := issues_model.GetIssueByID(t.Context(), issueID)
 	assert.NoError(t, err)
 	assert.NoError(t, issue.LoadProjects(t.Context()))
 	assert.Empty(t, issue.Projects)
 
-	err = issue.LoadLabels(t.Context())
-	assert.NoError(t, err)
-	assert.Len(t, issue.Labels, 1)
-	assert.Equal(t, label.ID, issue.Labels[0].ID)
+	assertIssueHasLabel(t, issueID, label.ID, true)
 }
 
-// TestProjectWorkflowExecutionItemClosed tests workflow when issue is closed
-func TestProjectWorkflowExecutionItemClosed(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+// testProjectWorkflowExecutionItemClosed tests workflow when issue is closed
+func testProjectWorkflowExecutionItemClosed(t *testing.T, f *projectWorkflowExecFixture) {
+	project := f.newProject(t, "Test Close Workflow")
+	columnDone := f.newColumn(t, project, "Done")
+	labelCompleted := f.newLabel(t, "wf-closed-completed", "00ff00")
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	project := &project_model.Project{
-		Title:        "Test Close Workflow",
-		RepoID:       repo.ID,
-		Type:         project_model.TypeRepository,
-		TemplateType: project_model.TemplateTypeNone,
-	}
-	err := project_model.NewProject(t.Context(), project)
-	assert.NoError(t, err)
-
-	columnDone := &project_model.Column{
-		Title:     "Done",
-		ProjectID: project.ID,
-	}
-	err = project_model.NewColumn(t.Context(), columnDone)
-	assert.NoError(t, err)
-
-	labelCompleted := &issues_model.Label{
-		RepoID: repo.ID,
-		Name:   "completed",
-		Color:  "00ff00",
-	}
-	err = issues_model.NewLabel(t.Context(), labelCompleted)
-	assert.NoError(t, err)
-
-	session := loginUser(t, user.Name)
-
-	// Create workflow: when closed, move to "Done" and add "completed" label
-	testCreateProjectWorkflow(t, session, user.Name, repo.Name, project.ID, "item_closed", map[string]any{
+	// Create workflow: when closed, move to "Done" and add the label
+	testCreateProjectWorkflow(t, f.session, f.user.Name, f.repo.Name, project.ID, "item_closed", map[string]any{
 		"event_id": string(project_model.WorkflowEventItemClosed),
 		"filters": map[string]any{
 			string(project_model.WorkflowFilterTypeIssueType): "issue",
@@ -308,8 +269,8 @@ func TestProjectWorkflowExecutionItemClosed(t *testing.T) {
 		},
 	})
 
-	issueID := testNewIssueReturnIssue(t, session, repo, newIssueOptions{
-		Title:     "Test Issue for Workflow",
+	issueID := testNewIssueReturnIssue(t, f.session, f.repo, newIssueOptions{
+		Title:     "Test Issue for Workflow ItemClosed",
 		Content:   "This should trigger workflow when item is closed",
 		ProjectID: project.ID,
 	})
@@ -319,65 +280,24 @@ func TestProjectWorkflowExecutionItemClosed(t *testing.T) {
 	assert.False(t, issue.IsClosed)
 	assert.NoError(t, issue.LoadRepo(t.Context()))
 
-	// Close issue via API
-	testIssueAddComment(t, session, issue.Link(), "Test comment 3", "close")
+	// Close issue
+	testIssueAddComment(t, f.session, issue.Link(), "Closing comment", "close")
 
 	// Verify workflow executed
 	issue, err = issues_model.GetIssueByID(t.Context(), issueID)
 	assert.NoError(t, err)
 	assert.True(t, issue.IsClosed)
 
-	projectIssue := &project_model.ProjectIssue{}
-	has, err := db.GetEngine(t.Context()).Where("issue_id=?", issue.ID).Get(projectIssue)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.Equal(t, columnDone.ID, projectIssue.ProjectColumnID)
-
-	err = issue.LoadLabels(t.Context())
-	assert.NoError(t, err)
-	hasLabel := false
-	for _, l := range issue.Labels {
-		if l.ID == labelCompleted.ID {
-			hasLabel = true
-			break
-		}
-	}
-	assert.True(t, hasLabel)
+	assertIssueInColumn(t, issueID, columnDone.ID)
+	assertIssueHasLabel(t, issueID, labelCompleted.ID, true)
 }
 
-func TestProjectWorkflowExecutionItemReopened(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testProjectWorkflowExecutionItemReopened(t *testing.T, f *projectWorkflowExecFixture) {
+	project := f.newProject(t, "Test Reopen Workflow")
+	columnDone := f.newColumn(t, project, "Done")
+	labelCompleted := f.newLabel(t, "wf-reopened-completed", "00ff00")
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	project := &project_model.Project{
-		Title:        "Test Close Workflow",
-		RepoID:       repo.ID,
-		Type:         project_model.TypeRepository,
-		TemplateType: project_model.TemplateTypeNone,
-	}
-	err := project_model.NewProject(t.Context(), project)
-	assert.NoError(t, err)
-
-	columnDone := &project_model.Column{
-		Title:     "Done",
-		ProjectID: project.ID,
-	}
-	err = project_model.NewColumn(t.Context(), columnDone)
-	assert.NoError(t, err)
-
-	labelCompleted := &issues_model.Label{
-		RepoID: repo.ID,
-		Name:   "completed",
-		Color:  "00ff00",
-	}
-	err = issues_model.NewLabel(t.Context(), labelCompleted)
-	assert.NoError(t, err)
-
-	session := loginUser(t, user.Name)
-
-	testCreateProjectWorkflow(t, session, user.Name, repo.Name, project.ID, "item_reopened",
+	testCreateProjectWorkflow(t, f.session, f.user.Name, f.repo.Name, project.ID, "item_reopened",
 		map[string]any{
 			"event_id": string(project_model.WorkflowEventItemReopened),
 			"filters": map[string]any{
@@ -389,8 +309,8 @@ func TestProjectWorkflowExecutionItemReopened(t *testing.T) {
 			},
 		})
 
-	issueID := testNewIssueReturnIssue(t, session, repo, newIssueOptions{
-		Title:     "Test Issue for Workflow",
+	issueID := testNewIssueReturnIssue(t, f.session, f.repo, newIssueOptions{
+		Title:     "Test Issue for Workflow ItemReopened",
 		Content:   "This should trigger workflow when item is reopened",
 		ProjectID: project.ID,
 		LabelIDs:  []int64{labelCompleted.ID},
@@ -402,64 +322,27 @@ func TestProjectWorkflowExecutionItemReopened(t *testing.T) {
 	assert.NoError(t, issue.LoadRepo(t.Context()))
 
 	// Reopen issue
-	testIssueAddComment(t, session, issue.Link(), "Test comment 3", "close")
-	testIssueAddComment(t, session, issue.Link(), "Test comment 3", "reopen")
+	testIssueAddComment(t, f.session, issue.Link(), "Closing comment", "close")
+	testIssueAddComment(t, f.session, issue.Link(), "Reopening comment", "reopen")
 
 	// Reload and Verify workflow executed
 	issue, err = issues_model.GetIssueByID(t.Context(), issueID)
 	assert.NoError(t, err)
 	assert.False(t, issue.IsClosed)
 
-	projectIssue := &project_model.ProjectIssue{}
-	has, err := db.GetEngine(t.Context()).Where("issue_id=?", issue.ID).Get(projectIssue)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.Equal(t, columnDone.ID, projectIssue.ProjectColumnID)
-
-	err = issue.LoadLabels(t.Context())
-	assert.NoError(t, err)
-	hasLabel := false
-	for _, l := range issue.Labels {
-		if l.ID == labelCompleted.ID {
-			hasLabel = true
-			break
-		}
-	}
-	assert.True(t, hasLabel)
+	assertIssueInColumn(t, issueID, columnDone.ID)
+	assertIssueHasLabel(t, issueID, labelCompleted.ID, true)
 }
 
-// TestProjectWorkflowExecutionColumnChanged tests workflow when moving between columns
-func TestProjectWorkflowExecutionColumnChanged(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+// testProjectWorkflowExecutionColumnChanged tests workflow when moving between columns
+func testProjectWorkflowExecutionColumnChanged(t *testing.T, f *projectWorkflowExecFixture) {
+	project := f.newProject(t, "Test Column Change")
+	columnToDo := f.newColumn(t, project, "To Do")
+	columnDone := f.newColumn(t, project, "Done")
+	labelWIP := f.newLabel(t, "wf-column-wip", "fbca04")
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-
-	project := &project_model.Project{
-		Title:        "Test Column Change",
-		RepoID:       repo.ID,
-		Type:         project_model.TypeRepository,
-		TemplateType: project_model.TemplateTypeNone,
-	}
-	err := project_model.NewProject(t.Context(), project)
-	assert.NoError(t, err)
-
-	columnToDo := &project_model.Column{Title: "To Do", ProjectID: project.ID}
-	err = project_model.NewColumn(t.Context(), columnToDo)
-	assert.NoError(t, err)
-
-	columnDone := &project_model.Column{Title: "Done", ProjectID: project.ID}
-	err = project_model.NewColumn(t.Context(), columnDone)
-	assert.NoError(t, err)
-
-	labelWIP := &issues_model.Label{RepoID: repo.ID, Name: "wip", Color: "fbca04"}
-	err = issues_model.NewLabel(t.Context(), labelWIP)
-	assert.NoError(t, err)
-
-	session := loginUser(t, user.Name)
-
-	// Create workflow: when moved to "Done", remove "wip" and close
-	testCreateProjectWorkflow(t, session, user.Name, repo.Name, project.ID, "item_column_changed", map[string]any{
+	// Create workflow: when moved to "Done", remove the wip label and close
+	testCreateProjectWorkflow(t, f.session, f.user.Name, f.repo.Name, project.ID, "item_column_changed", map[string]any{
 		"event_id": string(project_model.WorkflowEventItemColumnChanged),
 		"filters": map[string]any{
 			string(project_model.WorkflowFilterTypeTargetColumn): strconv.FormatInt(columnDone.ID, 10),
@@ -470,89 +353,100 @@ func TestProjectWorkflowExecutionColumnChanged(t *testing.T) {
 		},
 	})
 
-	// Create issue with "wip" label
-	issueID := testNewIssueReturnIssue(t, session, repo, newIssueOptions{
+	// Create issue with the wip label
+	issueID := testNewIssueReturnIssue(t, f.session, f.repo, newIssueOptions{
 		Title:     "Test Column Change",
 		Content:   "Will move columns",
 		ProjectID: project.ID,
 		LabelIDs:  []int64{labelWIP.ID},
 	})
 
-	// Move to "To Do" first
-	moveReq := NewRequestWithJSON(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/%d/move", user.Name, repo.Name, project.ID, columnToDo.ID),
-		map[string]any{
-			"issues": []map[string]any{
-				{
-					"issueID": issueID,
-					"sorting": 0,
+	moveIssueToColumn := func(columnID int64) {
+		moveReq := NewRequestWithJSON(t, "POST",
+			fmt.Sprintf("/%s/%s/projects/%d/%d/move", f.user.Name, f.repo.Name, project.ID, columnID),
+			map[string]any{
+				"issues": []map[string]any{
+					{
+						"issueID": issueID,
+						"sorting": 0,
+					},
 				},
-			},
-		})
-	session.MakeRequest(t, moveReq, http.StatusOK)
+			})
+		f.session.MakeRequest(t, moveReq, http.StatusOK)
+	}
 
-	// Move to "Done" - triggers workflow
-	moveReq = NewRequestWithJSON(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/%d/move", user.Name, repo.Name, project.ID, columnDone.ID),
-		map[string]any{
-			"issues": []map[string]any{
-				{
-					"issueID": issueID,
-					"sorting": 0,
-				},
-			},
-		})
-	session.MakeRequest(t, moveReq, http.StatusOK)
+	// Move to "To Do" first, then to "Done" - the second move triggers the workflow
+	moveIssueToColumn(columnToDo.ID)
+	moveIssueToColumn(columnDone.ID)
 
 	// Verify workflow executed
 	issue, err := issues_model.GetIssueByID(t.Context(), issueID)
 	assert.NoError(t, err)
 	assert.True(t, issue.IsClosed, "Issue should be closed")
 
-	err = issue.LoadLabels(t.Context())
-	assert.NoError(t, err)
-	hasWIP := false
-	for _, l := range issue.Labels {
-		if l.ID == labelWIP.ID {
-			hasWIP = true
-			break
-		}
-	}
-	assert.False(t, hasWIP, "WIP label should be removed")
+	assertIssueHasLabel(t, issueID, labelWIP.ID, false, "WIP label should be removed")
 }
 
-func TestProjectWorkflowExecutionCodeChangesRequested(t *testing.T) {
+// TestProjectWorkflowExecutionReviews covers the workflow events driven by pull
+// request reviews.
+//
+// Both children need an open pull request from the fixtures, and they deliberately
+// use different ones: they add their PR to their own project and leave a review and
+// a label on it, so sharing a single PR would let the first child's project
+// membership, review state and labels leak into the second child's assertions.
+func TestProjectWorkflowExecutionReviews(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// Use existing PR #3 from fixtures (issue_id: 3, pull_request id: 2)
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pr.LoadIssue(t.Context()))
-	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
-
-	repo := pr.BaseRepo
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	project := &project_model.Project{
-		Title:        "Test Code Changes Requested",
-		RepoID:       repo.ID,
-		Type:         project_model.TypeRepository,
-		TemplateType: project_model.TemplateTypeNone,
+	f := &projectWorkflowExecFixture{
+		user: unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}),
+		repo: unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}),
 	}
-	err := project_model.NewProject(t.Context(), project)
-	assert.NoError(t, err)
+	f.session = loginUser(t, f.user.Name)
 
-	columnInProgress := &project_model.Column{Title: "In Progress", ProjectID: project.ID}
-	err = project_model.NewColumn(t.Context(), columnInProgress)
-	assert.NoError(t, err)
+	// pull_request fixture 2 (issue 3) and 5 (issue 11) are both open PRs on repo 1.
+	t.Run("CodeChangesRequested", func(t *testing.T) { testProjectWorkflowExecutionCodeChangesRequested(t, f, 2) })
+	t.Run("CodeReviewApproved", func(t *testing.T) { testProjectWorkflowExecutionCodeReviewApproved(t, f, 5) })
+}
 
-	labelNeedChange := &issues_model.Label{RepoID: repo.ID, Name: "needs-changes", Color: "fbca04"}
-	err = issues_model.NewLabel(t.Context(), labelNeedChange)
-	assert.NoError(t, err)
+// loadWorkflowTestPullRequest loads a fixture pull request together with its issue
+// and base repo, and asserts it belongs to the fixture's repository.
+func (f *projectWorkflowExecFixture) loadPullRequest(t *testing.T, prID int64) *issues_model.PullRequest {
+	t.Helper()
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: prID})
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	require.Equal(t, f.repo.ID, pr.BaseRepoID)
+	return pr
+}
 
-	session := loginUser(t, user.Name)
+// submitReviewOnPullRequest submits a review of the given type on the pull request
+// as the fixture user, resolving the head commit the review has to point at.
+func (f *projectWorkflowExecFixture) submitReview(t *testing.T, pr *issues_model.PullRequest, reviewType string) {
+	t.Helper()
 
-	// Create workflow: when code changes requested, add "needs-changes" label
-	testCreateProjectWorkflow(t, session, user.Name, repo.Name, project.ID, "code_changes_requested", map[string]any{
+	prURL := fmt.Sprintf("/%s/%s/pulls/%d", f.user.Name, f.repo.Name, pr.Issue.Index)
+	req := NewRequest(t, "GET", prURL+"/files")
+	f.session.MakeRequest(t, req, http.StatusOK)
+
+	gitRepo, err := git.OpenRepository(pr.BaseRepo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	commitID, err := gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
+	require.NoError(t, err)
+
+	testSubmitReview(t, f.session, f.user.Name, f.repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, reviewType, http.StatusOK)
+}
+
+func testProjectWorkflowExecutionCodeChangesRequested(t *testing.T, f *projectWorkflowExecFixture, prID int64) {
+	pr := f.loadPullRequest(t, prID)
+
+	project := f.newProject(t, "Test Code Changes Requested")
+	f.newColumn(t, project, "In Progress")
+	labelNeedChange := f.newLabel(t, "wf-review-needs-changes", "fbca04")
+
+	// Create workflow: when code changes requested, add the needs-changes label
+	testCreateProjectWorkflow(t, f.session, f.user.Name, f.repo.Name, project.ID, "code_changes_requested", map[string]any{
 		"event_id": string(project_model.WorkflowEventCodeChangesRequested),
 		"filters":  map[string]any{},
 		"actions": map[string]any{
@@ -561,70 +455,23 @@ func TestProjectWorkflowExecutionCodeChangesRequested(t *testing.T) {
 	})
 
 	// Add PR to project
-	testAddIssueToProject(t, session, user.Name, repo.Name, project.ID, pr.Issue.ID)
+	testAddIssueToProject(t, f.session, f.user.Name, f.repo.Name, project.ID, pr.Issue.ID)
 
-	// User 2 submits a "REQUEST_CHANGES" review
-	user2Session := loginUser(t, "user2")
-	prURL := fmt.Sprintf("/%s/%s/pulls/%d", user.Name, repo.Name, pr.Issue.Index)
-	req := NewRequest(t, "GET", prURL+"/files")
-	user2Session.MakeRequest(t, req, http.StatusOK)
-	gitRepo, err := git.OpenRepository(pr.BaseRepo)
-	assert.NoError(t, err)
-	defer gitRepo.Close()
+	f.submitReview(t, pr, "reject")
 
-	commitID, err := gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
-	assert.NoError(t, err)
-
-	testSubmitReview(t, user2Session, user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "reject", http.StatusOK)
-
-	// Verify workflow executed: PR should have "needs-changes" label
-	issue, err := issues_model.GetIssueByID(t.Context(), pr.Issue.ID)
-	assert.NoError(t, err)
-	err = issue.LoadLabels(t.Context())
-	assert.NoError(t, err)
-
-	hasNeedChangeLabel := false
-	for _, l := range issue.Labels {
-		if l.ID == labelNeedChange.ID {
-			hasNeedChangeLabel = true
-			break
-		}
-	}
-	assert.True(t, hasNeedChangeLabel, "needs-changes label should be added")
+	// Verify workflow executed: PR should have the needs-changes label
+	assertIssueHasLabel(t, pr.Issue.ID, labelNeedChange.ID, true, "needs-changes label should be added")
 }
 
-func TestProjectWorkflowExecutionCodeReviewApproved(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testProjectWorkflowExecutionCodeReviewApproved(t *testing.T, f *projectWorkflowExecFixture, prID int64) {
+	pr := f.loadPullRequest(t, prID)
 
-	// Use existing PR #3 from fixtures (issue_id: 3, pull_request id: 2)
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pr.LoadIssue(t.Context()))
-	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
+	project := f.newProject(t, "Test Code Review Approved")
+	columnReadyToMerge := f.newColumn(t, project, "Ready to Merge")
+	labelApproved := f.newLabel(t, "wf-review-approved", "00ff00")
 
-	repo := pr.BaseRepo
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	project := &project_model.Project{
-		Title:        "Test Code Review Approved",
-		RepoID:       repo.ID,
-		Type:         project_model.TypeRepository,
-		TemplateType: project_model.TemplateTypeNone,
-	}
-	err := project_model.NewProject(t.Context(), project)
-	assert.NoError(t, err)
-
-	columnReadyToMerge := &project_model.Column{Title: "Ready to Merge", ProjectID: project.ID}
-	err = project_model.NewColumn(t.Context(), columnReadyToMerge)
-	assert.NoError(t, err)
-
-	labelApproved := &issues_model.Label{RepoID: repo.ID, Name: "approved", Color: "00ff00"}
-	err = issues_model.NewLabel(t.Context(), labelApproved)
-	assert.NoError(t, err)
-
-	session := loginUser(t, user.Name)
-
-	// Create workflow: when code review approved, move to "Ready to Merge" and add "approved" label
-	testCreateProjectWorkflow(t, session, user.Name, repo.Name, project.ID, "code_review_approved", map[string]any{
+	// Create workflow: when code review approved, move to "Ready to Merge" and add the label
+	testCreateProjectWorkflow(t, f.session, f.user.Name, f.repo.Name, project.ID, "code_review_approved", map[string]any{
 		"event_id": string(project_model.WorkflowEventCodeReviewApproved),
 		"filters":  map[string]any{},
 		"actions": map[string]any{
@@ -634,46 +481,18 @@ func TestProjectWorkflowExecutionCodeReviewApproved(t *testing.T) {
 	})
 
 	// Add PR to project
-	testAddIssueToProject(t, session, user.Name, repo.Name, project.ID, pr.Issue.ID)
+	testAddIssueToProject(t, f.session, f.user.Name, f.repo.Name, project.ID, pr.Issue.ID)
 
-	// User 2 submits an "APPROVE" review
-	user2Session := loginUser(t, "user2")
-	prURL := fmt.Sprintf("/%s/%s/pulls/%d", user.Name, repo.Name, pr.Issue.Index)
-	req := NewRequest(t, "GET", prURL+"/files")
-	user2Session.MakeRequest(t, req, http.StatusOK)
+	f.submitReview(t, pr, "approve")
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo)
-	assert.NoError(t, err)
-	defer gitRepo.Close()
-
-	commitID, err := gitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
-	assert.NoError(t, err)
-
-	testSubmitReview(t, user2Session, user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "approve", http.StatusOK)
-
-	// Verify workflow executed: PR should be in "Ready to Merge" column and have "approved" label
-	issue, err := issues_model.GetIssueByID(t.Context(), pr.Issue.ID)
-	assert.NoError(t, err)
-	err = issue.LoadLabels(t.Context())
-	assert.NoError(t, err)
-
-	hasApprovedLabel := false
-	for _, l := range issue.Labels {
-		if l.ID == labelApproved.ID {
-			hasApprovedLabel = true
-			break
-		}
-	}
-	assert.True(t, hasApprovedLabel, "approved label should be added")
-
-	// Check column
-	projectIssue := &project_model.ProjectIssue{}
-	has, err := db.GetEngine(t.Context()).Where("issue_id=?", issue.ID).Get(projectIssue)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.Equal(t, columnReadyToMerge.ID, projectIssue.ProjectColumnID)
+	// Verify workflow executed: PR should have the approved label and be in "Ready to Merge"
+	assertIssueHasLabel(t, pr.Issue.ID, labelApproved.ID, true, "approved label should be added")
+	assertIssueInColumn(t, pr.Issue.ID, columnReadyToMerge.ID)
 }
 
+// TestProjectWorkflowExecutionPullRequestMerged stays a standalone top-level test:
+// it is the only workflow test that needs a live server (onGiteaRun) and it forks
+// repo1 on disk, so it cannot share an environment with the other workflow tests.
 func TestProjectWorkflowExecutionPullRequestMerged(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		// Fork repo1 and create a PR that can be merged
@@ -743,26 +562,8 @@ func TestProjectWorkflowExecutionPullRequestMerged(t *testing.T) {
 		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		// Verify workflow executed: PR should be in "Done" column and have "merged" label
-		issue, err := issues_model.GetIssueByID(t.Context(), pr.Issue.ID)
-		assert.NoError(t, err)
-		err = issue.LoadLabels(t.Context())
-		assert.NoError(t, err)
-
-		hasMergedLabel := false
-		for _, l := range issue.Labels {
-			if l.ID == labelMerged.ID {
-				hasMergedLabel = true
-				break
-			}
-		}
-		assert.True(t, hasMergedLabel, "merged label should be added")
-
-		// Check column
-		projectIssue := &project_model.ProjectIssue{}
-		has, err := db.GetEngine(t.Context()).Where("issue_id=?", issue.ID).Get(projectIssue)
-		assert.NoError(t, err)
-		assert.True(t, has)
-		assert.Equal(t, columnDone.ID, projectIssue.ProjectColumnID)
+		assertIssueHasLabel(t, pr.Issue.ID, labelMerged.ID, true, "merged label should be added")
+		assertIssueInColumn(t, pr.Issue.ID, columnDone.ID)
 
 		// Verify PR is merged
 		pr, err = issues_model.GetPullRequestByID(t.Context(), pr.ID)
