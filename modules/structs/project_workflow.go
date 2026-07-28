@@ -74,8 +74,10 @@ type CreateProjectWorkflowOption struct {
 }
 
 // EditProjectWorkflowOption represents the payload for editing a project workflow.
+// Filters and Actions are pointers so a PATCH can omit either group and leave
+// the corresponding existing configuration untouched (partial update).
 // swagger:model
 type EditProjectWorkflowOption struct {
-	Filters ProjectWorkflowFilterOptions `json:"filters"`
-	Actions ProjectWorkflowActionOptions `json:"actions"`
+	Filters *ProjectWorkflowFilterOptions `json:"filters"`
+	Actions *ProjectWorkflowActionOptions `json:"actions"`
 }

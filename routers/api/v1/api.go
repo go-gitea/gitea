@@ -1274,11 +1274,11 @@ func Routes() *web.Router {
 					m.Get("", repo.ListProjectWorkflows)
 					m.Get("/options", repo.GetProjectWorkflowOptions)
 					m.Get("/{workflow_id}", repo.GetProjectWorkflow)
-					m.Post("", reqRepoWriter(unit.TypeProjects), bind(api.CreateProjectWorkflowOption{}), repo.CreateProjectWorkflow)
-					m.Patch("/{workflow_id}", reqRepoWriter(unit.TypeProjects), bind(api.EditProjectWorkflowOption{}), repo.UpdateProjectWorkflow)
-					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeProjects), repo.EnableProjectWorkflow)
-					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeProjects), repo.DisableProjectWorkflow)
-					m.Delete("/{workflow_id}", reqRepoWriter(unit.TypeProjects), repo.DeleteProjectWorkflow)
+					m.Post("", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.CreateProjectWorkflowOption{}), repo.CreateProjectWorkflow)
+					m.Patch("/{workflow_id}", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, bind(api.EditProjectWorkflowOption{}), repo.UpdateProjectWorkflow)
+					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.EnableProjectWorkflow)
+					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.DisableProjectWorkflow)
+					m.Delete("/{workflow_id}", reqRepoWriter(unit.TypeProjects), mustNotBeArchived, repo.DeleteProjectWorkflow)
 				}, reqToken(), reqRepoReader(unit.TypeProjects))
 
 				m.Group("/actions/jobs", func() {

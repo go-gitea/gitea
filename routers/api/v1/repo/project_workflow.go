@@ -145,13 +145,17 @@ func convertAPIProjectWorkflowFilters(ctx *api_context.APIContext, project *proj
 		if !allowedFilters[item.typeName] || item.value == "" {
 			continue
 		}
-		columnID, _ := strconv.ParseInt(item.value, 10, 64)
-		if columnID <= 0 {
-			continue
+		// an unresolvable column would otherwise be silently dropped, broadening the
+		// filter to match every column instead of narrowing it, so reject it with a 422
+		columnID, err := strconv.ParseInt(item.value, 10, 64)
+		if err != nil || columnID <= 0 {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid "+string(item.typeName)+": "+item.value)
+			return nil, false
 		}
 		column, _ := project_model.GetColumnByIDAndProjectID(ctx, columnID, project.ID)
 		if column == nil {
-			continue
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid "+string(item.typeName)+": "+item.value)
+			return nil, false
 		}
 		filters = append(filters, project_model.WorkflowFilter{Type: item.typeName, Value: strconv.FormatInt(columnID, 10)})
 	}
@@ -161,32 +165,43 @@ func convertAPIProjectWorkflowFilters(ctx *api_context.APIContext, project *proj
 			if label == "" {
 				continue
 			}
-			labelID, _ := strconv.ParseInt(label, 10, 64)
-			if project_service.CanProjectAddLabel(ctx, project, labelID) {
-				filters = append(filters, project_model.WorkflowFilter{Type: project_model.WorkflowFilterTypeLabels, Value: label})
+			// same reasoning as above: a label the project cannot use must reject the
+			// request rather than silently be skipped
+			labelID, err := strconv.ParseInt(label, 10, 64)
+			if err != nil || labelID <= 0 || !project_service.CanProjectAddLabel(ctx, project, labelID) {
+				ctx.APIError(http.StatusUnprocessableEntity, "invalid label: "+label)
+				return nil, false
 			}
+			filters = append(filters, project_model.WorkflowFilter{Type: project_model.WorkflowFilterTypeLabels, Value: label})
 		}
 	}
 
 	return filters, true
 }
 
-func convertAPIProjectWorkflowActions(ctx *api_context.APIContext, project *project_model.Project, event project_model.WorkflowEvent, options api.ProjectWorkflowActionOptions) []project_model.WorkflowAction {
+// convertAPIProjectWorkflowActions reports ok=false after writing an API error to the response.
+func convertAPIProjectWorkflowActions(ctx *api_context.APIContext, project *project_model.Project, event project_model.WorkflowEvent, options api.ProjectWorkflowActionOptions) (actions []project_model.WorkflowAction, ok bool) {
 	caps := project_model.GetWorkflowEventCapabilities()[event]
 	allowedActions := make(map[project_model.WorkflowActionType]bool, len(caps.AvailableActions))
 	for _, at := range caps.AvailableActions {
 		allowedActions[at] = true
 	}
 
-	actions := make([]project_model.WorkflowAction, 0)
+	actions = make([]project_model.WorkflowAction, 0)
 	if allowedActions[project_model.WorkflowActionTypeColumn] && options.Column != "" {
-		columnID, _ := strconv.ParseInt(options.Column, 10, 64)
-		if columnID > 0 {
-			column, _ := project_model.GetColumnByIDAndProjectID(ctx, columnID, project.ID)
-			if column != nil {
-				actions = append(actions, project_model.WorkflowAction{Type: project_model.WorkflowActionTypeColumn, Value: strconv.FormatInt(columnID, 10)})
-			}
+		// a dropped action here would only surface later as a confusing "at least
+		// one action is required" 422, so reject the bad reference directly
+		columnID, err := strconv.ParseInt(options.Column, 10, 64)
+		if err != nil || columnID <= 0 {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid column: "+options.Column)
+			return nil, false
 		}
+		column, _ := project_model.GetColumnByIDAndProjectID(ctx, columnID, project.ID)
+		if column == nil {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid column: "+options.Column)
+			return nil, false
+		}
+		actions = append(actions, project_model.WorkflowAction{Type: project_model.WorkflowActionTypeColumn, Value: strconv.FormatInt(columnID, 10)})
 	}
 
 	for _, entry := range []struct {
@@ -203,21 +218,25 @@ func convertAPIProjectWorkflowActions(ctx *api_context.APIContext, project *proj
 			if label == "" {
 				continue
 			}
-			labelID, _ := strconv.ParseInt(label, 10, 64)
-			if project_service.CanProjectAddLabel(ctx, project, labelID) {
-				actions = append(actions, project_model.WorkflowAction{Type: entry.typeName, Value: label})
+			labelID, err := strconv.ParseInt(label, 10, 64)
+			if err != nil || labelID <= 0 || !project_service.CanProjectAddLabel(ctx, project, labelID) {
+				ctx.APIError(http.StatusUnprocessableEntity, "invalid label: "+label)
+				return nil, false
 			}
+			actions = append(actions, project_model.WorkflowAction{Type: entry.typeName, Value: label})
 		}
 	}
 
-	if allowedActions[project_model.WorkflowActionTypeIssueState] {
+	if allowedActions[project_model.WorkflowActionTypeIssueState] && options.IssueState != "" {
 		issueState := strings.ToLower(options.IssueState)
-		if issueState == "close" || issueState == "reopen" {
-			actions = append(actions, project_model.WorkflowAction{Type: project_model.WorkflowActionTypeIssueState, Value: issueState})
+		if issueState != "close" && issueState != "reopen" {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid issue_state: "+options.IssueState)
+			return nil, false
 		}
+		actions = append(actions, project_model.WorkflowAction{Type: project_model.WorkflowActionTypeIssueState, Value: issueState})
 	}
 
-	return actions
+	return actions, true
 }
 
 // ListProjectWorkflows lists the workflows for a repository project.
@@ -461,16 +480,20 @@ func CreateProjectWorkflow(ctx *api_context.APIContext) {
 	if !ok {
 		return
 	}
+	workflowActions, ok := convertAPIProjectWorkflowActions(ctx, project, workflowEvent, form.Actions)
+	if !ok {
+		return
+	}
+	if len(workflowActions) == 0 {
+		ctx.APIError(http.StatusUnprocessableEntity, "at least one action is required")
+		return
+	}
 	workflow := &project_model.Workflow{
 		ProjectID:       project.ID,
 		WorkflowEvent:   workflowEvent,
 		WorkflowFilters: workflowFilters,
-		WorkflowActions: convertAPIProjectWorkflowActions(ctx, project, workflowEvent, form.Actions),
+		WorkflowActions: workflowActions,
 		Enabled:         true,
-	}
-	if len(workflow.WorkflowActions) == 0 {
-		ctx.APIError(http.StatusUnprocessableEntity, "at least one action is required")
-		return
 	}
 	if err := project_model.CreateWorkflow(ctx, workflow); err != nil {
 		ctx.APIErrorInternal(err)
@@ -512,6 +535,8 @@ func UpdateProjectWorkflow(ctx *api_context.APIContext) {
 	//   required: true
 	// - name: body
 	//   in: body
+	//   description: filters and actions are each optional; omitting a group leaves
+	//     its existing configuration untouched, sending a group replaces it entirely
 	//   schema:
 	//     type: object
 	//     properties:
@@ -565,16 +590,26 @@ func UpdateProjectWorkflow(ctx *api_context.APIContext) {
 		}
 		return
 	}
+	// Filters and Actions are pointers: a PATCH may send only one group, and the
+	// omitted group's existing configuration is left untouched.
 	form := web.GetForm(ctx).(*api.EditProjectWorkflowOption)
-	workflowFilters, ok := convertAPIProjectWorkflowFilters(ctx, project, workflow.WorkflowEvent, form.Filters)
-	if !ok {
-		return
+	if form.Filters != nil {
+		workflowFilters, ok := convertAPIProjectWorkflowFilters(ctx, project, workflow.WorkflowEvent, *form.Filters)
+		if !ok {
+			return
+		}
+		workflow.WorkflowFilters = workflowFilters
 	}
-	workflow.WorkflowFilters = workflowFilters
-	workflow.WorkflowActions = convertAPIProjectWorkflowActions(ctx, project, workflow.WorkflowEvent, form.Actions)
-	if len(workflow.WorkflowActions) == 0 {
-		ctx.APIError(http.StatusUnprocessableEntity, "at least one action is required")
-		return
+	if form.Actions != nil {
+		workflowActions, ok := convertAPIProjectWorkflowActions(ctx, project, workflow.WorkflowEvent, *form.Actions)
+		if !ok {
+			return
+		}
+		if len(workflowActions) == 0 {
+			ctx.APIError(http.StatusUnprocessableEntity, "at least one action is required")
+			return
+		}
+		workflow.WorkflowActions = workflowActions
 	}
 	if err := project_model.UpdateWorkflow(ctx, workflow); err != nil {
 		ctx.APIErrorInternal(err)

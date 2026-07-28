@@ -66,6 +66,22 @@ func TestAPIRepoProjectWorkflows(t *testing.T) {
 		assert.NotZero(t, workflow.ID)
 	})
 
+	t.Run("create workflow rejects unresolvable column reference", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", listURL, &api.CreateProjectWorkflowOption{
+			EventID: string(project_model.WorkflowEventItemOpened),
+			Actions: api.ProjectWorkflowActionOptions{Column: "999999"},
+		}).AddTokenAuth(ownerToken), http.StatusUnprocessableEntity)
+		assert.Contains(t, resp.Body.String(), "invalid column")
+	})
+
+	t.Run("create workflow rejects unresolvable label reference", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", listURL, &api.CreateProjectWorkflowOption{
+			EventID: string(project_model.WorkflowEventItemOpened),
+			Actions: api.ProjectWorkflowActionOptions{AddLabels: []string{"999999"}},
+		}).AddTokenAuth(ownerToken), http.StatusUnprocessableEntity)
+		assert.Contains(t, resp.Body.String(), "invalid label")
+	})
+
 	t.Run("reader cannot create workflow", func(t *testing.T) {
 		MakeRequest(t, NewRequestWithJSON(t, "POST", listURL, &api.CreateProjectWorkflowOption{
 			EventID: string(project_model.WorkflowEventItemClosed),
@@ -102,8 +118,8 @@ func TestAPIRepoProjectWorkflows(t *testing.T) {
 
 	t.Run("update workflow", func(t *testing.T) {
 		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", listURL, workflow.ID), &api.EditProjectWorkflowOption{
-			Filters: api.ProjectWorkflowFilterOptions{IssueType: "issue", Labels: []string{strconv.FormatInt(label.ID, 10)}},
-			Actions: api.ProjectWorkflowActionOptions{AddLabels: []string{strconv.FormatInt(label.ID, 10)}, IssueState: "close"},
+			Filters: &api.ProjectWorkflowFilterOptions{IssueType: "issue", Labels: []string{strconv.FormatInt(label.ID, 10)}},
+			Actions: &api.ProjectWorkflowActionOptions{AddLabels: []string{strconv.FormatInt(label.ID, 10)}, IssueState: "close"},
 		}).AddTokenAuth(ownerToken), http.StatusOK)
 
 		var updated api.ProjectWorkflow
@@ -111,6 +127,39 @@ func TestAPIRepoProjectWorkflows(t *testing.T) {
 		assert.Equal(t, workflow.ID, updated.ID)
 		assert.NotEmpty(t, updated.Actions)
 		assert.NotEmpty(t, updated.Filters)
+	})
+
+	t.Run("update workflow with only actions leaves filters untouched", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", listURL, workflow.ID), &api.EditProjectWorkflowOption{
+			Actions: &api.ProjectWorkflowActionOptions{AddLabels: []string{strconv.FormatInt(label.ID, 10)}},
+		}).AddTokenAuth(ownerToken), http.StatusOK)
+
+		var updated api.ProjectWorkflow
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &updated))
+		assert.Equal(t, workflow.ID, updated.ID)
+		assert.NotEmpty(t, updated.Filters, "omitted filters must survive a partial PATCH")
+		assert.NotEmpty(t, updated.Actions)
+	})
+
+	t.Run("update workflow rejects unresolvable label reference", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", listURL, workflow.ID), &api.EditProjectWorkflowOption{
+			Filters: &api.ProjectWorkflowFilterOptions{Labels: []string{"999999"}},
+		}).AddTokenAuth(ownerToken), http.StatusUnprocessableEntity)
+		assert.Contains(t, resp.Body.String(), "invalid label")
+	})
+
+	t.Run("update workflow rejects unresolvable column reference", func(t *testing.T) {
+		resp := MakeRequest(t, NewRequestWithJSON(t, "POST", listURL, &api.CreateProjectWorkflowOption{
+			EventID: string(project_model.WorkflowEventItemColumnChanged),
+			Actions: api.ProjectWorkflowActionOptions{AddLabels: []string{strconv.FormatInt(label.ID, 10)}},
+		}).AddTokenAuth(ownerToken), http.StatusCreated)
+		var columnChanged api.ProjectWorkflow
+		require.NoError(t, json.Unmarshal(resp.Body.Bytes(), &columnChanged))
+
+		resp = MakeRequest(t, NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", listURL, columnChanged.ID), &api.EditProjectWorkflowOption{
+			Filters: &api.ProjectWorkflowFilterOptions{SourceColumn: "not-a-number"},
+		}).AddTokenAuth(ownerToken), http.StatusUnprocessableEntity)
+		assert.Contains(t, resp.Body.String(), "invalid source_column")
 	})
 
 	t.Run("disable and enable workflow", func(t *testing.T) {
