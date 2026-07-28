@@ -185,16 +185,35 @@ func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *use
 		return
 	}
 
-	oldColumn, err := project_model.GetColumn(ctx, oldColumnID)
+	newColumn, err := project_model.GetColumn(ctx, newColumnID)
 	if err != nil {
 		log.Error("IssueChangeProjectColumn: GetColumn: %v", err)
 		return
 	}
 
-	newColumn, err := project_model.GetColumn(ctx, newColumnID)
-	if err != nil {
-		log.Error("IssueChangeProjectColumn: GetColumn: %v", err)
-		return
+	// project_issue.project_board_id is stored as 0 for issues sitting in a
+	// project's default/unassigned column (see LoadProjectIssueColumnMap), so an
+	// oldColumnID of 0 here means "the default column", not "no column". Resolve
+	// it to the real column so the lookup below doesn't fail and skip the workflow.
+	var oldColumn *project_model.Column
+	if oldColumnID == 0 {
+		project, err := project_model.GetProjectByID(ctx, newColumn.ProjectID)
+		if err != nil {
+			log.Error("IssueChangeProjectColumn: GetProjectByID: %v", err)
+			return
+		}
+		oldColumn, err = project.MustDefaultColumn(ctx)
+		if err != nil {
+			log.Error("IssueChangeProjectColumn: MustDefaultColumn: %v", err)
+			return
+		}
+		oldColumnID = oldColumn.ID
+	} else {
+		oldColumn, err = project_model.GetColumn(ctx, oldColumnID)
+		if err != nil {
+			log.Error("IssueChangeProjectColumn: GetColumn: %v", err)
+			return
+		}
 	}
 	if oldColumn.ProjectID != newColumn.ProjectID {
 		return
