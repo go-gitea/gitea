@@ -103,7 +103,7 @@ func StartPRCheckAndAutoMergeBySHA(ctx context.Context, sha string, repo *repo_m
 }
 
 func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 
 	// check the sha is the same as pull request head commit id
-	baseGitRepo, err := git.OpenRepository(pr.BaseRepo)
+	baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return
