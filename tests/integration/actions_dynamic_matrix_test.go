@@ -26,6 +26,8 @@ import (
 // planned as a single placeholder and expanded once its dependency completes. `build` exercises the
 // expansion, `report` that a downstream job sees the combinations' outputs, `gated` and `partial` the
 // `if:` gates on either side of it, and `static` that a matrix expanded at plan time is left alone.
+// `included` covers the placeholder shapes that only survive as long as nothing re-parses their
+// payload: `include:` is still a scalar there, which act refuses to read at all.
 // A full rerun then re-derives the matrix from the new attempt's outputs instead of reusing the
 // previous combinations, keeping the AttemptJobID of every combination that recurs.
 func TestDynamicMatrixEvaluation(t *testing.T) {
@@ -47,9 +49,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
+      combos: ${{ steps.set.outputs.combos }}
     steps:
       - id: set
-        run: echo "matrix=[1,2]" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "matrix=[1,2]" >> "$GITHUB_OUTPUT"
+          echo 'combos=[{"name":"x"},{"name":"y"}]' >> "$GITHUB_OUTPUT"
   build:
     needs: [generate]
     runs-on: ubuntu-latest
@@ -69,6 +74,14 @@ jobs:
         os: [a, b]
     steps:
       - run: echo "${{ matrix.os }}"
+  included:
+    needs: [generate]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include: ${{ fromJson(needs.generate.outputs.combos) }}
+    steps:
+      - run: echo "${{ matrix.name }}"
   gated:
     needs: [generate]
     if: false
@@ -101,7 +114,7 @@ jobs:
 		_, _, run := getTaskAndJobAndRunByTaskID(t, generateTask.Id)
 		runner.execTask(t, generateTask, &mockTaskOutcome{
 			result:  runnerv1.Result_RESULT_SUCCESS,
-			outputs: map[string]string{"matrix": "[1,2]"},
+			outputs: map[string]string{"matrix": "[1,2]", "combos": `[{"name":"x"},{"name":"y"}]`},
 		})
 
 		// execAttempt runs the attempt's remaining tasks, recording each job's name and AttemptJobID(order is not fixed).
@@ -127,11 +140,14 @@ jobs:
 			return names
 		}
 
-		seen := execAttempt(t, 6)
+		seen := execAttempt(t, 8)
 		firstAttemptIDs := maps.Clone(attemptJobIDs)
 		//  `gated` is decided before the matrix is touched, so it never expands and is skipped as one job；
 		//  `partial (1)` is decided afterwards, against its own combination.
-		assert.ElementsMatch(t, []string{"build (1)", "build (2)", "static (a)", "static (b)", "partial (2)", "report"}, seen)
+		assert.ElementsMatch(t, []string{
+			"build (1)", "build (2)", "included (x)", "included (y)",
+			"static (a)", "static (b)", "partial (2)", "report",
+		}, seen)
 		skipped := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, Name: "partial (1)"})
 		assert.Equal(t, actions_model.StatusSkipped, skipped.Status)
 
@@ -149,14 +165,16 @@ jobs:
 		require.Equal(t, "generate", getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, generateTask2.Id))
 		assert.Equal(t, "2", generateTask2.Context.GetFields()["run_attempt"].GetStringValue())
 		runner.execTask(t, generateTask2, &mockTaskOutcome{
-			result:  runnerv1.Result_RESULT_SUCCESS,
-			outputs: map[string]string{"matrix": "[1,2,3]"},
+			result: runnerv1.Result_RESULT_SUCCESS,
+			// `combos` is unchanged, so both `included` combinations recur and have to keep their AttemptJobIDs.
+			outputs: map[string]string{"matrix": "[1,2,3]", "combos": `[{"name":"x"},{"name":"y"}]`},
 		})
 
 		// The matrix now yields a third value, while `static` is cloned as-is rather than collapsed.
-		seenRerun := execAttempt(t, 8)
+		seenRerun := execAttempt(t, 10)
 		assert.ElementsMatch(t, []string{
-			"build (1)", "build (2)", "build (3)", "static (a)", "static (b)", "partial (2)", "partial (3)", "report",
+			"build (1)", "build (2)", "build (3)", "included (x)", "included (y)",
+			"static (a)", "static (b)", "partial (2)", "partial (3)", "report",
 		}, seenRerun)
 		for name, firstID := range firstAttemptIDs {
 			assert.Equal(t, firstID, attemptJobIDs[name], "%s keeps its AttemptJobID across attempts", name)

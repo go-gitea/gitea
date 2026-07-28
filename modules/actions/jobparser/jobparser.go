@@ -32,6 +32,34 @@ func rawMatrixReadsNeeds(node *yaml.Node) bool {
 	return slices.ContainsFunc(node.Content, rawMatrixReadsNeeds)
 }
 
+// ParseRawSingleWorkflow decodes a SingleWorkflow payload into the workflow and its single job
+// without expanding `strategy.matrix`.
+//
+// A deferred-matrix placeholder's payload still carries the raw, unevaluated matrix, which Parse
+// would try to expand: depending on the matrix's shape that yields several workflows (a static
+// vector crossed with the unevaluated expression) or an error (an `include`/`exclude` that is still
+// a scalar), neither of which describes the one job the payload stands for.
+func ParseRawSingleWorkflow(payload []byte) (*SingleWorkflow, string, *Job, error) {
+	swf := &SingleWorkflow{}
+	if err := yaml.Unmarshal(payload, swf); err != nil {
+		return nil, "", nil, fmt.Errorf("unmarshal single workflow: %w", err)
+	}
+	id, job := swf.Job()
+	if job == nil {
+		return nil, "", nil, errors.New("payload contains no job")
+	}
+	if job.Name == "" {
+		job.Name = id // Parse defaults it the same way, and callers use it as the job's display name
+	}
+	return swf, id, job, nil
+}
+
+// ContainsExpression reports whether value holds a ${{ }} expression at all, so that a field which
+// cannot evaluate one can tell "not resolvable here" apart from a value the author simply got wrong.
+func ContainsExpression(value string) bool {
+	return strings.Contains(value, "${{")
+}
+
 // expressionReadsNeeds reports whether value holds a ${{ }} expression reading the needs context.
 // Every other context (github, vars, inputs, ...) is already available while planning, so deferring
 // those too would replace their combinations with one placeholder and change the commit status

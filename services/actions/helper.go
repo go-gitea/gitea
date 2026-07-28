@@ -77,7 +77,7 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 		return false, err
 	}
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, job)
-	return jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs)
+	return jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs, job.IsMatrixDeferred)
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {

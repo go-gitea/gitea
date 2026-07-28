@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 
@@ -17,7 +16,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
 )
 
@@ -28,16 +26,19 @@ import (
 //
 // It runs inside the caller's transaction (job_emitter's resolver) and must not open a nested
 // db.WithTx, which would reuse the ambient session and roll the whole emitter pass back on error.
-// The three outcomes are reported through the job itself:
+// The three outcomes are:
 //   - expanded: IsMatrixDeferred is cleared and the job stays StatusBlocked.
 //   - the workflow's fault (a matrix that cannot resolve, or one too large): a terminal status is
 //     persisted here, reported by the job leaving StatusBlocked. IsMatrixDeferred stays set, marking
 //     the payload as still unexpanded for a later rerun to re-derive.
-//   - not now: the job is left deferred and blocked for the next emitter pass to retry. This covers
-//     a transient failure before anything was written, and losing the claim to a concurrent pass.
+//   - not now: losing the claim to a concurrent pass leaves the job deferred and blocked, for the
+//     pass that won the claim to carry through.
 //
-// A returned error is reserved for a failure after the placeholder was claimed and must roll the
-// caller's transaction back: committing it would drop the remaining combinations for good.
+// Every other failure is returned, which aborts the emitter pass and lets the job-emitter queue
+// retry it. Swallowing one would strand the placeholder: nothing re-emits a run whose needs have
+// all already finished, so there would be no next pass to retry in. After the placeholder has been
+// claimed a returned error additionally has to roll the caller's transaction back, because
+// committing it would drop the remaining combinations for good.
 func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, vars map[string]string) ([]*actions_model.ActionRunJob, error) {
 	if !job.IsMatrixDeferred {
 		return nil, nil
@@ -68,42 +69,31 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		return nil, nil
 	}
 
-	// retryLater leaves the placeholder untouched. It is only used before anything is written, so a
-	// transient failure neither fails the job nor aborts the emitter pass for the whole run.
-	retryLater := func(cause error) ([]*actions_model.ActionRunJob, error) {
-		log.Error("Matrix expansion of job %d (JobID: %s) postponed to the next pass: %v", job.ID, job.JobID, cause)
-		return nil, nil
-	}
-
 	// The resolver only calls this once every need is done, as it does for job concurrency.
 	results, err := findJobNeedsAndFillJobResults(ctx, job)
 	if err != nil {
-		return retryLater(fmt.Errorf("find needs: %w", err))
+		return nil, fmt.Errorf("find needs of job %d: %w", job.ID, err)
 	}
 
 	if err := job.LoadAttributes(ctx); err != nil {
-		return retryLater(fmt.Errorf("load attributes: %w", err))
+		return nil, fmt.Errorf("load attributes of job %d: %w", job.ID, err)
 	}
 
 	// The payload still carries the raw, unevaluated matrix: planning only erases the needs.
-	var baseSWF jobparser.SingleWorkflow
-	if err := yaml.Unmarshal(job.WorkflowPayload, &baseSWF); err != nil {
-		return failTerminal(fmt.Errorf("unmarshal payload: %w", err))
-	}
-	_, parsedJob := baseSWF.Job()
-	if parsedJob == nil {
-		return failTerminal(errors.New("payload contains no job"))
+	baseSWF, _, parsedJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+	if err != nil {
+		return failTerminal(fmt.Errorf("parse payload: %w", err))
 	}
 
 	// `strategy` may reference the inputs context as well as needs, so resolve it like `if:` does.
 	inputs, err := getInputsForJob(ctx, job.Run, job)
 	if err != nil {
-		return retryLater(fmt.Errorf("get inputs: %w", err))
+		return nil, fmt.Errorf("get inputs of job %d: %w", job.ID, err)
 	}
 
 	existingJobs, err := actions_model.CountRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
 	if err != nil {
-		return retryLater(fmt.Errorf("count jobs of attempt %d: %w", job.RunAttemptID, err))
+		return nil, fmt.Errorf("count jobs of attempt %d: %w", job.RunAttemptID, err)
 	}
 	// The placeholder is reused as the first combination, so the attempt only grows by len-1.
 	maxCombinations := int(actions_model.MaxJobNumPerRun - existingJobs + 1)
@@ -116,7 +106,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 	// Combinations differ only in what the matrix feeds: the name, the payload, and a
 	// runs-on/continue-on-error that may interpolate matrix.*.
 	applyCombo := func(dst *actions_model.ActionRunJob, combo *jobparser.Job) error {
-		swf := baseSWF
+		swf := *baseSWF // SetJob replaces RawJobs wholesale, so the copy shares nothing with baseSWF
 		if err := swf.SetJob(job.JobID, combo.EraseNeeds()); err != nil {
 			return fmt.Errorf("set expanded job: %w", err)
 		}
@@ -154,13 +144,13 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		if job.ParentJobID > 0 {
 			parent, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
 			if err != nil {
-				return retryLater(fmt.Errorf("load parent of job %d: %w", job.ID, err))
+				return nil, fmt.Errorf("load parent of job %d: %w", job.ID, err)
 			}
 			parentAttemptJobID = parent.AttemptJobID
 		}
 		priorCombos, err := actions_model.GetPriorAttemptMatrixCombos(ctx, job.RunID, job.RunAttemptID, parentAttemptJobID, job.JobID)
 		if err != nil {
-			return retryLater(fmt.Errorf("lookup prior attempt combos of job %d: %w", job.ID, err))
+			return nil, fmt.Errorf("lookup prior attempt combos of job %d: %w", job.ID, err)
 		}
 		usedIDs := container.SetOf(job.AttemptJobID)
 		for _, sibling := range siblings {
@@ -209,13 +199,9 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 
 // restoreDeferredMatrixPlaceholder rewinds a rerun clone of a dynamic-matrix combination into the unexpanded placeholder it grew from
 func restoreDeferredMatrixPlaceholder(clone *actions_model.ActionRunJob) error {
-	var swf jobparser.SingleWorkflow
-	if err := yaml.Unmarshal(clone.DeferredMatrixPayload, &swf); err != nil {
-		return fmt.Errorf("unmarshal deferred matrix payload: %w", err)
-	}
-	_, parsed := swf.Job()
-	if parsed == nil {
-		return errors.New("deferred matrix payload contains no job")
+	_, _, parsed, err := jobparser.ParseRawSingleWorkflow(clone.DeferredMatrixPayload)
+	if err != nil {
+		return fmt.Errorf("parse deferred matrix payload: %w", err)
 	}
 	clone.Name = util.EllipsisDisplayString(parsed.Name, 255)
 	clone.WorkflowPayload = slices.Clone(clone.DeferredMatrixPayload)
