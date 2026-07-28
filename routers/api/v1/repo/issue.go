@@ -634,7 +634,7 @@ func CreateIssue(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
-		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
+		deadlineUnix, _ = common.ParseAPIDeadlineToEndOfDay(form.Deadline)
 	}
 
 	issue := &issues_model.Issue{
