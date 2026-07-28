@@ -364,7 +364,7 @@ func checkForInvalidation(ctx context.Context, requests issues_model.PullRequest
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByIDCtx: %w", err)
 	}
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("gitrepo.OpenRepository: %w", err)
 	}
@@ -959,7 +959,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = git.OpenRepository(issue.Repo)
+			gitRepo, err = git.OpenRepository(ctx, issue.Repo)
 			if err != nil {
 				log.Error("Cannot open git repository %-v for issue #%d[%d]. Error: %v", issue.Repo, issue.Index, issue.ID, err)
 				continue

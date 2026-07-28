@@ -1106,7 +1106,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		headGitRepo = ctx.Repo.GitRepo
 		closer = func() {} // no need to close the head repo because it shares the base repo
 	} else {
-		headGitRepo, err = git.OpenRepository(headRepo)
+		headGitRepo, err = git.OpenRepository(ctx, headRepo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return nil, nil

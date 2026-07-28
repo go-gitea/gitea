@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func minimalWorkflowPayload(jobID string) []byte {
@@ -257,7 +258,9 @@ jobs:
 			}
 
 			r := newJobStatusResolver(tt.jobs, nil)
-			assert.Equal(t, want, r.Resolve(ctx))
+			got, err := r.Resolve(ctx)
+			require.NoError(t, err)
+			assert.Equal(t, want, got)
 		})
 	}
 }
@@ -277,7 +280,9 @@ func Test_maxParallelConverges(t *testing.T) {
 	}
 
 	for cycle := range totalJobs + 1 {
-		for id, status := range newJobStatusResolver(jobs, nil).Resolve(ctx) {
+		updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
+		require.NoError(t, err)
+		for id, status := range updates {
 			jobs[id-1].Status = status
 		}
 		counts := statusCounts(jobs)
@@ -562,7 +567,8 @@ func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
 	}
 
 	for cycle := range 2 * len(callers) {
-		promoted := newJobStatusResolver(callers, nil).Resolve(ctx)
+		promoted, err := newJobStatusResolver(callers, nil).Resolve(ctx)
+		require.NoError(t, err)
 		for id, status := range promoted {
 			caller := idToCaller[id]
 			assert.False(t, caller.IsExpanded, "cycle %d: resolver re-promoted already-expanded caller %d", cycle, id)

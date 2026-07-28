@@ -269,7 +269,7 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 	}
 
 	matrix := make(map[string]any)
-	matrixes, err := actJob.GetMatrixes()
+	matrixes, err := matrixesOf(actJob)
 	if err != nil {
 		return "", false, err
 	}
@@ -510,7 +510,7 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 	// GetMatrixes always returns at least one element (an empty map for a job without a matrix),
 	// so only a non-empty combination should populate `matrix.*`, leaving it nil otherwise.
 	var matrix map[string]any
-	matrixes, err := actJob.GetMatrixes()
+	matrixes, err := matrixesOf(actJob)
 	if err != nil {
 		return false, err
 	}

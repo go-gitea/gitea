@@ -1476,7 +1476,7 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 		return
 	}
 
-	sourceGitRepo, err := git.OpenRepository(sourceRepo)
+	sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return
