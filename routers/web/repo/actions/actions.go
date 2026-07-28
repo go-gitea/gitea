@@ -557,6 +557,11 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 			if !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
 				continue
 			}
+			// A deferred matrix is unresolvable until its needs finish, so validating the payload
+			// now would report a valid workflow as invalid.
+			if job.IsMatrixDeferred {
+				continue
+			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
 				data.RunErrors[run.ID] = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 				break

@@ -179,6 +179,50 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	return buildMatrixCombos(jobID, job, matrixes, actJob, gitCtx, results, vars, inputs)
 }
 
+// matrixesOf is this package's only entry to act's GetMatrixes, so that every caller is covered by
+// the filter check below. A deferred placeholder is the first thing carrying a raw matrix this far,
+// and the emitter reads its `if:` before expanding it.
+// TODO: drop the check once gitea.com/gitea/runner validates the shape itself.
+func matrixesOf(job *model.Job) ([]map[string]any, error) {
+	if err := validateMatrixFilters(job); err != nil {
+		return nil, err
+	}
+	matrixes, err := job.GetMatrixes()
+	if err != nil {
+		return nil, fmt.Errorf("GetMatrixes: %w", err)
+	}
+	return matrixes, nil
+}
+
+// validateMatrixFilters rejects an `include`/`exclude` that is not a list of mappings. act asserts
+// that shape without checking, so anything else panics there; an unevaluated ${{ }} expression, which
+// is still a scalar, is the usual way to reach it.
+func validateMatrixFilters(job *model.Job) error {
+	if job.Strategy == nil || job.Strategy.RawMatrix.Kind != yaml.MappingNode {
+		return nil
+	}
+	content := job.Strategy.RawMatrix.Content
+	for i := 0; i+1 < len(content); i += 2 {
+		name, value := content[i].Value, content[i+1]
+		if name != "include" && name != "exclude" {
+			continue
+		}
+		entries := []*yaml.Node{value}
+		if value.Kind == yaml.SequenceNode {
+			entries = value.Content
+		}
+		for _, entry := range entries {
+			if entry.Kind == yaml.AliasNode {
+				entry = entry.Alias
+			}
+			if entry.Kind != yaml.MappingNode {
+				return fmt.Errorf("matrix %s must be a list of mappings", name)
+			}
+		}
+	}
+	return nil
+}
+
 // buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
 // strategy and interpolating the name, runs-on and continue-on-error with it.
 func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
@@ -233,9 +277,9 @@ type parseContext struct {
 type ParseOption func(c *parseContext)
 
 func getMatrixes(job *model.Job) ([]map[string]any, error) {
-	ret, err := job.GetMatrixes()
+	ret, err := matrixesOf(job)
 	if err != nil {
-		return nil, fmt.Errorf("GetMatrixes: %w", err)
+		return nil, err
 	}
 	sort.Slice(ret, func(i, j int) bool {
 		return matrixName(ret[i]) < matrixName(ret[j])

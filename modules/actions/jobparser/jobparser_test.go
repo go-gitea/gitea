@@ -235,3 +235,24 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 		require.ErrorContains(t, err, "exceeding the limit of 1")
 	})
 }
+
+func TestRejectsUnevaluatedMatrixFilters(t *testing.T) {
+	// act dereferences include/exclude entries as mappings without checking, so an unevaluated
+	// expression panics there. Every entry point into act's matrix expansion must reject it: Parse
+	// sees one in a workflow file and in a deferred placeholder's payload, and the emitter reads a
+	// placeholder's `if:` while its matrix is still raw.
+	for _, filter := range []string{"include", "exclude"} {
+		t.Run(filter, func(t *testing.T) {
+			_, err := Parse(fmt.Appendf(nil,
+				"name: t\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        os: [a]\n        %s: ${{ fromJson(vars.MATRIX) }}\n    steps: [{run: echo}]\n", filter))
+			require.ErrorContains(t, err, "must be a list of mappings")
+
+			var strategy Strategy
+			require.NoError(t, yaml.Unmarshal(fmt.Appendf(nil, "matrix:\n  os: [a]\n  %s: ${{ fromJson(vars.MATRIX) }}\n", filter), &strategy))
+			job := &Job{Name: "build", Strategy: strategy}
+			require.NoError(t, job.If.Encode("${{ true }}"))
+			_, err = EvaluateJobIfExpression("build", job, map[string]any{}, map[string]*JobResult{"build": {}}, nil, nil)
+			require.ErrorContains(t, err, "must be a list of mappings")
+		})
+	}
+}
