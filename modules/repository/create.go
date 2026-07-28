@@ -9,12 +9,12 @@ import (
 
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 )
 
 // UpdateRepoSize updates the repository size, calculating it using getDirectorySize
 func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
-	size, err := gitrepo.CalcRepositorySize(repo)
+	size, err := git.CalcRepositorySize(repo)
 	if err != nil {
 		return fmt.Errorf("updateSize: %w", err)
 	}

@@ -4,68 +4,15 @@
 package queue
 
 import (
-	"context"
-	"os"
-	"os/exec"
 	"testing"
-	"time"
 
-	"gitea.dev/modules/nosql"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func waitRedisReady(conn string, dur time.Duration) (ready bool) {
-	ctxTimed, cancel := context.WithTimeout(context.Background(), time.Second*5)
-	defer cancel()
-	for t := time.Now(); ; time.Sleep(50 * time.Millisecond) {
-		ret := nosql.GetManager().GetRedisClient(conn).Ping(ctxTimed)
-		if ret.Err() == nil {
-			return true
-		}
-		if time.Since(t) > dur {
-			return false
-		}
-	}
-}
-
-func redisServerCmd(t *testing.T) *exec.Cmd {
-	redisServerProg, err := exec.LookPath("redis-server")
-	if err != nil {
-		return nil
-	}
-	c := &exec.Cmd{
-		Path:   redisServerProg,
-		Args:   []string{redisServerProg, "--bind", "127.0.0.1", "--port", "6379"},
-		Dir:    t.TempDir(),
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
-	return c
-}
-
 func TestBaseRedis(t *testing.T) {
-	var redisServer *exec.Cmd
-	defer func() {
-		if redisServer != nil {
-			_ = redisServer.Process.Signal(os.Interrupt)
-			_ = redisServer.Wait()
-		}
-	}()
-	if !waitRedisReady("redis://127.0.0.1:6379/0", 0) {
-		redisServer = redisServerCmd(t)
-		if redisServer == nil && test.AllowSkipExternalService() {
-			t.Skip("redis server command not found, skipped")
-		}
-		require.NotNil(t, redisServer)
-		assert.NoError(t, redisServer.Start())
-		require.True(t, waitRedisReady("redis://127.0.0.1:6379/0", 5*time.Second), "start redis-server")
-	}
-
-	testQueueBasic(t, newBaseRedisSimple, toBaseConfig("baseRedis", setting.QueueSettings{Length: 10}), false)
-	testQueueBasic(t, newBaseRedisUnique, toBaseConfig("baseRedisUnique", setting.QueueSettings{Length: 10}), true)
+	redisConn := test.PrepareTestRedis(t)
+	queueSetting := setting.QueueSettings{Length: 10, ConnStr: redisConn}
+	testQueueBasic(t, newBaseRedisSimple, toBaseConfig("baseRedis", queueSetting), false)
+	testQueueBasic(t, newBaseRedisUnique, toBaseConfig("baseRedisUnique", queueSetting), true)
 }

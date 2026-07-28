@@ -37,10 +37,22 @@ func InsertActionRunJob(ctx context.Context, job *ActionRunJob) error {
 	return InsertActionRunJobLabels(ctx, job.ID, job.RunsOn)
 }
 
+// InsertActionRunJobs inserts jobs together with their runs_on label rows. Same
+// contract as InsertActionRunJob, for the batch insert sites. The jobs are inserted
+// one by one rather than as a single multi-row statement, which does not assign the
+// ids back and so leaves nothing to key the label rows on.
+func InsertActionRunJobs(ctx context.Context, jobs []*ActionRunJob) error {
+	for _, job := range jobs {
+		if err := InsertActionRunJob(ctx, job); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // InsertActionRunJobLabels persists the runs_on labels of a freshly inserted job
 // so it becomes matchable by the SQL assignment query. It must be called in the
-// same transaction as the job insert. runs_on is immutable after creation, so
-// labels never need updating afterwards.
+// same transaction as the job insert.
 func InsertActionRunJobLabels(ctx context.Context, jobID int64, runsOn []string) error {
 	// FilterSlice drops empty labels and deduplicates by label, so the UNIQUE(job_label) constraint holds.
 	labels := container.FilterSlice(runsOn, func(label string) (ActionRunJobLabel, bool) {
@@ -50,6 +62,18 @@ func InsertActionRunJobLabels(ctx context.Context, jobID int64, runsOn []string)
 		return nil
 	}
 	return db.Insert(ctx, &labels)
+}
+
+// ReplaceActionRunJobLabels re-syncs a job's label rows after its runs_on changed.
+// Deferred-matrix expansion rewrites runs_on in place (the placeholder is inserted
+// with the raw, unevaluated matrix labels), so its stale rows must be replaced or
+// the job would be matched against labels it no longer requires. It must run in the
+// same transaction as the runs_on update.
+func ReplaceActionRunJobLabels(ctx context.Context, jobID int64, runsOn []string) error {
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"job_id": jobID}).Delete(new(ActionRunJobLabel)); err != nil {
+		return err
+	}
+	return InsertActionRunJobLabels(ctx, jobID, runsOn)
 }
 
 // DeleteActionRunJobLabelsByRunID removes label rows for all jobs of a run.
@@ -71,8 +95,14 @@ func deleteActionRunJobLabels(ctx context.Context, repoID, runID int64) error {
 	if runID != 0 {
 		jobWhere = jobWhere.And(builder.Eq{"run_id": runID})
 	}
+	return deleteActionRunJobLabelsByJobCond(ctx, jobWhere)
+}
+
+// deleteActionRunJobLabelsByJobCond removes the label rows of every job matching
+// jobCond. It must run before those jobs are deleted so the subquery can resolve.
+func deleteActionRunJobLabelsByJobCond(ctx context.Context, jobCond builder.Cond) error {
 	_, err := db.GetEngine(ctx).Where(
-		builder.In("job_id", builder.Select("id").From("action_run_job").Where(jobWhere)),
+		builder.In("job_id", builder.Select("id").From("action_run_job").Where(jobCond)),
 	).Delete(new(ActionRunJobLabel))
 	return err
 }
