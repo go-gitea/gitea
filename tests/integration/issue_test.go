@@ -578,7 +578,8 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
+	// user1 is site admin; only issues in accessible repos are returned (#27258)
+	expectedIssueCount := min(15, setting.UI.IssuePagingNum)
 
 	session := loginUser(t, "user1")
 	link, _ := url.Parse("/issues/search")

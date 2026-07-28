@@ -39,15 +39,20 @@ func TestOrg(t *testing.T) {
 }
 
 func testOrgRepos(t *testing.T) {
-	var (
-		users = []string{"user1", "user2"}
-		cases = map[string][]string{
+	// user1 is site admin but not an org3 member — only public repos (#27258).
+	// user2 is an org3 member and still sees private org repos.
+	casesByUser := map[string]map[string][]string{
+		"user1": {
+			"alphabetically":        {"repo21"},
+			"reversealphabetically": {"repo21"},
+		},
+		"user2": {
 			"alphabetically":        {"repo21", "repo3", "repo5"},
 			"reversealphabetically": {"repo5", "repo3", "repo21"},
-		}
-	)
+		},
+	}
 
-	for _, user := range users {
+	for user, cases := range casesByUser {
 		t.Run(user, func(t *testing.T) {
 			session := loginUser(t, user)
 			for sortBy, repos := range cases {
