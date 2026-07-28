@@ -410,6 +410,25 @@ func TestAPILFSUpload(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 
+	t.Run("ConcurrentFailureKeepsExistingMeta", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// A concurrent upload of the same object already succeeded and created the meta
+		// object; a later failing upload must not delete it, or the stored content becomes
+		// unreachable and every download returns 404.
+		p := lfs.Pointer{Oid: "4221a0fc3dfbfd830dc3a13f6c72d233781179bea27df532ff903f3abdba5586", Size: 6}
+		_, err := git_model.NewLFSMetaObject(t.Context(), repo.ID, p)
+		require.NoError(t, err)
+		defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
+
+		req := newRequest(t, p, "loser1") // same size, different content: the upload fails
+		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+		meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
+		assert.NoError(t, err)
+		assert.NotNil(t, meta)
+	})
+
 	t.Run("Success", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
