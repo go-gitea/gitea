@@ -5,6 +5,7 @@ package integration
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -22,9 +24,10 @@ import (
 
 // TestDynamicMatrixEvaluation covers a job whose matrix references ${{ needs.*.outputs.* }}: it is
 // planned as a single placeholder and expanded once its dependency completes. `build` exercises the
-// expansion, `report` that a downstream job sees the combinations' outputs, and `gated` that a job
-// the `if:` skips is never expanded and never dispatched. A full rerun then re-derives the matrix
-// from the new attempt's outputs instead of reusing the previous combinations.
+// expansion, `report` that a downstream job sees the combinations' outputs, `gated` and `partial` the
+// `if:` gates on either side of it, and `static` that a matrix expanded at plan time is left alone.
+// A full rerun then re-derives the matrix from the new attempt's outputs instead of reusing the
+// previous combinations, keeping the AttemptJobID of every combination that recurs.
 func TestDynamicMatrixEvaluation(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -58,9 +61,26 @@ jobs:
     steps:
       - id: out
         run: echo "result=built-${{ matrix.value }}" >> "$GITHUB_OUTPUT"
+  static:
+    needs: [generate]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [a, b]
+    steps:
+      - run: echo "${{ matrix.os }}"
   gated:
     needs: [generate]
     if: false
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        value: ${{ fromJson(needs.generate.outputs.matrix) }}
+    steps:
+      - run: echo "${{ matrix.value }}"
+  partial:
+    needs: [generate]
+    if: ${{ matrix.value != 1 }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -84,32 +104,41 @@ jobs:
 			outputs: map[string]string{"matrix": "[1,2]"},
 		})
 
-		// The placeholder expands into one task per value, each named after its combination.
-		seen := make([]string, 0, 2)
-		firstAttemptIDs := make(map[string]int64, 2)
-		for range 2 {
-			task := runner.fetchTask(t, 10*time.Second)
-			_, taskJob, _ := getTaskAndJobAndRunByTaskID(t, task.Id)
-			seen = append(seen, taskJob.Name)
-			firstAttemptIDs[taskJob.Name] = taskJob.AttemptJobID
-			value := strings.TrimSuffix(strings.TrimPrefix(taskJob.Name, "build ("), ")")
-			runner.execTask(t, task, &mockTaskOutcome{
-				result:  runnerv1.Result_RESULT_SUCCESS,
-				outputs: map[string]string{"result": "built-" + value},
-			})
+		// execAttempt runs the attempt's remaining tasks, recording each job's name and AttemptJobID(order is not fixed).
+		attemptJobIDs := map[string]int64{}
+		var reportTask *runnerv1.Task
+		execAttempt := func(t *testing.T, count int) []string {
+			names := make([]string, 0, count)
+			for range count {
+				task := runner.fetchTask(t, 10*time.Second)
+				_, taskJob, _ := getTaskAndJobAndRunByTaskID(t, task.Id)
+				names = append(names, taskJob.Name)
+				attemptJobIDs[taskJob.Name] = taskJob.AttemptJobID
+				outcome := &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS}
+				if value, ok := strings.CutPrefix(taskJob.Name, "build ("); ok {
+					outcome.outputs = map[string]string{"result": "built-" + strings.TrimSuffix(value, ")")}
+				}
+				if taskJob.JobID == "report" {
+					reportTask = task
+				}
+				runner.execTask(t, task, outcome)
+			}
+			runner.fetchNoTask(t, 300*time.Millisecond)
+			return names
 		}
-		assert.ElementsMatch(t, []string{"build (1)", "build (2)"}, seen)
 
-		reportTask := runner.fetchTask(t, 10*time.Second)
-		require.Equal(t, "report", getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, reportTask.Id))
+		seen := execAttempt(t, 6)
+		firstAttemptIDs := maps.Clone(attemptJobIDs)
+		//  `gated` is decided before the matrix is touched, so it never expands and is skipped as one job；
+		//  `partial (1)` is decided afterwards, against its own combination.
+		assert.ElementsMatch(t, []string{"build (1)", "build (2)", "static (a)", "static (b)", "partial (2)", "report"}, seen)
+		skipped := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, Name: "partial (1)"})
+		assert.Equal(t, actions_model.StatusSkipped, skipped.Status)
+
 		buildNeed, ok := reportTask.Needs["build"]
 		require.True(t, ok, "report must see the expanded combinations as its 'build' need")
 		assert.Equal(t, runnerv1.Result_RESULT_SUCCESS, buildNeed.Result)
 		assert.Contains(t, []string{"built-1", "built-2"}, buildNeed.Outputs["result"])
-		runner.execTask(t, reportTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-
-		// `if: false` is decided before the matrix is touched, so `gated` is skipped as one job.
-		runner.fetchNoTask(t, 300*time.Millisecond)
 
 		// Re-running the whole run collapses the combinations back into a placeholder and re-derives
 		// the matrix from the new attempt's outputs instead of reusing the previous combinations.
@@ -124,25 +153,13 @@ jobs:
 			outputs: map[string]string{"matrix": "[1,2,3]"},
 		})
 
-		seenRerun := make([]string, 0, 3)
-		for range 3 {
-			task := runner.fetchTask(t, 10*time.Second)
-			_, taskJob, _ := getTaskAndJobAndRunByTaskID(t, task.Id)
-			seenRerun = append(seenRerun, taskJob.Name)
-			if firstID, ok := firstAttemptIDs[taskJob.Name]; ok {
-				assert.Equal(t, firstID, taskJob.AttemptJobID, "recurring combinations keep their AttemptJobID across attempts")
-			}
-			value := strings.TrimSuffix(strings.TrimPrefix(taskJob.Name, "build ("), ")")
-			runner.execTask(t, task, &mockTaskOutcome{
-				result:  runnerv1.Result_RESULT_SUCCESS,
-				outputs: map[string]string{"result": "built-" + value},
-			})
+		// The matrix now yields a third value, while `static` is cloned as-is rather than collapsed.
+		seenRerun := execAttempt(t, 8)
+		assert.ElementsMatch(t, []string{
+			"build (1)", "build (2)", "build (3)", "static (a)", "static (b)", "partial (2)", "partial (3)", "report",
+		}, seenRerun)
+		for name, firstID := range firstAttemptIDs {
+			assert.Equal(t, firstID, attemptJobIDs[name], "%s keeps its AttemptJobID across attempts", name)
 		}
-		assert.ElementsMatch(t, []string{"build (1)", "build (2)", "build (3)"}, seenRerun)
-
-		reportTask2 := runner.fetchTask(t, 10*time.Second)
-		require.Equal(t, "report", getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, reportTask2.Id))
-		runner.execTask(t, reportTask2, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-		runner.fetchNoTask(t, 300*time.Millisecond)
 	})
 }
