@@ -258,29 +258,52 @@ type CommentMetaData struct {
 }
 
 type projectWorkflowDoer struct {
+	// user is the same *User this ExtDoerData is attached to (see
+	// NewProjectWorkflowDoer): GetDoerUserID reads .ID off it directly instead of
+	// keeping a second, independently-stale copy of the ID around.
+	user                 *user_model.User
 	projectTitle         string
 	projectWorkflowID    int64
 	projectWorkflowEvent project_model.WorkflowEvent
 }
 
 func (p projectWorkflowDoer) GetDoerUserID() int64 {
-	return user_model.ProjectWorkflowUserID
+	return p.user.ID
 }
 
-func NewProjectWorkflowDoer(title string, workflowID int64, workflowEvent project_model.WorkflowEvent) *user_model.User {
-	// NewProjectWorkflowUser gives the doer its own dedicated ID/Name/FullName
-	// (see models/user/user_system.go), so it doesn't collide with GhostUserID
-	// and isn't left half-built for notifiers other than comments/feed.
-	doer := user_model.NewProjectWorkflowUser()
+// NewProjectWorkflowDoer returns triggeringUser (the real user whose action fired
+// the workflow: whoever closed the issue, moved the card, merged the PR, etc.)
+// tagged with ExtDoerData, so poster_id/doer.ID for every comment and notifier
+// call stays a genuine user - exactly how SpecialDoerNameCodeOwners attributes
+// automated review requests to issue.Poster instead of inventing an identity.
+// ExtDoerData/CommentMetaData is what records that the action was automated;
+// see MetaSpecialDoerTr and IsProjectWorkflowDoer.
+//
+// A copy of triggeringUser is returned, not the original pointer: the same
+// *User is frequently ctx.Doer, reused for later, genuinely user-initiated
+// actions in the same request, which must NOT carry this ExtDoerData.
+//
+// Callers must pass a non-nil triggeringUser: every event this can fire for has
+// a real triggering user available (see services/projects/workflow_notifier.go:
+// doer, issue.Poster, or review.Reviewer). There is deliberately no synthetic
+// fallback identity here, mirroring SpecialDoerNameCodeOwners where poster_id is
+// always a genuine user. executeWorkflowActions checks for nil and skips the
+// workflow entirely before ever calling this, so a nil triggeringUser reaching
+// here would be a caller bug.
+func NewProjectWorkflowDoer(triggeringUser *user_model.User, title string, workflowID int64, workflowEvent project_model.WorkflowEvent) *user_model.User {
+	doer := *triggeringUser
 	doer.ExtDoerData = &projectWorkflowDoer{
+		user:                 &doer,
 		projectTitle:         title,
 		projectWorkflowID:    workflowID,
 		projectWorkflowEvent: workflowEvent,
 	}
-	return doer
+	return &doer
 }
 
-// IsProjectWorkflowDoer reports whether the doer is the virtual project workflow actor.
+// IsProjectWorkflowDoer reports whether doer is a real user tagged with
+// ExtDoerData because their action triggered a project workflow (see
+// NewProjectWorkflowDoer) - it is NOT a virtual/synthetic actor.
 func IsProjectWorkflowDoer(doer *user_model.User) bool {
 	if doer == nil {
 		return false

@@ -36,8 +36,6 @@ func GetPossibleUserFromMap(userID int64, usererMaps map[int64]*User) *User {
 		return NewGhostUser()
 	case ActionsUserID:
 		return NewActionsUser()
-	case ProjectWorkflowUserID:
-		return NewProjectWorkflowUser()
 	case 0:
 		return nil
 	default:

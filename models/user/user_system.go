@@ -33,35 +33,6 @@ func (u *User) IsGhost() bool {
 }
 
 const (
-	// ProjectWorkflowUserID must NOT be GhostUserID (-1): comments created by a
-	// project workflow action store this as PosterID, and GetPossibleUserFromMap/
-	// GetPossibleUserByID special-case GhostUserID, so reusing it made every
-	// workflow-generated comment indistinguishable from one left by a deleted user.
-	ProjectWorkflowUserID   int64 = -3
-	ProjectWorkflowDoerName       = "gitea-project-workflow"
-)
-
-// NewProjectWorkflowUser creates and returns the virtual actor used when a
-// project workflow action (e.g. closing an issue, changing labels) is performed
-// on behalf of a project rather than a real user.
-func NewProjectWorkflowUser() *User {
-	return &User{
-		ID:         ProjectWorkflowUserID,
-		Name:       ProjectWorkflowDoerName,
-		LowerName:  ProjectWorkflowDoerName,
-		FullName:   "Gitea Project Workflow",
-		IsActive:   true,
-		Type:       UserTypeBot,
-		Visibility: structs.VisibleTypePublic,
-	}
-}
-
-// IsProjectWorkflowUser check if user is the virtual actor for project workflow actions
-func (u *User) IsProjectWorkflowUser() bool {
-	return u != nil && u.ID == ProjectWorkflowUserID
-}
-
-const (
 	ActionsUserID    int64 = -2
 	ActionsUserName        = "gitea-actions"
 	ActionsUserEmail       = "teabot@gitea.io"
@@ -116,9 +87,6 @@ func GetSystemUserByName(name string) *User {
 	}
 	if strings.EqualFold(name, ActionsUserName) {
 		return NewActionsUser()
-	}
-	if strings.EqualFold(name, ProjectWorkflowDoerName) {
-		return NewProjectWorkflowUser()
 	}
 	return nil
 }

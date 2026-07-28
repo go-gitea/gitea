@@ -578,9 +578,8 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		emailRegexp: regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"),
 
 		systemUserNewFuncs: map[int64]func() *User{
-			GhostUserID:           NewGhostUser,
-			ActionsUserID:         NewActionsUser,
-			ProjectWorkflowUserID: NewProjectWorkflowUser,
+			GhostUserID:   NewGhostUser,
+			ActionsUserID: NewActionsUser,
 		},
 	}
 })
@@ -634,9 +633,8 @@ var (
 		"swagger.v1.json",
 		"openapi3.v1.json",
 
-		"ghost",                 // reserved name for deleted users (id: -1)
-		"gitea-actions",         // gitea builtin user (id: -2)
-		ProjectWorkflowDoerName, // virtual actor for project workflow actions (id: -3)
+		"ghost",         // reserved name for deleted users (id: -1)
+		"gitea-actions", // gitea builtin user (id: -2)
 	}
 
 	// These names are reserved for user accounts: user's keys, user's rss feed, user's avatar, etc.

@@ -47,7 +47,12 @@ func TestBuildCreateCommentMetaData(t *testing.T) {
 		wfEvent   = project_model.WorkflowEventItemOpened
 		projTitle = "Kanban"
 	)
-	workflowDoer := NewProjectWorkflowDoer(projTitle, wfID, wfEvent)
+	triggeringUser := &user_model.User{ID: 7, Name: "alice"}
+	workflowDoer := NewProjectWorkflowDoer(triggeringUser, projTitle, wfID, wfEvent)
+	// the doer's identity must stay the real triggering user, not a synthetic one
+	// (mirrors SpecialDoerNameCodeOwners, where poster_id is also a real user)
+	assert.Equal(t, triggeringUser.ID, workflowDoer.ID)
+	assert.Equal(t, triggeringUser.Name, workflowDoer.Name)
 	meta = buildCreateCommentMetaData(&CreateCommentOptions{Doer: workflowDoer})
 	assert.NotNil(t, meta)
 	assert.Equal(t, SpecialDoerNameProjectWorkflow, meta.SpecialDoerName)

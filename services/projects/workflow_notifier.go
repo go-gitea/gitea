@@ -47,6 +47,14 @@ func (m *workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Iss
 		return
 	}
 
+	// No doer is passed for this event; the item's own poster is who triggered
+	// it, mirroring how SpecialDoerNameCodeOwners attributes automated review
+	// requests to issue.Poster rather than inventing an identity.
+	if err := issue.LoadPoster(ctx); err != nil {
+		log.Error("NewIssue: LoadPoster: %v", err)
+		return
+	}
+
 	for _, project := range issue.Projects {
 		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
 		if err != nil {
@@ -57,7 +65,7 @@ func (m *workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Iss
 		// Find workflows for the ItemOpened event
 		for _, workflow := range workflows {
 			if workflow.WorkflowEvent == project_model.WorkflowEventItemOpened {
-				fireIssueWorkflow(ctx, workflow, issue, project.ID, 0, 0)
+				fireIssueWorkflow(ctx, workflow, issue, issue.Poster, project.ID, 0, 0)
 			}
 		}
 	}
@@ -101,7 +109,7 @@ func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_mod
 		// Find workflows for the specific event
 		for _, workflow := range workflows {
 			if workflow.WorkflowEvent == workflowEvent {
-				fireIssueWorkflow(ctx, workflow, issue, project.ID, 0, 0)
+				fireIssueWorkflow(ctx, workflow, issue, doer, project.ID, 0, 0)
 			}
 		}
 	}
@@ -158,7 +166,7 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 		// Find workflows for the ItemRemovedFromProject event
 		for _, workflow := range workflows {
 			if workflow.WorkflowEvent == project_model.WorkflowEventItemRemovedFromProject {
-				fireIssueWorkflow(ctx, workflow, issue, removedProjectID, 0, 0)
+				fireIssueWorkflow(ctx, workflow, issue, doer, removedProjectID, 0, 0)
 			}
 		}
 	}
@@ -173,7 +181,7 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 		// Find workflows for the ItemOpened event
 		for _, workflow := range workflows {
 			if workflow.WorkflowEvent == project_model.WorkflowEventItemAddedToProject {
-				fireIssueWorkflow(ctx, workflow, issue, newProject.ID, 0, 0)
+				fireIssueWorkflow(ctx, workflow, issue, doer, newProject.ID, 0, 0)
 			}
 		}
 	}
@@ -258,7 +266,7 @@ func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *use
 	// Find workflows for the ItemColumnChanged event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventItemColumnChanged {
-			fireIssueWorkflow(ctx, workflow, issue, oldColumn.ProjectID, oldColumnID, newColumnID)
+			fireIssueWorkflow(ctx, workflow, issue, doer, oldColumn.ProjectID, oldColumnID, newColumnID)
 		}
 	}
 }
@@ -296,7 +304,7 @@ func (*workflowNotifier) MergePullRequest(ctx context.Context, doer *user_model.
 		// Find workflows for the PullRequestMerged event
 		for _, workflow := range workflows {
 			if workflow.WorkflowEvent == project_model.WorkflowEventPullRequestMerged {
-				fireIssueWorkflow(ctx, workflow, issue, project.ID, 0, 0)
+				fireIssueWorkflow(ctx, workflow, issue, doer, project.ID, 0, 0)
 			}
 		}
 	}
@@ -329,6 +337,19 @@ func (*workflowNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 		return
 	}
 
+	// The reviewer is who triggered this event. review.Reviewer is only nil for
+	// a team review request, which doesn't apply to CodeChangesRequested/
+	// CodeReviewApproved (those always have an individual Reviewer); fall back
+	// to issue.Poster defensively, the same fallback NewIssue uses.
+	triggeringUser := review.Reviewer
+	if triggeringUser == nil {
+		if err := issue.LoadPoster(ctx); err != nil {
+			log.Error("PullRequestReview: LoadPoster: %v", err)
+			return
+		}
+		triggeringUser = issue.Poster
+	}
+
 	for _, project := range issue.Projects {
 		workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
 		if err != nil {
@@ -340,13 +361,13 @@ func (*workflowNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 		for _, workflow := range workflows {
 			if (workflow.WorkflowEvent == project_model.WorkflowEventCodeChangesRequested && review.Type == issues_model.ReviewTypeReject) ||
 				(workflow.WorkflowEvent == project_model.WorkflowEventCodeReviewApproved && review.Type == issues_model.ReviewTypeApprove) {
-				fireIssueWorkflow(ctx, workflow, issue, project.ID, 0, 0)
+				fireIssueWorkflow(ctx, workflow, issue, triggeringUser, project.ID, 0, 0)
 			}
 		}
 	}
 }
 
-func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, projectID, sourceColumnID, targetColumnID int64) {
+func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, triggeringUser *user_model.User, projectID, sourceColumnID, targetColumnID int64) {
 	if !workflow.Enabled {
 		return
 	}
@@ -361,7 +382,7 @@ func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, is
 		return
 	}
 
-	executeWorkflowActions(ctx, workflow, issue, projectID)
+	executeWorkflowActions(ctx, workflow, issue, triggeringUser, projectID)
 }
 
 // matchWorkflowsFilters checks if the issue matches all filters of the workflow.
@@ -497,7 +518,17 @@ func resolveWorkflowActionLabel(ctx context.Context, workflow *project_model.Wor
 	return label
 }
 
-func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, projectID int64) {
+func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, triggeringUser *user_model.User, projectID int64) {
+	if triggeringUser == nil {
+		// Every event this can fire for resolves a real triggering user before
+		// reaching here (see the notifier methods above: doer, issue.Poster, or
+		// review.Reviewer). A nil triggeringUser would be a caller bug; skip the
+		// workflow entirely here rather than half-applying it or crashing inside
+		// NewProjectWorkflowDoer/CreateComment.
+		log.Error("executeWorkflowActions: triggeringUser is nil, skipping workflow %d", workflow.ID)
+		return
+	}
+
 	if err := workflow.LoadProject(ctx); err != nil {
 		log.Error("LoadProject: %v", err)
 	}
@@ -507,7 +538,10 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 		title = workflow.Project.Title
 	}
 
-	doer := issues_model.NewProjectWorkflowDoer(title, workflow.ID, workflow.WorkflowEvent)
+	// poster_id for every comment these actions create stays the real user whose
+	// action triggered the workflow (mirrors SpecialDoerNameCodeOwners); the fact
+	// that it was automated lives only in ExtDoerData/CommentMetaData below.
+	doer := issues_model.NewProjectWorkflowDoer(triggeringUser, title, workflow.ID, workflow.WorkflowEvent)
 	var toAddedLabels, toRemovedLabels []*issues_model.Label
 
 	for _, action := range workflow.WorkflowActions {

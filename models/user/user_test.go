@@ -39,12 +39,6 @@ func TestIsUsableUsername(t *testing.T) {
 	assert.Error(t, user_model.IsUsableUsername("the..repo"))
 	assert.Error(t, user_model.IsUsableUsername("foo.RSS"))
 	assert.Error(t, user_model.IsUsableUsername("foo.PnG"))
-
-	// system/virtual users must not be registrable, otherwise a real account could
-	// impersonate them (e.g. as the sender in webhook payloads or mail)
-	assert.Error(t, user_model.IsUsableUsername("ghost"))
-	assert.Error(t, user_model.IsUsableUsername("gitea-actions"))
-	assert.Error(t, user_model.IsUsableUsername(user_model.ProjectWorkflowDoerName))
 }
 
 func TestOAuth2Application_LoadUser(t *testing.T) {

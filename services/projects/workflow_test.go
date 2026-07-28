@@ -11,6 +11,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
@@ -67,11 +68,14 @@ func TestIssueChangeProjectColumnDefaultColumnAsSource(t *testing.T) {
 	}))
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	triggeringUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// oldColumnID=0 mirrors what MoveIssuesOnProjectColumn passes when a card is
 	// dragged out of the project's default/unassigned column, newColumnID=2 is
-	// project 1's "In Progress" column.
-	(&workflowNotifier{}).IssueChangeProjectColumn(ctx, nil, issue, 0, 2)
+	// project 1's "In Progress" column. The doer is a real user (whoever moved
+	// the card), never nil in production - MoveIssuesOnProjectColumn/
+	// MoveIssueToAnotherColumn only ever run for an authenticated actor.
+	(&workflowNotifier{}).IssueChangeProjectColumn(ctx, triggeringUser, issue, 0, 2)
 
 	hasLabel := false
 	for _, label := range issue.Labels {
@@ -106,14 +110,80 @@ func TestIssueChangeProjectColumnNoOpWithinDefaultColumn(t *testing.T) {
 	}))
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	triggeringUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// oldColumnID=0 resolves to column 1 (project 1's default column), and
 	// newColumnID=1 is that same column, so this must be a no-op.
-	(&workflowNotifier{}).IssueChangeProjectColumn(ctx, nil, issue, 0, 1)
+	(&workflowNotifier{}).IssueChangeProjectColumn(ctx, triggeringUser, issue, 0, 1)
 
 	require.NoError(t, issue.LoadLabels(ctx))
 	for _, label := range issue.Labels {
 		assert.NotEqual(t, int64(2), label.ID, "item_column_changed workflow must not fire for a no-op move within the default column")
+	}
+}
+
+// TestIssueChangeProjectColumnSkipsWorkflowDoer confirms the recursion guard
+// (IsProjectWorkflowDoer) still works after the doer stopped being a synthetic
+// user: NewProjectWorkflowDoer now wraps a real triggering user, so the guard
+// must keep working via the ExtDoerData type assertion alone, regardless of
+// whose real ID/Name the wrapped doer carries.
+func TestIssueChangeProjectColumnSkipsWorkflowDoer(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	require.NoError(t, project_model.CreateWorkflow(ctx, &project_model.Workflow{
+		ProjectID:     1,
+		WorkflowEvent: project_model.WorkflowEventItemColumnChanged,
+		Enabled:       true,
+		WorkflowActions: []project_model.WorkflowAction{
+			{Type: project_model.WorkflowActionTypeAddLabels, Value: "2"},
+		},
+	}))
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	realUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	workflowDoer := issues_model.NewProjectWorkflowDoer(realUser, "Some Project", 1, project_model.WorkflowEventItemColumnChanged)
+	require.True(t, issues_model.IsProjectWorkflowDoer(workflowDoer))
+
+	// Same move as TestIssueChangeProjectColumnDefaultColumnAsSource (which does
+	// fire the workflow for a real, non-workflow doer), but here the doer is
+	// itself a workflow doer, so this must be a no-op to prevent cascade loops.
+	(&workflowNotifier{}).IssueChangeProjectColumn(ctx, workflowDoer, issue, 0, 2)
+
+	require.NoError(t, issue.LoadLabels(ctx))
+	for _, label := range issue.Labels {
+		assert.NotEqual(t, int64(2), label.ID, "a workflow doer must never trigger another workflow")
+	}
+}
+
+// TestExecuteWorkflowActionsNilTriggeringUser confirms that a nil triggeringUser
+// (a caller bug in this file - every real notifier method resolves a real
+// triggering user before reaching here) skips the workflow's actions entirely,
+// rather than crashing (a bare nil-pointer dereference used to happen inside
+// NewProjectWorkflowDoer/CreateComment) or half-applying some actions.
+func TestExecuteWorkflowActionsNilTriggeringUser(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	workflow := &project_model.Workflow{
+		ProjectID:     1,
+		WorkflowEvent: project_model.WorkflowEventItemOpened,
+		Enabled:       true,
+		WorkflowActions: []project_model.WorkflowAction{
+			{Type: project_model.WorkflowActionTypeAddLabels, Value: "2"},
+		},
+	}
+	require.NoError(t, project_model.CreateWorkflow(ctx, workflow))
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+
+	assert.NotPanics(t, func() {
+		executeWorkflowActions(ctx, workflow, issue, nil, 1)
+	})
+
+	require.NoError(t, issue.LoadLabels(ctx))
+	for _, label := range issue.Labels {
+		assert.NotEqual(t, int64(2), label.ID, "a nil triggering user must skip the workflow's actions entirely")
 	}
 }
 

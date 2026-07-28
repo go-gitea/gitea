@@ -4,6 +4,7 @@
 package feed
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -53,13 +54,18 @@ func TestRenameRepoAction(t *testing.T) {
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
 
-// TestIssueChangeStatusByWorkflowDoerNoFeedEntry verifies that when a project
-// workflow (a virtual doer with ExtDoerData set) closes or reopens an issue,
-// NO feed action is created. Without the guard the feed would show "Ghost"
-// because the workflow doer's ID (-1) equals GhostUserID.
-func TestIssueChangeStatusByWorkflowDoerNoFeedEntry(t *testing.T) {
+// TestIssueChangeStatusByWorkflowDoerAttributesToTriggeringUser verifies that
+// when a project workflow closes or reopens an issue, the feed action is
+// attributed to the REAL user whose action triggered the workflow (see
+// issues_model.NewProjectWorkflowDoer), and is recorded like any other
+// IssueChangeStatus - exactly as an issue auto-closed by a commit message
+// (services/issue/commit.go) is attributed to the pushing user, feed entry
+// included. ExtDoerData/CommentMetaData is what records this was automated;
+// it is not a reason to hide the action from the feed.
+func TestIssueChangeStatusByWorkflowDoerAttributesToTriggeringUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	triggeringUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	assert.NoError(t, issue.LoadRepo(t.Context()))
 
@@ -70,14 +76,23 @@ func TestIssueChangeStatusByWorkflowDoerNoFeedEntry(t *testing.T) {
 		IssueID: issue.ID,
 	}
 
-	workflowDoer := issues_model.NewProjectWorkflowDoer("My Project", 1, project_model.WorkflowEventItemClosed)
+	workflowDoer := issues_model.NewProjectWorkflowDoer(triggeringUser, "My Project", 1, project_model.WorkflowEventItemClosed)
+	assert.True(t, issues_model.IsProjectWorkflowDoer(workflowDoer), "sanity check: doer must still be recognized as a workflow doer")
+	assert.Equal(t, triggeringUser.ID, workflowDoer.ID, "the doer's identity must be the real triggering user")
 
-	// Count actions before the call.
-	countBefore := unittest.GetCount(t, &activities_model.Action{})
+	actionBean := &activities_model.Action{
+		OpType:    activities_model.ActionCloseIssue,
+		ActUserID: triggeringUser.ID,
+		ActUser:   triggeringUser,
+		Content:   fmt.Sprintf("%d|%s", issue.Index, ""),
+		RepoID:    issue.Repo.ID,
+		Repo:      issue.Repo,
+		CommentID: closeComment.ID,
+		IsPrivate: issue.Repo.IsPrivate,
+	}
+	unittest.AssertNotExistsBean(t, actionBean)
 
 	NewNotifier().IssueChangeStatus(t.Context(), workflowDoer, "", issue, closeComment, true)
 
-	// No new action must have been recorded.
-	countAfter := unittest.GetCount(t, &activities_model.Action{})
-	assert.Equal(t, countBefore, countAfter, "workflow doer must not produce a feed entry")
+	unittest.AssertExistsAndLoadBean(t, actionBean)
 }
