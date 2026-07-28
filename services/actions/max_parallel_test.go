@@ -188,7 +188,9 @@ func Test_jobStatusResolver_MaxParallelStarvedSkipsConcurrency(t *testing.T) {
 	for _, job := range jobs {
 		job.Run = run
 	}
-	assert.Empty(t, newJobStatusResolver(jobs, nil).Resolve(t.Context()), "the starved job must stay blocked")
+	updates, err := newJobStatusResolver(jobs, nil).Resolve(t.Context())
+	assert.NoError(t, err)
+	assert.Empty(t, updates, "the starved job must stay blocked")
 
 	holder = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: holder.ID})
 	assert.Equal(t, actions_model.StatusRunning, holder.Status)

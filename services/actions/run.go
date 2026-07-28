@@ -186,6 +186,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt *actions_model.ActionRunAttempt, workflowJob *jobparser.SingleWorkflow, vars map[string]string, inputs map[string]any, slots maxParallelSlots) (*actions_model.ActionRunJob, []*actions_model.ActionRunJob, bool, error) {
 	id, job := workflowJob.Job()
 	needs := job.Needs()
+	isMatrixDeferred := jobparser.HasDeferredMatrix(job)
 	if err := workflowJob.SetJob(id, job.EraseNeeds()); err != nil {
 		return nil, nil, false, err
 	}
@@ -218,7 +219,12 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		WorkflowSourceRepoID:    run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 		ContinueOnError:         job.GetContinueOnError(),
+		IsMatrixDeferred:        isMatrixDeferred,
 		MaxParallel:             parseMaxParallel(id, job.Strategy.MaxParallelString),
+	}
+	if isMatrixDeferred {
+		// Expansion overwrites WorkflowPayload; keep the raw payload so a rerun can re-derive the matrix.
+		runJob.DeferredMatrixPayload = payload
 	}
 	// Parse workflow/job permissions (no clamping here)
 	if perms := ExtractJobPermissionsFromWorkflow(workflowJob, job); perms != nil {
