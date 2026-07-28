@@ -7,8 +7,10 @@ import (
 	"time"
 )
 
-// Project represents a project. Projects track issues and pull requests;
-// standalone note cards are not supported.
+// Project represents a project.
+//
+// Projects track issues and pull requests; standalone note cards are not supported.
+//
 // swagger:model
 type Project struct {
 	ID          int64     `json:"id"`
