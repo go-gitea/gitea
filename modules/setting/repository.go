@@ -41,6 +41,7 @@ var (
 		UserMaxCreationLimit                    int
 		OrgMaxCreationLimit                     int
 		PreferredLicenses                       []string
+		UseLegacyLicenseFormat                  bool
 		DisableHTTPGit                          bool
 		AccessControlAllowOrigin                string
 		UseCompatSSHURI                         bool
@@ -171,6 +172,7 @@ var (
 		UserMaxCreationLimit:                    -1,
 		OrgMaxCreationLimit:                     -1,
 		PreferredLicenses:                       []string{"Apache License 2.0", "MIT License"},
+		UseLegacyLicenseFormat:                  false,
 		DisableHTTPGit:                          false,
 		AccessControlAllowOrigin:                "",
 		UseCompatSSHURI:                         false,

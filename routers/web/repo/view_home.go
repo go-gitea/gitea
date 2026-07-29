@@ -123,14 +123,36 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 	}
 }
 
+type licenseGroup struct {
+	Path     string
+	Licenses []string
+}
+
 func prepareHomeSidebarLicenses(ctx *context.Context) {
-	repoLicenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
+	repoLicenses, err := repo_model.GetUniqueRepoLicenses(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoLicenses", err)
 		return
 	}
-	ctx.Data["DetectedRepoLicenses"] = repoLicenses.StringList()
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
+	if len(repoLicenses) == 0 {
+		return
+	}
+
+	order := make([]string, 0)
+	groups := make(map[string]*licenseGroup)
+	for _, rl := range repoLicenses {
+		if _, ok := groups[rl.LicensePath]; !ok {
+			groups[rl.LicensePath] = &licenseGroup{Path: rl.LicensePath}
+			order = append(order, rl.LicensePath)
+		}
+		groups[rl.LicensePath].Licenses = append(groups[rl.LicensePath].Licenses, rl.License)
+	}
+
+	result := make([]licenseGroup, 0, len(order))
+	for _, path := range order {
+		result = append(result, *groups[path])
+	}
+	ctx.Data["LicenseGroups"] = result
 }
 
 func prepareToRenderDirectory(ctx *context.Context) {

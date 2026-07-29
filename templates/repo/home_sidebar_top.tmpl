@@ -51,10 +51,12 @@
 			</a>
 		{{end}}
 
-		{{if .DetectedRepoLicenses}}
-			<a class="flex-text-block muted" href="{{.RepoLink}}/src/{{.Repository.DefaultBranch}}/{{PathEscapeSegments .LicenseFileName}}" title="{{StringUtils.Join .DetectedRepoLicenses ", "}}">
-				{{svg "octicon-law"}} {{if eq (len .DetectedRepoLicenses) 1}}{{index .DetectedRepoLicenses 0}}{{else}}{{ctx.Locale.Tr "repo.multiple_licenses"}}{{end}}
-			</a>
+		{{if .LicenseGroups}}
+			{{range .LicenseGroups}}
+				<a class="flex-text-block muted" title="{{StringUtils.Join .Licenses ", "}}" href="{{$.RepoLink}}/src/{{$.Repository.DefaultBranch}}/{{PathEscapeSegments .Path}}">
+					{{svg "octicon-law"}} {{StringUtils.Join .Licenses ", "}}
+				</a>
+			{{end}}
 		{{end}}
 
 		{{if .CitiationExist}}

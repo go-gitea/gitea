@@ -425,6 +425,7 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(343, "Add max_parallel column to action_run_job", v1_28.AddMaxParallelToActionRunJob),
 		newMigration(344, "Add deferred-matrix columns to ActionRunJob", v1_28.AddDeferredMatrixColumnsToActionRunJob),
+		newMigration(345, "Add license_path column to repo_license and backfill", v1_28.AddLicensePathToRepoLicense),
 	}
 	return preparedMigrations
 }

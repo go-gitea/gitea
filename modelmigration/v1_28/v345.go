@@ -1,0 +1,56 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package v1_28
+
+import (
+	"context"
+
+	"gitea.dev/modelmigration/base"
+
+	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
+)
+
+func AddLicensePathToRepoLicense(x base.EngineMigration) error {
+	// Drop the old 2-column UNIQUE(s) index on (repo_id, license).
+	// xorm Sync cannot reliably update an index when its column set changes.
+	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "repo_license")
+	if err != nil {
+		return err
+	}
+	for _, idx := range indexes {
+		if idx.Name == "s" {
+			if _, err := x.Exec(x.Dialect().DropIndexSQL("repo_license", idx)); err != nil {
+				return err
+			}
+			break
+		}
+	}
+
+	// Add license_path column
+	type RepoLicense struct {
+		LicensePath string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	}
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(RepoLicense)); err != nil {
+		return err
+	}
+
+	// Backfill existing rows: all repos created before this migration used the
+	// single LICENSE file convention, so default to that path.
+	if _, err := x.Exec("UPDATE `repo_license` SET license_path = 'LICENSE' WHERE license_path = ''"); err != nil {
+		return err
+	}
+
+	// Create new 3-column UNIQUE(s) index on (repo_id, license, license_path).
+	newIndex := schemas.NewIndex("s", schemas.IndexType)
+	newIndex.AddColumn("repo_id", "license", "license_path")
+	if _, err := x.Exec(x.Dialect().CreateIndexSQL("repo_license", newIndex)); err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -16,9 +16,10 @@ func init() {
 
 type RepoLicense struct { //revive:disable-line:exported
 	ID          int64 `xorm:"pk autoincr"`
-	RepoID      int64 `xorm:"UNIQUE(s) NOT NULL"`
+	RepoID      int64 `xorm:"NOT NULL"`
 	CommitID    string
-	License     string             `xorm:"VARCHAR(255) UNIQUE(s) NOT NULL"`
+	License     string             `xorm:"VARCHAR(255) NOT NULL"`
+	LicensePath string             `xorm:"VARCHAR(255) NOT NULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX UPDATED"`
 }
@@ -34,6 +35,20 @@ func (rll RepoLicenseList) StringList() []string {
 	return licenses
 }
 
+func (rll RepoLicenseList) LicensePath() string {
+	if len(rll) == 0 {
+		return ""
+	}
+	return rll[0].LicensePath
+}
+
+type DetectedLicense struct {
+	// SPDXID of the license
+	SPDXID string
+	// LicensePath is in repo path to the license
+	LicensePath string
+}
+
 // GetRepoLicenses returns the license statistics for a repository
 func GetRepoLicenses(ctx context.Context, repo *Repository) (RepoLicenseList, error) {
 	licenses := make(RepoLicenseList, 0)
@@ -43,8 +58,19 @@ func GetRepoLicenses(ctx context.Context, repo *Repository) (RepoLicenseList, er
 	return licenses, nil
 }
 
+func GetUniqueRepoLicenses(ctx context.Context, repo *Repository) (RepoLicenseList, error) {
+	licenses := make(RepoLicenseList, 0)
+	if err := db.GetEngine(ctx).Select("MAX(`id`) AS `id`, `license`, MAX(`license_path`) AS `license_path`, MAX(`commit_id`) AS `commit_id`").
+		Where("`repo_id` = ?", repo.ID).
+		GroupBy("`license`").
+		Find(&licenses); err != nil {
+		return nil, err
+	}
+	return licenses, nil
+}
+
 // UpdateRepoLicenses updates the license statistics for repository
-func UpdateRepoLicenses(ctx context.Context, repo *Repository, commitID string, licenses []string) error {
+func UpdateRepoLicenses(ctx context.Context, repo *Repository, commitID string, licenses []DetectedLicense) error {
 	oldLicenses, err := GetRepoLicenses(ctx, repo)
 	if err != nil {
 		return err
@@ -53,9 +79,10 @@ func UpdateRepoLicenses(ctx context.Context, repo *Repository, commitID string, 
 		upd := false
 		for _, o := range oldLicenses {
 			// Update already existing license
-			if o.License == license {
+			if o.License == license.SPDXID {
 				o.CommitID = commitID
-				if _, err := db.GetEngine(ctx).ID(o.ID).Cols("`commit_id`").Update(o); err != nil {
+				o.LicensePath = license.LicensePath
+				if _, err := db.GetEngine(ctx).ID(o.ID).Cols("`commit_id`", "`license_path`").Update(o); err != nil {
 					return err
 				}
 				upd = true
@@ -65,9 +92,10 @@ func UpdateRepoLicenses(ctx context.Context, repo *Repository, commitID string, 
 		// Insert new license
 		if !upd {
 			if err := db.Insert(ctx, &RepoLicense{
-				RepoID:   repo.ID,
-				CommitID: commitID,
-				License:  license,
+				RepoID:      repo.ID,
+				CommitID:    commitID,
+				License:     license.SPDXID,
+				LicensePath: license.LicensePath,
 			}); err != nil {
 				return err
 			}
@@ -100,9 +128,10 @@ func CopyLicense(ctx context.Context, originalRepo, destRepo *Repository) error 
 
 		for _, rl := range repoLicenses {
 			newRepoLicense := &RepoLicense{
-				RepoID:   destRepo.ID,
-				CommitID: rl.CommitID,
-				License:  rl.License,
+				RepoID:      destRepo.ID,
+				CommitID:    rl.CommitID,
+				License:     rl.License,
+				LicensePath: rl.LicensePath,
 			}
 			newRepoLicenses = append(newRepoLicenses, newRepoLicense)
 		}
