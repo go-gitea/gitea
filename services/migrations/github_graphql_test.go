@@ -4,7 +4,6 @@
 package migrations
 
 import (
-	"gitea.dev/modules/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/modules/json"
 	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"
@@ -57,9 +57,9 @@ func TestGraphQLRateResetWait(t *testing.T) {
 // bug: a RATE_LIMITED response is waited out (per the Retry-After header) and the
 // request retried in place, instead of erroring and aborting the whole sync.
 func TestDoGraphQLRetriesOnRateLimited(t *testing.T) {
-	var calls int32
+	var calls atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if atomic.AddInt32(&calls, 1) == 1 {
+		if calls.Add(1) == 1 {
 			w.Header().Set("Retry-After", "1") // 1s so the test stays fast
 			io.WriteString(w, `{"errors":[{"type":"RATE_LIMITED","message":"API rate limit exceeded"}]}`)
 			return
@@ -76,7 +76,7 @@ func TestDoGraphQLRetriesOnRateLimited(t *testing.T) {
 	}
 	require.NoError(t, d.doGraphQL(t.Context(), "query{}", nil, &out))
 	assert.True(t, out.OK)
-	assert.EqualValues(t, 2, atomic.LoadInt32(&calls), "RATE_LIMITED should be waited out and the request retried once")
+	assert.EqualValues(t, 2, calls.Load(), "RATE_LIMITED should be waited out and the request retried once")
 }
 
 // TestGraphQLQueryReactionGating guards the MAX_NODE_LIMIT_EXCEEDED fix: reactions

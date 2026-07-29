@@ -4,9 +4,9 @@
 package migrations
 
 import (
-	"gitea.dev/modules/json"
 	"testing"
 
+	"gitea.dev/modules/json"
 	base "gitea.dev/modules/migration"
 
 	"github.com/stretchr/testify/assert"

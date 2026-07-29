@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"maps"
 	"slices"
 	"time"
 
@@ -40,8 +41,10 @@ const timelineBatchSize = 100
 // `... on MergedEvent` fragment) is a hard GraphQL validation error that aborts the
 // whole timeline pass. issueTimelineItemTypes is the set valid on BOTH unions; the PR
 // query adds the PR-only types on top.
-const issueTimelineItemTypes = "CLOSED_EVENT,REOPENED_EVENT,LOCKED_EVENT,UNLOCKED_EVENT,RENAMED_TITLE_EVENT,LABELED_EVENT,UNLABELED_EVENT,MILESTONED_EVENT,DEMILESTONED_EVENT,PINNED_EVENT,UNPINNED_EVENT"
-const prTimelineItemTypes = issueTimelineItemTypes + ",MERGED_EVENT,HEAD_REF_DELETED_EVENT,AUTO_MERGE_ENABLED_EVENT,AUTO_MERGE_DISABLED_EVENT"
+const (
+	issueTimelineItemTypes = "CLOSED_EVENT,REOPENED_EVENT,LOCKED_EVENT,UNLOCKED_EVENT,RENAMED_TITLE_EVENT,LABELED_EVENT,UNLABELED_EVENT,MILESTONED_EVENT,DEMILESTONED_EVENT,PINNED_EVENT,UNPINNED_EVENT"
+	prTimelineItemTypes    = issueTimelineItemTypes + ",MERGED_EVENT,HEAD_REF_DELETED_EVENT,AUTO_MERGE_ENABLED_EVENT,AUTO_MERGE_DISABLED_EVENT"
+)
 
 // Inline-fragment selections, likewise split. These event types expose no databaseId,
 // only the node id.
@@ -57,6 +60,7 @@ const issueTimelineFragments = `
         ... on DemilestonedEvent{id createdAt milestoneTitle actor{login ... on User{databaseId}}}
         ... on PinnedEvent{id createdAt actor{login ... on User{databaseId}}}
         ... on UnpinnedEvent{id createdAt actor{login ... on User{databaseId}}}`
+
 const prTimelineFragments = issueTimelineFragments + `
         ... on MergedEvent{id createdAt actor{login ... on User{databaseId}}}
         ... on HeadRefDeletedEvent{id createdAt headRefName actor{login ... on User{databaseId}}}
@@ -241,7 +245,7 @@ func (g *GithubDownloaderV3) attachTimelineEvents(ctx context.Context, nodeIDToI
 // than aborting; a hot entity with more than one page sweeps the remainder.
 func (g *GithubDownloaderV3) fetchTimelineEvents(ctx context.Context, ids []string) (map[string][]*base.Comment, error) {
 	if len(ids) == 0 {
-		return nil, nil
+		return map[string][]*base.Comment{}, nil
 	}
 	var resp struct {
 		Nodes []struct {
@@ -262,9 +266,8 @@ func (g *GithubDownloaderV3) fetchTimelineEvents(ctx context.Context, ids []stri
 			if err != nil {
 				return nil, err
 			}
-			for id, events := range right {
-				left[id] = events
-			}
+			maps.Copy(left, right)
+
 			return left, nil
 		}
 		return nil, err

@@ -23,7 +23,6 @@ package migrations
 import (
 	"bytes"
 	"context"
-	"gitea.dev/modules/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -31,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 )
@@ -120,8 +120,8 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 		}
 
 		var envelope struct {
-			Data   json.Value `json:"data"`
-			Errors []graphQLError  `json:"errors"`
+			Data   json.Value     `json:"data"`
+			Errors []graphQLError `json:"errors"`
 		}
 		decodeErr := json.NewDecoder(resp.Body).Decode(&envelope)
 		header := resp.Header

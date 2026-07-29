@@ -4,9 +4,10 @@
 package migrations
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
+
+	"gitea.dev/modules/json"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,7 +81,8 @@ func TestConvertTimelineItems(t *testing.T) {
 
 func TestTimelineEventIDStable(t *testing.T) {
 	id := "MDExOkNsb3NlZEV2ZW50NDAwNjIwMjg0Mw=="
-	assert.Equal(t, timelineEventID(id), timelineEventID(id), "same node id -> same dedup key (idempotent re-sync)")
+	idVal := timelineEventID(id)
+	assert.Equal(t, idVal, timelineEventID(id), "same node id -> same dedup key (idempotent re-sync)")
 	assert.NotEqual(t, timelineEventID(id), timelineEventID("MDEyOkxhYmVsZWRFdmVudA=="))
 	assert.Positive(t, timelineEventID(id))
 }
