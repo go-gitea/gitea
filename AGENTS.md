@@ -10,7 +10,7 @@
 - Run single Go tests with `go test -run '^TestName$' ./modulepath/`
 - Run single TS test files with `pnpm exec vitest <path-filter>`
 - Run single Playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
-- Write the fewest, fastest tests covering the behavior: extend an existing test, case or file before adding a new one, set up only what the assertions use, no `sleep`
+- Write the fewest, fastest tests covering the behavior. Prefer extending an existing test before adding a new one. Avoid `sleep` and similar mechanisms
 - Prefer unit tests when logic is testable in isolation, aim for sub-2s local runtime per integration test and sub-4s per e2e test
 - Prefer semantic locators in e2e tests
 - Preserve existing comments, write almost no new ones: short, same-line, explain why for a future reader, never narrate code or the current change
