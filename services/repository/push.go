@@ -73,7 +73,7 @@ func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %w", err)
 	}
 
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %w", repo.FullName(), err)
 	}

@@ -28,7 +28,7 @@ const (
 )
 
 func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) (*git.Repository, *git.TreeEntry) {
-	wikiRepo, err := git.OpenRepository(repo.WikiStorageRepo())
+	wikiRepo, err := git.OpenRepository(t.Context(), repo.WikiStorageRepo())
 	assert.NoError(t, err)
 	t.Cleanup(func() {
 		defer wikiRepo.Close()
