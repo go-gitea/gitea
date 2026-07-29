@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"gitea.dev/modules/htmlutil"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
@@ -236,12 +235,6 @@ func GetExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions,
 }
 
 func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
-	// the render function and its goroutine functions need to recover from panic to avoid crash the instance
-	defer func() {
-		if panicErr := recover(); panicErr != nil {
-			log.Error("RenderWithRenderer panic: %v\n", panicErr, log.Stack(2))
-		}
-	}()
 	var extraHeadHTML template.HTML
 	if extOpts, ok := GetExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {
 		if ctx.RenderOptions.StandalonePageOptions == nil {
@@ -279,11 +272,6 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 	var pw2 io.WriteCloser = util.NopCloser{Writer: finalProcessor}
 
 	if r, ok := renderer.(ExternalRenderer); !ok || !r.GetExternalRendererOptions().SanitizerDisabled {
-		defer func() {
-			if panicErr := recover(); panicErr != nil {
-				log.Error("RenderWithRenderer sanitizer panic: %v\n", panicErr, log.Stack(2))
-			}
-		}()
 		var pr2 io.ReadCloser
 		var close2 func()
 		pr2, pw2, close2 = pipes()
@@ -295,11 +283,6 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 	}
 
 	eg.Go(func() (err error) {
-		defer func() {
-			if panicErr := recover(); panicErr != nil {
-				log.Error("RenderWithRenderer post process panic: %v\n", panicErr, log.Stack(2))
-			}
-		}()
 		if RendererNeedPostProcess(renderer) {
 			err = PostProcessDefault(ctx, pr1, pw2)
 		} else {
