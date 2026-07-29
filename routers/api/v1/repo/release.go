@@ -156,7 +156,7 @@ func ListReleases(ctx *context.APIContext) {
 	//   type: boolean
 	// - name: tag_filter
 	//   in: query
-	//   description: filter releases by tag filter
+	//   description: 'filter releases by tag. supports "*" as a wildcard (for example: v1*, *beta, *rc*).'
 	//   type: string
 	// - name: page
 	//   in: query

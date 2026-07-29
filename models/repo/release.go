@@ -299,7 +299,14 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Like{"lower_tag_name", strings.ToLower(opts.NamePattern.Value())})
 	}
 	if opts.TagFilter != "" {
-		cond = cond.And(builder.Expr("tag_name LIKE ?", "%"+opts.TagFilter+"%"))
+		cond = cond.And(builder.Like{
+			"lower_tag_name",
+			strings.ReplaceAll(
+				strings.ReplaceAll(strings.ToLower(opts.TagFilter), "_", "\\_"),
+				"*",
+				"%",
+			),
+		})
 	}
 	return cond
 }

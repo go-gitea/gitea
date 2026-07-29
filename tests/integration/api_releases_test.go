@@ -88,12 +88,17 @@ func testAPIListReleasesWithWriteToken(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"false"}, "pre-release": {"false"}}, 1, "exclude drafts and pre-releases")
 	testFilterByLen(true, url.Values{"pre-release": {"true"}}, 1, "only get pre-release")
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
-	// Test tag_filter matching.
-	testFilterByLen(true, url.Values{"tag_filter": {"v1.0.0"}}, 0, "exact tag match")
-	testFilterByLen(true, url.Values{"tag_filter": {"v1"}}, 2, "prefix tag match")
-	testFilterByLen(true, url.Values{"tag_filter": {"1.0"}}, 1, "substring/suffix tag match")
+
+	// Prefix match
+	testFilterByLen(true, url.Values{"tag_filter": {"v1*"}}, 2, "prefix tag match")
+
+	// Suffix match
+	testFilterByLen(true, url.Values{"tag_filter": {"*1.0"}}, 1, "suffix tag match")
+
+	// Substring match
+	testFilterByLen(true, url.Values{"tag_filter": {"*1.0*"}}, 1, "substring tag match")
 	// Verify filtered results.
-	link.RawQuery = url.Values{"tag_filter": {"1.0"}}.Encode()
+	link.RawQuery = url.Values{"tag_filter": {"*1.0*"}}.Encode()
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	apiReleases = DecodeJSON(t, resp, []*api.Release{})
 
@@ -147,13 +152,18 @@ func testAPIListReleasesWithReadToken(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"false"}, "pre-release": {"false"}}, 1, "exclude drafts and pre-releases")
 	testFilterByLen(true, url.Values{"pre-release": {"true"}}, 1, "only get pre-release")
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
-	// Test tag_filter matching.
-	testFilterByLen(true, url.Values{"tag_filter": {"v1.0.0"}}, 0, "exact tag match")
-	testFilterByLen(true, url.Values{"tag_filter": {"v1"}}, 2, "prefix tag match")
-	testFilterByLen(true, url.Values{"tag_filter": {"1.0"}}, 1, "substring/suffix tag match")
+
+	// Prefix match
+	testFilterByLen(true, url.Values{"tag_filter": {"v1*"}}, 2, "prefix tag match")
+
+	// Suffix match
+	testFilterByLen(true, url.Values{"tag_filter": {"*1.0"}}, 1, "suffix tag match")
+
+	// Substring match
+	testFilterByLen(true, url.Values{"tag_filter": {"*1.0*"}}, 1, "substring tag match")
 
 	// Verify filtered results.
-	link.RawQuery = url.Values{"tag_filter": {"1.0"}}.Encode()
+	link.RawQuery = url.Values{"tag_filter": {"*1.0*"}}.Encode()
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	apiReleases = DecodeJSON(t, resp, []*api.Release{})
 
