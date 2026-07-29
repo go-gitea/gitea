@@ -203,11 +203,13 @@ func applyProjectCondition(sess db.Session, opts *IssuesOptions) {
 	} else if len(projectIDs) == 1 && projectIDs[0] > 0 { // single specific project
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id AND project_issue.project_id = ?", projectIDs[0])
 	} else if len(projectIDs) > 1 { // multiple projects
+		// a repeated ID would inflate the count below and make it unsatisfiable
+		projectIDs = container.SetOf(projectIDs...).Values()
 		sess.And(builder.In("issue.id",
 			builder.Select("issue_id").From("project_issue").
 				Where(builder.In("project_id", projectIDs)).
 				GroupBy("issue_id").
-				Having(fmt.Sprintf("COUNT(DISTINCT project_id) = %d", len(projectIDs))),
+				Having(builder.Expr("COUNT(DISTINCT project_id) = ?", len(projectIDs))),
 		))
 	}
 	// empty projectIDs means all projects,

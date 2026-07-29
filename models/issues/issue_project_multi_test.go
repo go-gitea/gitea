@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
 	"gitea.dev/models/unittest"
@@ -139,24 +140,28 @@ func TestIssueMultipleProjects(t *testing.T) {
 		}
 		assert.True(t, foundIssue2, "Issue 2 should be found when querying project 3")
 
-		// Query for issues in projects 1 and 2 (should find issue1)
-		issues12, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:    []int64{issue1.RepoID},
-			ProjectIDs: []int64{projects[0].ID, projects[1].ID},
-		})
-		require.NoError(t, err)
-		assert.Len(t, issues12, 1)
-		if len(issues12) > 0 {
-			assert.Equal(t, issue1.ID, issues12[0].ID)
+		queryIssueIDs := func(projectIDs ...int64) []int64 {
+			found, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+				RepoIDs:    []int64{issue1.RepoID},
+				ProjectIDs: projectIDs,
+			})
+			require.NoError(t, err)
+			ids := make([]int64, 0, len(found))
+			for _, issue := range found {
+				ids = append(ids, issue.ID)
+			}
+			return ids
 		}
 
-		// Query for issues in projects 2 and 3 (should find none, as no issue is in both)
-		issues23, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
-			RepoIDs:    []int64{issue1.RepoID},
-			ProjectIDs: []int64{projects[1].ID, projects[2].ID},
-		})
-		require.NoError(t, err)
-		assert.Empty(t, issues23)
+		// issue1 is in projects 1 and 2, so it matches only when every queried project is one of them
+		assert.Equal(t, []int64{issue1.ID}, queryIssueIDs(projects[0].ID, projects[1].ID))
+		assert.Empty(t, queryIssueIDs(projects[1].ID, projects[2].ID), "no issue is in both project 2 and 3")
+
+		// a repeated ID must not narrow the result down to nothing
+		assert.Equal(t, queryIssueIDs(projects[0].ID), queryIssueIDs(projects[0].ID, projects[0].ID))
+
+		// "no project" combined with a real project can never match
+		assert.Empty(t, queryIssueIDs(db.NoConditionID, projects[0].ID))
 
 		// Clean up
 		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
