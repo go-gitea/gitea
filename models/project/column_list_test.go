@@ -15,7 +15,7 @@ import (
 func TestProjectColumns(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	t.Run("GetProjectColumns", testGetProjectColumns)
-	t.Run("GetColumnsByIDs", testGetColumnsByIDs)
+	t.Run("getColumnsByIDs", testGetColumnsByIDs)
 }
 
 func testGetProjectColumns(t *testing.T) {
@@ -54,12 +54,12 @@ func testGetColumnsByIDs(t *testing.T) {
 	project, err := GetProjectByID(t.Context(), 1)
 	assert.NoError(t, err)
 
-	columns, err := GetColumnsByIDs(t.Context(), project.ID, []int64{1, 3, 4})
+	columns, err := getColumnsByIDs(t.Context(), project.ID, []int64{1, 3, 4})
 	assert.NoError(t, err)
 	assert.Len(t, columns, 2)
 	assert.ElementsMatch(t, []int64{1, 3}, []int64{columns[0].ID, columns[1].ID})
 
-	empty, err := GetColumnsByIDs(t.Context(), project.ID, nil)
+	empty, err := getColumnsByIDs(t.Context(), project.ID, nil)
 	assert.NoError(t, err)
 	assert.Empty(t, empty)
 }

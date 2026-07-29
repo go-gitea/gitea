@@ -37,6 +37,13 @@ const (
 // ColumnColorPattern is a regexp witch can validate ColumnColor
 var ColumnColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
+func validateColumnColor(color string) error {
+	if len(color) != 0 && !ColumnColorPattern.MatchString(color) {
+		return util.ErrorWrap(util.ErrUnprocessableContent, "invalid column color %q, expected a 6-digit hex string like #FF0000", color)
+	}
+	return nil
+}
+
 // Column is used to represent column on a project
 type Column struct {
 	ID      int64 `xorm:"pk autoincr"`
@@ -134,8 +141,8 @@ const maxProjectColumns = 20
 
 // NewColumn adds a new project column to a given project
 func NewColumn(ctx context.Context, column *Column) error {
-	if len(column.Color) != 0 && !ColumnColorPattern.MatchString(column.Color) {
-		return fmt.Errorf("invalid column color %q, expected a 6-digit hex string like #FF0000: %w", column.Color, util.ErrUnprocessableContent)
+	if err := validateColumnColor(column.Color); err != nil {
+		return err
 	}
 
 	res := struct {
@@ -163,7 +170,7 @@ func DeleteColumnByID(ctx context.Context, columnID int64) error {
 
 // ErrProjectColumnIsDefault is returned when deleting the column new issues land in,
 // which would leave the project without a landing column.
-var ErrProjectColumnIsDefault = fmt.Errorf("cannot delete the default column: %w", util.ErrUnprocessableContent)
+var ErrProjectColumnIsDefault = util.ErrorWrap(util.ErrUnprocessableContent, "cannot delete the default column")
 
 func deleteColumnByID(ctx context.Context, columnID int64) error {
 	column, err := GetColumn(ctx, columnID)
@@ -241,8 +248,8 @@ func UpdateColumn(ctx context.Context, column *Column) error {
 		fieldToUpdate = append(fieldToUpdate, "title")
 	}
 
-	if len(column.Color) != 0 && !ColumnColorPattern.MatchString(column.Color) {
-		return fmt.Errorf("invalid column color %q, expected a 6-digit hex string like #FF0000: %w", column.Color, util.ErrUnprocessableContent)
+	if err := validateColumnColor(column.Color); err != nil {
+		return err
 	}
 	fieldToUpdate = append(fieldToUpdate, "color")
 
@@ -336,7 +343,7 @@ func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 		columnIDs := util.ValuesOfMap(sortedColumnIDs)
-		movedColumns, err := GetColumnsByIDs(ctx, project.ID, columnIDs)
+		movedColumns, err := getColumnsByIDs(ctx, project.ID, columnIDs)
 		if err != nil {
 			return err
 		}

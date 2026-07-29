@@ -15,9 +15,9 @@ import (
 	project_service "gitea.dev/services/projects"
 )
 
-// FindProject loads the "id" path param, scoped to whichever owner the route assigned:
+// findProject loads the "id" path param, scoped to whichever owner the route assigned:
 // anyone else's ID reads as not found. Write permission is enforced by the route.
-func FindProject(ctx *context.Context) *project_model.Project {
+func findProject(ctx *context.Context) *project_model.Project {
 	var project *project_model.Project
 	var err error
 	if ctx.Repo != nil && ctx.Repo.Repository != nil {
@@ -32,8 +32,8 @@ func FindProject(ctx *context.Context) *project_model.Project {
 	return project
 }
 
-func FindColumn(ctx *context.Context) (*project_model.Project, *project_model.Column) {
-	project := FindProject(ctx)
+func findColumn(ctx *context.Context) (*project_model.Project, *project_model.Column) {
+	project := findProject(ctx)
 	if ctx.Written() {
 		return nil, nil
 	}
@@ -46,7 +46,7 @@ func FindColumn(ctx *context.Context) (*project_model.Project, *project_model.Co
 }
 
 func MoveColumns(ctx *context.Context) {
-	project := FindProject(ctx)
+	project := findProject(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -79,7 +79,7 @@ func MoveColumns(ctx *context.Context) {
 
 func AddColumnToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
-	project := FindProject(ctx)
+	project := findProject(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -99,7 +99,7 @@ func AddColumnToProjectPost(ctx *context.Context) {
 
 func EditProjectColumn(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
-	_, column := FindColumn(ctx)
+	_, column := findColumn(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -121,7 +121,7 @@ func EditProjectColumn(ctx *context.Context) {
 }
 
 func DeleteProjectColumn(ctx *context.Context) {
-	_, column := FindColumn(ctx)
+	_, column := findColumn(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -135,7 +135,7 @@ func DeleteProjectColumn(ctx *context.Context) {
 }
 
 func SetDefaultProjectColumn(ctx *context.Context) {
-	project, column := FindColumn(ctx)
+	project, column := findColumn(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -149,7 +149,7 @@ func SetDefaultProjectColumn(ctx *context.Context) {
 }
 
 func MoveIssues(ctx *context.Context) {
-	project, column := FindColumn(ctx)
+	project, column := findColumn(ctx)
 	if ctx.Written() {
 		return
 	}

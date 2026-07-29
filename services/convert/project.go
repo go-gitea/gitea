@@ -16,7 +16,7 @@ import (
 	"gitea.dev/modules/timeutil"
 )
 
-func ProjectTemplateTypeToString(t project_model.TemplateType) string {
+func projectTemplateTypeToString(t project_model.TemplateType) string {
 	switch t {
 	case project_model.TemplateTypeBasicKanban:
 		return "basic_kanban"
@@ -40,7 +40,7 @@ func ProjectTemplateTypeFromString(s string) (project_model.TemplateType, error)
 	}
 }
 
-func ProjectCardTypeToString(t project_model.CardType) string {
+func projectCardTypeToString(t project_model.CardType) string {
 	switch t {
 	case project_model.CardTypeImagesAndText:
 		return "images_and_text"
@@ -60,7 +60,7 @@ func ProjectCardTypeFromString(s string) (project_model.CardType, error) {
 	}
 }
 
-func ProjectTypeToString(t project_model.Type) string {
+func projectTypeToString(t project_model.Type) string {
 	switch t {
 	case project_model.TypeIndividual:
 		return "individual"
@@ -128,9 +128,9 @@ func toProject(ctx context.Context, p *project_model.Project, doer *user_model.U
 		OwnerID:         p.OwnerID,
 		RepoID:          p.RepoID,
 		State:           state,
-		TemplateType:    ProjectTemplateTypeToString(p.TemplateType),
-		CardType:        ProjectCardTypeToString(p.CardType),
-		Type:            ProjectTypeToString(p.Type),
+		TemplateType:    projectTemplateTypeToString(p.TemplateType),
+		CardType:        projectCardTypeToString(p.CardType),
+		Type:            projectTypeToString(p.Type),
 		NumOpenIssues:   p.NumOpenIssues,
 		NumClosedIssues: p.NumClosedIssues,
 		NumIssues:       p.NumIssues,

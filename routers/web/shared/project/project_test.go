@@ -45,7 +45,7 @@ func TestFindColumn(t *testing.T) {
 			ctx.SetPathParam("id", tc.projectID)
 			ctx.SetPathParam("columnID", tc.columnID)
 
-			project, column := FindColumn(ctx)
+			project, column := findColumn(ctx)
 			assert.Equal(t, tc.resolves, project != nil)
 			assert.Equal(t, tc.resolves, column != nil)
 			assert.Equal(t, tc.resolves, !ctx.Written())

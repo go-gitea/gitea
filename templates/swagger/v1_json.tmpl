@@ -15238,6 +15238,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -15321,6 +15324,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -15376,6 +15382,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -15490,6 +15499,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -15548,6 +15560,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -15654,6 +15669,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -15720,6 +15738,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -15773,6 +15794,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -15901,6 +15925,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -15959,6 +15986,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -16024,6 +16054,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -22551,7 +22584,7 @@
           "user"
         ],
         "summary": "List your projects",
-        "operationId": "userListProjects",
+        "operationId": "userCurrentListProjects",
         "parameters": [
           {
             "enum": [
@@ -22595,7 +22628,7 @@
           "user"
         ],
         "summary": "Create a project owned by the authenticated user",
-        "operationId": "userCreateProject",
+        "operationId": "userCurrentCreateProject",
         "parameters": [
           {
             "name": "body",
@@ -22624,7 +22657,7 @@
           "user"
         ],
         "summary": "Get a project",
-        "operationId": "userGetProject",
+        "operationId": "userCurrentGetProject",
         "parameters": [
           {
             "type": "integer",
@@ -22649,7 +22682,7 @@
           "user"
         ],
         "summary": "Delete a project",
-        "operationId": "userDeleteProject",
+        "operationId": "userCurrentDeleteProject",
         "parameters": [
           {
             "type": "integer",
@@ -22680,7 +22713,7 @@
           "user"
         ],
         "summary": "Edit a project",
-        "operationId": "userEditProject",
+        "operationId": "userCurrentEditProject",
         "parameters": [
           {
             "type": "integer",
@@ -22720,7 +22753,7 @@
           "user"
         ],
         "summary": "List a project's columns",
-        "operationId": "userListProjectColumns",
+        "operationId": "userCurrentListProjectColumns",
         "parameters": [
           {
             "type": "integer",
@@ -22763,7 +22796,7 @@
           "user"
         ],
         "summary": "Create a column in a project",
-        "operationId": "userCreateProjectColumn",
+        "operationId": "userCurrentCreateProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -22807,7 +22840,7 @@
           "user"
         ],
         "summary": "Reorder a project's columns",
-        "operationId": "userMoveProjectColumns",
+        "operationId": "userCurrentMoveProjectColumns",
         "parameters": [
           {
             "type": "integer",
@@ -22850,7 +22883,7 @@
           "user"
         ],
         "summary": "Get a project column",
-        "operationId": "userGetProjectColumn",
+        "operationId": "userCurrentGetProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -22884,7 +22917,7 @@
           "user"
         ],
         "summary": "Delete a project column",
-        "operationId": "userDeleteProjectColumn",
+        "operationId": "userCurrentDeleteProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -22929,7 +22962,7 @@
           "user"
         ],
         "summary": "Edit a project column",
-        "operationId": "userEditProjectColumn",
+        "operationId": "userCurrentEditProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -22978,7 +23011,7 @@
           "user"
         ],
         "summary": "Set a project's default column",
-        "operationId": "userSetDefaultProjectColumn",
+        "operationId": "userCurrentSetDefaultProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -23019,7 +23052,7 @@
           "user"
         ],
         "summary": "List the issues in a project column",
-        "operationId": "userListProjectColumnIssues",
+        "operationId": "userCurrentListProjectColumnIssues",
         "parameters": [
           {
             "type": "integer",
@@ -23067,7 +23100,7 @@
           "user"
         ],
         "summary": "Add an issue to a project column",
-        "operationId": "userAddIssueToProjectColumn",
+        "operationId": "userCurrentAddIssueToProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -23114,7 +23147,7 @@
           "user"
         ],
         "summary": "Remove an issue from a project column",
-        "operationId": "userRemoveIssueFromProjectColumn",
+        "operationId": "userCurrentRemoveIssueFromProjectColumn",
         "parameters": [
           {
             "type": "integer",
@@ -23163,7 +23196,7 @@
           "user"
         ],
         "summary": "Move an issue between a project's columns",
-        "operationId": "userMoveProjectIssue",
+        "operationId": "userCurrentMoveProjectIssue",
         "parameters": [
           {
             "type": "integer",
@@ -24055,7 +24088,7 @@
           "user"
         ],
         "summary": "List a user's projects",
-        "operationId": "userListUserProjects",
+        "operationId": "userListProjects",
         "parameters": [
           {
             "type": "string",

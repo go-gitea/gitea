@@ -35,8 +35,8 @@ func GetProjectColumns(ctx context.Context, projectID int64, opts db.ListOptions
 	return db.Find[Column](ctx, SearchColumnOptions{ListOptions: opts, ProjectID: projectID})
 }
 
-// GetColumnsByIDs returns the named columns of a project, in board order.
-func GetColumnsByIDs(ctx context.Context, projectID int64, columnIDs []int64) (ColumnList, error) {
+// getColumnsByIDs returns the named columns of a project, in board order.
+func getColumnsByIDs(ctx context.Context, projectID int64, columnIDs []int64) (ColumnList, error) {
 	if len(columnIDs) == 0 {
 		return ColumnList{}, nil
 	}

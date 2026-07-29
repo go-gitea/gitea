@@ -27305,6 +27305,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Create a project owned by a repository",
@@ -27352,6 +27355,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a project",
@@ -27455,6 +27461,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Edit a project",
@@ -27579,6 +27588,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Create a column in a project",
@@ -27643,6 +27655,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Reorder a project's columns",
@@ -27707,6 +27722,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Delete a project column",
@@ -27833,6 +27851,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Edit a project column",
@@ -27894,6 +27915,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Set a project's default column",
@@ -28037,6 +28061,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Remove an issue from a project column",
@@ -28109,6 +28136,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add an issue to a project column",
@@ -28182,6 +28212,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Move an issue between a project's columns",
@@ -35090,7 +35123,7 @@
     },
     "/user/projects": {
       "get": {
-        "operationId": "userListProjects",
+        "operationId": "userCurrentListProjects",
         "parameters": [
           {
             "description": "State of the project (open, closed, all)",
@@ -35134,7 +35167,7 @@
         ]
       },
       "post": {
-        "operationId": "userCreateProject",
+        "operationId": "userCurrentCreateProject",
         "requestBody": {
           "content": {
             "application/json": {
@@ -35161,7 +35194,7 @@
     },
     "/user/projects/{id}": {
       "delete": {
-        "operationId": "userDeleteProject",
+        "operationId": "userCurrentDeleteProject",
         "parameters": [
           {
             "description": "id of the project",
@@ -35188,7 +35221,7 @@
         ]
       },
       "get": {
-        "operationId": "userGetProject",
+        "operationId": "userCurrentGetProject",
         "parameters": [
           {
             "description": "id of the project",
@@ -35215,7 +35248,7 @@
         ]
       },
       "patch": {
-        "operationId": "userEditProject",
+        "operationId": "userCurrentEditProject",
         "parameters": [
           {
             "description": "id of the project",
@@ -35257,7 +35290,7 @@
     },
     "/user/projects/{id}/columns": {
       "get": {
-        "operationId": "userListProjectColumns",
+        "operationId": "userCurrentListProjectColumns",
         "parameters": [
           {
             "description": "id of the project",
@@ -35300,7 +35333,7 @@
         ]
       },
       "post": {
-        "operationId": "userCreateProjectColumn",
+        "operationId": "userCurrentCreateProjectColumn",
         "parameters": [
           {
             "description": "id of the project",
@@ -35346,7 +35379,7 @@
     "/user/projects/{id}/columns/move": {
       "post": {
         "description": "Reorders every column of the project at once; the body lists all column IDs in their new order.",
-        "operationId": "userMoveProjectColumns",
+        "operationId": "userCurrentMoveProjectColumns",
         "parameters": [
           {
             "description": "id of the project",
@@ -35392,7 +35425,7 @@
     "/user/projects/{id}/columns/{column_id}": {
       "delete": {
         "description": "The default column cannot be deleted while it is still the column new issues land in.",
-        "operationId": "userDeleteProjectColumn",
+        "operationId": "userCurrentDeleteProjectColumn",
         "parameters": [
           {
             "description": "id of the project",
@@ -35435,7 +35468,7 @@
         ]
       },
       "get": {
-        "operationId": "userGetProjectColumn",
+        "operationId": "userCurrentGetProjectColumn",
         "parameters": [
           {
             "description": "id of the project",
@@ -35472,7 +35505,7 @@
         ]
       },
       "patch": {
-        "operationId": "userEditProjectColumn",
+        "operationId": "userCurrentEditProjectColumn",
         "parameters": [
           {
             "description": "id of the project",
@@ -35528,7 +35561,7 @@
     "/user/projects/{id}/columns/{column_id}/default": {
       "post": {
         "description": "The default column is where newly assigned issues land.",
-        "operationId": "userSetDefaultProjectColumn",
+        "operationId": "userCurrentSetDefaultProjectColumn",
         "parameters": [
           {
             "description": "id of the project",
@@ -35570,7 +35603,7 @@
     },
     "/user/projects/{id}/columns/{column_id}/issues": {
       "get": {
-        "operationId": "userListProjectColumnIssues",
+        "operationId": "userCurrentListProjectColumnIssues",
         "parameters": [
           {
             "description": "id of the project",
@@ -35625,7 +35658,7 @@
     },
     "/user/projects/{id}/columns/{column_id}/issues/{issue_id}": {
       "delete": {
-        "operationId": "userRemoveIssueFromProjectColumn",
+        "operationId": "userCurrentRemoveIssueFromProjectColumn",
         "parameters": [
           {
             "description": "id of the project",
@@ -35676,7 +35709,7 @@
       },
       "post": {
         "description": "Assigns the issue to the project if it is not a member yet, then places it in the column.",
-        "operationId": "userAddIssueToProjectColumn",
+        "operationId": "userCurrentAddIssueToProjectColumn",
         "parameters": [
           {
             "description": "id of the project",
@@ -35731,7 +35764,7 @@
     },
     "/user/projects/{id}/issues/{issue_id}/move": {
       "post": {
-        "operationId": "userMoveProjectIssue",
+        "operationId": "userCurrentMoveProjectIssue",
         "parameters": [
           {
             "description": "id of the project",
@@ -36672,7 +36705,7 @@
     },
     "/users/{username}/projects": {
       "get": {
-        "operationId": "userListUserProjects",
+        "operationId": "userListProjects",
         "parameters": [
           {
             "description": "username of the user",

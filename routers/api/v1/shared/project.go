@@ -25,9 +25,9 @@ import (
 	project_service "gitea.dev/services/projects"
 )
 
-// ProjectScope identifies whose projects a route operates on. Exactly one of Repo /
+// projectScope identifies whose projects a route operates on. Exactly one of Repo /
 // Owner is set. Access rights are checked at the route level.
-type ProjectScope struct {
+type projectScope struct {
 	Type  project_model.Type
 	Repo  *repo_model.Repository
 	Owner *user_model.User
@@ -35,9 +35,9 @@ type ProjectScope struct {
 
 // projectScopeFromContext derives the scope from the route's assignment. Organization
 // routes assign the org as the context user, so only the repository case is distinct.
-func projectScopeFromContext(ctx *context.APIContext) ProjectScope {
+func projectScopeFromContext(ctx *context.APIContext) projectScope {
 	if ctx.Repo != nil && ctx.Repo.Repository != nil {
-		return ProjectScope{Type: project_model.TypeRepository, Repo: ctx.Repo.Repository}
+		return projectScope{Type: project_model.TypeRepository, Repo: ctx.Repo.Repository}
 	}
 	owner := ctx.ContextUser
 	if owner == nil {
@@ -47,17 +47,17 @@ func projectScopeFromContext(ctx *context.APIContext) ProjectScope {
 	if owner.IsOrganization() {
 		projectType = project_model.TypeOrganization
 	}
-	return ProjectScope{Type: projectType, Owner: owner}
+	return projectScope{Type: projectType, Owner: owner}
 }
 
-func (s ProjectScope) repoID() int64 {
+func (s projectScope) repoID() int64 {
 	if s.Repo != nil {
 		return s.Repo.ID
 	}
 	return 0
 }
 
-func (s ProjectScope) ownerID() int64 {
+func (s projectScope) ownerID() int64 {
 	if s.Owner != nil {
 		return s.Owner.ID
 	}
@@ -65,7 +65,7 @@ func (s ProjectScope) ownerID() int64 {
 }
 
 // attach preloads the relation the converter needs for HTMLURL, sparing a lookup per project.
-func (s ProjectScope) attach(projects ...*project_model.Project) {
+func (s projectScope) attach(projects ...*project_model.Project) {
 	for _, project := range projects {
 		project.Repo, project.Owner = s.Repo, s.Owner
 	}
@@ -73,7 +73,7 @@ func (s ProjectScope) attach(projects ...*project_model.Project) {
 
 // findProject loads the "id" path param, scoped to this owner: another owner's ID reads
 // as not found.
-func (s ProjectScope) findProject(ctx *context.APIContext) *project_model.Project {
+func (s projectScope) findProject(ctx *context.APIContext) *project_model.Project {
 	var project *project_model.Project
 	var err error
 	if s.Repo != nil {
@@ -99,7 +99,7 @@ func columnIn(ctx *context.APIContext, project *project_model.Project) *project_
 	return column
 }
 
-func (s ProjectScope) findColumn(ctx *context.APIContext) *project_model.Column {
+func (s projectScope) findColumn(ctx *context.APIContext) *project_model.Column {
 	project := s.findProject(ctx)
 	if ctx.Written() {
 		return nil
@@ -108,7 +108,7 @@ func (s ProjectScope) findColumn(ctx *context.APIContext) *project_model.Column 
 }
 
 // findColumnIssue additionally resolves the "issue_id" path param, rejecting closed projects.
-func (s ProjectScope) findColumnIssue(ctx *context.APIContext) (*project_model.Column, *issues_model.Issue) {
+func (s projectScope) findColumnIssue(ctx *context.APIContext) (*project_model.Column, *issues_model.Issue) {
 	_, column := s.findOpenColumn(ctx)
 	if ctx.Written() {
 		return nil, nil
@@ -118,7 +118,7 @@ func (s ProjectScope) findColumnIssue(ctx *context.APIContext) (*project_model.C
 
 // findIssue resolves an issue addressable within this scope. Owner-level boards span
 // repositories, so the issue is looked up globally and gated on the doer's read access.
-func (s ProjectScope) findIssue(ctx *context.APIContext, issueID int64) *issues_model.Issue {
+func (s projectScope) findIssue(ctx *context.APIContext, issueID int64) *issues_model.Issue {
 	var issue *issues_model.Issue
 	var err error
 	if s.Repo != nil {
@@ -150,7 +150,7 @@ func (s ProjectScope) findIssue(ctx *context.APIContext, issueID int64) *issues_
 }
 
 // findOpenProject is findProject for mutating endpoints: a closed project is read-only.
-func (s ProjectScope) findOpenProject(ctx *context.APIContext) *project_model.Project {
+func (s projectScope) findOpenProject(ctx *context.APIContext) *project_model.Project {
 	project := s.findProject(ctx)
 	if ctx.Written() {
 		return nil
@@ -163,7 +163,7 @@ func (s ProjectScope) findOpenProject(ctx *context.APIContext) *project_model.Pr
 }
 
 // findOpenColumn is findColumn with the same closed-project rejection.
-func (s ProjectScope) findOpenColumn(ctx *context.APIContext) (*project_model.Project, *project_model.Column) {
+func (s projectScope) findOpenColumn(ctx *context.APIContext) (*project_model.Project, *project_model.Column) {
 	project := s.findOpenProject(ctx)
 	if ctx.Written() {
 		return nil, nil
@@ -239,7 +239,7 @@ func ListProjects(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation GET /user/projects user userListProjects
+	// swagger:operation GET /user/projects user userCurrentListProjects
 	// ---
 	// summary: List your projects
 	// produces:
@@ -263,7 +263,7 @@ func ListProjects(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ProjectList"
 
-	// swagger:operation GET /users/{username}/projects user userListUserProjects
+	// swagger:operation GET /users/{username}/projects user userListProjects
 	// ---
 	// summary: List a user's projects
 	// produces:
@@ -372,7 +372,7 @@ func GetProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation GET /user/projects/{id} user userGetProject
+	// swagger:operation GET /user/projects/{id} user userCurrentGetProject
 	// ---
 	// summary: Get a project
 	// produces:
@@ -432,6 +432,8 @@ func CreateProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation POST /orgs/{org}/projects organization orgCreateProject
 	// ---
@@ -458,7 +460,7 @@ func CreateProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation POST /user/projects user userCreateProject
+	// swagger:operation POST /user/projects user userCurrentCreateProject
 	// ---
 	// summary: Create a project owned by the authenticated user
 	// consumes:
@@ -545,6 +547,8 @@ func EditProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation PATCH /orgs/{org}/projects/{id} organization orgEditProject
 	// ---
@@ -577,7 +581,7 @@ func EditProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation PATCH /user/projects/{id} user userEditProject
+	// swagger:operation PATCH /user/projects/{id} user userCurrentEditProject
 	// ---
 	// summary: Edit a project
 	// consumes:
@@ -671,6 +675,8 @@ func DeleteProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation DELETE /orgs/{org}/projects/{id} organization orgDeleteProject
 	// ---
@@ -693,7 +699,7 @@ func DeleteProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation DELETE /user/projects/{id} user userDeleteProject
+	// swagger:operation DELETE /user/projects/{id} user userCurrentDeleteProject
 	// ---
 	// summary: Delete a project
 	// parameters:
@@ -789,7 +795,7 @@ func ListProjectColumns(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation GET /user/projects/{id}/columns user userListProjectColumns
+	// swagger:operation GET /user/projects/{id}/columns user userCurrentListProjectColumns
 	// ---
 	// summary: List a project's columns
 	// produces:
@@ -874,6 +880,8 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/columns organization orgCreateProjectColumn
 	// ---
@@ -908,7 +916,7 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation POST /user/projects/{id}/columns user userCreateProjectColumn
+	// swagger:operation POST /user/projects/{id}/columns user userCurrentCreateProjectColumn
 	// ---
 	// summary: Create a column in a project
 	// consumes:
@@ -1020,7 +1028,7 @@ func GetProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation GET /user/projects/{id}/columns/{column_id} user userGetProjectColumn
+	// swagger:operation GET /user/projects/{id}/columns/{column_id} user userCurrentGetProjectColumn
 	// ---
 	// summary: Get a project column
 	// produces:
@@ -1096,6 +1104,8 @@ func EditProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation PATCH /orgs/{org}/projects/{id}/columns/{column_id} organization orgEditProjectColumn
 	// ---
@@ -1136,7 +1146,7 @@ func EditProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation PATCH /user/projects/{id}/columns/{column_id} user userEditProjectColumn
+	// swagger:operation PATCH /user/projects/{id}/columns/{column_id} user userCurrentEditProjectColumn
 	// ---
 	// summary: Edit a project column
 	// consumes:
@@ -1235,6 +1245,8 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation DELETE /orgs/{org}/projects/{id}/columns/{column_id} organization orgDeleteProjectColumn
 	// ---
@@ -1268,7 +1280,7 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation DELETE /user/projects/{id}/columns/{column_id} user userDeleteProjectColumn
+	// swagger:operation DELETE /user/projects/{id}/columns/{column_id} user userCurrentDeleteProjectColumn
 	// ---
 	// summary: Delete a project column
 	// description: The default column cannot be deleted while it is still the column new issues land in.
@@ -1342,6 +1354,8 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/columns/{column_id}/default organization orgSetDefaultProjectColumn
 	// ---
@@ -1373,7 +1387,7 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation POST /user/projects/{id}/columns/{column_id}/default user userSetDefaultProjectColumn
+	// swagger:operation POST /user/projects/{id}/columns/{column_id}/default user userCurrentSetDefaultProjectColumn
 	// ---
 	// summary: Set a project's default column
 	// description: The default column is where newly assigned issues land.
@@ -1447,6 +1461,8 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/columns/move organization orgMoveProjectColumns
 	// ---
@@ -1480,7 +1496,7 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation POST /user/projects/{id}/columns/move user userMoveProjectColumns
+	// swagger:operation POST /user/projects/{id}/columns/move user userCurrentMoveProjectColumns
 	// ---
 	// summary: Reorder a project's columns
 	// description: Reorders every column of the project at once; the body lists all column IDs in their new order.
@@ -1624,7 +1640,7 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation GET /user/projects/{id}/columns/{column_id}/issues user userListProjectColumnIssues
+	// swagger:operation GET /user/projects/{id}/columns/{column_id}/issues user userCurrentListProjectColumnIssues
 	// ---
 	// summary: List the issues in a project column
 	// produces:
@@ -1738,6 +1754,8 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/columns/{column_id}/issues/{issue_id} organization orgAddIssueToProjectColumn
 	// ---
@@ -1777,7 +1795,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation POST /user/projects/{id}/columns/{column_id}/issues/{issue_id} user userAddIssueToProjectColumn
+	// swagger:operation POST /user/projects/{id}/columns/{column_id}/issues/{issue_id} user userCurrentAddIssueToProjectColumn
 	// ---
 	// summary: Add an issue to a project column
 	// description: Assigns the issue to the project if it is not a member yet, then places it in the column.
@@ -1862,6 +1880,8 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation DELETE /orgs/{org}/projects/{id}/columns/{column_id}/issues/{issue_id} organization orgRemoveIssueFromProjectColumn
 	// ---
@@ -1898,7 +1918,7 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation DELETE /user/projects/{id}/columns/{column_id}/issues/{issue_id} user userRemoveIssueFromProjectColumn
+	// swagger:operation DELETE /user/projects/{id}/columns/{column_id}/issues/{issue_id} user userCurrentRemoveIssueFromProjectColumn
 	// ---
 	// summary: Remove an issue from a project column
 	// parameters:
@@ -1982,6 +2002,8 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation POST /orgs/{org}/projects/{id}/issues/{issue_id}/move organization orgMoveProjectIssue
 	// ---
@@ -2020,7 +2042,7 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// swagger:operation POST /user/projects/{id}/issues/{issue_id}/move user userMoveProjectIssue
+	// swagger:operation POST /user/projects/{id}/issues/{issue_id}/move user userCurrentMoveProjectIssue
 	// ---
 	// summary: Move an issue between a project's columns
 	// consumes:
