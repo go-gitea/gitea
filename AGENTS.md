@@ -1,22 +1,19 @@
 - Never assume, verify before claiming
+- Keep PR descriptions minimal, no task lists
+- Use Conventional Commits for commit messages and PR titles, plus Gitea's own `enhance` type for user-facing enhancements
+- Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
+- Never rewrite git history unless asked. Use new commits and normal push for PR updates
+- Include authorship attribution in issue and PR comments
 - Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits
-- Lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
-- `make help` lists other targets
+- Lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`, `make help` lists other targets
 - Run single Go tests with `go test -run '^TestName$' ./modulepath/`
 - Run single TS test files with `pnpm exec vitest <path-filter>`
 - Run single Playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
 - Write the fewest, fastest tests covering the behavior: extend an existing test, case or file before adding a new one, set up only what the assertions use, no `sleep`
-- Prefer unit tests over integration tests when logic is testable in isolation
-- Aim for sub-2s local runtime per integration test and sub-4s per e2e test
+- Prefer unit tests when logic is testable in isolation, aim for sub-2s local runtime per integration test and sub-4s per e2e test
 - Prefer semantic locators in e2e tests
 - Preserve existing comments, write almost no new ones: short, same-line, explain why for a future reader, never narrate code or the current change
 - Add the current year to copyright headers of new `.go` files
-- Ensure no trailing whitespace in edited files
+- Leave no trailing whitespace in any edited file
 - In TS, use `!` instead of `?.`/`??` when a value always exists
 - Prefer `tw-*` utilities over inline `style`, and `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins, falling back to `tw-*` when specificity requires `!important`
-- Keep PR descriptions minimal, no task lists
-- Never rewrite git history unless asked. Use new commits and normal push for PR updates
-- Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`, `!` before the colon if breaking, `test` type for test-only changes
-- Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages
-- Never add `Co-Authored-By` or `Signed-off-by` trailers to commit messages
-- Include authorship attribution in issue and PR comments
