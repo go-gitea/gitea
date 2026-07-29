@@ -4,8 +4,8 @@
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's own `enhance` type for user-facing enhancements
 - Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
 - Never rewrite git history unless asked. Use new commits and normal push for PR updates
-- Include authorship attribution in issue and PR comments
-- Preserve existing comments, write almost no new ones: short, same-line, explain why for a future reader, never narrate code or the current change
+- Include authorship attribution when writing issue and PR comments
+- Comments: Write almost no new ones. Keep them short, preferably same-line and explain why for a future reader. Never narrate code, the current change or prompt. Preserve existing comments when they still apply.
 - Add the current year to copyright headers of new `.go` files
 - Leave no trailing whitespace in any edited file
 - In TS, use `!` instead of `?.`/`??` when a value always exists
@@ -15,6 +15,6 @@
 - Run single Go tests with `go test -run '^TestName$' ./modulepath/`
 - Run single TS test files with `pnpm exec vitest <path-filter>`
 - Run single Playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
-- Write the fewest, fastest tests covering the behavior: extend an existing test, case or file before adding a new one, set up only what the assertions use, no `sleep`
+- Write the fewest, fastest tests covering the behavior. Prefer extending an existing test before adding a new one. Avoid `sleep` and similar mechanisms
 - Prefer unit tests when logic is testable in isolation, aim for sub-2s local runtime per integration test and sub-4s per e2e test
 - Prefer semantic locators in e2e tests
