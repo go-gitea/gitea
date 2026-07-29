@@ -213,12 +213,12 @@ func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
 	if c.Author.Name == "" && c.Author.Email == "" {
 		return c.CoAuthorIdentities() // an empty identity is no participant, same as in AllParticipantIdentities
 	}
-	all := c.AllAuthorIdentities()
+	all := c.AllParticipantIdentities()
 	if len(all) <= 1 {
 		return all
 	}
 	if all[1].role != commitIdentityRoleCommitter {
 		return all // no committer, so all after author are co-authors
 	}
-	return append([]*CommitIdentity{all[0]}, all[2:]...)
+	return append([]*CommitIdentity{all[0]}, c.CoAuthorIdentities()...)
 }
