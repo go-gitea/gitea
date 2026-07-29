@@ -14412,7 +14412,6 @@
     },
     "/orgs/{org}/projects": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "orgListProjects",
         "parameters": [
           {
@@ -14546,7 +14545,6 @@
         ]
       },
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "orgGetProject",
         "parameters": [
           {
@@ -15010,7 +15008,6 @@
     },
     "/orgs/{org}/projects/{id}/columns/{column_id}/issues": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "orgListProjectColumnIssues",
         "parameters": [
           {
@@ -27203,7 +27200,6 @@
     },
     "/repos/{owner}/{repo}/projects": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "repoListProjects",
         "parameters": [
           {
@@ -27364,7 +27360,6 @@
         ]
       },
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "repoGetProject",
         "parameters": [
           {
@@ -27909,7 +27904,6 @@
     },
     "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "repoListProjectColumnIssues",
         "parameters": [
           {
@@ -35096,7 +35090,6 @@
     },
     "/user/projects": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "userListProjects",
         "parameters": [
           {
@@ -35133,9 +35126,6 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/ProjectList"
-          },
-          "404": {
-            "$ref": "#/components/responses/notFound"
           }
         },
         "summary": "List your projects",
@@ -35158,9 +35148,6 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/Project"
-          },
-          "404": {
-            "$ref": "#/components/responses/notFound"
           },
           "422": {
             "$ref": "#/components/responses/validationError"
@@ -35201,7 +35188,6 @@
         ]
       },
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "userGetProject",
         "parameters": [
           {
@@ -35584,7 +35570,6 @@
     },
     "/user/projects/{id}/columns/{column_id}/issues": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "userListProjectColumnIssues",
         "parameters": [
           {
@@ -36687,7 +36672,6 @@
     },
     "/users/{username}/projects": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "operationId": "userListUserProjects",
         "parameters": [
           {

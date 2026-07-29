@@ -24,25 +24,22 @@ func TestFindColumn(t *testing.T) {
 		name       string
 		projectID  string
 		columnID   string
+		doerID     int64
 		repoScoped bool
 		resolves   bool
 	}{
-		{"repository project", "1", "2", true, true},
-		{"owner project", "4", "4", false, true},
-		{"repository board cannot reach an owner project", "4", "1", true, false},
-		{"owner board cannot reach another owner's project", "4", "4", false, false},
+		{"repository project", "1", "2", 2, true, true},
+		{"owner project", "4", "4", 2, false, true},
+		{"repository board cannot reach an owner project", "4", "1", 2, true, false},
+		{"owner board cannot reach another owner's project", "4", "4", 1, false, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			unittest.PrepareTestEnv(t)
 			ctx, _ := contexttest.MockContext(t, "user2/-/projects")
+			contexttest.LoadUser(t, ctx, tc.doerID)
 			if tc.repoScoped {
-				contexttest.LoadUser(t, ctx, 2)
 				contexttest.LoadRepo(t, ctx, 1)
-			} else if tc.resolves {
-				contexttest.LoadUser(t, ctx, 2) // user2 owns project 4
-				ctx.ContextUser = ctx.Doer
 			} else {
-				contexttest.LoadUser(t, ctx, 1) // user1 does not
 				ctx.ContextUser = ctx.Doer
 			}
 			ctx.SetPathParam("id", tc.projectID)

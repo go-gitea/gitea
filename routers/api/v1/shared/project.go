@@ -175,7 +175,6 @@ func ListProjects(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/projects repository repoListProjects
 	// ---
 	// summary: List a repository's projects
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -212,7 +211,6 @@ func ListProjects(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/projects organization orgListProjects
 	// ---
 	// summary: List an organization's projects
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -244,7 +242,6 @@ func ListProjects(ctx *context.APIContext) {
 	// swagger:operation GET /user/projects user userListProjects
 	// ---
 	// summary: List your projects
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -265,13 +262,10 @@ func ListProjects(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	// swagger:operation GET /users/{username}/projects user userListUserProjects
 	// ---
 	// summary: List a user's projects
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -330,7 +324,6 @@ func GetProject(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/projects/{id} repository repoGetProject
 	// ---
 	// summary: Get a project
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -359,7 +352,6 @@ func GetProject(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/projects/{id} organization orgGetProject
 	// ---
 	// summary: Get a project
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -383,7 +375,6 @@ func GetProject(ctx *context.APIContext) {
 	// swagger:operation GET /user/projects/{id} user userGetProject
 	// ---
 	// summary: Get a project
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -484,8 +475,6 @@ func CreateProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Project"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 
 	scope := projectScopeFromContext(ctx)
 	form := web.GetForm(ctx).(*api.CreateProjectOption)
@@ -660,8 +649,6 @@ func DeleteProject(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/projects/{id} repository repoDeleteProject
 	// ---
 	// summary: Delete a project
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -688,8 +675,6 @@ func DeleteProject(ctx *context.APIContext) {
 	// swagger:operation DELETE /orgs/{org}/projects/{id} organization orgDeleteProject
 	// ---
 	// summary: Delete a project
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: org
 	//   in: path
@@ -711,8 +696,6 @@ func DeleteProject(ctx *context.APIContext) {
 	// swagger:operation DELETE /user/projects/{id} user userDeleteProject
 	// ---
 	// summary: Delete a project
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: id
 	//   in: path
@@ -1215,15 +1198,11 @@ func EditProjectColumn(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToProjectColumn(ctx, column, ctx.Doer))
 }
 
-// DeleteProjectColumn removes a column, moving its issues to the default column.
-
 func DeleteProjectColumn(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/projects/{id}/columns/{column_id} repository repoDeleteProjectColumn
 	// ---
 	// summary: Delete a project column
 	// description: The default column cannot be deleted while it is still the column new issues land in.
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -1261,8 +1240,6 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	// ---
 	// summary: Delete a project column
 	// description: The default column cannot be deleted while it is still the column new issues land in.
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: org
 	//   in: path
@@ -1295,8 +1272,6 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	// ---
 	// summary: Delete a project column
 	// description: The default column cannot be deleted while it is still the column new issues land in.
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: id
 	//   in: path
@@ -1332,15 +1307,11 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// SetDefaultProjectColumn marks a column as the one new issues land in.
-
 func SetDefaultProjectColumn(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/default repository repoSetDefaultProjectColumn
 	// ---
 	// summary: Set a project's default column
 	// description: The default column is where newly assigned issues land.
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -1376,8 +1347,6 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	// ---
 	// summary: Set a project's default column
 	// description: The default column is where newly assigned issues land.
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: org
 	//   in: path
@@ -1408,8 +1377,6 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	// ---
 	// summary: Set a project's default column
 	// description: The default column is where newly assigned issues land.
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: id
 	//   in: path
@@ -1443,16 +1410,12 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// MoveProjectColumns reorders every column at once; the body lists all IDs in their new order.
-
 func MoveProjectColumns(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/columns/move repository repoMoveProjectColumns
 	// ---
 	// summary: Reorder a project's columns
 	// description: Reorders every column of the project at once; the body lists all column IDs in their new order.
 	// consumes:
-	// - application/json
-	// produces:
 	// - application/json
 	// parameters:
 	// - name: owner
@@ -1491,8 +1454,6 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	// description: Reorders every column of the project at once; the body lists all column IDs in their new order.
 	// consumes:
 	// - application/json
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: org
 	//   in: path
@@ -1524,8 +1485,6 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	// summary: Reorder a project's columns
 	// description: Reorders every column of the project at once; the body lists all column IDs in their new order.
 	// consumes:
-	// - application/json
-	// produces:
 	// - application/json
 	// parameters:
 	// - name: id
@@ -1585,13 +1544,10 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// ListProjectColumnIssues lists the issues placed in a column, filtered to what the doer may see.
-
 func ListProjectColumnIssues(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues repository repoListProjectColumnIssues
 	// ---
 	// summary: List the issues in a project column
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1634,7 +1590,6 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	// swagger:operation GET /orgs/{org}/projects/{id}/columns/{column_id}/issues organization orgListProjectColumnIssues
 	// ---
 	// summary: List the issues in a project column
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1672,7 +1627,6 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	// swagger:operation GET /user/projects/{id}/columns/{column_id}/issues user userListProjectColumnIssues
 	// ---
 	// summary: List the issues in a project column
-	// description: Projects track issues and pull requests; standalone note cards are not supported.
 	// produces:
 	// - application/json
 	// parameters:
@@ -1741,15 +1695,11 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(ctx, ctx.Doer, issues))
 }
 
-// AddIssueToProjectColumn assigns an issue to the project and places it in the column.
-
 func AddIssueToProjectColumn(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues/{issue_id} repository repoAddIssueToProjectColumn
 	// ---
 	// summary: Add an issue to a project column
 	// description: Assigns the issue to the project if it is not a member yet, then places it in the column.
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -1793,8 +1743,6 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	// ---
 	// summary: Add an issue to a project column
 	// description: Assigns the issue to the project if it is not a member yet, then places it in the column.
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: org
 	//   in: path
@@ -1833,8 +1781,6 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	// ---
 	// summary: Add an issue to a project column
 	// description: Assigns the issue to the project if it is not a member yet, then places it in the column.
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: id
 	//   in: path
@@ -1876,14 +1822,10 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	ctx.Status(http.StatusCreated)
 }
 
-// RemoveIssueFromProjectColumn detaches an issue from the column's project.
-
 func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues/{issue_id} repository repoRemoveIssueFromProjectColumn
 	// ---
 	// summary: Remove an issue from a project column
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: owner
 	//   in: path
@@ -1924,8 +1866,6 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	// swagger:operation DELETE /orgs/{org}/projects/{id}/columns/{column_id}/issues/{issue_id} organization orgRemoveIssueFromProjectColumn
 	// ---
 	// summary: Remove an issue from a project column
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: org
 	//   in: path
@@ -1961,8 +1901,6 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	// swagger:operation DELETE /user/projects/{id}/columns/{column_id}/issues/{issue_id} user userRemoveIssueFromProjectColumn
 	// ---
 	// summary: Remove an issue from a project column
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: id
 	//   in: path
@@ -2002,15 +1940,11 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// MoveProjectIssue moves an issue that is already in the project into another column.
-
 func MoveProjectIssue(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/issues/{issue_id}/move repository repoMoveProjectIssue
 	// ---
 	// summary: Move an issue between a project's columns
 	// consumes:
-	// - application/json
-	// produces:
 	// - application/json
 	// parameters:
 	// - name: owner
@@ -2054,8 +1988,6 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	// summary: Move an issue between a project's columns
 	// consumes:
 	// - application/json
-	// produces:
-	// - application/json
 	// parameters:
 	// - name: org
 	//   in: path
@@ -2092,8 +2024,6 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	// ---
 	// summary: Move an issue between a project's columns
 	// consumes:
-	// - application/json
-	// produces:
 	// - application/json
 	// parameters:
 	// - name: id

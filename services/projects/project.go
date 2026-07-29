@@ -22,15 +22,9 @@ type UpdateProjectOptions struct {
 // UpdateProject applies the provided options to the project atomically.
 func UpdateProject(ctx context.Context, project *project_model.Project, opts UpdateProjectOptions) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if opts.Title.Has() {
-			project.Title = opts.Title.Value()
-		}
-		if opts.Description.Has() {
-			project.Description = opts.Description.Value()
-		}
-		if opts.CardType.Has() {
-			project.CardType = opts.CardType.Value()
-		}
+		project.Title = opts.Title.ValueOrDefault(project.Title)
+		project.Description = opts.Description.ValueOrDefault(project.Description)
+		project.CardType = opts.CardType.ValueOrDefault(project.CardType)
 		if err := project_model.UpdateProject(ctx, project); err != nil {
 			return err
 		}

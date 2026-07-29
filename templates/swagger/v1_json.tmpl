@@ -3380,7 +3380,6 @@
     },
     "/orgs/{org}/projects": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
@@ -3474,7 +3473,6 @@
     },
     "/orgs/{org}/projects/{id}": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
@@ -3510,9 +3508,6 @@
         }
       },
       "delete": {
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "organization"
         ],
@@ -3699,9 +3694,6 @@
         "consumes": [
           "application/json"
         ],
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "organization"
         ],
@@ -3793,9 +3785,6 @@
       },
       "delete": {
         "description": "The default column cannot be deleted while it is still the column new issues land in.",
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "organization"
         ],
@@ -3904,9 +3893,6 @@
     "/orgs/{org}/projects/{id}/columns/{column_id}/default": {
       "post": {
         "description": "The default column is where newly assigned issues land.",
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "organization"
         ],
@@ -3952,7 +3938,6 @@
     },
     "/orgs/{org}/projects/{id}/columns/{column_id}/issues": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
@@ -4011,9 +3996,6 @@
     "/orgs/{org}/projects/{id}/columns/{column_id}/issues/{issue_id}": {
       "post": {
         "description": "Assigns the issue to the project if it is not a member yet, then places it in the column.",
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "organization"
         ],
@@ -4068,9 +4050,6 @@
         }
       },
       "delete": {
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "organization"
         ],
@@ -4125,9 +4104,6 @@
     "/orgs/{org}/projects/{id}/issues/{issue_id}/move": {
       "post": {
         "consumes": [
-          "application/json"
-        ],
-        "produces": [
           "application/json"
         ],
         "tags": [
@@ -15161,7 +15137,6 @@
     },
     "/repos/{owner}/{repo}/projects": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
@@ -15269,7 +15244,6 @@
     },
     "/repos/{owner}/{repo}/projects/{id}": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
@@ -15312,9 +15286,6 @@
         }
       },
       "delete": {
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "repository"
         ],
@@ -15529,9 +15500,6 @@
         "consumes": [
           "application/json"
         ],
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "repository"
         ],
@@ -15637,9 +15605,6 @@
       },
       "delete": {
         "description": "The default column cannot be deleted while it is still the column new issues land in.",
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "repository"
         ],
@@ -15762,9 +15727,6 @@
     "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/default": {
       "post": {
         "description": "The default column is where newly assigned issues land.",
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "repository"
         ],
@@ -15817,7 +15779,6 @@
     },
     "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
@@ -15883,9 +15844,6 @@
     "/repos/{owner}/{repo}/projects/{id}/columns/{column_id}/issues/{issue_id}": {
       "post": {
         "description": "Assigns the issue to the project if it is not a member yet, then places it in the column.",
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "repository"
         ],
@@ -15947,9 +15905,6 @@
         }
       },
       "delete": {
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "repository"
         ],
@@ -16011,9 +15966,6 @@
     "/repos/{owner}/{repo}/projects/{id}/issues/{issue_id}/move": {
       "post": {
         "consumes": [
-          "application/json"
-        ],
-        "produces": [
           "application/json"
         ],
         "tags": [
@@ -22592,7 +22544,6 @@
     },
     "/user/projects": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
@@ -22630,9 +22581,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ProjectList"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -22661,9 +22609,6 @@
           "201": {
             "$ref": "#/responses/Project"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -22672,7 +22617,6 @@
     },
     "/user/projects/{id}": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
@@ -22701,9 +22645,6 @@
         }
       },
       "delete": {
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "user"
         ],
@@ -22862,9 +22803,6 @@
         "consumes": [
           "application/json"
         ],
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "user"
         ],
@@ -22942,9 +22880,6 @@
       },
       "delete": {
         "description": "The default column cannot be deleted while it is still the column new issues land in.",
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "user"
         ],
@@ -23039,9 +22974,6 @@
     "/user/projects/{id}/columns/{column_id}/default": {
       "post": {
         "description": "The default column is where newly assigned issues land.",
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "user"
         ],
@@ -23080,7 +23012,6 @@
     },
     "/user/projects/{id}/columns/{column_id}/issues": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
@@ -23132,9 +23063,6 @@
     "/user/projects/{id}/columns/{column_id}/issues/{issue_id}": {
       "post": {
         "description": "Assigns the issue to the project if it is not a member yet, then places it in the column.",
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "user"
         ],
@@ -23182,9 +23110,6 @@
         }
       },
       "delete": {
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "user"
         ],
@@ -23232,9 +23157,6 @@
     "/user/projects/{id}/issues/{issue_id}/move": {
       "post": {
         "consumes": [
-          "application/json"
-        ],
-        "produces": [
           "application/json"
         ],
         "tags": [
@@ -24126,7 +24048,6 @@
     },
     "/users/{username}/projects": {
       "get": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
         "produces": [
           "application/json"
         ],
