@@ -52,43 +52,12 @@ func TestCommitMessageTrailer(t *testing.T) {
 func TestCommitMessageParticipants(t *testing.T) {
 	sig := func(n, e string) *Signature { return &Signature{Name: n, Email: e} }
 	idt := func(n, e string, r int) *CommitIdentity { return &CommitIdentity{n, e, r} }
-	roleAuthor, roleCommitter, roleCoAuthor := commitIdentityRoleAuthor, commitIdentityRoleCommitter, commitIdentityRoleCoAuthor
+	roleAuthor, _, roleCoAuthor := commitIdentityRoleAuthor, commitIdentityRoleCommitter, commitIdentityRoleCoAuthor
 	type testCase struct {
 		name       string
 		commit     *Commit
 		identities []*CommitIdentity
 	}
-	t.Run("AllParticipants", func(t *testing.T) {
-		cases := []testCase{
-			{
-				"DifferentUsers",
-				&Commit{
-					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: x@m.com"},
-				},
-				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("c", "c@m.com", roleCommitter), idt("", "x@m.com", roleCoAuthor)},
-			},
-			{
-				"SameUser",
-				&Commit{
-					Author: sig("a", "a@m.com"), Committer: sig("a", "A@M.com"),
-					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: a@m.com"},
-				},
-				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor)},
-			},
-			{
-				"NoCommitter",
-				&Commit{
-					Author: sig("a", "a@m.com"), Committer: sig("", ""),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: Full Name <X@M.com>"},
-				},
-				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("Full Name", "X@M.com", roleCoAuthor)},
-			},
-		}
-		for _, c := range cases {
-			assert.Equal(t, c.identities, c.commit.AllParticipantIdentities(), "case: %s", c.name)
-		}
-	})
 	t.Run("CoAuthors", func(t *testing.T) {
 		cases := []testCase{
 			{

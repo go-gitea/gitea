@@ -39,9 +39,7 @@ type CommitMessage struct {
 
 	trailerValues CommitMessageTrailerValues
 
-	allParticipants      []*CommitIdentity
-	committerCoAuthorIdx int
-	committerCoAuthor    *CommitIdentity
+	allAuthors []*CommitIdentity
 }
 
 func (c *CommitMessage) MessageUTF8() string {
@@ -146,14 +144,15 @@ func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
 	return ret
 }
 
-// AllParticipantIdentities returns all the participants in the commit, the first one is the commit's author
-func (c *Commit) AllParticipantIdentities() []*CommitIdentity {
-	if c.allParticipants != nil {
-		return c.allParticipants
+// AllAuthorIdentities returns all the authors and co-authors in the commit. Committer is not included:
+// * Author & Co-author: they changed the code (attribution)
+// * Committer: they submitted the commit but didn't change the code (e.g.: maintainer signed a commit)
+func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
+	if c.allAuthors != nil {
+		return c.allAuthors
 	}
-
 	exclude := map[string]int{}
-	addParticipant := func(name, email string, role int) (existingRole int) {
+	addAuthor := func(name, email string, role int) (existingRole int) {
 		if name == "" && email == "" {
 			return 0
 		}
@@ -161,64 +160,23 @@ func (c *Commit) AllParticipantIdentities() []*CommitIdentity {
 		if existingRole = exclude[emailLower]; emailLower != "" && existingRole != 0 {
 			return existingRole
 		}
-		c.allParticipants = append(c.allParticipants, &CommitIdentity{Name: name, Email: email, role: role})
+		c.allAuthors = append(c.allAuthors, &CommitIdentity{Name: name, Email: email, role: role})
 		exclude[emailLower] = role
 		return 0
 	}
 
-	c.committerCoAuthorIdx = -1
-	addParticipant(c.Author.Name, c.Author.Email, commitIdentityRoleAuthor)
-	addParticipant(c.Committer.Name, c.Committer.Email, commitIdentityRoleCommitter)
+	addAuthor(c.Author.Name, c.Author.Email, commitIdentityRoleAuthor)
 	for _, coAuthorValue := range c.MessageTrailer()["co-authored-by"] {
 		addr, err := mail.ParseAddress(coAuthorValue)
 		coAuthorName, coAuthorEmail := coAuthorValue, ""
 		if err == nil {
 			coAuthorName, coAuthorEmail = addr.Name, addr.Address
 		}
-		existingRole := addParticipant(coAuthorName, coAuthorEmail, commitIdentityRoleCoAuthor)
-		if existingRole == commitIdentityRoleCommitter && c.committerCoAuthorIdx == -1 {
-			c.committerCoAuthorIdx = len(c.allParticipants)
-			c.committerCoAuthor = &CommitIdentity{coAuthorName, coAuthorEmail, commitIdentityRoleCoAuthor}
-		}
+		addAuthor(coAuthorName, coAuthorEmail, commitIdentityRoleCoAuthor)
 	}
-	return c.allParticipants
+	return c.allAuthors
 }
 
-// CoAuthorIdentities returns co-author identities defined by "Co-authored-by:" in the git message trailer
-// Only the commit's author is excluded. If committer is declared as co-author, it will be included in the result.
-// * Author & Co-author: they changed the code (attribution)
-// * Committer: they submitted the commit but didn't change the code (e.g.: maintainer signed a commit)
-// So, a committer can also be a co-author if they changed the code.
 func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
-	all := c.AllParticipantIdentities()
-	if len(all) <= 1 {
-		return nil // no co-author list
-	}
-	if all[1].role != commitIdentityRoleCommitter {
-		return all[1:] // no committer, so all after author are co-authors
-	}
-	if c.committerCoAuthorIdx == -1 {
-		return all[2:] // the committer is not in the co-author list, so just return the co-author list
-	}
-	// the committer is in the co-author list but de-duplicated, so include them as co-author again
-	coAuthors = append(coAuthors, all[2:c.committerCoAuthorIdx]...)
-	coAuthors = append(coAuthors, c.committerCoAuthor)
-	coAuthors = append(coAuthors, all[c.committerCoAuthorIdx:]...)
-	return coAuthors
-}
-
-// AllAuthorIdentities returns the identities of all authors and co-authors, following
-// the same rules as CoAuthorIdentities.
-func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
-	if c.Author.Name == "" && c.Author.Email == "" {
-		return c.CoAuthorIdentities() // an empty identity is no participant, same as in AllParticipantIdentities
-	}
-	all := c.AllParticipantIdentities()
-	if len(all) <= 1 {
-		return all
-	}
-	if all[1].role != commitIdentityRoleCommitter {
-		return all // no committer, so all after author are co-authors
-	}
-	return append([]*CommitIdentity{all[0]}, c.CoAuthorIdentities()...)
+	return c.AllAuthorIdentities()[1:]
 }
