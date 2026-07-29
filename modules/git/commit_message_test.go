@@ -58,6 +58,40 @@ func TestCommitMessageParticipants(t *testing.T) {
 		commit     *Commit
 		identities []*CommitIdentity
 	}
+
+	t.Run("AllAuthors", func(t *testing.T) {
+		cases := []testCase{
+			{
+				"CommitterExcluded",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: Full Name <x@m.com>"},
+				},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("Full Name", "x@m.com", roleCoAuthor)},
+			},
+			{
+				"AuthorIsCoAuthor",
+				&Commit{
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: other-name <a@m.com>"},
+				},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor)},
+			},
+			{
+				"EmptyAuthor", // synthesized commits (push feed) may have no author signature at all
+				&Commit{
+					Author: sig("", ""), Committer: sig("", ""),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
+				},
+				// but if the commit message contains co-authors, the co-authors are still parsed for "all authors"
+				// if it is a problem, the caller should fix the problem (provide correct "author")
+				[]*CommitIdentity{idt("c", "c@m.com", roleCoAuthor)},
+			},
+		}
+		for _, c := range cases {
+			assert.Equal(t, c.identities, c.commit.AllAuthorIdentities(), "case: %s", c.name)
+		}
+	})
 	t.Run("CoAuthors", func(t *testing.T) {
 		cases := []testCase{
 			{
@@ -95,39 +129,6 @@ func TestCommitMessageParticipants(t *testing.T) {
 		}
 		for _, c := range cases {
 			assert.Equal(t, c.identities, c.commit.CoAuthorIdentities(), "case: %s", c.name)
-		}
-	})
-	t.Run("AllAuthors", func(t *testing.T) {
-		cases := []testCase{
-			{
-				"CommitterExcluded",
-				&Commit{
-					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>"},
-				},
-				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("x", "x@m.com", roleCoAuthor)},
-			},
-			{
-				"CommitterIsCoAuthor",
-				&Commit{
-					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
-				},
-				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("c", "c@m.com", roleCoAuthor)},
-			},
-			{
-				"EmptyAuthor", // synthesized commits (push feed) may have no author signature at all
-				&Commit{
-					Author: sig("", ""), Committer: sig("", ""),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
-				},
-				// but if the commit message contains co-authors, the co-authors are still parsed for "all authors"
-				// if it is a problem, the caller should fix the problem (provide correct "author")
-				[]*CommitIdentity{idt("c", "c@m.com", roleCoAuthor)},
-			},
-		}
-		for _, c := range cases {
-			assert.Equal(t, c.identities, c.commit.AllAuthorIdentities(), "case: %s", c.name)
 		}
 	})
 }

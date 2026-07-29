@@ -158,7 +158,10 @@ func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
 		if name == "" && email == "" {
 			return 0
 		}
-		key := strings.ToLower(name) + "\x00" + strings.ToLower(email)
+		key := strings.ToLower(email)
+		if key == "" {
+			key = strings.ToLower(name)
+		}
 		if existingRole = exclude[key]; key != "" && existingRole != 0 {
 			return existingRole
 		}
@@ -185,7 +188,7 @@ func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
 		return nil
 	}
 	if all[0].role == commitIdentityRoleAuthor {
-		return c.AllAuthorIdentities()[1:]
+		return all[1:]
 	}
 	return all
 }
