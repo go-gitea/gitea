@@ -5,7 +5,7 @@
 - Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
 - Never rewrite git history unless asked. Use new commits and normal push for PR updates
 - Include authorship attribution when writing issue and PR comments
-- Comments: Write almost no new ones. Keep them short, preferably same-line and explain why for a future reader. Never narrate code, the current change or prompt. Preserve existing comments when they still apply.
+- Comments: Write almost no new ones, keep them short, preferably same-line,  explain why for a future reader. Never narrate code, the current change or prompt. Preserve existing comments when they still apply.
 - Add the current year to copyright headers of new `.go` files
 - Leave no trailing whitespace in any edited file
 - In TS, use `!` instead of `?.`/`??` when a value always exists
