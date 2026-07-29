@@ -72,6 +72,17 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			if err := evaluator.EvaluateYamlNode(&job.RawContinueOnError); err != nil {
 				return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", id, err)
 			}
+			// Deep-copy before evaluation: Job.Clone shallow-copies the
+			// yaml.Node Content slice, so EvaluateYamlNode would mutate
+			// shared pointer elements and bleed results across matrix variants.
+			containerNode, err := deepCopyYamlNode(&job.RawContainer)
+			if err != nil {
+				return nil, fmt.Errorf("deep-copy container for job %q: %w", id, err)
+			}
+			job.RawContainer = *containerNode
+			if err := evaluator.EvaluateYamlNode(&job.RawContainer); err != nil {
+				return nil, fmt.Errorf("evaluate container for job %q: %w", id, err)
+			}
 			swf := &SingleWorkflow{
 				Name:           workflow.Name,
 				RawOn:          workflow.RawOn,
@@ -125,6 +136,29 @@ func getMatrixes(job *model.Job) ([]map[string]any, error) {
 		return matrixName(ret[i]) < matrixName(ret[j])
 	})
 	return ret, nil
+}
+
+// deepCopyYamlNode returns a deep copy of node by round-tripping through YAML
+// bytes. This ensures that the Content slice and its pointer elements are not
+// shared with the original, so expression evaluation on the copy cannot
+// mutate nodes that belong to other callers (e.g. other matrix variants).
+func deepCopyYamlNode(node *yaml.Node) (*yaml.Node, error) {
+	if node.Kind == 0 {
+		return &yaml.Node{}, nil
+	}
+	bs, err := yaml.Marshal(node)
+	if err != nil {
+		return nil, err
+	}
+	var out yaml.Node
+	if err := yaml.Unmarshal(bs, &out); err != nil {
+		return nil, err
+	}
+	// yaml.Unmarshal wraps the result in a document node; unwrap it.
+	if out.Kind == yaml.DocumentNode && len(out.Content) == 1 {
+		return out.Content[0], nil
+	}
+	return &out, nil
 }
 
 func encodeMatrix(matrix map[string]any) yaml.Node {
