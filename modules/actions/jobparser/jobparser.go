@@ -72,6 +72,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			if err := evaluator.EvaluateYamlNode(&job.RawContinueOnError); err != nil {
 				return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", id, err)
 			}
+			if err := evaluator.EvaluateYamlNode(&job.RawContainer); err != nil {
+				return nil, fmt.Errorf("evaluate container for job %q: %w", id, err)
+			}
 			swf := &SingleWorkflow{
 				Name:           workflow.Name,
 				RawOn:          workflow.RawOn,
