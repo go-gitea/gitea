@@ -4,7 +4,7 @@
 package migrations
 
 import (
-	"encoding/json"
+	"gitea.dev/modules/json"
 	"io"
 	"net/http"
 	"net/http/httptest"

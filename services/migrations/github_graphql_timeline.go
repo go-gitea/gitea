@@ -24,7 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"sort"
+	"slices"
 	"time"
 
 	"gitea.dev/modules/log"
@@ -218,7 +218,7 @@ func (g *GithubDownloaderV3) attachTimelineEvents(ctx context.Context, nodeIDToI
 			ids = append(ids, id)
 		}
 	}
-	sort.Strings(ids) // deterministic batching
+	slices.Sort(ids) // deterministic batching
 	for start := 0; start < len(ids); start += timelineBatchSize {
 		end := min(start+timelineBatchSize, len(ids))
 		eventsByID, err := g.fetchTimelineEvents(ctx, ids[start:end])

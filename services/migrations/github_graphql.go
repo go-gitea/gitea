@@ -23,10 +23,10 @@ package migrations
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"gitea.dev/modules/json"
 	"fmt"
 	"net/http"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -120,7 +120,7 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 		}
 
 		var envelope struct {
-			Data   json.RawMessage `json:"data"`
+			Data   json.Value `json:"data"`
 			Errors []graphQLError  `json:"errors"`
 		}
 		decodeErr := json.NewDecoder(resp.Body).Decode(&envelope)
@@ -477,7 +477,7 @@ func (g *GithubDownloaderV3) getCachedComments(page, perPage int) ([]*base.Comme
 		for n := range g.gqlComments {
 			nums = append(nums, n)
 		}
-		sort.Slice(nums, func(i, j int) bool { return nums[i] < nums[j] })
+		slices.Sort(nums)
 		// non-nil sentinel so an empty sweep isn't re-flattened every call
 		g.gqlCommentsFlat = make([]*base.Comment, 0)
 		for _, n := range nums {

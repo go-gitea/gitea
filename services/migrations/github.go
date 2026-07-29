@@ -541,8 +541,10 @@ func (g *GithubDownloaderV3) getIssuesSince(ctx context.Context, page, perPage i
 		})
 	}
 
-	// End when the cursor is exhausted (no more `after` in the Link header).
-	return allIssues, resp.After == "", nil
+	// End when the cursor is exhausted AND a short page confirms no more results.
+	// Both conditions together handle cursor-based and page-based responses.
+	isEnd := resp.After == "" && len(issues) < perPage
+	return allIssues, isEnd, nil
 }
 
 // SupportGetRepoComments return true if it supports get repo comments

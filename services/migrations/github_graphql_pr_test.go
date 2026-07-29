@@ -4,7 +4,7 @@
 package migrations
 
 import (
-	"encoding/json"
+	"gitea.dev/modules/json"
 	"testing"
 
 	base "gitea.dev/modules/migration"

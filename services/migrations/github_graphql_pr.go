@@ -300,10 +300,10 @@ func (g *GithubDownloaderV3) convertGraphQLPullRequest(node *gqlPullRequest) *ba
 		head.OwnerName = node.HeadRepo.Owner.Login
 		head.CloneURL = node.HeadRepo.URL + ".git"
 	}
-	base_ := base.PullRequestBranch{Ref: node.BaseRefName, SHA: node.BaseRefOID}
+	baseBranch := base.PullRequestBranch{Ref: node.BaseRefName, SHA: node.BaseRefOID}
 	if node.BaseRepo != nil {
-		base_.RepoName = node.BaseRepo.Name
-		base_.OwnerName = node.BaseRepo.Owner.Login
+		baseBranch.RepoName = node.BaseRepo.Name
+		baseBranch.OwnerName = node.BaseRepo.Owner.Login
 	}
 
 	// GitHub REST reports a merged PR as state "closed"; keep that convention.
@@ -330,7 +330,7 @@ func (g *GithubDownloaderV3) convertGraphQLPullRequest(node *gqlPullRequest) *ba
 		MergedTime:     node.MergedAt,
 		MergeCommitSHA: mergeCommitSHA,
 		Head:           head,
-		Base:           base_,
+		Base:           baseBranch,
 		Assignees:      assignees,
 		IsLocked:       node.Locked,
 		Reactions:      convertGraphQLReactions(node.Reactions),
