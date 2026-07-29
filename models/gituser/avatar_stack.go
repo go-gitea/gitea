@@ -5,7 +5,6 @@ package gituser
 
 import (
 	"context"
-	"strings"
 
 	"gitea.dev/models/user"
 	"gitea.dev/modules/container"
@@ -36,20 +35,16 @@ func BuildAvatarStackData(ctx context.Context, allParticipants []*git.CommitIden
 		Participants: make([]*CommitParticipant, 0, len(allParticipants)),
 	}
 	uniqueUserIDs := make(container.Set[int64])
-	uniqueIdentities := make(container.Set[string])
 	for _, p := range allParticipants {
 		var giteaUser *user.User
 		if emailUserMap != nil {
 			giteaUser = emailUserMap.GetByEmail(p.Email)
 		}
-		// identities without a Gitea account can only be compared by their git identity,
-		// which also catches malformed trailers that parse into an empty email
 		if giteaUser != nil {
+			// identities without a Gitea account can only be compared by their git identity
 			if !uniqueUserIDs.Add(giteaUser.ID) {
 				continue
 			}
-		} else if !uniqueIdentities.Add(strings.ToLower(p.Email + "\x00" + p.Name)) {
-			continue
 		}
 		ret.Participants = append(ret.Participants, &CommitParticipant{GiteaUser: giteaUser, GitIdentity: p})
 	}

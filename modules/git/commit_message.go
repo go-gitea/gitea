@@ -144,29 +144,31 @@ func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
 	return ret
 }
 
-// AllAuthorIdentities returns all the authors and co-authors in the commit. Committer is not included:
+// AllAuthorIdentities returns all the author and co-authors in the commit. Committer is not included:
 // * Author & Co-author: they changed the code (attribution)
 // * Committer: they submitted the commit but didn't change the code (e.g.: maintainer signed a commit)
 func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
 	if c.allAuthors != nil {
 		return c.allAuthors
 	}
+	trailerCoAuthors := c.MessageTrailer()["co-authored-by"]
+	c.allAuthors = make([]*CommitIdentity, 0, 1+len(trailerCoAuthors))
 	exclude := map[string]int{}
 	addAuthor := func(name, email string, role int) (existingRole int) {
 		if name == "" && email == "" {
 			return 0
 		}
-		emailLower := strings.ToLower(email)
-		if existingRole = exclude[emailLower]; emailLower != "" && existingRole != 0 {
+		key := strings.ToLower(name) + "\x00" + strings.ToLower(email)
+		if existingRole = exclude[key]; key != "" && existingRole != 0 {
 			return existingRole
 		}
 		c.allAuthors = append(c.allAuthors, &CommitIdentity{Name: name, Email: email, role: role})
-		exclude[emailLower] = role
+		exclude[key] = role
 		return 0
 	}
 
 	addAuthor(c.Author.Name, c.Author.Email, commitIdentityRoleAuthor)
-	for _, coAuthorValue := range c.MessageTrailer()["co-authored-by"] {
+	for _, coAuthorValue := range trailerCoAuthors {
 		addr, err := mail.ParseAddress(coAuthorValue)
 		coAuthorName, coAuthorEmail := coAuthorValue, ""
 		if err == nil {
@@ -178,5 +180,12 @@ func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
 }
 
 func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
-	return c.AllAuthorIdentities()[1:]
+	all := c.AllAuthorIdentities()
+	if len(all) == 0 {
+		return nil
+	}
+	if all[0].role == commitIdentityRoleAuthor {
+		return c.AllAuthorIdentities()[1:]
+	}
+	return all
 }

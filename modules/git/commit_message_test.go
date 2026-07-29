@@ -85,12 +85,12 @@ func TestCommitMessageParticipants(t *testing.T) {
 				[]*CommitIdentity{},
 			},
 			{
-				"CoAuthorCommitterNameWithIndex", // restore the committer co-author to the co-author list by the index with correct name
+				"CoAuthorNameOnlyAndDuplicate",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>\nCo-authored-by: c-other <c@m.com>\nCo-authored-by: y <y@m.com>"},
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: b\nCo-authored-by: b\nCo-authored-by: c"},
 				},
-				[]*CommitIdentity{idt("x", "x@m.com", roleCoAuthor), idt("c-other", "c@m.com", roleCoAuthor), idt("y", "y@m.com", roleCoAuthor)},
+				[]*CommitIdentity{idt("b", "", roleCoAuthor), idt("c", "", roleCoAuthor)},
 			},
 		}
 		for _, c := range cases {
@@ -119,9 +119,11 @@ func TestCommitMessageParticipants(t *testing.T) {
 				"EmptyAuthor", // synthesized commits (push feed) may have no author signature at all
 				&Commit{
 					Author: sig("", ""), Committer: sig("", ""),
-					CommitMessage: CommitMessage{MessageRaw: "no trailer"},
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
 				},
-				nil,
+				// but if the commit message contains co-authors, the co-authors are still parsed for "all authors"
+				// if it is a problem, the caller should fix the problem (provide correct "author")
+				[]*CommitIdentity{idt("c", "c@m.com", roleCoAuthor)},
 			},
 		}
 		for _, c := range cases {
