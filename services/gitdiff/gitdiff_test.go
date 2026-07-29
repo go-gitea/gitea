@@ -650,7 +650,7 @@ func TestGetDiffForRender_TailSectionLineCounts(t *testing.T) {
 	beforeContent := buildContent("")
 	afterContent := buildContent("line 05 CHANGED")
 
-	gitRepo, err := git.OpenRepositoryLocal(repoDir)
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), repoDir)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 
