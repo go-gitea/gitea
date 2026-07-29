@@ -4,7 +4,7 @@
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's own `enhance` type for user-facing enhancements
 - Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
 - Never rewrite git history unless asked. Use new commits and normal push for PR updates
-- Include authorship attribution in issue and PR comments
+- Include authorship attribution when writing issue and PR comments
 - Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits
 - Lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
 - Run single Go tests with `go test -run '^TestName$' ./modulepath/`
