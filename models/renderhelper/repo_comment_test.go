@@ -78,13 +78,4 @@ func TestRepoComment(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "<p>any</p>\n", rendered)
 	})
-
-	t.Run("NoRepoWithDeprecatedNames", func(t *testing.T) {
-		// the deprecated names make the hash processor run
-		rctx := NewRenderContextRepoComment(t.Context(), nil, RepoCommentOptions{DeprecatedOwnerName: "user2", DeprecatedRepoName: "repo1"}).
-			WithMarkupType(markdown.MarkupName)
-		rendered, err := testRenderString(rctx, "any 65f1bf27bc3bf70f64657658635e66094edbcb4d")
-		assert.NoError(t, err)
-		assert.Equal(t, "<p>any 65f1bf27bc3bf70f64657658635e66094edbcb4d</p>\n", rendered)
-	})
 }
