@@ -20403,6 +20403,12 @@
           "200": {
             "$ref": "#/responses/string"
           },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           }
@@ -20425,6 +20431,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -20462,6 +20474,12 @@
         "responses": {
           "200": {
             "$ref": "#/responses/GPGKeyList"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -20489,6 +20507,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -20523,6 +20547,12 @@
           "200": {
             "$ref": "#/responses/GPGKey"
           },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           }
@@ -20550,6 +20580,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -20739,6 +20772,12 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PublicKeyList"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           }
         }
       },
@@ -20766,6 +20805,12 @@
         "responses": {
           "201": {
             "$ref": "#/responses/PublicKey"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -20797,6 +20842,12 @@
           "200": {
             "$ref": "#/responses/PublicKey"
           },
+          "401": {
+            "$ref": "#/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
           "404": {
             "$ref": "#/responses/notFound"
           }
@@ -20824,6 +20875,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "401": {
+            "$ref": "#/responses/unauthorized"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -31992,6 +32046,17 @@
       "description": "APIString is a string response",
       "schema": {
         "type": "string"
+      }
+    },
+    "unauthorized": {
+      "description": "APIUnauthorizedError is an unauthorized error response",
+      "headers": {
+        "message": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
       }
     },
     "validationError": {
