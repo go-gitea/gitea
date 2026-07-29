@@ -13,7 +13,7 @@
 - Write the fewest, fastest tests covering the behavior. Prefer extending an existing test before adding a new one. Avoid `sleep` and similar mechanisms
 - Prefer unit tests when logic is testable in isolation, aim for sub-2s local runtime per integration test and sub-4s per e2e test
 - Prefer semantic locators in e2e tests
-- Preserve existing comments, write almost no new ones. Comments must be short, preferably same-line and explain why for a future reader. Never narrate code or the current change or prompt
+- Comments: Write almost no new ones. Keep them short, preferably same-line and explain why for a future reader. Never narrate code, the current change or prompt. Preserve existing comments when they still apply.
 - Add the current year to copyright headers of new `.go` files
 - Leave no trailing whitespace in any edited file
 - In TS, use `!` instead of `?.`/`??` when a value always exists
