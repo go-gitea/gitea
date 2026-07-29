@@ -5,6 +5,11 @@
 - Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
 - Never rewrite git history unless asked. Use new commits and normal push for PR updates
 - Include authorship attribution in issue and PR comments
+- Preserve existing comments, write almost no new ones: short, same-line, explain why for a future reader, never narrate code or the current change
+- Add the current year to copyright headers of new `.go` files
+- Leave no trailing whitespace in any edited file
+- In TS, use `!` instead of `?.`/`??` when a value always exists
+- Prefer `tw-*` utilities over inline `style`, and `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins, falling back to `tw-*` when specificity requires `!important`
 - Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits
 - Lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
 - Run single Go tests with `go test -run '^TestName$' ./modulepath/`
@@ -13,8 +18,3 @@
 - Write the fewest, fastest tests covering the behavior: extend an existing test, case or file before adding a new one, set up only what the assertions use, no `sleep`
 - Prefer unit tests when logic is testable in isolation, aim for sub-2s local runtime per integration test and sub-4s per e2e test
 - Prefer semantic locators in e2e tests
-- Preserve existing comments, write almost no new ones: short, same-line, explain why for a future reader, never narrate code or the current change
-- Add the current year to copyright headers of new `.go` files
-- Leave no trailing whitespace in any edited file
-- In TS, use `!` instead of `?.`/`??` when a value always exists
-- Prefer `tw-*` utilities over inline `style`, and `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins, falling back to `tw-*` when specificity requires `!important`
