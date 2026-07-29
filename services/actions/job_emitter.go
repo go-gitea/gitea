@@ -361,8 +361,7 @@ type jobStatusResolver struct {
 	// matrixChanged is set when matrix expansion inserted siblings or failed a placeholder, both of
 	// which need a follow-up pass to resolve the dependents.
 	matrixChanged bool
-	// matrixInserted is set when matrix expansion inserted sibling rows. They are not part of this
-	// resolver's job set, so Resolve stops iterating and defers the rest to the follow-up pass.
+	// matrixInserted is set when matrix expansion inserted sibling rows, which Resolve stops on.
 	matrixInserted bool
 	// matrixUpdatedJobs holds jobs whose status matrix expansion persisted itself, so they are
 	// notified like the ones the caller updates from the resolved status map.

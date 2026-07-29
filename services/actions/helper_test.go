@@ -35,20 +35,26 @@ jobs:
 		}
 	}
 
-	for _, ifExpr := range []string{
-		// Both hold only for a real combination, so neither can be decided before the matrix expands.
-		"${{ matrix.value == 1 }}",
-		"${{ contains(fromJson('[1]'), matrix.value) }}",
+	for _, tt := range []struct {
+		ifExpr string
+		// wantNeedsFailed is what the `if:` decides when the needs did not all succeed.
+		wantNeedsFailed bool
+	}{
+		// These hold only for a real combination, so none can be decided before the matrix expands,
+		// and the fallback is the needs gate: a job whose needs did not succeed is still skipped.
+		{ifExpr: "${{ matrix.value == 1 }}"},
+		{ifExpr: "matrix.value == 1"}, // an `if:` may omit the `${{ }}`
+		// always() asks to run whatever the needs did, so it must not fall back to their gate.
+		{ifExpr: "${{ always() && matrix.value == 1 }}", wantNeedsFailed: true},
 	} {
-		t.Run(ifExpr, func(t *testing.T) {
-			got, err := evaluateJobIf(t.Context(), emptyRun, nil, deferredJob(ifExpr), nil, true)
+		t.Run(tt.ifExpr, func(t *testing.T) {
+			got, err := evaluateJobIf(t.Context(), emptyRun, nil, deferredJob(tt.ifExpr), nil, true)
 			require.NoError(t, err)
 			assert.True(t, got, "must reach the expansion that gates each combination on its own values")
 
-			// The fallback is the needs gate, so a job whose needs did not succeed is still skipped.
-			got, err = evaluateJobIf(t.Context(), emptyRun, nil, deferredJob(ifExpr), nil, false)
+			got, err = evaluateJobIf(t.Context(), emptyRun, nil, deferredJob(tt.ifExpr), nil, false)
 			require.NoError(t, err)
-			assert.False(t, got)
+			assert.Equal(t, tt.wantNeedsFailed, got)
 		})
 	}
 }

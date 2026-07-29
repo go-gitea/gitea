@@ -193,13 +193,9 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 // ParseJob parses the job structure from the ActionRunJob.WorkflowPayload
 func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
 	if job.IsMatrixDeferred {
-		// A placeholder's payload still carries the raw, unevaluated matrix, and its `needs` were
-		// erased before it was persisted. jobparser.Parse only keeps such a matrix raw while the job
-		// still declares needs, so re-parsing the payload would instead try to expand it: an
-		// `include`/`exclude` that is still an expression fails outright, and a matrix mixing a static
-		// vector with the expression yields one workflow per static value. Either way the payload
-		// stops describing the single job it stands for, and the placeholder can never be expanded.
-		_, _, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+		// The needs were erased before the placeholder was persisted, so jobparser.Parse no longer
+		// recognises the raw matrix it still carries and would re-expand it: see ParseRawSingleWorkflow.
+		_, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 		if err != nil {
 			return nil, fmt.Errorf("job %d deferred matrix placeholder: unable to parse: %w", job.ID, err)
 		}

@@ -236,6 +236,16 @@ func TestExpandMatrixWithNeeds(t *testing.T) {
 	})
 }
 
+// evaluateJobIf builds a one-job workflow around the given `matrix:` value and `if:`, and decides it.
+func evaluateJobIf(t *testing.T, matrixYAML, ifExpr string, deferred bool) (bool, error) {
+	t.Helper()
+	var strategy Strategy
+	require.NoError(t, yaml.Unmarshal(fmt.Appendf(nil, "matrix:\n  %s\n", matrixYAML), &strategy))
+	job := &Job{Name: "build", Strategy: strategy}
+	require.NoError(t, job.If.Encode(ifExpr))
+	return EvaluateJobIfExpression("build", job, map[string]any{}, map[string]*JobResult{"build": {}}, nil, nil, deferred)
+}
+
 func TestRejectsUnevaluatedMatrixFilters(t *testing.T) {
 	// act dereferences include/exclude entries as mappings without checking, so an unevaluated
 	// expression panics there. Every entry point into act's matrix expansion must reject it. The
@@ -248,11 +258,7 @@ func TestRejectsUnevaluatedMatrixFilters(t *testing.T) {
 				"name: t\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        os: [a]\n        %s: ${{ fromJson(vars.MATRIX) }}\n    steps: [{run: echo}]\n", filter))
 			require.ErrorContains(t, err, "must be a list of mappings")
 
-			var strategy Strategy
-			require.NoError(t, yaml.Unmarshal(fmt.Appendf(nil, "matrix:\n  os: [a]\n  %s: ${{ fromJson(vars.MATRIX) }}\n", filter), &strategy))
-			job := &Job{Name: "build", Strategy: strategy}
-			require.NoError(t, job.If.Encode("${{ true }}"))
-			_, err = EvaluateJobIfExpression("build", job, map[string]any{}, map[string]*JobResult{"build": {}}, nil, nil, false)
+			_, err = evaluateJobIf(t, fmt.Sprintf("os: [a]\n  %s: ${{ fromJson(vars.MATRIX) }}", filter), "${{ true }}", false)
 			require.ErrorContains(t, err, "must be a list of mappings")
 		})
 	}
@@ -309,9 +315,9 @@ jobs:
 			require.NotEmpty(t, payload, "no placeholder was planned for build")
 
 			// The stored payload keeps the raw matrix, but no longer the needs that made Parse defer it.
-			_, id, job, err := ParseRawSingleWorkflow(payload)
+			_, job, err := ParseRawSingleWorkflow(payload)
 			require.NoError(t, err)
-			assert.Equal(t, "build", id)
+			assert.Equal(t, "build", job.Name)
 			// The needs are gone, which is exactly why Parse no longer defers this payload.
 			assert.Empty(t, job.Needs())
 			assert.False(t, HasDeferredMatrix(job))
@@ -333,58 +339,35 @@ func TestEvaluateJobIfExpressionLeavesRawMatrixUnavailable(t *testing.T) {
 	// A placeholder's `if:` is read before its matrix can be resolved. `matrix.*` has to be absent
 	// there: binding it to the expression's own source text would decide the job against a value no
 	// combination ever has, and an include/exclude that is still a scalar cannot be read at all.
-	evaluate := func(t *testing.T, matrixYAML, ifExpr string, deferred bool) (bool, error) {
-		t.Helper()
-		var strategy Strategy
-		require.NoError(t, yaml.Unmarshal(fmt.Appendf(nil, "matrix:\n  %s\n", matrixYAML), &strategy))
-		job := &Job{Name: "build", Strategy: strategy}
-		require.NoError(t, job.If.Encode(ifExpr))
-		return EvaluateJobIfExpression("build", job, map[string]any{}, map[string]*JobResult{"build": {}}, nil, nil, deferred)
-	}
-
 	t.Run("include expression is not read", func(t *testing.T) {
-		run, err := evaluate(t, "include: ${{ fromJson(needs.setup.outputs.m) }}", "${{ true }}", true)
+		run, err := evaluateJobIf(t, "include: ${{ fromJson(needs.setup.outputs.m) }}", "${{ true }}", true)
 		require.NoError(t, err)
 		assert.True(t, run)
 	})
 
 	t.Run("matrix context is null, not the raw expression", func(t *testing.T) {
 		const matrix = "version: ${{ fromJson(needs.setup.outputs.m) }}"
-		run, err := evaluate(t, matrix, "${{ matrix.version == null }}", true)
+		run, err := evaluateJobIf(t, matrix, "${{ matrix.version == null }}", true)
 		require.NoError(t, err)
 		assert.True(t, run)
 
-		run, err = evaluate(t, matrix, "${{ matrix.version == '${{ fromJson(needs.setup.outputs.m) }}' }}", true)
+		run, err = evaluateJobIf(t, matrix, "${{ matrix.version == '${{ fromJson(needs.setup.outputs.m) }}' }}", true)
 		require.NoError(t, err)
 		assert.False(t, run)
 	})
 
 	t.Run("an expanded job still reads its combination", func(t *testing.T) {
-		run, err := evaluate(t, "version: [1]", "${{ matrix.version == 1 }}", false)
+		run, err := evaluateJobIf(t, "version: [1]", "${{ matrix.version == 1 }}", false)
 		require.NoError(t, err)
 		assert.True(t, run)
 	})
-}
-
-func TestContainsExpression(t *testing.T) {
-	for value, want := range map[string]bool{
-		"":                     false,
-		"4":                    false,
-		"${{ vars.n }}":        true,
-		"${{ needs.a.b }}":     true,
-		"prefix ${{ vars.n }}": true,
-		"${ vars.n }":          false,
-		"{{ vars.n }}":         false,
-	} {
-		assert.Equal(t, want, ContainsExpression(value), "value %q", value)
-	}
 }
 
 func TestExpressionReadsMatrix(t *testing.T) {
 	// Erring toward true only postpones the `if:` to the pass that has the combination, which decides it correctly anyway.
 	for value, want := range map[string]bool{
 		"":                                  false,
-		"true":                              false, // a bare literal is not an expression at all
+		"true":                              false, // a bare literal is an expression too, it just reads nothing
 		"${{ always() }}":                   false,
 		"${{ needs.setup.result == 'ok' }}": false,
 		"${{ vars.MATRIX }}":                false, // a name that merely looks like the context
@@ -395,7 +378,26 @@ func TestExpressionReadsMatrix(t *testing.T) {
 		"${{ toJSON(matrix) }}":             true, // the whole context, not a property of it
 		"${{ vars.A }}${{ matrix.os }}":     true, // only the second of two expressions reads it
 		"${{ matrix.os == }}":               true, // unparseable, postpone rather than decide it here
+		// An `if:` may omit the `${{ }}`, and is evaluated as one expression either way.
+		"matrix.os == 'a'":           true,
+		"needs.setup.result == 'ok'": false,
 	} {
 		assert.Equal(t, want, ExpressionReadsMatrix(value), "value %q", value)
+	}
+}
+
+func TestExpressionIgnoresNeedResults(t *testing.T) {
+	for value, want := range map[string]bool{
+		"":                             false,
+		"${{ matrix.os == 'a' }}":      false,
+		"${{ success() }}":             false, // the implicit gate, so the fallback already matches it
+		"${{ always() }}":              true,
+		"${{ ALWAYS() && matrix.os }}": true, // function names are case-insensitive
+		"${{ failure() }}":             true,
+		"${{ cancelled() }}":           true,
+		"always() && matrix.os == 'a'": true, // the brace-less form of the same gate
+		"${{ vars.always }}":           false,
+	} {
+		assert.Equal(t, want, ExpressionIgnoresNeedResults(value), "value %q", value)
 	}
 }

@@ -104,7 +104,7 @@ jobs:
       - run: echo "${{ matrix.value }}"
   strict:
     needs: [generate]
-    if: ${{ matrix.value == 1 }}
+    if: matrix.value == 1
     runs-on: ubuntu-latest
     strategy:
       matrix:

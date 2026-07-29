@@ -498,7 +498,6 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 }
 
 // EvaluateJobIfExpression evaluates a job's `if:`.
-// matrixDeferred marks a deferred-matrix placeholder, whose matrix is still raw: see below.
 func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any, matrixDeferred bool) (bool, error) {
 	actJob := &model.Job{
 		Strategy: &model.Strategy{

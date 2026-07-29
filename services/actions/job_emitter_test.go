@@ -591,12 +591,8 @@ func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
 }
 
 // Test_jobStatusResolverStopsAfterMatrixInsert covers the invariant that keeps a dynamic matrix's
-// dependents honest. Expansion inserts the sibling combinations straight into the database, so they
-// are absent from this resolver's job set: statuses, needs and jobMap all still describe the run as
-// it was loaded. Resolving another round against that stale graph would let a dependent of the
-// expanded job see the placeholder's own combination as its only need - and when that combination
-// was just skipped by its `if:`, conclude the whole matrix job is done and skip itself before a
-// single sibling has started. The re-emit reloads every row, so the round is only deferred.
+// dependents honest: a round resolved after an insert would judge them against a job set that is
+// missing the siblings. See Resolve for why that is wrong.
 func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
 	ctx := t.Context()
 
@@ -621,7 +617,7 @@ func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
 
 	t.Run("an insert stops the pass before the dependents are resolved", func(t *testing.T) {
 		r := newJobStatusResolver(newChain(), nil)
-		r.matrixInserted = true // as expandDeferredMatrix sets it once it has inserted siblings
+		r.matrixInserted = true // as resolve() sets it once expansion has inserted siblings
 
 		got, err := r.Resolve(ctx)
 		require.NoError(t, err)

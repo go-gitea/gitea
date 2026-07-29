@@ -6,9 +6,9 @@ package actions
 import (
 	"math"
 	"strconv"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
-	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/log"
 )
 
@@ -21,11 +21,9 @@ func parseMaxParallel(jobID, maxParallelString string) int {
 	}
 	maxParallel, err := strconv.ParseFloat(maxParallelString, 64)
 	if err != nil || math.IsNaN(maxParallel) {
-		// Both cases fall back to unlimited, but they are not the same kind of thing and the matrix,
-		// the other `strategy` field that can hold an expression, already keeps them apart: it defers
-		// what it cannot resolve yet and fails the job on what it can never resolve. Say which one
-		// this is, because dropping the cap silently is the opposite of what the author asked for.
-		if jobparser.ContainsExpression(maxParallelString) {
+		// Both fall back to unlimited, but an expression is a gap in Gitea while a non-number is the
+		// author's mistake, so dropping the cap must not be reported the same way.
+		if strings.Contains(maxParallelString, "${{") {
 			// TODO: evaluate it against the contexts `if:` and the matrix already resolve, so that an
 			// expression can actually cap a job instead of quietly disabling the cap.
 			log.Debug("job %s: max-parallel %q is an expression, which is not evaluated yet: treating as unlimited", jobID, maxParallelString)

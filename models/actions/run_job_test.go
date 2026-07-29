@@ -219,22 +219,15 @@ jobs:
 `, matrix)
 	}
 
-	for _, tt := range []struct {
-		name   string
-		matrix string
-	}{
-		{"include expression", "include: ${{ fromJson(needs.setup.outputs.m) }}"},
-		{"static vector and expression", "os: [a, b]\n        version: ${{ fromJson(needs.setup.outputs.m) }}"},
-		{"single expression vector", "version: ${{ fromJson(needs.setup.outputs.m) }}"},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			job := &ActionRunJob{ID: 1, JobID: "build", IsMatrixDeferred: true, WorkflowPayload: payload(tt.matrix)}
-			parsed, err := job.ParseJob()
-			require.NoError(t, err)
-			require.NotNil(t, parsed)
-			assert.Equal(t, "build", parsed.Name)
-		})
-	}
+	// The shape Parse happens to survive, so only the name tells the two paths apart. What Parse makes
+	// of every other shape is asserted in TestParseRawSingleWorkflowRoundTripsDeferredPlaceholder.
+	t.Run("a placeholder is read back, not re-expanded", func(t *testing.T) {
+		job := &ActionRunJob{ID: 1, JobID: "build", IsMatrixDeferred: true, WorkflowPayload: payload("version: ${{ fromJson(needs.setup.outputs.m) }}")}
+		parsed, err := job.ParseJob()
+		require.NoError(t, err)
+		require.NotNil(t, parsed)
+		assert.Equal(t, "build", parsed.Name)
+	})
 
 	t.Run("an expanded job still goes through the full parse", func(t *testing.T) {
 		job := &ActionRunJob{ID: 1, JobID: "build", WorkflowPayload: payload("version: [1]")}

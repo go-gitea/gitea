@@ -142,6 +142,7 @@ func TestExpandDeferredMatrix(t *testing.T) {
 	for _, tt := range []struct {
 		name, matrixValue string
 		outputs           map[string]string
+		prepare           func(t *testing.T, job *actions_model.ActionRunJob)
 	}{
 		{name: "unresolvable matrix", matrixValue: "${{ fromJson(needs.generate.outputs.missing) }}"},
 		{
@@ -151,6 +152,16 @@ func TestExpandDeferredMatrix(t *testing.T) {
 			// the rows the setup plants, plus the placeholder the first combination reuses.
 			outputs: map[string]string{"many": "[" + strings.Repeat("0,", actions_model.MaxJobNumPerRun-2) + "0]"},
 		},
+		{
+			// A malformed payload fails the same way on every pass, so returning it would requeue the
+			// run forever instead of ever reaching a terminal status.
+			name:        "unreadable caller inputs",
+			matrixValue: "${{ fromJson(needs.generate.outputs.values) }}",
+			prepare: func(t *testing.T, job *actions_model.ActionRunJob) {
+				_, err := db.Exec(t.Context(), "UPDATE `action_run_job` SET call_payload = ? WHERE id = ?", "{", job.ParentJobID)
+				require.NoError(t, err)
+			},
+		},
 	} {
 		t.Run(tt.name+" fails the job", func(t *testing.T) {
 			outputs := tt.outputs
@@ -158,6 +169,9 @@ func TestExpandDeferredMatrix(t *testing.T) {
 				outputs = map[string]string{"values": `["a","b","c"]`}
 			}
 			job := setupDeferredMatrixJob(t, tt.matrixValue, "", outputs)
+			if tt.prepare != nil {
+				tt.prepare(t, job)
+			}
 
 			siblings, err := expandDeferredMatrix(t.Context(), job, nil)
 			require.NoError(t, err)
@@ -191,7 +205,13 @@ func TestDeferredMatrixResolverGating(t *testing.T) {
 		{name: "skipped need", needStatus: actions_model.StatusSkipped, wantBuilds: []string{"build"}},
 		{
 			name: "`if:` gated per combination", needStatus: actions_model.StatusSuccess,
-			jobIf: "${{ matrix.value != 'a' }}", outputs: map[string]string{"values": `["a","b"]`},
+			jobIf: "${{ matrix.value == 'b' }}", outputs: map[string]string{"values": `["a","b"]`},
+			wantBuilds: []string{"build (a)", "build (b)"},
+		},
+		{
+			// The same gate without the `${{ }}`, which must expand rather than skip the whole job.
+			name: "brace-less `if:` gated per combination", needStatus: actions_model.StatusSuccess,
+			jobIf: "matrix.value == 'b'", outputs: map[string]string{"values": `["a","b"]`},
 			wantBuilds: []string{"build (a)", "build (b)"},
 		},
 	} {
