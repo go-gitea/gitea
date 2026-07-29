@@ -4,6 +4,7 @@
 package project
 
 import (
+	"net/http"
 	"testing"
 
 	"gitea.dev/models/unittest"
@@ -48,7 +49,12 @@ func TestFindColumn(t *testing.T) {
 			project, column := findColumn(ctx)
 			assert.Equal(t, tc.resolves, project != nil)
 			assert.Equal(t, tc.resolves, column != nil)
-			assert.Equal(t, tc.resolves, !ctx.Written())
+			if tc.resolves {
+				assert.False(t, ctx.Written())
+			} else {
+				// a foreign ID must read as not found, never as a 500
+				assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
+			}
 		})
 	}
 }

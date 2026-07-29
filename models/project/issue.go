@@ -33,26 +33,30 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 	return err
 }
 
-func IsIssueInColumn(ctx context.Context, issueID, projectID, columnID int64) (bool, error) {
-	return db.GetEngine(ctx).Exist(&ProjectIssue{
-		IssueID:         issueID,
-		ProjectID:       projectID,
-		ProjectColumnID: columnID,
-	})
+// columnIssueIDs lists the project_board_id values a column claims. Rows written before
+// 1.22 carry 0, which the board renders in the default column, so the default column has
+// to claim them too. Both membership queries below share this so they cannot disagree.
+func columnIssueIDs(column *Column) []int64 {
+	if column.Default {
+		return []int64{column.ID, 0}
+	}
+	return []int64{column.ID}
 }
 
-// GetColumnIssueIDs returns the issues placed in a column. Rows written before 1.22 carry
-// project_board_id=0, which the board renders in the default column, so the default column
-// has to claim them too.
+func IsIssueInColumn(ctx context.Context, issueID int64, column *Column) (bool, error) {
+	return db.GetEngine(ctx).
+		Where("issue_id=?", issueID).
+		And("project_id=?", column.ProjectID).
+		In("project_board_id", columnIssueIDs(column)).
+		Exist(new(ProjectIssue))
+}
+
+// GetColumnIssueIDs returns the issues placed in a column.
 func GetColumnIssueIDs(ctx context.Context, column *Column) ([]int64, error) {
-	columnIDs := []int64{column.ID}
-	if column.Default {
-		columnIDs = append(columnIDs, 0)
-	}
 	issueIDs := make([]int64, 0, 10)
 	return issueIDs, db.GetEngine(ctx).Table("project_issue").
 		Where("project_id=?", column.ProjectID).
-		In("project_board_id", columnIDs).
+		In("project_board_id", columnIssueIDs(column)).
 		Cols("issue_id").Find(&issueIDs)
 }
 

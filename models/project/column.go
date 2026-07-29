@@ -237,24 +237,13 @@ func GetColumnByIDAndProjectID(ctx context.Context, columnID, projectID int64) (
 }
 
 // UpdateColumn updates a project column
+// UpdateColumn writes the column's title, sorting and color. Callers load the column
+// first, so every field carries a deliberate value, including a sorting of 0.
 func UpdateColumn(ctx context.Context, column *Column) error {
-	var fieldToUpdate []string
-
-	if column.Sorting != 0 {
-		fieldToUpdate = append(fieldToUpdate, "sorting")
-	}
-
-	if column.Title != "" {
-		fieldToUpdate = append(fieldToUpdate, "title")
-	}
-
 	if err := validateColumnColor(column.Color); err != nil {
 		return err
 	}
-	fieldToUpdate = append(fieldToUpdate, "color")
-
-	_, err := db.GetEngine(ctx).ID(column.ID).Cols(fieldToUpdate...).Update(column)
-
+	_, err := db.GetEngine(ctx).ID(column.ID).Cols("title", "sorting", "color").Update(column)
 	return err
 }
 

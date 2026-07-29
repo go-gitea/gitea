@@ -808,6 +808,13 @@ func reqProjectsUnitAccess(accessMode perm.AccessMode) func(ctx *context.APICont
 			ctx.APIErrorNotFound()
 			return
 		}
+		// "/users/{username}/projects" also accepts an organization, where checkTokenPublicOnly
+		// does nothing because IsTokenAccessAllowed is false for orgs. Enforce it here, before
+		// the admin bypass, so both spellings of the route answer alike.
+		if ctx.PublicOnly && ctx.ContextUser.IsOrganization() && !ctx.ContextUser.Visibility.IsPublic() {
+			ctx.APIError(http.StatusForbidden, "token scope is limited to public orgs")
+			return
+		}
 		if ctx.IsUserSiteAdmin() {
 			return
 		}
@@ -851,6 +858,15 @@ func chainChecks(checks ...func(ctx *context.APIContext)) func(ctx *context.APIC
 				return
 			}
 		}
+	}
+}
+
+// mustEnableRepoProjects mirrors repo.MustEnableRepoProjects: the Projects unit can be
+// readable while repo-level boards are disallowed, and the web UI then hides them entirely.
+func mustEnableRepoProjects(ctx *context.APIContext) {
+	projectsUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeProjects)
+	if !projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo) {
+		ctx.APIErrorNotFound()
 	}
 }
 
@@ -1742,7 +1758,7 @@ func Routes() *web.Router {
 				})
 				m.Group("/projects", func() {
 					addProjectRoutes(m, chainChecks(reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived))
-				}, reqRepoReader(unit.TypeProjects))
+				}, reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 

@@ -36,7 +36,12 @@ func TestAPIProjects(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	// user2 owns repo1 and is on org3's Owners team, so one token covers all three scopes
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteUser)
+	token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteIssue, auth_model.AccessTokenScopeWriteOrganization,
+		auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+	// user5 is signed in but is neither an org member nor a repo1 collaborator, and is scoped
+	// generously so that permissions rather than token scopes are what denies below
+	outsider := getUserToken(t, "user5", auth_model.AccessTokenScopeWriteIssue,
+		auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeReadUser)
 
 	for _, scope := range []projectScope{
 		{"Repository", "/api/v1/repos/user2/repo1/projects", 1, 11},
@@ -49,11 +54,16 @@ func TestAPIProjects(t *testing.T) {
 	}
 
 	t.Run("ListOtherUserProjects", func(t *testing.T) {
-		req := NewRequest(t, "GET", "/api/v1/users/user2/projects").AddTokenAuth(token)
+		// no fixture project is individual, so create one: without it the route answers with an
+		// empty list and the assertions below would pass vacuously
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/projects", &api.CreateProjectOption{Title: "individual"}).AddTokenAuth(token)
+		created := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Project{})
+
+		req = NewRequest(t, "GET", "/api/v1/users/user2/projects").AddTokenAuth(token)
 		projects := *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]*api.Project{})
-		for _, project := range projects {
-			assert.Equal(t, "individual", project.Type)
-		}
+		require.Len(t, projects, 1)
+		assert.Equal(t, created.ID, projects[0].ID)
+		assert.Equal(t, "individual", projects[0].Type)
 	})
 
 	t.Run("DefaultColumnHoldsUnassignedIssues", func(t *testing.T) {
@@ -65,9 +75,16 @@ func TestAPIProjects(t *testing.T) {
 			issueIDs = append(issueIDs, issue.ID)
 		}
 		assert.Contains(t, issueIDs, int64(2))
+
+		// and the same column must accept removing what it lists
+		req = NewRequestf(t, "DELETE", "/api/v1/repos/user2/repo1/projects/1/columns/%d/issues/2", defaultColumn.ID).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+		unittest.AssertNotExistsBean(t, &project_model.ProjectIssue{ProjectID: 1, IssueID: 2})
 	})
 
-	t.Run("Permissions", func(t *testing.T) { testAPIProjectPermissions(t, token) })
+	t.Run("Permissions", func(t *testing.T) { testAPIProjectPermissions(t, token, outsider) })
+	t.Run("Visibility", func(t *testing.T) { testAPIProjectVisibility(t, outsider) })
+	t.Run("RepoProjectsModeOwner", func(t *testing.T) { testAPIRepoProjectsModeOwner(t, token) })
 }
 
 func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
@@ -88,12 +105,14 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	req = NewRequest(t, "GET", scope.base+"?state=open").AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.NotEmpty(t, resp.Header().Get("X-Total-Count"))
-	found := false
+	found, listedIDs := false, make([]int64, 0)
 	for _, listed := range *DecodeJSON(t, resp, &[]*api.Project{}) {
 		assert.Equal(t, api.StateOpen, listed.State)
+		listedIDs = append(listedIDs, listed.ID)
 		found = found || listed.ID == project.ID
 	}
 	assert.True(t, found, "created project must appear in the scope's list")
+	assert.IsDecreasing(t, listedIDs, "list must be ordered so pagination is stable")
 
 	req = NewRequest(t, "GET", projectURL).AddTokenAuth(token)
 	assert.Equal(t, project.ID, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Project{}).ID)
@@ -109,9 +128,16 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	req = NewRequestWithJSON(t, "POST", projectURL+"/columns", &api.CreateProjectColumnOption{Title: "nope"}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
+	empty := ""
+	req = NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{Title: &empty}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+	unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: project.ID, Title: newTitle})
+
 	open := api.StateOpen
 	req = NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{State: &open}).AddTokenAuth(token)
-	assert.Equal(t, api.StateOpen, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Project{}).State)
+	reopened := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Project{})
+	assert.Equal(t, api.StateOpen, reopened.State)
+	assert.Nil(t, reopened.ClosedAt, "reopening must clear closed_at")
 
 	columnIDs := make([]int64, 0, 2)
 	for _, title := range []string{"todo", "doing"} {
@@ -144,6 +170,15 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 
 	tooLarge := 1000
 	req = NewRequestWithJSON(t, "PATCH", columnURL, &api.EditProjectColumnOption{Sorting: &tooLarge}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// 0 is in range and is how a column moves first, so it must reach the database
+	zero := 0
+	req = NewRequestWithJSON(t, "PATCH", columnURL, &api.EditProjectColumnOption{Sorting: &zero}).AddTokenAuth(token)
+	assert.Equal(t, 0, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ProjectColumn{}).Sorting)
+	assert.EqualValues(t, 0, unittest.AssertExistsAndLoadBean(t, &project_model.Column{ID: columnIDs[0]}).Sorting)
+
+	req = NewRequestWithJSON(t, "PATCH", columnURL, &api.EditProjectColumnOption{Title: &empty}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	req = NewRequest(t, "POST", columnURL+"/default").AddTokenAuth(token)
@@ -225,39 +260,24 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func testAPIProjectPermissions(t *testing.T, ownerToken string) {
-	outsiderToken := getUserToken(t, "user5", auth_model.AccessTokenScopeWriteIssue)
-
-	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/projects", &api.CreateProjectOption{Title: "perms"}).AddTokenAuth(ownerToken)
-	project := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Project{})
-	projectURL := fmt.Sprintf("/api/v1/repos/user2/repo1/projects/%d", project.ID)
+func testAPIProjectPermissions(t *testing.T, ownerToken, outsiderToken string) {
+	// fixture project 1 belongs to repo1, so this needs no project of its own
+	const projectURL = "/api/v1/repos/user2/repo1/projects/1"
 
 	title := "hijacked"
-	req = NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{Title: &title}).AddTokenAuth(outsiderToken)
+	req := NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{Title: &title}).AddTokenAuth(outsiderToken)
 	MakeRequest(t, req, http.StatusForbidden)
 
-	req = NewRequest(t, "DELETE", projectURL).AddTokenAuth(outsiderToken)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, NewRequest(t, "DELETE", projectURL).AddTokenAuth(outsiderToken), http.StatusForbidden)
 
 	// a project ID from another owner must not be reachable through this repo's path
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/user2/repo1/projects/%d", 4)).AddTokenAuth(ownerToken)
-	MakeRequest(t, req, http.StatusNotFound)
-
-	req = NewRequest(t, "DELETE", projectURL).AddTokenAuth(ownerToken)
-	MakeRequest(t, req, http.StatusNoContent)
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/projects/4").AddTokenAuth(ownerToken), http.StatusNotFound)
 }
 
-// TestAPIProjectVisibility pins the permission boundary of the listing routes: a private
+// testAPIProjectVisibility pins the permission boundary of the listing routes: a private
 // organization's boards must stay invisible to outsiders, and a signed-in user with plain
 // repository read access must not see fewer issues than an anonymous one.
-func TestAPIProjectVisibility(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	// user5 is signed in but is neither an org member nor a repo1 collaborator
-	// scoped generously so that permissions, not token scopes, are what denies below
-	outsider := getUserToken(t, "user5", auth_model.AccessTokenScopeWriteIssue,
-		auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeReadUser)
-
+func testAPIProjectVisibility(t *testing.T, outsider string) {
 	for _, url := range []string{"/api/v1/orgs/privated_org/projects", "/api/v1/users/privated_org/projects"} {
 		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(outsider), http.StatusNotFound)
 	}
@@ -266,8 +286,37 @@ func TestAPIProjectVisibility(t *testing.T) {
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/projects/1/columns/2/issues").AddTokenAuth(outsider)
 	assert.NotEmpty(t, *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.Issue{}))
 
+	// user1 is on private_org35's Owners team, so permissions are not what must deny here
+	publicOnly := getUserToken(t, "user1", auth_model.AccessTokenScopeReadUser,
+		auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopeReadIssue,
+		auth_model.AccessTokenScopePublicOnly)
+	for _, url := range []string{"/api/v1/orgs/private_org35/projects", "/api/v1/users/private_org35/projects"} {
+		MakeRequest(t, NewRequest(t, "GET", url).AddTokenAuth(publicOnly), http.StatusForbidden)
+	}
+
 	// a public org's board is readable by an outsider but not writable
 	MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs/org3/projects").AddTokenAuth(outsider), http.StatusOK)
 	req = NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/projects", &api.CreateProjectOption{Title: "outsider"}).AddTokenAuth(outsider)
 	MakeRequest(t, req, http.StatusNotFound)
+}
+
+// testAPIRepoProjectsModeOwner pins the API to the same Projects-unit mode the web honours:
+// with repo-level boards switched off the UI 404s, so the API must not keep serving them.
+func testAPIRepoProjectsModeOwner(t *testing.T, token string) {
+	hasProjects, ownerMode := true, "owner"
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1", &api.EditRepoOption{
+		HasProjects: &hasProjects, ProjectsMode: &ownerMode,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+
+	MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/projects").AddTokenAuth(token), http.StatusNotFound)
+	req = NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/projects", &api.CreateProjectOption{Title: "hidden"}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// restore the fixture mode, so this subtest does not constrain sibling ordering
+	allMode := "all"
+	req = NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/repo1", &api.EditRepoOption{
+		HasProjects: &hasProjects, ProjectsMode: &allMode,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
 }

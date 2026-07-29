@@ -70,7 +70,7 @@ func MoveIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues
 // not-exist error when it is not in that column.
 func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		exists, err := project_model.IsIssueInColumn(ctx, issue.ID, column.ProjectID, column.ID)
+		exists, err := project_model.IsIssueInColumn(ctx, issue.ID, column)
 		if err != nil {
 			return err
 		}

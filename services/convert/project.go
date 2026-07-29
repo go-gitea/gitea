@@ -11,6 +11,7 @@ import (
 	project_model "gitea.dev/models/project"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
@@ -116,9 +117,11 @@ func ToProject(ctx context.Context, p *project_model.Project, doer *user_model.U
 }
 
 func toProject(ctx context.Context, p *project_model.Project, doer *user_model.User, creators map[int64]*user_model.User) *api.Project {
-	state := api.StateOpen
+	state, closedAt := api.StateOpen, (*time.Time)(nil)
 	if p.IsClosed {
-		state = api.StateClosed
+		// changeProjectStatus stamps ClosedDateUnix on reopen too, so it only means
+		// anything while the project is closed
+		state, closedAt = api.StateClosed, timeStampPtr(p.ClosedDateUnix)
 	}
 
 	project := &api.Project{
@@ -136,17 +139,18 @@ func toProject(ctx context.Context, p *project_model.Project, doer *user_model.U
 		NumIssues:       p.NumIssues,
 		CreatedAt:       p.CreatedUnix.AsTime(),
 		UpdatedAt:       timeStampPtr(p.UpdatedUnix),
-		ClosedAt:        timeStampPtr(p.ClosedDateUnix),
+		ClosedAt:        closedAt,
 	}
 
 	if creator, ok := creators[p.CreatorID]; ok {
 		project.Creator = ToUser(ctx, creator, doer)
 	}
 
+	// the caller preloads Repo/Owner, so this stays free of lazy lookups
 	if p.Type == project_model.TypeRepository && p.Repo != nil {
-		project.HTMLURL = p.Repo.HTMLURL() + fmt.Sprintf("/projects/%d", p.ID)
+		project.HTMLURL = httplib.MakeAbsoluteURL(ctx, project_model.ProjectLinkForRepo(p.Repo, p.ID))
 	} else if p.Owner != nil {
-		project.HTMLURL = p.Owner.HTMLURL(ctx) + fmt.Sprintf("/-/projects/%d", p.ID)
+		project.HTMLURL = httplib.MakeAbsoluteURL(ctx, project_model.ProjectLinkForOrg(p.Owner, p.ID))
 	}
 
 	return project
