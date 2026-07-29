@@ -2,7 +2,7 @@
 - Never rewrite git history unless asked. Use new commits and normal push for PR updates
 - Never add `Co-Authored-By` or `Signed-off-by` trailers to commit messages
 - Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits
-- Lint what changed: `make lint-go` (`.go`), `lint-js` (`.ts`, `.vue`), `lint-css` (`.css`), `lint-templates` (`.tmpl`)
+- Lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
 - `make help` lists other targets
 - Run single Go tests with `go test -run '^TestName$' ./modulepath/`
 - Run single TS test files with `pnpm exec vitest <path-filter>`
