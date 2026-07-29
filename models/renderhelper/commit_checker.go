@@ -7,41 +7,45 @@ import (
 	"context"
 	"io"
 
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 )
 
 type commitChecker struct {
-	ctx           context.Context
-	commitCache   map[string]bool
-	gitRepoFacade gitrepo.Repository
+	ctx          context.Context
+	commitCache  map[string]bool
+	repoOptional *repo_model.Repository
 
 	gitRepo       *git.Repository
 	gitRepoCloser io.Closer
 }
 
-func newCommitChecker(ctx context.Context, gitRepo gitrepo.Repository) *commitChecker {
-	return &commitChecker{ctx: ctx, commitCache: make(map[string]bool), gitRepoFacade: gitRepo}
+func newCommitChecker(ctx context.Context, repo *repo_model.Repository) *commitChecker {
+	return &commitChecker{ctx: ctx, commitCache: make(map[string]bool), repoOptional: repo}
 }
 
 func (c *commitChecker) Close() error {
-	if c != nil && c.gitRepoCloser != nil {
+	if c.gitRepoCloser != nil {
 		return c.gitRepoCloser.Close()
 	}
 	return nil
 }
 
 func (c *commitChecker) IsCommitIDExisting(commitID string) bool {
+	if c.repoOptional == nil {
+		return false
+	}
 	exist, inCache := c.commitCache[commitID]
 	if inCache {
 		return exist
 	}
 
 	if c.gitRepo == nil {
-		r, closer, err := gitrepo.RepositoryFromContextOrOpen(c.ctx, c.gitRepoFacade)
+		r, closer, err := gitrepo.RepositoryFromContextOrOpen(c.ctx, c.repoOptional)
 		if err != nil {
-			log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(c.gitRepoFacade), err)
+			log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(c.repoOptional), err)
 			return false
 		}
 		c.gitRepo, c.gitRepoCloser = r, closer
