@@ -203,8 +203,12 @@ func applyProjectCondition(sess db.Session, opts *IssuesOptions) {
 	} else if len(projectIDs) == 1 && projectIDs[0] > 0 { // single specific project
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id AND project_issue.project_id = ?", projectIDs[0])
 	} else if len(projectIDs) > 1 { // multiple projects
-		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: this logic is not right, it should use "AND" but not "OR"
-		sess.And(builder.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.In("project_id", projectIDs))))
+		sess.And(builder.In("issue.id",
+			builder.Select("issue_id").From("project_issue").
+				Where(builder.In("project_id", projectIDs)).
+				GroupBy("issue_id").
+				Having(fmt.Sprintf("COUNT(DISTINCT project_id) = %d", len(projectIDs))),
+		))
 	}
 	// empty projectIDs means all projects,
 	// do not need to apply any condition

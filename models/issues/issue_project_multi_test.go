@@ -139,7 +139,25 @@ func TestIssueMultipleProjects(t *testing.T) {
 		}
 		assert.True(t, foundIssue2, "Issue 2 should be found when querying project 3")
 
-		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: no multiple project filter support yet. Search logic is wrong. It should use "AND" but not "OR".
+		// Query for issues in projects 1 and 2 (should find issue1)
+		issues12, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+			RepoIDs:    []int64{issue1.RepoID},
+			ProjectIDs: []int64{projects[0].ID, projects[1].ID},
+		})
+		require.NoError(t, err)
+		assert.Len(t, issues12, 1)
+		if len(issues12) > 0 {
+			assert.Equal(t, issue1.ID, issues12[0].ID)
+		}
+
+		// Query for issues in projects 2 and 3 (should find none, as no issue is in both)
+		issues23, err := issues_model.Issues(t.Context(), &issues_model.IssuesOptions{
+			RepoIDs:    []int64{issue1.RepoID},
+			ProjectIDs: []int64{projects[1].ID, projects[2].ID},
+		})
+		require.NoError(t, err)
+		assert.Empty(t, issues23)
+
 		// Clean up
 		err = issues_model.IssueAssignOrRemoveProject(t.Context(), issue1, user2, []int64{})
 		require.NoError(t, err)
