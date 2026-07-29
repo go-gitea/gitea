@@ -21,11 +21,7 @@ import (
 	"xorm.io/builder"
 )
 
-const (
-	ScopeSortPrefix = "scope-"
-	// SortTypeProjectColumnSorting orders issues within a project column by their project_issue.sorting value.
-	SortTypeProjectColumnSorting = "project-column-sorting"
-)
+const ScopeSortPrefix = "scope-"
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct { //nolint:revive // export stutter
@@ -41,7 +37,6 @@ type IssuesOptions struct { //nolint:revive // export stutter
 	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectIDs         []int64
-	ProjectColumnIDs   []int64 // column(s) an issue must sit in; only applies with exactly one ProjectID
 	IsClosed           optional.Option[bool]
 	IsPull             optional.Option[bool]
 	LabelIDs           []int64
@@ -126,7 +121,7 @@ func applySorts(sess db.Session, sortType string, priorityRepoID int64) {
 			"ELSE 2 END ASC", priorityRepoID).
 			Desc("issue.created_unix").
 			Desc("issue.id")
-	case SortTypeProjectColumnSorting:
+	case "project-column-sorting":
 		sess.Asc("project_issue.sorting").Desc("issue.created_unix").Desc("issue.id")
 	default:
 		sess.Desc("issue.created_unix").Desc("issue.id")
@@ -207,9 +202,6 @@ func applyProjectCondition(sess db.Session, opts *IssuesOptions) {
 		sess.And(builder.NotIn("issue.id", builder.Select("issue_id").From("project_issue")))
 	} else if len(projectIDs) == 1 && projectIDs[0] > 0 { // single specific project
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id AND project_issue.project_id = ?", projectIDs[0])
-		if len(opts.ProjectColumnIDs) > 0 {
-			sess.And(builder.In("project_issue.project_board_id", opts.ProjectColumnIDs))
-		}
 	} else if len(projectIDs) > 1 { // multiple projects
 		// FIXME: ISSUE-MULTIPLE-PROJECTS-FILTER: this logic is not right, it should use "AND" but not "OR"
 		sess.And(builder.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.In("project_id", projectIDs))))

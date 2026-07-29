@@ -154,7 +154,7 @@ func NewColumn(ctx context.Context, column *Column) error {
 		return err
 	}
 	if res.ColumnCount >= maxProjectColumns {
-		return errors.New("NewBoard: maximum number of columns reached")
+		return util.ErrorWrap(util.ErrUnprocessableContent, "maximum number of columns reached")
 	}
 	column.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
 	_, err := db.GetEngine(ctx).Insert(column)
@@ -168,9 +168,9 @@ func DeleteColumnByID(ctx context.Context, columnID int64) error {
 	})
 }
 
-// ErrProjectColumnIsDefault is returned when deleting the column new issues land in,
-// which would leave the project without a landing column.
-var ErrProjectColumnIsDefault = util.ErrorWrap(util.ErrUnprocessableContent, "cannot delete the default column")
+// errColumnIsDefault is returned when deleting the column new issues land in, which would
+// leave the project without a landing column.
+var errColumnIsDefault = util.ErrorWrap(util.ErrUnprocessableContent, "cannot delete the default column")
 
 func deleteColumnByID(ctx context.Context, columnID int64) error {
 	column, err := GetColumn(ctx, columnID)
@@ -183,7 +183,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 	}
 
 	if column.Default {
-		return ErrProjectColumnIsDefault
+		return errColumnIsDefault
 	}
 
 	// move all issues to the default column
@@ -343,7 +343,7 @@ func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 		columnIDs := util.ValuesOfMap(sortedColumnIDs)
-		movedColumns, err := getColumnsByIDs(ctx, project.ID, columnIDs)
+		movedColumns, err := GetColumnsByIDs(ctx, project.ID, columnIDs)
 		if err != nil {
 			return err
 		}

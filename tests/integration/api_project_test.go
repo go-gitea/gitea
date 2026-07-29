@@ -71,7 +71,6 @@ func TestAPIProjects(t *testing.T) {
 }
 
 func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
-	foreignIssueID := scope.foreignIssueID
 	req := NewRequestWithJSON(t, "POST", scope.base, &api.CreateProjectOption{
 		Title:        "lifecycle",
 		Description:  "created via API",
@@ -189,7 +188,7 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	assert.Empty(t, *DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &[]api.Issue{}))
 
 	// an issue that is not in the project cannot be moved within it
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/issues/%d/move", projectURL, foreignIssueID),
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("%s/issues/%d/move", projectURL, scope.foreignIssueID),
 		&api.MoveProjectIssueOption{ColumnID: columnIDs[0]}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 

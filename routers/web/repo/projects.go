@@ -498,15 +498,8 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	// append to the end of the target column so we don't collide with existing sorting values
-	newSorting, err := project_model.GetColumnIssueNextSorting(ctx, columnProject.ID, column.ID)
-	if err != nil {
-		ctx.ServerError("GetColumnIssueNextSorting", err)
-		return
-	}
-
-	if err := project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, map[int64]int64{newSorting: issue.ID}); err != nil {
-		ctx.ServerError("MoveIssuesOnProjectColumn", err)
+	if err := project_service.MoveIssueToColumn(ctx, ctx.Doer, issue, column, optional.None[int64]()); err != nil {
+		ctx.ServerError("MoveIssueToColumn", err)
 		return
 	}
 

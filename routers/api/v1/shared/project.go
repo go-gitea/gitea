@@ -14,9 +14,9 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/routers/common"
@@ -99,12 +99,12 @@ func columnIn(ctx *context.APIContext, project *project_model.Project) *project_
 	return column
 }
 
-func (s projectScope) findColumn(ctx *context.APIContext) *project_model.Column {
+func (s projectScope) findColumn(ctx *context.APIContext) (*project_model.Project, *project_model.Column) {
 	project := s.findProject(ctx)
 	if ctx.Written() {
-		return nil
+		return nil, nil
 	}
-	return columnIn(ctx, project)
+	return project, columnIn(ctx, project)
 }
 
 // findColumnIssue additionally resolves the "issue_id" path param, rejecting closed projects.
@@ -113,12 +113,13 @@ func (s projectScope) findColumnIssue(ctx *context.APIContext) (*project_model.C
 	if ctx.Written() {
 		return nil, nil
 	}
-	return column, s.findIssue(ctx, ctx.PathParamInt64("issue_id"))
+	return column, s.findIssue(ctx)
 }
 
 // findIssue resolves an issue addressable within this scope. Owner-level boards span
 // repositories, so the issue is looked up globally and gated on the doer's read access.
-func (s projectScope) findIssue(ctx *context.APIContext, issueID int64) *issues_model.Issue {
+func (s projectScope) findIssue(ctx *context.APIContext) *issues_model.Issue {
+	issueID := ctx.PathParamInt64("issue_id")
 	var issue *issues_model.Issue
 	var err error
 	if s.Repo != nil {
@@ -390,8 +391,7 @@ func GetProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	project := scope.findProject(ctx)
+	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -607,8 +607,7 @@ func EditProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	project := scope.findProject(ctx)
+	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -715,8 +714,7 @@ func DeleteProject(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	project := scope.findProject(ctx)
+	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -821,17 +819,18 @@ func ListProjectColumns(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	project := scope.findProject(ctx)
+	project := projectScopeFromContext(ctx).findProject(ctx)
 	if ctx.Written() {
 		return
 	}
 
+	total, err := project_model.CountProjectColumns(ctx, project.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
 	listOptions := utils.GetListOptions(ctx)
-	columns, total, err := db.FindAndCount[project_model.Column](ctx, project_model.SearchColumnOptions{
-		ListOptions: listOptions,
-		ProjectID:   project.ID,
-	})
+	columns, err := project_model.GetProjectColumns(ctx, project.ID, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -944,8 +943,7 @@ func CreateProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	project := scope.findOpenProject(ctx)
+	project := projectScopeFromContext(ctx).findOpenProject(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -1052,8 +1050,7 @@ func GetProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	column := scope.findColumn(ctx)
+	_, column := projectScopeFromContext(ctx).findColumn(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -1180,8 +1177,7 @@ func EditProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	_, column := scope.findOpenColumn(ctx)
+	_, column := projectScopeFromContext(ctx).findOpenColumn(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -1307,8 +1303,7 @@ func DeleteProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	_, column := scope.findOpenColumn(ctx)
+	_, column := projectScopeFromContext(ctx).findOpenColumn(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -1412,8 +1407,7 @@ func SetDefaultProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	project, column := scope.findOpenColumn(ctx)
+	project, column := projectScopeFromContext(ctx).findOpenColumn(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -1523,8 +1517,7 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	project := scope.findOpenProject(ctx)
+	project := projectScopeFromContext(ctx).findOpenProject(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -1535,21 +1528,16 @@ func MoveProjectColumns(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if len(form.ColumnIDs) != len(columns) {
+	existingIDs := make([]int64, 0, len(columns))
+	for _, column := range columns {
+		existingIDs = append(existingIDs, column.ID)
+	}
+	if !util.SliceSortedEqual(form.ColumnIDs, existingIDs) {
 		ctx.APIError(http.StatusUnprocessableEntity, "column_ids must list every column of the project exactly once")
 		return
 	}
-
 	sortedColumnIDs := make(map[int64]int64, len(form.ColumnIDs))
-	known := make(container.Set[int64], len(columns))
-	for _, column := range columns {
-		known.Add(column.ID)
-	}
 	for position, columnID := range form.ColumnIDs {
-		if !known.Remove(columnID) {
-			ctx.APIError(http.StatusUnprocessableEntity, "column_ids must list every column of the project exactly once")
-			return
-		}
 		sortedColumnIDs[int64(position)] = columnID
 	}
 
@@ -1673,17 +1661,28 @@ func ListProjectColumnIssues(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	scope := projectScopeFromContext(ctx)
-	column := scope.findColumn(ctx)
+	project, column := scope.findColumn(ctx)
 	if ctx.Written() {
+		return
+	}
+
+	issueIDs, err := project_model.GetColumnIssueIDs(ctx, column)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if len(issueIDs) == 0 {
+		ctx.SetTotalCountHeader(0)
+		ctx.JSON(http.StatusOK, []*api.Issue{})
 		return
 	}
 
 	listOptions := utils.GetListOptions(ctx)
 	issuesOpts := &issues_model.IssuesOptions{
-		Paginator:        &listOptions,
-		ProjectIDs:       []int64{column.ProjectID},
-		ProjectColumnIDs: project_model.ColumnIssueIDs(column),
-		SortType:         issues_model.SortTypeProjectColumnSorting,
+		Paginator:  &listOptions,
+		IssueIDs:   issueIDs,
+		ProjectIDs: []int64{project.ID}, // joins project_issue so the column sorting applies
+		SortType:   "project-column-sorting",
 	}
 	if scope.Repo != nil {
 		// the route already established repo read access, and every issue here is that repo's
@@ -1828,8 +1827,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	column, issue := scope.findColumnIssue(ctx)
+	column, issue := projectScopeFromContext(ctx).findColumnIssue(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -1948,8 +1946,7 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	scope := projectScopeFromContext(ctx)
-	column, issue := scope.findColumnIssue(ctx)
+	column, issue := projectScopeFromContext(ctx).findColumnIssue(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -2091,7 +2088,7 @@ func MoveProjectIssue(ctx *context.APIContext) {
 		return
 	}
 
-	issue := scope.findIssue(ctx, ctx.PathParamInt64("issue_id"))
+	issue := scope.findIssue(ctx)
 	if ctx.Written() {
 		return
 	}

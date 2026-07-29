@@ -12,24 +12,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestProjectColumns(t *testing.T) {
+func TestCountColumns(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	t.Run("GetProjectColumns", testGetProjectColumns)
-	t.Run("getColumnsByIDs", testGetColumnsByIDs)
-}
 
-func testGetProjectColumns(t *testing.T) {
 	project, err := GetProjectByID(t.Context(), 1)
 	assert.NoError(t, err)
 
-	// pagination must not change the total the caller pages through
-	all, total, err := db.FindAndCount[Column](t.Context(), SearchColumnOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 2},
-		ProjectID:   project.ID,
-	})
+	count, err := CountProjectColumns(t.Context(), project.ID)
 	assert.NoError(t, err)
-	assert.Len(t, all, 2)
-	assert.EqualValues(t, 3, total)
+	assert.EqualValues(t, 3, count)
+}
+
+func TestGetColumnsPaginated(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	project, err := GetProjectByID(t.Context(), 1)
+	assert.NoError(t, err)
 
 	// Page 1, limit 2 — returns first 2 columns
 	page1, err := GetProjectColumns(t.Context(), project.ID, db.ListOptions{Page: 1, PageSize: 2})
@@ -48,18 +46,4 @@ func testGetProjectColumns(t *testing.T) {
 		allIDs[c.ID] = true
 	}
 	assert.Len(t, allIDs, 3)
-}
-
-func testGetColumnsByIDs(t *testing.T) {
-	project, err := GetProjectByID(t.Context(), 1)
-	assert.NoError(t, err)
-
-	columns, err := getColumnsByIDs(t.Context(), project.ID, []int64{1, 3, 4})
-	assert.NoError(t, err)
-	assert.Len(t, columns, 2)
-	assert.ElementsMatch(t, []int64{1, 3}, []int64{columns[0].ID, columns[1].ID})
-
-	empty, err := getColumnsByIDs(t.Context(), project.ID, nil)
-	assert.NoError(t, err)
-	assert.Empty(t, empty)
 }

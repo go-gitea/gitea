@@ -33,20 +33,27 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 	return err
 }
 
-// ColumnIssueIDs returns the project_board_id values belonging to a column. Rows written
-// before 1.22 carry 0, which the board renders in the default column.
-func ColumnIssueIDs(column *Column) []int64 {
-	if column.Default {
-		return []int64{column.ID, 0}
-	}
-	return []int64{column.ID}
+func IsIssueInColumn(ctx context.Context, issueID, projectID, columnID int64) (bool, error) {
+	return db.GetEngine(ctx).Exist(&ProjectIssue{
+		IssueID:         issueID,
+		ProjectID:       projectID,
+		ProjectColumnID: columnID,
+	})
 }
 
-func IsIssueInColumn(ctx context.Context, issueID int64, column *Column) (bool, error) {
-	return db.GetEngine(ctx).Table("project_issue").
-		Where("issue_id=? AND project_id=?", issueID, column.ProjectID).
-		In("project_board_id", ColumnIssueIDs(column)).
-		Exist()
+// GetColumnIssueIDs returns the issues placed in a column. Rows written before 1.22 carry
+// project_board_id=0, which the board renders in the default column, so the default column
+// has to claim them too.
+func GetColumnIssueIDs(ctx context.Context, column *Column) ([]int64, error) {
+	columnIDs := []int64{column.ID}
+	if column.Default {
+		columnIDs = append(columnIDs, 0)
+	}
+	issueIDs := make([]int64, 0, 10)
+	return issueIDs, db.GetEngine(ctx).Table("project_issue").
+		Where("project_id=?", column.ProjectID).
+		In("project_board_id", columnIDs).
+		Cols("issue_id").Find(&issueIDs)
 }
 
 // GetColumnIssueNextSorting returns the sorting value to append an issue at the end of the column.

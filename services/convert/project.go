@@ -136,11 +136,7 @@ func toProject(ctx context.Context, p *project_model.Project, doer *user_model.U
 		NumIssues:       p.NumIssues,
 		CreatedAt:       p.CreatedUnix.AsTime(),
 		UpdatedAt:       timeStampPtr(p.UpdatedUnix),
-	}
-
-	if p.ClosedDateUnix > 0 {
-		t := p.ClosedDateUnix.AsTime()
-		project.ClosedAt = &t
+		ClosedAt:        timeStampPtr(p.ClosedDateUnix),
 	}
 
 	if creator, ok := creators[p.CreatorID]; ok {

@@ -5,6 +5,7 @@ package project
 
 import (
 	"context"
+	"maps"
 	"slices"
 	"strings"
 
@@ -22,11 +23,20 @@ import (
 // diverts ErrNotExist to a 404, which would hide this from the web caller's logs.
 var ErrIssueNotInProject = util.ErrorWrap(util.ErrUnprocessableContent, "all issues have to be added to a project first")
 
+// issueProjectIDs lists the projects an issue belongs to.
+func issueProjectIDs(ctx context.Context, issue *issues_model.Issue) ([]int64, error) {
+	columnMap, err := issue.ProjectColumnMap(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return slices.Collect(maps.Keys(columnMap)), nil
+}
+
 // AddIssueToColumn assigns the issue to the column's project if needed, then places it in
 // the column. One transaction, so a failure cannot strand it in the default column.
 func AddIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		projectIDs, err := issue.ProjectIDs(ctx)
+		projectIDs, err := issueProjectIDs(ctx, issue)
 		if err != nil {
 			return err
 		}
@@ -60,14 +70,14 @@ func MoveIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues
 // not-exist error when it is not in that column.
 func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		exists, err := project_model.IsIssueInColumn(ctx, issue.ID, column)
+		exists, err := project_model.IsIssueInColumn(ctx, issue.ID, column.ProjectID, column.ID)
 		if err != nil {
 			return err
 		}
 		if !exists {
 			return util.NewNotExistErrorf("issue %d is not in column %d", issue.ID, column.ID)
 		}
-		projectIDs, err := issue.ProjectIDs(ctx)
+		projectIDs, err := issueProjectIDs(ctx, issue)
 		if err != nil {
 			return err
 		}
@@ -171,7 +181,7 @@ func LoadIssuesAssigneesForProject(ctx context.Context, projectID int64) (users 
 func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, opts *issues_model.IssuesOptions) (results map[int64]issues_model.IssueList, _ error) {
 	issueList, err := issues_model.Issues(ctx, opts.Copy(func(o *issues_model.IssuesOptions) {
 		o.ProjectIDs = []int64{project.ID}
-		o.SortType = issues_model.SortTypeProjectColumnSorting
+		o.SortType = "project-column-sorting"
 	}))
 	if err != nil {
 		return nil, err

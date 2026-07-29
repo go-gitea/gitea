@@ -808,7 +808,7 @@ func reqProjectsUnitAccess(accessMode perm.AccessMode) func(ctx *context.APICont
 			ctx.APIErrorNotFound()
 			return
 		}
-		if ctx.Doer != nil && ctx.Doer.IsAdmin {
+		if ctx.IsUserSiteAdmin() {
 			return
 		}
 		// individual visibility is handled by individualPermsChecker
