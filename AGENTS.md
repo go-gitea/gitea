@@ -1,6 +1,4 @@
 - Never assume, verify before claiming
-- Never rewrite git history unless asked. Use new commits and normal push for PR updates
-- Never add `Co-Authored-By` or `Signed-off-by` trailers to commit messages
 - Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits
 - Lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
 - `make help` lists other targets
@@ -14,9 +12,11 @@
 - Preserve existing comments, write almost no new ones: short, same-line, explain why for a future reader, never narrate code or the current change
 - Add the current year to copyright headers of new `.go` files
 - Ensure no trailing whitespace in edited files
-- Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`, `!` before the colon if breaking, `test` type for test-only changes
-- Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages
-- Keep PR descriptions minimal, no task lists
-- Include authorship attribution in issue and PR comments
 - In TS, use `!` instead of `?.`/`??` when a value always exists
 - Prefer `tw-*` utilities over inline `style`, and `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins, falling back to `tw-*` when specificity requires `!important`
+- Keep PR descriptions minimal, no task lists
+- Never rewrite git history unless asked. Use new commits and normal push for PR updates
+- Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`, `!` before the colon if breaking, `test` type for test-only changes
+- Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages
+- Never add `Co-Authored-By` or `Signed-off-by` trailers to commit messages
+- Include authorship attribution in issue and PR comments
