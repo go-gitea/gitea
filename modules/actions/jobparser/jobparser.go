@@ -75,7 +75,7 @@ func ExpressionReadsMatrix(value string) bool {
 }
 
 // expressionReadsContext reports whether value holds a ${{ }} expression reading the named context.
-func expressionReadsContext(value, context string) bool {
+func expressionReadsContext(value, contextName string) bool {
 	for rest := value; ; {
 		_, after, found := strings.Cut(rest, "${{")
 		if !found {
@@ -89,7 +89,7 @@ func expressionReadsContext(value, context string) bool {
 		}
 		readsContext := false
 		actionlint.VisitExprNode(expr, func(node, _ actionlint.ExprNode, entering bool) {
-			if variable, ok := node.(*actionlint.VariableNode); entering && ok && strings.EqualFold(variable.Name, context) {
+			if variable, ok := node.(*actionlint.VariableNode); entering && ok && strings.EqualFold(variable.Name, contextName) {
 				readsContext = true
 			}
 		})

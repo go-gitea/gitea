@@ -218,3 +218,34 @@ func TestDeferredMatrixResolverGating(t *testing.T) {
 		})
 	}
 }
+
+func TestDeferredMatrixResolverDefersDependents(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// `build (a)` is skipped by the `if:` once it carries its own combination, `build (b)` runs.
+	build := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}",
+		"${{ matrix.value != 'a' }}", map[string]string{"values": `["a","b"]`})
+
+	attemptJobID, err := actions_model.GetNextAttemptJobID(ctx, build.RunID)
+	require.NoError(t, err)
+	report := &actions_model.ActionRunJob{
+		RunID: build.RunID, RunAttemptID: build.RunAttemptID, AttemptJobID: attemptJobID,
+		RepoID: build.RepoID, OwnerID: build.OwnerID, ParentJobID: build.ParentJobID,
+		JobID: "report", Name: "report", Status: actions_model.StatusBlocked,
+		Needs: []string{"build"}, WorkflowPayload: minimalWorkflowPayload("report"),
+	}
+	require.NoError(t, db.Insert(ctx, report))
+
+	jobs := runJobs(t, build.RunID, build.RunAttemptID)
+	require.NoError(t, jobs.LoadRuns(ctx, false))
+	updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
+	require.NoError(t, err)
+
+	assert.Equal(t, actions_model.StatusSkipped, updates[build.ID], "the combination the `if:` excludes")
+	assert.NotContains(t, updates, report.ID, "report must wait for the re-emit, which sees `build (b)` too")
+
+	// The sibling the pass would otherwise have resolved report against is there, and still to run.
+	sibling := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: build.RunID, Name: "build (b)"})
+	assert.Equal(t, actions_model.StatusBlocked, sibling.Status)
+}
