@@ -154,20 +154,19 @@ func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
 	trailerCoAuthors := c.MessageTrailer()["co-authored-by"]
 	c.allAuthors = make([]*CommitIdentity, 0, 1+len(trailerCoAuthors))
 	exclude := map[string]int{}
-	addAuthor := func(name, email string, role int) (existingRole int) {
+	addAuthor := func(name, email string, role int) {
 		if name == "" && email == "" {
-			return 0
+			return
 		}
 		key := strings.ToLower(email)
 		if key == "" {
 			key = strings.ToLower(name)
 		}
-		if existingRole = exclude[key]; key != "" && existingRole != 0 {
-			return existingRole
+		if existingRole := exclude[key]; key != "" && existingRole != 0 {
+			return
 		}
 		c.allAuthors = append(c.allAuthors, &CommitIdentity{Name: name, Email: email, role: role})
 		exclude[key] = role
-		return 0
 	}
 
 	addAuthor(c.Author.Name, c.Author.Email, commitIdentityRoleAuthor)
