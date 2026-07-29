@@ -1,11 +1,12 @@
 - Never assume, verify before claiming
+- Use `make help` to list the available development targets
 - Keep PR descriptions minimal, no task lists
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's own `enhance` type for user-facing enhancements
 - Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
 - Never rewrite git history unless asked. Use new commits and normal push for PR updates
 - Include authorship attribution in issue and PR comments
 - Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits
-- Lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`, `make help` lists other targets
+- Lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
 - Run single Go tests with `go test -run '^TestName$' ./modulepath/`
 - Run single TS test files with `pnpm exec vitest <path-filter>`
 - Run single Playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
