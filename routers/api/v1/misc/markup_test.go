@@ -177,49 +177,34 @@ Here are some links to the most important topics. You can find the full list of 
 	testRenderMarkup(t, "unknown", false, "", "## Test", "unsupported render mode: unknown\n", http.StatusUnprocessableEntity)
 }
 
-var simpleCases = []string{
-	// Guard wiki sidebar: special syntax
-	`[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]`,
-	// rendered
-	`<p>[[Guardfile-DSL / Configuring-Guard|Guardfile-DSL---Configuring-Guard]]</p>
-`,
-	// special syntax
-	`[[Name|Link]]`,
-	// rendered
-	`<p>[[Name|Link]]</p>
-`,
-	// empty
-	``,
-	// rendered
-	``,
-}
-
 func TestAPI_RenderSimple(t *testing.T) {
 	setting.AppURL = AppURL
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
-	options := api.MarkdownOption{
-		Mode:    "markdown",
-		Text:    "",
-		Context: "/user2/repo1",
-	}
-	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
-	for i := 0; i < len(simpleCases); i += 2 {
-		options.Text = simpleCases[i]
-		web.SetForm(ctx, &options)
-		Markdown(ctx)
-		assert.Equal(t, simpleCases[i+1], resp.Body.String())
-		resp.Body.Reset()
-	}
-}
 
-func TestAPI_RenderRaw(t *testing.T) {
-	setting.AppURL = AppURL
-	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
-	ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
-	for i := 0; i < len(simpleCases); i += 2 {
-		ctx.Req.Body = io.NopCloser(strings.NewReader(simpleCases[i]))
-		MarkdownRaw(ctx)
-		assert.Equal(t, simpleCases[i+1], resp.Body.String())
-		resp.Body.Reset()
+	testCases := []struct {
+		in, out string
+		mode    string
+	}{
+		{in: "", out: ""},
+		{in: "[[special-syntax]]", out: "<p>[[special-syntax]]</p>\n", mode: "markdown"},
+		{in: "[[special|syntax]]", out: "<p>[[special|syntax]]</p>\n", mode: "markdown"},
+		{in: "01234567890123456789", out: "<p>01234567890123456789</p>\n", mode: "gfm"}, // commit-like content should not crash the render
 	}
+	t.Run("markdown", func(t *testing.T) {
+		for _, c := range testCases {
+			options := api.MarkdownOption{Mode: c.mode, Text: c.in, Context: "/user2/repo1"}
+			ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
+			web.SetForm(ctx, &options)
+			Markdown(ctx)
+			assert.Equal(t, c.out, resp.Body.String())
+		}
+	})
+	t.Run("markdown-raw", func(t *testing.T) {
+		for _, c := range testCases {
+			ctx, resp := contexttest.MockAPIContext(t, "POST /api/v1/markdown")
+			ctx.Req.Body = io.NopCloser(strings.NewReader(c.in))
+			MarkdownRaw(ctx)
+			assert.Equal(t, c.out, resp.Body.String())
+		}
+	})
 }
