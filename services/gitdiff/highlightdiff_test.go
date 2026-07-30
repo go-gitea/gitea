@@ -16,16 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func BenchmarkHighlightDiff(b *testing.B) {
-	for b.Loop() {
-		// still fast enough: BenchmarkHighlightDiff-12    	 1000000	      1027 ns/op
-		hcd := newHighlightCodeDiff()
-		codeA := template.HTML(`x <span class="k">foo</span> y`)
-		codeB := template.HTML(`x <span class="k">bar</span> y`)
-		hcd.diffLineWithHighlight(codeA, codeB)
-	}
-}
-
 func TestDiffWithHighlight(t *testing.T) {
 	t.Run("DiffLineAddDel", func(t *testing.T) {
 		t.Run("WithDiffTags", func(t *testing.T) {
@@ -165,27 +155,32 @@ func TestDiffWithHighlightTagMatch(t *testing.T) {
 	assert.NotZero(t, totalOverflow)
 }
 
+func BenchmarkHighlightDiff(b *testing.B) {
+	// still fast enough: BenchmarkHighlightDiff-12    	 1000000	      1027 ns/op
+	// HINT: CODE-HIGHLIGHT-PERFORMANCE: the real bottleneck is in the Chroma highlighter.
+	for b.Loop() {
+		hcd := newHighlightCodeDiff()
+		codeA := template.HTML(`x <span class="k">foo</span> y`)
+		codeB := template.HTML(`x <span class="k">bar</span> y`)
+		hcd.diffLineWithHighlight(codeA, codeB)
+	}
+}
+
 func BenchmarkGetDiffLineForRender(b *testing.B) {
 	diffSection := &DiffSection{
 		FileName:       "test.go",
 		highlightLexer: &diffVarMutable[chroma.Lexer]{},
 	}
-	leftLine := &DiffLine{
-		LeftIdx: 1,
-		Content: `-x <span class="k">foo</span> y`,
-	}
-	rightLine := &DiffLine{
-		RightIdx: 1,
-		Content:  `+x <span class="k">bar</span> y`,
-	}
+	leftLine := &DiffLine{LeftIdx: 1, Content: `-x <span class="k">foo</span> y`}
+	rightLine := &DiffLine{RightIdx: 1, Content: `+x <span class="k">bar</span> y`}
 	locale := translation.MockLocale{}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	// HINT: CODE-HIGHLIGHT-PERFORMANCE: the real bottleneck is in the Chroma highlighter.
+	for b.Loop() {
 		// Clear cache only at the start of rendering the pair
 		leftLine.cachedDiffInline = nil
 		rightLine.cachedDiffInline = nil
-
 		_ = diffSection.getDiffLineForRender(DiffLineDel, leftLine, rightLine, locale)
 		_ = diffSection.getDiffLineForRender(DiffLineAdd, leftLine, rightLine, locale)
 	}
