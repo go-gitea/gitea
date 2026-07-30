@@ -8,9 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"gitea.dev/modules/json"
+	"github.com/stretchr/testify/require"
 )
 
 type swaggerResponseRef struct {
