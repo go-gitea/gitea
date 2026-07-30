@@ -161,9 +161,6 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(codeA, codeB template.HTML) 
 	diffs := dmp.DiffMain(convertedCodeA, convertedCodeB, true)
 	diffs = dmp.DiffCleanupSemantic(diffs)
 
-	bufDel := bytes.NewBuffer(nil)
-	bufAdd := bytes.NewBuffer(nil)
-
 	if hcd.diffCodeClose == 0 {
 		// tests can pre-set the placeholders
 		hcd.diffCodeAddedOpen = hcd.registerTokenAsPlaceholder(`<span class="added-code">`)
@@ -184,6 +181,8 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(codeA, codeB template.HTML) 
 	// only add "added"/"removed" tags when needed:
 	// * non-space contents appear in the DiffEqual parts (not a full-line add/del)
 	// * placeholder map still works (not exhausted, can get the closing tag placeholder)
+	bufDel := bytes.NewBuffer(nil)
+	bufAdd := bytes.NewBuffer(nil)
 	addDiffTags := !equalPartSpaceOnly && hcd.diffCodeClose != 0
 	if addDiffTags {
 		for _, diff := range diffs {
@@ -212,7 +211,7 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(codeA, codeB template.HTML) 
 			}
 		}
 	}
-	return hcd.recoverOneDiff(bufDel.String()), hcd.recoverOneDiff(bufAdd.String())
+	return hcd.recoverOneDiff(util.UnsafeBytesToString(bufDel.Bytes())), hcd.recoverOneDiff(util.UnsafeBytesToString(bufAdd.Bytes()))
 }
 
 func (hcd *highlightCodeDiff) registerTokenAsPlaceholder(token string) rune {
