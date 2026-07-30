@@ -288,7 +288,7 @@ func prepareMockDataUnicodeEscape(ctx *context.Context) {
 	lineEscapeStatus := make([]*charset.EscapeStatus, len(highlightLines))
 	for i, hl := range highlightLines {
 		lineEscapeStatus[i], hl.FormattedContent = charset.EscapeControlHTML(hl.FormattedContent, ctx.Locale)
-		escapeStatus = escapeStatus.Or(lineEscapeStatus[i])
+		escapeStatus.Combine(lineEscapeStatus[i])
 	}
 	ctx.Data["HighlightLines"] = highlightLines
 	ctx.Data["EscapeStatus"] = escapeStatus
