@@ -32,8 +32,13 @@ const (
 	openapi3OutPath = "templates/swagger/v1_openapi3_json.tmpl"
 )
 
+var enumScanDirs = []string{
+	"modules/structs",
+	"modules/commitstatus",
+}
+
 func main() {
-	astEnumMap, err := openapi3gen.ScanSwaggerEnumTypes([]string{"modules/structs", "modules/commitstatus"})
+	astEnumMap, err := openapi3gen.ScanSwaggerEnumTypes(enumScanDirs)
 	if err != nil {
 		log.Fatalf("scanning swagger:enum annotations: %v", err)
 	}
