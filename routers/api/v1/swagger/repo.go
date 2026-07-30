@@ -248,7 +248,7 @@ type swaggerCommitList struct {
 	PerPage int `json:"X-PerPage"`
 
 	// Total commit count
-	Total int `json:"X-Total"`
+	Total int `json:"X-Total-Count"`
 
 	// Total number of pages
 	PageCount int `json:"X-PageCount"`
@@ -270,7 +270,7 @@ type swaggerChangedFileList struct {
 	PerPage int `json:"X-PerPage"`
 
 	// Total commit count
-	Total int `json:"X-Total"`
+	Total int `json:"X-Total-Count"`
 
 	// Total number of pages
 	PageCount int `json:"X-PageCount"`

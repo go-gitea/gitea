@@ -31067,7 +31067,7 @@
           "format": "int64",
           "description": "Commits per page"
         },
-        "X-Total": {
+        "X-Total-Count": {
           "type": "integer",
           "format": "int64",
           "description": "Total commit count"
@@ -31129,7 +31129,7 @@
           "format": "int64",
           "description": "Commits per page"
         },
-        "X-Total": {
+        "X-Total-Count": {
           "type": "integer",
           "format": "int64",
           "description": "Total commit count"

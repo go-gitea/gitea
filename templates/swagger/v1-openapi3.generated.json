@@ -219,7 +219,7 @@
               "type": "integer"
             }
           },
-          "X-Total": {
+          "X-Total-Count": {
             "description": "Total commit count",
             "schema": {
               "format": "int64",
@@ -311,7 +311,7 @@
               "type": "integer"
             }
           },
-          "X-Total": {
+          "X-Total-Count": {
             "description": "Total commit count",
             "schema": {
               "format": "int64",
