@@ -11,17 +11,14 @@ import (
 	"gitea.dev/models/db"
 )
 
-// CancelRun cancels all cancellable jobs in a run, updates commit statuses,
-// and fires downstream notifications including job-emitter queue entries.
-// It returns the run's post-cancellation state so callers don't need to re-fetch it.
+// CancelRun cancels a run's cancellable jobs and returns the run's post-cancellation state.
 func CancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (*actions_model.ActionRun, error) {
 	var updatedJobs []*actions_model.ActionRunJob
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		cancelled, err := actions_model.CancelJobs(ctx, jobs)
+	if err := db.WithTx(ctx, func(ctx context.Context) (err error) {
+		updatedJobs, err = actions_model.CancelJobs(ctx, jobs)
 		if err != nil {
 			return fmt.Errorf("CancelJobs: %w", err)
 		}
-		updatedJobs = cancelled
 		return nil
 	}); err != nil {
 		return nil, err

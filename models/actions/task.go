@@ -102,13 +102,6 @@ func (task *ActionTask) GetRunJobLink() string {
 	return fmt.Sprintf("%s/jobs/%d", task.Job.Run.Link(), task.Job.ID)
 }
 
-func (task *ActionTask) GetRunLink() string {
-	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
-		return ""
-	}
-	return task.Job.Run.Link()
-}
-
 func (task *ActionTask) GetCommitLink() string {
 	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
@@ -178,9 +171,8 @@ func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
 	return &task, nil
 }
 
-// GetTasksByIDs returns the existing tasks among the given IDs, keyed by task ID.
-// Missing IDs are silently absent from the map, so callers can tolerate deleted tasks.
-func GetTasksByIDs(ctx context.Context, ids []int64) (map[int64]*ActionTask, error) {
+// GetTasksMapByIDs returns the found tasks keyed by ID, silently omitting IDs that no longer exist.
+func GetTasksMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionTask, error) {
 	tasks := make(map[int64]*ActionTask, len(ids))
 	if len(ids) == 0 {
 		return tasks, nil

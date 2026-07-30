@@ -6,11 +6,9 @@ package integration
 import (
 	"archive/zip"
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"slices"
 	"testing"
 	"time"
@@ -19,7 +17,6 @@ import (
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -33,8 +30,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// TestAPIActionsWorkflowRun groups the read-only run/workflow endpoint tests so they
-// share a single fixture reload; cases that mutate fixture rows reset the env themselves.
 func TestAPIActionsWorkflowRun(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 	t.Run("GetWorkflowRun", testAPIActionsGetWorkflowRun)
@@ -44,7 +39,8 @@ func TestAPIActionsWorkflowRun(t *testing.T) {
 	t.Run("DeleteRunCheckPermission", testAPIActionsDeleteRunCheckPermission)
 	t.Run("DeleteRunRunning", testAPIActionsDeleteRunRunning)
 	t.Run("GetWorkflowRunLogsNotFound", testAPIActionsGetWorkflowRunLogsNotFound)
-	t.Run("ApproveRunNotRequired", testAPIActionsApproveRunNotRequired)
+	t.Run("GetWorkflowJobLogsNotFound", testAPIActionsGetWorkflowJobLogsNotFound)
+	t.Run("ApproveWorkflowRun", testAPIActionsApproveWorkflowRun)
 	// deletes run 795, so it must come after everything that reads it
 	t.Run("DeleteRunGeneral", testAPIActionsDeleteRunGeneral)
 }
@@ -103,11 +99,9 @@ func testAPIActionsGetWorkflowJob(t *testing.T) {
 	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/jobs/198198", repo.FullName())).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/jobs/198", repo.FullName())).
-		AddTokenAuth(token)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/jobs/198", repo.FullName())).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/jobs/196", repo.FullName())).
-		AddTokenAuth(token)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/jobs/196", repo.FullName())).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -160,8 +154,7 @@ func testAPIActionsDeleteRunListArtifacts(t *testing.T, repo *repo_model.Reposit
 }
 
 func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository, token string, expected bool) {
-	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/tasks", repo.FullName())).
-		AddTokenAuth(token)
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/tasks", repo.FullName())).AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	listResp := DecodeJSON(t, resp, &api.ActionTaskResponse{})
 	findTask1 := false
@@ -262,6 +255,13 @@ func TestAPIActionsCancelWorkflowRun(t *testing.T) {
 		assert.Equal(t, "cancelled", cancelledRun.Conclusion)
 	})
 
+	t.Run("AlreadyCompleted", func(t *testing.T) {
+		// run 791 already succeeded, so there is nothing left to cancel
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/791/cancel", repo.FullName())).
+			AddTokenAuth(ownerToken)
+		MakeRequest(t, req, http.StatusConflict)
+	})
+
 	t.Run("NotFound", func(t *testing.T) {
 		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/cancel", repo.FullName())).
 			AddTokenAuth(ownerToken)
@@ -280,165 +280,80 @@ func TestAPIActionsCancelWorkflowRun(t *testing.T) {
 	})
 }
 
-func TestAPIActionsApproveWorkflowRun(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		// user2 is the owner of the base repo
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		user2Session := loginUser(t, user2.Name)
-		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-		// user4 is the owner of the fork repo
-		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-		user4Token := getTokenForLoggedInUser(t, loginUser(t, user4.Name), auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+func testAPIActionsApproveWorkflowRun(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	// user5 owns repo4, user4 is a write collaborator on it, user2 has no access at all
+	ownerToken := getTokenForLoggedInUser(t, loginUser(t, "user5"), auth_model.AccessTokenScopeWriteRepository)
+	writerToken := getTokenForLoggedInUser(t, loginUser(t, "user4"), auth_model.AccessTokenScopeWriteRepository)
+	strangerToken := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteRepository)
 
-		apiBaseRepo := createActionsTestRepo(t, user2Token, "approve-workflow-run", false)
-		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(user2APICtx)(t)
-
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
-
-		// init two workflows so a second run stays blocked after the first is approved,
-		// which lets the writer-but-non-admin case below actually exercise the approval
-		wf1TreePath := ".gitea/workflows/approve_1.yml"
-		wf1FileContent := `name: Approve 1
-on: pull_request
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo test
-`
-		opts1 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wf1TreePath, opts1)
-		wf2TreePath := ".gitea/workflows/approve_2.yml"
-		wf2FileContent := `name: Approve 2
-on: pull_request
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo test
-`
-		opts2 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create %s"+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wf2TreePath, opts2)
-
-		// user4 forks the repo
-		forkName := "approve-workflow-run-fork"
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
-			&api.CreateForkOption{
-				Name: &forkName,
-			}).AddTokenAuth(user4Token)
-		resp := MakeRequest(t, req, http.StatusAccepted)
-		apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
-		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
-		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(user4APICtx)(t)
-
-		// user4 creates a pull request from a branch
-		doAPICreateFile(user4APICtx, "test.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "feature/test",
-				Message:       "create test.txt",
-				Author: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Committer: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
-			},
-			ContentBase64: base64.StdEncoding.EncodeToString([]byte("test")),
-		})(t)
-		_, err := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":feature/test")(t)
-		assert.NoError(t, err)
-
-		// check runs
-		run1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, TriggerUserID: user4.ID, WorkflowID: "approve_1.yml"})
-		assert.True(t, run1.NeedApproval)
-		assert.Equal(t, actions_model.StatusBlocked, run1.Status)
-		run2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, TriggerUserID: user4.ID, WorkflowID: "approve_2.yml"})
-		assert.True(t, run2.NeedApproval)
-		assert.Equal(t, actions_model.StatusBlocked, run2.Status)
-
-		assertApproved := func(t *testing.T, runID, approverID int64) {
-			t.Helper()
-			approvedRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
-			assert.False(t, approvedRun.NeedApproval)
-			assert.Equal(t, approverID, approvedRun.ApprovedBy)
-			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(t.Context(), baseRepo.ID, runID)
-			require.NoError(t, err)
-			for _, job := range jobs {
-				assert.Equal(t, actions_model.StatusWaiting, job.Status)
-			}
+	// a fork PR from a first-time contributor is what produces these in practice, which
+	// actions_approve_test.go already covers end to end
+	insertBlockedRun := func(index int64) *actions_model.ActionRun {
+		run := &actions_model.ActionRun{
+			Title: "needs approval", RepoID: repo.ID, OwnerID: repo.OwnerID, WorkflowID: "test.yaml", Index: index,
+			TriggerUserID: 4, Ref: "refs/heads/main", CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+			Event: "pull_request", TriggerEvent: "pull_request",
+			Status: actions_model.StatusBlocked, NeedApproval: true,
 		}
+		require.NoError(t, db.Insert(t.Context(), run))
+		require.NoError(t, db.Insert(t.Context(), &actions_model.ActionRunJob{
+			RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA,
+			Name: "job1", Attempt: 1, JobID: "job1", Status: actions_model.StatusBlocked, RunsOn: []string{"ubuntu-latest"},
+		}))
+		return run
+	}
 
-		t.Run("ApproveAsOwner", func(t *testing.T) {
-			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", baseRepo.FullName(), run1.ID)).
-				AddTokenAuth(user2Token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			apiRun := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
-			assert.Equal(t, run1.ID, apiRun.ID)
-			assert.NotEqual(t, "waiting", apiRun.Status, "approved run should not be blocked")
-			assertApproved(t, run1.ID, user2.ID)
-		})
+	assertApproved := func(t *testing.T, runID, approverID int64) {
+		t.Helper()
+		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
+		assert.False(t, run.NeedApproval)
+		assert.Equal(t, approverID, run.ApprovedBy)
+		jobs, err := actions_model.GetLatestAttemptJobsByRun(t.Context(), run)
+		require.NoError(t, err)
+		for _, job := range jobs {
+			assert.Equal(t, actions_model.StatusWaiting, job.Status)
+		}
+	}
 
-		t.Run("ApproveAgainIsIdempotent", func(t *testing.T) {
-			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", baseRepo.FullName(), run1.ID)).
-				AddTokenAuth(user2Token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			apiRun := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
-			assert.NotEqual(t, "waiting", apiRun.Status, "already-approved run should not be blocked")
-			assertApproved(t, run1.ID, user2.ID)
-		})
+	run := insertBlockedRun(2001)
 
-		t.Run("RunNotFound", func(t *testing.T) {
-			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/approve", baseRepo.FullName())).
-				AddTokenAuth(user2Token)
-			MakeRequest(t, req, http.StatusNotFound)
-		})
-
-		t.Run("ForbiddenWithoutPermission", func(t *testing.T) {
-			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", baseRepo.FullName(), run2.ID)).
-				AddTokenAuth(user4Token)
-			MakeRequest(t, req, http.StatusForbidden)
-		})
-
-		t.Run("ApproveAsWriterNonAdmin", func(t *testing.T) {
-			doAPIAddCollaborator(user2APICtx, user4.Name, perm.AccessModeWrite)(t)
-
-			// run2 is still blocked, so this exercises the approval itself rather than the idempotent path
-			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", baseRepo.FullName(), run2.ID)).
-				AddTokenAuth(user4Token)
-			resp := MakeRequest(t, req, http.StatusOK)
-			apiRun := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
-			assert.Equal(t, run2.ID, apiRun.ID)
-			assert.NotEqual(t, "waiting", apiRun.Status, "approved run should not be blocked")
-			assertApproved(t, run2.ID, user4.ID)
-		})
+	t.Run("ForbiddenWithoutPermission", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", repo.FullName(), run.ID)).
+			AddTokenAuth(strangerToken)
+		MakeRequest(t, req, http.StatusForbidden)
 	})
-}
 
-// testAPIActionsApproveRunNotRequired covers the run that never awaited approval, which
-// must not report success just because NeedApproval is already false.
-func testAPIActionsApproveRunNotRequired(t *testing.T) {
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	t.Run("AsOwner", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", repo.FullName(), run.ID)).
+			AddTokenAuth(ownerToken)
+		resp := MakeRequest(t, req, http.StatusOK)
+		apiRun := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
+		assert.Equal(t, run.ID, apiRun.ID)
+		assertApproved(t, run.ID, 5)
+	})
 
-	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 795})
-	require.False(t, run.NeedApproval)
-	require.Zero(t, run.ApprovedBy)
+	t.Run("AgainIsIdempotent", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", repo.FullName(), run.ID)).
+			AddTokenAuth(ownerToken)
+		MakeRequest(t, req, http.StatusOK)
+		assertApproved(t, run.ID, 5)
+	})
 
-	req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/approve", repo.FullName())).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusConflict)
+	t.Run("AsWriterNonAdmin", func(t *testing.T) {
+		writerRun := insertBlockedRun(2002)
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/approve", repo.FullName(), writerRun.ID)).
+			AddTokenAuth(writerToken)
+		MakeRequest(t, req, http.StatusOK)
+		assertApproved(t, writerRun.ID, 4)
+	})
+
+	t.Run("NotRequired", func(t *testing.T) {
+		// run 791 succeeded without ever awaiting approval
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/791/approve", repo.FullName())).
+			AddTokenAuth(ownerToken)
+		MakeRequest(t, req, http.StatusConflict)
+	})
 }
 
 func TestAPIActionsRerunWorkflowJob(t *testing.T) {
@@ -605,9 +520,7 @@ func testAPIActionsGetWorkflowRunLogsNotFound(t *testing.T) {
 	})
 }
 
-// seedTaskLogs writes log rows for a task the way the runner does, so the log download
-// endpoints have something to serve. Logs are placed in DBFS to keep the test independent
-// of the object storage fixture.
+// seedTaskLogs writes task logs the way the runner does, in DBFS to stay independent of the object storage fixture.
 func seedTaskLogs(t *testing.T, taskID int64, lines ...string) {
 	t.Helper()
 
@@ -616,7 +529,6 @@ func seedTaskLogs(t *testing.T, taskID int64, lines ...string) {
 
 	task.LogInStorage = false
 	task.LogFilename = fmt.Sprintf("test-logs/%d.log", task.ID)
-	task.LogLength, task.LogSize, task.LogIndexes = 0, 0, nil
 
 	rows := make([]*runnerv1.LogRow, 0, len(lines))
 	for _, line := range lines {
@@ -686,25 +598,12 @@ func TestAPIActionsGetWorkflowRunLogs(t *testing.T) {
 	})
 }
 
-func TestAPIActionsGetWorkflowJobLogs(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+// the success path is covered against real runner logs by TestDownloadTaskLogs
+func testAPIActionsGetWorkflowJobLogsNotFound(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	t.Run("Success", func(t *testing.T) {
-		seedTaskLogs(t, 53, "hello from job_1")
-
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/jobs/198/logs", repo.FullName())).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))
-		assert.Contains(t, resp.Header().Get("Content-Disposition"), "test-job_1-53.log")
-		assert.Contains(t, resp.Body.String(), "hello from job_1")
-	})
 
 	t.Run("NoLogFile", func(t *testing.T) {
 		// job 199 exists but its task has no log file in the test fixture

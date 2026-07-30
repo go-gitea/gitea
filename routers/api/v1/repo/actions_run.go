@@ -85,9 +85,17 @@ func CancelWorkflowRun(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
 
 	run, jobs := getCurrentRepoActionRunJobsByID(ctx)
 	if ctx.Written() {
+		return
+	}
+
+	// Cancelling a finished run would change nothing, so report a conflict instead of a false success.
+	if run.Status.IsDone() {
+		ctx.APIError(http.StatusConflict, "run is already completed")
 		return
 	}
 
@@ -139,8 +147,8 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 	}
 
 	if !run.NeedApproval {
-		// GitHub-compatible: approving twice is idempotent, but a run that never
-		// awaited approval has nothing to approve and must not report success.
+		// Approving twice is idempotent, but a run that never awaited approval gets 409 rather
+		// than GitHub's 403, which would be indistinguishable from a permission denial.
 		if run.ApprovedBy == 0 {
 			ctx.APIError(http.StatusConflict, "run does not require approval")
 			return
@@ -152,10 +160,6 @@ func ApproveWorkflowRun(ctx *context.APIContext) {
 	approvedRuns, err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID})
 	if err != nil {
 		ctx.APIErrorAuto(err)
-		return
-	}
-	if len(approvedRuns) == 0 {
-		ctx.APIErrorNotFound()
 		return
 	}
 	respondRepoActionWorkflowRun(ctx, approvedRuns[0])
@@ -196,6 +200,5 @@ func GetWorkflowRunLogs(ctx *context.APIContext) {
 
 	if err := common.DownloadActionsRunAllJobLogs(ctx.Base, run); err != nil {
 		ctx.APIErrorAuto(err)
-		return
 	}
 }

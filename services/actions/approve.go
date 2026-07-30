@@ -14,10 +14,10 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
-// ApproveRuns approves the given runs and returns their post-approval state, in the same
-// order as runIDs, so callers don't need to re-fetch the runs themselves.
+// ApproveRuns returns the approved runs in the same order as runIDs.
 func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) ([]*actions_model.ActionRun, error) {
 	updatedJobs := make([]*actions_model.ActionRunJob, 0)
 	cancelledConcurrencyJobs := make([]*actions_model.ActionRunJob, 0)
@@ -38,7 +38,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
 				return err
 			}
-			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, repo.ID, run.ID)
+			jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
 			if err != nil {
 				return err
 			}
@@ -124,24 +124,25 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
-	// Runs whose jobs actually changed above were already notified as part of that batch;
-	// only notify the remaining runs here so approving doesn't emit duplicate run updates.
-	alreadyNotified := make(container.Set[int64])
-	for _, job := range updatedJobs {
-		alreadyNotified.Add(job.RunID)
+	// Runs with changed jobs were notified in the batches above, skip them to avoid duplicate run updates.
+	alreadyNotified := container.SetOf(actions_model.ActionJobList(updatedJobs).GetRunIDs()...)
+	alreadyNotified.AddMultiple(actions_model.ActionJobList(cancelledConcurrencyJobs).GetRunIDs()...)
+
+	reloaded, err := actions_model.GetRunsByRepoAndID(ctx, repo.ID, runIDs)
+	if err != nil {
+		return nil, fmt.Errorf("GetRunsByRepoAndID: %w", err)
 	}
-	for _, job := range cancelledConcurrencyJobs {
-		alreadyNotified.Add(job.RunID)
+	runsByID := make(map[int64]*actions_model.ActionRun, len(reloaded))
+	for _, run := range reloaded {
+		run.Repo = repo // the caller resolved runIDs against this repo, so spare every consumer a reload
+		runsByID[run.ID] = run
 	}
 
-	// Reload each run once to hand its post-approval state back to the caller, reusing that
-	// same reload to notify whichever runs weren't already covered above.
 	approvedRuns := make([]*actions_model.ActionRun, 0, len(runIDs))
 	for _, runID := range runIDs {
-		run, err := actions_model.GetRunByRepoAndID(ctx, repo.ID, runID)
-		if err != nil {
-			log.Error("GetRunByRepoAndID %d after approval: %v", runID, err)
-			continue
+		run := runsByID[runID]
+		if run == nil {
+			return nil, util.NewNotExistErrorf("run %d no longer exists after approval", runID)
 		}
 		if !alreadyNotified.Contains(runID) {
 			NotifyWorkflowRunStatusUpdate(ctx, run)

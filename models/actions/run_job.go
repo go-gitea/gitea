@@ -264,7 +264,6 @@ func GetLatestAttemptJobsByRepoAndRunID(ctx context.Context, repoID, runID int64
 	return GetLatestAttemptJobsByRun(ctx, run)
 }
 
-// GetLatestAttemptJobsByRun is GetLatestAttemptJobsByRepoAndRunID for a run that is already loaded.
 func GetLatestAttemptJobsByRun(ctx context.Context, run *ActionRun) (ActionJobList, error) {
 	if run.LatestAttemptID > 0 {
 		return GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)

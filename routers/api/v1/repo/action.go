@@ -1291,7 +1291,7 @@ func getCurrentRepoActionRunJobsByID(ctx *context.APIContext) (*actions_model.Ac
 		return nil, nil
 	}
 
-	jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
+	jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1315,9 +1315,9 @@ func getCurrentRepoActionRunAttemptByNumber(ctx *context.APIContext) (*actions_m
 	return run, attempt
 }
 
-// respondRepoActionWorkflowRun responds with a run resolved by getCurrentRepoActionRunByID, which already attached ctx.Repo.Repository.
 func respondRepoActionWorkflowRun(ctx *context.APIContext, run *actions_model.ActionRun) {
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, ctx.Repo.Repository, nil, false)
+	run.Repo = ctx.Repo.Repository
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1405,7 +1405,7 @@ func GetWorkflowRunAttempt(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, ctx.Repo.Repository, attempt, false)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, attempt, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1460,7 +1460,7 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, ctx.Repo.Repository, nil, false)
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

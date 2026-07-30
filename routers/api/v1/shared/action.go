@@ -205,7 +205,6 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 
 	res := new(api.ActionWorkflowRunsResponse)
-	res.TotalCount = total
 
 	runList := actions_model.RunList(runs)
 	if err := runList.LoadTriggerUser(ctx); err != nil {
@@ -226,21 +225,22 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 
 	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
-	for i := range runs {
-		if runs[i].Repo == nil {
-			// Orphaned row (repo_id no longer has a matching repository); drop it from this
-			// page and keep the total/link headers in sync with what is actually returned.
+	for _, run := range runs {
+		if run.Repo == nil {
+			// Orphaned row: drop it rather than failing the page, so total stays an upper bound
+			// until "doctor check --run check-db-consistency" removes it.
 			total--
 			continue
 		}
 		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], runs[i].Repo, nil, excludePullRequests)
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
 		res.Entries = append(res.Entries, convertedRun)
 	}
+	res.TotalCount = total
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)

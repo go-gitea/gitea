@@ -5730,6 +5730,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -22657,12 +22660,21 @@
         "actor": {
           "$ref": "#/definitions/User"
         },
+        "artifacts_url": {
+          "type": "string",
+          "x-go-name": "ArtifactsURL"
+        },
+        "cancel_url": {
+          "type": "string",
+          "x-go-name": "CancelURL"
+        },
         "completed_at": {
           "type": "string",
           "format": "date-time",
           "x-go-name": "CompletedAt"
         },
         "conclusion": {
+          "description": "Conclusion is empty while the run is still in progress. Like PreviousAttemptURL it\nomits `omitempty` on purpose, so the key is always present as GitHub's API has it.",
           "type": "string",
           "x-go-name": "Conclusion"
         },
@@ -22699,6 +22711,14 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "jobs_url": {
+          "type": "string",
+          "x-go-name": "JobsURL"
+        },
+        "logs_url": {
+          "type": "string",
+          "x-go-name": "LogsURL"
+        },
         "path": {
           "type": "string",
           "x-go-name": "Path"
@@ -22723,6 +22743,10 @@
           "format": "int64",
           "x-go-name": "RepositoryID"
         },
+        "rerun_url": {
+          "type": "string",
+          "x-go-name": "RerunURL"
+        },
         "run_attempt": {
           "description": "RunAttempt is 1-based for runs created after ActionRunAttempt was introduced.\nA value of 0 is a legacy-only sentinel for runs created before attempts existed\nand indicates no corresponding /attempts/{n} resource is available.",
           "type": "integer",
@@ -22745,6 +22769,11 @@
         },
         "trigger_actor": {
           "$ref": "#/definitions/User"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
         },
         "url": {
           "type": "string",
