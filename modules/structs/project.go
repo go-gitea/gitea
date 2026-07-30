@@ -13,15 +13,13 @@ import (
 //
 // swagger:model
 type Project struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	// 0 for a repository project
-	OwnerID int64 `json:"owner_id"`
-	// 0 for a user or organization project
-	RepoID  int64     `json:"repo_id"`
-	Creator *User     `json:"creator,omitempty"`
-	State   StateType `json:"state"`
+	ID          int64     `json:"id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	OwnerID     int64     `json:"owner_id"`
+	RepoID      int64     `json:"repo_id"`
+	Creator     *User     `json:"creator,omitempty"`
+	State       StateType `json:"state"`
 	// Template type: "none", "basic_kanban" or "bug_triage"
 	TemplateType string `json:"template_type"`
 	// Card type: "text_only" or "images_and_text"
