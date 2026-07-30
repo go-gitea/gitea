@@ -79,6 +79,7 @@ func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileRespons
 			LastAuthorDate:    new(info.lastAuthorWhen),
 			Size:              16,
 			Type:              "file",
+			Mode:              "100644",
 			Encoding:          &encoding,
 			Content:           &content,
 			URL:               &selfURL,
