@@ -79,6 +79,8 @@ type DiffLine struct {
 	Content     string
 	Comments    issues_model.CommentList // related PR code comments
 	SectionInfo *DiffLineSectionInfo
+
+	cachedDiffInline *DiffInline
 }
 
 // DiffLineSectionInfo represents diff line section meta data
@@ -356,6 +358,13 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 }
 
 func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
+	if diffLineType == DiffLineDel && leftLine != nil && leftLine.cachedDiffInline != nil {
+		return *leftLine.cachedDiffInline
+	}
+	if diffLineType == DiffLineAdd && rightLine != nil && rightLine.cachedDiffInline != nil {
+		return *rightLine.cachedDiffInline
+	}
+
 	var fileLanguage string
 	var highlightedLeftLines, highlightedRightLines map[int]template.HTML
 	// when a "diff section" is manually prepared by ExcerptBlob, it doesn't have "file" information
@@ -365,7 +374,6 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 	}
 
 	var lineHTML template.HTML
-	hcd := newHighlightCodeDiff()
 	if diffLineType == DiffLinePlain {
 		// left and right are the same, no need to do line-level diff
 		if leftLine != nil {
@@ -373,23 +381,40 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 		} else if rightLine != nil {
 			lineHTML = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
 		}
-	} else {
-		var diff1, diff2 template.HTML
+		return DiffInlineWithUnicodeEscape(lineHTML, locale)
+	}
+
+	var diff1, diff2 template.HTML
+	if leftLine != nil {
+		diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
+	}
+	if rightLine != nil {
+		diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+	}
+
+	if diff1 != "" && diff2 != "" {
+		// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
+		hcd := newHighlightCodeDiff()
+		lineHTMLDel, lineHTMLAdd := hcd.diffLineWithHighlightBoth(diff1, diff2)
+		inlineDel := DiffInlineWithUnicodeEscape(lineHTMLDel, locale)
+		inlineAdd := DiffInlineWithUnicodeEscape(lineHTMLAdd, locale)
+
 		if leftLine != nil {
-			diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
+			leftLine.cachedDiffInline = &inlineDel
 		}
 		if rightLine != nil {
-			diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+			rightLine.cachedDiffInline = &inlineAdd
 		}
-		if diff1 != "" && diff2 != "" {
-			// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
-			lineHTML = hcd.diffLineWithHighlight(diffLineType, diff1, diff2)
-		} else {
-			// if left is empty or right is empty (a line is fully deleted or added), then we do not need to diff anymore.
-			// the tmpl code already adds background colors for these cases.
-			lineHTML = util.Iif(diffLineType == DiffLineDel, diff1, diff2)
+
+		if diffLineType == DiffLineDel {
+			return inlineDel
 		}
+		return inlineAdd
 	}
+
+	// if left is empty or right is empty (a line is fully deleted or added), then we do not need to diff anymore.
+	// the tmpl code already adds background colors for these cases.
+	lineHTML = util.Iif(diffLineType == DiffLineDel, diff1, diff2)
 	return DiffInlineWithUnicodeEscape(lineHTML, locale)
 }
 

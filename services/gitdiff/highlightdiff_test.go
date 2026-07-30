@@ -10,7 +10,9 @@ import (
 	"testing"
 
 	"gitea.dev/modules/highlight"
+	"gitea.dev/modules/translation"
 
+	"github.com/alecthomas/chroma/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -171,4 +173,30 @@ func TestDiffWithHighlightTagMatch(t *testing.T) {
 	}
 	t.Run("DiffLineAdd", func(t *testing.T) { f(t, DiffLineAdd) })
 	t.Run("DiffLineDel", func(t *testing.T) { f(t, DiffLineDel) })
+}
+
+func BenchmarkGetDiffLineForRender(b *testing.B) {
+	diffSection := &DiffSection{
+		FileName:       "test.go",
+		highlightLexer: &diffVarMutable[chroma.Lexer]{},
+	}
+	leftLine := &DiffLine{
+		LeftIdx: 1,
+		Content: `-x <span class="k">foo</span> y`,
+	}
+	rightLine := &DiffLine{
+		RightIdx: 1,
+		Content:  `+x <span class="k">bar</span> y`,
+	}
+	locale := translation.MockLocale{}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		// Clear cache only at the start of rendering the pair
+		leftLine.cachedDiffInline = nil
+		rightLine.cachedDiffInline = nil
+
+		_ = diffSection.getDiffLineForRender(DiffLineDel, leftLine, rightLine, locale)
+		_ = diffSection.getDiffLineForRender(DiffLineAdd, leftLine, rightLine, locale)
+	}
 }
