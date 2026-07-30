@@ -150,15 +150,7 @@ func (hcd *highlightCodeDiff) diffEqualPartIsSpaceOnly(s string) bool {
 	return true
 }
 
-func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA, codeB template.HTML) template.HTML {
-	del, add := hcd.diffLineWithHighlightBoth(codeA, codeB)
-	if lineType == DiffLineDel {
-		return del
-	}
-	return add
-}
-
-func (hcd *highlightCodeDiff) diffLineWithHighlightBoth(codeA, codeB template.HTML) (template.HTML, template.HTML) {
+func (hcd *highlightCodeDiff) diffLineWithHighlight(codeA, codeB template.HTML) (del, add template.HTML) {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
