@@ -58,9 +58,9 @@ func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, 
 	helper := &RepoFile{opts: util.OptionalArg(opts)}
 	rctx := markup.NewRenderContext(ctx)
 	helper.ctx = rctx
+	helper.commitChecker = newCommitChecker(ctx, repo)
 	if repo != nil {
 		helper.repoLink = repo.Link()
-		helper.commitChecker = newCommitChecker(ctx, repo)
 		rctx = rctx.WithMetas(repo.ComposeRepoFileMetas(ctx))
 	} else {
 		// this is almost dead code, only to pass the incorrect tests
