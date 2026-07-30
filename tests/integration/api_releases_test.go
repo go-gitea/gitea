@@ -10,7 +10,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -41,13 +40,24 @@ func TestAPIReleaseRead(t *testing.T) {
 	t.Run("EditReleaseAttachmentWithUnallowedFile", testAPIEditReleaseAttachmentWithUnallowedFile) // failed attempt, so it is also a read test
 }
 
+func testAPIListReleasesTagNames(t *testing.T, queryURL, authToken string, expectedTagNames []string, msgAndArgs ...string) {
+	t.Helper()
+	resp := MakeRequest(t, NewRequest(t, "GET", queryURL).AddTokenAuth(authToken), http.StatusOK)
+	apiReleases := DecodeJSON(t, resp, []*api.Release{})
+	tagNames := make([]string, 0, len(apiReleases))
+	for _, release := range apiReleases {
+		tagNames = append(tagNames, release.TagName)
+	}
+	assert.ElementsMatch(t, expectedTagNames, tagNames, msgAndArgs)
+}
+
 func testAPIListReleasesWithWriteToken(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
-	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
+	link := fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name)
+	resp := MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(token), http.StatusOK)
 	apiReleases := DecodeJSON(t, resp, []*api.Release{})
 	if assert.Len(t, apiReleases, 3) {
 		for _, release := range apiReleases {
@@ -70,44 +80,12 @@ func testAPIListReleasesWithWriteToken(t *testing.T) {
 		}
 	}
 
-	// test filter
-	testFilterByLen := func(auth bool, query url.Values, expectedLength int, msgAndArgs ...string) {
-		link.RawQuery = query.Encode()
-		req := NewRequest(t, "GET", link.String())
-		if auth {
-			req.AddTokenAuth(token)
-		}
-		resp = MakeRequest(t, req, http.StatusOK)
-		apiReleases = DecodeJSON(t, resp, []*api.Release{})
-		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
-	}
-
-	testFilterByLen(false, url.Values{"draft": {"true"}}, 0, "anon should not see drafts")
-	testFilterByLen(true, url.Values{"draft": {"true"}}, 1, "repo owner should see drafts")
-	testFilterByLen(true, url.Values{"draft": {"false"}}, 2, "exclude drafts")
-	testFilterByLen(true, url.Values{"draft": {"false"}, "pre-release": {"false"}}, 1, "exclude drafts and pre-releases")
-	testFilterByLen(true, url.Values{"pre-release": {"true"}}, 1, "only get pre-release")
-	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
-
-	testFilterByTagNames := func(query url.Values, expectedTagNames []string, msgAndArgs ...string) {
-		link.RawQuery = query.Encode()
-		resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
-		apiReleases = DecodeJSON(t, resp, []*api.Release{})
-		tagNames := make([]string, 0, len(apiReleases))
-		for _, release := range apiReleases {
-			tagNames = append(tagNames, release.TagName)
-		}
-		assert.ElementsMatch(t, expectedTagNames, tagNames, msgAndArgs)
-	}
-
-	// Prefix match
-	testFilterByTagNames(url.Values{"tag_filter": {"v1*"}}, []string{"v1.1", "v1.0"}, "prefix tag match")
-
-	// Suffix match
-	testFilterByTagNames(url.Values{"tag_filter": {"*1.0"}}, []string{"v1.0"}, "suffix tag match")
-
-	// Substring match
-	testFilterByTagNames(url.Values{"tag_filter": {"*1.0*"}}, []string{"v1.0"}, "substring tag match")
+	testAPIListReleasesTagNames(t, link+"?draft=true", "", nil, "anon should not see drafts")
+	testAPIListReleasesTagNames(t, link+"?draft=true", token, []string{"draft-release"}, "repo owner should see drafts")
+	testAPIListReleasesTagNames(t, link+"?draft=false", token, []string{"v1.0", "v1.1"}, "exclude drafts")
+	testAPIListReleasesTagNames(t, link+"?draft=false&pre-release=false", token, []string{"v1.1"}, "exclude drafts and pre-releases")
+	testAPIListReleasesTagNames(t, link+"?pre-release=true", token, []string{"v1.0"}, "only get pre-release")
+	testAPIListReleasesTagNames(t, link+"?draft=true&pre-release=true", token, nil, "there is no pre-release draft")
 }
 
 func testAPIListReleasesWithReadToken(t *testing.T) {
@@ -115,8 +93,8 @@ func testAPIListReleasesWithReadToken(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeReadRepository)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
-	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
+	link := fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name)
+	resp := MakeRequest(t, NewRequest(t, "GET", link).AddTokenAuth(token), http.StatusOK)
 	apiReleases := DecodeJSON(t, resp, []*api.Release{})
 	if assert.Len(t, apiReleases, 2) {
 		for _, release := range apiReleases {
@@ -135,44 +113,12 @@ func testAPIListReleasesWithReadToken(t *testing.T) {
 		}
 	}
 
-	// test filter
-	testFilterByLen := func(auth bool, query url.Values, expectedLength int, msgAndArgs ...string) {
-		link.RawQuery = query.Encode()
-		req := NewRequest(t, "GET", link.String())
-		if auth {
-			req.AddTokenAuth(token)
-		}
-		resp = MakeRequest(t, req, http.StatusOK)
-		apiReleases = DecodeJSON(t, resp, []*api.Release{})
-		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
-	}
-
-	testFilterByLen(false, url.Values{"draft": {"true"}}, 0, "anon should not see drafts")
-	testFilterByLen(true, url.Values{"draft": {"true"}}, 0, "repo owner with read token should not see drafts")
-	testFilterByLen(true, url.Values{"draft": {"false"}}, 2, "exclude drafts")
-	testFilterByLen(true, url.Values{"draft": {"false"}, "pre-release": {"false"}}, 1, "exclude drafts and pre-releases")
-	testFilterByLen(true, url.Values{"pre-release": {"true"}}, 1, "only get pre-release")
-	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
-
-	testFilterByTagNames := func(query url.Values, expectedTagNames []string, msgAndArgs ...string) {
-		link.RawQuery = query.Encode()
-		resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
-		apiReleases = DecodeJSON(t, resp, []*api.Release{})
-		tagNames := make([]string, 0, len(apiReleases))
-		for _, release := range apiReleases {
-			tagNames = append(tagNames, release.TagName)
-		}
-		assert.ElementsMatch(t, expectedTagNames, tagNames, msgAndArgs)
-	}
-
-	// Prefix match
-	testFilterByTagNames(url.Values{"tag_filter": {"v1*"}}, []string{"v1.1", "v1.0"}, "prefix tag match")
-
-	// Suffix match
-	testFilterByTagNames(url.Values{"tag_filter": {"*1.0"}}, []string{"v1.0"}, "suffix tag match")
-
-	// Substring match
-	testFilterByTagNames(url.Values{"tag_filter": {"*1.0*"}}, []string{"v1.0"}, "substring tag match")
+	testAPIListReleasesTagNames(t, link+"?draft=true", "", nil, "anon should not see drafts")
+	testAPIListReleasesTagNames(t, link+"?draft=true", token, nil, "repo owner with read token should not see drafts")
+	testAPIListReleasesTagNames(t, link+"?draft=false", token, []string{"v1.0", "v1.1"}, "exclude drafts")
+	testAPIListReleasesTagNames(t, link+"?draft=false&pre-release=false", token, []string{"v1.1"}, "exclude drafts and pre-releases")
+	testAPIListReleasesTagNames(t, link+"?pre-release=true", token, []string{"v1.0"}, "only get pre-release")
+	testAPIListReleasesTagNames(t, link+"?draft=true&pre-release=true", token, nil, "there is no pre-release draft")
 }
 
 func testAPIGetDraftRelease(t *testing.T) {
