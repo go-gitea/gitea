@@ -142,6 +142,7 @@ func TestExpandDeferredMatrix(t *testing.T) {
 	for _, tt := range []struct {
 		name, matrixValue string
 		outputs           map[string]string
+		prepare           func(t *testing.T, job *actions_model.ActionRunJob)
 	}{
 		{name: "unresolvable matrix", matrixValue: "${{ fromJson(needs.generate.outputs.missing) }}"},
 		{
@@ -151,6 +152,16 @@ func TestExpandDeferredMatrix(t *testing.T) {
 			// the rows the setup plants, plus the placeholder the first combination reuses.
 			outputs: map[string]string{"many": "[" + strings.Repeat("0,", actions_model.MaxJobNumPerRun-2) + "0]"},
 		},
+		{
+			// A malformed payload fails the same way on every pass, so returning it would requeue the
+			// run forever instead of ever reaching a terminal status.
+			name:        "unreadable caller inputs",
+			matrixValue: "${{ fromJson(needs.generate.outputs.values) }}",
+			prepare: func(t *testing.T, job *actions_model.ActionRunJob) {
+				_, err := db.Exec(t.Context(), "UPDATE `action_run_job` SET call_payload = ? WHERE id = ?", "{", job.ParentJobID)
+				require.NoError(t, err)
+			},
+		},
 	} {
 		t.Run(tt.name+" fails the job", func(t *testing.T) {
 			outputs := tt.outputs
@@ -158,6 +169,9 @@ func TestExpandDeferredMatrix(t *testing.T) {
 				outputs = map[string]string{"values": `["a","b","c"]`}
 			}
 			job := setupDeferredMatrixJob(t, tt.matrixValue, "", outputs)
+			if tt.prepare != nil {
+				tt.prepare(t, job)
+			}
 
 			siblings, err := expandDeferredMatrix(t.Context(), job, nil)
 			require.NoError(t, err)
@@ -191,7 +205,13 @@ func TestDeferredMatrixResolverGating(t *testing.T) {
 		{name: "skipped need", needStatus: actions_model.StatusSkipped, wantBuilds: []string{"build"}},
 		{
 			name: "`if:` gated per combination", needStatus: actions_model.StatusSuccess,
-			jobIf: "${{ matrix.value != 'a' }}", outputs: map[string]string{"values": `["a","b"]`},
+			jobIf: "${{ matrix.value == 'b' }}", outputs: map[string]string{"values": `["a","b"]`},
+			wantBuilds: []string{"build (a)", "build (b)"},
+		},
+		{
+			// The same gate without the `${{ }}`, which must expand rather than skip the whole job.
+			name: "brace-less `if:` gated per combination", needStatus: actions_model.StatusSuccess,
+			jobIf: "matrix.value == 'b'", outputs: map[string]string{"values": `["a","b"]`},
 			wantBuilds: []string{"build (a)", "build (b)"},
 		},
 	} {
@@ -217,4 +237,35 @@ func TestDeferredMatrixResolverGating(t *testing.T) {
 			assert.ElementsMatch(t, tt.wantBuilds, names)
 		})
 	}
+}
+
+func TestDeferredMatrixResolverDefersDependents(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// `build (a)` is skipped by the `if:` once it carries its own combination, `build (b)` runs.
+	build := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}",
+		"${{ matrix.value != 'a' }}", map[string]string{"values": `["a","b"]`})
+
+	attemptJobID, err := actions_model.GetNextAttemptJobID(ctx, build.RunID)
+	require.NoError(t, err)
+	report := &actions_model.ActionRunJob{
+		RunID: build.RunID, RunAttemptID: build.RunAttemptID, AttemptJobID: attemptJobID,
+		RepoID: build.RepoID, OwnerID: build.OwnerID, ParentJobID: build.ParentJobID,
+		JobID: "report", Name: "report", Status: actions_model.StatusBlocked,
+		Needs: []string{"build"}, WorkflowPayload: minimalWorkflowPayload("report"),
+	}
+	require.NoError(t, db.Insert(ctx, report))
+
+	jobs := runJobs(t, build.RunID, build.RunAttemptID)
+	require.NoError(t, jobs.LoadRuns(ctx, false))
+	updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
+	require.NoError(t, err)
+
+	assert.Equal(t, actions_model.StatusSkipped, updates[build.ID], "the combination the `if:` excludes")
+	assert.NotContains(t, updates, report.ID, "report must wait for the re-emit, which sees `build (b)` too")
+
+	// The sibling the pass would otherwise have resolved report against is there, and still to run.
+	sibling := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: build.RunID, Name: "build (b)"})
+	assert.Equal(t, actions_model.StatusBlocked, sibling.Status)
 }
