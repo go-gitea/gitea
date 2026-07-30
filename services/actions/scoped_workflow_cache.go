@@ -50,7 +50,7 @@ func LoadParsedScopedWorkflows(ctx context.Context, sourceRepo *repo_model.Repos
 	}
 
 	// cache miss: open the source repo at the exact SHA we keyed on
-	sourceGitRepo, err := git.OpenRepository(sourceRepo)
+	sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
 	if err != nil {
 		return "", nil, fmt.Errorf("open source repo: %w", err)
 	}

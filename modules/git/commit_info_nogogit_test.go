@@ -19,7 +19,7 @@ import (
 )
 
 func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
-	repo, err := OpenRepositoryLocal(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer repo.Close()
 

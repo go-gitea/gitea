@@ -50,7 +50,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", util.ErrPermissionDenied
 	}
 
-	gitRepo, err := git.OpenRepository(dbRepo)
+	gitRepo, err := git.OpenRepository(ctx, dbRepo)
 	if err != nil {
 		return "", err
 	}
