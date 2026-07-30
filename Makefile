@@ -247,7 +247,7 @@ swagger-check: generate-swagger
 
 .PHONY: swagger-validate
 swagger-validate: ## check if the swagger spec is valid
-	@# "validate" exits 0 on warnings, so fail on those too
+	@# ensure no warnings
 	@output="$$($(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)' 2>&1)"; status=$$?; \
 	printf '%s\n' "$$output" | grep -v '^go: '; \
 	case "$$output" in *WARNING:*) exit 1;; esac; exit $$status
