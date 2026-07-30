@@ -653,11 +653,14 @@ func (p *rerunPlan) collectMatrixCollapse() {
 		if p.skipCloneTemplateJobIDs.Contains(anchor.ID) {
 			continue
 		}
-		inRerunSet := slices.ContainsFunc(rows, func(j *actions_model.ActionRunJob) bool {
-			return p.rerunAttemptJobIDs.Contains(j.AttemptJobID)
-		})
-		if !inRerunSet {
-			continue // pass-through group, cloned as-is
+		// Gate on the anchor rather than on any row of the group: execRerunPlan only resets a row whose
+		// own AttemptJobID is in the rerun set, so restoring the placeholder onto an anchor it treats
+		// as pass-through would clone a row that keeps its old terminal status while carrying the raw,
+		// unexpanded payload, and nothing expands a job that is not blocked. An anchor can be left
+		// out of the rerun set while a sibling is in it: partially re-running the subtree of a
+		// matrix-expanded reusable caller puts that combination in ancestorAttemptJobIDs instead.
+		if !p.rerunAttemptJobIDs.Contains(anchor.AttemptJobID) {
+			continue // pass-through anchor, the group is cloned as-is
 		}
 		unexpanded := len(rows) == 1 && anchor.IsMatrixDeferred
 		if !unexpanded && !p.hasRerunDependency(anchor) {

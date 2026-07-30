@@ -32,11 +32,72 @@ func rawMatrixReadsNeeds(node *yaml.Node) bool {
 	return slices.ContainsFunc(node.Content, rawMatrixReadsNeeds)
 }
 
+// ParseRawSingleWorkflow decodes a SingleWorkflow payload into the workflow and its single job
+// without expanding `strategy.matrix`.
+//
+// A deferred-matrix placeholder's payload still carries the raw, unevaluated matrix, which Parse
+// would try to expand: depending on the matrix's shape that yields several workflows (a static
+// vector crossed with the unevaluated expression) or an error (an `include`/`exclude` that is still
+// a scalar), neither of which describes the one job the payload stands for.
+func ParseRawSingleWorkflow(payload []byte) (*SingleWorkflow, *Job, error) {
+	swf := &SingleWorkflow{}
+	if err := yaml.Unmarshal(payload, swf); err != nil {
+		return nil, nil, fmt.Errorf("unmarshal single workflow: %w", err)
+	}
+	id, job := swf.Job()
+	if job == nil {
+		return nil, nil, errors.New("payload contains no job")
+	}
+	if job.Name == "" {
+		job.Name = id // Parse defaults it the same way, and callers use it as the job's display name
+	}
+	return swf, job, nil
+}
+
 // expressionReadsNeeds reports whether value holds a ${{ }} expression reading the needs context.
 // Every other context (github, vars, inputs, ...) is already available while planning, so deferring
 // those too would replace their combinations with one placeholder and change the commit status
 // contexts the run publishes, which a repository's required checks are configured against.
 func expressionReadsNeeds(value string) bool {
+	return expressionReadsContext(value, "needs")
+}
+
+// ExpressionReadsMatrix reports whether a job's `if:` reads the matrix context.
+// A deferred-matrix placeholder has no combination yet, so such an expression cannot be decided.
+func ExpressionReadsMatrix(ifValue string) bool {
+	return expressionReadsContext(asIfExpression(ifValue), "matrix")
+}
+
+// ExpressionIgnoresNeedResults reports whether a job's `if:` calls always(), failure() or cancelled(),
+// the status functions that run a job whatever its needs did rather than under the implicit success().
+// Keep in sync with act's exprparser, which owns the same list for the evaluation itself.
+func ExpressionIgnoresNeedResults(ifValue string) bool {
+	return expressionsMatch(asIfExpression(ifValue), func(node actionlint.ExprNode) bool {
+		call, ok := node.(*actionlint.FuncCallNode)
+		return ok && slices.Contains([]string{"always", "failure", "cancelled"}, strings.ToLower(call.Callee))
+	})
+}
+
+// asIfExpression wraps an `if:` that omits the `${{ }}`, which GitHub evaluates as one expression anyway.
+// `if:` is the only field with that exception: every other value is interpolated, so a bare matrix or
+// `runs-on` is a literal there and must not be parsed as an expression.
+func asIfExpression(ifValue string) string {
+	if ifValue == "" || strings.Contains(ifValue, "${{") {
+		return ifValue
+	}
+	return "${{ " + ifValue + " }}"
+}
+
+// expressionReadsContext reports whether value holds a ${{ }} expression reading the named context.
+func expressionReadsContext(value, contextName string) bool {
+	return expressionsMatch(value, func(node actionlint.ExprNode) bool {
+		variable, ok := node.(*actionlint.VariableNode)
+		return ok && strings.EqualFold(variable.Name, contextName)
+	})
+}
+
+// expressionsMatch reports whether any ${{ }} expression in value holds a node the predicate accepts.
+func expressionsMatch(value string, match func(node actionlint.ExprNode) bool) bool {
 	for rest := value; ; {
 		_, after, found := strings.Cut(rest, "${{")
 		if !found {
@@ -48,13 +109,13 @@ func expressionReadsNeeds(value string) bool {
 		if err != nil {
 			return true // unparseable here, let the expansion report it against the real values
 		}
-		readsNeeds := false
+		matched := false
 		actionlint.VisitExprNode(expr, func(node, _ actionlint.ExprNode, entering bool) {
-			if variable, ok := node.(*actionlint.VariableNode); entering && ok && strings.EqualFold(variable.Name, "needs") {
-				readsNeeds = true
+			if entering && match(node) {
+				matched = true
 			}
 		})
-		if readsNeeds {
+		if matched {
 			return true
 		}
 	}
@@ -124,7 +185,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			}
 		}
 		for _, combo := range combos {
-			swf := workflow.cloneHeader()
+			swf := workflow.CloneHeader()
 			if err := swf.SetJob(id, combo); err != nil {
 				return nil, fmt.Errorf("SetJob: %w", err)
 			}
@@ -134,8 +195,8 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	return ret, nil
 }
 
-// cloneHeader returns a copy of w with its workflow-global fields but no jobs.
-func (w *SingleWorkflow) cloneHeader() *SingleWorkflow {
+// CloneHeader returns a copy of w with its workflow-global fields but no jobs.
+func (w *SingleWorkflow) CloneHeader() *SingleWorkflow {
 	return &SingleWorkflow{
 		Name:           w.Name,
 		RawOn:          w.RawOn,
