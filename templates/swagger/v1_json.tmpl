@@ -31110,6 +31110,13 @@
         "creator": {
           "$ref": "#/definitions/User"
         },
+        "creator_id": {
+          "description": "Deprecated: use Creator instead",
+          "type": "integer",
+          "format": "int64",
+          "x-deprecated": true,
+          "x-go-name": "CreatorID"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -31122,6 +31129,12 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
+        },
+        "is_closed": {
+          "description": "Deprecated: use State instead",
+          "type": "boolean",
+          "x-deprecated": true,
+          "x-go-name": "IsClosed"
         },
         "num_closed_issues": {
           "type": "integer",

@@ -8446,6 +8446,14 @@
           "creator": {
             "$ref": "#/components/schemas/User"
           },
+          "creator_id": {
+            "deprecated": true,
+            "description": "Deprecated: use Creator instead",
+            "format": "int64",
+            "type": "integer",
+            "x-deprecated": true,
+            "x-go-name": "CreatorID"
+          },
           "description": {
             "type": "string",
             "x-go-name": "Description"
@@ -8459,6 +8467,13 @@
             "format": "int64",
             "type": "integer",
             "x-go-name": "ID"
+          },
+          "is_closed": {
+            "deprecated": true,
+            "description": "Deprecated: use State instead",
+            "type": "boolean",
+            "x-deprecated": true,
+            "x-go-name": "IsClosed"
           },
           "num_closed_issues": {
             "format": "int64",
