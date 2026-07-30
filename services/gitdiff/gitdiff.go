@@ -411,8 +411,8 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
-		// section content is something like diff hunk info, not code diff, no need to escape or do any other process
-		return DiffInline{Content: htmlutil.EscapeString(diffLine.Content), EscapeStatus: &charset.EscapeStatus{}}
+		// section content is a diff hunk header, it isn't code diff, but its trailing context comes from the file content
+		return diffInlineWithUnicodeEscape(htmlutil.EscapeString(diffLine.Content), locale)
 	case DiffLineAdd:
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineAdd, compareDiffLine, diffLine, locale)
