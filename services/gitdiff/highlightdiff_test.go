@@ -35,7 +35,6 @@ func TestDiffWithHighlight(t *testing.T) {
 			outDel, outAdd := hcd.diffLineWithHighlight(codeA, codeB)
 			assert.Equal(t, string(codeA), string(outDel))
 			assert.Equal(t, string(codeB), string(outAdd))
-			assert.Equal(t, string(codeB), string(outAdd))
 		})
 	})
 
