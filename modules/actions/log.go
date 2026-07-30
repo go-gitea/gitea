@@ -196,7 +196,7 @@ func OpenLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeek
 		reader, err := zstd.NewSeekableReader(f) // reads the seek table, so a lazily opened object already fails here
 		if err != nil {
 			f.Close()
-			return nil, fmt.Errorf("zstd NewSeekableReader: %w", err)
+			return nil, fmt.Errorf("zstd NewSeekableReader %q: %w", filename, err)
 		}
 		return reader, nil
 	}

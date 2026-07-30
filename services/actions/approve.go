@@ -124,10 +124,8 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
-	// Runs with changed jobs were notified in the batches above, skip them to avoid duplicate run updates.
-	alreadyNotified := container.SetOf(actions_model.ActionJobList(updatedJobs).GetRunIDs()...)
-	alreadyNotified.AddMultiple(actions_model.ActionJobList(cancelledConcurrencyJobs).GetRunIDs()...)
-
+	// The batches above already notified every run whose jobs changed, which is the only way
+	// approving alters a run's status, so reload purely to answer the caller.
 	reloaded, err := actions_model.GetRunsByRepoAndID(ctx, repo.ID, runIDs)
 	if err != nil {
 		return nil, fmt.Errorf("GetRunsByRepoAndID: %w", err)
@@ -143,9 +141,6 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		run := runsByID[runID]
 		if run == nil {
 			return nil, util.NewNotExistErrorf("run %d no longer exists after approval", runID)
-		}
-		if !alreadyNotified.Contains(runID) {
-			NotifyWorkflowRunStatusUpdate(ctx, run)
 		}
 		approvedRuns = append(approvedRuns, run)
 	}

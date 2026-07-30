@@ -122,18 +122,17 @@ type ActionWorkflowRun struct {
 	// RunAttempt is 1-based for runs created after ActionRunAttempt was introduced.
 	// A value of 0 is a legacy-only sentinel for runs created before attempts existed
 	// and indicates no corresponding /attempts/{n} resource is available.
-	RunAttempt   int64  `json:"run_attempt"`
-	RunNumber    int64  `json:"run_number"`
-	RepositoryID int64  `json:"repository_id,omitempty"`
-	HeadSha      string `json:"head_sha"`
-	HeadBranch   string `json:"head_branch"`
-	Status       string `json:"status"`
-	// Conclusion is empty while the run is still in progress, the key is always present as in GitHub's API.
-	Conclusion     string                `json:"conclusion"`
+	RunAttempt     int64                 `json:"run_attempt"`
+	RunNumber      int64                 `json:"run_number"`
+	RepositoryID   int64                 `json:"repository_id,omitempty"`
+	HeadSha        string                `json:"head_sha"`
+	HeadBranch     string                `json:"head_branch,omitempty"`
+	Status         string                `json:"status"`
 	Actor          *User                 `json:"actor,omitempty"`
 	TriggerActor   *User                 `json:"trigger_actor,omitempty"`
 	Repository     *Repository           `json:"repository,omitempty"`
 	HeadRepository *Repository           `json:"head_repository,omitempty"`
+	Conclusion     string                `json:"conclusion,omitempty"`
 	PullRequests   []*PullRequestMinimal `json:"pull_requests"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`

@@ -39,11 +39,15 @@ func (m *minioObject) Stat() (os.FileInfo, error) {
 	return &minioFileInfo{oi}, nil
 }
 
-// minio reports a missing key on the first Read or Seek rather than on Open, so both
-// convert it like Stat does.
-
+// minio reports a missing key on the first Read, ReadAt or Seek rather than on Open, so all
+// of them convert it like Stat does.
 func (m *minioObject) Read(p []byte) (int, error) {
 	n, err := m.Object.Read(p)
+	return n, convertMinioErr(err)
+}
+
+func (m *minioObject) ReadAt(p []byte, off int64) (int, error) {
+	n, err := m.Object.ReadAt(p, off)
 	return n, convertMinioErr(err)
 }
 

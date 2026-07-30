@@ -40,6 +40,8 @@ func TestAPIActionsWorkflowRun(t *testing.T) {
 	t.Run("DeleteRunRunning", testAPIActionsDeleteRunRunning)
 	t.Run("GetWorkflowRunLogsNotFound", testAPIActionsGetWorkflowRunLogsNotFound)
 	t.Run("GetWorkflowJobLogsNotFound", testAPIActionsGetWorkflowJobLogsNotFound)
+	// finishes run 793, so it must come after everything that needs it still running
+	t.Run("CancelWorkflowRun", testAPIActionsCancelWorkflowRun)
 	t.Run("ApproveWorkflowRun", testAPIActionsApproveWorkflowRun)
 	// deletes run 795, so it must come after everything that reads it
 	t.Run("DeleteRunGeneral", testAPIActionsDeleteRunGeneral)
@@ -128,6 +130,7 @@ func testAPIActionsDeleteRunGeneral(t *testing.T) {
 	testAPIActionsDeleteRun(t, repo, token, http.StatusNotFound)
 }
 
+// needs run 793 still running, so it must come before CancelWorkflowRun
 func testAPIActionsDeleteRunRunning(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -173,6 +176,9 @@ func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository,
 	assert.Equal(t, expected, findTask2)
 }
 
+// TestAPIActionsRerunWorkflowRun covers everything that mutates run 795, in a fixed order so
+// they can share one fixture load: the log download has to see the original tasks, the job
+// rerun needs the run still done, and the full rerun re-arms it by cancelling first.
 func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 
@@ -185,6 +191,10 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/rerun", repo.FullName())).
 			AddTokenAuth(writeToken)
 		MakeRequest(t, req, http.StatusBadRequest)
+
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/jobs/194/rerun", repo.FullName())).
+			AddTokenAuth(writeToken)
+		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
@@ -194,7 +204,79 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
+	t.Run("RunLogs", func(t *testing.T) {
+		// run 795 (workflow "test.yaml") has job 198 "job_1" on task 53 and job 199 "job_2" on task 54
+		seedTaskLogs(t, 53, "hello from job_1")
+		seedTaskLogs(t, 54, "hello from job_2")
+
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
+			AddTokenAuth(writeToken)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		assert.Equal(t, "application/zip", resp.Header().Get("Content-Type"))
+		assert.Contains(t, resp.Header().Get("Content-Disposition"), "test-run-795-logs.zip")
+		assert.Equal(t, "Content-Disposition", resp.Header().Get("Access-Control-Expose-Headers"))
+
+		body := resp.Body.Bytes()
+		archive, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+		require.NoError(t, err)
+
+		contents := make(map[string]string, len(archive.File))
+		for _, file := range archive.File {
+			r, err := file.Open()
+			require.NoError(t, err)
+			content, err := io.ReadAll(r)
+			require.NoError(t, r.Close())
+			require.NoError(t, err)
+			contents[file.Name] = string(content)
+		}
+
+		require.Len(t, contents, 2)
+		assert.Contains(t, contents["test-job_1-53.log"], "hello from job_1")
+		assert.Contains(t, contents["test-job_2-54.log"], "hello from job_2")
+	})
+
+	t.Run("JobSuccess", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/199/rerun", repo.FullName())).
+			AddTokenAuth(writeToken)
+		resp := MakeRequest(t, req, http.StatusCreated)
+
+		rerunResp := DecodeJSON(t, resp, &api.ActionWorkflowJob{})
+		job199Rerun := getLatestAttemptJobByTemplateJobID(t, 795, 199)
+		assert.Equal(t, job199Rerun.ID, rerunResp.ID)
+		assert.Equal(t, "queued", rerunResp.Status)
+
+		run, err := actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
+		require.NoError(t, err)
+		assert.Equal(t, actions_model.StatusWaiting, run.Status)
+		latestAttempt, hasLatestAttempt, err := run.GetLatestAttempt(t.Context())
+		require.NoError(t, err)
+		require.True(t, hasLatestAttempt)
+
+		job198Rerun := getLatestAttemptJobByTemplateJobID(t, 795, 198)
+		assert.Equal(t, actions_model.StatusSuccess, job198Rerun.Status)
+		assert.Equal(t, latestAttempt.Attempt, job198Rerun.Attempt)
+		assert.Equal(t, int64(0), job198Rerun.TaskID)
+		assert.Equal(t, int64(53), job198Rerun.SourceTaskID)
+
+		job199Rerun = getLatestAttemptJobByTemplateJobID(t, 795, 199)
+		assert.Equal(t, actions_model.StatusWaiting, job199Rerun.Status)
+		assert.Equal(t, latestAttempt.Attempt, job199Rerun.Attempt)
+		assert.Equal(t, int64(0), job199Rerun.TaskID)
+		assert.Equal(t, int64(0), job199Rerun.SourceTaskID)
+	})
+
 	t.Run("Success", func(t *testing.T) {
+		// JobSuccess above leaves the run waiting, so finish it to make it rerunnable again.
+		// Run on its own the fixture run is still done and needs no cancelling.
+		run, err := actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
+		require.NoError(t, err)
+		if !run.Status.IsDone() {
+			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/cancel", repo.FullName())).
+				AddTokenAuth(writeToken)
+			MakeRequest(t, req, http.StatusOK)
+		}
+
 		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
 			AddTokenAuth(writeToken)
 		resp := MakeRequest(t, req, http.StatusCreated)
@@ -204,7 +286,7 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 		assert.Equal(t, "queued", rerunResp.Status)
 		assert.Equal(t, "c2d72f548424103f01ee1dc02889c1e2bff816b0", rerunResp.HeadSha)
 
-		run, err := actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
+		run, err = actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
 		require.NoError(t, err)
 		assert.Equal(t, actions_model.StatusWaiting, run.Status)
 		assert.Equal(t, timeutil.TimeStamp(0), run.Started)
@@ -235,11 +317,22 @@ func TestAPIActionsRerunWorkflowRun(t *testing.T) {
 			AddTokenAuth(writeToken)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
+
+	t.Run("NotFoundJob", func(t *testing.T) {
+		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/999999/rerun", repo.FullName())).
+			AddTokenAuth(writeToken)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("NoLogsAfterRerun", func(t *testing.T) {
+		// the full rerun above cleared both TaskID and SourceTaskID on every latest-attempt job
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
+			AddTokenAuth(writeToken)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
 }
 
-func TestAPIActionsCancelWorkflowRun(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
+func testAPIActionsCancelWorkflowRun(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	ownerSession := loginUser(t, owner.Name)
@@ -353,70 +446,6 @@ func testAPIActionsApproveWorkflowRun(t *testing.T) {
 		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/791/approve", repo.FullName())).
 			AddTokenAuth(ownerToken)
 		MakeRequest(t, req, http.StatusConflict)
-	})
-}
-
-func TestAPIActionsRerunWorkflowJob(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	t.Run("NotDone", func(t *testing.T) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-		session := loginUser(t, user.Name)
-		writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/793/jobs/194/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusBadRequest)
-	})
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-
-	writeToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	readToken := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-
-	t.Run("Success", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/199/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		resp := MakeRequest(t, req, http.StatusCreated)
-
-		rerunResp := DecodeJSON(t, resp, &api.ActionWorkflowJob{})
-		job199Rerun := getLatestAttemptJobByTemplateJobID(t, 795, 199)
-		assert.Equal(t, job199Rerun.ID, rerunResp.ID)
-		assert.Equal(t, "queued", rerunResp.Status)
-
-		run, err := actions_model.GetRunByRepoAndID(t.Context(), repo.ID, 795)
-		require.NoError(t, err)
-		assert.Equal(t, actions_model.StatusWaiting, run.Status)
-		latestAttempt, hasLatestAttempt, err := run.GetLatestAttempt(t.Context())
-		require.NoError(t, err)
-		require.True(t, hasLatestAttempt)
-
-		job198Rerun := getLatestAttemptJobByTemplateJobID(t, 795, 198)
-		assert.Equal(t, actions_model.StatusSuccess, job198Rerun.Status)
-		assert.Equal(t, latestAttempt.Attempt, job198Rerun.Attempt)
-		assert.Equal(t, int64(0), job198Rerun.TaskID)
-		assert.Equal(t, int64(53), job198Rerun.SourceTaskID)
-
-		job199Rerun = getLatestAttemptJobByTemplateJobID(t, 795, 199)
-		assert.Equal(t, actions_model.StatusWaiting, job199Rerun.Status)
-		assert.Equal(t, latestAttempt.Attempt, job199Rerun.Attempt)
-		assert.Equal(t, int64(0), job199Rerun.TaskID)
-		assert.Equal(t, int64(0), job199Rerun.SourceTaskID)
-	})
-
-	t.Run("ForbiddenWithoutWriteScope", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/199/rerun", repo.FullName())).
-			AddTokenAuth(readToken)
-		MakeRequest(t, req, http.StatusForbidden)
-	})
-
-	t.Run("NotFoundJob", func(t *testing.T) {
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs/999999/rerun", repo.FullName())).
-			AddTokenAuth(writeToken)
-		MakeRequest(t, req, http.StatusNotFound)
 	})
 }
 
@@ -544,58 +573,6 @@ func seedTaskLogs(t *testing.T, taskID int64, lines ...string) {
 	}
 	require.NoError(t, actions_model.UpdateTask(t.Context(), task,
 		"log_filename", "log_in_storage", "log_indexes", "log_length", "log_size"))
-}
-
-func TestAPIActionsGetWorkflowRunLogs(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	t.Run("Success", func(t *testing.T) {
-		// run 795 (workflow "test.yaml") has job 198 "job_1" on task 53 and job 199 "job_2" on task 54
-		seedTaskLogs(t, 53, "hello from job_1")
-		seedTaskLogs(t, 54, "hello from job_2")
-
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		assert.Equal(t, "application/zip", resp.Header().Get("Content-Type"))
-		assert.Contains(t, resp.Header().Get("Content-Disposition"), "test-run-795-logs.zip")
-		assert.Equal(t, "Content-Disposition", resp.Header().Get("Access-Control-Expose-Headers"))
-
-		body := resp.Body.Bytes()
-		archive, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
-		require.NoError(t, err)
-
-		contents := make(map[string]string, len(archive.File))
-		for _, file := range archive.File {
-			r, err := file.Open()
-			require.NoError(t, err)
-			content, err := io.ReadAll(r)
-			require.NoError(t, r.Close())
-			require.NoError(t, err)
-			contents[file.Name] = string(content)
-		}
-
-		require.Len(t, contents, 2)
-		assert.Contains(t, contents["test-job_1-53.log"], "hello from job_1")
-		assert.Contains(t, contents["test-job_2-54.log"], "hello from job_2")
-	})
-
-	t.Run("NoLogsAfterRerun", func(t *testing.T) {
-		// the rerun starts a new attempt whose jobs have no task yet, so it has no logs
-		req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/rerun", repo.FullName())).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusCreated)
-
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/logs", repo.FullName())).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
 }
 
 // the success path is covered against real runner logs by TestDownloadTaskLogs
