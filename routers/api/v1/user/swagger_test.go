@@ -4,12 +4,13 @@
 package user
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"gitea.dev/modules/json"
 )
 
 type swaggerResponseRef struct {
