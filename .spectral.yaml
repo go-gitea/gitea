@@ -4,7 +4,6 @@ rules:
   info-contact: off
   oas2-api-host: off
   oas2-parameter-description: off
-  oas2-valid-schema-example: off
   openapi-tags: off
   operation-description: off
   operation-singular-tag: off
