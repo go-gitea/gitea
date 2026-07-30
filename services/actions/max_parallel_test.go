@@ -29,8 +29,8 @@ func TestParseMaxParallel(t *testing.T) {
 		{"-1.5", 0},          // truncates to -1, which means unlimited
 		{"1e3", 256},         // clamped to MaxJobNumPerRun
 		{"nan", 0},           // must not reach the int cast
-		{"${{ vars.n }}", 0}, // expressions are not evaluated yet
-		{"abc", 0},
+		{"${{ vars.n }}", 0}, // expressions are not evaluated yet, logged as such
+		{"abc", 0},           // a plain workflow error, warned about rather than hidden
 	}
 	for _, tt := range tests {
 		assert.Equal(t, tt.want, parseMaxParallel("job", tt.input), "input %q", tt.input)
