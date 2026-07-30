@@ -3033,6 +3033,8 @@
   "admin.dashboard.sync_tag.started": "Tags Sync started",
   "admin.dashboard.rebuild_issue_indexer": "Rebuild issue indexer",
   "admin.dashboard.sync_repo_licenses": "Sync repo licenses",
+  "admin.dashboard.collect_repo_ref_counts": "Collect repository ref counts",
+  "admin.dashboard.collect_repo_object_counts": "Collect repository object counts",
   "admin.users.user_manage_panel": "User Account Management",
   "admin.users.new_account": "Create User Account",
   "admin.users.name": "Username",
