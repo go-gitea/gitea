@@ -366,12 +366,9 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 	}
 
 	if diffLineType == DiffLinePlain {
-		var lineHTML template.HTML // left and right are the same, no need to do line-level diff, can just pick any side
-		if leftLine != nil {
-			lineHTML = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
-		} else if rightLine != nil {
-			lineHTML = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
-		}
+		// left and right are the same, no need to do line-level diff, can just pick any side
+		// caller always use the "right side" for this type
+		lineHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
 		return diffInlineWithUnicodeEscape(lineHTML, locale)
 	}
 
@@ -420,8 +417,8 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineDel, diffLine, compareDiffLine, locale)
 	default: // Plain
-		// TODO: there was an "if" check: `if diffLine.Content >strings.IndexByte(" +-", diffLine.Content[0]) > -1 { ... } else { ... }`
-		// no idea why it needs that check, it seems that the "if" should be always true, so try to simplify the code
+		// Here it always uses "right side" to render the plain content (not changed lines)
+		// tmpl also uses "RightIdx" to check whether to add "lines-code-old" CSS class to a line
 		return diffSection.getDiffLineForRender(DiffLinePlain, nil, diffLine, locale)
 	}
 }
