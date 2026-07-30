@@ -5,6 +5,7 @@ package web
 
 import (
 	"html/template"
+	"strings"
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
@@ -13,13 +14,15 @@ import (
 // SwaggerV1Json render swagger v1 json
 func SwaggerV1Json(ctx *context.Context) {
 	ctx.Data["SwaggerAppVer"] = template.HTML(template.JSEscapeString(setting.AppVer))
-	ctx.Data["SwaggerAppSubUrl"] = setting.AppSubURL // it is JS-safe
+	ctx.Data["SwaggerAppSubUrl"] = setting.AppSubURL // compat for custom templates
+	ctx.Data["SwaggerSubPath"] = strings.TrimPrefix(setting.AppSubURL+"/", "/")
 	ctx.JSONTemplate("swagger/v1_json")
 }
 
 // OpenAPI3Json render OpenAPI 3.0 json (auto-converted from Swagger 2.0)
 func OpenAPI3Json(ctx *context.Context) {
 	ctx.Data["SwaggerAppVer"] = template.HTML(template.JSEscapeString(setting.AppVer))
-	ctx.Data["SwaggerAppSubUrl"] = setting.AppSubURL // it is JS-safe
+	ctx.Data["SwaggerAppSubUrl"] = setting.AppSubURL // compat for custom templates
+	ctx.Data["SwaggerSubPath"] = strings.TrimPrefix(setting.AppSubURL+"/", "/")
 	ctx.JSONTemplate("swagger/v1_openapi3_json")
 }

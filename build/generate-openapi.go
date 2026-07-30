@@ -21,38 +21,19 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 
 	"gitea.dev/build/openapi3gen"
-
-	"github.com/getkin/kin-openapi/openapi3"
 )
 
 const (
 	swaggerSpecPath = "templates/swagger/v1_json.tmpl"
 	openapi3OutPath = "templates/swagger/v1_openapi3_json.tmpl"
-
-	appSubUrlVar = "{{.SwaggerAppSubUrl}}"
-	appVerVar    = "{{.SwaggerAppVer}}"
-
-	appSubUrlPlaceholder = "GITEA_APP_SUB_URL_PLACEHOLDER"
-	appVerPlaceholder    = "0.0.0-gitea-placeholder"
-)
-
-var (
-	appSubUrlRe = regexp.MustCompile(regexp.QuoteMeta(appSubUrlVar))
-	appVerRe    = regexp.MustCompile(regexp.QuoteMeta(appVerVar))
-
-	enumScanDirs = []string{
-		"modules/structs",
-		"modules/commitstatus",
-	}
 )
 
 func main() {
-	astEnumMap, err := openapi3gen.ScanSwaggerEnumTypes(enumScanDirs)
+	astEnumMap, err := openapi3gen.ScanSwaggerEnumTypes([]string{"modules/structs", "modules/commitstatus"})
 	if err != nil {
 		log.Fatalf("scanning swagger:enum annotations: %v", err)
 	}
@@ -68,16 +49,9 @@ func main() {
 		log.Fatalf("reading swagger spec: %v", err)
 	}
 
-	cleaned := appSubUrlRe.ReplaceAll(data, []byte(appSubUrlPlaceholder))
-	cleaned = appVerRe.ReplaceAll(cleaned, []byte(appVerPlaceholder))
-
-	oas3, err := openapi3gen.Convert(cleaned, astEnumMap)
+	oas3, err := openapi3gen.Convert(data, astEnumMap)
 	if err != nil {
 		log.Fatalf("converting to openapi 3.0: %v", err)
-	}
-
-	oas3.Servers = openapi3.Servers{
-		{URL: appSubUrlPlaceholder + "/api/v1"},
 	}
 
 	out, err := json.MarshalIndent(oas3, "", "  ")
@@ -85,11 +59,7 @@ func main() {
 		log.Fatalf("marshaling openapi 3.0: %v", err)
 	}
 
-	result := strings.ReplaceAll(string(out), appSubUrlPlaceholder, appSubUrlVar)
-	result = strings.ReplaceAll(result, appVerPlaceholder, appVerVar)
-	result = strings.TrimSpace(result)
-
-	if err := os.WriteFile(openapi3OutPath, []byte(result), 0o644); err != nil {
+	if err := os.WriteFile(openapi3OutPath, out, 0o644); err != nil {
 		log.Fatalf("writing openapi 3.0 spec: %v", err)
 	}
 

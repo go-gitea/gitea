@@ -247,15 +247,10 @@ swagger-check: generate-swagger
 
 .PHONY: swagger-validate
 swagger-validate: ## check if the swagger spec is valid
-	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
-	@# validate a copy, editing the spec in place would skip the next generate-swagger and mangle it when interrupted
-	@tmp_spec="$$(mktemp "$${TMPDIR:-/tmp}/gitea-swagger-XXXXXX")"; \
-	sed -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' >"$$tmp_spec"; \
-	output="$$($(GO) run $(SWAGGER_PACKAGE) validate "$$tmp_spec" 2>&1)"; status=$$?; \
-	rm -f "$$tmp_spec"; \
-	printf '%s\n' "$$output" | sed -e "s|$$tmp_spec|$(SWAGGER_SPEC)|g" -e '/^go: /d'; \
-	[ $$status -eq 0 ] || exit $$status; \
-	case "$$output" in *WARNING:*) exit 1;; esac
+	@# "validate" exits 0 on warnings, so fail on those too
+	@output="$$($(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)' 2>&1)"; status=$$?; \
+	printf '%s\n' "$$output" | grep -v '^go: '; \
+	case "$$output" in *WARNING:*) exit 1;; esac; exit $$status
 
 .PHONY: generate-openapi3
 generate-openapi3: $(OPENAPI3_SPEC) ## generate the OpenAPI 3.0 spec from the Swagger 2.0 spec
