@@ -140,7 +140,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}
 
-	gitRepo, err := git_module.OpenRepository(repo.Repository)
+	gitRepo, err := git_module.OpenRepository(ctx, repo.Repository)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		gitRepo.Close()
@@ -184,7 +184,7 @@ func LoadGitRepo(t *testing.T, ctx gocontext.Context) {
 	}
 	assert.NoError(t, repo.Repository.LoadOwner(ctx))
 	var err error
-	repo.GitRepo, err = git_module.OpenRepository(repo.Repository)
+	repo.GitRepo, err = git_module.OpenRepository(ctx, repo.Repository)
 	assert.NoError(t, err)
 }
 

@@ -5,36 +5,21 @@ package v1_28
 
 import (
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddImmutableReleases(x base.EngineMigration) error {
-	type Repository struct {
-		ImmutableReleases bool `xorm:"NOT NULL DEFAULT false"`
+// AddDeferredMatrixColumnsToActionRunJob adds the columns backing deferred (dynamic) matrix expansion
+func AddDeferredMatrixColumnsToActionRunJob(x base.EngineMigration) error {
+	type ActionRunJob struct {
+		// IsMatrixDeferred marks jobs whose matrix depends on other jobs' outputs and is therefore expanded only once those jobs finish;
+		IsMatrixDeferred bool `xorm:"NOT NULL DEFAULT FALSE"`
+		// DeferredMatrixPayload preserves the raw, unevaluated payload across expansion so a rerun can re-derive the matrix
+		DeferredMatrixPayload []byte `xorm:"LONGBLOB"`
 	}
-
-	type Release struct {
-		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
-	}
-
-	type ImmutableTag struct {
-		ID            int64              `xorm:"pk autoincr"`
-		RepoID        int64              `xorm:"INDEX(r) NOT NULL"`
-		OwnerID       int64              `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName string             `xorm:"UNIQUE(s) NOT NULL"`
-		LowerTagName  string             `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
-	}
-
-	if err := x.Sync(new(ImmutableTag)); err != nil {
-		return err
-	}
-
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(Repository), new(Release))
+		IgnoreConstrains:  true,
+	}, new(ActionRunJob))
 	return err
 }
