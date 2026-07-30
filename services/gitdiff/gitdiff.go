@@ -367,7 +367,7 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 
 	if diffLineType == DiffLinePlain {
 		// left and right are the same, no need to do line-level diff, can just pick any side
-		// caller always use the "right side" for this type
+		// caller always uses the "right side" for this type
 		lineHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
 		return diffInlineWithUnicodeEscape(lineHTML, locale)
 	}
@@ -383,8 +383,8 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 	if leftLine != nil && rightLine != nil {
 		// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
 		// "diff" the left&right sides together, then cache the diff result for another side,
-		// because when viewing the diff page, bother "deleted" and "added" lines will to be rendered eventually,
-		// so here only diff them once, then next render can just use the cached result, no  need to "diff" again.
+		// because when viewing the diff page, both "deleted" and "added" lines will to be rendered eventually,
+		// so here only diff them once, then next render can just use the cached result, no need to "diff" again.
 		hcd := newHighlightCodeDiff()
 		lineHTMLDel, lineHTMLAdd := hcd.diffLineWithHighlight(diffs[0], diffs[1])
 		leftLine.cachedDiffInline = new(diffInlineWithUnicodeEscape(lineHTMLDel, locale))
@@ -417,7 +417,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineDel, diffLine, compareDiffLine, locale)
 	default: // Plain
-		// Here it always uses "right side" to render the plain content (not changed lines)
+		// Here it always uses "right side" to render the plain content (unchanged lines)
 		// tmpl also uses "RightIdx" to check whether to add "lines-code-old" CSS class to a line
 		return diffSection.getDiffLineForRender(DiffLinePlain, nil, diffLine, locale)
 	}
