@@ -192,16 +192,22 @@ func OpenLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeek
 		return nil, fmt.Errorf("storage open %q: %w", filename, err)
 	}
 
-	var reader io.ReadSeekCloser = f
 	if strings.HasSuffix(filename, ".zst") {
-		r, err := zstd.NewSeekableReader(f)
+		reader, err := zstd.NewSeekableReader(f) // reads the seek table, so a lazily opened object already fails here
 		if err != nil {
+			f.Close()
 			return nil, fmt.Errorf("zstd NewSeekableReader: %w", err)
 		}
-		reader = r
+		return reader, nil
 	}
 
-	return reader, nil
+	// object storage opens lazily, force a missing object to surface before the caller commits a response
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		f.Close()
+		return nil, fmt.Errorf("storage open %q: %w", filename, err)
+	}
+
+	return f, nil
 }
 
 func FormatLog(timestamp time.Time, content string) string {
