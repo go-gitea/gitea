@@ -13,22 +13,24 @@ import (
 //
 // swagger:model
 type Project struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	OwnerID     int64     `json:"owner_id,omitempty"`
-	RepoID      int64     `json:"repo_id,omitempty"`
-	Creator     *User     `json:"creator,omitempty"`
-	State       StateType `json:"state"`
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	// 0 for a repository project
+	OwnerID int64 `json:"owner_id"`
+	// 0 for a user or organization project
+	RepoID  int64     `json:"repo_id"`
+	Creator *User     `json:"creator,omitempty"`
+	State   StateType `json:"state"`
 	// Template type: "none", "basic_kanban" or "bug_triage"
 	TemplateType string `json:"template_type"`
 	// Card type: "text_only" or "images_and_text"
 	CardType string `json:"card_type"`
 	// Project type: "individual", "repository" or "organization"
 	Type            string `json:"type"`
-	NumOpenIssues   int64  `json:"num_open_issues,omitempty"`
-	NumClosedIssues int64  `json:"num_closed_issues,omitempty"`
-	NumIssues       int64  `json:"num_issues,omitempty"`
+	NumOpenIssues   int64  `json:"num_open_issues"`
+	NumClosedIssues int64  `json:"num_closed_issues"`
+	NumIssues       int64  `json:"num_issues"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// null when the project has never been updated

@@ -128,8 +128,8 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	req = NewRequestWithJSON(t, "POST", projectURL+"/columns", &api.CreateProjectColumnOption{Title: "nope"}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
-	empty := ""
-	req = NewRequestWithJSON(t, "PATCH", projectURL, &api.EditProjectOption{Title: &empty}).AddTokenAuth(token)
+	// a map body here and below, because "omitempty" drops an empty title under json/v2
+	req = NewRequestWithJSON(t, "PATCH", projectURL, map[string]string{"title": ""}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 	unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: project.ID, Title: newTitle})
 
@@ -178,7 +178,7 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	assert.Equal(t, 0, DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.ProjectColumn{}).Sorting)
 	assert.EqualValues(t, 0, unittest.AssertExistsAndLoadBean(t, &project_model.Column{ID: columnIDs[0]}).Sorting)
 
-	req = NewRequestWithJSON(t, "PATCH", columnURL, &api.EditProjectColumnOption{Title: &empty}).AddTokenAuth(token)
+	req = NewRequestWithJSON(t, "PATCH", columnURL, map[string]string{"title": ""}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	req = NewRequest(t, "POST", columnURL+"/default").AddTokenAuth(token)
