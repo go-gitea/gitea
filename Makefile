@@ -202,7 +202,7 @@ clean: ## delete backend and integration files
 .PHONY: fmt
 fmt: ## format the Go and template code
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) fmt
-	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
+	$(eval TEMPLATES := $(filter-out $(SWAGGER_SPEC) $(OPENAPI3_SPEC),$(shell find templates -type f -name '*.tmpl')))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
 	@# whitespace before it
 	@$(SED_INPLACE) \
@@ -248,10 +248,12 @@ swagger-check: generate-swagger
 .PHONY: swagger-validate
 swagger-validate: ## check if the swagger spec is valid
 	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
-	@$(SED_INPLACE) -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
-	@output="$$($(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)' 2>&1)"; status=$$?; \
-	$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)'; \
-	printf '%s\n' "$$output" | grep -v '^go: '; \
+	@# validate a copy, editing the spec in place would skip the next generate-swagger and mangle it when interrupted
+	@tmp_spec="$$(mktemp "$${TMPDIR:-/tmp}/gitea-swagger-XXXXXX")"; \
+	sed -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' >"$$tmp_spec"; \
+	output="$$($(GO) run $(SWAGGER_PACKAGE) validate "$$tmp_spec" 2>&1)"; status=$$?; \
+	rm -f "$$tmp_spec"; \
+	printf '%s\n' "$$output" | sed -e "s|$$tmp_spec|$(SWAGGER_SPEC)|g" -e '/^go: /d'; \
 	[ $$status -eq 0 ] || exit $$status; \
 	case "$$output" in *WARNING:*) exit 1;; esac
 
