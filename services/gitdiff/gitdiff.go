@@ -412,7 +412,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	switch diffLine.Type {
 	case DiffLineSection:
 		// section content is something like diff hunk info, not code diff, no need to escape or do any other process
-		return DiffInline{Content: htmlutil.EscapeString(diffLine.Content)}
+		return DiffInline{Content: htmlutil.EscapeString(diffLine.Content), EscapeStatus: &charset.EscapeStatus{}}
 	case DiffLineAdd:
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineAdd, compareDiffLine, diffLine, locale)
