@@ -34,16 +34,12 @@ func TestLinks(t *testing.T) {
 	t.Run("SwaggerBasePath", testLinksSwaggerBasePath)
 }
 
-// the spec literal owns the leading slash, so basePath must still absorb a sub-url
 func testLinksSwaggerBasePath(t *testing.T) {
-	var spec struct {
-		BasePath string `json:"basePath"`
-	}
 	for subURL, expected := range map[string]string{"": "/api/v1", "/sub": "/sub/api/v1"} {
 		reset := test.MockVariableValue(&setting.AppSubURL, subURL)
-		DecodeJSON(t, MakeRequest(t, NewRequest(t, "GET", "/swagger.v1.json"), http.StatusOK), &spec)
-		assert.Equal(t, expected, spec.BasePath)
+		resp := MakeRequest(t, NewRequest(t, "GET", "/swagger.v1.json"), http.StatusOK)
 		reset()
+		assert.Contains(t, resp.Body.String(), `"basePath": "`+expected+`"`)
 	}
 }
 
