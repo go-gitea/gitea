@@ -1110,6 +1110,15 @@ func TestDiffLine_GetExpandDirection(t *testing.T) {
 	}
 }
 
+func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
+	t.Run("Section", func(t *testing.T) {
+		diffLine := &DiffLine{Type: DiffLineSection, Content: "@@ -1,3 +1,3 @@ func \u202ename() <b>"}
+		diffInline := (&DiffSection{}).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
+		assert.True(t, diffInline.EscapeStatus.Escaped)
+		assert.Equal(t, `@@ -1,3 +1,3 @@ func <span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">`+"\u202e"+`</span></span>name() &lt;b&gt;`, string(diffInline.Content))
+	})
+}
+
 func TestHighlightCodeLines(t *testing.T) {
 	t.Run("CharsetDetecting", func(t *testing.T) {
 		diffFile := &DiffFile{
@@ -1157,14 +1166,6 @@ func TestHighlightCodeLines(t *testing.T) {
 		assert.Equal(t, "a␍b\n", string(ret[0]))
 		assert.Equal(t, `c`, string(ret[1]))
 	})
-}
-
-func TestGetComputedInlineDiffForSection(t *testing.T) {
-	// a hunk header's trailing context is copied from the file content, so it may contain hidden Unicode characters
-	diffLine := &DiffLine{Type: DiffLineSection, Content: "@@ -1,3 +1,3 @@ func \u202ename() <b>"}
-	diffInline := (&DiffSection{}).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
-	assert.True(t, diffInline.EscapeStatus.Escaped)
-	assert.Equal(t, `@@ -1,3 +1,3 @@ func <span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">`+"\u202e"+`</span></span>name() &lt;b&gt;`, string(diffInline.Content))
 }
 
 func TestSyncUserSpecificDiff_UpdatedFiles(t *testing.T) {
