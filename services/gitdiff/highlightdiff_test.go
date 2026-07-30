@@ -19,8 +19,6 @@ import (
 func BenchmarkHighlightDiff(b *testing.B) {
 	for b.Loop() {
 		// still fast enough: BenchmarkHighlightDiff-12    	 1000000	      1027 ns/op
-		// TODO: the real bottleneck is that "diffLineWithHighlight" is called twice when rendering "added" and "removed" lines by the caller
-		// Ideally the caller should cache the diff result, and then use the diff result to render "added" and "removed" lines separately
 		hcd := newHighlightCodeDiff()
 		codeA := template.HTML(`x <span class="k">foo</span> y`)
 		codeB := template.HTML(`x <span class="k">bar</span> y`)
