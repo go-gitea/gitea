@@ -17,6 +17,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
       - run: make generate-gitignore
         timeout-minutes: 40
       - name: push translations to repo
