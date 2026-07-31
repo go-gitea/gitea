@@ -38,13 +38,11 @@ func jobLogFileName(workflowID, jobName string, taskID int64) string {
 
 func openTaskLogs(ctx context.Context, task *actions_model.ActionTask) (io.ReadSeekCloser, error) {
 	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, util.ErrNotExist) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("OpenLogs: %w", err)
+	if errors.Is(err, fs.ErrNotExist) {
+		// convert fs err to our own error type so that the API can return a 404 instead of a 500
+		return nil, util.NewNotExistErrorf("unable to open task logs: %s", task.LogFilename)
 	}
-	return reader, nil
+	return reader, err
 }
 
 func DownloadActionsRunJobLogsWithID(ctx *context_module.Base, ctxRepo *repo_model.Repository, runID, jobID int64) error {
