@@ -140,9 +140,7 @@ func (m *webhookNotifier) RenameRepository(ctx context.Context, doer *user_model
 		Repository:   convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeOwner}),
 		Organization: convert.ToUser(ctx, repo.MustOwner(ctx), nil),
 		Sender:       convert.ToUser(ctx, doer, nil),
-		Changes: &api.ChangesPayload{
-			Name: &api.ChangesFromPayload{From: oldRepoName},
-		},
+		Changes:      &api.ChangesPayload{Name: &api.ChangesFromPayload{From: oldRepoName}},
 	}); err != nil {
 		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
 	}

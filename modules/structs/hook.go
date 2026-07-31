@@ -424,7 +424,7 @@ type ChangesPayload struct {
 	Body *ChangesFromPayload `json:"body,omitempty"`
 	// Changes made to the reference
 	Ref *ChangesFromPayload `json:"ref,omitempty"`
-	// Changes made to the repository name (for repository rename)
+	// Changes made to the repository name
 	Name *ChangesFromPayload `json:"name,omitempty"`
 	// Changes made to the labels added
 	AddedLabels []*Label `json:"added_labels"`
@@ -524,7 +524,7 @@ type RepositoryPayload struct {
 	Organization *User `json:"organization"`
 	// The user who performed the action
 	Sender *User `json:"sender"`
-	// Changes made to the repository (for rename actions)
+	// Changes made to the repository
 	Changes *ChangesPayload `json:"changes,omitempty"`
 }
 

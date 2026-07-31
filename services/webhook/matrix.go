@@ -228,11 +228,7 @@ func (m matrixConvertor) Repository(p *api.RepositoryPayload) (MatrixPayload, er
 	case api.HookRepoDeleted:
 		text = fmt.Sprintf("[%s] Repository deleted by %s", repoLink, senderLink)
 	case api.HookRepoRenamed:
-		oldName := ""
-		if p.Changes != nil && p.Changes.Name != nil {
-			oldName = p.Changes.Name.From
-		}
-		text = fmt.Sprintf("[%s] Repository renamed from %s by %s", repoLink, oldName, senderLink)
+		text = fmt.Sprintf("[%s] Repository renamed from %s by %s", repoLink, getRepoRenamedFrom(p), senderLink)
 	}
 	return m.newPayload(text)
 }
