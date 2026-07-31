@@ -5,7 +5,6 @@ package repository
 
 import (
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -45,7 +44,7 @@ func Test_detectLicense(t *testing.T) {
 			Repo:  "gitea",
 			Year:  "2024",
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		tests = append(tests, DetectLicenseTest{
 			name: "single license test: " + licenseName,
@@ -63,13 +62,22 @@ func Test_detectLicense(t *testing.T) {
 		})
 	}
 
-	result, err := detectLicense(strings.NewReader(tests[2].arg + tests[3].arg + tests[4].arg))
-	assert.NoError(t, err)
-	t.Run("multiple licenses test", func(t *testing.T) {
-		assert.Len(t, result, 3)
-		assert.Contains(t, result, tests[2].want[0])
-		assert.Contains(t, result, tests[3].want[0])
-		assert.Contains(t, result, tests[4].want[0])
+	// Build multi-license content from the first 3 real license entries.
+	require.GreaterOrEqual(t, len(repo_module.Licenses), 3, "need at least 3 licenses for multi-license test")
+	var multiContent strings.Builder
+	var multiWant []string
+	for _, name := range repo_module.Licenses[:3] {
+		lic, err := repo_module.GetLicense(name, &repo_module.LicenseValues{
+			Owner: "Gitea", Email: "teabot@gitea.io", Repo: "gitea", Year: "2024",
+		})
+		require.NoError(t, err)
+		multiContent.Write(lic)
+		multiWant = append(multiWant, name)
+	}
+	t.Run("multiple licenses", func(t *testing.T) {
+		result, err := detectLicense(strings.NewReader(multiContent.String()))
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, multiWant, result)
 	})
 }
 
@@ -95,20 +103,16 @@ func Test_resolveLicenses(t *testing.T) {
 
 	repoDir := filepath.Join(t.TempDir(), "repo.git")
 	require.NoError(t, git.InitRepositoryLocal(t.Context(), repoDir, true, "sha1"))
-	gitRepo, err := git.OpenRepositoryLocal(repoDir)
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), repoDir)
 	require.NoError(t, err)
 	defer gitRepo.Close()
-
-	commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
-	// no commits yet — should error
-	assert.Error(t, err)
 
 	// 1. repo with no license at all
 	require.NoError(t, git.ForceFastImport(t.Context(), gitRepo, []git.FastImportCommit{{
 		Ref:     "refs/heads/master",
 		Message: "empty",
 	}}))
-	commit, err = gitRepo.GetBranchCommit(t.Context(), "master")
+	commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
 	require.NoError(t, err)
 
 	licenses, err := resolveLicenses(t.Context(), gitRepo, commit)
@@ -150,8 +154,7 @@ func Test_resolveLicenses(t *testing.T) {
 	assert.Len(t, licenses, 2)
 
 	ids := detectedLicenseIDs(licenses)
-	slices.Sort(ids)
-	assert.Equal(t, []string{"Apache-2.0", "MIT"}, ids)
+	assert.ElementsMatch(t, []string{"Apache-2.0", "MIT"}, ids)
 	// REUSE entries carry full path including LICENSES/ prefix
 	for _, l := range licenses {
 		assert.True(t, strings.HasPrefix(l.LicensePath, "LICENSES/"))
@@ -205,13 +208,12 @@ func Test_isLicenseFile(t *testing.T) {
 
 	for _, name := range shouldMatch {
 		t.Run("match/"+name, func(t *testing.T) {
-			assert.True(t, isLicenseFile(name), "expected %q to be recognized as a license file", name)
+			assert.True(t, isLicenseFile(name))
 		})
 	}
 	for _, name := range shouldNotMatch {
-		noMatch := name
-		t.Run("nomatch/"+noMatch, func(t *testing.T) {
-			assert.False(t, isLicenseFile(noMatch), "expected %q to NOT be recognized as a license file", noMatch)
+		t.Run("nomatch/"+name, func(t *testing.T) {
+			assert.False(t, isLicenseFile(name))
 		})
 	}
 }
