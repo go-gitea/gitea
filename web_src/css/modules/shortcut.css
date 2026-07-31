@@ -42,6 +42,17 @@ kbd {
   display: none !important;
 }
 
+#keyboard-shortcuts-modal .ui.modal {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#keyboard-shortcuts-modal .ui.modal .content {
+  overflow-y: auto;
+  flex: 1;
+}
+
 #keyboard-shortcuts-modal .modal-backdrop {
   position: absolute;
   top: 0;

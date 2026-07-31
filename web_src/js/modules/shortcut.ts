@@ -132,11 +132,21 @@ export function initGlobalShortcut() {
 
   const helpModal = document.querySelector<HTMLElement>('#keyboard-shortcuts-modal');
   const openTrigger = document.querySelector<HTMLElement>('#show-keyboard-shortcuts');
+  let lastActiveElement: HTMLElement | null = null;
+
+  const openModal = () => {
+    if (!helpModal || !helpModal.classList.contains('hidden')) return;
+    lastActiveElement = document.activeElement as HTMLElement;
+    helpModal.classList.remove('hidden');
+  };
+
   const closeModal = () => {
     if (!helpModal || helpModal.classList.contains('hidden')) return;
     helpModal.classList.add('hidden');
-    // Return focus to the element that opened the dialog
-    openTrigger?.focus();
+    if (lastActiveElement && typeof lastActiveElement.focus === 'function') {
+      lastActiveElement.focus({preventScroll: true});
+    }
+    lastActiveElement = null;
   };
 
   if (helpModal) {
@@ -146,7 +156,7 @@ export function initGlobalShortcut() {
 
     openTrigger?.addEventListener('click', (e) => {
       e.preventDefault();
-      helpModal.classList.remove('hidden');
+      openModal();
     });
   }
 
@@ -185,7 +195,7 @@ export function initGlobalShortcut() {
       e.preventDefault();
       if (helpModal) {
         if (helpModal.classList.contains('hidden')) {
-          helpModal.classList.remove('hidden');
+          openModal();
         } else {
           closeModal();
         }
