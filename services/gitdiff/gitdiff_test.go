@@ -601,6 +601,16 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 	assert.Equal(t, "proposed", (&DiffLine{Comments: []*issues_model.Comment{{Line: 3}}}).GetCommentSide())
 }
 
+func TestDiffLine_GetLineTypeMarker(t *testing.T) {
+	assert.Equal(t, "", (&DiffLine{Content: ""}).GetLineTypeMarker())
+	assert.Equal(t, "+", (&DiffLine{Content: "+added line"}).GetLineTypeMarker())
+	assert.Equal(t, "-", (&DiffLine{Content: "-deleted line"}).GetLineTypeMarker())
+	assert.Equal(t, " ", (&DiffLine{Content: " unchanged line"}).GetLineTypeMarker())
+	// for a real diff line (including hunk header) from diff output, "Content" should always have a prefix char in [" ", "+", "-"].
+	// for other cases, e.g.: a diff line constructed by our code without real diff output, it is undefined behavior at the moment.
+	assert.Equal(t, "", (&DiffLine{Content: "any-content"}).GetLineTypeMarker())
+}
+
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
