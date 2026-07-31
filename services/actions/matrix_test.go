@@ -43,6 +43,7 @@ jobs:
 %s    strategy:
       matrix:
         value: %s
+    runs-on: ${{ matrix.value }}
     steps: [{run: echo}]
 `, ifLine, matrixValue))
 	require.NoError(t, err)
@@ -98,8 +99,20 @@ jobs:
 	build.DeferredMatrixPayload = payload
 	// Values a sibling must inherit rather than silently reset.
 	build.WorkflowSourceRepoID, build.WorkflowSourceCommitSHA = 42, "abc123"
-	require.NoError(t, db.Insert(ctx, build))
+	build.RunsOn = job.RunsOn()
+	// Insert through the production path so the placeholder carries the raw matrix
+	// expression as its label rows, the state expansion has to replace.
+	require.NoError(t, actions_model.InsertActionRunJob(ctx, build))
 	return build
+}
+
+// jobLabels reads the normalized label rows runner assignment matches on.
+func jobLabels(t *testing.T, jobID int64) []string {
+	t.Helper()
+	labels := make([]string, 0)
+	require.NoError(t, db.GetEngine(t.Context()).Table("action_run_job_label").
+		Where("job_id = ?", jobID).OrderBy("label").Cols("label").Find(&labels))
+	return labels
 }
 
 func TestExpandDeferredMatrix(t *testing.T) {
@@ -135,6 +148,24 @@ func TestExpandDeferredMatrix(t *testing.T) {
 		assert.Equal(t, "build (a)", reloaded.Name)
 		assert.False(t, reloaded.IsMatrixDeferred)
 		assert.NotEmpty(t, reloaded.DeferredMatrixPayload, "the claim must not erase the raw payload")
+	})
+
+	// Expansion rewrites runs_on from the raw matrix expression to the resolved labels. The
+	// action_run_job_label projection runner assignment matches on must follow, or the placeholder
+	// keeps requiring `${{ matrix.value }}` (matchable by no runner) while the siblings, inserted
+	// without rows at all, would be handed to any runner regardless of their labels.
+	t.Run("resyncs the label projection", func(t *testing.T) {
+		job := setupDeferredMatrixJob(t, "${{ fromJson(needs.generate.outputs.values) }}", "", map[string]string{"values": `["a","b"]`})
+		require.Equal(t, []string{"${{ matrix.value }}"}, jobLabels(t, job.ID))
+
+		siblings, err := expandDeferredMatrix(t.Context(), job, nil)
+		require.NoError(t, err)
+		require.Len(t, siblings, 1)
+
+		assert.Equal(t, []string{"a"}, job.RunsOn)
+		assert.Equal(t, []string{"a"}, jobLabels(t, job.ID), "the placeholder's stale raw-expression label must be replaced")
+		assert.Equal(t, []string{"b"}, siblings[0].RunsOn)
+		assert.Equal(t, []string{"b"}, jobLabels(t, siblings[0].ID), "a sibling must be inserted with its own labels")
 	})
 
 	// A matrix that can never produce runnable combinations fails the job instead of rolling the

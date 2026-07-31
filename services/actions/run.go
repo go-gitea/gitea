@@ -267,7 +267,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 
 	applyMaxParallel(runJob, slots)
 
-	if err := db.Insert(ctx, runJob); err != nil {
+	if err := actions_model.InsertActionRunJob(ctx, runJob); err != nil {
 		return nil, nil, false, err
 	}
 

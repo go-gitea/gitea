@@ -10,7 +10,6 @@ import (
 	"slices"
 
 	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
@@ -185,6 +184,12 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		return nil, nil
 	}
 
+	// The claim rewrote runs_on from the raw matrix expression to the resolved labels,
+	// so the placeholder's label rows are stale and must follow.
+	if err := actions_model.ReplaceActionRunJobLabels(ctx, job.ID, job.RunsOn); err != nil {
+		return nil, fmt.Errorf("resync labels of job %d: %w", job.ID, err)
+	}
+
 	if len(siblings) == 0 {
 		return nil, nil
 	}
@@ -196,7 +201,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 			return nil, fmt.Errorf("alloc attempt_job_id for job %d: %w", job.ID, err)
 		}
 	}
-	if err := db.Insert(ctx, siblings); err != nil {
+	if err := actions_model.InsertActionRunJobs(ctx, siblings); err != nil {
 		return nil, fmt.Errorf("insert matrix siblings of job %d: %w", job.ID, err)
 	}
 	return siblings, nil
