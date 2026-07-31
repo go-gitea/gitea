@@ -601,6 +601,14 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 	assert.Equal(t, "proposed", (&DiffLine{Comments: []*issues_model.Comment{{Line: 3}}}).GetCommentSide())
 }
 
+func TestDiffLine_GetLineTypeMarker(t *testing.T) {
+	assert.Equal(t, "", (&DiffLine{Content: ""}).GetLineTypeMarker())
+	assert.Equal(t, "+", (&DiffLine{Content: "+added line"}).GetLineTypeMarker())
+	assert.Equal(t, "-", (&DiffLine{Content: "-deleted line"}).GetLineTypeMarker())
+	assert.Equal(t, " ", (&DiffLine{Content: " unchanged line"}).GetLineTypeMarker())
+	assert.Equal(t, "", (&DiffLine{Content: "normal line without prefix"}).GetLineTypeMarker())
+}
+
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
