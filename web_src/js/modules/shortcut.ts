@@ -54,72 +54,52 @@ function hasRepoNavTab(hrefSuffix: string): boolean {
   return document.querySelector(`.secondary-nav a[href$="${CSS.escape(hrefSuffix)}"]`) !== null;
 }
 
-function handleSequenceShortcut(key: string) {
-  // If no sequence key is set, check if this is a sequence starter
-  if (!sequenceKey) {
-    if (key === 'g') {
-      sequenceKey = 'g';
-      sequenceTimeout = window.setTimeout(resetSequence, SEQUENCE_TIMEOUT_MS);
-      return true;
-    }
-    return false;
+type RouteConfig = {
+  suffix: string;
+  repoOnly?: boolean;
+  globalFallback?: boolean;
+};
+
+const NAVIGATION_ROUTES: Record<string, RouteConfig> = {
+  i: {suffix: '/issues', globalFallback: true},
+  p: {suffix: '/pulls', globalFallback: true},
+  c: {suffix: '', repoOnly: true},
+  a: {suffix: '/actions', repoOnly: true},
+  b: {suffix: '/projects', repoOnly: true},
+  w: {suffix: '/wiki', repoOnly: true},
+  d: {suffix: '/', globalFallback: true},
+};
+
+function handleSequenceShortcut(key: string): boolean {
+  // Handle sequence initialization or restart
+  if (key === 'g') {
+    resetSequence();
+    sequenceKey = 'g';
+    sequenceTimeout = window.setTimeout(resetSequence, SEQUENCE_TIMEOUT_MS);
+    return true;
   }
 
-  // Handle g + key sequences
+  // If a sequence was active, process the second key
   if (sequenceKey === 'g') {
-    if (key === 'g') {
-      resetSequence();
-      sequenceKey = 'g';
-      sequenceTimeout = window.setTimeout(resetSequence, SEQUENCE_TIMEOUT_MS);
-      return true;
-    }
-
     resetSequence();
     const appSubUrl = window.config?.appSubUrl || '';
     const repoLink = getRepoLink();
 
-    switch (key) {
-      case 'i':
-        if (repoLink && hasRepoNavTab('/issues')) {
-          window.location.assign(`${repoLink}/issues`);
-        } else {
-          window.location.assign(`${appSubUrl}/issues`);
+    const route = NAVIGATION_ROUTES[key];
+    if (route) {
+      if (repoLink) {
+        if (!route.suffix || hasRepoNavTab(route.suffix)) {
+          window.location.assign(repoLink + route.suffix);
+          return true;
         }
+        if (route.globalFallback) {
+          window.location.assign(appSubUrl + route.suffix);
+          return true;
+        }
+      } else if (!route.repoOnly) {
+        window.location.assign(appSubUrl + route.suffix);
         return true;
-      case 'p':
-        if (repoLink && hasRepoNavTab('/pulls')) {
-          window.location.assign(`${repoLink}/pulls`);
-        } else {
-          window.location.assign(`${appSubUrl}/pulls`);
-        }
-        return true;
-      case 'c':
-        if (repoLink) {
-          window.location.assign(repoLink);
-          return true;
-        }
-        return false;
-      case 'a':
-        if (repoLink && hasRepoNavTab('/actions')) {
-          window.location.assign(`${repoLink}/actions`);
-          return true;
-        }
-        return false;
-      case 'b':
-        if (repoLink && hasRepoNavTab('/projects')) {
-          window.location.assign(`${repoLink}/projects`);
-          return true;
-        }
-        return false;
-      case 'w':
-        if (repoLink && hasRepoNavTab('/wiki')) {
-          window.location.assign(`${repoLink}/wiki`);
-          return true;
-        }
-        return false;
-      case 'd':
-        window.location.assign(`${appSubUrl}/`);
-        return true;
+      }
     }
   }
 
