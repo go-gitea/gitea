@@ -17,9 +17,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{.SwaggerAppVer}}"
+    "version": "0.0.0+GITEA-API-APP-VERSION"
   },
-  "basePath": "/{{.SwaggerSubPath}}api/v1",
+  "basePath": "/GITEA-API-APP-SUBURL/api/v1",
   "paths": {
     "/admin/actions/jobs": {
       "get": {

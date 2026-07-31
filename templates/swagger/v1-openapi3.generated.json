@@ -10721,7 +10721,7 @@
       "url": "http://opensource.org/licenses/MIT"
     },
     "title": "Gitea API",
-    "version": "{{.SwaggerAppVer}}"
+    "version": "0.0.0+GITEA-API-APP-VERSION"
   },
   "openapi": "3.0.3",
   "paths": {
@@ -34181,7 +34181,7 @@
   ],
   "servers": [
     {
-      "url": "/{{.SwaggerSubPath}}api/v1"
+      "url": "/GITEA-API-APP-SUBURL/api/v1"
     }
   ]
 }

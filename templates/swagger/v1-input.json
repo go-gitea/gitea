@@ -1,0 +1,6 @@
+{
+  "info": {
+    "version": "0.0.0+GITEA-API-APP-VERSION"
+  },
+  "basePath": "/GITEA-API-APP-SUBURL/api/v1"
+}

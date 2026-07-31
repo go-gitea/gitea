@@ -150,10 +150,10 @@ GO_SOURCES += $(GENERATED_GO_DEST)
 ESLINT_CONCURRENCY ?= 2
 ESLINT_ARGS := --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
 
-SWAGGER_SPEC := templates/swagger/v1_json.tmpl
-SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
 SWAGGER_EXCLUDE := gitea.dev/sdk
-OPENAPI3_SPEC := templates/swagger/v1_openapi3_json.tmpl
+SWAGGER_SPEC_INPUT := templates/swagger/v1-input.json
+SWAGGER_SPEC := templates/swagger/v1-swagger.generated.json
+OPENAPI3_SPEC := templates/swagger/v1-openapi3.generated.json
 
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
@@ -202,7 +202,7 @@ clean: ## delete backend and integration files
 .PHONY: fmt
 fmt: ## format the Go and template code
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) fmt
-	$(eval TEMPLATES := $(filter-out $(SWAGGER_SPEC) $(OPENAPI3_SPEC),$(shell find templates -type f -name '*.tmpl')))
+	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
 	@# whitespace before it
 	@$(SED_INPLACE) \

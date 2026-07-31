@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	swaggerSpecPath = "templates/swagger/v1_json.tmpl"
-	openapi3OutPath = "templates/swagger/v1_openapi3_json.tmpl"
+	swaggerSpecPath = "templates/swagger/v1-swagger.generated.json"
+	openapi3OutPath = "templates/swagger/v1-openapi3.generated.json"
 )
 
 var enumScanDirs = []string{

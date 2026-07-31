@@ -1,6 +1,0 @@
-{
-  "info": {
-    "version": "{{.SwaggerAppVer}}"
-  },
-  "basePath": "/{{.SwaggerSubPath}}api/v1"
-}
