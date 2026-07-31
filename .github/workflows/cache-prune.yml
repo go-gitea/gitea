@@ -30,8 +30,6 @@ jobs:
           caches=$(gh cache list --limit 1000 --sort last_accessed_at --order asc --json id,key,sizeInBytes)
           size=$(jq '[.[].sizeInBytes] | add // 0' <<< "$caches")
           echo "cache usage: $((size / 1000000)) MB"
-          # a here-string, not a pipe: the loop stops reading as soon as it is under the
-          # limit, and jq would then fail writing into the closed pipe
           while [ "$size" -gt 6500000000 ] && read -r id bytes key; do
             echo "deleting $key"
             gh cache delete "$id"
