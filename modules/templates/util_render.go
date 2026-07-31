@@ -370,7 +370,7 @@ func (ut *RenderUtils) AvatarStackPushCommit(pushCommit *repository.PushCommit) 
 		// there is no way to know the real committer, but the field can't be nil
 		Committer: &git.Signature{Name: pushCommit.AuthorName, Email: pushCommit.AuthorEmail},
 	}
-	data := user_model.BuildAvatarStackData(ut.ctx, fakeGitCommit.AllParticipantIdentities(), nil)
+	data := user_model.BuildAvatarStackData(ut.ctx, fakeGitCommit.AllAuthorIdentities(), nil)
 	return ut.AvatarStack(data)
 }
 
