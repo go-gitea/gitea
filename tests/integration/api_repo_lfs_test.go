@@ -5,9 +5,8 @@ package integration
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
-	"path"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -59,6 +58,7 @@ func TestAPILFSMediaType(t *testing.T) {
 }
 
 func createLFSTestRepository(t *testing.T, repoName string) *repo_model.Repository {
+	t.Helper()
 	ctx := NewAPITestContext(t, "user2", repoName, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
@@ -281,7 +281,7 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
 			// Cleanup
-			err = contentStore.Delete(p.RelativePath())
+			err = contentStore.ObjectStorage.Delete(p.RelativePath())
 			assert.NoError(t, err)
 		})
 
@@ -334,13 +334,11 @@ func TestAPILFSUpload(t *testing.T) {
 	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
 
 	repo := createLFSTestRepository(t, "lfs-upload-repo")
-	oid := storeObjectInRepo(t, repo.ID, "dummy3")
-	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
-
 	session := loginUser(t, "user2")
 
 	newRequest := func(t testing.TB, p lfs.Pointer, content string) *RequestWrapper {
-		return NewRequestWithBody(t, "PUT", path.Join("/user2/lfs-upload-repo.git/info/lfs/objects/", p.Oid, strconv.FormatInt(p.Size, 10)), strings.NewReader(content))
+		reqUrl := fmt.Sprintf("/user2/lfs-upload-repo.git/info/lfs/objects/%s/%d", p.Oid, p.Size)
+		return NewRequestWithBody(t, "PUT", reqUrl, strings.NewReader(content))
 	}
 
 	t.Run("InvalidPointer", func(t *testing.T) {
@@ -382,15 +380,14 @@ func TestAPILFSUpload(t *testing.T) {
 		})
 
 		// Cleanup
-		err = contentStore.Delete(p.RelativePath())
+		err = contentStore.ObjectStorage.Delete(p.RelativePath())
 		assert.NoError(t, err)
 	})
 
 	t.Run("MetaAlreadyExists", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-
+		oid := storeObjectInRepo(t, repo.ID, "123456")
 		req := newRequest(t, lfs.Pointer{Oid: oid, Size: 6}, "")
-
 		session.MakeRequest(t, req, http.StatusOK)
 	})
 
@@ -412,19 +409,18 @@ func TestAPILFSUpload(t *testing.T) {
 
 	t.Run("ConcurrentFailureKeepsExistingMeta", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
+		pointer, err := lfs.GeneratePointer(strings.NewReader("any-content"))
+		assert.NoError(t, err)
 
-		// A concurrent upload of the same object already succeeded and created the meta
-		// object; a later failing upload must not delete it, or the stored content becomes
-		// unreachable and every download returns 404.
-		p := lfs.Pointer{Oid: "4221a0fc3dfbfd830dc3a13f6c72d233781179bea27df532ff903f3abdba5586", Size: 6}
-		_, err := git_model.NewLFSMetaObject(t.Context(), repo.ID, p)
-		require.NoError(t, err)
-		defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
+		// mock a record in database: it should not happen in real world (no existing file in the store)
+		// !!for testing purpose only!! to verify a failed upload should not remove a valid record,
+		_, err = git_model.NewLFSMetaObject(t.Context(), repo.ID, pointer)
+		assert.NoError(t, err)
 
-		req := newRequest(t, p, "loser1") // same size, different content: the upload fails
+		// make an invalid request, the existing lfs record should not be removed
+		req := newRequest(t, lfs.Pointer{Oid: pointer.Oid, Size: 1}, "invalid content")
 		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
-
-		meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, pointer.Oid)
 		assert.NoError(t, err)
 		assert.NotNil(t, meta)
 	})
