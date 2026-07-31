@@ -20602,6 +20602,7 @@
     },
     "/repos/{owner}/{repo}/git/refs": {
       "get": {
+        "description": "Always returns a list, even when the repository has only one reference.",
         "operationId": "repoListAllGitRefs",
         "parameters": [
           {
@@ -20631,7 +20632,7 @@
             "$ref": "#/components/responses/notFound"
           }
         },
-        "summary": "Get specified ref or filtered repository's refs",
+        "summary": "Get all the refs of a repository",
         "tags": [
           "repository"
         ]
@@ -20639,6 +20640,7 @@
     },
     "/repos/{owner}/{repo}/git/refs/{ref}": {
       "get": {
+        "description": "The \"ref\" path parameter is matched against reference names without the leading \"refs/\",\nso \"heads/main\" matches the reference \"refs/heads/main\".\nWhen \"ref\" is the complete name of an existing reference, a single Reference object is returned.\nOtherwise a list of all references starting with that prefix is returned.\nThe response shape only depends on \"ref\", never on the other references in the repository:\nwith the branches \"main\" and \"main1\", \"heads/main\" returns the single \"refs/heads/main\" object,\n\"heads/main1\" returns the single \"refs/heads/main1\" object, and \"heads/mai\" returns both as a list.\n",
         "operationId": "repoListGitRefs",
         "parameters": [
           {
@@ -20677,7 +20679,7 @@
             "$ref": "#/components/responses/notFound"
           }
         },
-        "summary": "Get specified ref or filtered repository's refs",
+        "summary": "Get a specified ref or the refs matching a prefix",
         "tags": [
           "repository"
         ]
