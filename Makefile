@@ -314,7 +314,7 @@ lint-css-fix: node_modules ## lint css files and fix issues
 
 .PHONY: lint-swagger
 lint-swagger: node_modules ## lint swagger files
-	pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
+	pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC) $(OPENAPI3_SPEC)
 
 .PHONY: lint-md
 lint-md: node_modules ## lint markdown files

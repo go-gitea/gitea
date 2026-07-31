@@ -2,5 +2,16 @@
   "info": {
     "version": "0.0.0+GITEA-API-APP-VERSION"
   },
-  "basePath": "/GITEA-API-APP-SUBURL/api/v1"
+  "basePath": "/GITEA-API-APP-SUBURL/api/v1",
+  "tags": [
+    {"name": "admin", "description": "Site administration"},
+    {"name": "issue", "description": "Issues, pull requests, comments, labels and milestones"},
+    {"name": "miscellaneous", "description": "Miscellaneous endpoints"},
+    {"name": "notification", "description": "User notifications"},
+    {"name": "organization", "description": "Organizations and teams"},
+    {"name": "package", "description": "Package registry"},
+    {"name": "repository", "description": "Repositories and their contents"},
+    {"name": "settings", "description": "Server settings"},
+    {"name": "user", "description": "The authenticated user"}
+  ]
 }
