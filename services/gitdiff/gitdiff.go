@@ -168,6 +168,11 @@ func (d *DiffLine) GetCommentSide() string {
 
 // GetLineTypeMarker returns the line type marker
 func (d *DiffLine) GetLineTypeMarker() string {
+	// Defensive: if Content is empty (can happen when truncating lines to max characters),
+	// avoid indexing into the string to prevent a runtime panic.
+	if len(d.Content) == 0 {
+		return ""
+	}
 	if strings.IndexByte(" +-", d.Content[0]) > -1 {
 		return d.Content[0:1]
 	}
