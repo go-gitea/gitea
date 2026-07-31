@@ -164,22 +164,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		)
 	}
 
-	if data.canMergeNow {
-		if data.hasOverridableBlockers {
-			prompt := ctx.Locale.Tr("repo.pulls.required_status_check_bypass_allowlist")
-			if data.canBypassProtectionAsAdmin {
-				prompt = ctx.Locale.Tr("repo.pulls.required_status_check_administrator")
-			}
-			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
-				svg.RenderHTML("octicon-dot-fill"),
-				prompt,
-			)
-		} else if pull.IsStatusMergeable() || pull.IsEmpty() {
-			prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
-				svg.RenderHTML("octicon-check"),
-				ctx.Locale.Tr("repo.pulls.can_auto_merge_desc"),
-			)
-		}
+	// when the doer can bypass overridable blockers, the merge form shows an explicit "bypass rules" checkbox,
+	// so no separate admin/allowlist prompt is needed here; only show the positive "can be merged" hint when clear
+	if data.canMergeNow && !data.hasOverridableBlockers && (pull.IsStatusMergeable() || pull.IsEmpty()) {
+		prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(
+			svg.RenderHTML("octicon-check"),
+			ctx.Locale.Tr("repo.pulls.can_auto_merge_desc"),
+		)
 	}
 
 	if len(data.infoCommitBlockers.items) > 0 {

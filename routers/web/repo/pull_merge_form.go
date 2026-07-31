@@ -19,6 +19,16 @@ import (
 	pull_service "gitea.dev/services/pull"
 )
 
+// mergeStyleShortLocaleKeys maps a merge style to the locale key of its short, human-readable label.
+// Only auto-merge-capable styles have an entry; callers fall back to the raw style for anything else.
+var mergeStyleShortLocaleKeys = map[repo_model.MergeStyle]string{
+	repo_model.MergeStyleMerge:           "repo.pulls.merge_style_short_merge",
+	repo_model.MergeStyleRebase:          "repo.pulls.merge_style_short_rebase",
+	repo_model.MergeStyleRebaseMerge:     "repo.pulls.merge_style_short_rebase_merge",
+	repo_model.MergeStyleSquash:          "repo.pulls.merge_style_short_squash",
+	repo_model.MergeStyleFastForwardOnly: "repo.pulls.merge_style_short_fast_forward_only",
+}
+
 func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context) {
 	pull := prInfo.issue.PullRequest
 	if pull.HasMerged || prInfo.issue.IsClosed {
@@ -61,7 +71,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	var hasPendingPullRequestMergeTip template.HTML
 	if hasPendingPullRequestMerge {
 		createdPRMergeStr := templates.TimeSince(pendingPullRequestMerge.CreatedUnix)
-		hasPendingPullRequestMergeTip = ctx.Locale.Tr("repo.pulls.auto_merge_has_pending_schedule", pendingPullRequestMerge.Doer.Name, createdPRMergeStr)
+		styleShort := any(string(pendingPullRequestMerge.MergeStyle))
+		if key, ok := mergeStyleShortLocaleKeys[pendingPullRequestMerge.MergeStyle]; ok {
+			styleShort = ctx.Locale.Tr(key)
+		}
+		hasPendingPullRequestMergeTip = ctx.Locale.Tr("repo.pulls.auto_merge_has_pending_schedule", pendingPullRequestMerge.Doer.Name, createdPRMergeStr, styleShort)
 	}
 
 	var defaultMergeTitle, defaultMergeBody string
@@ -85,18 +99,19 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
 	mergeFormProps := map[string]any{
-		"baseLink":                       prInfo.issue.Link(),
-		"textCancel":                     ctx.Locale.Tr("cancel"),
-		"textDeleteBranch":               ctx.Locale.Tr("repo.branch.delete", prInfo.headTarget),
-		"textAutoMergeButtonWhenSucceed": ctx.Locale.Tr("repo.pulls.auto_merge_button_when_succeed"),
-		"textAutoMergeWhenSucceed":       ctx.Locale.Tr("repo.pulls.auto_merge_when_succeed"),
-		"textAutoMergeCancelSchedule":    ctx.Locale.Tr("repo.pulls.auto_merge_cancel_schedule"),
-		"textClearMergeMessage":          ctx.Locale.Tr("repo.pulls.clear_merge_message"),
-		"textClearMergeMessageHint":      ctx.Locale.Tr("repo.pulls.clear_merge_message_hint"),
-		"textMergeCommitId":              ctx.Locale.Tr("repo.pulls.merge_commit_id"),
+		"baseLink":                    prInfo.issue.Link(),
+		"textCancel":                  ctx.Locale.Tr("cancel"),
+		"textDeleteBranch":            ctx.Locale.Tr("repo.branch.delete", prInfo.headTarget),
+		"textAutoMergeCancelSchedule": ctx.Locale.Tr("repo.pulls.auto_merge_cancel_schedule"),
+		"textClearMergeMessage":       ctx.Locale.Tr("repo.pulls.clear_merge_message"),
+		"textClearMergeMessageHint":   ctx.Locale.Tr("repo.pulls.clear_merge_message_hint"),
+		"textMergeCommitId":           ctx.Locale.Tr("repo.pulls.merge_commit_id"),
 
 		"canMergeNow":                   prInfo.MergeBoxData.canMergeNow,
 		"allOverridableChecksOk":        allOverridableChecksOk,
+		"canBypassProtection":           prInfo.MergeBoxData.canBypassProtection,
+		"textSwitchToForceMerge":        ctx.Locale.Tr("repo.pulls.merge_switch_to_force_merge"),
+		"textSwitchToAutoMerge":         ctx.Locale.Tr("repo.pulls.merge_switch_to_auto_merge"),
 		"emptyCommit":                   pull.IsEmpty(),
 		"pullHeadCommitID":              prInfo.CompareInfo.HeadCommitID,
 		"isPullBranchDeletable":         prInfo.MergeBoxData.IsPullBranchDeletable,
@@ -118,6 +133,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"name":                  "merge",
 				"allowed":               prConfig.AllowMerge,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.merge_pull_request"),
+				"textAutoMerge":         ctx.Locale.Tr("repo.pulls.enable_auto_merge", ctx.Locale.Tr("repo.pulls.merge_style_short_merge")),
 				"mergeTitleFieldText":   defaultMergeTitle,
 				"mergeMessageFieldText": defaultMergeBody,
 				"hideAutoMerge":         generalHideAutoMerge,
@@ -126,6 +142,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"name":                  "rebase",
 				"allowed":               prConfig.AllowRebase,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.rebase_merge_pull_request"),
+				"textAutoMerge":         ctx.Locale.Tr("repo.pulls.enable_auto_merge", ctx.Locale.Tr("repo.pulls.merge_style_short_rebase")),
 				"hideMergeMessageTexts": true,
 				"hideAutoMerge":         generalHideAutoMerge,
 			},
@@ -133,6 +150,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"name":                  "rebase-merge",
 				"allowed":               prConfig.AllowRebaseMerge,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.rebase_merge_commit_pull_request"),
+				"textAutoMerge":         ctx.Locale.Tr("repo.pulls.enable_auto_merge", ctx.Locale.Tr("repo.pulls.merge_style_short_rebase_merge")),
 				"mergeTitleFieldText":   defaultMergeTitle,
 				"mergeMessageFieldText": defaultMergeBody,
 				"hideAutoMerge":         generalHideAutoMerge,
@@ -141,6 +159,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"name":                  "squash",
 				"allowed":               prConfig.AllowSquash,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.squash_merge_pull_request"),
+				"textAutoMerge":         ctx.Locale.Tr("repo.pulls.enable_auto_merge", ctx.Locale.Tr("repo.pulls.merge_style_short_squash")),
 				"mergeTitleFieldText":   defaultSquashMergeTitle,
 				"mergeMessageFieldText": git.CommitMessageMerge(defaultSquashMergeCommitMessages, defaultSquashMergeBody),
 				"hideAutoMerge":         generalHideAutoMerge,
@@ -149,6 +168,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 				"name":                  "fast-forward-only",
 				"allowed":               prConfig.AllowFastForwardOnly && pull.CommitsBehind == 0,
 				"textDoMerge":           ctx.Locale.Tr("repo.pulls.fast_forward_only_merge_pull_request"),
+				"textAutoMerge":         ctx.Locale.Tr("repo.pulls.enable_auto_merge", ctx.Locale.Tr("repo.pulls.merge_style_short_fast_forward_only")),
 				"hideMergeMessageTexts": true,
 				"hideAutoMerge":         generalHideAutoMerge,
 			},
