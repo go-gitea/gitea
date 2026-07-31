@@ -12,30 +12,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCountColumns(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	project, err := GetProjectByID(t.Context(), 1)
-	assert.NoError(t, err)
-
-	count, err := CountProjectColumns(t.Context(), project.ID)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 3, count)
-}
-
 func TestGetColumnsPaginated(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	project, err := GetProjectByID(t.Context(), 1)
+	const projectID = 1
+	count, err := CountColumns(t.Context(), projectID)
 	assert.NoError(t, err)
+	assert.EqualValues(t, 3, count)
 
 	// Page 1, limit 2 — returns first 2 columns
-	page1, err := GetProjectColumns(t.Context(), project.ID, db.ListOptions{Page: 1, PageSize: 2})
+	page1, err := GetColumns(t.Context(), projectID, db.ListOptions{Page: 1, PageSize: 2})
 	assert.NoError(t, err)
 	assert.Len(t, page1, 2)
 
 	// Page 2, limit 2 — returns remaining column
-	page2, err := GetProjectColumns(t.Context(), project.ID, db.ListOptions{Page: 2, PageSize: 2})
+	page2, err := GetColumns(t.Context(), projectID, db.ListOptions{Page: 2, PageSize: 2})
 	assert.NoError(t, err)
 	assert.Len(t, page2, 1)
 

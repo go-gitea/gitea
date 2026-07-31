@@ -27,7 +27,7 @@ func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
 	return err
 }
 
-// ProjectIDs lists the projects this issue belongs to.
+// ProjectIDs lists the IDs of the projects this issue belongs to.
 func (issue *Issue) ProjectIDs(ctx context.Context) (projectIDs []int64, _ error) {
 	err := db.GetEngine(ctx).Table("project_issue").Where("issue_id = ?", issue.ID).Cols("project_id").Find(&projectIDs)
 	return projectIDs, err

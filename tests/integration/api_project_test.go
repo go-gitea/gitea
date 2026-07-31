@@ -105,13 +105,12 @@ func testProjectLifecycle(t *testing.T, scope projectScope, token string) {
 	req = NewRequest(t, "GET", scope.base+"?state=open").AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.NotEmpty(t, resp.Header().Get("X-Total-Count"))
-	found, listedIDs := false, make([]int64, 0)
+	listedIDs := make([]int64, 0)
 	for _, listed := range *DecodeJSON(t, resp, &[]*api.Project{}) {
 		assert.Equal(t, api.StateOpen, listed.State)
 		listedIDs = append(listedIDs, listed.ID)
-		found = found || listed.ID == project.ID
 	}
-	assert.True(t, found, "created project must appear in the scope's list")
+	assert.Contains(t, listedIDs, project.ID, "created project must appear in the scope's list")
 	assert.IsDecreasing(t, listedIDs, "list must be ordered so pagination is stable")
 
 	req = NewRequest(t, "GET", projectURL).AddTokenAuth(token)

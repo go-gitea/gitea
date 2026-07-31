@@ -100,7 +100,7 @@ func loadProjectCreators(ctx context.Context, projects []*project_model.Project,
 	return creators
 }
 
-// timeStampPtr returns nil for the zero timestamp so that "never updated" is not
+// timeStampPtr returns nil for the zero timestamp, so a missing timestamp is not
 // reported to API clients as the unix epoch.
 func timeStampPtr(ts timeutil.TimeStamp) *time.Time {
 	if ts == 0 {

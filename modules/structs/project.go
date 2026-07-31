@@ -9,7 +9,7 @@ import (
 
 // Project represents a project.
 //
-// Projects track issues and pull requests; standalone note cards are not supported.
+// Projects track issues and pull requests, standalone note cards are not supported.
 //
 // swagger:model
 type Project struct {
@@ -35,7 +35,7 @@ type Project struct {
 	NumIssues       int64  `json:"num_issues"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
-	// null when the project has never been updated
+	// null only for legacy rows that carry no update timestamp
 	// swagger:strfmt date-time
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	// swagger:strfmt date-time
@@ -77,7 +77,7 @@ type ProjectColumn struct {
 	Creator   *User  `json:"creator,omitempty"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
-	// null when the column has never been updated
+	// null only for legacy rows that carry no update timestamp
 	// swagger:strfmt date-time
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 }

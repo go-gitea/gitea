@@ -3690,7 +3690,7 @@
     },
     "/orgs/{org}/projects/{id}/columns/move": {
       "post": {
-        "description": "Reorders every column of the project at once; the body lists all column IDs in their new order.",
+        "description": "Reorders every column of the project at once. The body lists all column IDs in their new order.",
         "consumes": [
           "application/json"
         ],
@@ -15508,7 +15508,7 @@
     },
     "/repos/{owner}/{repo}/projects/{id}/columns/move": {
       "post": {
-        "description": "Reorders every column of the project at once; the body lists all column IDs in their new order.",
+        "description": "Reorders every column of the project at once. The body lists all column IDs in their new order.",
         "consumes": [
           "application/json"
         ],
@@ -22832,7 +22832,7 @@
     },
     "/user/projects/{id}/columns/move": {
       "post": {
-        "description": "Reorders every column of the project at once; the body lists all column IDs in their new order.",
+        "description": "Reorders every column of the project at once. The body lists all column IDs in their new order.",
         "consumes": [
           "application/json"
         ],
@@ -31088,7 +31088,7 @@
       "x-go-package": "gitea.dev/modules/structs"
     },
     "Project": {
-      "description": "Projects track issues and pull requests; standalone note cards are not supported.",
+      "description": "Projects track issues and pull requests, standalone note cards are not supported.",
       "type": "object",
       "title": "Project represents a project.",
       "properties": {
@@ -31185,7 +31185,7 @@
           "x-go-name": "Type"
         },
         "updated_at": {
-          "description": "null when the project has never been updated",
+          "description": "null only for legacy rows that carry no update timestamp",
           "type": "string",
           "format": "date-time",
           "x-go-name": "UpdatedAt"
@@ -31233,7 +31233,7 @@
           "x-go-name": "Title"
         },
         "updated_at": {
-          "description": "null when the column has never been updated",
+          "description": "null only for legacy rows that carry no update timestamp",
           "type": "string",
           "format": "date-time",
           "x-go-name": "UpdatedAt"

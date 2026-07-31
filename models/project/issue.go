@@ -17,7 +17,7 @@ type ProjectIssue struct { //revive:disable-line:exported
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
 
-	// ProjectColumnID should not be zero since 1.22. If it's zero, the issue will not be displayed on UI and it might result in errors.
+	// ProjectColumnID should not be zero since 1.22. Legacy zero rows render in the default column.
 	ProjectColumnID int64 `xorm:"'project_board_id' INDEX"`
 
 	// the sorting order on the column
@@ -43,6 +43,7 @@ func columnIssueIDs(column *Column) []int64 {
 	return []int64{column.ID}
 }
 
+// IsIssueInColumn reports whether the issue is placed in the column.
 func IsIssueInColumn(ctx context.Context, issueID int64, column *Column) (bool, error) {
 	return db.GetEngine(ctx).
 		Where("issue_id=?", issueID).
@@ -51,7 +52,7 @@ func IsIssueInColumn(ctx context.Context, issueID int64, column *Column) (bool, 
 		Exist(new(ProjectIssue))
 }
 
-// GetColumnIssueIDs returns the issues placed in a column.
+// GetColumnIssueIDs returns the IDs of the issues placed in a column.
 func GetColumnIssueIDs(ctx context.Context, column *Column) ([]int64, error) {
 	issueIDs := make([]int64, 0, 10)
 	return issueIDs, db.GetEngine(ctx).Table("project_issue").

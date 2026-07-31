@@ -13,6 +13,7 @@ import (
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -38,15 +39,8 @@ func projectScopeFromContext(ctx *context.APIContext) projectScope {
 	if ctx.Repo != nil && ctx.Repo.Repository != nil {
 		return projectScope{Type: project_model.TypeRepository, Repo: ctx.Repo.Repository}
 	}
-	owner := ctx.ContextUser
-	if owner == nil {
-		owner = ctx.Doer // "/user/projects" acts on the authenticated user
-	}
-	projectType := project_model.TypeIndividual
-	if owner.IsOrganization() {
-		projectType = project_model.TypeOrganization
-	}
-	return projectScope{Type: projectType, Owner: owner}
+	owner := util.IfZero(ctx.ContextUser, ctx.Doer) // "/user/projects" acts on the authenticated user
+	return projectScope{Type: util.Iif(owner.IsOrganization(), project_model.TypeOrganization, project_model.TypeIndividual), Owner: owner}
 }
 
 func (s projectScope) repoID() int64 {
@@ -828,13 +822,13 @@ func ListProjectColumns(ctx *context.APIContext) {
 		return
 	}
 
-	total, err := project_model.CountProjectColumns(ctx, project.ID)
+	total, err := project_model.CountColumns(ctx, project.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 	listOptions := utils.GetListOptions(ctx)
-	columns, err := project_model.GetProjectColumns(ctx, project.ID, listOptions)
+	columns, err := project_model.GetColumns(ctx, project.ID, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1430,7 +1424,7 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/projects/{id}/columns/move repository repoMoveProjectColumns
 	// ---
 	// summary: Reorder a project's columns
-	// description: Reorders every column of the project at once; the body lists all column IDs in their new order.
+	// description: Reorders every column of the project at once. The body lists all column IDs in their new order.
 	// consumes:
 	// - application/json
 	// parameters:
@@ -1469,7 +1463,7 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/projects/{id}/columns/move organization orgMoveProjectColumns
 	// ---
 	// summary: Reorder a project's columns
-	// description: Reorders every column of the project at once; the body lists all column IDs in their new order.
+	// description: Reorders every column of the project at once. The body lists all column IDs in their new order.
 	// consumes:
 	// - application/json
 	// parameters:
@@ -1501,7 +1495,7 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	// swagger:operation POST /user/projects/{id}/columns/move user userCurrentMoveProjectColumns
 	// ---
 	// summary: Reorder a project's columns
-	// description: Reorders every column of the project at once; the body lists all column IDs in their new order.
+	// description: Reorders every column of the project at once. The body lists all column IDs in their new order.
 	// consumes:
 	// - application/json
 	// parameters:
@@ -1531,15 +1525,12 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	}
 
 	form := web.GetForm(ctx).(*api.MoveProjectColumnsOption)
-	columns, err := project_model.GetProjectColumns(ctx, project.ID, db.ListOptionsAll)
+	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	existingIDs := make([]int64, 0, len(columns))
-	for _, column := range columns {
-		existingIDs = append(existingIDs, column.ID)
-	}
+	existingIDs := container.FilterSlice(columns, func(column *project_model.Column) (int64, bool) { return column.ID, true })
 	if !util.SliceSortedEqual(form.ColumnIDs, existingIDs) {
 		ctx.APIError(http.StatusUnprocessableEntity, "column_ids must list every column of the project exactly once")
 		return

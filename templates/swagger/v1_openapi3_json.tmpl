@@ -8426,7 +8426,7 @@
         "x-go-package": "gitea.dev/modules/structs"
       },
       "Project": {
-        "description": "Projects track issues and pull requests; standalone note cards are not supported.",
+        "description": "Projects track issues and pull requests, standalone note cards are not supported.",
         "properties": {
           "card_type": {
             "description": "Card type: \"text_only\" or \"images_and_text\"",
@@ -8518,7 +8518,7 @@
             "x-go-name": "Type"
           },
           "updated_at": {
-            "description": "null when the project has never been updated",
+            "description": "null only for legacy rows that carry no update timestamp",
             "format": "date-time",
             "type": "string",
             "x-go-name": "UpdatedAt"
@@ -8567,7 +8567,7 @@
             "x-go-name": "Title"
           },
           "updated_at": {
-            "description": "null when the column has never been updated",
+            "description": "null only for legacy rows that carry no update timestamp",
             "format": "date-time",
             "type": "string",
             "x-go-name": "UpdatedAt"
@@ -14753,7 +14753,7 @@
     },
     "/orgs/{org}/projects/{id}/columns/move": {
       "post": {
-        "description": "Reorders every column of the project at once; the body lists all column IDs in their new order.",
+        "description": "Reorders every column of the project at once. The body lists all column IDs in their new order.",
         "operationId": "orgMoveProjectColumns",
         "parameters": [
           {
@@ -27616,7 +27616,7 @@
     },
     "/repos/{owner}/{repo}/projects/{id}/columns/move": {
       "post": {
-        "description": "Reorders every column of the project at once; the body lists all column IDs in their new order.",
+        "description": "Reorders every column of the project at once. The body lists all column IDs in their new order.",
         "operationId": "repoMoveProjectColumns",
         "parameters": [
           {
@@ -35393,7 +35393,7 @@
     },
     "/user/projects/{id}/columns/move": {
       "post": {
-        "description": "Reorders every column of the project at once; the body lists all column IDs in their new order.",
+        "description": "Reorders every column of the project at once. The body lists all column IDs in their new order.",
         "operationId": "userCurrentMoveProjectColumns",
         "parameters": [
           {

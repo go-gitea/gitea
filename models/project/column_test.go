@@ -80,7 +80,7 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project1 := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
-	columns, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
+	columns, err := GetColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
 	assert.EqualValues(t, 0, columns[0].Sorting) // even if there is no default sorting, the code should also work
@@ -94,7 +94,7 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	columnsAfter, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
+	columnsAfter, err := GetColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columnsAfter, 3)
 	assert.Equal(t, columns[1].ID, columnsAfter[0].ID)
@@ -106,7 +106,7 @@ func Test_NewColumn(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	project1 := unittest.AssertExistsAndLoadBean(t, &Project{ID: 1})
-	columns, err := GetProjectColumns(t.Context(), project1.ID, db.ListOptionsAll)
+	columns, err := GetColumns(t.Context(), project1.ID, db.ListOptionsAll)
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
 
