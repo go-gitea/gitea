@@ -10,7 +10,7 @@ on:
   workflow_call:
 
 permissions:
-  actions: write
+  actions: write # to delete caches
 
 concurrency:
   group: cache-prune
