@@ -5,7 +5,7 @@ function initShortcutKbd(kbd: HTMLElement) {
   // Handle initial state: hide the kbd hint if the associated input already has a value
   // (e.g., from browser autofill or back/forward navigation cache)
   const elem = elemFromKbd(kbd);
-  if (elem?.value) hideElem(kbd);
+  if (elem && ('value' in elem) && (elem as HTMLInputElement).value) hideElem(kbd);
   kbd.setAttribute('aria-hidden', 'true');
   kbd.setAttribute('aria-keyshortcuts', kbd.getAttribute('data-shortcut-keys')!);
 }
@@ -38,9 +38,6 @@ function resetSequence() {
 }
 
 function getRepoLink(): string | null {
-  if (window.config?.pageData?.repoLink) {
-    return window.config.pageData.repoLink;
-  }
   const issuesTab = document.querySelector<HTMLAnchorElement>('.secondary-nav a[href$="/issues"]');
   if (issuesTab) {
     return issuesTab.getAttribute('href')!.replace(/\/issues$/, '');
@@ -50,6 +47,11 @@ function getRepoLink(): string | null {
     return pullsTab.getAttribute('href')!.replace(/\/pulls$/, '');
   }
   return null;
+}
+
+// Only navigate to a repo unit whose tab is present (unit enabled + readable)
+function hasRepoNavTab(hrefSuffix: string): boolean {
+  return document.querySelector(`.secondary-nav a[href$="${CSS.escape(hrefSuffix)}"]`) !== null;
 }
 
 function handleSequenceShortcut(key: string) {
@@ -65,20 +67,53 @@ function handleSequenceShortcut(key: string) {
 
   // Handle g + key sequences
   if (sequenceKey === 'g') {
+    if (key === 'g') {
+      resetSequence();
+      sequenceKey = 'g';
+      sequenceTimeout = window.setTimeout(resetSequence, SEQUENCE_TIMEOUT_MS);
+      return true;
+    }
+
     resetSequence();
     const appSubUrl = window.config?.appSubUrl || '';
     const repoLink = getRepoLink();
 
     switch (key) {
       case 'i':
-        window.location.assign(repoLink ? `${repoLink}/issues` : `${appSubUrl}/issues`);
+        if (repoLink && hasRepoNavTab('/issues')) {
+          window.location.assign(`${repoLink}/issues`);
+        } else {
+          window.location.assign(`${appSubUrl}/issues`);
+        }
         return true;
       case 'p':
-        window.location.assign(repoLink ? `${repoLink}/pulls` : `${appSubUrl}/pulls`);
+        if (repoLink && hasRepoNavTab('/pulls')) {
+          window.location.assign(`${repoLink}/pulls`);
+        } else {
+          window.location.assign(`${appSubUrl}/pulls`);
+        }
         return true;
       case 'c':
         if (repoLink) {
           window.location.assign(repoLink);
+          return true;
+        }
+        return false;
+      case 'a':
+        if (repoLink && hasRepoNavTab('/actions')) {
+          window.location.assign(`${repoLink}/actions`);
+          return true;
+        }
+        return false;
+      case 'b':
+        if (repoLink && hasRepoNavTab('/projects')) {
+          window.location.assign(`${repoLink}/projects`);
+          return true;
+        }
+        return false;
+      case 'w':
+        if (repoLink && hasRepoNavTab('/wiki')) {
+          window.location.assign(`${repoLink}/wiki`);
           return true;
         }
         return false;
@@ -96,13 +131,20 @@ export function initGlobalShortcut() {
   registerGlobalInitFunc('onGlobalShortcut', initShortcutKbd);
 
   const helpModal = document.querySelector<HTMLElement>('#keyboard-shortcuts-modal');
+  const openTrigger = document.querySelector<HTMLElement>('#show-keyboard-shortcuts');
+  const closeModal = () => {
+    if (!helpModal || helpModal.classList.contains('hidden')) return;
+    helpModal.classList.add('hidden');
+    // Return focus to the element that opened the dialog
+    openTrigger?.focus();
+  };
+
   if (helpModal) {
-    const closeModal = () => helpModal.classList.add('hidden');
     helpModal.querySelector('.close-button')?.addEventListener('click', closeModal);
     helpModal.querySelector('.ui.button.primary')?.addEventListener('click', closeModal);
     helpModal.querySelector('.modal-backdrop')?.addEventListener('click', closeModal);
 
-    document.querySelector('#show-keyboard-shortcuts')?.addEventListener('click', (e) => {
+    openTrigger?.addEventListener('click', (e) => {
       e.preventDefault();
       helpModal.classList.remove('hidden');
     });
@@ -119,10 +161,7 @@ export function initGlobalShortcut() {
 
     // Handle Escape: clear and blur inputs that have an associated keyboard shortcut, and close modal
     if (e.key === 'Escape') {
-      const helpModal = document.querySelector<HTMLElement>('#keyboard-shortcuts-modal');
-      if (helpModal && !helpModal.classList.contains('hidden')) {
-        helpModal.classList.add('hidden');
-      }
+      closeModal();
 
       const kbd = kbdFromElem(target);
       if (kbd) {
@@ -134,7 +173,7 @@ export function initGlobalShortcut() {
     }
 
     // Don't trigger shortcuts when typing in input fields or contenteditable areas
-    if (target.matches('input, textarea, select') || target.isContentEditable) {
+    if (target instanceof Element && (target.matches('input, textarea, select') || target.isContentEditable)) {
       resetSequence();
       return;
     }
@@ -144,9 +183,12 @@ export function initGlobalShortcut() {
     // Handle help modal trigger (?)
     if (key === '?') {
       e.preventDefault();
-      const helpModal = document.querySelector<HTMLElement>('#keyboard-shortcuts-modal');
       if (helpModal) {
-        helpModal.classList.toggle('hidden');
+        if (helpModal.classList.contains('hidden')) {
+          helpModal.classList.remove('hidden');
+        } else {
+          closeModal();
+        }
       }
       resetSequence();
       return;

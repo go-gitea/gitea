@@ -1,9 +1,9 @@
 {{/* Keyboard Shortcuts Help Modal */}}
-<div id="keyboard-shortcuts-modal" class="hidden">
+<div id="keyboard-shortcuts-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="keyboard-shortcuts-modal-title">
 	<div class="modal-backdrop"></div>
 	<div class="ui small modal active tw-relative tw-my-0">
 		<div class="header flex-left-right">
-			<span>{{ctx.Locale.Tr "keyboard_shortcuts.title"}}</span>
+			<span id="keyboard-shortcuts-modal-title">{{ctx.Locale.Tr "keyboard_shortcuts.title"}}</span>
 			<button class="close-button btn-octicon" aria-label="{{ctx.Locale.Tr "close"}}">
 				{{svg "octicon-x" 16}}
 			</button>
@@ -44,6 +44,24 @@
 					</div>
 					<div class="shortcut-item">
 						<div class="shortcut-keys">
+							<kbd>g</kbd> <kbd>a</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "repo.actions"}}</div>
+					</div>
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>g</kbd> <kbd>b</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "repo.projects"}}</div>
+					</div>
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
+							<kbd>g</kbd> <kbd>w</kbd>
+						</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "repo.wiki"}}</div>
+					</div>
+					<div class="shortcut-item">
+						<div class="shortcut-keys">
 							<kbd>w</kbd>
 						</div>
 						<div class="shortcut-description">{{ctx.Locale.Tr "repo.branches"}} / {{ctx.Locale.Tr "repo.tags"}}</div>
@@ -75,7 +93,7 @@
 						<div class="shortcut-keys">
 							<kbd>s</kbd>
 						</div>
-						<div class="shortcut-description">{{ctx.Locale.Tr "search"}}</div>
+						<div class="shortcut-description">{{ctx.Locale.Tr "search.search"}}</div>
 					</div>
 					{{end}}
 				</div>
