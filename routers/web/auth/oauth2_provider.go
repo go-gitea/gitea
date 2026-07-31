@@ -482,6 +482,7 @@ func OIDCWellKnown(ctx *context.Context) {
 	ctx.Data["OidcIssuer"] = jwtRegisteredClaims.Issuer // use the consistent issuer from the JWT registered claims
 	ctx.Data["OidcBaseUrl"] = strings.TrimSuffix(setting.AppURL, "/")
 	ctx.Data["SigningKeyMethodAlg"] = oauth2_provider.DefaultSigningKey.SigningMethod().Alg()
+	// FIXME: no need to use a Golang template to render JSON, just build the JSON response directly in the future
 	ctx.JSONTemplate("user/auth/oidc_wellknown")
 }
 

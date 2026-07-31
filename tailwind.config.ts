@@ -26,7 +26,6 @@ export default {
   prefix: 'tw-',
   important: true, // the frameworks are mixed together, so tailwind needs to override other framework's styles
   content: [
-    '!./templates/swagger/v1_json.tmpl',
     '!./templates/user/auth/oidc_wellknown.tmpl',
     '!**/*_test.go',
     './{build,models,modules,routers,services}/**/*.go',

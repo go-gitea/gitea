@@ -2827,6 +2827,10 @@
             "type": "boolean",
             "x-go-name": "BlockAdminMergeOverride"
           },
+          "block_on_codeowner_reviews": {
+            "type": "boolean",
+            "x-go-name": "BlockOnCodeownerReviews"
+          },
           "block_on_official_review_requests": {
             "type": "boolean",
             "x-go-name": "BlockOnOfficialReviewRequests"
@@ -3722,6 +3726,10 @@
           "block_admin_merge_override": {
             "type": "boolean",
             "x-go-name": "BlockAdminMergeOverride"
+          },
+          "block_on_codeowner_reviews": {
+            "type": "boolean",
+            "x-go-name": "BlockOnCodeownerReviews"
           },
           "block_on_official_review_requests": {
             "type": "boolean",
@@ -5242,6 +5250,10 @@
           "block_admin_merge_override": {
             "type": "boolean",
             "x-go-name": "BlockAdminMergeOverride"
+          },
+          "block_on_codeowner_reviews": {
+            "type": "boolean",
+            "x-go-name": "BlockOnCodeownerReviews"
           },
           "block_on_official_review_requests": {
             "type": "boolean",
@@ -10990,7 +11002,7 @@
       "url": "http://opensource.org/licenses/MIT"
     },
     "title": "Gitea API",
-    "version": "{{.SwaggerAppVer}}"
+    "version": "0.0.0+GITEA-API-APP-VERSION"
   },
   "openapi": "3.0.3",
   "paths": {
@@ -30252,6 +30264,14 @@
             }
           },
           {
+            "description": "filter releases by tag. supports \"*\" as a wildcard (for example: v1*, *beta, *rc*).",
+            "in": "query",
+            "name": "tag_filter",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "page number of results to return (1-based)",
             "in": "query",
             "name": "page",
@@ -35891,7 +35911,6 @@
         },
         "summary": "Create a repository",
         "tags": [
-          "repository",
           "user"
         ]
       }
@@ -37077,7 +37096,45 @@
   ],
   "servers": [
     {
-      "url": "{{.SwaggerAppSubUrl}}/api/v1"
+      "url": "/GITEA-API-APP-SUBURL/api/v1"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Site administration",
+      "name": "admin"
+    },
+    {
+      "description": "Issues, pull requests, comments, labels and milestones",
+      "name": "issue"
+    },
+    {
+      "description": "Miscellaneous endpoints",
+      "name": "miscellaneous"
+    },
+    {
+      "description": "User notifications",
+      "name": "notification"
+    },
+    {
+      "description": "Organizations and teams",
+      "name": "organization"
+    },
+    {
+      "description": "Package registry",
+      "name": "package"
+    },
+    {
+      "description": "Repositories and their contents",
+      "name": "repository"
+    },
+    {
+      "description": "Server settings",
+      "name": "settings"
+    },
+    {
+      "description": "The authenticated user",
+      "name": "user"
     }
   ]
 }
