@@ -67,8 +67,8 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
     if (window.config.runModeIsProd) return;
   }
 
-  // A failed or aborted request is not a code error.
-  if (errorName(err) === 'AbortError' || isNetworkError(err)) return;
+  // A failed request is not a code error.
+  if (isNetworkError(err)) return;
 
   // Filter out errors from browser extensions or other non-Gitea scripts.
   if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;
