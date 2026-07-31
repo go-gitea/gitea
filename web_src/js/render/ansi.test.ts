@@ -58,8 +58,8 @@ test('renderAnsi', () => {
   expect(renderAnsi('\x1bPfoo\x1b\\a\x1b_G1;2\x1b\\b\x1b^priv\x1b\\c\x1bXsos\x1b\\d')).toEqual('abcd');
   expect(renderAnsi('\x1b(Ba\x1b#8b\x1b7c\x1b8d\x1b]0;unterminated')).toEqual('abcd');
   expect(renderAnsi('\x1b]0;unterminated\x1b\x1b[31mred')).toEqual('<span class="ansi-red-fg">red</span>');
-  // "run0" decorates the terminal it runs a command in, which a runner records into the log
-  expect(renderAnsi('\x1b]11;?\x1b\\\x1b[22;2t\x1b]2;🟡 /usr/bin/bash on 70d741348b279e50\x1b\\go: downloading')).toEqual('go: downloading');
+  // an OSC 11 background color query, a CSI window title push and an OSC 2 title
+  expect(renderAnsi('\x1b]11;?\x1b\\\x1b[22;2t\x1b]2;🟡 a title\x1b\\go: downloading')).toEqual('go: downloading');
 
   // control characters never reach the output, a backspace moves the cursor back one column
   expect(renderAnsi('a\x07b\x00c\x7fd\x9be')).toEqual('abcde');
