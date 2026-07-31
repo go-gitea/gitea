@@ -79,6 +79,8 @@ type DiffLine struct {
 	Content     string
 	Comments    issues_model.CommentList // related PR code comments
 	SectionInfo *DiffLineSectionInfo
+
+	cachedDiffInline *DiffInline
 }
 
 // DiffLineSectionInfo represents diff line section meta data
@@ -294,14 +296,6 @@ func newDiffLineSectionInfo(curFile *DiffFile, line string, lastLeftIdx, lastRig
 	}
 }
 
-// escape a line's content or return <br> needed for copy/paste purposes
-func getLineContent(content string, locale translation.Locale) DiffInline {
-	if len(content) > 0 {
-		return DiffInlineWithUnicodeEscape(template.HTML(html.EscapeString(content)), locale)
-	}
-	return DiffInline{EscapeStatus: &charset.EscapeStatus{}, Content: "<br>"}
-}
-
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
 	language              *diffVarMutable[string]
@@ -332,8 +326,8 @@ type DiffInline struct {
 	Content      template.HTML
 }
 
-// DiffInlineWithUnicodeEscape makes a DiffInline with hidden Unicode characters escaped
-func DiffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) DiffInline {
+// diffInlineWithUnicodeEscape makes a DiffInline with hidden Unicode characters escaped
+func diffInlineWithUnicodeEscape(s template.HTML, locale translation.Locale) DiffInline {
 	status, content := charset.EscapeControlHTML(s, locale)
 	return DiffInline{EscapeStatus: status, Content: content}
 }
@@ -356,6 +350,13 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 }
 
 func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
+	sideIdx := util.Iif(diffLineType == DiffLineDel, 0, 1) // del=left, add=right
+	lines := [2]*DiffLine{leftLine, rightLine}
+
+	if lines[sideIdx] != nil && lines[sideIdx].cachedDiffInline != nil {
+		return *lines[sideIdx].cachedDiffInline
+	}
+
 	var fileLanguage string
 	var highlightedLeftLines, highlightedRightLines map[int]template.HTML
 	// when a "diff section" is manually prepared by ExcerptBlob, it doesn't have "file" information
@@ -364,33 +365,36 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 		highlightedLeftLines, highlightedRightLines = diffSection.highlightedLeftLines.value, diffSection.highlightedRightLines.value
 	}
 
-	var lineHTML template.HTML
-	hcd := newHighlightCodeDiff()
 	if diffLineType == DiffLinePlain {
-		// left and right are the same, no need to do line-level diff
-		if leftLine != nil {
-			lineHTML = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
-		} else if rightLine != nil {
-			lineHTML = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
-		}
-	} else {
-		var diff1, diff2 template.HTML
-		if leftLine != nil {
-			diff1 = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
-		}
-		if rightLine != nil {
-			diff2 = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
-		}
-		if diff1 != "" && diff2 != "" {
-			// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
-			lineHTML = hcd.diffLineWithHighlight(diffLineType, diff1, diff2)
-		} else {
-			// if left is empty or right is empty (a line is fully deleted or added), then we do not need to diff anymore.
-			// the tmpl code already adds background colors for these cases.
-			lineHTML = util.Iif(diffLineType == DiffLineDel, diff1, diff2)
-		}
+		// left and right are the same, no need to do line-level diff, can just pick any side
+		// caller always uses the "right side" for this type
+		lineHTML := diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+		return diffInlineWithUnicodeEscape(lineHTML, locale)
 	}
-	return DiffInlineWithUnicodeEscape(lineHTML, locale)
+
+	var diffs [2]template.HTML
+	if leftLine != nil {
+		diffs[0] = diffSection.getLineContentForRender(leftLine.LeftIdx, leftLine, fileLanguage, highlightedLeftLines)
+	}
+	if rightLine != nil {
+		diffs[1] = diffSection.getLineContentForRender(rightLine.RightIdx, rightLine, fileLanguage, highlightedRightLines)
+	}
+
+	if leftLine != nil && rightLine != nil {
+		// if only some parts of a line are changed, highlight these changed parts as "deleted/added".
+		// "diff" the left&right sides together, then cache the diff result for another side,
+		// because when viewing the diff page, both "deleted" and "added" lines will to be rendered eventually,
+		// so here only diff them once, then next render can just use the cached result, no need to "diff" again.
+		hcd := newHighlightCodeDiff()
+		lineHTMLDel, lineHTMLAdd := hcd.diffLineWithHighlight(diffs[0], diffs[1])
+		leftLine.cachedDiffInline = new(diffInlineWithUnicodeEscape(lineHTMLDel, locale))
+		rightLine.cachedDiffInline = new(diffInlineWithUnicodeEscape(lineHTMLAdd, locale))
+		return *lines[sideIdx].cachedDiffInline
+	}
+
+	// if left is empty or right is empty (a line is fully deleted or added), then we do not need to diff anymore.
+	// the tmpl code already adds background colors for these cases.
+	return diffInlineWithUnicodeEscape(diffs[sideIdx], locale)
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
@@ -404,7 +408,8 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
-		return getLineContent(diffLine.Content, locale)
+		// section content is a diff hunk header, it isn't code diff, its trailing context might come from the file content, might not
+		return diffInlineWithUnicodeEscape(htmlutil.EscapeString(diffLine.Content), locale)
 	case DiffLineAdd:
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineAdd, compareDiffLine, diffLine, locale)
@@ -412,8 +417,8 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 		compareDiffLine := diffSection.GetLine(diffLine.Match)
 		return diffSection.getDiffLineForRender(DiffLineDel, diffLine, compareDiffLine, locale)
 	default: // Plain
-		// TODO: there was an "if" check: `if diffLine.Content >strings.IndexByte(" +-", diffLine.Content[0]) > -1 { ... } else { ... }`
-		// no idea why it needs that check, it seems that the "if" should be always true, so try to simplify the code
+		// Here it always uses "right side" to render the plain content (unchanged lines)
+		// tmpl also uses "RightIdx" to check whether to add "lines-code-old" CSS class to a line
 		return diffSection.getDiffLineForRender(DiffLinePlain, nil, diffLine, locale)
 	}
 }
@@ -539,8 +544,7 @@ func (diffFile *DiffFile) addTailSection(detail DiffRenderDetail) {
 	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
 	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
 	tailDiffLine := &DiffLine{
-		Type:    DiffLineSection,
-		Content: " ",
+		Type: DiffLineSection,
 		SectionInfo: &DiffLineSectionInfo{
 			language:     &diffFile.language,
 			Path:         diffFile.Name,
