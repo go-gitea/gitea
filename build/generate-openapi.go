@@ -10,7 +10,7 @@
 // cleaner SDK output with proper enum types instead of anonymous strings.
 //
 // Run: go run build/generate-openapi.go
-// Output: templates/swagger/v1_openapi3_json.tmpl
+// Output: templates/swagger/v1-openapi3.generated.json
 
 //go:build ignore
 
