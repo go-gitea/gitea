@@ -24,6 +24,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
+          cache: false
       - uses: ./.github/actions/node-setup
       - run: make deps-frontend deps-backend
       # xgo build
