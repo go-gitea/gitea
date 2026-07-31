@@ -606,7 +606,9 @@ func TestDiffLine_GetLineTypeMarker(t *testing.T) {
 	assert.Equal(t, "+", (&DiffLine{Content: "+added line"}).GetLineTypeMarker())
 	assert.Equal(t, "-", (&DiffLine{Content: "-deleted line"}).GetLineTypeMarker())
 	assert.Equal(t, " ", (&DiffLine{Content: " unchanged line"}).GetLineTypeMarker())
-	assert.Equal(t, "", (&DiffLine{Content: "normal line without prefix"}).GetLineTypeMarker())
+	// for a real diff line (including hunk header) from diff output, "Content" should always have a prefix char in [" ", "+", "-"].
+	// for other cases, e.g.: a diff line constructed by our code without real diff output, it is undefined behavior at the moment.
+	assert.Equal(t, "", (&DiffLine{Content: "any-content"}).GetLineTypeMarker())
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
