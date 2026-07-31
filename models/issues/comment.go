@@ -544,6 +544,9 @@ func (c *Comment) GetSanitizedContentHTML() template.HTML {
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
 func (c *Comment) LoadLabel(ctx context.Context) error {
+	if c.LabelID == 0 {
+		return nil
+	}
 	var label Label
 	has, err := db.GetEngine(ctx).ID(c.LabelID).Get(&label)
 	if err != nil {
@@ -551,8 +554,8 @@ func (c *Comment) LoadLabel(ctx context.Context) error {
 	} else if has {
 		c.Label = &label
 	} else {
-		// Ignore Label is deleted, but not clear this table
-		log.Warn("Commit %d cannot load label %d", c.ID, c.LabelID)
+		// label was deleted but comment rows referencing it were not cleaned up
+		log.Debug("Comment %d references deleted label %d", c.ID, c.LabelID)
 	}
 
 	return nil

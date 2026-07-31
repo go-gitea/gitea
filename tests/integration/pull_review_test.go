@@ -114,7 +114,7 @@ func TestPullView_CodeOwner(t *testing.T) {
 
 			// capture the current PR head ref so we can wait for the async
 			// refs/pull/N/head sync triggered by the next push to complete
-			baseGitRepo, err := git.OpenRepository(repo)
+			baseGitRepo, err := git.OpenRepository(t.Context(), repo)
 			require.NoError(t, err)
 			defer baseGitRepo.Close()
 			headRefBefore, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())

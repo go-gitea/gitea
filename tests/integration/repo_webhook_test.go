@@ -409,7 +409,7 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		assert.Empty(t, payloads)
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		gitRepo, err := git.OpenRepository(repo1)
+		gitRepo, err := git.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -460,7 +460,7 @@ func Test_WebhookPushToNewBranch(t *testing.T) {
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "new_branch")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		gitRepo, err := git.OpenRepository(repo1)
+		gitRepo, err := git.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 		defer gitRepo.Close()
 
@@ -859,6 +859,20 @@ func Test_WebhookRepository(t *testing.T) {
 		assert.Equal(t, "org3", payloads[0].Organization.UserName)
 		assert.Equal(t, "repo_new", payloads[0].Repository.Name)
 		assert.Equal(t, "org3/repo_new", payloads[0].Repository.FullName)
+
+		// 4. rename the repository and validate the webhook is triggered again
+		newName := "repo_renamed"
+		req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/org3/repo_new", &api.EditRepoOption{
+			Name: &newName,
+		}).AddTokenAuth(getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository))
+		MakeRequest(t, req, http.StatusOK)
+
+		require.Len(t, payloads, 2)
+		assert.Equal(t, api.HookRepoRenamed, payloads[1].Action)
+		assert.Equal(t, newName, payloads[1].Repository.Name)
+		assert.Equal(t, "org3/"+newName, payloads[1].Repository.FullName)
+		require.NotNil(t, payloads[1].Changes.Name)
+		assert.Equal(t, "repo_new", payloads[1].Changes.Name.From)
 	})
 }
 
@@ -925,7 +939,7 @@ func Test_WebhookStatus(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-		gitRepo1, err := git.OpenRepository(repo1)
+		gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 		commitID, err := gitRepo1.GetBranchCommitID(t.Context(), repo1.DefaultBranch)
 		assert.NoError(t, err)
@@ -998,7 +1012,7 @@ func Test_WebhookWorkflowJob(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-		gitRepo1, err := git.OpenRepository(repo1)
+		gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
 
 		runner := newMockRunner()
@@ -1190,7 +1204,7 @@ func testWorkflowRunEvents(t *testing.T, webhookData *workflowRunWebhook) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := git.OpenRepository(repo1)
+	gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
@@ -1315,7 +1329,7 @@ func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook)
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := git.OpenRepository(repo1)
+	gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
@@ -1485,7 +1499,7 @@ func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *wo
 	testAPICreateWebhookForRepo(t, session, "user2", repoName, webhookData.URL, "workflow_run")
 
 	ctx := t.Context()
-	gitRepo, err := git.OpenRepository(testRepo)
+	gitRepo, err := git.OpenRepository(ctx, testRepo)
 	assert.NoError(t, err)
 
 	// 2.2 trigger the webhooks
@@ -1703,7 +1717,7 @@ func testWebhookWorkflowRun(t *testing.T, webhookData *workflowRunWebhook) {
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := git.OpenRepository(repo1)
+	gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 
 	runner := newMockRunner()
@@ -1804,7 +1818,7 @@ func testWebhookWorkflowRunDepthLimit(t *testing.T, webhookData *workflowRunWebh
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
-	gitRepo1, err := git.OpenRepository(repo1)
+	gitRepo1, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 
 	// 2. trigger the webhooks

@@ -28,11 +28,11 @@ import (
 	"gitea.dev/modelmigration/v1_25"
 	"gitea.dev/modelmigration/v1_26"
 	"gitea.dev/modelmigration/v1_27"
+	"gitea.dev/modelmigration/v1_28"
 	"gitea.dev/modelmigration/v1_6"
 	"gitea.dev/modelmigration/v1_7"
 	"gitea.dev/modelmigration/v1_8"
 	"gitea.dev/modelmigration/v1_9"
-	"gitea.dev/modelmigration/v28"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -423,7 +423,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
 		// Gitea 1.27.0 ends at migration ID number 342 (database version 343)
 
-		newMigration(343, "Add block on CODEOWNERS reviews branch protection", v28.AddBlockOnCodeownerReviews),
+		newMigration(343, "Add max_parallel column to action_run_job", v1_28.AddMaxParallelToActionRunJob),
+		newMigration(344, "Add deferred-matrix columns to ActionRunJob", v1_28.AddDeferredMatrixColumnsToActionRunJob),
+		newMigration(345, "Add block on CODEOWNERS reviews branch protection", v1_28.AddBlockOnCodeownerReviews),
 	}
 	return preparedMigrations
 }

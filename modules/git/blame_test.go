@@ -19,7 +19,7 @@ func TestReadingBlameOutput(t *testing.T) {
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {
 		storage := mockRepository("repo5_pulls")
-		repo, err := OpenRepository(storage)
+		repo, err := OpenRepository(ctx, storage)
 		assert.NoError(t, err)
 		defer repo.Close()
 		commit, err := repo.GetCommit(t.Context(), "f32b0a9dfd09a60f616f29158f772cedd89942d2")
@@ -64,7 +64,7 @@ func TestReadingBlameOutput(t *testing.T) {
 
 	t.Run("With .git-blame-ignore-revs", func(t *testing.T) {
 		storage := mockRepository("repo6_blame")
-		repo, err := OpenRepository(storage)
+		repo, err := OpenRepository(ctx, storage)
 		assert.NoError(t, err)
 		defer repo.Close()
 
