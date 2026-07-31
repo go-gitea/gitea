@@ -25,7 +25,7 @@ func RepositoryFromContextOrOpen(ctx context.Context, repo RepositoryFacade) (*R
 		gitRepo, err := RepositoryFromRequestContextOrOpen(reqCtx, repo)
 		return gitRepo, util.NopCloser{}, err
 	}
-	gitRepo, err := OpenRepository(repo)
+	gitRepo, err := OpenRepository(ctx, repo)
 	return gitRepo, gitRepo, err
 }
 
@@ -36,7 +36,7 @@ func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Reposito
 	if gitRepo, ok := ctx.Value(ck).(*Repository); ok {
 		return gitRepo, nil
 	}
-	gitRepo, err := OpenRepository(repo)
+	gitRepo, err := OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}

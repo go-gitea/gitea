@@ -220,7 +220,7 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 	require.True(t, user.KeepEmailPrivate)
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, _ := git.OpenRepository(repo1)
+	gitRepo, _ := git.OpenRepository(t.Context(), repo1)
 	defer gitRepo.Close()
 	getLastCommit := func(t *testing.T) *git.Commit {
 		c, err := gitRepo.GetBranchCommit(t.Context(), "master")

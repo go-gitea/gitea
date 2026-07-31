@@ -39,8 +39,7 @@ func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit, r
 	emailSet := make(container.Set[string])
 	for _, c := range gitCommits {
 		emailSet.Add(c.Author.Email)
-		emailSet.Add(c.Committer.Email)
-		for _, p := range c.AllParticipantIdentities() {
+		for _, p := range c.AllAuthorIdentities() {
 			emailSet.Add(p.Email)
 		}
 	}
@@ -55,7 +54,7 @@ func GetUserCommitsByGitCommits(ctx context.Context, gitCommits []*git.Commit, r
 		uc := &UserCommit{
 			AuthorUser:      emailUserMap.GetByEmail(c.Author.Email), // FIXME: why GetUserCommitsByGitCommits uses "Author", but ParseCommitsWithSignature uses "Committer"?
 			GitCommit:       c,
-			AvatarStackData: BuildAvatarStackData(ctx, c.AllParticipantIdentities(), emailUserMap),
+			AvatarStackData: BuildAvatarStackData(ctx, c.AllAuthorIdentities(), emailUserMap),
 		}
 		uc.AvatarStackData.SearchByEmailLink = searchByEmailLink
 		userCommits = append(userCommits, uc)

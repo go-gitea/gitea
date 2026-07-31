@@ -94,8 +94,10 @@ func (b *RedisBroker) Subscribe(topic string) (<-chan []byte, func()) {
 	// other Subscribe/cancel calls aren't blocked on the network round-trip.
 	// graceful.ShutdownContext so the reader loop dies cleanly on Gitea
 	// shutdown even if every local subscriber has already cancelled.
-	// readLoop consumes the SUBSCRIBE ack; don't wait for it here, a direct
-	// ps.Receive blocks for its whole timeout instead of returning on the ack.
+	// readLoop consumes the SUBSCRIBE ack; don't wait for it here, that would put
+	// a Redis round-trip in the WebSocket handshake to close a sub-millisecond
+	// window in which a publish is missed - harmless, since a client receives
+	// nothing at all until its handshake completes.
 	ctx, cancelCtx := context.WithCancel(graceful.GetManager().ShutdownContext())
 	ps := b.client.Subscribe(ctx, redisChannelForTopic(topic))
 	b.mu.Lock()

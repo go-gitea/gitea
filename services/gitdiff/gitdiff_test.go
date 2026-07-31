@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -601,7 +602,7 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepositoryLocal("../../modules/git/tests/repos/repo5_pulls")
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
@@ -1109,6 +1110,15 @@ func TestDiffLine_GetExpandDirection(t *testing.T) {
 	}
 }
 
+func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
+	t.Run("Section", func(t *testing.T) {
+		diffLine := &DiffLine{Type: DiffLineSection, Content: "@@ -1,3 +1,3 @@ func \u202ename() <b>"}
+		diffInline := (&DiffSection{}).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
+		assert.True(t, diffInline.EscapeStatus.Escaped)
+		assert.Equal(t, `@@ -1,3 +1,3 @@ func <span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">`+"\u202e"+`</span></span>name() &lt;b&gt;`, string(diffInline.Content))
+	})
+}
+
 func TestHighlightCodeLines(t *testing.T) {
 	t.Run("CharsetDetecting", func(t *testing.T) {
 		diffFile := &DiffFile{
@@ -1188,7 +1198,7 @@ D test2.txt
 D test10.txt`
 	require.NoError(t, gitcmd.NewCommand("fast-import").WithRepo(pull.BaseRepo).WithStdinBytes([]byte(stdin)).Run(t.Context()))
 
-	gitRepo, err := git.OpenRepository(pull.BaseRepo)
+	gitRepo, err := git.OpenRepository(t.Context(), pull.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

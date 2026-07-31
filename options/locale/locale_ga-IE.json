@@ -3038,6 +3038,7 @@
   "admin.users.send_register_notify": "Seol Fógra um Chlárú Úsáideora",
   "admin.users.new_success": "Tá an cuntas úsáideora \"%s\" cruthaithe.",
   "admin.users.edit": "Eagar",
+  "admin.users.impersonate": "Déan aithris ar",
   "admin.users.auth_source": "Foinse Fíordheimhnithe",
   "admin.users.local": "Áitiúil",
   "admin.users.auth_login_name": "Ainm Síniú Isteach Fíordheimhnithe",
