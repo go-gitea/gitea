@@ -8,7 +8,7 @@
 - Never rewrite git history unless asked, update PRs with new commits and normal push
 - Comments: write almost none, short and preferably same-line, explaining why for a future reader. Never narrate code, the change or the prompt. Preserve existing ones that still apply
 - Add the current year to copyright headers of new `.go` files
-- In `options/locale`, only edit `locale_en-US.json`, the rest come from Crowdin
+- In `options/locale`, only edit `locale_en-US.json`, other locales are synced automatically
 - In TS, use `!` instead of `?.`/`??` when a value always exists
 - Prefer `tw-*` utilities over inline `style` and `flex-*` helpers over per-child `tw-ml-*`/`tw-mr-*` margins, falling back to `tw-*` where specificity requires `!important`
 - Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits, `make generate-swagger` after API changes, and lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
