@@ -1,5 +1,7 @@
-# Keeps the repository's total cache size below a fixed limit.
 name: cache-prune
+
+# Keeps the repository's total cache size below a fixed limit, so that GitHub never
+# rejects a save for being over the allowance.
 
 on:
   schedule:
