@@ -380,8 +380,8 @@ func UploadHandler(ctx *context.Context) {
 		// an invalid request should not remove the existing correct record.
 		// If two requests are uploading (the file is incomplete):
 		// * one will keep writing the file content
-		// * one will fail the verification because it reads an incomplete file, the failure should be just ignore
-		// In the end, the first one will complete the upload and insert a LFS MetaObject record.
+		// * one will fail the verification because it reads an incomplete file, the failure should be just be ignored
+		// In the end, the first one will complete the upload and insert a new LFS MetaObject record.
 		return
 	}
 
