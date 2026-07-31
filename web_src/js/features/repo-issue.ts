@@ -11,7 +11,6 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
@@ -329,7 +328,7 @@ export function initRepoIssueReferenceIssue() {
     const target = el.getAttribute('data-target');
     const content = document.querySelector(`#${target}`)?.textContent ?? '';
     const poster = el.getAttribute('data-poster-username');
-    const reference = toAbsoluteUrl(el.getAttribute('data-reference')!);
+    const reference = el.getAttribute('data-reference')!;
     const modalSelector = el.getAttribute('data-modal')!;
     const modal = document.querySelector(modalSelector)!;
     const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]')!;
