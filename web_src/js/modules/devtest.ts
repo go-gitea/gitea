@@ -63,7 +63,7 @@ function initDevtestAnsiRender(container: HTMLElement) {
     Array.from({length: count}, (_value, index) => cell(index)).join(separator);
   const attr = (params: string, label: string) => `${esc}[${params}m${label}${esc}[m`;
   // the escaped source above the line it produced, for the cases the output alone does not explain
-  const withSource = (line: string) => [attr('2', line.replaceAll(esc, '\\e')), line];
+  const withSource = (line: string) => [attr('2', line.replaceAll(esc, '\\e').replaceAll('\b', '\\b')), line];
 
   const lines = [
     ...Array.from({length: 16}, (_value, row) =>
@@ -79,12 +79,13 @@ function initDevtestAnsiRender(container: HTMLElement) {
       cells(5, (index) => attr(`4:${index + 1}`, `SGR 4:${index + 1}`), '  '),
       attr('21', 'SGR 21'),
       `${esc}[4:3m${esc}[58;2;135;0;255mtruecolor underline${esc}[59m${esc}[4:0m`,
-      `${esc}]8;;https://example.com${esc}\\hyperlink${esc}]8;;${esc}\\`,
+      `${esc}]8;;https://example.com${esc}\\${esc}[3mstyled${esc}[23m hyperlink${esc}]8;;${esc}\\`,
     ].join('  '),
     ' ',
     ...withSource('Reading... 1%\rReading... 50%\rReading... 100%'),
     ...withSource(`first${esc}[Ksecond${esc}[2Jthird`),
-    ...withSource(`cursor ${esc}[3Amovement, private ${esc}[?25lCSI, ${esc}]0;title${esc}\\titles, truncated${esc}[38;5;`),
+    ...withSource(`cursor ${esc}[3Amovement, private ${esc}[?25lCSI, ${esc}]0;title${esc}\\titles, ${esc}Pquery${esc}\\other strings, truncated${esc}[38;5;`),
+    ...withSource('Reading... 10%\b\b\b100%'),
     ...withSource('<script>alert(1)</script> & "quotes", and a bare url https://example.com'),
     ' ',
     `${esc}[31man unterminated color`,

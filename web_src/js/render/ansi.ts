@@ -1,15 +1,21 @@
 import {trimUrlPunctuation, urlRawRegex} from '../utils/url.ts';
-import {htmlEscape} from '../utils/html.ts';
+import {createElementFromAttrs} from '../utils/dom.ts';
 import {colord} from 'colord';
 
 // erase display/line, treated as a carriage return
 const eraseInLine = /\x1b\[\d?[JK]/g;
-// a CSI, an OSC 8 hyperlink, any other OSC, then "\x1b" plus one byte. Only SGR ("m") and OSC 8
-// render, the rest are matched to be dropped.
-const escapeSequence = /\x1b\[([0-9;:?<=>]*)[\x20-\x2f]*([\x40-\x7e])|\x1b\]8;[^;]*;([^\x07\x1b]*)(?:\x07|\x1b\\)([\s\S]*?)\x1b\]8;;(?:\x07|\x1b\\)|\x1b\][\s\S]*?(?:\x07|\x1b\\)|\x1b[\x20-\x5a\x5c\x5e-\x7e]/g;
+// a CSI, an OSC 8 hyperlink open or close, any other string sequence (OSC, DCS, SOS, PM, APC), then
+// an escape with its intermediates. Only SGR ("m") and OSC 8 render, the rest are matched to be
+// dropped, an unterminated string sequence up to the next escape where a terminal also ends it.
+const escapeSequence = /\x1b\[([0-9;:?<=>]*)[\x20-\x2f]*([\x40-\x7e])|\x1b\]8;[^;\x07\x1b]*;([^\x07\x1b]*)(?:\x07|\x1b\\)|\x1b[\]P^_X][^\x07\x1b]*(?:\x07|\x1b\\)?|\x1b[\x20-\x2f]*[\x30-\x5a\x5c-\x7e]/g;
 const hyperlinkUrl = /^https?:\/\//i;
-// checked first, most log text has nothing to escape
-const needsHtmlEscape = /["&'<>]/;
+// a CSI marked private carries no SGR, whatever its final byte
+const privateParams = /^[<=>?]/;
+// characters a terminal never shows, other than tab, "\n" and "\r"
+const controlChars = /[\x00-\x08\v\f\x0e-\x1f\x7f-\x9f]/g;
+const hasControlChar = new RegExp(controlChars.source);
+// a line with none of these is plain text, an escape being one of the control characters
+const needsRendering = new RegExp(`${controlChars.source}|\\r|://`);
 // "4:1" to "4:5" select an underline style, "4:0" is off. Indexed by number, so a non-numeric
 // sub-parameter cannot reach an inherited property.
 const underlineStyles = ['', 'solid', 'double', 'wavy', 'dotted', 'dashed'];
@@ -18,20 +24,48 @@ const underlineStyles = ['', 'solid', 'double', 'wavy', 'dotted', 'dashed'];
 type AnsiColor = string;
 
 const isThemed = (color: AnsiColor) => color[0] !== '#';
-const anchor = (href: string, text: string) => `<a href="${htmlEscape(href)}" target="_blank">${text}</a>`;
+const anchor = (href: string, ...children: string[]) =>
+  createElementFromAttrs<HTMLAnchorElement>('a', {href, target: '_blank'}, ...children);
 
-// escapes one run of text, turning any bare url inside it into a link
-function renderRunText(text: string, linkify: boolean): string {
-  if (!linkify || !text.includes('://')) return needsHtmlEscape.test(text) ? htmlEscape(text) : text;
+/** Builds the element for a style, setting each class and declaration on its own, so that no string
+ * from a log can widen what it applies to. */
+function styledSpan(classes: string[], styles: Array<[string, string]>): HTMLSpanElement {
+  const el = document.createElement('span');
+  if (classes.length) el.classList.add(...classes);
+  for (const [property, value] of styles) el.style.setProperty(property, value);
+  return el;
+}
+
+/** Reduces a run to what a terminal shows of it: a backspace moves the cursor back a column, so what
+ * follows overwrites it, and characters with no visual representation are dropped. */
+function visibleText(text: string): string {
+  if (!hasControlChar.test(text)) return text;
+  if (!text.includes('\b')) return text.replace(controlChars, '');
+
+  const columns: string[] = [];
+  let col = 0;
+  for (const char of text) { // by code point, so a backspace cannot split a surrogate pair
+    if (char === '\b') col = Math.max(col - 1, 0);
+    else columns[col++] = char;
+  }
+  return columns.join('').replace(controlChars, '');
+}
+
+// appends one run of text, turning any bare url inside it into a link
+function renderRunText(target: ParentNode, text: string, linkify: boolean): void {
+  if (!linkify || !text.includes('://')) {
+    target.append(text);
+    return;
+  }
   const urls = urlRawRegex();
-  let html = '';
   let pos = 0;
   for (let match = urls.exec(text); match; match = urls.exec(text)) {
     const url = trimUrlPunctuation(match[0]);
-    html += htmlEscape(text.slice(pos, match.index)) + anchor(url, htmlEscape(url));
+    if (match.index > pos) target.append(text.slice(pos, match.index));
+    target.append(anchor(url, url));
     urls.lastIndex = pos = match.index + url.length;
   }
-  return html + htmlEscape(text.slice(pos));
+  if (pos < text.length) target.append(text.slice(pos));
 }
 
 type AnsiStyle = {
@@ -86,8 +120,14 @@ function applySgr(style: Readonly<AnsiStyle>, params: string): Readonly<AnsiStyl
     else if (code >= 40 && code < 48) next.bg = palette256[code - 40];
     else if (code >= 90 && code < 98) next.fg = palette256[code - 82]; // 8 + code - 90
     else if (code >= 100 && code < 108) next.bg = palette256[code - 92]; // 8 + code - 100
-    else if ((code === 38 || code === 48 || code === 58) && idx + 1 < codes.length) {
+    else if (code === 38 || code === 48 || code === 58) {
       // "5;<index>" picks from the palette, "2;<r>;<g>;<b>" is truecolor, 58 colors the underline.
+      // ":" sub-parameters carry the same arguments, "2" then optionally preceded by a color space id
+      if (codes[idx].includes(':')) {
+        const sub = codes[idx].split(':');
+        if (sub.length === 6 && sub[1] === '2') sub.splice(2, 1);
+        codes.splice(idx, 1, ...sub);
+      }
       // One running off the end consumes only the mode, leaving the rest to be read as codes.
       const mode = codes[++idx];
       let color: AnsiColor | null = null;
@@ -95,9 +135,7 @@ function applySgr(style: Readonly<AnsiStyle>, params: string): Readonly<AnsiStyl
         const paletteIndex = parseInt(codes[++idx], 10);
         if (paletteIndex >= 0 && paletteIndex <= 255) color = palette256[paletteIndex];
       } else if (mode === '2' && idx + 3 < codes.length) {
-        const r = parseInt(codes[++idx], 10);
-        const g = parseInt(codes[++idx], 10);
-        const b = parseInt(codes[++idx], 10);
+        const [r, g, b] = [codes[++idx], codes[++idx], codes[++idx]].map((value) => parseInt(value, 10));
         if (Math.min(r, g, b) >= 0 && Math.max(r, g, b) <= 255) color = colord({r, g, b}).toHex();
       }
       if (color) next[code === 38 ? 'fg' : code === 48 ? 'bg' : 'underlineColor'] = color;
@@ -106,14 +144,12 @@ function applySgr(style: Readonly<AnsiStyle>, params: string): Readonly<AnsiStyl
   return next;
 }
 
-/** Wraps one run of text in the markup for the style in effect. "faint" nests, so its translucent
- * color mixes with the color the outer span applies. */
-function renderText(text: string, style: Readonly<AnsiStyle>, linkify = true): string {
-  if (text === '') return '';
-  let html = renderRunText(text, linkify);
-  if (style.faint) html = `<span class="ansi-faint">${html}</span>`;
+/** Appends one run of text, wrapped in the element for the style in effect. */
+function renderText(target: ParentNode, text: string, style: Readonly<AnsiStyle>, linkify = true): void {
+  text = visibleText(text);
+  if (text === '') return;
 
-  const styles: string[] = [];
+  const styles: Array<[string, string]> = [];
   const classes: string[] = [];
   // the one place deciding class vs inline: a named color has a class per slot, the rest are
   // literal, and a slot with no class of its own resolves a themed color through its variable
@@ -123,7 +159,7 @@ function renderText(text: string, style: Readonly<AnsiStyle>, linkify = true): s
     } else if (slot && isThemed(color)) {
       classes.push(`${color}-${slot}`);
     } else {
-      styles.push(`${property}:${isThemed(color) ? `var(--color-${color})` : color}`);
+      styles.push([property, isThemed(color) ? `var(--color-${color})` : color]);
     }
   };
   if (style.bold) classes.push('ansi-bold');
@@ -141,8 +177,17 @@ function renderText(text: string, style: Readonly<AnsiStyle>, linkify = true): s
   if (!style.conceal) applyColor(style.inverse ? style.bg : style.fg, 'color', 'fg');
   applyColor(style.inverse ? style.fg : style.bg, 'background-color', 'bg');
 
-  if (!classes.length && !styles.length) return html;
-  return `<span${classes.length ? ` class="${classes.join(' ')}"` : ''}${styles.length ? ` style="${styles.join(';')}"` : ''}>${html}</span>`;
+  if (classes.length || styles.length) {
+    const span = styledSpan(classes, styles);
+    target.append(span);
+    target = span;
+  }
+  if (style.faint) { // nested, so its translucent color mixes with the color the outer span applies
+    const faint = styledSpan(['ansi-faint'], []);
+    target.append(faint);
+    target = faint;
+  }
+  renderRunText(target, text, linkify);
 }
 
 /** Renders one log stream, carrying the style between its lines the way a terminal does, but never
@@ -150,46 +195,57 @@ function renderText(text: string, style: Readonly<AnsiStyle>, linkify = true): s
 export class AnsiLineRenderer {
   private style: Readonly<AnsiStyle> = ansiStyleInitial;
 
-  private renderPart(part: string): string {
-    if (!part.includes('\x1b')) return renderText(part, this.style);
+  private renderPart(target: ParentNode, part: string): void {
+    if (!part.includes('\x1b')) {
+      renderText(target, part, this.style);
+      return;
+    }
 
-    let html = '';
     let pos = 0;
+    let link: HTMLAnchorElement | null = null; // an open OSC 8 hyperlink, collecting the styled text
+    const closeLink = () => {
+      if (link) target.append(link);
+      link = null;
+    };
+    const addText = (text: string) => renderText(link ?? target, text, this.style, !link); // a link is not linkified again
+
     escapeSequence.lastIndex = 0; // the regex is reused, so its match position must be reset
     for (let match = escapeSequence.exec(part); match; match = escapeSequence.exec(part)) {
-      if (match.index > pos) html += renderText(part.slice(pos, match.index), this.style);
+      if (match.index > pos) addText(part.slice(pos, match.index));
       pos = match.index + match[0].length;
-      const [, params, final, url, label] = match; // see the group order on escapeSequence
-      if (final === 'm') {
+      const [, params, final, url] = match; // see the group order on escapeSequence
+      if (final === 'm' && !privateParams.test(params)) {
         this.style = applySgr(this.style, params);
-      } else if (url !== undefined) {
-        const text = renderText(label, this.style, false); // already inside an anchor, do not linkify
-        html += hyperlinkUrl.test(url) ? anchor(url, text) : text;
+      } else if (url !== undefined) { // an OSC 8, with an empty url when it closes a hyperlink
+        closeLink();
+        if (hyperlinkUrl.test(url)) link = anchor(url); // any other scheme renders as plain text
       }
     }
-    // an "\x1b" left over formed no complete sequence, so it is cut off by the line end: drop it
-    const cutOff = part.indexOf('\x1b', pos);
-    return html + renderText(part.slice(pos, cutOff === -1 ? part.length : cutOff), this.style);
+    const cutOff = part.indexOf('\x1b', pos); // a leftover escape is a sequence cut off by the line end
+    addText(part.slice(pos, cutOff === -1 ? part.length : cutOff));
+    closeLink(); // a hyperlink left open ends with the part, never spilling into the next
   }
 
   renderLine(el: HTMLElement, line: string): void {
     if (line.endsWith('\n')) line = line.slice(0, line.endsWith('\r\n') ? -2 : -1);
 
     // fast path: a plain line inheriting no style renders as text, skipping the parser entirely
-    const hasEscape = line.includes('\x1b');
-    if (isAnsiStyleInitial(this.style) && !hasEscape && !line.includes('\r') && !line.includes('://')) {
+    if (isAnsiStyleInitial(this.style) && !needsRendering.test(line)) {
       el.textContent = line;
       return;
     }
 
-    if (hasEscape) line = line.replace(eraseInLine, '\r');
+    if (line.includes('\x1b')) line = line.replace(eraseInLine, '\r');
 
-    // a carriage return renders one part per update, joined by "\n" for "white-space: break-spaces"
-    const parts: string[] = [];
+    // a carriage return renders one part per update, separated by "\n" for "white-space: break-spaces"
+    const rendered = document.createDocumentFragment();
     for (const part of line.split('\r')) {
-      const html = part && this.renderPart(part);
-      if (html) parts.push(html);
+      if (!part) continue;
+      const previous = rendered.lastChild;
+      this.renderPart(rendered, part);
+      // a part that rendered nothing needs no separator, so it goes in once the part has content
+      if (previous && previous !== rendered.lastChild) rendered.insertBefore(document.createTextNode('\n'), previous.nextSibling);
     }
-    el.innerHTML = parts.join('\n');
+    el.replaceChildren(rendered);
   }
 }
