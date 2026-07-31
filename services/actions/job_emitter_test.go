@@ -589,3 +589,39 @@ func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
 
 	assert.Equal(t, len(callers), statusCounts(callers)[actions_model.StatusSuccess])
 }
+
+// Test_jobStatusResolverStopsAfterMatrixInsert covers the invariant that keeps a dynamic matrix's
+// dependents honest: a round resolved after an insert would judge them against a job set that is
+// missing the siblings. See Resolve for why that is wrong.
+func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
+	ctx := t.Context()
+
+	// build (2) stands for the expanded anchor: it reaches a terminal status this round, which is
+	// what would let report (3) resolve in the next one.
+	newChain := func() actions_model.ActionJobList {
+		return actions_model.ActionJobList{
+			{ID: 1, JobID: "generate", Status: actions_model.StatusFailure, WorkflowPayload: minimalWorkflowPayload("generate")},
+			{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{"generate"}, WorkflowPayload: minimalWorkflowPayload("build")},
+			{ID: 3, JobID: "report", Status: actions_model.StatusBlocked, Needs: []string{"build"}, WorkflowPayload: minimalWorkflowPayload("report")},
+		}
+	}
+
+	t.Run("without an insert the whole chain resolves in one pass", func(t *testing.T) {
+		got, err := newJobStatusResolver(newChain(), nil).Resolve(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, map[int64]actions_model.Status{
+			2: actions_model.StatusSkipped,
+			3: actions_model.StatusSkipped,
+		}, got)
+	})
+
+	t.Run("an insert stops the pass before the dependents are resolved", func(t *testing.T) {
+		r := newJobStatusResolver(newChain(), nil)
+		r.matrixInserted = true // as resolve() sets it once expansion has inserted siblings
+
+		got, err := r.Resolve(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, map[int64]actions_model.Status{2: actions_model.StatusSkipped}, got,
+			"report must wait for the re-emit, which sees the sibling combinations too")
+	})
+}
