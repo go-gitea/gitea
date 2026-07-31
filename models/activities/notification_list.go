@@ -146,6 +146,9 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 			return nil, err
 		}
+		if user.IsTypeBot() {
+			continue
+		}
 		if issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypePullRequests) {
 			continue
 		}

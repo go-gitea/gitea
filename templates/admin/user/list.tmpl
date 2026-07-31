@@ -37,6 +37,18 @@
 						</div>
 					</div>
 
+					<!-- User Type Filter Menu Item -->
+					<div class="ui dropdown type jump item">
+						<span class="text">{{ctx.Locale.Tr "admin.users.list_type_filter.menu_text"}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu flex-items-menu">
+							<a class="item j-reset-type-filter">{{ctx.Locale.Tr "all"}}</a>
+							<div class="divider"></div>
+							<label class="item"><input type="radio" name="user_type" value="individual"> {{ctx.Locale.Tr "admin.users.individual"}}</label>
+							<label class="item"><input type="radio" name="user_type" value="bot"> {{ctx.Locale.Tr "admin.users.bot"}}</label>
+						</div>
+					</div>
+
 					<!-- Sort Menu Item -->
 					<div class="ui dropdown type jump item">
 						<span class="text">

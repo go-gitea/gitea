@@ -105,13 +105,9 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 	// duplicate setting loading should be safe at the moment, but it should be refactored & improved in the future.
 	setting.LoadSettings()
 
-	userTypes := map[string]user_model.UserType{
-		"individual": user_model.UserTypeIndividual,
-		"bot":        user_model.UserTypeBot,
-	}
-	userType, ok := userTypes[c.String("user-type")]
-	if !ok {
-		return fmt.Errorf("invalid user type: %s", c.String("user-type"))
+	userType, err := user_model.ParseUserType(c.String("user-type"))
+	if err != nil {
+		return err
 	}
 	if userType != user_model.UserTypeIndividual {
 		// Some other commands like "change-password" also only support individual users.
@@ -119,6 +115,10 @@ func runCreateUser(ctx context.Context, c *cli.Command) error {
 		// At the moment, we do not allow setting password for bot users.
 		if c.IsSet("password") || c.IsSet("random-password") {
 			return errors.New("password can only be set for individual users")
+		}
+		// automation does not need site-wide root access
+		if c.Bool("admin") {
+			return errors.New("admin flag can only be set for individual users")
 		}
 	}
 

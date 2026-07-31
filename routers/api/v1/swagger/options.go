@@ -57,6 +57,9 @@ type swaggerParameterBodies struct {
 	RenameUserOption api.RenameUserOption
 
 	// in:body
+	ConvertUserTypeOption api.ConvertUserTypeOption
+
+	// in:body
 	CreateLabelOption api.CreateLabelOption
 	// in:body
 	EditLabelOption api.EditLabelOption

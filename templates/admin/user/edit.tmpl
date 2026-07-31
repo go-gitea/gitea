@@ -1,4 +1,7 @@
 {{template "admin/layout_head" (dict "pageClass" "admin edit user")}}
+	{{/* an admin must not convert themselves (they would lose their own session) nor turn a site administrator into a bot */}}
+	{{$canConvertType := and (ne .User.ID .SignedUserID) (or .User.IsTypeBot (and .User.IsIndividual (not .User.IsAdmin)))}}
+	{{$convertTo := Iif .User.IsTypeBot "individual" "bot"}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.users.edit_account"}}
@@ -6,12 +9,14 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="./edit" method="post">
 				{{template "base/disable_form_autofill"}}
+				{{/* bot users have no auth source or password; this drives common.ts to hide the .non-bot fields */}}
+				{{if .User.IsTypeBot}}<input type="hidden" id="user_type" value="bot">{{end}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" name="user_name" value="{{.User.Name}}" maxlength="40">
 				</div>
 				<!-- Types and name -->
-				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
+				<div class="inline required field non-bot {{if .Err_LoginType}}error{{end}}">
 					<label>{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
@@ -52,7 +57,7 @@
 					</div>
 				</div>
 
-				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
+				<div class="required non-local non-bot field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
 					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}">
 				</div>
@@ -64,7 +69,7 @@
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" required>
 				</div>
-				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}tw-hidden{{end}}">
+				<div class="local non-bot field {{if .Err_Password}}error{{end}} {{if or .User.IsTypeBot (not (or (.User.IsLocal) (.User.IsOAuth2)))}}tw-hidden{{end}}">
 					<label for="password">{{ctx.Locale.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password">
 					<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>
@@ -115,7 +120,7 @@
 						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
 					</div>
 				</div>
-				<div class="inline field">
+				<div class="inline field non-bot">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.users.is_admin"}}</strong></label>
 						<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
@@ -202,7 +207,42 @@
 				</div>
 			</form>
 		</div>
+		{{if $canConvertType}}
+		<h4 class="ui top attached error header">
+			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
+		</h4>
+		<div class="ui attached error danger segment">
+			<div class="flex-divided-list items-with-main">
+				<div class="item">
+					<div class="item-main">
+						<div class="item-title">{{ctx.Locale.Tr "admin.users.convert_type"}}</div>
+						<div class="item-body">{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s_desc" $convertTo)}}</div>
+					</div>
+					<div class="item-trailing">
+						<button class="ui basic red show-modal button" data-modal="#convert-user-type-modal">
+							{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		{{end}}
 	</div>
+
+{{if $canConvertType}}
+<div class="ui small modal" id="convert-user-type-modal">
+	<div class="header">
+		{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}
+	</div>
+	<form class="ui form" method="post" action="./convert_type">
+		<input type="hidden" name="user_type" value="{{$convertTo}}">
+		<div class="content">
+			<p>{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s_notice" $convertTo)}}</p>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonDangerText" (ctx.Locale.Tr "admin.users.convert_type"))}}
+	</form>
+</div>
+{{end}}
 
 <div class="ui g-modal-confirm delete modal" id="delete-user-modal">
 	<div class="header">

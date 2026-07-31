@@ -246,7 +246,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
-		if user_model.IsErrDeleteLastAdminUser(err) {
+		if user_model.IsErrDeleteLastAdminUser(err) || user_model.IsErrBotUserIsAdmin(err) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
@@ -556,6 +556,62 @@ func RenameUser(ctx *context.APIContext) {
 	// Check if username has been changed
 	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+// ConvertUserType converts a user between the individual and bot types
+func ConvertUserType(ctx *context.APIContext) {
+	// swagger:operation POST /admin/users/{username}/convert-type admin adminConvertUserType
+	// ---
+	// summary: Convert a user between the individual and bot types
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user to convert
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/ConvertUserTypeOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	if ctx.ContextUser.IsOrganization() {
+		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization, not a user")
+		return
+	}
+
+	// converting yourself into a bot would drop your own credentials and sign you out
+	if ctx.ContextUser.ID == ctx.Doer.ID {
+		ctx.APIError(http.StatusUnprocessableEntity, "you cannot convert yourself")
+		return
+	}
+
+	targetType, err := user_model.ParseUserType(web.GetForm(ctx).(*api.ConvertUserTypeOption).UserType)
+	if err != nil {
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	if err := user_service.ConvertUserType(ctx, ctx.ContextUser, targetType); err != nil {
+		if user_model.IsErrBotUserIsAdmin(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
