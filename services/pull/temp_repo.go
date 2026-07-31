@@ -16,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	repo_module "gitea.dev/modules/repository"
 )
 
@@ -80,8 +81,8 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		outbuf:      &bytes.Buffer{},
 	}
 
-	baseRepoPath := pr.BaseRepo.RepoPath()
-	headRepoPath := pr.HeadRepo.RepoPath()
+	baseRepoPath := gitrepo.RepoLocalPath(pr.BaseRepo.CodeStorageRepo())
+	headRepoPath := gitrepo.RepoLocalPath(pr.HeadRepo.CodeStorageRepo())
 
 	if err := git.InitRepositoryLocal(ctx, tmpBasePath, false, pr.BaseRepo.ObjectFormatName); err != nil {
 		return nil, nil, fmt.Errorf("InitRepository[PR:%d]: %w", pr.ID, err)

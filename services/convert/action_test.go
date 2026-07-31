@@ -62,7 +62,7 @@ func TestGetActionWorkflow_FallbackRef(t *testing.T) {
 
 	repoDir := buildWorkflowTestRepo(t)
 
-	gitRepo, err := git.OpenRepositoryLocal(repoDir)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, repoDir)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

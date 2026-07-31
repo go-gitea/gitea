@@ -177,8 +177,8 @@ func TestRequireSignInView(t *testing.T) {
 		require.False(t, setting.Service.BlockAnonymousAccessExpensive)
 		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		MakeRequest(t, req, http.StatusOK)
-		req = NewRequest(t, "GET", "/user/events")
-		MakeRequest(t, req, http.StatusOK)
+		req = NewRequest(t, "GET", "/-/ws")
+		MakeRequest(t, req, http.StatusUpgradeRequired)
 	})
 	t.Run("RequireSignInView", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
@@ -194,7 +194,7 @@ func TestRequireSignInView(t *testing.T) {
 
 		req := NewRequest(t, "GET", "/user2/repo1")
 		MakeRequest(t, req, http.StatusOK)
-		req = NewRequest(t, "GET", "/user/events")
+		req = NewRequest(t, "GET", "/-/ws")
 		MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master")

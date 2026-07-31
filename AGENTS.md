@@ -1,20 +1,20 @@
-- Use `make help` to find available development targets
-- Run `make fmt` to format `.go` files, and run `make lint-go` to lint them
-- Run `make lint-js` to lint `.ts` files
-- Run `make tidy` after any `go.mod` changes
-- Run single go tests with `go test -run '^TestName$' ./modulepath/`
-- Run single js test files with `pnpm exec vitest <path-filter>`
-- Run single playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
-- Add the current year into the copyright header of new `.go` files
-- Ensure no trailing whitespace in edited files
-- Use Conventional Commits for commit messages and PR titles, e.g. `type(scope): subject`; `!` before the colon if breaking. Use `test` type for test-only changes.
-- Never force-push, amend, or squash unless asked. Use new commits and normal push for pull request updates
-- Preserve existing code comments, do not remove or rewrite comments that are still relevant
-- Keep comments short, prefer same-line, explain why, never narrate code
-- Prefer unit tests over integration tests when logic is testable in isolation
-- Aim for sub-2s local runtime for integration and e2e tests
-- In TypeScript, use `!` (non-null assertion) instead of `?.`/`??` when a value is known to always exist
-- For CSS layout, prefer `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins; fall back to `tw-*` utilities when specificity requires `!important`
-- Include authorship attribution in issue and pull request comments
-- Always add `Assisted-By` trailers to commit messages in format `Assisted-by: AGENT_NAME:MODEL_VERSION`
-- Never add `Co-Authored-By` `Signed-off-by` trailer to commit messages. Sign off must be done by a human.
+- Never assume, verify before claiming
+- Use `make help` to list the available development targets
+- Keep PR descriptions minimal, no task lists
+- Use Conventional Commits for commit messages and PR titles, plus Gitea's own `enhance` type for user-facing enhancements
+- Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
+- Never rewrite git history unless asked. Use new commits and normal push for PR updates
+- Include authorship attribution when writing issue and PR comments
+- Comments: Write almost no new ones, keep them short, preferably same-line,  explain why for a future reader. Never narrate code, the current change or prompt. Preserve existing comments when they still apply.
+- Add the current year to copyright headers of new `.go` files
+- Leave no trailing whitespace in any edited file
+- In TS, use `!` instead of `?.`/`??` when a value always exists
+- Prefer `tw-*` utilities over inline `style`, and `flex-*` helpers over per-child `tw-ml-*` / `tw-mr-*` margins, falling back to `tw-*` when specificity requires `!important`
+- Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits
+- Lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
+- Run single Go tests with `go test -run '^TestName$' ./modulepath/`
+- Run single TS test files with `pnpm exec vitest <path-filter>`
+- Run single Playwright e2e test files with `GITEA_TEST_E2E_FLAGS='<filepath>' make test-e2e`
+- Write the fewest, fastest tests covering the behavior. Prefer extending an existing test before adding a new one. Avoid `sleep` and similar mechanisms
+- Prefer unit tests when logic is testable in isolation, aim for sub-2s local runtime per integration test and sub-4s per e2e test
+- Prefer semantic locators in e2e tests

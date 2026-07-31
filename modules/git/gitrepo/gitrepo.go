@@ -1,10 +1,13 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package gitcmd
+package gitrepo
 
 import (
+	"io/fs"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 
 	"gitea.dev/modules/setting"
@@ -24,11 +27,6 @@ type RepositoryFacade interface {
 	LogString() string
 }
 
-func (c *Command) WithRepo(repo RepositoryFacade) *Command {
-	c.gitDir = RepoLocalPath(repo)
-	return c
-}
-
 // RepoLocalPath returns an absolute path for a RepositoryFacade.
 // TODO: most of the calls to this function should be replaced with a "Repo FS" in the future
 // to handle file accesses in the git repo (e.g.: read, write, list, remove).
@@ -42,6 +40,13 @@ func RepoLocalPath(repo RepositoryFacade) string {
 	}
 	// the repo root path and the repo loc should all have been cleaned, so we can safely join them together
 	return setting.RepoRootPath + string(filepath.Separator) + filepath.FromSlash(repoLoc)
+}
+
+func UserLocalPath(userName string) string {
+	if setting.RepoRootPath == "" {
+		panic("repo root path is not initialized")
+	}
+	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)))
 }
 
 func repoLogNameByLocation(loc string) string {
@@ -104,4 +109,8 @@ func (r *repositoryManaged) GitRepoLocation() string {
 
 func RepositoryManaged(id, loc string) RepositoryFacade {
 	return &repositoryManaged{id: id, loc: filepath.Clean(loc)}
+}
+
+func RepoLocalFS(repo RepositoryFacade) fs.FS {
+	return os.DirFS(RepoLocalPath(repo))
 }

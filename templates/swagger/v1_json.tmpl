@@ -16197,6 +16197,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filter releases by tag. supports \"*\" as a wildcard (for example: v1*, *beta, *rc*).",
+            "name": "tag_filter",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -30236,6 +30242,20 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "TopicListResponse": {
+      "description": "TopicListResponse returns a list of TopicResponse",
+      "type": "object",
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TopicResponse"
+          },
+          "x-go-name": "Topics"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "TopicName": {
       "description": "TopicName a list of repo topic names",
       "type": "object",
@@ -31832,10 +31852,7 @@
     "TopicListResponse": {
       "description": "TopicListResponse",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/TopicResponse"
-        }
+        "$ref": "#/definitions/TopicListResponse"
       }
     },
     "TopicNames": {
@@ -31886,10 +31903,7 @@
     "UserSettings": {
       "description": "UserSettings",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/UserSettings"
-        }
+        "$ref": "#/definitions/UserSettings"
       }
     },
     "VariableList": {

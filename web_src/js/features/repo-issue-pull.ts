@@ -53,7 +53,9 @@ function initRepoPullMergeBoxRefresh(el: Element) {
       const resp = await GET(`${pullLink}/merge_box`);
       if (!resp.ok) return;
       const newEl = createElementFromHTML(await resp.text());
+      const scrollTop = el.querySelector<HTMLElement>('.commit-status-list')?.scrollTop;
       el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
+      if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-list')?.scrollTo({top: scrollTop, behavior: 'instant'});
     },
   });
 }

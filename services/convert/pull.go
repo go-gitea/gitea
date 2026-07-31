@@ -157,7 +157,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		apiPullRequest.Closed = pr.Issue.ClosedUnix.AsTimePtr()
 	}
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.FullName(), err)
 		return nil
@@ -203,7 +203,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 		apiPullRequest.Head.Repository = ToRepo(ctx, pr.HeadRepo, p)
 
-		headGitRepo, err := git.OpenRepository(pr.HeadRepo)
+		headGitRepo, err := git.OpenRepository(ctx, pr.HeadRepo)
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.FullName(), err)
 			return nil
@@ -259,7 +259,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
-		baseGitRepo, err := git.OpenRepository(pr.BaseRepo)
+		baseGitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.FullName(), err)
 			return nil
@@ -345,7 +345,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		return nil, err
 	}
 
-	gitRepo, err := git.OpenRepository(baseRepo)
+	gitRepo, err := git.OpenRepository(ctx, baseRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -452,7 +452,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 
 		baseBranch, ok := baseBranchCache[pr.BaseBranch]
 		if !ok {
-			baseBranch, err = git_model.GetBranch(ctx, baseRepo.ID, pr.BaseBranch)
+			baseBranch, err = git_model.GetBranchExisting(ctx, baseRepo.ID, pr.BaseBranch)
 			if err == nil {
 				baseBranchCache[pr.BaseBranch] = baseBranch
 			} else if !git_model.IsErrBranchNotExist(err) {

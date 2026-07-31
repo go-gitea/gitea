@@ -21,9 +21,9 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -580,7 +580,7 @@ func testGeneratedSourceLink(t *testing.T) {
 
 		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
 		assert.True(t, exists)
-		assert.Equal(t, "/user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
+		assert.Equal(t, setting.AppURL+"user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
 	})
 
 	t.Run("Non-Rendered file", func(t *testing.T) {
@@ -597,7 +597,7 @@ func testGeneratedSourceLink(t *testing.T) {
 
 		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
 		assert.True(t, exists)
-		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
+		assert.Equal(t, setting.AppURL+"user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
 	})
 }
 
@@ -618,57 +618,64 @@ func TestGenerateRepository(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo44 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
 
-	tmplRepoLabels := []*issues_model.Label{
-		{RepoID: 44, Name: "priority/high", Exclusive: true, ExclusiveOrder: 2, Color: "#ee0000", Description: "desc-high"},
-		{RepoID: 44, Name: "priority/low", Exclusive: true, ExclusiveOrder: 1, Color: "#0000ee", Description: "desc-low"},
-	}
+	t.Run("Success", func(t *testing.T) {
+		tmplRepoLabels := []*issues_model.Label{
+			{RepoID: 44, Name: "priority/high", Exclusive: true, ExclusiveOrder: 2, Color: "#ee0000", Description: "desc-high"},
+			{RepoID: 44, Name: "priority/low", Exclusive: true, ExclusiveOrder: 1, Color: "#0000ee", Description: "desc-low"},
+		}
 
-	require.NoError(t, issues_model.NewLabels(t.Context(), tmplRepoLabels...))
+		require.NoError(t, issues_model.NewLabels(t.Context(), tmplRepoLabels...))
 
-	generatedRepo, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
-		Name:        "generated-from-template-44",
-		GitContent:  true,
-		IssueLabels: true,
+		generatedRepo, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
+			Name:        "generated-from-template-44",
+			GitContent:  true,
+			IssueLabels: true,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, generatedRepo)
+
+		exist, err := git.IsRepositoryExist(t.Context(), generatedRepo)
+		require.NoError(t, err)
+		require.True(t, exist)
+
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
+
+		generatedLabels, err := issues_model.GetLabelsByRepoID(t.Context(), generatedRepo.ID, "", db.ListOptions{})
+		require.NoError(t, err)
+		require.Len(t, generatedLabels, len(tmplRepoLabels))
+		for i, tmplLabel := range tmplRepoLabels {
+			genLabel := generatedLabels[i]
+			assert.Equal(t, tmplLabel.Name, genLabel.Name)
+			assert.Equal(t, tmplLabel.Exclusive, genLabel.Exclusive)
+			assert.Equal(t, tmplLabel.ExclusiveOrder, genLabel.ExclusiveOrder)
+			assert.Equal(t, tmplLabel.Color, genLabel.Color)
+			assert.Equal(t, tmplLabel.Description, genLabel.Description)
+		}
+
+		err = repo_service.DeleteRepositoryDirectly(t.Context(), generatedRepo.ID)
+		assert.NoError(t, err)
 	})
-	require.NoError(t, err)
-	require.NotNil(t, generatedRepo)
 
-	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
-	require.NoError(t, err)
-	require.True(t, exist)
+	t.Run("Failure", func(t *testing.T) {
+		// a failed creating because some mock data
+		// create the repository directory so that the creation will fail after database record created.
+		testFailureRepoName := "generated-from-template-44"
+		testFailureRepo := gitrepo.CodeRepoByName(user2.Name, testFailureRepoName)
+		testFailurePath := gitrepo.RepoLocalPath(testFailureRepo)
+		assert.NoError(t, os.MkdirAll(testFailurePath, os.ModePerm))
 
-	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
+		generatedRepoFailure, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
+			Name:       testFailureRepoName,
+			GitContent: true,
+		})
+		assert.Nil(t, generatedRepoFailure)
+		assert.Error(t, err)
 
-	generatedLabels, err := issues_model.GetLabelsByRepoID(t.Context(), generatedRepo.ID, "", db.ListOptions{})
-	require.NoError(t, err)
-	require.Len(t, generatedLabels, len(tmplRepoLabels))
-	for i, tmplLabel := range tmplRepoLabels {
-		genLabel := generatedLabels[i]
-		assert.Equal(t, tmplLabel.Name, genLabel.Name)
-		assert.Equal(t, tmplLabel.Exclusive, genLabel.Exclusive)
-		assert.Equal(t, tmplLabel.ExclusiveOrder, genLabel.ExclusiveOrder)
-		assert.Equal(t, tmplLabel.Color, genLabel.Color)
-		assert.Equal(t, tmplLabel.Description, genLabel.Description)
-	}
+		// assert the cleanup is successful
+		unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: testFailureRepoName})
 
-	err = repo_service.DeleteRepositoryDirectly(t.Context(), generatedRepo.ID)
-	assert.NoError(t, err)
-
-	// a failed creating because some mock data
-	// create the repository directory so that the creation will fail after database record created.
-	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44"), os.ModePerm))
-
-	generatedRepo2, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
-		Name:       "generated-from-template-44",
-		GitContent: true,
+		exist, err := git.IsRepositoryExist(t.Context(), testFailureRepo)
+		assert.NoError(t, err)
+		assert.False(t, exist)
 	})
-	assert.Nil(t, generatedRepo2)
-	assert.Error(t, err)
-
-	// assert the cleanup is successful
-	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
-
-	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
-	assert.NoError(t, err)
-	assert.False(t, exist)
 }

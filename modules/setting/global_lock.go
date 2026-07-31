@@ -22,7 +22,7 @@ func loadGlobalLockFrom(rootCfg ConfigProvider) {
 	switch GlobalLock.ServiceType {
 	case "memory":
 	case "redis":
-		connStr := sec.Key("SERVICE_CONN_STR").String()
+		connStr := sec.Key("SERVICE_CONN_STR").MustString(Redis.ConnStr)
 		if connStr == "" {
 			log.Fatal("SERVICE_CONN_STR is empty for redis")
 		}

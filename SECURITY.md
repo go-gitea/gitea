@@ -6,9 +6,19 @@ If you discover a security issue, please bring it to their attention right away!
 
 Previous vulnerabilities are listed at https://about.gitea.com/security.
 
+## Supported Versions
+
+Security fixes follow our [support policy](docs/release-management.md#end-of-life-eol): only the most recent major release and the `main` branch receive them.
+
+Reports must be filed against a supported version. Before reporting, verify that the issue reproduces on a supported version; any report that only affects an unsupported version will be closed as out of scope.
+
 ## Reporting a Vulnerability
 
-Please **DO NOT** file a public issue, instead send your report privately to `security@gitea.io`.
+Please **DO NOT** file a public issue. Instead, report the vulnerability privately by opening a [GitHub security advisory](https://github.com/go-gitea/gitea/security/advisories/new), or optionally by sending your report to `security@gitea.io`.
+If reporting via GitHub, open an advisory per found issue. You can group the found issues if they relate to a single area (same feature, same fault present in multiple routes) but do not group unrelated reports into one as it makes it much harder to assess and track for duplicates.
+Do not use LLM to write the reports. It's meant for people to read so take your time and use your own words to write it. If you have used LLM to find the bug, be transparent about it and verify that it is not hallucination before submitting the report.
+
+If your report turns out to be a duplicate, you will be credited in the original report.
 
 ## Protecting Security Information
 
@@ -19,7 +29,7 @@ The PGP key is valid until July 4, 2026.
 ```
 Key ID: 6FCD2D5B
 Key Type: RSA
-Expires: 7/4/2026
+Expires: 7/23/2027
 Key Size: 4096/4096
 Fingerprint: 3DE0 3D1E 144A 7F06 9359 99DC AAFD 2381 6FCD 2D5B
 ```
@@ -42,18 +52,18 @@ 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
-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
+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
@@ -65,21 +75,20 @@ s+GsP9I3cmWWQcKYxWHtE8xTXnNCVPFZQj2nwhJzae8ypfOtulBRA3dUKWGKuDH/
 axFENhUsT397aOU3qkP/od4a64JyNIEo4CTTSPVeWd7njsGqli2U3A4xL2CcyYvt
 D/MWcMBGEoLSNTswwKdom4FaJpn5KThnK/T0bQcmJblJhoCtppXisbexZnCpuS0x
 Zdlm2T14KJ3LABEBAAGJAjwEGAEIACYCGwwWIQQ94D0eFEp/BpNZmdyq/SOBb80t
-WwUCaGgeJAUJB5PppgAKCRCq/SOBb80tW/NWEACB6Jrf0gWlk7e+hNCdnbM0ZVWU
-f2sHNFfXxxsdhpcDgKbNHtkZb8nZgv8AX+5fTtUwMVa3vKcdw30xFiIM5N7cCIPV
-vg/5z5BtfEaitnabEUG2iiVDIy8IHXIcK10rX+7BosA3QDl2PsiBHwyi5G13lRk8
-zGTSNDuOalug33h5/lr2dPigamkq74Aoy29q8Rjad6GfWHipL2bFimgtY+Zdi0BH
-NLk4EJXxj1SgVx5dtkQzWJReBA5M+FQ4QYQZBO+f4TDoOLmjui152uhkoLBQbGAa
-WWJFTVxm0bG5MXloEL3gA8DfU7XDwuW/sHJC5pBko8RpQViooOhckMepZV3Y83DK
-bwLYa3JmPgj2rEv4993dvrJbQhpGd082HOxOsllCs8pgNq1SnXpWYfcGTgGKC3ts
-U8YZUUJUQ7mi2L8Tv3ix20c9EiGmA30JAmA8eZTC3cWup91ZkkVBFRml2czTXajd
-RWZ6GbHV5503ueDQcB8yBVgF3CSixs67+dGSbD3p86OqGrjAcJzM5TFbNKcnGLdE
-kGbZpNwAISy750lXzXKmyrh5RTCeTOQerbwCMBvHZO+HAevA/LXDTw2OAiSIQlP5
-sYA4sFYLQ30OAkgJcmdp/pSgVj/erNtSN07ClrOpDb/uFpQymO6K2h0Pst3feNVK
-9M2VbqL9C51z/wyHLg==
-=SfZA
+WwUCamLcngUJCY6oIAAKCRCq/SOBb80tWxilD/41xF1pwD2lGqjWLmlXcd0Ok5xm
+67TSGiKiFZUgI3ftkRVlqmeJqjVmRjpc2dLfCuVBzlaP0Oyv5Jn+2CPqgmWIk5tw
+pqlxqmsXiIZ9Uv2wWItxrXIwQ6DHc1qcIOu7feTnt1HVhxp2GqlXl3tA/+MTTDmn
+4rqrHffI7ps9eCbK/SfSuoQk3+x/x4GPqWDbsNw1E9dDjPPhsKfdwzZ6dFR2Yhzu
+2U0GDc2aeBA0Gjy6VFBj1ksmGxQCL3TqtGEHOonoPpTIjmDd35Xq6BSu119onOQS
+THZ7+3JQRpizBVrIklKf33UOikZy9WHuffFddP46m8qC2Alh1aB7xcD8K3P9gzd5
+OJO9Zr8JR+rvi8eOsCHvJqGhe0JMMf9bgXKjQ1tMTDTe6r0Jnw7HbkDghjpj9xG7
+GYmDB0CL4kP5nAZ1OPfIasIu3Llhcy6mS52ECw0X6PNwUINwBn7F6EKAiciw8/OS
+CXoGJDI5alwNhh+3DL4oBH1aq1lnmxmhFNpwpRDvtbRGmZeeASTeC4LMAtqP85Er
+8W9ulIgQ4Ub8QuoxvE5hzWEB1QUkJgozI8vO4DoGlrsz7P8cPzrOT7WqUfUPTYE6
+oZEfEYDSj1IZHnPYPS+yLBJMJ/Lc1h8OCetmbJZx4QWaX3Fgar7Zks8FfJQOTN6i
+HnOlrsaMDYNyO76uBQ==
+=4kVJ
 -----END PGP PUBLIC KEY BLOCK-----
-
 ```
 
 Security reports are greatly appreciated and we will publicly thank you for it, although we keep your name confidential if you request it.

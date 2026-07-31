@@ -5,7 +5,6 @@ package v1_27
 
 import (
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
 
 	"xorm.io/xorm"
 )
@@ -25,7 +24,7 @@ func AddReusableWorkflowFieldsToActionRunJob(x base.EngineMigration) error {
 		ReusableWorkflowContent []byte `xorm:"LONGBLOB"`
 	}
 
-	type ActionRunAttemptJobIDIndex db.ResourceIndex
+	type ActionRunAttemptJobIDIndex base.ResourceIndex
 
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(ActionRunJob)); err != nil {
 		return err

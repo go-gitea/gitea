@@ -11,19 +11,14 @@ import (
 	"regexp"
 	"strings"
 
-	"gitea.dev/models/db"
+	"gitea.dev/models/db" //nolint:depguard // allow to access db in migration
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 
+	"xorm.io/builder"
 	"xorm.io/xorm/schemas"
 )
 
-// Migrations should never use model structs directly, because the model structs can be different in different releases.
-// e.g. if one migration uses "User" model, it works in the early releases, then one day,
-// when the User model changes, the migration breaks because it will use the new (incorrect) User model,
-// it should only use the old User model. The same to "modules/structs".
-// However, many the existing migrations already abuses "modules/structs" (search "gitea.dev/models/" in the migrations).
-// TODO: need to fully decouple the migration package and models & structs package
 type (
 	EngineMigration = db.EngineMigration
 	Session         = db.Session
@@ -518,4 +513,8 @@ func ModifyColumn(x EngineMigration, tableName string, col *schemas.Column) erro
 		return err
 	}
 	return nil
+}
+
+func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
+	return db.Iterate(ctx, cond, f)
 }
