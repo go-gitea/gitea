@@ -148,11 +148,9 @@ func toProject(ctx context.Context, p *project_model.Project, doer *user_model.U
 		project.Creator = ToUser(ctx, creator, doer)
 	}
 
-	// the caller preloads Repo/Owner, so this stays free of lazy lookups
-	if p.Type == project_model.TypeRepository && p.Repo != nil {
-		project.HTMLURL = httplib.MakeAbsoluteURL(ctx, project_model.ProjectLinkForRepo(p.Repo, p.ID))
-	} else if p.Owner != nil {
-		project.HTMLURL = httplib.MakeAbsoluteURL(ctx, project_model.ProjectLinkForOrg(p.Owner, p.ID))
+	// the caller preloads Repo/Owner, so Link stays free of lazy lookups
+	if link := p.Link(ctx); link != "" {
+		project.HTMLURL = httplib.MakeAbsoluteURL(ctx, link)
 	}
 
 	return project

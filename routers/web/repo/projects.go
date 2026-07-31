@@ -6,6 +6,7 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db"
@@ -483,17 +484,8 @@ func UpdateIssueProjectColumn(ctx *context.Context) {
 		return
 	}
 
-	issueProjects := issue.Projects
-
 	// it must make sure the requested column is in this issue's projects
-	var columnProject *project_model.Project
-	for _, project := range issueProjects {
-		if column.ProjectID == project.ID {
-			columnProject = project
-			break
-		}
-	}
-	if columnProject == nil {
+	if !slices.ContainsFunc(issue.Projects, func(p *project_model.Project) bool { return p.ID == column.ProjectID }) {
 		ctx.NotFound(nil)
 		return
 	}

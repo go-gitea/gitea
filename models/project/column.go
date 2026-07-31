@@ -236,7 +236,6 @@ func GetColumnByIDAndProjectID(ctx context.Context, columnID, projectID int64) (
 	return column, nil
 }
 
-// UpdateColumn updates a project column
 // UpdateColumn writes the column's title, sorting and color. Callers load the column
 // first, so every field carries a deliberate value, including a sorting of 0.
 func UpdateColumn(ctx context.Context, column *Column) error {

@@ -5,7 +5,6 @@ package project
 
 import (
 	"context"
-	"maps"
 	"slices"
 	"strings"
 
@@ -23,20 +22,11 @@ import (
 // diverts ErrNotExist to a 404, which would hide this from the web caller's logs.
 var ErrIssueNotInProject = util.ErrorWrap(util.ErrUnprocessableContent, "all issues have to be added to a project first")
 
-// issueProjectIDs lists the projects an issue belongs to.
-func issueProjectIDs(ctx context.Context, issue *issues_model.Issue) ([]int64, error) {
-	columnMap, err := issue.ProjectColumnMap(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return slices.Collect(maps.Keys(columnMap)), nil
-}
-
 // AddIssueToColumn assigns the issue to the column's project if needed, then places it in
 // the column. One transaction, so a failure cannot strand it in the default column.
 func AddIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		projectIDs, err := issueProjectIDs(ctx, issue)
+		projectIDs, err := issue.ProjectIDs(ctx)
 		if err != nil {
 			return err
 		}
@@ -77,7 +67,7 @@ func RemoveIssueFromColumn(ctx context.Context, doer *user_model.User, issue *is
 		if !exists {
 			return util.NewNotExistErrorf("issue %d is not in column %d", issue.ID, column.ID)
 		}
-		projectIDs, err := issueProjectIDs(ctx, issue)
+		projectIDs, err := issue.ProjectIDs(ctx)
 		if err != nil {
 			return err
 		}

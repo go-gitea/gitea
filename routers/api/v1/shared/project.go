@@ -12,7 +12,6 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	api "gitea.dev/modules/structs"
@@ -142,7 +141,7 @@ func (s projectScope) findIssue(ctx *context.APIContext) *issues_model.Issue {
 			return nil
 		}
 		// hide the issue's existence rather than reporting it as forbidden
-		if !perm.CanRead(unit.TypeIssues) {
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
 			ctx.APIErrorNotFound()
 			return nil
 		}
