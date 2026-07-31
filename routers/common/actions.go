@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"strconv"
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
@@ -22,18 +23,30 @@ import (
 	context_module "gitea.dev/services/context"
 )
 
-// logFileNameReplacer strips path traversal and header-breaking characters from user-controlled names.
-var logFileNameReplacer = strings.NewReplacer(`"`, "", "\r", "", "\n", "", "/", "-", `\`, "-", "..", "__")
-
-func sanitizeWorkflowFileName(workflowID string) string {
-	if p := strings.Index(workflowID, "."); p > 0 {
-		workflowID = workflowID[:p]
+func joinFileName(fields ...any) string {
+	sb := strings.Builder{}
+	for i, f := range fields {
+		var field string
+		switch v := f.(type) {
+		case string:
+			field = v
+		case int64:
+			field = strconv.FormatInt(v, 10)
+		default:
+			field = fmt.Sprint(v)
+		}
+		field = util.PathJoinRelX(field)
+		field = util.PathNameValidator().InvalidChars.ReplaceAllString(field, "_")
+		if i < len(fields)-1 {
+			field = strings.ReplaceAll(strings.ReplaceAll(field, ".", "_"), "-", "_")
+			sb.WriteString(field)
+			sb.WriteString("-")
+		} else {
+			// last field is extname, no need to do more processing
+			sb.WriteString(field)
+		}
 	}
-	return logFileNameReplacer.Replace(workflowID)
-}
-
-func jobLogFileName(workflowID, jobName string, taskID int64) string {
-	return fmt.Sprintf("%s-%s-%d.log", sanitizeWorkflowFileName(workflowID), logFileNameReplacer.Replace(jobName), taskID)
+	return sb.String()
 }
 
 func openTaskLogs(ctx context.Context, task *actions_model.ActionTask) (io.ReadSeekCloser, error) {
@@ -85,14 +98,14 @@ func DownloadActionsRunAllJobLogs(ctx *context_module.Base, run *actions_model.A
 
 		if zipWriter == nil {
 			ctx.SetServeHeaders(context_module.ServeHeaderOptions{
-				Filename:           fmt.Sprintf("%s-run-%d-logs.zip", sanitizeWorkflowFileName(run.WorkflowID), run.ID),
+				Filename:           joinFileName(run.WorkflowID, "run", run.ID, ".zip"),
 				ContentType:        "application/zip",
 				ContentDisposition: httplib.ContentDispositionAttachment,
 			})
 			zipWriter = zip.NewWriter(ctx.Resp)
 		}
 
-		zipFile, err := zipWriter.Create(jobLogFileName(run.WorkflowID, job.Name, task.ID))
+		zipFile, err := zipWriter.Create(joinFileName(run.WorkflowID, job.Name, task.ID, ".log"))
 		if err == nil {
 			_, err = io.Copy(zipFile, reader)
 		}
@@ -138,7 +151,7 @@ func DownloadActionsRunJobLogs(ctx *context_module.Base, ctxRepo *repo_model.Rep
 	defer reader.Close()
 
 	ctx.ServeContent(reader, context_module.ServeHeaderOptions{
-		Filename:           jobLogFileName(curJob.Run.WorkflowID, curJob.Name, task.ID),
+		Filename:           joinFileName(curJob.Run.WorkflowID, curJob.Name, task.ID, ".log"),
 		ContentLength:      &task.LogSize,
 		ContentType:        "text/plain; charset=utf-8",
 		ContentDisposition: httplib.ContentDispositionAttachment,

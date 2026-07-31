@@ -10,8 +10,22 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
 )
+
+var PathNameValidator = sync.OnceValue(func() (ret struct {
+	InvalidChars *regexp.Regexp
+	InvalidNames *regexp.Regexp
+},
+) {
+	ret.InvalidChars = regexp.MustCompile(`(?i)[<>:"/\\|?*\x{0000}-\x{001F}]`)
+	// invalid filename contents, based on https://github.com/sindresorhus/filename-reserved-regex
+	// "COM10" needs to be opened with UNC "\\.\COM10" on Windows, so itself is valid
+	ret.InvalidNames = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com\d|lpt\d)$`)
+	return ret
+})
 
 // PathJoinRel joins the path elements into a single path, each element is cleaned by path.Clean separately.
 // It only returns the following values (like path.Join), any redundant part (empty, relative dots, slashes) is removed.
