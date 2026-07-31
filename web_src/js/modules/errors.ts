@@ -67,7 +67,8 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
     if (window.config.runModeIsProd) return;
   }
 
-  // A failed request is not a code error.
+  // Don't show network errors, happens on ref-issue when navigating away
+  // while fetich is still loading.
   if (isNetworkError(err)) return;
 
   // Filter out errors from browser extensions or other non-Gitea scripts.
