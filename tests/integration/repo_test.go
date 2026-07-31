@@ -580,7 +580,7 @@ func testGeneratedSourceLink(t *testing.T) {
 
 		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
 		assert.True(t, exists)
-		assert.Equal(t, "/user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
+		assert.Equal(t, setting.AppURL+"user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
 	})
 
 	t.Run("Non-Rendered file", func(t *testing.T) {
@@ -597,7 +597,7 @@ func testGeneratedSourceLink(t *testing.T) {
 
 		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
 		assert.True(t, exists)
-		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
+		assert.Equal(t, setting.AppURL+"user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
 	})
 }
 

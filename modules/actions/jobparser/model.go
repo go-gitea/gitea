@@ -497,7 +497,8 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	}
 }
 
-func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
+// EvaluateJobIfExpression evaluates a job's `if:`.
+func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any, matrixDeferred bool) (bool, error) {
 	actJob := &model.Job{
 		Strategy: &model.Strategy{
 			FailFastString:    job.Strategy.FailFastString,
@@ -509,13 +510,20 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 	// otherwise `matrix.*` references in `if:` evaluate to null.
 	// GetMatrixes always returns at least one element (an empty map for a job without a matrix),
 	// so only a non-empty combination should populate `matrix.*`, leaving it nil otherwise.
+	//
+	// A deferred-matrix placeholder is the exception: its combinations do not exist yet, and reading the
+	// raw matrix here would either fail outright (an `include` that is still a scalar expression) or bind
+	// `matrix.*` to the expression's own source text. Leaving it nil is safe: the caller checks
+	// ExpressionReadsMatrix first, so an `if:` that reads `matrix.*` is deferred to the post-expansion pass.
 	var matrix map[string]any
-	matrixes, err := matrixesOf(actJob)
-	if err != nil {
-		return false, err
-	}
-	if len(matrixes) > 0 && len(matrixes[0]) > 0 {
-		matrix = matrixes[0]
+	if !matrixDeferred {
+		matrixes, err := matrixesOf(actJob)
+		if err != nil {
+			return false, err
+		}
+		if len(matrixes) > 0 && len(matrixes[0]) > 0 {
+			matrix = matrixes[0]
+		}
 	}
 	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
 	expr, err := rewriteSubExpression(job.If.Value, false)

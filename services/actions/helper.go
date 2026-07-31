@@ -11,6 +11,7 @@ import (
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]any, error) {
@@ -42,7 +43,7 @@ func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *act
 	}
 	var p api.WorkflowCallPayload
 	if err := json.Unmarshal([]byte(caller.CallPayload), &p); err != nil {
-		return nil, fmt.Errorf("decode caller %d payload: %w", caller.ID, err)
+		return nil, util.NewInvalidArgumentErrorf("decode caller %d payload: %v", caller.ID, err)
 	}
 	if p.Inputs == nil {
 		return map[string]any{}, nil
@@ -59,6 +60,12 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 	// Empty `if:` reduces to implicit `success()` - true iff every need finished as Success.
 	if len(parsedJob.If.Value) == 0 {
 		return allNeedsSucceed, nil
+	}
+	// A deferred-matrix placeholder has no combination yet, so an `if:` reading `matrix.*` can only be
+	// decided by the emitter's post-expansion pass, against each combination's own values.
+	// always()/failure()/cancelled() opt out of the needs gate this falls back to.
+	if job.IsMatrixDeferred && jobparser.ExpressionReadsMatrix(parsedJob.If.Value) {
+		return allNeedsSucceed || jobparser.ExpressionIgnoresNeedResults(parsedJob.If.Value), nil
 	}
 	jobResults, err := findJobNeedsAndFillJobResults(ctx, job)
 	if err != nil {
@@ -77,7 +84,7 @@ func evaluateJobIf(ctx context.Context, run *actions_model.ActionRun, attempt *a
 		return false, err
 	}
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, job)
-	return jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs)
+	return jobparser.EvaluateJobIfExpression(job.JobID, parsedJob, gitCtx, jobResults, vars, inputs, job.IsMatrixDeferred)
 }
 
 func findJobNeedsAndFillJobResults(ctx context.Context, job *actions_model.ActionRunJob) (map[string]*jobparser.JobResult, error) {
