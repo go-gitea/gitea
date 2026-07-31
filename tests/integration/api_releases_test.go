@@ -86,6 +86,10 @@ func testAPIListReleasesWithWriteToken(t *testing.T) {
 	testAPIListReleasesTagNames(t, link+"?draft=false&pre-release=false", token, []string{"v1.1"}, "exclude drafts and pre-releases")
 	testAPIListReleasesTagNames(t, link+"?pre-release=true", token, []string{"v1.0"}, "only get pre-release")
 	testAPIListReleasesTagNames(t, link+"?draft=true&pre-release=true", token, nil, "there is no pre-release draft")
+	testAPIListReleasesTagNames(t, link+"?tag_filter=v1*", token, []string{"v1.0", "v1.1"}, "prefix tag filter")
+	testAPIListReleasesTagNames(t, link+"?tag_filter=*1.0", token, []string{"v1.0"}, "suffix tag filter")
+	testAPIListReleasesTagNames(t, link+"?tag_filter=*raft*", token, []string{"draft-release"}, "substring tag filter")
+	testAPIListReleasesTagNames(t, link+"?tag_filter=v1._", token, nil, "underscore is not a wildcard")
 }
 
 func testAPIListReleasesWithReadToken(t *testing.T) {
