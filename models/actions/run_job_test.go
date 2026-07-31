@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"fmt"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -196,4 +197,44 @@ func TestCancelJobs_NestedBlockedReusableCaller(t *testing.T) {
 	assert.Equal(t, StatusCancelled, gotAttempt.Status, "attempt must aggregate to Cancelled")
 	gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
 	assert.Equal(t, StatusCancelled, gotRun.Status, "run must aggregate to Cancelled, not stay Blocked")
+}
+
+func TestParseJobDeferredMatrixPlaceholder(t *testing.T) {
+	// A placeholder is persisted with the raw matrix and without its needs, so routing its payload
+	// through jobparser.Parse re-expands that matrix. The job emitter reads `if:` (and so ParseJob)
+	// before it can expand the placeholder, and it only logs a parse failure: getting this wrong
+	// leaves the job Blocked on every pass, the run never finishes and its concurrency group is
+	// never released.
+	payload := func(matrix string) []byte {
+		return fmt.Appendf(nil, `name: test
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        %s
+    steps:
+      - run: echo
+`, matrix)
+	}
+
+	// The shape Parse happens to survive, so only the name tells the two paths apart. What Parse makes
+	// of every other shape is asserted in TestParseRawSingleWorkflowRoundTripsDeferredPlaceholder.
+	t.Run("a placeholder is read back, not re-expanded", func(t *testing.T) {
+		job := &ActionRunJob{ID: 1, JobID: "build", IsMatrixDeferred: true, WorkflowPayload: payload("version: ${{ fromJson(needs.setup.outputs.m) }}")}
+		parsed, err := job.ParseJob()
+		require.NoError(t, err)
+		require.NotNil(t, parsed)
+		assert.Equal(t, "build", parsed.Name)
+	})
+
+	t.Run("an expanded job still goes through the full parse", func(t *testing.T) {
+		job := &ActionRunJob{ID: 1, JobID: "build", WorkflowPayload: payload("version: [1]")}
+		parsed, err := job.ParseJob()
+		require.NoError(t, err)
+		require.NotNil(t, parsed)
+		// Parse bakes the combination into the name, ParseRawSingleWorkflow would not.
+		assert.Equal(t, "build (1)", parsed.Name)
+	})
 }

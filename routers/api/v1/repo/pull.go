@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	activities_model "gitea.dev/models/activities"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
@@ -41,6 +40,7 @@ import (
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
 	issue_service "gitea.dev/services/issue"
+	"gitea.dev/services/notifications"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
@@ -943,7 +943,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = activities_model.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID); err != nil {
+		if err := notifications.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID); err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
@@ -1106,7 +1106,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		headGitRepo = ctx.Repo.GitRepo
 		closer = func() {} // no need to close the head repo because it shares the base repo
 	} else {
-		headGitRepo, err = git.OpenRepository(headRepo)
+		headGitRepo, err = git.OpenRepository(ctx, headRepo)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return nil, nil

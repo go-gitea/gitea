@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -16,7 +17,6 @@ import (
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -269,6 +269,7 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 			return result, nil
 		}
 	}
+
 	vars, err := actions_model.GetVariablesOfRun(ctx, run)
 	if err != nil {
 		return nil, err
@@ -281,7 +282,10 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 			job.Run = run
 		}
 
-		updates := resolver.Resolve(ctx)
+		updates, err := resolver.Resolve(ctx)
+		if err != nil {
+			return err
+		}
 		for _, job := range jobs {
 			status, ok := updates[job.ID]
 			if !ok {
@@ -335,7 +339,10 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 		return nil, err
 	}
 
-	if expandedAnyCaller {
+	result.UpdatedJobs = append(result.UpdatedJobs, resolver.matrixUpdatedJobs...)
+	// Caller and matrix expansion both insert Blocked jobs, which only a follow-up pass resolves.
+	// Like the caller's children, matrix siblings are left out of result.Jobs and picked up there.
+	if expandedAnyCaller || resolver.matrixChanged {
 		result.RunIDsToReEmit = append(result.RunIDsToReEmit, run.ID)
 	}
 	result.CancelledJobs = resolver.cancelledJobs
@@ -343,11 +350,22 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 }
 
 type jobStatusResolver struct {
-	statuses      map[int64]actions_model.Status
+	statuses map[int64]actions_model.Status
+	// sortedIDs are the keys of statuses, so blocked jobs are resolved in insertion order.
+	// Resolve only ever rewrites statuses values, never its key set.
+	sortedIDs     []int64
 	needs         map[int64][]int64
 	jobMap        map[int64]*actions_model.ActionRunJob
 	vars          map[string]string
 	cancelledJobs []*actions_model.ActionRunJob
+	// matrixChanged is set when matrix expansion inserted siblings or failed a placeholder, both of
+	// which need a follow-up pass to resolve the dependents.
+	matrixChanged bool
+	// matrixInserted is set when matrix expansion inserted sibling rows, which Resolve stops on.
+	matrixInserted bool
+	// matrixUpdatedJobs holds jobs whose status matrix expansion persisted itself, so they are
+	// notified like the ones the caller updates from the resolved status map.
+	matrixUpdatedJobs []*actions_model.ActionRunJob
 }
 
 func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]string) *jobStatusResolver {
@@ -367,8 +385,10 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 
 	statuses := make(map[int64]actions_model.Status, len(jobs))
 	needs := make(map[int64][]int64, len(jobs))
+	sortedIDs := make([]int64, 0, len(jobs))
 	for _, job := range jobs {
 		statuses[job.ID] = job.Status
+		sortedIDs = append(sortedIDs, job.ID)
 		scope := scopedIDToJobs[job.ParentJobID]
 		for _, need := range job.Needs {
 			for _, v := range scope[need] {
@@ -376,27 +396,40 @@ func newJobStatusResolver(jobs actions_model.ActionJobList, vars map[string]stri
 			}
 		}
 	}
+	slices.Sort(sortedIDs)
 	return &jobStatusResolver{
-		statuses: statuses,
-		needs:    needs,
-		jobMap:   jobMap,
-		vars:     vars,
+		statuses:  statuses,
+		sortedIDs: sortedIDs,
+		needs:     needs,
+		jobMap:    jobMap,
+		vars:      vars,
 	}
 }
 
-func (r *jobStatusResolver) Resolve(ctx context.Context) map[int64]actions_model.Status {
+func (r *jobStatusResolver) Resolve(ctx context.Context) (map[int64]actions_model.Status, error) {
 	ret := map[int64]actions_model.Status{}
 	for i := 0; i < len(r.statuses); i++ {
-		updated := r.resolve(ctx)
+		updated, err := r.resolve(ctx)
+		if err != nil {
+			return nil, err
+		}
 		if len(updated) == 0 {
-			return ret
+			return ret, nil
 		}
 		for k, v := range updated {
 			ret[k] = v
 			r.statuses[k] = v
 		}
+		if r.matrixInserted {
+			// Matrix expansion inserted sibling rows this round. They are not in statuses/needs, so
+			// another round would resolve a dependent of the expanded job against the placeholder's
+			// own combination alone: if that combination was just skipped by its `if:`, the dependent
+			// sees all its needs done and gets skipped before any sibling has even started. Stop here
+			// and let the re-emit, which reloads the full job set, resolve them.
+			return ret, nil
+		}
 	}
-	return ret
+	return ret, nil
 }
 
 func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed bool) {
@@ -418,11 +451,22 @@ func (r *jobStatusResolver) resolveCheckNeeds(id int64) (allDone, allSucceed boo
 	return allDone, allSucceed
 }
 
-func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
+func (r *jobStatusResolver) resolve(ctx context.Context) (map[int64]actions_model.Status, error) {
 	ret := map[int64]actions_model.Status{}
+
+	slots := maxParallelSlots{}
 	for id, status := range r.statuses {
+		slots.hold(r.jobMap[id], status)
+	}
+
+	for _, id := range r.sortedIDs {
+		status := r.statuses[id]
 		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
+			continue
+		}
+		// An expanded caller has been resolved in an earlier pass, skip.
+		if actionRunJob.IsReusableCaller && actionRunJob.IsExpanded {
 			continue
 		}
 		// A child of a caller cannot start until the caller has become "ready" (children inserted, CallPayload populated).
@@ -436,8 +480,65 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			continue
 		}
 
+		// Decide whether the job runs at all before expanding a deferred matrix: a job whose needs
+		// failed or were skipped has to be skipped too, not failed for a matrix those needs never
+		// produced the outputs for. An `if:` that reads `matrix.*` cannot be decided this early, so
+		// evaluateJobIf reduces it to that needs gate and the pass below decides it per combination.
+		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
+		if err != nil {
+			// TODO: surface deterministic expression errors to users by failing the job with a message.
+			log.Error("evaluateJobIf failed, job will stay blocked: job: %d, err: %v", id, err)
+			continue
+		}
+		if !shouldStartJob {
+			ret[id] = actions_model.StatusSkipped
+			continue
+		}
+
+		// Expand a needs-dependent matrix now that its needs are done and the job is going to run.
+		wasDeferred := actionRunJob.IsMatrixDeferred
+		siblings, err := expandDeferredMatrix(ctx, actionRunJob, r.vars)
+		if err != nil {
+			// Aborting the pass is required: once the placeholder is claimed as the first combination,
+			// committing here would drop the remaining ones for good. Before the claim it is what gets
+			// the pass retried by the job-emitter queue, since a run whose needs are all done has
+			// nothing left to trigger another pass on its own.
+			return nil, fmt.Errorf("expand matrix of job %d: %w", id, err)
+		}
+		if actionRunJob.Status != actions_model.StatusBlocked {
+			// expandDeferredMatrix already persisted the failure, so it bypasses `ret`.
+			r.statuses[id] = actionRunJob.Status
+			r.matrixUpdatedJobs = append(r.matrixUpdatedJobs, actionRunJob)
+			r.matrixChanged = true
+			continue
+		}
+		if actionRunJob.IsMatrixDeferred {
+			continue // could not be expanded yet, it stays blocked and is retried on the next pass
+		}
+		if len(siblings) > 0 {
+			r.matrixChanged, r.matrixInserted = true, true
+		}
+		if wasDeferred {
+			// This row is now the first combination, and the `if:` can be evaluated.
+			// Gate it on its own combination here, as the siblings will be on the next pass.
+			shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
+			if err != nil {
+				log.Error("evaluateJobIf failed after matrix expansion, job will stay blocked: job: %d, err: %v", id, err)
+				continue
+			}
+			if !shouldStartJob {
+				ret[id] = actions_model.StatusSkipped
+				continue
+			}
+		}
+
+		// A slot-starved job cannot start, skip the following checks.
+		if !slots.available(actionRunJob) {
+			continue
+		}
+
 		// update concurrency and check whether the job can run now
-		err := updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
+		err = updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
 		if err != nil {
 			// The err can be caused by different cases: database error, or syntax error, or the needed jobs haven't completed
 			// At the moment there is no way to distinguish them.
@@ -446,29 +547,22 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			continue
 		}
 
-		shouldStartJob, err := evaluateJobIf(ctx, actionRunJob.Run, nil, actionRunJob, r.vars, allSucceed)
+		newStatus, cancelledJobs, err := PrepareToStartJobWithConcurrency(ctx, actionRunJob)
 		if err != nil {
-			// TODO: surface deterministic expression errors to users by failing the job with a message.
-			log.Error("evaluateJobIf failed, job will stay blocked: job: %d, err: %v", id, err)
-			continue
+			log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
+		} else {
+			r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
 		}
 
-		newStatus := util.Iif(shouldStartJob, actions_model.StatusWaiting, actions_model.StatusSkipped)
-		if newStatus == actions_model.StatusWaiting {
-			var cancelledJobs []*actions_model.ActionRunJob
-			newStatus, cancelledJobs, err = PrepareToStartJobWithConcurrency(ctx, actionRunJob)
-			if err != nil {
-				log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
-			} else {
-				r.cancelledJobs = append(r.cancelledJobs, cancelledJobs...)
-			}
+		if newStatus == actions_model.StatusWaiting && !slots.take(actionRunJob) {
+			continue // no free slot, leave blocked
 		}
 
 		if newStatus != actions_model.StatusBlocked {
 			ret[id] = newStatus
 		}
 	}
-	return ret
+	return ret, nil
 }
 
 func updateConcurrencyEvaluationForJobWithNeeds(ctx context.Context, actionRunJob *actions_model.ActionRunJob, vars map[string]string) error {
