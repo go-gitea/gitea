@@ -1,5 +1,4 @@
 # Keeps the repository's total cache size below a fixed limit.
-
 name: cache-prune
 
 on:

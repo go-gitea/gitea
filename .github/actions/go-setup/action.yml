@@ -13,8 +13,8 @@ runs:
   using: composite
   steps:
     - uses: ./.github/actions/free-disk-space
-    - id: setup-go
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      id: setup-go
       with:
         go-version-file: go.mod
         check-latest: true
