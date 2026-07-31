@@ -58,7 +58,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 	}
 
 	// Original repo to read template from.
-	baseGitRepo, err := git.OpenRepository(ctx.pr.BaseRepo)
+	baseGitRepo, err := git.OpenRepository(ctx, ctx.pr.BaseRepo)
 	if err != nil {
 		log.Error("Unable to get Git repo for rebase: %v", err)
 		return err

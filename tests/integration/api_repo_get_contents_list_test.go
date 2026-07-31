@@ -73,7 +73,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := git.OpenRepository(repo1)
+	gitRepo, err := git.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

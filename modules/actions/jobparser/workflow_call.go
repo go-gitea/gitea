@@ -177,7 +177,7 @@ func EvaluateCallerWith(
 	}}
 
 	var matrix map[string]any
-	matrixes, err := actJob.GetMatrixes()
+	matrixes, err := matrixesOf(actJob)
 	if err != nil {
 		return nil, fmt.Errorf("get caller %q matrix: %w", jobID, err)
 	}

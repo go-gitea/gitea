@@ -147,7 +147,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		return nil
 	}
 
-	gitRepo, err := git.OpenRepository(input.Repo)
+	gitRepo, err := git.OpenRepository(ctx, input.Repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}
@@ -590,7 +590,7 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 		return nil
 	}
 
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %w", err)
 	}

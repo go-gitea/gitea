@@ -14,6 +14,7 @@ import (
 	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func minimalWorkflowPayload(jobID string) []byte {
@@ -257,7 +258,9 @@ jobs:
 			}
 
 			r := newJobStatusResolver(tt.jobs, nil)
-			assert.Equal(t, want, r.Resolve(ctx))
+			got, err := r.Resolve(ctx)
+			require.NoError(t, err)
+			assert.Equal(t, want, got)
 		})
 	}
 }
@@ -277,7 +280,9 @@ func Test_maxParallelConverges(t *testing.T) {
 	}
 
 	for cycle := range totalJobs + 1 {
-		for id, status := range newJobStatusResolver(jobs, nil).Resolve(ctx) {
+		updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
+		require.NoError(t, err)
+		for id, status := range updates {
 			jobs[id-1].Status = status
 		}
 		counts := statusCounts(jobs)
@@ -562,7 +567,8 @@ func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
 	}
 
 	for cycle := range 2 * len(callers) {
-		promoted := newJobStatusResolver(callers, nil).Resolve(ctx)
+		promoted, err := newJobStatusResolver(callers, nil).Resolve(ctx)
+		require.NoError(t, err)
 		for id, status := range promoted {
 			caller := idToCaller[id]
 			assert.False(t, caller.IsExpanded, "cycle %d: resolver re-promoted already-expanded caller %d", cycle, id)
@@ -582,4 +588,40 @@ func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
 	}
 
 	assert.Equal(t, len(callers), statusCounts(callers)[actions_model.StatusSuccess])
+}
+
+// Test_jobStatusResolverStopsAfterMatrixInsert covers the invariant that keeps a dynamic matrix's
+// dependents honest: a round resolved after an insert would judge them against a job set that is
+// missing the siblings. See Resolve for why that is wrong.
+func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
+	ctx := t.Context()
+
+	// build (2) stands for the expanded anchor: it reaches a terminal status this round, which is
+	// what would let report (3) resolve in the next one.
+	newChain := func() actions_model.ActionJobList {
+		return actions_model.ActionJobList{
+			{ID: 1, JobID: "generate", Status: actions_model.StatusFailure, WorkflowPayload: minimalWorkflowPayload("generate")},
+			{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{"generate"}, WorkflowPayload: minimalWorkflowPayload("build")},
+			{ID: 3, JobID: "report", Status: actions_model.StatusBlocked, Needs: []string{"build"}, WorkflowPayload: minimalWorkflowPayload("report")},
+		}
+	}
+
+	t.Run("without an insert the whole chain resolves in one pass", func(t *testing.T) {
+		got, err := newJobStatusResolver(newChain(), nil).Resolve(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, map[int64]actions_model.Status{
+			2: actions_model.StatusSkipped,
+			3: actions_model.StatusSkipped,
+		}, got)
+	})
+
+	t.Run("an insert stops the pass before the dependents are resolved", func(t *testing.T) {
+		r := newJobStatusResolver(newChain(), nil)
+		r.matrixInserted = true // as resolve() sets it once expansion has inserted siblings
+
+		got, err := r.Resolve(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, map[int64]actions_model.Status{2: actions_model.StatusSkipped}, got,
+			"report must wait for the re-emit, which sees the sibling combinations too")
+	})
 }

@@ -363,3 +363,93 @@ func rowIDsOf(jobs ...*actions_model.ActionRunJob) []int64 {
 	}
 	return out
 }
+
+func TestCollectMatrixCollapse(t *testing.T) {
+	// A dynamic-matrix group is the anchor (the combination that kept DeferredMatrixPayload) plus its
+	// sibling combinations. Collapsing it rewinds the anchor to an unexpanded placeholder and drops
+	// the siblings, so the new attempt re-derives the matrix from the fresh needs outputs.
+	matrixRow := func(id, attemptJobID int64, jobID string, parentID int64, isAnchor, isCaller bool, needs ...string) *actions_model.ActionRunJob {
+		job := templateJob(id, attemptJobID, jobID, parentID, isCaller, needs...)
+		if isAnchor {
+			job.DeferredMatrixPayload = []byte("name: t\non: push\njobs:\n  build:\n    steps: [{run: echo}]\n")
+		}
+		return job
+	}
+
+	t.Run("a rerun of the needs collapses the group", func(t *testing.T) {
+		generate := templateJob(101, 1, "generate", 0, false)
+		build1 := matrixRow(102, 2, "build", 0, true, false, "generate")
+		build2 := matrixRow(103, 3, "build", 0, false, false, "generate")
+		plan := &rerunPlan{templateJobs: []*actions_model.ActionRunJob{generate, build1, build2}}
+		require.NoError(t, plan.expandRerunJobIDs([]*actions_model.ActionRunJob{generate}))
+		plan.skipCloneTemplateJobIDs = plan.collectResetCallerDescendants()
+		plan.collectMatrixCollapse()
+
+		assert.ElementsMatch(t, rowIDsOf(build1), plan.matrixPlaceholderTemplateIDs.Values())
+		assert.ElementsMatch(t, rowIDsOf(build2), plan.matrixSiblingSkipTemplateIDs.Values())
+	})
+
+	t.Run("re-running only a combination keeps the group as it is", func(t *testing.T) {
+		// generate is not re-run, so its outputs still stand and the combinations stay valid.
+		generate := templateJob(101, 1, "generate", 0, false)
+		build1 := matrixRow(102, 2, "build", 0, true, false, "generate")
+		build2 := matrixRow(103, 3, "build", 0, false, false, "generate")
+		plan := &rerunPlan{templateJobs: []*actions_model.ActionRunJob{generate, build1, build2}}
+		require.NoError(t, plan.expandRerunJobIDs([]*actions_model.ActionRunJob{build2}))
+		plan.skipCloneTemplateJobIDs = plan.collectResetCallerDescendants()
+		plan.collectMatrixCollapse()
+
+		assert.Empty(t, plan.matrixPlaceholderTemplateIDs)
+		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
+	})
+
+	t.Run("a pass-through anchor is never rewound", func(t *testing.T) {
+		// build is a matrix-expanded reusable caller. Re-running a job inside build (1)'s subtree
+		// together with generate leaves build (1) an ancestor rather than a rerun job, while build (2)
+		// does join the rerun set. execRerunPlan clones an ancestor with its old terminal status, so
+		// restoring the placeholder onto it would leave a done job holding the raw, unexpanded payload
+		// that nothing ever expands - and drop build (2) on top of it.
+		generate := templateJob(101, 1, "generate", 0, false)
+		build1 := matrixRow(102, 2, "build", 0, true, true, "generate")
+		build2 := matrixRow(103, 3, "build", 0, false, true, "generate")
+		inner := templateJob(104, 4, "inner", 102, false)
+		plan := &rerunPlan{templateJobs: []*actions_model.ActionRunJob{generate, build1, build2, inner}}
+		require.NoError(t, plan.expandRerunJobIDs([]*actions_model.ActionRunJob{inner, generate}))
+		plan.skipCloneTemplateJobIDs = plan.collectResetCallerDescendants()
+
+		require.Contains(t, plan.ancestorAttemptJobIDs, build1.AttemptJobID)
+		require.NotContains(t, plan.rerunAttemptJobIDs, build1.AttemptJobID)
+		require.Contains(t, plan.rerunAttemptJobIDs, build2.AttemptJobID)
+
+		plan.collectMatrixCollapse()
+		assert.Empty(t, plan.matrixPlaceholderTemplateIDs)
+		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
+	})
+
+	t.Run("an unexpanded placeholder is rewound whenever it is re-run", func(t *testing.T) {
+		// The previous attempt never got to expand it, so there is nothing to reuse.
+		generate := templateJob(101, 1, "generate", 0, false)
+		build := matrixRow(102, 2, "build", 0, true, false, "generate")
+		build.IsMatrixDeferred = true
+		plan := &rerunPlan{templateJobs: []*actions_model.ActionRunJob{generate, build}}
+		require.NoError(t, plan.expandRerunJobIDs([]*actions_model.ActionRunJob{build}))
+		plan.skipCloneTemplateJobIDs = plan.collectResetCallerDescendants()
+		plan.collectMatrixCollapse()
+
+		assert.ElementsMatch(t, rowIDsOf(build), plan.matrixPlaceholderTemplateIDs.Values())
+		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
+	})
+
+	t.Run("a plan-time matrix is left alone", func(t *testing.T) {
+		generate := templateJob(101, 1, "generate", 0, false)
+		build1 := matrixRow(102, 2, "build", 0, false, false, "generate")
+		build2 := matrixRow(103, 3, "build", 0, false, false, "generate")
+		plan := &rerunPlan{templateJobs: []*actions_model.ActionRunJob{generate, build1, build2}}
+		require.NoError(t, plan.expandRerunJobIDs(nil))
+		plan.skipCloneTemplateJobIDs = plan.collectResetCallerDescendants()
+		plan.collectMatrixCollapse()
+
+		assert.Empty(t, plan.matrixPlaceholderTemplateIDs)
+		assert.Empty(t, plan.matrixSiblingSkipTemplateIDs)
+	})
+}
