@@ -372,9 +372,6 @@ func UploadHandler(ctx *context.Context) {
 			log.Error("Error whilst uploadOrVerify LFS OID[%s]: %v", p.Oid, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
-		if _, err = git_model.RemoveLFSMetaObjectByOid(ctx, repository.ID, p.Oid); err != nil {
-			log.Error("Error whilst removing MetaObject for LFS OID[%s]: %v", p.Oid, err)
-		}
 		return
 	}
 
