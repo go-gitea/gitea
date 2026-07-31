@@ -137,6 +137,9 @@ importers:
       idiomorph:
         specifier: 0.7.4
         version: 0.7.4
+      is-network-error:
+        specifier: 1.3.2
+        version: 1.3.2
       jquery:
         specifier: 4.0.0
         version: 4.0.0
@@ -2922,6 +2925,10 @@ packages:
   is-negative-zero@2.0.3:
     resolution: {integrity: sha512-5KoIu2Ngpyek75jXodFvnafB6DJgr3u8uuK0LEZJjrU19DrMD3EVERaR8sjz8CCGgpZvxPl9SuE1GMVPFHx1mw==}
     engines: {node: '>= 0.4'}
+
+  is-network-error@1.3.2:
+    resolution: {integrity: sha512-PhBY86zaxNZUuWP6h13Vu5oFe0XY6/UlKzQnYFELzGVHygP3MxmvTfYSG7GN3aIab/iWudSMgjSnG9Dq+nHrgA==}
+    engines: {node: '>=16'}
 
   is-number-object@1.1.1:
     resolution: {integrity: sha512-lZhclumE1G6VYD8VHe35wFaIif+CTy5SJIi5+3y4psDgWu4wPDoBhF8NxUOinEc7pHgiTsT6MaBb92rKhhD+Xw==}
@@ -7390,6 +7397,8 @@ snapshots:
 
   is-negative-zero@2.0.3:
     optional: true
+
+  is-network-error@1.3.2: {}
 
   is-number-object@1.1.1:
     dependencies:

@@ -1,5 +1,6 @@
 // keep this file lightweight, it's imported into IIFE chunk in bootstrap
 import {html} from '../utils/html.ts';
+import isNetworkError from 'is-network-error';
 import type {Intent} from '../types.ts';
 
 /** Extract a message string from an unknown caught value. */
@@ -65,6 +66,9 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
     if (message) console.error(new Error(message));
     if (window.config.runModeIsProd) return;
   }
+
+  // A failed or aborted request is not a code error.
+  if (errorName(err) === 'AbortError' || isNetworkError(err)) return;
 
   // Filter out errors from browser extensions or other non-Gitea scripts.
   if (!isGiteaError(filename ?? '', err?.stack ?? '')) return;
