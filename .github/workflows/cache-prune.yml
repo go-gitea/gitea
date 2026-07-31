@@ -1,0 +1,38 @@
+name: cache-prune
+
+# Keeps the repository's total cache size below a fixed limit, so that GitHub never
+# rejects a save for being over the allowance.
+
+on:
+  schedule:
+    - cron: "37 2 * * *" # every day at 02:37 UTC
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  actions: write # to delete caches
+
+concurrency:
+  group: cache-prune
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    if: github.repository == 'go-gitea/gitea'
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      # Deletes least recently used first, the order GitHub itself evicts in, which takes
+      # superseded generations first as those stop being restored once a newer one exists.
+      - name: delete caches over the size limit
+        run: |
+          caches=$(gh cache list --limit 1000 --sort last_accessed_at --order asc --json id,key,sizeInBytes)
+          size=$(jq '[.[].sizeInBytes] | add // 0' <<< "$caches")
+          echo "cache usage: $((size / 1000000)) MB"
+          jq -r '.[] | "\(.id) \(.sizeInBytes) \(.key)"' <<< "$caches" |
+            while [ "$size" -gt 6500000000 ] && read -r id bytes key; do
+              echo "deleting $key"
+              gh cache delete "$id"
+              size=$((size - bytes))
+            done
