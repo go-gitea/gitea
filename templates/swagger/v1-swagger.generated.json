@@ -31065,12 +31065,12 @@
         "X-PerPage": {
           "type": "integer",
           "format": "int64",
-          "description": "Commits per page"
+          "description": "Files per page"
         },
         "X-Total-Count": {
           "type": "integer",
           "format": "int64",
-          "description": "Total commit count"
+          "description": "Total file count"
         }
       }
     },

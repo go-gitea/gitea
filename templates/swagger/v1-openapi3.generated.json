@@ -213,14 +213,14 @@
             }
           },
           "X-PerPage": {
-            "description": "Commits per page",
+            "description": "Files per page",
             "schema": {
               "format": "int64",
               "type": "integer"
             }
           },
           "X-Total-Count": {
-            "description": "Total commit count",
+            "description": "Total file count",
             "schema": {
               "format": "int64",
               "type": "integer"
