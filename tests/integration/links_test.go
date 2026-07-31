@@ -31,7 +31,7 @@ func TestLinks(t *testing.T) {
 	t.Run("NoLoginNotExist", testLinksNoLoginNotExist)
 	t.Run("AsUser", testLinksAsUser)
 	t.Run("RepoCommon", testLinksRepoCommon)
-	t.Run("SwaggerBasePath", testLinksApiJson)
+	t.Run("ApiJson", testLinksApiJson)
 }
 
 func testLinksApiJson(t *testing.T) {
