@@ -6,6 +6,7 @@ package composer
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.dev/modules/charset"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -24,6 +26,13 @@ import (
 
 // TypeProperty is the name of the property for Composer package types
 const TypeProperty = "composer.type"
+
+const (
+	// DevBranchProperty is the version property for the linked Composer branch
+	DevBranchProperty = "composer.dev_branch"
+	// DevBranchRepoProperty is the version property for the linked Composer repository ID
+	DevBranchRepoProperty = "composer.dev_branch.repo_id"
+)
 
 var (
 	// ErrMissingComposerFile indicates a missing composer.json file
@@ -266,7 +275,8 @@ func ParsePackage(r ReadSeekAt, optVersion ...string) (*PackageInfo, error) {
 	if len(dataReadmeMd) == 0 {
 		cj.Readme = ""
 	} else {
-		cj.Readme = string(dataReadmeMd)
+		readmeContent := charset.ToUTF8WithFallback(dataReadmeMd, charset.ConvertOpts{ErrorReplacement: []byte{'?'}})
+		cj.Readme = string(bytes.ToValidUTF8(readmeContent, []byte{'?'}))
 	}
 
 	// FIXME: legacy format: strings.ToLower(fmt.Sprintf("%s.%s.zip", strings.ReplaceAll(cp.Name, "/", "-"), cp.Version)), doesn't read good
