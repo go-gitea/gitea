@@ -40,7 +40,7 @@ func openTaskLogs(ctx context.Context, task *actions_model.ActionTask) (io.ReadS
 	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, util.ErrNotExist) {
-			return nil, util.NewNotExistErrorf("logs not found")
+			return nil, err
 		}
 		return nil, fmt.Errorf("OpenLogs: %w", err)
 	}
