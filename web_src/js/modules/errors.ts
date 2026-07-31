@@ -67,8 +67,8 @@ export function processWindowErrorEvent({error, reason, message, type, filename,
     if (window.config.runModeIsProd) return;
   }
 
-  // Don't show network errors, happens on ref-issue when navigating away
-  // while fetich is still loading.
+  // Don't show network errors, happens on ref-issue when clicking on the
+  // issue link while the fetch request is still running.
   if (isNetworkError(err)) return;
 
   // Filter out errors from browser extensions or other non-Gitea scripts.
