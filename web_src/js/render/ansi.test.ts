@@ -40,8 +40,8 @@ test('renderAnsi', () => {
   // a color as ":" sub-parameters, with and without a color space id, not consuming the codes after
   expect(renderAnsi('\x1b[38:2::255:0:0ma\x1b[48:2:0:0:255mb')).toEqual('<span style="color: #ff0000;">a</span><span style="color: #ff0000; background-color: #0000ff;">b</span>');
   expect(renderAnsi('\x1b[1;38:5:9;4mx')).toEqual('<span class="ansi-bold ansi-underline ansi-bright-red-fg">x</span>');
-  // a private CSI carries no style, even ending in "m"
-  expect(renderAnsi('\x1b[31mred\x1b[>4;2m!')).toEqual('<span class="ansi-red-fg">red</span><span class="ansi-red-fg">!</span>');
+  // a private CSI carries no style, even ending in "m", and does not split the run around it
+  expect(renderAnsi('\x1b[31mred\x1b[>4;2m!')).toEqual('<span class="ansi-red-fg">red!</span>');
 
   // OSC 8 hyperlinks
   expect(renderAnsi('\x1b]8;;https://example.com\x1b\\text\x1b]8;;\x1b\\')).toEqual(`<a href="https://example.com" target="_blank">text</a>`);
@@ -58,6 +58,9 @@ test('renderAnsi', () => {
   expect(renderAnsi('\x1bPfoo\x1b\\a\x1b_G1;2\x1b\\b\x1b^priv\x1b\\c\x1bXsos\x1b\\d')).toEqual('abcd');
   expect(renderAnsi('\x1b(Ba\x1b#8b\x1b7c\x1b8d\x1b]0;unterminated')).toEqual('abcd');
   expect(renderAnsi('\x1b]0;unterminated\x1b\x1b[31mred')).toEqual('<span class="ansi-red-fg">red</span>');
+  // a string sequence also ends at the 8-bit ST, which a runner may emit instead of "\x1b\\"
+  expect(renderAnsi('\x1b]0;title\x9cvisible')).toEqual('visible');
+  expect(renderAnsi('\x1b]8;;https://example.com\x9ctext\x1b]8;;\x9c')).toEqual(`<a href="https://example.com" target="_blank">text</a>`);
   // an OSC 11 background color query, a CSI window title push and an OSC 2 title
   expect(renderAnsi('\x1b]11;?\x1b\\\x1b[22;2t\x1b]2;🟡 a title\x1b\\go: downloading')).toEqual('go: downloading');
 

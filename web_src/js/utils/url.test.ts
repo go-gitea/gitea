@@ -47,6 +47,7 @@ test('trimUrlPunctuation', () => {
   expect(trimUrlPunctuation("https://example.com'")).toEqual('https://example.com');
   expect(trimUrlPunctuation('https://example.com"')).toEqual('https://example.com');
   expect(trimUrlPunctuation('https://example.com.,;')).toEqual('https://example.com');
+  expect(trimUrlPunctuation('https://example.com/a(b)))')).toEqual('https://example.com/a(b)');
   expect(trimUrlPunctuation('https://example.com/path')).toEqual('https://example.com/path');
   expect(trimUrlPunctuation('https://example.com/path_(wiki)')).toEqual('https://example.com/path_(wiki)');
   expect(trimUrlPunctuation('https://example.com)')).toEqual('https://example.com');

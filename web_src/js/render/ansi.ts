@@ -7,7 +7,8 @@ const eraseInLine = /\x1b\[\d?[JK]/g;
 // a CSI, an OSC 8 hyperlink open or close, any other string sequence (OSC, DCS, SOS, PM, APC), then
 // an escape with its intermediates. Only SGR ("m") and OSC 8 render, the rest are matched to be
 // dropped, an unterminated string sequence up to the next escape where a terminal also ends it.
-const escapeSequence = /\x1b\[([0-9;:?<=>]*)[\x20-\x2f]*([\x40-\x7e])|\x1b\]8;[^;\x07\x1b]*;([^\x07\x1b]*)(?:\x07|\x1b\\)|\x1b[\]P^_X][^\x07\x1b]*(?:\x07|\x1b\\)?|\x1b[\x20-\x2f]*[\x30-\x5a\x5c-\x7e]/g;
+// A string sequence ends at BEL, at "\x1b\\" or at the 8-bit ST, which a runner may emit as "\x9c".
+const escapeSequence = /\x1b\[([0-9;:?<=>]*)[\x20-\x2f]*([\x40-\x7e])|\x1b\]8;[^;\x07\x1b\x9c]*;([^\x07\x1b\x9c]*)(?:\x07|\x1b\\|\x9c)|\x1b[\]P^_X][^\x07\x1b\x9c]*(?:\x07|\x1b\\|\x9c)?|\x1b[\x20-\x2f]*[\x30-\x5a\x5c-\x7e]/g;
 const hyperlinkUrl = /^https?:\/\//i;
 // a CSI marked private carries no SGR, whatever its final byte
 const privateParams = /^[<=>?]/;
@@ -86,7 +87,8 @@ const isAnsiStyleInitial = (style: Readonly<AnsiStyle>) =>
   !style.bold && !style.faint && !style.italic && !style.blink &&
   !style.strikethrough && !style.overline && !style.inverse && !style.conceal;
 
-// 0-7 normal, 8-15 bright, 16-231 a 6x6x6 rgb cube, 232-255 grayscale
+// 0-7 normal, 8-15 bright, 16-231 a 6x6x6 rgb cube, 232-255 grayscale. The cube and grayscale
+// are the same values the ".term-fgx*" rules hardcode for the console renderer.
 const colorNames = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
 const cubeLevels = [0, 95, 135, 175, 215, 255];
 const palette256: AnsiColor[] = [
@@ -170,7 +172,8 @@ function renderText(target: ParentNode, text: string, style: Readonly<AnsiStyle>
   if (style.strikethrough) classes.push('ansi-line-through');
   if (style.overline) classes.push('ansi-overline');
   if (style.underline && style.underline !== 'solid') classes.push(`ansi-${style.underline}`);
-  if (style.underlineColor && classes.length) applyColor(style.underlineColor, 'text-decoration-color');
+  const decorated = style.underline || style.strikethrough || style.overline;
+  if (style.underlineColor && decorated) applyColor(style.underlineColor, 'text-decoration-color');
 
   // inverse swaps foreground and background, including the terminal defaults when either is unset.
   // conceal emits no foreground at all, so an inline color can never outrank the concealing class
@@ -202,28 +205,32 @@ export class AnsiLineRenderer {
     }
 
     let pos = 0;
-    let link: HTMLAnchorElement | null = null; // an open OSC 8 hyperlink, collecting the styled text
-    const closeLink = () => {
-      if (link) target.append(link);
-      link = null;
+    let pending = ''; // text is held until the style changes, so an escape between runs cannot split them
+    let container: ParentNode = target; // an open OSC 8 hyperlink, collecting the styled text
+    const flush = () => {
+      if (pending) renderText(container, pending, this.style, container === target); // a link is not linkified again
+      pending = '';
     };
-    const addText = (text: string) => renderText(link ?? target, text, this.style, !link); // a link is not linkified again
 
     escapeSequence.lastIndex = 0; // the regex is reused, so its match position must be reset
     for (let match = escapeSequence.exec(part); match; match = escapeSequence.exec(part)) {
-      if (match.index > pos) addText(part.slice(pos, match.index));
+      if (match.index > pos) pending += part.slice(pos, match.index);
       pos = match.index + match[0].length;
       const [, params, final, url] = match; // see the group order on escapeSequence
       if (final === 'm' && !privateParams.test(params)) {
+        flush();
         this.style = applySgr(this.style, params);
       } else if (url !== undefined) { // an OSC 8, with an empty url when it closes a hyperlink
-        closeLink();
-        if (hyperlinkUrl.test(url)) link = anchor(url); // any other scheme renders as plain text
+        flush();
+        // any scheme but http(s) renders as plain text, and a hyperlink never spills past the part
+        const link = hyperlinkUrl.test(url) ? anchor(url) : null;
+        if (link) target.append(link);
+        container = link ?? target;
       }
     }
     const cutOff = part.indexOf('\x1b', pos); // a leftover escape is a sequence cut off by the line end
-    addText(part.slice(pos, cutOff === -1 ? part.length : cutOff));
-    closeLink(); // a hyperlink left open ends with the part, never spilling into the next
+    pending += part.slice(pos, cutOff === -1 ? part.length : cutOff);
+    flush();
   }
 
   renderLine(el: HTMLElement, line: string): void {
