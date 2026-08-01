@@ -80,7 +80,7 @@ func TestCodespaceRoutes(t *testing.T) {
 		location := created.Header().Get("Location")
 		require.True(t, strings.HasPrefix(location, "/-/codespaces/"))
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, location), http.StatusOK)
-		loginUser(t, "user4").MakeRequest(t, NewRequest(t, http.MethodGet, location), http.StatusForbidden)
+		loginUser(t, "user4").MakeRequest(t, NewRequest(t, http.MethodGet, location), http.StatusNotFound)
 
 		adminSession := loginUser(t, "user1")
 		adminSession.MakeRequest(t, NewRequest(t, http.MethodGet, "/-/admin/codespaces/managers"), http.StatusOK)
@@ -604,11 +604,19 @@ func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {
 func createCodespaceFromRepository(t *testing.T, session *TestSession, path, refType, refName string) *httptest.ResponseRecorder {
 	t.Helper()
 	values := map[string]string{"ref_type": refType, "ref_name": refName}
-	confirmation := session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, path, values), http.StatusOK)
-	requestHash, ok := NewHTMLParser(t, confirmation.Body).doc.Find(`input[name="request_hash"]`).Attr("value")
+	query := url.Values{}
+	query.Set("ref_type", refType)
+	query.Set("ref_name", refName)
+	confirmation := session.MakeRequest(t, NewRequest(t, http.MethodGet, path+"/new?"+query.Encode()), http.StatusOK)
+	doc := NewHTMLParser(t, confirmation.Body).doc
+	requestHash, ok := doc.Find(`input[name="request_hash"]`).Attr("value")
 	require.True(t, ok)
 	require.NotEmpty(t, requestHash)
+	environmentTag, ok := doc.Find(`.codespace-create-environment-option`).First().Attr("data-value")
+	require.True(t, ok)
+	require.NotEmpty(t, environmentTag)
 	values["request_hash"] = requestHash
+	values["environment_tag"] = environmentTag
 	return session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, path, values), http.StatusSeeOther)
 }
 

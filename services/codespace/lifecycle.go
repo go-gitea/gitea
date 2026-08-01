@@ -59,6 +59,7 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 			return nil
 		}
 
+		// A stale final ends Manager work but must not overwrite a newer operation, so acknowledge it without changing state.
 		if !isCurrentRunningOperation(codespace, manager.ID, opts.OperationRVersion) || codespace.OperationType != operationType {
 			return nil
 		}

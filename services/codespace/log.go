@@ -321,6 +321,7 @@ func appendEncodedLogLines(ctx context.Context, codespace *codespace_model.Codes
 }
 
 func appendInternalStateSummary(ctx context.Context, summary *internalStateSummary) {
+	// Diagnostic summaries run after the lifecycle commit so logging failure cannot roll back an accepted state transition.
 	if summary == nil || summary.Message == "" {
 		return
 	}

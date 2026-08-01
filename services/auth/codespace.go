@@ -30,6 +30,7 @@ func IsCodespaceTokenForbidden(err error) bool {
 }
 
 func codespaceTokenAuthError(err error) error {
+	// Once a credential uses the Codespace prefix, reject it terminally so another auth method cannot reinterpret it with broader authority.
 	if err == nil || errors.Is(err, codespace_service.ErrResolveGiteaTokenUnmatched) {
 		return nil
 	}

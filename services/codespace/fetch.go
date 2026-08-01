@@ -389,6 +389,7 @@ func claimQueuedOperation(ctx context.Context, candidate *codespace_model.Codesp
 		OperationStartedUnix:  startedUnix,
 		OperationDeadlineUnix: deadlineUnix,
 	}
+	// Keep every scheduling predicate in the UPDATE so concurrent Managers cannot both claim a stale candidate.
 	query := db.GetEngine(ctx).
 		Where("uuid = ? AND operation_r_version = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ?",
 			candidate.UUID, candidate.OperationRVersion, candidate.OperationType, codespace_model.OperationStatusQueued, candidate.OperationTrigger)

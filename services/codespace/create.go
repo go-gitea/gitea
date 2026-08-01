@@ -186,6 +186,7 @@ func CreateCodespace(ctx context.Context, opts CreateCodespaceOptions) (*CreateC
 	}
 
 	var result *CreateCodespaceResult
+	// Rebuild the reviewed plan under both locks so ref, configuration, permissions, and secrets cannot change before the transaction commits.
 	err := globallock.LockAndDo(ctx, codespaceUserRelationLockKey(opts.User.ID), func(ctx context.Context) error {
 		return globallock.LockAndDo(ctx, repository_service.WorkingLockKey(opts.Repo.ID), func(ctx context.Context) error {
 			prepared, err := prepareCodespace(ctx, opts)
@@ -310,6 +311,7 @@ func prepareCodespace(ctx context.Context, opts CreateCodespaceOptions) (*prepar
 	if err != nil {
 		return nil, err
 	}
+	// Fork pull requests execute code outside the source repository's trust boundary, so they never receive user secrets.
 	secretInjectionAllowed := sourceRef.PullRequest == nil || !sourceRef.PullRequest.IsFork
 	if secretInjectionAllowed {
 		secretInjectionAllowed, err = userCanUseSecretRepository(ctx, opts.User, opts.Repo)
@@ -549,6 +551,7 @@ func resolveCreatePermissions(ctx context.Context, user *user_model.User, source
 }
 
 func createPlanHash(repoID int64, sourceRef *createSourceRef, devContainer *createDevContainerPlan) string {
+	// The environment tag is a final form choice revalidated by CreateCodespace; the hash covers repository-derived inputs that require renewed review.
 	hash := sha256.New()
 	fmt.Fprintf(hash, "%d\x00%s\x00%s\x00%s\x00%s\x00%s\x00%s", repoID, sourceRef.Type, sourceRef.StoredName, sourceRef.CommitSHA, devContainer.Path, devContainer.ContentSHA256, devContainer.DefaultImage)
 	if pull := sourceRef.PullRequest; pull != nil {

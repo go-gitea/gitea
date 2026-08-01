@@ -116,6 +116,7 @@ func ensureRuntimeGitSSHKey(ctx context.Context, manager *codespace_model.Manage
 		if !canUseCodespace {
 			return ErrRuntimeGitSSHKeyLoginRestricted
 		}
+		// Share the fingerprint lock with user and deploy key creation so their global uniqueness checks cannot race.
 		return globallock.LockAndDo(ctx, asymkey_model.PublicKeyFingerprintLockKey(key.Fingerprint), func(ctx context.Context) error {
 			return ensureGitSSHKeyBinding(ctx, codespace, key)
 		})

@@ -327,6 +327,7 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 				result = denyOpenToken(OpenTokenDeniedEndpointNotFound)
 				return nil
 			}
+			// Consume the code before granting access so concurrent Gateway exchanges remain single-use.
 			if err := deleteOpenTokenCacheEntry(key); err != nil {
 				return err
 			}
@@ -386,6 +387,7 @@ func advanceCodespaceInteraction(ctx context.Context, codespace *codespace_model
 	codespace.LastActiveUnix = now
 	cols := []string{"interaction_generation", "last_active_unix"}
 	if isQueuedIdleStop(codespace) {
+		// User activity cancels only a queued idle stop; explicit and already-running lifecycle operations retain ownership.
 		codespace.UpdatedUnix = now
 		clearActiveOperation(codespace)
 		cols = append(cols,

@@ -610,6 +610,7 @@ func userCanUseSecretRepository(ctx context.Context, user *user_model.User, repo
 }
 
 func withUserSecretRepositoryLocks(ctx context.Context, repoIDs []int64, fn func(context.Context) error) error {
+	// Acquire repository locks in ID order so concurrent secret updates cannot deadlock.
 	repoIDs = append([]int64(nil), repoIDs...)
 	slices.Sort(repoIDs)
 	repoIDs = slices.Compact(repoIDs)
