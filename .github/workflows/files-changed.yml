@@ -113,8 +113,7 @@ jobs:
               - "Dockerfile.rootless"
 
             swagger:
-              - "templates/swagger/v1_json.tmpl"
-              - "templates/swagger/v1_input.json"
+              - "templates/swagger/*.json"
               - "Makefile"
               - "package.json"
               - "pnpm-lock.yaml"

@@ -17,9 +17,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{.SwaggerAppVer}}"
+    "version": "0.0.0+GITEA-API-APP-VERSION"
   },
-  "basePath": "{{.SwaggerAppSubUrl}}/api/v1",
+  "basePath": "/GITEA-API-APP-SUBURL/api/v1",
   "paths": {
     "/admin/actions/jobs": {
       "get": {
@@ -16344,6 +16344,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filter releases by tag. supports \"*\" as a wildcard (for example: v1*, *beta, *rc*).",
+            "name": "tag_filter",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -21053,7 +21059,6 @@
           "application/json"
         ],
         "tags": [
-          "repository",
           "user"
         ],
         "summary": "Create a repository",
@@ -23230,6 +23235,10 @@
           "type": "boolean",
           "x-go-name": "BlockAdminMergeOverride"
         },
+        "block_on_codeowner_reviews": {
+          "type": "boolean",
+          "x-go-name": "BlockOnCodeownerReviews"
+        },
         "block_on_official_review_requests": {
           "type": "boolean",
           "x-go-name": "BlockOnOfficialReviewRequests"
@@ -24108,6 +24117,10 @@
         "block_admin_merge_override": {
           "type": "boolean",
           "x-go-name": "BlockAdminMergeOverride"
+        },
+        "block_on_codeowner_reviews": {
+          "type": "boolean",
+          "x-go-name": "BlockOnCodeownerReviews"
         },
         "block_on_official_review_requests": {
           "type": "boolean",
@@ -25611,6 +25624,10 @@
         "block_admin_merge_override": {
           "type": "boolean",
           "x-go-name": "BlockAdminMergeOverride"
+        },
+        "block_on_codeowner_reviews": {
+          "type": "boolean",
+          "x-go-name": "BlockOnCodeownerReviews"
         },
         "block_on_official_review_requests": {
           "type": "boolean",
@@ -32245,6 +32262,44 @@
     },
     {
       "TOTPHeader": []
+    }
+  ],
+  "tags": [
+    {
+      "description": "Site administration",
+      "name": "admin"
+    },
+    {
+      "description": "Issues, pull requests, comments, labels and milestones",
+      "name": "issue"
+    },
+    {
+      "description": "Miscellaneous endpoints",
+      "name": "miscellaneous"
+    },
+    {
+      "description": "User notifications",
+      "name": "notification"
+    },
+    {
+      "description": "Organizations and teams",
+      "name": "organization"
+    },
+    {
+      "description": "Package registry",
+      "name": "package"
+    },
+    {
+      "description": "Repositories and their contents",
+      "name": "repository"
+    },
+    {
+      "description": "Server settings",
+      "name": "settings"
+    },
+    {
+      "description": "The authenticated user",
+      "name": "user"
     }
   ]
 }

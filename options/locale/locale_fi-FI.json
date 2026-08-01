@@ -947,7 +947,6 @@
   "repo.settings.event_push": "Työnnä",
   "repo.settings.event_push_desc": "Git push repoon.",
   "repo.settings.event_repository": "Repo",
-  "repo.settings.event_repository_desc": "Repo luotu tai poistettu.",
   "repo.settings.event_header_issue": "Ongelmien tapahtumat",
   "repo.settings.event_issues": "Ongelmat",
   "repo.settings.event_issue_assign": "Ongelma määritetty",

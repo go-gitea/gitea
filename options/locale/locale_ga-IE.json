@@ -2298,7 +2298,6 @@
   "repo.settings.event_force_push": "Fórsa Brúigh",
   "repo.settings.event_push_desc": "Brúigh Git chuig stóras.",
   "repo.settings.event_repository": "Stóras",
-  "repo.settings.event_repository_desc": "Stóras a cruthaíodh nó a scriosadh.",
   "repo.settings.event_header_issue": "Imeachtaí Eisiúint",
   "repo.settings.event_issues": "Saincheisteanna",
   "repo.settings.event_issues_desc": "Ceist oscailte, dúnta, athoscailte, eagarthóireachta nó scriosta.",
