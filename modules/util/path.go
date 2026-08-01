@@ -27,6 +27,10 @@ var PathNameValidator = sync.OnceValue(func() (ret struct {
 	return ret
 })
 
+func PathBaseStem(s string) string {
+	return strings.TrimSuffix(path.Base(s), path.Ext(s))
+}
+
 // PathJoinRel joins the path elements into a single path, each element is cleaned by path.Clean separately.
 // It only returns the following values (like path.Join), any redundant part (empty, relative dots, slashes) is removed.
 // It's caller's duty to make every element not bypass its own directly level, to avoid security issues.

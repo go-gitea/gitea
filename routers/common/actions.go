@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"strconv"
-	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
@@ -22,32 +20,6 @@ import (
 	"gitea.dev/modules/util"
 	context_module "gitea.dev/services/context"
 )
-
-func joinFileName(fields ...any) string {
-	sb := strings.Builder{}
-	for i, f := range fields {
-		var field string
-		switch v := f.(type) {
-		case string:
-			field = v
-		case int64:
-			field = strconv.FormatInt(v, 10)
-		default:
-			field = fmt.Sprint(v)
-		}
-		field = util.PathJoinRelX(field)
-		field = util.PathNameValidator().InvalidChars.ReplaceAllString(field, "_")
-		if i < len(fields)-1 {
-			field = strings.ReplaceAll(strings.ReplaceAll(field, ".", "_"), "-", "_")
-			sb.WriteString(field)
-			sb.WriteString("-")
-		} else {
-			// last field is extname, no need to do more processing
-			sb.WriteString(field)
-		}
-	}
-	return sb.String()
-}
 
 func openTaskLogs(ctx context.Context, task *actions_model.ActionTask) (io.ReadSeekCloser, error) {
 	reader, err := actions.OpenLogs(ctx, task.LogInStorage, task.LogFilename)
@@ -98,14 +70,14 @@ func DownloadActionsRunAllJobLogs(ctx *context_module.Base, run *actions_model.A
 
 		if zipWriter == nil {
 			ctx.SetServeHeaders(context_module.ServeHeaderOptions{
-				Filename:           joinFileName(run.WorkflowID, "run", run.ID, ".zip"),
+				Filename:           util.FileNameJoinFields(util.PathBaseStem(run.WorkflowID), "run", run.ID, ".zip"),
 				ContentType:        "application/zip",
 				ContentDisposition: httplib.ContentDispositionAttachment,
 			})
 			zipWriter = zip.NewWriter(ctx.Resp)
 		}
 
-		zipFile, err := zipWriter.Create(joinFileName(run.WorkflowID, job.Name, task.ID, ".log"))
+		zipFile, err := zipWriter.Create(util.FileNameJoinFields(util.PathBaseStem(run.WorkflowID), job.Name, task.ID, ".log"))
 		if err == nil {
 			_, err = io.Copy(zipFile, reader)
 		}
@@ -151,7 +123,7 @@ func DownloadActionsRunJobLogs(ctx *context_module.Base, ctxRepo *repo_model.Rep
 	defer reader.Close()
 
 	ctx.ServeContent(reader, context_module.ServeHeaderOptions{
-		Filename:           joinFileName(curJob.Run.WorkflowID, curJob.Name, task.ID, ".log"),
+		Filename:           util.FileNameJoinFields(util.PathBaseStem(curJob.Run.WorkflowID), curJob.Name, task.ID, ".log"),
 		ContentLength:      &task.LogSize,
 		ContentType:        "text/plain; charset=utf-8",
 		ContentDisposition: httplib.ContentDispositionAttachment,
