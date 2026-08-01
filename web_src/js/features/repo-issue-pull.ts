@@ -1,7 +1,7 @@
 import {createApp} from 'vue';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {createElementFromHTML, activePageTimerRefresh} from '../utils/dom.ts';
+import {createElementFromHTMLOrNull, activePageTimerRefresh} from '../utils/dom.ts';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 export function initRepoPullRequestUpdate(el: HTMLElement) {
@@ -35,6 +35,15 @@ async function initRepoPullRequestMergeForm(box: HTMLElement) {
   view.mount(el); // TODO: can unmount when reloaded?
 }
 
+export function applyMergeBoxRefresh(el: Element, html: string): boolean {
+  const newEl = createElementFromHTMLOrNull(html);
+  if (!newEl) return false; // unexpected empty response, keep the old element instead of destroying it
+  const scrollTop = el.querySelector<HTMLElement>('.commit-status-list')?.scrollTop;
+  el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
+  if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-list')?.scrollTo({top: scrollTop, behavior: 'instant'});
+  return true;
+}
+
 function initRepoPullMergeBoxRefresh(el: Element) {
   // The merge box has complex buttons & form, if the user has interacted with any element, don't refresh.
   // Otherwise, the user won't be able to merge or schedule a merge (auto-merge) when the PR status is not ready.
@@ -52,10 +61,7 @@ function initRepoPullMergeBoxRefresh(el: Element) {
       const pullLink = el.getAttribute('data-pull-link')!;
       const resp = await GET(`${pullLink}/merge_box`);
       if (!resp.ok) return;
-      const newEl = createElementFromHTML(await resp.text());
-      const scrollTop = el.querySelector<HTMLElement>('.commit-status-list')?.scrollTop;
-      el.replaceWith(newEl); // don't morph, do full replacement to make sure data-global-init and Vue components are re-initialized
-      if (scrollTop) newEl.querySelector<HTMLElement>('.commit-status-list')?.scrollTo({top: scrollTop, behavior: 'instant'});
+      applyMergeBoxRefresh(el, await resp.text());
     },
   });
 }

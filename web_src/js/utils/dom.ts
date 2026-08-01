@@ -265,7 +265,7 @@ export function isElemVisible(el: HTMLElement): boolean {
   return Boolean(!el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
 }
 
-export function createElementFromHTML<T extends Element>(htmlString: string): T {
+export function createElementFromHTMLOrNull<T extends Element>(htmlString: string): T | null {
   htmlString = htmlString.trim();
   const isLetter = (code: number) => (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
   const startsWithTag = (s: string, tag: string) => {
@@ -277,11 +277,17 @@ export function createElementFromHTML<T extends Element>(htmlString: string): T 
   if (startsWithTag(htmlString, 'tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
-    return container.querySelector<T>('tr')!;
+    return container.querySelector<T>('tr');
   }
   const div = document.createElement('div');
   div.innerHTML = htmlString;
-  return div.firstChild as T;
+  return div.firstChild as T | null;
+}
+
+export function createElementFromHTML<T extends Element>(htmlString: string): T {
+  const el = createElementFromHTMLOrNull<T>(htmlString);
+  if (!el) throw new Error(`Failed to create element from HTML: ${htmlString}`);
+  return el;
 }
 
 export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): T {

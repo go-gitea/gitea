@@ -309,6 +309,12 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		resultMsg := strings.TrimSpace(htmlDoc.doc.Find(".ui.message.flash-message").Text())
 		assert.Equal(t, `Branch "user1/repo1:feature/test" has been deleted.`, resultMsg)
+
+		// the fragment must always contain exactly one merge box element
+		req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%s/merge_box", elem[1], elem[2], elem[4]))
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		mergeBoxDoc := NewHTMLParser(t, resp.Body)
+		assert.Equal(t, 1, mergeBoxDoc.doc.Find(".pull-merge-box").Length())
 	})
 }
 

@@ -1,5 +1,5 @@
 import {
-  createElementFromAttrs, createElementFromHTML,
+  createElementFromAttrs, createElementFromHTML, createElementFromHTMLOrNull,
   queryElemChildren, querySingleVisibleElem,
   protectMorphElements, recoverMorphElements,
   toggleElem,
@@ -10,6 +10,14 @@ test('createElementFromHTML', () => {
   expect(createElementFromHTML('<tr data-x="1"><td>foo</td></tr>').outerHTML).toEqual('<tr data-x="1"><td>foo</td></tr>');
   expect(createElementFromHTML('<TR data-x="1"><td>foo</td></TR>').outerHTML).toEqual('<tr data-x="1"><td>foo</td></tr>');
   expect(createElementFromHTML('<trx></trx>').outerHTML).toEqual('<trx></trx>');
+  expect(() => createElementFromHTML('')).toThrow('Failed to create element from HTML');
+  expect(() => createElementFromHTML(' '.repeat(3))).toThrow('Failed to create element from HTML');
+});
+
+test('createElementFromHTMLOrNull', () => {
+  expect(createElementFromHTMLOrNull('<a>foo</a>')!.outerHTML).toEqual('<a>foo</a>');
+  expect(createElementFromHTMLOrNull('')).toBeNull();
+  expect(createElementFromHTMLOrNull(' '.repeat(3))).toBeNull();
 });
 
 test('createElementFromAttrs', () => {
