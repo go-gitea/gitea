@@ -22,10 +22,9 @@ type PermissionAuthorization struct {
 
 // PermissionRepository stores one approved repository unit permission.
 type PermissionRepository struct {
-	ID              int64
-	AuthorizationID int64           `xorm:"NOT NULL unique(auth_repo_unit)"`
-	TargetRepoID    int64           `xorm:"NOT NULL index unique(auth_repo_unit)"`
-	UnitType        unit.Type       `xorm:"NOT NULL unique(auth_repo_unit)"`
+	AuthorizationID int64           `xorm:"pk NOT NULL"`
+	TargetRepoID    int64           `xorm:"pk NOT NULL index"`
+	UnitType        unit.Type       `xorm:"pk NOT NULL"`
 	RequestedMode   perm.AccessMode `xorm:"NOT NULL"`
 	GrantedMode     perm.AccessMode `xorm:"NOT NULL"`
 }

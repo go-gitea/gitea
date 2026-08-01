@@ -8,6 +8,7 @@ import (
 	"slices"
 	"testing"
 
+	"gitea.dev/modelmigration/base"
 	"gitea.dev/modelmigration/migrationtest"
 
 	"github.com/stretchr/testify/assert"
@@ -57,13 +58,13 @@ func Test_AddCodespaceTables(t *testing.T) {
 
 	addressIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_manager_address")
 	require.NoError(t, err)
-	assert.True(t, hasUniqueIndex(addressIndexes, "manager_id", "kind"))
 	assert.True(t, hasUniqueIndex(addressIndexes, "kind", "address"))
+	assertPrimaryKeyColumns(t, x, "codespace_manager_address", "manager_id", "kind")
 
 	managerTokenIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_manager_token")
 	require.NoError(t, err)
 	assert.True(t, hasUniqueIndex(managerTokenIndexes, "token"))
-	assert.True(t, hasUniqueIndex(managerTokenIndexes, "user_id"))
+	assertPrimaryKeyColumns(t, x, "codespace_manager_token", "user_id")
 
 	giteaTokenIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_gitea_token")
 	require.NoError(t, err)
@@ -79,7 +80,8 @@ func Test_AddCodespaceTables(t *testing.T) {
 
 	repositoryIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_permission_repository")
 	require.NoError(t, err)
-	assert.True(t, hasUniqueIndex(repositoryIndexes, "authorization_id", "target_repo_id", "unit_type"))
+	assert.True(t, hasIndex(repositoryIndexes, "target_repo_id"))
+	assertPrimaryKeyColumns(t, x, "codespace_permission_repository", "authorization_id", "target_repo_id", "unit_type")
 
 	secretIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_user_secret")
 	require.NoError(t, err)
@@ -90,9 +92,24 @@ func Test_AddCodespaceTables(t *testing.T) {
 
 	secretRepositoryIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_user_secret_repository")
 	require.NoError(t, err)
-	assert.True(t, hasIndex(secretRepositoryIndexes, "secret_id"))
 	assert.True(t, hasIndex(secretRepositoryIndexes, "repo_id"))
-	assert.True(t, hasUniqueIndex(secretRepositoryIndexes, "secret_id", "repo_id"))
+	assertPrimaryKeyColumns(t, x, "codespace_user_secret_repository", "secret_id", "repo_id")
+}
+
+func assertPrimaryKeyColumns(t *testing.T, x base.EngineMigration, table string, columns ...string) {
+	t.Helper()
+	_, tableColumns, err := x.Dialect().GetColumns(x.DB(), context.Background(), table)
+	require.NoError(t, err)
+	primaryKeys := make([]string, 0, len(columns))
+	for name, column := range tableColumns {
+		if column.IsPrimaryKey {
+			primaryKeys = append(primaryKeys, name)
+		}
+	}
+	slices.Sort(primaryKeys)
+	expected := slices.Clone(columns)
+	slices.Sort(expected)
+	assert.Equal(t, expected, primaryKeys)
 }
 
 func hasUniqueIndex(indexes map[string]*schemas.Index, columns ...string) bool {

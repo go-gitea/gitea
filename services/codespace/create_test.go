@@ -396,7 +396,7 @@ CONFIG
 	assert.Equal(t, authorization.ID, loadServiceCodespace(t, second.CodespaceUUID).PermissionAuthorizationID)
 
 	require.NotNil(t, codeRule)
-	require.NoError(t, ReducePermissionRepository(t.Context(), user.ID, authorization.ID, codeRule.ID, perm.AccessModeNone))
+	require.NoError(t, ReducePermissionRepository(t.Context(), user.ID, authorization.ID, codeRule.TargetRepoID, codeRule.UnitType, perm.AccessModeNone))
 	third, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
 	assert.NotEqual(t, authorization.ID, loadServiceCodespace(t, third.CodespaceUUID).PermissionAuthorizationID)

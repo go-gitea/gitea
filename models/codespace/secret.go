@@ -19,9 +19,8 @@ type UserSecret struct {
 
 // UserSecretRepository grants one repository access to a user-owned Codespace secret.
 type UserSecretRepository struct {
-	ID       int64
-	SecretID int64 `xorm:"NOT NULL index unique(secret_repo)"`
-	RepoID   int64 `xorm:"NOT NULL index unique(secret_repo)"`
+	SecretID int64 `xorm:"pk NOT NULL"`
+	RepoID   int64 `xorm:"pk NOT NULL index"`
 }
 
 func (*UserSecret) TableName() string {

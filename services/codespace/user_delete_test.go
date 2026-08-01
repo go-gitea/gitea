@@ -73,7 +73,7 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 	assertServiceNotExists(t, new(codespace_model.ManagerToken), "user_id = ? AND token = ?", userID, userToken)
 	assertServiceExists(t, new(codespace_model.ManagerToken), "user_id = ? AND token = ?", 0, globalToken)
 	assertServiceNotExists(t, new(codespace_model.PermissionAuthorization), "id = ?", authorization.ID)
-	assertServiceNotExists(t, new(codespace_model.PermissionRepository), "id = ?", rule.ID)
+	assertServiceNotExists(t, new(codespace_model.PermissionRepository), "authorization_id = ? AND target_repo_id = ? AND unit_type = ?", rule.AuthorizationID, rule.TargetRepoID, rule.UnitType)
 	assertServiceNotExists(t, new(codespace_model.UserSecret), "id = ?", secret.ID)
-	assertServiceNotExists(t, new(codespace_model.UserSecretRepository), "id = ?", secretRepository.ID)
+	assertServiceNotExists(t, new(codespace_model.UserSecretRepository), "secret_id = ? AND repo_id = ?", secretRepository.SecretID, secretRepository.RepoID)
 }

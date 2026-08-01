@@ -86,7 +86,7 @@ type Codespace struct {
 	EnvironmentTag            string `xorm:"VARCHAR(64) NOT NULL"`
 	CommitSHA                 string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 	DevContainerPath          string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
-	DevContainerContentSHA256 string `xorm:"dev_container_content_sha256 CHAR(64) NOT NULL DEFAULT ''"`
+	DevContainerContentSHA256 string `xorm:"dev_container_content_sha256 VARCHAR(64) NOT NULL DEFAULT ''"`
 	DevContainerDefaultImage  string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 	PermissionAuthorizationID int64  `xorm:"NOT NULL DEFAULT 0 index"`
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
@@ -128,17 +128,15 @@ type Manager struct {
 
 // ManagerAddress stores current routable addresses declared by a Manager.
 type ManagerAddress struct {
-	ID        int64
-	ManagerID int64  `xorm:"NOT NULL DEFAULT 0 unique(manager_kind)"`
-	Kind      string `xorm:"VARCHAR(16) NOT NULL DEFAULT '' unique(manager_kind) unique(kind_address)"`
+	ManagerID int64  `xorm:"pk NOT NULL DEFAULT 0"`
+	Kind      string `xorm:"pk VARCHAR(16) NOT NULL DEFAULT '' unique(kind_address)"`
 	Address   string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' unique(kind_address)"`
 }
 
 // ManagerToken stores the current site-wide or user-scoped Manager registration token.
 type ManagerToken struct {
-	ID     int64
 	Token  string `xorm:"VARCHAR(64) NOT NULL UNIQUE"`
-	UserID int64  `xorm:"NOT NULL DEFAULT 0 UNIQUE"`
+	UserID int64  `xorm:"pk NOT NULL DEFAULT 0"`
 }
 
 // GiteaToken stores the current Gitea API/Git HTTP token for one Codespace.

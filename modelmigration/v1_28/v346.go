@@ -18,7 +18,7 @@ type codespace struct {
 	EnvironmentTag            string `xorm:"VARCHAR(64) NOT NULL"`
 	CommitSHA                 string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
 	DevContainerPath          string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
-	DevContainerContentSHA256 string `xorm:"dev_container_content_sha256 CHAR(64) NOT NULL DEFAULT ''"`
+	DevContainerContentSHA256 string `xorm:"dev_container_content_sha256 VARCHAR(64) NOT NULL DEFAULT ''"`
 	DevContainerDefaultImage  string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
 	PermissionAuthorizationID int64  `xorm:"NOT NULL DEFAULT 0 index"`
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
@@ -98,16 +98,14 @@ func (*codespaceManager) TableIndices() []*schemas.Index {
 
 func AddCodespaceTables(x base.EngineMigration) error {
 	type codespaceManagerAddress struct {
-		ID        int64
-		ManagerID int64  `xorm:"NOT NULL DEFAULT 0 unique(manager_kind)"`
-		Kind      string `xorm:"VARCHAR(16) NOT NULL DEFAULT '' unique(manager_kind) unique(kind_address)"`
+		ManagerID int64  `xorm:"pk NOT NULL DEFAULT 0"`
+		Kind      string `xorm:"pk VARCHAR(16) NOT NULL DEFAULT '' unique(kind_address)"`
 		Address   string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' unique(kind_address)"`
 	}
 
 	type codespaceManagerToken struct {
-		ID     int64
 		Token  string `xorm:"VARCHAR(64) NOT NULL UNIQUE"`
-		UserID int64  `xorm:"NOT NULL DEFAULT 0 UNIQUE"`
+		UserID int64  `xorm:"pk NOT NULL DEFAULT 0"`
 	}
 
 	type codespaceGiteaToken struct {
@@ -134,10 +132,9 @@ func AddCodespaceTables(x base.EngineMigration) error {
 	}
 
 	type codespacePermissionRepository struct {
-		ID              int64
-		AuthorizationID int64 `xorm:"NOT NULL unique(auth_repo_unit)"`
-		TargetRepoID    int64 `xorm:"NOT NULL index unique(auth_repo_unit)"`
-		UnitType        int   `xorm:"NOT NULL unique(auth_repo_unit)"`
+		AuthorizationID int64 `xorm:"pk NOT NULL"`
+		TargetRepoID    int64 `xorm:"pk NOT NULL index"`
+		UnitType        int   `xorm:"pk NOT NULL"`
 		RequestedMode   int   `xorm:"NOT NULL"`
 		GrantedMode     int   `xorm:"NOT NULL"`
 	}
@@ -154,9 +151,8 @@ func AddCodespaceTables(x base.EngineMigration) error {
 	}
 
 	type codespaceUserSecretRepository struct {
-		ID       int64
-		SecretID int64 `xorm:"NOT NULL index unique(secret_repo)"`
-		RepoID   int64 `xorm:"NOT NULL index unique(secret_repo)"`
+		SecretID int64 `xorm:"pk NOT NULL"`
+		RepoID   int64 `xorm:"pk NOT NULL index"`
 	}
 
 	return x.Sync(

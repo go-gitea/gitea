@@ -81,16 +81,18 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	}))
 
 	require.NoError(t, DeleteRepositoryDirectly(t.Context(), targetRepo.ID))
-	unittest.AssertNotExistsBean(t, &codespace_model.PermissionRepository{ID: rule.ID})
+	assertRepositoryServiceNotExists(t, new(codespace_model.PermissionRepository), "authorization_id = ? AND target_repo_id = ? AND unit_type = ?", rule.AuthorizationID, rule.TargetRepoID, rule.UnitType)
 	unittest.AssertExistsAndLoadBean(t, &codespace_model.PermissionAuthorization{ID: authorization.ID})
-	unittest.AssertNotExistsBean(t, &codespace_model.UserSecretRepository{ID: targetSecretRepository.ID})
-	unittest.AssertExistsAndLoadBean(t, &codespace_model.UserSecretRepository{ID: sourceSecretRepository.ID})
+	assertRepositoryServiceNotExists(t, new(codespace_model.UserSecretRepository), "secret_id = ? AND repo_id = ?", targetSecretRepository.SecretID, targetSecretRepository.RepoID)
+	has, err := db.GetEngine(t.Context()).Where("secret_id = ? AND repo_id = ?", sourceSecretRepository.SecretID, sourceSecretRepository.RepoID).Exist(new(codespace_model.UserSecretRepository))
+	require.NoError(t, err)
+	assert.True(t, has)
 
 	require.NoError(t, DeleteRepositoryDirectly(t.Context(), repo.ID))
 
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{ID: repo.ID})
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(t.Context()).ID(codespaceUUID).Get(codespace)
+	has, err = db.GetEngine(t.Context()).ID(codespaceUUID).Get(codespace)
 	require.NoError(t, err)
 	require.True(t, has)
 	assert.Zero(t, codespace.RepoID)
@@ -104,6 +106,13 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, has)
 	unittest.AssertNotExistsBean(t, &codespace_model.PermissionAuthorization{ID: authorization.ID})
-	unittest.AssertNotExistsBean(t, &codespace_model.UserSecretRepository{ID: sourceSecretRepository.ID})
+	assertRepositoryServiceNotExists(t, new(codespace_model.UserSecretRepository), "secret_id = ? AND repo_id = ?", sourceSecretRepository.SecretID, sourceSecretRepository.RepoID)
 	unittest.AssertExistsAndLoadBean(t, &codespace_model.UserSecret{ID: secret.ID})
+}
+
+func assertRepositoryServiceNotExists(t *testing.T, bean any, query string, args ...any) {
+	t.Helper()
+	has, err := db.GetEngine(t.Context()).Where(query, args...).Exist(bean)
+	require.NoError(t, err)
+	assert.False(t, has)
 }

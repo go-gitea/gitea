@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 )
 
 var (
@@ -36,7 +37,8 @@ type PermissionAuthorizationView struct {
 
 // PermissionRepositoryView contains one rule shown in user settings.
 type PermissionRepositoryView struct {
-	ID              int64
+	TargetRepoID    int64
+	UnitType        unit.Type
 	Repository      string
 	UnitName        string
 	RequestedMode   string
@@ -97,7 +99,7 @@ func ListPermissionAuthorizations(ctx context.Context, userID int64) ([]*Permiss
 				}
 			}
 			view.Repositories = append(view.Repositories, PermissionRepositoryView{
-				ID: rule.ID, Repository: targetRepo.FullName(), UnitName: unitName,
+				TargetRepoID: rule.TargetRepoID, UnitType: rule.UnitType, Repository: targetRepo.FullName(), UnitName: unitName,
 				RequestedMode: rule.RequestedMode.ToString(), GrantedMode: rule.GrantedMode.ToString(),
 				CanReduceToRead: !view.Revoked && rule.GrantedMode == perm.AccessModeWrite,
 				CanRevoke:       !view.Revoked && rule.GrantedMode != perm.AccessModeNone,
@@ -131,7 +133,7 @@ func RevokePermissionAuthorization(ctx context.Context, userID, authorizationID 
 }
 
 // ReducePermissionRepository lowers one rule to read or none.
-func ReducePermissionRepository(ctx context.Context, userID, authorizationID, ruleID int64, mode perm.AccessMode) error {
+func ReducePermissionRepository(ctx context.Context, userID, authorizationID, targetRepoID int64, unitType unit.Type, mode perm.AccessMode) error {
 	if mode != perm.AccessModeNone && mode != perm.AccessModeRead {
 		return ErrPermissionReductionInvalid
 	}
@@ -141,7 +143,9 @@ func ReducePermissionRepository(ctx context.Context, userID, authorizationID, ru
 			return ErrPermissionAuthorizationNotFound
 		}
 		rule := new(codespace_model.PermissionRepository)
-		has, err := db.GetEngine(ctx).ID(ruleID).Where("authorization_id = ?", authorization.ID).Get(rule)
+		has, err := db.GetEngine(ctx).
+			Where("authorization_id = ? AND target_repo_id = ? AND unit_type = ?", authorization.ID, targetRepoID, unitType).
+			Get(rule)
 		if err != nil {
 			return err
 		}
@@ -154,7 +158,9 @@ func ReducePermissionRepository(ctx context.Context, userID, authorizationID, ru
 		if mode == rule.GrantedMode {
 			return nil
 		}
-		updated, err := db.GetEngine(ctx).ID(rule.ID).Where("granted_mode = ?", rule.GrantedMode).Cols("granted_mode").Update(&codespace_model.PermissionRepository{GrantedMode: mode})
+		updated, err := db.GetEngine(ctx).
+			Where("authorization_id = ? AND target_repo_id = ? AND unit_type = ? AND granted_mode = ?", authorization.ID, targetRepoID, unitType, rule.GrantedMode).
+			Cols("granted_mode").Update(&codespace_model.PermissionRepository{GrantedMode: mode})
 		if err != nil {
 			return err
 		}

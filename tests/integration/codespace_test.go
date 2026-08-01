@@ -55,11 +55,16 @@ func TestCodespaceRoutes(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), rule))
 		permissionForm := map[string]string{
 			"action": "reduce", "authorization_id": strconv.FormatInt(authorization.ID, 10),
-			"rule_id": strconv.FormatInt(rule.ID, 10), "mode": "read",
+			"target_repo_id": strconv.FormatInt(rule.TargetRepoID, 10), "unit_type": strconv.Itoa(int(rule.UnitType)), "mode": "read",
 		}
 		user2Session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, "/user/settings/codespaces/permissions", permissionForm), http.StatusSeeOther)
-		rule = unittest.AssertExistsAndLoadBean(t, &codespace_model.PermissionRepository{ID: rule.ID})
-		assert.Equal(t, perm.AccessModeRead, rule.GrantedMode)
+		loadedRule := new(codespace_model.PermissionRepository)
+		ruleExists, err := db.GetEngine(t.Context()).
+			Where("authorization_id = ? AND target_repo_id = ? AND unit_type = ?", rule.AuthorizationID, rule.TargetRepoID, rule.UnitType).
+			Get(loadedRule)
+		require.NoError(t, err)
+		require.True(t, ruleExists)
+		assert.Equal(t, perm.AccessModeRead, loadedRule.GrantedMode)
 		loginUser(t, "user4").MakeRequest(t, NewRequestWithValues(t, http.MethodPost, "/user/settings/codespaces/permissions", permissionForm), http.StatusNotFound)
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodPost, "/user/settings/codespaces/managers/reset_registration_token"), http.StatusOK)
 
@@ -98,7 +103,7 @@ func TestCodespaceRoutes(t *testing.T) {
 			http.DefaultClient,
 			strings.TrimRight(giteaURL.String(), "/")+"/api/codespace",
 		)
-		_, err := client.RegisterManager(t.Context(), connect.NewRequest(&codespacev1.RegisterManagerRequest{
+		_, err = client.RegisterManager(t.Context(), connect.NewRequest(&codespacev1.RegisterManagerRequest{
 			ProtocolVersion:   0,
 			RegistrationToken: "missing",
 		}))
@@ -191,7 +196,7 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 		require.True(t, snapshot.CodespaceTokenAllowsRepository(4, unit.TypeCode, perm.AccessModeWrite))
 		MakeRequest(t, NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user5/repo4/branches", map[string]string{}).AddTokenAuth(token), http.StatusForbidden)
 
-		require.NoError(t, codespace_service.ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.ID, perm.AccessModeNone))
+		require.NoError(t, codespace_service.ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.TargetRepoID, rule.UnitType, perm.AccessModeNone))
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(token), http.StatusForbidden)
 
 		authorization = &codespace_model.PermissionAuthorization{
@@ -233,6 +238,9 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		require.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
 		require.Equal(t, codespace_model.OperationTriggerUser, row.OperationTrigger)
 		require.EqualValues(t, 1, row.OperationRVersion)
+		require.Empty(t, row.DevContainerPath)
+		require.Empty(t, row.DevContainerContentSHA256)
+		require.Equal(t, setting.Codespace.DevContainerDefaultImage, row.DevContainerDefaultImage)
 
 		fetched, err := client.FetchOperations(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
 			ProtocolVersion:          1,

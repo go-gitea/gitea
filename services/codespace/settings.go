@@ -197,8 +197,7 @@ func ResetRegistrationToken(ctx context.Context, opts ManagerSettingsOptions) (s
 				})
 				return err
 			}
-			token.Token = tokenValue
-			_, err = db.GetEngine(ctx).ID(token.ID).Cols("token").Update(token)
+			_, err = db.GetEngine(ctx).Where("user_id = ?", userID).Cols("token").Update(&codespace_model.ManagerToken{Token: tokenValue})
 			return err
 		})
 	})
@@ -346,7 +345,7 @@ func settingsManagerViews(ctx context.Context, managers []*codespace_model.Manag
 		ids := managerIDs[start:end]
 
 		var addresses []*codespace_model.ManagerAddress
-		if err := db.GetEngine(ctx).In("manager_id", ids).Asc("id").Find(&addresses); err != nil {
+		if err := db.GetEngine(ctx).In("manager_id", ids).Asc("manager_id", "kind").Find(&addresses); err != nil {
 			return nil, err
 		}
 		for _, address := range addresses {

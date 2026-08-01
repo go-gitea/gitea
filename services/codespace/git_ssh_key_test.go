@@ -139,7 +139,9 @@ func TestResolveGitSSHKeyUserUsesCodespaceBinding(t *testing.T) {
 	require.ErrorIs(t, err, ErrResolveGitSSHKeyRepoMismatch)
 
 	rule.GrantedMode = perm.AccessModeWrite
-	updated, err = db.GetEngine(t.Context()).ID(rule.ID).Cols("granted_mode").Update(rule)
+	updated, err = db.GetEngine(t.Context()).
+		Where("authorization_id = ? AND target_repo_id = ? AND unit_type = ?", rule.AuthorizationID, rule.TargetRepoID, rule.UnitType).
+		Cols("granted_mode").Update(rule)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, updated)
 	_, err = ResolveGitSSHKeyUser(t.Context(), publicKey, 3, unit.TypeCode, perm.AccessModeWrite)

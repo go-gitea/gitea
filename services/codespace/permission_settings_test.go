@@ -48,20 +48,30 @@ func TestReduceAndRevokePermissionAuthorization(t *testing.T) {
 	}
 	require.NoError(t, db.Insert(t.Context(), otherRule))
 
-	require.ErrorIs(t, ReducePermissionRepository(t.Context(), 4, authorization.ID, rule.ID, perm.AccessModeRead), ErrPermissionAuthorizationNotFound)
+	require.ErrorIs(t, ReducePermissionRepository(t.Context(), 4, authorization.ID, rule.TargetRepoID, rule.UnitType, perm.AccessModeRead), ErrPermissionAuthorizationNotFound)
 	require.ErrorIs(t, RevokePermissionAuthorization(t.Context(), 4, authorization.ID), ErrPermissionAuthorizationNotFound)
-	require.ErrorIs(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, otherRule.ID, perm.AccessModeRead), ErrPermissionAuthorizationNotFound)
+	require.ErrorIs(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, otherRule.TargetRepoID, otherRule.UnitType, perm.AccessModeRead), ErrPermissionAuthorizationNotFound)
 
-	require.NoError(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.ID, perm.AccessModeRead))
-	rule = unittest.AssertExistsAndLoadBean(t, &codespace_model.PermissionRepository{ID: rule.ID})
-	assert.Equal(t, perm.AccessModeRead, rule.GrantedMode)
-	require.NoError(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.ID, perm.AccessModeNone))
-	require.ErrorIs(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.ID, perm.AccessModeRead), ErrPermissionReductionInvalid)
-	rule = unittest.AssertExistsAndLoadBean(t, &codespace_model.PermissionRepository{ID: rule.ID})
-	assert.Equal(t, perm.AccessModeNone, rule.GrantedMode)
+	require.NoError(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.TargetRepoID, rule.UnitType, perm.AccessModeRead))
+	loadedRule := new(codespace_model.PermissionRepository)
+	has, err := db.GetEngine(t.Context()).
+		Where("authorization_id = ? AND target_repo_id = ? AND unit_type = ?", authorization.ID, rule.TargetRepoID, rule.UnitType).
+		Get(loadedRule)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.Equal(t, perm.AccessModeRead, loadedRule.GrantedMode)
+	require.NoError(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.TargetRepoID, rule.UnitType, perm.AccessModeNone))
+	require.ErrorIs(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.TargetRepoID, rule.UnitType, perm.AccessModeRead), ErrPermissionReductionInvalid)
+	loadedRule = new(codespace_model.PermissionRepository)
+	has, err = db.GetEngine(t.Context()).
+		Where("authorization_id = ? AND target_repo_id = ? AND unit_type = ?", authorization.ID, rule.TargetRepoID, rule.UnitType).
+		Get(loadedRule)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.Equal(t, perm.AccessModeNone, loadedRule.GrantedMode)
 
 	require.NoError(t, RevokePermissionAuthorization(t.Context(), 2, authorization.ID))
 	authorization = unittest.AssertExistsAndLoadBean(t, &codespace_model.PermissionAuthorization{ID: authorization.ID})
 	assert.Positive(t, authorization.RevokedUnix)
-	require.ErrorIs(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.ID, perm.AccessModeNone), ErrPermissionAuthorizationNotFound)
+	require.ErrorIs(t, ReducePermissionRepository(t.Context(), 2, authorization.ID, rule.TargetRepoID, rule.UnitType, perm.AccessModeNone), ErrPermissionAuthorizationNotFound)
 }

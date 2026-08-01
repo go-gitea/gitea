@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	codespace_service "gitea.dev/services/codespace"
@@ -47,7 +48,7 @@ func UserPermissionSettingsPost(ctx *context.Context) {
 			err = codespace_service.ErrPermissionReductionInvalid
 		}
 		if err == nil {
-			err = codespace_service.ReducePermissionRepository(ctx, ctx.Doer.ID, authorizationID, ctx.FormInt64("rule_id"), mode)
+			err = codespace_service.ReducePermissionRepository(ctx, ctx.Doer.ID, authorizationID, ctx.FormInt64("target_repo_id"), unit.Type(ctx.FormInt("unit_type")), mode)
 		}
 	default:
 		err = codespace_service.ErrPermissionReductionInvalid
