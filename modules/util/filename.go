@@ -33,7 +33,6 @@ func fileNameJoinFields(stemNameLimit int, fields ...any) string {
 		default:
 			field = fmt.Sprint(v)
 		}
-		field = PathJoinRelX(field)
 		field = PathNameValidator().InvalidChars.ReplaceAllString(field, "_")
 		if i < len(fields)-1 {
 			field = strings.ReplaceAll(strings.ReplaceAll(field, ".", "_"), "-", "_")

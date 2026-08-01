@@ -10,7 +10,10 @@ import (
 )
 
 func TestFileNameJoinFields(t *testing.T) {
-	assert.Equal(t, "a-1.txt", FileNameJoinFields("a", 1, ".txt"))
+	assert.Equal(t, "a_b-1.txt", FileNameJoinFields("a-b", 1, ".txt"))
+	assert.Equal(t, "a-____-b.txt", FileNameJoinFields("a", "/../", "b", ".txt"))
+	assert.Equal(t, "a-____-b.txt", FileNameJoinFields("a", "\\..\\", "b", ".txt"))
+
 	assert.Equal(t, "🌞-🌛.txt", fileNameJoinFields(14, "🌞", "🌛", ".txt"))
 	assert.Equal(t, "🌞-🌛__.txt", fileNameJoinFields(14, "🌞", "🌛🌛🌛🌛", ".txt"))
 	assert.Equal(t, "🌞__-__.txt", fileNameJoinFields(14, "🌞🌞🌞🌞", "🌛🌛🌛🌛", ".txt"))
