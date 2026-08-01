@@ -14,7 +14,7 @@ require (
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
 	gitea.dev/actions-proto-go v0.6.0
-	gitea.dev/codespace-proto-go v0.0.0
+	gitea.dev/codespace-proto-go v0.0.0-20260801180240-0d3864aebd69
 	gitea.dev/sdk v1.2.0
 	github.com/42wim/httpsig v1.2.4
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432
@@ -296,5 +296,3 @@ replace github.com/Azure/azure-sdk-for-go/sdk/azcore => github.com/Azure/azure-s
 replace github.com/Azure/azure-sdk-for-go/sdk/storage/azblob => github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2 // v1.6.4+ uses API version unsupported by Azurite in CI
 
 replace github.com/microsoft/go-mssqldb => github.com/microsoft/go-mssqldb v1.9.7 // downgraded with Azure SDK
-
-replace gitea.dev/codespace-proto-go => github.com/ExplodingDragon/codespace-proto-go v0.0.0-20260731162935-a0d955d1e594

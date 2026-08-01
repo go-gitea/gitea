@@ -26,6 +26,8 @@ gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGq
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 gitea.dev/actions-proto-go v0.6.0 h1:gjllYQ5vmwlkqOeofTQu5qKTZpmf7kWsafoHvoPCSzY=
 gitea.dev/actions-proto-go v0.6.0/go.mod h1:p4RX+D9oqiEEzzkPMXscw2CmaGuYFPWFc6xIOmDNDqs=
+gitea.dev/codespace-proto-go v0.0.0-20260801180240-0d3864aebd69 h1:zizzdGuRUXSYPwQgPjIu+jUQyG6pY/N39Yb3Oy7gTi4=
+gitea.dev/codespace-proto-go v0.0.0-20260801180240-0d3864aebd69/go.mod h1:PtyeQBWy45uIqw8bS6jPK2LYSizpS+W3vtvZ+7E9s10=
 gitea.dev/sdk v1.2.0 h1:avRtJl/nKCGispgSalo9czoZM9Rto1awnE0caNAoXGo=
 gitea.dev/sdk v1.2.0/go.mod h1:rfh5oNdIK24cbCREwIn1tqWKQW+IICXFGWJyebuOAOE=
 github.com/42wim/httpsig v1.2.4 h1:mI5bH0nm4xn7K18fo1K3okNDRq8CCJ0KbBYWyA6r8lU=
@@ -53,8 +55,6 @@ github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0/go.mod h1:HKpQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/DataDog/zstd v1.5.7 h1:ybO8RBeh29qrxIhCA9E8gKY6xfONU9T6G6aP9DTKfLE=
 github.com/DataDog/zstd v1.5.7/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
-github.com/ExplodingDragon/codespace-proto-go v0.0.0-20260731162935-a0d955d1e594 h1:bvhp7/7tqOTwDBXvKc3EMu5aNmMKFbN86wgvgz6etdg=
-github.com/ExplodingDragon/codespace-proto-go v0.0.0-20260731162935-a0d955d1e594/go.mod h1:PtyeQBWy45uIqw8bS6jPK2LYSizpS+W3vtvZ+7E9s10=
 github.com/Julusian/godocdown v0.0.0-20170816220326-6d19f8ff2df8/go.mod h1:INZr5t32rG59/5xeltqoCJoNY7e5x/3xoY9WSWVWg74=
 github.com/Microsoft/go-winio v0.5.2/go.mod h1:WpS1mjBmmwHBEWmogvA2mj8546UReBk4v8QkMxJ6pZY=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
