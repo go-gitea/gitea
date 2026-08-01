@@ -615,8 +615,12 @@ func createCodespaceFromRepository(t *testing.T, session *TestSession, path, ref
 	environmentTag, ok := doc.Find(`.codespace-create-environment-option`).First().Attr("data-value")
 	require.True(t, ok)
 	require.NotEmpty(t, environmentTag)
+	devContainer, ok := doc.Find(`select[name="dev_container"] option[selected]`).First().Attr("value")
+	require.True(t, ok)
+	require.NotEmpty(t, devContainer)
 	values["request_hash"] = requestHash
 	values["environment_tag"] = environmentTag
+	values["dev_container"] = devContainer
 	return session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, path, values), http.StatusSeeOther)
 }
 
