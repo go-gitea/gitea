@@ -2298,7 +2298,6 @@
   "repo.settings.event_force_push": "강제 푸시",
   "repo.settings.event_push_desc": "리포지토리로 Git push.",
   "repo.settings.event_repository": "리포지토리",
-  "repo.settings.event_repository_desc": "리포지토리가 생성되었거나 삭제되었습니다.",
   "repo.settings.event_header_issue": "이슈 이벤트",
   "repo.settings.event_issues": "이슈",
   "repo.settings.event_issues_desc": "열림, 닫힘, 다시열림, 편집된 또는 삭제됨 상태의 이슈.",

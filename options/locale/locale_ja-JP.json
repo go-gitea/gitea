@@ -2298,7 +2298,6 @@
   "repo.settings.event_force_push": "強制プッシュ",
   "repo.settings.event_push_desc": "Gitがリポジトリにプッシュを行ったとき。",
   "repo.settings.event_repository": "リポジトリ",
-  "repo.settings.event_repository_desc": "リポジトリが作成・削除されたとき。",
   "repo.settings.event_header_issue": "イシューのイベント",
   "repo.settings.event_issues": "イシュー",
   "repo.settings.event_issues_desc": "イシューがオープン・クローズ・再オープン・編集・削除されたとき。",

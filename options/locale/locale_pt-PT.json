@@ -2298,7 +2298,6 @@
   "repo.settings.event_force_push": "Envio forçado",
   "repo.settings.event_push_desc": "Envio do Git para um repositório.",
   "repo.settings.event_repository": "Repositório",
-  "repo.settings.event_repository_desc": "Repositório criado ou eliminado.",
   "repo.settings.event_header_issue": "Eventos da questão",
   "repo.settings.event_issues": "Questões",
   "repo.settings.event_issues_desc": "Questão aberta, fechada, reaberta, editada ou eliminada.",
