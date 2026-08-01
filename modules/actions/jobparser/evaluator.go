@@ -113,12 +113,7 @@ func (ee ExpressionEvaluator) Interpolate(in string) string {
 		return ""
 	}
 
-	value, ok := evaluated.(string)
-	if !ok {
-		panic(fmt.Sprintf("Expression %s did not evaluate to a string", expr))
-	}
-
-	return value
+	return toString(evaluated)
 }
 
 func escapeFormatString(in string) string {

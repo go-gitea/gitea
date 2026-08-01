@@ -160,6 +160,23 @@ jobs:
 	}
 }
 
+func TestParseInterpolatesNonStringRunName(t *testing.T) {
+	// `run-name: ${{ true }}` evaluates to a bool; Interpolate must stringify it
+	// instead of panicking (a panic here dropped the whole workflow event).
+	for _, tt := range []struct{ name, runName, want string }{
+		{"bool", "${{ true }}", "true"},
+		{"int", "${{ 1 }}", "1"},
+		{"nil", "${{ null }}", ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := Parse([]byte("name: t\nrun-name: " + tt.runName + "\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps: [{run: echo}]\n"))
+			require.NoError(t, err)
+			require.Len(t, result, 1)
+			assert.Equal(t, tt.want, result[0].RunName)
+		})
+	}
+}
+
 func TestExpandMatrixWithNeeds(t *testing.T) {
 	// matrixYAML is the YAML value of the `matrix:` key, so a case can replace the whole node.
 	expandMax := func(t *testing.T, matrixYAML string, maxCombinations int) ([]*Job, error) {
