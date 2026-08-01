@@ -10,6 +10,7 @@ import (
 	actions_model "gitea.dev/models/actions"
 	activities_model "gitea.dev/models/activities"
 	admin_model "gitea.dev/models/admin"
+	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -24,6 +25,7 @@ import (
 	"gitea.dev/models/webhook"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -51,6 +53,12 @@ func deleteDBRepository(ctx context.Context, repoID int64) error {
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams ...bool) error {
+	return globallock.LockAndDo(ctx, WorkingLockKey(repoID), func(ctx context.Context) error {
+		return deleteRepositoryDirectlyLocked(ctx, repoID, ignoreOrgTeams...)
+	})
+}
+
+func deleteRepositoryDirectlyLocked(ctx context.Context, repoID int64, ignoreOrgTeams ...bool) error {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return err
@@ -97,6 +105,10 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return err
 	}
 	needRewriteKeysFile := deleted > 0
+
+	if err := unbindCodespacesFromRepository(ctx, repoID); err != nil {
+		return err
+	}
 
 	if err := deleteDBRepository(ctx, repoID); err != nil {
 		return err
@@ -383,6 +395,32 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 
 	return nil
+}
+
+func unbindCodespacesFromRepository(ctx context.Context, repoID int64) error {
+	if _, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Delete(new(codespace_model.UserSecretRepository)); err != nil {
+		return err
+	}
+	if _, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Cols("repo_id").Update(&codespace_model.Codespace{}); err != nil {
+		return err
+	}
+	var authorizations []*codespace_model.PermissionAuthorization
+	if err := db.GetEngine(ctx).Where("source_repo_id = ?", repoID).Find(&authorizations); err != nil {
+		return err
+	}
+	for _, authorization := range authorizations {
+		if _, err := db.GetEngine(ctx).Where("permission_authorization_id = ?", authorization.ID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{}); err != nil {
+			return err
+		}
+		if _, err := db.GetEngine(ctx).Where("authorization_id = ?", authorization.ID).Delete(new(codespace_model.PermissionRepository)); err != nil {
+			return err
+		}
+	}
+	if _, err := db.GetEngine(ctx).Where("source_repo_id = ?", repoID).Delete(new(codespace_model.PermissionAuthorization)); err != nil {
+		return err
+	}
+	_, err := db.GetEngine(ctx).Where("target_repo_id = ?", repoID).Delete(new(codespace_model.PermissionRepository))
+	return err
 }
 
 // DeleteOwnerRepositoriesDirectly calls DeleteRepositoryDirectly for all repos of the given owner

@@ -158,7 +158,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		context.CheckRepoScopedToken(ctx, repo, auth_model.GetScopeLevelFromAccessMode(accessMode))
+		context.CheckRepoScopedToken(ctx, repo, unit.TypeCode, auth_model.GetScopeLevelFromAccessMode(accessMode))
 		if ctx.Written() {
 			return nil
 		}

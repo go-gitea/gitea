@@ -1,0 +1,50 @@
+{{if .Codespaces}}
+	<div class="ui attached table segment codespace-manager-codespaces">
+		<table class="ui very basic table unstackable">
+			<thead>
+				<tr>
+					<th>{{ctx.Locale.Tr "codespace.codespace"}}</th>
+					<th>{{ctx.Locale.Tr "codespace.repository"}}</th>
+					{{if .IsSiteManagerSettings}}<th>{{ctx.Locale.Tr "codespace.user"}}</th>{{end}}
+					<th>{{ctx.Locale.Tr "status"}}</th>
+					<th>{{ctx.Locale.Tr "codespace.updated"}}</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{{range .Codespaces}}
+					<tr>
+						<td>
+							{{if $.IsSiteManagerSettings}}
+								<span class="tw-font-mono">{{.ShortUUID}}</span>
+							{{else}}
+								<a class="tw-font-mono" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">{{.ShortUUID}}</a>
+							{{end}}
+						</td>
+						<td>
+							{{if .RepoFullName}}{{.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}
+							{{if .RefName}}<div class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.ref"}}: {{.RefName}}</div>{{end}}
+						</td>
+						{{if $.IsSiteManagerSettings}}<td>{{if .UserDisplayName}}{{.UserDisplayName}}{{else}}{{ctx.Locale.Tr "codespace.user_id" .UserID}}{{end}}</td>{{end}}
+						<td><span class="ui tiny label codespace-state-label codespace-state-{{.DisplayStatus}}">{{ctx.Locale.Tr (print "codespace.status." .DisplayStatus)}}</span></td>
+						<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
+						<td class="right aligned">
+							{{if $.IsSiteManagerSettings}}
+								<div class="codespace-manager-table-actions">
+									{{if .CanStop}}<form class="form-fetch-action ignore-dirty" method="post" action="{{$.CodespaceActionBase}}/{{.UUID}}/stop">{{$.CsrfTokenHtml}}<button class="btn interact-bg tw-p-2" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.stop_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.stop_confirm"}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.stop"}}" aria-label="{{ctx.Locale.Tr "codespace.stop"}}">{{svg "octicon-stop"}}</button></form>{{end}}
+									{{if .CanDelete}}<form class="form-fetch-action ignore-dirty" method="post" action="{{$.CodespaceActionBase}}/{{.UUID}}/delete">{{$.CsrfTokenHtml}}<button class="btn interact-bg tw-p-2 tw-text-red" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_confirm" .ShortUUID}}" data-tooltip-content="{{ctx.Locale.Tr "delete"}}" aria-label="{{ctx.Locale.Tr "delete"}}">{{svg "octicon-trash"}}</button></form>{{end}}
+									{{if .CanForceDelete}}<form class="form-fetch-action ignore-dirty" method="post" action="{{$.CodespaceActionBase}}/{{.UUID}}/force-delete">{{$.CsrfTokenHtml}}<input type="hidden" name="confirm" value="force-delete"><button class="btn interact-bg tw-p-2 tw-text-red" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.force_delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.force_delete_confirm" .ShortUUID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.force_delete"}}" aria-label="{{ctx.Locale.Tr "codespace.force_delete"}}">{{svg "octicon-x-circle"}}</button></form>{{end}}
+								</div>
+							{{else}}
+								<a class="btn interact-bg tw-p-2" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.details"}}" aria-label="{{ctx.Locale.Tr "codespace.details"}}">{{svg "octicon-arrow-right"}}</a>
+							{{end}}
+						</td>
+					</tr>
+				{{end}}
+			</tbody>
+		</table>
+		{{template "base/paginate" .}}
+	</div>
+{{else}}
+	<div class="ui attached placeholder segment">{{.CodespaceEmptyMessage}}</div>
+{{end}}

@@ -1,0 +1,73 @@
+{{if .Codespaces}}
+	<div class="ui segment">
+		<div class="flex-divided-list items-with-main codespace-list">
+			{{range .Codespaces}}
+				<div class="item tw-items-center">
+					<div class="item-main">
+						<div class="item-header">
+							<div class="item-title">
+								<a href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">{{if .RepoFullName}}{{.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}</a>
+								<span class="ui tiny label codespace-state-label codespace-state-{{.DisplayStatus}}">{{ctx.Locale.Tr .DisplayStatusKey}}</span>
+							</div>
+						</div>
+						<div class="item-body codespace-list-meta">
+							<span>{{svg "octicon-git-branch" 14}} <span class="tw-break-anywhere">{{.RefDisplayName}}</span></span>
+							<span>{{svg "octicon-server" 14}} <span class="tw-break-anywhere">{{.EnvironmentTag}}</span></span>
+							<span>{{svg "octicon-clock" 14}} {{ctx.Locale.Tr "codespace.last_active"}}: {{if .LastActiveUnix}}{{DateUtils.TimeSince .LastActiveUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</span>
+						</div>
+						{{if or (eq .DisplayStatus "queued") (eq .DisplayStatus "booting") (eq .DisplayStatus "stopping") (eq .DisplayStatus "resuming") (eq .DisplayStatus "deleting") (eq .DisplayStatus "failed") (eq .DisplayStatus "metadata_rebuilding") (eq .DisplayStatus "recovering")}}
+							<div class="codespace-list-summary">{{ctx.Locale.Tr .StatusSummaryKey}}</div>
+						{{end}}
+					</div>
+					<div class="item-trailing">
+						{{if and .Workspace .CanOpen}}
+							<button class="ui primary tiny icon button show-modal" type="button" data-modal="#codespace-open-modal" data-tooltip-content="{{ctx.Locale.Tr "codespace.open"}}" aria-label="{{ctx.Locale.Tr "codespace.open"}}"
+								data-modal-form.url="{{AppSubUrl}}{{.Workspace.OpenPath}}" data-modal-form.target="_blank"
+								data-modal-endpoint-label="{{ctx.Locale.Tr "codespace.workspace"}}" data-modal-access-kind="{{ctx.Locale.Tr "codespace.authenticated_endpoint"}}">{{svg "octicon-terminal" 16}}</button>
+						{{else}}
+							<a class="ui tiny icon button" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.details"}}" aria-label="{{ctx.Locale.Tr "codespace.details"}}">{{svg "octicon-eye" 16}}</a>
+						{{end}}
+						{{if or .CanResume (and .CanContinue (not .CanOpen)) .CanStop .CanConfigureAutoStop .CanDelete}}<span class="codespace-list-action-divider" aria-hidden="true"></span>{{end}}
+						{{if .CanResume}}
+							<form class="form-fetch-action tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{.UUID}}/resume">
+								{{$.CsrfTokenHtml}}
+								<input type="hidden" name="return_to" value="{{$.CodespaceListReturnTo}}">
+								<button class="ui tiny icon button" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.resume_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.resume_confirm"}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.resume"}}" aria-label="{{ctx.Locale.Tr "codespace.resume"}}">{{svg "octicon-play" 16}}</button>
+							</form>
+						{{end}}
+						{{if and .CanContinue (not .CanOpen)}}
+							<form class="form-fetch-action tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{.UUID}}/continue">
+								{{$.CsrfTokenHtml}}
+								<input type="hidden" name="return_to" value="{{$.CodespaceListReturnTo}}">
+								<button class="ui tiny icon button" type="submit" data-tooltip-content="{{ctx.Locale.Tr "codespace.continue"}}" aria-label="{{ctx.Locale.Tr "codespace.continue"}}">{{svg "octicon-play" 16}}</button>
+							</form>
+						{{end}}
+						{{if .CanStop}}
+							<button class="ui tiny icon button link-action" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{.UUID}}/stop{{QueryBuild "?" "return_to" $.CodespaceListReturnTo}}" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.stop_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.stop_confirm"}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.stop"}}" aria-label="{{ctx.Locale.Tr "codespace.stop"}}">{{svg "octicon-stop" 16}}</button>
+						{{end}}
+						{{if .CanConfigureAutoStop}}
+							<button class="ui tiny icon button codespace-settings-button" type="button" data-tooltip-content="{{ctx.Locale.Tr "settings_title"}}" aria-label="{{ctx.Locale.Tr "settings_title"}}"
+								data-settings-url="{{AppSubUrl}}/-/codespaces/{{.UUID}}/auto-stop" data-return-to="{{$.CodespaceListReturnTo}}"
+								data-auto-stop-mode="{{.AutoStop.Mode}}" data-auto-stop-timeout-value="{{.AutoStop.Timeout.Value}}" data-auto-stop-timeout-unit="{{.AutoStop.Timeout.Unit}}"
+								data-auto-stop-configurable="true" data-auto-stop-out-of-range="{{.AutoStop.CustomTimeoutOutOfRange}}"
+								data-auto-stop-effective="{{if .AutoStop.EffectiveEnabled}}{{ctx.Locale.Tr "codespace.auto_stop_effective" (ctx.Locale.Tr .AutoStop.EffectiveTimeout.TranslationKey .AutoStop.EffectiveTimeout.Value)}}{{else}}{{ctx.Locale.Tr "codespace.auto_stop_effective_never"}}{{end}}"
+								data-auto-stop-default-description="{{ctx.Locale.Tr "codespace.auto_stop_default_desc" (ctx.Locale.Tr .AutoStop.Default.TranslationKey .AutoStop.Default.Value)}}"
+								data-auto-stop-range="{{ctx.Locale.Tr "codespace.auto_stop_range" (ctx.Locale.Tr .AutoStop.Minimum.TranslationKey .AutoStop.Minimum.Value) (ctx.Locale.Tr .AutoStop.Maximum.TranslationKey .AutoStop.Maximum.Value)}}">{{svg "octicon-gear" 16}}</button>
+						{{end}}
+						{{if .CanDelete}}
+							<button class="ui red tiny icon button link-action" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{.UUID}}/delete{{QueryBuild "?" "return_to" $.CodespaceListReturnTo}}" data-tooltip-content="{{ctx.Locale.Tr "delete"}}" aria-label="{{ctx.Locale.Tr "delete"}}"
+								data-modal-confirm-header="{{ctx.Locale.Tr "codespace.delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_confirm" .ShortUUID}}"
+								>{{svg "octicon-trash" 16}}</button>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+		</div>
+	</div>
+{{else}}
+	<div class="empty-placeholder">
+		{{svg "octicon-codespaces" 48}}
+		<h2>{{ctx.Locale.Tr "codespace.empty"}}</h2>
+		<p>{{if .CodespaceOwner}}{{ctx.Locale.Tr "codespace.empty_org_desc" .ContextUser.ShortName}}{{else}}{{ctx.Locale.Tr "codespace.empty_desc"}}{{end}}</p>
+	</div>
+{{end}}

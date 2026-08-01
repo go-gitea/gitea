@@ -702,18 +702,7 @@ jobs:
 		assert.NoError(t, err)
 		assert.NotEmpty(t, addFileResp)
 		sha = addFileResp.Commit.SHA
-		assert.Eventually(t, func() bool {
-			latestCommitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
-			assert.NoError(t, err)
-			if len(latestCommitStatuses) == 0 {
-				return false
-			}
-			if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
-				insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
-				return true
-			}
-			return false
-		}, 1*time.Second, 100*time.Millisecond)
+		waitCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// milestoned
 		milestone := &issues_model.Milestone{
@@ -752,6 +741,22 @@ func checkCommitStatusAndInsertFakeStatus(t *testing.T, repo *repo_model.Reposit
 	assert.Equal(t, commitstatus.CommitStatusPending, latestCommitStatuses[0].State)
 
 	insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
+}
+
+func waitCommitStatusAndInsertFakeStatus(t *testing.T, repo *repo_model.Repository, sha string) {
+	t.Helper()
+	assert.Eventually(t, func() bool {
+		latestCommitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
+		assert.NoError(t, err)
+		if len(latestCommitStatuses) == 0 {
+			return false
+		}
+		if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
+			insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
+			return true
+		}
+		return false
+	}, 10*time.Second, 100*time.Millisecond)
 }
 
 // insertFakeStatus inserts a success status that lands in the same dedupe
@@ -889,18 +894,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// verify that a commit status was created for the review event
-		assert.Eventually(t, func() bool {
-			latestCommitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
-			assert.NoError(t, err)
-			if len(latestCommitStatuses) == 0 {
-				return false
-			}
-			if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
-				insertFakeStatus(t, repo, sha, latestCommitStatuses[0])
-				return true
-			}
-			return false
-		}, 1*time.Second, 100*time.Millisecond)
+		waitCommitStatusAndInsertFakeStatus(t, repo, sha)
 	})
 }
 

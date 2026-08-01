@@ -74,6 +74,22 @@ func runCmd(env []string, name string, args []string) bool {
 	return true
 }
 
+func golangciLintPath(goBin string) (string, error) {
+	if path, err := exec.LookPath("golangci-lint"); err == nil {
+		return path, nil
+	}
+	cmd := exec.Command(goBin, "env", "GOPATH")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(strings.TrimSpace(string(out)), "bin", "golangci-lint")
+	if _, err := os.Stat(path); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 func main() {
 	// 'go run' can not have distinct GOOS/GOARCH for its build and run steps,
 	// so install a pre-compiled binary and run it for different target platforms.
@@ -88,15 +104,20 @@ func main() {
 	if !runCmd(nil, envGo, []string{"install", envGolangciLintPackage}) {
 		os.Exit(1)
 	}
+	golangciLint, err := golangciLintPath(envGo)
+	if err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	_, _ = fmt.Fprintln(os.Stdout, "lint go header ...")
 	succeed := lintGoHeader()
 	_, _ = fmt.Fprintln(os.Stdout, "lint for linux ...")
-	succeed = runCmd([]string{"GOOS=linux", "TAGS=bindata"}, "golangci-lint", append([]string{"run", "--build-tags=linux,bindata"}, os.Args[1:]...)) && succeed
+	succeed = runCmd([]string{"GOOS=linux", "TAGS=bindata"}, golangciLint, append([]string{"run", "--build-tags=linux,bindata"}, os.Args[1:]...)) && succeed
 	if os.Getenv("CI") != "" {
 		// only lint for other platforms when in CI, to keep local lint fast
 		_, _ = fmt.Fprintln(os.Stdout, "lint for windows ...")
-		succeed = runCmd([]string{"GOOS=windows", "TAGS=gogit"}, "golangci-lint", append([]string{"run", "--build-tags=windows,gogit"}, os.Args[1:]...)) && succeed
+		succeed = runCmd([]string{"GOOS=windows", "TAGS=gogit"}, golangciLint, append([]string{"run", "--build-tags=windows,gogit"}, os.Args[1:]...)) && succeed
 	}
 	if !succeed {
 		os.Exit(1)

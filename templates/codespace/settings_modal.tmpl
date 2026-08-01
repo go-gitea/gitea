@@ -1,0 +1,52 @@
+<form id="codespace-settings-modal" class="ui small modal form ignore-dirty" method="post">
+	{{.CsrfTokenHtml}}
+	<input type="hidden" name="return_to">
+	<div class="header">{{ctx.Locale.Tr "codespace.auto_stop"}}</div>
+	<div class="content">
+		<p>{{ctx.Locale.Tr "codespace.auto_stop_desc"}}</p>
+		<p class="tw-text-text-light-2" data-auto-stop-effective></p>
+		<div class="ui warning message" data-auto-stop-unavailable hidden>{{ctx.Locale.Tr "codespace.auto_stop_unavailable"}}</div>
+		<fieldset class="grouped fields codespace-auto-stop-fields" data-auto-stop-fields>
+			<legend class="tw-font-semibold tw-mb-3">{{ctx.Locale.Tr "codespace.auto_stop_mode"}}</legend>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input id="codespace-auto-stop-default" type="radio" name="mode" value="default">
+					<label for="codespace-auto-stop-default">{{ctx.Locale.Tr "codespace.auto_stop_default"}}</label>
+					<p class="help" data-auto-stop-default-description></p>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input id="codespace-auto-stop-custom" type="radio" name="mode" value="custom">
+					<label for="codespace-auto-stop-custom">{{ctx.Locale.Tr "codespace.auto_stop_custom"}}</label>
+					<p class="help">{{ctx.Locale.Tr "codespace.auto_stop_custom_desc"}}</p>
+				</div>
+			</div>
+			<div class="checkbox-sub-item field" data-auto-stop-custom-fields hidden>
+				<label for="codespace-auto-stop-timeout">{{ctx.Locale.Tr "codespace.auto_stop_timeout"}}</label>
+				<div class="codespace-timeout-fields">
+					<input id="codespace-auto-stop-timeout" type="number" min="1" step="1" inputmode="numeric" name="timeout_value" required>
+					<select class="ui compact dropdown" name="timeout_unit" aria-label="{{ctx.Locale.Tr "codespace.auto_stop_timeout_unit"}}">
+						<option value="seconds">{{ctx.Locale.Tr "codespace.auto_stop_unit_seconds"}}</option>
+						<option value="minutes">{{ctx.Locale.Tr "codespace.auto_stop_unit_minutes"}}</option>
+						<option value="hours">{{ctx.Locale.Tr "codespace.auto_stop_unit_hours"}}</option>
+						<option value="days">{{ctx.Locale.Tr "codespace.auto_stop_unit_days"}}</option>
+					</select>
+				</div>
+				<p class="help tw-ml-0" data-auto-stop-range></p>
+				<div class="ui warning message" data-auto-stop-out-of-range hidden>{{ctx.Locale.Tr "codespace.auto_stop_out_of_range"}}</div>
+			</div>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input id="codespace-auto-stop-never" type="radio" name="mode" value="never">
+					<label for="codespace-auto-stop-never">{{ctx.Locale.Tr "codespace.auto_stop_never"}}</label>
+					<p class="help">{{ctx.Locale.Tr "codespace.auto_stop_never_desc"}}</p>
+				</div>
+			</div>
+		</fieldset>
+	</div>
+	<div class="actions">
+		<button class="ui cancel button" type="button">{{ctx.Locale.Tr "cancel"}}</button>
+		<button class="ui primary button" type="submit">{{ctx.Locale.Tr "save"}}</button>
+	</div>
+</form>

@@ -14,20 +14,51 @@
 }
 
 /* used by the clone-panel popup */
+.clone-panel-popup {
+  box-sizing: border-box;
+  width: min(360px, calc(100vw - 32px));
+}
+
+/* The generic tippy target becomes inline after mounting, which would make this width content-dependent. */
+.tippy-content .clone-panel-popup.tippy-target {
+  display: block !important;
+}
+
 .clone-panel-field,
 .clone-panel-list {
   margin: 10px;
 }
 
+.clone-panel-field > .ui.action.input {
+  width: 100%;
+}
+
+.clone-panel-field > .ui.action.input > input {
+  min-width: 0;
+}
+
+.clone-panel-main-tab {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .clone-panel-tab .item {
   padding: 5px 10px;
+  border-bottom: 3px solid transparent;
   background: none;
   color: var(--color-text-light-2);
 }
 
 .clone-panel-tab .item.active {
   color: var(--color-text-dark);
-  border-bottom: 3px solid currentcolor;
+  border-bottom-color: currentcolor;
+}
+
+.clone-panel-main-tab .item {
+  width: 100%;
+  padding: 9px 10px;
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
 }
 
 .clone-panel-tab + .divider {
@@ -36,4 +67,96 @@
 
 .clone-panel-list .item {
   margin: 5px 0;
+}
+
+.clone-panel-codespace-create,
+.clone-panel-codespace-list {
+  padding: 12px;
+}
+
+.clone-panel-codespace-context {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin-bottom: 10px;
+}
+
+.clone-panel-codespace-context .flex-text-inline > span,
+.clone-panel-codespace-copy,
+.clone-panel-codespace-main {
+  min-width: 0;
+}
+
+.clone-panel-codespace-list-title {
+  margin-bottom: 4px;
+  color: var(--color-text-light-2);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.clone-panel-codespace-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 0;
+}
+
+.clone-panel-codespace-row + .clone-panel-codespace-row {
+  border-top: 1px solid var(--color-secondary);
+}
+
+.clone-panel-codespace-main {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
+  color: var(--color-text);
+}
+
+.clone-panel-codespace-main:hover strong {
+  color: var(--color-primary);
+}
+
+.clone-panel-codespace-main > svg,
+.clone-panel-codespace-row > .ui.button,
+.clone-panel-codespace-row > form {
+  flex-shrink: 0;
+}
+
+.clone-panel-codespace-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.clone-panel-codespace-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  color: var(--color-text-light-2);
+  font-size: 12px;
+}
+
+.clone-panel-codespace-meta .ui.label {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.clone-panel-codespace-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  color: var(--color-text-light-2);
+}
+
+.clone-panel-codespace-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 12px;
 }

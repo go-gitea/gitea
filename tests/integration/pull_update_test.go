@@ -11,6 +11,8 @@ import (
 	"time"
 
 	auth_model "gitea.dev/models/auth"
+	codespace_model "gitea.dev/models/codespace"
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
@@ -93,6 +95,42 @@ func TestAPIPullUpdatePublicOnlyToken(t *testing.T) {
 		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusOK)
+	})
+}
+
+func TestAPIPullUpdateCodespaceTokenAllowsForkHead(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+		pr := createOutdatedPR(t, user, org26)
+		require.NoError(t, pr.LoadBaseRepo(t.Context()))
+		require.NoError(t, pr.LoadHeadRepo(t.Context()))
+		require.NoError(t, pr.LoadIssue(t.Context()))
+		require.NotEqual(t, pr.BaseRepoID, pr.HeadRepoID)
+
+		token, codespaceUUID := createRunningCodespaceTokenForRepo(t, pr.BaseRepo)
+		now := time.Now().Unix()
+		authorization := &codespace_model.PermissionAuthorization{
+			UserID: user.ID, SourceRepoID: pr.BaseRepoID, RequestHash: "pull-update-integration",
+			CreatedUnix: now, UpdatedUnix: now,
+		}
+		require.NoError(t, db.Insert(t.Context(), authorization))
+		require.NoError(t, db.Insert(t.Context(), &codespace_model.PermissionRepository{
+			AuthorizationID: authorization.ID,
+			TargetRepoID:    pr.HeadRepoID,
+			UnitType:        unit.TypeCode,
+			RequestedMode:   perm.AccessModeWrite,
+			GrantedMode:     perm.AccessModeWrite,
+		}))
+		_, err := db.GetEngine(t.Context()).ID(codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
+		require.NoError(t, err)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		assert.Equal(t, 0, diffCount.Behind)
 	})
 }
 

@@ -396,6 +396,9 @@ func ViewIssue(ctx *context.Context) {
 		} else {
 			ctx.Data["DisableStatusChange"] = prViewInfo.IsPullRequestBroken && issue.IsClosed
 		}
+		if !issue.IsClosed && !prViewInfo.IsPullRequestBroken {
+			prepareCodespaceSourcePanel(ctx, "pull", strconv.FormatInt(issue.Index, 10), issue.PullRequest.GetGitHeadRefName(), fmt.Sprintf("#%d", issue.Index))
+		}
 	}
 
 	ctx.Data["Reference"] = issue.Ref

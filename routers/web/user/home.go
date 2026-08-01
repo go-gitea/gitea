@@ -645,7 +645,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context) {
 	keys, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
-		OwnerID: ctx.ContextUser.ID,
+		OwnerID:  ctx.ContextUser.ID,
+		KeyTypes: []asymkey_model.KeyType{asymkey_model.KeyTypeUser},
 	})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
@@ -656,9 +657,6 @@ func ShowSSHKeys(ctx *context.Context) {
 	// "authorized_keys" file format: "#" followed by comment line per key
 	buf.WriteString("# Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.\n")
 	for i := range keys {
-		if keys[i].Type == asymkey_model.KeyTypePrincipal {
-			continue // SSH principal keys are not for signing or authentication
-		}
 		buf.WriteString(keys[i].OmitEmail())
 		buf.WriteString("\n")
 	}

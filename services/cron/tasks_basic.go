@@ -14,12 +14,19 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/auth"
+	codespace_service "gitea.dev/services/codespace"
 	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
 	repo_service "gitea.dev/services/repository"
 	archiver_service "gitea.dev/services/repository/archiver"
 )
+
+// ReconcileCodespacesConfig contains settings for the Codespace maintenance task.
+type ReconcileCodespacesConfig struct {
+	BaseConfig
+	OlderThan time.Duration
+}
 
 func registerUpdateMirrorTask() {
 	type UpdateMirrorTaskConfig struct {
@@ -156,6 +163,23 @@ func registerCleanupPackages() {
 	})
 }
 
+func registerReconcileCodespaces() {
+	RegisterTaskFatal("reconcile_codespaces", &ReconcileCodespacesConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@every 1m",
+		},
+		OlderThan: 8760 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		realConfig := config.(*ReconcileCodespacesConfig)
+		_, err := codespace_service.ReconcileCodespaces(ctx, codespace_service.ReconcileCodespacesOptions{
+			FailedOlderThan: realConfig.OlderThan,
+		})
+		return err
+	})
+}
+
 func registerSyncRepoLicenses() {
 	RegisterTaskFatal("sync_repo_licenses", &BaseConfig{
 		Enabled:    false,
@@ -182,5 +206,6 @@ func initBasicTasks() {
 	if setting.Packages.Enabled {
 		registerCleanupPackages()
 	}
+	registerReconcileCodespaces()
 	registerSyncRepoLicenses()
 }

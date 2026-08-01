@@ -172,12 +172,16 @@ func runServ(ctx context.Context, c *cli.Command) error {
 			return fail(ctx, "Key check failed", "Failed to check provided key: %v", err)
 		}
 		switch key.Type {
+		case asymkey_model.KeyTypeUser:
+			println("Hi there, " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
 		case asymkey_model.KeyTypeDeploy:
 			println("Hi there! You've successfully authenticated with the deploy key named " + key.Name + ", but Gitea does not provide shell access.")
 		case asymkey_model.KeyTypePrincipal:
 			println("Hi there! You've successfully authenticated with the principal " + key.Content + ", but Gitea does not provide shell access.")
+		case asymkey_model.KeyTypeCodespace:
+			println("Hi there! You've successfully authenticated with the codespace key named " + key.Name + ", but Gitea does not provide shell access.")
 		default:
-			println("Hi there, " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
+			return fail(ctx, "Unsupported key type", "Unsupported key type %d for key %d", key.Type, key.ID)
 		}
 		println("If this is unexpected, please log in with password and setup Gitea under another user.")
 		return nil
