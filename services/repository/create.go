@@ -134,12 +134,8 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 			return fmt.Errorf("getLicense[%s]: %w", opts.License, err)
 		}
 
-		licensesDir := filepath.Join(tmpDir, LicenseReuseDir)
-		if err = os.MkdirAll(licensesDir, 0o755); err != nil {
-			return fmt.Errorf("mkdir LICENSES: %w", err)
-		}
-		if err = os.WriteFile(filepath.Join(licensesDir, opts.License+".txt"), data, 0o644); err != nil {
-			return fmt.Errorf("write LICENSES/%s.txt: %w", opts.License, err)
+		if err = os.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0o644); err != nil {
+			return fmt.Errorf("write LICENSE: %w", err)
 		}
 	}
 
@@ -320,8 +316,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
 		}
-		licensePath := LicenseReuseDir + "/" + opts.License + ".txt"
-		licenses = append(licenses, repo_model.DetectedLicense{SPDXID: opts.License, LicensePath: licensePath})
+		licenses = append(licenses, repo_model.DetectedLicense{SPDXID: opts.License, LicensePath: LicenseLegacyFile})
 		if err = repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
 			return nil, err
 		}

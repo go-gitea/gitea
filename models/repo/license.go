@@ -16,10 +16,10 @@ func init() {
 
 type RepoLicense struct { //revive:disable-line:exported
 	ID          int64 `xorm:"pk autoincr"`
-	RepoID      int64 `xorm:"NOT NULL"`
+	RepoID      int64 `xorm:"UNIQUE(path) NOT NULL"`
 	CommitID    string
-	License     string             `xorm:"VARCHAR(255) NOT NULL"`
-	LicensePath string             `xorm:"VARCHAR(255) NOT NULL"`
+	License     string             `xorm:"VARCHAR(255) UNIQUE(path) NOT NULL"`
+	LicensePath string             `xorm:"VARCHAR(255) UNIQUE(path) NOT NULL DEFAULT 'LICENSE'"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX UPDATED"`
 }

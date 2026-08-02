@@ -25,6 +25,7 @@ import (
 const (
 	LicenseLegacyFile = "LICENSE"
 	// REUSE license spec - see https://reuse.software/spec-3.3/
+	// TODO: Surface this version in repo creation
 	LicenseReuseDir = "LICENSES"
 )
 
