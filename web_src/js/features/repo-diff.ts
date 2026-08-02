@@ -3,7 +3,6 @@ import {initDiffFileTree} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initViewedCheckboxListenerFor, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
-import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
@@ -134,7 +133,8 @@ function initRepoDiffConversationNav() {
 }
 
 function initDiffHeaderPopup() {
-  for (const btn of document.querySelectorAll('.diff-header-popup-btn:not([data-header-popup-initialized])')) {
+  registerGlobalSelectorFunc('.diff-header-popup-btn', (btn: HTMLElement) => {
+    if (btn.hasAttribute('data-header-popup-initialized')) return;
     btn.setAttribute('data-header-popup-initialized', '');
     const popup = btn.nextElementSibling;
     if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
@@ -146,16 +146,12 @@ function initDiffHeaderPopup() {
       interactive: true,
       hideOnClick: true,
     });
-  }
+  });
 }
 
 // Will be called when the show more (files) button has been pressed
 function onShowMoreFiles() {
-  // TODO: replace these calls with the "observer.ts" methods
-  initRepoIssueContentHistory();
-  initViewedCheckboxListenerFor();
-  initImageDiff();
-  initDiffHeaderPopup();
+  initRepoIssueContentHistory(); // it scans the whole page via a fetch, so it doesn't fit the per-element observer pattern
 }
 
 async function loadMoreFiles(btn: Element): Promise<boolean> {
@@ -205,9 +201,8 @@ function initRepoDiffShowMore() {
       const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!;
       const respFileBodyChildren = Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
       el.parentElement!.replaceWith(...respFileBodyChildren);
-      // FIXME: calling onShowMoreFiles is not quite right here.
-      // But since onShowMoreFiles mixes "init diff box" and "init diff body" together,
-      // so it still needs to call it to make the "ImageDiff" and something similar work.
+      // FIXME: "onShowMoreFiles" doesn't quite match this "load diff body" flow, but the newly
+      // loaded body can contain comments, so initRepoIssueContentHistory() still needs to run.
       onShowMoreFiles();
     } catch (error) {
       console.error('Error:', error);

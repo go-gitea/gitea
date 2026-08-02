@@ -1,6 +1,7 @@
 import {diffTreeStore, diffTreeStoreSetViewed} from '../modules/diff-file.ts';
 import {setFileFolding} from './file-fold.ts';
 import {POST} from '../modules/fetch.ts';
+import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
 const {pageData} = window.config;
 // it is undefined on most pages, fortunately, when it is accessed by the related functions, it exists
@@ -21,12 +22,11 @@ function refreshViewedFilesSummary() {
     .replace('%[2]d', String(prReview.numberOfFiles));
 }
 
-// Initializes a listener for all children of the given html element
-// (for example 'document' in the most basic case)
-// to watch for changes of viewed-file checkboxes
+// Initializes a listener for viewed-file checkboxes, including ones added later (e.g. "show more files")
 export function initViewedCheckboxListenerFor() {
-  for (const form of document.querySelectorAll(`${viewedCheckboxSelector}:not([data-has-viewed-checkbox-listener="true"])`)) {
+  registerGlobalSelectorFunc(viewedCheckboxSelector, (form: HTMLElement) => {
     // To prevent double addition of listeners
+    if (form.getAttribute('data-has-viewed-checkbox-listener') === 'true') return;
     form.setAttribute('data-has-viewed-checkbox-listener', String(true));
 
     // The checkbox consists of a div containing the real checkbox with its label,
@@ -66,7 +66,7 @@ export function initViewedCheckboxListenerFor() {
       const parentBox = form.closest('.diff-file-header')!;
       setFileFolding(parentBox.closest('.file-content')!, parentBox.querySelector('.fold-file')!, this.checked);
     });
-  }
+  });
 }
 
 export function initExpandAndCollapseFilesButton() {

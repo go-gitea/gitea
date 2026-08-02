@@ -1,6 +1,7 @@
 import {GET} from '../modules/fetch.ts';
-import {hideElem, loadElem, queryElemChildren, queryElems} from '../utils/dom.ts';
+import {hideElem, loadElem, queryElemChildren} from '../utils/dom.ts';
 import {parseDom} from '../utils.ts';
+import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
 type ImageContext = {
   imageBefore: HTMLImageElement | undefined,
@@ -301,7 +302,8 @@ class ImageDiff {
 }
 
 export function initImageDiff() {
-  for (const el of queryElems<HTMLImageElement>(document, '.image-diff:not([data-image-diff-loaded])')) {
+  registerGlobalSelectorFunc('.image-diff', (el: HTMLElement) => {
+    if (el.hasAttribute('data-image-diff-loaded')) return;
     (new ImageDiff()).init(el); // it is async, but we don't need to await for it
-  }
+  });
 }
