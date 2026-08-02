@@ -6,6 +6,7 @@ package private
 import (
 	"testing"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
 	repo_model "gitea.dev/models/repo"
@@ -45,4 +46,29 @@ func TestHandlePullRequestMerging(t *testing.T) {
 	assert.Equal(t, "01234567", pr.MergedCommitID)
 
 	unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{ID: autoMerge.ID})
+}
+
+func TestHandlePullRequestMergingAlreadyClosed(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	pr, err := issues_model.GetUnmergedPullRequest(t.Context(), 1, 1, "branch2", "master", issues_model.PullRequestFlowGithub)
+	assert.NoError(t, err)
+	assert.NoError(t, pr.LoadIssue(t.Context()))
+
+	pr.Issue.IsClosed = true
+	_, err = db.GetEngine(t.Context()).ID(pr.Issue.ID).Cols("is_closed").Update(pr.Issue)
+	assert.NoError(t, err)
+
+	ctx, resp := contexttest.MockPrivateContext(t, "/")
+	hookPostReceiveHandlePullRequestMerging(ctx, &private.HookOptions{
+		PullRequestID: pr.ID,
+		UserID:        2,
+	}, []*repo_module.PushUpdateOptions{
+		{NewCommitID: "01234567"},
+	})
+	assert.Empty(t, resp.Body.String())
+
+	pr, err = issues_model.GetPullRequestByID(t.Context(), pr.ID)
+	assert.NoError(t, err)
+	assert.True(t, pr.HasMerged)
+	assert.Equal(t, "01234567", pr.MergedCommitID)
 }

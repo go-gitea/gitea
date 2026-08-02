@@ -4,6 +4,7 @@
 package pull
 
 import (
+	"context"
 	"strconv"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
@@ -145,4 +147,37 @@ func TestMarkPullRequestAsMergeable(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		assert.FailNow(t, "Timeout: nothing was added to automergequeue")
 	}
+}
+
+func TestCheckPullRequestMergeableMarksPreviouslyNonEmptyAncestorMerged(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, pr.LoadBaseRepo(ctx))
+	require.NoError(t, pr.LoadIssue(ctx))
+	require.False(t, pr.HasMerged)
+
+	baseRepo := pr.BaseRepo
+	baseCommitID, err := git.GetFullCommitID(ctx, baseRepo, git.BranchPrefix+pr.BaseBranch)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		assert.NoError(t, git.UpdateRef(context.Background(), baseRepo, git.BranchPrefix+pr.BaseBranch, baseCommitID))
+	})
+
+	headCommitID, err := git.GetFullCommitID(ctx, baseRepo, pr.GetGitHeadRefName())
+	require.NoError(t, err)
+	require.NotEqual(t, pr.MergeBase, headCommitID)
+
+	require.NoError(t, git.UpdateRef(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, headCommitID))
+
+	checkPullRequestMergeable(pr.ID)
+
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.True(t, pr.HasMerged)
+	assert.Equal(t, headCommitID, pr.MergedCommitID)
+	assert.Equal(t, issues_model.PullRequestStatusManuallyMerged, pr.Status)
+
+	require.NoError(t, pr.LoadIssue(ctx))
+	assert.True(t, pr.Issue.IsClosed)
 }
