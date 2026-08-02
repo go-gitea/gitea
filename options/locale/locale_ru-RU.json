@@ -1814,7 +1814,6 @@
   "repo.settings.event_push": "Отправка",
   "repo.settings.event_push_desc": "Отправка в репозиторий.",
   "repo.settings.event_repository": "Репозиторий",
-  "repo.settings.event_repository_desc": "Репозиторий создан или удален.",
   "repo.settings.event_header_issue": "События задачи",
   "repo.settings.event_issues": "Задачи",
   "repo.settings.event_issue_assign": "Назначена задача",

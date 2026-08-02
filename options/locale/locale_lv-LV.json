@@ -1851,7 +1851,6 @@
   "repo.settings.event_push": "Izmaiņu nosūtīšana",
   "repo.settings.event_push_desc": "Git izmaiņu nosūtīšana uz repozitoriju.",
   "repo.settings.event_repository": "Repozitorijs",
-  "repo.settings.event_repository_desc": "Repozitorijs izveidots vai dzēsts.",
   "repo.settings.event_header_issue": "Problēmu notikumi",
   "repo.settings.event_issues": "Problēmas",
   "repo.settings.event_issue_assign": "Problēmas atbildīgie",

@@ -2056,7 +2056,6 @@
   "repo.settings.event_force_push": "Forçar Push",
   "repo.settings.event_push_desc": "Git push para o repositório.",
   "repo.settings.event_repository": "Repositório",
-  "repo.settings.event_repository_desc": "Repositório criado ou excluído.",
   "repo.settings.event_header_issue": "Eventos da Issue",
   "repo.settings.event_issues_desc": "Issue aberta, fechada, reaberta, editada ou excluída.",
   "repo.settings.event_issue_assign": "Issue Atribuída",

@@ -1124,7 +1124,6 @@
   "repo.settings.event_push": "Pusha",
   "repo.settings.event_push_desc": "Git push till en utvecklingskatalog.",
   "repo.settings.event_repository": "Utvecklingskatalog",
-  "repo.settings.event_repository_desc": "Utvecklingskatalogen skapad eller borttagen.",
   "repo.settings.event_header_issue": "Ärendehändelser",
   "repo.settings.event_issues": "Ärenden",
   "repo.settings.event_issue_comment": "Kommentar",
