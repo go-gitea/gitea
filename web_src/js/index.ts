@@ -6,7 +6,6 @@ import {initGlobalCopyToClipboardListener} from './modules/clipboard.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
-import {initImageDiff} from './features/imagediff.ts';
 import {initRepoMigration} from './features/repo-migration.ts';
 import {initRepoProjectsView} from './features/repo-projects.ts';
 import {initTableSort} from './features/tablesort.ts';
@@ -95,7 +94,6 @@ const initPerformanceTracer = callInitFunctions([
   initCommmPageComponents,
 
   initHeatmap,
-  initImageDiff,
   initMarkupAnchors,
   initMarkupContent,
   initRefIssueContextPopup,

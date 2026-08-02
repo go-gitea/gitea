@@ -1,7 +1,6 @@
 import {GET} from '../modules/fetch.ts';
 import {hideElem, loadElem, queryElemChildren} from '../utils/dom.ts';
 import {parseDom} from '../utils.ts';
-import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
 type ImageContext = {
   imageBefore: HTMLImageElement | undefined,
@@ -99,7 +98,6 @@ class ImageDiff {
 
   async init(containerEl: HTMLElement) {
     this.containerEl = containerEl;
-    containerEl.setAttribute('data-image-diff-loaded', 'true');
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
     this.diffContainerWidth = Math.max(containerEl.closest('.diff-file-box')!.clientWidth - 300, 100);
@@ -301,9 +299,6 @@ class ImageDiff {
   }
 }
 
-export function initImageDiff() {
-  registerGlobalSelectorFunc('.image-diff', (el: HTMLElement) => {
-    if (el.hasAttribute('data-image-diff-loaded')) return;
-    (new ImageDiff()).init(el); // it is async, but we don't need to await for it
-  });
+export async function initImageDiff(el: HTMLElement) {
+  await new ImageDiff().init(el);
 }
