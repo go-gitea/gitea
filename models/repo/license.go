@@ -35,13 +35,6 @@ func (rll RepoLicenseList) StringList() []string {
 	return licenses
 }
 
-func (rll RepoLicenseList) LicensePath() string {
-	if len(rll) == 0 {
-		return ""
-	}
-	return rll[0].LicensePath
-}
-
 type DetectedLicense struct {
 	// SPDXID of the license
 	SPDXID string

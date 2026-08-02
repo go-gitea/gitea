@@ -51,12 +51,10 @@
 			</a>
 		{{end}}
 
-		{{if .LicenseGroups}}
-			{{range .LicenseGroups}}
-				<a class="flex-text-block muted" title="{{StringUtils.Join .Licenses ", "}}" href="{{$.RepoLink}}/src/{{$.Repository.DefaultBranch}}/{{PathEscapeSegments .Path}}">
-					{{svg "octicon-law"}} {{StringUtils.Join .Licenses ", "}}
-				</a>
-			{{end}}
+		{{range .LicenseGroups}}
+			<a class="flex-text-block muted" title="{{StringUtils.Join .Licenses ", "}}" href="{{$.RepoLink}}/src/{{$.Repository.DefaultBranch}}/{{PathEscapeSegments .Path}}">
+				{{svg "octicon-law"}} {{StringUtils.Join .Licenses ", "}}
+			</a>
 		{{end}}
 
 		{{if .CitiationExist}}
