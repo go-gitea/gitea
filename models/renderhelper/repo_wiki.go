@@ -57,9 +57,9 @@ type RepoWikiOptions struct {
 func NewRenderContextRepoWiki(ctx context.Context, repo *repo_model.Repository, opts ...RepoWikiOptions) *markup.RenderContext {
 	helper := &RepoWiki{opts: util.OptionalArg(opts)}
 	rctx := markup.NewRenderContext(ctx).WithMarkupType(markdown.MarkupName)
+	helper.commitChecker = newCommitChecker(ctx, repo)
 	if repo != nil {
 		helper.repoLink = repo.Link()
-		helper.commitChecker = newCommitChecker(ctx, repo)
 		rctx = rctx.WithMetas(repo.ComposeWikiMetas(ctx))
 	} else {
 		// this is almost dead code, only to pass the incorrect tests

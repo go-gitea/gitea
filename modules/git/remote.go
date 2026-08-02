@@ -14,9 +14,9 @@ import (
 )
 
 // GetRemoteAddress returns remote url of git repository in the repoPath with special remote name
-func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string, error) {
+func GetRemoteAddress(ctx context.Context, repo RepositoryFacade, remoteName string) (string, error) {
 	cmd := gitcmd.NewCommand("remote", "get-url").AddDynamicArguments(remoteName)
-	result, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
+	result, _, err := cmd.WithRepo(repo).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}

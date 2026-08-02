@@ -86,7 +86,7 @@
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td>
 								<a class="tw-text-red show-modal" href data-modal="#admin-repo-delete-modal"
-									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.ID}}"
+									data-modal-form.url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.ID}}"
 									data-modal-repo-name="{{.Name}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>

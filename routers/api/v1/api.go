@@ -291,7 +291,9 @@ func checkTokenPublicOnly() func(ctx *context.APIContext) {
 					return
 				}
 			case auth_model.AccessTokenScopeCategoryPackage:
-				if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+				// a public-only token must not reach limited-visibility owners either,
+				// matching the org/user public-only enforcement above
+				if ctx.Package != nil && !ctx.Package.Owner.Visibility.IsPublic() {
 					ctx.APIError(http.StatusForbidden, "token scope is limited to public packages")
 					return
 				}
@@ -1360,8 +1362,13 @@ func Routes() *web.Router {
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
 							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Post("/rerun-failed-jobs", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunFailedWorkflowRun)
-							m.Get("/jobs", repo.ListWorkflowRunJobs)
-							m.Post("/jobs/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
+							m.Post("/cancel", reqToken(), reqRepoWriter(unit.TypeActions), repo.CancelWorkflowRun)
+							m.Post("/approve", reqToken(), reqRepoWriter(unit.TypeActions), repo.ApproveWorkflowRun)
+							m.Group("/jobs", func() {
+								m.Get("", repo.ListWorkflowRunJobs)
+								m.Post("/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
+							})
+							m.Get("/logs", reqToken(), repo.GetWorkflowRunLogs)
 							m.Get("/artifacts", repo.GetArtifactsOfRun)
 						})
 					})

@@ -21,7 +21,20 @@ import (
 	"gitea.dev/routers/api/v1/utils"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
+
+	"xorm.io/builder"
 )
+
+// actionsOwnerAccessibleRepoIDsSubQuery returns the sub-query restricting an owner-scoped actions
+// listing to the repos whose actions the caller can read, or nil when no restriction applies. A bare
+// org member must not be able to enumerate runs/jobs of repos they have no access to. A site admin may
+// skip the access filter, but a public-only token must stay confined to public repos even for an admin.
+func actionsOwnerAccessibleRepoIDsSubQuery(ctx *context.APIContext, ownerID int64) *builder.Builder {
+	if ownerID > 0 && (ctx.Doer == nil || !ctx.Doer.IsAdmin || ctx.PublicOnly) {
+		return repo_model.FindUserActionsAccessibleOwnerRepoIDsSubQuery(ownerID, ctx.Doer, ctx.PublicOnly)
+	}
+	return nil
+}
 
 // ListJobs lists jobs for api route validated ownerID and repoID
 // ownerID == 0 and repoID == 0 means all jobs
@@ -59,6 +72,8 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64, runAttemptI
 		}
 		opts.Statuses = append(opts.Statuses, values...)
 	}
+
+	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
 
 	jobs, total, err := db.FindAndCount[actions_model.ActionRunJob](ctx, opts)
 	if err != nil {
@@ -181,6 +196,8 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 	excludePullRequests := ctx.FormBool("exclude_pull_requests")
 
+	opts.AccessibleRepoIDsSubQuery = actionsOwnerAccessibleRepoIDsSubQuery(ctx, opts.OwnerID)
+
 	runs, total, err := db.FindAndCount[actions_model.ActionRun](ctx, opts)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -188,7 +205,6 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 	}
 
 	res := new(api.ActionWorkflowRunsResponse)
-	res.TotalCount = total
 
 	runList := actions_model.RunList(runs)
 	if err := runList.LoadTriggerUser(ctx); err != nil {
@@ -208,16 +224,23 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64, workflowID string)
 		return
 	}
 
-	res.Entries = make([]*api.ActionWorkflowRun, len(runs))
-	for i := range runs {
+	res.Entries = make([]*api.ActionWorkflowRun, 0, len(runs))
+	for _, run := range runs {
+		if run.Repo == nil {
+			// Orphaned row: drop it rather than failing the page, so total stays an upper bound
+			// until "doctor check --run check-db-consistency" removes it.
+			total--
+			continue
+		}
 		// TODO: load run attempts in batch
-		convertedRun, err := convert.ToActionWorkflowRun(ctx, runs[i], nil, excludePullRequests)
+		convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, excludePullRequests)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		res.Entries[i] = convertedRun
+		res.Entries = append(res.Entries, convertedRun)
 	}
+	res.TotalCount = total
 	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)

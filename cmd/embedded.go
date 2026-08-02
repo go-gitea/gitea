@@ -18,7 +18,6 @@ import (
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 
 	"github.com/urfave/cli/v3"
 )
@@ -255,7 +254,7 @@ func extractAsset(d string, a assetFile, overwrite, rename bool) error {
 	} else if !fi.Mode().IsRegular() {
 		return fmt.Errorf("%s already exists, but it's not a regular file", dest)
 	} else if rename {
-		if err := util.Rename(dest, dest+".bak"); err != nil {
+		if err := os.Rename(dest, dest+".bak"); err != nil {
 			return fmt.Errorf("error creating backup for %s: %w", dest, err)
 		}
 		// Attempt to respect file permissions mask (even if user:group will be set anew)

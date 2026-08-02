@@ -92,6 +92,13 @@ func (run *ActionRun) Link() string {
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.ID)
 }
 
+func (run *ActionRun) APIURL(ctx context.Context) string {
+	if run.Repo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID)
+}
+
 func (run *ActionRun) WorkflowLink() string {
 	if run.Repo == nil {
 		return ""
@@ -121,7 +128,7 @@ func (run *ActionRun) PrettyRef() string {
 	return refName.ShortName()
 }
 
-// RefTooltip return a tooltop of run's ref. For pull request, it's the title of the PR, otherwise it's the ShortName.
+// RefTooltip return a tooltip of run's ref. For pull request, it's the title of the PR, otherwise it's the ShortName.
 func (run *ActionRun) RefTooltip() string {
 	payload, err := run.GetPullRequestEventPayload()
 	if err == nil && payload != nil && payload.PullRequest != nil {
@@ -275,6 +282,12 @@ func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, er
 	}
 
 	return &run, nil
+}
+
+func GetRunsByRepoAndID(ctx context.Context, repoID int64, runIDs []int64) ([]*ActionRun, error) {
+	var runs []*ActionRun
+	err := db.GetEngine(ctx).In("id", runIDs).Where("repo_id=?", repoID).Find(&runs)
+	return runs, err
 }
 
 func GetRunByRepoAndIndex(ctx context.Context, repoID, runIndex int64) (*ActionRun, error) {

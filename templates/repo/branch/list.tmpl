@@ -200,7 +200,7 @@
 											</span>
 										</button>
 									{{else}}
-										<button class="btn interact-bg tw-p-2 show-modal delete-branch-button tw-text-red" data-modal="#delete-branch-modal" data-modal-form.action="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-modal-name="{{.DBBranch.Name}}">
+										<button class="btn interact-bg tw-p-2 show-modal delete-branch-button tw-text-red" data-modal="#delete-branch-modal" data-modal-form.url="{{$.Link}}/delete?name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.delete" (.DBBranch.Name)}}" data-modal-name="{{.DBBranch.Name}}">
 											{{svg "octicon-trash"}}
 										</button>
 									{{end}}

@@ -10,16 +10,22 @@ import (
 	"sync"
 
 	"gitea.dev/modules/charset"
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/util"
 )
 
 // CoAuthoredByTrailer is the canonical token for the `Co-authored-by:` git trailer.
 const CoAuthoredByTrailer = "Co-authored-by"
 
+const (
+	commitIdentityRoleAuthor    = 1
+	commitIdentityRoleCommitter = 2
+	commitIdentityRoleCoAuthor  = 3
+)
+
 type CommitIdentity struct {
 	Name  string
 	Email string
+	role  int
 }
 
 // CommitMessageTrailerValues keys are all in lower-case
@@ -33,7 +39,7 @@ type CommitMessage struct {
 
 	trailerValues CommitMessageTrailerValues
 
-	allParticipants []*CommitIdentity
+	allAuthors []*CommitIdentity
 }
 
 func (c *CommitMessage) MessageUTF8() string {
@@ -69,8 +75,12 @@ func (c *CommitMessage) MessageTrailer() CommitMessageTrailerValues {
 }
 
 var commitMessageTrailerSplit = sync.OnceValue(func() *regexp.Regexp {
-	// the sep is either something like "\n---\n" or "\n\n" in the body, or at the start of the body like "---\n"
-	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n-{3,}\n+|\n\n)(?P<trailer>(?:[A-Za-z0-9][-A-Za-z0-9]*:[^\n]*\n?)*\n*)$`)
+	// ref: https://git-scm.com/docs/git-interpret-trailers
+	// TODO: the regexp is not able to perfectly parse the all kinds of trailers
+	// It was just copied from legacy code, it is not exactly the same as how Git parses the trailer and not quite right in some cases.
+	// For the key characters: it follows RFC 822 field name syntax (or RFC 2822/RFC 5322): printable ASCII characters between 33 and 126 except the colon (:),
+	// but maybe we don't want to make it that complicated, so here we only support some common "symbol-like" characters.
+	return regexp.MustCompile(`(?s)^(?P<content>.*?)(?P<sep>^|^\n|^-{3,}\n+|\n+-{3,}\n+|\n{2,})(?P<trailer>(?:[A-Za-z0-9][-\w]*:[^\n]*(\n\s+[^\n]*)*\n?)*\n*)$`)
 })
 
 // CommitMessageSplitTrailer tries to split the message by the trailer separator
@@ -83,6 +93,41 @@ func CommitMessageSplitTrailer(s string) (content, sep, trailer string) {
 		return s, "", ""
 	}
 	return v[re.SubexpIndex("content")], v[re.SubexpIndex("sep")], v[re.SubexpIndex("trailer")]
+}
+
+// CommitMessageMerge merges two commit messages with their trailers
+func CommitMessageMerge(m1, m2 string) string {
+	c1, s1, t1 := CommitMessageSplitTrailer(m1)
+	c2, s2, t2 := CommitMessageSplitTrailer(m2)
+	c1, t1 = strings.TrimSpace(c1), strings.TrimSpace(t1)
+	c2, t2 = strings.TrimSpace(c2), strings.TrimSpace(t2)
+	out := strings.Builder{}
+	if c1 != "" && c2 != "" {
+		out.WriteString(c1)
+		out.WriteString("\n\n")
+		out.WriteString(c2)
+	} else if c1 != "" {
+		out.WriteString(c1)
+	} else if c2 != "" {
+		out.WriteString(c2)
+	}
+	if t1 != "" || t2 != "" {
+		sep := util.Iif(t1 == "", s2, s1)
+		sep = util.IfZero(sep, "\n\n")
+		if c1 != "" || c2 != "" {
+			out.WriteString(sep)
+		}
+		if t1 != "" {
+			out.WriteString(t1)
+		}
+		if t1 != "" && t2 != "" {
+			out.WriteString("\n")
+		}
+		if t2 != "" {
+			out.WriteString(t2)
+		}
+	}
+	return out.String()
 }
 
 func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
@@ -99,35 +144,50 @@ func CommitMessageParseTrailer(s string) CommitMessageTrailerValues {
 	return ret
 }
 
-// AllParticipantIdentities returns all the participants in the commit, the first one is the commit's author
-func (c *Commit) AllParticipantIdentities() []*CommitIdentity {
-	if c.allParticipants != nil {
-		return c.allParticipants
+// AllAuthorIdentities returns all the author and co-authors in the commit. Committer is not included:
+// * Author & Co-author: they changed the code (attribution)
+// * Committer: they submitted the commit but didn't change the code (e.g.: maintainer signed a commit)
+func (c *Commit) AllAuthorIdentities() []*CommitIdentity {
+	if c.allAuthors != nil {
+		return c.allAuthors
 	}
-
-	exclude := container.Set[string]{}
-	c.allParticipants = append(c.allParticipants, &CommitIdentity{Name: c.Author.Name, Email: c.Author.Email})
-	exclude.Add(strings.ToLower(c.Author.Email))
-
-	addParticipant := func(name, email string) {
+	trailerCoAuthors := c.MessageTrailer()["co-authored-by"]
+	c.allAuthors = make([]*CommitIdentity, 0, 1+len(trailerCoAuthors))
+	exclude := map[string]int{}
+	addAuthor := func(name, email string, role int) {
 		if name == "" && email == "" {
 			return
 		}
-		emailLower := strings.ToLower(email)
-		if emailLower != "" && exclude.Contains(emailLower) {
+		key := strings.ToLower(email)
+		if key == "" {
+			key = strings.ToLower(name)
+		}
+		if existingRole := exclude[key]; key != "" && existingRole != 0 {
 			return
 		}
-		c.allParticipants = append(c.allParticipants, &CommitIdentity{Name: name, Email: email})
-		exclude.Add(emailLower)
+		c.allAuthors = append(c.allAuthors, &CommitIdentity{Name: name, Email: email, role: role})
+		exclude[key] = role
 	}
-	addParticipant(c.Committer.Name, c.Committer.Email)
-	for _, coAuthorValue := range c.MessageTrailer()["co-authored-by"] {
+
+	addAuthor(c.Author.Name, c.Author.Email, commitIdentityRoleAuthor)
+	for _, coAuthorValue := range trailerCoAuthors {
 		addr, err := mail.ParseAddress(coAuthorValue)
+		coAuthorName, coAuthorEmail := coAuthorValue, ""
 		if err == nil {
-			addParticipant(addr.Name, addr.Address)
-		} else {
-			addParticipant(coAuthorValue, "")
+			coAuthorName, coAuthorEmail = addr.Name, addr.Address
 		}
+		addAuthor(coAuthorName, coAuthorEmail, commitIdentityRoleCoAuthor)
 	}
-	return c.allParticipants
+	return c.allAuthors
+}
+
+func (c *Commit) CoAuthorIdentities() (coAuthors []*CommitIdentity) {
+	all := c.AllAuthorIdentities()
+	if len(all) == 0 {
+		return nil
+	}
+	if all[0].role == commitIdentityRoleAuthor {
+		return all[1:]
+	}
+	return all
 }

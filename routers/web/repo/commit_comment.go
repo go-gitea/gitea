@@ -58,7 +58,7 @@ func CreateCommitComment(ctx *context.Context) {
 		line = -line
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(commitSHA)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, commitSHA)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -97,7 +97,7 @@ func CreateCommitComment(ctx *context.Context) {
 			absLine = -line
 		}
 		patch, err = git.GetFileDiffCutAroundLine(
-			ctx.Repo.GitRepo, parentSHA, fullSHA, treePath,
+			ctx, ctx.Repo.GitRepo, parentSHA, fullSHA, treePath,
 			absLine, isOld, setting.UI.CodeCommentLines,
 		)
 		if err != nil {
@@ -105,7 +105,7 @@ func CreateCommitComment(ctx *context.Context) {
 		}
 	}
 	if patch == "" {
-		patch, err = gitdiff.GeneratePatchForUnchangedLine(ctx.Repo.GitRepo, fullSHA, treePath, line, setting.UI.CodeCommentLines)
+		patch, err = gitdiff.GeneratePatchForUnchangedLine(ctx, ctx.Repo.GitRepo, fullSHA, treePath, line, setting.UI.CodeCommentLines)
 		if err != nil {
 			log.Debug("GeneratePatchForUnchangedLine failed for commit comment: %v", err)
 		}
