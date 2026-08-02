@@ -70,7 +70,7 @@ func DownloadActionsRunAllJobLogs(ctx *context_module.Base, run *actions_model.A
 
 		if zipWriter == nil {
 			ctx.SetServeHeaders(context_module.ServeHeaderOptions{
-				Filename:           util.FileNameJoinFields(util.PathBaseStem(run.WorkflowID), "run", run.ID, ".zip"),
+				Filename:           util.FileNameJoinFields(util.PathBaseStem(run.WorkflowID), "run", run.ID, "logs", ".zip"),
 				ContentType:        "application/zip",
 				ContentDisposition: httplib.ContentDispositionAttachment,
 			})
