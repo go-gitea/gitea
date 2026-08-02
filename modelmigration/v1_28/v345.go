@@ -5,36 +5,19 @@ package v1_28
 
 import (
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddImmutableReleases(x base.EngineMigration) error {
-	type Repository struct {
-		ImmutableReleases bool `xorm:"NOT NULL DEFAULT false"`
-	}
-
-	type Release struct {
-		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
-	}
-
-	type ImmutableTag struct {
-		ID            int64              `xorm:"pk autoincr"`
-		RepoID        int64              `xorm:"INDEX(r) NOT NULL"`
-		OwnerID       int64              `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName string             `xorm:"UNIQUE(s) NOT NULL"`
-		LowerTagName  string             `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
-	}
-
-	if err := x.Sync(new(ImmutableTag)); err != nil {
-		return err
+// AddBlockOnCodeownerReviews adds block on codeowner reviews branch protection
+func AddBlockOnCodeownerReviews(x base.EngineMigration) error {
+	type ProtectedBranch struct {
+		BlockOnCodeownerReviews bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(Repository), new(Release))
+	}, new(ProtectedBranch))
 	return err
 }

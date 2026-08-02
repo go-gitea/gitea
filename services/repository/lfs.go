@@ -101,7 +101,7 @@ func GarbageCollectLFSMetaObjectsForRepo(ctx context.Context, repo *repo_model.R
 				return nil
 			}
 
-			if err := store.Delete(metaObject.RelativePath()); err != nil {
+			if err := store.ObjectStorage.Delete(metaObject.RelativePath()); err != nil {
 				log.Error("Unable to remove lfs metaobject %s from store: %v", metaObject.Oid, err)
 			}
 			deleted++

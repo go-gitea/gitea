@@ -17,9 +17,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{.SwaggerAppVer}}"
+    "version": "0.0.0+GITEA-API-APP-VERSION"
   },
-  "basePath": "{{.SwaggerAppSubUrl}}/api/v1",
+  "basePath": "/GITEA-API-APP-SUBURL/api/v1",
   "paths": {
     "/admin/actions/jobs": {
       "get": {
@@ -5457,6 +5457,58 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/approve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Approve a workflow run that requires approval",
+        "operationId": "approveWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/artifacts": {
       "get": {
         "produces": [
@@ -5633,6 +5685,58 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/cancel": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Cancel a workflow run and its jobs",
+        "operationId": "cancelWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/jobs": {
       "get": {
         "produces": [
@@ -5770,6 +5874,49 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/logs": {
+      "get": {
+        "produces": [
+          "application/zip"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Download workflow run logs as archive",
+        "operationId": "getWorkflowRunLogs",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs archive"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -16197,6 +16344,12 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filter releases by tag. supports \"*\" as a wildcard (for example: v1*, *beta, *rc*).",
+            "name": "tag_filter",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -20906,7 +21059,6 @@
           "application/json"
         ],
         "tags": [
-          "repository",
           "user"
         ],
         "summary": "Create a repository",
@@ -22513,6 +22665,14 @@
         "actor": {
           "$ref": "#/definitions/User"
         },
+        "artifacts_url": {
+          "type": "string",
+          "x-go-name": "ArtifactsURL"
+        },
+        "cancel_url": {
+          "type": "string",
+          "x-go-name": "CancelURL"
+        },
         "completed_at": {
           "type": "string",
           "format": "date-time",
@@ -22521,6 +22681,11 @@
         "conclusion": {
           "type": "string",
           "x-go-name": "Conclusion"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "CreatedAt"
         },
         "display_title": {
           "type": "string",
@@ -22550,6 +22715,14 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "jobs_url": {
+          "type": "string",
+          "x-go-name": "JobsURL"
+        },
+        "logs_url": {
+          "type": "string",
+          "x-go-name": "LogsURL"
+        },
         "path": {
           "type": "string",
           "x-go-name": "Path"
@@ -22574,6 +22747,10 @@
           "format": "int64",
           "x-go-name": "RepositoryID"
         },
+        "rerun_url": {
+          "type": "string",
+          "x-go-name": "RerunURL"
+        },
         "run_attempt": {
           "description": "RunAttempt is 1-based for runs created after ActionRunAttempt was introduced.\nA value of 0 is a legacy-only sentinel for runs created before attempts existed\nand indicates no corresponding /attempts/{n} resource is available.",
           "type": "integer",
@@ -22596,6 +22773,11 @@
         },
         "trigger_actor": {
           "$ref": "#/definitions/User"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "UpdatedAt"
         },
         "url": {
           "type": "string",
@@ -23052,6 +23234,10 @@
         "block_admin_merge_override": {
           "type": "boolean",
           "x-go-name": "BlockAdminMergeOverride"
+        },
+        "block_on_codeowner_reviews": {
+          "type": "boolean",
+          "x-go-name": "BlockOnCodeownerReviews"
         },
         "block_on_official_review_requests": {
           "type": "boolean",
@@ -23931,6 +24117,10 @@
         "block_admin_merge_override": {
           "type": "boolean",
           "x-go-name": "BlockAdminMergeOverride"
+        },
+        "block_on_codeowner_reviews": {
+          "type": "boolean",
+          "x-go-name": "BlockOnCodeownerReviews"
         },
         "block_on_official_review_requests": {
           "type": "boolean",
@@ -25434,6 +25624,10 @@
         "block_admin_merge_override": {
           "type": "boolean",
           "x-go-name": "BlockAdminMergeOverride"
+        },
+        "block_on_codeowner_reviews": {
+          "type": "boolean",
+          "x-go-name": "BlockOnCodeownerReviews"
         },
         "block_on_official_review_requests": {
           "type": "boolean",
@@ -32083,6 +32277,44 @@
     },
     {
       "TOTPHeader": []
+    }
+  ],
+  "tags": [
+    {
+      "description": "Site administration",
+      "name": "admin"
+    },
+    {
+      "description": "Issues, pull requests, comments, labels and milestones",
+      "name": "issue"
+    },
+    {
+      "description": "Miscellaneous endpoints",
+      "name": "miscellaneous"
+    },
+    {
+      "description": "User notifications",
+      "name": "notification"
+    },
+    {
+      "description": "Organizations and teams",
+      "name": "organization"
+    },
+    {
+      "description": "Package registry",
+      "name": "package"
+    },
+    {
+      "description": "Repositories and their contents",
+      "name": "repository"
+    },
+    {
+      "description": "Server settings",
+      "name": "settings"
+    },
+    {
+      "description": "The authenticated user",
+      "name": "user"
     }
   ]
 }

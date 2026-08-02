@@ -194,6 +194,7 @@ type ProtectBranchForm struct {
 	ApprovalsWhitelistTeams       string
 	BlockOnRejectedReviews        bool
 	BlockOnOfficialReviewRequests bool
+	BlockOnCodeownerReviews       bool
 	BlockOnOutdatedBranch         bool
 	DismissStaleApprovals         bool
 	IgnoreStaleApprovals          bool

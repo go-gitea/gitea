@@ -2297,7 +2297,6 @@
   "repo.settings.event_force_push": "强制推送",
   "repo.settings.event_push_desc": "Git 仓库推送",
   "repo.settings.event_repository": "仓库",
-  "repo.settings.event_repository_desc": "创建或删除仓库",
   "repo.settings.event_header_issue": "工单事件",
   "repo.settings.event_issues": "工单",
   "repo.settings.event_issues_desc": "工单已打开、已关闭、已重新打开或已编辑。",

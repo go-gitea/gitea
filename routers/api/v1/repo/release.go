@@ -154,6 +154,10 @@ func ListReleases(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter (exclude / include) pre-releases
 	//   type: boolean
+	// - name: tag_filter
+	//   in: query
+	//   description: 'filter releases by tag. supports "*" as a wildcard (for example: v1*, *beta, *rc*).'
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -178,6 +182,7 @@ func ListReleases(ctx *context.APIContext) {
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
 		RepoID:        ctx.Repo.Repository.ID,
+		TagFilter:     ctx.FormString("tag_filter"),
 	}
 
 	releases, err := db.Find[repo_model.Release](ctx, opts)
