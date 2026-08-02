@@ -2583,7 +2583,7 @@
   "repo.diff.show_more": "Show More",
   "repo.diff.load": "Load Diff",
   "repo.diff.expand_all_lines": "Expand all lines",
-  "repo.diff.collapse_all_lines": "Collapse expanded lines",
+  "repo.diff.collapse_all_lines": "Collapse non-diff lines",
   "repo.diff.generated": "Generated",
   "repo.diff.vendored": "Vendored",
   "repo.diff.comment.add_line_comment": "Add line comment",
