@@ -2247,7 +2247,6 @@
   "repo.settings.event_force_push": "Zorla İtme",
   "repo.settings.event_push_desc": "Depo ittirildiğinde.",
   "repo.settings.event_repository": "Depo",
-  "repo.settings.event_repository_desc": "Depo oluşturuldu veya silindi.",
   "repo.settings.event_header_issue": "Konu Olayları",
   "repo.settings.event_issues": "Konular",
   "repo.settings.event_issues_desc": "Konu açıldı, kapatıldı, yeniden açıldı veya düzenlendi.",

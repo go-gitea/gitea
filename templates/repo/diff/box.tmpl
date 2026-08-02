@@ -81,7 +81,7 @@
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
 								<div class="flex-text-block">
-									<button class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1{{if not $isExpandable}} tw-invisible{{end}}">
+									<button class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1 {{if not $isExpandable}}tw-invisible{{end}}" data-global-click="diffFileViewFold">
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
@@ -115,7 +115,7 @@
 								{{end}}
 
 								{{if $showFileViewToggle}}
-									<div class="ui compact icon buttons">
+									<div class="ui compact icon buttons" data-global-init="initDiffFileViewToggle">
 										<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
 										<button class="ui tiny basic button file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
 									</div>
@@ -127,12 +127,12 @@
 									<span class="changed-since-last-review unselectable not-mobile">{{ctx.Locale.Tr "repo.pulls.has_changed_since_last_review"}}</span>
 								{{end}}
 								{{if $isReviewFile}}
-									<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.AfterCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
-										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
+									<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.AfterCommitID}}" class="viewed-file-form unselectable {{if $file.IsViewed}}viewed-file-checked-form{{end}}" data-global-init="initDiffFileViewedForm">
+										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off" {{if $file.IsViewed}}checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
 									</label>
 								{{end}}
 								{{if not $file.IsSubmodule}}
-									<button class="btn diff-header-popup-btn tw-p-1">{{svg "octicon-kebab-horizontal" 18}}</button>
+									<button class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
 									<div class="tippy-target">
 										{{if not (or $file.IsIncomplete $file.IsBin)}}
 											<button class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
@@ -162,7 +162,7 @@
 												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
 											{{else}}
 												{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-												<a class="ui basic tiny button diff-load-button" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
+												<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
 											{{end}}
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
@@ -209,7 +209,7 @@
 					<div class="diff-file-box file-content tw-mt-2" id="diff-incomplete">
 						<h4 class="ui top attached header tw-font-normal flex-left-right">
 							{{ctx.Locale.Tr "repo.diff.too_many_files"}}
-							<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
+							<a class="ui basic tiny button" id="diff-show-more-files" data-global-click="diffLoadMoreFiles" data-href="?skip-to={{.Diff.End}}&file-only=true">{{ctx.Locale.Tr "repo.diff.show_more"}}</a>
 						</h4>
 					</div>
 				{{end}}
