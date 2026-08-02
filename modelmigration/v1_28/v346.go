@@ -13,8 +13,8 @@ import (
 func AddCommitCommentTable(x base.EngineMigration) error {
 	type CommitComment struct {
 		ID          int64              `xorm:"pk autoincr"`
-		RepoID      int64              `xorm:"INDEX NOT NULL"`
-		CommitSHA   string             `xorm:"VARCHAR(64) INDEX NOT NULL"`
+		RepoID      int64              `xorm:"INDEX(s) NOT NULL"`
+		CommitSHA   string             `xorm:"VARCHAR(64) INDEX(s) NOT NULL"`
 		TreePath    string             `xorm:"VARCHAR(4000) NOT NULL"`
 		Line        int64              `xorm:"NOT NULL"`
 		PosterID    int64              `xorm:"INDEX NOT NULL"`

@@ -16,7 +16,7 @@
 						{{svg "octicon-arrow-down" 12}} {{ctx.Locale.Tr "repo.issues.next"}}
 					</button>
 				</div>
-				{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+				{{if $.CanCommentOnCommit}}
 					<button class="comment-form-reply ui primary icon tiny button">
 						{{svg "octicon-reply" 12}}{{ctx.Locale.Tr "repo.diff.comment.reply"}}
 					</button>

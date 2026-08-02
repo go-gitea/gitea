@@ -167,29 +167,21 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 			return nil
 		}
 
-		recipients, err := user_model.GetUsersMapByIDs(ctx, receiverIDs.Values())
+		userIDs := receiverIDs.Values()
+		// users deleted between mention-resolution and now drop out of the map here
+		recipients, err := user_model.GetUsersMapByIDs(ctx, userIDs)
 		if err != nil {
 			return fmt.Errorf("GetUsersMapByIDs: %w", err)
 		}
-		existing, err := getCommitNotifications(ctx, repo.ID, commitSHA, receiverIDs.Values())
+		existing, err := getCommitNotifications(ctx, repo.ID, commitSHA, userIDs)
 		if err != nil {
 			return err
 		}
 
-		// Filter recipients to those who can read code on this repo. Without
-		// this, commit-author or @mention notifications can reach users who
-		// have no visibility into a private repo. A recipient missing from the
-		// map was deleted between mention-resolution and now, so skip it.
-		for uid := range receiverIDs {
-			recipient, ok := recipients[uid]
-			if !ok {
-				continue
-			}
-			perm, err := access.GetDoerRepoPermission(ctx, repo, recipient)
-			if err != nil {
-				return fmt.Errorf("GetDoerRepoPermission [%d]: %w", uid, err)
-			}
-			if !perm.CanRead(unit.TypeCode) {
+		for uid, recipient := range recipients {
+			// without the unit check, commit-author or @mention notifications
+			// would reach users with no visibility into a private repo
+			if !access.CheckRepoUnitUser(ctx, repo, recipient, unit.TypeCode) {
 				continue
 			}
 			if err := createOrUpdateCommitNotification(ctx, existing[uid], uid, repo.ID, commitSHA, commitCommentID, doer.ID); err != nil {
@@ -345,7 +337,7 @@ func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 	if err = n.loadComment(ctx); err != nil {
 		return err
 	}
-	if err = n.loadCommitComment(ctx); err != nil {
+	if err = (NotificationList{n}).LoadCommitComments(ctx); err != nil {
 		return err
 	}
 	return err
@@ -384,23 +376,6 @@ func (n *Notification) loadComment(ctx context.Context) (err error) {
 			}
 			return err
 		}
-	}
-	return nil
-}
-
-// loadCommitComment clears CommitCommentID when the comment it points at was
-// deleted, so HTMLURL/Link fall back to the bare commit instead of linking a
-// dangling anchor. Nothing reads the comment itself, so it is not loaded.
-func (n *Notification) loadCommitComment(ctx context.Context) error {
-	if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 {
-		return nil
-	}
-	repoIDs, err := repo_model.FindCommitCommentRepoIDs(ctx, []int64{n.CommitCommentID})
-	if err != nil {
-		return err
-	}
-	if repoIDs[n.CommitCommentID] != n.RepoID {
-		n.CommitCommentID = 0
 	}
 	return nil
 }

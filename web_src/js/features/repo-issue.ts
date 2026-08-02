@@ -244,25 +244,22 @@ export function initRepoPullRequestReview() {
   });
 
   // The following part is only for diff views (PR diff or commit diff)
-  const elDiff = document.querySelector('.repository.diff');
-  if (!elDiff) return;
+  if (!document.querySelector('.repository.diff')) return;
 
-  // Review panel is PR-only
-  if (elDiff.classList.contains('pull')) {
-    const elReviewBtn = document.querySelector('.js-btn-review');
-    const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
-    if (elReviewBtn && elReviewPanel) {
-      const tippy = createTippy(elReviewBtn, {
-        content: elReviewPanel,
-        theme: 'default',
-        placement: 'bottom',
-        trigger: 'click',
-        maxWidth: 'none',
-        interactive: true,
-        hideOnClick: true,
-      });
-      elReviewPanel.querySelector('.close')!.addEventListener('click', () => tippy.hide());
-    }
+  // the review panel only exists on the PR files page
+  const elReviewBtn = document.querySelector('.js-btn-review');
+  const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
+  if (elReviewBtn && elReviewPanel) {
+    const tippy = createTippy(elReviewBtn, {
+      content: elReviewPanel,
+      theme: 'default',
+      placement: 'bottom',
+      trigger: 'click',
+      maxWidth: 'none',
+      interactive: true,
+      hideOnClick: true,
+    });
+    elReviewPanel.querySelector('.close')!.addEventListener('click', () => tippy.hide());
   }
 
   addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {

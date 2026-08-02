@@ -782,7 +782,6 @@ func ExcerptBlob(ctx *context.Context) {
 		// Commit diff excerpt: expose the same commit-comment data the commit
 		// page renders, so expanded rows keep their buttons and conversations.
 		fullSHA := commit.ID.String()
-		ctx.Data["CommitID"] = fullSHA
 		ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
 		ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, fullSHA)
 
@@ -790,8 +789,7 @@ func ExcerptBlob(ctx *context.Context) {
 		if err != nil {
 			log.Error("FindCommitCommentsForFile error: %v", err)
 		} else {
-			gitdiff.AttachCommitCommentsToLines(section.Lines, fileComments)
-			renderCommitComments(ctx, fileComments)
+			renderCommitComments(ctx, gitdiff.AttachCommitCommentsToLines(section.Lines, fileComments))
 		}
 	}
 

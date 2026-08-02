@@ -134,24 +134,10 @@
 				</tr>
 			{{end}}
 			{{/* Render commit comments (not PR review comments) */}}
-			{{$leftCC := $line.CommitCommentsLeft}}
 			{{$rightCC := $line.CommitCommentsRight}}
 			{{/* a DEL line holds no new side of its own, its match does */}}
 			{{if and (eq .GetType 3) $hasmatch}}{{$rightCC = (index $section.Lines $line.Match).CommitCommentsRight}}{{end}}
-			{{if or $leftCC $rightCC}}
-				<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
-					<td class="add-comment-left" colspan="4">
-						{{if $leftCC}}
-							{{template "repo/diff/commit_conversation" dict "." $.root "comments" $leftCC}}
-						{{end}}
-					</td>
-					<td class="add-comment-right" colspan="4">
-						{{if $rightCC}}
-							{{template "repo/diff/commit_conversation" dict "." $.root "comments" $rightCC}}
-						{{end}}
-					</td>
-				</tr>
-			{{end}}
+			{{template "repo/diff/commit_conversation_row" dict "root" $.root "left" $line.CommitCommentsLeft "right" $rightCC "lineType" $line.GetHTMLDiffLineType "split" true}}
 		{{end}}
 	{{end}}
 {{end}}

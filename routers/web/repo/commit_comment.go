@@ -52,7 +52,7 @@ func renderCommitComments(ctx *context.Context, comments repo_model.CommitCommen
 // RenderNewCommitCommentForm renders the comment form for inline commit comments.
 func RenderNewCommitCommentForm(ctx *context.Context) {
 	commitSHA := ctx.PathParam("sha")
-	ctx.Data["CommitID"] = commitSHA
+	ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
 	ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, commitSHA)
 	ctx.HTML(http.StatusOK, tplNewCommitComment)
 }
@@ -105,7 +105,7 @@ func CreateCommitComment(ctx *context.Context) {
 	}
 	renderCommitComments(ctx, comments)
 
-	ctx.Data["CommitID"] = comment.CommitSHA
+	ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
 	ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, comment.CommitSHA)
 	ctx.Data["comments"] = comments
 	ctx.HTML(http.StatusOK, tplCommitConversation)
@@ -121,11 +121,7 @@ func DeleteCommitComment(ctx *context.Context) {
 
 	comment, err := repo_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, commentID)
 	if err != nil {
-		if db.IsErrNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetCommitCommentByID", err)
-		}
+		ctx.NotFoundOrServerError("GetCommitCommentByID", db.IsErrNotExist, err)
 		return
 	}
 

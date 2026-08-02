@@ -11,9 +11,6 @@
 </colgroup>
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
-		{{/* the button targets the right side whenever the line has one */}}
-		{{$canCommentLine := $line.CanCommentLeft}}
-		{{if $line.RightIdx}}{{$canCommentLine = $line.CanCommentRight}}{{end}}
 		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 			{{if eq .GetType 4}}
 				{{if $diffBlobExcerptData}}
@@ -36,7 +33,7 @@
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
 					{{- if $canAddComment -}}
-						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if not $canCommentLine}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if not $line.CanCommentUnified}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
 							{{- svg "octicon-plus" -}}
 						</button>
 					{{- end -}}
@@ -54,17 +51,6 @@
 		{{/* Render commit comments (not PR review comments). Both sides can be set:
 			a context line has an old and a new index, and either may carry a thread
 			authored from the equivalent split view. */}}
-		{{if or $line.CommitCommentsRight $line.CommitCommentsLeft}}
-			<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
-				<td class="add-comment-left add-comment-right" colspan="5">
-					{{if $line.CommitCommentsRight}}
-						{{template "repo/diff/commit_conversation" dict "." $.root "comments" $line.CommitCommentsRight}}
-					{{end}}
-					{{if $line.CommitCommentsLeft}}
-						{{template "repo/diff/commit_conversation" dict "." $.root "comments" $line.CommitCommentsLeft}}
-					{{end}}
-				</td>
-			</tr>
-		{{end}}
+		{{template "repo/diff/commit_conversation_row" dict "root" $.root "left" $line.CommitCommentsLeft "right" $line.CommitCommentsRight "lineType" $line.GetHTMLDiffLineType}}
 	{{end}}
 {{end}}

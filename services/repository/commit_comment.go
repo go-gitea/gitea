@@ -76,11 +76,7 @@ func CreateCommitComment(ctx context.Context, doer *user_model.User, repo *repo_
 // that keeps a crafted POST from creating an invisible comment.
 func commitCommentPatch(ctx context.Context, gitRepo *git.Repository, parentSHA, fullSHA, treePath string, line int64) (string, error) {
 	if parentSHA != "" {
-		absLine, isOld := line, line < 0
-		if isOld {
-			absLine = -line
-		}
-		patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, parentSHA, fullSHA, treePath, absLine, isOld, setting.UI.CodeCommentLines)
+		patch, err := git.GetFileDiffCutAroundLine(ctx, gitRepo, parentSHA, fullSHA, treePath, max(line, -line), line < 0, setting.UI.CodeCommentLines)
 		if err != nil {
 			log.Debug("GetFileDiffCutAroundLine failed for commit comment: %v", err)
 		}

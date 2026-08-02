@@ -46,6 +46,7 @@ func TestCommitInlineComment(t *testing.T) {
 		reply := postComment(rootSHA, "proposed", "1", "second commit comment")
 		assert.Contains(t, reply, "first commit comment")
 		assert.Contains(t, reply, "second commit comment")
+		assert.Contains(t, reply, "comment-form-reply", "the replacement holder has to keep its own reply form")
 	})
 
 	t.Run("CommentedLineHidesAddButton", func(t *testing.T) {
