@@ -4,7 +4,7 @@
 	{{range $k, $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
 		{{if eq .GetType 4}}
-			<td class="lines-num lines-num-old">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
+			<td class="lines-num lines-num-old">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData ctx.Locale}}</td>
 			<td colspan="7" class="lines-code lines-code-old">
 				{{- $inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale -}}
 				{{- template "repo/diff/section_code" dict "diff" $inlineDiff -}}
@@ -63,7 +63,7 @@
 	{{range $k, $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
 		{{if eq .GetType 4}}
-			<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
+			<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData ctx.Locale}}</td>
 		{{else}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>

@@ -217,7 +217,7 @@ const (
 	DiffStyleUnified = "unified"
 )
 
-func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
+func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData, locale translation.Locale) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
 	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
 
@@ -229,10 +229,10 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 		}
 		return link
 	}
-	makeButton := func(direction, svgName string) template.HTML {
+	makeButton := func(direction, svgName, ariaLabel string) template.HTML {
 		return htmlutil.HTMLFormat(
-			`<button class="code-expander-button" data-fetch-sync="$closest(tr)" data-fetch-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,
-			makeLink(direction), dataHiddenCommentIDs, svg.RenderHTML(svgName),
+			`<button class="code-expander-button" data-fetch-sync="$closest(tr)" data-fetch-url="%s" data-hidden-comment-ids=",%s," aria-label="%s">%s</button>`,
+			makeLink(direction), dataHiddenCommentIDs, ariaLabel, svg.RenderHTML(svgName),
 		)
 	}
 	var content template.HTML
@@ -244,13 +244,13 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 
 	expandDirection := d.GetExpandDirection()
 	if expandDirection == "updown" || expandDirection == "down" {
-		content += makeButton("down", "octicon-fold-down")
+		content += makeButton("down", "octicon-fold-down", locale.TrString("repo.diff.expand_file_down_from_line", d.SectionInfo.LastRightIdx+1))
 	}
 	if expandDirection == "up" || expandDirection == "updown" {
-		content += makeButton("up", "octicon-fold-up")
+		content += makeButton("up", "octicon-fold-up", locale.TrString("repo.diff.expand_file_up_from_line", d.SectionInfo.RightIdx))
 	}
 	if expandDirection == "single" {
-		content += makeButton("single", "octicon-fold")
+		content += makeButton("single", "octicon-fold", locale.TrString("repo.diff.expand_file_from_line_to_line", d.SectionInfo.LastRightIdx+1, d.SectionInfo.RightIdx-1))
 	}
 	// a gap with nothing to expand gets no expand-all URL; "all" means "fill this whole gap in one
 	// response, without chunking", which is what the file-level "expand all lines" button uses
