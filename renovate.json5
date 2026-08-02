@@ -3,7 +3,6 @@
   "extends": [
     "config:recommended",
     "helpers:pinGitHubActionDigests",
-    "customManagers:githubActionsVersions",
     "schedule:weekly", // dependency update PR on monday, vulnerabilityAlerts bypasses this
   ],
   "configMigration": true,
@@ -19,6 +18,13 @@
     "semanticCommitType": "fix", // overrides packageRules
   },
   "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)\\.(gitea|github)/(workflows|actions)/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "[A-Za-z0-9_]+_VERSION[ \\t]*:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>[a-zA-Z0-9-._]+) depName=(?<depName>\\S+)(?: (?:lookupName|packageName)=(?<packageName>\\S+))?(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?(?: registryUrl=(?<registryUrl>\\S+))?",
+      ],
+    },
     {
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)Makefile$/"],
@@ -114,17 +120,22 @@
     {
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
+    },
+    {
+      "matchPackageNames": ["@primer/octicons", "material-icon-theme", "svgo"],
       "postUpgradeTasks": {
-        "commands": ["make svg", "make generate-codemirror-languages"],
+        "commands": ["make svg"],
         "fileFilters": [
-          "package.json",
-          "pnpm-lock.yaml",
-          "pnpm-workspace.yaml",
           "public/assets/img/svg/**",
           "options/fileicon/**",
-          "assets/codemirror-languages.json",
         ],
-        "executionMode": "branch",
+      },
+    },
+    {
+      "matchPackageNames": ["@codemirror/language-data", "linguist-languages"],
+      "postUpgradeTasks": {
+        "commands": ["make generate-codemirror-languages"],
+        "fileFilters": ["assets/codemirror-languages.json"],
       },
     },
   ],

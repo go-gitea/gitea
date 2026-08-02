@@ -186,7 +186,7 @@ func reactionToEmoji(reaction string) template.HTML {
 	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, url.PathEscape(reaction)))
 }
 
-func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:revive // variable naming triggers on Html, wants HTML
+func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML {
 	output, err := markdown.RenderString(markup.NewRenderContext(ut.ctx).WithMetas(markup.ComposeSimpleDocumentMetas()), input)
 	if err != nil {
 		log.Error("RenderString: %v", err)
@@ -370,7 +370,7 @@ func (ut *RenderUtils) AvatarStackPushCommit(pushCommit *repository.PushCommit) 
 		// there is no way to know the real committer, but the field can't be nil
 		Committer: &git.Signature{Name: pushCommit.AuthorName, Email: pushCommit.AuthorEmail},
 	}
-	data := user_model.BuildAvatarStackData(ut.ctx, fakeGitCommit.AllParticipantIdentities(), nil)
+	data := user_model.BuildAvatarStackData(ut.ctx, fakeGitCommit.AllAuthorIdentities(), nil)
 	return ut.AvatarStack(data)
 }
 

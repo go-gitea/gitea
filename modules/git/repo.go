@@ -32,7 +32,15 @@ type RepositoryBase struct {
 	tagCache          *ObjectCache[*Tag]
 	objectFormatCache ObjectFormat
 
-	mu                 sync.Mutex
+	mu sync.Mutex
+	// Unfortunately, we can't completely remove the ctx, because CatFileBatch still heavily depends on a parent context.
+	// If we remove the ctx, then CatFileBatch's process management will become a mess and create a lot of unnecessary git processes.
+	// ref: http://localhost:3000/-/admin/monitor/perftrace
+	// The root problem is that some functions like "GetCommit" need to use CatFileBatch,
+	// if CatFileBatch accepts its own ctx, then every sub-context needs a git process.
+	// e.g.: open a repo home, dozens of git processes (duplicate cat-file)
+	// ATTENTION: this ctx is for cached cat-file process only, don't use it for other purposes.
+	catFileBatchCtx    context.Context
 	catFileBatchCloser CatFileBatchCloser
 	catFileBatchInUse  bool
 }
@@ -51,7 +59,7 @@ func (repo *Repository) LogString() string {
 	return repo.repoFacade.LogString()
 }
 
-func OpenRepository(repo RepositoryFacade) (*Repository, error) {
+func OpenRepository(catFileBatchCtx context.Context, repo RepositoryFacade) (*Repository, error) {
 	repoPath := gitrepo.RepoLocalPath(repo)
 	exist, err := util.IsDir(repoPath)
 	if err != nil {
@@ -61,7 +69,7 @@ func OpenRepository(repo RepositoryFacade) (*Repository, error) {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 	gitRepo := &Repository{
-		RepositoryBase: RepositoryBase{tagCache: newObjectCache[*Tag](), repoFacade: repo},
+		RepositoryBase: RepositoryBase{tagCache: newObjectCache[*Tag](), repoFacade: repo, catFileBatchCtx: catFileBatchCtx},
 	}
 	if err = openRepositoryInternal(gitRepo); err != nil {
 		return nil, err
@@ -71,14 +79,14 @@ func OpenRepository(repo RepositoryFacade) (*Repository, error) {
 
 // OpenRepositoryLocal opens a local repository that is not managed by Gitea
 // If the path is relative, it will be converted to an absolute path using filepath.Abs (base on current working path)
-func OpenRepositoryLocal(localPath string) (_ *Repository, err error) {
+func OpenRepositoryLocal(catFileBatchCtx context.Context, localPath string) (_ *Repository, err error) {
 	if !filepath.IsAbs(localPath) {
 		localPath, err = filepath.Abs(localPath)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return OpenRepository(gitrepo.RepositoryUnmanaged(localPath))
+	return OpenRepository(catFileBatchCtx, gitrepo.RepositoryUnmanaged(localPath))
 }
 
 func (repo *Repository) Close() error {
@@ -279,26 +287,20 @@ func Push(ctx context.Context, localRepoPath string, opts PushOptions) error {
 
 // CatFileBatch obtains a "batch object provider" for this repository.
 // It reuses an existing one if available, otherwise creates a new one.
-func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, closeFunc func(), err error) {
+func (repo *Repository) CatFileBatch() (_ CatFileBatch, closeFunc func(), err error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
-	if repo.catFileBatchCloser != nil && !repo.catFileBatchInUse {
-		if ctx != repo.catFileBatchCloser.Context() {
-			repo.catFileBatchCloser.Close()
-			repo.catFileBatchCloser = nil
-			repo.catFileBatchInUse = false
-		}
-	}
-
+	// if no cached batcher, make a new managed one, and cache it
 	if repo.catFileBatchCloser == nil {
-		repo.catFileBatchCloser, err = NewBatch(ctx, repo)
+		repo.catFileBatchCloser, err = NewBatch(repo.catFileBatchCtx, repo)
 		if err != nil {
 			repo.catFileBatchCloser = nil // otherwise it is "interface(nil)" and will cause wrong logic
 			return nil, nil, err
 		}
 	}
 
+	// if the cached batcher is not in use, return it
 	if !repo.catFileBatchInUse {
 		repo.catFileBatchInUse = true
 		return CatFileBatch(repo.catFileBatchCloser), func() {
@@ -308,7 +310,8 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, close
 		}, nil
 	}
 
-	tempBatch, err := NewBatch(ctx, repo)
+	// return a temp one (won't be cached or shared)
+	tempBatch, err := NewBatch(repo.catFileBatchCtx, repo)
 	if err != nil {
 		return nil, nil, err
 	}

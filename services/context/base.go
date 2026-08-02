@@ -114,7 +114,7 @@ func (b *Base) HTTPError(status int, contents ...string) {
 func (b *Base) JSON(status int, content any) {
 	b.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	b.Resp.WriteHeader(status)
-	if err := json.NewEncoder(b.Resp).Encode(content); err != nil {
+	if err := json.MarshalWrite(b.Resp, content); err != nil {
 		log.Error("Render JSON failed: %v", err)
 	}
 }
