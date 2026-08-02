@@ -14,6 +14,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/auth"
+	automerge_service "gitea.dev/services/automerge"
 	"gitea.dev/services/migrations"
 	mirror_service "gitea.dev/services/mirror"
 	packages_cleanup_service "gitea.dev/services/packages/cleanup"
@@ -159,10 +160,21 @@ func registerSyncRepoLicenses() {
 	})
 }
 
+func registerReconcileScheduledAutoMerges() {
+	RegisterTaskFatal("reconcile_scheduled_auto_merges", &BaseConfig{
+		Enabled:    true,
+		RunAtStart: true,
+		Schedule:   "@every 5m",
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
+		return automerge_service.ReconcileScheduledAutoMerges(ctx)
+	})
+}
+
 func initBasicTasks() {
 	if setting.Mirror.Enabled {
 		registerUpdateMirrorTask()
 	}
+	registerReconcileScheduledAutoMerges()
 	registerRepoHealthCheck()
 	registerCheckRepoStats()
 	registerArchiveCleanup()

@@ -2987,6 +2987,7 @@
   "admin.dashboard.check_repo_stats": "Check all repository statistics",
   "admin.dashboard.archive_cleanup": "Delete old repository archives",
   "admin.dashboard.deleted_branches_cleanup": "Clean up deleted branches",
+  "admin.dashboard.reconcile_scheduled_auto_merges": "Re-queue pull requests scheduled to auto merge",
   "admin.dashboard.update_migration_poster_id": "Update migration poster IDs",
   "admin.dashboard.git_gc_repos": "Garbage-collect all repositories",
   "admin.dashboard.resync_all_sshkeys": "Update the '.ssh/authorized_keys' file with Gitea SSH keys",

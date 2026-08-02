@@ -120,6 +120,41 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_
 	return scheduled, err
 }
 
+// ReconcileScheduledAutoMerges re-queues an evaluation for every pull request
+// that is still scheduled to auto merge.
+//
+// The queue is the only thing that drives a scheduled merge forward, and an
+// evaluation can be lost: handlePullRequestAutoMerge returns on any error with
+// nothing but a log line, and the handler reports every item as handled, so
+// the queue never retries it. Once the head commit's checks have settled there
+// is no further status event to enqueue a replacement, and the pull request
+// stays green, scheduled and unmerged indefinitely.
+//
+// pull_auto_merge is the durable record of intent, so walking it rebuilds
+// whatever queue state was lost — whichever way it was lost, including a
+// restart discarding an in-memory queue. This is deliberately a sweep rather
+// than a retry of the specific failure: it needs no attempt accounting and
+// cannot spin, because the queue is unique-keyed and an evaluation for a pull
+// request that is not ready returns immediately.
+func ReconcileScheduledAutoMerges(ctx context.Context) error {
+	return pull_model.IterateScheduledAutoMerges(ctx, func(ctx context.Context, am *pull_model.AutoMerge) error {
+		pr, err := issues_model.GetPullRequestByID(ctx, am.PullID)
+		if err != nil {
+			// A scheduled row for a pull request that no longer exists is
+			// stale, not a reason to abort the sweep.
+			log.Error("ReconcileScheduledAutoMerges GetPullRequestByID[%d]: %v", am.PullID, err)
+			return nil
+		}
+		if pr.HasMerged || !pr.IsStatusMergeable() {
+			return nil
+		}
+		// StartPRCheckAndAutoMerge resolves the current head sha itself, so a
+		// pull request whose head moved on is re-queued under its new key.
+		automergequeue.StartPRCheckAndAutoMerge(ctx, pr)
+		return nil
+	})
+}
+
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request
 func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {

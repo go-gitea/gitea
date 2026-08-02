@@ -80,6 +80,14 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 	return true, scheduledPRM, err
 }
 
+// IterateScheduledAutoMerges calls f for every pull request currently scheduled
+// to auto merge. The table holds one row per armed pull request, so it stays
+// small; it is the durable record of intent behind the auto merge queue, which
+// is why it can be used to rebuild queue state that was lost.
+func IterateScheduledAutoMerges(ctx context.Context, f func(ctx context.Context, am *AutoMerge) error) error {
+	return db.Iterate(ctx, nil, f)
+}
+
 // DeleteScheduledAutoMerge delete a scheduled pull request
 func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) error {
 	exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)

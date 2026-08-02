@@ -861,6 +861,91 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 	})
 }
 
+// TestPullAutoMergeRecoversFromALostQueueItem pins the behaviour that makes a
+// scheduled auto merge survivable.
+//
+// The queue is the only thing that drives a scheduled merge forward, and an
+// evaluation can be lost: handlePullRequestAutoMerge returns on any error with
+// nothing but a log line, and the handler reports every item as handled, so the
+// queue never retries. Once the head commit's checks have settled there is no
+// further status event to enqueue a replacement, and the pull request stays
+// green, scheduled and unmerged indefinitely.
+//
+// The lost enqueue is simulated by stubbing AddToQueue — the same seam
+// TestPullAutoMergeAfterCommitStatusSucceed already uses — because the outcome
+// is identical however the item was lost: nothing is in the queue, and the row
+// in pull_auto_merge is the only remaining record that a merge was ever wanted.
+func TestPullAutoMergeRecoversFromALostQueueItem(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1")
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		forkedName := "repo1-lost-queue-item"
+		testRepoFork(t, session, "user2", "repo1", "user1", forkedName, "")
+		testEditFile(t, session, "user1", forkedName, "master", "README.md", "Hello, World (Edited)\n")
+		testPullCreate(t, session, "user1", forkedName, false, "master", "master", "lost queue item test pull")
+
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: forkedName})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			BaseRepoID: baseRepo.ID,
+			BaseBranch: "master",
+			HeadRepoID: forkedRepo.ID,
+			HeadBranch: "master",
+		})
+
+		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+			"rule_name":             "master",
+			"enable_push":           "true",
+			"enable_status_check":   "true",
+			"status_check_contexts": "gitea/actions",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		// Drop every enqueue for the rest of the arming and status window, so
+		// the scheduled merge exists in the database with nothing in the queue
+		// to act on it.
+		oldAutoMergeAddToQueue := automergequeue.AddToQueue
+		automergequeue.AddToQueue = func(pr *issues_model.PullRequest, sha string) {}
+
+		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
+		assert.NoError(t, err)
+		assert.True(t, scheduled)
+
+		baseGitRepo, err := git.OpenRepository(t.Context(), baseRepo)
+		assert.NoError(t, err)
+		sha, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
+		assert.NoError(t, err)
+		baseGitRepo.Close()
+
+		err = commitstatus_service.CreateCommitStatus(t.Context(), baseRepo, user1, sha, &git_model.CommitStatus{
+			State:     commitstatus.CommitStatusSuccess,
+			TargetURL: "https://gitea.com",
+			Context:   "gitea/actions",
+		})
+		assert.NoError(t, err)
+
+		// Everything a maintainer can see now says the pull request is ready:
+		// checks are green and auto merge is scheduled. It will never merge,
+		// because no further status event is coming for this head commit.
+		assert.Never(t, func() bool {
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			return pr.HasMerged
+		}, time.Second, 100*time.Millisecond)
+		unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+
+		// The scheduled row is enough to rebuild what the queue lost.
+		automergequeue.AddToQueue = oldAutoMergeAddToQueue
+		assert.NoError(t, automerge.ReconcileScheduledAutoMerges(t.Context()))
+
+		assert.Eventually(t, func() bool {
+			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+			return pr.HasMerged
+		}, 5*time.Second, 100*time.Millisecond)
+		assert.NotEmpty(t, pr.MergedCommitID)
+		unittest.AssertNotExistsBean(t, &pull_model.AutoMerge{PullID: pr.ID})
+	})
+}
+
 func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// create a pull request
