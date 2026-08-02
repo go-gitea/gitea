@@ -1358,7 +1358,6 @@
   "repo.settings.event_push": "Wypchnięcie",
   "repo.settings.event_push_desc": "Wypchnięcie git do repozytorium.",
   "repo.settings.event_repository": "Repozytorium",
-  "repo.settings.event_repository_desc": "Repozytorium stworzone lub usunięte.",
   "repo.settings.event_header_issue": "Zdarzenia zgłoszeń",
   "repo.settings.event_issues": "Zgłoszenia",
   "repo.settings.event_issue_assign": "Zgłoszenie przypisane",

@@ -170,6 +170,9 @@ func (d *DiffLine) GetCommentSide() string {
 
 // GetLineTypeMarker returns the line type marker
 func (d *DiffLine) GetLineTypeMarker() string {
+	if d.Content == "" {
+		return ""
+	}
 	if strings.IndexByte(" +-", d.Content[0]) > -1 {
 		return d.Content[0:1]
 	}

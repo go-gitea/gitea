@@ -1957,7 +1957,6 @@
   "repo.settings.event_release": "Реліз",
   "repo.settings.event_release_desc": "Реліз опубліковано, оновлено або видалено зі сховища.",
   "repo.settings.event_repository": "Репозиторій",
-  "repo.settings.event_repository_desc": "Репозиторій створений або видалено.",
   "repo.settings.event_header_issue": "Події задачі",
   "repo.settings.event_issues": "Задачі",
   "repo.settings.event_issues_desc": "Задачу відкрито, закрито, повторно відкрито, відредаговано або видалено.",
