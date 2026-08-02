@@ -238,3 +238,46 @@ jobs:
 		assert.Equal(t, "build (1)", parsed.Name)
 	})
 }
+
+func TestForceCancelJobs(t *testing.T) {
+	assertCancelled := func(t *testing.T, task *ActionTask, job *ActionRunJob) {
+		t.Helper()
+
+		taskAfter := unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
+		assert.Equal(t, StatusCancelled, taskAfter.Status)
+		assert.NotZero(t, taskAfter.Stopped)
+
+		jobAfter := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+		assert.Equal(t, StatusCancelled, jobAfter.Status)
+		assert.NotZero(t, jobAfter.Stopped)
+	}
+
+	// A running task is force-cancelled directly, without trying the graceful cancel first.
+	t.Run("running task", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		task, job := newRunningTaskForCancelling(t, "force-cancel-job", true)
+
+		cancelledJobs, err := ForceCancelJobs(t.Context(), []*ActionRunJob{job})
+		require.NoError(t, err)
+		require.Len(t, cancelledJobs, 1)
+		assert.Equal(t, StatusCancelled, cancelledJobs[0].Status)
+		assertCancelled(t, task, job)
+	})
+
+	// A task already in the cancelling handshake whose runner never finishes the cleanup.
+	t.Run("cancelling task", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		task, job := newRunningTaskForCancelling(t, "force-cancel-cancelling-job", true)
+
+		cancelling, err := CancelJobs(t.Context(), []*ActionRunJob{job})
+		require.NoError(t, err)
+		require.Len(t, cancelling, 1)
+		assert.Equal(t, StatusCancelling, cancelling[0].Status)
+
+		job = unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+		cancelled, err := ForceCancelJobs(t.Context(), []*ActionRunJob{job})
+		require.NoError(t, err)
+		require.Len(t, cancelled, 1)
+		assertCancelled(t, task, job)
+	})
+}

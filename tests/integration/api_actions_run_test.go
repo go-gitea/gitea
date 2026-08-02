@@ -42,6 +42,7 @@ func TestAPIActionsWorkflowRun(t *testing.T) {
 	t.Run("GetWorkflowJobLogsNotFound", testAPIActionsGetWorkflowJobLogsNotFound)
 	// finishes run 793, so it must come after everything that needs it still running
 	t.Run("CancelWorkflowRun", testAPIActionsCancelWorkflowRun)
+	t.Run("ForceCancelWorkflowRun", testAPIActionsForceCancelWorkflowRun)
 	t.Run("ApproveWorkflowRun", testAPIActionsApproveWorkflowRun)
 	// deletes run 795, so it must come after everything that reads it
 	t.Run("DeleteRunGeneral", testAPIActionsDeleteRunGeneral)
@@ -371,6 +372,92 @@ func testAPIActionsCancelWorkflowRun(t *testing.T) {
 			AddTokenAuth(user2Token)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
+}
+
+func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	ownerSession := loginUser(t, owner.Name)
+	ownerToken := getTokenForLoggedInUser(t, ownerSession, auth_model.AccessTokenScopeWriteRepository)
+
+	// A running run whose runner advertises cancelling support and reports on time:
+	// a normal cancel only starts the graceful cancelling handshake, so only a force-cancel finishes it.
+	run := &actions_model.ActionRun{
+		Title:         "force-cancel-test",
+		RepoID:        repo.ID,
+		OwnerID:       repo.OwnerID,
+		WorkflowID:    "force-cancel.yaml",
+		Index:         9601,
+		TriggerUserID: owner.ID,
+		Ref:           "refs/heads/master",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		EventPayload:  "{}",
+		Status:        actions_model.StatusRunning,
+		Started:       timeutil.TimeStampNow(),
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	job := &actions_model.ActionRunJob{
+		RunID:     run.ID,
+		RepoID:    run.RepoID,
+		OwnerID:   run.OwnerID,
+		CommitSHA: run.CommitSHA,
+		Name:      "job1",
+		Attempt:   1,
+		JobID:     "job1",
+		Status:    actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	runner := &actions_model.ActionRunner{
+		UUID:                 "force-cancel-runner",
+		Name:                 "force-cancel-runner",
+		RepoID:               repo.ID,
+		HasCancellingSupport: true,
+	}
+	runner.GenerateAndFillToken()
+	require.NoError(t, db.Insert(t.Context(), runner))
+
+	task := &actions_model.ActionTask{
+		JobID:     job.ID,
+		Attempt:   1,
+		RunnerID:  runner.ID,
+		Status:    actions_model.StatusRunning,
+		Started:   timeutil.TimeStampNow(),
+		RepoID:    run.RepoID,
+		OwnerID:   run.OwnerID,
+		CommitSHA: run.CommitSHA,
+	}
+	require.NoError(t, db.Insert(t.Context(), task))
+
+	job.TaskID = task.ID
+	_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "task_id")
+	require.NoError(t, err)
+
+	cancelURL := fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/cancel", repo.FullName(), run.ID)
+	forceCancelURL := fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/force-cancel", repo.FullName(), run.ID)
+
+	// a normal cancel only starts the graceful handshake
+	MakeRequest(t, NewRequest(t, "POST", cancelURL).AddTokenAuth(ownerToken), http.StatusOK)
+	cancellingTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.ID})
+	assert.Equal(t, actions_model.StatusCancelling, cancellingTask.Status)
+
+	// force-cancel bypasses the handshake and finishes the run immediately
+	resp := MakeRequest(t, NewRequest(t, "POST", forceCancelURL).AddTokenAuth(ownerToken), http.StatusOK)
+	cancelledRun := DecodeJSON(t, resp, &api.ActionWorkflowRun{})
+	assert.Equal(t, "completed", cancelledRun.Status)
+	assert.Equal(t, "cancelled", cancelledRun.Conclusion)
+
+	cancelledTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.ID})
+	assert.Equal(t, actions_model.StatusCancelled, cancelledTask.Status)
+	gotRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+	assert.Equal(t, actions_model.StatusCancelled, gotRun.Status)
+
+	// both endpoints refuse the completed run
+	MakeRequest(t, NewRequest(t, "POST", cancelURL).AddTokenAuth(ownerToken), http.StatusConflict)
+	MakeRequest(t, NewRequest(t, "POST", forceCancelURL).AddTokenAuth(ownerToken), http.StatusConflict)
 }
 
 func testAPIActionsApproveWorkflowRun(t *testing.T) {
