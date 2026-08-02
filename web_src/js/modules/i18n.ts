@@ -6,7 +6,7 @@ export function trN(count: number, form1: string, formN: string, {lang = getCurr
   return trString(text, String(count));
 }
 
-export function trString(s: string, ...args: any[]) {
+export function trString(s: string, ...args: Array<string | number>) {
   // the same behavior (almost) as backend TrString
   let curIdx = 0;
   return s.replace(/%%|%(?:\[([1-9]\d*)\])?([sd])/g, (match, indexed: string) => {
