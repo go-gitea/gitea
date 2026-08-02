@@ -35,7 +35,8 @@ var (
 	// licenseUpdaterQueue represents a queue to handle update repo licenses
 	licenseUpdaterQueue *queue.WorkerPoolQueue[*LicenseUpdaterOptions]
 
-	licensePrefixes = []string{"license", "licence", "copying"}
+	licensePrefixes     = container.Set[string]{"license": {}, "licence": {}, "copying": {}}
+	licenseFileSuffixes = container.Set[string]{"md": {}, "lesser": {}, "txt": {}}
 )
 
 func AddRepoToLicenseUpdaterQueue(opts *LicenseUpdaterOptions) error {
@@ -142,17 +143,13 @@ func resolveReuseLicenses(ctx context.Context, gitrepo *git.Repository, tree *gi
 
 // isLicenseFile checks the prefix of the file and determines if it could plausibly be a license one
 // it's checking well-known ones: license, licence and copying
+// allowed extensions are: md, lesser and txt
 func isLicenseFile(name string) bool {
 	lower := strings.ToLower(name)
-	for _, prefix := range licensePrefixes {
-		if strings.HasPrefix(lower, prefix) {
-			rest := lower[len(prefix):]
-			// Exact match (e.g. "LICENSE") or extension present (e.g. "LICENSE.txt").
-			// Reject bare dot (e.g. "LICENSE.") — not a real file extension.
-			return rest == "" || (rest[0] == '.' && len(rest) > 1)
-		}
-	}
-	return false
+	ext := path.Ext(lower)
+	// exact match (e.g. "LICENSE") or at most one allowed extension (e.g. "LICENSE.md")
+	return licensePrefixes.Contains(strings.TrimSuffix(lower, ext)) &&
+		(ext == "" || licenseFileSuffixes.Contains(ext[1:]))
 }
 
 func resolveLicenses(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]repo_model.DetectedLicense, error) {

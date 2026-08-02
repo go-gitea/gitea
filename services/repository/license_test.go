@@ -192,8 +192,7 @@ func Test_isLicenseFile(t *testing.T) {
 		"license.txt",
 		"licence.md",
 		"copying.TXT",
-		"LICENSE.a.b.c",
-		"LICENSE.a.",
+		"COPYING.LESSER",
 	}
 
 	shouldNotMatch := []string{
@@ -204,16 +203,20 @@ func Test_isLicenseFile(t *testing.T) {
 		"AUTHORS",
 		"LICENSING",
 		"COPYLEFT",
+		"LICENSE.a.b",
+		"LICENSE.a.",
+		"LICENSE.a.md",
+		"LICENSE.md.a",
 	}
-
-	for _, name := range shouldMatch {
-		t.Run("match/"+name, func(t *testing.T) {
+	t.Run("match", func(t *testing.T) {
+		for _, name := range shouldMatch {
 			assert.True(t, isLicenseFile(name))
-		})
-	}
-	for _, name := range shouldNotMatch {
-		t.Run("nomatch/"+name, func(t *testing.T) {
+		}
+	})
+
+	t.Run("nomatch", func(t *testing.T) {
+		for _, name := range shouldNotMatch {
 			assert.False(t, isLicenseFile(name))
-		})
-	}
+		}
+	})
 }
