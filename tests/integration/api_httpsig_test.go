@@ -16,6 +16,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/42wim/httpsig"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -101,7 +102,9 @@ func TestHTTPSigCert(t *testing.T) {
 		"type":    "principal",
 	})
 
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+
 	pkcert, _, _, _, err := ssh.ParseAuthorizedKey([]byte(httpsigCertificate))
 	if err != nil {
 		t.Fatal(err)

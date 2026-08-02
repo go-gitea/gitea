@@ -176,10 +176,10 @@ func (te *ldapTestEnv) setupAuthSource(t *testing.T, params map[string]string) {
 	existing := &auth_model.Source{Name: params["name"]}
 	if ok, _ := db.GetEngine(t.Context()).Get(existing); ok {
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/auths/%d", existing.ID), params)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 	} else {
 		req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", params)
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		session.MakeRequest(t, req, http.StatusOK)
 	}
 }
 
@@ -229,7 +229,7 @@ func testLDAPAuthChange(t *testing.T) {
 	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", bindDN)
 
 	req = NewRequestWithValues(t, "POST", hrefAuthSource, te.buildAuthSourcePayload(map[string]string{"group_team_map_removal": "off"}))
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	req = NewRequest(t, "GET", hrefAuthSource)
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -493,7 +493,7 @@ func testLDAPPreventInvalidGroupTeamMap(t *testing.T) {
 	session := loginUser(t, "user1")
 	payload := te.buildAuthSourcePayload(map[string]string{"group_team_map": `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "group_team_map_removal": "off"})
 	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", payload)
-	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
+	session.MakeRequest(t, req, http.StatusBadRequest) // StatusBadRequest = failed, StatusOK = ok
 }
 
 func testLDAPEmailSignin(t *testing.T) {

@@ -7,15 +7,15 @@
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="{{if not .HasSSHError}}tw-hidden{{end}} tw-mb-4" id="add-ssh-key-panel">
-		<form class="ui form" action="{{.Link}}" method="post">
-			<div class="field {{if .Err_Title}}error{{end}}">
+	<div class="tw-hidden tw-mb-4" id="add-ssh-key-panel">
+		<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
+			<div class="field">
 				<label for="ssh-key-title">{{ctx.Locale.Tr "settings.key_name"}}</label>
-				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required maxlength="50">
+				<input id="ssh-key-title" name="title" autofocus required maxlength="50">
 			</div>
-			<div class="field {{if .Err_Content}}error{{end}}">
+			<div class="field">
 				<label for="ssh-key-content">{{ctx.Locale.Tr "settings.key_content"}}</label>
-				<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
+				<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required></textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
 			<button class="ui primary button">
@@ -67,7 +67,7 @@
 			{{if and (not .Verified) (eq $.VerifyingFingerprint .Fingerprint)}}
 				<div class="ui segment">
 					<h4>{{ctx.Locale.Tr "settings.ssh_token_required"}}</h4>
-					<form class="ui form{{if $.HasSSHVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
+					<form class="ui form form-fetch-action" action="{{$.Link}}" method="post">
 						<input type="hidden" name="title" value="none">
 						<input type="hidden" name="content" value="{{.Content}}">
 						<input type="hidden" name="fingerprint" value="{{.Fingerprint}}">
@@ -90,7 +90,7 @@
 						</div>
 						<div class="field">
 							<label for="signature">{{ctx.Locale.Tr "settings.ssh_token_signature"}}</label>
-							<textarea id="ssh-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
+							<textarea id="ssh-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_ssh_placeholder"}}" required></textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_ssh">
 						<button class="ui primary button">

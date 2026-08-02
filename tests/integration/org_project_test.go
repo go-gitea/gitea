@@ -37,7 +37,7 @@ func TestOrgProjectAccess(t *testing.T) {
 		"name":       "org3",
 		"visibility": "2",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	// user4 can still access the org's project because its team(team1) has the permission
 	session = loginUser(t, "user4")
@@ -52,7 +52,7 @@ func TestOrgProjectAccess(t *testing.T) {
 		"permission":  "read",
 		"unit_8":      "0",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	// user4 can no longer access the org's project
 	session = loginUser(t, "user4")

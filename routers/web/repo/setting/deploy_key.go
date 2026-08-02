@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"errors"
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
@@ -35,57 +36,36 @@ func DeployKeys(ctx *context.Context) {
 // DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
-	ctx.Data["PageIsSettingsKeys"] = true
-	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
-	if err != nil {
-		ctx.ServerError("ListDeployKeys", err)
-		return
-	}
-	ctx.Data["Deploykeys"] = keys
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplDeployKeys)
+	if ctx.HasError() { // form binding validation error
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	content, err := asymkey_model.CheckPublicKeyString(form.Content)
 	if err != nil {
-		if db.IsErrSSHDisabled(err) {
-			ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
-		} else if asymkey_model.IsErrKeyUnableVerify(err) {
-			ctx.Flash.Info(ctx.Tr("form.unable_verify_ssh_key"))
-		} else if err == asymkey_model.ErrKeyIsPrivate {
-			ctx.Data["HasError"] = true
-			ctx.Data["Err_Content"] = true
-			ctx.Flash.Error(ctx.Tr("form.must_use_public_key"))
-		} else {
-			ctx.Data["HasError"] = true
-			ctx.Data["Err_Content"] = true
-			ctx.Flash.Error(ctx.Tr("form.invalid_ssh_key", err.Error()))
+		switch {
+		case db.IsErrSSHDisabled(err):
+			ctx.JSONError(ctx.Tr("settings.ssh_disabled"))
+		case asymkey_model.IsErrKeyUnableVerify(err):
+			ctx.JSONError(ctx.Tr("form.unable_verify_ssh_key"))
+		case errors.Is(err, asymkey_model.ErrKeyIsPrivate):
+			ctx.JSONError(ctx.Tr("form.must_use_public_key"))
+		default:
+			ctx.JSONError(ctx.Tr("form.invalid_ssh_key", err.Error()))
 		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 		return
 	}
 
 	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, !form.IsWritable)
 	if err != nil {
-		ctx.Data["HasError"] = true
 		switch {
 		case asymkey_model.IsErrDeployKeyAlreadyExist(err):
-			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.key_been_used"), tplDeployKeys, &form)
+			ctx.JSONError(ctx.Tr("repo.settings.key_been_used"))
 		case asymkey_model.IsErrKeyAlreadyExist(err):
-			ctx.Data["Err_Content"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_key_been_used"), tplDeployKeys, &form)
-		case asymkey_model.IsErrKeyNameAlreadyUsed(err):
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
-		case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
+			ctx.JSONError(ctx.Tr("settings.ssh_key_been_used"))
+		case asymkey_model.IsErrKeyNameAlreadyUsed(err), asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
+			ctx.JSONError(ctx.Tr("repo.settings.key_name_used"))
 		default:
 			ctx.ServerError("AddDeployKey", err)
 		}
@@ -94,7 +74,7 @@ func DeployKeysPost(ctx *context.Context) {
 
 	log.Trace("Deploy key added: %d", ctx.Repo.Repository.ID)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
 // DeleteDeployKey response for deleting a deploy key

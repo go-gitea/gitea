@@ -656,15 +656,14 @@ func NewWiki(ctx *context.Context) {
 // NewWikiPost response for wiki create request
 func NewWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
-	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplWikiNew)
+	if ctx.HasError() { // form binding validation error
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	if util.IsEmptyString(form.Title) {
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.issues.new.title_empty"), tplWikiNew, form)
+		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
 		return
 	}
 
@@ -675,13 +674,12 @@ func NewWikiPost(ctx *context.Context) {
 	}
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
-		if repo_model.IsErrWikiReservedName(err) {
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
-		} else if repo_model.IsErrWikiAlreadyExist(err) {
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
-		} else {
+		switch {
+		case repo_model.IsErrWikiReservedName(err):
+			ctx.JSONError(ctx.Tr("repo.wiki.reserved_page", wikiName))
+		case repo_model.IsErrWikiAlreadyExist(err):
+			ctx.JSONError(ctx.Tr("repo.wiki.page_already_exists"))
+		default:
 			ctx.ServerError("AddWikiPage", err)
 		}
 		return
@@ -689,7 +687,7 @@ func NewWikiPost(ctx *context.Context) {
 
 	notify_service.NewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(wikiName))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(wikiName))
 }
 
 // EditWiki render wiki modify page
@@ -712,10 +710,9 @@ func EditWiki(ctx *context.Context) {
 // EditWikiPost response for wiki modify request
 func EditWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
-	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplWikiNew)
+	if ctx.HasError() { // form binding validation error
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
@@ -733,7 +730,7 @@ func EditWikiPost(ctx *context.Context) {
 
 	notify_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(newWikiName))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(newWikiName))
 }
 
 // DeleteWikiPagePost delete wiki page

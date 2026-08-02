@@ -40,16 +40,15 @@ func Create(ctx *context.Context) {
 
 // CreatePost response for create organization
 func CreatePost(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*forms.CreateOrgForm)
-	ctx.Data["Title"] = ctx.Tr("new_org")
+	form := web.GetForm(ctx).(*forms.CreateOrgForm)
 
 	if !ctx.Doer.CanCreateOrganization() {
 		ctx.ServerError("Not allowed", errors.New(ctx.Locale.TrString("org.form.create_org_not_allowed")))
 		return
 	}
 
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplCreateOrg)
+	if ctx.HasError() { // form binding validation error
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
@@ -62,16 +61,15 @@ func CreatePost(ctx *context.Context) {
 	}
 
 	if err := organization.CreateOrganization(ctx, org, ctx.Doer); err != nil {
-		ctx.Data["Err_OrgName"] = true
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.org_name_been_taken"), tplCreateOrg, &form)
+			ctx.JSONError(ctx.Tr("form.org_name_been_taken"))
 		case db.IsErrNameReserved(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.name_reserved", err.(db.ErrNameReserved).Name), tplCreateOrg, &form)
+			ctx.JSONError(ctx.Tr("org.form.name_reserved", err.(db.ErrNameReserved).Name))
 		case db.IsErrNamePatternNotAllowed(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplCreateOrg, &form)
+			ctx.JSONError(ctx.Tr("org.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern))
 		case organization.IsErrUserNotAllowedCreateOrg(err):
-			ctx.RenderWithErrDeprecated(ctx.Tr("org.form.create_org_not_allowed"), tplCreateOrg, &form)
+			ctx.JSONError(ctx.Tr("org.form.create_org_not_allowed"))
 		default:
 			ctx.ServerError("CreateOrganization", err)
 		}
@@ -79,5 +77,5 @@ func CreatePost(ctx *context.Context) {
 	}
 	log.Trace("Organization created: %s", org.Name)
 
-	ctx.Redirect(org.AsUser().DashboardLink())
+	ctx.JSONRedirect(org.AsUser().DashboardLink())
 }

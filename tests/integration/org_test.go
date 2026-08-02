@@ -297,7 +297,7 @@ func testTeamsPage(t *testing.T) {
 		"unit_9":      "1",
 		"unit_10":     "1",
 	})
-	ownerSession.MakeRequest(t, req, http.StatusSeeOther)
+	ownerSession.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, []string{"Owners", "review_team", "test_team"}, listTeams(t, memberSession, ""))
 
 	// Non-member is denied
@@ -319,7 +319,7 @@ func testOrgSettings(t *testing.T) {
 		"full_name": "org3 new full name",
 		"email":     "org3-new-email@example.com",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Equal(t, "org3 new full name", org.FullName)
 	assert.Equal(t, "org3-new-email@example.com", org.Email)
@@ -327,7 +327,7 @@ func testOrgSettings(t *testing.T) {
 	req = NewRequestWithValues(t, "POST", "/org/org3/settings", map[string]string{
 		"email": "", // empty email means "clear email"
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusOK)
 	org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	assert.Equal(t, "org3 new full name", org.FullName)
 	assert.Empty(t, org.Email)

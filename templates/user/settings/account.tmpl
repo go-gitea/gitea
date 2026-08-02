@@ -88,8 +88,8 @@
 
 		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 		<div class="ui bottom attached segment">
-			<form class="ui form" action="{{AppSubUrl}}/user/settings/account/email" method="post">
-				<div class="required field {{if .Err_Email}}error{{end}}">
+			<form class="ui form form-fetch-action" action="{{AppSubUrl}}/user/settings/account/email" method="post">
+				<div class="required field">
 					<label for="email">{{ctx.Locale.Tr "settings.add_new_email"}}</label>
 					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
 				</div>
