@@ -4,6 +4,7 @@
 {{$commitComments := $.root.CommitComments}}
 {{$ccFile := ""}}
 {{if $commitComments}}{{$ccFile = index $commitComments $file.Name}}{{end}}
+{{$canAddComment := and $.root.SignedUserID (or $.root.PageIsPullFiles $.root.CanCommentOnCommit) (not $.root.Repository.IsArchived)}}
 <colgroup>
 	<col width="50">
 	<col width="50">
@@ -13,6 +14,19 @@
 </colgroup>
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
+		{{/* Render left and right comment buckets independently — a context line in
+			unified view has both LeftIdx and RightIdx, and either side may carry
+			comments authored from the equivalent split view. Resolved before the row
+			so an existing commit comment can hide the "add comment" button. */}}
+		{{$leftCC := ""}}
+		{{$rightCC := ""}}
+		{{if $ccFile}}
+			{{if $line.LeftIdx}}{{$leftCC = index $ccFile.Left $line.LeftIdx}}{{end}}
+			{{if $line.RightIdx}}{{$rightCC = index $ccFile.Right $line.RightIdx}}{{end}}
+		{{end}}
+		{{/* the button targets the right side whenever the line has one */}}
+		{{$lineCC := $leftCC}}
+		{{if $line.RightIdx}}{{$lineCC = $rightCC}}{{end}}
 		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 			{{if eq .GetType 4}}
 				{{if $diffBlobExcerptData}}
@@ -34,8 +48,8 @@
 				<td class="chroma lines-code blob-hunk">{{template "repo/diff/section_code" dict "diff" $inlineDiff}}</td>
 			{{else}}
 				<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
-					{{- if and $.root.SignedUserID (or $.root.PageIsPullFiles $.root.PageIsDiff) (not $.root.Repository.IsArchived) -}}
-						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+					{{- if $canAddComment -}}
+						<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if or (not $line.CanComment) $lineCC}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
 							{{- svg "octicon-plus" -}}
 						</button>
 					{{- end -}}
@@ -51,26 +65,17 @@
 			</tr>
 		{{end}}
 		{{/* Render commit comments (not PR review comments) */}}
-		{{if $ccFile}}
-			{{/* Render left and right comment buckets independently — a context line in
-				unified view has both LeftIdx and RightIdx, and either side may carry
-				comments authored from the equivalent split view. */}}
-			{{$rightCC := ""}}
-			{{if $line.RightIdx}}{{$rightCC = index $ccFile.Right $line.RightIdx}}{{end}}
-			{{$leftCC := ""}}
-			{{if $line.LeftIdx}}{{$leftCC = index $ccFile.Left $line.LeftIdx}}{{end}}
-			{{if or $rightCC $leftCC}}
-				<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
-					<td class="add-comment-left add-comment-right" colspan="5">
-						{{if $rightCC}}
-							{{template "repo/diff/commit_conversation" dict "." $.root "comments" $rightCC}}
-						{{end}}
-						{{if $leftCC}}
-							{{template "repo/diff/commit_conversation" dict "." $.root "comments" $leftCC}}
-						{{end}}
-					</td>
-				</tr>
-			{{end}}
+		{{if or $rightCC $leftCC}}
+			<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+				<td class="add-comment-left add-comment-right" colspan="5">
+					{{if $rightCC}}
+						{{template "repo/diff/commit_conversation" dict "." $.root "comments" $rightCC}}
+					{{end}}
+					{{if $leftCC}}
+						{{template "repo/diff/commit_conversation" dict "." $.root "comments" $leftCC}}
+					{{end}}
+				</td>
+			</tr>
 		{{end}}
 	{{end}}
 {{end}}

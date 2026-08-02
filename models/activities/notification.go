@@ -120,13 +120,25 @@ func init() {
 }
 
 // CreateCommitCommentNotification creates notifications for a commit comment.
-// It notifies the commit author (if they're a Gitea user) and any @mentioned
-// users. The caller passes raw fields so this package stays decoupled from the
-// standalone CommitComment model in models/repo. Recipients are filtered to
-// those with code read access on the repository so private repos do not leak.
+// It notifies the commit author (if they're a Gitea user), everyone already
+// participating in the commit's conversation, and any @mentioned users.
+// Recipients are filtered to those with code read access on the repository so
+// private repos do not leak.
 func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitSHA string, commitCommentID int64, commitAuthorEmail string, mentionedUsernames []string) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		receiverIDs := make(map[int64]struct{})
+
+		// Notify everyone who already commented on this commit, otherwise a
+		// reply never reaches the person it replies to.
+		participantIDs, err := repo_model.GetCommitCommentPosterIDs(ctx, repo.ID, commitSHA)
+		if err != nil {
+			return fmt.Errorf("GetCommitCommentPosterIDs: %w", err)
+		}
+		for _, id := range participantIDs {
+			if id != doer.ID {
+				receiverIDs[id] = struct{}{}
+			}
+		}
 
 		// Notify the commit author if they map to a Gitea user. A missing
 		// user is expected (commit author may not have a Gitea account); any
@@ -187,25 +199,51 @@ func CreateCommitCommentNotification(ctx context.Context, doer *user_model.User,
 			}
 		}
 
-		if len(filtered) == 0 {
-			return nil
-		}
-
-		var notifications []*Notification
 		for uid := range filtered {
-			notifications = append(notifications, &Notification{
-				UserID:          uid,
-				RepoID:          repo.ID,
-				Status:          NotificationStatusUnread,
-				Source:          NotificationSourceCommit,
-				CommitID:        commitSHA,
-				CommitCommentID: commitCommentID,
-				UpdatedBy:       doer.ID,
-			})
+			if err := createOrUpdateCommitNotification(ctx, uid, repo.ID, commitSHA, commitCommentID, doer.ID); err != nil {
+				return err
+			}
 		}
-
-		return db.Insert(ctx, notifications)
+		return nil
 	})
+}
+
+// createOrUpdateCommitNotification keeps a single notification row per user and
+// commit, so a long conversation doesn't flood the list with one entry per
+// comment.
+func createOrUpdateCommitNotification(ctx context.Context, userID, repoID int64, commitSHA string, commitCommentID, updatedByID int64) error {
+	existing := new(Notification)
+	has, err := db.GetEngine(ctx).
+		Where("user_id = ? AND repo_id = ? AND source = ? AND commit_id = ?", userID, repoID, NotificationSourceCommit, commitSHA).
+		Get(existing)
+	if err != nil {
+		return fmt.Errorf("get commit notification [%d]: %w", userID, err)
+	}
+
+	if !has {
+		return db.Insert(ctx, &Notification{
+			UserID:          userID,
+			RepoID:          repoID,
+			Status:          NotificationStatusUnread,
+			Source:          NotificationSourceCommit,
+			CommitID:        commitSHA,
+			CommitCommentID: commitCommentID,
+			UpdatedBy:       updatedByID,
+		})
+	}
+
+	// Only re-point an already-read notification at the newest comment; moving
+	// an unread one forward would skip the comments not seen yet.
+	existing.UpdatedBy = updatedByID
+	cols := []string{"updated_by", "updated_unix"}
+	if existing.Status == NotificationStatusRead {
+		existing.Status = NotificationStatusUnread
+		existing.CommitCommentID = commitCommentID
+		cols = append(cols, "status", "commit_comment_id")
+	}
+
+	_, err = db.GetEngine(ctx).ID(existing.ID).Cols(cols...).Update(existing)
+	return err
 }
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to

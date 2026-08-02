@@ -7,8 +7,10 @@ import (
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
+	unit_model "gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
@@ -23,6 +25,38 @@ var (
 	tplNewCommitComment   templates.TplName = "repo/diff/new_commit_comment"
 	tplCommitConversation templates.TplName = "repo/diff/commit_conversation"
 )
+
+// canCommentOnCommit mirrors the guards on the commit comment routes so the
+// templates and the endpoints can never disagree about who may comment.
+func canCommentOnCommit(ctx *context.Context) bool {
+	return ctx.Doer != nil && !ctx.Repo.Repository.IsArchived && ctx.Repo.Permission.CanRead(unit_model.TypeCode)
+}
+
+// renderCommitCommentContents renders the markdown body of every comment
+// attached to a single file.
+func renderCommitCommentContents(ctx *context.Context, fcc *repo_model.FileCommitComments) {
+	if fcc == nil {
+		return
+	}
+	for _, side := range []map[int][]*repo_model.CommitComment{fcc.Left, fcc.Right} {
+		for _, comments := range side {
+			for _, c := range comments {
+				rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{})
+				var err error
+				if c.RenderedContent, err = markdown.RenderString(rctx, c.Content); err != nil {
+					log.Error("RenderString for commit comment %d: %v", c.ID, err)
+				}
+			}
+		}
+	}
+}
+
+// renderCommitComments renders the markdown body of every comment in a diff.
+func renderCommitComments(ctx *context.Context, all repo_model.CommitCommentsForDiff) {
+	for _, fcc := range all {
+		renderCommitCommentContents(ctx, fcc)
+	}
+}
 
 // RenderNewCommitCommentForm renders the comment form for inline commit comments.
 func RenderNewCommitCommentForm(ctx *context.Context) {
@@ -105,7 +139,14 @@ func CreateCommitComment(ctx *context.Context) {
 		}
 	}
 	if patch == "" {
-		patch, err = gitdiff.GeneratePatchForUnchangedLine(ctx, ctx.Repo.GitRepo, fullSHA, treePath, line, setting.UI.CodeCommentLines)
+		// Old-side coordinates only exist in the parent tree; resolving them
+		// against fullSHA rejects lines the commit removed and stores the
+		// wrong context for the ones it kept.
+		contextSHA := fullSHA
+		if line < 0 {
+			contextSHA = parentSHA
+		}
+		patch, err = gitdiff.GeneratePatchForUnchangedLine(ctx, ctx.Repo.GitRepo, contextSHA, treePath, line, setting.UI.CodeCommentLines)
 		if err != nil {
 			log.Debug("GeneratePatchForUnchangedLine failed for commit comment: %v", err)
 		}
@@ -138,15 +179,22 @@ func CreateCommitComment(ctx *context.Context) {
 		log.Error("CreateCommitCommentNotification: %v", err)
 	}
 
-	// Render markdown content
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{})
-	comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
+	// The response replaces the whole conversation holder client-side, so it
+	// has to carry the entire thread and not just the comment just created.
+	comments, err := repo_model.FindCommitCommentsByLine(ctx, ctx.Repo.Repository.ID, fullSHA, treePath, line)
 	if err != nil {
-		log.Error("RenderString for commit comment %d: %v", comment.ID, err)
+		ctx.ServerError("FindCommitCommentsByLine", err)
+		return
+	}
+	for _, c := range comments {
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{})
+		if c.RenderedContent, err = markdown.RenderString(rctx, c.Content); err != nil {
+			log.Error("RenderString for commit comment %d: %v", c.ID, err)
+		}
 	}
 
 	ctx.Data["CommitID"] = fullSHA
-	ctx.Data["comments"] = []*repo_model.CommitComment{comment}
+	ctx.Data["comments"] = comments
 	ctx.HTML(http.StatusOK, tplCommitConversation)
 }
 
@@ -160,7 +208,11 @@ func DeleteCommitComment(ctx *context.Context) {
 
 	comment, err := repo_model.GetCommitCommentByID(ctx, ctx.Repo.Repository.ID, commentID)
 	if err != nil {
-		ctx.NotFound(err)
+		if db.IsErrNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetCommitCommentByID", err)
+		}
 		return
 	}
 

@@ -12,6 +12,8 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // ErrInvalidCommitCommentLine is returned when the comment line is zero. Diff
@@ -124,7 +126,7 @@ func FindCommitCommentsByCommitSHA(ctx context.Context, repoID int64, commitSHA 
 	comments := make(CommitCommentList, 0)
 	if err := db.GetEngine(ctx).
 		Where("repo_id = ? AND commit_sha = ?", repoID, commitSHA).
-		OrderBy("created_unix ASC").
+		OrderBy("created_unix ASC, id ASC").
 		Find(&comments); err != nil {
 		return nil, err
 	}
@@ -135,6 +137,56 @@ func FindCommitCommentsByCommitSHA(ctx context.Context, repoID int64, commitSHA 
 	return comments, nil
 }
 
+// FindCommitCommentsByLine returns every comment anchored on one diff
+// coordinate, ordered oldest-first, with Posters preloaded.
+func FindCommitCommentsByLine(ctx context.Context, repoID int64, commitSHA, treePath string, line int64) (CommitCommentList, error) {
+	comments := make(CommitCommentList, 0)
+	if err := db.GetEngine(ctx).
+		Where(builder.Eq{
+			"commit_comment.repo_id":    repoID,
+			"commit_comment.commit_sha": commitSHA,
+			"commit_comment.tree_path":  treePath,
+			"commit_comment.line":       line,
+		}).
+		OrderBy("created_unix ASC, id ASC").
+		Find(&comments); err != nil {
+		return nil, err
+	}
+
+	if err := comments.LoadPosters(ctx); err != nil {
+		return nil, err
+	}
+	return comments, nil
+}
+
+// GetCommitCommentPosterIDs returns the distinct posters of every comment on a
+// commit, used to notify the participants of an ongoing conversation.
+func GetCommitCommentPosterIDs(ctx context.Context, repoID int64, commitSHA string) ([]int64, error) {
+	ids := make([]int64, 0, 8)
+	return ids, db.GetEngine(ctx).
+		Table("commit_comment").
+		Where("repo_id = ? AND commit_sha = ?", repoID, commitSHA).
+		Select("poster_id").
+		Distinct("poster_id").
+		Find(&ids)
+}
+
+// FindCommitCommentsForFile returns the comments of a single file in a commit,
+// split by side, or nil when the file has none.
+func FindCommitCommentsForFile(ctx context.Context, repoID int64, commitSHA, treePath string) (*FileCommitComments, error) {
+	comments := make(CommitCommentList, 0)
+	if err := db.GetEngine(ctx).
+		Where("repo_id = ? AND commit_sha = ? AND tree_path = ?", repoID, commitSHA, treePath).
+		OrderBy("created_unix ASC, id ASC").
+		Find(&comments); err != nil {
+		return nil, err
+	}
+	if err := comments.LoadPosters(ctx); err != nil {
+		return nil, err
+	}
+	return groupCommitCommentsByPath(comments)[treePath], nil
+}
+
 // FindCommitCommentsForDiff returns comments grouped by path and side for
 // rendering in a diff view.
 func FindCommitCommentsForDiff(ctx context.Context, repoID int64, commitSHA string) (CommitCommentsForDiff, error) {
@@ -142,7 +194,10 @@ func FindCommitCommentsForDiff(ctx context.Context, repoID int64, commitSHA stri
 	if err != nil {
 		return nil, err
 	}
+	return groupCommitCommentsByPath(comments), nil
+}
 
+func groupCommitCommentsByPath(comments CommitCommentList) CommitCommentsForDiff {
 	result := make(CommitCommentsForDiff)
 	for _, c := range comments {
 		fcc, ok := result[c.TreePath]
@@ -161,7 +216,7 @@ func FindCommitCommentsForDiff(ctx context.Context, repoID int64, commitSHA stri
 			fcc.Right[idx] = append(fcc.Right[idx], c)
 		}
 	}
-	return result, nil
+	return result
 }
 
 // CreateCommitComment inserts a new commit comment. Line=0 is rejected

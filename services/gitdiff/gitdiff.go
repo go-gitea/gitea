@@ -215,6 +215,10 @@ type DiffBlobExcerptData struct {
 	PullIssueIndex int64
 	DiffStyle      string
 	AfterCommitID  string
+	// IsCommitDiff marks excerpts of a single commit's diff, which carry
+	// standalone inline comments. Compare views share this endpoint and must
+	// not, so it cannot be inferred from the absence of PullIssueIndex.
+	IsCommitDiff bool
 }
 
 const (
@@ -231,6 +235,9 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor)) + "&" + d.getBlobExcerptQuery()
 		if data.PullIssueIndex > 0 {
 			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
+		}
+		if data.IsCommitDiff {
+			link += "&commit_diff=1"
 		}
 		return htmlutil.HTMLFormat(
 			`<button class="code-expander-button" data-fetch-sync="$closest(tr)" data-fetch-url="%s" data-hidden-comment-ids=",%s,">%s</button>`,

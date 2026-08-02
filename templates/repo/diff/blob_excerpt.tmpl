@@ -1,7 +1,16 @@
 {{$diffBlobExcerptData := .DiffBlobExcerptData}}
 {{$canCreateComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex}}
+{{/* the commit diff has its own standalone inline comments, keyed by real diff side */}}
+{{$canCommitComment := and ctx.RootData.SignedUserID ctx.RootData.CanCommentOnCommit}}
+{{$ccFile := $.FileCommitComments}}
 {{if $.IsSplitStyle}}
 	{{range $k, $line := $.section.Lines}}
+	{{$leftCC := ""}}
+	{{$rightCC := ""}}
+	{{if $ccFile}}
+		{{if $line.LeftIdx}}{{$leftCC = index $ccFile.Left $line.LeftIdx}}{{end}}
+		{{if $line.RightIdx}}{{$rightCC = index $ccFile.Right $line.RightIdx}}{{end}}
+	{{end}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
 		{{if eq .GetType 4}}
 			<td class="lines-num lines-num-old">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
@@ -20,6 +29,10 @@
 					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
 						{{- svg "octicon-plus" -}}
 					</button>
+				{{- else if and $canCommitComment $line.LeftIdx -}}
+					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if $leftCC}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
+						{{- svg "octicon-plus" -}}
+					</button>
 				{{- end -}}
 				{{- if $line.LeftIdx -}}
 					{{- template "repo/diff/section_code" dict "diff" $inlineDiff -}}
@@ -31,8 +44,8 @@
 			<td class="lines-escape lines-escape-new">{{if and $line.RightIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
 			<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-new">
-				{{- if and $canCreateComment $line.RightIdx -}}
-					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
+				{{- if and (or $canCreateComment $canCommitComment) $line.RightIdx -}}
+					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if or (not $line.CanComment) $rightCC}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
 						{{- svg "octicon-plus" -}}
 					</button>
 				{{- end -}}
@@ -58,9 +71,31 @@
 			</td>
 		</tr>
 	{{end}}
+	{{if or $leftCC $rightCC}}
+		<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+			<td class="add-comment-left" colspan="4">
+				{{if $leftCC}}
+					{{template "repo/diff/commit_conversation" dict "." $ "comments" $leftCC}}
+				{{end}}
+			</td>
+			<td class="add-comment-right" colspan="4">
+				{{if $rightCC}}
+					{{template "repo/diff/commit_conversation" dict "." $ "comments" $rightCC}}
+				{{end}}
+			</td>
+		</tr>
+	{{end}}
 	{{end}}
 {{else}}
 	{{range $k, $line := $.section.Lines}}
+	{{$leftCC := ""}}
+	{{$rightCC := ""}}
+	{{if $ccFile}}
+		{{if $line.LeftIdx}}{{$leftCC = index $ccFile.Left $line.LeftIdx}}{{end}}
+		{{if $line.RightIdx}}{{$rightCC = index $ccFile.Right $line.RightIdx}}{{end}}
+	{{end}}
+	{{$lineCC := $leftCC}}
+	{{if $line.RightIdx}}{{$lineCC = $rightCC}}{{end}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
 		{{if eq .GetType 4}}
 			<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
@@ -72,8 +107,8 @@
 		<td class="lines-escape">{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}</td>
 		<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 		<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
-			{{- if and $canCreateComment -}}
-				<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+			{{- if or $canCreateComment $canCommitComment -}}
+				<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if or (not $line.CanComment) $lineCC}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
 					{{- svg "octicon-plus" -}}
 				</button>
 			{{- end -}}
@@ -84,6 +119,18 @@
 		<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
 			<td class="add-comment-left add-comment-right" colspan="5">
 				{{template "repo/diff/conversation" dict "." $ "comments" $line.Comments}}
+			</td>
+		</tr>
+	{{end}}
+	{{if or $rightCC $leftCC}}
+		<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
+			<td class="add-comment-left add-comment-right" colspan="5">
+				{{if $rightCC}}
+					{{template "repo/diff/commit_conversation" dict "." $ "comments" $rightCC}}
+				{{end}}
+				{{if $leftCC}}
+					{{template "repo/diff/commit_conversation" dict "." $ "comments" $leftCC}}
+				{{end}}
 			</td>
 		</tr>
 	{{end}}
