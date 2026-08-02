@@ -80,7 +80,13 @@ export function initRepoPullMergeBox(el: HTMLElement) {
       return;
     }
     document.removeEventListener('visibilitychange', onVisibilityChange);
-    const newElem = createElementFromHTML(await resp.text());
+
+    const respText = (await resp.text()).trim();
+    if (!respText) {
+      el.remove(); // merge box might not exist if the PR has changed (e.g.: merged and the head branch has been deleted)
+      return;
+    }
+    const newElem = createElementFromHTML(respText);
     el.replaceWith(newElem);
   };
 
