@@ -26,6 +26,10 @@ import (
 
 var _ ObjectStorage = &MinioStorage{}
 
+// unknownSizePartSize matches the part size minio-go picks for known-size uploads.
+// Same as minio-go's default: https://github.com/minio/minio-go/blob/v7.2.1/constants.go#L28
+const unknownSizePartSize = 1024 * 1024 * 16
+
 type minioObject struct {
 	*minio.Object
 }
@@ -228,6 +232,11 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 			// * https://www.backblaze.com/b2/docs/s3_compatible_api.html
 			// do not support "x-amz-checksum-algorithm" header, so use legacy MD5 checksum
 			SendContentMd5: m.cfg.ChecksumAlgorithm == "md5",
+
+			// with an unknown size (-1) minio-go assumes a 5TiB object and allocates one 537MB buffer per upload:
+			// https://github.com/minio/minio-go/blob/v7.2.1/api-put-object-common.go#L72-L74
+			// so pin the part size there to keep the buffer small, a known size already derives a proportional one
+			PartSize: util.Iif[uint64](size < 0, unknownSizePartSize, 0),
 		},
 	)
 	if err != nil {
