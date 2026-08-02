@@ -38,7 +38,7 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
-// the test runner needs the same source transforms as the build, so it reuses these
+// plugins shared between vite and vitest
 export function sharedPlugins(): Plugin[] {
   return [
     stringPlugin(),
