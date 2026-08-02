@@ -22,9 +22,7 @@
 					</button>
 				{{end}}
 			</div>
-			{{if and $.SignedUserID (not $.Repository.IsArchived)}}
-				{{template "repo/diff/commit_comment_form" dict "hidden" true "root" $ "comment" $comment}}
-			{{end}}
+			{{template "repo/diff/commit_comment_form" dict "hidden" true "root" $ "comment" $comment}}
 		</div>
 	</div>
 {{end}}

@@ -281,16 +281,17 @@ func Diff(ctx *context.Context) {
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.PathParam("sha")
+	isWiki := ctx.Data["PageIsWiki"] != nil
 
 	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
-		IsCommitDiff:  ctx.Data["PageIsWiki"] == nil,
+		IsCommitDiff:  !isWiki,
 	}
 	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
 
-	if ctx.Data["PageIsWiki"] != nil {
+	if isWiki {
 		var err error
 		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
@@ -426,14 +427,14 @@ func Diff(ctx *context.Context) {
 
 	// Inline commit comments belong to the code unit; this handler also serves
 	// the wiki commit view, whose SHAs and permissions are unrelated to it.
-	if ctx.Data["PageIsWiki"] == nil {
-		commitComments, err := repo_model.FindCommitCommentsForDiff(ctx, ctx.Repo.Repository.ID, commitID)
+	if !isWiki {
+		commitComments, err := diff.LoadCommitComments(ctx, ctx.Repo.Repository.ID, commitID)
 		if err != nil {
-			log.Error("FindCommitCommentsForDiff: %v", err)
+			log.Error("LoadCommitComments: %v", err)
 		}
 		renderCommitComments(ctx, commitComments)
-		ctx.Data["CommitComments"] = commitComments
 		ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
+		ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, commitID)
 	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)

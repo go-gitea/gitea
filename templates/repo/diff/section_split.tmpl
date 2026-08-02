@@ -1,8 +1,5 @@
 {{$file := .file}}
 {{$diffBlobExcerptData := $.root.DiffBlobExcerptData}}
-{{$commitComments := $.root.CommitComments}}
-{{$ccFile := ""}}
-{{if $commitComments}}{{$ccFile = index $commitComments $file.Name}}{{end}}
 {{$canAddComment := and $.root.SignedUserID (or $.root.PageIsPullFiles $.root.CanCommentOnCommit) (not $.root.Repository.IsArchived)}}
 <colgroup>
 	<col width="50">
@@ -17,18 +14,6 @@
 {{range $j, $section := $file.Sections}}
 	{{range $k, $line := $section.Lines}}
 		{{$hasmatch := ne $line.Match -1}}
-		{{/* resolved before the row so an existing commit comment can hide the "add comment" button */}}
-		{{$leftCC := ""}}
-		{{$rightCC := ""}}
-		{{if $ccFile}}
-			{{if $line.LeftIdx}}{{$leftCC = index $ccFile.Left $line.LeftIdx}}{{end}}
-			{{if and (eq .GetType 3) $hasmatch}}
-				{{$match := index $section.Lines $line.Match}}
-				{{if $match.RightIdx}}{{$rightCC = index $ccFile.Right $match.RightIdx}}{{end}}
-			{{else if $line.RightIdx}}
-				{{$rightCC = index $ccFile.Right $line.RightIdx}}
-			{{end}}
-		{{end}}
 		{{if or (ne .GetType 2) (not $hasmatch)}}
 			<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 				{{if eq .GetType 4}}
@@ -45,7 +30,7 @@
 					<td class="lines-type-marker lines-type-marker-old del-code"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 					<td class="lines-code lines-code-old del-code">
 						{{- if $canAddComment -}}
-							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if or (not $line.CanComment) $leftCC}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
+							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if not $line.CanCommentLeft}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
 								{{- svg "octicon-plus" -}}
 							</button>
 						{{- end -}}
@@ -60,7 +45,7 @@
 					<td class="lines-type-marker lines-type-marker-new add-code">{{if $match.RightIdx}}<span class="tw-font-mono" data-type-marker="{{$match.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-new add-code">
 						{{- if $canAddComment -}}
-							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if or (not $match.CanComment) $rightCC}} tw-invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">
+							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if not $match.CanCommentRight}} tw-invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">
 								{{- svg "octicon-plus" -}}
 							</button>
 						{{- end -}}
@@ -77,7 +62,7 @@
 					<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-old">
 						{{- if and $canAddComment (not (eq .GetType 2)) -}}
-							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if or (not $line.CanComment) $leftCC}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
+							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if not $line.CanCommentLeft}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
 								{{- svg "octicon-plus" -}}
 							</button>
 						{{- end -}}
@@ -92,7 +77,7 @@
 					<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
 					<td class="lines-code lines-code-new">
 						{{- if and $canAddComment (not (eq .GetType 3)) -}}
-							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if or (not $line.CanComment) $rightCC}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
+							<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if not $line.CanCommentRight}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
 								{{- svg "octicon-plus" -}}
 							</button>
 						{{- end -}}
@@ -149,6 +134,10 @@
 				</tr>
 			{{end}}
 			{{/* Render commit comments (not PR review comments) */}}
+			{{$leftCC := $line.CommitCommentsLeft}}
+			{{$rightCC := $line.CommitCommentsRight}}
+			{{/* a DEL line holds no new side of its own, its match does */}}
+			{{if and (eq .GetType 3) $hasmatch}}{{$rightCC = (index $section.Lines $line.Match).CommitCommentsRight}}{{end}}
 			{{if or $leftCC $rightCC}}
 				<tr class="add-comment" data-line-type="{{.GetHTMLDiffLineType}}">
 					<td class="add-comment-left" colspan="4">

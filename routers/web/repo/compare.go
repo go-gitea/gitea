@@ -784,13 +784,15 @@ func ExcerptBlob(ctx *context.Context) {
 		fullSHA := commit.ID.String()
 		ctx.Data["CommitID"] = fullSHA
 		ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
+		ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, fullSHA)
 
 		fileComments, err := repo_model.FindCommitCommentsForFile(ctx, ctx.Repo.Repository.ID, fullSHA, filePath)
 		if err != nil {
 			log.Error("FindCommitCommentsForFile error: %v", err)
+		} else {
+			gitdiff.AttachCommitCommentsToLines(section.Lines, fileComments)
+			renderCommitComments(ctx, fileComments)
 		}
-		renderCommitCommentContents(ctx, fileComments)
-		ctx.Data["FileCommitComments"] = fileComments
 	}
 
 	ctx.Data["section"] = section

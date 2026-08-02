@@ -244,10 +244,11 @@ export function initRepoPullRequestReview() {
   });
 
   // The following part is only for diff views (PR diff or commit diff)
-  if (!document.querySelector('.repository.diff')) return;
+  const elDiff = document.querySelector('.repository.diff');
+  if (!elDiff) return;
 
   // Review panel is PR-only
-  if (document.querySelector('.repository.pull.diff')) {
+  if (elDiff.classList.contains('pull')) {
     const elReviewBtn = document.querySelector('.js-btn-review');
     const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
     if (elReviewBtn && elReviewPanel) {

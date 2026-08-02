@@ -4,9 +4,10 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
 
-	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
@@ -14,11 +15,9 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup/markdown"
-	"gitea.dev/modules/references"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/context"
-	"gitea.dev/services/gitdiff"
+	repo_service "gitea.dev/services/repository"
 )
 
 var (
@@ -32,29 +31,21 @@ func canCommentOnCommit(ctx *context.Context) bool {
 	return ctx.Doer != nil && !ctx.Repo.Repository.IsArchived && ctx.Repo.Permission.CanRead(unit_model.TypeCode)
 }
 
-// renderCommitCommentContents renders the markdown body of every comment
-// attached to a single file.
-func renderCommitCommentContents(ctx *context.Context, fcc *repo_model.FileCommitComments) {
-	if fcc == nil {
-		return
-	}
-	for _, side := range []map[int][]*repo_model.CommitComment{fcc.Left, fcc.Right} {
-		for _, comments := range side {
-			for _, c := range comments {
-				rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{})
-				var err error
-				if c.RenderedContent, err = markdown.RenderString(rctx, c.Content); err != nil {
-					log.Error("RenderString for commit comment %d: %v", c.ID, err)
-				}
-			}
-		}
-	}
+// commitCommentURL is the endpoint the diff templates post new comments to.
+func commitCommentURL(ctx *context.Context, commitSHA string) string {
+	return ctx.Repo.RepoLink + "/commit/" + commitSHA + "/comment"
 }
 
-// renderCommitComments renders the markdown body of every comment in a diff.
-func renderCommitComments(ctx *context.Context, all repo_model.CommitCommentsForDiff) {
-	for _, fcc := range all {
-		renderCommitCommentContents(ctx, fcc)
+// renderCommitComments renders the markdown body of every given comment.
+func renderCommitComments(ctx *context.Context, comments repo_model.CommitCommentList) {
+	for _, c := range comments {
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+			FootnoteContextID: strconv.FormatInt(c.ID, 10),
+		})
+		var err error
+		if c.RenderedContent, err = markdown.RenderString(rctx, c.Content); err != nil {
+			log.Error("RenderString for commit comment %d: %v", c.ID, err)
+		}
 	}
 }
 
@@ -62,7 +53,7 @@ func renderCommitComments(ctx *context.Context, all repo_model.CommitCommentsFor
 func RenderNewCommitCommentForm(ctx *context.Context) {
 	commitSHA := ctx.PathParam("sha")
 	ctx.Data["CommitID"] = commitSHA
-	ctx.Data["PageIsDiff"] = true
+	ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, commitSHA)
 	ctx.HTML(http.StatusOK, tplNewCommitComment)
 }
 
@@ -87,113 +78,35 @@ func CreateCommitComment(ctx *context.Context) {
 		ctx.JSONError("side must be either 'previous' or 'proposed'")
 		return
 	}
-
 	if side == "previous" {
 		line = -line
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, commitSHA)
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetCommit", err)
-		}
+	comment, err := repo_service.CreateCommitComment(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, commitSHA, treePath, line, content)
+	switch {
+	case err == nil:
+	case git.IsErrNotExist(err):
+		ctx.NotFound(err)
 		return
-	}
-	fullSHA := commit.ID.String()
-
-	var parentSHA string
-	if commit.ParentCount() > 0 {
-		parentID, err := commit.ParentID(0)
-		if err == nil {
-			parentSHA = parentID.String()
-		}
-	}
-
-	// Root commits (no parent) only have a "new" side, so reject any
-	// comment that targets the old side of a non-existent diff.
-	if parentSHA == "" && line < 0 {
-		ctx.JSONError("cannot comment on the previous side of a root commit")
+	case errors.Is(err, repo_service.ErrCommitCommentCoordinates), errors.Is(err, repo_service.ErrCommitCommentRootPrevious):
+		ctx.JSONError(err.Error())
 		return
-	}
-
-	// Generate diff context patch around the commented line. For commits
-	// with a parent we diff against it; for root commits we still
-	// validate against the file tree via the unchanged-line fallback so
-	// that a crafted POST cannot create an invisible comment with no
-	// real coordinate.
-	var patch string
-	if parentSHA != "" {
-		absLine := line
-		isOld := line < 0
-		if isOld {
-			absLine = -line
-		}
-		patch, err = git.GetFileDiffCutAroundLine(
-			ctx, ctx.Repo.GitRepo, parentSHA, fullSHA, treePath,
-			absLine, isOld, setting.UI.CodeCommentLines,
-		)
-		if err != nil {
-			log.Debug("GetFileDiffCutAroundLine failed for commit comment: %v", err)
-		}
-	}
-	if patch == "" {
-		// Old-side coordinates only exist in the parent tree; resolving them
-		// against fullSHA rejects lines the commit removed and stores the
-		// wrong context for the ones it kept.
-		contextSHA := fullSHA
-		if line < 0 {
-			contextSHA = parentSHA
-		}
-		patch, err = gitdiff.GeneratePatchForUnchangedLine(ctx, ctx.Repo.GitRepo, contextSHA, treePath, line, setting.UI.CodeCommentLines)
-		if err != nil {
-			log.Debug("GeneratePatchForUnchangedLine failed for commit comment: %v", err)
-		}
-	}
-
-	if patch == "" {
-		ctx.JSONError("comment coordinates do not resolve to a line in this commit")
-		return
-	}
-
-	comment := &repo_model.CommitComment{
-		RepoID:    ctx.Repo.Repository.ID,
-		CommitSHA: fullSHA,
-		TreePath:  treePath,
-		Line:      line,
-		PosterID:  ctx.Doer.ID,
-		Poster:    ctx.Doer,
-		Content:   content,
-		Patch:     patch,
-	}
-
-	if err := repo_model.CreateCommitComment(ctx, comment); err != nil {
+	default:
 		ctx.ServerError("CreateCommitComment", err)
 		return
 	}
 
-	// Send notifications to commit author and @mentioned users
-	mentions := references.FindAllMentionsMarkdown(content)
-	if err := activities_model.CreateCommitCommentNotification(ctx, ctx.Doer, ctx.Repo.Repository, fullSHA, comment.ID, commit.Author.Email, mentions); err != nil {
-		log.Error("CreateCommitCommentNotification: %v", err)
-	}
-
 	// The response replaces the whole conversation holder client-side, so it
 	// has to carry the entire thread and not just the comment just created.
-	comments, err := repo_model.FindCommitCommentsByLine(ctx, ctx.Repo.Repository.ID, fullSHA, treePath, line)
+	comments, err := repo_model.FindCommitCommentsByLine(ctx, ctx.Repo.Repository.ID, comment.CommitSHA, treePath, line)
 	if err != nil {
 		ctx.ServerError("FindCommitCommentsByLine", err)
 		return
 	}
-	for _, c := range comments {
-		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{})
-		if c.RenderedContent, err = markdown.RenderString(rctx, c.Content); err != nil {
-			log.Error("RenderString for commit comment %d: %v", c.ID, err)
-		}
-	}
+	renderCommitComments(ctx, comments)
 
-	ctx.Data["CommitID"] = fullSHA
+	ctx.Data["CommitID"] = comment.CommitSHA
+	ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, comment.CommitSHA)
 	ctx.Data["comments"] = comments
 	ctx.HTML(http.StatusOK, tplCommitConversation)
 }

@@ -22,6 +22,7 @@ import (
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/analyze"
 	"gitea.dev/modules/base"
@@ -79,6 +80,11 @@ type DiffLine struct {
 	Content     string
 	Comments    issues_model.CommentList // related PR code comments
 	SectionInfo *DiffLineSectionInfo
+
+	// the two sides are kept apart because a context line carries both an old
+	// and a new index, and either may hold its own standalone commit thread
+	CommitCommentsLeft  repo_model.CommitCommentList
+	CommitCommentsRight repo_model.CommitCommentList
 
 	cachedDiffInline *DiffInline
 }
@@ -158,6 +164,16 @@ func (d *DiffLine) GetHTMLDiffLineType() string {
 // CanComment returns whether a line can get commented
 func (d *DiffLine) CanComment() bool {
 	return len(d.Comments) == 0 && d.Type != DiffLineSection
+}
+
+// CanCommentLeft returns whether the old side of the line can get commented
+func (d *DiffLine) CanCommentLeft() bool {
+	return d.CanComment() && len(d.CommitCommentsLeft) == 0
+}
+
+// CanCommentRight returns whether the new side of the line can get commented
+func (d *DiffLine) CanCommentRight() bool {
+	return d.CanComment() && len(d.CommitCommentsRight) == 0
 }
 
 // GetCommentSide returns the comment side of the first comment, if not set returns empty string
@@ -685,6 +701,50 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 		}
 	}
 	return nil
+}
+
+// LoadCommitComments attaches the commit's standalone inline comments to each
+// diff line and returns them flat, so the caller can render the markdown bodies.
+func (diff *Diff) LoadCommitComments(ctx context.Context, repoID int64, commitSHA string) (repo_model.CommitCommentList, error) {
+	comments, err := repo_model.FindCommitCommentsByCommitSHA(ctx, repoID, commitSHA)
+	if err != nil {
+		return nil, err
+	}
+	byPath := make(map[string]repo_model.CommitCommentList, len(comments))
+	for _, c := range comments {
+		byPath[c.TreePath] = append(byPath[c.TreePath], c)
+	}
+	for _, file := range diff.Files {
+		fileComments, ok := byPath[file.Name]
+		if !ok {
+			continue
+		}
+		for _, section := range file.Sections {
+			AttachCommitCommentsToLines(section.Lines, fileComments)
+		}
+	}
+	return comments, nil
+}
+
+// AttachCommitCommentsToLines anchors one file's commit comments on the diff
+// lines they were written against. Comment lines are signed: negative for the
+// old side, positive for the new one.
+func AttachCommitCommentsToLines(lines []*DiffLine, comments repo_model.CommitCommentList) {
+	if len(comments) == 0 {
+		return
+	}
+	byLine := make(map[int64]repo_model.CommitCommentList, len(comments))
+	for _, c := range comments {
+		byLine[c.Line] = append(byLine[c.Line], c)
+	}
+	for _, line := range lines {
+		if line.LeftIdx > 0 {
+			line.CommitCommentsLeft = byLine[int64(-line.LeftIdx)]
+		}
+		if line.RightIdx > 0 {
+			line.CommitCommentsRight = byLine[int64(line.RightIdx)]
+		}
+	}
 }
 
 const cmdDiffHead = "diff --git "

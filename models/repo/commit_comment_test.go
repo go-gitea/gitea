@@ -65,13 +65,11 @@ func TestFindCommitCommentsByLineAndPosters(t *testing.T) {
 
 	file, err := repo_model.FindCommitCommentsForFile(t.Context(), 1, sha, "a.go")
 	require.NoError(t, err)
-	require.NotNil(t, file)
-	assert.Len(t, file.Right[3], 2)
-	assert.Len(t, file.Left[3], 1)
+	assert.Len(t, file, 3) // both sides of line 3, no other file
 
 	missing, err := repo_model.FindCommitCommentsForFile(t.Context(), 1, sha, "c.go")
 	require.NoError(t, err)
-	assert.Nil(t, missing)
+	assert.Empty(t, missing)
 }
 
 func TestCommitCommentHashTag(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
@@ -44,9 +45,15 @@ func init() {
 	db.RegisterModel(new(CommitComment))
 }
 
+// CommitCommentHashTag returns the fragment identifier of a commit comment,
+// callable where only the id is at hand (e.g. a notification row).
+func CommitCommentHashTag(id int64) string {
+	return fmt.Sprintf("commitcomment-%d", id)
+}
+
 // HashTag returns the fragment identifier for templates (e.g. "commitcomment-42").
 func (c *CommitComment) HashTag() string {
-	return fmt.Sprintf("commitcomment-%d", c.ID)
+	return CommitCommentHashTag(c.ID)
 }
 
 // DiffSide returns "previous" if the comment is on the old side of a diff,
@@ -66,16 +73,6 @@ func (c *CommitComment) UnsignedLine() uint64 {
 	return uint64(c.Line)
 }
 
-// LoadPoster fetches the comment's poster from the user table, idempotent.
-func (c *CommitComment) LoadPoster(ctx context.Context) error {
-	if c.Poster != nil {
-		return nil
-	}
-	var err error
-	c.PosterID, c.Poster, err = user_model.GetPossibleUserByID(ctx, c.PosterID)
-	return err
-}
-
 // CommitCommentList is a slice of *CommitComment with helpers that mirror
 // the (very small) parts of CommentList that templates rely on.
 type CommitCommentList []*CommitComment
@@ -85,47 +82,27 @@ func (cl CommitCommentList) LoadPosters(ctx context.Context) error {
 	if len(cl) == 0 {
 		return nil
 	}
-	posterIDs := make([]int64, 0, len(cl))
-	seen := make(map[int64]struct{})
-	for _, c := range cl {
-		if _, ok := seen[c.PosterID]; ok {
-			continue
-		}
-		seen[c.PosterID] = struct{}{}
-		posterIDs = append(posterIDs, c.PosterID)
-	}
 
+	posterIDs := container.FilterSlice(cl, func(c *CommitComment) (int64, bool) {
+		return c.PosterID, c.Poster == nil && c.PosterID > 0
+	})
 	posterMap, err := user_model.GetUsersMapByIDs(ctx, posterIDs)
 	if err != nil {
 		return err
 	}
 
 	for _, c := range cl {
-		if p, ok := posterMap[c.PosterID]; ok {
-			c.Poster = p
-		} else {
-			c.Poster = user_model.NewGhostUser()
+		if c.Poster == nil {
+			c.Poster = user_model.GetPossibleUserFromMap(c.PosterID, posterMap)
 		}
 	}
 	return nil
 }
 
-// FileCommitComments holds commit comments for a single file, split by side
-// (left = old, right = new) with int keys matching DiffLine indices.
-type FileCommitComments struct {
-	Left  map[int][]*CommitComment
-	Right map[int][]*CommitComment
-}
-
-// CommitCommentsForDiff maps file paths to their commit comments.
-type CommitCommentsForDiff map[string]*FileCommitComments
-
-// FindCommitCommentsByCommitSHA returns all comments for a given commit in
-// a repo, ordered oldest-first, with Posters preloaded.
-func FindCommitCommentsByCommitSHA(ctx context.Context, repoID int64, commitSHA string) (CommitCommentList, error) {
+func findCommitComments(ctx context.Context, cond builder.Cond) (CommitCommentList, error) {
 	comments := make(CommitCommentList, 0)
 	if err := db.GetEngine(ctx).
-		Where("repo_id = ? AND commit_sha = ?", repoID, commitSHA).
+		Where(cond).
 		OrderBy("created_unix ASC, id ASC").
 		Find(&comments); err != nil {
 		return nil, err
@@ -135,28 +112,43 @@ func FindCommitCommentsByCommitSHA(ctx context.Context, repoID int64, commitSHA 
 		return nil, err
 	}
 	return comments, nil
+}
+
+// FindCommitCommentsByCommitSHA returns all comments for a given commit in
+// a repo, ordered oldest-first, with Posters preloaded.
+func FindCommitCommentsByCommitSHA(ctx context.Context, repoID int64, commitSHA string) (CommitCommentList, error) {
+	return findCommitComments(ctx, builder.Eq{"repo_id": repoID, "commit_sha": commitSHA})
 }
 
 // FindCommitCommentsByLine returns every comment anchored on one diff
 // coordinate, ordered oldest-first, with Posters preloaded.
 func FindCommitCommentsByLine(ctx context.Context, repoID int64, commitSHA, treePath string, line int64) (CommitCommentList, error) {
-	comments := make(CommitCommentList, 0)
-	if err := db.GetEngine(ctx).
-		Where(builder.Eq{
-			"commit_comment.repo_id":    repoID,
-			"commit_comment.commit_sha": commitSHA,
-			"commit_comment.tree_path":  treePath,
-			"commit_comment.line":       line,
-		}).
-		OrderBy("created_unix ASC, id ASC").
-		Find(&comments); err != nil {
-		return nil, err
-	}
+	return findCommitComments(ctx, builder.Eq{"repo_id": repoID, "commit_sha": commitSHA, "tree_path": treePath, "line": line})
+}
 
-	if err := comments.LoadPosters(ctx); err != nil {
-		return nil, err
+// FindCommitCommentsForFile returns the comments of a single file in a commit,
+// ordered oldest-first, with Posters preloaded.
+func FindCommitCommentsForFile(ctx context.Context, repoID int64, commitSHA, treePath string) (CommitCommentList, error) {
+	return findCommitComments(ctx, builder.Eq{"repo_id": repoID, "commit_sha": commitSHA, "tree_path": treePath})
+}
+
+// FindCommitCommentRepoIDs maps the given comment ids to the repo they belong
+// to, omitting ids that no longer exist. It reads no body columns: callers only
+// need to know whether a stored reference is still valid.
+func FindCommitCommentRepoIDs(ctx context.Context, ids []int64) (map[int64]int64, error) {
+	repoIDs := make(map[int64]int64, len(ids))
+	for len(ids) > 0 {
+		limit := min(len(ids), db.DefaultMaxInSize)
+		var batch []*CommitComment
+		if err := db.GetEngine(ctx).Cols("id", "repo_id").In("id", ids[:limit]).Find(&batch); err != nil {
+			return nil, err
+		}
+		for _, c := range batch {
+			repoIDs[c.ID] = c.RepoID
+		}
+		ids = ids[limit:]
 	}
-	return comments, nil
+	return repoIDs, nil
 }
 
 // GetCommitCommentPosterIDs returns the distinct posters of every comment on a
@@ -169,54 +161,6 @@ func GetCommitCommentPosterIDs(ctx context.Context, repoID int64, commitSHA stri
 		Select("poster_id").
 		Distinct("poster_id").
 		Find(&ids)
-}
-
-// FindCommitCommentsForFile returns the comments of a single file in a commit,
-// split by side, or nil when the file has none.
-func FindCommitCommentsForFile(ctx context.Context, repoID int64, commitSHA, treePath string) (*FileCommitComments, error) {
-	comments := make(CommitCommentList, 0)
-	if err := db.GetEngine(ctx).
-		Where("repo_id = ? AND commit_sha = ? AND tree_path = ?", repoID, commitSHA, treePath).
-		OrderBy("created_unix ASC, id ASC").
-		Find(&comments); err != nil {
-		return nil, err
-	}
-	if err := comments.LoadPosters(ctx); err != nil {
-		return nil, err
-	}
-	return groupCommitCommentsByPath(comments)[treePath], nil
-}
-
-// FindCommitCommentsForDiff returns comments grouped by path and side for
-// rendering in a diff view.
-func FindCommitCommentsForDiff(ctx context.Context, repoID int64, commitSHA string) (CommitCommentsForDiff, error) {
-	comments, err := FindCommitCommentsByCommitSHA(ctx, repoID, commitSHA)
-	if err != nil {
-		return nil, err
-	}
-	return groupCommitCommentsByPath(comments), nil
-}
-
-func groupCommitCommentsByPath(comments CommitCommentList) CommitCommentsForDiff {
-	result := make(CommitCommentsForDiff)
-	for _, c := range comments {
-		fcc, ok := result[c.TreePath]
-		if !ok {
-			fcc = &FileCommitComments{
-				Left:  make(map[int][]*CommitComment),
-				Right: make(map[int][]*CommitComment),
-			}
-			result[c.TreePath] = fcc
-		}
-		if c.Line < 0 {
-			idx := int(-c.Line)
-			fcc.Left[idx] = append(fcc.Left[idx], c)
-		} else {
-			idx := int(c.Line)
-			fcc.Right[idx] = append(fcc.Right[idx], c)
-		}
-	}
-	return result
 }
 
 // CreateCommitComment inserts a new commit comment. Line=0 is rejected
