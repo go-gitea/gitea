@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {apiCreateFile, apiUpdateFile, apiCreateBranch, apiCreatePR, apiCreateRepo, apiCreateUser, apiUserHeaders, loginUser, randomString} from './utils.ts';
+import {apiCreateFile, apiUpdateFile, apiCreateBranch, apiCreatePR, apiCreateRepo, apiCreateReview, apiCreateUser, apiUserHeaders, loginUser, randomString} from './utils.ts';
 
 test('expand and collapse all hidden lines of a diff file', async ({page, request}) => {
   const poster = `diffexp-${randomString(8)}`;
@@ -18,6 +18,12 @@ test('expand and collapse all hidden lines of a diff file', async ({page, reques
   changedLines[39] = 'line40-updated';
   await apiUpdateFile(request, poster, repoName, 'big.txt', `${changedLines.join('\n')}\n`, {branch: 'feat'});
   const prIndex = await apiCreatePR(request, poster, repoName, 'feat', 'main', 'expand all lines test', {headers});
+  // a comment on a visible line gives us a reply form to exercise the "unsaved draft" confirm below;
+  // COMMENT reviews (unlike APPROVE/REQUEST_CHANGES) are allowed on one's own PR
+  await apiCreateReview(request, poster, repoName, prIndex, {
+    comments: [{path: 'big.txt', body: 'please check this', new_position: 1}],
+    headers,
+  });
 
   await loginUser(page, poster);
   await page.goto(`/${poster}/${repoName}/pulls/${prIndex}/files`);
@@ -36,9 +42,24 @@ test('expand and collapse all hidden lines of a diff file', async ({page, reques
   await expect(fileBox.getByText('line20', {exact: true})).toBeVisible();
   await expect(fileBox.locator('.code-expander-buttons[data-expand-all-url]')).toHaveCount(0);
 
-  // clicking again collapses the file back to its original, pristine rendering
-  const collapseButton = fileBox.getByRole('button', {name: 'Collapse expanded lines'});
+  const collapseButton = fileBox.getByRole('button', {name: 'Collapse non-diff lines'});
+
+  // typing an unsaved reply and declining the confirm leaves both the draft and the expanded body untouched
+  const conversation = fileBox.locator('.conversation-holder');
+  await conversation.locator('.comment-form-reply').click();
+  const replyTextarea = conversation.locator('form textarea[name="content"]');
+  await replyTextarea.fill('my unfinished reply');
   await collapseButton.click();
+  const confirmModal = page.locator('.g-modal-confirm');
+  await expect(confirmModal).toBeVisible();
+  await confirmModal.getByRole('button', {name: 'Cancel'}).click();
+  await expect(replyTextarea).toHaveValue('my unfinished reply');
+  await expect(fileBox.getByText('line20', {exact: true})).toBeVisible();
+
+  // clicking again and accepting the confirm collapses the file back to its original, pristine rendering
+  await collapseButton.click();
+  await expect(confirmModal).toBeVisible();
+  await confirmModal.getByRole('button', {name: 'Confirm'}).click();
   await expect(fileBox.getByText('line20', {exact: true})).not.toBeAttached();
   await expect(fileBox.locator('table.chroma tr')).toHaveCount(originalRowCount);
 

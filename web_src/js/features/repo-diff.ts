@@ -5,7 +5,7 @@ import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initViewedCheckboxListenerFor, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems, isElemVisible} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
@@ -14,6 +14,7 @@ import {parseDom} from '../utils.ts';
 import {registerGlobalSelectorFunc, registerGlobalEventFunc} from '../modules/observer.ts';
 import {performFetchActionTrigger, performFetchAction} from './common-fetch-action.ts';
 import {svg} from '../svg.ts';
+import {confirmModal} from './comp/ConfirmModal.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -261,7 +262,13 @@ async function expandDiffFileAllLines(fileBox: HTMLElement, btn: HTMLElement) {
   }
 }
 
+function hasUnsavedDiffComment(fileBox: HTMLElement): boolean {
+  return Array.from(fileBox.querySelectorAll<HTMLTextAreaElement>('.markdown-text-editor'))
+    .some((textarea) => textarea.value.trim() !== '' && isElemVisible(textarea.closest('form')!));
+}
+
 async function collapseDiffFileAllLines(fileBox: HTMLElement, btn: HTMLElement) {
+  if (hasUnsavedDiffComment(fileBox) && !await confirmModal({content: btn.getAttribute('data-collapse-confirm-text')!, confirmButtonColor: 'red'})) return;
   try {
     const respFileBodyChildren = await fetchDiffFileBodyChildren(btn.getAttribute('data-collapse-url')!);
     fileBox.querySelector('.diff-file-body .file-body')!.replaceChildren(...respFileBodyChildren);

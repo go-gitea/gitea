@@ -2587,6 +2587,7 @@
   "repo.diff.expand_file_up_from_line": "Expand file up from line %d",
   "repo.diff.expand_file_down_from_line": "Expand file down from line %d",
   "repo.diff.expand_file_from_line_to_line": "Expand file from line %d to line %d",
+  "repo.diff.collapse_all_lines_confirm": "Collapsing this file will discard the comment you are writing on it. Continue?",
   "repo.diff.generated": "Generated",
   "repo.diff.vendored": "Vendored",
   "repo.diff.comment.add_line_comment": "Add line comment",
