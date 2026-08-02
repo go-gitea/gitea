@@ -433,6 +433,7 @@ type GetFeedsOptions struct {
 	OnlyPerformedBy bool                   // only actions performed by requested user
 	IncludeDeleted  bool                   // include deleted actions
 	Date            string                 // the day we want activity for: YYYY-MM-DD
+	Year            int                    // the year we want activity for: YYYY
 	DontCount       bool                   // do counting in GetFeeds
 }
 
@@ -450,18 +451,22 @@ func ActivityReadable(user, doer *user_model.User) bool {
 
 func FeedDateCond(opts GetFeedsOptions) builder.Cond {
 	cond := builder.NewCond()
-	if opts.Date == "" {
-		return cond
-	}
+	if opts.Date != "" {
+		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
+		if err != nil {
+			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+		} else {
+			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
 
-	dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
-	if err != nil {
-		log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
-	} else {
-		dateHigh := dateLow.Add(86399000000000) // 23h59m59s
-
-		cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
-		cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
+			cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
+		}
+	} else if opts.Year > 0 {
+		loc := setting.DefaultUILocation
+		start := time.Date(opts.Year, time.January, 1, 0, 0, 0, 0, loc)
+		end := time.Date(opts.Year, time.December, 31, 23, 59, 59, 999999999, loc)
+		cond = cond.And(builder.Gte{"`action`.created_unix": start.Unix()})
+		cond = cond.And(builder.Lte{"`action`.created_unix": end.Unix()})
 	}
 	return cond
 }
