@@ -1,6 +1,7 @@
 import {diffTreeStore, diffTreeStoreSetViewed} from '../modules/diff-file.ts';
 import {setFileFolding} from './file-fold.ts';
 import {POST} from '../modules/fetch.ts';
+import {trString} from '../modules/i18n.ts';
 
 const {pageData} = window.config;
 // it is undefined on most pages, fortunately, when it is accessed by the related functions, it exists
@@ -16,9 +17,8 @@ function refreshViewedFilesSummary() {
   const viewedFilesProgress = document.querySelector('#viewed-files-summary')!;
   viewedFilesProgress.setAttribute('value', String(prReview.numberOfViewedFiles));
   const summaryLabel = document.querySelector<HTMLElement>('#viewed-files-summary-label')!;
-  summaryLabel.textContent = summaryLabel.getAttribute('data-text-changed-template')!
-    .replace('%[1]d', String(prReview.numberOfViewedFiles))
-    .replace('%[2]d', String(prReview.numberOfFiles));
+  const trText = summaryLabel.getAttribute('data-text-changed-template')!;
+  summaryLabel.textContent = trString(trText, prReview.numberOfViewedFiles, prReview.numberOfFiles);
 }
 
 // Initializes a listener for all children of the given html element
