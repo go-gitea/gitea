@@ -37,7 +37,10 @@ func (ee ExpressionEvaluator) evaluateScalarYamlNode(node *yaml.Node) error {
 	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
 		return nil
 	}
-	expr, _ := rewriteSubExpression(in, false)
+	expr, err := rewriteSubExpression(in)
+	if err != nil {
+		return err
+	}
 	res, err := ee.evaluate(expr, exprparser.DefaultStatusCheckNone)
 	if err != nil {
 		return err
@@ -103,44 +106,62 @@ func (ee ExpressionEvaluator) EvaluateYamlNode(node *yaml.Node) error {
 }
 
 func (ee ExpressionEvaluator) Interpolate(in string) string {
-	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
-		return in
-	}
-
-	expr, _ := rewriteSubExpression(in, true)
-	evaluated, err := ee.evaluate(expr, exprparser.DefaultStatusCheckNone)
+	out, err := interpolate(ee.interpreter, in)
 	if err != nil {
 		return ""
 	}
+	return out
+}
 
-	value, ok := evaluated.(string)
-	if !ok {
-		panic(fmt.Sprintf("Expression %s did not evaluate to a string", expr))
+// interpolate evaluates each part on its own, so that a malformed one such as
+// `${{ 1) && (2 }}` cannot restructure the expressions around it.
+func interpolate(interpreter exprparser.Interpreter, in string) (string, error) {
+	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
+		return in, nil
 	}
 
-	return value
+	parts, err := splitSubExpressions(in)
+	if err != nil {
+		return "", err
+	}
+
+	var out strings.Builder
+	out.Grow(len(in))
+	for _, part := range parts {
+		if !part.isExpr {
+			out.WriteString(part.text)
+			continue
+		}
+		evaluated, err := interpreter.Evaluate(part.text, exprparser.DefaultStatusCheckNone)
+		if err != nil {
+			return "", err
+		}
+		out.WriteString(exprparser.CoerceToString(evaluated))
+	}
+	return out.String(), nil
 }
 
 func escapeFormatString(in string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(in, "{", "{{"), "}", "}}")
 }
 
-func rewriteSubExpression(in string, forceFormat bool) (string, error) {
-	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
-		return in, nil
-	}
+type exprPart struct {
+	text   string
+	isExpr bool
+}
 
-	strPattern := regexp.MustCompile("(?:''|[^'])*'")
+var subExpressionStringRegexp = regexp.MustCompile("(?:''|[^'])*'")
+
+func splitSubExpressions(in string) ([]exprPart, error) {
 	pos := 0
 	exprStart := -1
 	strStart := -1
-	var results []string
-	var formatOut strings.Builder
+	parts := make([]exprPart, 0, 2*strings.Count(in, "${{")+1)
 	for pos < len(in) {
 		if strStart > -1 {
-			matches := strPattern.FindStringIndex(in[pos:])
+			matches := subExpressionStringRegexp.FindStringIndex(in[pos:])
 			if matches == nil {
-				return "", errors.New("unclosed string")
+				return nil, errors.New("unclosed string")
 			}
 
 			strStart = -1
@@ -158,29 +179,51 @@ func rewriteSubExpression(in string, forceFormat bool) (string, error) {
 			}
 
 			if exprEnd > -1 {
-				fmt.Fprintf(&formatOut, "{%d}", len(results))
-				results = append(results, strings.TrimSpace(in[exprStart:pos+exprEnd]))
+				parts = append(parts, exprPart{text: strings.TrimSpace(in[exprStart : pos+exprEnd]), isExpr: true})
 				pos += exprEnd + 2
 				exprStart = -1
 			} else if strStart > -1 {
 				pos += strStart + 1
 			} else {
-				panic("unclosed expression.")
+				return nil, errors.New("unclosed expression")
 			}
 		} else {
 			exprStart = strings.Index(in[pos:], "${{")
 			if exprStart != -1 {
-				formatOut.WriteString(escapeFormatString(in[pos : pos+exprStart]))
+				parts = append(parts, exprPart{text: in[pos : pos+exprStart]})
 				exprStart = pos + exprStart + 3
 				pos = exprStart
 			} else {
-				formatOut.WriteString(escapeFormatString(in[pos:]))
+				parts = append(parts, exprPart{text: in[pos:]})
 				pos = len(in)
 			}
 		}
 	}
+	return parts, nil
+}
 
-	if len(results) == 1 && formatOut.String() == "{0}" && !forceFormat {
+func rewriteSubExpression(in string) (string, error) {
+	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
+		return in, nil
+	}
+
+	parts, err := splitSubExpressions(in)
+	if err != nil {
+		return "", err
+	}
+
+	var results []string
+	var formatOut strings.Builder
+	for _, part := range parts {
+		if part.isExpr {
+			fmt.Fprintf(&formatOut, "{%d}", len(results))
+			results = append(results, part.text)
+		} else {
+			formatOut.WriteString(escapeFormatString(part.text))
+		}
+	}
+
+	if len(results) == 1 && formatOut.String() == "{0}" {
 		return in, nil
 	}
 

@@ -160,6 +160,41 @@ jobs:
 	}
 }
 
+func TestParseInterpolatesRunName(t *testing.T) {
+	workflow := func(runName string) []byte {
+		return []byte("name: t\nrun-name: \"" + runName + "\"\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps: [{run: echo}]\n")
+	}
+
+	for _, tt := range []struct{ name, runName, want string }{
+		{"bool", "${{ true }}", "true"},
+		{"int", "${{ 1 }}", "1"},
+		{"float", "${{ 1.0 }}", "1"},
+		{"null", "${{ null }}", ""},
+		{"object", `${{ fromJSON('{\"a\":1}') }}`, "Object"},
+		{"array", "${{ fromJSON('[1,2]') }}", "Array"},
+		{"context", "${{ github }}", "Object"},
+		{"surrounding literals", "run ${{ 1 }} now", "run 1 now"},
+		{"two expressions", "${{ 1 }}-${{ true }}", "1-true"},
+		// a malformed part must not restructure the surrounding expression, these used to panic
+		{"unbalanced parens", "${{ 1) && (2 }}", ""},
+		{"unclosed expression", "${{ 'a' }} ${{ b", ""},
+		{"unclosed string", "${{ 'a }}", ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := Parse(workflow(tt.runName), WithGitContext(&model.GithubContext{EventName: "push"}))
+			require.NoError(t, err)
+			require.Len(t, result, 1)
+			assert.Equal(t, tt.want, result[0].RunName)
+		})
+	}
+
+	// callers such as commit status parse without a git context, leaving `github` a nil pointer
+	result, err := Parse(workflow("${{ github }}"))
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	assert.Empty(t, result[0].RunName)
+}
+
 func TestExpandMatrixWithNeeds(t *testing.T) {
 	// matrixYAML is the YAML value of the `matrix:` key, so a case can replace the whole node.
 	expandMax := func(t *testing.T, matrixYAML string, maxCombinations int) ([]*Job, error) {

@@ -526,7 +526,7 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 		}
 	}
 	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
-	expr, err := rewriteSubExpression(job.If.Value, false)
+	expr, err := rewriteSubExpression(job.If.Value)
 	if err != nil {
 		return false, err
 	}
