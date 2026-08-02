@@ -43,6 +43,13 @@ func TestImmutableRelease(t *testing.T) {
 		assert.True(t, rel.IsImmutable)
 
 		t.Run("API", func(t *testing.T) {
+			// a repo edit that leaves the setting out must not clear it
+			var apiRepo api.Repository
+			DecodeJSON(t, MakeRequest(t, NewRequestWithJSON(t, "PATCH", base, &api.EditRepoOption{
+				HasReleases: new(true),
+			}).AddTokenAuth(token), http.StatusOK), &apiRepo)
+			assert.True(t, apiRepo.ImmutableReleases)
+
 			relURL := fmt.Sprintf("%s/releases/%d", base, rel.ID)
 
 			MakeRequest(t, NewRequestWithBody(t, "POST", relURL+"/assets?name=a.txt",

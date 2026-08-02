@@ -9,6 +9,7 @@ import (
 	"time"
 
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -398,6 +399,8 @@ func TestRelease_Immutable(t *testing.T) {
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
+	releasesConfig := repo.MustGetUnit(t.Context(), unit.TypeReleases).ReleasesConfig()
+
 	newRelease := func(t *testing.T, tagName string) *repo_model.Release {
 		rel := &repo_model.Release{
 			RepoID: repo.ID, Repo: repo, PublisherID: user.ID, Publisher: user,
@@ -408,12 +411,12 @@ func TestRelease_Immutable(t *testing.T) {
 	}
 
 	t.Run("NotAppliedRetroactively", func(t *testing.T) {
-		repo.ImmutableReleases = false
+		releasesConfig.ImmutableReleases = false
 		rel := newRelease(t, "v9.6")
 		assert.False(t, rel.IsImmutable)
 
 		// enabling the setting must not lock releases that are already published
-		repo.ImmutableReleases = true
+		releasesConfig.ImmutableReleases = true
 		rel.Note = "typo fixed"
 		assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, rel, nil, nil, nil))
 		assert.False(t, rel.IsImmutable)
@@ -423,7 +426,7 @@ func TestRelease_Immutable(t *testing.T) {
 		assert.False(t, immutable)
 	})
 
-	repo.ImmutableReleases = true
+	releasesConfig.ImmutableReleases = true
 
 	t.Run("DraftLocksOnlyOnPublish", func(t *testing.T) {
 		draft := &repo_model.Release{

@@ -11,10 +11,6 @@ import (
 )
 
 func AddImmutableReleases(x base.EngineMigration) error {
-	type Repository struct {
-		ImmutableReleases bool `xorm:"NOT NULL DEFAULT false"`
-	}
-
 	type Release struct {
 		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
 	}
@@ -35,6 +31,6 @@ func AddImmutableReleases(x base.EngineMigration) error {
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(Repository), new(Release))
+	}, new(Release))
 	return err
 }

@@ -426,7 +426,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(343, "Add max_parallel column to action_run_job", v1_28.AddMaxParallelToActionRunJob),
 		newMigration(344, "Add deferred-matrix columns to ActionRunJob", v1_28.AddDeferredMatrixColumnsToActionRunJob),
 		newMigration(345, "Add block on CODEOWNERS reviews branch protection", v1_28.AddBlockOnCodeownerReviews),
-		newMigration(346, "Add immutable releases columns and immutable_tag table", v1_28.AddImmutableReleases),
+		newMigration(346, "Add release.is_immutable column and immutable_tag table", v1_28.AddImmutableReleases),
 	}
 	return preparedMigrations
 }

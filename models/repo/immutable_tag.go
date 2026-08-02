@@ -8,10 +8,16 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/unit"
 	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )
+
+// IsImmutableReleasesEnabled reports whether newly published releases of this repository are locked.
+func (repo *Repository) IsImmutableReleasesEnabled(ctx context.Context) bool {
+	return repo.MustGetUnit(ctx, unit.TypeReleases).ReleasesConfig().ImmutableReleases
+}
 
 // ImmutableTag records a tag name used by an immutable release. It outlives the release, the tag and
 // the repository itself, so the name can never back another release or be pushed again.

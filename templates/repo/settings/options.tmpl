@@ -493,7 +493,7 @@
 				</div>
 				<div class="field tw-pl-4{{if not $isReleasesEnabled}} disabled{{end}}" id="releases_box">
 					<div class="ui checkbox">
-						<input name="enable_immutable_releases" type="checkbox" {{if .Repository.ImmutableReleases}}checked{{end}}>
+						<input name="enable_immutable_releases" type="checkbox" {{if .Repository.IsImmutableReleasesEnabled ctx}}checked{{end}}>
 						<label>{{ctx.Locale.Tr "repo.settings.immutable_releases"}}</label>
 					</div>
 					<p class="help">{{ctx.Locale.Tr "repo.settings.immutable_releases_desc"}}</p>

@@ -88,7 +88,7 @@ func assertTagMutable(ctx context.Context, repo *repo_model.Repository, tagName 
 // lockRelease locks a release being published and claims its tag name forever.
 // Must run inside the transaction that writes the release.
 func lockRelease(ctx context.Context, rel *repo_model.Release) error {
-	if rel.IsDraft || rel.IsTag || !rel.Repo.ImmutableReleases {
+	if rel.IsDraft || rel.IsTag || !rel.Repo.IsImmutableReleasesEnabled(ctx) {
 		return nil
 	}
 	rel.IsImmutable = true
