@@ -38,6 +38,20 @@ const webComponents = new Set([
   'text-expander',
 ]);
 
+// the test runner needs the same source transforms as the build, so it reuses these
+export function sharedPlugins(): Plugin[] {
+  return [
+    stringPlugin(),
+    vuePlugin({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => webComponents.has(tag),
+        },
+      },
+    }),
+  ];
+}
+
 function failOnWarningsPlugin(): Rolldown.Plugin {
   let warningCount = 0;
   return {
@@ -306,7 +320,7 @@ export default defineConfig(commonViteOpts({
     },
   },
   define: {
-    __VUE_OPTIONS_API__: true,
+    __VUE_OPTIONS_API__: false,
     __VUE_PROD_DEVTOOLS__: false,
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
   },
@@ -316,14 +330,7 @@ export default defineConfig(commonViteOpts({
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
-    stringPlugin(),
-    vuePlugin({
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag) => webComponents.has(tag),
-        },
-      },
-    }),
+    ...sharedPlugins(),
     isProduction ? licensePlugin({
       done(deps, context) {
         const line = '-'.repeat(80);
