@@ -503,16 +503,15 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	// * for "bin" type: need the pre-fetched buffer to detect content type (e.g.: help to render image diff)
 	// * for "text" type: need to read up to "highlight limit size" to do full-file-highlighting
 	contentLimit := util.Iif(diffFile.IsBin, typesniffer.SniffContentSize, MaxFullFileHighlightSizeLimit)
-	var leftLineCount, rightLineCount int
 	var leftBlobType, rightBlobType typesniffer.SniffedType
 	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
 		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName, contentLimit)
-		diffFile.LeftBlob, diffFile.LeftBlobSize, leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
+		diffFile.LeftBlob, diffFile.LeftBlobSize, ret.leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		leftBlobType = typesniffer.DetectContentType(ret.leftContent.buf.Bytes())
 	}
 	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
 		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName, contentLimit)
-		diffFile.RightBlob, diffFile.RightBlobSize, rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
+		diffFile.RightBlob, diffFile.RightBlobSize, ret.rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		rightBlobType = typesniffer.DetectContentType(ret.rightContent.buf.Bytes())
 	}
 
@@ -534,7 +533,7 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	// check whether the text file diff needs a tail section
 	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
 	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
-	if leftLineCount <= lastLine.LeftIdx || rightLineCount <= lastLine.RightIdx {
+	if ret.leftLineCount <= lastLine.LeftIdx || ret.rightLineCount <= lastLine.RightIdx {
 		return ret
 	}
 	ret.needTailSection = true
