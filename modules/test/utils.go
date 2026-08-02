@@ -151,11 +151,13 @@ var AllowSkipExternalService = sync.OnceValue(func() bool {
 })
 
 type TestingT interface {
+	Cleanup(func())
 	Context() context.Context
-	Helper()
-	Skipf(format string, args ...any)
 	Errorf(format string, args ...any)
 	Fatalf(format string, args ...any)
+	Helper()
+	Skipf(format string, args ...any)
+	TempDir() string
 }
 
 func ExternalServiceHTTP(t TestingT, envVarName, def string) string {

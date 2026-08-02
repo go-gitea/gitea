@@ -136,6 +136,12 @@ type rerunPlan struct {
 	// skipCloneTemplateJobIDs holds the template-attempt DB row IDs of descendants of any reusable caller in rerunAttemptJobIDs.
 	// These jobs should not be cloned, since the caller's lazy expansion will re-insert them fresh.
 	skipCloneTemplateJobIDs container.Set[int64]
+
+	// matrixPlaceholderTemplateIDs holds, per dynamic-matrix job whose matrix must be re-derived in the new attempt,
+	// the template DB row ID to clone as a restored unexpanded placeholder.
+	// The group's remaining combination rows are in matrixSiblingSkipTemplateIDs and are not cloned: they'll be re-expanded.
+	matrixPlaceholderTemplateIDs container.Set[int64]
+	matrixSiblingSkipTemplateIDs container.Set[int64]
 }
 
 // buildRerunPlan constructs a rerunPlan for the given workflow run without writing to the database.
@@ -174,6 +180,7 @@ func buildRerunPlan(ctx context.Context, run *actions_model.ActionRun, triggerUs
 		return nil, err
 	}
 	plan.skipCloneTemplateJobIDs = plan.collectResetCallerDescendants()
+	plan.collectMatrixCollapse()
 
 	return plan, nil
 }
@@ -240,14 +247,25 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 
 		// templateIDToNewID maps each template-attempt job's DB ID to its newly-inserted clone's DB ID
 		templateIDToNewID := make(map[int64]int64, len(plan.templateJobs))
+		slots := maxParallelSlots{}
 
 		for _, templateJob := range plan.templateJobs {
 			// descendants of a reset reusable caller are not cloned at all, the caller will re-insert them
 			if plan.skipCloneTemplateJobIDs.Contains(templateJob.ID) {
 				continue
 			}
+			// siblings of a collapsed dynamic-matrix job are not cloned either: re-expansion re-inserts them
+			if plan.matrixSiblingSkipTemplateIDs.Contains(templateJob.ID) {
+				continue
+			}
 
 			newJob := cloneRunJobForAttempt(templateJob, newAttempt)
+
+			if plan.matrixPlaceholderTemplateIDs.Contains(templateJob.ID) {
+				if err := restoreDeferredMatrixPlaceholder(newJob); err != nil {
+					return fmt.Errorf("restore matrix placeholder from job %d: %w", templateJob.ID, err)
+				}
+			}
 
 			// Remap ParentJobID from template attempts's DB ID -> new attempt's DB ID.
 			if templateJob.ParentJobID != 0 {
@@ -260,7 +278,9 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 			}
 
 			if plan.rerunAttemptJobIDs.Contains(templateJob.AttemptJobID) {
-				shouldBlockJob := shouldBlock || plan.hasRerunDependency(templateJob)
+				// A deferred-matrix placeholder must go through the emitter, which is the only place
+				// that expands it: dispatching it directly would hand the runner the raw payload.
+				shouldBlockJob := shouldBlock || plan.hasRerunDependency(templateJob) || newJob.IsMatrixDeferred
 
 				newJob.Status = util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting)
 				newJob.TaskID = 0
@@ -276,7 +296,8 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 					newJob.CallPayload = ""
 				}
 
-				if newJob.RawConcurrency != "" && !shouldBlockJob {
+				// A slot-starved job must not cancel its group peers.
+				if newJob.RawConcurrency != "" && !shouldBlockJob && slots.available(newJob) {
 					if err := EvaluateJobConcurrencyFillModel(ctx, plan.run, newAttempt, newJob, vars, nil); err != nil {
 						return fmt.Errorf("evaluate job concurrency: %w", err)
 					}
@@ -287,6 +308,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 					cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
 				}
 
+				applyMaxParallel(newJob, slots)
 				newJobsToRerun = append(newJobsToRerun, newJob)
 			} else {
 				newJob.TaskID = 0
@@ -357,8 +379,9 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 	CreateCommitStatusForRunJobs(ctx, plan.run, newJobs...)
 	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, newJobsToRerun)
 
-	// Post-commit kick for expanded callers: let job_emitter resolve its child jobs
-	if hasWaitingCallerJobs {
+	// Post-commit kick for expanded callers and restored matrix placeholders: let job_emitter
+	// resolve child jobs, and re-expand a placeholder whose needs may all be pass-through and done.
+	if hasWaitingCallerJobs || len(plan.matrixPlaceholderTemplateIDs) > 0 {
 		if err := EmitJobsIfReadyByRun(plan.run.ID); err != nil {
 			log.Error("emit run %d after rerun: %v", plan.run.ID, err)
 		}
@@ -516,12 +539,15 @@ func cloneRunJobForAttempt(templateJob *actions_model.ActionRunJob, attempt *act
 		Needs:                  slices.Clone(templateJob.Needs),
 		RunsOn:                 slices.Clone(templateJob.RunsOn),
 		ContinueOnError:        templateJob.ContinueOnError,
+		IsMatrixDeferred:       templateJob.IsMatrixDeferred,
+		DeferredMatrixPayload:  slices.Clone(templateJob.DeferredMatrixPayload),
 		Status:                 templateJob.Status,
 		RawConcurrency:         templateJob.RawConcurrency,
 		IsConcurrencyEvaluated: templateJob.IsConcurrencyEvaluated,
 		ConcurrencyGroup:       templateJob.ConcurrencyGroup,
 		ConcurrencyCancel:      templateJob.ConcurrencyCancel,
 		TokenPermissions:       templateJob.TokenPermissions,
+		MaxParallel:            templateJob.MaxParallel,
 
 		// reusable workflow fields
 		IsReusableCaller:        templateJob.IsReusableCaller,
@@ -595,4 +621,56 @@ func createOriginalAttemptForLegacyRun(ctx context.Context, run *actions_model.A
 		run.LatestAttemptID = originalAttempt.ID
 		return actions_model.UpdateRun(ctx, run, "latest_attempt_id")
 	})
+}
+
+// collectMatrixCollapse decides, per dynamic-matrix job in the rerun set, whether the new
+// attempt must re-derive the matrix instead of reusing the previous attempt's combinations,
+// and fills matrixPlaceholderTemplateIDs / matrixSiblingSkipTemplateIDs accordingly.
+func (p *rerunPlan) collectMatrixCollapse() {
+	p.matrixPlaceholderTemplateIDs = make(container.Set[int64])
+	p.matrixSiblingSkipTemplateIDs = make(container.Set[int64])
+
+	// Group every template row by the key the rows of one matrix job share.
+	type groupKey struct {
+		parentJobID int64
+		jobID       string
+	}
+	groups := make(map[groupKey][]*actions_model.ActionRunJob)
+	for _, tj := range p.templateJobs {
+		key := groupKey{tj.ParentJobID, tj.JobID}
+		groups[key] = append(groups[key], tj)
+	}
+
+	for _, rows := range groups {
+		anchorIdx := slices.IndexFunc(rows, func(j *actions_model.ActionRunJob) bool {
+			return len(j.DeferredMatrixPayload) > 0
+		})
+		if anchorIdx < 0 {
+			continue // not a dynamic-matrix job: a plain job, or a matrix expanded at plan time
+		}
+		anchor := rows[anchorIdx]
+		// Descendants of a reset caller are not cloned at all; the caller's expansion re-inserts the job.
+		if p.skipCloneTemplateJobIDs.Contains(anchor.ID) {
+			continue
+		}
+		// Gate on the anchor rather than on any row of the group: execRerunPlan only resets a row whose
+		// own AttemptJobID is in the rerun set, so restoring the placeholder onto an anchor it treats
+		// as pass-through would clone a row that keeps its old terminal status while carrying the raw,
+		// unexpanded payload, and nothing expands a job that is not blocked. An anchor can be left
+		// out of the rerun set while a sibling is in it: partially re-running the subtree of a
+		// matrix-expanded reusable caller puts that combination in ancestorAttemptJobIDs instead.
+		if !p.rerunAttemptJobIDs.Contains(anchor.AttemptJobID) {
+			continue // pass-through anchor, the group is cloned as-is
+		}
+		unexpanded := len(rows) == 1 && anchor.IsMatrixDeferred
+		if !unexpanded && !p.hasRerunDependency(anchor) {
+			continue // needs keep their outputs, reuse the combinations
+		}
+		p.matrixPlaceholderTemplateIDs.Add(anchor.ID)
+		for _, row := range rows {
+			if row.ID != anchor.ID {
+				p.matrixSiblingSkipTemplateIDs.Add(row.ID)
+			}
+		}
+	}
 }

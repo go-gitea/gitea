@@ -11,12 +11,12 @@ COMMA := ,
 
 XGO_VERSION := go-1.26.x
 
-AIR_PACKAGE ?= github.com/air-verse/air@v1.65.3 # renovate: datasource=go
+AIR_PACKAGE ?= github.com/air-verse/air@v1.67.1 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.8.0 # renovate: datasource=go
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # renovate: datasource=go
-GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15 # renovate: datasource=go
+GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.16 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.35.0 # renovate: datasource=go
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.35.3 # renovate: datasource=go
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.6.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
@@ -150,10 +150,10 @@ GO_SOURCES += $(GENERATED_GO_DEST)
 ESLINT_CONCURRENCY ?= 2
 ESLINT_ARGS := --color --max-warnings=0 --concurrency $(ESLINT_CONCURRENCY)
 
-SWAGGER_SPEC := templates/swagger/v1_json.tmpl
-SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
 SWAGGER_EXCLUDE := gitea.dev/sdk
-OPENAPI3_SPEC := templates/swagger/v1_openapi3_json.tmpl
+SWAGGER_SPEC_INPUT := templates/swagger/v1-input.json
+SWAGGER_SPEC := templates/swagger/v1-swagger.generated.json
+OPENAPI3_SPEC := templates/swagger/v1-openapi3.generated.json
 
 TEST_MYSQL_HOST ?= mysql:3306
 TEST_MYSQL_DBNAME ?= testgitea
@@ -247,13 +247,10 @@ swagger-check: generate-swagger
 
 .PHONY: swagger-validate
 swagger-validate: ## check if the swagger spec is valid
-	@# swagger "validate" requires that the "basePath" must start with a slash, but we are using Golang template "{{...}}"
-	@$(SED_INPLACE) -E -e 's|"basePath":( *)"(.*)"|"basePath":\1"/\2"|g' './$(SWAGGER_SPEC)' # add a prefix slash to basePath
+	@# ensure no warnings
 	@output="$$($(GO) run $(SWAGGER_PACKAGE) validate './$(SWAGGER_SPEC)' 2>&1)"; status=$$?; \
-	$(SED_INPLACE) -E -e 's|"basePath":( *)"/(.*)"|"basePath":\1"\2"|g' './$(SWAGGER_SPEC)'; \
 	printf '%s\n' "$$output" | grep -v '^go: '; \
-	[ $$status -eq 0 ] || exit $$status; \
-	case "$$output" in *WARNING:*) exit 1;; esac
+	case "$$output" in *WARNING:*) exit 1;; esac; exit $$status
 
 .PHONY: generate-openapi3
 generate-openapi3: $(OPENAPI3_SPEC) ## generate the OpenAPI 3.0 spec from the Swagger 2.0 spec
@@ -317,7 +314,7 @@ lint-css-fix: node_modules ## lint css files and fix issues
 
 .PHONY: lint-swagger
 lint-swagger: node_modules ## lint swagger files
-	pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
+	pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC) $(OPENAPI3_SPEC)
 
 .PHONY: lint-md
 lint-md: node_modules ## lint markdown files

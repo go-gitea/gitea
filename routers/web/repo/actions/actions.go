@@ -554,7 +554,9 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 			return false
 		}
 		for _, job := range jobs {
-			if !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
+			// A deferred matrix is unresolvable until its needs finish, so the whole per-job block
+			// is skipped: parsing the payload would report a valid workflow as invalid.
+			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
