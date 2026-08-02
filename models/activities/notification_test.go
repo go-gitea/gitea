@@ -496,6 +496,25 @@ func TestNotificationRendersWithoutSubject(t *testing.T) {
 	}
 }
 
+// GetReleaseByID leaves Release.Repo nil while Release.Link() dereferences it, so a
+// notification for a release that still exists used to panic on the single-load path.
+func TestNotificationLoadsReleaseRepo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 1})
+
+	notf := &activities_model.Notification{
+		UserID:    2,
+		Source:    activities_model.NotificationSourceRelease,
+		RepoID:    release.RepoID,
+		SubjectID: release.ID,
+	}
+	require.NoError(t, notf.LoadAttributes(t.Context()))
+	assert.NotPanics(t, func() {
+		assert.NotEmpty(t, notf.Link(t.Context()))
+		assert.NotEmpty(t, notf.HTMLURL(t.Context()))
+	})
+}
+
 // A live subject wins over the snapshot, so a renamed issue shows its current title.
 func TestNotificationDisplayTitlePrefersLoadedSubject(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

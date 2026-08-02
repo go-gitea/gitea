@@ -108,11 +108,11 @@ func prepareUserNotificationsData(ctx *context.Context) {
 		return
 	}
 
+	notifications.LoadSubjects(ctx) // before LoadComments, so it can reuse the loaded issues
 	if _, err := notifications.LoadComments(ctx); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
-	notifications.LoadSubjects(ctx)
 
 	ctx.Data["Title"] = ctx.Tr("notifications")
 	ctx.Data["PageType"] = pageType

@@ -114,7 +114,7 @@ func (n *Notification) CommitID() string {
 
 // TableIndices implements xorm's TableIndices interface
 func (n *Notification) TableIndices() []*schemas.Index {
-	indices := make([]*schemas.Index, 0, 6)
+	indices := make([]*schemas.Index, 0, 7)
 	usuuIndex := schemas.NewIndex("u_s_uu", schemas.IndexType)
 	usuuIndex.AddColumn("user_id", "status", "updated_unix")
 	indices = append(indices, usuuIndex)
@@ -134,6 +134,11 @@ func (n *Notification) TableIndices() []*schemas.Index {
 	updatedByIndex := schemas.NewIndex("idx_notification_updated_by", schemas.IndexType)
 	updatedByIndex.AddColumn("updated_by")
 	indices = append(indices, updatedByIndex)
+
+	// the unique index below leads with user_id, so subject-only lookups and deletions need their own
+	subjectIndex := schemas.NewIndex("idx_notification_subject", schemas.IndexType)
+	subjectIndex.AddColumn("source", "subject_id")
+	indices = append(indices, subjectIndex)
 
 	uniqueNotificationKey := schemas.NewIndex("unique_notification_subject", schemas.UniqueType)
 	uniqueNotificationKey.AddColumn("user_id", "repo_id", "source", "subject_id", "subject_ref")
@@ -179,21 +184,31 @@ func upsertNotification(ctx context.Context, doerID int64, n *Notification) (boo
 	if existing == nil {
 		n.Status = NotificationStatusUnread
 		n.UpdatedBy = doerID
-		if err := db.Insert(ctx, n); err == nil {
+		insertErr := db.Insert(ctx, n)
+		if insertErr == nil {
 			return true, nil
 		}
 		// A concurrent insert won the race, so the row exists now: load and update it.
+		// Any other insert failure leaves no row, and must be reported rather than dropped.
 		n.ID = 0
-		if existing, err = findNotificationBySubject(ctx, n); err != nil || existing == nil {
+		if existing, err = findNotificationBySubject(ctx, n); err != nil {
 			return false, err
+		}
+		if existing == nil {
+			return false, insertErr
 		}
 	}
 
-	// An already-unread notification is only reordered, the unread count does not move.
-	countChanged := existing.Status != NotificationStatusUnread
-	existing.Status = NotificationStatusUnread
+	// Only a read notification moves the unread count, and a pinned one keeps its pin,
+	// matching updateIssueNotification and UpdateNotificationStatuses.
+	countChanged := existing.Status == NotificationStatusRead
+	cols := []string{"updated_by"}
+	if countChanged {
+		existing.Status = NotificationStatusUnread
+		cols = append(cols, "status")
+	}
 	existing.UpdatedBy = doerID
-	if _, err := db.GetEngine(ctx).ID(existing.ID).Cols("status", "updated_by").Update(existing); err != nil {
+	if _, err := db.GetEngine(ctx).ID(existing.ID).Cols(cols...).Update(existing); err != nil {
 		return false, err
 	}
 	return countChanged, nil
@@ -241,7 +256,7 @@ func CreateReleaseNotification(ctx context.Context, doerID, repoID, releaseID, r
 }
 
 func createIssueNotification(ctx context.Context, userID int64, issue *issues_model.Issue, commentID, updatedByID int64) error {
-	return db.Insert(ctx, &Notification{
+	notification := &Notification{
 		Source:    NotificationSourceForIssue(issue),
 		UserID:    userID,
 		RepoID:    issue.RepoID,
@@ -250,7 +265,19 @@ func createIssueNotification(ctx context.Context, userID int64, issue *issues_mo
 		Status:    NotificationStatusUnread,
 		CommentID: commentID,
 		UpdatedBy: updatedByID,
-	})
+	}
+	insertErr := db.Insert(ctx, notification)
+	if insertErr == nil {
+		return nil
+	}
+	// Two queue workers can both find no row and both insert; the unique index rejects the
+	// loser, whose transaction would otherwise roll back every recipient of the same event.
+	notification.ID = 0
+	existing, err := findNotificationBySubject(ctx, notification)
+	if err != nil || existing == nil {
+		return insertErr
+	}
+	return updateIssueNotification(ctx, existing, commentID, updatedByID)
 }
 
 func updateIssueNotification(ctx context.Context, notification *Notification, commentID, updatedByID int64) error {
@@ -357,6 +384,10 @@ func (n *Notification) loadRelease(ctx context.Context) (err error) {
 		if err != nil {
 			return fmt.Errorf("GetReleaseByID [%d]: %w", n.ReleaseID(), err)
 		}
+		if err = n.loadRepo(ctx); err != nil {
+			return err
+		}
+		n.Release.Repo = n.Repository // GetReleaseByID leaves Repo nil, but Release.Link() dereferences it
 	}
 	return nil
 }

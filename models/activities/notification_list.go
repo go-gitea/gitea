@@ -30,7 +30,7 @@ type FindNotificationOptions struct {
 	UpdatedBeforeUnix int64
 
 	// SubjectID and SubjectRef narrow the search to one subject. Combine them with Source
-	// to hit the unique index on (user_id, source, subject_id, subject_ref).
+	// to hit the index on (source, subject_id).
 	SubjectID  int64
 	SubjectRef string
 }
@@ -205,10 +205,10 @@ func (nl NotificationList) LoadAttributes(ctx context.Context) ([]int, error) {
 	if _, err := nl.LoadUsers(ctx); err != nil {
 		return nil, err
 	}
+	nl.LoadSubjects(ctx) // before LoadComments, so it can reuse the loaded issues
 	if _, err := nl.LoadComments(ctx); err != nil {
 		return nil, err
 	}
-	nl.LoadSubjects(ctx)
 	return failures, nil
 }
 
@@ -514,9 +514,19 @@ func (nl NotificationList) LoadReleases(ctx context.Context) ([]int, error) {
 	}
 
 	releaseIDs := nl.getPendingReleaseIDs()
+	if len(releaseIDs) == 0 {
+		return []int{}, nil
+	}
+
 	releases := make(map[int64]*repo_model.Release, len(releaseIDs))
-	if err := db.GetEngine(ctx).In("id", releaseIDs).Find(&releases); err != nil {
-		return nil, err
+	left := len(releaseIDs)
+	for left > 0 {
+		limit := min(left, db.DefaultMaxInSize)
+		if err := db.GetEngine(ctx).In("id", releaseIDs[:limit]).Find(&releases); err != nil {
+			return nil, err
+		}
+		left -= limit
+		releaseIDs = releaseIDs[limit:]
 	}
 
 	failures := []int{}

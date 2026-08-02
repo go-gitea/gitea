@@ -92,7 +92,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			Title: n.DisplayTitle(),
 		}
 		if n.Release != nil {
-			result.Subject.URL = n.Release.Link()
+			result.Subject.URL = n.Release.APIURL()
 			result.Subject.HTMLURL = n.Release.HTMLURL()
 		}
 	}

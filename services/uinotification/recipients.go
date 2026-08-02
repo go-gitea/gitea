@@ -31,7 +31,7 @@ func filterRecipientsByRepoAccess(ctx context.Context, repo *repo_model.Reposito
 
 	allowed := make([]int64, 0, len(users))
 	for _, user := range users {
-		if user_model.IsUserBlockedBy(ctx, repo.Owner, user.ID) {
+		if user_model.IsUserBlockedBy(ctx, user, repo.Owner.ID) {
 			continue
 		}
 		perm, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)

@@ -362,6 +362,9 @@ func (ns *notificationService) PushCommits(ctx context.Context, pusher *user_mod
 	receiverIDs := make([]int64, 0, len(receivers))
 	receiverByID := make(map[int64]*user_model.User, len(receivers))
 	for _, receiver := range receivers {
+		if receiver.ID == pusher.ID { // no self-notification for mentioning yourself, as with every other source
+			continue
+		}
 		receiverIDs = append(receiverIDs, receiver.ID)
 		receiverByID[receiver.ID] = receiver
 	}

@@ -9,6 +9,7 @@ import (
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 
+	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -75,7 +76,7 @@ func (n *NotificationV346) TableName() string {
 
 // TableIndices implements xorm's TableIndices interface
 func (n *NotificationV346) TableIndices() []*schemas.Index {
-	indices := make([]*schemas.Index, 0, 6)
+	indices := make([]*schemas.Index, 0, 7)
 
 	usuuIndex := schemas.NewIndex("u_s_uu", schemas.IndexType)
 	usuuIndex.AddColumn("user_id", "status", "updated_unix")
@@ -97,6 +98,10 @@ func (n *NotificationV346) TableIndices() []*schemas.Index {
 	updatedByIndex.AddColumn("updated_by")
 	indices = append(indices, updatedByIndex)
 
+	subjectIndex := schemas.NewIndex("idx_notification_subject", schemas.IndexType)
+	subjectIndex.AddColumn("source", "subject_id")
+	indices = append(indices, subjectIndex)
+
 	uniqueSubject := schemas.NewIndex("unique_notification_subject", schemas.UniqueType)
 	uniqueSubject.AddColumn("user_id", "repo_id", "source", "subject_id", "subject_ref")
 	indices = append(indices, uniqueSubject)
@@ -108,19 +113,31 @@ func (n *NotificationV346) TableIndices() []*schemas.Index {
 // notification table with a (source, subject_id, subject_ref) identity plus a snapshotted
 // title, so a notification can be rendered without loading its subject.
 func AddNotificationSubjectIdentity(x base.EngineMigration) error {
-	// 1. add the new columns alongside the old ones
-	if err := x.Sync(new(notificationV346Migrating)); err != nil {
+	// A run interrupted after the column drop below would otherwise re-add issue_id as
+	// NOT NULL without a default (rejected by SQLite and PostgreSQL, zero-filled by MySQL)
+	// and then backfill every subject_id to 0, so the steps reading it only run while it exists.
+	legacy, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "notification", "issue_id")
+	if err != nil {
 		return err
 	}
+	if legacy {
+		// 1. add the new columns alongside the old ones — this intermediate shape declares no
+		// indices, so dropping them here would leave the dedupe below scanning an unindexed table
+		if _, err := x.SyncWithOptions(xorm.SyncOptions{
+			IgnoreDropIndices: true,
+		}, new(notificationV346Migrating)); err != nil {
+			return err
+		}
 
-	// 2. backfill in bulk — one statement per source rather than one per row
-	if err := backfillNotificationSubjectV346(x); err != nil {
-		return err
-	}
+		// 2. backfill in bulk — one statement per source rather than one per row
+		if err := backfillNotificationSubjectV346(x); err != nil {
+			return err
+		}
 
-	// 3. collapse rows that the new unique index would reject
-	if err := dedupeNotificationsV346(x); err != nil {
-		return err
+		// 3. collapse rows that the new unique index would reject
+		if err := dedupeNotificationsV346(x); err != nil {
+			return err
+		}
 	}
 
 	// 4. create the unique index, then drop the columns it replaces
