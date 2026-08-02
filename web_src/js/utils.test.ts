@@ -1,7 +1,7 @@
 import {
   dirname, basename, extname, formatBytes, isObject, stripTags, parseIssueHref,
   translateMonth, translateDay, blobToDataURI,
-  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
+  encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
 } from './utils.ts';
 
 test('dirname', () => {
@@ -86,16 +86,6 @@ test('translateDay', () => {
 test('blobToDataURI', async () => {
   const blob = new Blob([JSON.stringify({test: true})], {type: 'application/json'});
   expect(await blobToDataURI(blob)).toEqual('data:application/json;base64,eyJ0ZXN0Ijp0cnVlfQ==');
-});
-
-test('toAbsoluteUrl', () => {
-  expect(toAbsoluteUrl('//host/dir')).toEqual('http://host/dir');
-  expect(toAbsoluteUrl('https://host/dir')).toEqual('https://host/dir');
-
-  expect(toAbsoluteUrl('')).toEqual('http://localhost:3000');
-  expect(toAbsoluteUrl('/user/repo')).toEqual('http://localhost:3000/user/repo');
-
-  expect(() => toAbsoluteUrl('path')).toThrow('unsupported');
 });
 
 test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {

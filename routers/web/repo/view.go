@@ -134,7 +134,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 			return false
 		}
 
-		avatarStackData := gituser.BuildAvatarStackData(ctx, latestCommit.AllParticipantIdentities(), nil)
+		avatarStackData := gituser.BuildAvatarStackData(ctx, latestCommit.AllAuthorIdentities(), nil)
 		avatarStackData.SearchByEmailLink = gituser.RepoCommitSearchByEmailLink(ctx.Repo.RepoLink, ctx.Repo.RefFullName)
 		ctx.Data["LatestCommitAvatarStackData"] = avatarStackData
 		ctx.Data["LatestCommitVerification"] = verification
