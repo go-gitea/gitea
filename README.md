@@ -29,6 +29,10 @@ For accessing free Gitea service (with a limited number of repositories), you ca
 To quickly deploy your own dedicated Gitea instance on Gitea Cloud, you can start a free trial at [cloud.gitea.com](https://cloud.gitea.com),
 or use container (docker/podman/etc) to deploy on your own server with the [official image](https://hub.docker.com/r/gitea/gitea).
 
+Third-party managed hosting is also available, with storage, backups and a subdomain included:
+
+[![Deploy with Zenith](https://cdn.zenith.hosting/buttons/deploy-with-zenith.svg)](https://zenith.hosting/host/gitea)
+
 ## Documentation
 
 You can find comprehensive documentation on our official [documentation website](https://docs.gitea.com/).
