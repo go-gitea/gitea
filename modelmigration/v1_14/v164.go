@@ -4,6 +4,7 @@
 package v1_14
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
@@ -29,7 +30,7 @@ func (grant *OAuth2Grant) TableName() string {
 	return "oauth2_grant"
 }
 
-func AddScopeAndNonceColumnsToOAuth2Grant(x base.EngineMigration) error {
+func AddScopeAndNonceColumnsToOAuth2Grant(_ context.Context, x base.EngineMigration) error {
 	if err := x.Sync(new(OAuth2Grant)); err != nil {
 		return fmt.Errorf("Sync: %w", err)
 	}

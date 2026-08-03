@@ -4,12 +4,14 @@
 package v1_28
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddMaxParallelToActionRunJob(x base.EngineMigration) error {
+func AddMaxParallelToActionRunJob(_ context.Context, x base.EngineMigration) error {
 	type ActionRunJob struct {
 		MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
 	}

@@ -86,11 +86,11 @@ func Test_ConvertScopedAccessTokens(t *testing.T) {
 	}
 
 	// migrate the scopes
-	err = ConvertScopedAccessTokens(x)
+	err = ConvertScopedAccessTokens(t.Context(), x)
 	assert.NoError(t, err)
 
 	// migrate the scopes again (migration should be idempotent)
-	err = ConvertScopedAccessTokens(x)
+	err = ConvertScopedAccessTokens(t.Context(), x)
 	assert.NoError(t, err)
 
 	tokens := make([]AccessToken, 0)

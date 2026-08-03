@@ -3,9 +3,13 @@
 
 package v1_16
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddSSHKeyIsVerified(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddSSHKeyIsVerified(_ context.Context, x base.EngineMigration) error {
 	type PublicKey struct {
 		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}
