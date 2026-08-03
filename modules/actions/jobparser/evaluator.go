@@ -26,12 +26,6 @@ func NewExpressionEvaluator(interpreter exprparser.Interpreter) *ExpressionEvalu
 	return &ExpressionEvaluator{interpreter: interpreter}
 }
 
-func (ee ExpressionEvaluator) evaluate(in string, defaultStatusCheck exprparser.DefaultStatusCheck) (any, error) {
-	evaluated, err := ee.interpreter.Evaluate(in, defaultStatusCheck)
-
-	return evaluated, err
-}
-
 func (ee ExpressionEvaluator) evaluateScalarYamlNode(node *yaml.Node) error {
 	var in string
 	if err := node.Decode(&in); err != nil {
@@ -40,20 +34,17 @@ func (ee ExpressionEvaluator) evaluateScalarYamlNode(node *yaml.Node) error {
 	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
 		return nil
 	}
-	expr, err := rewriteSubExpression(in)
-	if err != nil {
-		return err
-	}
-	res, err := ee.evaluate(expr, exprparser.DefaultStatusCheckNone)
+	res, err := ee.evaluateScalar(in)
 	if err != nil {
 		return err
 	}
 	return node.Encode(res)
 }
 
+// GitHub has this undocumented feature to merge maps, called insert directive
+var insertDirective = regexp.MustCompile(`\${{\s*insert\s*}}`)
+
 func (ee ExpressionEvaluator) evaluateMappingYamlNode(node *yaml.Node) error {
-	// GitHub has this undocumented feature to merge maps, called insert directive
-	insertDirective := regexp.MustCompile(`\${{\s*insert\s*}}`)
 	for i := 0; i < len(node.Content)/2; {
 		k := node.Content[i*2]
 		v := node.Content[i*2+1]
@@ -109,25 +100,22 @@ func (ee ExpressionEvaluator) EvaluateYamlNode(node *yaml.Node) error {
 }
 
 func (ee ExpressionEvaluator) Interpolate(in string) string {
-	out, err := interpolate(ee.interpreter, in)
+	out, err := ee.interpolate(in)
 	if err != nil {
 		return ""
 	}
 	return out
 }
 
-// interpolate evaluates each part on its own, so that a malformed one such as
-// `${{ 1) && (2 }}` cannot restructure the expressions around it.
-func interpolate(interpreter exprparser.Interpreter, in string) (string, error) {
-	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
-		return in, nil
-	}
-
+// interpolate evaluates every part on its own, so a malformed one cannot restructure its neighbours
+func (ee ExpressionEvaluator) interpolate(in string) (string, error) {
 	parts, err := splitSubExpressions(in)
 	if err != nil {
 		return "", err
 	}
-
+	if len(parts) == 1 && !parts[0].isExpr {
+		return in, nil
+	}
 	var out strings.Builder
 	out.Grow(len(in))
 	for _, part := range parts {
@@ -135,13 +123,56 @@ func interpolate(interpreter exprparser.Interpreter, in string) (string, error) 
 			out.WriteString(part.text)
 			continue
 		}
-		evaluated, err := interpreter.Evaluate(part.text, exprparser.DefaultStatusCheckNone)
+		evaluated, err := ee.interpreter.Evaluate(part.text, exprparser.DefaultStatusCheckNone)
 		if err != nil {
 			return "", err
 		}
 		out.WriteString(coerceToString(evaluated))
 	}
 	return out.String(), nil
+}
+
+// evaluateScalar keeps the type of a lone expression, so `${{ fromJSON('[1,2]') }}` stays an array
+func (ee ExpressionEvaluator) evaluateScalar(in string) (any, error) {
+	parts, err := splitSubExpressions(in)
+	if err != nil {
+		return nil, err
+	}
+	if len(parts) == 1 && parts[0].isExpr {
+		return ee.interpreter.Evaluate(parts[0].text, exprparser.DefaultStatusCheckNone)
+	}
+	return ee.interpolate(in)
+}
+
+// evaluateCondition evaluates an `if:`, an expression even without `${{ }}`. Mixed content
+// interpolates to a string, so the success() default applies to it separately.
+func (ee ExpressionEvaluator) evaluateCondition(in string) (bool, error) {
+	parts, err := splitSubExpressions(in)
+	if err != nil {
+		return false, err
+	}
+	if len(parts) == 1 {
+		evaluated, err := ee.interpreter.Evaluate(parts[0].text, exprparser.DefaultStatusCheckSuccess)
+		if err != nil {
+			return false, err
+		}
+		return exprparser.IsTruthy(evaluated), nil
+	}
+
+	if !expressionCallsStatusFunction(in) {
+		status, err := ee.interpreter.Evaluate("success()", exprparser.DefaultStatusCheckNone)
+		if err != nil {
+			return false, err
+		}
+		if !exprparser.IsTruthy(status) {
+			return false, nil
+		}
+	}
+	interpolated, err := ee.interpolate(in)
+	if err != nil {
+		return false, err
+	}
+	return exprparser.IsTruthy(interpolated), nil
 }
 
 // coerceToString converts an evaluated expression value to a string the way GitHub does,
@@ -194,92 +225,51 @@ func coerceToString(v any) string {
 	return fmt.Sprintf("%v", value)
 }
 
-func escapeFormatString(in string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(in, "{", "{{"), "}", "}}")
-}
-
 type exprPart struct {
 	text   string
 	isExpr bool
 }
 
-var subExpressionStringRegexp = regexp.MustCompile("(?:''|[^'])*'")
-
+// splitSubExpressions splits in the way GitHub's template reader does, leaving a value without a
+// complete expression literal.
 func splitSubExpressions(in string) ([]exprPart, error) {
-	pos := 0
-	exprStart := -1
-	strStart := -1
-	parts := make([]exprPart, 0, 2*strings.Count(in, "${{")+1)
-	for pos < len(in) {
-		if strStart > -1 {
-			matches := subExpressionStringRegexp.FindStringIndex(in[pos:])
-			if matches == nil {
-				return nil, errors.New("unclosed string")
-			}
-
-			strStart = -1
-			pos += matches[1]
-		} else if exprStart > -1 {
-			exprEnd := strings.Index(in[pos:], "}}")
-			strStart = strings.Index(in[pos:], "'")
-
-			if exprEnd > -1 && strStart > -1 {
-				if exprEnd < strStart {
-					strStart = -1
-				} else {
-					exprEnd = -1
-				}
-			}
-
-			if exprEnd > -1 {
-				parts = append(parts, exprPart{text: strings.TrimSpace(in[exprStart : pos+exprEnd]), isExpr: true})
-				pos += exprEnd + 2
-				exprStart = -1
-			} else if strStart > -1 {
-				pos += strStart + 1
-			} else {
-				return nil, errors.New("unclosed expression")
-			}
-		} else {
-			exprStart = strings.Index(in[pos:], "${{")
-			if exprStart != -1 {
-				parts = append(parts, exprPart{text: in[pos : pos+exprStart]})
-				exprStart = pos + exprStart + 3
-				pos = exprStart
-			} else {
-				parts = append(parts, exprPart{text: in[pos:]})
-				pos = len(in)
-			}
-		}
+	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
+		return []exprPart{{text: in}}, nil
 	}
-	return parts, nil
+
+	parts := make([]exprPart, 0, 2*strings.Count(in, "${{")+1)
+	for {
+		start := strings.Index(in, "${{")
+		if start < 0 {
+			if in != "" {
+				parts = append(parts, exprPart{text: in})
+			}
+			return parts, nil
+		}
+		if start > 0 {
+			parts = append(parts, exprPart{text: in[:start]})
+		}
+		rest := in[start+len("${{"):]
+		end := indexExprEnd(rest)
+		if end < 0 {
+			return nil, errors.New("unclosed expression")
+		}
+		parts = append(parts, exprPart{text: strings.TrimSpace(rest[:end]), isExpr: true})
+		in = rest[end+len("}}"):]
+	}
 }
 
-func rewriteSubExpression(in string) (string, error) {
-	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
-		return in, nil
-	}
-
-	parts, err := splitSubExpressions(in)
-	if err != nil {
-		return "", err
-	}
-
-	var results []string
-	var formatOut strings.Builder
-	for _, part := range parts {
-		if part.isExpr {
-			fmt.Fprintf(&formatOut, "{%d}", len(results))
-			results = append(results, part.text)
-		} else {
-			formatOut.WriteString(escapeFormatString(part.text))
+// indexExprEnd returns the offset of the `}}` ending an expression, or -1. A quote toggles string
+// state, so a `}}` inside a string does not end it.
+func indexExprEnd(in string) int {
+	inString := false
+	for i := range len(in) {
+		switch {
+		case in[i] == '\'':
+			inString = !inString
+		case !inString && in[i] == '}' && i+1 < len(in) && in[i+1] == '}':
+			return i
 		}
 	}
-
-	if len(results) == 1 && formatOut.String() == "{0}" {
-		return in, nil
-	}
-
-	out := fmt.Sprintf("format('%s', %s)", strings.ReplaceAll(formatOut.String(), "'", "''"), strings.Join(results, ", "))
-	return out, nil
+	return -1
 }

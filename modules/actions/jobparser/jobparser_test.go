@@ -175,8 +175,11 @@ func TestParseInterpolatesRunName(t *testing.T) {
 		{"context", "${{ github }}", "Object"},
 		{"surrounding literals", "run ${{ 1 }} now", "run 1 now"},
 		{"two expressions", "${{ 1 }}-${{ true }}", "1-true"},
+		{"closing brace inside a string", "${{ 'a}}b' }}", "a}}b"},
+		{"incomplete expression stays literal", "${{ 1", "${{ 1"},
 		// a malformed part must not restructure the surrounding expression, these used to panic
 		{"unbalanced parens", "${{ 1) && (2 }}", ""},
+		{"unbalanced parens between literals", "run ${{ 1) && (2 }} now", ""},
 		{"unclosed expression", "${{ 'a' }} ${{ b", ""},
 		{"unclosed string", "${{ 'a }}", ""},
 	} {

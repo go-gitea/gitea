@@ -78,6 +78,15 @@ func ExpressionIgnoresNeedResults(ifValue string) bool {
 	})
 }
 
+// expressionCallsStatusFunction reports whether an `if:` decides on the job status itself, which is
+// what drops the implicit success().
+func expressionCallsStatusFunction(ifValue string) bool {
+	return expressionsMatch(ifValue, func(node actionlint.ExprNode) bool {
+		call, ok := node.(*actionlint.FuncCallNode)
+		return ok && slices.Contains([]string{"success", "always", "failure", "cancelled"}, strings.ToLower(call.Callee))
+	})
+}
+
 // asIfExpression wraps an `if:` that omits the `${{ }}`, which GitHub evaluates as one expression anyway.
 // `if:` is the only field with that exception: every other value is interpolated, so a bare matrix or
 // `runs-on` is a literal there and must not be parsed as an expression.
@@ -98,14 +107,16 @@ func expressionReadsContext(value, contextName string) bool {
 
 // expressionsMatch reports whether any ${{ }} expression in value holds a node the predicate accepts.
 func expressionsMatch(value string, match func(node actionlint.ExprNode) bool) bool {
-	for rest := value; ; {
-		_, after, found := strings.Cut(rest, "${{")
-		if !found {
-			return false
+	parts, err := splitSubExpressions(value)
+	if err != nil {
+		return true // unparseable here, let the expansion report it against the real values
+	}
+	for _, part := range parts {
+		if !part.isExpr {
+			continue
 		}
-		rest = after
-		// The lexer ends the expression at its closing `}}`, so it can be handed the whole remainder.
-		expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(rest))
+		// The lexer needs the closing `}}` that the scanner strips.
+		expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(part.text + "}}"))
 		if err != nil {
 			return true // unparseable here, let the expansion report it against the real values
 		}
@@ -119,6 +130,7 @@ func expressionsMatch(value string, match func(node actionlint.ExprNode) bool) b
 			return true
 		}
 	}
+	return false
 }
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {

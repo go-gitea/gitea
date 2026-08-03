@@ -361,11 +361,11 @@ func EvaluateWorkflowCallOutputs(spec *WorkflowCallSpec, gitCtx *model.GithubCon
 		Vars:   vars,
 		Inputs: inputs,
 	}
-	interpreter := exprparser.NewInterpeter(env, exprparser.Config{})
+	evaluator := NewExpressionEvaluator(exprparser.NewInterpeter(env, exprparser.Config{}))
 
 	out := make(map[string]string, len(spec.Outputs))
 	for name, o := range spec.Outputs {
-		v, err := interpolate(interpreter, o.Value)
+		v, err := evaluator.interpolate(o.Value)
 		if err != nil {
 			return nil, fmt.Errorf("workflow_call output %q: %w", name, err)
 		}
