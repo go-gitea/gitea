@@ -107,3 +107,5 @@ jobs:
         env:
           GOOS: linux
           GOARCH: 386
+      - name: binary-sizes
+        run: ls -l gitea_*
