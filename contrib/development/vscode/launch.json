@@ -9,7 +9,7 @@
       "buildFlags": "",
       "program": "${workspaceRoot}/main.go",
       "env": {
-        "GITEA_WORK_DIR": "${workspaceRoot}",
+        "GITEA_WORK_DIR": "${workspaceRoot}"
       },
       "args": ["web"],
       "showLog": true
