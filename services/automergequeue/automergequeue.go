@@ -34,7 +34,7 @@ func StartPRCheckAndAutoMerge(ctx context.Context, pull *issues_model.PullReques
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(pull.BaseRepo)
+	gitRepo, err := git.OpenRepository(ctx, pull.BaseRepo)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return

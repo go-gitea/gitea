@@ -6,22 +6,22 @@ package git
 import (
 	"context"
 
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 )
 
 // PushToExternal pushes a managed repository to an external remote.
 func PushToExternal(ctx context.Context, repo RepositoryFacade, opts PushOptions) error {
-	return Push(ctx, gitcmd.RepoLocalPath(repo), opts)
+	return Push(ctx, gitrepo.RepoLocalPath(repo), opts)
 }
 
 // PushManaged pushes from one managed repository to another managed repository.
 func PushManaged(ctx context.Context, fromRepo, toRepo RepositoryFacade, opts PushOptions) error {
-	opts.Remote = gitcmd.RepoLocalPath(toRepo)
-	return Push(ctx, gitcmd.RepoLocalPath(fromRepo), opts)
+	opts.Remote = gitrepo.RepoLocalPath(toRepo)
+	return Push(ctx, gitrepo.RepoLocalPath(fromRepo), opts)
 }
 
 // PushFromLocal pushes from a local path to a managed repository.
 func PushFromLocal(ctx context.Context, fromLocalPath string, toRepo RepositoryFacade, opts PushOptions) error {
-	opts.Remote = gitcmd.RepoLocalPath(toRepo)
+	opts.Remote = gitrepo.RepoLocalPath(toRepo)
 	return Push(ctx, fromLocalPath, opts)
 }

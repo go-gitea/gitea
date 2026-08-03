@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"gitea.dev/models"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/repostats"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
@@ -138,7 +138,7 @@ func (g *GiteaLocalUploader) CreateRepo(ctx context.Context, repo *base.Reposito
 	if err != nil {
 		return err
 	}
-	g.gitRepo, err = git.OpenRepository(g.repo)
+	g.gitRepo, err = git.OpenRepository(ctx, g.repo)
 	if err != nil {
 		return err
 	}
@@ -965,7 +965,7 @@ func (g *GiteaLocalUploader) Finish(ctx context.Context) error {
 		return err
 	}
 
-	if err := models.UpdateRepoStats(ctx, g.repo.ID); err != nil {
+	if err := repostats.UpdateRepoStats(ctx, g.repo.ID); err != nil {
 		return err
 	}
 

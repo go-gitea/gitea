@@ -19,6 +19,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/test"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -175,12 +176,9 @@ func TestWebDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 		"removeDependencyID": strconv.FormatInt(dependencyIssue.ID, 10),
 		"dependencyType":     "blockedBy",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
-	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueDependency{
-		IssueID:      targetIssue.ID,
-		DependencyID: dependencyIssue.ID,
-	})
+	resp := session.MakeRequest(t, req, http.StatusBadRequest)
+	assert.Equal(t, "Permission denied.", test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueDependency{IssueID: targetIssue.ID, DependencyID: dependencyIssue.ID})
 
 	assert.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), dependencyRepo, user40, perm.AccessModeRead))
 
@@ -188,10 +186,6 @@ func TestWebDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 		"removeDependencyID": strconv.FormatInt(dependencyIssue.ID, 10),
 		"dependencyType":     "blockedBy",
 	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
-
-	unittest.AssertNotExistsBean(t, &issues_model.IssueDependency{
-		IssueID:      targetIssue.ID,
-		DependencyID: dependencyIssue.ID,
-	})
+	session.MakeRequest(t, req, http.StatusOK)
+	unittest.AssertNotExistsBean(t, &issues_model.IssueDependency{IssueID: targetIssue.ID, DependencyID: dependencyIssue.ID})
 }

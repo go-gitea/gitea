@@ -74,7 +74,7 @@ func SettingsProtectedBranch(c *context.Context) {
 
 	c.Data["PageIsSettingsBranches"] = true
 	c.Data["Title"] = c.Locale.TrString("repo.settings.protected_branch") + " - " + rule.RuleName
-	users, err := access_model.GetUsersWithUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypePullRequests)
+	users, err := access_model.GetUsersWithAnyUnitAccess(c, c.Repo.Repository, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		c.ServerError("GetUsersWithUnitAccess", err)
 		return
@@ -266,6 +266,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 	protectBranch.BlockOnRejectedReviews = f.BlockOnRejectedReviews
 	protectBranch.BlockOnOfficialReviewRequests = f.BlockOnOfficialReviewRequests
+	protectBranch.BlockOnCodeownerReviews = f.BlockOnCodeownerReviews
 	protectBranch.DismissStaleApprovals = f.DismissStaleApprovals
 	protectBranch.IgnoreStaleApprovals = f.IgnoreStaleApprovals
 	protectBranch.RequireSignedCommits = f.RequireSignedCommits

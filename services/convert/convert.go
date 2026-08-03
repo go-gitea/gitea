@@ -141,7 +141,7 @@ func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T,
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
 func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo *repo_model.Repository) *api.BranchProtection {
-	readers, err := access_model.GetUsersWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
+	readers, err := access_model.GetUsersWithAnyUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("GetRepoReaders: %v", err)
 	}
@@ -196,6 +196,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		ApprovalsWhitelistTeams:       approvalsWhitelistTeams,
 		BlockOnRejectedReviews:        bp.BlockOnRejectedReviews,
 		BlockOnOfficialReviewRequests: bp.BlockOnOfficialReviewRequests,
+		BlockOnCodeownerReviews:       bp.BlockOnCodeownerReviews,
 		BlockOnOutdatedBranch:         bp.BlockOnOutdatedBranch,
 		DismissStaleApprovals:         bp.DismissStaleApprovals,
 		IgnoreStaleApprovals:          bp.IgnoreStaleApprovals,
@@ -292,7 +293,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
 		if attempt.Attempt > 1 {
-			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1)
+			url := fmt.Sprintf("%s/attempts/%d", run.APIURL(ctx), attempt.Attempt-1)
 			previousAttemptURL = &url
 		}
 	}
@@ -304,13 +305,21 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		}
 	}
 
+	runURL := run.APIURL(ctx)
 	return &api.ActionWorkflowRun{
 		ID:                 run.ID,
-		URL:                fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
+		URL:                runURL,
 		PreviousAttemptURL: previousAttemptURL,
 		HTMLURL:            run.HTMLURL(ctx),
+		JobsURL:            runURL + "/jobs",
+		LogsURL:            runURL + "/logs",
+		ArtifactsURL:       runURL + "/artifacts",
+		CancelURL:          runURL + "/cancel",
+		RerunURL:           runURL + "/rerun",
 		RunNumber:          run.Index,
 		RunAttempt:         runAttempt,
+		CreatedAt:          run.Created.AsLocalTime(),
+		UpdatedAt:          run.Updated.AsLocalTime(),
 		StartedAt:          startedAt,
 		CompletedAt:        completedAt,
 		Event:              run.TriggerEvent,
@@ -679,7 +688,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		if err != nil {
 			return nil, err
 		}
-		sourceGitRepo, err := git.OpenRepository(sourceRepo)
+		sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
 		if err != nil {
 			return nil, err
 		}
@@ -687,7 +696,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		return GetScopedActionWorkflow(ctx, sourceGitRepo, sourceRepo, run.WorkflowID, run.WorkflowCommitSHA)
 	}
 
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -940,7 +949,7 @@ func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.
 
 // ToTagProtection convert a git.ProtectedTag to an api.TagProtection
 func ToTagProtection(ctx context.Context, pt *git_model.ProtectedTag, repo *repo_model.Repository) *api.TagProtection {
-	readers, err := access_model.GetUsersWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
+	readers, err := access_model.GetUsersWithAnyUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("GetRepoReaders: %v", err)
 	}

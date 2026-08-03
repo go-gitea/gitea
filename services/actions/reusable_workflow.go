@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -30,6 +31,20 @@ import (
 // MaxReusableCallLevels caps how deep a reusable workflow can nest:
 // a top-level caller may have at most MaxReusableCallLevels nested callers below it.
 const MaxReusableCallLevels = 9
+
+// checkRunJobLimit rejects an expansion that would push the attempt over actions_model.MaxJobNumPerRun.
+// checkCallerChain bounds nesting *depth*, but a reusable graph also fans out in *breadth*: without a
+// cumulative cap a tiny set of files can drive exponential job-row insertion and exhaust the database.
+func checkRunJobLimit(ctx context.Context, runID, attemptID int64, adding int) error {
+	existing, err := actions_model.CountRunJobsByRunAndAttemptID(ctx, runID, attemptID)
+	if err != nil {
+		return fmt.Errorf("count existing jobs of run %d attempt %d: %w", runID, attemptID, err)
+	}
+	if existing+int64(adding) > actions_model.MaxJobNumPerRun {
+		return fmt.Errorf("workflow run exceeds the maximum of %d jobs", actions_model.MaxJobNumPerRun)
+	}
+	return nil
+}
 
 // loadReusableWorkflowSource resolves the workflow file referenced by a caller's `uses:` and returns its raw bytes,
 // along with the (repo_id, commit_sha) the file was loaded from.
@@ -79,7 +94,7 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 
 // readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA` and returns its content plus the resolved commit SHA.
 func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refOrSHA, path string) ([]byte, string, error) {
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, "", fmt.Errorf("open repo %s: %w", repo.FullName(), err)
 	}
@@ -236,30 +251,33 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 		return fmt.Errorf("build call payload: %w", err)
 	}
 
-	// 8. Insert direct children of this caller.
-	existingChildren, err := actions_model.GetDirectChildJobsByParent(ctx, caller)
-	if err != nil {
-		return fmt.Errorf("get existing children of caller %d: %w", caller.ID, err)
-	}
-	if len(existingChildren) > 0 {
-		// Should not happen - child jobs cannot be expanded before the caller gets ready
-		return fmt.Errorf("invariant violation: caller %d has %d pre-existing children", caller.ID, len(existingChildren))
-	}
-	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, workflowCallInputs); err != nil {
-		return err
-	}
-
-	// 9. Update caller-related cols.
-	caller.CallPayload = string(callPayload)
+	// 8. Claim the expansion by flipping is_expanded false->true BEFORE inserting any children.
+	// Two concurrent expanders serialize on this row: exactly one winner matches (n==1) and owns the expansion.
+	// Children are only ever inserted by the claim winner, so no duplicate child rows can arise.
 	caller.IsExpanded = true
-	n, err := actions_model.UpdateRunJob(ctx, caller,
+	n, err := actions_model.UpdateRunJob(ctx, caller, builder.And(
 		builder.Eq{"is_expanded": false},
-		"call_secrets", "reusable_workflow_content", "call_payload", "is_expanded")
+		builder.In("status", actions_model.StatusBlocked, actions_model.StatusWaiting),
+	), "is_expanded")
 	if err != nil {
-		return fmt.Errorf("commit caller %d expansion: %w", caller.ID, err)
+		caller.IsExpanded = false // the claim was not established
+		return fmt.Errorf("claim caller %d expansion: %w", caller.ID, err)
 	}
 	if n == 0 {
-		return fmt.Errorf("caller %d already expanded by another writer", caller.ID)
+		// Another writer won the expansion, or the caller has been moved to a terminal status (e.g. failed/cancelled).
+		return nil
+	}
+
+	// 9. We own the expansion: insert the direct children.
+	if err := insertCallerChildren(ctx, run, attempt, caller, content, contentSourceRepoID, contentSourceCommitSHA, vars, workflowCallInputs); err != nil {
+		// On failure, undo the partial expansion so an error return always leaves the caller unexpanded and childless.
+		return errors.Join(err, undoExpansion(ctx, caller))
+	}
+
+	// 10. Persist the remaining caller metadata (the row is already ours via the claim above).
+	caller.CallPayload = string(callPayload)
+	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "call_secrets", "reusable_workflow_content", "call_payload"); err != nil {
+		return errors.Join(fmt.Errorf("persist caller %d expansion metadata: %w", caller.ID, err), undoExpansion(ctx, caller))
 	}
 	return nil
 }
@@ -285,6 +303,10 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 		return fmt.Errorf("called workflow for caller %d (uses %q) has no jobs", caller.ID, caller.CallUses)
 	}
 
+	if err := checkRunJobLimit(ctx, run.ID, attempt.ID, len(childWorkflows)); err != nil {
+		return err
+	}
+
 	priorChildren, err := actions_model.GetPriorAttemptChildrenByParent(ctx, run.ID, attempt.ID, caller.AttemptJobID)
 	if err != nil {
 		return fmt.Errorf("lookup prior-attempt children of caller %d: %w", caller.ID, err)
@@ -296,6 +318,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			continue
 		}
 		needs := parsedChild.Needs()
+		isMatrixDeferred := jobparser.HasDeferredMatrix(parsedChild)
 		if err := sw.SetJob(jobID, parsedChild.EraseNeeds()); err != nil {
 			return err
 		}
@@ -306,11 +329,10 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 
 		parsedChild.Name = util.EllipsisDisplayString(parsedChild.Name, 255)
 
-		// AttemptJobID: prefer a prior-attempt match by (JobID, Name) and fall back to a fresh allocator value for newly-appearing logical jobs.
-		// The two-level key disambiguates matrix instances (same JobID, different Names) and distinct jobs that legally share the same Name (different JobIDs).
+		// AttemptJobID: prefer a prior-attempt match and fall back to a fresh allocator value for newly-appearing logical jobs.
 		var attemptJobID int64
-		if priorChild, ok := priorChildren[jobID][parsedChild.Name]; ok {
-			attemptJobID = priorChild.AttemptJobID
+		if priorID, ok := priorAttemptJobID(priorChildren[jobID], parsedChild.Name, isMatrixDeferred); ok {
+			attemptJobID = priorID
 		} else {
 			attemptJobID, err = actions_model.GetNextAttemptJobID(ctx, run.ID)
 			if err != nil {
@@ -332,10 +354,16 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			Needs:                   needs,
 			RunsOn:                  parsedChild.RunsOn(),
 			ContinueOnError:         parsedChild.GetContinueOnError(),
+			MaxParallel:             parseMaxParallel(jobID, parsedChild.Strategy.MaxParallelString),
 			Status:                  actions_model.StatusBlocked,
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    sourceRepoID,
 			WorkflowSourceCommitSHA: sourceCommitSHA,
+			IsMatrixDeferred:        isMatrixDeferred,
+		}
+		if isMatrixDeferred {
+			// Expansion overwrites WorkflowPayload; keep the raw payload so a rerun can re-derive the matrix.
+			child.DeferredMatrixPayload = payload
 		}
 		if perms := ExtractJobPermissionsFromWorkflow(sw, parsedChild); perms != nil {
 			child.TokenPermissions = perms
@@ -374,4 +402,35 @@ func ResolveUses(ctx context.Context, uses string) (*jobparser.UsesRef, error) {
 		return nil, fmt.Errorf(`"uses:" path %q must be under a configured workflow directory (WORKFLOW_DIRS or SCOPED_WORKFLOW_DIRS)`, ref.Path)
 	}
 	return ref, nil
+}
+
+// undoExpansion rolls back a partial expansion owned by the current transaction:
+// it removes the inserted children and releases the is_expanded claim itself.
+func undoExpansion(ctx context.Context, caller *actions_model.ActionRunJob) error {
+	if err := actions_model.DeleteDirectChildJobsByParent(ctx, caller); err != nil {
+		return fmt.Errorf("delete children of caller %d: %w", caller.ID, err)
+	}
+	caller.IsExpanded = false
+	if _, err := actions_model.UpdateRunJob(ctx, caller, nil, "is_expanded"); err != nil {
+		return fmt.Errorf("release caller %d expansion claim: %w", caller.ID, err)
+	}
+	return nil
+}
+
+// priorAttemptJobID returns the AttemptJobID a re-inserted child should reuse,
+// given the prior attempt's rows of the same JobID indexed by Name.
+func priorAttemptJobID(priorSameJobID map[string]*actions_model.ActionRunJob, name string, isMatrixDeferred bool) (int64, bool) {
+	if isMatrixDeferred {
+		for _, prior := range priorSameJobID {
+			if len(prior.DeferredMatrixPayload) > 0 {
+				return prior.AttemptJobID, true
+			}
+		}
+		return 0, false
+	}
+	prior, ok := priorSameJobID[name]
+	if !ok {
+		return 0, false
+	}
+	return prior.AttemptJobID, true
 }

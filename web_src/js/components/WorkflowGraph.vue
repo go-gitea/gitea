@@ -4,8 +4,8 @@ import {SvgIcon} from '../svg.ts';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
-import {trN} from '../modules/i18n.ts';
-import {debounce} from 'throttle-debounce';
+import {trN, trString} from '../modules/i18n.ts';
+import {debounce} from '../utils/func.ts';
 import type {ActionsJob} from '../modules/gitea-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
 import {
@@ -113,7 +113,7 @@ const successRateLabel = computed(() => {
 const graphStats = computed(() => [
   trN(props.jobs.length, props.locale.graphJobsCount1, props.locale.graphJobsCountN),
   trN(edges.value.length, props.locale.graphDependenciesCount1, props.locale.graphDependenciesCountN),
-  props.locale.graphSuccessRate.replace('%s', successRateLabel.value),
+  trString(props.locale.graphSuccessRate, successRateLabel.value),
 ].join(' • '));
 
 const minScale = 0.3;
@@ -178,7 +178,7 @@ function handleWheel(event: WheelEvent) {
 
 onMounted(() => {
   loadSavedState();
-  watch([translateX, translateY, scale], debounce(500, saveState));
+  watch([translateX, translateY, scale], debounce(saveState, 500));
   document.addEventListener('mousemove', handleMouseMoveOnDocument);
   document.addEventListener('mouseup', handleMouseUpOnDocument);
 });
@@ -434,6 +434,7 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
   background: var(--color-console-bg);
   gap: var(--gap-block);
   flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-secondary);
 }
 
 .graph-workflow-info {

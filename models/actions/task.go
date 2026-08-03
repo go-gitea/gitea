@@ -60,6 +60,12 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
+// taskReportTimeout is how long a task may go without contact from its runner before the
+// runner is assumed gone. Runners report state and stream logs every few seconds, both of
+// which refresh ActionTask.Updated. Shorter than setting.Actions.ZombieTaskTimeout because
+// it only decides whether the runner is reachable, not whether the task should be killed.
+const taskReportTimeout = time.Minute
+
 var successfulTokenTaskCache *lru.Cache[string, any]
 
 func init() {
@@ -85,11 +91,15 @@ func (task *ActionTask) IsStopped() bool {
 	return task.Stopped > 0
 }
 
-func (task *ActionTask) GetRunLink() string {
-	if task.Job == nil || task.Job.Run == nil {
+func (task *ActionTask) GetRunJobLink() string {
+	// Run.Repo can be nil when the repository was deleted while task/run rows remain
+	// (TaskList.LoadAttributes copies job.Repo into run.Repo, leaving it nil on a miss).
+	// Run.Link() already returns "" in that case, so guard here to avoid emitting a
+	// broken relative "/jobs/N" link from the Sprintf below.
+	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
-	return task.Job.Run.Link()
+	return fmt.Sprintf("%s/jobs/%d", task.Job.Run.Link(), task.Job.ID)
 }
 
 func (task *ActionTask) GetCommitLink() string {
@@ -159,6 +169,15 @@ func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
 	}
 
 	return &task, nil
+}
+
+// GetTasksMapByIDs returns the found tasks keyed by ID, silently omitting IDs that no longer exist.
+func GetTasksMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionTask, error) {
+	tasks := make(map[int64]*ActionTask, len(ids))
+	if len(ids) == 0 {
+		return tasks, nil
+	}
+	return tasks, db.GetEngine(ctx).In("id", ids).Find(&tasks)
 }
 
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
@@ -563,6 +582,10 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			status = StatusCancelled
 		} else if !runner.HasCancellingSupport {
 			status = StatusCancelled
+		} else if task.Updated.AddDuration(taskReportTimeout) < now {
+			// A runner that stopped reporting will never acknowledge the cancellation either,
+			// so skip the handshake instead of waiting for the zombie task cleanup.
+			status = StatusCancelled
 		}
 	}
 
@@ -577,7 +600,10 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			return err
 		}
 
-		return UpdateTask(ctx, task, "status")
+		// NoAutoTime keeps "updated" at the runner's last contact: re-cancelling an already
+		// cancelling task must not defer the timeout above or the zombie task cleanup.
+		_, err := e.ID(task.ID).Cols("status").NoAutoTime().Update(task)
+		return err
 	}
 
 	task.Status = status

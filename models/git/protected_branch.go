@@ -59,6 +59,7 @@ type ProtectedBranch struct {
 	RequiredApprovals             int64    `xorm:"NOT NULL DEFAULT 0"`
 	BlockOnRejectedReviews        bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOfficialReviewRequests bool     `xorm:"NOT NULL DEFAULT false"`
+	BlockOnCodeownerReviews       bool     `xorm:"NOT NULL DEFAULT false"`
 	BlockOnOutdatedBranch         bool     `xorm:"NOT NULL DEFAULT false"`
 	DismissStaleApprovals         bool     `xorm:"NOT NULL DEFAULT false"`
 	IgnoreStaleApprovals          bool     `xorm:"NOT NULL DEFAULT false"`
@@ -507,7 +508,7 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 		return currentWhitelist, nil
 	}
 
-	prUserIDs, err := access_model.GetUserIDsWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
+	prUserIDs, err := access_model.GetUserIDsWithAnyUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
 	if err != nil {
 		return nil, err
 	}

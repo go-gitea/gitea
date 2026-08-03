@@ -24,6 +24,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
@@ -265,20 +266,20 @@ var (
 
 func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
-		tmpDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
+		tmpEmptyRepoDir, cleanup, err := setting.AppDataTempDir("git-repo-content").MkdirTempRandom("gitea-info-refs-cache")
 		if err != nil {
 			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
 			return
 		}
 		defer cleanup()
 
-		if err := git.InitRepositoryLocal(ctx, tmpDir, true, git.Sha1ObjectFormat.Name()); err != nil {
+		if err := git.InitRepositoryLocal(ctx, tmpEmptyRepoDir, true, git.Sha1ObjectFormat.Name()); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
 			return
 		}
 
 		refs, _, err := gitcmd.NewCommand("receive-pack", "--stateless-rpc", "--advertise-refs", ".").
-			WithDir(tmpDir).
+			WithDir(tmpEmptyRepoDir).
 			RunStdBytes(ctx)
 		if err != nil {
 			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
@@ -342,7 +343,7 @@ func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string
 		return
 	}
 
-	fs := git.GetRepoFS(h.getStorageRepo())
+	fs := gitrepo.RepoLocalFS(h.getStorageRepo())
 	ctx.Resp.Header().Set("Content-Type", contentType)
 	http.ServeFileFS(ctx.Resp, ctx.Req, fs, path.Clean(file))
 }

@@ -502,7 +502,7 @@ jobs:
 			got := make(map[string]bool, len(swfs))
 			for _, swf := range swfs {
 				id, job := swf.Job()
-				shouldRun, err := EvaluateJobIfExpression(id, job, map[string]any{}, map[string]*JobResult{id: {}}, nil, nil)
+				shouldRun, err := EvaluateJobIfExpression(id, job, map[string]any{}, map[string]*JobResult{id: {}}, nil, nil, false)
 				require.NoError(t, err)
 				got[job.Name] = shouldRun
 			}
@@ -562,7 +562,7 @@ jobs:
 				"job1": {Result: kase.needResult},
 				"job2": {Needs: []string{"job1"}},
 			}
-			got, err := EvaluateJobIfExpression("job2", job2, map[string]any{}, results, nil, nil)
+			got, err := EvaluateJobIfExpression("job2", job2, map[string]any{}, results, nil, nil, false)
 			require.NoError(t, err)
 			assert.Equal(t, kase.expected, got)
 		})
