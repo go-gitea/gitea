@@ -18,13 +18,14 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/options"
 	"gitea.dev/modules/queue"
+	"gitea.dev/modules/util"
 
 	licenseclassifier "github.com/google/licenseclassifier/v2"
 )
 
 const (
 	LicenseLegacyFile = "LICENSE"
-	// REUSE license spec - see https://reuse.software/spec-3.3/
+	// LicenseReuseDir is for REUSE license spec - see https://reuse.software/spec-3.3/
 	// TODO: Surface this version in repo creation
 	LicenseReuseDir = "LICENSES"
 )
@@ -34,9 +35,6 @@ var (
 
 	// licenseUpdaterQueue represents a queue to handle update repo licenses
 	licenseUpdaterQueue *queue.WorkerPoolQueue[*LicenseUpdaterOptions]
-
-	licensePrefixes     = container.Set[string]{"license": {}, "licence": {}, "copying": {}}
-	licenseFileSuffixes = container.Set[string]{"md": {}, "lesser": {}, "txt": {}}
 )
 
 func AddRepoToLicenseUpdaterQueue(opts *LicenseUpdaterOptions) error {
@@ -82,21 +80,23 @@ func repoLicenseUpdater(items ...*LicenseUpdaterOptions) []*LicenseUpdaterOption
 			continue
 		}
 
-		gitRepo, err := git.OpenRepository(ctx, repo)
-		if err != nil {
-			log.Error("repoLicenseUpdater [%d] failed: OpenRepository: %v", opts.RepoID, err)
-			continue
-		}
-		defer gitRepo.Close()
+		func() {
+			gitRepo, err := git.OpenRepository(ctx, repo)
+			if err != nil {
+				log.Error("repoLicenseUpdater [%d] failed: OpenRepository: %v", opts.RepoID, err)
+				return
+			}
+			defer gitRepo.Close()
 
-		commit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
-		if err != nil {
-			log.Error("repoLicenseUpdater [%d] failed: GetBranchCommit: %v", opts.RepoID, err)
-			continue
-		}
-		if err = UpdateRepoLicenses(ctx, repo, gitRepo, commit); err != nil {
-			log.Error("repoLicenseUpdater [%d] failed: updateRepoLicenses: %v", opts.RepoID, err)
-		}
+			commit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
+			if err != nil {
+				log.Error("repoLicenseUpdater [%d] failed: GetBranchCommit: %v", opts.RepoID, err)
+				return
+			}
+			if err = UpdateRepoLicenses(ctx, repo, gitRepo, commit); err != nil {
+				log.Error("repoLicenseUpdater [%d] failed: updateRepoLicenses: %v", opts.RepoID, err)
+			}
+		}()
 	}
 	return nil
 }
@@ -125,7 +125,7 @@ func SyncRepoLicenses(ctx context.Context) error {
 }
 
 // resolveReuseLicenses gathers all licenses in a subtree (assumed to be LicenseReuseDir as per REUSE specification)
-func resolveReuseLicenses(ctx context.Context, gitrepo *git.Repository, tree *git.Tree) ([]repo_model.DetectedLicense, error) {
+func resolveReuseLicenses(ctx context.Context, gitrepo *git.Repository, parentPath string, tree *git.Tree) ([]repo_model.DetectedLicense, error) {
 	entries, err := tree.ListEntries(ctx, gitrepo)
 	if err != nil {
 		return nil, fmt.Errorf("ListEntries: %w", err)
@@ -133,8 +133,8 @@ func resolveReuseLicenses(ctx context.Context, gitrepo *git.Repository, tree *gi
 	licenses := make([]repo_model.DetectedLicense, 0)
 	for _, entry := range entries {
 		if entry.IsRegular() {
-			spdxID := strings.TrimSuffix(entry.Name(), path.Ext(entry.Name()))
-			licenses = append(licenses, repo_model.DetectedLicense{SPDXID: spdxID, LicensePath: path.Join(LicenseReuseDir, entry.Name())})
+			spdxID := util.PathBaseStem(entry.Name())
+			licenses = append(licenses, repo_model.DetectedLicense{SPDXID: spdxID, LicensePath: path.Join(parentPath, entry.Name())})
 		}
 	}
 
@@ -146,10 +146,11 @@ func resolveReuseLicenses(ctx context.Context, gitrepo *git.Repository, tree *gi
 // allowed extensions are: md, lesser and txt
 func isLicenseFile(name string) bool {
 	lower := strings.ToLower(name)
+	stem := util.PathBaseStem(lower)
 	ext := path.Ext(lower)
 	// exact match (e.g. "LICENSE") or at most one allowed extension (e.g. "LICENSE.md")
-	return licensePrefixes.Contains(strings.TrimSuffix(lower, ext)) &&
-		(ext == "" || licenseFileSuffixes.Contains(ext[1:]))
+	return (stem == "license" || stem == "licence" || stem == "copying") &&
+		(ext == "" || ext == ".md" || ext == ".lesser" || ext == ".txt")
 }
 
 func resolveLicenses(ctx context.Context, gitRepo *git.Repository, commit *git.Commit) ([]repo_model.DetectedLicense, error) {
@@ -160,7 +161,7 @@ func resolveLicenses(ctx context.Context, gitRepo *git.Repository, commit *git.C
 
 	// handle REUSE license spec first
 	if !git.IsErrNotExist(err) {
-		return resolveReuseLicenses(ctx, gitRepo, tree)
+		return resolveReuseLicenses(ctx, gitRepo, LicenseReuseDir, tree)
 	}
 
 	tree, err = commit.SubTree(ctx, gitRepo, "")
@@ -177,19 +178,20 @@ func resolveLicenses(ctx context.Context, gitRepo *git.Repository, commit *git.C
 		if !entry.IsRegular() {
 			continue
 		}
-		if isLicenseFile(entry.Name()) {
-			r, err := entry.Blob(gitRepo).DataAsync(ctx)
-			if err != nil {
-				continue
-			}
-			found, err := detectLicense(r)
-			r.Close()
-			if err != nil {
-				continue
-			}
-			for _, license := range found {
-				licenses = append(licenses, repo_model.DetectedLicense{SPDXID: license, LicensePath: entry.Name()})
-			}
+		if !isLicenseFile(entry.Name()) {
+			continue
+		}
+		r, err := entry.Blob(gitRepo).DataAsync(ctx)
+		if err != nil {
+			continue
+		}
+		found, err := detectLicense(r)
+		_ = r.Close()
+		if err != nil {
+			continue
+		}
+		for _, license := range found {
+			licenses = append(licenses, repo_model.DetectedLicense{SPDXID: license, LicensePath: entry.Name()})
 		}
 	}
 	return licenses, nil
@@ -197,9 +199,6 @@ func resolveLicenses(ctx context.Context, gitRepo *git.Repository, commit *git.C
 
 // UpdateRepoLicenses will update repository licenses col if license file exists
 func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit) error {
-	if commit == nil {
-		return nil
-	}
 	licenses, err := resolveLicenses(ctx, gitRepo, commit)
 	if err != nil {
 		return err
@@ -213,10 +212,6 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRep
 
 // detectLicense returns the licenses detected by the given content buff
 func detectLicense(r io.Reader) ([]string, error) {
-	if r == nil {
-		return nil, nil
-	}
-
 	matches, err := classifier.MatchFrom(r)
 	if err != nil {
 		return nil, err
