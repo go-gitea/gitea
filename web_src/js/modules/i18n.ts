@@ -6,6 +6,10 @@ export function trN(count: number, form1: string, formN: string, {lang = getCurr
   return trString(text, String(count));
 }
 
+/**
+ * Fills variables in a translated string.
+ * Both `%s`, `%d` (for digits), `%[<index>]s`, and `%[<index>]d` (index is one-based here) are valid variables that will be replaced with the arg at this position
+ */
 export function trString(s: string, ...args: Array<string | number>) {
   // the same behavior (almost) as backend TrString
   let curIdx = 0;
