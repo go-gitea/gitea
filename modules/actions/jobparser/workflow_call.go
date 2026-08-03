@@ -260,7 +260,7 @@ func MatchCallerInputsAgainstSpec(spec *WorkflowCallSpec, evaluated map[string]a
 func parseWorkflowCallInput(name string, typ InputType, v any) (any, error) {
 	switch typ {
 	case InputTypeString:
-		return exprparser.CoerceToString(v), nil
+		return coerceToString(v), nil
 	case InputTypeBoolean:
 		// strict type matching: a boolean input only accepts a native bool, not a "true"/"false" string
 		if b, ok := v.(bool); ok {

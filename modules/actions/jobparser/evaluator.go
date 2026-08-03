@@ -6,7 +6,10 @@ package jobparser
 import (
 	"errors"
 	"fmt"
+	"math"
+	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"gitea.com/gitea/runner/act/exprparser"
@@ -136,9 +139,59 @@ func interpolate(interpreter exprparser.Interpreter, in string) (string, error) 
 		if err != nil {
 			return "", err
 		}
-		out.WriteString(exprparser.CoerceToString(evaluated))
+		out.WriteString(coerceToString(evaluated))
 	}
 	return out.String(), nil
+}
+
+// coerceToString converts an evaluated expression value to a string the way GitHub does,
+// see https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#operators
+// An already reflected value is accepted as-is, since Interface() would panic on an invalid one.
+func coerceToString(v any) string {
+	value, ok := v.(reflect.Value)
+	if !ok {
+		value = reflect.ValueOf(v)
+	}
+
+	switch value.Kind() {
+	case reflect.Invalid:
+		return ""
+
+	case reflect.Bool:
+		return strconv.FormatBool(value.Bool())
+
+	case reflect.String:
+		return value.String()
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(value.Int(), 10)
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return strconv.FormatUint(value.Uint(), 10)
+
+	case reflect.Float32, reflect.Float64:
+		if math.IsInf(value.Float(), 1) {
+			return "Infinity"
+		} else if math.IsInf(value.Float(), -1) {
+			return "-Infinity"
+		}
+		return fmt.Sprintf("%.15G", value.Float())
+
+	case reflect.Slice, reflect.Array:
+		return "Array"
+
+	// contexts such as `github` are pointers to structs, so they stringify as objects too
+	case reflect.Map, reflect.Struct:
+		return "Object"
+
+	case reflect.Interface, reflect.Pointer:
+		if value.IsNil() {
+			return ""
+		}
+		return coerceToString(value.Elem())
+	}
+
+	return fmt.Sprintf("%v", value)
 }
 
 func escapeFormatString(in string) string {
