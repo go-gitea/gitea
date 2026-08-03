@@ -124,3 +124,11 @@ func TestGetInt64(t *testing.T) {
 	assert.EqualValues(t, 100, data)
 	Remove("key")
 }
+
+func TestSafeCacheKey(t *testing.T) {
+	assert.Equal(t, "s-0~", SafeCacheKey("0~", 100))
+	assert.Equal(t, "h-36a9e7f1c95b82ffb99743e0c5c4ce95d83c9a430aac59f84ef3cbfab6145068", SafeCacheKey(" ", 100))
+
+	assert.Equal(t, "s-a", SafeCacheKey("a", 10))
+	assert.Equal(t, "h-28cb017dfc99073aa1b47c1b30f413e3ce774c4991eb4158de50f9dbb36d8043", SafeCacheKey("aaaaaaaaaaa", 10))
+}

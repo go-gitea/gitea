@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitea.dev/modules/git/gitrepo"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetNotes(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
+	bareRepo1Path, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	bareRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("dummy", bareRepo1Path))
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
@@ -24,8 +26,8 @@ func TestGetNotes(t *testing.T) {
 }
 
 func TestGetNestedNotes(t *testing.T) {
-	repoPath := filepath.Join(testReposDir, "repo3_notes")
-	repo, err := OpenRepositoryLocal(t.Context(), repoPath)
+	repoPath, _ := filepath.Abs(filepath.Join(testReposDir, "repo3_notes"))
+	repo, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo3_notes", repoPath))
 	assert.NoError(t, err)
 	defer repo.Close()
 
@@ -39,8 +41,8 @@ func TestGetNestedNotes(t *testing.T) {
 }
 
 func TestGetNonExistentNotes(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
+	bareRepo1Path, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	bareRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("dummy", bareRepo1Path))
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 

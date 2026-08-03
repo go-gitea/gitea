@@ -5,61 +5,33 @@ package git
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 )
 
-func getCacheKey(repoPath, commitID, entryPath string) string {
-	hashBytes := sha256.Sum256(fmt.Appendf(nil, "%s:%s:%s", repoPath, commitID, entryPath))
-	return fmt.Sprintf("last_commit:%x", hashBytes)
+func getCacheKey(repo RepositoryFacade, commitID, entryPath string) string {
+	return fmt.Sprintf("git-last-commit:%s:%s:%s", repo.GitRepoManagedID(), commitID, cache.SafeCacheKey(entryPath, 200))
 }
 
 // LastCommitCache represents a cache to store last commit
 type LastCommitCache struct {
-	repoPath    string
-	ttl         func() int64
+	ttlFn       func() int64
 	repo        *Repository
 	commitCache map[string]*Commit
 	cache       cache.StringCache
 }
 
-// NewLastCommitCache creates a new last commit cache for repo
-func NewLastCommitCache(count int64, repoPath string, gitRepo *Repository, cache cache.StringCache) *LastCommitCache {
-	if cache == nil {
-		return nil
-	}
-	if count < setting.CacheService.LastCommit.CommitsCount {
-		return nil
-	}
-
-	return &LastCommitCache{
-		repoPath: repoPath,
-		repo:     gitRepo,
-		ttl:      setting.LastCommitCacheTTLSeconds,
-		cache:    cache,
-	}
-}
-
-// Put put the last commit id with commit and entry path
+// Put puts the last commit id with commit and entry path
 func (c *LastCommitCache) Put(ref, entryPath, commitID string) error {
-	if c == nil || c.cache == nil {
-		return nil
-	}
 	log.Debug("LastCommitCache save: [%s:%s:%s]", ref, entryPath, commitID)
-	return c.cache.Put(getCacheKey(c.repoPath, ref, entryPath), commitID, c.ttl())
+	return c.cache.Put(getCacheKey(c.repo, ref, entryPath), commitID, c.ttlFn())
 }
 
 // Get gets the last commit information by commit id and entry path
 func (c *LastCommitCache) Get(ctx context.Context, ref, entryPath string) (*Commit, error) {
-	if c == nil || c.cache == nil {
-		return nil, nil //nolint:nilnil // return nil when cache is not available
-	}
-
-	commitID, ok := c.cache.Get(getCacheKey(c.repoPath, ref, entryPath))
+	commitID, ok := c.cache.Get(getCacheKey(c.repo, ref, entryPath))
 	if !ok || commitID == "" {
 		return nil, nil //nolint:nilnil // return nil when cache miss
 	}
@@ -84,24 +56,20 @@ func (c *LastCommitCache) Get(ctx context.Context, ref, entryPath string) (*Comm
 }
 
 // GetCommitByPath gets the last commit for the entry in the provided commit
-func (c *LastCommitCache) GetCommitByPath(ctx context.Context, commitID, entryPath string) (*Commit, error) {
-	sha, err := NewIDFromString(commitID)
-	if err != nil {
-		return nil, err
-	}
-
-	lastCommit, err := c.Get(ctx, sha.String(), entryPath)
+func (c *LastCommitCache) GetCommitByPath(ctx context.Context, commitID ObjectID, entryPath string) (*Commit, error) {
+	commitIDStr := commitID.String()
+	lastCommit, err := c.Get(ctx, commitIDStr, entryPath)
 	if err != nil || lastCommit != nil {
 		return lastCommit, err
 	}
 
-	lastCommit, err = c.repo.getCommitByPathWithID(ctx, sha, entryPath)
+	lastCommit, err = c.repo.getCommitByPathWithID(ctx, commitID, entryPath)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := c.Put(commitID, entryPath, lastCommit.ID.String()); err != nil {
-		log.Error("Unable to cache %s as the last commit for %q in %s %s. Error %v", lastCommit.ID.String(), entryPath, commitID, c.repoPath, err)
+	if err := c.Put(commitIDStr, entryPath, lastCommit.ID.String()); err != nil {
+		log.Error("Unable to cache %s as the last commit for %q in %s %s. Error %v", lastCommit.ID.String(), entryPath, commitID, c.repo.LogString(), err)
 	}
 
 	return lastCommit, nil

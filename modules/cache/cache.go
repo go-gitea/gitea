@@ -4,6 +4,7 @@
 package cache
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	_ "gitea.com/go-chi/cache/memcache" //nolint:depguard // memcache plugin for cache, it is required for config "ADAPTER=memcache"
 )
@@ -116,4 +118,24 @@ func Remove(key string) {
 		return
 	}
 	_ = defaultCache.Delete(key)
+}
+
+// SafeCacheKey returns a cache-safe key for the input string
+// Some caches like memcached have char & length limits.
+func SafeCacheKey(s string, limit int) string {
+	safeAsKey := len(s)+2 < limit
+	if safeAsKey {
+		for i := 0; i < len(s); i++ {
+			if c := s[i]; c <= ' ' || c >= 127 {
+				safeAsKey = false
+				break
+			}
+		}
+	}
+	typ, key := "s", s
+	if !safeAsKey {
+		hashBytes := sha256.Sum256(util.UnsafeStringToBytes(s))
+		typ, key = "h", hex.EncodeToString(hashBytes[:])
+	}
+	return typ + "-" + key
 }

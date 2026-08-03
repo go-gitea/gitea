@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/proxy"
@@ -70,6 +71,11 @@ func OpenRepository(catFileBatchCtx context.Context, repo RepositoryFacade) (*Re
 	}
 	gitRepo := &Repository{
 		RepositoryBase: RepositoryBase{tagCache: newObjectCache[*Tag](), repoFacade: repo, catFileBatchCtx: catFileBatchCtx},
+	}
+	gitRepo.RepositoryBase.LastCommitCache = &LastCommitCache{
+		repo:  gitRepo,
+		ttlFn: setting.LastCommitCacheTTLSeconds,
+		cache: cache.GetCache(),
 	}
 	if err = openRepositoryInternal(gitRepo); err != nil {
 		return nil, err
