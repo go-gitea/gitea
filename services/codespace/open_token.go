@@ -117,7 +117,7 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
 			if err != nil {
 				return err
 			}
@@ -176,7 +176,7 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 				EndpointID:    opts.EndpointID,
 				ManagerID:     codespace.ManagerID,
 				IssuedUnix:    now,
-				ExpiresUnix:   now + int64(setting.Codespace.OpenTokenExpire/time.Second),
+				ExpiresUnix:   now + int64(openTokenExpire/time.Second),
 			}); err != nil {
 				return err
 			}
@@ -283,7 +283,7 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 			}
 
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(currentEntry.CodespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", currentEntry.CodespaceUUID).Get(codespace)
 			if err != nil {
 				return err
 			}
@@ -400,7 +400,7 @@ func advanceCodespaceInteraction(ctx context.Context, codespace *codespace_model
 			"updated_unix",
 		)
 	}
-	if _, err := db.GetEngine(ctx).ID(codespace.UUID).Cols(cols...).Update(codespace); err != nil {
+	if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols(cols...).Update(codespace); err != nil {
 		return 0, err
 	}
 	return nextGeneration, nil
@@ -528,7 +528,7 @@ func putOpenTokenCacheEntry(key string, entry openTokenCacheEntry) error {
 	if cache.GetCache() == nil {
 		return errors.New("cache is not initialized")
 	}
-	return cache.GetCache().PutJSON(key, entry, int64(setting.Codespace.OpenTokenExpire/time.Second))
+	return cache.GetCache().PutJSON(key, entry, int64(openTokenExpire/time.Second))
 }
 
 func getOpenTokenCacheEntry(key string) (openTokenCacheEntry, bool, bool, error) {

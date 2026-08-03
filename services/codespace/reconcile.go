@@ -51,7 +51,7 @@ func reconcileQueuedOperationTimeouts(ctx context.Context, now int64, result *Re
 	if err := db.GetEngine(ctx).
 		Where("operation_status = ? AND operation_created_unix > 0 AND operation_created_unix <= ?",
 			codespace_model.OperationStatusQueued, now-int64(setting.Codespace.QueueTimeout/time.Second)).
-		Asc("operation_created_unix", "uuid").
+		Asc("operation_created_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
 		Find(&rows); err != nil {
 		return err
@@ -72,7 +72,7 @@ func reconcileQueuedOperationTimeout(ctx context.Context, codespaceUUID string, 
 	err := globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
 			if err != nil || !has {
 				return err
 			}
@@ -99,7 +99,7 @@ func reconcileRunningOperationTimeouts(ctx context.Context, now int64, result *R
 	if err := db.GetEngine(ctx).
 		Where("operation_status = ? AND operation_deadline_unix > 0 AND operation_deadline_unix <= ?",
 			codespace_model.OperationStatusRunning, now).
-		Asc("operation_deadline_unix", "uuid").
+		Asc("operation_deadline_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
 		Find(&rows); err != nil {
 		return err
@@ -120,7 +120,7 @@ func reconcileRunningOperationTimeout(ctx context.Context, codespaceUUID string,
 	err := globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
 			if err != nil || !has {
 				return err
 			}
@@ -149,7 +149,7 @@ func reconcileFailedCodespaces(ctx context.Context, now int64, olderThan time.Du
 	var rows []*codespace_model.Codespace
 	if err := db.GetEngine(ctx).
 		Where("status = ? AND updated_unix > 0 AND updated_unix <= ?", codespace_model.StatusFailed, cutoff).
-		Asc("updated_unix", "uuid").
+		Asc("updated_unix", "id").
 		Limit(reconcileCodespacesBatchSize).
 		Find(&rows); err != nil {
 		return err
@@ -169,7 +169,7 @@ func reconcileFailedCodespace(ctx context.Context, codespaceUUID string, cutoff 
 	return globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
 			if err != nil || !has {
 				return err
 			}

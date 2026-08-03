@@ -309,7 +309,7 @@ func validateGovernanceTarget(ctx context.Context, codespace *codespace_model.Co
 
 func loadGovernanceCodespace(ctx context.Context, codespaceUUID string) (*codespace_model.Codespace, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}

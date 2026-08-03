@@ -44,8 +44,8 @@ func TestReportRuntimeTransitionStoppedFromRunning(t *testing.T) {
 	assert.Equal(t, codespace_model.StatusStopped, row.Status)
 	assert.EqualValues(t, 4, row.RuntimeGeneration)
 	assert.Positive(t, row.UpdatedUnix)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
-	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	hasReady, err := HasReadyRuntimeMetadata(t.Context(), codespaceUUID, 71)
 	require.NoError(t, err)
 	assert.False(t, hasReady)
@@ -78,8 +78,8 @@ func TestReportRuntimeTransitionFailedFromStoppedAndIdempotent(t *testing.T) {
 	require.Equal(t, codespace_model.StatusFailed, row.Status)
 	require.EqualValues(t, 3, row.RuntimeGeneration)
 	firstUpdated := row.UpdatedUnix
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assert.Contains(t, readServiceLog(t, codespaceLogFilename(row.UUID)), "Gitea recorded runtime generation 3 as failed.")
 
 	err = ReportRuntimeTransition(t.Context(), manager, ReportRuntimeTransitionOptions{
@@ -118,8 +118,8 @@ func TestReportRuntimeTransitionAllowedWhenCodespaceDisabled(t *testing.T) {
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.Equal(t, codespace_model.StatusStopped, row.Status)
 	assert.EqualValues(t, 2, row.RuntimeGeneration)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
-	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 }
 
 func TestReportRuntimeTransitionRejectsConflicts(t *testing.T) {

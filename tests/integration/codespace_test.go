@@ -166,7 +166,7 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 			AuthorizationID: authorization.ID, TargetRepoID: 4, UnitType: unit.TypeCode,
 			RequestedMode: perm.AccessModeWrite, GrantedMode: perm.AccessModeWrite,
 		}))
-		updated, err := db.GetEngine(t.Context()).ID(codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
+		updated, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
 		require.NoError(t, err)
 		require.EqualValues(t, 1, updated)
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(token), http.StatusOK)
@@ -208,7 +208,7 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 			AuthorizationID: authorization.ID, TargetRepoID: 2, UnitType: unit.TypeCode,
 			RequestedMode: perm.AccessModeRead, GrantedMode: perm.AccessModeRead,
 		}))
-		updated, err = db.GetEngine(t.Context()).ID(codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
+		updated, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
 		require.NoError(t, err)
 		require.EqualValues(t, 1, updated)
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/api/v1/repos/user2/repo2").AddTokenAuth(token), http.StatusOK)
@@ -287,7 +287,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		row = loadIntegrationCodespace(t, codespaceUUID)
 		assert.Equal(t, codespace_model.StatusRunning, row.Status)
 		assert.Empty(t, row.OperationType)
-		assertIntegrationExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+		assertIntegrationExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 
 		autoStopResponse := user2Session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, "/-/codespaces/"+codespaceUUID+"/auto-stop", map[string]string{
 			"mode":          "custom",
@@ -334,7 +334,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		row = loadIntegrationCodespace(t, codespaceUUID)
 		assert.Equal(t, codespace_model.StatusStopped, row.Status)
 		assert.Empty(t, row.OperationType)
-		assertIntegrationNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+		assertIntegrationNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodPost, "/-/codespaces/"+codespaceUUID+"/resume"), http.StatusSeeOther)
 		row = loadIntegrationCodespace(t, codespaceUUID)
@@ -396,7 +396,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		row = loadIntegrationCodespace(t, codespaceUUID)
 		assert.Equal(t, codespace_model.StatusStopped, row.Status)
 		assert.Empty(t, row.OperationType)
-		assertIntegrationNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+		assertIntegrationNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodPost, "/-/codespaces/"+codespaceUUID+"/resume"), http.StatusSeeOther)
 		row = loadIntegrationCodespace(t, codespaceUUID)
@@ -434,7 +434,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		user2Session.MakeRequest(t, NewRequestWithValues(t, http.MethodPost, "/-/codespaces/"+codespaceUUID+"/delete", map[string]string{
 			"return_to": "/-/codespaces",
 		}), http.StatusSeeOther)
-		assertIntegrationNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+		assertIntegrationNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 		fetched, err = client.FetchOperations(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
 			ProtocolVersion:          1,
 			CleanupCapacityAvailable: 1,
@@ -736,7 +736,7 @@ func loadIntegrationManager(t *testing.T, managerID int64) *codespace_model.Mana
 func loadIntegrationCodespace(t *testing.T, codespaceUUID string) *codespace_model.Codespace {
 	t.Helper()
 	row := new(codespace_model.Codespace)
-	has, err := db.GetEngine(t.Context()).ID(codespaceUUID).Get(row)
+	has, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(row)
 	require.NoError(t, err)
 	require.True(t, has)
 	return row

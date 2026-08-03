@@ -55,13 +55,13 @@ func TestManagerSecretVerifier(t *testing.T) {
 }
 
 func TestCodespaceTableIndices(t *testing.T) {
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "user_updated", "user_id", "updated_unix", "created_unix")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "user_updated", "user_id", "updated_unix", "created_unix", "id")
 	assertIndexColumns(t, (&Codespace{}).TableIndices(), "repo", "repo_id")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "create_claim", "status", "operation_type", "operation_status", "manager_id", "environment_tag", "operation_created_unix", "uuid")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "manager_active", "manager_id", "operation_status", "operation_type", "status", "operation_created_unix", "uuid")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "queued_timeout", "operation_status", "operation_created_unix", "uuid")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "running_timeout", "operation_status", "operation_deadline_unix", "uuid")
-	assertIndexColumns(t, (&Codespace{}).TableIndices(), "failed_retention", "status", "updated_unix", "uuid")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "create_claim", "status", "operation_type", "operation_status", "manager_id", "environment_tag", "operation_created_unix", "id")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "manager_active", "manager_id", "operation_status", "operation_created_unix", "id")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "queued_timeout", "operation_status", "operation_created_unix", "id")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "running_timeout", "operation_status", "operation_deadline_unix", "id")
+	assertIndexColumns(t, (&Codespace{}).TableIndices(), "failed_retention", "status", "updated_unix", "id")
 }
 
 func TestManagerTableIndices(t *testing.T) {

@@ -9,7 +9,6 @@ import (
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
-	"gitea.dev/models/db"
 	"gitea.dev/modules/setting"
 )
 
@@ -52,40 +51,25 @@ func ValidatePublicEndpoint(ctx context.Context, manager *codespace_model.Manage
 	if !validPublicEndpointID(opts.EndpointID) {
 		return denyPublicEndpoint(PublicEndpointDeniedInvalidEndpoint), nil
 	}
-	currentManager, err := loadCodespaceManager(ctx, manager.ID)
+	access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, opts.CodespaceUUID, false)
 	if err != nil {
 		return nil, err
 	}
-	if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
+	switch failure {
+	case gatewayAccessManagerOffline:
 		return denyPublicEndpoint(PublicEndpointDeniedManagerOffline), nil
-	}
-
-	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
+	case gatewayAccessCodespaceNotFound:
 		return denyPublicEndpoint(PublicEndpointDeniedCodespaceNotFound), nil
-	}
-	if codespace.ManagerID != manager.ID {
+	case gatewayAccessManagerMismatch:
 		return denyPublicEndpoint(PublicEndpointDeniedManagerMismatch), nil
-	}
-	if codespace.Status != codespace_model.StatusRunning {
+	case gatewayAccessCodespaceNotRunning:
 		return denyPublicEndpoint(PublicEndpointDeniedStateUnavailable), nil
-	}
-	if hasActiveOperation(codespace) {
+	case gatewayAccessActiveOperation:
 		return denyPublicEndpoint(PublicEndpointDeniedActiveOperation), nil
-	}
-
-	entry, hasEntry, err := getRuntimeMetadataEntry(opts.CodespaceUUID)
-	if err != nil {
-		return nil, err
-	}
-	if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
+	case gatewayAccessMetadataRebuilding:
 		return denyPublicEndpoint(PublicEndpointDeniedMetadataRebuilding), nil
 	}
-	endpoint, found := entry.Metadata.endpointByID(opts.EndpointID)
+	endpoint, found := access.metadata.endpointByID(opts.EndpointID)
 	if !found || !endpoint.Public {
 		return denyPublicEndpoint(PublicEndpointDeniedEndpointNotPublic), nil
 	}

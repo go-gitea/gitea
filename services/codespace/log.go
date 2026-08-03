@@ -144,7 +144,7 @@ func UpdateLog(ctx context.Context, manager *codespace_model.Manager, opts Updat
 	err = globallock.LockAndDo(ctx, updateLogLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
 			if err != nil {
 				return err
 			}
@@ -232,7 +232,7 @@ func ReadLog(ctx context.Context, opts ReadLogOptions) (*ReadLogResult, error) {
 	}
 
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +316,7 @@ func appendEncodedLogLines(ctx context.Context, codespace *codespace_model.Codes
 		return err
 	}
 	codespace.LogSize += int64(len(encoded))
-	_, err := db.GetEngine(ctx).ID(codespace.UUID).Cols("log_size").Update(codespace)
+	_, err := db.GetEngine(ctx).ID(codespace.ID).Cols("log_size").Update(codespace)
 	return err
 }
 
@@ -328,7 +328,7 @@ func appendInternalStateSummary(ctx context.Context, summary *internalStateSumma
 	err := globallock.LockAndDo(ctx, updateLogLockKey(summary.CodespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(summary.CodespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", summary.CodespaceUUID).Get(codespace)
 			if err != nil || !has {
 				return err
 			}

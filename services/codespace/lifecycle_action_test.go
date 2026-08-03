@@ -137,8 +137,8 @@ func TestDeleteCodespacePhysicalForUnboundCreatingAndFailed(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, result.Deleted)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", failedUUID)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", failedUUID)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", failedUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
 }
 
 func TestDeleteUnboundCodespaceRequiresCurrentRow(t *testing.T) {
@@ -153,7 +153,7 @@ func TestDeleteUnboundCodespaceRequiresCurrentRow(t *testing.T) {
 	stale := loadServiceCodespace(t, codespaceUUID)
 	row := loadServiceCodespace(t, codespaceUUID)
 	row.OperationRVersion = 21
-	_, err := unittest.GetXORMEngine().ID(codespaceUUID).Cols("operation_r_version").Update(row)
+	_, err := unittest.GetXORMEngine().Where("uuid = ?", codespaceUUID).Cols("operation_r_version").Update(row)
 	require.NoError(t, err)
 
 	deleted, err := deleteUnboundCodespaceIfCurrent(t.Context(), stale)
@@ -215,8 +215,8 @@ func TestDeleteCodespaceQueuesBoundDeleteAndReplacesOperation(t *testing.T) {
 			assert.Equal(t, codespace_model.StatusDeleting, row.Status)
 			assert.Equal(t, codespace_model.OperationDelete, row.OperationType)
 			assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
-			assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", tc.uuid)
-			assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", tc.uuid)
+			assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
+			assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
 		})
 	}
 }

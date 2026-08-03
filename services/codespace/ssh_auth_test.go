@@ -195,7 +195,7 @@ func TestVerifySSHPublicKeyUsesUnifiedLoginRestrictions(t *testing.T) {
 		InteractionGeneration: 7,
 	})
 	_, err = db.GetEngine(t.Context()).
-		ID(webauthnUUID).
+		Where("uuid = ?", webauthnUUID).
 		Cols("user_id").
 		Update(&codespace_model.Codespace{UserID: 32})
 	require.NoError(t, err)

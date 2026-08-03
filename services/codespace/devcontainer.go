@@ -200,15 +200,15 @@ func loadRepositoryDevContainer(ctx context.Context, gitRepo *git.Repository, co
 	if err != nil {
 		return nil, err
 	}
-	if blob.Size(ctx) > setting.Codespace.DevContainerConfigMaxSize {
-		return nil, fmt.Errorf("Dev Container configuration %q exceeds %d bytes", configPath, setting.Codespace.DevContainerConfigMaxSize)
+	if blob.Size(ctx) > devContainerConfigMaxSize {
+		return nil, fmt.Errorf("Dev Container configuration %q exceeds %d bytes", configPath, devContainerConfigMaxSize)
 	}
-	content, err := blob.GetBlobBytes(ctx, setting.Codespace.DevContainerConfigMaxSize+1)
+	content, err := blob.GetBlobBytes(ctx, devContainerConfigMaxSize+1)
 	if err != nil {
 		return nil, err
 	}
-	if int64(len(content)) > setting.Codespace.DevContainerConfigMaxSize {
-		return nil, fmt.Errorf("Dev Container configuration %q exceeds %d bytes", configPath, setting.Codespace.DevContainerConfigMaxSize)
+	if int64(len(content)) > devContainerConfigMaxSize {
+		return nil, fmt.Errorf("Dev Container configuration %q exceeds %d bytes", configPath, devContainerConfigMaxSize)
 	}
 	sum := sha256.Sum256(content)
 	standard, err := hujson.Standardize(content)

@@ -196,7 +196,7 @@ func requestRuntimeCredentials(ctx context.Context, manager *codespace_model.Man
 				return err
 			}
 
-			existingToken, ok, err := readCurrentGiteaToken(ctx, opts.CodespaceUUID)
+			existingToken, ok, err := readCurrentGiteaToken(ctx, codespace.ID)
 			if err != nil {
 				return err
 			}
@@ -204,7 +204,7 @@ func requestRuntimeCredentials(ctx context.Context, manager *codespace_model.Man
 				token = existingToken
 				return nil
 			}
-			generatedToken, err := insertNewGiteaToken(ctx, opts.CodespaceUUID)
+			generatedToken, err := insertNewGiteaToken(ctx, codespace.ID)
 			if err != nil {
 				return err
 			}
@@ -234,7 +234,7 @@ func runtimeAccessLifecycleAllows(codespace *codespace_model.Codespace, operatio
 
 func loadRuntimeAccessCodespace(ctx context.Context, managerID int64, codespaceUUID string, operationRVersion int64) (*codespace_model.Codespace, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +336,7 @@ func findGiteaTokenAuthCandidates(ctx context.Context, tokenLastEight string) ([
 	rows, err := db.GetEngine(ctx).
 		Table("codespace_gitea_token").
 		Where("codespace_gitea_token.token_last_eight = ?", tokenLastEight).
-		Join("INNER", "codespace", "codespace.uuid = codespace_gitea_token.codespace_uuid").
+		Join("INNER", "codespace", "codespace.id = codespace_gitea_token.codespace_id").
 		Join("INNER", "`user`", "`user`.id = codespace.user_id").
 		Join("LEFT", "two_factor", "two_factor.uid = `user`.id").
 		Join("LEFT", "webauthn_credential", "webauthn_credential.user_id = `user`.id").
@@ -375,15 +375,15 @@ func checkCodespaceTokenUserAllowed(user *user_model.User, hasTwoFactorOrWebAuth
 	return nil
 }
 
-func readCurrentGiteaToken(ctx context.Context, codespaceUUID string) (string, bool, error) {
+func readCurrentGiteaToken(ctx context.Context, codespaceID int64) (string, bool, error) {
 	row := new(codespace_model.GiteaToken)
-	has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(row)
+	has, err := db.GetEngine(ctx).ID(codespaceID).Get(row)
 	if err != nil || !has {
 		return "", false, err
 	}
 	token, err := secret_module.DecryptSecret(setting.SecretKey, row.TokenEncrypted)
 	if err != nil || !validCodespaceTokenPlaintext(token) || !verifyCodespaceGiteaToken(row, token) {
-		if _, deleteErr := db.GetEngine(ctx).ID(codespaceUUID).Delete(new(codespace_model.GiteaToken)); deleteErr != nil {
+		if _, deleteErr := db.GetEngine(ctx).ID(codespaceID).Delete(new(codespace_model.GiteaToken)); deleteErr != nil {
 			return "", false, deleteErr
 		}
 		return "", false, nil
@@ -391,9 +391,9 @@ func readCurrentGiteaToken(ctx context.Context, codespaceUUID string) (string, b
 	return token, true, nil
 }
 
-func hasValidCurrentGiteaToken(ctx context.Context, codespaceUUID string) (bool, error) {
+func hasValidCurrentGiteaToken(ctx context.Context, codespaceID int64) (bool, error) {
 	row := new(codespace_model.GiteaToken)
-	has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(row)
+	has, err := db.GetEngine(ctx).ID(codespaceID).Get(row)
 	if err != nil || !has {
 		return false, err
 	}
@@ -404,7 +404,7 @@ func hasValidCurrentGiteaToken(ctx context.Context, codespaceUUID string) (bool,
 	return validCodespaceTokenPlaintext(token) && verifyCodespaceGiteaToken(row, token), nil
 }
 
-func insertNewGiteaToken(ctx context.Context, codespaceUUID string) (string, error) {
+func insertNewGiteaToken(ctx context.Context, codespaceID int64) (string, error) {
 	token := generateCodespaceGiteaToken()
 	salt := util.CryptoRandomString(10)
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, token)
@@ -412,14 +412,14 @@ func insertNewGiteaToken(ctx context.Context, codespaceUUID string) (string, err
 		return "", err
 	}
 	row := &codespace_model.GiteaToken{
-		CodespaceUUID:  codespaceUUID,
+		CodespaceID:    codespaceID,
 		TokenHash:      auth_model.HashToken(token, salt),
 		TokenSalt:      salt,
 		TokenLastEight: token[len(token)-8:],
 		TokenEncrypted: encrypted,
 	}
 	if _, err := db.GetEngine(ctx).Insert(row); err != nil {
-		existing, ok, readErr := readCurrentGiteaToken(ctx, codespaceUUID)
+		existing, ok, readErr := readCurrentGiteaToken(ctx, codespaceID)
 		if readErr != nil {
 			return "", readErr
 		}

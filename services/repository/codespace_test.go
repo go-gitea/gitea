@@ -50,7 +50,7 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	require.NoError(t, db.Insert(t.Context(), sourceSecretRepository))
 
 	codespaceUUID := codespace_model.NewUUID()
-	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
+	codespace := &codespace_model.Codespace{
 		UUID:                      codespaceUUID,
 		UserID:                    user.ID,
 		RepoID:                    repo.ID,
@@ -71,9 +71,10 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 		OperationStartedUnix:      0,
 		OperationDeadlineUnix:     0,
 		AutoStopTimeoutSeconds:    0,
-	}))
+	}
+	require.NoError(t, db.Insert(t.Context(), codespace))
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
-		CodespaceUUID:  codespaceUUID,
+		CodespaceID:    codespace.ID,
 		TokenHash:      "codespace-token-hash",
 		TokenSalt:      "salt",
 		TokenLastEight: "87654321",
@@ -91,18 +92,18 @@ func TestDeleteRepositoryDirectlyUnbindsCodespaces(t *testing.T) {
 	require.NoError(t, DeleteRepositoryDirectly(t.Context(), repo.ID))
 
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{ID: repo.ID})
-	codespace := new(codespace_model.Codespace)
-	has, err = db.GetEngine(t.Context()).ID(codespaceUUID).Get(codespace)
+	persistedCodespace := new(codespace_model.Codespace)
+	has, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(persistedCodespace)
 	require.NoError(t, err)
 	require.True(t, has)
-	assert.Zero(t, codespace.RepoID)
-	assert.Zero(t, codespace.PermissionAuthorizationID)
-	assert.Equal(t, codespace_model.StatusRunning, codespace.Status)
-	assert.EqualValues(t, 200, codespace.UpdatedUnix)
-	assert.EqualValues(t, 3, codespace.InteractionGeneration)
-	assert.EqualValues(t, 4, codespace.RuntimeGeneration)
+	assert.Zero(t, persistedCodespace.RepoID)
+	assert.Zero(t, persistedCodespace.PermissionAuthorizationID)
+	assert.Equal(t, codespace_model.StatusRunning, persistedCodespace.Status)
+	assert.EqualValues(t, 200, persistedCodespace.UpdatedUnix)
+	assert.EqualValues(t, 3, persistedCodespace.InteractionGeneration)
+	assert.EqualValues(t, 4, persistedCodespace.RuntimeGeneration)
 	token := new(codespace_model.GiteaToken)
-	has, err = db.GetEngine(t.Context()).ID(codespaceUUID).Get(token)
+	has, err = db.GetEngine(t.Context()).ID(codespace.ID).Get(token)
 	require.NoError(t, err)
 	require.True(t, has)
 	unittest.AssertNotExistsBean(t, &codespace_model.PermissionAuthorization{ID: authorization.ID})

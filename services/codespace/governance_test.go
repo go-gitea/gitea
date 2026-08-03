@@ -103,8 +103,8 @@ func TestForceDeleteCodespaceRemovesLocalState(t *testing.T) {
 	err := ForceDeleteCodespace(t.Context(), GovernanceActionOptions{CodespaceUUID: codespaceUUID})
 	require.NoError(t, err)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 }
 
 func governanceRowsByUUID(rows []*GovernanceView) map[string]*GovernanceView {

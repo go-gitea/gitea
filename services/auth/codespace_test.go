@@ -195,7 +195,7 @@ func TestCodespaceTokenUnavailableStateIsForbidden(t *testing.T) {
 
 	token, codespaceUUID := createAuthCodespaceToken(t)
 	_, err := db.GetEngine(t.Context()).
-		ID(codespaceUUID).
+		Where("uuid = ?", codespaceUUID).
 		Cols("status").
 		Update(&codespace_model.Codespace{Status: codespace_model.StatusStopped})
 	require.NoError(t, err)

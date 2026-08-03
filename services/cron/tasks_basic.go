@@ -22,12 +22,6 @@ import (
 	archiver_service "gitea.dev/services/repository/archiver"
 )
 
-// ReconcileCodespacesConfig contains settings for the Codespace maintenance task.
-type ReconcileCodespacesConfig struct {
-	BaseConfig
-	OlderThan time.Duration
-}
-
 func registerUpdateMirrorTask() {
 	type UpdateMirrorTaskConfig struct {
 		BaseConfig
@@ -164,7 +158,11 @@ func registerCleanupPackages() {
 }
 
 func registerReconcileCodespaces() {
-	RegisterTaskFatal("reconcile_codespaces", &ReconcileCodespacesConfig{
+	type reconcileCodespacesConfig struct {
+		BaseConfig
+		OlderThan time.Duration
+	}
+	RegisterTaskFatal("reconcile_codespaces", &reconcileCodespacesConfig{
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: true,
@@ -172,7 +170,7 @@ func registerReconcileCodespaces() {
 		},
 		OlderThan: 8760 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
-		realConfig := config.(*ReconcileCodespacesConfig)
+		realConfig := config.(*reconcileCodespacesConfig)
 		_, err := codespace_service.ReconcileCodespaces(ctx, codespace_service.ReconcileCodespacesOptions{
 			FailedOlderThan: realConfig.OlderThan,
 		})

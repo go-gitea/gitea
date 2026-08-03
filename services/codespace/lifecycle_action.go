@@ -99,7 +99,7 @@ func applyStopAction(ctx context.Context, codespace *codespace_model.Codespace, 
 	}
 	if isQueuedIdleStop(codespace) {
 		codespace.OperationTrigger = codespace_model.OperationTriggerUser
-		if _, err := db.GetEngine(ctx).ID(codespace.UUID).Cols("operation_trigger").Update(codespace); err != nil {
+		if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols("operation_trigger").Update(codespace); err != nil {
 			return nil, err
 		}
 		return lifecycleActionResult(codespace), nil
@@ -137,7 +137,7 @@ func applyDeleteAction(ctx context.Context, codespace *codespace_model.Codespace
 	if codespace.Status == codespace_model.StatusDeleting && codespace.OperationType == codespace_model.OperationDelete {
 		return lifecycleActionResult(codespace), nil
 	}
-	if err := cleanupCredentialsForStatus(ctx, codespace.UUID, codespace_model.StatusDeleting); err != nil {
+	if err := cleanupCredentialsForStatus(ctx, codespace, codespace_model.StatusDeleting); err != nil {
 		return nil, err
 	}
 	if err := queueLifecycleOperation(ctx, codespace, codespace_model.OperationDelete, codespace_model.StatusDeleting, now, false); err != nil {
@@ -181,14 +181,14 @@ func queueLifecycleOperation(ctx context.Context, codespace *codespace_model.Cod
 	codespace.OperationStartedUnix = 0
 	codespace.OperationDeadlineUnix = 0
 	codespace.UpdatedUnix = now
-	_, err = db.GetEngine(ctx).ID(codespace.UUID).Cols(cols...).Update(codespace)
+	_, err = db.GetEngine(ctx).ID(codespace.ID).Cols(cols...).Update(codespace)
 	return err
 }
 
 func deleteUnboundCodespaceIfCurrent(ctx context.Context, codespace *codespace_model.Codespace) (bool, error) {
 	affected, err := db.GetEngine(ctx).
-		Where("uuid = ? AND user_id = ? AND manager_id = 0 AND status = ? AND operation_r_version = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ?",
-			codespace.UUID,
+		Where("id = ? AND user_id = ? AND manager_id = 0 AND status = ? AND operation_r_version = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ?",
+			codespace.ID,
 			codespace.UserID,
 			codespace.Status,
 			codespace.OperationRVersion,
@@ -200,10 +200,10 @@ func deleteUnboundCodespaceIfCurrent(ctx context.Context, codespace *codespace_m
 	if err != nil || affected == 0 {
 		return affected > 0, err
 	}
-	if err := deleteGiteaToken(ctx, codespace.UUID); err != nil {
+	if err := deleteGiteaToken(ctx, codespace.ID); err != nil {
 		return false, err
 	}
-	if err := deleteGitSSHKey(ctx, codespace.UUID); err != nil {
+	if err := deleteGitSSHKey(ctx, codespace.ID); err != nil {
 		return false, err
 	}
 	if err := deleteCodespaceLog(ctx, codespace.UUID); err != nil {
@@ -222,7 +222,7 @@ func validateLifecycleActionOptions(opts LifecycleActionOptions) error {
 
 func loadLifecycleActionCodespace(ctx context.Context, opts LifecycleActionOptions) (*codespace_model.Codespace, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}

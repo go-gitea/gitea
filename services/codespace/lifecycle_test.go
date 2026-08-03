@@ -49,8 +49,8 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 	assert.Empty(t, codespace.OperationType)
 	assert.Empty(t, codespace.OperationStatus)
 	assert.Positive(t, codespace.UpdatedUnix)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
-	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 }
 
 func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
@@ -110,8 +110,8 @@ func TestFinalizeOperationStopTimeoutDoesNotMarkStopped(t *testing.T) {
 	assert.Equal(t, codespace_model.StatusFailed, codespace.Status)
 	assert.Empty(t, codespace.OperationType)
 	assert.Empty(t, codespace.OperationStatus)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assert.Contains(t, readServiceLog(t, codespaceLogFilename(codespace.UUID)), "Gitea recorded operation stop#41 timeout as failed.")
 }
 
@@ -253,7 +253,7 @@ func TestFinalizeOperationCreateDoneRejectsDamagedGiteaToken(t *testing.T) {
 		MetadataGeneration: 1,
 	}))
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
-		CodespaceUUID:  codespaceUUID,
+		CodespaceID:    loadServiceCodespace(t, codespaceUUID).ID,
 		TokenHash:      "hash-" + codespaceUUID,
 		TokenSalt:      "salt-1",
 		TokenLastEight: "last0001",
@@ -349,18 +349,19 @@ func insertServiceCodespace(t *testing.T, managerID int64, codespace *codespace_
 
 func insertServiceCredentials(t *testing.T, codespaceUUID string) {
 	t.Helper()
-	_, err := insertNewGiteaToken(t.Context(), codespaceUUID)
+	codespaceID := loadServiceCodespace(t, codespaceUUID).ID
+	_, err := insertNewGiteaToken(t.Context(), codespaceID)
 	require.NoError(t, err)
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.SSHKey{
-		CodespaceUUID: codespaceUUID,
-		KeyID:         time.Now().UnixNano(),
+		CodespaceID: codespaceID,
+		KeyID:       time.Now().UnixNano(),
 	}))
 }
 
 func loadServiceCodespace(t *testing.T, codespaceUUID string) *codespace_model.Codespace {
 	t.Helper()
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(t.Context()).ID(codespaceUUID).Get(codespace)
+	has, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(codespace)
 	require.NoError(t, err)
 	require.True(t, has)
 	return codespace

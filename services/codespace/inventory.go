@@ -114,7 +114,7 @@ func precheckInventoryObservedVersions(ctx context.Context, managerID int64, ins
 			continue
 		}
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(instance.GetCodespaceUuid()).Get(codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", instance.GetCodespaceUuid()).Get(codespace)
 		if err != nil {
 			return err
 		}
@@ -172,7 +172,7 @@ func processReportedRuntimeInstance(ctx context.Context, managerID int64, instan
 	var result *codespacev1.RuntimeInstanceResult
 	err := globallock.LockAndDo(ctx, inventoryCodespaceLockKey(instance.GetCodespaceUuid()), func(ctx context.Context) error {
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(instance.GetCodespaceUuid()).Get(codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", instance.GetCodespaceUuid()).Get(codespace)
 		if err != nil {
 			return err
 		}
@@ -259,7 +259,7 @@ func processMissingRuntimeInstance(ctx context.Context, managerID, inventoryGene
 				return err
 			}
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
 			if err != nil || !has {
 				return err
 			}
@@ -295,11 +295,11 @@ func applyInventoryMissingFailed(ctx context.Context, codespace *codespace_model
 	codespace.Status = codespace_model.StatusFailed
 	codespace.UpdatedUnix = now
 	clearActiveOperation(codespace)
-	if err := cleanupCredentialsForStatus(ctx, codespace.UUID, codespace_model.StatusFailed); err != nil {
+	if err := cleanupCredentialsForStatus(ctx, codespace, codespace_model.StatusFailed); err != nil {
 		return err
 	}
 	deleteRuntimeMetadata(codespace.UUID)
-	_, err := db.GetEngine(ctx).ID(codespace.UUID).Cols(
+	_, err := db.GetEngine(ctx).ID(codespace.ID).Cols(
 		"status",
 		"operation_type",
 		"operation_status",

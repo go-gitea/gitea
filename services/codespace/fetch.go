@@ -242,7 +242,7 @@ func validateObservedOperationHistory(ctx context.Context, managerID int64, obse
 	for _, item := range observed {
 		observedVersions[item.GetCodespaceUuid()] = item.GetOperationRversion()
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(item.GetCodespaceUuid()).Get(codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", item.GetCodespaceUuid()).Get(codespace)
 		if err != nil {
 			return nil, err
 		}
@@ -260,7 +260,7 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 	var rows []*codespace_model.Codespace
 	if err := db.GetEngine(ctx).
 		Where("manager_id = ? AND operation_status = ?", managerID, codespace_model.OperationStatusRunning).
-		Asc("operation_created_unix", "uuid").
+		Asc("operation_created_unix", "id").
 		Find(&rows); err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 			result.Operations = append(result.Operations, buildAbortOperationPayload(codespace))
 			continue
 		}
-		if _, err := db.GetEngine(ctx).ID(codespace.UUID).Cols("operation_deadline_unix").Update(&codespace_model.Codespace{OperationDeadlineUnix: deadlineUnix}); err != nil {
+		if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols("operation_deadline_unix").Update(&codespace_model.Codespace{OperationDeadlineUnix: deadlineUnix}); err != nil {
 			return err
 		}
 		if observedVersion == codespace.OperationRVersion {
@@ -326,7 +326,7 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 		Where("operation_status = ?", codespace_model.OperationStatusQueued).
 		In("operation_type", operationTypes).
 		In("status", queuedOperationCandidateStatuses(operationTypes)).
-		Asc("operation_created_unix", "uuid").
+		Asc("operation_created_unix", "id").
 		Limit(limit)
 	if createTags == nil {
 		query = query.And("manager_id = ?", managerID)
@@ -365,7 +365,7 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 			continue
 		}
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(candidate.UUID).Get(codespace)
+		has, err := db.GetEngine(ctx).ID(candidate.ID).Get(codespace)
 		if err != nil {
 			return claimed, err
 		}
@@ -391,8 +391,8 @@ func claimQueuedOperation(ctx context.Context, candidate *codespace_model.Codesp
 	}
 	// Keep every scheduling predicate in the UPDATE so concurrent Managers cannot both claim a stale candidate.
 	query := db.GetEngine(ctx).
-		Where("uuid = ? AND operation_r_version = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ?",
-			candidate.UUID, candidate.OperationRVersion, candidate.OperationType, codespace_model.OperationStatusQueued, candidate.OperationTrigger)
+		Where("id = ? AND operation_r_version = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ?",
+			candidate.ID, candidate.OperationRVersion, candidate.OperationType, codespace_model.OperationStatusQueued, candidate.OperationTrigger)
 	if candidate.OperationType == codespace_model.OperationCreate {
 		query = query.And("status = ? AND manager_id = ? AND environment_tag = ? AND repo_id = ?", codespace_model.StatusCreating, 0, candidate.EnvironmentTag, candidate.RepoID)
 		if managerUserID > 0 {

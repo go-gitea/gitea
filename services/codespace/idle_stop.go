@@ -56,7 +56,7 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 				return ErrRequestIdleStopManagerUnavailable
 			}
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
 			if err != nil {
 				return err
 			}
@@ -107,7 +107,7 @@ func RequestIdleStop(ctx context.Context, manager *codespace_model.Manager, opts
 			codespace.OperationStartedUnix = 0
 			codespace.OperationDeadlineUnix = 0
 			codespace.UpdatedUnix = now
-			if _, err := db.GetEngine(ctx).ID(codespace.UUID).Cols(
+			if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols(
 				"operation_r_version",
 				"operation_type",
 				"operation_status",

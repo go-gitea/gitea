@@ -52,7 +52,7 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 		Status:      codespace_model.StatusFailed,
 		UpdatedUnix: now - int64((2*time.Hour)/time.Second),
 	})
-	_, err := db.GetEngine(t.Context()).ID(failedUUID).Cols("updated_unix").Update(&codespace_model.Codespace{
+	_, err := db.GetEngine(t.Context()).Where("uuid = ?", failedUUID).Cols("updated_unix").Update(&codespace_model.Codespace{
 		UpdatedUnix: now - int64((2*time.Hour)/time.Second),
 	})
 	require.NoError(t, err)
@@ -62,7 +62,7 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 		Status:      codespace_model.StatusFailed,
 		UpdatedUnix: now,
 	})
-	_, err = db.GetEngine(t.Context()).ID(freshFailedUUID).Cols("updated_unix").Update(&codespace_model.Codespace{UpdatedUnix: now})
+	_, err = db.GetEngine(t.Context()).Where("uuid = ?", freshFailedUUID).Cols("updated_unix").Update(&codespace_model.Codespace{UpdatedUnix: now})
 	require.NoError(t, err)
 
 	result, err := ReconcileCodespaces(t.Context(), ReconcileCodespacesOptions{FailedOlderThan: time.Hour})
@@ -74,16 +74,16 @@ func TestReconcileCodespacesAppliesTimeoutsAndRetention(t *testing.T) {
 	queued := loadServiceCodespace(t, queuedUUID)
 	assert.Equal(t, codespace_model.StatusRunning, queued.Status)
 	assert.Empty(t, queued.OperationStatus)
-	assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", queuedUUID)
-	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", queuedUUID)
+	assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", queuedUUID)
+	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", queuedUUID)
 
 	running := loadServiceCodespace(t, runningUUID)
 	assert.Equal(t, codespace_model.StatusFailed, running.Status)
 	assert.Empty(t, running.OperationStatus)
 
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", failedUUID)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", failedUUID)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", failedUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", failedUUID)
 	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", freshFailedUUID)
 }
 

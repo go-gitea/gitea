@@ -51,7 +51,7 @@ func ReportRuntimeTransition(ctx context.Context, manager *codespace_model.Manag
 	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
 			if err != nil {
 				return err
 			}
@@ -155,10 +155,10 @@ func applyRuntimeTransition(ctx context.Context, codespace *codespace_model.Code
 	codespace.RuntimeGeneration = runtimeGeneration
 	codespace.UpdatedUnix = now
 	cols := []string{"status", "runtime_generation", "updated_unix"}
-	if err := cleanupCredentialsForStatus(ctx, codespace.UUID, targetStatus); err != nil {
+	if err := cleanupCredentialsForStatus(ctx, codespace, targetStatus); err != nil {
 		return err
 	}
 	deleteRuntimeMetadata(codespace.UUID)
-	_, err := db.GetEngine(ctx).ID(codespace.UUID).Cols(cols...).Update(codespace)
+	_, err := db.GetEngine(ctx).ID(codespace.ID).Cols(cols...).Update(codespace)
 	return err
 }

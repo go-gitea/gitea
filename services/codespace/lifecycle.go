@@ -50,7 +50,7 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 	var stateSummary *internalStateSummary
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
 		if err != nil {
 			return err
 		}
@@ -71,7 +71,7 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 		}
 		if opts.FinalStatus == codespacev1.FinalStatus_FINAL_STATUS_DONE &&
 			(opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_CREATE || opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_RESUME) {
-			if err := requireFinalizeReadyPrerequisites(ctx, opts.CodespaceUUID, opts.OperationRVersion); err != nil {
+			if err := requireFinalizeReadyPrerequisites(ctx, codespace, opts.OperationRVersion); err != nil {
 				return err
 			}
 		}
@@ -94,15 +94,15 @@ func hasActiveOperation(codespace *codespace_model.Codespace) bool {
 	return codespace.OperationType != "" || codespace.OperationStatus != "" || codespace.OperationTrigger != ""
 }
 
-func requireFinalizeReadyPrerequisites(ctx context.Context, codespaceUUID string, operationRVersion int64) error {
-	hasToken, err := hasValidCurrentGiteaToken(ctx, codespaceUUID)
+func requireFinalizeReadyPrerequisites(ctx context.Context, codespace *codespace_model.Codespace, operationRVersion int64) error {
+	hasToken, err := hasValidCurrentGiteaToken(ctx, codespace.ID)
 	if err != nil {
 		return err
 	}
 	if !hasToken {
 		return ErrFinalizeGiteaTokenRequired
 	}
-	hasMetadata, err := HasReadyRuntimeMetadata(ctx, codespaceUUID, operationRVersion)
+	hasMetadata, err := HasReadyRuntimeMetadata(ctx, codespace.UUID, operationRVersion)
 	if err != nil {
 		return err
 	}
@@ -165,13 +165,13 @@ func applyFinalState(ctx context.Context, codespace *codespace_model.Codespace, 
 	codespace.Status = status
 	codespace.UpdatedUnix = now
 	clearActiveOperation(codespace)
-	if err := cleanupCredentialsForStatus(ctx, codespace.UUID, status); err != nil {
+	if err := cleanupCredentialsForStatus(ctx, codespace, status); err != nil {
 		return err
 	}
 	if status != codespace_model.StatusRunning {
 		deleteRuntimeMetadata(codespace.UUID)
 	}
-	_, err := db.GetEngine(ctx).ID(codespace.UUID).Cols(
+	_, err := db.GetEngine(ctx).ID(codespace.ID).Cols(
 		"status",
 		"operation_type",
 		"operation_status",
@@ -194,38 +194,43 @@ func clearActiveOperation(codespace *codespace_model.Codespace) {
 	codespace.OperationDeadlineUnix = 0
 }
 
-func cleanupCredentialsForStatus(ctx context.Context, codespaceUUID, status string) error {
+func cleanupCredentialsForStatus(ctx context.Context, codespace *codespace_model.Codespace, status string) error {
 	switch status {
 	case codespace_model.StatusRunning:
 		return nil
 	case codespace_model.StatusStopped:
-		return deleteGiteaToken(ctx, codespaceUUID)
+		return deleteGiteaToken(ctx, codespace.ID)
 	case codespace_model.StatusFailed, codespace_model.StatusDeleting:
-		if err := deleteGiteaToken(ctx, codespaceUUID); err != nil {
+		if err := deleteGiteaToken(ctx, codespace.ID); err != nil {
 			return err
 		}
-		return deleteGitSSHKey(ctx, codespaceUUID)
+		return deleteGitSSHKey(ctx, codespace.ID)
 	default:
 		return nil
 	}
 }
 
 func deleteCodespaceForFinal(ctx context.Context, codespaceUUID string) error {
-	if err := deleteGiteaToken(ctx, codespaceUUID); err != nil {
+	codespace := new(codespace_model.Codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+	if err != nil || !has {
 		return err
 	}
-	if err := deleteGitSSHKey(ctx, codespaceUUID); err != nil {
+	if err := deleteGiteaToken(ctx, codespace.ID); err != nil {
+		return err
+	}
+	if err := deleteGitSSHKey(ctx, codespace.ID); err != nil {
 		return err
 	}
 	if err := deleteCodespaceLog(ctx, codespaceUUID); err != nil {
 		return err
 	}
 	deleteRuntimeMetadata(codespaceUUID)
-	_, err := db.GetEngine(ctx).ID(codespaceUUID).Delete(new(codespace_model.Codespace))
+	_, err = db.GetEngine(ctx).ID(codespace.ID).Delete(new(codespace_model.Codespace))
 	return err
 }
 
-func deleteGiteaToken(ctx context.Context, codespaceUUID string) error {
-	_, err := db.GetEngine(ctx).Where("codespace_uuid = ?", codespaceUUID).Delete(new(codespace_model.GiteaToken))
+func deleteGiteaToken(ctx context.Context, codespaceID int64) error {
+	_, err := db.GetEngine(ctx).ID(codespaceID).Delete(new(codespace_model.GiteaToken))
 	return err
 }

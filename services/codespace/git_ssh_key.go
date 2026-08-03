@@ -145,7 +145,7 @@ func ResolveGitSSHKeyUser(ctx context.Context, key *asymkey_model.PublicKey, rep
 	}
 
 	codespace := new(codespace_model.Codespace)
-	has, err = db.GetEngine(ctx).ID(relation.CodespaceUUID).Get(codespace)
+	has, err = db.GetEngine(ctx).ID(relation.CodespaceID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,7 @@ func codespaceGitSSHCommandAllowed(codespace *codespace_model.Codespace, now int
 func ensureGitSSHKeyBinding(ctx context.Context, codespace *codespace_model.Codespace, key normalizedGitSSHKey) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		relation := new(codespace_model.SSHKey)
-		hasRelation, err := db.GetEngine(ctx).ID(codespace.UUID).Get(relation)
+		hasRelation, err := db.GetEngine(ctx).ID(codespace.ID).Get(relation)
 		if err != nil {
 			return err
 		}
@@ -237,7 +237,7 @@ func ensureGitSSHKeyBinding(ctx context.Context, codespace *codespace_model.Code
 		if _, err := db.GetEngine(ctx).Insert(publicKey); err != nil {
 			return err
 		}
-		return insertCodespaceGitSSHKeyBinding(ctx, codespace.UUID, publicKey.ID)
+		return insertCodespaceGitSSHKeyBinding(ctx, codespace.ID, publicKey.ID)
 	})
 }
 
@@ -272,13 +272,13 @@ func ensureOrphanedGitSSHKeyBinding(ctx context.Context, codespace *codespace_mo
 		return ErrRuntimeGitSSHKeyConflict
 	}
 
-	return insertCodespaceGitSSHKeyBinding(ctx, codespace.UUID, publicKey.ID)
+	return insertCodespaceGitSSHKeyBinding(ctx, codespace.ID, publicKey.ID)
 }
 
-func insertCodespaceGitSSHKeyBinding(ctx context.Context, codespaceUUID string, keyID int64) error {
+func insertCodespaceGitSSHKeyBinding(ctx context.Context, codespaceID, keyID int64) error {
 	_, err := db.GetEngine(ctx).Insert(&codespace_model.SSHKey{
-		CodespaceUUID: codespaceUUID,
-		KeyID:         keyID,
+		CodespaceID: codespaceID,
+		KeyID:       keyID,
 	})
 	return err
 }
@@ -456,13 +456,13 @@ func gitSSHHostPattern() (string, error) {
 	return hostPattern, nil
 }
 
-func deleteGitSSHKey(ctx context.Context, codespaceUUID string) error {
+func deleteGitSSHKey(ctx context.Context, codespaceID int64) error {
 	relation := new(codespace_model.SSHKey)
-	has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(relation)
+	has, err := db.GetEngine(ctx).ID(codespaceID).Get(relation)
 	if err != nil || !has {
 		return err
 	}
-	if _, err := db.GetEngine(ctx).ID(codespaceUUID).Delete(new(codespace_model.SSHKey)); err != nil {
+	if _, err := db.GetEngine(ctx).ID(codespaceID).Delete(new(codespace_model.SSHKey)); err != nil {
 		return err
 	}
 	_, err = db.GetEngine(ctx).Where(builder.Eq{"id": relation.KeyID, "type": asymkey_model.KeyTypeCodespace}).Delete(new(asymkey_model.PublicKey))

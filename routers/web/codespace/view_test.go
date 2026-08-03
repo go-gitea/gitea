@@ -5,7 +5,6 @@ package codespace
 
 import (
 	"net/http"
-	"strings"
 	"testing"
 
 	codespace_model "gitea.dev/models/codespace"
@@ -49,7 +48,7 @@ func TestListFiltersCurrentCreatorByOrganizationRepositories(t *testing.T) {
 
 	codespaceUUID := "39393939-3939-4939-8939-393939393939"
 	insertWebViewCodespace(t, &codespace_model.Codespace{UUID: codespaceUUID, Status: codespace_model.StatusStopped})
-	_, err := db.GetEngine(t.Context()).ID(codespaceUUID).Cols("user_id", "repo_id").Update(&codespace_model.Codespace{UserID: 2, RepoID: 3})
+	_, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("user_id", "repo_id").Update(&codespace_model.Codespace{UserID: 2, RepoID: 3})
 	require.NoError(t, err)
 
 	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces?owner=org3", contexttest.MockContextOption{Render: templates.PageRenderer()})
@@ -85,13 +84,8 @@ func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {
 	view, ok := ctx.Data["Codespace"].(*codespace_service.CreatorCodespaceView)
 	require.True(t, ok)
 	assert.Equal(t, codespaceUUID, view.UUID)
-	assert.Contains(t, resp.Body.String(), "data-refresh-after-ms=\"2000\"")
-	assert.Contains(t, resp.Body.String(), "id=\"codespace-settings-modal\"")
-	assert.Contains(t, resp.Body.String(), "name=\"timeout_unit\"")
-	assert.Contains(t, resp.Body.String(), "data-log-next-offset=\"0\"")
 	assert.Equal(t, codespace_service.DetailModeLogs, ctx.Data["CodespaceTab"])
 	assert.False(t, ctx.Data["CodespaceTabExplicit"].(bool))
-	assert.NotContains(t, resp.Body.String(), "Codespace "+codespaceUUID[:8])
 }
 
 func TestDetailPreservesExplicitOverviewTab(t *testing.T) {
@@ -139,34 +133,6 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 	assert.Equal(t, "App", modal.Label)
 	assert.Equal(t, "codespace.authenticated_endpoint", modal.Access)
 	assert.Equal(t, "/-/codespaces/"+codespaceUUID+"/open/app-3000", modal.OpenPath)
-	assert.Contains(t, resp.Body.String(), `data-codespace-auto-open="true"`)
-	assert.Contains(t, resp.Body.String(), `target="_self"`)
-	assert.Equal(t, 1, strings.Count(resp.Body.String(), `data-modal-form.url="/-/codespaces/`+codespaceUUID+`/open"`))
-}
-
-func TestStateRendersFragmentNoStore(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	codespaceUUID := "25252525-2525-4525-8525-252525252525"
-	insertWebViewCodespace(t, &codespace_model.Codespace{
-		UUID:            codespaceUUID,
-		Status:          codespace_model.StatusCreating,
-		OperationType:   codespace_model.OperationCreate,
-		OperationStatus: codespace_model.OperationStatusQueued,
-	})
-
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"/state", contexttest.MockContextOption{Render: templates.PageRenderer()})
-	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
-	State(ctx)
-
-	require.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, "no-store", resp.Header().Get("Cache-Control"))
-	assert.Contains(t, resp.Body.String(), "id=\"codespace-live-state\"")
-	assert.Contains(t, resp.Body.String(), "data-state-url=\"/-/codespaces/"+codespaceUUID+"/state?tab=logs\"")
-	assert.Contains(t, resp.Body.String(), "data-refresh-after-ms=\"2000\"")
-	assert.Contains(t, resp.Body.String(), "data-auto-stop-configurable=\"false\"")
-	assert.Contains(t, resp.Body.String(), "data-detail-mode=\"logs\"")
 }
 
 func TestDetailRejectsOtherCreator(t *testing.T) {

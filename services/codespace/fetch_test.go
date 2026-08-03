@@ -406,14 +406,14 @@ func TestApplyQueuedTimeoutUsesQueuedStateMapping(t *testing.T) {
 			assert.Empty(t, row.OperationTrigger)
 			assert.Greater(t, row.UpdatedUnix, int64(1))
 			if tc.expectToken {
-				assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", tc.uuid)
+				assertServiceExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
 			} else {
-				assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", tc.uuid)
+				assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
 			}
 			if tc.expectKey {
-				assertServiceExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", tc.uuid)
+				assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
 			} else {
-				assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", tc.uuid)
+				assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", tc.uuid)
 			}
 		})
 	}

@@ -99,7 +99,7 @@ func TestRuntimeCredentialsOmitsUnauthorizedSecrets(t *testing.T) {
 				Status:            codespace_model.StatusRunning,
 				OperationRVersion: 1,
 			})
-			_, err := db.GetEngine(t.Context()).ID(tt.codespaceUUID).Cols("user_id", "repo_id", "ref_type", "ref_name").Update(&codespace_model.Codespace{
+			_, err := db.GetEngine(t.Context()).Where("uuid = ?", tt.codespaceUUID).Cols("user_id", "repo_id", "ref_type", "ref_name").Update(&codespace_model.Codespace{
 				UserID: tt.userID, RepoID: tt.repoID, RefType: tt.refType, RefName: tt.refName,
 			})
 			require.NoError(t, err)
@@ -137,7 +137,7 @@ func TestRuntimeCredentialsRepairsDamagedRow(t *testing.T) {
 	encrypted, err := secret_module.EncryptSecret(setting.SecretKey, badPlaintext)
 	require.NoError(t, err)
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
-		CodespaceUUID:  codespaceUUID,
+		CodespaceID:    loadServiceCodespace(t, codespaceUUID).ID,
 		TokenHash:      "wrong-hash",
 		TokenSalt:      "salt",
 		TokenLastEight: badPlaintext[len(badPlaintext)-8:],
@@ -150,7 +150,7 @@ func TestRuntimeCredentialsRepairsDamagedRow(t *testing.T) {
 	row := loadServiceGiteaToken(t, codespaceUUID)
 	assert.True(t, verifyCodespaceGiteaToken(row, result.Token))
 
-	count, err := db.GetEngine(t.Context()).Where("codespace_uuid = ?", codespaceUUID).Count(new(codespace_model.GiteaToken))
+	count, err := db.GetEngine(t.Context()).Where("codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID).Count(new(codespace_model.GiteaToken))
 	require.NoError(t, err)
 	assert.EqualValues(t, 1, count)
 }
@@ -175,7 +175,7 @@ func TestRuntimeCredentialsRejectsUnavailableState(t *testing.T) {
 
 	_, err := requestRuntimeCredentials(t.Context(), manager, requestRuntimeCredentialsOptions{CodespaceUUID: codespaceUUID, OperationRVersion: 9})
 	require.ErrorIs(t, err, ErrRequestRuntimeAccessStateUnavailable)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 }
 
 func TestRuntimeCredentialsRejectsDisabledCodespace(t *testing.T) {
@@ -192,7 +192,7 @@ func TestRuntimeCredentialsRejectsDisabledCodespace(t *testing.T) {
 
 	_, err := requestRuntimeCredentials(t.Context(), manager, requestRuntimeCredentialsOptions{CodespaceUUID: codespaceUUID, OperationRVersion: 10})
 	require.ErrorIs(t, err, ErrRequestRuntimeAccessStateUnavailable)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 }
 
 func TestRuntimeCredentialsUsesCurrentManagerAvailability(t *testing.T) {
@@ -215,7 +215,7 @@ func TestRuntimeCredentialsUsesCurrentManagerAvailability(t *testing.T) {
 
 	_, err = requestRuntimeCredentials(t.Context(), &staleManager, requestRuntimeCredentialsOptions{CodespaceUUID: codespaceUUID, OperationRVersion: 10})
 	require.ErrorIs(t, err, ErrRequestRuntimeAccessManagerOffline)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 
 	_, err = db.GetEngine(t.Context()).
 		ID(manager.ID).
@@ -338,7 +338,7 @@ func createRunningServiceGiteaTokenForUser(t *testing.T, codespaceUUID string, u
 		OperationRVersion: 11,
 	})
 	_, err := db.GetEngine(t.Context()).
-		ID(codespaceUUID).
+		Where("uuid = ?", codespaceUUID).
 		Cols("user_id").
 		Update(&codespace_model.Codespace{UserID: userID})
 	require.NoError(t, err)
@@ -352,7 +352,7 @@ func createRunningServiceGiteaTokenForUser(t *testing.T, codespaceUUID string, u
 func loadServiceGiteaToken(t *testing.T, codespaceUUID string) *codespace_model.GiteaToken {
 	t.Helper()
 	row := new(codespace_model.GiteaToken)
-	has, err := db.GetEngine(t.Context()).ID(codespaceUUID).Get(row)
+	has, err := db.GetEngine(t.Context()).ID(loadServiceCodespace(t, codespaceUUID).ID).Get(row)
 	require.NoError(t, err)
 	require.True(t, has)
 	return row

@@ -550,7 +550,7 @@ func listManagerCodespaceUUIDs(ctx context.Context, managerID int64, limit int) 
 	var rows []*codespace_model.Codespace
 	if err := db.GetEngine(ctx).
 		Where("manager_id = ?", managerID).
-		Asc("uuid").
+		Asc("id").
 		Limit(limit).
 		Find(&rows); err != nil {
 		return nil, err
@@ -566,7 +566,7 @@ func deleteManagerCodespace(ctx context.Context, managerID int64, codespaceUUID 
 	return globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
 			if err != nil || !has || codespace.ManagerID != managerID {
 				return err
 			}

@@ -210,7 +210,7 @@ func ListCreatorCodespaces(ctx context.Context, opts CreatorListOptions) (*Creat
 		query.Limit(opts.Limit)
 	}
 	var rows []*codespace_model.Codespace
-	query.Desc("codespace.updated_unix", "codespace.created_unix", "codespace.uuid")
+	query.Desc("codespace.updated_unix", "codespace.created_unix", "codespace.id")
 	var total int64
 	if opts.PageSize > 0 {
 		var err error
@@ -245,7 +245,7 @@ func GetCreatorCodespace(ctx context.Context, opts CreatorDetailOptions) (*Creat
 		return nil, err
 	}
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}

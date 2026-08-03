@@ -120,7 +120,7 @@ func deleteUserCodespacesLocked(ctx context.Context, userID int64) error {
 		var rows []*codespace_model.Codespace
 		if err := db.GetEngine(ctx).
 			Where("user_id = ?", userID).
-			Asc("uuid").
+			Asc("id").
 			Limit(userDeleteBatchSize).
 			Find(&rows); err != nil {
 			return err
@@ -140,7 +140,7 @@ func deleteUserCodespace(ctx context.Context, userID int64, codespaceUUID string
 	return globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
 			if err != nil || !has || codespace.UserID != userID {
 				return err
 			}

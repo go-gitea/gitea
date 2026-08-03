@@ -12,7 +12,6 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/cache"
-	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -111,7 +110,7 @@ func TestValidateOpenTokenDeniesAndPreservesTemporarilyInvalidCode(t *testing.T)
 	})
 	require.NoError(t, err)
 
-	_, err = db.GetEngine(t.Context()).ID(codespaceUUID).Cols("status").Update(&codespace_model.Codespace{
+	_, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("status").Update(&codespace_model.Codespace{
 		Status: codespace_model.StatusStopped,
 	})
 	require.NoError(t, err)
@@ -142,7 +141,7 @@ func TestValidateOpenTokenDeletesExpiredOrMalformedCache(t *testing.T) {
 		CodespaceUUID: codespaceUUID,
 		EndpointID:    "workspace",
 		ManagerID:     manager.ID,
-		IssuedUnix:    time.Now().Unix() - int64(setting.Codespace.OpenTokenExpire/time.Second) - 1,
+		IssuedUnix:    time.Now().Unix() - int64(openTokenExpire/time.Second) - 1,
 		ExpiresUnix:   time.Now().Unix() - 1,
 	}))
 	expired, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: expiredCode})
@@ -152,7 +151,7 @@ func TestValidateOpenTokenDeletesExpiredOrMalformedCache(t *testing.T) {
 
 	malformedCode := generateOpenTokenCode()
 	malformedKey := openTokenCacheKey(malformedCode)
-	require.NoError(t, cache.GetCache().Put(malformedKey, "{bad", int64(setting.Codespace.OpenTokenExpire/time.Second)))
+	require.NoError(t, cache.GetCache().Put(malformedKey, "{bad", int64(openTokenExpire/time.Second)))
 	malformed, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: malformedCode})
 	require.NoError(t, err)
 	assert.Equal(t, OpenTokenDeniedInvalidCredentials, malformed.GetDenied().GetCategory())
@@ -214,7 +213,7 @@ func TestValidateOpenTokenVersionExhaustedConsumesCode(t *testing.T) {
 		EndpointID:    "workspace",
 		ManagerID:     manager.ID,
 		IssuedUnix:    now,
-		ExpiresUnix:   now + int64(setting.Codespace.OpenTokenExpire/time.Second),
+		ExpiresUnix:   now + int64(openTokenExpire/time.Second),
 	}))
 	result, err := ValidateOpenToken(t.Context(), manager, ValidateOpenTokenOptions{Code: code})
 	require.NoError(t, err)

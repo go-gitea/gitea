@@ -169,7 +169,7 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 			return ErrRuntimeMetadataManagerOffline
 		}
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
 		if err != nil {
 			return err
 		}
@@ -232,7 +232,7 @@ func normalizeRuntimeMetadata(input *codespacev1.RuntimeMetadata) (runtimeMetada
 	if input == nil {
 		return runtimeMetadata{}, "", errors.New("runtime metadata is required")
 	}
-	if int64(proto.Size(input)) > setting.Codespace.RuntimeMetadataMaxSize {
+	if int64(proto.Size(input)) > runtimeMetadataMaxSize {
 		return runtimeMetadata{}, "", errors.New("runtime metadata exceeds maximum size")
 	}
 	if input.GetBoot() == nil {
@@ -290,7 +290,7 @@ func normalizeRuntimeMetadata(input *codespacev1.RuntimeMetadata) (runtimeMetada
 	if err != nil {
 		return runtimeMetadata{}, "", fmt.Errorf("encode canonical runtime metadata: %w", err)
 	}
-	if int64(len(canonical)) > setting.Codespace.RuntimeMetadataMaxSize {
+	if int64(len(canonical)) > runtimeMetadataMaxSize {
 		return runtimeMetadata{}, "", errors.New("runtime metadata exceeds maximum size")
 	}
 	sum := sha256.Sum256(canonical)

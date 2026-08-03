@@ -132,7 +132,7 @@ func UpdateAutoStop(ctx context.Context, opts UpdateAutoStopOptions) (*UpdateAut
 				)
 			}
 			if changed || len(cols) > 2 {
-				if _, err := db.GetEngine(ctx).ID(codespace.UUID).Cols(cols...).Update(codespace); err != nil {
+				if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols(cols...).Update(codespace); err != nil {
 					return err
 				}
 			}
@@ -159,7 +159,7 @@ func validateCreatorInteractionOptions(userID int64, codespaceUUID string) error
 
 func loadCreatorCodespace(ctx context.Context, userID int64, codespaceUUID string) (*codespace_model.Codespace, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}

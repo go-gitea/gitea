@@ -100,15 +100,15 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 		OperationRVersion: 51,
 	})
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
-		CodespaceUUID:  codespaceUUID,
+		CodespaceID:    loadServiceCodespace(t, codespaceUUID).ID,
 		TokenHash:      "manager-delete-hash",
 		TokenSalt:      "salt",
 		TokenLastEight: "last0001",
 		TokenEncrypted: "encrypted",
 	}))
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.SSHKey{
-		CodespaceUUID: codespaceUUID,
-		KeyID:         5151,
+		CodespaceID: loadServiceCodespace(t, codespaceUUID).ID,
+		KeyID:       5151,
 	}))
 
 	siteSettings, err := ListManagerSettings(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeSite})
@@ -172,8 +172,8 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 	assertServiceNotExists(t, new(codespace_model.Manager), "id = ?", userManager.ID)
 	assertServiceNotExists(t, new(codespace_model.ManagerAddress), "manager_id = ?", userManager.ID)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
-	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assertServiceExists(t, new(codespace_model.ManagerToken), "user_id = ? AND token = ?", 1, userToken)
 }
 
@@ -186,7 +186,7 @@ func TestPersonalManagerDeleteRejectsForeignBindingBeforeCleanup(t *testing.T) {
 	require.NoError(t, err)
 	codespaceUUID := "52525252-5252-4252-8252-525252525252"
 	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{UUID: codespaceUUID, Status: codespace_model.StatusStopped})
-	_, err = db.GetEngine(t.Context()).ID(codespaceUUID).Cols("user_id").Update(&codespace_model.Codespace{UserID: 2})
+	_, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("user_id").Update(&codespace_model.Codespace{UserID: 2})
 	require.NoError(t, err)
 
 	err = DeleteManager(t.Context(), DeleteManagerOptions{

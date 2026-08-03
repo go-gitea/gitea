@@ -70,45 +70,28 @@ func VerifySSHPublicKey(ctx context.Context, manager *codespace_model.Manager, o
 	var result *codespacev1.VerifySSHPublicKeyResponse
 	err = globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
-			currentManager, err := loadCodespaceManager(ctx, manager.ID)
+			access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, opts.CodespaceUUID, true)
 			if err != nil {
 				return err
 			}
-			if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
-				result = denySSHAuth(SSHAuthDeniedStateUnavailable)
-				return nil
-			}
-
-			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).ID(opts.CodespaceUUID).Get(codespace)
-			if err != nil {
-				return err
-			}
-			if !has {
+			switch failure {
+			case gatewayAccessCodespaceNotFound:
 				result = denySSHAuth(SSHAuthDeniedCodespaceNotFound)
 				return nil
-			}
-			if codespace.ManagerID != manager.ID {
+			case gatewayAccessManagerMismatch:
 				result = denySSHAuth(SSHAuthDeniedManagerMismatch)
 				return nil
-			}
-			if codespace.Status != codespace_model.StatusRunning {
+			case gatewayAccessCodespaceNotRunning:
 				result = denySSHAuth(SSHAuthDeniedCodespaceNotRunning)
 				return nil
-			}
-			if hasActiveOperation(codespace) && !isQueuedIdleStop(codespace) {
+			case gatewayAccessManagerOffline, gatewayAccessActiveOperation:
 				result = denySSHAuth(SSHAuthDeniedStateUnavailable)
 				return nil
-			}
-
-			entry, hasEntry, err := getRuntimeMetadataEntry(opts.CodespaceUUID)
-			if err != nil {
-				return err
-			}
-			if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
+			case gatewayAccessMetadataRebuilding:
 				result = denySSHAuth(SSHAuthDeniedMetadataRebuilding)
 				return nil
 			}
+			codespace := access.codespace
 
 			user, err := user_model.GetUserByID(ctx, codespace.UserID)
 			if err != nil {

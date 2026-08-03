@@ -78,7 +78,8 @@ const GiteaTokenAuthDataKey = "CodespaceToken"
 
 // Codespace stores Gitea-owned lifecycle state for one remote development environment.
 type Codespace struct {
-	UUID                      string `xorm:"pk CHAR(36)"`
+	ID                        int64
+	UUID                      string `xorm:"CHAR(36) NOT NULL UNIQUE"`
 	UserID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RepoID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RefType                   string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -141,7 +142,7 @@ type ManagerToken struct {
 
 // GiteaToken stores the current Gitea API/Git HTTP token for one Codespace.
 type GiteaToken struct {
-	CodespaceUUID  string `xorm:"pk CHAR(36)"`
+	CodespaceID    int64  `xorm:"pk"`
 	TokenHash      string `xorm:"VARCHAR(100) NOT NULL UNIQUE"`
 	TokenSalt      string `xorm:"VARCHAR(10) NOT NULL"`
 	TokenLastEight string `xorm:"VARCHAR(8) NOT NULL index"`
@@ -150,8 +151,8 @@ type GiteaToken struct {
 
 // SSHKey stores the Git SSH public key binding for one Codespace.
 type SSHKey struct {
-	CodespaceUUID string `xorm:"pk CHAR(36)"`
-	KeyID         int64  `xorm:"NOT NULL UNIQUE"`
+	CodespaceID int64 `xorm:"pk"`
+	KeyID       int64 `xorm:"NOT NULL UNIQUE"`
 }
 
 func (*Manager) TableName() string {
@@ -161,25 +162,25 @@ func (*Manager) TableName() string {
 // TableIndices returns Codespace indexes in the same order as their main queries.
 func (*Codespace) TableIndices() []*schemas.Index {
 	userUpdated := schemas.NewIndex("user_updated", schemas.IndexType)
-	userUpdated.AddColumn("user_id", "updated_unix", "created_unix")
+	userUpdated.AddColumn("user_id", "updated_unix", "created_unix", "id")
 
 	repo := schemas.NewIndex("repo", schemas.IndexType)
 	repo.AddColumn("repo_id")
 
 	createClaim := schemas.NewIndex("create_claim", schemas.IndexType)
-	createClaim.AddColumn("status", "operation_type", "operation_status", "manager_id", "environment_tag", "operation_created_unix", "uuid")
+	createClaim.AddColumn("status", "operation_type", "operation_status", "manager_id", "environment_tag", "operation_created_unix", "id")
 
 	managerActive := schemas.NewIndex("manager_active", schemas.IndexType)
-	managerActive.AddColumn("manager_id", "operation_status", "operation_type", "status", "operation_created_unix", "uuid")
+	managerActive.AddColumn("manager_id", "operation_status", "operation_created_unix", "id")
 
 	queuedTimeout := schemas.NewIndex("queued_timeout", schemas.IndexType)
-	queuedTimeout.AddColumn("operation_status", "operation_created_unix", "uuid")
+	queuedTimeout.AddColumn("operation_status", "operation_created_unix", "id")
 
 	runningTimeout := schemas.NewIndex("running_timeout", schemas.IndexType)
-	runningTimeout.AddColumn("operation_status", "operation_deadline_unix", "uuid")
+	runningTimeout.AddColumn("operation_status", "operation_deadline_unix", "id")
 
 	failedRetention := schemas.NewIndex("failed_retention", schemas.IndexType)
-	failedRetention.AddColumn("status", "updated_unix", "uuid")
+	failedRetention.AddColumn("status", "updated_unix", "id")
 
 	return []*schemas.Index{userUpdated, repo, createClaim, managerActive, queuedTimeout, runningTimeout, failedRetention}
 }

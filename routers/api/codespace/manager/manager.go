@@ -10,7 +10,6 @@ import (
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	"gitea.dev/codespace-proto-go/codespace/v1/codespacev1connect"
-	"gitea.dev/modules/setting"
 	codespace_service "gitea.dev/services/codespace"
 
 	"connectrpc.com/connect"
@@ -21,8 +20,8 @@ func NewManagerServiceHandler() (string, http.Handler) {
 	return codespacev1connect.NewManagerServiceHandler(
 		&Service{},
 		connect.WithCompressMinBytes(1024),
-		connect.WithReadMaxBytes(int(setting.Codespace.ControlPlaneMaxSize)),
-		connect.WithSendMaxBytes(int(setting.Codespace.ControlPlaneMaxSize)),
+		connect.WithReadMaxBytes(codespace_service.ManagerServiceMaxMessageSize),
+		connect.WithSendMaxBytes(codespace_service.ManagerServiceMaxMessageSize),
 		withManager,
 	)
 }

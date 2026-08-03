@@ -9,7 +9,6 @@ import (
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
-	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 )
@@ -46,36 +45,27 @@ func RevalidateGatewaySession(ctx context.Context, manager *codespace_model.Mana
 		return nil, err
 	}
 
-	currentManager, err := loadCodespaceManager(ctx, manager.ID)
+	access, failure, err := loadGatewayRuntimeAccess(ctx, manager.ID, codespaceUUID, false)
 	if err != nil {
 		return nil, err
 	}
-	if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
-		return denyGatewaySession(SessionDeniedStateUnavailable), nil
-	}
-
-	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).ID(codespaceUUID).Get(codespace)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
+	switch failure {
+	case gatewayAccessCodespaceNotFound:
 		return denyGatewaySession(SessionDeniedCodespaceNotFound), nil
-	}
-	if codespace.ManagerID != manager.ID {
+	case gatewayAccessManagerMismatch:
 		return denyGatewaySession(SessionDeniedManagerMismatch), nil
+	case gatewayAccessCodespaceNotRunning:
+		return denyGatewaySession(SessionDeniedCodespaceNotRunning), nil
+	case gatewayAccessManagerOffline, gatewayAccessActiveOperation:
+		return denyGatewaySession(SessionDeniedStateUnavailable), nil
+	case gatewayAccessMetadataRebuilding:
+		return denyGatewaySession(SessionDeniedMetadataRebuilding), nil
 	}
-	if userID != codespace.UserID {
+	if userID != access.codespace.UserID {
 		return denyGatewaySession(SessionDeniedPermissionDenied), nil
 	}
-	if codespace.Status != codespace_model.StatusRunning {
-		return denyGatewaySession(SessionDeniedCodespaceNotRunning), nil
-	}
-	if hasActiveOperation(codespace) {
-		return denyGatewaySession(SessionDeniedStateUnavailable), nil
-	}
 
-	user, err := user_model.GetUserByID(ctx, codespace.UserID)
+	user, err := user_model.GetUserByID(ctx, access.codespace.UserID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			return denyGatewaySession(SessionDeniedLoginRestricted), nil
@@ -90,15 +80,7 @@ func RevalidateGatewaySession(ctx context.Context, manager *codespace_model.Mana
 		return denyGatewaySession(SessionDeniedLoginRestricted), nil
 	}
 
-	entry, hasEntry, err := getRuntimeMetadataEntry(codespaceUUID)
-	if err != nil {
-		return nil, err
-	}
-	if !hasEntry || !runtimeMetadataReadyForRunning(codespace, entry.Metadata) {
-		return denyGatewaySession(SessionDeniedMetadataRebuilding), nil
-	}
-
-	endpoint, endpointFound := entry.Metadata.endpointByID(endpointID)
+	endpoint, endpointFound := access.metadata.endpointByID(endpointID)
 	if sshSession || (endpointFound && !endpoint.Public) {
 		return &codespacev1.RevalidateGatewaySessionResponse{
 			Outcome: &codespacev1.RevalidateGatewaySessionResponse_Allowed{Allowed: &codespacev1.SessionAllowed{}},

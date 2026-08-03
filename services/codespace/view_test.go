@@ -64,13 +64,13 @@ func TestListCreatorCodespacesPaginatesWithinRepositoryOwner(t *testing.T) {
 	}
 	for index, uuid := range uuids {
 		insertServiceCodespace(t, 0, &codespace_model.Codespace{UUID: uuid, Status: codespace_model.StatusStopped})
-		_, err := db.GetEngine(t.Context()).ID(uuid).Cols("repo_id", "updated_unix").Update(&codespace_model.Codespace{
+		_, err := db.GetEngine(t.Context()).Where("uuid = ?", uuid).Cols("repo_id", "updated_unix").Update(&codespace_model.Codespace{
 			RepoID:      3,
 			UpdatedUnix: int64(index + 2),
 		})
 		require.NoError(t, err)
 	}
-	_, err := db.GetEngine(t.Context()).ID(uuids[2]).Cols("user_id").Update(&codespace_model.Codespace{UserID: 2})
+	_, err := db.GetEngine(t.Context()).Where("uuid = ?", uuids[2]).Cols("user_id").Update(&codespace_model.Codespace{UserID: 2})
 	require.NoError(t, err)
 
 	first, err := ListCreatorCodespaces(t.Context(), CreatorListOptions{UserID: 1, RepoOwnerID: 3, Page: 1, PageSize: 1})
@@ -110,7 +110,7 @@ func TestListCreatorCodespacesFiltersExactSource(t *testing.T) {
 
 	pullUUID := "34343434-3434-4434-8434-343434343434"
 	insertServiceCodespace(t, 0, &codespace_model.Codespace{UUID: pullUUID, Status: codespace_model.StatusStopped})
-	_, err := db.GetEngine(t.Context()).ID(pullUUID).Cols("ref_type", "ref_name").Update(&codespace_model.Codespace{
+	_, err := db.GetEngine(t.Context()).Where("uuid = ?", pullUUID).Cols("ref_type", "ref_name").Update(&codespace_model.Codespace{
 		RefType: "pull",
 		RefName: "refs/pull/3/head",
 	})
@@ -140,7 +140,7 @@ func TestListCreatorCodespacesFiltersCommitSHA(t *testing.T) {
 	refNames := []string{"main", "v1.0.0"}
 	for index, uuid := range matchingUUIDs {
 		insertServiceCodespace(t, 0, &codespace_model.Codespace{UUID: uuid, Status: codespace_model.StatusRunning})
-		_, err := db.GetEngine(t.Context()).ID(uuid).Cols("ref_type", "ref_name", "commit_sha").Update(&codespace_model.Codespace{
+		_, err := db.GetEngine(t.Context()).Where("uuid = ?", uuid).Cols("ref_type", "ref_name", "commit_sha").Update(&codespace_model.Codespace{
 			RefType:   refTypes[index],
 			RefName:   refNames[index],
 			CommitSHA: commitSHA,
@@ -149,7 +149,7 @@ func TestListCreatorCodespacesFiltersCommitSHA(t *testing.T) {
 	}
 	nonMatchingUUID := "41414141-4141-4141-8141-414141414141"
 	insertServiceCodespace(t, 0, &codespace_model.Codespace{UUID: nonMatchingUUID, Status: codespace_model.StatusRunning})
-	_, err := db.GetEngine(t.Context()).ID(nonMatchingUUID).Cols("commit_sha").Update(&codespace_model.Codespace{
+	_, err := db.GetEngine(t.Context()).Where("uuid = ?", nonMatchingUUID).Cols("commit_sha").Update(&codespace_model.Codespace{
 		CommitSHA: "4a357436d925b5c974181ff12a994538ddc5a269",
 	})
 	require.NoError(t, err)

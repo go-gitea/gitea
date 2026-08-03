@@ -229,15 +229,11 @@ func TestCodespaceInitRequiresSSHForSSHPreferred(t *testing.T) {
 
 func TestValidateCodespaceConfigAndTimings(t *testing.T) {
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.ControlPlaneTimeout, 10*time.Second))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.ControlPlaneMaxSize, int64(32*1024*1024)))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.ManagerOfflineTimeout, 80*time.Second))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.OperationLeaseTimeout, 1500*time.Millisecond))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.OperationMaxDuration, 3*time.Hour))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.QueueTimeout, 7*time.Minute))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.OpenTokenExpire, 45*time.Second))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.LogMaxSize, int64(32*1024*1024)))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.RuntimeMetadataMaxSize, int64(128*1024)))
-	t.Cleanup(test.MockVariableValue(&setting.Codespace.DevContainerConfigMaxSize, int64(96*1024)))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.DevContainerDefaultImage, "registry.example.com/devcontainer:latest"))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.AutoStopDefaultTimeout, 25*time.Minute))
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.AutoStopMinTimeout, 3*time.Minute))
@@ -248,14 +244,6 @@ func TestValidateCodespaceConfigAndTimings(t *testing.T) {
 	assert.EqualValues(t, 20_000, heartbeatMillis)
 	assert.EqualValues(t, 40_000, metadataRefreshMillis)
 	assert.EqualValues(t, 32*1024*1024, maxMessageBytes)
-
-	minControlPlaneSize, minControlPlaneMessage := minimumControlPlaneMaxMessageSize()
-	restoreControlPlaneMaxSize := test.MockVariableValue(&setting.Codespace.ControlPlaneMaxSize, minControlPlaneSize-1)
-	err := ValidateCodespaceConfig()
-	require.Error(t, err)
-	assert.ErrorContains(t, err, "CONTROL_PLANE_MAX_MESSAGE_SIZE")
-	assert.ErrorContains(t, err, minControlPlaneMessage)
-	restoreControlPlaneMaxSize()
 
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.ControlPlaneTimeout, 21*time.Second))
 	require.ErrorContains(t, ValidateCodespaceConfig(), "CONTROL_PLANE_TIMEOUT")

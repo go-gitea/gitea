@@ -102,7 +102,7 @@ func TestResolveGitSSHKeyUserUsesCodespaceBinding(t *testing.T) {
 		PublicKey:         servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.NoError(t, err)
-	_, err = db.GetEngine(t.Context()).ID(codespaceUUID).Cols(
+	_, err = db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols(
 		"status",
 		"operation_type",
 		"operation_status",
@@ -129,7 +129,7 @@ func TestResolveGitSSHKeyUserUsesCodespaceBinding(t *testing.T) {
 		RequestedMode: perm.AccessModeWrite, GrantedMode: perm.AccessModeRead,
 	}
 	require.NoError(t, db.Insert(t.Context(), rule))
-	updated, err := db.GetEngine(t.Context()).ID(codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
+	updated, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("permission_authorization_id").Update(&codespace_model.Codespace{PermissionAuthorizationID: authorization.ID})
 	require.NoError(t, err)
 	require.EqualValues(t, 1, updated)
 
@@ -249,7 +249,7 @@ func TestRuntimeGitSSHKeyUsesCurrentManagerAvailability(t *testing.T) {
 		PublicKey:         servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.ErrorIs(t, err, ErrRequestRuntimeAccessManagerOffline)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 }
 
 func TestRuntimeGitSSHKeyRejectsLoginRestrictedUser(t *testing.T) {
@@ -272,7 +272,7 @@ func TestRuntimeGitSSHKeyRejectsLoginRestrictedUser(t *testing.T) {
 		PublicKey:         servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.ErrorIs(t, err, ErrRuntimeGitSSHKeyLoginRestricted)
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 }
 
 func TestRuntimeGitSSHKeyRejectsInvalidPublicKey(t *testing.T) {
@@ -370,7 +370,7 @@ func TestFinalizeFailedDeletesCodespaceGitPublicKey(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.False(t, outcome.GetResourceAbsent())
-	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_uuid = ?", codespaceUUID)
+	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assertServiceNotExists(t, new(asymkey_model.PublicKey), "id = ?", keyID)
 }
 
@@ -497,7 +497,7 @@ func serviceCanonicalPublicKey(t *testing.T, content string) string {
 func loadServiceSSHKeyRelation(t *testing.T, codespaceUUID string) *codespace_model.SSHKey {
 	t.Helper()
 	row := new(codespace_model.SSHKey)
-	has, err := db.GetEngine(t.Context()).ID(codespaceUUID).Get(row)
+	has, err := db.GetEngine(t.Context()).ID(loadServiceCodespace(t, codespaceUUID).ID).Get(row)
 	require.NoError(t, err)
 	require.True(t, has)
 	return row

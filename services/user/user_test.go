@@ -163,7 +163,7 @@ func TestDeleteUserCleansCodespaceOwnerResources(t *testing.T) {
 		Token:  "user-delete-codespace-token",
 	}))
 	codespaceUUID := "71717171-7171-4171-8171-717171717171"
-	require.NoError(t, db.Insert(t.Context(), &codespace_model.Codespace{
+	codespace := &codespace_model.Codespace{
 		UUID:              codespaceUUID,
 		UserID:            user.ID,
 		RepoID:            0,
@@ -177,9 +177,10 @@ func TestDeleteUserCleansCodespaceOwnerResources(t *testing.T) {
 		AutoStopMode:      codespace_model.AutoStopModeDefault,
 		CreatedUnix:       1,
 		UpdatedUnix:       1,
-	}))
+	}
+	require.NoError(t, db.Insert(t.Context(), codespace))
 	require.NoError(t, db.Insert(t.Context(), &codespace_model.GiteaToken{
-		CodespaceUUID:  codespaceUUID,
+		CodespaceID:    codespace.ID,
 		TokenHash:      "user-delete-hash",
 		TokenSalt:      "salt",
 		TokenLastEight: "last0071",
@@ -192,7 +193,7 @@ func TestDeleteUserCleansCodespaceOwnerResources(t *testing.T) {
 	assertUserTestNotExists(t, new(codespace_model.Manager), "id = ?", manager.ID)
 	assertUserTestNotExists(t, new(codespace_model.ManagerToken), "user_id = ?", user.ID)
 	assertUserTestNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
-	assertUserTestNotExists(t, new(codespace_model.GiteaToken), "codespace_uuid = ?", codespaceUUID)
+	assertUserTestNotExists(t, new(codespace_model.GiteaToken), "codespace_id = ?", codespace.ID)
 }
 
 func TestRenameUser(t *testing.T) {

@@ -197,7 +197,7 @@ func insertIntegrationCodespaceKey(ctx context.Context, t *testing.T, userID, re
 		Verified:    false,
 	}
 	require.NoError(t, db.Insert(ctx, key))
-	require.NoError(t, db.Insert(ctx, &codespace_model.Codespace{
+	codespace := &codespace_model.Codespace{
 		UUID:           codespaceUUID,
 		UserID:         userID,
 		RepoID:         repoID,
@@ -208,10 +208,11 @@ func insertIntegrationCodespaceKey(ctx context.Context, t *testing.T, userID, re
 		Status:         codespace_model.StatusRunning,
 		CreatedUnix:    1,
 		UpdatedUnix:    1,
-	}))
+	}
+	require.NoError(t, db.Insert(ctx, codespace))
 	require.NoError(t, db.Insert(ctx, &codespace_model.SSHKey{
-		CodespaceUUID: codespaceUUID,
-		KeyID:         key.ID,
+		CodespaceID: codespace.ID,
+		KeyID:       key.ID,
 	}))
 	return key
 }
