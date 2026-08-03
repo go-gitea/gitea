@@ -26,7 +26,7 @@ type swaggerSpec struct {
 }
 
 func TestSwaggerIncludesAuthResponsesForUserKeyEndpoints(t *testing.T) {
-	specPath := filepath.Join("..", "..", "..", "..", "templates", "swagger", "v1_json.tmpl")
+	specPath := filepath.Join("..", "..", "..", "..", "templates", "swagger", "v1-swagger.generated.json")
 	data, err := os.ReadFile(specPath)
 	require.NoError(t, err)
 
