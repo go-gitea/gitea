@@ -193,14 +193,14 @@ func UpdateLog(ctx context.Context, manager *codespace_model.Manager, opts Updat
 				if codespace.LogSize+int64(len(truncation)) > setting.Codespace.LogMaxSize {
 					return ErrUpdateLogSizeExceeded
 				}
-				if err := appendEncodedLogLines(ctx, codespace, truncation); err != nil {
+				if err := appendEncodedLogLines(ctx, codespace, manager.ID, opts.OperationRVersion, truncation); err != nil {
 					return err
 				}
 				nextOffset = codespace.LogSize
 				sizeExceeded = true
 				return nil
 			}
-			if err := appendEncodedLogLines(ctx, codespace, encoded); err != nil {
+			if err := appendEncodedLogLines(ctx, codespace, manager.ID, opts.OperationRVersion, encoded); err != nil {
 				return err
 			}
 			nextOffset = codespace.LogSize
@@ -308,16 +308,31 @@ func encodeLogLine(timestampUnixNano int64, message string) string {
 	return fmt.Sprintf("[%s] %s\n", time.Unix(0, timestampUnixNano).UTC().Format(time.RFC3339Nano), message)
 }
 
-func appendEncodedLogLines(ctx context.Context, codespace *codespace_model.Codespace, encoded []byte) error {
+func appendEncodedLogLines(ctx context.Context, codespace *codespace_model.Codespace, expectedManagerID, expectedOperationRVersion int64, encoded []byte) error {
 	if len(encoded) == 0 {
 		return nil
 	}
-	if err := appendLogBytes(ctx, codespaceLogFilename(codespace.UUID), codespace.LogSize, encoded); err != nil {
+	previousSize := codespace.LogSize
+	if err := appendLogBytes(ctx, codespaceLogFilename(codespace.UUID), previousSize, encoded); err != nil {
 		return err
 	}
-	codespace.LogSize += int64(len(encoded))
-	_, err := db.GetEngine(ctx).ID(codespace.ID).Cols("log_size").Update(codespace)
-	return err
+	codespace.LogSize = previousSize + int64(len(encoded))
+	query := db.GetEngine(ctx).Where("id = ? AND log_size = ?", codespace.ID, previousSize)
+	if expectedManagerID > 0 {
+		query = query.And("manager_id = ? AND operation_r_version = ? AND operation_status = ?", expectedManagerID, expectedOperationRVersion, codespace_model.OperationStatusRunning)
+	}
+	affected, err := query.Cols("log_size").Update(codespace)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		codespace.LogSize = previousSize
+		if expectedManagerID > 0 {
+			return ErrUpdateLogStaleOperation
+		}
+		return ErrUpdateLogNotFound
+	}
+	return nil
 }
 
 func appendInternalStateSummary(ctx context.Context, summary *internalStateSummary) {
@@ -342,7 +357,7 @@ func appendInternalStateSummary(ctx context.Context, summary *internalStateSumma
 			if codespace.LogSize+int64(len(encoded)) > setting.Codespace.LogMaxSize {
 				return ErrUpdateLogSizeExceeded
 			}
-			return appendEncodedLogLines(ctx, codespace, encoded)
+			return appendEncodedLogLines(ctx, codespace, 0, 0, encoded)
 		})
 	})
 	if err != nil {

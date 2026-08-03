@@ -19,9 +19,7 @@ import (
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/setting"
-	asymkey_service "gitea.dev/services/asymkey"
 
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
@@ -53,81 +51,6 @@ var (
 type normalizedGitSSHKey struct {
 	Content     string
 	Fingerprint string
-}
-
-type runtimeGitSSHKeyOptions struct {
-	CodespaceUUID     string
-	OperationRVersion int64
-	PublicKey         []byte
-}
-
-func ensureRuntimeGitSSHKey(ctx context.Context, manager *codespace_model.Manager, opts runtimeGitSSHKeyOptions) ([]string, error) {
-	if !setting.Codespace.Enabled {
-		return nil, ErrRequestRuntimeAccessStateUnavailable
-	}
-	if manager == nil || manager.ID <= 0 {
-		return nil, errors.New("manager is required")
-	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, err
-	}
-	if opts.OperationRVersion <= 0 {
-		return nil, errors.New("operation_rversion must be positive")
-	}
-	allowed, err := currentManagerAllowsOnlineOrRecovering(ctx, manager.ID)
-	if err != nil {
-		return nil, err
-	}
-	if !allowed {
-		return nil, ErrRequestRuntimeAccessManagerOffline
-	}
-	key, err := normalizeGitSSHPublicKey(opts.PublicKey)
-	if err != nil {
-		return nil, err
-	}
-	knownHostsLines, err := availableGitSSHKnownHostsLines()
-	if err != nil {
-		return nil, err
-	}
-
-	err = globallock.LockAndDo(ctx, runtimeGitSSHKeyLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
-		allowed, err = currentManagerAllowsOnlineOrRecovering(ctx, manager.ID)
-		if err != nil {
-			return err
-		}
-		if !allowed {
-			return ErrRequestRuntimeAccessManagerOffline
-		}
-		codespace, err := loadRuntimeAccessCodespace(ctx, manager.ID, opts.CodespaceUUID, opts.OperationRVersion)
-		if err != nil {
-			return err
-		}
-		user, err := user_model.GetUserByID(ctx, codespace.UserID)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				return ErrRequestRuntimeAccessUserNotFound
-			}
-			return err
-		}
-		canUseCodespace, err := codespaceUserCanLogIn(ctx, user)
-		if err != nil {
-			return err
-		}
-		if !canUseCodespace {
-			return ErrRuntimeGitSSHKeyLoginRestricted
-		}
-		// Share the fingerprint lock with user and deploy key creation so their global uniqueness checks cannot race.
-		return globallock.LockAndDo(ctx, asymkey_model.PublicKeyFingerprintLockKey(key.Fingerprint), func(ctx context.Context) error {
-			return ensureGitSSHKeyBinding(ctx, codespace, key)
-		})
-	})
-	if err != nil {
-		return nil, err
-	}
-	if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
-		return nil, fmt.Errorf("%w: rewrite authorized keys: %v", ErrRuntimeGitSSHKeyIntegrity, err)
-	}
-	return knownHostsLines, nil
 }
 
 // ResolveGitSSHKeyUser returns the Codespace creator allowed to use one Git SSH key for a repository.
@@ -467,8 +390,4 @@ func deleteGitSSHKey(ctx context.Context, codespaceID int64) error {
 	}
 	_, err = db.GetEngine(ctx).Where(builder.Eq{"id": relation.KeyID, "type": asymkey_model.KeyTypeCodespace}).Delete(new(asymkey_model.PublicKey))
 	return err
-}
-
-func runtimeGitSSHKeyLockKey(codespaceUUID string) string {
-	return "codespace_git_ssh_key_" + codespaceUUID
 }

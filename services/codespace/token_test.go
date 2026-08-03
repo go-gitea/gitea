@@ -4,6 +4,7 @@
 package codespace
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/globallock"
 	secret_module "gitea.dev/modules/secret"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -20,6 +22,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func requestRuntimeCredentials(ctx context.Context, manager *codespace_model.Manager, opts requestRuntimeCredentialsOptions) (*requestRuntimeCredentialsResult, error) {
+	if err := validateRuntimeAccessRequest(manager, opts.CodespaceUUID, opts.OperationRVersion); err != nil {
+		return nil, err
+	}
+	var result *requestRuntimeCredentialsResult
+	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+		prepared, err := prepareRuntimeAccessLocked(ctx, manager, opts)
+		if err == nil {
+			result = prepared.credentials
+		}
+		return err
+	})
+	return result, err
+}
 
 func TestRuntimeCredentialsCreateReturnsStableToken(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())

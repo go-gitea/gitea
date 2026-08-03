@@ -103,10 +103,10 @@ func TestGatewayAndRuntimeRPCsRejectDisabledCodespace(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, hasReady)
 
-	_, err = ensureRuntimeGitSSHKey(t.Context(), manager, runtimeGitSSHKeyOptions{
+	_, err = requestRuntimeGitSSHKey(t.Context(), manager, RequestRuntimeAccessOptions{
 		CodespaceUUID:     creatingUUID,
 		OperationRVersion: 92,
-		PublicKey:         servicePublicKeyWire(t, testGitSSHPublicKey),
+		GitSSHPublicKey:   servicePublicKeyWire(t, testGitSSHPublicKey),
 	})
 	require.ErrorIs(t, err, ErrRequestRuntimeAccessStateUnavailable)
 	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", creatingUUID)

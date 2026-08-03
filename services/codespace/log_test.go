@@ -4,13 +4,16 @@
 package codespace
 
 import (
+	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
+	"gitea.dev/models/db"
 	"gitea.dev/models/dbfs"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
@@ -197,6 +200,38 @@ func TestUpdateLogRejectsStaleOperation(t *testing.T) {
 	})
 	require.ErrorIs(t, err, ErrUpdateLogStaleOperation)
 	assert.Zero(t, loadServiceCodespace(t, codespaceUUID).LogSize)
+}
+
+func TestOperationLogAppendRollsBackWhenLifecycleChanges(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	manager := insertServiceManager(t)
+	codespaceUUID := "89898989-8989-4898-8989-898989898990"
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		UUID:                  codespaceUUID,
+		Status:                codespace_model.StatusCreating,
+		OperationRVersion:     25,
+		OperationType:         codespace_model.OperationCreate,
+		OperationStatus:       codespace_model.OperationStatusRunning,
+		OperationTrigger:      codespace_model.OperationTriggerUser,
+		OperationCreatedUnix:  10,
+		OperationStartedUnix:  11,
+		OperationDeadlineUnix: time.Now().Add(time.Hour).Unix(),
+	})
+	stale := loadServiceCodespace(t, codespaceUUID)
+	_, err := db.GetEngine(t.Context()).ID(stale.ID).Cols("operation_type", "operation_status").Update(&codespace_model.Codespace{})
+	require.NoError(t, err)
+	encoded, err := encodeLogLines([]*codespacev1.LogLine{{TimestampUnixNano: time.Now().UnixNano(), Message: "late"}})
+	require.NoError(t, err)
+
+	err = db.WithTx(t.Context(), func(ctx context.Context) error {
+		return appendEncodedLogLines(ctx, stale, manager.ID, 25, encoded)
+	})
+	require.ErrorIs(t, err, ErrUpdateLogStaleOperation)
+	assert.Zero(t, loadServiceCodespace(t, codespaceUUID).LogSize)
+	_, err = dbfs.Open(t.Context(), codespaceLogDBFSPrefix+codespaceLogFilename(codespaceUUID))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, os.ErrNotExist)
 }
 
 func TestUpdateLogAppendsTruncationSummaryOnce(t *testing.T) {

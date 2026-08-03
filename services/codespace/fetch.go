@@ -68,60 +68,58 @@ func FetchOperations(ctx context.Context, manager *codespace_model.Manager, opts
 	var result *codespacev1.FetchOperationsResponse
 	var summaries []*internalStateSummary
 	err := globallock.LockAndDo(ctx, fetchManagerLockKey(manager.ID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			currentManager, err := loadCodespaceManager(ctx, manager.ID)
-			if err != nil {
-				return err
-			}
-			if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
-				return ErrFetchManagerUnavailable
-			}
-			managerEnvironments, err := decodeManagerEnvironments(currentManager)
-			if err != nil {
-				return err
-			}
-			acceptedCreateTags, err := normalizeAcceptedCreateTags(opts.AcceptedCreateTags, managerEnvironments)
-			if err != nil {
-				return err
-			}
-			result = &codespacev1.FetchOperationsResponse{}
-			observedVersions, err := validateObservedOperationHistory(ctx, currentManager.ID, opts.ObservedOperations)
-			if err != nil {
-				return err
-			}
-			maxOperations := max(int32(1), min(fetchMaxOperations, opts.StartupCapacityAvailable+opts.CleanupCapacityAvailable))
-			if err := appendRunningOperations(ctx, currentManager.ID, observedVersions, maxOperations, result, &summaries); err != nil {
-				return err
-			}
-			if int32(len(result.Operations)) >= maxOperations {
-				return nil
-			}
-			grantTime := time.Now()
-			remaining := int(maxOperations) - len(result.Operations)
-			if opts.CleanupCapacityAvailable > 0 {
-				claimed, err := claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, int(opts.CleanupCapacityAvailable), nil, []string{codespace_model.OperationStop, codespace_model.OperationDelete}, result, &summaries)
-				if err != nil {
-					return err
-				}
-				remaining -= claimed
-			}
-			if remaining <= 0 || opts.StartupCapacityAvailable <= 0 || !setting.Codespace.Enabled {
-				return nil
-			}
-			capacity := int(opts.StartupCapacityAvailable)
-			if slices.Contains(opts.AcceptedOperationTypes, codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE) && len(acceptedCreateTags) > 0 {
-				claimed, err := claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, acceptedCreateTags, []string{codespace_model.OperationCreate}, result, &summaries)
-				if err != nil {
-					return err
-				}
-				remaining -= claimed
-				capacity -= claimed
-			}
-			if remaining > 0 && capacity > 0 && slices.Contains(opts.AcceptedOperationTypes, codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_RESUME) {
-				_, err = claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, nil, []string{codespace_model.OperationResume}, result, &summaries)
-			}
+		currentManager, err := loadCodespaceManager(ctx, manager.ID)
+		if err != nil {
 			return err
-		})
+		}
+		if currentManager.RuntimeState != codespace_model.ManagerRuntimeStateOnline || isManagerOffline(currentManager) {
+			return ErrFetchManagerUnavailable
+		}
+		managerEnvironments, err := decodeManagerEnvironments(currentManager)
+		if err != nil {
+			return err
+		}
+		acceptedCreateTags, err := normalizeAcceptedCreateTags(opts.AcceptedCreateTags, managerEnvironments)
+		if err != nil {
+			return err
+		}
+		result = &codespacev1.FetchOperationsResponse{}
+		observedVersions, err := validateObservedOperationHistory(ctx, currentManager.ID, opts.ObservedOperations)
+		if err != nil {
+			return err
+		}
+		maxOperations := max(int32(1), min(fetchMaxOperations, opts.StartupCapacityAvailable+opts.CleanupCapacityAvailable))
+		if err := appendRunningOperations(ctx, currentManager.ID, observedVersions, maxOperations, result, &summaries); err != nil {
+			return err
+		}
+		if int32(len(result.Operations)) >= maxOperations {
+			return nil
+		}
+		grantTime := time.Now()
+		remaining := int(maxOperations) - len(result.Operations)
+		if opts.CleanupCapacityAvailable > 0 {
+			claimed, err := claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, int(opts.CleanupCapacityAvailable), nil, []string{codespace_model.OperationStop, codespace_model.OperationDelete}, result, &summaries)
+			if err != nil {
+				return err
+			}
+			remaining -= claimed
+		}
+		if remaining <= 0 || opts.StartupCapacityAvailable <= 0 || !setting.Codespace.Enabled {
+			return nil
+		}
+		capacity := int(opts.StartupCapacityAvailable)
+		if slices.Contains(opts.AcceptedOperationTypes, codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE) && len(acceptedCreateTags) > 0 {
+			claimed, err := claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, acceptedCreateTags, []string{codespace_model.OperationCreate}, result, &summaries)
+			if err != nil {
+				return err
+			}
+			remaining -= claimed
+			capacity -= claimed
+		}
+		if remaining > 0 && capacity > 0 && slices.Contains(opts.AcceptedOperationTypes, codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_RESUME) {
+			_, err = claimQueuedOperations(ctx, currentManager.ID, currentManager.UserID, grantTime, remaining, capacity, nil, []string{codespace_model.OperationResume}, result, &summaries)
+		}
+		return err
 	})
 	if err != nil {
 		return nil, err
@@ -265,55 +263,66 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 		return err
 	}
 	grantTime := time.Now()
-	for _, codespace := range rows {
-		leaseMillis, deadlineUnix, ok := grantLease(codespace.OperationStartedUnix, grantTime)
-		if !ok {
-			summary := operationTimeoutSummary(codespace, timeoutStatus(codespace.OperationType))
-			if err := applyRunningTimeout(ctx, codespace, grantTime.Unix()); err != nil {
-				return err
-			}
-			*summaries = append(*summaries, summary)
-			continue
-		}
-		observedVersion, hasObserved := observedVersions[codespace.UUID]
-		if !hasObserved {
-			continue
-		}
-		if observedVersion > codespace.OperationRVersion {
-			return ErrFetchStateHistoryConflict
-		}
-		if !setting.Codespace.Enabled && isStartupOperation(codespace.OperationType) {
-			if int32(len(result.Operations)) >= maxOperations {
-				continue
-			}
-			result.Operations = append(result.Operations, buildAbortOperationPayload(codespace))
-			continue
-		}
-		if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols("operation_deadline_unix").Update(&codespace_model.Codespace{OperationDeadlineUnix: deadlineUnix}); err != nil {
-			return err
-		}
-		if observedVersion == codespace.OperationRVersion {
-			result.RenewedLeases = append(result.RenewedLeases, &codespacev1.RenewedOperationLease{
-				CodespaceUuid:             codespace.UUID,
-				OperationRversion:         codespace.OperationRVersion,
-				LeaseValidForMilliseconds: leaseMillis,
+	for _, row := range rows {
+		err := globallock.LockAndDo(ctx, codespaceStateLockKey(row.UUID), func(ctx context.Context) error {
+			return db.WithTx(ctx, func(ctx context.Context) error {
+				codespace := new(codespace_model.Codespace)
+				has, err := db.GetEngine(ctx).ID(row.ID).Get(codespace)
+				if err != nil || !has {
+					return err
+				}
+				if codespace.ManagerID != managerID || codespace.OperationStatus != codespace_model.OperationStatusRunning {
+					return nil
+				}
+				leaseMillis, deadlineUnix, ok := grantLease(codespace.OperationStartedUnix, grantTime)
+				if !ok {
+					summary := operationTimeoutSummary(codespace, timeoutStatus(codespace.OperationType))
+					if err := applyRunningTimeout(ctx, codespace, grantTime.Unix()); err != nil {
+						return err
+					}
+					*summaries = append(*summaries, summary)
+					return nil
+				}
+				observedVersion, hasObserved := observedVersions[codespace.UUID]
+				if !hasObserved {
+					return nil
+				}
+				if observedVersion > codespace.OperationRVersion {
+					return ErrFetchStateHistoryConflict
+				}
+				if !setting.Codespace.Enabled && (codespace.OperationType == codespace_model.OperationCreate || codespace.OperationType == codespace_model.OperationResume) {
+					if int32(len(result.Operations)) < maxOperations {
+						result.Operations = append(result.Operations, buildAbortOperationPayload(codespace))
+					}
+					return nil
+				}
+				if _, err := db.GetEngine(ctx).ID(codespace.ID).Cols("operation_deadline_unix").Update(&codespace_model.Codespace{OperationDeadlineUnix: deadlineUnix}); err != nil {
+					return err
+				}
+				if observedVersion == codespace.OperationRVersion {
+					result.RenewedLeases = append(result.RenewedLeases, &codespacev1.RenewedOperationLease{
+						CodespaceUuid:             codespace.UUID,
+						OperationRversion:         codespace.OperationRVersion,
+						LeaseValidForMilliseconds: leaseMillis,
+					})
+					return nil
+				}
+				if int32(len(result.Operations)) >= maxOperations {
+					return nil
+				}
+				payload, err := buildOperationPayload(ctx, codespace, leaseMillis)
+				if err != nil {
+					return err
+				}
+				result.Operations = append(result.Operations, payload)
+				return nil
 			})
-			continue
-		}
-		if int32(len(result.Operations)) >= maxOperations {
-			continue
-		}
-		payload, err := buildOperationPayload(ctx, codespace, leaseMillis)
+		})
 		if err != nil {
 			return err
 		}
-		result.Operations = append(result.Operations, payload)
 	}
 	return nil
-}
-
-func isStartupOperation(operationType string) bool {
-	return operationType == codespace_model.OperationCreate || operationType == codespace_model.OperationResume
 }
 
 func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, grantTime time.Time, remaining, capacity int, createTags, operationTypes []string, result *codespacev1.FetchOperationsResponse, summaries *[]*internalStateSummary) (int, error) {
@@ -345,11 +354,27 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 			break
 		}
 		if isQueuedExpired(candidate, grantTime) {
-			summary := operationTimeoutSummary(candidate, queuedTimeoutStatus(candidate.OperationType))
-			if err := applyQueuedTimeout(ctx, candidate, grantTime.Unix()); err != nil {
+			var summary *internalStateSummary
+			err := globallock.LockAndDo(ctx, codespaceStateLockKey(candidate.UUID), func(ctx context.Context) error {
+				return db.WithTx(ctx, func(ctx context.Context) error {
+					current := new(codespace_model.Codespace)
+					has, err := db.GetEngine(ctx).ID(candidate.ID).Get(current)
+					if err != nil || !has {
+						return err
+					}
+					if current.OperationRVersion != candidate.OperationRVersion || current.OperationStatus != codespace_model.OperationStatusQueued || !isQueuedExpired(current, grantTime) {
+						return nil
+					}
+					summary = operationTimeoutSummary(current, queuedTimeoutStatus(current.OperationType))
+					return applyQueuedTimeout(ctx, current, grantTime.Unix())
+				})
+			})
+			if err != nil {
 				return claimed, err
 			}
-			*summaries = append(*summaries, summary)
+			if summary != nil {
+				*summaries = append(*summaries, summary)
+			}
 			continue
 		}
 		startedUnix := grantTime.Unix()
@@ -374,6 +399,19 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 		}
 		payload, err := buildOperationPayload(ctx, codespace, leaseMillis)
 		if err != nil {
+			query := db.GetEngine(ctx).
+				Where("id = ? AND manager_id = ? AND operation_r_version = ? AND operation_type = ? AND operation_status = ? AND operation_trigger = ?",
+					codespace.ID, managerID, codespace.OperationRVersion, codespace.OperationType, codespace_model.OperationStatusRunning, codespace.OperationTrigger)
+			columns := []string{"operation_status", "operation_started_unix", "operation_deadline_unix"}
+			updates := &codespace_model.Codespace{OperationStatus: codespace_model.OperationStatusQueued}
+			if codespace.OperationType == codespace_model.OperationCreate {
+				query = query.And("status = ?", codespace_model.StatusCreating)
+				updates.ManagerID = 0
+				columns = append(columns, "manager_id")
+			}
+			if _, releaseErr := query.Cols(columns...).Update(updates); releaseErr != nil {
+				return claimed, fmt.Errorf("build operation payload: %w; release claim: %v", err, releaseErr)
+			}
 			return claimed, err
 		}
 		result.Operations = append(result.Operations, payload)

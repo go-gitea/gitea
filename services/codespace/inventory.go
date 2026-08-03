@@ -169,35 +169,26 @@ func ensureInventoryGenerationCurrent(ctx context.Context, managerID, inventoryG
 }
 
 func processReportedRuntimeInstance(ctx context.Context, managerID int64, instance *codespacev1.RuntimeInstanceRef) (*codespacev1.RuntimeInstanceResult, error) {
-	var result *codespacev1.RuntimeInstanceResult
-	err := globallock.LockAndDo(ctx, inventoryCodespaceLockKey(instance.GetCodespaceUuid()), func(ctx context.Context) error {
-		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", instance.GetCodespaceUuid()).Get(codespace)
-		if err != nil {
-			return err
-		}
-		result = runtimeInstanceResult(managerID, codespace, has, instance)
-		return nil
-	})
-	return result, err
-}
-
-func runtimeInstanceResult(managerID int64, codespace *codespace_model.Codespace, has bool, instance *codespacev1.RuntimeInstanceRef) *codespacev1.RuntimeInstanceResult {
+	codespace := new(codespace_model.Codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", instance.GetCodespaceUuid()).Get(codespace)
+	if err != nil {
+		return nil, err
+	}
 	result := &codespacev1.RuntimeInstanceResult{CodespaceUuid: instance.GetCodespaceUuid()}
 	if !has {
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME
-		return result
+		return result, nil
 	}
 	if codespace.ManagerID != managerID {
 		if codespace.ManagerID == 0 && codespace.Status == codespace_model.StatusCreating {
-			return result
+			return result, nil
 		}
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME
-		return result
+		return result, nil
 	}
 	if codespace.Status == codespace_model.StatusFailed {
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME
-		return result
+		return result, nil
 	}
 
 	result.RuntimeSettings = runtimeSettingsMessage(effectiveRuntimeSettings(codespace))
@@ -207,12 +198,12 @@ func runtimeInstanceResult(managerID int64, codespace *codespace_model.Codespace
 			result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_REFETCH_OPERATION
 			result.CurrentOperationRversion = codespace.OperationRVersion
 		}
-		return result
+		return result, nil
 	}
 	if instance.GetObservedOperationRversion() > 0 {
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEAR_OPERATION_CONTEXT
 		result.CurrentOperationRversion = codespace.OperationRVersion
-		return result
+		return result, nil
 	}
 	switch {
 	case codespace.Status == codespace_model.StatusRunning && instance.GetRuntimeState() == codespacev1.RuntimeState_RUNTIME_STATE_STOPPED:
@@ -225,7 +216,7 @@ func runtimeInstanceResult(managerID int64, codespace *codespace_model.Codespace
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_STOP_LOCAL_RUNTIME
 		result.CurrentOperationRversion = codespace.OperationRVersion
 	}
-	return result
+	return result, nil
 }
 
 func processMissingRuntimeInstances(ctx context.Context, managerID, inventoryGeneration int64, reported map[string]*codespacev1.RuntimeInstanceRef) error {
@@ -253,7 +244,7 @@ func processMissingRuntimeInstances(ctx context.Context, managerID, inventoryGen
 
 func processMissingRuntimeInstance(ctx context.Context, managerID, inventoryGeneration int64, codespaceUUID string, now int64) error {
 	var summary *internalStateSummary
-	err := globallock.LockAndDo(ctx, inventoryCodespaceLockKey(codespaceUUID), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			if err := ensureInventoryGenerationCurrent(ctx, managerID, inventoryGeneration); err != nil {
 				return err
@@ -310,8 +301,4 @@ func applyInventoryMissingFailed(ctx context.Context, codespace *codespace_model
 		"updated_unix",
 	).Update(codespace)
 	return err
-}
-
-func inventoryCodespaceLockKey(codespaceUUID string) string {
-	return "codespace_inventory_" + codespaceUUID
 }

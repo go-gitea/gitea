@@ -160,7 +160,7 @@ func ReportRuntimeMetadata(ctx context.Context, manager *codespace_model.Manager
 		return err
 	}
 
-	return globallock.LockAndDo(ctx, runtimeMetadataLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	return globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
 		allowed, err = currentManagerAllowsOnlineOrRecovering(ctx, manager.ID)
 		if err != nil {
 			return err
@@ -498,8 +498,4 @@ func putRuntimeMetadataEntry(codespaceUUID string, entry runtimeMetadataCacheEnt
 
 func runtimeMetadataCacheKey(codespaceUUID string) string {
 	return "codespace:runtime-meta:" + codespaceUUID
-}
-
-func runtimeMetadataLockKey(codespaceUUID string) string {
-	return "codespace_runtime_metadata_" + codespaceUUID
 }

@@ -12,6 +12,7 @@ import (
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
+	"gitea.dev/modules/globallock"
 )
 
 // ErrFinalizeMetadataRequired is returned until current-version ready metadata is available.
@@ -48,34 +49,36 @@ func FinalizeOperation(ctx context.Context, manager *codespace_model.Manager, op
 	}
 	response := &codespacev1.FinalizeOperationResponse{}
 	var stateSummary *internalStateSummary
-	err := db.WithTx(ctx, func(ctx context.Context) error {
-		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
-		if err != nil {
-			return err
-		}
-		if !has {
-			response.ResourceAbsent = true
-			return nil
-		}
-
-		// A stale final ends Manager work but must not overwrite a newer operation, so acknowledge it without changing state.
-		if !isCurrentRunningOperation(codespace, manager.ID, opts.OperationRVersion) || codespace.OperationType != operationType {
-			return nil
-		}
-		now := time.Now().Unix()
-		if codespace.OperationDeadlineUnix > 0 && now >= codespace.OperationDeadlineUnix {
-			resultStatus := timeoutStatus(codespace.OperationType)
-			stateSummary = operationTimeoutSummary(codespace, resultStatus)
-			return applyFinalState(ctx, codespace, resultStatus, now)
-		}
-		if opts.FinalStatus == codespacev1.FinalStatus_FINAL_STATUS_DONE &&
-			(opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_CREATE || opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_RESUME) {
-			if err := requireFinalizeReadyPrerequisites(ctx, codespace, opts.OperationRVersion); err != nil {
+	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+		return db.WithTx(ctx, func(ctx context.Context) error {
+			codespace := new(codespace_model.Codespace)
+			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+			if err != nil {
 				return err
 			}
-		}
-		return applyFinalOperation(ctx, codespace, opts, now)
+			if !has {
+				response.ResourceAbsent = true
+				return nil
+			}
+
+			// A stale final ends Manager work but must not overwrite a newer operation, so acknowledge it without changing state.
+			if !isCurrentRunningOperation(codespace, manager.ID, opts.OperationRVersion) || codespace.OperationType != operationType {
+				return nil
+			}
+			now := time.Now().Unix()
+			if codespace.OperationDeadlineUnix > 0 && now >= codespace.OperationDeadlineUnix {
+				resultStatus := timeoutStatus(codespace.OperationType)
+				stateSummary = operationTimeoutSummary(codespace, resultStatus)
+				return applyFinalState(ctx, codespace, resultStatus, now)
+			}
+			if opts.FinalStatus == codespacev1.FinalStatus_FINAL_STATUS_DONE &&
+				(opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_CREATE || opts.OperationType == codespacev1.OperationType_OPERATION_TYPE_RESUME) {
+				if err := requireFinalizeReadyPrerequisites(ctx, codespace, opts.OperationRVersion); err != nil {
+					return err
+				}
+			}
+			return applyFinalOperation(ctx, codespace, opts, now)
+		})
 	})
 	if err != nil {
 		return nil, err

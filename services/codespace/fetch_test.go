@@ -63,6 +63,38 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 	assert.Positive(t, row.OperationDeadlineUnix)
 }
 
+func TestFetchOperationsReleasesCreateClaimWhenPayloadInvalid(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	configureFetchGitTransport(t, codespace_model.GitProtocolHTTP, false, false, nil)
+
+	manager := insertServiceManager(t)
+	markServiceManagerOnline(t, manager, `[{"tag":"default"}]`)
+	codespaceUUID := "10101010-1010-4010-8010-101010101011"
+	insertServiceCodespace(t, 0, &codespace_model.Codespace{
+		UUID:                 codespaceUUID,
+		Status:               codespace_model.StatusCreating,
+		OperationRVersion:    32,
+		OperationType:        codespace_model.OperationCreate,
+		OperationStatus:      codespace_model.OperationStatusQueued,
+		OperationTrigger:     codespace_model.OperationTriggerUser,
+		OperationCreatedUnix: time.Now().Unix(),
+	})
+	_, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("dev_container_default_image").Update(&codespace_model.Codespace{})
+	require.NoError(t, err)
+
+	_, err = FetchOperations(t.Context(), manager, FetchOperationsOptions{
+		StartupCapacityAvailable: 1,
+		AcceptedOperationTypes:   []codespacev1.AcceptedOperationType{codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE},
+		AcceptedCreateTags:       []string{"default"},
+	})
+	require.Error(t, err)
+	row := loadServiceCodespace(t, codespaceUUID)
+	assert.Zero(t, row.ManagerID)
+	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
+	assert.Zero(t, row.OperationStartedUnix)
+	assert.Zero(t, row.OperationDeadlineUnix)
+}
+
 func TestFetchOperationsClaimsOnlyAcceptedCreateTag(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	configureFetchGitTransport(t, codespace_model.GitProtocolHTTP, false, false, nil)

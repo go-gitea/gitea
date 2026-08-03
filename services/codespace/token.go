@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	asymkey_model "gitea.dev/models/asymkey"
 	auth_model "gitea.dev/models/auth"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
@@ -22,6 +23,7 @@ import (
 	secret_module "gitea.dev/modules/secret"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+	asymkey_service "gitea.dev/services/asymkey"
 )
 
 const codespaceTokenPrefix = "gcs_"
@@ -72,6 +74,12 @@ type requestRuntimeCredentialsResult struct {
 	Token     string
 	ServerURL string
 	Secrets   []RuntimeSecret
+}
+
+type runtimeAccessPreparation struct {
+	credentials *requestRuntimeCredentialsResult
+	codespace   *codespace_model.Codespace
+	user        *user_model.User
 }
 
 // GiteaTokenAuthSnapshot contains the current Codespace Token authentication result for one request.
@@ -126,100 +134,132 @@ func (s *GiteaTokenAuthSnapshot) CodespaceTokenRepoID() int64 {
 
 // RequestRuntimeAccess returns the current token, user secrets, and Git SSH trust material.
 func RequestRuntimeAccess(ctx context.Context, manager *codespace_model.Manager, opts RequestRuntimeAccessOptions) (*RequestRuntimeAccessResult, error) {
-	if opts.OperationRVersion <= 0 {
-		return nil, errors.New("operation_rversion must be positive")
-	}
-	credentials, err := requestRuntimeCredentials(ctx, manager, requestRuntimeCredentialsOptions{
-		CodespaceUUID:     opts.CodespaceUUID,
-		OperationRVersion: opts.OperationRVersion,
-	})
-	if err != nil {
+	if err := validateRuntimeAccessRequest(manager, opts.CodespaceUUID, opts.OperationRVersion); err != nil {
 		return nil, err
-	}
-	knownHosts, err := ensureRuntimeGitSSHKey(ctx, manager, runtimeGitSSHKeyOptions{
-		CodespaceUUID:     opts.CodespaceUUID,
-		OperationRVersion: opts.OperationRVersion,
-		PublicKey:         opts.GitSSHPublicKey,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &RequestRuntimeAccessResult{
-		Token:            credentials.Token,
-		ServerURL:        credentials.ServerURL,
-		Secrets:          credentials.Secrets,
-		GitSSHKnownHosts: knownHosts,
-	}, nil
-}
-
-func requestRuntimeCredentials(ctx context.Context, manager *codespace_model.Manager, opts requestRuntimeCredentialsOptions) (*requestRuntimeCredentialsResult, error) {
-	if !setting.Codespace.Enabled {
-		return nil, ErrRequestRuntimeAccessStateUnavailable
-	}
-	if manager == nil || manager.ID <= 0 {
-		return nil, errors.New("manager is required")
-	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, err
-	}
-	if opts.OperationRVersion <= 0 {
-		return nil, errors.New("operation_rversion must be positive")
 	}
 
 	var (
-		token   string
-		secrets []RuntimeSecret
+		prepared   *runtimeAccessPreparation
+		knownHosts []string
 	)
-	err := globallock.LockAndDo(ctx, requestRuntimeCredentialsLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			allowed, err := currentManagerAllowsOnlineOrRecovering(ctx, manager.ID)
-			if err != nil {
-				return err
-			}
-			if !allowed {
-				return ErrRequestRuntimeAccessManagerOffline
-			}
-			codespace, err := loadRuntimeAccessCodespace(ctx, manager.ID, opts.CodespaceUUID, opts.OperationRVersion)
-			if err != nil {
-				return err
-			}
-			user, err := user_model.GetUserByID(ctx, codespace.UserID)
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					return ErrRequestRuntimeAccessUserNotFound
-				}
-				return err
-			}
-
-			secrets, err = resolveCodespaceRuntimeSecrets(ctx, user, codespace)
-			if err != nil {
-				return err
-			}
-
-			existingToken, ok, err := readCurrentGiteaToken(ctx, codespace.ID)
-			if err != nil {
-				return err
-			}
-			if ok {
-				token = existingToken
-				return nil
-			}
-			generatedToken, err := insertNewGiteaToken(ctx, codespace.ID)
-			if err != nil {
-				return err
-			}
-			token = generatedToken
-			return nil
+	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+		var err error
+		prepared, err = prepareRuntimeAccessLocked(ctx, manager, requestRuntimeCredentialsOptions{
+			CodespaceUUID:     opts.CodespaceUUID,
+			OperationRVersion: opts.OperationRVersion,
+		})
+		if err != nil {
+			return err
+		}
+		key, err := normalizeGitSSHPublicKey(opts.GitSSHPublicKey)
+		if err != nil {
+			return err
+		}
+		knownHosts, err = availableGitSSHKnownHostsLines()
+		if err != nil {
+			return err
+		}
+		canUseCodespace, err := codespaceUserCanLogIn(ctx, prepared.user)
+		if err != nil {
+			return err
+		}
+		if !canUseCodespace {
+			return ErrRuntimeGitSSHKeyLoginRestricted
+		}
+		// Share the fingerprint lock with user and deploy key creation so their global uniqueness checks cannot race.
+		return globallock.LockAndDo(ctx, asymkey_model.PublicKeyFingerprintLockKey(key.Fingerprint), func(ctx context.Context) error {
+			return ensureGitSSHKeyBinding(ctx, prepared.codespace, key)
 		})
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &requestRuntimeCredentialsResult{
-		Token:     token,
-		ServerURL: setting.AppURL,
-		Secrets:   secrets,
+	if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
+		return nil, fmt.Errorf("%w: rewrite authorized keys: %v", ErrRuntimeGitSSHKeyIntegrity, err)
+	}
+	return &RequestRuntimeAccessResult{
+		Token:            prepared.credentials.Token,
+		ServerURL:        prepared.credentials.ServerURL,
+		Secrets:          prepared.credentials.Secrets,
+		GitSSHKnownHosts: knownHosts,
 	}, nil
+}
+
+func prepareRuntimeAccessLocked(ctx context.Context, manager *codespace_model.Manager, opts requestRuntimeCredentialsOptions) (*runtimeAccessPreparation, error) {
+	var (
+		token     string
+		secrets   []RuntimeSecret
+		codespace *codespace_model.Codespace
+		user      *user_model.User
+	)
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		allowed, err := currentManagerAllowsOnlineOrRecovering(ctx, manager.ID)
+		if err != nil {
+			return err
+		}
+		if !allowed {
+			return ErrRequestRuntimeAccessManagerOffline
+		}
+		codespace, err = loadRuntimeAccessCodespace(ctx, manager.ID, opts.CodespaceUUID, opts.OperationRVersion)
+		if err != nil {
+			return err
+		}
+		user, err = user_model.GetUserByID(ctx, codespace.UserID)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				return ErrRequestRuntimeAccessUserNotFound
+			}
+			return err
+		}
+
+		secrets, err = resolveCodespaceRuntimeSecrets(ctx, user, codespace)
+		if err != nil {
+			return err
+		}
+
+		existingToken, ok, err := readCurrentGiteaToken(ctx, codespace.ID)
+		if err != nil {
+			return err
+		}
+		if ok {
+			token = existingToken
+			return nil
+		}
+		generatedToken, err := insertNewGiteaToken(ctx, codespace.ID)
+		if err != nil {
+			return err
+		}
+		token = generatedToken
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &runtimeAccessPreparation{
+		credentials: &requestRuntimeCredentialsResult{
+			Token:     token,
+			ServerURL: setting.AppURL,
+			Secrets:   secrets,
+		},
+		codespace: codespace,
+		user:      user,
+	}, nil
+}
+
+func validateRuntimeAccessRequest(manager *codespace_model.Manager, codespaceUUID string, operationRVersion int64) error {
+	if !setting.Codespace.Enabled {
+		return ErrRequestRuntimeAccessStateUnavailable
+	}
+	if manager == nil || manager.ID <= 0 {
+		return errors.New("manager is required")
+	}
+	if err := codespace_model.ValidateUUID(codespaceUUID); err != nil {
+		return err
+	}
+	if operationRVersion <= 0 {
+		return errors.New("operation_rversion must be positive")
+	}
+	return nil
 }
 
 func runtimeAccessLifecycleAllows(codespace *codespace_model.Codespace, operationRVersion, now int64) bool {
@@ -466,8 +506,4 @@ func IsGiteaTokenPlaintext(token string) bool {
 // IsGiteaTokenCandidate reports whether token uses the Codespace Token prefix.
 func IsGiteaTokenCandidate(token string) bool {
 	return strings.HasPrefix(token, codespaceTokenPrefix)
-}
-
-func requestRuntimeCredentialsLockKey(codespaceUUID string) string {
-	return "codespace_gitea_token_" + codespaceUUID
 }
