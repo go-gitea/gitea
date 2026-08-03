@@ -3,9 +3,13 @@
 
 package v1_9
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddAvatarFieldToRepository(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddAvatarFieldToRepository(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		// ID(10-20)-md5(32) - must fit into 64 symbols
 		Avatar string `xorm:"VARCHAR(64)"`

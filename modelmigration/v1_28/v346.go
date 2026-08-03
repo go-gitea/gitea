@@ -4,29 +4,49 @@
 package v1_28
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func AddCommitCommentTable(x base.EngineMigration) error {
-	type CommitComment struct {
-		ID          int64              `xorm:"pk autoincr"`
-		RepoID      int64              `xorm:"INDEX(s) NOT NULL"`
-		CommitSHA   string             `xorm:"VARCHAR(64) INDEX(s) NOT NULL"`
-		TreePath    string             `xorm:"VARCHAR(4000) NOT NULL"`
-		Line        int64              `xorm:"NOT NULL"`
-		PosterID    int64              `xorm:"INDEX NOT NULL"`
-		Content     string             `xorm:"LONGTEXT NOT NULL"`
-		Patch       string             `xorm:"LONGTEXT"`
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+func AddLicensePathToRepoLicense(ctx context.Context, x base.EngineMigration) error {
+	// Drop the old 2-column UNIQUE(s) index on (repo_id, license) and, on
+	// re-runs, the index created under the new name.
+	// xorm Sync cannot reliably update an index when its column set changes.
+	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "repo_license")
+	if err != nil {
+		return err
+	}
+	for _, idx := range indexes {
+		if idx.Name == "s" || idx.Name == "path" {
+			if _, err := x.Exec(x.Dialect().DropIndexSQL("repo_license", idx)); err != nil {
+				return err
+			}
+		}
 	}
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
+	// Add license_path column. The DEFAULT backfills existing rows: all repos
+	// created before this migration used the single LICENSE file convention.
+	type RepoLicense struct {
+		LicensePath string `xorm:"VARCHAR(255) NOT NULL DEFAULT 'LICENSE'"`
+	}
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
-	}, new(CommitComment))
-	return err
+		IgnoreConstrains:  true,
+	}, new(RepoLicense)); err != nil {
+		return err
+	}
+
+	// Create new 3-column UNIQUE(path) index on (repo_id, license, license_path);
+	// xorm prefixes the name to UQE_repo_license_path.
+	newIndex := schemas.NewIndex("path", schemas.UniqueType)
+	newIndex.AddColumn("repo_id", "license", "license_path")
+	if _, err := x.Exec(x.Dialect().CreateIndexSQL("repo_license", newIndex)); err != nil {
+		return err
+	}
+
+	return nil
 }

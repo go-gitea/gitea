@@ -49,15 +49,8 @@ type migration struct {
 }
 
 // newMigration creates a new migration
-func newMigration[T func(base.EngineMigration) error | func(context.Context, base.EngineMigration) error](idNumber int64, desc string, fn T) *migration {
-	m := &migration{idNumber: idNumber, description: desc}
-	var ok bool
-	if m.migrate, ok = any(fn).(func(context.Context, base.EngineMigration) error); !ok {
-		m.migrate = func(ctx context.Context, x base.EngineMigration) error {
-			return any(fn).(func(base.EngineMigration) error)(x)
-		}
-	}
-	return m
+func newMigration(idNumber int64, desc string, fn func(context.Context, base.EngineMigration) error) *migration {
+	return &migration{idNumber: idNumber, description: desc, migrate: fn}
 }
 
 // Migrate executes the migration
@@ -72,7 +65,7 @@ type Version struct {
 }
 
 // Use noopMigration when there is a migration that has been no-oped
-var noopMigration = func(_ base.EngineMigration) error { return nil }
+var noopMigration = func(_ context.Context, _ base.EngineMigration) error { return nil }
 
 var preparedMigrations []*migration
 
@@ -426,8 +419,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(343, "Add max_parallel column to action_run_job", v1_28.AddMaxParallelToActionRunJob),
 		newMigration(344, "Add deferred-matrix columns to ActionRunJob", v1_28.AddDeferredMatrixColumnsToActionRunJob),
 		newMigration(345, "Add block on CODEOWNERS reviews branch protection", v1_28.AddBlockOnCodeownerReviews),
-		newMigration(346, "Add commit comment table", v1_28.AddCommitCommentTable),
-		newMigration(347, "Add commit_comment_id column to notification", v1_28.AddCommitCommentIDToNotification),
+		newMigration(346, "Add license_path column to repo_license and backfill", v1_28.AddLicensePathToRepoLicense),
+		newMigration(347, "Add commit comment table", v1_28.AddCommitCommentTable),
 	}
 	return preparedMigrations
 }

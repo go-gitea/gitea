@@ -3,9 +3,13 @@
 
 package v1_20
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddVersionToActionRunner(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddVersionToActionRunner(_ context.Context, x base.EngineMigration) error {
 	type ActionRunner struct {
 		Version string `xorm:"VARCHAR(64)"` // the version of act_runner
 	}
