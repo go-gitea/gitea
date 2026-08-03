@@ -4,11 +4,13 @@
 package v1_19
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func CreatePackageCleanupRuleTable(x base.EngineMigration) error {
+func CreatePackageCleanupRuleTable(_ context.Context, x base.EngineMigration) error {
 	type PackageCleanupRule struct {
 		ID            int64              `xorm:"pk autoincr"`
 		Enabled       bool               `xorm:"INDEX NOT NULL DEFAULT false"`

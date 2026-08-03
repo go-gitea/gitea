@@ -10,19 +10,19 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func RenameWebhookOrgToOwner(x base.EngineMigration) error {
+func RenameWebhookOrgToOwner(ctx context.Context, x base.EngineMigration) error {
 	type Webhook struct {
 		OrgID int64 `xorm:"INDEX"`
 	}
 
 	// This migration maybe rerun so that we should check if it has been run
-	ownerExist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "webhook", "owner_id")
+	ownerExist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "webhook", "owner_id")
 	if err != nil {
 		return err
 	}
 
 	if ownerExist {
-		orgExist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "webhook", "org_id")
+		orgExist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "webhook", "org_id")
 		if err != nil {
 			return err
 		}
