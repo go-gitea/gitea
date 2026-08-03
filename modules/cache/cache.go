@@ -122,22 +122,26 @@ func Remove(key string) {
 
 // SafeCacheKey returns a cache-safe key for the input string
 // Some caches like memcached have char & length limits.
-// * If the input is safe to be used as the key, use it
-// * If the input can't be used as the key, use the hex string of its hash
-func SafeCacheKey(s string, limit int) string {
-	safeAsKey := len(s)+2 < limit
+// Caller must make sure the prefix is valid and well-designed.
+// If prefix is already too long, the returned key will still exceed the limit.
+func SafeCacheKey(prefix, input string) string {
+	return safeCacheKey(prefix, input, 250)
+}
+
+func safeCacheKey(prefix, input string, limit int) string {
+	safeAsKey := len(prefix)+len(input)+2 < limit
 	if safeAsKey {
-		for i := 0; i < len(s); i++ {
-			if c := s[i]; c <= ' ' || c >= 127 {
+		for i := 0; i < len(input); i++ {
+			if c := input[i]; c <= ' ' || c >= 127 {
 				safeAsKey = false
 				break
 			}
 		}
 	}
-	typ, key := "s", s
+	sep, key := ":s-", input
 	if !safeAsKey {
-		hashBytes := sha256.Sum256(util.UnsafeStringToBytes(s))
-		typ, key = "h", hex.EncodeToString(hashBytes[:])
+		hashBytes := sha256.Sum256(util.UnsafeStringToBytes(input))
+		sep, key = ":h-", hex.EncodeToString(hashBytes[:])
 	}
-	return typ + "-" + key
+	return prefix + sep + key
 }

@@ -11,7 +11,7 @@ import (
 )
 
 func makeCommitsCountCacheKey(repo RepositoryFacade, ref RefName) string {
-	return fmt.Sprintf("git-commits-count:%s:%s", repo.GitRepoManagedID(), cache.SafeCacheKey(ref.String(), 200))
+	return cache.SafeCacheKey(fmt.Sprintf("git-commits-count:%s", repo.GitRepoManagedID()), ref.String())
 }
 
 func RemoveCommitsCountCache(repo RepositoryFacade, ref RefName) {

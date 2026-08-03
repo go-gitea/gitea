@@ -12,7 +12,7 @@ import (
 )
 
 func getCacheKey(repo RepositoryFacade, commitID, entryPath string) string {
-	return fmt.Sprintf("git-last-commit:%s:%s:%s", repo.GitRepoManagedID(), commitID, cache.SafeCacheKey(entryPath, 200))
+	return cache.SafeCacheKey(fmt.Sprintf("git-last-commit:%s:%s", repo.GitRepoManagedID(), commitID), entryPath)
 }
 
 // LastCommitCache represents a cache to store last commit
