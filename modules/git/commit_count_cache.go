@@ -5,13 +5,12 @@ package git
 
 import (
 	"context"
-	"fmt"
 
 	"gitea.dev/modules/cache"
 )
 
 func makeCommitsCountCacheKey(repo RepositoryFacade, ref RefName) string {
-	return cache.SafeCacheKey(fmt.Sprintf("git-commits-count:%s", repo.GitRepoManagedID()), ref.String())
+	return cache.SafeCacheKey("git-commits-count:"+repo.GitRepoManagedID(), ref.String())
 }
 
 func RemoveCommitsCountCache(repo RepositoryFacade, ref RefName) {
