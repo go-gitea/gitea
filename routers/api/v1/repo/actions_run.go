@@ -96,7 +96,8 @@ func ForceCancelWorkflowRun(ctx *context.APIContext) {
 	// ---
 	// summary: Force-cancel a workflow run
 	// description: |
-	//   Cancels a workflow run and bypasses conditions that would otherwise cause the run to continue.
+	//   Cancels a workflow run without waiting for its runners to acknowledge the cancellation.
+	//   The jobs are marked cancelled at once and anything a runner reports for them afterwards is discarded.
 	//   Only use this endpoint when the workflow run does not respond to `POST /repos/{owner}/{repo}/actions/runs/{run}/cancel`.
 	// produces:
 	// - application/json

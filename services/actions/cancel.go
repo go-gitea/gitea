@@ -12,11 +12,13 @@ import (
 )
 
 // CancelRun cancels a run's cancellable jobs and returns the run's post-cancellation state.
+// A runner that supports it gets to run its post-cancel cleanup before the job reaches its final status.
 func CancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (*actions_model.ActionRun, error) {
 	return cancelRun(ctx, run, jobs, false)
 }
 
-// ForceCancelRun cancels a run like CancelRun, but bypasses the graceful cancelling and stops running tasks immediately.
+// ForceCancelRun cancels a run like CancelRun, but does not wait for the runners to acknowledge it:
+// the jobs are marked cancelled at once and whatever a runner reports for them afterwards is discarded.
 func ForceCancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (*actions_model.ActionRun, error) {
 	return cancelRun(ctx, run, jobs, true)
 }
