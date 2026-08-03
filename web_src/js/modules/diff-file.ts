@@ -2,7 +2,7 @@ import {reactive} from 'vue';
 import type {Reactive} from 'vue';
 import {extname} from '../utils.ts';
 import {toggleElem} from '../utils/dom.ts';
-import {trPrintf} from '../utils/string.ts';
+import {trString} from '../modules/i18n.ts';
 
 const {pageData} = window.config;
 
@@ -144,14 +144,14 @@ function countEveryFileInDiff(store: Reactive<DiffFileTree>): number {
 function updateLoadProgress(loadedFiles: number, totalFiles: number) {
   const el = document.querySelector('#diff-load-progress');
   if (!el) return;
-  el.textContent = trPrintf(el.getAttribute('data-text-too-many-files')!, loadedFiles, totalFiles);
+  el.textContent = trString(el.getAttribute('data-text-too-many-files')!, loadedFiles, totalFiles);
 }
 
 function updateShowMoreButton(matchingBelow: number) {
   const btn = document.querySelector('#diff-show-more-files');
   if (!btn) return;
   if (matchingBelow > 0) {
-    btn.textContent = trPrintf(btn.getAttribute('data-text-matching')!, matchingBelow);
+    btn.textContent = trString(btn.getAttribute('data-text-matching')!, matchingBelow);
   } else {
     btn.textContent = btn.getAttribute('data-text-default')!;
   }
