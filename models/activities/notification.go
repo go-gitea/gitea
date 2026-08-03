@@ -581,10 +581,16 @@ func markReadIfUnread(ctx context.Context, notification *Notification) (bool, er
 		return false, nil
 	}
 
-	notification.Status = NotificationStatusRead
-	if _, err := db.GetEngine(ctx).ID(notification.ID).Cols("status").Update(notification); err != nil {
+	// the status condition makes the update atomic, so a concurrent reader cannot decrement
+	// the unread count twice for the same notification
+	count, err := db.GetEngine(ctx).ID(notification.ID).
+		Where("status = ?", NotificationStatusUnread).
+		Cols("status").
+		Update(&Notification{Status: NotificationStatusRead})
+	if err != nil || count == 0 {
 		return false, err
 	}
+	notification.Status = NotificationStatusRead
 	return true, nil
 }
 
