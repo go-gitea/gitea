@@ -123,13 +123,14 @@ func Remove(key string) {
 // SafeCacheKey returns a cache-safe key for the input string
 // Some caches like memcached have char & length limits.
 // Caller must make sure the prefix is valid and well-designed.
-// If prefix is already too long, the returned key will still exceed the limit.
+// If prefix is already too long, the returned key will still exceed the limit, then just let the cache report an error.
 func SafeCacheKey(prefix, input string) string {
-	return safeCacheKey(prefix, input, 250)
+	// memcached has a limit 250 for key length, so we use 230 to leave some room for other prefixes and separators
+	return safeCacheKey(prefix, input, 230)
 }
 
 func safeCacheKey(prefix, input string, limit int) string {
-	safeAsKey := len(prefix)+len(input)+2 < limit
+	safeAsKey := len(prefix)+len(input)+3 <= limit
 	if safeAsKey {
 		for i := 0; i < len(input); i++ {
 			if c := input[i]; c <= ' ' || c >= 127 {
