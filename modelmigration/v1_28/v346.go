@@ -12,11 +12,11 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-func AddLicensePathToRepoLicense(x base.EngineMigration) error {
+func AddLicensePathToRepoLicense(ctx context.Context, x base.EngineMigration) error {
 	// Drop the old 2-column UNIQUE(s) index on (repo_id, license) and, on
 	// re-runs, the index created under the new name.
 	// xorm Sync cannot reliably update an index when its column set changes.
-	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "repo_license")
+	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "repo_license")
 	if err != nil {
 		return err
 	}

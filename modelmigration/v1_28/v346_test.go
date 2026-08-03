@@ -31,9 +31,6 @@ func (repoLicenseBeforeV345) TableName() string { return "repo_license" }
 func Test_AddLicensePathToRepoLicense(t *testing.T) {
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(repoLicenseBeforeV345))
 	defer deferable()
-	if x == nil || t.Failed() {
-		return
-	}
 
 	_, err := x.Insert(&repoLicenseBeforeV345{RepoID: 1, CommitID: "c1", License: "MIT"})
 	require.NoError(t, err)
@@ -49,8 +46,8 @@ func Test_AddLicensePathToRepoLicense(t *testing.T) {
 	assert.Equal(t, schemas.UniqueType, oldIdx.Type)
 	assert.Equal(t, []string{"repo_id", "license"}, oldIdx.Cols)
 
-	require.NoError(t, AddLicensePathToRepoLicense(x))
-	require.NoError(t, AddLicensePathToRepoLicense(x)) // idempotent
+	require.NoError(t, AddLicensePathToRepoLicense(t.Context(), x))
+	require.NoError(t, AddLicensePathToRepoLicense(t.Context(), x)) // idempotent
 
 	indexes, err = x.Dialect().GetIndexes(x.DB(), context.Background(), "repo_license")
 	require.NoError(t, err)

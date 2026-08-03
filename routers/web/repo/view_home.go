@@ -124,8 +124,8 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 }
 
 type licenseGroup struct {
-	Path     string
-	Licenses []string
+	LicensePath  string
+	LicenseNames []string
 }
 
 func prepareHomeSidebarLicenses(ctx *context.Context) {
@@ -142,10 +142,10 @@ func prepareHomeSidebarLicenses(ctx *context.Context) {
 	groups := make(map[string]*licenseGroup)
 	for _, rl := range repoLicenses {
 		if _, ok := groups[rl.LicensePath]; !ok {
-			groups[rl.LicensePath] = &licenseGroup{Path: rl.LicensePath}
+			groups[rl.LicensePath] = &licenseGroup{LicensePath: rl.LicensePath}
 			order = append(order, rl.LicensePath)
 		}
-		groups[rl.LicensePath].Licenses = append(groups[rl.LicensePath].Licenses, rl.License)
+		groups[rl.LicensePath].LicenseNames = append(groups[rl.LicensePath].LicenseNames, rl.License)
 	}
 
 	result := make([]licenseGroup, 0, len(order))
