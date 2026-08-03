@@ -186,7 +186,7 @@ func TestParseInterpolatesRunName(t *testing.T) {
 		})
 	}
 
-	// a malformed part must not restructure the surrounding expression, these used to panic
+	// a malformed part must not restructure the surrounding expression
 	for _, runName := range []string{"${{ 1) && (2 }}", "run ${{ 1) && (2 }} now", "${{ 'a' }} ${{ b", "${{ 'a }}"} {
 		_, err := Parse(workflow(runName), WithGitContext(&model.GithubContext{EventName: "push"}))
 		assert.ErrorContains(t, err, "interpolate run-name")
