@@ -36,7 +36,7 @@ const isLoading = shallowRef(false);
 const locale = shallowRef<Record<string, string>>({filter_changes_by_commit: elMount.getAttribute('data-filter_changes_by_commit')!});
 const commits = ref<Array<Commit>>([]); // deep, the commit objects are mutated in place
 const hoverActivated = shallowRef(false);
-const lastReviewCommitSha = shallowRef<string | null>('');
+const lastReviewCommitSha = shallowRef<string | null>(null);
 
 const commitsSinceLastReview = computed(() => {
   if (lastReviewCommitSha.value) {

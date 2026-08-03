@@ -29,6 +29,7 @@ for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirnam
   themes[parse(path).name] = join(import.meta.dirname, path);
 }
 
+// keep in sync with vitest.config.ts
 const webComponents = new Set([
   // our own, in web_src/js/webcomponents
   'overflow-menu',
@@ -37,20 +38,6 @@ const webComponents = new Set([
   'markdown-toolbar',
   'text-expander',
 ]);
-
-// plugins shared between vite and vitest
-export function sharedPlugins(): Plugin[] {
-  return [
-    stringPlugin(),
-    vuePlugin({
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag) => webComponents.has(tag),
-        },
-      },
-    }),
-  ];
-}
 
 function failOnWarningsPlugin(): Rolldown.Plugin {
   let warningCount = 0;
@@ -330,7 +317,14 @@ export default defineConfig(commonViteOpts({
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
-    ...sharedPlugins(),
+    stringPlugin(),
+    vuePlugin({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => webComponents.has(tag),
+        },
+      },
+    }),
     isProduction ? licensePlugin({
       done(deps, context) {
         const line = '-'.repeat(80);

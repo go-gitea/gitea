@@ -1,5 +1,14 @@
 import {defineConfig} from 'vitest/config';
-import {sharedPlugins} from './vite.config.ts';
+import vuePlugin from '@vitejs/plugin-vue';
+import {stringPlugin} from 'vite-string-plugin';
+
+// keep in sync with vite.config.ts
+const webComponents = new Set([
+  'overflow-menu',
+  'relative-time',
+  'markdown-toolbar',
+  'text-expander',
+]);
 
 export default defineConfig({
   test: {
@@ -20,5 +29,14 @@ export default defineConfig({
       concurrent: true,
     },
   },
-  plugins: sharedPlugins(),
+  plugins: [
+    stringPlugin(),
+    vuePlugin({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => webComponents.has(tag),
+        },
+      },
+    }),
+  ],
 });
