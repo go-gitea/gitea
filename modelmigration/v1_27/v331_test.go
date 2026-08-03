@@ -4,7 +4,6 @@
 package v1_27
 
 import (
-	"context"
 	"slices"
 	"testing"
 
@@ -67,7 +66,7 @@ func Test_AddActionRunAttemptModel(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, AddActionRunAttemptModel(context.Background(), x))
+	require.NoError(t, AddActionRunAttemptModel(t.Context(), x))
 
 	tableMap := migrationtest.LoadTableSchemasMap(t, x)
 
@@ -88,22 +87,22 @@ func Test_AddActionRunAttemptModel(t *testing.T) {
 	require.Contains(t, jobTable.ColumnsSeq(), "attempt_job_id")
 	require.Contains(t, jobTable.ColumnsSeq(), "source_task_id")
 
-	attemptIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_run_attempt")
+	attemptIndexes, err := x.Dialect().GetIndexes(x.DB(), t.Context(), "action_run_attempt")
 	require.NoError(t, err)
 	assert.True(t, hasIndexWithColumns(attemptIndexes, []string{"run_id", "attempt"}, true))
 	assert.True(t, hasIndexWithColumns(attemptIndexes, []string{"repo_id", "concurrency_group", "status"}, false))
 
-	runIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_run")
+	runIndexes, err := x.Dialect().GetIndexes(x.DB(), t.Context(), "action_run")
 	require.NoError(t, err)
 	assert.True(t, hasIndexWithColumns(runIndexes, []string{"latest_attempt_id"}, false))
 	assert.False(t, hasIndexWithColumns(runIndexes, []string{"repo_id", "concurrency_group"}, false))
 
-	jobIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_run_job")
+	jobIndexes, err := x.Dialect().GetIndexes(x.DB(), t.Context(), "action_run_job")
 	require.NoError(t, err)
 	assert.True(t, hasIndexWithColumns(jobIndexes, []string{"run_attempt_id"}, false))
 	assert.True(t, hasIndexWithColumns(jobIndexes, []string{"attempt_job_id"}, false))
 
-	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action_artifact")
+	indexes, err := x.Dialect().GetIndexes(x.DB(), t.Context(), "action_artifact")
 	require.NoError(t, err)
 	assert.False(t, hasIndexWithColumns(indexes, []string{"run_id", "artifact_path", "artifact_name"}, true))
 	assert.True(t, hasIndexWithColumns(indexes, []string{"run_id", "run_attempt_id", "artifact_path", "artifact_name"}, true))

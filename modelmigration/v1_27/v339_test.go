@@ -4,7 +4,6 @@
 package v1_27
 
 import (
-	"context"
 	"testing"
 
 	"gitea.dev/modelmigration/migrationtest"
@@ -58,14 +57,14 @@ func Test_AddCreatedUnixToActionUserIsDeletedIndex(t *testing.T) {
 		return
 	}
 
-	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action")
+	indexes, err := x.Dialect().GetIndexes(x.DB(), t.Context(), "action")
 	require.NoError(t, err)
 	assert.True(t, hasIndexWithColumns(indexes, []string{"user_id", "is_deleted"}, false), "old c_u index should exist before migration")
 	assert.False(t, hasIndexWithColumns(indexes, []string{"user_id", "is_deleted", "created_unix"}, false), "new c_u index should not exist before migration")
 
-	require.NoError(t, AddCreatedUnixToActionUserIsDeletedIndex(context.Background(), x))
+	require.NoError(t, AddCreatedUnixToActionUserIsDeletedIndex(t.Context(), x))
 
-	indexes, err = x.Dialect().GetIndexes(x.DB(), context.Background(), "action")
+	indexes, err = x.Dialect().GetIndexes(x.DB(), t.Context(), "action")
 	require.NoError(t, err)
 	assert.False(t, hasIndexWithColumns(indexes, []string{"user_id", "is_deleted"}, false), "old 2-column c_u index should be gone after migration")
 	assert.True(t, hasIndexWithColumns(indexes, []string{"user_id", "is_deleted", "created_unix"}, false), "new 3-column c_u index must exist after migration")
