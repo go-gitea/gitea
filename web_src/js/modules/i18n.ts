@@ -8,7 +8,7 @@ export function trN(count: number, form1: string, formN: string, {lang = getCurr
 
 /**
  * Fills variables in a translated string (like TrString in Golang)
- * Only `%s`, `%d` or one-based postion like `%[1]s` are supported.
+ * Only `%s`, `%d` or one-based position like `%[1]s` are supported.
  */
 export function trString(s: string, ...args: Array<string | number>) {
   // the same behavior (almost) as backend TrString
