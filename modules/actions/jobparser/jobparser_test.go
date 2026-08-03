@@ -177,11 +177,6 @@ func TestParseInterpolatesRunName(t *testing.T) {
 		{"two expressions", "${{ 1 }}-${{ true }}", "1-true"},
 		{"closing brace inside a string", "${{ 'a}}b' }}", "a}}b"},
 		{"incomplete expression stays literal", "${{ 1", "${{ 1"},
-		// a malformed part must not restructure the surrounding expression, these used to panic
-		{"unbalanced parens", "${{ 1) && (2 }}", ""},
-		{"unbalanced parens between literals", "run ${{ 1) && (2 }} now", ""},
-		{"unclosed expression", "${{ 'a' }} ${{ b", ""},
-		{"unclosed string", "${{ 'a }}", ""},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := Parse(workflow(tt.runName), WithGitContext(&model.GithubContext{EventName: "push"}))
@@ -189,6 +184,12 @@ func TestParseInterpolatesRunName(t *testing.T) {
 			require.Len(t, result, 1)
 			assert.Equal(t, tt.want, result[0].RunName)
 		})
+	}
+
+	// a malformed part must not restructure the surrounding expression, these used to panic
+	for _, runName := range []string{"${{ 1) && (2 }}", "run ${{ 1) && (2 }} now", "${{ 'a' }} ${{ b", "${{ 'a }}"} {
+		_, err := Parse(workflow(runName), WithGitContext(&model.GithubContext{EventName: "push"}))
+		assert.ErrorContains(t, err, "interpolate run-name")
 	}
 
 	// callers such as commit status parse without a git context, leaving `github` a nil pointer

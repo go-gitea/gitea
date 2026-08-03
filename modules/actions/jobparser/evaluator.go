@@ -99,14 +99,6 @@ func (ee ExpressionEvaluator) EvaluateYamlNode(node *yaml.Node) error {
 	}
 }
 
-func (ee ExpressionEvaluator) Interpolate(in string) string {
-	out, err := ee.interpolate(in)
-	if err != nil {
-		return ""
-	}
-	return out
-}
-
 // interpolate evaluates every part on its own, so a malformed one cannot restructure its neighbours
 func (ee ExpressionEvaluator) interpolate(in string) (string, error) {
 	parts, err := splitSubExpressions(in)

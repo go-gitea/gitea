@@ -167,7 +167,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	}
 
 	evaluator := NewExpressionEvaluator(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Github: pc.gitContext, Vars: pc.vars, Inputs: pc.inputs}, exprparser.Config{}))
-	workflow.RunName = evaluator.Interpolate(workflow.RunName)
+	if workflow.RunName, err = evaluator.interpolate(workflow.RunName); err != nil {
+		return nil, fmt.Errorf("interpolate run-name: %w", err)
+	}
 
 	for i, id := range ids {
 		job := jobs[i]
@@ -301,6 +303,7 @@ func validateMatrixFilters(job *model.Job) error {
 func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
 	srcRunsOn := src.RunsOn()
 	combos := make([]*Job, 0, len(matrixes))
+	var err error
 	for _, matrix := range matrixes {
 		combo := src.Clone()
 		if combo.Name == "" {
@@ -308,10 +311,14 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob
 		}
 		combo.Strategy.RawMatrix = encodeMatrix(matrix)
 		evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs))
-		combo.Name = nameWithMatrix(combo.Name, matrix, evaluator)
+		if combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator); err != nil {
+			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
+		}
 		runsOn := slices.Clone(srcRunsOn)
 		for i := range runsOn {
-			runsOn[i] = evaluator.Interpolate(runsOn[i])
+			if runsOn[i], err = evaluator.interpolate(runsOn[i]); err != nil {
+				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
+			}
 		}
 		combo.RawRunsOn = encodeRunsOn(runsOn)
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
@@ -383,16 +390,16 @@ func encodeRunsOn(runsOn []string) yaml.Node {
 	return node
 }
 
-func nameWithMatrix(name string, m map[string]any, evaluator *ExpressionEvaluator) string {
+func nameWithMatrix(name string, m map[string]any, evaluator *ExpressionEvaluator) (string, error) {
 	if len(m) == 0 {
-		return name
+		return name, nil
 	}
 
 	if !strings.Contains(name, "${{") || !strings.Contains(name, "}}") {
-		return name + " " + matrixName(m)
+		return name + " " + matrixName(m), nil
 	}
 
-	return evaluator.Interpolate(name)
+	return evaluator.interpolate(name)
 }
 
 func matrixName(m map[string]any) string {
