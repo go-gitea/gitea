@@ -186,7 +186,7 @@ func TestCancelJobs_NestedBlockedReusableCaller(t *testing.T) {
 	// Cancel all jobs of the attempt, ordered by id (parent before child).
 	jobs, err := GetRunJobsByRunAndAttemptID(ctx, run.ID, attempt.ID)
 	require.NoError(t, err)
-	_, err = CancelJobs(ctx, jobs)
+	_, err = CancelJobs(ctx, jobs, false)
 	require.NoError(t, err)
 
 	for _, j := range []*ActionRunJob{outer, inner} {
@@ -257,7 +257,7 @@ func TestForceCancelJobs(t *testing.T) {
 		require.NoError(t, unittest.PrepareTestDatabase())
 		task, job := newRunningTaskForCancelling(t, "force-cancel-job", true)
 
-		cancelledJobs, err := ForceCancelJobs(t.Context(), []*ActionRunJob{job})
+		cancelledJobs, err := CancelJobs(t.Context(), []*ActionRunJob{job}, true)
 		require.NoError(t, err)
 		require.Len(t, cancelledJobs, 1)
 		assert.Equal(t, StatusCancelled, cancelledJobs[0].Status)
@@ -269,13 +269,13 @@ func TestForceCancelJobs(t *testing.T) {
 		require.NoError(t, unittest.PrepareTestDatabase())
 		task, job := newRunningTaskForCancelling(t, "force-cancel-cancelling-job", true)
 
-		cancelling, err := CancelJobs(t.Context(), []*ActionRunJob{job})
+		cancelling, err := CancelJobs(t.Context(), []*ActionRunJob{job}, false)
 		require.NoError(t, err)
 		require.Len(t, cancelling, 1)
 		assert.Equal(t, StatusCancelling, cancelling[0].Status)
 
 		job = unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
-		cancelled, err := ForceCancelJobs(t.Context(), []*ActionRunJob{job})
+		cancelled, err := CancelJobs(t.Context(), []*ActionRunJob{job}, true)
 		require.NoError(t, err)
 		require.Len(t, cancelled, 1)
 		assertCancelled(t, task, job)

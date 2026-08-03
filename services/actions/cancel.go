@@ -24,16 +24,9 @@ func ForceCancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*a
 func cancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob, force bool) (*actions_model.ActionRun, error) {
 	var updatedJobs []*actions_model.ActionRunJob
 	if err := db.WithTx(ctx, func(ctx context.Context) (err error) {
-		if force {
-			updatedJobs, err = actions_model.ForceCancelJobs(ctx, jobs)
-			if err != nil {
-				return fmt.Errorf("ForceCancelJobs: %w", err)
-			}
-		} else {
-			updatedJobs, err = actions_model.CancelJobs(ctx, jobs)
-			if err != nil {
-				return fmt.Errorf("CancelJobs: %w", err)
-			}
+		updatedJobs, err = actions_model.CancelJobs(ctx, jobs, force)
+		if err != nil {
+			return fmt.Errorf("CancelJobs: %w", err)
 		}
 		return nil
 	}); err != nil {

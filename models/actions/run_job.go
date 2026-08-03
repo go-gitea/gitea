@@ -687,7 +687,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 			return cancelledJobs, err
 		}
 
-		cjs, err := CancelJobs(ctx, jobs)
+		cjs, err := CancelJobs(ctx, jobs, false)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -733,18 +733,12 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}
 
-	return CancelJobs(ctx, jobsToCancel)
+	return CancelJobs(ctx, jobsToCancel, false)
 }
 
-func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
-	return cancelJobs(ctx, jobs, false)
-}
-
-func ForceCancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
-	return cancelJobs(ctx, jobs, true)
-}
-
-func cancelJobs(ctx context.Context, jobs []*ActionRunJob, force bool) ([]*ActionRunJob, error) {
+// CancelJobs cancels the given jobs. A forced cancellation skips the graceful cancelling
+// handshake and marks a running task cancelled without waiting for its runner.
+func CancelJobs(ctx context.Context, jobs []*ActionRunJob, force bool) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
 
 	for _, job := range jobs {
