@@ -79,7 +79,7 @@ func Test_RemoveInvalidLabels(t *testing.T) {
 	}
 
 	// Run the migration
-	if err := RemoveInvalidLabels(x); err != nil {
+	if err := RemoveInvalidLabels(t.Context(), x); err != nil {
 		t.Errorf("unable to RemoveInvalidLabels: %v", err)
 	}
 

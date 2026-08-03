@@ -4,11 +4,13 @@
 package v1_10
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddTaskTable(x base.EngineMigration) error {
+func AddTaskTable(_ context.Context, x base.EngineMigration) error {
 	// TaskType defines task type
 	type TaskType int
 

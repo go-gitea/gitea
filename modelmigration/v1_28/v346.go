@@ -4,33 +4,49 @@
 package v1_28
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func AddImmutableReleases(x base.EngineMigration) error {
-	type Release struct {
-		IsImmutable bool `xorm:"NOT NULL DEFAULT false"`
+func AddLicensePathToRepoLicense(ctx context.Context, x base.EngineMigration) error {
+	// Drop the old 2-column UNIQUE(s) index on (repo_id, license) and, on
+	// re-runs, the index created under the new name.
+	// xorm Sync cannot reliably update an index when its column set changes.
+	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "repo_license")
+	if err != nil {
+		return err
+	}
+	for _, idx := range indexes {
+		if idx.Name == "s" || idx.Name == "path" {
+			if _, err := x.Exec(x.Dialect().DropIndexSQL("repo_license", idx)); err != nil {
+				return err
+			}
+		}
 	}
 
-	type ImmutableTag struct {
-		ID            int64              `xorm:"pk autoincr"`
-		RepoID        int64              `xorm:"INDEX(r) NOT NULL"`
-		OwnerID       int64              `xorm:"UNIQUE(s) NOT NULL"`
-		LowerRepoName string             `xorm:"UNIQUE(s) NOT NULL"`
-		LowerTagName  string             `xorm:"UNIQUE(s) INDEX(r) NOT NULL"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	// Add license_path column. The DEFAULT backfills existing rows: all repos
+	// created before this migration used the single LICENSE file convention.
+	type RepoLicense struct {
+		LicensePath string `xorm:"VARCHAR(255) NOT NULL DEFAULT 'LICENSE'"`
 	}
-
-	if err := x.Sync(new(ImmutableTag)); err != nil {
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+		IgnoreConstrains:  true,
+	}, new(RepoLicense)); err != nil {
 		return err
 	}
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(Release))
-	return err
+	// Create new 3-column UNIQUE(path) index on (repo_id, license, license_path);
+	// xorm prefixes the name to UQE_repo_license_path.
+	newIndex := schemas.NewIndex("path", schemas.UniqueType)
+	newIndex.AddColumn("repo_id", "license", "license_path")
+	if _, err := x.Exec(x.Dialect().CreateIndexSQL("repo_license", newIndex)); err != nil {
+		return err
+	}
+
+	return nil
 }

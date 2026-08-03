@@ -4,12 +4,14 @@
 package v1_23
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddForcePushBranchProtection(x base.EngineMigration) error {
+func AddForcePushBranchProtection(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		CanForcePush                 bool    `xorm:"NOT NULL DEFAULT false"`
 		EnableForcePushAllowlist     bool    `xorm:"NOT NULL DEFAULT false"`
