@@ -49,15 +49,8 @@ type migration struct {
 }
 
 // newMigration creates a new migration
-func newMigration[T func(base.EngineMigration) error | func(context.Context, base.EngineMigration) error](idNumber int64, desc string, fn T) *migration {
-	m := &migration{idNumber: idNumber, description: desc}
-	var ok bool
-	if m.migrate, ok = any(fn).(func(context.Context, base.EngineMigration) error); !ok {
-		m.migrate = func(ctx context.Context, x base.EngineMigration) error {
-			return any(fn).(func(base.EngineMigration) error)(x)
-		}
-	}
-	return m
+func newMigration(idNumber int64, desc string, fn func(context.Context, base.EngineMigration) error) *migration {
+	return &migration{idNumber: idNumber, description: desc, migrate: fn}
 }
 
 // Migrate executes the migration
