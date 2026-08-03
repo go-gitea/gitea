@@ -72,18 +72,14 @@ func ExpressionReadsMatrix(ifValue string) bool {
 // the status functions that run a job whatever its needs did rather than under the implicit success().
 // Keep in sync with act's exprparser, which owns the same list for the evaluation itself.
 func ExpressionIgnoresNeedResults(ifValue string) bool {
-	return expressionsMatch(asIfExpression(ifValue), func(node actionlint.ExprNode) bool {
-		call, ok := node.(*actionlint.FuncCallNode)
-		return ok && slices.Contains([]string{"always", "failure", "cancelled"}, strings.ToLower(call.Callee))
-	})
+	return expressionCallsFunction(asIfExpression(ifValue), "always", "failure", "cancelled")
 }
 
-// expressionCallsStatusFunction reports whether an `if:` decides on the job status itself, which is
-// what drops the implicit success().
-func expressionCallsStatusFunction(ifValue string) bool {
-	return expressionsMatch(ifValue, func(node actionlint.ExprNode) bool {
+// expressionCallsFunction reports whether any ${{ }} expression in value calls one of the functions.
+func expressionCallsFunction(value string, names ...string) bool {
+	return expressionsMatch(value, func(node actionlint.ExprNode) bool {
 		call, ok := node.(*actionlint.FuncCallNode)
-		return ok && slices.Contains([]string{"success", "always", "failure", "cancelled"}, strings.ToLower(call.Callee))
+		return ok && slices.Contains(names, strings.ToLower(call.Callee))
 	})
 }
 

@@ -151,7 +151,8 @@ func (ee ExpressionEvaluator) evaluateCondition(in string) (bool, error) {
 		return exprparser.IsTruthy(evaluated), nil
 	}
 
-	if !expressionCallsStatusFunction(in) {
+	// mixed content is a string, so the success() default applies to it separately
+	if !expressionCallsFunction(in, "success", "always", "failure", "cancelled") {
 		status, err := ee.interpreter.Evaluate("success()", exprparser.DefaultStatusCheckNone)
 		if err != nil {
 			return false, err
