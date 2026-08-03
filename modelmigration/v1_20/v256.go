@@ -3,9 +3,13 @@
 
 package v1_20
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddIsInternalColumnToPackage(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddIsInternalColumnToPackage(_ context.Context, x base.EngineMigration) error {
 	type Package struct {
 		ID               int64  `xorm:"pk autoincr"`
 		OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`

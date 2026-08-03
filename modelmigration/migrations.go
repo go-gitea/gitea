@@ -65,7 +65,7 @@ type Version struct {
 }
 
 // Use noopMigration when there is a migration that has been no-oped
-var noopMigration = func(_ base.EngineMigration) error { return nil }
+var noopMigration = func(_ context.Context, _ base.EngineMigration) error { return nil }
 
 var preparedMigrations []*migration
 

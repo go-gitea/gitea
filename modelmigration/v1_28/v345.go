@@ -4,13 +4,15 @@
 package v1_28
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
 // AddBlockOnCodeownerReviews adds block on codeowner reviews branch protection
-func AddBlockOnCodeownerReviews(x base.EngineMigration) error {
+func AddBlockOnCodeownerReviews(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		BlockOnCodeownerReviews bool `xorm:"NOT NULL DEFAULT false"`
 	}

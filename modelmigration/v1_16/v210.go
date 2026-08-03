@@ -4,6 +4,7 @@
 package v1_16
 
 import (
+	"context"
 	"encoding/base32"
 	"fmt"
 	"strings"
@@ -16,7 +17,7 @@ import (
 )
 
 // v208 migration was completely broken
-func RemigrateU2FCredentials(x base.EngineMigration) error {
+func RemigrateU2FCredentials(_ context.Context, x base.EngineMigration) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
 		ID              int64 `xorm:"pk autoincr"`

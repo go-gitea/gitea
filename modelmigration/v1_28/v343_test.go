@@ -26,7 +26,7 @@ func TestAddMaxParallelToActionRunJob(t *testing.T) {
 	_, err := x.Insert(&ActionRunJob{Name: "job-a"})
 	require.NoError(t, err)
 
-	require.NoError(t, AddMaxParallelToActionRunJob(x))
+	require.NoError(t, AddMaxParallelToActionRunJob(t.Context(), x))
 
 	// pre-existing rows must default to unlimited
 	var maxParallel int
