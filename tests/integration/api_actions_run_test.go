@@ -6,6 +6,7 @@ package integration
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,10 +18,12 @@ import (
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/commitstatus"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/tests"
@@ -380,6 +383,11 @@ func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
 	ownerSession := loginUser(t, owner.Name)
 	ownerToken := getTokenForLoggedInUser(t, ownerSession, auth_model.AccessTokenScopeWriteRepository)
 
+	// repo4's master head, so the run's commit statuses are created against a commit that exists
+	const commitSHA = "c7cd3cd144e6d23c9d6f3d07e52b2c1a956e0338"
+	eventPayload, err := json.Marshal(&api.PushPayload{HeadCommit: &api.PayloadCommit{ID: commitSHA}})
+	require.NoError(t, err)
+
 	// A running run whose runner advertises cancelling support and reports on time:
 	// a normal cancel only starts the graceful cancelling handshake, so only a force-cancel finishes it.
 	run := &actions_model.ActionRun{
@@ -390,10 +398,10 @@ func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
 		Index:         9601,
 		TriggerUserID: owner.ID,
 		Ref:           "refs/heads/master",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		CommitSHA:     commitSHA,
 		Event:         "push",
 		TriggerEvent:  "push",
-		EventPayload:  "{}",
+		EventPayload:  string(eventPayload),
 		Status:        actions_model.StatusRunning,
 		Started:       timeutil.TimeStampNow(),
 	}
@@ -433,7 +441,7 @@ func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
 	require.NoError(t, db.Insert(t.Context(), task))
 
 	job.TaskID = task.ID
-	_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "task_id")
+	_, err = actions_model.UpdateRunJob(t.Context(), job, nil, "task_id")
 	require.NoError(t, err)
 
 	cancelURL := fmt.Sprintf("/api/v1/repos/%s/actions/runs/%d/cancel", repo.FullName(), run.ID)
@@ -443,6 +451,12 @@ func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
 	MakeRequest(t, NewRequest(t, "POST", cancelURL).AddTokenAuth(ownerToken), http.StatusOK)
 	cancellingTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.ID})
 	assert.Equal(t, actions_model.StatusCancelling, cancellingTask.Status)
+
+	// the commit status describes the cancellation, not the job's pre-cancel state
+	statuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, commitSHA, db.ListOptionsAll)
+	require.NoError(t, err)
+	require.Len(t, statuses, 1)
+	assert.Equal(t, "Canceling", statuses[0].Description)
 
 	// force-cancel bypasses the handshake and finishes the run immediately
 	resp := MakeRequest(t, NewRequest(t, "POST", forceCancelURL).AddTokenAuth(ownerToken), http.StatusOK)
@@ -454,6 +468,12 @@ func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
 	assert.Equal(t, actions_model.StatusCancelled, cancelledTask.Status)
 	gotRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
 	assert.Equal(t, actions_model.StatusCancelled, gotRun.Status)
+
+	// the run is done, so its commit status must be final instead of pending
+	statuses, err = git_model.GetLatestCommitStatus(t.Context(), repo.ID, commitSHA, db.ListOptionsAll)
+	require.NoError(t, err)
+	require.Len(t, statuses, 1)
+	assert.Equal(t, commitstatus.CommitStatusFailure, statuses[0].State)
 
 	// both endpoints refuse the completed run
 	MakeRequest(t, NewRequest(t, "POST", cancelURL).AddTokenAuth(ownerToken), http.StatusConflict)

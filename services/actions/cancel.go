@@ -40,7 +40,8 @@ func cancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*action
 		return nil, err
 	}
 
-	CreateCommitStatusForRunJobs(ctx, run, jobs...)
+	// updatedJobs, not jobs: cancelOneJob re-reads the cancelled rows, the input ones still carry their pre-cancel status
+	CreateCommitStatusForRunJobs(ctx, run, updatedJobs...)
 	EmitJobsIfReadyByJobs(updatedJobs)
 	NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
 	if len(updatedJobs) == 0 {
