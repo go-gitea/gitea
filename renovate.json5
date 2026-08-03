@@ -17,8 +17,6 @@
     "enabled": true,
     "semanticCommitType": "fix", // overrides packageRules
   },
-  // renovate only runs the branch-mode task of the branch's first upgrade, so a single task
-  // covers all generators, https://github.com/renovatebot/renovate/pull/43422
   "postUpgradeTasks": {
     "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
     "fileFilters": [
