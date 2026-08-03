@@ -1,11 +1,11 @@
 {{$cs := .Codespace}}
 <div id="codespace-live-state" data-state-url="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/state?tab={{.CodespaceTab}}" data-refresh-after-ms="{{$cs.RefreshAfterMillis}}" data-auto-stop-configurable="{{$cs.CanConfigureAutoStop}}" data-detail-mode="{{$cs.DetailMode}}">
-	<header class="codespace-detail-page-header">
+	<header class="tw-flex tw-flex-col tw-shrink-0 tw-gap-3 tw-mt-2">
 		<div class="codespace-detail-heading">
-			<div class="codespace-detail-identity">
-				<div class="codespace-detail-title-row">
+			<div class="tw-flex-1 tw-min-w-0">
+				<div class="tw-flex tw-items-center tw-gap-2 tw-flex-wrap">
 					<h2 class="ui header tw-m-0 tw-break-anywhere">{{if $cs.RepoLink}}<a href="{{$cs.RepoLink}}">{{$cs.RepoFullName}}</a>{{else}}{{ctx.Locale.Tr "codespace.codespace"}}{{end}}</h2>
-					<span class="ui label codespace-state-label codespace-state-{{$cs.DisplayStatus}}">{{ctx.Locale.Tr $cs.DisplayStatusKey}}</span>
+					<span class="ui label codespace-state-label codespace-state-{{$cs.DisplayStatus}} tw-shrink-0">{{ctx.Locale.Tr $cs.DisplayStatusKey}}</span>
 				</div>
 				<div class="codespace-detail-source">
 					<span>{{svg "octicon-git-branch" 14}} {{$cs.RefType}}: <span class="tw-break-anywhere">{{$cs.RefName}}</span></span>
@@ -54,7 +54,7 @@
 		{{$hasConnections := or $cs.SSH $cs.Endpoints}}
 		<div class="codespace-overview">
 			{{if $hasConnections}}
-				<section class="codespace-connections">
+				<section class="tw-min-w-0">
 					{{if $cs.SSH}}
 						<section class="codespace-connection-section codespace-ssh-section">
 							<h3 class="ui header flex-text-block">{{svg "octicon-key" 18}}{{ctx.Locale.Tr "codespace.ssh"}}</h3>
@@ -93,7 +93,7 @@
 				</dl></section>
 				{{if $cs.ResourceUsage}}
 					<section class="codespace-detail-section"><h3 class="ui header">{{ctx.Locale.Tr "codespace.runtime_usage"}}</h3>
-					<div class="codespace-resource-list">
+					<div class="flex-relaxed-list">
 						<div class="codespace-resource-metric"><div><span>{{ctx.Locale.Tr "codespace.cpu"}}</span><span>{{if $cs.ResourceUsage.CPU.Limit}}{{$cs.ResourceUsage.CPU.UsedDisplay}} / {{$cs.ResourceUsage.CPU.LimitDisplay}}{{else}}{{$cs.ResourceUsage.CPU.UsedDisplay}} · {{ctx.Locale.Tr "codespace.limit_unknown"}}{{end}}</span></div>{{if $cs.ResourceUsage.CPU.Limit}}<progress value="{{$cs.ResourceUsage.CPU.Used}}" max="{{$cs.ResourceUsage.CPU.Limit}}"></progress>{{end}}</div>
 						<div class="codespace-resource-metric"><div><span>{{ctx.Locale.Tr "codespace.memory"}}</span><span>{{if $cs.ResourceUsage.Memory.Limit}}{{$cs.ResourceUsage.Memory.UsedDisplay}} / {{$cs.ResourceUsage.Memory.LimitDisplay}}{{else}}{{$cs.ResourceUsage.Memory.UsedDisplay}} · {{ctx.Locale.Tr "codespace.limit_unknown"}}{{end}}</span></div>{{if $cs.ResourceUsage.Memory.Limit}}<progress value="{{$cs.ResourceUsage.Memory.Used}}" max="{{$cs.ResourceUsage.Memory.Limit}}"></progress>{{end}}</div>
 						<div class="codespace-resource-metric"><div><span>{{ctx.Locale.Tr "codespace.disk"}}</span><span>{{if $cs.ResourceUsage.Disk.Limit}}{{$cs.ResourceUsage.Disk.UsedDisplay}} / {{$cs.ResourceUsage.Disk.LimitDisplay}}{{else}}{{$cs.ResourceUsage.Disk.UsedDisplay}} · {{ctx.Locale.Tr "codespace.limit_unknown"}}{{end}}</span></div>{{if $cs.ResourceUsage.Disk.Limit}}<progress value="{{$cs.ResourceUsage.Disk.Used}}" max="{{$cs.ResourceUsage.Disk.Limit}}"></progress>{{end}}</div>

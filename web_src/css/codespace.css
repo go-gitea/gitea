@@ -1,16 +1,4 @@
-.codespace-detail-page-header {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  gap: 12px;
-  margin-top: 8px;
-}
-
 .codespace-back-link {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  gap: 4px;
   color: var(--color-text-light-1);
   font-size: 13px;
 }
@@ -32,22 +20,6 @@
   justify-content: space-between;
   gap: 16px;
   min-width: 0;
-}
-
-.codespace-detail-identity {
-  flex: 1;
-  min-width: 0;
-}
-
-.codespace-detail-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.codespace-detail-title-row .codespace-state-label {
-  flex-shrink: 0;
 }
 
 .codespace-action-bar,
@@ -127,11 +99,6 @@
   grid-template-columns: minmax(0, 1fr) 320px;
   align-items: start;
   gap: 32px;
-  min-width: 0;
-}
-
-.codespace-connections,
-.codespace-overview-context {
   min-width: 0;
 }
 
@@ -250,6 +217,7 @@
 }
 
 .codespace-overview-context {
+  min-width: 0;
   padding-left: 24px;
   border-left: 1px solid var(--color-secondary);
 }
@@ -257,12 +225,6 @@
 .codespace-boot-stage {
   padding-left: 16px;
   border-left: 1px solid var(--color-secondary);
-}
-
-.codespace-resource-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .codespace-resource-metric > div {
@@ -337,17 +299,6 @@
   overflow-x: auto;
 }
 
-.codespace-manager-table-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.codespace-manager-table-actions form {
-  margin: 0;
-}
-
 .codespace-manager-overview {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -403,10 +354,6 @@
   font-weight: var(--font-weight-normal);
 }
 
-.codespace-log-dropdown {
-  flex: 0 0 auto;
-}
-
 .codespace-log-panel .ui.button,
 .codespace-log-panel .ui.button:focus {
   margin: 0;
@@ -458,8 +405,7 @@
 }
 
 .codespace-log-view {
-  height: 55dvh;
-  min-height: 360px;
+  height: clamp(360px, 55dvh, 720px);
   padding: 10px 0;
   overflow: auto;
   border-radius: 0;
@@ -577,38 +523,6 @@
   color: var(--color-console-fg-subtle);
 }
 
-@media (min-width: 992px) {
-  body:has(.codespace-detail-page) {
-    overflow-y: scroll;
-    scrollbar-gutter: stable;
-  }
-
-  body:has(.codespace-detail-page) > .full.height {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    padding-bottom: 0;
-  }
-
-  .codespace-detail-page {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-  }
-
-  .codespace-detail-page .codespace-detail-container {
-    display: flex !important;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  .codespace-detail-tab-logs .codespace-log-view {
-    flex: 1;
-    height: auto;
-    min-height: 0;
-  }
-}
-
 .full.height > .codespace-log-panel.fullscreen {
   width: 100%;
   height: 100%;
@@ -620,10 +534,6 @@
   flex: 1;
   height: auto;
   min-height: 0;
-}
-
-.codespace-create-page .medium-width {
-  max-width: 960px;
 }
 
 .codespace-create-page .ui.attached.segment + .ui.attached.segment {
@@ -823,28 +733,6 @@
   flex-shrink: 0;
 }
 
-.codespace-create-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.codespace-list-meta > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.codespace-list-meta > span > svg {
-  flex-shrink: 0;
-}
-
-.codespace-list-summary {
-  color: var(--color-text-light-1);
-  overflow-wrap: anywhere;
-}
-
 .codespace-list-action-divider {
   align-self: stretch;
   width: 1px;
@@ -902,12 +790,6 @@
     display: none;
   }
 
-  .codespace-ports-table.ui.table tbody,
-  .codespace-ports-table.ui.table tr,
-  .codespace-ports-table.ui.table td {
-    display: block;
-  }
-
   .codespace-ports-table.ui.table tr {
     position: relative;
     padding: 10px 44px 10px 0;
@@ -915,7 +797,6 @@
   }
 
   .codespace-ports-table.ui.table td {
-    width: auto;
     padding: 0;
     border-top: 0;
   }

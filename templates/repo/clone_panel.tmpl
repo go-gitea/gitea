@@ -11,7 +11,7 @@
 		<span>{{ctx.Locale.Tr "repo.code"}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</button>
-	<div class="clone-panel-popup tippy-target">
+	<div class="clone-panel-popup tippy-target{{if $showCodespaces}} clone-panel-with-codespaces{{end}}">
 		{{if $showMainTabs}}
 			<div class="clone-panel-tab clone-panel-main-tab" role="tablist" aria-label="{{ctx.Locale.Tr "repo.code"}}">
 				<button class="item repo-clone-main active" id="repo-clone-tab" type="button" role="tab" aria-selected="true" aria-controls="repo-clone-section">{{ctx.Locale.Tr "codespace.clone"}}</button>

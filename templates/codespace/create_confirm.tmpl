@@ -15,7 +15,7 @@
 				</div>
 				{{template "codespace/create_source" .}}
 			</div>
-			<div class="ui bottom attached segment codespace-create-actions">
+			<div class="ui bottom attached segment tw-flex tw-justify-end tw-gap-2">
 				<a class="ui button" href="{{.RepoLink}}">{{ctx.Locale.Tr "cancel"}}</a>
 			</div>
 		{{else}}
@@ -160,7 +160,7 @@
 					</div>
 				</div>
 
-				<div class="ui bottom attached segment codespace-create-actions">
+				<div class="ui bottom attached segment tw-flex tw-justify-end tw-gap-2">
 					<a class="ui button" href="{{.RepoLink}}">{{ctx.Locale.Tr "cancel"}}</a>
 					<button class="ui primary button" type="submit">{{svg "octicon-plus"}} {{ctx.Locale.Tr "codespace.confirm_and_create"}}</button>
 				</div>

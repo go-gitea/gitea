@@ -10,13 +10,13 @@
 								<span class="ui tiny label codespace-state-label codespace-state-{{.DisplayStatus}}">{{ctx.Locale.Tr .DisplayStatusKey}}</span>
 							</div>
 						</div>
-						<div class="item-body codespace-list-meta">
-							<span>{{svg "octicon-git-branch" 14}} <span class="tw-break-anywhere">{{.RefDisplayName}}</span></span>
-							<span>{{svg "octicon-server" 14}} <span class="tw-break-anywhere">{{.EnvironmentTag}}</span></span>
-							<span>{{svg "octicon-clock" 14}} {{ctx.Locale.Tr "codespace.last_active"}}: {{if .LastActiveUnix}}{{DateUtils.TimeSince .LastActiveUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</span>
+						<div class="item-body">
+							<span class="flex-text-inline tw-min-w-0">{{svg "octicon-git-branch" 14}} <span class="tw-break-anywhere">{{.RefDisplayName}}</span></span>
+							<span class="flex-text-inline tw-min-w-0">{{svg "octicon-server" 14}} <span class="tw-break-anywhere">{{.EnvironmentTag}}</span></span>
+							<span class="flex-text-inline tw-min-w-0">{{svg "octicon-clock" 14}} {{ctx.Locale.Tr "codespace.last_active"}}: {{if .LastActiveUnix}}{{DateUtils.TimeSince .LastActiveUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</span>
 						</div>
 						{{if or (eq .DisplayStatus "queued") (eq .DisplayStatus "booting") (eq .DisplayStatus "stopping") (eq .DisplayStatus "resuming") (eq .DisplayStatus "deleting") (eq .DisplayStatus "failed") (eq .DisplayStatus "metadata_rebuilding") (eq .DisplayStatus "recovering")}}
-							<div class="codespace-list-summary">{{ctx.Locale.Tr .StatusSummaryKey}}</div>
+							<div class="tw-text-text-light tw-break-anywhere">{{ctx.Locale.Tr .StatusSummaryKey}}</div>
 						{{end}}
 					</div>
 					<div class="item-trailing">
