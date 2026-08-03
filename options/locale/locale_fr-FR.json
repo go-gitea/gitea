@@ -2298,7 +2298,6 @@
   "repo.settings.event_force_push": "Soumission forcée",
   "repo.settings.event_push_desc": "Soumission Git.",
   "repo.settings.event_repository": "Dépôt",
-  "repo.settings.event_repository_desc": "Dépôt créé ou supprimé.",
   "repo.settings.event_header_issue": "Événements de ticket",
   "repo.settings.event_issues": "Ticket",
   "repo.settings.event_issues_desc": "Ticket ouvert, rouvert, fermé, modifié ou supprimé.",

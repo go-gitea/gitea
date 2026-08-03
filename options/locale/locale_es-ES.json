@@ -1788,7 +1788,6 @@
   "repo.settings.event_release_desc": "Lanzamiento publicado, actualizado o eliminado en un repositorio.",
   "repo.settings.event_push_desc": "Git push a un repositorio.",
   "repo.settings.event_repository": "Repositorio",
-  "repo.settings.event_repository_desc": "Repositorio creado o eliminado.",
   "repo.settings.event_header_issue": "Eventos de incidencias",
   "repo.settings.event_issues": "Incidencias",
   "repo.settings.event_issue_assign": "Incidencia asignada",

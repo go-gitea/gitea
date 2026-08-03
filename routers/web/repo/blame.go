@@ -272,7 +272,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 			line = template.HTML(util.UnsafeBytesToString(unsafeLines[i]))
 		}
 		br.EscapeStatus, br.Code = charset.EscapeControlHTML(line, ctx.Locale)
-		escapeStatus = escapeStatus.Or(br.EscapeStatus)
+		escapeStatus.Combine(br.EscapeStatus)
 	}
 
 	ctx.Data["EscapeStatus"] = escapeStatus

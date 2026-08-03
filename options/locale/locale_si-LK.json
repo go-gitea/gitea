@@ -1381,7 +1381,6 @@
   "repo.settings.event_push": "තල්ලුව",
   "repo.settings.event_push_desc": "ගබඩාවක් වෙත Git තල්ලු කරන්න.",
   "repo.settings.event_repository": "කෝෂ්ඨය",
-  "repo.settings.event_repository_desc": "ගබඩාව නිර්මාණය කරන ලද හෝ මකා දමන ලදි.",
   "repo.settings.event_header_issue": "නිකුත් කිරීමේ සිදුවීම්",
   "repo.settings.event_issues": "ගැටළු",
   "repo.settings.event_issue_assign": "පවරා ඇති නිකුතුව",
