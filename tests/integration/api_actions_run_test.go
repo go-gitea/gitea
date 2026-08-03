@@ -6,7 +6,6 @@ package integration
 import (
 	"archive/zip"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +23,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/tests"
@@ -407,15 +407,28 @@ func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
 	}
 	require.NoError(t, db.Insert(t.Context(), run))
 
+	attempt := &actions_model.ActionRunAttempt{
+		RepoID:        run.RepoID,
+		RunID:         run.ID,
+		Attempt:       1,
+		TriggerUserID: owner.ID,
+		Status:        actions_model.StatusRunning,
+		Started:       timeutil.TimeStampNow(),
+	}
+	require.NoError(t, db.Insert(t.Context(), attempt))
+	run.LatestAttemptID = attempt.ID
+	require.NoError(t, actions_model.UpdateRun(t.Context(), run, "latest_attempt_id"))
+
 	job := &actions_model.ActionRunJob{
-		RunID:     run.ID,
-		RepoID:    run.RepoID,
-		OwnerID:   run.OwnerID,
-		CommitSHA: run.CommitSHA,
-		Name:      "job1",
-		Attempt:   1,
-		JobID:     "job1",
-		Status:    actions_model.StatusRunning,
+		RunID:        run.ID,
+		RunAttemptID: attempt.ID,
+		RepoID:       run.RepoID,
+		OwnerID:      run.OwnerID,
+		CommitSHA:    run.CommitSHA,
+		Name:         "job1",
+		Attempt:      1,
+		JobID:        "job1",
+		Status:       actions_model.StatusRunning,
 	}
 	require.NoError(t, db.Insert(t.Context(), job))
 
@@ -466,6 +479,8 @@ func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
 
 	cancelledTask := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: task.ID})
 	assert.Equal(t, actions_model.StatusCancelled, cancelledTask.Status)
+	gotAttempt := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunAttempt{ID: attempt.ID})
+	assert.Equal(t, actions_model.StatusCancelled, gotAttempt.Status)
 	gotRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
 	assert.Equal(t, actions_model.StatusCancelled, gotRun.Status)
 
@@ -478,6 +493,13 @@ func testAPIActionsForceCancelWorkflowRun(t *testing.T) {
 	// both endpoints refuse the completed run
 	MakeRequest(t, NewRequest(t, "POST", cancelURL).AddTokenAuth(ownerToken), http.StatusConflict)
 	MakeRequest(t, NewRequest(t, "POST", forceCancelURL).AddTokenAuth(ownerToken), http.StatusConflict)
+
+	// the route is guarded like /cancel: user2 has no access to repo4, owned by user5
+	user2Token := getTokenForLoggedInUser(t, loginUser(t, "user2"), auth_model.AccessTokenScopeWriteRepository)
+	MakeRequest(t, NewRequest(t, "POST", forceCancelURL).AddTokenAuth(user2Token), http.StatusForbidden)
+
+	missingRunURL := fmt.Sprintf("/api/v1/repos/%s/actions/runs/999999/force-cancel", repo.FullName())
+	MakeRequest(t, NewRequest(t, "POST", missingRunURL).AddTokenAuth(ownerToken), http.StatusNotFound)
 }
 
 func testAPIActionsApproveWorkflowRun(t *testing.T) {

@@ -280,4 +280,35 @@ func TestForceCancelJobs(t *testing.T) {
 		require.Len(t, cancelled, 1)
 		assertCancelled(t, task, job)
 	})
+
+	// A caller is cancelled through its descendants, so the force has to reach their tasks too.
+	t.Run("reusable caller", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		task, child := newRunningTaskForCancelling(t, "force-cancel-child", true)
+
+		caller := &ActionRunJob{
+			RunID:            child.RunID,
+			RepoID:           child.RepoID,
+			OwnerID:          child.OwnerID,
+			CommitSHA:        child.CommitSHA,
+			Name:             "force-cancel-caller",
+			JobID:            "force-cancel-caller",
+			Attempt:          1,
+			Status:           StatusRunning,
+			IsReusableCaller: true,
+			IsExpanded:       true,
+		}
+		require.NoError(t, db.Insert(t.Context(), caller))
+		child.ParentJobID = caller.ID
+		_, err := UpdateRunJob(t.Context(), child, nil, "parent_job_id")
+		require.NoError(t, err)
+
+		cancelled, err := CancelJobs(t.Context(), []*ActionRunJob{caller}, true)
+		require.NoError(t, err)
+		require.Len(t, cancelled, 2)
+		assertCancelled(t, task, child)
+
+		callerAfter := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: caller.ID})
+		assert.Equal(t, StatusCancelled, callerAfter.Status)
+	})
 }
