@@ -4,6 +4,7 @@
 package v1_27
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -52,8 +53,8 @@ func Test_FixLegacyMSSQLDateTimeColumns(t *testing.T) {
 	require.Equal(t, "datetime", mssqlColumnType(t, x, "external_login_user", "expires_at"))
 	require.Equal(t, "datetime", mssqlColumnType(t, x, "lfs_lock", "created"))
 
-	require.NoError(t, FixLegacyMSSQLDateTimeColumns(x))
-	require.NoError(t, FixLegacyMSSQLDateTimeColumns(x)) // idempotent
+	require.NoError(t, FixLegacyMSSQLDateTimeColumns(context.Background(), x))
+	require.NoError(t, FixLegacyMSSQLDateTimeColumns(context.Background(), x)) // idempotent
 
 	require.Equal(t, "datetime2", mssqlColumnType(t, x, "external_login_user", "expires_at"))
 	require.Equal(t, "datetime2", mssqlColumnType(t, x, "lfs_lock", "created"))

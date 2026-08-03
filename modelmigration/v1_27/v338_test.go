@@ -4,6 +4,7 @@
 package v1_27
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -40,8 +41,8 @@ func Test_ExpandIssueAndCommentLongTextFieldsForMSSQL(t *testing.T) {
 	x, deferrable := migrationtest.PrepareTestEnv(t, 0, new(issueBeforeLongTextMSSQLMigration), new(commentBeforeLongTextMSSQLMigration))
 	defer deferrable()
 
-	require.NoError(t, ExpandIssueAndCommentLongTextFieldsForMSSQL(x))
-	require.NoError(t, ExpandIssueAndCommentLongTextFieldsForMSSQL(x))
+	require.NoError(t, ExpandIssueAndCommentLongTextFieldsForMSSQL(context.Background(), x))
+	require.NoError(t, ExpandIssueAndCommentLongTextFieldsForMSSQL(context.Background(), x))
 
 	longText := strings.Repeat("x", 5000)
 	_, err := x.Insert(&issueBeforeLongTextMSSQLMigration{Content: longText})

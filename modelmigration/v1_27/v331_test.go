@@ -67,7 +67,7 @@ func Test_AddActionRunAttemptModel(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, AddActionRunAttemptModel(x))
+	require.NoError(t, AddActionRunAttemptModel(context.Background(), x))
 
 	tableMap := migrationtest.LoadTableSchemasMap(t, x)
 

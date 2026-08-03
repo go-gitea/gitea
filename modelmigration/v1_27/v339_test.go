@@ -63,7 +63,7 @@ func Test_AddCreatedUnixToActionUserIsDeletedIndex(t *testing.T) {
 	assert.True(t, hasIndexWithColumns(indexes, []string{"user_id", "is_deleted"}, false), "old c_u index should exist before migration")
 	assert.False(t, hasIndexWithColumns(indexes, []string{"user_id", "is_deleted", "created_unix"}, false), "new c_u index should not exist before migration")
 
-	require.NoError(t, AddCreatedUnixToActionUserIsDeletedIndex(x))
+	require.NoError(t, AddCreatedUnixToActionUserIsDeletedIndex(context.Background(), x))
 
 	indexes, err = x.Dialect().GetIndexes(x.DB(), context.Background(), "action")
 	require.NoError(t, err)
