@@ -127,7 +127,7 @@ func handleFileViewRenderSource(ctx *context.Context, attrs *attribute.Attribute
 	statuses := make([]*charset.EscapeStatus, len(fileContent))
 	for i, line := range fileContent {
 		statuses[i], fileContent[i] = charset.EscapeControlHTML(line, ctx.Locale)
-		status = status.Or(statuses[i])
+		status.Combine(statuses[i])
 	}
 	ctx.Data["EscapeStatus"] = status
 	ctx.Data["FileContent"] = fileContent

@@ -986,7 +986,6 @@
   "repo.settings.event_fork_desc": "Repozitár forknutý",
   "repo.settings.event_release": "Vydanie",
   "repo.settings.event_repository": "Repozitár",
-  "repo.settings.event_repository_desc": "Repozitár vytvorený alebo odstránený.",
   "repo.settings.event_pull_request_review": "Pull request bol revidovaný",
   "repo.settings.event_pull_request_review_desc": "Pull request schválený, odmietnutý alebo má revízne poznámky.",
   "repo.settings.active_helper": "Informácie o spustených udalostiach budú odoslané na túto URL webhooku.",

@@ -1404,7 +1404,6 @@
   "repo.settings.event_push": "درج کردن",
   "repo.settings.event_push_desc": "درج در مخزن توسط گیت.",
   "repo.settings.event_repository": "مخزن",
-  "repo.settings.event_repository_desc": "مخزن ساخته یا حذف شد.",
   "repo.settings.event_header_issue": "رویدادهای مساله",
   "repo.settings.event_issues": "مسائل",
   "repo.settings.event_issue_assign": "مساله تعیین شد",
