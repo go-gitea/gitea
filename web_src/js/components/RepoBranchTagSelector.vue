@@ -6,6 +6,7 @@ import {GET} from '../modules/fetch.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {queryElemChildren} from '../utils/dom.ts';
 import type {GitRefType} from '../types.ts';
+import {trString} from '../modules/i18n.ts';
 
 type ListItem = {
   selected: boolean;
@@ -256,11 +257,11 @@ async function loadTabItems() {
         <div class="item" v-if="showCreateNewRef" :class="{active: activeItemIndex === filteredItems.length}" @click="createNewRef()">
           <div v-if="selectedTab === 'tags'">
             <svg-icon name="octicon-tag" class="tw-mr-1"/>
-            <span v-text="textCreateTag.replace('%s', searchTerm)"/>
+            <span v-text="trString(textCreateTag, searchTerm)"/>
           </div>
           <div v-else>
             <svg-icon name="octicon-git-branch" class="tw-mr-1"/>
-            <span v-text="textCreateBranch.replace('%s', searchTerm)"/>
+            <span v-text="trString(textCreateBranch, searchTerm)"/>
           </div>
           <div class="tw-text-xs">
             {{ textCreateRefFrom.replace('%s', currentRefShortName) }}

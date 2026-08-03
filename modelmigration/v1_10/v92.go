@@ -4,12 +4,14 @@
 package v1_10
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/builder"
 )
 
-func RemoveLingeringIndexStatus(x base.EngineMigration) error {
+func RemoveLingeringIndexStatus(_ context.Context, x base.EngineMigration) error {
 	_, err := x.Exec(builder.Delete(builder.NotIn("`repo_id`", builder.Select("`id`").From("`repository`"))).From("`repo_indexer_status`"))
 	return err
 }
