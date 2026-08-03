@@ -89,7 +89,7 @@ func getViteDevProxy() *httputil.ReverseProxy {
 func ViteDevMiddleware(next http.Handler) http.Handler {
 	markLongPolling := routing.MarkLongPolling()
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		if !isViteDevRequest(req) {
+		if !IsViteDevRequest(req) {
 			next.ServeHTTP(resp, req)
 			return
 		}
@@ -149,9 +149,9 @@ func viteDevSourceURL(srcPath string) string {
 	return setting.AppSubURL + "/" + srcPath
 }
 
-// isViteDevRequest returns true if the request should be proxied to the Vite dev server.
+// IsViteDevRequest returns true if the request should be proxied to the Vite dev server.
 // Ref: Vite source packages/vite/src/node/constants.ts and packages/vite/src/shared/constants.ts
-func isViteDevRequest(req *http.Request) bool {
+func IsViteDevRequest(req *http.Request) bool {
 	if req.Header.Get("Upgrade") == "websocket" {
 		wsProtocol := req.Header.Get("Sec-WebSocket-Protocol")
 		return wsProtocol == "vite-hmr" || wsProtocol == "vite-ping"
