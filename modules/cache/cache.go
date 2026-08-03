@@ -122,6 +122,8 @@ func Remove(key string) {
 
 // SafeCacheKey returns a cache-safe key for the input string
 // Some caches like memcached have char & length limits.
+// * If the input is safe to be used as the key, use it
+// * If the input can't be used as the key, use the hex string of its hash
 func SafeCacheKey(s string, limit int) string {
 	safeAsKey := len(s)+2 < limit
 	if safeAsKey {
