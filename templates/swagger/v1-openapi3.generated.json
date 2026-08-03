@@ -3594,6 +3594,11 @@
             "type": "integer",
             "x-go-name": "LfsSize"
           },
+          "mode": {
+            "description": "`mode` is the Git file mode as an octal string, e.g. `100644` (regular), `100755` (executable), `120000` (symlink), `160000` (submodule)",
+            "type": "string",
+            "x-go-name": "Mode"
+          },
           "name": {
             "description": "Name is the file or directory name",
             "type": "string",

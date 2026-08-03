@@ -3,8 +3,12 @@
 
 package v1_14
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func RecreateUserTableToFixDefaultValues(_ base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func RecreateUserTableToFixDefaultValues(_ context.Context, _ base.EngineMigration) error {
 	return nil
 }

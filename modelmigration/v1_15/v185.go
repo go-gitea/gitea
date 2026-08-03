@@ -3,9 +3,13 @@
 
 package v1_15
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddRepoArchiver(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddRepoArchiver(_ context.Context, x base.EngineMigration) error {
 	// RepoArchiver represents all archivers
 	type RepoArchiver struct {
 		ID          int64 `xorm:"pk autoincr"`
