@@ -65,7 +65,7 @@
 							<label for="codespace-dev-container">{{ctx.Locale.Tr "codespace.dev_container_configuration"}}</label>
 							<select id="codespace-dev-container" class="ui fluid selection dropdown" name="dev_container"
 								data-codespace-dev-container data-preview-url="{{.RepoLink}}/codespaces/new" data-ref-type="{{.CreatePlan.RefType}}" data-ref-name="{{.CreatePlan.RefName}}">
-								{{range .CreatePlan.DevContainerOptions}}<option value="{{.Selection}}"{{if .Selected}} selected{{end}}>{{if .PlatformDefault}}{{ctx.Locale.Tr "codespace.dev_container_platform_default"}}{{else}}{{.Name}}{{end}}</option>{{end}}
+								{{range .CreatePlan.DevContainerOptions}}<option value="{{.Selection}}"{{if .Selected}} selected{{end}}>{{.Name}}</option>{{end}}
 							</select>
 							{{range .CreatePlan.DevContainerOptions}}
 								{{if and .Selected .Path}}<div class="codespace-create-config-path"><code>{{.Path}}</code></div>{{end}}

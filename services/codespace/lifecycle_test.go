@@ -338,7 +338,10 @@ func insertServiceCodespace(t *testing.T, managerID int64, codespace *codespace_
 		codespace.EnvironmentTag = "default"
 	}
 	codespace.CommitSHA = "0123456789abcdef0123456789abcdef01234567"
-	codespace.DevContainerDefaultImage = "mcr.microsoft.com/devcontainers/base:ubuntu"
+	if codespace.DevContainerSource == "" && codespace.DevContainerPath == "" && codespace.DevContainerContent == "" {
+		codespace.DevContainerSource = codespace_model.DevContainerSourceTemplate
+		codespace.DevContainerContent = `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`
+	}
 	if codespace.AutoStopMode == "" {
 		codespace.AutoStopMode = codespace_model.AutoStopModeDefault
 	}

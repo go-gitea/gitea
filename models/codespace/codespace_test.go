@@ -139,9 +139,15 @@ func TestValidateCodespace(t *testing.T) {
 	assert.Error(t, ValidateCodespace(row))
 
 	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
-	row.DevContainerDefaultImage = ""
+	row.DevContainerSource = DevContainerSourceRepository
 	row.DevContainerPath = ".devcontainer/devcontainer.json"
-	row.DevContainerContentSHA256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	row.DevContainerContent = ""
+	require.NoError(t, ValidateCodespace(row))
+
+	row = validCodespace("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+	row.DevContainerSource = DevContainerSourceTemplate
+	row.DevContainerPath = ""
+	row.DevContainerContent = `{"image":"debian:12"}`
 	require.NoError(t, ValidateCodespace(row))
 }
 
@@ -171,19 +177,20 @@ func assertIndexColumns(t *testing.T, indexes []*schemas.Index, name string, col
 
 func validCodespace(codespaceUUID string) *Codespace {
 	return &Codespace{
-		UUID:                     codespaceUUID,
-		UserID:                   1,
-		RepoID:                   2,
-		RefType:                  "branch",
-		RefName:                  "main",
-		EnvironmentTag:           "default",
-		CommitSHA:                "0123456789abcdef0123456789abcdef01234567",
-		DevContainerDefaultImage: "mcr.microsoft.com/devcontainers/base:ubuntu",
-		Status:                   StatusCreating,
-		AutoStopMode:             AutoStopModeDefault,
-		CreatedUnix:              1,
-		UpdatedUnix:              1,
-		LogSize:                  0,
-		LastActiveUnix:           0,
+		UUID:                codespaceUUID,
+		UserID:              1,
+		RepoID:              2,
+		RefType:             "branch",
+		RefName:             "main",
+		EnvironmentTag:      "default",
+		CommitSHA:           "0123456789abcdef0123456789abcdef01234567",
+		DevContainerSource:  DevContainerSourceTemplate,
+		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`,
+		Status:              StatusCreating,
+		AutoStopMode:        AutoStopModeDefault,
+		CreatedUnix:         1,
+		UpdatedUnix:         1,
+		LogSize:             0,
+		LastActiveUnix:      0,
 	}
 }

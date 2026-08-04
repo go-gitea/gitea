@@ -17,8 +17,10 @@ import (
 const (
 	tplAdminCodespaceManagers      templates.TplName = "codespace/admin_managers"
 	tplAdminCodespaceManagerDetail templates.TplName = "codespace/admin_manager_detail"
+	tplAdminDevContainerTemplates  templates.TplName = "codespace/admin_devcontainer_templates"
 	tplUserCodespaceSettings       templates.TplName = "codespace/user_settings"
 	tplUserCodespaceManagerDetail  templates.TplName = "codespace/user_manager_detail"
+	tplUserDevContainerTemplates   templates.TplName = "codespace/user_devcontainer_templates"
 )
 
 // AdminManagers renders site-wide Manager and global registration token settings.
@@ -56,6 +58,36 @@ func AdminManagersResetRegistrationToken(ctx *context.Context) {
 		ActionBase: setting.AppSubURL + "/-/admin/codespaces/managers",
 		Template:   tplAdminCodespaceManagers,
 		PageFlag:   "PageIsAdminCodespaceManagers",
+	})
+}
+
+func AdminDevContainerTemplates(ctx *context.Context) {
+	renderDevContainerTemplateSettings(ctx, devContainerTemplateRenderOptions{
+		UserID:     0,
+		ActionBase: setting.AppSubURL + "/-/admin/codespaces/dev-container-templates",
+		Template:   tplAdminDevContainerTemplates,
+		PageFlag:   "PageIsAdminCodespaceDevContainerTemplates",
+	})
+}
+
+func AdminDevContainerTemplatePost(ctx *context.Context) {
+	handleDevContainerTemplateUpsert(ctx, devContainerTemplateRenderOptions{
+		UserID:     0,
+		ActionBase: setting.AppSubURL + "/-/admin/codespaces/dev-container-templates",
+	}, 0)
+}
+
+func AdminDevContainerTemplateUpdate(ctx *context.Context) {
+	handleDevContainerTemplateUpsert(ctx, devContainerTemplateRenderOptions{
+		UserID:     0,
+		ActionBase: setting.AppSubURL + "/-/admin/codespaces/dev-container-templates",
+	}, ctx.PathParamInt64("template_id"))
+}
+
+func AdminDevContainerTemplateDelete(ctx *context.Context) {
+	handleDevContainerTemplateDelete(ctx, devContainerTemplateRenderOptions{
+		UserID:     0,
+		ActionBase: setting.AppSubURL + "/-/admin/codespaces/dev-container-templates",
 	})
 }
 
@@ -101,12 +133,102 @@ func UserSettingsResetRegistrationToken(ctx *context.Context) {
 	})
 }
 
+func UserDevContainerTemplates(ctx *context.Context) {
+	renderDevContainerTemplateSettings(ctx, devContainerTemplateRenderOptions{
+		UserID:     ctx.Doer.ID,
+		ActionBase: setting.AppSubURL + "/user/settings/codespaces/dev-container-templates",
+		Template:   tplUserDevContainerTemplates,
+		PageFlag:   "PageIsCodespaceDevContainerTemplates",
+	})
+}
+
+func UserDevContainerTemplatePost(ctx *context.Context) {
+	handleDevContainerTemplateUpsert(ctx, devContainerTemplateRenderOptions{
+		UserID:     ctx.Doer.ID,
+		ActionBase: setting.AppSubURL + "/user/settings/codespaces/dev-container-templates",
+	}, 0)
+}
+
+func UserDevContainerTemplateUpdate(ctx *context.Context) {
+	handleDevContainerTemplateUpsert(ctx, devContainerTemplateRenderOptions{
+		UserID:     ctx.Doer.ID,
+		ActionBase: setting.AppSubURL + "/user/settings/codespaces/dev-container-templates",
+	}, ctx.PathParamInt64("template_id"))
+}
+
+func UserDevContainerTemplateDelete(ctx *context.Context) {
+	handleDevContainerTemplateDelete(ctx, devContainerTemplateRenderOptions{
+		UserID:     ctx.Doer.ID,
+		ActionBase: setting.AppSubURL + "/user/settings/codespaces/dev-container-templates",
+	})
+}
+
 type managerSettingsRenderOptions struct {
 	Scope      string
 	UserID     int64
 	ActionBase string
 	Template   templates.TplName
 	PageFlag   string
+}
+
+type devContainerTemplateRenderOptions struct {
+	UserID     int64
+	ActionBase string
+	Template   templates.TplName
+	PageFlag   string
+}
+
+func renderDevContainerTemplateSettings(ctx *context.Context, opts devContainerTemplateRenderOptions) {
+	templates, err := codespace_service.ListDevContainerTemplates(ctx, opts.UserID)
+	if err != nil {
+		ctx.ServerError("ListDevContainerTemplates", err)
+		return
+	}
+	ctx.Data["Title"] = ctx.Tr("codespace.dev_container_templates")
+	ctx.Data[opts.PageFlag] = true
+	ctx.Data["DevContainerTemplates"] = templates
+	ctx.Data["ActionBase"] = opts.ActionBase
+	ctx.HTML(http.StatusOK, opts.Template)
+}
+
+func handleDevContainerTemplateUpsert(ctx *context.Context, opts devContainerTemplateRenderOptions, templateID int64) {
+	err := codespace_service.UpsertDevContainerTemplate(ctx, codespace_service.DevContainerTemplateUpsertOptions{
+		UserID:  opts.UserID,
+		ID:      templateID,
+		Name:    ctx.FormString("name"),
+		Content: ctx.FormString("content"),
+	})
+	if err != nil {
+		handleDevContainerTemplateActionError(ctx, opts.ActionBase, err)
+		return
+	}
+	ctx.Redirect(opts.ActionBase, http.StatusSeeOther)
+}
+
+func handleDevContainerTemplateDelete(ctx *context.Context, opts devContainerTemplateRenderOptions) {
+	err := codespace_service.DeleteDevContainerTemplate(ctx, codespace_service.DevContainerTemplateDeleteOptions{
+		UserID:  opts.UserID,
+		ID:      ctx.PathParamInt64("template_id"),
+		Confirm: ctx.FormString("confirm") == "delete-template",
+	})
+	if err != nil {
+		handleDevContainerTemplateActionError(ctx, opts.ActionBase, err)
+		return
+	}
+	ctx.JSONRedirect(opts.ActionBase)
+}
+
+func handleDevContainerTemplateActionError(ctx *context.Context, redirectTo string, err error) {
+	switch {
+	case errors.Is(err, codespace_service.ErrDevContainerTemplateNotFound):
+		ctx.NotFound(nil)
+	case errors.Is(err, codespace_service.ErrDevContainerTemplateConfirmRequired):
+		ctx.Flash.Error(ctx.Tr("codespace.error.confirm_required"))
+		ctx.Redirect(redirectTo, http.StatusSeeOther)
+	default:
+		ctx.Flash.Error(err.Error())
+		ctx.Redirect(redirectTo, http.StatusSeeOther)
+	}
 }
 
 func renderManagerSettings(ctx *context.Context, opts managerSettingsRenderOptions) {

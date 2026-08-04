@@ -553,7 +553,7 @@ func resolveCreatePermissions(ctx context.Context, user *user_model.User, source
 func createPlanHash(repoID int64, sourceRef *createSourceRef, devContainer *createDevContainerPlan) string {
 	// The environment tag is a final form choice revalidated by CreateCodespace; the hash covers repository-derived inputs that require renewed review.
 	hash := sha256.New()
-	fmt.Fprintf(hash, "%d\x00%s\x00%s\x00%s\x00%s\x00%s\x00%s", repoID, sourceRef.Type, sourceRef.StoredName, sourceRef.CommitSHA, devContainer.Path, devContainer.ContentSHA256, devContainer.DefaultImage)
+	fmt.Fprintf(hash, "%d\x00%s\x00%s\x00%s\x00%s\x00%s\x00%s", repoID, sourceRef.Type, sourceRef.StoredName, sourceRef.CommitSHA, devContainer.Source, devContainer.Path, devContainer.Content)
 	if pull := sourceRef.PullRequest; pull != nil {
 		fmt.Fprintf(hash, "\x00%d\x00%s\x00%s\x00%s\x00%t", pull.Index, pull.HeadRepoFullName, pull.HeadBranch, pull.BaseBranch, pull.SnapshotOnly)
 	}
@@ -737,9 +737,9 @@ func newCreateCodespaceRow(userID, repoID int64, environmentTag string, sourceRe
 		RefName:                   sourceRef.StoredName,
 		EnvironmentTag:            environmentTag,
 		CommitSHA:                 sourceRef.CommitSHA,
+		DevContainerSource:        devContainer.Source,
 		DevContainerPath:          devContainer.Path,
-		DevContainerContentSHA256: devContainer.ContentSHA256,
-		DevContainerDefaultImage:  devContainer.DefaultImage,
+		DevContainerContent:       devContainer.Content,
 		PermissionAuthorizationID: authorizationID,
 		Status:                    codespace_model.StatusCreating,
 		AutoStopMode:              codespace_model.AutoStopModeDefault,

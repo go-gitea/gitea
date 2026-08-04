@@ -49,11 +49,13 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 	assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, operation.GetLeaseValidForMilliseconds())
 	create := operation.GetCreate()
 	require.NotNil(t, create)
-	assert.NotEmpty(t, create.GetRepoFullName())
-	assert.NotEmpty(t, create.GetRepoCloneHttpUrl())
-	assert.Empty(t, create.GetRepoCloneSshUrl())
-	assert.Equal(t, "refs/heads/main", create.GetStartRef())
-	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_HTTP, create.GetGitProtocol())
+	repository := create.GetRepository()
+	require.NotNil(t, repository)
+	assert.NotEmpty(t, repository.GetFullName())
+	assert.NotEmpty(t, repository.GetCloneHttpUrl())
+	assert.Empty(t, repository.GetCloneSshUrl())
+	assert.Equal(t, "refs/heads/main", repository.GetStartRef())
+	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_HTTP, repository.GetPreferredProtocol())
 	assert.True(t, create.GetRuntimeSettings().GetAutoStopEnabled())
 	assert.EqualValues(t, setting.Codespace.AutoStopDefaultTimeout/time.Second, create.GetRuntimeSettings().GetIdleTimeoutSeconds())
 	row := loadServiceCodespace(t, codespaceUUID)
@@ -79,7 +81,7 @@ func TestFetchOperationsReleasesCreateClaimWhenPayloadInvalid(t *testing.T) {
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	_, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("dev_container_default_image").Update(&codespace_model.Codespace{})
+	_, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("dev_container_path").Update(&codespace_model.Codespace{DevContainerPath: ".devcontainer/devcontainer.json"})
 	require.NoError(t, err)
 
 	_, err = FetchOperations(t.Context(), manager, FetchOperationsOptions{
@@ -174,18 +176,20 @@ func TestBuildCreatePayloadUsesPullRequestHeadBranch(t *testing.T) {
 	configureFetchGitTransport(t, codespace_model.GitProtocolHTTP, false, false, nil)
 
 	payload, err := buildCreatePayload(t.Context(), &codespace_model.Codespace{
-		UserID:                   2,
-		RepoID:                   1,
-		RefType:                  "pull",
-		RefName:                  "refs/pull/3/head",
-		CommitSHA:                "985f0301dba5e7b34be866819cd15ad3d8f508ee",
-		DevContainerDefaultImage: setting.Codespace.DevContainerDefaultImage,
-		AutoStopMode:             codespace_model.AutoStopModeDefault,
+		UserID:              2,
+		RepoID:              1,
+		RefType:             "pull",
+		RefName:             "refs/pull/3/head",
+		CommitSHA:           "985f0301dba5e7b34be866819cd15ad3d8f508ee",
+		DevContainerSource:  codespace_model.DevContainerSourceTemplate,
+		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`,
+		AutoStopMode:        codespace_model.AutoStopModeDefault,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "user2/repo1", payload.GetRepoFullName())
-	assert.Contains(t, payload.GetRepoCloneHttpUrl(), "/user2/repo1.git")
-	assert.Equal(t, "refs/heads/branch2", payload.GetStartRef())
+	require.NotNil(t, payload.GetRepository())
+	assert.Equal(t, "user2/repo1", payload.GetRepository().GetFullName())
+	assert.Contains(t, payload.GetRepository().GetCloneHttpUrl(), "/user2/repo1.git")
+	assert.Equal(t, "refs/heads/branch2", payload.GetRepository().GetStartRef())
 }
 
 func TestBuildCreatePayloadUsesForkPullRequestRepository(t *testing.T) {
@@ -194,18 +198,20 @@ func TestBuildCreatePayloadUsesForkPullRequestRepository(t *testing.T) {
 	configureFetchGitTransport(t, codespace_model.GitProtocolHTTP, false, false, nil)
 
 	payload, err := buildCreatePayload(t.Context(), &codespace_model.Codespace{
-		UserID:                   11,
-		RepoID:                   10,
-		RefType:                  "pull",
-		RefName:                  "refs/pull/1/head",
-		CommitSHA:                "0abcb056019adb83",
-		DevContainerDefaultImage: setting.Codespace.DevContainerDefaultImage,
-		AutoStopMode:             codespace_model.AutoStopModeDefault,
+		UserID:              11,
+		RepoID:              10,
+		RefType:             "pull",
+		RefName:             "refs/pull/1/head",
+		CommitSHA:           "0abcb056019adb83",
+		DevContainerSource:  codespace_model.DevContainerSourceTemplate,
+		DevContainerContent: `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`,
+		AutoStopMode:        codespace_model.AutoStopModeDefault,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "user12/repo10", payload.GetRepoFullName())
-	assert.Contains(t, payload.GetRepoCloneHttpUrl(), "/user13/repo11.git")
-	assert.Equal(t, "refs/heads/branch2", payload.GetStartRef())
+	require.NotNil(t, payload.GetRepository())
+	assert.Equal(t, "user12/repo10", payload.GetRepository().GetFullName())
+	assert.Contains(t, payload.GetRepository().GetCloneHttpUrl(), "/user13/repo11.git")
+	assert.Equal(t, "refs/heads/branch2", payload.GetRepository().GetStartRef())
 }
 
 func TestFetchOperationsReturnsSSHCloneURLWhenEnabled(t *testing.T) {
@@ -236,9 +242,10 @@ func TestFetchOperationsReturnsSSHCloneURLWhenEnabled(t *testing.T) {
 	require.Len(t, result.Operations, 1)
 	create := result.Operations[0].GetCreate()
 	require.NotNil(t, create)
-	assert.NotEmpty(t, create.GetRepoCloneHttpUrl())
-	assert.NotEmpty(t, create.GetRepoCloneSshUrl())
-	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_SSH, create.GetGitProtocol())
+	require.NotNil(t, create.GetRepository())
+	assert.NotEmpty(t, create.GetRepository().GetCloneHttpUrl())
+	assert.NotEmpty(t, create.GetRepository().GetCloneSshUrl())
+	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_SSH, create.GetRepository().GetPreferredProtocol())
 }
 
 func configureFetchGitTransport(t *testing.T, protocol string, disableHTTPGit, disableSSH bool, knownHosts []string) {

@@ -13,35 +13,33 @@ import (
 
 // Codespace contains site-wide defaults for Codespace creation.
 var Codespace = struct {
-	Enabled                  bool
-	GitProtocol              string
-	GitSSHKnownHosts         []string
-	GatewayRequireHTTPS      bool
-	ControlPlaneTimeout      time.Duration
-	ManagerOfflineTimeout    time.Duration
-	OperationLeaseTimeout    time.Duration
-	OperationMaxDuration     time.Duration
-	QueueTimeout             time.Duration
-	LogMaxSize               int64
-	DevContainerDefaultImage string
-	AutoStopDefaultTimeout   time.Duration
-	AutoStopMinTimeout       time.Duration
-	AutoStopMaxTimeout       time.Duration
+	Enabled                bool
+	GitProtocol            string
+	GitSSHKnownHosts       []string
+	GatewayRequireHTTPS    bool
+	ControlPlaneTimeout    time.Duration
+	ManagerOfflineTimeout  time.Duration
+	OperationLeaseTimeout  time.Duration
+	OperationMaxDuration   time.Duration
+	QueueTimeout           time.Duration
+	LogMaxSize             int64
+	AutoStopDefaultTimeout time.Duration
+	AutoStopMinTimeout     time.Duration
+	AutoStopMaxTimeout     time.Duration
 }{
-	Enabled:                  true,
-	GitProtocol:              "http",
-	GitSSHKnownHosts:         nil,
-	GatewayRequireHTTPS:      false,
-	ControlPlaneTimeout:      30 * time.Second,
-	ManagerOfflineTimeout:    120 * time.Second,
-	OperationLeaseTimeout:    300 * time.Second,
-	OperationMaxDuration:     2 * time.Hour,
-	QueueTimeout:             5 * time.Minute,
-	LogMaxSize:               64 * 1024 * 1024,
-	DevContainerDefaultImage: "mcr.microsoft.com/devcontainers/base:ubuntu",
-	AutoStopDefaultTimeout:   30 * time.Minute,
-	AutoStopMinTimeout:       5 * time.Minute,
-	AutoStopMaxTimeout:       168 * time.Hour,
+	Enabled:                true,
+	GitProtocol:            "http",
+	GitSSHKnownHosts:       nil,
+	GatewayRequireHTTPS:    false,
+	ControlPlaneTimeout:    30 * time.Second,
+	ManagerOfflineTimeout:  120 * time.Second,
+	OperationLeaseTimeout:  300 * time.Second,
+	OperationMaxDuration:   2 * time.Hour,
+	QueueTimeout:           5 * time.Minute,
+	LogMaxSize:             64 * 1024 * 1024,
+	AutoStopDefaultTimeout: 30 * time.Minute,
+	AutoStopMinTimeout:     5 * time.Minute,
+	AutoStopMaxTimeout:     168 * time.Hour,
 }
 
 func loadCodespaceFrom(rootCfg ConfigProvider) {
@@ -55,7 +53,6 @@ func loadCodespaceFrom(rootCfg ConfigProvider) {
 	Codespace.OperationMaxDuration = sec.Key("OPERATION_MAX_DURATION").MustDuration(2 * time.Hour)
 	Codespace.QueueTimeout = sec.Key("QUEUE_TIMEOUT").MustDuration(5 * time.Minute)
 	Codespace.LogMaxSize = mustCodespaceBytes(sec, "LOG_MAX_SIZE", "64MiB")
-	Codespace.DevContainerDefaultImage = strings.TrimSpace(sec.Key("DEVCONTAINER_DEFAULT_IMAGE").MustString("mcr.microsoft.com/devcontainers/base:ubuntu"))
 	Codespace.AutoStopDefaultTimeout = sec.Key("AUTO_STOP_DEFAULT_TIMEOUT").MustDuration(30 * time.Minute)
 	Codespace.AutoStopMinTimeout = sec.Key("AUTO_STOP_MIN_TIMEOUT").MustDuration(5 * time.Minute)
 	Codespace.AutoStopMaxTimeout = sec.Key("AUTO_STOP_MAX_TIMEOUT").MustDuration(168 * time.Hour)

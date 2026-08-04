@@ -4,8 +4,6 @@
 package codespace
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"testing"
 	"time"
 
@@ -29,6 +27,7 @@ import (
 func TestCreateCodespaceQueuesCreateWhenManagerMatches(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
+	insertServiceDefaultDevContainerTemplate(t)
 	insertServiceManagerWithTags(t, 2, "default")
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -49,7 +48,9 @@ func TestCreateCodespaceQueuesCreateWhenManagerMatches(t *testing.T) {
 	assert.Equal(t, "branch", row.RefType)
 	assert.Equal(t, "master", row.RefName)
 	assert.NotEmpty(t, row.CommitSHA)
-	assert.Equal(t, setting.Codespace.DevContainerDefaultImage, row.DevContainerDefaultImage)
+	assert.Equal(t, codespace_model.DevContainerSourceTemplate, row.DevContainerSource)
+	assert.Empty(t, row.DevContainerPath)
+	assert.JSONEq(t, `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`, row.DevContainerContent)
 	assert.Equal(t, codespace_model.OperationCreate, row.OperationType)
 	assert.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
 	assert.Equal(t, codespace_model.OperationTriggerUser, row.OperationTrigger)
@@ -59,6 +60,7 @@ func TestCreateCodespaceQueuesCreateWhenManagerMatches(t *testing.T) {
 func TestCreateCodespaceUsesCreatorManagerForOrganizationRepository(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
+	insertServiceDefaultDevContainerTemplate(t)
 	insertServiceManagerWithTags(t, 2, "default")
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
@@ -80,6 +82,7 @@ func TestCreateCodespaceUsesCreatorManagerForOrganizationRepository(t *testing.T
 func TestCreateCodespaceRequiresAvailableEnvironment(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
+	insertServiceDefaultDevContainerTemplate(t)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
@@ -111,6 +114,7 @@ func TestListVisibleCreateEnvironmentsMergesManagerDeclarations(t *testing.T) {
 func TestCreateCodespaceRequiresExplicitEnvironmentSelection(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
+	insertServiceDefaultDevContainerTemplate(t)
 	insertServiceManagerWithTags(t, 2, "default")
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -155,6 +159,7 @@ func TestCreateCodespacePersistsPullRefAndValidatesGitProtocol(t *testing.T) {
 		"gitea.example.com " + testGitSSHPublicKey,
 	})
 
+	insertServiceDefaultDevContainerTemplate(t)
 	insertServiceManagerWithTags(t, 0, "default")
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -250,7 +255,7 @@ NODE
 
 	rootPlan, err := PrepareCodespace(t.Context(), CreateCodespaceOptions{User: user, Repo: repo})
 	require.NoError(t, err)
-	require.Len(t, rootPlan.DevContainerOptions, 3)
+	require.Len(t, rootPlan.DevContainerOptions, 2)
 	assert.Equal(t, devContainerRootPath, rootPlan.DevContainerOptions[0].Path)
 	assert.True(t, rootPlan.DevContainerOptions[0].Selected)
 	assert.Equal(t, []CreateRecommendedSecret{{Name: "DATABASE_PASSWORD", Description: "Database password"}}, rootPlan.RecommendedSecrets)
@@ -336,10 +341,6 @@ data <<CONFIG
 CONFIG
 `)).RunStdString(t.Context())
 	require.NoError(t, runErr)
-	configuration, _, runErr := gitcmd.NewCommand("show", "refs/heads/master:"+devContainerPrimaryPath).WithRepo(repo.CodeStorageRepo()).RunStdBytes(t.Context())
-	require.NoError(t, runErr)
-	configurationDigest := sha256.Sum256(configuration)
-
 	opts := CreateCodespaceOptions{User: user, Repo: repo, RefType: "branch", RefName: repo.DefaultBranch}
 	plan, err := PrepareCodespace(t.Context(), opts)
 	require.NoError(t, err)
@@ -365,9 +366,9 @@ CONFIG
 	first, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
 	firstCodespace := loadServiceCodespace(t, first.CodespaceUUID)
+	assert.Equal(t, codespace_model.DevContainerSourceRepository, firstCodespace.DevContainerSource)
 	assert.Equal(t, devContainerPrimaryPath, firstCodespace.DevContainerPath)
-	assert.Equal(t, hex.EncodeToString(configurationDigest[:]), firstCodespace.DevContainerContentSHA256)
-	assert.Empty(t, firstCodespace.DevContainerDefaultImage)
+	assert.Empty(t, firstCodespace.DevContainerContent)
 	require.Positive(t, firstCodespace.PermissionAuthorizationID)
 	authorization := unittest.AssertExistsAndLoadBean(t, &codespace_model.PermissionAuthorization{ID: firstCodespace.PermissionAuthorizationID})
 	assert.Equal(t, user.ID, authorization.UserID)
@@ -438,4 +439,22 @@ func insertServiceManagerWithTags(t *testing.T, userID int64, tags ...string) *c
 	manager.GenerateManagerSecret()
 	require.NoError(t, db.Insert(t.Context(), manager))
 	return manager
+}
+
+func insertServiceDevContainerTemplate(t *testing.T, userID int64, name, content string) *codespace_model.DevContainerTemplate {
+	t.Helper()
+	template := &codespace_model.DevContainerTemplate{
+		UserID:      userID,
+		Name:        name,
+		Content:     content,
+		CreatedUnix: time.Now().Unix(),
+		UpdatedUnix: time.Now().Unix(),
+	}
+	require.NoError(t, db.Insert(t.Context(), template))
+	return template
+}
+
+func insertServiceDefaultDevContainerTemplate(t *testing.T) *codespace_model.DevContainerTemplate {
+	t.Helper()
+	return insertServiceDevContainerTemplate(t, 0, "Default", `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`)
 }

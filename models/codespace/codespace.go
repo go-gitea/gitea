@@ -54,6 +54,12 @@ const (
 	GitProtocolSSH  = "ssh"
 )
 
+// Codespace Dev Container sources.
+const (
+	DevContainerSourceRepository = "repository"
+	DevContainerSourceTemplate   = "template"
+)
+
 // Codespace auto-stop modes.
 const (
 	AutoStopModeDefault = "default"
@@ -86,9 +92,9 @@ type Codespace struct {
 	RefName                   string `xorm:"TEXT NOT NULL"`
 	EnvironmentTag            string `xorm:"VARCHAR(64) NOT NULL"`
 	CommitSHA                 string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	DevContainerSource        string `xorm:"VARCHAR(32) NOT NULL DEFAULT ''"`
 	DevContainerPath          string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
-	DevContainerContentSHA256 string `xorm:"dev_container_content_sha256 VARCHAR(64) NOT NULL DEFAULT ''"`
-	DevContainerDefaultImage  string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
+	DevContainerContent       string `xorm:"TEXT NOT NULL"`
 	PermissionAuthorizationID int64  `xorm:"NOT NULL DEFAULT 0 index"`
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
 	Status                    string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -155,6 +161,16 @@ type SSHKey struct {
 	KeyID       int64 `xorm:"NOT NULL UNIQUE"`
 }
 
+// DevContainerTemplate stores a manually named non-repository Dev Container configuration.
+type DevContainerTemplate struct {
+	ID          int64
+	UserID      int64  `xorm:"NOT NULL DEFAULT 0 index"`
+	Name        string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+	Content     string `xorm:"TEXT NOT NULL"`
+	CreatedUnix int64  `xorm:"NOT NULL DEFAULT 0"`
+	UpdatedUnix int64  `xorm:"NOT NULL DEFAULT 0"`
+}
+
 func (*Manager) TableName() string {
 	return "codespace_manager"
 }
@@ -208,6 +224,10 @@ func (*SSHKey) TableName() string {
 	return "codespace_ssh_key"
 }
 
+func (*DevContainerTemplate) TableName() string {
+	return "codespace_dev_container_template"
+}
+
 func init() {
 	db.RegisterModel(new(Codespace))
 	db.RegisterModel(new(Manager))
@@ -215,6 +235,7 @@ func init() {
 	db.RegisterModel(new(ManagerToken))
 	db.RegisterModel(new(GiteaToken))
 	db.RegisterModel(new(SSHKey))
+	db.RegisterModel(new(DevContainerTemplate))
 }
 
 // NewUUID returns a canonical lower-case RFC 4122 UUID v4 string.
@@ -287,9 +308,16 @@ func ValidateCodespace(codespace *Codespace) error {
 	if !validAutoStopMode(codespace.AutoStopMode) {
 		return fmt.Errorf("invalid auto stop mode %q", codespace.AutoStopMode)
 	}
-	repositoryConfig := codespace.DevContainerPath != "" || codespace.DevContainerContentSHA256 != ""
-	defaultConfig := codespace.DevContainerDefaultImage != ""
-	if repositoryConfig == defaultConfig || (repositoryConfig && (codespace.DevContainerPath == "" || codespace.DevContainerContentSHA256 == "")) {
+	switch codespace.DevContainerSource {
+	case DevContainerSourceRepository:
+		if strings.TrimSpace(codespace.DevContainerPath) == "" || strings.TrimSpace(codespace.DevContainerContent) != "" {
+			return errors.New("invalid Dev Container configuration")
+		}
+	case DevContainerSourceTemplate:
+		if strings.TrimSpace(codespace.DevContainerPath) != "" || strings.TrimSpace(codespace.DevContainerContent) == "" {
+			return errors.New("invalid Dev Container configuration")
+		}
+	default:
 		return errors.New("invalid Dev Container configuration")
 	}
 	if codespace.OperationType == "" && codespace.OperationStatus == "" && codespace.OperationTrigger == "" {

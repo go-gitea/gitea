@@ -232,9 +232,10 @@ func TestManagerServiceFetchPayloadAndLease(t *testing.T) {
 	assert.EqualValues(t, 41, operation.GetOperationRversion())
 	assert.Positive(t, operation.GetLeaseValidForMilliseconds())
 	require.NotNil(t, operation.GetCreate())
-	assert.NotEmpty(t, operation.GetCreate().GetRepoCloneHttpUrl())
-	assert.NotEmpty(t, operation.GetCreate().GetRepoCloneSshUrl())
-	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_HTTP, operation.GetCreate().GetGitProtocol())
+	require.NotNil(t, operation.GetCreate().GetRepository())
+	assert.NotEmpty(t, operation.GetCreate().GetRepository().GetCloneHttpUrl())
+	assert.NotEmpty(t, operation.GetCreate().GetRepository().GetCloneSshUrl())
+	assert.Equal(t, codespacev1.GitProtocol_GIT_PROTOCOL_HTTP, operation.GetCreate().GetRepository().GetPreferredProtocol())
 	assert.EqualValues(t, 7, operation.GetCreate().GetRuntimeSettings().GetInteractionGeneration())
 
 	renewed, err := client.FetchOperations(t.Context(), managerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
@@ -352,7 +353,7 @@ func TestManagerServiceManagerOfflineCategory(t *testing.T) {
 		ProtocolVersion:   1,
 		CodespaceUuid:     "93939393-9393-4939-8939-939393939393",
 		OperationRversion: 1,
-		GitSshPublicKey:   []byte("not-a-key"),
+		GitSshKey:         &codespacev1.RuntimeGitSSHKey{PublicKey: []byte("not-a-key")},
 	}))
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
@@ -474,7 +475,8 @@ func insertManagerTestCodespace(t *testing.T, managerID int64, codespace *codesp
 	codespace.RefName = "main"
 	codespace.EnvironmentTag = "default"
 	codespace.CommitSHA = "0123456789abcdef0123456789abcdef01234567"
-	codespace.DevContainerDefaultImage = "mcr.microsoft.com/devcontainers/base:ubuntu"
+	codespace.DevContainerSource = codespace_model.DevContainerSourceTemplate
+	codespace.DevContainerContent = `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`
 	codespace.AutoStopMode = codespace_model.AutoStopModeDefault
 	codespace.CreatedUnix = 1
 	codespace.UpdatedUnix = 1

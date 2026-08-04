@@ -624,28 +624,37 @@ func buildCreatePayload(ctx context.Context, codespace *codespace_model.Codespac
 	if err != nil {
 		return nil, err
 	}
-	devContainer := &codespacev1.DevContainerConfiguration{
-		RepositoryPath:          codespace.DevContainerPath,
-		RepositoryContentSha256: codespace.DevContainerContentSHA256,
-		DefaultImage:            codespace.DevContainerDefaultImage,
-	}
-	repositoryConfig := devContainer.RepositoryPath != "" || devContainer.RepositoryContentSha256 != ""
-	defaultConfig := devContainer.DefaultImage != ""
-	if repositoryConfig == defaultConfig || (repositoryConfig && (devContainer.RepositoryPath == "" || devContainer.RepositoryContentSha256 == "")) {
+	devContainer := &codespacev1.DevContainerConfiguration{}
+	switch codespace.DevContainerSource {
+	case codespace_model.DevContainerSourceRepository:
+		if strings.TrimSpace(codespace.DevContainerPath) == "" || strings.TrimSpace(codespace.DevContainerContent) != "" {
+			return nil, errors.New("invalid persisted Dev Container configuration")
+		}
+		devContainer.Source = &codespacev1.DevContainerConfiguration_RepositoryPath{RepositoryPath: codespace.DevContainerPath}
+	case codespace_model.DevContainerSourceTemplate:
+		if strings.TrimSpace(codespace.DevContainerPath) != "" || strings.TrimSpace(codespace.DevContainerContent) == "" {
+			return nil, errors.New("invalid persisted Dev Container configuration")
+		}
+		devContainer.Source = &codespacev1.DevContainerConfiguration_TemplateContent{TemplateContent: codespace.DevContainerContent}
+	default:
 		return nil, errors.New("invalid persisted Dev Container configuration")
 	}
 	return &codespacev1.CreateOperationPayload{
-		RepoFullName:     repository.FullName(),
-		RepoCloneHttpUrl: httpCloneURL,
-		RepoCloneSshUrl:  sshCloneURL,
-		GitProtocol:      gitProtocolValue,
-		StartRef:         startRef,
-		CommitSha:        codespace.CommitSHA,
-		EnvironmentTag:   codespace.EnvironmentTag,
-		RuntimeSettings:  runtimeSettingsMessage(effectiveRuntimeSettings(codespace)),
-		Username:         codespaceOwner.Name,
-		GitUserEmail:     codespaceOwner.GetEmail(),
-		DevContainer:     devContainer,
+		Repository: &codespacev1.RepositoryCheckout{
+			FullName:          repository.FullName(),
+			CloneHttpUrl:      httpCloneURL,
+			CloneSshUrl:       sshCloneURL,
+			PreferredProtocol: gitProtocolValue,
+			StartRef:          startRef,
+			CommitSha:         codespace.CommitSHA,
+		},
+		EnvironmentTag: codespace.EnvironmentTag,
+		GitIdentity: &codespacev1.GitIdentity{
+			GiteaUsername: codespaceOwner.Name,
+			GitUserEmail:  codespaceOwner.GetEmail(),
+		},
+		DevContainer:    devContainer,
+		RuntimeSettings: runtimeSettingsMessage(effectiveRuntimeSettings(codespace)),
 	}, nil
 }
 

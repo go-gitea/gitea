@@ -5,6 +5,7 @@ package v1_28
 
 import (
 	"context"
+	"time"
 
 	"gitea.dev/modelmigration/base"
 
@@ -20,9 +21,9 @@ type codespace struct {
 	RefName                   string `xorm:"TEXT NOT NULL"`
 	EnvironmentTag            string `xorm:"VARCHAR(64) NOT NULL"`
 	CommitSHA                 string `xorm:"VARCHAR(64) NOT NULL DEFAULT ''"`
+	DevContainerSource        string `xorm:"VARCHAR(32) NOT NULL DEFAULT ''"`
 	DevContainerPath          string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
-	DevContainerContentSHA256 string `xorm:"dev_container_content_sha256 VARCHAR(64) NOT NULL DEFAULT ''"`
-	DevContainerDefaultImage  string `xorm:"VARCHAR(512) NOT NULL DEFAULT ''"`
+	DevContainerContent       string `xorm:"TEXT NOT NULL"`
 	PermissionAuthorizationID int64  `xorm:"NOT NULL DEFAULT 0 index"`
 	ManagerID                 int64  `xorm:"NOT NULL DEFAULT 0"`
 	Status                    string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -158,7 +159,21 @@ func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 		RepoID   int64 `xorm:"pk NOT NULL index"`
 	}
 
-	return x.Sync(
+	type codespaceDevContainerTemplate struct {
+		ID          int64
+		UserID      int64  `xorm:"NOT NULL DEFAULT 0 index"`
+		Name        string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
+		Content     string `xorm:"TEXT NOT NULL"`
+		CreatedUnix int64  `xorm:"NOT NULL DEFAULT 0"`
+		UpdatedUnix int64  `xorm:"NOT NULL DEFAULT 0"`
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := sess.Sync(
 		new(codespace),
 		new(codespaceManager),
 		new(codespaceManagerAddress),
@@ -169,5 +184,21 @@ func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 		new(codespacePermissionRepository),
 		new(codespaceUserSecret),
 		new(codespaceUserSecretRepository),
-	)
+		new(codespaceDevContainerTemplate),
+	); err != nil {
+		_ = sess.Rollback()
+		return err
+	}
+	now := time.Now().Unix()
+	if _, err := sess.Insert(&codespaceDevContainerTemplate{
+		UserID:      0,
+		Name:        "Default",
+		Content:     `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`,
+		CreatedUnix: now,
+		UpdatedUnix: now,
+	}); err != nil {
+		_ = sess.Rollback()
+		return err
+	}
+	return sess.Commit()
 }

@@ -37,10 +37,12 @@ import (
 
 func TestCodespaceRoutes(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		insertIntegrationDevContainerTemplate(t)
 		MakeRequest(t, NewRequest(t, http.MethodGet, "/-/codespaces"), http.StatusSeeOther)
 
 		user2Session := loginUser(t, "user2")
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, "/user/settings/codespaces/managers"), http.StatusOK)
+		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, "/user/settings/codespaces/dev-container-templates"), http.StatusOK)
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, "/user/settings/codespaces/permissions"), http.StatusOK)
 		now := time.Now().Unix()
 		authorization := &codespace_model.PermissionAuthorization{
@@ -89,6 +91,7 @@ func TestCodespaceRoutes(t *testing.T) {
 
 		adminSession := loginUser(t, "user1")
 		adminSession.MakeRequest(t, NewRequest(t, http.MethodGet, "/-/admin/codespaces/managers"), http.StatusOK)
+		adminSession.MakeRequest(t, NewRequest(t, http.MethodGet, "/-/admin/codespaces/dev-container-templates"), http.StatusOK)
 		adminSession.MakeRequest(t, NewRequestf(t, http.MethodGet, "/-/admin/codespaces/managers/%d", manager.ID), http.StatusOK)
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, "/-/admin/codespaces/managers"), http.StatusForbidden)
 		user2Session.MakeRequest(t, NewRequest(t, http.MethodGet, "/org/org3/settings/codespaces"), http.StatusNotFound)
@@ -221,6 +224,7 @@ func TestCodespaceTokenAPIRoutePolicy(t *testing.T) {
 
 func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		insertIntegrationDevContainerTemplate(t)
 		manager, secret := createIntegrationManager(t)
 		client := codespacev1connect.NewManagerServiceClient(
 			http.DefaultClient,
@@ -238,9 +242,9 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		require.Equal(t, codespace_model.OperationStatusQueued, row.OperationStatus)
 		require.Equal(t, codespace_model.OperationTriggerUser, row.OperationTrigger)
 		require.EqualValues(t, 1, row.OperationRVersion)
+		require.Equal(t, codespace_model.DevContainerSourceTemplate, row.DevContainerSource)
 		require.Empty(t, row.DevContainerPath)
-		require.Empty(t, row.DevContainerContentSHA256)
-		require.Equal(t, setting.Codespace.DevContainerDefaultImage, row.DevContainerDefaultImage)
+		require.JSONEq(t, `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`, row.DevContainerContent)
 
 		fetched, err := client.FetchOperations(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.FetchOperationsRequest{
 			ProtocolVersion:          1,
@@ -263,10 +267,10 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 			ProtocolVersion:   1,
 			CodespaceUuid:     codespaceUUID,
 			OperationRversion: 1,
-			GitSshPublicKey:   integrationGitSSHPublicKey(t),
+			GitSshKey:         &codespacev1.RuntimeGitSSHKey{PublicKey: integrationGitSSHPublicKey(t)},
 		}))
 		require.NoError(t, err)
-		require.True(t, strings.HasPrefix(tokenResponse.Msg.GetToken(), "gcs_"))
+		require.True(t, strings.HasPrefix(tokenResponse.Msg.GetAccess().GetGiteaToken(), "gcs_"))
 
 		_, err = client.FinalizeOperation(t.Context(), codespaceManagerRequest(manager.ID, secret, createFinalRequest(codespaceUUID, 1, codespacev1.OperationType_OPERATION_TYPE_CREATE, codespacev1.FinalStatus_FINAL_STATUS_DONE)))
 		require.Error(t, err)
@@ -355,7 +359,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 			ProtocolVersion:   1,
 			CodespaceUuid:     codespaceUUID,
 			OperationRversion: resumeVersion,
-			GitSshPublicKey:   integrationGitSSHPublicKey(t),
+			GitSshKey:         &codespacev1.RuntimeGitSSHKey{PublicKey: integrationGitSSHPublicKey(t)},
 		}))
 		require.NoError(t, err)
 		_, err = client.ReportRuntimeMetadata(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.ReportRuntimeMetadataRequest{
@@ -416,7 +420,7 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 			ProtocolVersion:   1,
 			CodespaceUuid:     codespaceUUID,
 			OperationRversion: resumeVersion,
-			GitSshPublicKey:   integrationGitSSHPublicKey(t),
+			GitSshKey:         &codespacev1.RuntimeGitSSHKey{PublicKey: integrationGitSSHPublicKey(t)},
 		}))
 		require.NoError(t, err)
 		_, err = client.ReportRuntimeMetadata(t.Context(), codespaceManagerRequest(manager.ID, secret, &codespacev1.ReportRuntimeMetadataRequest{
@@ -448,6 +452,18 @@ func TestCodespaceLifecycleStateMachineIntegration(t *testing.T) {
 		assert.False(t, finalDelete.Msg.GetResourceAbsent())
 		assertIntegrationNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
 	})
+}
+
+func insertIntegrationDevContainerTemplate(t *testing.T) {
+	t.Helper()
+	now := time.Now().Unix()
+	require.NoError(t, db.Insert(t.Context(), &codespace_model.DevContainerTemplate{
+		UserID:      0,
+		Name:        "Default",
+		Content:     `{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}`,
+		CreatedUnix: now,
+		UpdatedUnix: now,
+	}))
 }
 
 func TestCodespaceInventoryStateMachineIntegration(t *testing.T) {

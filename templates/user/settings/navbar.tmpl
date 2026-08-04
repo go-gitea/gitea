@@ -60,10 +60,11 @@
 			{{ctx.Locale.Tr "packages.title"}}
 		</a>
 		{{end}}
-		<details class="item" {{if or .PageIsCodespaceSettings .PageIsCodespacePermissions .PageIsCodespaceSecrets}}open{{end}}>
+		<details class="item" {{if or .PageIsCodespaceSettings .PageIsCodespaceDevContainerTemplates .PageIsCodespacePermissions .PageIsCodespaceSecrets}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "codespace.title"}}</summary>
 			<div class="menu">
 				<a class="{{if .PageIsCodespaceSettings}}active {{end}}item" href="{{AppSubUrl}}/user/settings/codespaces/managers">{{ctx.Locale.Tr "codespace.managers"}}</a>
+				<a class="{{if .PageIsCodespaceDevContainerTemplates}}active {{end}}item" href="{{AppSubUrl}}/user/settings/codespaces/dev-container-templates">{{ctx.Locale.Tr "codespace.dev_container_templates"}}</a>
 				<a class="{{if .PageIsCodespacePermissions}}active {{end}}item" href="{{AppSubUrl}}/user/settings/codespaces/permissions">{{ctx.Locale.Tr "codespace.permissions"}}</a>
 				<a class="{{if .PageIsCodespaceSecrets}}active {{end}}item" href="{{AppSubUrl}}/user/settings/codespaces/secrets">{{ctx.Locale.Tr "codespace.secrets"}}</a>
 			</div>

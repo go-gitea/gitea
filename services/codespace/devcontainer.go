@@ -5,13 +5,12 @@ package codespace
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"path"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	codespace_model "gitea.dev/models/codespace"
@@ -20,14 +19,13 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
 	"github.com/tailscale/hujson"
 )
 
 const (
-	devContainerPlatformDefaultSelection  = "platform_default"
+	devContainerTemplateSelectionPrefix   = "template:"
 	devContainerPrimaryPath               = ".devcontainer/devcontainer.json"
 	devContainerRootPath                  = ".devcontainer.json"
 	maxDevContainerConfigurations         = 32
@@ -38,19 +36,19 @@ const (
 
 // CreateDevContainerOption describes one configuration available at the selected commit.
 type CreateDevContainerOption struct {
-	Selection       string
-	Name            string
-	Path            string
-	PlatformDefault bool
-	Selected        bool
+	Selection string
+	Name      string
+	Path      string
+	Selected  bool
 }
 
 // createDevContainerPlan contains the immutable runtime choice and confirmation data.
 type createDevContainerPlan struct {
+	Source                 string
+	Selection              string
 	Path                   string
 	Name                   string
-	ContentSHA256          string
-	DefaultImage           string
+	Content                string
 	PermissionRepositories map[string]map[string]string
 	Permissions            []CreatePermissionRequest
 	RecommendedSecrets     []CreateRecommendedSecret
@@ -58,8 +56,19 @@ type createDevContainerPlan struct {
 
 type devContainerDocument struct {
 	Name           string                        `json:"name"`
+	Image          string                        `json:"image"`
+	Build          any                           `json:"build"`
+	DockerFile     string                        `json:"dockerFile"`
+	DockerCompose  any                           `json:"dockerComposeFile"`
+	Features       map[string]any                `json:"features"`
+	Mounts         []devContainerMount           `json:"mounts"`
 	Secrets        map[string]devContainerSecret `json:"secrets"`
 	Customizations devContainerCustomizations    `json:"customizations"`
+}
+
+type devContainerMount struct {
+	Type   string `json:"type"`
+	Source string `json:"source"`
 }
 
 type devContainerSecret struct {
@@ -96,36 +105,51 @@ func prepareCreateDevContainer(ctx context.Context, user *user_model.User, repo 
 		}
 		configs = append(configs, config)
 	}
+	templates, err := listVisibleDevContainerTemplates(ctx, user.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	templateConfigs := make([]*createDevContainerPlan, 0, len(templates))
+	for _, template := range templates {
+		config, err := loadTemplateDevContainer(template)
+		if err != nil {
+			return nil, nil, err
+		}
+		templateConfigs = append(templateConfigs, config)
+	}
 
 	selection = strings.TrimSpace(selection)
 	if selection == "" {
-		selection = devContainerPlatformDefaultSelection
 		if slices.Contains(paths, devContainerPrimaryPath) {
 			selection = devContainerPrimaryPath
 		} else if slices.Contains(paths, devContainerRootPath) {
 			selection = devContainerRootPath
+		} else if len(configs) > 0 {
+			selection = configs[0].Path
+		} else if len(templateConfigs) > 0 {
+			selection = templateConfigs[0].Selection
 		}
 	}
 
-	selected := &createDevContainerPlan{
-		DefaultImage: strings.TrimSpace(setting.Codespace.DevContainerDefaultImage),
-	}
-	if selection != devContainerPlatformDefaultSelection {
-		index := slices.IndexFunc(configs, func(config *createDevContainerPlan) bool {
-			return config.Path == selection
-		})
-		if index < 0 {
-			return nil, nil, fmt.Errorf("Dev Container configuration %q is not available at commit %s", selection, sourceRef.CommitSHA)
-		}
+	var selected *createDevContainerPlan
+	if index := slices.IndexFunc(configs, func(config *createDevContainerPlan) bool {
+		return config.Path == selection
+	}); index >= 0 {
 		selected = configs[index]
-		permissions, err := resolveCreatePermissions(ctx, user, repo, selected.PermissionRepositories)
-		if err != nil {
-			return nil, nil, err
-		}
-		selected.Permissions = permissions
+	} else if index := slices.IndexFunc(templateConfigs, func(config *createDevContainerPlan) bool {
+		return config.Selection == selection
+	}); index >= 0 {
+		selected = templateConfigs[index]
+	} else {
+		return nil, nil, fmt.Errorf("Dev Container configuration %q is not available", selection)
 	}
+	permissions, err := resolveCreatePermissions(ctx, user, repo, selected.PermissionRepositories)
+	if err != nil {
+		return nil, nil, err
+	}
+	selected.Permissions = permissions
 
-	options := make([]CreateDevContainerOption, 0, len(configs)+1)
+	options := make([]CreateDevContainerOption, 0, len(configs)+len(templateConfigs))
 	for _, config := range configs {
 		options = append(options, CreateDevContainerOption{
 			Selection: config.Path,
@@ -134,11 +158,13 @@ func prepareCreateDevContainer(ctx context.Context, user *user_model.User, repo 
 			Selected:  selection == config.Path,
 		})
 	}
-	options = append(options, CreateDevContainerOption{
-		Selection:       devContainerPlatformDefaultSelection,
-		PlatformDefault: true,
-		Selected:        selection == devContainerPlatformDefaultSelection,
-	})
+	for _, config := range templateConfigs {
+		options = append(options, CreateDevContainerOption{
+			Selection: config.Selection,
+			Name:      config.Name,
+			Selected:  selection == config.Selection,
+		})
+	}
 	return selected, options, nil
 }
 
@@ -210,14 +236,9 @@ func loadRepositoryDevContainer(ctx context.Context, gitRepo *git.Repository, co
 	if int64(len(content)) > devContainerConfigMaxSize {
 		return nil, fmt.Errorf("Dev Container configuration %q exceeds %d bytes", configPath, devContainerConfigMaxSize)
 	}
-	sum := sha256.Sum256(content)
-	standard, err := hujson.Standardize(content)
+	document, err := parseDevContainerDocument(content, configPath)
 	if err != nil {
-		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", configPath, err)
-	}
-	var document devContainerDocument
-	if err := json.Unmarshal(standard, &document); err != nil {
-		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", configPath, err)
+		return nil, err
 	}
 	name := strings.TrimSpace(document.Name)
 	if name == "" {
@@ -232,12 +253,76 @@ func loadRepositoryDevContainer(ctx context.Context, gitRepo *git.Repository, co
 		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", configPath, err)
 	}
 	return &createDevContainerPlan{
+		Source:                 codespace_model.DevContainerSourceRepository,
+		Selection:              configPath,
 		Path:                   configPath,
 		Name:                   name,
-		ContentSHA256:          hex.EncodeToString(sum[:]),
 		PermissionRepositories: repositories,
 		RecommendedSecrets:     recommendedSecrets,
 	}, nil
+}
+
+func loadTemplateDevContainer(template *codespace_model.DevContainerTemplate) (*createDevContainerPlan, error) {
+	content := strings.TrimSpace(template.Content)
+	document, err := parseDevContainerDocument([]byte(content), template.Name)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateTemplateDevContainer(document); err != nil {
+		return nil, fmt.Errorf("parse Dev Container template %q: %w", template.Name, err)
+	}
+	repositories, err := devContainerPermissionRepositories(document.Customizations)
+	if err != nil {
+		return nil, fmt.Errorf("parse Dev Container template %q: %w", template.Name, err)
+	}
+	recommendedSecrets, err := parseRecommendedSecrets(document.Secrets)
+	if err != nil {
+		return nil, fmt.Errorf("parse Dev Container template %q: %w", template.Name, err)
+	}
+	return &createDevContainerPlan{
+		Source:                 codespace_model.DevContainerSourceTemplate,
+		Selection:              devContainerTemplateSelectionPrefix + strconv.FormatInt(template.ID, 10),
+		Name:                   template.Name,
+		Content:                content,
+		PermissionRepositories: repositories,
+		RecommendedSecrets:     recommendedSecrets,
+	}, nil
+}
+
+func parseDevContainerDocument(content []byte, name string) (*devContainerDocument, error) {
+	if int64(len(content)) > devContainerConfigMaxSize {
+		return nil, fmt.Errorf("Dev Container configuration %q exceeds %d bytes", name, devContainerConfigMaxSize)
+	}
+	standard, err := hujson.Standardize(content)
+	if err != nil {
+		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", name, err)
+	}
+	var document devContainerDocument
+	if err := json.Unmarshal(standard, &document); err != nil {
+		return nil, fmt.Errorf("parse Dev Container configuration %q: %w", name, err)
+	}
+	return &document, nil
+}
+
+func validateTemplateDevContainer(document *devContainerDocument) error {
+	if strings.TrimSpace(document.Image) == "" || document.Build != nil || strings.TrimSpace(document.DockerFile) != "" || document.DockerCompose != nil {
+		return errors.New("template must select an image")
+	}
+	for reference := range document.Features {
+		if strings.HasPrefix(reference, "./") || strings.HasPrefix(reference, "../") {
+			return errors.New("template cannot use relative Features")
+		}
+	}
+	for _, mount := range document.Mounts {
+		source := strings.TrimSpace(mount.Source)
+		if source == "" || strings.Contains(source, "${") {
+			continue
+		}
+		if mount.Type == "bind" && !path.IsAbs(source) {
+			return errors.New("template cannot use relative bind mounts")
+		}
+	}
+	return nil
 }
 
 func parseRecommendedSecrets(configured map[string]devContainerSecret) ([]CreateRecommendedSecret, error) {

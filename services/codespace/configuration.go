@@ -89,9 +89,6 @@ func ValidateCodespaceConfig() error {
 		codespaceLogInternalSummaryReserve >= setting.Codespace.LogMaxSize {
 		return errors.New("[codespace] LOG_MAX_SIZE must be greater than the internal log page and state summary reserve sizes")
 	}
-	if strings.TrimSpace(setting.Codespace.DevContainerDefaultImage) == "" {
-		return errors.New("[codespace] DEVCONTAINER_DEFAULT_IMAGE must not be empty")
-	}
 	return nil
 }
 

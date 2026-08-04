@@ -272,7 +272,7 @@ func (s *Service) RequestRuntimeAccess(
 	result, err := codespace_service.RequestRuntimeAccess(ctx, manager, codespace_service.RequestRuntimeAccessOptions{
 		CodespaceUUID:     req.Msg.GetCodespaceUuid(),
 		OperationRVersion: req.Msg.GetOperationRversion(),
-		GitSSHPublicKey:   req.Msg.GetGitSshPublicKey(),
+		GitSSHPublicKey:   req.Msg.GetGitSshKey().GetPublicKey(),
 	})
 	if err != nil {
 		return nil, serviceFailureError(err, connect.CodeInvalidArgument, "invalid_argument", []serviceErrorCase{
@@ -292,10 +292,12 @@ func (s *Service) RequestRuntimeAccess(
 		secrets = append(secrets, &codespacev1.RuntimeSecretEnvironmentVariable{Name: secret.Name, Value: secret.Value})
 	}
 	return connect.NewResponse(&codespacev1.RequestRuntimeAccessResponse{
-		Token:                 result.Token,
-		ServerUrl:             result.ServerURL,
-		Secrets:               secrets,
-		GitSshKnownHostsLines: result.GitSSHKnownHosts,
+		Access: &codespacev1.RuntimeAccessBundle{
+			GiteaToken:     result.Token,
+			GiteaServerUrl: result.ServerURL,
+			Secrets:        secrets,
+			GitSshTrust:    &codespacev1.GitSSHTrust{KnownHostsLines: result.GitSSHKnownHosts},
+		},
 	}), nil
 }
 

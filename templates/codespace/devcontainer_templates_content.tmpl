@@ -1,0 +1,63 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "codespace.dev_container_templates"}}
+</h4>
+<div class="ui attached segment">
+	<form class="ui form" method="post" action="{{.ActionBase}}">
+		{{.CsrfTokenHtml}}
+		<div class="field">
+			<label for="codespace-devcontainer-template-name">{{ctx.Locale.Tr "name"}}</label>
+			<input id="codespace-devcontainer-template-name" name="name" required maxlength="255">
+		</div>
+		<div class="field">
+			<label for="codespace-devcontainer-template-content">{{ctx.Locale.Tr "codespace.dev_container_template_content"}}</label>
+			<textarea id="codespace-devcontainer-template-content" name="content" required rows="8" spellcheck="false" autocomplete="off">{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}</textarea>
+			<div class="help">{{ctx.Locale.Tr "codespace.dev_container_template_content_help"}}</div>
+		</div>
+		<button class="ui primary button" type="submit">{{ctx.Locale.Tr "add"}}</button>
+	</form>
+</div>
+
+<h4 class="ui top attached header tw-mt-4">
+	{{ctx.Locale.Tr "codespace.dev_container_templates_saved"}}
+</h4>
+<div class="ui attached segment">
+	{{if .DevContainerTemplates}}
+		<div class="flex-divided-list items-with-main">
+			{{range .DevContainerTemplates}}
+				<div class="item">
+					<div class="item-leading">{{svg "octicon-file-code" 32}}</div>
+					<div class="item-main">
+						<div class="item-title">{{.Name}}</div>
+						<div class="item-body color-text-light-2">{{DateUtils.AbsoluteShort .UpdatedUnix}}</div>
+						<details class="tw-mt-2">
+							<summary>{{ctx.Locale.Tr "edit"}}</summary>
+							<form class="ui form tw-mt-2" method="post" action="{{$.ActionBase}}/{{.ID}}">
+								{{$.CsrfTokenHtml}}
+								<div class="field">
+									<label for="codespace-devcontainer-template-name-{{.ID}}">{{ctx.Locale.Tr "name"}}</label>
+									<input id="codespace-devcontainer-template-name-{{.ID}}" name="name" required maxlength="255" value="{{.Name}}">
+								</div>
+								<div class="field">
+									<label for="codespace-devcontainer-template-content-{{.ID}}">{{ctx.Locale.Tr "codespace.dev_container_template_content"}}</label>
+									<textarea id="codespace-devcontainer-template-content-{{.ID}}" name="content" required rows="8" spellcheck="false" autocomplete="off">{{.Content}}</textarea>
+								</div>
+								<button class="ui primary button" type="submit">{{ctx.Locale.Tr "save"}}</button>
+							</form>
+						</details>
+					</div>
+					<div class="item-trailing">
+						<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.ActionBase}}/{{.ID}}/delete">
+							{{$.CsrfTokenHtml}}
+							<input type="hidden" name="confirm" value="delete-template">
+							<button class="btn interact-bg tw-p-2" type="submit"
+								data-modal-confirm="{{ctx.Locale.Tr "codespace.dev_container_template_delete_confirm" .Name}}"
+								data-tooltip-content="{{ctx.Locale.Tr "delete"}}" aria-label="{{ctx.Locale.Tr "delete"}}">{{svg "octicon-trash"}}</button>
+						</form>
+					</div>
+				</div>
+			{{end}}
+		</div>
+	{{else}}
+		{{ctx.Locale.Tr "codespace.no_dev_container_templates"}}
+	{{end}}
+</div>

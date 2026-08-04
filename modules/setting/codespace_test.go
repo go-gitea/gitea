@@ -24,7 +24,6 @@ OPERATION_LEASE_TIMEOUT = 1500ms
 OPERATION_MAX_DURATION = 3h
 QUEUE_TIMEOUT = 7m
 LOG_MAX_SIZE = 32MiB
-DEVCONTAINER_DEFAULT_IMAGE = registry.example.com/devcontainer:latest
 AUTO_STOP_DEFAULT_TIMEOUT = 25m
 AUTO_STOP_MIN_TIMEOUT = 3m
 AUTO_STOP_MAX_TIMEOUT = 24h
@@ -41,7 +40,6 @@ AUTO_STOP_MAX_TIMEOUT = 24h
 	assert.Equal(t, 3*time.Hour, Codespace.OperationMaxDuration)
 	assert.Equal(t, 7*time.Minute, Codespace.QueueTimeout)
 	assert.EqualValues(t, 32*1024*1024, Codespace.LogMaxSize)
-	assert.Equal(t, "registry.example.com/devcontainer:latest", Codespace.DevContainerDefaultImage)
 	assert.Equal(t, 25*time.Minute, Codespace.AutoStopDefaultTimeout)
 	assert.Equal(t, 3*time.Minute, Codespace.AutoStopMinTimeout)
 	assert.Equal(t, 24*time.Hour, Codespace.AutoStopMaxTimeout)
