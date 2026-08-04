@@ -44,7 +44,7 @@ func Test_UnwrapLDAPSourceCfg(t *testing.T) {
 	}
 
 	// Run the migration
-	if err := UnwrapLDAPSourceCfg(x); err != nil {
+	if err := UnwrapLDAPSourceCfg(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

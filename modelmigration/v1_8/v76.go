@@ -4,13 +4,14 @@
 package v1_8
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddPullRequestRebaseWithMerge(x base.EngineMigration) error {
+func AddPullRequestRebaseWithMerge(_ context.Context, x base.EngineMigration) error {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64

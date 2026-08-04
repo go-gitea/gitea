@@ -3,9 +3,13 @@
 
 package v1_22
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func RenameUserThemes(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func RenameUserThemes(_ context.Context, x base.EngineMigration) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
