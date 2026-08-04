@@ -33,7 +33,7 @@ import (
 	"gitea.dev/modules/packages/rpm"
 	"gitea.dev/modules/packages/rubygems"
 	"gitea.dev/modules/packages/swift"
-	terraform_module "gitea.dev/modules/packages/terraform_module"
+	"gitea.dev/modules/packages/terraform_module"
 	"gitea.dev/modules/packages/vagrant"
 	"gitea.dev/modules/util"
 
