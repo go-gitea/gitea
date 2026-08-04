@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
@@ -22,21 +23,51 @@ import (
 
 // Validation errors returned by the parser.
 var (
-	ErrInvalidName         = errors.New("module name is invalid")
-	ErrInvalidProvider     = errors.New("module provider is invalid")
-	ErrInvalidVersion      = errors.New("module version is invalid")
-	ErrArchiveTooLarge     = errors.New("module archive exceeds size limit")
-	ErrUnsafeArchivePath   = errors.New("module archive contains an unsafe file path")
-	ErrEmptyModule         = errors.New("module archive contains no .tf files")
-	ErrUnsupportedTFFormat = errors.New("only .tf files are supported (.tf.json is not parsed in v1)")
+	ErrInvalidName           = errors.New("module name is invalid")
+	ErrInvalidProvider       = errors.New("module provider is invalid")
+	ErrInvalidVersion        = errors.New("module version is invalid")
+	ErrArchiveTooLarge       = errors.New("module archive exceeds size limit")
+	ErrTooManyArchiveEntries = errors.New("module archive contains too many entries")
+	ErrUnsafeArchivePath     = errors.New("module archive contains an unsafe file path")
+	ErrUnsafeArchiveLink     = errors.New("module archive contains a link pointing outside the archive")
+	ErrEmptyModule           = errors.New("module archive contains no .tf files")
+	ErrUnsupportedTFFormat   = errors.New("only .tf files are supported (.tf.json is not parsed in v1)")
 )
 
-// maxParseSize is a hard ceiling on the total decompressed bytes read
-// while parsing an archive, independent of the configurable storage
-// quota (LIMIT_SIZE_TERRAFORM_MODULE). It guards against gzip bombs even
-// when the operator disables the storage quota with -1. Real Terraform
-// modules are KB-scale, so 32 MiB is generous.
-const maxParseSize = 32 << 20 // 32 MiB
+const (
+	// maxParseSize is a hard ceiling on the total decompressed bytes read
+	// while parsing an archive, independent of the configurable storage
+	// quota (LIMIT_SIZE_TERRAFORM_MODULE). It guards against gzip bombs even
+	// when the operator disables the storage quota with -1. Real Terraform
+	// modules are KB-scale, so 32 MiB is generous.
+	maxParseSize = 32 << 20 // 32 MiB
+
+	// maxArchiveEntries caps how many tar entries are examined. Entry
+	// headers carry no payload, so without this an archive of nothing but
+	// empty headers would compress to almost nothing yet cost one
+	// allocation per entry, bypassing the byte ceiling entirely.
+	maxArchiveEntries = 32 << 10 // 32768
+
+	// tarHeaderSize is the on-the-wire size of a tar entry header. It is
+	// charged against the byte ceiling so empty entries still cost budget.
+	tarHeaderSize = 512
+
+	// maxIndexedDirDepth is the deepest directory level read for metadata:
+	// `<wrapper>/modules/<name>` is three components.
+	maxIndexedDirDepth = 3
+)
+
+// NormalizeVersion validates a module version and returns its canonical
+// semver form. Terraform accepts both `v1.0.0` and `1.0.0`; normalizing on
+// the way in keeps a single naming scheme in the registry instead of
+// storing some versions prefixed and others not.
+func NormalizeVersion(s string) (string, error) {
+	v, err := version.NewSemver(s)
+	if err != nil {
+		return "", ErrInvalidVersion
+	}
+	return v.String(), nil
+}
 
 // Module is the result of parsing a Terraform module archive.
 type Module struct {
@@ -141,24 +172,18 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 	// handleFile reads .tf and README payloads for the given directory
 	// level and discards everything else, while always counting bytes
 	// against the size cap.
-	handleFile := func(dir, base string) error {
+	handleFile := func(dir, base string, size int64) error {
 		lower := strings.ToLower(base)
 		switch {
-		case strings.HasSuffix(lower, ".tf.json"):
-			n, err := skipCapped(tr, maxSize, consumed)
-			if err != nil {
-				return err
-			}
-			consumed += n
 		case strings.HasSuffix(lower, ".tf"):
-			data, n, err := readCapped(tr, maxSize, consumed)
+			data, n, err := readCapped(tr, size, maxSize, consumed)
 			if err != nil {
 				return err
 			}
 			consumed += n
 			dirEntry(dir).tf[base] = data
 		case lower == "readme.md" || lower == "readme":
-			data, n, err := readCapped(tr, maxSize, consumed)
+			data, n, err := readCapped(tr, size, maxSize, consumed)
 			if err != nil {
 				return err
 			}
@@ -174,6 +199,7 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		return nil
 	}
 
+	var entries int
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {
@@ -183,11 +209,33 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			return nil, fmt.Errorf("tar read: %w", err)
 		}
 
+		// Charge the header itself so an archive of empty entries still
+		// exhausts the byte budget, and bound the entry count outright.
+		entries++
+		if entries > maxArchiveEntries {
+			return nil, ErrTooManyArchiveEntries
+		}
+		consumed += tarHeaderSize
+		if consumed > maxSize {
+			return nil, ErrArchiveTooLarge
+		}
+
 		// Reject absolute and traversing paths before we touch the file.
 		clean := path.Clean(hdr.Name)
 		if path.IsAbs(clean) || strings.HasPrefix(clean, "../") || clean == ".." {
 			return nil, ErrUnsafeArchivePath
 		}
+
+		// Links are stored verbatim and get materialized when the consumer
+		// unpacks the archive, so a link escaping the archive must never be
+		// published.
+		if hdr.Typeflag == tar.TypeSymlink || hdr.Typeflag == tar.TypeLink {
+			if !isSafeLink(clean, hdr.Linkname, hdr.Typeflag == tar.TypeSymlink) {
+				return nil, ErrUnsafeArchiveLink
+			}
+			continue
+		}
+
 		if clean == "." || isArchiveJunk(clean) {
 			if hdr.Typeflag == tar.TypeReg {
 				n, err := skipCapped(tr, maxSize, consumed)
@@ -210,34 +258,32 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 			continue
 		}
 
-		switch lower := strings.ToLower(path.Base(clean)); {
+		base := path.Base(clean)
+		switch lower := strings.ToLower(base); {
 		case strings.HasSuffix(lower, ".tf.json"):
 			tfJSONAnywhere = true
 		case strings.HasSuffix(lower, ".tf"):
 			tfAnywhere = true
 		}
 
-		// The root module lives either at the archive root (depth 0) or
-		// one level deep inside the wrapper directory (depth 1). Files
-		// deeper than that are submodules or examples: counted above but
-		// not read for root metadata.
-		switch strings.Count(clean, "/") {
-		case 0:
+		// Read metadata for the root module and for `modules/<name>`
+		// submodules; anything deeper is an example or a nested detail and
+		// is skipped.
+		dir := path.Dir(clean)
+		if dir == "." {
+			dir = ""
 			topLevelFile = true
-			if err := handleFile("", clean); err != nil {
-				return nil, err
-			}
-		case 1:
-			dir, base, _ := strings.Cut(clean, "/")
-			if err := handleFile(dir, base); err != nil {
-				return nil, err
-			}
-		default:
+		}
+		if dirDepth(dir) > maxIndexedDirDepth {
 			n, err := skipCapped(tr, maxSize, consumed)
 			if err != nil {
 				return nil, err
 			}
 			consumed += n
+			continue
+		}
+		if err := handleFile(dir, base, hdr.Size); err != nil {
+			return nil, err
 		}
 	}
 
@@ -259,15 +305,88 @@ func ParseModuleArchive(r io.Reader, maxSize int64) (*Module, error) {
 		return nil, err
 	}
 
+	submodules, err := parseSubmodules(byDir, moduleDir)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Module{
 		Metadata: &Metadata{
 			Description: description,
 			Readme:      df.readme,
 			Root:        root,
 			Providers:   root.Providers,
+			Submodules:  submodules,
 		},
 		RootDir: moduleDir,
 	}, nil
+}
+
+// dirDepth returns the number of path components in a cleaned directory
+// path ("" is the archive root, depth 0).
+func dirDepth(dir string) int {
+	if dir == "" {
+		return 0
+	}
+	return strings.Count(dir, "/") + 1
+}
+
+// isSafeLink reports whether a tar link entry resolves to a location
+// inside the archive. Hard link targets are archive-root relative; symlink
+// targets resolve against the link's own directory. Absolute targets are
+// always rejected.
+func isSafeLink(name, linkname string, symlink bool) bool {
+	if linkname == "" || path.IsAbs(linkname) || strings.HasPrefix(linkname, "/") {
+		return false
+	}
+	target := linkname
+	if symlink {
+		target = path.Join(path.Dir(name), linkname)
+	}
+	target = path.Clean(target)
+	return target != ".." && !strings.HasPrefix(target, "../")
+}
+
+// parseSubmodules extracts metadata for each `modules/<name>` directory of
+// the standard module structure, so a module made only of submodules still
+// has something to show.
+func parseSubmodules(byDir map[string]*dirFiles, rootDir string) ([]*Submodule, error) {
+	prefix := "modules/"
+	if rootDir != "" {
+		prefix = rootDir + "/modules/"
+	}
+
+	names := make([]string, 0, len(byDir))
+	for dir := range byDir {
+		name, ok := strings.CutPrefix(dir, prefix)
+		if !ok || name == "" || strings.Contains(name, "/") {
+			continue
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	submodules := make([]*Submodule, 0, len(names))
+	for _, name := range names {
+		df := byDir[prefix+name]
+		if len(df.tf) == 0 {
+			continue
+		}
+		root, description, err := parseRoot(df.tf)
+		if err != nil {
+			return nil, err
+		}
+		submodules = append(submodules, &Submodule{
+			Name:        name,
+			Description: description,
+			Readme:      df.readme,
+			Root:        root,
+		})
+	}
+	if len(submodules) == 0 {
+		return nil, nil
+	}
+	return submodules, nil
 }
 
 // wrapperDir returns the single top-level directory that wraps the whole
@@ -297,7 +416,7 @@ func wrapperDir(topDirs map[string]struct{}, topLevelFile bool) string {
 // path never needs a go-getter subdir. The total decompressed size is
 // capped at maxParseSize as a safety net (the archive has already passed
 // the same ceiling during parsing).
-func NormalizeArchive(dst io.Writer, src io.Reader, rootDir string) error {
+func NormalizeArchive(dst io.Writer, src io.Reader, rootDir string) (err error) {
 	gzr, err := gzip.NewReader(src)
 	if err != nil {
 		return fmt.Errorf("invalid gzip stream: %w", err)
@@ -306,6 +425,19 @@ func NormalizeArchive(dst io.Writer, src io.Reader, rootDir string) error {
 
 	gzw := gzip.NewWriter(dst)
 	tw := tar.NewWriter(gzw)
+	// Both writers must be closed on every path: tar.Writer.Close flushes
+	// the trailer and gzip.Writer.Close the stream footer, so an early
+	// return would otherwise emit a truncated archive.
+	defer func() {
+		cerr := tw.Close()
+		if gzerr := gzw.Close(); cerr == nil {
+			cerr = gzerr
+		}
+		if err == nil {
+			err = cerr
+		}
+	}()
+
 	tr := tar.NewReader(gzr)
 	prefix := rootDir + "/"
 
@@ -348,10 +480,7 @@ func NormalizeArchive(dst io.Writer, src io.Reader, rootDir string) error {
 		}
 	}
 
-	if err := tw.Close(); err != nil {
-		return err
-	}
-	return gzw.Close()
+	return nil
 }
 
 // isArchiveJunk reports whether a cleaned path is packaging cruft that
@@ -371,26 +500,23 @@ func isArchiveJunk(clean string) bool {
 	return false
 }
 
-// readCapped reads the current tar entry into memory and rejects once
-// the running total would exceed maxSize. maxSize == 0 disables the cap.
-func readCapped(tr *tar.Reader, maxSize, consumed int64) ([]byte, int64, error) {
-	if maxSize <= 0 {
-		data, err := io.ReadAll(tr)
-		return data, int64(len(data)), err
-	}
+// readCapped reads the current tar entry into memory, allocating exactly
+// the size declared by its header so an entry with no payload costs no
+// allocation at all. size is the header's declared length; the read is
+// rejected when it would push the running total past maxSize.
+func readCapped(tr *tar.Reader, size, maxSize, consumed int64) ([]byte, int64, error) {
 	remaining := maxSize - consumed
-	if remaining <= 0 {
+	if remaining <= 0 || size > remaining {
 		return nil, 0, ErrArchiveTooLarge
 	}
-	// +1 byte so we can detect overflow instead of silently truncating.
-	data, err := io.ReadAll(io.LimitReader(tr, remaining+1))
-	if err != nil {
+	if size <= 0 {
+		return nil, 0, nil
+	}
+	data := make([]byte, size)
+	if _, err := io.ReadFull(tr, data); err != nil {
 		return nil, 0, err
 	}
-	if int64(len(data)) > remaining {
-		return nil, 0, ErrArchiveTooLarge
-	}
-	return data, int64(len(data)), nil
+	return data, size, nil
 }
 
 // skipCapped discards an entry's bytes while still counting them

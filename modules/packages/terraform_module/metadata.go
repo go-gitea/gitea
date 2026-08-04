@@ -13,6 +13,17 @@ type Metadata struct {
 	Root        *Root                  `json:"root,omitempty"`
 	Source      string                 `json:"source,omitempty"`
 	Providers   []*ProviderRequirement `json:"providers,omitempty"`
+	Submodules  []*Submodule           `json:"submodules,omitempty"`
+}
+
+// Submodule describes a nested module found under `modules/<name>` of the
+// standard module structure. A module may consist only of submodules, in
+// which case Root is empty and these carry all of its documentation.
+type Submodule struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Readme      string `json:"readme,omitempty"`
+	Root        *Root  `json:"root,omitempty"`
 }
 
 // Root describes the root module contents extracted from the archive.

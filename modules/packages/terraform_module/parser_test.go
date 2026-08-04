@@ -7,6 +7,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -265,6 +266,134 @@ func TestParseModuleArchive_WrappedTFJSONOnly(t *testing.T) {
 
 	_, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
 	require.ErrorIs(t, err, ErrUnsupportedTFFormat)
+}
+
+func TestNormalizeVersion(t *testing.T) {
+	// Terraform accepts a leading `v`; normalizing keeps one naming scheme
+	// in the registry instead of mixing v1.0.0 and 1.0.0.
+	cases := []struct{ in, want string }{
+		{"1.0.0", "1.0.0"},
+		{"v1.0.0", "1.0.0"},
+		{"1.0", "1.0.0"},
+		{"v1.2.3-rc.1", "1.2.3-rc.1"},
+	}
+	for _, c := range cases {
+		got, err := NormalizeVersion(c.in)
+		require.NoError(t, err, "input=%q", c.in)
+		assert.Equal(t, c.want, got, "input=%q", c.in)
+	}
+	for _, bad := range []string{"", "not-semver", "V1.0.0"} {
+		_, err := NormalizeVersion(bad)
+		require.ErrorIs(t, err, ErrInvalidVersion, "input=%q", bad)
+	}
+}
+
+func TestParseModuleArchive_Submodules(t *testing.T) {
+	// A module made only of submodules must still expose their metadata.
+	archive := buildArchive(t, map[string]string{
+		"README.md":                  "# collection\n",
+		"modules/network/main.tf":    `variable "cidr" { type = string }`,
+		"modules/network/outputs.tf": `output "vpc_id" { value = "x" }`,
+		"modules/db/main.tf":         `variable "size" { type = number }`,
+		// Examples are not indexed.
+		"examples/basic/main.tf": `variable "ignored" { type = string }`,
+	}, "modules/", "modules/network/", "modules/db/", "examples/", "examples/basic/")
+
+	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.NoError(t, err)
+	require.Len(t, mod.Metadata.Submodules, 2, "both submodules should be indexed")
+	// Sorted by name: db, network.
+	assert.Equal(t, "db", mod.Metadata.Submodules[0].Name)
+	assert.Equal(t, "network", mod.Metadata.Submodules[1].Name)
+
+	network := mod.Metadata.Submodules[1]
+	require.Len(t, network.Root.Inputs, 1)
+	assert.Equal(t, "cidr", network.Root.Inputs[0].Name)
+	require.Len(t, network.Root.Outputs, 1)
+	assert.Equal(t, "vpc_id", network.Root.Outputs[0].Name)
+}
+
+func TestParseModuleArchive_SubmodulesWrapped(t *testing.T) {
+	// Submodules are found relative to the wrapper directory too.
+	archive := buildArchive(t, map[string]string{
+		"coll-1.0.0/modules/network/main.tf": `variable "cidr" { type = string }`,
+	}, "coll-1.0.0/", "coll-1.0.0/modules/", "coll-1.0.0/modules/network/")
+
+	mod, err := ParseModuleArchive(bytes.NewReader(archive), 1<<20)
+	require.NoError(t, err)
+	assert.Equal(t, "coll-1.0.0", mod.RootDir)
+	require.Len(t, mod.Metadata.Submodules, 1)
+	assert.Equal(t, "network", mod.Metadata.Submodules[0].Name)
+}
+
+func TestParseModuleArchive_RejectsEscapingSymlink(t *testing.T) {
+	// A symlink escaping the archive would be materialized on the consumer
+	// when the tarball is unpacked, so it must never be published.
+	for _, link := range []string{"../../etc/passwd", "/etc/passwd"} {
+		var buf bytes.Buffer
+		gz := gzip.NewWriter(&buf)
+		tw := tar.NewWriter(gz)
+		require.NoError(t, tw.WriteHeader(&tar.Header{
+			Name: "main.tf", Typeflag: tar.TypeReg, Mode: 0o644,
+			Size: int64(len(`variable "x" {}`)),
+		}))
+		_, err := tw.Write([]byte(`variable "x" {}`))
+		require.NoError(t, err)
+		require.NoError(t, tw.WriteHeader(&tar.Header{
+			Name: "evil", Typeflag: tar.TypeSymlink, Linkname: link, Mode: 0o777,
+		}))
+		require.NoError(t, tw.Close())
+		require.NoError(t, gz.Close())
+
+		_, err = ParseModuleArchive(bytes.NewReader(buf.Bytes()), 1<<20)
+		require.ErrorIs(t, err, ErrUnsafeArchiveLink, "linkname=%q", link)
+	}
+}
+
+func TestParseModuleArchive_AllowsInternalSymlink(t *testing.T) {
+	// A link that stays inside the archive is fine.
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gz)
+	src := `variable "x" { type = string }`
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Name: "main.tf", Typeflag: tar.TypeReg, Mode: 0o644, Size: int64(len(src)),
+	}))
+	_, err := tw.Write([]byte(src))
+	require.NoError(t, err)
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Name: "modules/link.tf", Typeflag: tar.TypeSymlink, Linkname: "../main.tf", Mode: 0o777,
+	}))
+	require.NoError(t, tw.Close())
+	require.NoError(t, gz.Close())
+
+	mod, err := ParseModuleArchive(bytes.NewReader(buf.Bytes()), 1<<20)
+	require.NoError(t, err)
+	require.Len(t, mod.Metadata.Root.Inputs, 1)
+}
+
+func TestParseModuleArchive_RejectsEntryFlood(t *testing.T) {
+	// Empty headers carry no payload, so without an entry cap an archive of
+	// nothing but empty entries would compress to almost nothing yet cost
+	// one allocation each — never tripping the byte ceiling.
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gz)
+	for i := range maxArchiveEntries + 10 {
+		require.NoError(t, tw.WriteHeader(&tar.Header{
+			Name:     fmt.Sprintf("f%d.tf", i),
+			Typeflag: tar.TypeReg,
+			Mode:     0o644,
+			Size:     0,
+		}))
+	}
+	require.NoError(t, tw.Close())
+	require.NoError(t, gz.Close())
+
+	// The archive is tiny but must still be refused.
+	require.Less(t, buf.Len(), 1<<20)
+	_, err := ParseModuleArchive(bytes.NewReader(buf.Bytes()), -1)
+	require.ErrorIs(t, err, ErrTooManyArchiveEntries)
 }
 
 func TestParseModuleArchive_RejectsTraversal(t *testing.T) {

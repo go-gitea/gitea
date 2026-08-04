@@ -85,4 +85,28 @@
 			</div>
 		{{end}}
 	{{end}}
+
+	{{if and .PackageDescriptor.Metadata .PackageDescriptor.Metadata.Submodules}}
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.terraform_module.submodules"}}</h4>
+		<div class="ui attached segment">
+			<table class="ui table">
+				<thead><tr>
+					<th>{{ctx.Locale.Tr "packages.terraform_module.submodule.name"}}</th>
+					<th>{{ctx.Locale.Tr "packages.terraform_module.submodule.inputs"}}</th>
+					<th>{{ctx.Locale.Tr "packages.terraform_module.submodule.outputs"}}</th>
+					<th>{{ctx.Locale.Tr "packages.terraform_module.submodule.description"}}</th>
+				</tr></thead>
+				<tbody>
+				{{range .PackageDescriptor.Metadata.Submodules}}
+					<tr>
+						<td><code>{{.Name}}</code></td>
+						<td>{{if .Root}}{{len .Root.Inputs}}{{else}}0{{end}}</td>
+						<td>{{if .Root}}{{len .Root.Outputs}}{{else}}0{{end}}</td>
+						<td>{{.Description}}</td>
+					</tr>
+				{{end}}
+				</tbody>
+			</table>
+		</div>
+	{{end}}
 {{end}}

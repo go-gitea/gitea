@@ -7,8 +7,11 @@
 // See https://developer.hashicorp.com/terraform/internals/module-registry-protocol
 //
 // Scope of v1:
-//   - Only the root module is parsed; submodules and examples are ignored.
+//   - The root module and its `modules/<name>` submodules are parsed;
+//     examples are not.
 //   - Only .tar.gz archives are accepted on upload.
+//   - Versions are normalized to canonical semver, so `v1.0.0` and
+//     `1.0.0` address the same version.
 //   - Module versions are immutable: re-uploading the same
 //     {namespace, name, provider, version} returns 409 Conflict.
 //   - There is no search, no module deprecation; delete is the only
@@ -31,8 +34,6 @@ import (
 	"gitea.dev/routers/api/packages/helper"
 	"gitea.dev/services/context"
 	packages_service "gitea.dev/services/packages"
-
-	"github.com/hashicorp/go-version"
 )
 
 // archiveFilename is the canonical filename under which the .tar.gz is stored.
@@ -123,9 +124,10 @@ func DownloadRedirect(ctx *context.Context) {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	v := ctx.PathParam("version")
-	if _, err := version.NewSemver(v); err != nil {
-		apiError(ctx, http.StatusBadRequest, tfmod.ErrInvalidVersion)
+	// Normalize so `v1.0.0` and `1.0.0` address the same stored version.
+	v, err := tfmod.NormalizeVersion(ctx.PathParam("version"))
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -159,9 +161,10 @@ func DownloadArchive(ctx *context.Context) {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	v := ctx.PathParam("version")
-	if _, err := version.NewSemver(v); err != nil {
-		apiError(ctx, http.StatusBadRequest, tfmod.ErrInvalidVersion)
+	// Normalize so `v1.0.0` and `1.0.0` address the same stored version.
+	v, err := tfmod.NormalizeVersion(ctx.PathParam("version"))
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -198,9 +201,10 @@ func UploadModule(ctx *context.Context) {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	v := ctx.PathParam("version")
-	if _, err := version.NewSemver(v); err != nil {
-		apiError(ctx, http.StatusBadRequest, tfmod.ErrInvalidVersion)
+	// Normalize so `v1.0.0` and `1.0.0` address the same stored version.
+	v, err := tfmod.NormalizeVersion(ctx.PathParam("version"))
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -309,9 +313,10 @@ func DeleteModule(ctx *context.Context) {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	v := ctx.PathParam("version")
-	if _, err := version.NewSemver(v); err != nil {
-		apiError(ctx, http.StatusBadRequest, tfmod.ErrInvalidVersion)
+	// Normalize so `v1.0.0` and `1.0.0` address the same stored version.
+	v, err := tfmod.NormalizeVersion(ctx.PathParam("version"))
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 

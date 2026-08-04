@@ -189,6 +189,35 @@ func TestPackageTerraformModule(t *testing.T) {
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
+	t.Run("Upload_VersionPrefixNormalized", func(t *testing.T) {
+		// `v1.2.3` and `1.2.3` must address the same stored version, so the
+		// registry never mixes prefixed and unprefixed names.
+		archive := canonicalModuleArchive(t)
+		nbase := fmt.Sprintf("/api/packages/-/terraform/modules/%s/prefixed/aws", user.Name)
+		req := NewRequestWithBody(t, "PUT", nbase+"/v1.2.3", bytes.NewReader(archive)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+		t.Cleanup(func() {
+			req := NewRequest(t, "DELETE", nbase+"/1.2.3").AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+		})
+
+		// Stored canonically, without the `v`.
+		req = NewRequest(t, "GET", nbase+"/versions").AddBasicAuth(user.Name)
+		resp := MakeRequest(t, req, http.StatusOK)
+		assert.Contains(t, resp.Body.String(), `"1.2.3"`)
+		assert.NotContains(t, resp.Body.String(), `"v1.2.3"`)
+
+		// Re-uploading the unprefixed form is the same version -> conflict.
+		req = NewRequestWithBody(t, "PUT", nbase+"/1.2.3", bytes.NewReader(archive)).AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusConflict)
+
+		// Both spellings resolve for download.
+		for _, v := range []string{"1.2.3", "v1.2.3"} {
+			req = NewRequest(t, "GET", nbase+"/"+v+"/download").AddBasicAuth(user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+		}
+	})
+
 	t.Run("Upload_SubmoduleCollection", func(t *testing.T) {
 		// A module that is only a collection of submodules (no .tf at the
 		// root) is valid and must be accepted.
