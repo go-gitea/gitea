@@ -88,7 +88,23 @@ func HighlightSearchResultCode(filename, language string, lineNums []int, code s
 }
 
 func searchResult(result *internal.SearchResult, startIndex, endIndex int) (*Result, error) {
-	startLineNum := 1 + strings.Count(result.Content[:startIndex], "\n")
+	// an indexer may return a result with no content at all, e.g. a zoekt
+	// filename-only match, in that case there are no lines to display
+	if len(result.Content) == 0 {
+		return &Result{
+			RepoID:      result.RepoID,
+			Filename:    result.Filename,
+			CommitID:    result.CommitID,
+			UpdatedUnix: result.UpdatedUnix,
+			Language:    result.Language,
+			Color:       result.Color,
+		}, nil
+	}
+	// contentStartLineNum is the line number of the first line of result.Content,
+	// it is 1 when Content is the whole file, but an indexer may only return a
+	// snippet of the file (e.g. the matched lines with some context lines).
+	contentStartLineNum := max(result.ContentStartLineNum, 1)
+	startLineNum := contentStartLineNum + strings.Count(result.Content[:startIndex], "\n")
 
 	var formattedLinesBuffer bytes.Buffer
 
