@@ -216,7 +216,7 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 	case TypeTerraformModule:
 		metadata = &terraform_module.Metadata{}
 	case TypeTerraformState:
-		// terraform packages have no metadata
+		// terraform state packages have no metadata
 	case TypeVagrant:
 		metadata = &vagrant.Metadata{}
 	default:
