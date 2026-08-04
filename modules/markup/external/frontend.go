@@ -5,6 +5,7 @@ package external
 
 import (
 	"encoding/base64"
+	"errors"
 	"io"
 	"unicode/utf8"
 
@@ -54,14 +55,13 @@ func (p *frontendRenderer) SanitizerRules() []setting.MarkupSanitizerRule {
 func (p *frontendRenderer) GetExternalRendererOptions() (ret markup.ExternalRendererOptions) {
 	ret.SanitizerDisabled = true
 	ret.DisplayInIframe = true
-	ret.ContentSandbox = "allow-scripts allow-forms allow-modals allow-popups allow-downloads"
+	ret.ContentSandbox = setting.MarkupRenderDefaultSandbox
 	return ret
 }
 
 func (p *frontendRenderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	if ctx.RenderOptions.StandalonePageOptions == nil {
-		opts := p.GetExternalRendererOptions()
-		return markup.RenderIFrame(ctx, &opts, output)
+		return errors.New("should only be rendered in standalone page")
 	}
 
 	content, err := util.ReadWithLimit(input, int(setting.UI.MaxDisplayFileSize))

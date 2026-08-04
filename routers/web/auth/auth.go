@@ -16,7 +16,6 @@ import (
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/password"
-	"gitea.dev/modules/eventsource"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
@@ -34,6 +33,7 @@ import (
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
 	user_service "gitea.dev/services/user"
+	websocket_service "gitea.dev/services/websocket"
 
 	"github.com/markbates/goth"
 )
@@ -118,9 +118,8 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
-	if err := updateSession(ctx, nil, map[string]any{
+	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
-		session.KeyUname:                u.Name,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
@@ -357,7 +356,7 @@ func SignInPost(ctx *context.Context) {
 		// User will need to use WebAuthn, save data
 		updates["totpEnrolled"] = u.ID
 	}
-	if err := updateSession(ctx, nil, updates); err != nil {
+	if err := regenerateSession(ctx, updates); err != nil {
 		ctx.ServerError("UserSignIn: Unable to update session", err)
 		return
 	}
@@ -398,19 +397,9 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		return
 	}
 
-	if err := updateSession(ctx, []string{
-		// Delete the openid, 2fa and link_account data
-		"openid_verified_uri",
-		"openid_signin_remember",
-		"openid_determined_email",
-		"openid_determined_username",
-		"twofaUid",
-		"twofaRemember",
-		"linkAccount",
-		"linkAccountData",
-	}, map[string]any{
+	auth_service.ClearSessionKeysForSignIn(ctx.Session)
+	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
-		session.KeyUname:                u.Name,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
@@ -471,10 +460,17 @@ func HandleSignOut(ctx *context.Context) {
 // SignOut sign out from login status
 func SignOut(ctx *context.Context) {
 	if ctx.Doer != nil {
-		eventsource.GetManager().SendMessageBlocking(ctx.Doer.ID, &eventsource.Event{
-			Name: "logout",
-			Data: ctx.Session.ID(),
-		})
+		websocket_service.PublishLogout(ctx.Doer.ID, ctx.Session.ID())
+	}
+
+	exitedImpersonated, err := auth_service.ExitImpersonatedUser(ctx.Session)
+	if err != nil {
+		ctx.ServerError("ExitImpersonatedUser", err)
+		return
+	}
+	if exitedImpersonated {
+		ctx.Redirect(setting.AppSubURL + "/-/admin")
+		return
 	}
 
 	// prepare the sign-out URL before destroying the session
@@ -484,18 +480,24 @@ func SignOut(ctx *context.Context) {
 }
 
 func buildSignOutRedirectURL(ctx *context.Context) string {
-	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
+	if ctx.Doer != nil && shouldRedirectToOIDCEndSession(ctx) {
 		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
 			return s
 		}
 	}
 
 	// The assumption is: if reverse proxy auth is enabled, then the users should only sign-in via reverse proxy auth.
-	// TODO: in the future, if we need to distinguish different sign-in methods, we need to save the sign-in method in session and check here
 	if setting.Service.EnableReverseProxyAuth && setting.ReverseProxyLogoutRedirect != "" {
 		return setting.ReverseProxyLogoutRedirect
 	}
 	return setting.AppSubURL + "/"
+}
+
+// shouldRedirectToOIDCEndSession reports whether this session should end at the
+// OIDC provider. Prefer the session sign-in method so an OAuth2-linked account
+// that signed in with a password does not hit end_session_endpoint.
+func shouldRedirectToOIDCEndSession(ctx *context.Context) bool {
+	return ctx.Session.Get(session.KeySignInMethod) == session.SignInMethodOAuth2
 }
 
 func prepareSignUpPageData(ctx *context.Context) bool {
@@ -627,14 +629,19 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		if possibleLinkAccountData != nil && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			switch setting.OAuth2Client.AccountLinking {
 			case setting.OAuth2AccountLinkingAuto:
-				var user *user_model.User
-				user = &user_model.User{Name: u.Name}
-				hasUser, err := user_model.GetIndividualUser(ctx, user)
-				if !hasUser || err != nil {
-					user = &user_model.User{Email: u.Email}
-					hasUser, err = user_model.GetIndividualUser(ctx, user)
-					if !hasUser || err != nil {
-						ctx.ServerError("UserLinkAccount", err)
+				user, err := user_model.GetIndividualUserByName(ctx, u.Name)
+				if err != nil {
+					if !user_model.IsErrUserNotExist(err) {
+						ctx.ServerError("GetIndividualUserByName", err)
+						return false
+					}
+					user, err = user_model.GetIndividualUserByPrimaryEmail(ctx, u.Email)
+					if err != nil {
+						if !user_model.IsErrUserNotExist(err) {
+							ctx.ServerError("GetIndividualUserByPrimaryEmail", err)
+						} else {
+							ctx.NotFound(err)
+						}
 						return false
 					}
 				}
@@ -879,10 +886,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	log.Trace("User activated: %s", user.Name)
 
-	if err := updateSession(ctx, nil, map[string]any{
-		"uid":   user.ID,
-		"uname": user.Name,
-	}); err != nil {
+	if err := regenerateSession(ctx, map[string]any{session.KeyUID: user.ID}); err != nil {
 		log.Error("Unable to regenerate session for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
@@ -931,17 +935,12 @@ func ActivateEmail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 }
 
-func updateSession(ctx *context.Context, deletes []string, updates map[string]any) error {
+func regenerateSession(ctx *context.Context, updates map[string]any) error {
 	if _, err := session.RegenerateSession(ctx.Resp, ctx.Req); err != nil {
 		return fmt.Errorf("regenerate session: %w", err)
 	}
 	sess := ctx.Session
 	sessID := sess.ID()
-	for _, k := range deletes {
-		if err := sess.Delete(k); err != nil {
-			return fmt.Errorf("delete %v in session[%s]: %w", k, sessID, err)
-		}
-	}
 	for k, v := range updates {
 		if err := sess.Set(k, v); err != nil {
 			return fmt.Errorf("set %v in session[%s]: %w", k, sessID, err)

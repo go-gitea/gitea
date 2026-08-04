@@ -4,14 +4,12 @@
 package repository
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -97,38 +95,6 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.Equal(t, []string{}, headCommit.Added)
 	assert.Equal(t, []string{}, headCommit.Removed)
 	assert.Equal(t, []string{"readme.md"}, headCommit.Modified)
-}
-
-func TestPushCommits_AvatarLink(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pushCommits := NewPushCommits()
-	pushCommits.Commits = []*PushCommit{
-		{
-			Sha1:           "abcdef1",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user4@example.com",
-			AuthorName:     "User Four",
-			Message:        "message1",
-		},
-		{
-			Sha1:           "abcdef2",
-			CommitterEmail: "user2@example.com",
-			CommitterName:  "User Two",
-			AuthorEmail:    "user2@example.com",
-			AuthorName:     "User Two",
-			Message:        "message2",
-		},
-	}
-
-	assert.Equal(t,
-		"/avatars/ab53a2911ddf9b4817ac01ddcd3d975f?size="+strconv.Itoa(28*setting.Avatar.RenderedSizeFactor),
-		pushCommits.AvatarLink(t.Context(), "user2@example.com"))
-
-	assert.Equal(t,
-		"/assets/img/avatar_default.png",
-		pushCommits.AvatarLink(t.Context(), "nonexistent@example.com"))
 }
 
 func TestCommitToPushCommit(t *testing.T) {

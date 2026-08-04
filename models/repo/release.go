@@ -216,8 +216,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 
 // GetRelease returns release by given ID.
 func GetRelease(ctx context.Context, repoID int64, tagName string) (*Release, error) {
-	rel := &Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)}
-	has, err := db.GetEngine(ctx).Get(rel)
+	rel, has, err := db.Get[Release](ctx, builder.Eq{"repo_id": repoID, "lower_tag_name": strings.ToLower(tagName)})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -267,6 +266,7 @@ type FindReleasesOptions struct {
 	TagNames      []string
 	HasSha1       optional.Option[bool] // useful to find draft releases which are created with existing tags
 	NamePattern   optional.Option[string]
+	TagFilter     string
 }
 
 func (opts FindReleasesOptions) ToConds() builder.Cond {
@@ -298,7 +298,14 @@ func (opts FindReleasesOptions) ToConds() builder.Cond {
 	if opts.NamePattern.Has() && opts.NamePattern.Value() != "" {
 		cond = cond.And(builder.Like{"lower_tag_name", strings.ToLower(opts.NamePattern.Value())})
 	}
-
+	if opts.TagFilter != "" {
+		pattern := strings.ToLower(opts.TagFilter)
+		pattern = strings.ReplaceAll(pattern, "\\", "\\\\")
+		pattern = strings.ReplaceAll(pattern, "_", "\\_")
+		pattern = strings.ReplaceAll(pattern, "%", "\\%")
+		pattern = strings.ReplaceAll(pattern, "*", "%")
+		cond = cond.And(builder.Like{"lower_tag_name", pattern})
+	}
 	return cond
 }
 

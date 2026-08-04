@@ -369,7 +369,9 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	// 2. The Actions Bot user has been explicitly granted access and repository is private
 	// 3. The repository is public (handled by botPerm above)
 
-	if taskRepo.IsPrivate {
+	// Fork PRs are never allowed cross-repo access to other private repositories,
+	// matching the discriminator enforced by checkSameOwnerCrossRepoAccess above.
+	if taskRepo.IsPrivate && !task.IsForkPullRequest {
 		actionsUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 		if actionsUnit.ActionsConfig().IsCollaborativeOwner(taskRepo.OwnerID) {
 			return maxPerm, nil
@@ -567,9 +569,9 @@ func HasAccessUnit(ctx context.Context, user *user_model.User, repo *repo_model.
 
 // CanBeAssigned return true if user can be assigned to issue or pull requests in repo
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
-func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.Repository, _ bool) (bool, error) {
+func CanBeAssigned(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (bool, error) {
 	if user.IsOrganization() {
-		return false, fmt.Errorf("organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
+		return false, util.NewInvalidArgumentErrorf("organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
 	perm, err := GetIndividualUserRepoPermission(ctx, repo, user)
 	if err != nil {
@@ -597,8 +599,8 @@ func HasAnyUnitAccess(ctx context.Context, userID int64, repo *repo_model.Reposi
 	return perm.HasAnyUnitAccess(), nil
 }
 
-func GetUsersWithUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type) (users []*user_model.User, err error) {
-	userIDs, err := GetUserIDsWithUnitAccess(ctx, repo, mode, unitType)
+func GetUsersWithAnyUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type, moreUnitTypes ...unit.Type) (users []*user_model.User, err error) {
+	userIDs, err := GetUserIDsWithAnyUnitAccess(ctx, repo, mode, unitType, moreUnitTypes...)
 	if err != nil {
 		return nil, err
 	}
@@ -611,7 +613,7 @@ func GetUsersWithUnitAccess(ctx context.Context, repo *repo_model.Repository, mo
 	return users, nil
 }
 
-func GetUserIDsWithUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type) (container.Set[int64], error) {
+func GetUserIDsWithAnyUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type, moreUnitTypes ...unit.Type) (container.Set[int64], error) {
 	userIDs := container.Set[int64]{}
 	e := db.GetEngine(ctx)
 	accesses := make([]*Access, 0, 10)
@@ -628,7 +630,7 @@ func GetUserIDsWithUnitAccess(ctx context.Context, repo *repo_model.Repository, 
 	if !repo.Owner.IsOrganization() {
 		userIDs.Add(repo.Owner.ID)
 	} else {
-		teamUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, mode, unitType)
+		teamUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, mode, unitType, moreUnitTypes...)
 		if err != nil {
 			return nil, err
 		}

@@ -4,13 +4,14 @@
 			{{ctx.Locale.Tr "repo.settings.githooks"}}
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui list flex-items-block">
-				<div class="item"><span>{{ctx.Locale.Tr "repo.settings.githooks_desc"}}</span></div>
+			<div>{{ctx.Locale.Tr "repo.settings.githooks_desc"}}</div>
+			{{if .Hooks}}<div class="divider"></div>{{end}}
+			<div class="flex-divided-list">
 				{{range .Hooks}}
-				<div class="item">
+				<div class="item flex-text-block">
 					<span class="{{if .IsActive}}tw-text-green{{else}}tw-text-text-light{{end}}">{{svg "octicon-dot-fill" 22}}</span>
 					<span class="gt-ellipsis tw-flex-1">{{.Name}}</span>
-					<a class="muted tw-p-2" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">{{svg "octicon-pencil"}}</a>
+					<a class="muted tw-pr-2" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">{{svg "octicon-pencil"}}</a>
 				</div>
 				{{end}}
 			</div>

@@ -164,9 +164,7 @@ func DeleteVersionsByPackageID(ctx context.Context, packageID int64) error {
 
 // HasVersionFileReferences checks if there are associated files
 func HasVersionFileReferences(ctx context.Context, versionID int64) (bool, error) {
-	return db.GetEngine(ctx).Get(&PackageFile{
-		VersionID: versionID,
-	})
+	return db.Exist[PackageFile](ctx, builder.Eq{"version_id": versionID})
 }
 
 // SearchValue describes a value to search

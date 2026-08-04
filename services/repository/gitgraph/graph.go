@@ -6,6 +6,7 @@ package gitgraph
 import (
 	"bufio"
 	"bytes"
+	"context"
 
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
@@ -13,7 +14,7 @@ import (
 )
 
 // GetCommitGraph return a list of commit (GraphItems) from all branches
-func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
+func GetCommitGraph(ctx context.Context, gitRepo *git.Repository, page, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
 	format := "DATA:%D|%H|%ad|%h|%s"
 
 	if page == 0 {
@@ -47,7 +48,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	stdoutReader, stdoutReaderClose := graphCmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 	if err := graphCmd.
-		WithDir(r.Path).
+		WithRepo(gitRepo).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			parser := &Parser{}
@@ -97,7 +98,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 			}
 			return scanner.Err()
 		}).
-		RunWithStderr(r.Ctx); err != nil {
+		RunWithStderr(ctx); err != nil {
 		return graph, err
 	}
 	return graph, nil

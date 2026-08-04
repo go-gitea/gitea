@@ -87,12 +87,12 @@ func Transfer(ctx *context.APIContext) {
 		for _, tID := range *opts.TeamIDs {
 			team, err := organization.GetTeamByID(ctx, tID)
 			if err != nil {
-				ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("team %d not found", tID))
+				ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("team %d not found", tID))
 				return
 			}
 
 			if team.OrgID != org.ID {
-				ctx.APIError(http.StatusForbidden, fmt.Errorf("team %d belongs not to org %d", tID, org.ID))
+				ctx.APIError(http.StatusForbidden, fmt.Sprintf("team %d belongs not to org %d", tID, org.ID))
 				return
 			}
 
@@ -110,13 +110,13 @@ func Transfer(ctx *context.APIContext) {
 	if err := repo_service.StartRepositoryTransfer(ctx, ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
 		switch {
 		case repo_model.IsErrRepoTransferInProgress(err):
-			ctx.APIError(http.StatusConflict, err)
+			ctx.APIError(http.StatusConflict, err.Error())
 		case repo_model.IsErrRepoAlreadyExist(err):
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		case repo_service.IsRepositoryLimitReached(err):
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		case errors.Is(err, user_model.ErrBlockedUser):
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -163,11 +163,11 @@ func AcceptTransfer(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case repo_model.IsErrNoPendingTransfer(err):
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		case repo_service.IsRepositoryLimitReached(err):
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -207,9 +207,9 @@ func RejectTransfer(ctx *context.APIContext) {
 	if err != nil {
 		switch {
 		case repo_model.IsErrNoPendingTransfer(err):
-			ctx.APIError(http.StatusNotFound, err)
+			ctx.APIError(http.StatusNotFound, err.Error())
 		case errors.Is(err, util.ErrPermissionDenied):
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		default:
 			ctx.APIErrorInternal(err)
 		}

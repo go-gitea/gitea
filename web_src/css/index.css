@@ -37,7 +37,6 @@
 @import "./modules/charescape.css";
 
 @import "./shared/flex-list.css";
-@import "./shared/milestone.css";
 @import "./shared/settings.css";
 
 @import "./features/dropzone.css";
@@ -53,10 +52,11 @@
 @import "./markup/content.css";
 @import "./markup/codeblock.css";
 @import "./markup/codepreview.css";
-@import "./markup/asciicast.css";
+@import "./markup/jupyter.css";
 
 @import "./font_i18n.css";
 @import "./base.css";
+@import "./avatar.css";
 @import "./home.css";
 @import "./install.css";
 

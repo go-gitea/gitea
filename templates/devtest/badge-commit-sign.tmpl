@@ -4,7 +4,7 @@
 		<h1>Commit Sign Badges</h1>
 		{{range $commit := .MockCommits}}
 			<div class="flex-text-block tw-my-2">
-				{{template "repo/commit_sign_badge" dict "Commit" $commit "CommitBaseLink" "/devtest/commit" "CommitSignVerification" $commit.Verification}}
+				{{template "repo/commit_sign_badge" dict "Commit" $commit.GitCommit "CommitBaseLink" "/devtest/commit" "CommitSignVerification" $commit.Verification}}
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" $commit.Verification}}
 			</div>
 		{{end}}

@@ -4,7 +4,6 @@
 package user
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -135,7 +134,7 @@ func GetGPGKey(ctx *context.APIContext) {
 // CreateUserGPGKey creates new GPG key to given user by ID.
 func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
-		ctx.APIErrorNotFound("Not Found", errors.New("gpg keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("gpg keys setting is not allowed to be changed")
 		return
 	}
 
@@ -276,7 +275,7 @@ func DeleteGPGKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageGPGKeys) {
-		ctx.APIErrorNotFound("Not Found", errors.New("gpg keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("gpg keys setting is not allowed to be changed")
 		return
 	}
 
@@ -294,7 +293,7 @@ func HandleAddGPGKeyError(ctx *context.APIContext, err error, token string) {
 	case asymkey_model.IsErrGPGKeyIDAlreadyUsed(err):
 		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same id already exists")
 	case asymkey_model.IsErrGPGKeyParsing(err):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	case asymkey_model.IsErrGPGNoEmailFound(err):
 		ctx.APIError(http.StatusNotFound, "None of the emails attached to the GPG key could be found. It may still be added if you provide a valid signature for the token: "+token)
 	case asymkey_model.IsErrGPGInvalidTokenSignature(err):

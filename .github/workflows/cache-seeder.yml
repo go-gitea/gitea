@@ -8,10 +8,12 @@
 name: cache-seeder
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
+      - "go.mod" # a toolchain bump invalidates the build caches
       - "go.sum"
       - ".golangci.yml"
       - ".github/actions/go-cache/action.yml"
@@ -29,7 +31,7 @@ jobs:
   gobuild:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
       - run: make deps-backend deps-tools
       - run: TAGS="bindata" make backend
@@ -59,7 +61,7 @@ jobs:
         include:
           - { tags: "bindata", target: "lint-backend" }
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
         with:
           lint-cache: "true"
@@ -70,3 +72,10 @@ jobs:
       - run: make ${{ matrix.target }}
         env:
           TAGS: ${{ matrix.tags }}
+
+  # reclaims the caches this run superseded, so the next save still fits in the allowance
+  prune:
+    needs: [gobuild, lint]
+    permissions:
+      actions: write
+    uses: ./.github/workflows/cache-prune.yml

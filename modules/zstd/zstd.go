@@ -60,7 +60,7 @@ func (r *Reader) Close() error {
 type SeekableWriter struct {
 	buf []byte
 	n   int
-	w   seekable.Writer
+	w   *seekable.Writer
 }
 
 var _ io.WriteCloser = (*SeekableWriter)(nil)
@@ -114,7 +114,7 @@ func (w *SeekableWriter) Close() error {
 }
 
 type SeekableReader struct {
-	r seekable.Reader
+	r *seekable.Reader
 	c func() error
 }
 

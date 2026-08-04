@@ -8,6 +8,8 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // Follow represents relations of user and their followers.
@@ -24,7 +26,7 @@ func init() {
 
 // IsFollowing returns true if user is following followID.
 func IsFollowing(ctx context.Context, userID, followID int64) bool {
-	has, _ := db.GetEngine(ctx).Get(&Follow{UserID: userID, FollowID: followID})
+	has, _ := db.Exist[Follow](ctx, builder.Eq{"user_id": userID, "follow_id": followID})
 	return has
 }
 

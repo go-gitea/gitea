@@ -55,7 +55,8 @@ func ListForks(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	forks, total, err := repo_service.FindForks(ctx, ctx.Repo.Repository, ctx.Doer, utils.GetListOptions(ctx))
+	listOptions := utils.GetListOptions(ctx)
+	forks, total, err := repo_service.FindForks(ctx, ctx.Repo.Repository, ctx.Doer, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -79,6 +80,7 @@ func ListForks(ctx *context.APIContext) {
 		apiForks[i] = convert.ToRepo(ctx, fork, permission)
 	}
 
+	ctx.SetLinkHeader(total, listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, apiForks)
 }
@@ -165,9 +167,9 @@ func CreateFork(ctx *context.APIContext) {
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrAlreadyExist) || repo_model.IsErrReachLimitOfRepo(err) {
-			ctx.APIError(http.StatusConflict, err)
+			ctx.APIError(http.StatusConflict, err.Error())
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

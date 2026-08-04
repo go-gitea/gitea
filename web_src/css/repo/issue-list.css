@@ -34,14 +34,6 @@
   }
 }
 
-#issue-list .issue-item-title {
-  font-size: 16px;
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-
 #issue-list .branches {
   display: inline-flex;
 }
@@ -91,4 +83,48 @@
   margin-left: 10px;
   margin-right: 8px;
   text-align: left;
+}
+
+/* for "title (#123)":
+  <span "title-full-link-hover">
+    <a "title-full-link muted">title (</a>
+    <a "muted">#123</a>
+    <a "title-full-link muted">)</a>
+  </span>
+  * hover on "title": also highlight the right parentheses
+  * hover on "#123": don't highlight other parts
+ */
+.title-full-link-hover:not(:has(:not(.title-full-link):hover)):hover > a.title-full-link {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.list-item-large-title {
+  font-size: 16px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.list-item-title-progress {
+  width: 200px;
+  height: 16px;
+}
+
+.list-item-secondary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-block);
+  justify-content: space-between;
+  color: var(--color-text-light-2);
+}
+
+.list-item-secondary-bar a {
+  color: var(--color-text-light-2);
+  text-decoration: none;
+}
+
+.list-item-secondary-bar a:hover {
+  color: var(--color-text);
 }

@@ -129,11 +129,7 @@
 			<div class="flex-text-inline">
 				{{if .Author}}
 					{{ctx.AvatarUtils.Avatar .Author 20}}
-					{{if .Author.FullName}}
-						<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a>
-					{{else}}
-						<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
-					{{end}}
+					<strong>{{.Author.GetShortDisplayNameLinkHTML}}</strong>
 				{{else}}
 					{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 20}}
 					<strong>{{.Commit.Author.Name}}</strong>
@@ -141,18 +137,38 @@
 			</div>
 			<span class="tw-text-text-light">{{DateUtils.TimeSince .Commit.Committer.When}}</span>
 
-			<div class="flex-text-inline">
-				{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
+			{{$committerIsAuthor := and (eq .Commit.Committer.Name .Commit.Author.Name) (eq .Commit.Committer.Email .Commit.Author.Email)}}
+			{{if not $committerIsAuthor}}
+				<div class="flex-text-inline">
 					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
-					{{if and .Verification.CommittingUser .Verification.CommittingUser.ID}}
+					{{if and .Verification.CommittingUser}}
 						{{ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
-						<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
+						<strong>{{.Verification.CommittingUser.GetShortDisplayNameLinkHTML}}</strong>
 					{{else}}
-						{{ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Name 20}}
+						{{ctx.AvatarUtils.AvatarByEmail .Commit.Committer.Email .Commit.Committer.Email 20}}
 						<strong>{{.Commit.Committer.Name}}</strong>
 					{{end}}
-				{{end}}
-			</div>
+				</div>
+			{{end}}
+
+			{{if .CommitOtherParticipants}}
+				<div class="flex-text-inline">
+					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.coauthored_by"}}</span>
+					{{range $participant := .CommitOtherParticipants}}
+						{{$user := $participant.GiteaUser}}
+						{{$gitIdentity := $participant.GitIdentity}}
+						{{if $user}}
+							{{ctx.AvatarUtils.Avatar $user 20}}
+							<strong>{{$user.GetShortDisplayNameLinkHTML}}</strong>
+						{{else}}
+							{{$gitName := $gitIdentity.Name}}
+							{{$gitEmail := $gitIdentity.Email}}
+							{{ctx.AvatarUtils.AvatarByEmail $gitEmail $gitEmail 20}}{{/* use the same layout as the "author" above */}}
+							<strong>{{$gitName}}</strong>
+						{{end}}
+					{{end}}
+				</div>
+			{{end}}
 
 			{{if .Verification}}
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" .Verification}}

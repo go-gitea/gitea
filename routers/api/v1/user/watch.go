@@ -22,6 +22,7 @@ func getWatchedRepos(ctx *context.APIContext, user *user_model.User, private boo
 		ListOptions:    utils.GetListOptions(ctx),
 		WatcherID:      user.ID,
 		IncludePrivate: private,
+		Actor:          user,
 	}
 	opts.ApplyPublicOnly(ctx.PublicOnly)
 
@@ -172,7 +173,7 @@ func Watch(ctx *context.APIContext) {
 	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true)
 	if err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
-			ctx.APIError(http.StatusForbidden, err)
+			ctx.APIError(http.StatusForbidden, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

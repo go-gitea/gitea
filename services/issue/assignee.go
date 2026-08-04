@@ -6,6 +6,7 @@ package issue
 import (
 	"context"
 
+	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -14,8 +15,7 @@ import (
 	notify_service "gitea.dev/services/notify"
 )
 
-// DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
-func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
+func toBeRemovedAssignees(issue *issues_model.Issue, assignees []*user_model.User) (toBeRemovedAssignees []*user_model.User) {
 	var found bool
 	oriAssignees := make([]*user_model.User, len(issue.Assignees))
 	_ = copy(oriAssignees, issue.Assignees)
@@ -31,28 +31,54 @@ func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doe
 
 		if !found {
 			// This function also does comments and hooks, which is why we call it separately instead of directly removing the assignees here
-			if _, _, err := ToggleAssigneeWithNotify(ctx, issue, doer, assignee.ID); err != nil {
-				return err
-			}
+			toBeRemovedAssignees = append(toBeRemovedAssignees, assignee)
+		}
+	}
+	return toBeRemovedAssignees
+}
+
+// DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
+func DeleteNotPassedAssignee(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
+	toBeRemoved := toBeRemovedAssignees(issue, assignees)
+
+	for _, assignee := range toBeRemoved {
+		// This function also does comments and hooks, which is why we call it separately instead of directly removing the assignees here
+		removed, comment, err := ToggleAssignee(ctx, issue, doer, assignee)
+		if err != nil {
+			return err
+		}
+		if removed {
+			notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, true, comment)
 		}
 	}
 
 	return nil
 }
 
-// ToggleAssigneeWithNoNotify changes a user between assigned and not assigned for this issue, and make issue comment for it.
-func ToggleAssigneeWithNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *issues_model.Comment, err error) {
-	removed, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
+// ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
+func ToggleAssignee(ctx context.Context, issue *issues_model.Issue, doer, assignee *user_model.User) (removed bool, comment *issues_model.Comment, err error) {
+	removed, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assignee.ID)
 	if err != nil {
 		return false, nil, err
 	}
 
+	issue.AssigneeID = assignee.ID
+	issue.Assignee = assignee
+
+	return removed, comment, nil
+}
+
+// ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
+func ToggleAssigneeWithNotify(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *issues_model.Comment, err error) {
 	assignee, err := user_model.GetUserByID(ctx, assigneeID)
 	if err != nil {
 		return false, nil, err
 	}
-	issue.AssigneeID = assigneeID
-	issue.Assignee = assignee
+
+	removed, comment, err = ToggleAssignee(ctx, issue, doer, assignee)
+	if err != nil {
+		return false, nil, err
+	}
 
 	notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, removed, comment)
 
@@ -81,43 +107,85 @@ func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee
 			return err
 		}
 
-		if user_model.IsUserBlockedBy(ctx, doer, assignee.ID) {
-			return user_model.ErrBlockedUser
+		if err := validateAssignee(ctx, issue, doer, assignee); err != nil {
+			return err
 		}
 
 		allNewAssignees = append(allNewAssignees, assignee)
 	}
 
-	// Delete all old assignees not passed
-	if err = DeleteNotPassedAssignee(ctx, issue, doer, allNewAssignees); err != nil {
+	assigneeCommentMap := make(map[int64]*issues_model.Comment)
+	assigneeRemovedCommentMap := make(map[int64]*issues_model.Comment)
+	assigneeRemoved := make(map[int64]*user_model.User)
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		// Delete all old assignees not passed.
+		toBeRemoved := toBeRemovedAssignees(issue, allNewAssignees)
+
+		for _, assignee := range toBeRemoved {
+			// This function also does comments and hooks, which is why we call it separately instead of directly removing the assignees here
+			removed, comment, err := ToggleAssignee(ctx, issue, doer, assignee)
+			if err != nil {
+				return err
+			}
+			if removed {
+				assigneeRemoved[assignee.ID] = assignee
+				assigneeRemovedCommentMap[assignee.ID] = comment
+			}
+		}
+
+		// Add all new assignees.
+		// Update the assignee. The function will check if the user exists, is already
+		// assigned (which he shouldn't as we deleted all assignees before) and
+		// has access to the repo.
+		for _, assignee := range allNewAssignees {
+			// Extra method to prevent double adding (which would result in removing).
+			comment, err := AddAssigneeIfNotAssigned(ctx, issue, doer, assignee)
+			if err != nil {
+				return err
+			}
+			assigneeCommentMap[assignee.ID] = comment
+		}
+
+		return nil
+	}); err != nil {
 		return err
 	}
 
-	// Add all new assignees
-	// Update the assignee. The function will check if the user exists, is already
-	// assigned (which he shouldn't as we deleted all assignees before) and
-	// has access to the repo.
+	for _, assignee := range assigneeRemoved {
+		notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, true, assigneeRemovedCommentMap[assignee.ID])
+	}
+
 	for _, assignee := range allNewAssignees {
-		// Extra method to prevent double adding (which would result in removing)
-		_, err = AddAssigneeIfNotAssigned(ctx, issue, doer, assignee.ID, true)
-		if err != nil {
-			return err
+		comment := assigneeCommentMap[assignee.ID]
+		if comment != nil {
+			notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, false, comment)
 		}
 	}
 
-	return err
+	return nil
+}
+
+func validateAssignee(ctx context.Context, issue *issues_model.Issue, doer, assignee *user_model.User) error {
+	if user_model.IsUserBlockedBy(ctx, doer, assignee.ID) {
+		return user_model.ErrBlockedUser
+	}
+
+	valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo)
+	if err != nil {
+		return err
+	}
+	if !valid {
+		return repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assignee.ID, RepoName: issue.Repo.Name}
+	}
+
+	return nil
 }
 
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
-func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeID int64, notify bool) (comment *issues_model.Comment, err error) {
-	assignee, err := user_model.GetUserByID(ctx, assigneeID)
-	if err != nil {
-		return nil, err
-	}
-
+func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, doer, assignee *user_model.User) (comment *issues_model.Comment, err error) {
 	// Check if the user is already assigned
-	isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assignee)
+	isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assignee.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -126,18 +194,92 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 		return nil, nil //nolint:nilnil // return nil because the user is already assigned
 	}
 
-	valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)
-	if err != nil {
+	if err := validateAssignee(ctx, issue, doer, assignee); err != nil {
 		return nil, err
 	}
-	if !valid {
-		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: assigneeID, RepoName: issue.Repo.Name}
+
+	_, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assignee.ID)
+	return comment, err
+}
+
+// AddAssignees adds multiple assignees to an issue atomically.
+func AddAssignees(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeIDs []int64) error {
+	assigneeCommentMap := make(map[int64]*issues_model.Comment)
+	assignees := make(map[int64]*user_model.User)
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		for _, assigneeID := range assigneeIDs {
+			isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assigneeID)
+			if err != nil {
+				return err
+			}
+			if isAssigned {
+				continue
+			}
+
+			assignee, err := user_model.GetUserByID(ctx, assigneeID)
+			if err != nil {
+				return err
+			}
+			if err := validateAssignee(ctx, issue, doer, assignee); err != nil {
+				return err
+			}
+
+			comment, err := AddAssigneeIfNotAssigned(ctx, issue, doer, assignee)
+			if err != nil {
+				return err
+			}
+			assignees[assigneeID] = assignee
+			assigneeCommentMap[assigneeID] = comment
+		}
+
+		return nil
+	}); err != nil {
+		return err
 	}
 
-	if notify {
-		_, comment, err = ToggleAssigneeWithNotify(ctx, issue, doer, assigneeID)
-		return comment, err
+	if len(assignees) > 0 {
+		for assigneeID, assignee := range assignees {
+			notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, false, assigneeCommentMap[assigneeID])
+		}
 	}
-	_, comment, err = issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
-	return comment, err
+	return nil
+}
+
+// RemoveAssignees removes multiple assignees from an issue atomically.
+func RemoveAssignees(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, assigneeIDs []int64) error {
+	assigneeCommentMap := make(map[int64]*issues_model.Comment)
+	assignees := make(map[int64]*user_model.User)
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		for _, assigneeID := range assigneeIDs {
+			isAssigned, err := issues_model.IsUserAssignedToIssue(ctx, issue, assigneeID)
+			if err != nil {
+				return err
+			}
+			if !isAssigned {
+				continue
+			}
+			removed, comment, err := issues_model.ToggleIssueAssignee(ctx, issue, doer, assigneeID)
+			if err != nil {
+				return err
+			}
+			if removed {
+				assignee, err := user_model.GetUserByID(ctx, assigneeID)
+				if err != nil {
+					return err
+				}
+				assignees[assigneeID] = assignee
+				assigneeCommentMap[assigneeID] = comment
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	if len(assignees) > 0 {
+		for assigneeID, assignee := range assignees {
+			notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, true, assigneeCommentMap[assigneeID])
+		}
+	}
+	return nil
 }

@@ -458,7 +458,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo)
 			if err != nil {
 				ctx.ServerError("canBeAssigned", err)
 				return

@@ -1,5 +1,5 @@
 import {errorMessage} from '../modules/errors.ts';
-import {htmlEscape} from '../utils/html.ts';
+import {html, htmlEscape, htmlRaw} from '../utils/html.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {
   addDelegatedEventListener,
@@ -11,7 +11,6 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
@@ -28,7 +27,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   const queryLabels = url.searchParams.get('labels') || '';
   const selectedLabelIds = new Set<string>();
   for (const id of queryLabels ? queryLabels.split(',') : []) {
-    selectedLabelIds.add(`${Math.abs(parseInt(id))}`); // "labels" contains negative ids, which are excluded
+    selectedLabelIds.add(String(Math.abs(parseInt(id)))); // "labels" contains negative ids, which are excluded
   }
 
   const excludeLabel = (e: MouseEvent | KeyboardEvent, item: Element) => {
@@ -130,9 +129,9 @@ export function initRepoIssueCommentDelete() {
           // on the Conversation page, there is no parent "tr", so no need to do anything for "add-code-comment"
           if (lineType) {
             if (lineType === 'same') {
-              document.querySelector(`[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`)!.classList.remove('tw-invisible');
+              document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
             } else {
-              document.querySelector(`[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`)!.classList.remove('tw-invisible');
+              document.querySelector(`[data-path="${CSS.escape(String(path))}"] .add-code-comment[data-side="${CSS.escape(String(side))}"][data-idx="${CSS.escape(String(idx))}"]`)!.classList.remove('tw-invisible');
             }
           }
           conversationHolder.remove();
@@ -274,15 +273,13 @@ export function initRepoPullRequestReview() {
 
     let ntr = tr.nextElementSibling;
     if (!ntr?.classList.contains('add-comment')) {
-      ntr = createElementFromHTML(`
-        <tr class="add-comment" data-line-type="${htmlEscape(lineType)}">
-          ${isSplit ? `
-            <td class="add-comment-left" colspan="4"></td>
-            <td class="add-comment-right" colspan="4"></td>
-          ` : `
-            <td class="add-comment-left add-comment-right" colspan="5"></td>
-          `}
-        </tr>`);
+      const tdSplit = html`<td class="add-comment-left" colspan="4"></td><td class="add-comment-right" colspan="4"></td>`;
+      const tdUnified = html`<td class="add-comment-left add-comment-right" colspan="5"></td>`;
+      ntr = createElementFromHTML(html`
+        <tr class="add-comment" data-line-type="${lineType}">
+          ${isSplit ? htmlRaw(tdSplit) : htmlRaw(tdUnified)}
+        </tr>
+      `);
       tr.after(ntr);
     }
     const td = ntr.querySelector(`.add-comment-${side}`)!;
@@ -331,7 +328,7 @@ export function initRepoIssueReferenceIssue() {
     const target = el.getAttribute('data-target');
     const content = document.querySelector(`#${target}`)?.textContent ?? '';
     const poster = el.getAttribute('data-poster-username');
-    const reference = toAbsoluteUrl(el.getAttribute('data-reference')!);
+    const reference = el.getAttribute('data-reference')!;
     const modalSelector = el.getAttribute('data-modal')!;
     const modal = document.querySelector(modalSelector)!;
     const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]')!;

@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"fmt"
 	"testing"
 
 	"gitea.dev/models/db"
@@ -129,5 +130,111 @@ func TestGetPriorAttemptChildrenByParent(t *testing.T) {
 		out, err := GetPriorAttemptChildrenByParent(ctx, run.ID, attempt3.ID, callerAttemptJobID)
 		require.NoError(t, err)
 		assertAttempt1Children(t, out)
+	})
+}
+
+// A reusable caller subtree with a Blocked descendant (e.g. a nested caller stuck on an invalid `uses:`) must aggregate to Cancelled, when the run is cancelled.
+func TestCancelJobs_NestedBlockedReusableCaller(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &ActionRun{
+		Title:         "cancel-nested-caller",
+		RepoID:        4,
+		Index:         9701,
+		OwnerID:       1,
+		WorkflowID:    "caller.yaml",
+		TriggerUserID: 1,
+		Ref:           "refs/heads/master",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "push",
+		TriggerEvent:  "push",
+		EventPayload:  "{}",
+		Status:        StatusBlocked,
+	}
+	require.NoError(t, db.Insert(ctx, run))
+
+	attempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1, Status: StatusBlocked}
+	require.NoError(t, db.Insert(ctx, attempt))
+	run.LatestAttemptID = attempt.ID
+	require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
+
+	newJob := func(name string, attemptJobID, parentID int64, callUses string) *ActionRunJob {
+		job := &ActionRunJob{
+			RunID:            run.ID,
+			RunAttemptID:     attempt.ID,
+			RepoID:           run.RepoID,
+			OwnerID:          run.OwnerID,
+			CommitSHA:        run.CommitSHA,
+			Name:             name,
+			JobID:            name,
+			Attempt:          1,
+			Status:           StatusBlocked,
+			AttemptJobID:     attemptJobID,
+			IsReusableCaller: true,
+			CallUses:         callUses,
+			ParentJobID:      parentID,
+		}
+		require.NoError(t, db.Insert(ctx, job))
+		return job
+	}
+
+	// outer: a valid top-level caller that expanded; inner: a nested caller stuck Blocked (invalid uses, never expands).
+	outer := newJob("outer", 1, 0, "./.gitea/workflows/lib.yml")
+	inner := newJob("inner", 2, outer.ID, "https://other.example.com/o/r/.gitea/workflows/ci.yml@v1")
+
+	// Cancel all jobs of the attempt, ordered by id (parent before child).
+	jobs, err := GetRunJobsByRunAndAttemptID(ctx, run.ID, attempt.ID)
+	require.NoError(t, err)
+	_, err = CancelJobs(ctx, jobs)
+	require.NoError(t, err)
+
+	for _, j := range []*ActionRunJob{outer, inner} {
+		got := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: j.ID})
+		assert.Equal(t, StatusCancelled, got.Status, "job %q should be cancelled", j.JobID)
+	}
+	gotAttempt := unittest.AssertExistsAndLoadBean(t, &ActionRunAttempt{ID: attempt.ID})
+	assert.Equal(t, StatusCancelled, gotAttempt.Status, "attempt must aggregate to Cancelled")
+	gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
+	assert.Equal(t, StatusCancelled, gotRun.Status, "run must aggregate to Cancelled, not stay Blocked")
+}
+
+func TestParseJobDeferredMatrixPlaceholder(t *testing.T) {
+	// A placeholder is persisted with the raw matrix and without its needs, so routing its payload
+	// through jobparser.Parse re-expands that matrix. The job emitter reads `if:` (and so ParseJob)
+	// before it can expand the placeholder, and it only logs a parse failure: getting this wrong
+	// leaves the job Blocked on every pass, the run never finishes and its concurrency group is
+	// never released.
+	payload := func(matrix string) []byte {
+		return fmt.Appendf(nil, `name: test
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        %s
+    steps:
+      - run: echo
+`, matrix)
+	}
+
+	// The shape Parse happens to survive, so only the name tells the two paths apart. What Parse makes
+	// of every other shape is asserted in TestParseRawSingleWorkflowRoundTripsDeferredPlaceholder.
+	t.Run("a placeholder is read back, not re-expanded", func(t *testing.T) {
+		job := &ActionRunJob{ID: 1, JobID: "build", IsMatrixDeferred: true, WorkflowPayload: payload("version: ${{ fromJson(needs.setup.outputs.m) }}")}
+		parsed, err := job.ParseJob()
+		require.NoError(t, err)
+		require.NotNil(t, parsed)
+		assert.Equal(t, "build", parsed.Name)
+	})
+
+	t.Run("an expanded job still goes through the full parse", func(t *testing.T) {
+		job := &ActionRunJob{ID: 1, JobID: "build", WorkflowPayload: payload("version: [1]")}
+		parsed, err := job.ParseJob()
+		require.NoError(t, err)
+		require.NotNil(t, parsed)
+		// Parse bakes the combination into the name, ParseRawSingleWorkflow would not.
+		assert.Equal(t, "build (1)", parsed.Name)
 	})
 }

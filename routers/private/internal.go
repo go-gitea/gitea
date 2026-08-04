@@ -6,6 +6,7 @@ package private
 
 import (
 	"crypto/subtle"
+	"net"
 	"net/http"
 	"strings"
 
@@ -18,7 +19,6 @@ import (
 	"gitea.dev/services/context"
 
 	"gitea.com/go-chi/binding"
-	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func authInternal(next http.Handler) http.Handler {
@@ -50,6 +50,18 @@ func bind[T any](_ T) any {
 	}
 }
 
+// setRealIP sets RemoteAddr from the trusted X-Real-IP header set by the internal API
+// client (see modules/private.NewInternalRequest); the internal API is gated by InternalToken.
+// It replaces chi's deprecated middleware.RealIP, which is unsafe on public-facing endpoints.
+func setRealIP(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if ip := req.Header.Get("X-Real-IP"); net.ParseIP(ip) != nil {
+			req.RemoteAddr = ip
+		}
+		next.ServeHTTP(w, req)
+	})
+}
+
 // Routes registers all internal APIs routes to web application.
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func Routes() *web.Router {
@@ -58,7 +70,7 @@ func Routes() *web.Router {
 	r.AfterRouting(authInternal)
 	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
 	// Since internal API will be sent only from Gitea sub commands and it's under control (checked by InternalToken), we can trust the headers.
-	r.AfterRouting(chi_middleware.RealIP)
+	r.AfterRouting(setRealIP)
 
 	r.Get("/dummy", misc.DummyOK)
 	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)

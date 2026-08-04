@@ -75,27 +75,56 @@ func (w *SingleWorkflow) SetJob(id string, job *Job) error {
 }
 
 func (w *SingleWorkflow) Marshal() ([]byte, error) {
-	return yaml.Marshal(w)
+	// Encode with the same indentation SetJob uses (2). yaml.Marshal's default
+	// indentation (4) makes the encoder emit multi-line block scalars (e.g. a
+	// `run:` step that begins with blank lines) with a wrong explicit indentation
+	// indicator (`run: |4`) that then fails to re-parse, which silently strands
+	// the job during concurrency evaluation. Keeping both encoders at indent 2
+	// makes the serialized single workflow round-trip.
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	if err := enc.Encode(w); err != nil {
+		return nil, err
+	}
+	if err := enc.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 type Job struct {
-	Name           string                    `yaml:"name,omitempty"`
-	RawNeeds       yaml.Node                 `yaml:"needs,omitempty"`
-	RawRunsOn      yaml.Node                 `yaml:"runs-on,omitempty"`
-	Env            yaml.Node                 `yaml:"env,omitempty"`
-	If             yaml.Node                 `yaml:"if,omitempty"`
-	Steps          []*Step                   `yaml:"steps,omitempty"`
-	TimeoutMinutes string                    `yaml:"timeout-minutes,omitempty"`
-	Services       map[string]*ContainerSpec `yaml:"services,omitempty"`
-	Strategy       Strategy                  `yaml:"strategy,omitempty"`
-	RawContainer   yaml.Node                 `yaml:"container,omitempty"`
-	Defaults       Defaults                  `yaml:"defaults,omitempty"`
-	Outputs        map[string]string         `yaml:"outputs,omitempty"`
-	Uses           string                    `yaml:"uses,omitempty"`
-	With           map[string]any            `yaml:"with,omitempty"`
-	RawSecrets     yaml.Node                 `yaml:"secrets,omitempty"`
-	RawConcurrency *model.RawConcurrency     `yaml:"concurrency,omitempty"`
-	RawPermissions yaml.Node                 `yaml:"permissions,omitempty"`
+	Name               string                    `yaml:"name,omitempty"`
+	RawNeeds           yaml.Node                 `yaml:"needs,omitempty"`
+	RawRunsOn          yaml.Node                 `yaml:"runs-on,omitempty"`
+	Env                yaml.Node                 `yaml:"env,omitempty"`
+	If                 yaml.Node                 `yaml:"if,omitempty"`
+	Steps              []*Step                   `yaml:"steps,omitempty"`
+	TimeoutMinutes     string                    `yaml:"timeout-minutes,omitempty"`
+	RawContinueOnError yaml.Node                 `yaml:"continue-on-error,omitempty"`
+	Services           map[string]*ContainerSpec `yaml:"services,omitempty"`
+	Strategy           Strategy                  `yaml:"strategy,omitempty"`
+	RawContainer       yaml.Node                 `yaml:"container,omitempty"`
+	Defaults           Defaults                  `yaml:"defaults,omitempty"`
+	Outputs            map[string]string         `yaml:"outputs,omitempty"`
+	Uses               string                    `yaml:"uses,omitempty"`
+	With               map[string]any            `yaml:"with,omitempty"`
+	RawSecrets         yaml.Node                 `yaml:"secrets,omitempty"`
+	RawConcurrency     *model.RawConcurrency     `yaml:"concurrency,omitempty"`
+	RawPermissions     yaml.Node                 `yaml:"permissions,omitempty"`
+}
+
+// GetContinueOnError decodes the continue-on-error field to a bool.
+// The field may be a literal bool or an already-evaluated expression node.
+func (j *Job) GetContinueOnError() bool {
+	if j.RawContinueOnError.Kind == 0 {
+		return false
+	}
+	var v bool
+	if err := j.RawContinueOnError.Decode(&v); err != nil {
+		return false
+	}
+	return v
 }
 
 func (j *Job) Clone() *Job {
@@ -103,23 +132,24 @@ func (j *Job) Clone() *Job {
 		return nil
 	}
 	return &Job{
-		Name:           j.Name,
-		RawNeeds:       j.RawNeeds,
-		RawRunsOn:      j.RawRunsOn,
-		Env:            j.Env,
-		If:             j.If,
-		Steps:          j.Steps,
-		TimeoutMinutes: j.TimeoutMinutes,
-		Services:       j.Services,
-		Strategy:       j.Strategy,
-		RawContainer:   j.RawContainer,
-		Defaults:       j.Defaults,
-		Outputs:        j.Outputs,
-		Uses:           j.Uses,
-		With:           j.With,
-		RawSecrets:     j.RawSecrets,
-		RawConcurrency: j.RawConcurrency,
-		RawPermissions: j.RawPermissions,
+		Name:               j.Name,
+		RawNeeds:           j.RawNeeds,
+		RawRunsOn:          j.RawRunsOn,
+		Env:                j.Env,
+		If:                 j.If,
+		Steps:              j.Steps,
+		TimeoutMinutes:     j.TimeoutMinutes,
+		RawContinueOnError: j.RawContinueOnError,
+		Services:           j.Services,
+		Strategy:           j.Strategy,
+		RawContainer:       j.RawContainer,
+		Defaults:           j.Defaults,
+		Outputs:            j.Outputs,
+		Uses:               j.Uses,
+		With:               j.With,
+		RawSecrets:         j.RawSecrets,
+		RawConcurrency:     j.RawConcurrency,
+		RawPermissions:     j.RawPermissions,
 	}
 }
 
@@ -239,7 +269,7 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 	}
 
 	matrix := make(map[string]any)
-	matrixes, err := actJob.GetMatrixes()
+	matrixes, err := matrixesOf(actJob)
 	if err != nil {
 		return "", false, err
 	}
@@ -467,7 +497,8 @@ func ParseRawOn(rawOn *yaml.Node) ([]*Event, error) {
 	}
 }
 
-func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (bool, error) {
+// EvaluateJobIfExpression evaluates a job's `if:`.
+func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any, matrixDeferred bool) (bool, error) {
 	actJob := &model.Job{
 		Strategy: &model.Strategy{
 			FailFastString:    job.Strategy.FailFastString,
@@ -475,7 +506,26 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 			RawMatrix:         job.Strategy.RawMatrix,
 		},
 	}
-	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, nil, toGitContext(gitCtx), results, vars, inputs))
+	// Each per-matrix job carries its single matrix combination in RawMatrix so resolve it and pass it in;
+	// otherwise `matrix.*` references in `if:` evaluate to null.
+	// GetMatrixes always returns at least one element (an empty map for a job without a matrix),
+	// so only a non-empty combination should populate `matrix.*`, leaving it nil otherwise.
+	//
+	// A deferred-matrix placeholder is the exception: its combinations do not exist yet, and reading the
+	// raw matrix here would either fail outright (an `include` that is still a scalar expression) or bind
+	// `matrix.*` to the expression's own source text. Leaving it nil is safe: the caller checks
+	// ExpressionReadsMatrix first, so an `if:` that reads `matrix.*` is deferred to the post-expansion pass.
+	var matrix map[string]any
+	if !matrixDeferred {
+		matrixes, err := matrixesOf(actJob)
+		if err != nil {
+			return false, err
+		}
+		if len(matrixes) > 0 && len(matrixes[0]) > 0 {
+			matrix = matrixes[0]
+		}
+	}
+	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
 	expr, err := rewriteSubExpression(job.If.Value, false)
 	if err != nil {
 		return false, err

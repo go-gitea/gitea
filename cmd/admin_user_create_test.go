@@ -63,6 +63,7 @@ func TestAdminUserCreate(t *testing.T) {
 		u := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "u"})
 		assert.Equal(t, user_model.UserTypeBot, u.Type)
 		assert.Empty(t, u.Passwd)
+		assert.False(t, u.MustChangePassword, "bot users should not be forced to change password")
 	})
 
 	t.Run("AccessToken", func(t *testing.T) {
