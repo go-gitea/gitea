@@ -75,11 +75,12 @@ func GetNoteWithLastCommit(ctx context.Context, repo *Repository, commitID strin
 		return nil, nil, err
 	}
 	parentPath, entryName := path.Split(note.TreePath)
+	parentPath = strings.Trim(parentPath, "/")
 	lastCommits, err := GetLastCommitForPaths(ctx, repo, note.RefCommit, parentPath, []string{entryName})
 	if err != nil {
 		return nil, nil, err
 	}
-	lastCommit := lastCommits[note.TreePath]
+	lastCommit := lastCommits[entryName]
 	if lastCommit == nil {
 		return nil, nil, ErrNotExist{ID: commitID}
 	}
