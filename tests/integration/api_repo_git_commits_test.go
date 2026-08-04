@@ -88,7 +88,6 @@ func TestAPIReposCommits(t *testing.T) {
 	}
 }
 
-
 func TestAPIReposGitCommitsHEAD(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
