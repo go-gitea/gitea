@@ -1358,6 +1358,10 @@ func Routes() *web.Router {
 							Patch(bind(api.EditHookOption{}), repo.EditHook).
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.ReferencesGitRepo(), context.RepoRefForAPI, repo.TestHook)
+						m.Group("/deliveries", func() {
+							m.Get("", repo.ListDeliveries)
+							m.Get("/{uuid}", repo.GetDelivery)
+						})
 					})
 				}, reqToken(), reqAdmin(), reqWebhooksEnabled())
 				m.Group("/collaborators", func() {
