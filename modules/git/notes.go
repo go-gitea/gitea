@@ -17,8 +17,9 @@ const NotesRef = "refs/notes/commits"
 
 // Note stores information about a note created using git-notes.
 type Note struct {
-	RefCommit   *Commit
-	BlobMessage CommitMessage
+	refCommit *Commit
+
+	BlobMessage CommitMessage // if the blob is too large, the message will be truncated
 	BlobSize    int64
 	TreePath    string
 }
@@ -60,7 +61,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string) (*Note, err
 
 	treePath := treePathBuf.String()
 	blob := entry.Blob(repo)
-	note := &Note{TreePath: treePath, RefCommit: noteCommit}
+	note := &Note{TreePath: treePath, refCommit: noteCommit}
 	note.BlobMessage.MessageRaw, err = blob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 	if err != nil {
 		return nil, err
@@ -76,7 +77,7 @@ func GetNoteWithLastCommit(ctx context.Context, repo *Repository, commitID strin
 	}
 	parentPath, entryName := path.Split(note.TreePath)
 	parentPath = strings.Trim(parentPath, "/")
-	lastCommits, err := GetLastCommitForPaths(ctx, repo, note.RefCommit, parentPath, []string{entryName})
+	lastCommits, err := GetLastCommitForPaths(ctx, repo, note.refCommit, parentPath, []string{entryName})
 	if err != nil {
 		return nil, nil, err
 	}

@@ -20,9 +20,9 @@ func TestGetNote(t *testing.T) {
 	note, err := GetNote(t.Context(), repo, "95bb4d39648ee7e325106df01a621c530863a653")
 	assert.NoError(t, err)
 	assert.Equal(t, "Note contents\n", note.BlobMessage.MessageUTF8())
+	assert.EqualValues(t, len(note.BlobMessage.MessageRaw), note.BlobSize)
 
 	_, err = GetNote(t.Context(), repo, "non_existent_sha")
-	assert.Error(t, err)
 	assert.ErrorAs(t, err, &ErrNotExist{})
 }
 
