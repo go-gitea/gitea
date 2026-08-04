@@ -31,6 +31,8 @@ export async function initUserAuthWebAuthn() {
 }
 
 async function loginPasskey() {
+  const remember = (document.querySelector('#passkey-remember') as HTMLInputElement)?.checked ?? false;
+
   const res = await GET(`${appSubUrl}/user/webauthn/passkey/assertion`);
   if (!res.ok) {
     webAuthnError('unknown');
@@ -69,6 +71,7 @@ async function loginPasskey() {
           userHandle: encodeURLEncodedBase64(userHandle),
         },
       },
+      headers: remember ? {'X-Gitea-Device-Remember': 'true'} : {},
     });
     if (res.status === 500) {
       webAuthnError('unknown');

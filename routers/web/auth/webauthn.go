@@ -155,7 +155,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 		}
 	}
 
-	remember := false // TODO: implement remember me
+	remember := ctx.Req.Header.Get("X-Gitea-Device-Remember") == "true"
 	handleSignInFull(ctx, user, remember)
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }

@@ -63,6 +63,15 @@
 		{{if .EnablePasskeyAuth}}
 			{{template "user/auth/webauthn_error" .}}
 			<a class="signin-passkey">{{ctx.Locale.Tr "auth.signin_passkey"}}</a>
+			<div class="inline field">
+				<div class="ui checkbox">
+					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
+					<input id="passkey-remember" type="checkbox">
+				</div>
+			</div>
+			{{if .ShowRegistrationButton}}
+				<div class="divider"></div>
+			{{end}}
 		{{end}}
 
 		{{if .ShowRegistrationButton}}
