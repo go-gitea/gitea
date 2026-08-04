@@ -13,10 +13,7 @@ import (
 	"gitea.dev/models/db"
 )
 
-var (
-	ErrDevContainerTemplateNotFound        = errors.New("codespace Dev Container template not found")
-	ErrDevContainerTemplateConfirmRequired = errors.New("codespace Dev Container template confirmation required")
-)
+var ErrDevContainerTemplateNotFound = errors.New("codespace Dev Container template not found")
 
 type DevContainerTemplateUpsertOptions struct {
 	UserID  int64
@@ -26,9 +23,8 @@ type DevContainerTemplateUpsertOptions struct {
 }
 
 type DevContainerTemplateDeleteOptions struct {
-	UserID  int64
-	ID      int64
-	Confirm bool
+	UserID int64
+	ID     int64
 }
 
 func listVisibleDevContainerTemplates(ctx context.Context, userID int64) ([]*codespace_model.DevContainerTemplate, error) {
@@ -89,9 +85,6 @@ func UpsertDevContainerTemplate(ctx context.Context, opts DevContainerTemplateUp
 }
 
 func DeleteDevContainerTemplate(ctx context.Context, opts DevContainerTemplateDeleteOptions) error {
-	if !opts.Confirm {
-		return ErrDevContainerTemplateConfirmRequired
-	}
 	deleted, err := db.GetEngine(ctx).Where("id = ? AND user_id = ?", opts.ID, opts.UserID).Delete(new(codespace_model.DevContainerTemplate))
 	if err != nil {
 		return err

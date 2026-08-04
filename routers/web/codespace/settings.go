@@ -207,9 +207,8 @@ func handleDevContainerTemplateUpsert(ctx *context.Context, opts devContainerTem
 
 func handleDevContainerTemplateDelete(ctx *context.Context, opts devContainerTemplateRenderOptions) {
 	err := codespace_service.DeleteDevContainerTemplate(ctx, codespace_service.DevContainerTemplateDeleteOptions{
-		UserID:  opts.UserID,
-		ID:      ctx.PathParamInt64("template_id"),
-		Confirm: ctx.FormString("confirm") == "delete-template",
+		UserID: opts.UserID,
+		ID:     ctx.PathParamInt64("template_id"),
 	})
 	if err != nil {
 		handleDevContainerTemplateActionError(ctx, opts.ActionBase, err)
@@ -222,9 +221,6 @@ func handleDevContainerTemplateActionError(ctx *context.Context, redirectTo stri
 	switch {
 	case errors.Is(err, codespace_service.ErrDevContainerTemplateNotFound):
 		ctx.NotFound(nil)
-	case errors.Is(err, codespace_service.ErrDevContainerTemplateConfirmRequired):
-		ctx.Flash.Error(ctx.Tr("codespace.error.confirm_required"))
-		ctx.Redirect(redirectTo, http.StatusSeeOther)
 	default:
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(redirectTo, http.StatusSeeOther)

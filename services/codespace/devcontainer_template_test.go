@@ -32,14 +32,9 @@ func TestDevContainerTemplateSettingsScope(t *testing.T) {
 		Content: `{"image":"debian:13"}`,
 	}), ErrDevContainerTemplateNotFound)
 
-	require.ErrorIs(t, DeleteDevContainerTemplate(t.Context(), DevContainerTemplateDeleteOptions{
+	require.NoError(t, DeleteDevContainerTemplate(t.Context(), DevContainerTemplateDeleteOptions{
 		UserID: 2,
 		ID:     personal.ID,
-	}), ErrDevContainerTemplateConfirmRequired)
-	require.NoError(t, DeleteDevContainerTemplate(t.Context(), DevContainerTemplateDeleteOptions{
-		UserID:  2,
-		ID:      personal.ID,
-		Confirm: true,
 	}))
 	unittest.AssertNotExistsBean(t, &codespace_model.DevContainerTemplate{ID: personal.ID})
 }
