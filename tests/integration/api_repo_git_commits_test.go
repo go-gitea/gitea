@@ -56,6 +56,39 @@ func TestAPIReposGitCommits(t *testing.T) {
 	}
 }
 
+func TestAPIReposCommits(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	// Login as User2.
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
+
+	// check invalid requests
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/12345", user.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/..", user.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/branch-not-exist", user.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	for _, ref := range [...]string{
+		"master", // Branch
+		"v1.1",   // Tag
+		"65f1",   // short sha
+		"65f1bf27bc3bf70f64657658635e66094edbcb4d", // full sha
+	} {
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/%s", user.Name, ref).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+	}
+}
+
+
 func TestAPIReposGitCommitsHEAD(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})

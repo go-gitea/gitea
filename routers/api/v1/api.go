@@ -1485,6 +1485,8 @@ func Routes() *web.Router {
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
+					// GitHub-compatible endpoint
+					m.Get("/{ref}", context.ReferencesGitRepo(), repo.GetSingleCommit)
 					m.PathGroup("/*", func(g *web.RouterPathGroup) {
 						// Mis-configured reverse proxy might decode the `%2F` to slash ahead, so we need to support both formats (escaped, unescaped) here.
 						// It also matches GitHub's behavior
