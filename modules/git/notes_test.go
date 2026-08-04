@@ -14,40 +14,37 @@ import (
 
 func TestGetNotes(t *testing.T) {
 	bareRepo1Path, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
-	bareRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("dummy", bareRepo1Path))
+	bareRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo1_bare", bareRepo1Path))
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	note := Note{}
-	err = GetNote(t.Context(), bareRepo1, "95bb4d39648ee7e325106df01a621c530863a653", &note)
+	note, lastCommit, err := GetNoteWithLastCommit(t.Context(), bareRepo1, "95bb4d39648ee7e325106df01a621c530863a653")
 	assert.NoError(t, err)
-	assert.Equal(t, []byte("Note contents\n"), note.Message)
-	assert.Equal(t, "Vladimir Panteleev", note.Commit.Author.Name)
+	assert.Equal(t, "Note contents\n", note.BlobMessage.MessageUTF8())
+	assert.Equal(t, "Vladimir Panteleev", lastCommit.Author.Name)
 }
 
 func TestGetNestedNotes(t *testing.T) {
-	repoPath, _ := filepath.Abs(filepath.Join(testReposDir, "repo3_notes"))
-	repo, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo3_notes", repoPath))
+	repoPath := filepath.Join(testReposDir, "repo3_notes")
+	repo, err := OpenRepositoryLocal(t.Context(), repoPath)
 	assert.NoError(t, err)
 	defer repo.Close()
 
-	note := Note{}
-	err = GetNote(t.Context(), repo, "3e668dbfac39cbc80a9ff9c61eb565d944453ba4", &note)
+	note, err := GetNote(t.Context(), repo, "3e668dbfac39cbc80a9ff9c61eb565d944453ba4")
 	assert.NoError(t, err)
-	assert.Equal(t, []byte("Note 2"), note.Message)
-	err = GetNote(t.Context(), repo, "ba0a96fa63532d6c5087ecef070b0250ed72fa47", &note)
+	assert.Equal(t, "Note 2", note.BlobMessage.MessageUTF8())
+	note, err = GetNote(t.Context(), repo, "ba0a96fa63532d6c5087ecef070b0250ed72fa47")
 	assert.NoError(t, err)
-	assert.Equal(t, []byte("Note 1"), note.Message)
+	assert.Equal(t, "Note 1", note.BlobMessage.MessageUTF8())
 }
 
 func TestGetNonExistentNotes(t *testing.T) {
-	bareRepo1Path, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
-	bareRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("dummy", bareRepo1Path))
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	note := Note{}
-	err = GetNote(t.Context(), bareRepo1, "non_existent_sha", &note)
+	_, err = GetNote(t.Context(), bareRepo1, "non_existent_sha")
 	assert.Error(t, err)
 	assert.ErrorAs(t, err, &ErrNotExist{})
 }
