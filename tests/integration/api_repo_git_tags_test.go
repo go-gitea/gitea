@@ -31,7 +31,7 @@ func TestAPIGitTags(t *testing.T) {
 	_ = git.ManagedConfigSet(t.Context(), repo, "user.name", user.Name)
 	_ = git.ManagedConfigSet(t.Context(), repo, "user.email", user.Email)
 
-	gitRepo, _ := git.OpenRepository(repo)
+	gitRepo, _ := git.OpenRepository(t.Context(), repo)
 	defer gitRepo.Close()
 
 	commit, _ := gitRepo.GetBranchCommit(t.Context(), "master")

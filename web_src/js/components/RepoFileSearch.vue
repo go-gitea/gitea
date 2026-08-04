@@ -5,7 +5,7 @@ import {GET} from '../modules/fetch.ts';
 import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {SvgIcon} from '../svg.ts';
-import {throttle} from 'throttle-debounce';
+import {throttle} from '../utils/func.ts';
 
 const props = defineProps({
   repoLink: { type: String, required: true },
@@ -31,10 +31,10 @@ const filteredFiles = computed(() => {
   return filterRepoFilesWeighted(allFiles.value, searchQuery.value);
 });
 
-const applySearchQuery = throttle(300, () => {
+const applySearchQuery = throttle(() => {
   searchQuery.value = refElemInput.value.value;
   selectedIndex.value = 0;
-});
+}, 300);
 
 const handleSearchInput = () => {
   loadFileListForSearch();

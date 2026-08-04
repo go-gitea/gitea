@@ -8,11 +8,10 @@ import (
 	"errors"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddBranchTable(x base.EngineMigration) error {
+func AddBranchTable(ctx context.Context, x base.EngineMigration) error {
 	type Branch struct {
 		ID            int64
 		RepoID        int64  `xorm:"UNIQUE(s)"`
@@ -60,7 +59,7 @@ func AddBranchTable(x base.EngineMigration) error {
 	}
 
 	branches := make([]Branch, 0, 100)
-	if err := db.Iterate(context.Background(), nil, func(ctx context.Context, deletedBranch *DeletedBranch) error {
+	if err := base.Iterate(ctx, nil, func(ctx context.Context, deletedBranch *DeletedBranch) error {
 		branches = append(branches, Branch{
 			RepoID:      deletedBranch.RepoID,
 			Name:        deletedBranch.Name,

@@ -102,10 +102,6 @@ func ReadAllTarGzContent(r io.Reader) (map[string]string, error) {
 	return content, nil
 }
 
-func WriteTarArchive(files map[string]string) *bytes.Buffer {
-	return WriteTarCompression(func(w io.Writer) io.WriteCloser { return util.NopCloser{Writer: w} }, files)
-}
-
 func WriteZipArchive(files map[string]string) *bytes.Buffer {
 	buf := &bytes.Buffer{}
 	zw := zip.NewWriter(buf)
@@ -117,17 +113,15 @@ func WriteZipArchive(files map[string]string) *bytes.Buffer {
 	return buf
 }
 
-func WriteTarCompression[F func(io.Writer) io.WriteCloser | func(io.Writer) (io.WriteCloser, error)](compression F, files map[string]string) *bytes.Buffer {
-	buf := &bytes.Buffer{}
-	var cw io.WriteCloser
-	switch compressFunc := any(compression).(type) {
-	case func(io.Writer) io.WriteCloser:
-		cw = compressFunc(buf)
-	case func(io.Writer) (io.WriteCloser, error):
-		cw, _ = compressFunc(buf)
-	}
-	tw := tar.NewWriter(cw)
+func WriteTarArchive(files map[string]string) *bytes.Buffer {
+	return WriteTarCompression(func(w io.Writer) io.WriteCloser { return util.NopCloser{Writer: w} }, files)
+}
 
+func WriteTarCompression[WC io.WriteCloser, F func(io.Writer) WC](compression F, files map[string]string) *bytes.Buffer {
+	// TODO: to support xz.NewWriter which returns (*Writer, error), it needs a separate function due to the limit of Golang generic
+	buf := &bytes.Buffer{}
+	cw := compression(buf)
+	tw := tar.NewWriter(cw)
 	for name, content := range files {
 		hdr := &tar.Header{
 			Name: name,
@@ -157,11 +151,13 @@ var AllowSkipExternalService = sync.OnceValue(func() bool {
 })
 
 type TestingT interface {
+	Cleanup(func())
 	Context() context.Context
-	Helper()
-	Skipf(format string, args ...any)
 	Errorf(format string, args ...any)
 	Fatalf(format string, args ...any)
+	Helper()
+	Skipf(format string, args ...any)
+	TempDir() string
 }
 
 func ExternalServiceHTTP(t TestingT, envVarName, def string) string {

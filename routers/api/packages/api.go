@@ -135,7 +135,7 @@ func CommonRoutes() *web.Router {
 			r.Group("/{branch}/{repository}", func() {
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), alpine.UploadPackageFile)
 				r.Group("/{architecture}", func() {
-					r.Get("/APKINDEX.tar.gz", alpine.GetRepositoryFile)
+					r.Methods("HEAD,GET", "/APKINDEX.tar.gz", alpine.GetRepositoryFile)
 					r.Group("/{filename}", func() {
 						r.Get("", alpine.DownloadPackageFile)
 						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)

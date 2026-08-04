@@ -3,9 +3,13 @@
 
 package v1_13
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddTeamReviewRequestSupport(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddTeamReviewRequestSupport(_ context.Context, x base.EngineMigration) error {
 	type Review struct {
 		ReviewerTeamID int64 `xorm:"NOT NULL DEFAULT 0"`
 	}

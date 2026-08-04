@@ -12,7 +12,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -42,8 +41,7 @@ type expansion struct {
 }
 
 var globalVars = sync.OnceValue(func() (ret struct {
-	defaultTransformers    []transformer
-	fileNameSanitizeRegexp *regexp.Regexp
+	defaultTransformers []transformer
 },
 ) {
 	ret.defaultTransformers = []transformer{
@@ -55,10 +53,6 @@ var globalVars = sync.OnceValue(func() (ret struct {
 		{Name: "UPPER", Transform: strings.ToUpper},
 		{Name: "TITLE", Transform: util.ToTitleCase},
 	}
-
-	// invalid filename contents, based on https://github.com/sindresorhus/filename-reserved-regex
-	// "COM10" needs to be opened with UNC "\\.\COM10" on Windows, so itself is valid
-	ret.fileNameSanitizeRegexp = regexp.MustCompile(`(?i)[<>:"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
 	return ret
 })
 
@@ -232,7 +226,7 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 	if err != nil {
 		return nil, err
 	}
-	if err = util.RemoveAll(util.FilePathJoinAbs(tmpDir, ".git")); err != nil {
+	if err = util.RemoveAllWithRetry(util.FilePathJoinAbs(tmpDir, ".git")); err != nil {
 		return nil, err
 	}
 	return skippedFiles, nil
@@ -256,7 +250,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 		return fmt.Errorf("GetTemplateSubmoduleCommits: %w", err)
 	}
 
-	if err = util.RemoveAll(filepath.Join(tmpDir, ".git")); err != nil {
+	if err = util.RemoveAllWithRetry(filepath.Join(tmpDir, ".git")); err != nil {
 		return fmt.Errorf("remove git dir: %w", err)
 	}
 
@@ -340,7 +334,9 @@ func (gro GenerateRepoOptions) IsValid() bool {
 func filePathSanitize(s string) string {
 	fields := strings.Split(filepath.ToSlash(s), "/")
 	for i, field := range fields {
-		field = strings.TrimSpace(strings.TrimSpace(globalVars().fileNameSanitizeRegexp.ReplaceAllString(field, "_")))
+		field = util.PathNameValidator().InvalidChars.ReplaceAllString(field, "_")
+		field = util.PathNameValidator().InvalidNames.ReplaceAllString(field, "_")
+		field = strings.TrimSpace(field)
 		if strings.HasPrefix(field, "..") {
 			field = "__" + field[2:]
 		}

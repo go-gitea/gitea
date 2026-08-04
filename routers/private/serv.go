@@ -14,7 +14,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
@@ -320,7 +320,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	gitRepo := util.Iif(results.IsWiki, repo.WikiStorageRepo(), repo.CodeStorageRepo())
-	results.RepoStoragePath = gitcmd.RepoLocalPath(gitRepo)
+	results.RepoStoragePath = gitrepo.RepoLocalPath(gitRepo)
 	log.Debug("Serv Results: %+v", results)
 	ctx.JSON(http.StatusOK, results)
 	// We will update the keys in a different call.

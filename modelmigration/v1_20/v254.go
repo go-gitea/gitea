@@ -3,9 +3,13 @@
 
 package v1_20
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddActionTaskOutputTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddActionTaskOutputTable(_ context.Context, x base.EngineMigration) error {
 	type ActionTaskOutput struct {
 		ID          int64
 		TaskID      int64  `xorm:"INDEX UNIQUE(task_id_output_key)"`

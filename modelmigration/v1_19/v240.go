@@ -4,12 +4,13 @@
 package v1_19
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/models/db"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddActionsTables(x base.EngineMigration) error {
+func AddActionsTables(_ context.Context, x base.EngineMigration) error {
 	type ActionRunner struct {
 		ID          int64
 		UUID        string `xorm:"CHAR(36) UNIQUE"`
@@ -96,7 +97,7 @@ func AddActionsTables(x base.EngineMigration) error {
 		NumClosedActionRuns int `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	type ActionRunIndex db.ResourceIndex
+	type ActionRunIndex base.ResourceIndex
 
 	type ActionTask struct {
 		ID       int64
