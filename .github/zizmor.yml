@@ -1,7 +1,7 @@
 rules:
   anonymous-definition:
-    disable: true # jobs are identified by id, display names add nothing
+    disable: true
   undocumented-permissions:
-    disable: true # only non-obvious permissions carry a comment
+    disable: true
   concurrency-limits:
-    disable: true # cron workflows are serialized by their schedule
+    disable: true
