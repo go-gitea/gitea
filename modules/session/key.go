@@ -15,4 +15,8 @@ const (
 	KeySignInMethod = "signInMethod"
 
 	SignInMethodOAuth2 = "oauth2"
+
+	// KeyOIDCIDToken holds the raw id_token returned by the OIDC provider at sign-in,
+	// so logout can pass it back as id_token_hint per the RP-Initiated Logout spec.
+	KeyOIDCIDToken = "oidcIDToken"
 )
