@@ -69,6 +69,7 @@ func TestParsePackage(t *testing.T) {
 	t.Run("IgnoresNestedManifests", func(t *testing.T) {
 		rootManifest := "// swift-tools-version:5.7\n//\n//  Package.swift"
 		rootAltManifest := "// swift-tools-version:5.6\n//\n//  Package@swift-5.6.swift"
+		rootPatchAltManifest := "// swift-tools-version:5.7\n//\n//  Package@swift-5.7.1.swift"
 		nestedManifest := "// swift-tools-version:6.3\n//\n//  nested fixture package"
 
 		// Write entries in a fixed order with the root manifest first, so a
@@ -78,6 +79,7 @@ func TestParsePackage(t *testing.T) {
 		for _, entry := range []struct{ name, content string }{
 			{"Package.swift", rootManifest},
 			{"Package@swift-5.5.swift", rootAltManifest},
+			{"Package@swift-5.7.1.swift", rootPatchAltManifest},
 			{"Benchmarks/Package.swift", nestedManifest},
 			{"Utils/Fixtures/PlainPackage/Package.swift", nestedManifest},
 		} {
@@ -92,10 +94,11 @@ func TestParsePackage(t *testing.T) {
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
-		assert.Len(t, p.Metadata.Manifests, 2)
+		assert.Len(t, p.Metadata.Manifests, 3)
 		assert.Equal(t, rootManifest, p.Metadata.Manifests[""].Content)
 		assert.Equal(t, "5.7", p.Metadata.Manifests[""].ToolsVersion)
 		assert.Equal(t, rootAltManifest, p.Metadata.Manifests["5.5"].Content)
+		assert.Equal(t, rootPatchAltManifest, p.Metadata.Manifests["5.7.1"].Content)
 	})
 
 	t.Run("AltManifestOnlyInRootDirectory", func(t *testing.T) {
