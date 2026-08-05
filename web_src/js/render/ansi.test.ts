@@ -32,6 +32,7 @@ test('renderAnsi', () => {
 
   // attributes, faint nesting so its color mixes with the outer one, conceal emitting no foreground
   expect(renderAnsi('\x1b[1;5;8mx')).toEqual('<span class="ansi-bold ansi-blink ansi-conceal">x</span>');
+  expect(renderAnsi('\x1b[6mx')).toEqual('<span class="ansi-blink">x</span>'); // 6 is the rapid blink
   expect(renderAnsi('\x1b[2;31mx')).toEqual('<span class="ansi-red-fg"><span class="ansi-faint">x</span></span>');
   expect(renderAnsi('\x1b[31;7mx')).toEqual('<span class="ansi-inverse-fg ansi-red-bg">x</span>');
   expect(renderAnsi('\x1b[4:3;9;53mx')).toEqual('<span class="ansi-underline ansi-line-through ansi-overline ansi-wavy">x</span>');
@@ -69,6 +70,10 @@ test('renderAnsi', () => {
   expect(renderAnsi('Reading... 10%\b\b\b100%')).toEqual('Reading... 100%');
   expect(renderAnsi('abc\b\bx')).toEqual('axc');
   expect(renderAnsi('\b🟡\bx')).toEqual('x');
+  // a character a terminal never shows takes no column, and the cursor reaches back over a style
+  // change, so what it lands on keeps the newer style
+  expect(renderAnsi('ab\x01c\b\bZ')).toEqual('aZc');
+  expect(renderAnsi('abc\x1b[31m\b\bx')).toEqual('a<span class="ansi-red-fg">x</span>c');
 
   // a sequence cut off by the line end is dropped, and style carries on to the next line
   const ansi = new AnsiLineRenderer();
