@@ -428,11 +428,15 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
-		if err := regenerateSession(ctx, map[string]any{
+		sessionData := map[string]any{
 			session.KeyUID:                  u.ID,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 			session.KeySignInMethod:         session.SignInMethodOAuth2,
-		}); err != nil {
+		}
+		if gothUser.IDToken != "" {
+			sessionData[session.KeyOIDCIDToken] = gothUser.IDToken
+		}
+		if err := regenerateSession(ctx, sessionData); err != nil {
 			ctx.ServerError("updateSession", err)
 			return
 		}
@@ -453,12 +457,16 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		}
 	}
 
-	if err := regenerateSession(ctx, map[string]any{
-		// User needs to use 2FA, save data and redirect to 2FA page.
+	// User needs to use 2FA, save data and redirect to 2FA page.
+	sessionData := map[string]any{
 		"twofaUid":              u.ID,
 		"twofaRemember":         false,
 		session.KeySignInMethod: session.SignInMethodOAuth2,
-	}); err != nil {
+	}
+	if gothUser.IDToken != "" {
+		sessionData[session.KeyOIDCIDToken] = gothUser.IDToken
+	}
+	if err := regenerateSession(ctx, sessionData); err != nil {
 		ctx.ServerError("updateSession", err)
 		return
 	}
@@ -596,6 +604,13 @@ func buildOIDCEndSessionURL(ctx *context.Context, doer *user_model.User) string 
 	// https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout
 	params := endSessionURL.Query()
 	params.Set("client_id", oauth2Cfg.ClientID)
+
+	// id_token_hint lets the IdP end the session without re-prompting for account
+	// selection; some providers (e.g. Dex) require it. Only present for sessions
+	// that authenticated via OIDC and received an id_token.
+	if idToken, ok := ctx.Session.Get(session.KeyOIDCIDToken).(string); ok && idToken != "" {
+		params.Set("id_token_hint", idToken)
+	}
 
 	// AWS Cognito uses "logout_uri" instead of the standard "post_logout_redirect_uri"
 	redirectURI := httplib.GuessCurrentAppURL(ctx)
