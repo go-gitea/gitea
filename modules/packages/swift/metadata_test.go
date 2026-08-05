@@ -65,6 +65,49 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, content2, m.Content)
 	})
 
+	t.Run("IgnoresNestedManifests", func(t *testing.T) {
+		rootManifest := "// swift-tools-version:5.7\n//\n//  Package.swift"
+		rootAltManifest := "// swift-tools-version:5.6\n//\n//  Package@swift-5.6.swift"
+		nestedManifest := "// swift-tools-version:6.3\n//\n//  nested fixture package"
+
+		data := test.WriteZipArchive(map[string]string{
+			"Package.swift":                             rootManifest,
+			"Package@swift-5.5.swift":                   rootAltManifest,
+			"Benchmarks/Package.swift":                  nestedManifest,
+			"Utils/Fixtures/PlainPackage/Package.swift": nestedManifest,
+		})
+
+		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
+		assert.NotNil(t, p)
+		assert.NoError(t, err)
+
+		assert.Len(t, p.Metadata.Manifests, 2)
+		assert.Equal(t, rootManifest, p.Metadata.Manifests[""].Content)
+		assert.Equal(t, "5.7", p.Metadata.Manifests[""].ToolsVersion)
+		assert.Equal(t, rootAltManifest, p.Metadata.Manifests["5.5"].Content)
+	})
+
+	t.Run("IgnoresNestedManifestsInPrefixedArchive", func(t *testing.T) {
+		rootManifest := "// swift-tools-version:5.7\n//\n//  Package.swift"
+		nestedManifest := "// swift-tools-version:6.3\n//\n//  nested fixture package"
+
+		// `swift package archive-source` produces archives with a single
+		// top level directory
+		data := test.WriteZipArchive(map[string]string{
+			"gitea-1.0.1/Package.swift":                       rootManifest,
+			"gitea-1.0.1/Tests/Fixtures/Package.swift":        nestedManifest,
+			"gitea-1.0.1/Examples/Demo/Package.swift":         nestedManifest,
+			"gitea-1.0.1/Utils/Tools/Package@swift-6.0.swift": nestedManifest,
+		})
+
+		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
+		assert.NotNil(t, p)
+		assert.NoError(t, err)
+
+		assert.Len(t, p.Metadata.Manifests, 1)
+		assert.Equal(t, rootManifest, p.Metadata.Manifests[""].Content)
+	})
+
 	t.Run("WithMetadata", func(t *testing.T) {
 		data := test.WriteZipArchive(map[string]string{
 			"Package.swift": "// swift-tools-version:5.7\n//\n//  Package.swift",

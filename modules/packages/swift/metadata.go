@@ -110,6 +110,13 @@ func (p Person) String() string {
 	return sb.String()
 }
 
+func manifestDirDepth(dir string) int {
+	if dir == "." {
+		return 0
+	}
+	return strings.Count(dir, "/") + 1
+}
+
 // ParsePackage parses the Swift package upload
 func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 	zr, err := zip.NewReader(sr, size)
@@ -123,7 +130,32 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 		},
 	}
 
+	// Find the directory containing the package manifest(s). A source archive
+	// contains the package at the archive root or inside a single top level
+	// directory (`swift package archive-source` output). Repositories often
+	// contain additional nested packages (test fixtures, example projects,
+	// benchmark packages, e.g. `Utils/Debugger/FormatterFixtures/Package.swift`
+	// in swift-collections) whose manifests must not be treated as the package
+	// manifest. Pick the shallowest directory containing a manifest rather
+	// than requiring a specific layout, so unusual but previously accepted
+	// archives keep working.
+	manifestDir, manifestDirFound := "", false
 	for _, file := range zr.File {
+		if !manifestPattern.MatchString(path.Base(file.Name)) {
+			continue
+		}
+		dir := path.Dir(file.Name)
+		if !manifestDirFound || manifestDirDepth(dir) < manifestDirDepth(manifestDir) ||
+			(manifestDirDepth(dir) == manifestDirDepth(manifestDir) && dir < manifestDir) {
+			manifestDir, manifestDirFound = dir, true
+		}
+	}
+
+	for _, file := range zr.File {
+		if path.Dir(file.Name) != manifestDir {
+			continue
+		}
+
 		manifestMatch := manifestPattern.FindStringSubmatch(path.Base(file.Name))
 		if len(manifestMatch) == 0 {
 			continue
