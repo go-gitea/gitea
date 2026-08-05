@@ -17,6 +17,18 @@
     "enabled": true,
     "semanticCommitType": "fix", // overrides packageRules
   },
+  "postUpgradeTasks": {
+    "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
+    "fileFilters": [
+      "go.mod",
+      "go.sum",
+      "assets/go-licenses.json",
+      "assets/codemirror-languages.json",
+      "public/assets/img/svg/**",
+      "options/fileicon/**",
+    ],
+    "executionMode": "branch",
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -91,15 +103,6 @@
     {
       "matchManagers": ["gomod"],
       "postUpdateOptions": ["gomodUpdateImportPaths"],
-      "postUpgradeTasks": {
-        "commands": ["make tidy"],
-        "fileFilters": [
-          "go.mod",
-          "go.sum",
-          "assets/go-licenses.json",
-        ],
-        "executionMode": "branch",
-      },
     },
     {
       "matchManagers": ["gomod"],
@@ -120,23 +123,6 @@
     {
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
-    },
-    {
-      "matchPackageNames": ["@primer/octicons", "material-icon-theme", "svgo"],
-      "postUpgradeTasks": {
-        "commands": ["make svg"],
-        "fileFilters": [
-          "public/assets/img/svg/**",
-          "options/fileicon/**",
-        ],
-      },
-    },
-    {
-      "matchPackageNames": ["@codemirror/language-data", "linguist-languages"],
-      "postUpgradeTasks": {
-        "commands": ["make generate-codemirror-languages"],
-        "fileFilters": ["assets/codemirror-languages.json"],
-      },
     },
   ],
 }
