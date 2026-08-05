@@ -27,57 +27,6 @@ type generateMockStepsLogOptions struct {
 	mockCountFirst   int
 	mockCountGeneral int
 	groupRepeat      int
-	ansiShowcase     bool
-}
-
-// mockAnsiLogs shows every sequence web_src/js/render/ansi.ts renders, so the log view exercises it.
-// Lines whose output does not explain itself are preceded by their own escaped source.
-func mockAnsiLogs() (logs []string) {
-	const esc = "\x1b"
-	escaped := strings.NewReplacer(esc, "\\e", "\b", "\\b", "\r", "\\r")
-	withSource := func(line string) []string {
-		return []string{esc + "[2m" + escaped.Replace(line) + esc + "[m", line}
-	}
-
-	join := func(count int, cell func(idx int) string) string {
-		var sb strings.Builder
-		for idx := range count {
-			sb.WriteString(cell(idx))
-		}
-		return sb.String()
-	}
-
-	// the 256-color palette as foreground, then as background, then a truecolor gradient
-	for row := range 16 {
-		logs = append(logs, join(16, func(col int) string {
-			return fmt.Sprintf("%s[38;5;%dm%4d%s[0m", esc, row*16+col, row*16+col, esc)
-		}))
-	}
-	logs = append(logs, join(16, func(idx int) string {
-		return fmt.Sprintf("%s[48;5;%dm %3d %s[0m", esc, idx, idx, esc)
-	}))
-	logs = append(logs, join(77, func(col int) string {
-		return fmt.Sprintf("%s[48;2;%d;0;%dm%s[38;2;%d;0;%dm/%s[0m", esc, 255-col*3, col*3, esc, col*3, 255-col*3, esc)
-	}))
-
-	// the attributes, in the layout of the colors.py sample
-	logs = append(logs, join(10, func(code int) string {
-		return fmt.Sprintf("%s[%dmSGR %d%s[m  ", esc, code, code, esc)
-	})+esc+"[53mSGR 53"+esc+"[m")
-	logs = append(logs, join(5, func(idx int) string {
-		return fmt.Sprintf("%s[4:%dmSGR 4:%d%s[m  ", esc, idx+1, idx+1, esc)
-	})+
-		esc+"[21mSGR 21"+esc+"[m  "+
-		esc+"[4:3m"+esc+"[58;2;135;0;255mtruecolor underline"+esc+"[59m"+esc+"[4:0m  "+
-		esc+"]8;;https://example.com"+esc+"\\hyperlink"+esc+"]8;;"+esc+"\\")
-
-	logs = append(logs, withSource("Reading... 1%\rReading... 50%\rReading... 100%")...)
-	logs = append(logs, withSource("first"+esc+"[Ksecond"+esc+"[2Jthird")...)
-	logs = append(logs, withSource("cursor "+esc+"[3Amovement, private "+esc+"[?25lCSI, "+esc+"]0;title"+esc+"\\titles, "+esc+"Pquery"+esc+"\\strings, truncated"+esc+"[38;5;")...)
-	logs = append(logs, withSource("Reading... 10%\b\b\b100%")...)
-	logs = append(logs, withSource(`<script>alert(1)</script> & "quotes", and a bare url https://example.com`)...)
-	logs = append(logs, esc+"[31man unterminated color", "carries into the following lines", esc+"[0muntil something resets it")
-	return logs
 }
 
 func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOptions) (stepsLog []*actions.ViewStepLog) {
@@ -100,14 +49,8 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 	cur := logCur.Cursor
 	// for the first batch, return as many as possible to test the auto-expand and auto-scroll
 	mockCount := util.Iif(logCur.Cursor == 0, opts.mockCountFirst, opts.mockCountGeneral)
-	var batch []string
-	if opts.ansiShowcase && cur == 0 {
-		batch = mockAnsiLogs() // once, so the examples are all visible together rather than trickling in
-	}
-	for i := range mockCount {
-		batch = append(batch, mockedLogs[int(cur+int64(i))%len(mockedLogs)])
-	}
-	for _, logStr := range batch {
+	for range mockCount {
+		logStr := mockedLogs[int(cur)%len(mockedLogs)]
 		cur++
 		logStr = strings.ReplaceAll(logStr, "{step}", strconv.Itoa(logCur.Step))
 		logStr = strings.ReplaceAll(logStr, "{cursor}", strconv.FormatInt(cur, 10))
@@ -601,13 +544,6 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 		Status:   actions_model.StatusRunning.String(),
 	})
 	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{mockCountFirst: 30, mockCountGeneral: 3, groupRepeat: 3})
-
-	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
-		Summary:  "step 3 (mock ansi)",
-		Duration: time.Hour.String(),
-		Status:   actions_model.StatusSuccess.String(),
-	})
-	mockLogOptions = append(mockLogOptions, generateMockStepsLogOptions{ansiShowcase: true})
 
 	if len(req.LogCursors) == 0 {
 		return
