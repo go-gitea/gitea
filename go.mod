@@ -6,7 +6,7 @@ toolchain go1.26.5
 
 require (
 	connectrpc.com/connect v1.20.0
-	gitea.com/gitea/runner v1.0.8
+	gitea.com/gitea/runner v1.0.9-0.20260618025530-df0370f8bfd3
 	gitea.com/go-chi/binding v0.0.0-20260414111559-654cea7ac60a
 	gitea.com/go-chi/cache v0.2.1
 	gitea.com/go-chi/captcha v0.0.0-20240315150714-fb487f629098
@@ -276,6 +276,7 @@ require (
 	modernc.org/libc v1.74.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
+	pgregory.net/rapid v1.2.0 // indirect
 )
 
 ignore (
