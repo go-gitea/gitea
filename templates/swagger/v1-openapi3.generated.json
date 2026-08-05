@@ -20470,7 +20470,7 @@
             "$ref": "#/components/responses/validationError"
           }
         },
-        "summary": "Get a single commit from a repository",
+        "summary": "Get a single commit from a repository, it has a GitHub-compatible alias \"/repos/{owner}/{repo}/commits/{ref}\"",
         "tags": [
           "repository"
         ]
