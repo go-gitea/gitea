@@ -132,25 +132,30 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 	// manifest. Pick the shallowest directory containing a manifest rather
 	// than requiring a specific layout, so unusual but previously accepted
 	// archives keep working.
-	candidates := make(map[string][]*zip.File)
+	// The leading directory is only ever replaced by a strictly better one,
+	// so files of a directory that lost once can be dropped immediately.
+	var manifestFiles []*zip.File
 	manifestDir, manifestDirDepth := "", -1
 	for _, file := range zr.File {
 		if strings.HasSuffix(file.Name, "/") || !manifestPattern.MatchString(path.Base(file.Name)) {
 			continue
 		}
 		dir := path.Dir(file.Name)
-		candidates[dir] = append(candidates[dir], file)
 		depth := 0
 		if dir != "." {
 			depth = strings.Count(dir, "/") + 1
 		}
-		if manifestDirDepth < 0 || depth < manifestDirDepth ||
-			(depth == manifestDirDepth && dir < manifestDir) {
+		switch {
+		case manifestDirDepth < 0 || depth < manifestDirDepth ||
+			(depth == manifestDirDepth && dir < manifestDir):
 			manifestDir, manifestDirDepth = dir, depth
+			manifestFiles = append(manifestFiles[:0], file)
+		case dir == manifestDir:
+			manifestFiles = append(manifestFiles, file)
 		}
 	}
 
-	for _, file := range candidates[manifestDir] {
+	for _, file := range manifestFiles {
 		manifestMatch := manifestPattern.FindStringSubmatch(path.Base(file.Name))
 
 		if file.UncompressedSize64 > maxManifestFileSize {
