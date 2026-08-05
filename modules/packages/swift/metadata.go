@@ -132,12 +132,14 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 	// manifest. Pick the shallowest directory containing a manifest rather
 	// than requiring a specific layout, so unusual but previously accepted
 	// archives keep working.
+	candidates := make(map[string][]*zip.File)
 	manifestDir, manifestDirDepth := "", -1
 	for _, file := range zr.File {
 		if strings.HasSuffix(file.Name, "/") || !manifestPattern.MatchString(path.Base(file.Name)) {
 			continue
 		}
 		dir := path.Dir(file.Name)
+		candidates[dir] = append(candidates[dir], file)
 		depth := 0
 		if dir != "." {
 			depth = strings.Count(dir, "/") + 1
@@ -148,15 +150,8 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 		}
 	}
 
-	for _, file := range zr.File {
-		if strings.HasSuffix(file.Name, "/") || path.Dir(file.Name) != manifestDir {
-			continue
-		}
-
+	for _, file := range candidates[manifestDir] {
 		manifestMatch := manifestPattern.FindStringSubmatch(path.Base(file.Name))
-		if len(manifestMatch) == 0 {
-			continue
-		}
 
 		if file.UncompressedSize64 > maxManifestFileSize {
 			return nil, ErrManifestFileTooLarge
