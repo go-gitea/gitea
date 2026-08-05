@@ -4,6 +4,7 @@
 package swift
 
 import (
+	"archive/zip"
 	"bytes"
 	"strings"
 	"testing"
@@ -70,14 +71,24 @@ func TestParsePackage(t *testing.T) {
 		rootAltManifest := "// swift-tools-version:5.6\n//\n//  Package@swift-5.6.swift"
 		nestedManifest := "// swift-tools-version:6.3\n//\n//  nested fixture package"
 
-		data := test.WriteZipArchive(map[string]string{
-			"Package.swift":                             rootManifest,
-			"Package@swift-5.5.swift":                   rootAltManifest,
-			"Benchmarks/Package.swift":                  nestedManifest,
-			"Utils/Fixtures/PlainPackage/Package.swift": nestedManifest,
-		})
+		// Write entries in a fixed order with the root manifest first, so a
+		// regression to "last matching entry wins" fails deterministically.
+		var buf bytes.Buffer
+		zw := zip.NewWriter(&buf)
+		for _, entry := range []struct{ name, content string }{
+			{"Package.swift", rootManifest},
+			{"Package@swift-5.5.swift", rootAltManifest},
+			{"Benchmarks/Package.swift", nestedManifest},
+			{"Utils/Fixtures/PlainPackage/Package.swift", nestedManifest},
+		} {
+			w, err := zw.Create(entry.name)
+			assert.NoError(t, err)
+			_, err = w.Write([]byte(entry.content))
+			assert.NoError(t, err)
+		}
+		assert.NoError(t, zw.Close())
 
-		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
+		p, err := ParsePackage(bytes.NewReader(buf.Bytes()), int64(buf.Len()), nil)
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
@@ -85,6 +96,37 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, rootManifest, p.Metadata.Manifests[""].Content)
 		assert.Equal(t, "5.7", p.Metadata.Manifests[""].ToolsVersion)
 		assert.Equal(t, rootAltManifest, p.Metadata.Manifests["5.5"].Content)
+	})
+
+	t.Run("AltManifestOnlyInRootDirectory", func(t *testing.T) {
+		// The shallowest directory containing a manifest wins even if it only
+		// holds a versioned variant; a Package.swift in a deeper directory
+		// belongs to a nested package and must not fill in for the missing
+		// root manifest.
+		data := test.WriteZipArchive(map[string]string{
+			"Package@swift-5.5.swift": "// swift-tools-version:5.6",
+			"Sub/Package.swift":       "// swift-tools-version:5.7",
+		})
+
+		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
+		assert.Nil(t, p)
+		assert.ErrorIs(t, err, ErrMissingManifestFile)
+	})
+
+	t.Run("ManifestDirectoryTieBreak", func(t *testing.T) {
+		contentA := "// swift-tools-version:5.7\n// A"
+		contentB := "// swift-tools-version:5.7\n// B"
+
+		data := test.WriteZipArchive(map[string]string{
+			"a/Package.swift": contentA,
+			"b/Package.swift": contentB,
+		})
+
+		p, err := ParsePackage(bytes.NewReader(data.Bytes()), int64(data.Len()), nil)
+		assert.NotNil(t, p)
+		assert.NoError(t, err)
+		assert.Len(t, p.Metadata.Manifests, 1)
+		assert.Equal(t, contentA, p.Metadata.Manifests[""].Content)
 	})
 
 	t.Run("IgnoresNestedManifestsInPrefixedArchive", func(t *testing.T) {

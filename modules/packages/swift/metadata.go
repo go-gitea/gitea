@@ -110,13 +110,6 @@ func (p Person) String() string {
 	return sb.String()
 }
 
-func manifestDirDepth(dir string) int {
-	if dir == "." {
-		return 0
-	}
-	return strings.Count(dir, "/") + 1
-}
-
 // ParsePackage parses the Swift package upload
 func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 	zr, err := zip.NewReader(sr, size)
@@ -139,20 +132,24 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 	// manifest. Pick the shallowest directory containing a manifest rather
 	// than requiring a specific layout, so unusual but previously accepted
 	// archives keep working.
-	manifestDir, manifestDirFound := "", false
+	manifestDir, manifestDirDepth := "", -1
 	for _, file := range zr.File {
-		if !manifestPattern.MatchString(path.Base(file.Name)) {
+		if strings.HasSuffix(file.Name, "/") || !manifestPattern.MatchString(path.Base(file.Name)) {
 			continue
 		}
 		dir := path.Dir(file.Name)
-		if !manifestDirFound || manifestDirDepth(dir) < manifestDirDepth(manifestDir) ||
-			(manifestDirDepth(dir) == manifestDirDepth(manifestDir) && dir < manifestDir) {
-			manifestDir, manifestDirFound = dir, true
+		depth := 0
+		if dir != "." {
+			depth = strings.Count(dir, "/") + 1
+		}
+		if manifestDirDepth < 0 || depth < manifestDirDepth ||
+			(depth == manifestDirDepth && dir < manifestDir) {
+			manifestDir, manifestDirDepth = dir, depth
 		}
 	}
 
 	for _, file := range zr.File {
-		if path.Dir(file.Name) != manifestDir {
+		if strings.HasSuffix(file.Name, "/") || path.Dir(file.Name) != manifestDir {
 			continue
 		}
 
