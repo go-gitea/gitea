@@ -3,9 +3,13 @@
 
 package v1_15
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddKeyIsVerified(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddKeyIsVerified(_ context.Context, x base.EngineMigration) error {
 	type GPGKey struct {
 		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}

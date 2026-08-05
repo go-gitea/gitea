@@ -1394,7 +1394,6 @@
   "repo.settings.event_fork_desc": "Repository geforked.",
   "repo.settings.event_release_desc": "Release gepubliceerd, bijgewerkt of verwijderd in een repository.",
   "repo.settings.event_push_desc": "Git push naar een repository.",
-  "repo.settings.event_repository_desc": "Repository gemaakt of verwijderd.",
   "repo.settings.event_header_issue": "Issue gebeurtenissen",
   "repo.settings.event_issues": "Kwesties",
   "repo.settings.event_issue_assign": "Probleem toegekend",

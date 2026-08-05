@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddReactionOriginals(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddReactionOriginals(_ context.Context, x base.EngineMigration) error {
 	type Reaction struct {
 		OriginalAuthorID int64 `xorm:"INDEX NOT NULL DEFAULT(0)"`
 		OriginalAuthor   string

@@ -38,7 +38,7 @@ func Test_AddRepoIDForAttachment(t *testing.T) {
 	}
 
 	// Run the migration
-	if err := AddRepoIDForAttachment(x); err != nil {
+	if err := AddRepoIDForAttachment(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}
