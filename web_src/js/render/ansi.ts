@@ -28,11 +28,11 @@ const isThemed = (color: AnsiColor) => color[0] !== '#';
 const anchor = (href: string, ...children: string[]) =>
   createElementFromAttrs<HTMLAnchorElement>('a', {href, target: '_blank'}, ...children);
 
-/** Builds the element for a style, setting each class and declaration on its own, so that no string
- * from a log can widen what it applies to. */
-function styledSpan(classes: string[], styles: Array<[string, string]>): HTMLSpanElement {
+/** Builds the element for a style, setting each declaration on its own, so that no string from a log
+ * can widen what it applies to. Every class name is a literal of ours, never text from a log. */
+function styledSpan(className: string, styles: Array<[string, string]>): HTMLSpanElement {
   const el = document.createElement('span');
-  if (classes.length) el.classList.add(...classes);
+  if (className) el.className = className;
   for (const [property, value] of styles) el.style.setProperty(property, value);
   return el;
 }
@@ -55,7 +55,7 @@ function visibleText(text: string): string {
 // appends one run of text, turning any bare url inside it into a link
 function renderRunText(target: ParentNode, text: string, linkify: boolean): void {
   if (!linkify || !text.includes('://')) {
-    target.append(text);
+    if (target.firstChild) target.append(text); else target.textContent = text; // one step into an empty target
     return;
   }
   const urls = urlRawRegex();
@@ -152,26 +152,27 @@ function renderText(target: ParentNode, text: string, style: Readonly<AnsiStyle>
   if (text === '') return;
 
   const styles: Array<[string, string]> = [];
-  const classes: string[] = [];
+  let className = ''; // one string rather than a list, which the element would only have to join
+  const addClass = (name: string) => { className = className ? `${className} ${name}` : name };
   // the one place deciding class vs inline: a named color has a class per slot, the rest are
   // literal, and a slot with no class of its own resolves a themed color through its variable
   const applyColor = (color: AnsiColor | null, property: string, slot?: string) => {
     if (!color) {
-      if (slot && style.inverse) classes.push(`ansi-inverse-${slot}`);
+      if (slot && style.inverse) addClass(`ansi-inverse-${slot}`);
     } else if (slot && isThemed(color)) {
-      classes.push(`${color}-${slot}`);
+      addClass(`${color}-${slot}`);
     } else {
       styles.push([property, isThemed(color) ? `var(--color-${color})` : color]);
     }
   };
-  if (style.bold) classes.push('ansi-bold');
-  if (style.italic) classes.push('ansi-italic');
-  if (style.blink) classes.push('ansi-blink');
-  if (style.conceal) classes.push('ansi-conceal');
-  if (style.underline) classes.push('ansi-underline');
-  if (style.strikethrough) classes.push('ansi-line-through');
-  if (style.overline) classes.push('ansi-overline');
-  if (style.underline && style.underline !== 'solid') classes.push(`ansi-${style.underline}`);
+  if (style.bold) addClass('ansi-bold');
+  if (style.italic) addClass('ansi-italic');
+  if (style.blink) addClass('ansi-blink');
+  if (style.conceal) addClass('ansi-conceal');
+  if (style.underline) addClass('ansi-underline');
+  if (style.strikethrough) addClass('ansi-line-through');
+  if (style.overline) addClass('ansi-overline');
+  if (style.underline && style.underline !== 'solid') addClass(`ansi-${style.underline}`);
   const decorated = style.underline || style.strikethrough || style.overline;
   if (style.underlineColor && decorated) applyColor(style.underlineColor, 'text-decoration-color');
 
@@ -180,13 +181,13 @@ function renderText(target: ParentNode, text: string, style: Readonly<AnsiStyle>
   if (!style.conceal) applyColor(style.inverse ? style.bg : style.fg, 'color', 'fg');
   applyColor(style.inverse ? style.fg : style.bg, 'background-color', 'bg');
 
-  if (classes.length || styles.length) {
-    const span = styledSpan(classes, styles);
+  if (className || styles.length) {
+    const span = styledSpan(className, styles);
     target.append(span);
     target = span;
   }
   if (style.faint) { // nested, so its translucent color mixes with the color the outer span applies
-    const faint = styledSpan(['ansi-faint'], []);
+    const faint = styledSpan('ansi-faint', []);
     target.append(faint);
     target = faint;
   }
@@ -244,15 +245,19 @@ export class AnsiLineRenderer {
 
     if (line.includes('\x1b')) line = line.replace(eraseInLine, '\r');
 
+    if (el.firstChild) el.replaceChildren(); // nothing to clear for the fresh element a log line owns
+    if (!line.includes('\r')) {
+      this.renderPart(el, line); // no fragment, so the nodes are never built only to be moved
+      return;
+    }
+
     // a carriage return renders one part per update, separated by "\n" for "white-space: break-spaces"
-    const rendered = document.createDocumentFragment();
     for (const part of line.split('\r')) {
       if (!part) continue;
-      const previous = rendered.lastChild;
-      this.renderPart(rendered, part);
+      const previous = el.lastChild;
+      this.renderPart(el, part);
       // a part that rendered nothing needs no separator, so it goes in once the part has content
-      if (previous && previous !== rendered.lastChild) rendered.insertBefore(document.createTextNode('\n'), previous.nextSibling);
+      if (previous && previous !== el.lastChild) el.insertBefore(document.createTextNode('\n'), previous.nextSibling);
     }
-    el.replaceChildren(rendered);
   }
 }
