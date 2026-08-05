@@ -71,13 +71,14 @@ func writeAuthorizedStringForKey(key *PublicKey, w io.Writer) (keyValid bool, er
 
 	var sshKey string
 
-	if key.Type == KeyTypePrincipal {
+	switch key.Type {
+	case KeyTypePrincipal:
 		// TODO: actually using PublicKey to store "principal" is an abuse
 		if !globalVars().principalRegexp.MatchString(key.Content) {
 			return false, fmt.Errorf("invalid principal key: %s", key.Content)
 		}
 		sshKey = fmt.Sprintf("%s # user-%d", key.Content, key.OwnerID)
-	} else {
+	case KeyTypeUser, KeyTypeDeploy, KeyTypeCodespace:
 		pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key.Content))
 		if err != nil {
 			return false, err
@@ -85,6 +86,8 @@ func writeAuthorizedStringForKey(key *PublicKey, w io.Writer) (keyValid bool, er
 
 		sshKeyMarshalled := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pubKey)))
 		sshKey = fmt.Sprintf("%s user-%d", sshKeyMarshalled, key.OwnerID)
+	default:
+		return false, fmt.Errorf("unsupported public key type %d", key.Type)
 	}
 
 	// now the key is valid, the code below could only return template/IO related errors
@@ -150,8 +153,12 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	}
 
 	for _, key := range keys {
-		if key.Type == KeyTypePrincipal {
+		switch key.Type {
+		case KeyTypeUser, KeyTypeDeploy, KeyTypeCodespace:
+		case KeyTypePrincipal:
 			continue
+		default:
+			return fmt.Errorf("unsupported public key type %d", key.Type)
 		}
 		if err = WriteAuthorizedStringForValidKey(key, f); err != nil {
 			return err
@@ -162,7 +169,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 
 // RegeneratePublicKeys regenerates the authorized_keys file
 func RegeneratePublicKeys(ctx context.Context, t io.Writer) error {
-	if err := db.GetEngine(ctx).Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean any) (err error) {
+	if err := db.GetEngine(ctx).In("type", KeyTypeUser, KeyTypeDeploy, KeyTypeCodespace).Iterate(new(PublicKey), func(idx int, bean any) (err error) {
 		return WriteAuthorizedStringForValidKey(bean.(*PublicKey), t)
 	}); err != nil {
 		return err

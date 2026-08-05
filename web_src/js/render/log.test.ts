@@ -1,4 +1,4 @@
-import {createLogLineMessage, parseLogLineCommand} from './ActionRunView.ts';
+import {createLogLineMessage, parseLogLineCommand} from './log.ts';
 
 test('LogLineMessage', () => {
   const cases = {

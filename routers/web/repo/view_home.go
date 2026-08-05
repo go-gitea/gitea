@@ -26,6 +26,7 @@ import (
 	"gitea.dev/modules/svg"
 	"gitea.dev/modules/util"
 	"gitea.dev/routers/web/feed"
+	codespace_service "gitea.dev/services/codespace"
 	"gitea.dev/services/context"
 	repo_service "gitea.dev/services/repository"
 )
@@ -91,6 +92,64 @@ func prepareClonePanel(ctx *context.Context) {
 		// in the future, it's better to use something like "/archive/branch/the-name.zip", "/archive/tag/the-name.zip" */}}
 		ctx.Data["DownloadArchiveLinkPrefix"] = ctx.Repo.RepoLink + "/archive/" + util.PathEscapeSegments(ctx.Repo.RefFullName.ShortName())
 	}
+	prepareClonePanelCodespaces(ctx)
+}
+
+func prepareClonePanelCodespaces(ctx *context.Context) {
+	if !setting.Codespace.Enabled || ctx.Doer == nil || ctx.Repo.Repository == nil {
+		return
+	}
+	result, err := codespace_service.ListCreatorCodespaces(ctx, codespace_service.CreatorListOptions{
+		UserID: ctx.Doer.ID,
+		RepoID: ctx.Repo.Repository.ID,
+		Limit:  3,
+	})
+	if err != nil {
+		log.Error("ListCreatorCodespaces: %v", err)
+		return
+	}
+	refType := string(ctx.Repo.RefFullName.RefType())
+	refName := ctx.Repo.RefFullName.ShortName()
+	if refType == string(git.RefTypeCommit) && ctx.Repo.CommitID != "" {
+		refName = ctx.Repo.CommitID
+	}
+	if refType == "" {
+		refType = string(git.RefTypeBranch)
+		refName = ctx.Repo.Repository.DefaultBranch
+	}
+	ctx.Data["ClonePanelCodespacesEnabled"] = true
+	ctx.Data["ClonePanelCodespaces"] = result.Rows
+	ctx.Data["ClonePanelCodespaceRefType"] = refType
+	ctx.Data["ClonePanelCodespaceRefName"] = refName
+	ctx.Data["ClonePanelCodespaceCreateURL"] = ctx.Repo.RepoLink + "/codespaces/new"
+}
+
+func prepareCodespaceSourcePanel(ctx *context.Context, refType, requestRefName, storedRefName, refLabel string) {
+	if !setting.Codespace.Enabled || ctx.Doer == nil || ctx.Repo.Repository == nil || ctx.Repo.Repository.IsArchived || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() || !ctx.Repo.Permission.CanRead(unit_model.TypeCode) {
+		return
+	}
+	listOptions := codespace_service.CreatorListOptions{
+		UserID: ctx.Doer.ID,
+		RepoID: ctx.Repo.Repository.ID,
+		Limit:  3,
+	}
+	if refType == string(git.RefTypeCommit) {
+		listOptions.CommitSHA = requestRefName
+	} else {
+		listOptions.RefType = refType
+		listOptions.RefName = storedRefName
+	}
+	result, err := codespace_service.ListCreatorCodespaces(ctx, listOptions)
+	if err != nil {
+		log.Error("ListCreatorCodespaces: %v", err)
+		return
+	}
+	ctx.Data["CodespaceSourcePanelEnabled"] = true
+	ctx.Data["CodespaceSourcePanelRows"] = result.Rows
+	ctx.Data["CodespaceSourceRefType"] = refType
+	ctx.Data["CodespaceSourceRefName"] = requestRefName
+	ctx.Data["CodespaceSourceRefLabel"] = refLabel
+	ctx.Data["CodespaceSourceCreateURL"] = ctx.Repo.RepoLink + "/codespaces/new"
 }
 
 func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Context) {
@@ -417,7 +476,7 @@ func Home(ctx *context.Context) {
 
 	// a scoped or public-only API token authenticating this web request must still satisfy
 	// the repository read scope before private repo content is served
-	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, unit_model.TypeCode, auth_model.Read)
 	if ctx.Written() {
 		return
 	}

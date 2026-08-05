@@ -1,0 +1,46 @@
+<div class="repo-codespaces-section" {{if .InMainPanel}}id="repo-codespaces-section" role="tabpanel" aria-labelledby="repo-codespaces-tab" hidden{{end}}>
+	<div class="clone-panel-codespace-create">
+		<div class="clone-panel-codespace-context">
+			<span class="tw-text-text-light-2 tw-text-12">{{ctx.Locale.Tr "codespace.current_ref"}}</span>
+			<span class="flex-text-inline tw-min-w-0">
+				{{if eq .RefType "tag"}}{{svg "octicon-tag" 16}}{{else if eq .RefType "commit"}}{{svg "octicon-git-commit" 16}}{{else if eq .RefType "pull"}}{{svg "octicon-git-pull-request" 16}}{{else}}{{svg "octicon-git-branch" 16}}{{end}}
+				<span class="gt-ellipsis" data-tooltip-content="{{.RefLabel}}">{{.RefLabel}}</span>
+			</span>
+		</div>
+		<form class="ignore-dirty" method="get" action="{{.CreateURL}}">
+			<input type="hidden" name="ref_type" value="{{.RefType}}">
+			<input type="hidden" name="ref_name" value="{{.RefName}}">
+			<button class="ui small primary fluid button" type="submit">{{svg "octicon-plus"}} {{ctx.Locale.Tr "codespace.create"}}</button>
+		</form>
+	</div>
+	{{if .Codespaces}}
+		<div class="divider"></div>
+		<div class="clone-panel-codespace-list">
+			<div class="clone-panel-codespace-list-title">{{ctx.Locale.Tr "codespace.recent"}}</div>
+			{{range .Codespaces}}
+				<div class="clone-panel-codespace-row">
+					<a class="clone-panel-codespace-main" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">
+						{{if eq .RefType "tag"}}{{svg "octicon-tag" 16}}{{else if eq .RefType "commit"}}{{svg "octicon-git-commit" 16}}{{else if eq .RefType "pull"}}{{svg "octicon-git-pull-request" 16}}{{else}}{{svg "octicon-git-branch" 16}}{{end}}
+						<span class="clone-panel-codespace-copy">
+							<strong class="gt-ellipsis" data-tooltip-content="{{.RefDisplayName}}">{{.RefDisplayName}}</strong>
+							<span class="clone-panel-codespace-meta"><span class="ui tiny label codespace-state-label codespace-state-{{.DisplayStatus}}">{{ctx.Locale.Tr .DisplayStatusKey}}</span><span>{{ctx.Locale.Tr "codespace.last_active"}}: {{if .LastActiveUnix}}{{DateUtils.TimeSince .LastActiveUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</span></span>
+						</span>
+					</a>
+					{{if .CanOpen}}
+						<a class="ui tiny primary button tw-m-0" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}?open_endpoint=workspace" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "codespace.open"}}</a>
+					{{else if .CanResume}}
+						<form class="ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{.UUID}}/resume">{{$.CsrfTokenHtml}}<button class="ui tiny button tw-m-0" type="submit">{{ctx.Locale.Tr "codespace.resume"}}</button></form>
+					{{else}}
+						<a class="ui tiny button tw-m-0" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">{{ctx.Locale.Tr "codespace.details"}}</a>
+					{{end}}
+				</div>
+			{{end}}
+		</div>
+	{{else}}
+		<div class="clone-panel-codespace-empty">{{svg "octicon-codespaces" 20}}<span>{{if eq .RefType "commit"}}{{ctx.Locale.Tr "codespace.commit_empty"}}{{else if eq .RefType "pull"}}{{ctx.Locale.Tr "codespace.pull_empty"}}{{else}}{{ctx.Locale.Tr "codespace.repo_empty"}}{{end}}</span></div>
+	{{end}}
+	<div class="divider"></div>
+	<div class="clone-panel-codespace-footer">
+		<a class="flex-text-inline" href="{{AppSubUrl}}/-/codespaces">{{ctx.Locale.Tr "codespace.view_all"}}{{svg "octicon-arrow-right" 16}}</a>
+	</div>
+</div>

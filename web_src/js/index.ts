@@ -41,6 +41,7 @@ import {initCommonOrganization} from './features/common-organization.ts';
 import {initRepoWikiForm} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCaptcha} from './features/captcha.ts';
+import {initCodespaceCreateForm, initCodespaceLiveState} from './features/codespace.ts';
 import {initRepositoryActions} from './features/repo-actions.ts';
 import {initGlobalTooltips} from './modules/tippy.ts';
 import {initGiteaFomantic} from './modules/fomantic.ts';
@@ -145,6 +146,8 @@ const initPerformanceTracer = callInitFunctions([
   initCommitStatuses,
   initAvatarStackPopup,
   initCaptcha,
+  initCodespaceCreateForm,
+  initCodespaceLiveState,
 
   initUserCheckAppUrl,
   initUserExternalLogins,

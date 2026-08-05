@@ -1,0 +1,37 @@
+{{template "user/settings/layout_head" (dict "pageClass" "user settings codespace permissions")}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "codespace.permissions"}}</h4>
+	<div class="ui attached segment">
+		<p>{{ctx.Locale.Tr "codespace.permissions_description"}}</p>
+	</div>
+	{{if .PermissionAuthorizations}}
+		{{range .PermissionAuthorizations}}
+			{{$authorization := .}}
+			<div class="ui attached segment">
+				<div class="tw-flex tw-items-center tw-justify-between tw-gap-3">
+					<div>
+						<strong>{{.SourceRepository}}</strong>
+						{{if .Revoked}}<span class="ui small label">{{ctx.Locale.Tr "codespace.permission_revoked"}}</span>{{end}}
+						<div class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.permission_codespace_count" .CodespaceCount}} · {{DateUtils.AbsoluteShort .UpdatedUnix}}</div>
+					</div>
+					{{if not .Revoked}}
+						<form class="ignore-dirty" method="post">
+							{{$.CsrfTokenHtml}}
+							<input type="hidden" name="action" value="revoke">
+							<input type="hidden" name="authorization_id" value="{{.ID}}">
+							<button class="ui red tiny button" data-modal-confirm="{{ctx.Locale.Tr "codespace.permission_revoke_confirm"}}">{{ctx.Locale.Tr "codespace.revoke"}}</button>
+						</form>
+					{{end}}
+				</div>
+				<table class="ui table unstackable">
+					<thead><tr><th>{{ctx.Locale.Tr "repo.repository"}}</th><th>{{ctx.Locale.Tr "units.unit"}}</th><th>{{ctx.Locale.Tr "codespace.requested"}}</th><th>{{ctx.Locale.Tr "codespace.granted"}}</th><th></th></tr></thead>
+					<tbody>{{range .Repositories}}<tr>
+						<td>{{.Repository}}</td><td>{{.UnitName}}</td><td>{{.RequestedMode}}</td><td>{{.GrantedMode}}</td>
+						<td class="right aligned">{{if .CanReduceToRead}}<form class="tw-inline-block ignore-dirty" method="post">{{$.CsrfTokenHtml}}<input type="hidden" name="action" value="reduce"><input type="hidden" name="authorization_id" value="{{$authorization.ID}}"><input type="hidden" name="target_repo_id" value="{{.TargetRepoID}}"><input type="hidden" name="unit_type" value="{{.UnitType}}"><input type="hidden" name="mode" value="read"><button class="ui tiny button">{{ctx.Locale.Tr "codespace.reduce_to_read"}}</button></form>{{end}} {{if .CanRevoke}}<form class="tw-inline-block ignore-dirty" method="post">{{$.CsrfTokenHtml}}<input type="hidden" name="action" value="reduce"><input type="hidden" name="authorization_id" value="{{$authorization.ID}}"><input type="hidden" name="target_repo_id" value="{{.TargetRepoID}}"><input type="hidden" name="unit_type" value="{{.UnitType}}"><input type="hidden" name="mode" value="none"><button class="ui tiny red button">{{ctx.Locale.Tr "codespace.revoke"}}</button></form>{{end}}</td>
+					</tr>{{end}}</tbody>
+				</table>
+			</div>
+		{{end}}
+	{{else}}
+		<div class="ui attached placeholder segment">{{ctx.Locale.Tr "codespace.no_permission_authorizations"}}</div>
+	{{end}}
+{{template "user/settings/layout_footer" .}}

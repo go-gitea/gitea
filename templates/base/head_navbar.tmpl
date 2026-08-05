@@ -26,6 +26,9 @@
 					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{ctx.Locale.Tr "milestones"}}</a>
 				{{end}}
 			{{end}}
+			{{if .EnableCodespaces}}
+				<a class="item{{if .PageIsCodespaces}} active{{end}}" href="{{AppSubUrl}}/-/codespaces">{{ctx.Locale.Tr "codespace.title"}}</a>
+			{{end}}
 			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore_title"}}</a>
 		{{else if .IsLandingPageOrganizations}}
 			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{ctx.Locale.Tr "explore_title"}}</a>
