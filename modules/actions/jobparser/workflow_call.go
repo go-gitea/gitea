@@ -9,11 +9,11 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.dev/actionslib/pkg/exprparser"
+	"gitea.dev/actionslib/pkg/model"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/util"
 
-	"gitea.com/gitea/runner/act/exprparser"
-	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 

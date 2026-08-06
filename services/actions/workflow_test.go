@@ -6,7 +6,8 @@ package actions
 import (
 	"testing"
 
-	"gitea.com/gitea/runner/act/model"
+	"gitea.dev/actionslib/pkg/model"
+
 	"github.com/stretchr/testify/assert"
 )
 
