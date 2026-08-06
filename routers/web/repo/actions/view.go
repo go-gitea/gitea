@@ -1063,7 +1063,10 @@ func Cancel(ctx *context_module.Context) {
 			return fmt.Errorf("cancel jobs: %w", err)
 		}
 		updatedJobs = append(updatedJobs, cancelledJobs...)
-		return nil
+		if len(updatedJobs) > 0 {
+			return nil // a job update already refreshed the run
+		}
+		return actions_model.SettleRunAfterCancel(ctx, run)
 	}); err != nil {
 		ctx.ServerError("StopTask", err)
 		return
@@ -1073,8 +1076,11 @@ func Cancel(ctx *context_module.Context) {
 	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
 
 	actions_service.NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
-	if len(updatedJobs) > 0 {
-		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, run.RepoID, run.ID)
+	// SettleRunAfterCancel finishes a run without updating any job, so compare the run itself.
+	if reloaded, err := actions_model.GetRunByRepoAndID(ctx, run.RepoID, run.ID); err != nil {
+		log.Error("GetRunByRepoAndID: %v", err)
+	} else if len(updatedJobs) > 0 || reloaded.Status != run.Status {
+		actions_service.NotifyWorkflowRunStatusUpdate(ctx, reloaded)
 	}
 	ctx.JSONOK()
 }
