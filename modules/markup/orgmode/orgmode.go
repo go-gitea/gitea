@@ -61,7 +61,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 
 		sb := &strings.Builder{}
 		// include language-x class as part of commonmark spec
-		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre><code class="chroma language-%s">`, strings.ToLower(lexer.Config().Name))
+		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre><code class="chroma %s" data-code-language="%s">`, highlight.LexerCssClassName(lexer), lang)
 		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
 		_, _ = sb.WriteString("</code></pre>")
 		return sb.String()

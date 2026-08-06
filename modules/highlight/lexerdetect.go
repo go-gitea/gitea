@@ -310,3 +310,36 @@ func detectChromaLexerWithAnalyze(fileName, lang string, code []byte) chroma.Lex
 	}
 	return chroma.Coalesce(lexer)
 }
+
+func LanguageCssClassName(s string) string {
+	// FIXME: CHROMA-RENDER-LANGUAGE-CSS: actually this function should not be used, the language should be provided by a data attribute, but not by a CSS class
+	// It is here just because we don't want to break 1.27. It can be refactored and removed in the future.
+	s = strings.ToLower(s)
+	if s == "" || s == LanguagePlaintext || s == chromaLexerFallback {
+		return "language-text"
+	}
+	isValid := func(c byte) bool {
+		// although "-" is valid in CSS name, it is used as a field separator, so we don't want to keep it in the name
+		return 'a' <= c && c <= 'z' || '0' <= c && c <= '9' || c == '_'
+	}
+	idx := 0
+	for ; idx < len(s); idx++ {
+		if !isValid(s[idx]) {
+			break
+		}
+	}
+	if idx == len(s) {
+		return "language-" + s
+	}
+	out := []byte(s)
+	for i := idx; i < len(s); i++ {
+		if !isValid(out[i]) {
+			out[i] = '_'
+		}
+	}
+	return "language-" + string(out)
+}
+
+func LexerCssClassName(lexer chroma.Lexer) string {
+	return LanguageCssClassName(lexer.Config().Name) // FIXME: see LanguageCssClassName
+}

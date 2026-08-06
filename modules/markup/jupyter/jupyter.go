@@ -215,7 +215,7 @@ func renderCellCode(output htmlutil.HTMLWriter, cell Cell, language string) erro
 
 		// Highlight code
 		lexer := highlight.DetectChromaLexerByFileName("", language)
-		output.WriteFormat(`<div class="cell-right cell-input"><pre><code class="chroma language-%s">`, strings.ToLower(language))
+		output.WriteFormat(`<div class="cell-right cell-input"><pre><code class="chroma %s" data-code-language="%s">`, highlight.LexerCssClassName(lexer), language)
 		output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
 		output.WriteHTML("</code></pre></div>")
 	}
