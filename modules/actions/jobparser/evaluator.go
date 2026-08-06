@@ -12,7 +12,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gitea.com/gitea/runner/act/exprparser"
+	"gitea.dev/actionslib/pkg/exprparser"
+
 	"go.yaml.in/yaml/v4"
 )
 

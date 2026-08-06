@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -28,8 +29,6 @@ import (
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
 	"gitea.dev/services/convert"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 type methodCtxKeyType struct{}

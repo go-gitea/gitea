@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -18,7 +19,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
-	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 

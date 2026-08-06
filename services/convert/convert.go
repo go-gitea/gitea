@@ -14,7 +14,8 @@ import (
 	"strconv"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/actionslib/pkg/model"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/auth"
@@ -39,8 +40,6 @@ import (
 	webhook_module "gitea.dev/modules/webhook"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/gitdiff"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 // ToEmail convert models.EmailAddress to api.Email

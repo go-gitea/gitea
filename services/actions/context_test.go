@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -17,7 +18,6 @@ import (
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

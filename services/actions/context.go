@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	actions_module "gitea.dev/modules/actions"
@@ -20,8 +21,6 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 type GiteaContext map[string]any
