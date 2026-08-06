@@ -200,18 +200,19 @@ func TestCancelJobs_NestedBlockedReusableCaller(t *testing.T) {
 	assert.Equal(t, StatusCancelled, gotRun.Status, "run must aggregate to Cancelled, not stay Blocked")
 }
 
-func TestCancelJobs_RunWithoutCancellableJobs(t *testing.T) {
-	// A run whose jobs all reached a final status while its own row stayed unfinished.
-	// Cancelling has to refresh it anyway, or the run can never finish and can never be deleted either.
+func TestSettleRunAfterCancel(t *testing.T) {
+	// A run that cancelling updates no job in, because its jobs all reached a final status already
+	// or because it has none at all. Its own row has to be settled explicitly, or the run can never
+	// finish and can never be deleted either.
 
-	newStuckRun := func(t *testing.T, index int64, withAttempt bool) (*ActionRun, []*ActionRunJob) {
+	newStuckRun := func(t *testing.T, withAttempt, withJob bool) (*ActionRun, []*ActionRunJob) {
 		t.Helper()
 		ctx := t.Context()
 
 		run := &ActionRun{
 			Title:         "stuck-waiting",
 			RepoID:        4,
-			Index:         index,
+			Index:         9801,
 			OwnerID:       1,
 			WorkflowID:    "test.yaml",
 			TriggerUserID: 1,
@@ -233,6 +234,9 @@ func TestCancelJobs_RunWithoutCancellableJobs(t *testing.T) {
 			runAttemptID = attempt.ID
 		}
 
+		if !withJob {
+			return run, nil
+		}
 		job := &ActionRunJob{
 			RunID:        run.ID,
 			RunAttemptID: runAttemptID,
@@ -249,34 +253,39 @@ func TestCancelJobs_RunWithoutCancellableJobs(t *testing.T) {
 		return run, []*ActionRunJob{job}
 	}
 
-	t.Run("attempt", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		run, jobs := newStuckRun(t, 9801, true)
+	cases := []struct {
+		name        string
+		withAttempt bool
+		withJob     bool
+		want        Status
+	}{
+		{"done job", true, true, StatusSuccess},
+		// Runs created before migration v331 have no attempt, their status lives on the run row itself.
+		{"done job on a legacy run without attempt", false, true, StatusSuccess},
+		// Aggregation cannot reach a final status without any job, so cancelling has to end the run itself.
+		{"no job at all", true, false, StatusCancelled},
+		{"no job at all on a legacy run without attempt", false, false, StatusCancelled},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			run, jobs := newStuckRun(t, tc.withAttempt, tc.withJob)
 
-		cancelled, err := CancelJobs(t.Context(), jobs)
-		require.NoError(t, err)
-		assert.Empty(t, cancelled, "the job is already done, so there is nothing to cancel")
+			// mirrors what the CancelRun service does
+			cancelled, err := CancelJobs(t.Context(), jobs)
+			require.NoError(t, err)
+			assert.Empty(t, cancelled, "nothing is cancellable, so the run row has to be settled explicitly")
+			require.NoError(t, SettleRunAfterCancel(t.Context(), run))
 
-		gotAttempt := unittest.AssertExistsAndLoadBean(t, &ActionRunAttempt{ID: run.LatestAttemptID})
-		assert.Equal(t, StatusSuccess, gotAttempt.Status)
-		gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
-		assert.Equal(t, StatusSuccess, gotRun.Status)
-		assert.NotZero(t, gotRun.Stopped)
-	})
-
-	// Runs created before migration v331 have no attempt, their status lives on the run row itself.
-	t.Run("legacy run without attempt", func(t *testing.T) {
-		require.NoError(t, unittest.PrepareTestDatabase())
-		run, jobs := newStuckRun(t, 9802, false)
-
-		cancelled, err := CancelJobs(t.Context(), jobs)
-		require.NoError(t, err)
-		assert.Empty(t, cancelled)
-
-		gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
-		assert.Equal(t, StatusSuccess, gotRun.Status)
-		assert.NotZero(t, gotRun.Stopped)
-	})
+			if tc.withAttempt {
+				gotAttempt := unittest.AssertExistsAndLoadBean(t, &ActionRunAttempt{ID: run.LatestAttemptID})
+				assert.Equal(t, tc.want, gotAttempt.Status)
+			}
+			gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
+			assert.Equal(t, tc.want, gotRun.Status)
+			assert.NotZero(t, gotRun.Stopped)
+		})
+	}
 }
 
 func TestParseJobDeferredMatrixPlaceholder(t *testing.T) {

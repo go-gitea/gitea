@@ -524,7 +524,7 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return affected, RefreshReusableCallerStatus(ctx, parent)
 	}
 
-	if err := refreshRunStatus(ctx, job.RepoID, job.RunID, job.RunAttemptID); err != nil {
+	if err := refreshRunStatus(ctx, job.RepoID, job.RunID, job.RunAttemptID, StatusUnknown); err != nil {
 		return 0, err
 	}
 
@@ -532,8 +532,9 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 }
 
 // refreshRunStatus recomputes the status of an attempt from the jobs currently stored and persists it.
-// An attempt propagates its status to its run.
-func refreshRunStatus(ctx context.Context, repoID, runID, runAttemptID int64) error {
+// The latest attempt propagates its status to its run, an older one only updates itself.
+// noJobsStatus settles an attempt without any job, which AggregateJobStatus cannot conclude on its own.
+func refreshRunStatus(ctx context.Context, repoID, runID, runAttemptID int64, noJobsStatus Status) error {
 	// Other goroutines may aggregate the status of the attempt/run and update it too.
 	// So we need to load the current jobs before updating the aggregate state.
 	if runAttemptID > 0 {
@@ -546,6 +547,9 @@ func refreshRunStatus(ctx context.Context, repoID, runID, runAttemptID int64) er
 			return err
 		}
 		attempt.Status = AggregateJobStatus(jobs)
+		if len(jobs) == 0 {
+			attempt.Status = noJobsStatus
+		}
 		if attempt.Started.IsZero() && attempt.Status.IsRunning() {
 			attempt.Started = timeutil.TimeStampNow()
 		}
@@ -568,11 +572,14 @@ func refreshRunStatus(ctx context.Context, repoID, runID, runAttemptID int64) er
 	if err != nil {
 		return err
 	}
-	jobs, err := GetLatestAttemptJobsByRepoAndRunID(ctx, repoID, runID)
+	jobs, err := GetLatestAttemptJobsByRun(ctx, run)
 	if err != nil {
 		return err
 	}
 	run.Status = AggregateJobStatus(jobs)
+	if len(jobs) == 0 {
+		run.Status = noJobsStatus
+	}
 	if run.Started.IsZero() && run.Status.IsRunning() {
 		run.Started = timeutil.TimeStampNow()
 	}
@@ -745,30 +752,16 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 	return CancelJobs(ctx, jobsToCancel)
 }
 
-// runAttemptKey addresses the aggregate a job contributes to: its attempt, or its run for a legacy job without one.
-type runAttemptKey struct {
-	runID        int64
-	runAttemptID int64
-}
-
+// CancelJobs cancels every cancellable job it is given. It leaves the status of a run it
+// cancelled nothing in untouched, SettleRunAfterCancel is what gives such a run a final one.
 func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
-
-	// A run/attempt status is only ever written as a side effect of a job update, so uncancelled
-	// collects the attempts no job was cancelled in: their status has to be refreshed explicitly below.
-	uncancelled := make(map[runAttemptKey]int64, len(jobs)) // -> repo id
-	for _, job := range jobs {
-		uncancelled[runAttemptKey{job.RunID, job.RunAttemptID}] = job.RepoID
-	}
 
 	for _, job := range jobs {
 		if job.IsReusableCaller {
 			sub, err := cancelReusableCaller(ctx, job)
 			if err != nil {
 				return cancelledJobs, err
-			}
-			for _, c := range sub {
-				delete(uncancelled, runAttemptKey{c.RunID, c.RunAttemptID})
 			}
 			cancelledJobs = append(cancelledJobs, sub...)
 			continue
@@ -779,17 +772,20 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 			return cancelledJobs, err
 		}
 		if c != nil {
-			delete(uncancelled, runAttemptKey{c.RunID, c.RunAttemptID})
 			cancelledJobs = append(cancelledJobs, c)
 		}
 	}
-
-	for key, repoID := range uncancelled {
-		if err := refreshRunStatus(ctx, repoID, key.runID, key.runAttemptID); err != nil {
-			return cancelledJobs, fmt.Errorf("refresh status of run %d: %w", key.runID, err)
-		}
-	}
 	return cancelledJobs, nil
+}
+
+// SettleRunAfterCancel gives a run a final status when cancelling it updated no job at all.
+// A run's status is otherwise only ever written as a side effect of a job update, so a run whose
+// jobs are all done already, or that has no job at all, would stay unfinished forever.
+func SettleRunAfterCancel(ctx context.Context, run *ActionRun) error {
+	if run.Status.IsDone() {
+		return nil
+	}
+	return refreshRunStatus(ctx, run.RepoID, run.ID, run.LatestAttemptID, StatusCancelled)
 }
 
 // cancelOneJob cancels a single job and returns the post-cancel row

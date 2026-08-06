@@ -19,7 +19,10 @@ func CancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*action
 		if err != nil {
 			return fmt.Errorf("CancelJobs: %w", err)
 		}
-		return nil
+		if len(updatedJobs) > 0 {
+			return nil // a job update already refreshed the run
+		}
+		return actions_model.SettleRunAfterCancel(ctx, run)
 	}); err != nil {
 		return nil, err
 	}
