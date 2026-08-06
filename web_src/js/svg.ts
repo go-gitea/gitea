@@ -204,7 +204,13 @@ export function svgRaw(name: SvgName, size = 16, classNames?: string | string[])
   return htmlRaw(svg(name, size, classNames));
 }
 
+const svgParseCache = new Map<SvgName, {svgOuter: SVGElement, svgInnerHtml: string}>();
+
+// callers must treat the result as read-only, it is shared between all icons of the same name
 export function svgParseOuterInner(name: SvgName) {
+  const cached = svgParseCache.get(name);
+  if (cached) return cached;
+
   const svgStr = svgs[name];
   if (!svgStr) throw new Error(`Unknown SVG icon: ${name}`);
 
@@ -219,5 +225,7 @@ export function svgParseOuterInner(name: SvgName) {
   const svgOuterHtml = svgStr.slice(0, p1 + 1) + svgStr.slice(p2);
   const svgDoc = parseDom(svgOuterHtml, 'image/svg+xml');
   const svgOuter = svgDoc.firstChild as SVGElement;
-  return {svgOuter, svgInnerHtml};
+  const parsed = {svgOuter, svgInnerHtml};
+  svgParseCache.set(name, parsed);
+  return parsed;
 }

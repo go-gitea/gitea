@@ -7,8 +7,6 @@ import ChartCanvas from './ChartCanvas.vue';
 import {
   Chart,
   Title,
-  LinearScale,
-  TimeScale,
   PointElement,
   LineElement,
   Filler,
@@ -55,8 +53,6 @@ type LineOptions = ChartOptions<'line'> & {
 }
 
 Chart.register(
-  TimeScale,
-  LinearScale,
   Title,
   PointElement,
   LineElement,
@@ -96,7 +92,8 @@ const errorText = shallowRef('');
 const totalStats = shallowRef<Record<string, any>>({});
 const sortedContributors = shallowRef<Array<Record<string, any>>>([]);
 const type = shallowRef<ContributionType>('commits');
-let contributorsStats: Record<string, any> = {}; // these three are not read during render
+let contributorsStats: Record<string, any> = {};
+// plain values, so the main chart options do not follow the zoomed range
 let xAxisStart: number | null = null;
 let xAxisEnd: number | null = null;
 const xAxisMin = shallowRef<number | null>(null);

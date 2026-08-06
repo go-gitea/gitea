@@ -4,8 +4,6 @@ import {
   Chart,
   Tooltip,
   BarElement,
-  LinearScale,
-  TimeScale,
   type ChartOptions,
   type ChartData,
   type ChartDataset,
@@ -27,8 +25,6 @@ import {computed, onMounted, shallowRef} from 'vue';
 const {pageData} = window.config;
 
 Chart.register(
-  TimeScale,
-  LinearScale,
   BarElement,
   Tooltip,
 );

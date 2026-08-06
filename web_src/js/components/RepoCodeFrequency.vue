@@ -3,8 +3,6 @@ import SvgIcon from './SvgIcon.vue';
 import {
   Chart,
   Legend,
-  LinearScale,
-  TimeScale,
   PointElement,
   LineElement,
   Filler,
@@ -28,8 +26,6 @@ import {computed, onMounted, shallowRef} from 'vue';
 const {pageData} = window.config;
 
 Chart.register(
-  TimeScale,
-  LinearScale,
   Legend,
   PointElement,
   LineElement,

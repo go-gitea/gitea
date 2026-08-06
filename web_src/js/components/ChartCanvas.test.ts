@@ -15,7 +15,7 @@ vi.mock('chart.js', () => {
       charts.push(this);
     }
   }
-  return {Chart, BarController: {}, LineController: {}, _adapters: {_date: {override: (a: any) => Object.assign(dateAdapter, a)}}};
+  return {Chart, BarController: {}, LineController: {}, LinearScale: {}, TimeScale: {}, _adapters: {_date: {override: (a: any) => Object.assign(dateAdapter, a)}}};
 });
 
 test('ChartCanvas', async () => {
