@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 
+	admin_model "gitea.dev/models/admin"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -103,6 +104,29 @@ func TestMigrateGiteaForm(t *testing.T) {
 		// Step 6: check the repo was created
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: migratedRepoName})
 	})
+}
+
+func TestMigratingRepoActions(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo.Status = repo_model.RepositoryBeingMigrated
+	require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), repo, "status"))
+	require.NoError(t, admin_model.CreateTask(t.Context(), &admin_model.Task{
+		DoerID:         repo.OwnerID,
+		OwnerID:        repo.OwnerID,
+		RepoID:         repo.ID,
+		Type:           structs.TaskTypeMigrateRepo,
+		Status:         structs.TaskStatusRunning,
+		PayloadContent: `{}`,
+	}))
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", repo.Link())
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 1, htmlDoc.doc.Find("#delete-repo-modal form.form-fetch-action").Length())
+	assert.Equal(t, 1, htmlDoc.doc.Find("#cancel-repo-modal form.form-fetch-action").Length())
 }
 
 func Test_UpdateCommentsMigrationsByType(t *testing.T) {
