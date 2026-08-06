@@ -214,8 +214,9 @@ func renderCellCode(output htmlutil.HTMLWriter, cell Cell, language string) erro
 		}
 
 		// Highlight code
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
 		lexer := highlight.DetectChromaLexerByFileName("", language)
-		output.WriteFormat(`<div class="cell-right cell-input"><pre><code class="chroma language-%s">`, strings.ToLower(language))
+		output.WriteFormat(`<div class="cell-right cell-input"><pre %s><code %s>`, preAttrs, codeAttrs)
 		output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
 		output.WriteHTML("</code></pre></div>")
 	}
