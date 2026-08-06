@@ -31,7 +31,7 @@ export async function initUserAuthWebAuthn() {
 }
 
 async function loginPasskey() {
-  const remember = (document.querySelector('#passkey-remember') as HTMLInputElement)?.checked ?? false;
+  const remember = (document.querySelector('#global-remember') as HTMLInputElement)?.checked ?? false;
 
   const res = await GET(`${appSubUrl}/user/webauthn/passkey/assertion`);
   if (!res.ok) {

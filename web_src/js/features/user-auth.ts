@@ -5,6 +5,18 @@ export function initUserCheckAppUrl() {
   checkAppUrlScheme();
 }
 
+export function initGlobalRememberCheckbox() {
+  const elRemember = document.querySelector('#remember') as HTMLInputElement;
+  const elGlobalRemember = document.querySelector('#global-remember') as HTMLInputElement;
+  if (!elRemember || !elGlobalRemember) return;
+
+  const sync = () => {
+    elRemember.value = elGlobalRemember.checked ? 'true' : '';
+  };
+  sync();
+  elGlobalRemember.addEventListener('change', sync);
+}
+
 export function initUserExternalLogins() {
   const container = document.querySelector('#external-login-navigator');
   if (!container) return;
