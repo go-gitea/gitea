@@ -1,7 +1,7 @@
 import {createApp, h, isReactive, nextTick, reactive, shallowRef} from 'vue';
 import ChartCanvas from './ChartCanvas.vue';
 
-const {charts} = vi.hoisted(() => ({charts: [] as Array<Record<string, any>>}));
+const {charts, dateAdapter} = vi.hoisted(() => ({charts: [] as Array<Record<string, any>>, dateAdapter: {} as Record<string, any>}));
 
 vi.mock('chart.js', () => {
   class Chart {
@@ -15,7 +15,7 @@ vi.mock('chart.js', () => {
       charts.push(this);
     }
   }
-  return {Chart, BarController: {}, LineController: {}};
+  return {Chart, BarController: {}, LineController: {}, _adapters: {_date: {override: (a: any) => Object.assign(dateAdapter, a)}}};
 });
 
 test('ChartCanvas', async () => {
@@ -33,4 +33,10 @@ test('ChartCanvas', async () => {
 
   app.unmount();
   expect(charts[0].destroy).toHaveBeenCalledOnce();
+});
+
+test('chart date adapter', () => {
+  const time = Date.UTC(2026, 4, 15);
+  expect(dateAdapter.format(time, dateAdapter.formats().quarter)).toEqual('Q2 - 2026');
+  expect(dateAdapter.format(dateAdapter.startOf(time, 'quarter'), 'MMM YYYY')).toEqual('Apr 2026');
 });
