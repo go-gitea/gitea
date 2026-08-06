@@ -27,14 +27,13 @@ func CancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*action
 	CreateCommitStatusForRunJobs(ctx, run, jobs...)
 	EmitJobsIfReadyByJobs(updatedJobs)
 	NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
-	if len(updatedJobs) == 0 {
-		return run, nil
-	}
 
 	reloaded, err := actions_model.GetRunByRepoAndID(ctx, run.RepoID, run.ID)
 	if err != nil {
 		return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
 	}
-	NotifyWorkflowRunStatusUpdate(ctx, reloaded)
+	if len(updatedJobs) > 0 || reloaded.Status != run.Status {
+		NotifyWorkflowRunStatusUpdate(ctx, reloaded)
+	}
 	return reloaded, nil
 }
