@@ -28,8 +28,8 @@ var (
 
 // LifecycleActionOptions identifies one creator lifecycle request.
 type LifecycleActionOptions struct {
-	UserID        int64
-	CodespaceUUID string
+	UserID      int64
+	CodespaceID int64
 }
 
 // LifecycleActionResult contains the accepted operation state.
@@ -64,7 +64,7 @@ func applyCreatorLifecycleAction(ctx context.Context, opts LifecycleActionOption
 	}
 
 	var result *LifecycleActionResult
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, codespaceRowLockKey(opts.CodespaceID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace, err := loadLifecycleActionCodespace(ctx, opts)
 			if err != nil {
@@ -217,12 +217,15 @@ func validateLifecycleActionOptions(opts LifecycleActionOptions) error {
 	if opts.UserID <= 0 {
 		return errors.New("user_id must be positive")
 	}
-	return codespace_model.ValidateUUID(opts.CodespaceUUID)
+	if opts.CodespaceID <= 0 {
+		return errors.New("codespace_id must be positive")
+	}
+	return nil
 }
 
 func loadLifecycleActionCodespace(ctx context.Context, opts LifecycleActionOptions) (*codespace_model.Codespace, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}

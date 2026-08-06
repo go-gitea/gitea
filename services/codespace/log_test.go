@@ -331,10 +331,10 @@ func TestReadLogPagesByReturnedOffset(t *testing.T) {
 	require.NoError(t, err)
 
 	firstPage, err := ReadLog(t.Context(), ReadLogOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		Offset:        0,
-		Limit:         1,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		Offset:      0,
+		Limit:       1,
 	})
 	require.NoError(t, err)
 	assert.EqualValues(t, 0, firstPage.Offset)
@@ -345,10 +345,10 @@ func TestReadLogPagesByReturnedOffset(t *testing.T) {
 	assert.Equal(t, "first", firstPage.Lines[0].Message)
 
 	secondPage, err := ReadLog(t.Context(), ReadLogOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		Offset:        firstPage.NextOffset,
-		Limit:         1,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		Offset:      firstPage.NextOffset,
+		Limit:       1,
 	})
 	require.NoError(t, err)
 	assert.False(t, secondPage.EOF)
@@ -357,10 +357,10 @@ func TestReadLogPagesByReturnedOffset(t *testing.T) {
 	assert.Equal(t, "second", secondPage.Lines[0].Message)
 
 	eofPage, err := ReadLog(t.Context(), ReadLogOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		Offset:        result.NextOffset,
-		Limit:         LogReadMaxBytes,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		Offset:      result.NextOffset,
+		Limit:       LogReadMaxBytes,
 	})
 	require.NoError(t, err)
 	assert.True(t, eofPage.EOF)
@@ -379,9 +379,9 @@ func TestReadLogReportsOperationActivity(t *testing.T) {
 	})
 
 	result, err := ReadLog(t.Context(), ReadLogOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		Limit:         LogReadMaxBytes,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		Limit:       LogReadMaxBytes,
 	})
 	require.NoError(t, err)
 	assert.True(t, result.EOF)
@@ -399,9 +399,9 @@ func TestReadLogRequiresCreator(t *testing.T) {
 	})
 
 	_, err := ReadLog(t.Context(), ReadLogOptions{
-		UserID:        2,
-		CodespaceUUID: codespaceUUID,
-		Limit:         LogReadMaxBytes,
+		UserID:      2,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		Limit:       LogReadMaxBytes,
 	})
 	require.ErrorIs(t, err, ErrReadLogPermissionDenied)
 }
@@ -434,10 +434,10 @@ func TestReadLogRejectsOffsetPastEOF(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = ReadLog(t.Context(), ReadLogOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		Offset:        result.NextOffset + 1,
-		Limit:         LogReadMaxBytes,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		Offset:      result.NextOffset + 1,
+		Limit:       LogReadMaxBytes,
 	})
 	var offsetErr *LogOffsetError
 	require.ErrorAs(t, err, &offsetErr)

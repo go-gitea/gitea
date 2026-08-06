@@ -19,17 +19,9 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	userID := int64(2)
-	userToken, err := GetOrCreateRegistrationToken(t.Context(), ManagerSettingsOptions{
-		Scope:  ManagerSettingsScopeUser,
-		UserID: userID,
-	})
-	require.NoError(t, err)
-	globalToken, err := GetOrCreateRegistrationToken(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeSite})
-	require.NoError(t, err)
-
 	userManager := insertServiceManager(t)
 	userManager.UserID = userID
-	_, err = db.GetEngine(t.Context()).ID(userManager.ID).Cols("user_id").Update(userManager)
+	_, err := db.GetEngine(t.Context()).ID(userManager.ID).Cols("user_id").Update(userManager)
 	require.NoError(t, err)
 	insertSettingsManagerAddress(t, userManager.ID, codespace_model.ManagerAddressGateway, "https://user-delete.example.com")
 
@@ -70,8 +62,6 @@ func TestDeleteUserResourcesOnlyCleansPersonalResources(t *testing.T) {
 	assertServiceNotExists(t, new(codespace_model.ManagerAddress), "manager_id = ?", userManager.ID)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", ownedUUID)
 	assertServiceExists(t, new(codespace_model.Codespace), "uuid = ?", repositoryOwnedUUID)
-	assertServiceNotExists(t, new(codespace_model.ManagerToken), "user_id = ? AND token = ?", userID, userToken)
-	assertServiceExists(t, new(codespace_model.ManagerToken), "user_id = ? AND token = ?", 0, globalToken)
 	assertServiceNotExists(t, new(codespace_model.PermissionAuthorization), "id = ?", authorization.ID)
 	assertServiceNotExists(t, new(codespace_model.PermissionRepository), "authorization_id = ? AND target_repo_id = ? AND unit_type = ?", rule.AuthorizationID, rule.TargetRepoID, rule.UnitType)
 	assertServiceNotExists(t, new(codespace_model.UserSecret), "id = ?", secret.ID)

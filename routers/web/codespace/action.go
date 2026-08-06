@@ -22,7 +22,11 @@ func Stop(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	returnPath := codespaceActionReturnPath(ctx.PathParam("uuid"), ctx.FormString("return_to"), codespaceDetailPath(ctx.PathParam("uuid")))
+	codespaceID, ok := codespaceIDParam(ctx)
+	if !ok {
+		return
+	}
+	returnPath := codespaceActionReturnPath(codespaceID, ctx.FormString("return_to"), codespaceDetailPath(codespaceID))
 	_, err := codespace_service.StopCodespace(ctx, lifecycleActionOptions(ctx))
 	if err != nil {
 		handleLifecycleActionError(ctx, "StopCodespace", err, returnPath)
@@ -37,7 +41,11 @@ func Resume(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	returnPath := codespaceActionReturnPath(ctx.PathParam("uuid"), ctx.FormString("return_to"), codespaceDetailPath(ctx.PathParam("uuid")))
+	codespaceID, ok := codespaceIDParam(ctx)
+	if !ok {
+		return
+	}
+	returnPath := codespaceActionReturnPath(codespaceID, ctx.FormString("return_to"), codespaceDetailPath(codespaceID))
 	_, err := codespace_service.ResumeCodespace(ctx, lifecycleActionOptions(ctx))
 	if err != nil {
 		handleLifecycleActionError(ctx, "ResumeCodespace", err, returnPath)
@@ -52,7 +60,11 @@ func Delete(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	returnPath := codespaceActionReturnPath(ctx.PathParam("uuid"), ctx.FormString("return_to"), codespaceListPath("", 1))
+	codespaceID, ok := codespaceIDParam(ctx)
+	if !ok {
+		return
+	}
+	returnPath := codespaceActionReturnPath(codespaceID, ctx.FormString("return_to"), codespaceListPath("", 1))
 	_, err := codespace_service.DeleteCodespace(ctx, lifecycleActionOptions(ctx))
 	if err != nil {
 		handleLifecycleActionError(ctx, "DeleteCodespace", err, returnPath)
@@ -67,10 +79,14 @@ func Continue(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	returnPath := codespaceActionReturnPath(ctx.PathParam("uuid"), ctx.FormString("return_to"), codespaceDetailPath(ctx.PathParam("uuid")))
+	codespaceID, ok := codespaceIDParam(ctx)
+	if !ok {
+		return
+	}
+	returnPath := codespaceActionReturnPath(codespaceID, ctx.FormString("return_to"), codespaceDetailPath(codespaceID))
 	_, err := codespace_service.ContinueCodespace(ctx, codespace_service.ContinueCodespaceOptions{
-		UserID:        ctx.Doer.ID,
-		CodespaceUUID: ctx.PathParam("uuid"),
+		UserID:      ctx.Doer.ID,
+		CodespaceID: codespaceID,
 	})
 	if err != nil {
 		handleInteractionError(ctx, "ContinueCodespace", err, returnPath)
@@ -85,7 +101,11 @@ func AutoStop(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	returnPath := codespaceActionReturnPath(ctx.PathParam("uuid"), ctx.FormString("return_to"), codespaceDetailPath(ctx.PathParam("uuid")))
+	codespaceID, ok := codespaceIDParam(ctx)
+	if !ok {
+		return
+	}
+	returnPath := codespaceActionReturnPath(codespaceID, ctx.FormString("return_to"), codespaceDetailPath(codespaceID))
 	mode := ctx.FormString("mode")
 	var timeout int64
 	switch mode {
@@ -105,7 +125,7 @@ func AutoStop(ctx *context.Context) {
 	}
 	_, err := codespace_service.UpdateAutoStop(ctx, codespace_service.UpdateAutoStopOptions{
 		UserID:               ctx.Doer.ID,
-		CodespaceUUID:        ctx.PathParam("uuid"),
+		CodespaceID:          codespaceID,
 		Mode:                 mode,
 		CustomTimeoutSeconds: timeout,
 	})
@@ -157,17 +177,27 @@ func handleLifecycleActionError(ctx *context.Context, name string, err error, re
 }
 
 func lifecycleActionOptions(ctx *context.Context) codespace_service.LifecycleActionOptions {
+	codespaceID, _ := codespaceIDParam(ctx)
 	return codespace_service.LifecycleActionOptions{
-		UserID:        ctx.Doer.ID,
-		CodespaceUUID: ctx.PathParam("uuid"),
+		UserID:      ctx.Doer.ID,
+		CodespaceID: codespaceID,
 	}
 }
 
-func codespaceDetailPath(codespaceUUID string) string {
-	return "/-/codespaces/" + codespaceUUID
+func codespaceIDParam(ctx *context.Context) (int64, bool) {
+	codespaceID, err := strconv.ParseInt(ctx.PathParam("codespace_id"), 10, 64)
+	if err != nil || codespaceID <= 0 {
+		ctx.NotFound(nil)
+		return 0, false
+	}
+	return codespaceID, true
 }
 
-func codespaceActionReturnPath(codespaceUUID, raw, fallback string) string {
+func codespaceDetailPath(codespaceID int64) string {
+	return "/-/codespaces/" + strconv.FormatInt(codespaceID, 10)
+}
+
+func codespaceActionReturnPath(codespaceID int64, raw, fallback string) string {
 	fallback = setting.AppSubURL + fallback
 	if raw == "" {
 		return fallback
@@ -177,7 +207,7 @@ func codespaceActionReturnPath(codespaceUUID, raw, fallback string) string {
 		return fallback
 	}
 	listPath := setting.AppSubURL + "/-/codespaces"
-	detailPath := setting.AppSubURL + codespaceDetailPath(codespaceUUID)
+	detailPath := setting.AppSubURL + codespaceDetailPath(codespaceID)
 	if parsed.Path != listPath && parsed.Path != detailPath {
 		return fallback
 	}

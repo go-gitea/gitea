@@ -160,9 +160,13 @@ func loadCreatorDetail(ctx *context.Context) (*codespace_service.CreatorCodespac
 		ctx.NotFound(nil)
 		return nil, false
 	}
+	codespaceID, ok := codespaceIDParam(ctx)
+	if !ok {
+		return nil, false
+	}
 	view, err := codespace_service.GetCreatorCodespace(ctx, codespace_service.CreatorDetailOptions{
-		UserID:        ctx.Doer.ID,
-		CodespaceUUID: ctx.PathParam("uuid"),
+		UserID:      ctx.Doer.ID,
+		CodespaceID: codespaceID,
 	})
 	if err != nil {
 		switch {

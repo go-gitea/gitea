@@ -92,14 +92,14 @@ func RevalidateGatewaySession(ctx context.Context, manager *codespace_model.Mana
 func validateGatewaySessionBinding(request *codespacev1.RevalidateGatewaySessionRequest) (userID int64, codespaceUUID, endpointID string, sshSession bool, err error) {
 	if endpoint := request.GetEndpoint(); endpoint != nil {
 		userID = endpoint.GetUserId()
-		codespaceUUID = endpoint.GetCodespaceUuid()
+		codespaceUUID = endpoint.GetRuntimeUuid()
 		endpointID = endpoint.GetEndpointId()
 		if endpointID != workspaceEndpointID && !endpointIDPattern.MatchString(endpointID) {
 			return 0, "", "", false, errors.New("invalid endpoint_id")
 		}
 	} else if ssh := request.GetSsh(); ssh != nil {
 		userID = ssh.GetUserId()
-		codespaceUUID = ssh.GetCodespaceUuid()
+		codespaceUUID = ssh.GetRuntimeUuid()
 		sshSession = true
 	} else {
 		return 0, "", "", false, errors.New("session is required")

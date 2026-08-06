@@ -30,8 +30,8 @@ var (
 
 // ContinueCodespaceOptions identifies one creator keep-alive action.
 type ContinueCodespaceOptions struct {
-	UserID        int64
-	CodespaceUUID string
+	UserID      int64
+	CodespaceID int64
 }
 
 // ContinueCodespaceResult contains the new interaction generation.
@@ -42,7 +42,7 @@ type ContinueCodespaceResult struct {
 // UpdateAutoStopOptions contains one creator auto-stop settings update.
 type UpdateAutoStopOptions struct {
 	UserID               int64
-	CodespaceUUID        string
+	CodespaceID          int64
 	Mode                 string
 	CustomTimeoutSeconds int64
 }
@@ -59,14 +59,14 @@ func ContinueCodespace(ctx context.Context, opts ContinueCodespaceOptions) (*Con
 	if !setting.Codespace.Enabled {
 		return nil, ErrInteractionStateUnavailable
 	}
-	if err := validateCreatorInteractionOptions(opts.UserID, opts.CodespaceUUID); err != nil {
+	if err := validateCreatorInteractionOptions(opts.UserID, opts.CodespaceID); err != nil {
 		return nil, err
 	}
 
 	var result *ContinueCodespaceResult
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, codespaceRowLockKey(opts.CodespaceID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceUUID)
+			codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
 			if err != nil {
 				return err
 			}
@@ -97,14 +97,14 @@ func UpdateAutoStop(ctx context.Context, opts UpdateAutoStopOptions) (*UpdateAut
 	if err != nil {
 		return nil, err
 	}
-	if err := validateCreatorInteractionOptions(opts.UserID, opts.CodespaceUUID); err != nil {
+	if err := validateCreatorInteractionOptions(opts.UserID, opts.CodespaceID); err != nil {
 		return nil, err
 	}
 
 	var result *UpdateAutoStopResult
-	err = globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	err = globallock.LockAndDo(ctx, codespaceRowLockKey(opts.CodespaceID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
-			codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceUUID)
+			codespace, err := loadCreatorCodespace(ctx, opts.UserID, opts.CodespaceID)
 			if err != nil {
 				return err
 			}
@@ -150,16 +150,19 @@ func UpdateAutoStop(ctx context.Context, opts UpdateAutoStopOptions) (*UpdateAut
 	return result, nil
 }
 
-func validateCreatorInteractionOptions(userID int64, codespaceUUID string) error {
+func validateCreatorInteractionOptions(userID, codespaceID int64) error {
 	if userID <= 0 {
 		return errors.New("user_id must be positive")
 	}
-	return codespace_model.ValidateUUID(codespaceUUID)
+	if codespaceID <= 0 {
+		return errors.New("codespace_id must be positive")
+	}
+	return nil
 }
 
-func loadCreatorCodespace(ctx context.Context, userID int64, codespaceUUID string) (*codespace_model.Codespace, error) {
+func loadCreatorCodespace(ctx context.Context, userID, codespaceID int64) (*codespace_model.Codespace, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).Where("uuid = ?", codespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).ID(codespaceID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}

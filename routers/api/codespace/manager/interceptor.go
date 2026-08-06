@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
-	"gitea.dev/codespace-proto-go/codespace/v1/codespacev1connect"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/modules/setting"
 	codespace_service "gitea.dev/services/codespace"
@@ -33,18 +32,16 @@ type versionedRequest interface {
 
 var withManager = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
-		if request.Spec().Procedure != codespacev1connect.ManagerServiceRegisterManagerProcedure {
-			manager, err := authenticate(ctx, request.Header())
-			if err != nil {
-				switch {
-				case errors.Is(err, codespace_service.ErrManagerUnregistered):
-					return nil, failureError(connect.CodeUnauthenticated, "manager_unregistered", err)
-				default:
-					return nil, failureError(connect.CodeUnauthenticated, "unauthenticated", err)
-				}
+		manager, err := authenticate(ctx, request.Header())
+		if err != nil {
+			switch {
+			case errors.Is(err, codespace_service.ErrManagerUnregistered):
+				return nil, failureError(connect.CodeUnauthenticated, "manager_unregistered", err)
+			default:
+				return nil, failureError(connect.CodeUnauthenticated, "unauthenticated", err)
 			}
-			ctx = context.WithValue(ctx, managerCtxKey{}, manager)
 		}
+		ctx = context.WithValue(ctx, managerCtxKey{}, manager)
 		if err := validateProtocolVersion(request.Any()); err != nil {
 			return nil, failureError(connect.CodeFailedPrecondition, "protocol_mismatch", err)
 		}
@@ -63,7 +60,7 @@ var withManager = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(una
 	}
 }))
 
-// GetManager returns the Manager authenticated before every RPC except RegisterManager.
+// GetManager returns the Manager authenticated before each ManagerService RPC.
 func GetManager(ctx context.Context) *codespace_model.Manager {
 	if value := ctx.Value(managerCtxKey{}); value != nil {
 		if manager, ok := value.(*codespace_model.Manager); ok {

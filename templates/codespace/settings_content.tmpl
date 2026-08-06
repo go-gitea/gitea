@@ -2,29 +2,23 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "codespace.managers"}} ({{ctx.Locale.Tr "admin.total" .ManagerTotal}})
 		<div class="ui right">
-			<div class="ui top right pointing dropdown jump">
-				<button class="ui primary tiny button">
-					{{ctx.Locale.Tr "codespace.new_manager"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				</button>
-				<div class="menu">
-					<div class="header">{{ctx.Locale.Tr "codespace.registration_token"}}</div>
-					<div class="ui action input">
-						<input type="text" value="{{.ManagerSettings.RegistrationToken}}" readonly>
-						<button class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.ManagerSettings.RegistrationToken}}">
-							{{svg "octicon-copy" 14}}
-						</button>
-					</div>
-					<div class="divider"></div>
-					<div class="item">
-						<a class="link-action" data-url="{{$.ActionBase}}/reset_registration_token" data-modal-confirm="{{ctx.Locale.Tr "codespace.reset_registration_token_confirm"}}">
-							{{ctx.Locale.Tr "codespace.reset_registration_token"}}
-						</a>
-					</div>
-				</div>
-			</div>
+			<form class="ignore-dirty tw-m-0" method="post" action="{{$.ActionBase}}/create">
+				{{$.CsrfTokenHtml}}
+				<button class="ui primary tiny button" type="submit">{{ctx.Locale.Tr "codespace.new_manager"}}</button>
+			</form>
 		</div>
 	</h4>
+	{{if .NewManagerSecret}}
+		<div class="ui attached info segment">
+			<div class="tw-font-semibold tw-mb-2">{{ctx.Locale.Tr "codespace.manager_secret_created" .NewManagerID}}</div>
+			<div class="ui action input">
+				<input type="text" value="{{.NewManagerSecret}}" readonly>
+				<button class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.NewManagerSecret}}">
+					{{svg "octicon-copy" 14}}
+				</button>
+			</div>
+		</div>
+	{{end}}
 	{{if .ManagerSettings.Managers}}
 		<div class="ui attached table segment">
 			<table class="ui very basic table unstackable">

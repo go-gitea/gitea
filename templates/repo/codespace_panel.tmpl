@@ -19,7 +19,7 @@
 			<div class="clone-panel-codespace-list-title">{{ctx.Locale.Tr "codespace.recent"}}</div>
 			{{range .Codespaces}}
 				<div class="clone-panel-codespace-row">
-					<a class="clone-panel-codespace-main" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">
+					<a class="clone-panel-codespace-main" href="{{AppSubUrl}}/-/codespaces/{{.ID}}">
 						{{if eq .RefType "tag"}}{{svg "octicon-tag" 16}}{{else if eq .RefType "commit"}}{{svg "octicon-git-commit" 16}}{{else if eq .RefType "pull"}}{{svg "octicon-git-pull-request" 16}}{{else}}{{svg "octicon-git-branch" 16}}{{end}}
 						<span class="clone-panel-codespace-copy">
 							<strong class="gt-ellipsis" data-tooltip-content="{{.RefDisplayName}}">{{.RefDisplayName}}</strong>
@@ -27,11 +27,11 @@
 						</span>
 					</a>
 					{{if .CanOpen}}
-						<a class="ui tiny primary button tw-m-0" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}?open_endpoint=workspace" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "codespace.open"}}</a>
+						<a class="ui tiny primary button tw-m-0" href="{{AppSubUrl}}/-/codespaces/{{.ID}}?open_endpoint=workspace" target="_blank" rel="noopener noreferrer">{{ctx.Locale.Tr "codespace.open"}}</a>
 					{{else if .CanResume}}
-						<form class="ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{.UUID}}/resume">{{$.CsrfTokenHtml}}<button class="ui tiny button tw-m-0" type="submit">{{ctx.Locale.Tr "codespace.resume"}}</button></form>
+						<form class="ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{.ID}}/resume">{{$.CsrfTokenHtml}}<button class="ui tiny button tw-m-0" type="submit">{{ctx.Locale.Tr "codespace.resume"}}</button></form>
 					{{else}}
-						<a class="ui tiny button tw-m-0" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">{{ctx.Locale.Tr "codespace.details"}}</a>
+						<a class="ui tiny button tw-m-0" href="{{AppSubUrl}}/-/codespaces/{{.ID}}">{{ctx.Locale.Tr "codespace.details"}}</a>
 					{{end}}
 				</div>
 			{{end}}

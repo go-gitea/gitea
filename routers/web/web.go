@@ -548,7 +548,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Get("/-/web-theme/list", misc.WebThemeList)
 	m.Post("/-/web-theme/apply", optSignIn, misc.WebThemeApply)
 	m.Get("/-/codespaces", reqSignIn, web_codespace.List)
-	m.Group("/-/codespaces/{uuid}", func() {
+	m.Group("/-/codespaces/{codespace_id}", func() {
 		m.Get("", web_codespace.Detail)
 		m.Get("/state", web_codespace.State)
 		m.Get("/logs", web_codespace.Logs)
@@ -745,7 +745,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}, actions.MustEnableActions)
 
 		m.Get("/codespaces/managers", web_codespace.UserSettings)
-		m.Post("/codespaces/managers/reset_registration_token", web_codespace.UserSettingsResetRegistrationToken)
+		m.Post("/codespaces/managers/create", web_codespace.UserSettingsCreateManager)
 		m.Get("/codespaces/managers/{manager_id}", web_codespace.UserManager)
 		m.Post("/codespaces/managers/{manager_id}/delete", web_codespace.UserManagerDelete)
 		m.Combo("/codespaces/dev-container-templates").Get(web_codespace.UserDevContainerTemplates).Post(web_codespace.UserDevContainerTemplatePost)
@@ -872,7 +872,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/codespaces", func() {
 			m.Get("/managers", web_codespace.AdminManagers)
-			m.Post("/managers/reset_registration_token", web_codespace.AdminManagersResetRegistrationToken)
+			m.Post("/managers/create", web_codespace.AdminManagersCreateManager)
 			m.Get("/managers/{manager_id}", web_codespace.AdminManager)
 			m.Post("/managers/{manager_id}/delete", web_codespace.AdminManagerDelete)
 			m.Combo("/dev-container-templates").Get(web_codespace.AdminDevContainerTemplates).Post(web_codespace.AdminDevContainerTemplatePost)

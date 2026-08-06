@@ -85,7 +85,7 @@ const GiteaTokenAuthDataKey = "CodespaceToken"
 // Codespace stores Gitea-owned lifecycle state for one remote development environment.
 type Codespace struct {
 	ID                        int64
-	UUID                      string `xorm:"CHAR(36) NOT NULL UNIQUE"`
+	UUID                      string `xorm:"CHAR(36) NOT NULL DEFAULT '' index"`
 	UserID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RepoID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RefType                   string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -136,14 +136,8 @@ type Manager struct {
 // ManagerAddress stores current routable addresses declared by a Manager.
 type ManagerAddress struct {
 	ManagerID int64  `xorm:"pk NOT NULL DEFAULT 0"`
-	Kind      string `xorm:"pk VARCHAR(16) NOT NULL DEFAULT '' unique(kind_address)"`
-	Address   string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' unique(kind_address)"`
-}
-
-// ManagerToken stores the current site-wide or user-scoped Manager registration token.
-type ManagerToken struct {
-	Token  string `xorm:"VARCHAR(64) NOT NULL UNIQUE"`
-	UserID int64  `xorm:"pk NOT NULL DEFAULT 0"`
+	Kind      string `xorm:"pk VARCHAR(16) NOT NULL DEFAULT '' index(kind_address)"`
+	Address   string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index(kind_address)"`
 }
 
 // GiteaToken stores the current Gitea API/Git HTTP token for one Codespace.
@@ -212,10 +206,6 @@ func (*ManagerAddress) TableName() string {
 	return "codespace_manager_address"
 }
 
-func (*ManagerToken) TableName() string {
-	return "codespace_manager_token"
-}
-
 func (*GiteaToken) TableName() string {
 	return "codespace_gitea_token"
 }
@@ -232,7 +222,6 @@ func init() {
 	db.RegisterModel(new(Codespace))
 	db.RegisterModel(new(Manager))
 	db.RegisterModel(new(ManagerAddress))
-	db.RegisterModel(new(ManagerToken))
 	db.RegisterModel(new(GiteaToken))
 	db.RegisterModel(new(SSHKey))
 	db.RegisterModel(new(DevContainerTemplate))
@@ -299,8 +288,10 @@ func ValidateCodespace(codespace *Codespace) error {
 	if codespace == nil {
 		return errors.New("codespace is nil")
 	}
-	if err := ValidateUUID(codespace.UUID); err != nil {
-		return err
+	if codespace.UUID != "" {
+		if err := ValidateUUID(codespace.UUID); err != nil {
+			return err
+		}
 	}
 	if !validStatus(codespace.Status) {
 		return fmt.Errorf("invalid codespace status %q", codespace.Status)

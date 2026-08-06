@@ -75,9 +75,9 @@ func TestReportInstancesReturnsSettingsAndActions(t *testing.T) {
 	_, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 1,
 		Instances: []*codespacev1.RuntimeInstanceRef{
-			{CodespaceUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-			{CodespaceUuid: activeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 81},
-			{CodespaceUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
+			{RuntimeUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
+			{RuntimeUuid: activeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 81},
+			{RuntimeUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
 		},
 	})
 	require.Error(t, err)
@@ -86,13 +86,13 @@ func TestReportInstancesReturnsSettingsAndActions(t *testing.T) {
 	result, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 1,
 		Instances: []*codespacev1.RuntimeInstanceRef{
-			{CodespaceUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-			{CodespaceUuid: activeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 81},
-			{CodespaceUuid: stoppedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-			{CodespaceUuid: failedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
-			{CodespaceUuid: otherUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
-			{CodespaceUuid: unboundUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_CREATING},
-			{CodespaceUuid: absentUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
+			{RuntimeUuid: runningUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
+			{RuntimeUuid: activeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 81},
+			{RuntimeUuid: stoppedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
+			{RuntimeUuid: failedUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
+			{RuntimeUuid: otherUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING},
+			{RuntimeUuid: unboundUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_CREATING},
+			{RuntimeUuid: absentUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
 		},
 	})
 	require.NoError(t, err)
@@ -129,8 +129,8 @@ func TestReportInstancesReturnsDisabledRuntimeSettings(t *testing.T) {
 	result, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 11,
 		Instances: []*codespacev1.RuntimeInstanceRef{{
-			CodespaceUuid: codespaceUUID,
-			RuntimeState:  codespacev1.RuntimeState_RUNTIME_STATE_RUNNING,
+			RuntimeUuid:  codespaceUUID,
+			RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING,
 		}},
 	})
 	require.NoError(t, err)
@@ -169,9 +169,9 @@ func TestReportInstancesTransitionAndClearActions(t *testing.T) {
 	result, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 2,
 		Instances: []*codespacev1.RuntimeInstanceRef{
-			{CodespaceUuid: stoppedRuntimeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
-			{CodespaceUuid: failedRuntimeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
-			{CodespaceUuid: clearUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 93},
+			{RuntimeUuid: stoppedRuntimeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_STOPPED},
+			{RuntimeUuid: failedRuntimeUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_FAILED},
+			{RuntimeUuid: clearUUID, RuntimeState: codespacev1.RuntimeState_RUNTIME_STATE_RUNNING, ObservedOperationRversion: 93},
 		},
 	})
 	require.NoError(t, err)
@@ -294,7 +294,7 @@ func TestReportInstancesRejectsStateHistoryConflict(t *testing.T) {
 	_, err := ReportInstances(t.Context(), manager, ReportInstancesOptions{
 		InventoryGeneration: 4,
 		Instances: []*codespacev1.RuntimeInstanceRef{{
-			CodespaceUuid:             codespaceUUID,
+			RuntimeUuid:               codespaceUUID,
 			RuntimeState:              codespacev1.RuntimeState_RUNTIME_STATE_RUNNING,
 			ObservedOperationRversion: 112,
 		}},

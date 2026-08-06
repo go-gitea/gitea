@@ -57,7 +57,7 @@ type CreateCodespaceOptions struct {
 
 // CreateCodespaceResult contains the new object identity and initial state.
 type CreateCodespaceResult struct {
-	CodespaceUUID  string
+	CodespaceID    int64
 	Status         string
 	EnvironmentTag string
 }
@@ -254,7 +254,7 @@ func CreateCodespace(ctx context.Context, opts CreateCodespaceOptions) (*CreateC
 					return err
 				}
 				result = &CreateCodespaceResult{
-					CodespaceUUID:  codespace.UUID,
+					CodespaceID:    codespace.ID,
 					Status:         codespace.Status,
 					EnvironmentTag: codespace.EnvironmentTag,
 				}
@@ -728,9 +728,7 @@ func ensurePermissionAuthorization(ctx context.Context, userID, sourceRepoID int
 
 func newCreateCodespaceRow(userID, repoID int64, environmentTag string, sourceRef *createSourceRef, devContainer *createDevContainerPlan, authorizationID int64) *codespace_model.Codespace {
 	now := time.Now().Unix()
-	codespaceUUID := codespace_model.NewUUID()
 	codespace := &codespace_model.Codespace{
-		UUID:                      codespaceUUID,
 		UserID:                    userID,
 		RepoID:                    repoID,
 		RefType:                   sourceRef.Type,

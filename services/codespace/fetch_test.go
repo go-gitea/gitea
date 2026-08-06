@@ -44,7 +44,7 @@ func TestFetchOperationsClaimsCreate(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, result.Operations, 1)
 	operation := result.Operations[0]
-	assert.Equal(t, codespaceUUID, operation.GetCodespaceUuid())
+	assert.Equal(t, codespaceUUID, operation.GetRuntimeUuid())
 	assert.EqualValues(t, 31, operation.GetOperationRversion())
 	assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, operation.GetLeaseValidForMilliseconds())
 	create := operation.GetCreate()
@@ -149,7 +149,7 @@ func TestFetchOperationsResumeUsesExistingManagerBinding(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, result.Operations, 1)
-	assert.Equal(t, codespaceUUID, result.Operations[0].GetCodespaceUuid())
+	assert.Equal(t, codespaceUUID, result.Operations[0].GetRuntimeUuid())
 	assert.NotNil(t, result.Operations[0].GetResume())
 }
 
@@ -352,8 +352,8 @@ func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
 		AcceptedCreateTags:       []string{"default"},
 		CleanupCapacityAvailable: 1,
 		ObservedOperations: []*codespacev1.ObservedOperation{
-			{CodespaceUuid: runningCreateUUID, OperationRversion: 51},
-			{CodespaceUuid: runningStopUUID, OperationRversion: 52},
+			{RuntimeUuid: runningCreateUUID, OperationRversion: 51},
+			{RuntimeUuid: runningStopUUID, OperationRversion: 52},
 		},
 	})
 	require.NoError(t, err)
@@ -362,7 +362,7 @@ func TestFetchOperationsDisabledDrainsWithoutClaimingStartup(t *testing.T) {
 	assert.Zero(t, result.Operations[0].GetLeaseValidForMilliseconds())
 	assert.NotNil(t, result.Operations[1].GetStop())
 	require.Len(t, result.RenewedLeases, 1)
-	assert.Equal(t, runningStopUUID, result.RenewedLeases[0].GetCodespaceUuid())
+	assert.Equal(t, runningStopUUID, result.RenewedLeases[0].GetRuntimeUuid())
 
 	assert.Equal(t, originalCreateDeadline, loadServiceCodespace(t, runningCreateUUID).OperationDeadlineUnix)
 	assert.Zero(t, loadServiceCodespace(t, queuedCreateUUID).ManagerID)
@@ -478,14 +478,14 @@ func TestFetchOperationsRenewsObservedOperation(t *testing.T) {
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		ObservedOperations: []*codespacev1.ObservedOperation{{
-			CodespaceUuid:     codespaceUUID,
+			RuntimeUuid:       codespaceUUID,
 			OperationRversion: 32,
 		}},
 	})
 	require.NoError(t, err)
 	assert.Empty(t, result.Operations)
 	require.Len(t, result.RenewedLeases, 1)
-	assert.Equal(t, codespaceUUID, result.RenewedLeases[0].GetCodespaceUuid())
+	assert.Equal(t, codespaceUUID, result.RenewedLeases[0].GetRuntimeUuid())
 	assert.EqualValues(t, 32, result.RenewedLeases[0].GetOperationRversion())
 	assert.EqualValues(t, setting.Codespace.OperationLeaseTimeout/time.Millisecond, result.RenewedLeases[0].GetLeaseValidForMilliseconds())
 	assert.Greater(t, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix, time.Now().Unix()+1)
@@ -524,8 +524,8 @@ func TestFetchOperationsRejectsStateHistoryConflictBeforeWrites(t *testing.T) {
 
 	_, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		ObservedOperations: []*codespacev1.ObservedOperation{
-			{CodespaceUuid: renewedUUID, OperationRversion: 36},
-			{CodespaceUuid: conflictUUID, OperationRversion: 38},
+			{RuntimeUuid: renewedUUID, OperationRversion: 36},
+			{RuntimeUuid: conflictUUID, OperationRversion: 38},
 		},
 	})
 	require.ErrorIs(t, err, ErrFetchStateHistoryConflict)
@@ -578,14 +578,14 @@ func TestFetchOperationsReturnsCurrentPayloadForLowerObservedVersion(t *testing.
 
 	result, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		ObservedOperations: []*codespacev1.ObservedOperation{{
-			CodespaceUuid:     codespaceUUID,
+			RuntimeUuid:       codespaceUUID,
 			OperationRversion: 38,
 		}},
 	})
 	require.NoError(t, err)
 	require.Len(t, result.Operations, 1)
 	assert.Empty(t, result.RenewedLeases)
-	assert.Equal(t, codespaceUUID, result.Operations[0].GetCodespaceUuid())
+	assert.Equal(t, codespaceUUID, result.Operations[0].GetRuntimeUuid())
 	assert.EqualValues(t, 39, result.Operations[0].GetOperationRversion())
 	assert.NotNil(t, result.Operations[0].GetStop())
 	assert.Greater(t, loadServiceCodespace(t, codespaceUUID).OperationDeadlineUnix, time.Now().Unix()+1)
@@ -613,7 +613,7 @@ func TestFetchOperationsClaimsCleanupStop(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, result.Operations, 1)
 	assert.NotNil(t, result.Operations[0].GetStop())
-	assert.Equal(t, codespaceUUID, result.Operations[0].GetCodespaceUuid())
+	assert.Equal(t, codespaceUUID, result.Operations[0].GetRuntimeUuid())
 	assert.Equal(t, codespace_model.OperationStatusRunning, loadServiceCodespace(t, codespaceUUID).OperationStatus)
 }
 
@@ -637,7 +637,7 @@ func TestFetchOperationsRejectsStateHistoryConflict(t *testing.T) {
 
 	_, err := FetchOperations(t.Context(), manager, FetchOperationsOptions{
 		ObservedOperations: []*codespacev1.ObservedOperation{{
-			CodespaceUuid:     codespaceUUID,
+			RuntimeUuid:       codespaceUUID,
 			OperationRversion: 35,
 		}},
 	})

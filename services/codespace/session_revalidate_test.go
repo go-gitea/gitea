@@ -35,7 +35,7 @@ func TestRevalidateGatewaySessionAllowsPrivateEndpointAndSSH(t *testing.T) {
 
 	endpoint, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Endpoint{Endpoint: &codespacev1.EndpointSessionBinding{
-			UserId: 1, CodespaceUuid: codespaceUUID, EndpointId: "app-3000",
+			UserId: 1, RuntimeUuid: codespaceUUID, EndpointId: "app-3000",
 		}},
 	})
 	require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestRevalidateGatewaySessionAllowsPrivateEndpointAndSSH(t *testing.T) {
 
 	workspace, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Endpoint{Endpoint: &codespacev1.EndpointSessionBinding{
-			UserId: 1, CodespaceUuid: codespaceUUID, EndpointId: "workspace",
+			UserId: 1, RuntimeUuid: codespaceUUID, EndpointId: "workspace",
 		}},
 	})
 	require.NoError(t, err)
@@ -51,7 +51,7 @@ func TestRevalidateGatewaySessionAllowsPrivateEndpointAndSSH(t *testing.T) {
 
 	sshSession, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Ssh{Ssh: &codespacev1.SSHSessionBinding{
-			UserId: 1, CodespaceUuid: codespaceUUID,
+			UserId: 1, RuntimeUuid: codespaceUUID,
 		}},
 	})
 	require.NoError(t, err)
@@ -79,7 +79,7 @@ func TestRevalidateGatewaySessionDeniesChangedEndpointAndState(t *testing.T) {
 
 	publicEndpoint, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Endpoint{Endpoint: &codespacev1.EndpointSessionBinding{
-			UserId: 1, CodespaceUuid: codespaceUUID, EndpointId: "public-api",
+			UserId: 1, RuntimeUuid: codespaceUUID, EndpointId: "public-api",
 		}},
 	})
 	require.NoError(t, err)
@@ -87,7 +87,7 @@ func TestRevalidateGatewaySessionDeniesChangedEndpointAndState(t *testing.T) {
 
 	wrongUser, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Ssh{Ssh: &codespacev1.SSHSessionBinding{
-			UserId: 2, CodespaceUuid: codespaceUUID,
+			UserId: 2, RuntimeUuid: codespaceUUID,
 		}},
 	})
 	require.NoError(t, err)
@@ -106,7 +106,7 @@ func TestRevalidateGatewaySessionDeniesChangedEndpointAndState(t *testing.T) {
 	require.NoError(t, putRuntimeMetadataEntry(activeUUID, serviceRuntimeMetadataEntry(t, 63, []map[string]any{})))
 	active, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Ssh{Ssh: &codespacev1.SSHSessionBinding{
-			UserId: 1, CodespaceUuid: activeUUID,
+			UserId: 1, RuntimeUuid: activeUUID,
 		}},
 	})
 	require.NoError(t, err)

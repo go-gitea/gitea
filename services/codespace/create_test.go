@@ -42,7 +42,7 @@ func TestCreateCodespaceQueuesCreateWhenManagerMatches(t *testing.T) {
 	assert.Equal(t, codespace_model.StatusCreating, result.Status)
 	assert.Equal(t, "default", result.EnvironmentTag)
 
-	row := loadServiceCodespace(t, result.CodespaceUUID)
+	row := loadServiceCodespaceByID(t, result.CodespaceID)
 	assert.Equal(t, user.ID, row.UserID)
 	assert.Equal(t, repo.ID, row.RepoID)
 	assert.Equal(t, "branch", row.RefType)
@@ -74,7 +74,7 @@ func TestCreateCodespaceUsesCreatorManagerForOrganizationRepository(t *testing.T
 	require.NoError(t, err)
 	assert.Equal(t, codespace_model.StatusCreating, result.Status)
 
-	row := loadServiceCodespace(t, result.CodespaceUUID)
+	row := loadServiceCodespaceByID(t, result.CodespaceID)
 	assert.Equal(t, user.ID, row.UserID)
 	assert.Equal(t, repo.ID, row.RepoID)
 }
@@ -179,7 +179,7 @@ func TestCreateCodespacePersistsPullRefAndValidatesGitProtocol(t *testing.T) {
 	assert.Equal(t, "user2/repo1", plan.PullRequest.HeadRepoFullName)
 	assert.Equal(t, "branch2", plan.PullRequest.HeadBranch)
 
-	row := loadServiceCodespace(t, result.CodespaceUUID)
+	row := loadServiceCodespaceByID(t, result.CodespaceID)
 	assert.Equal(t, "pull", row.RefType)
 	assert.Equal(t, "refs/pull/3/head", row.RefName)
 	assert.NotEmpty(t, row.CommitSHA)
@@ -365,7 +365,7 @@ CONFIG
 	}
 	first, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
-	firstCodespace := loadServiceCodespace(t, first.CodespaceUUID)
+	firstCodespace := loadServiceCodespaceByID(t, first.CodespaceID)
 	assert.Equal(t, codespace_model.DevContainerSourceRepository, firstCodespace.DevContainerSource)
 	assert.Equal(t, devContainerPrimaryPath, firstCodespace.DevContainerPath)
 	assert.Empty(t, firstCodespace.DevContainerContent)
@@ -394,13 +394,13 @@ CONFIG
 
 	second, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
-	assert.Equal(t, authorization.ID, loadServiceCodespace(t, second.CodespaceUUID).PermissionAuthorizationID)
+	assert.Equal(t, authorization.ID, loadServiceCodespaceByID(t, second.CodespaceID).PermissionAuthorizationID)
 
 	require.NotNil(t, codeRule)
 	require.NoError(t, ReducePermissionRepository(t.Context(), user.ID, authorization.ID, codeRule.TargetRepoID, codeRule.UnitType, perm.AccessModeNone))
 	third, err := CreateCodespace(t.Context(), opts)
 	require.NoError(t, err)
-	assert.NotEqual(t, authorization.ID, loadServiceCodespace(t, third.CodespaceUUID).PermissionAuthorizationID)
+	assert.NotEqual(t, authorization.ID, loadServiceCodespaceByID(t, third.CodespaceID).PermissionAuthorizationID)
 }
 
 func createConfirmedCodespace(t *testing.T, opts CreateCodespaceOptions) (*CreateCodespaceResult, error) {

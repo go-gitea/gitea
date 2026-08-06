@@ -29,7 +29,6 @@ func Test_AddCodespaceTables(t *testing.T) {
 		"codespace",
 		"codespace_manager",
 		"codespace_manager_address",
-		"codespace_manager_token",
 		"codespace_gitea_token",
 		"codespace_ssh_key",
 		"codespace_permission_authorization",
@@ -46,7 +45,7 @@ func Test_AddCodespaceTables(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, hasIndex(codespaceIndexes, "user_id", "updated_unix", "created_unix", "id"))
 	assert.True(t, hasIndex(codespaceIndexes, "repo_id"))
-	assert.True(t, hasUniqueIndex(codespaceIndexes, "uuid"))
+	assert.True(t, hasIndex(codespaceIndexes, "uuid"))
 	assertPrimaryKeyColumns(t, x, "codespace", "id")
 	assert.True(t, hasIndex(codespaceIndexes, "status", "operation_type", "operation_status", "manager_id", "environment_tag", "operation_created_unix", "id"))
 	assert.True(t, hasIndex(codespaceIndexes, "manager_id", "operation_status", "operation_created_unix", "id"))
@@ -60,13 +59,8 @@ func Test_AddCodespaceTables(t *testing.T) {
 
 	addressIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_manager_address")
 	require.NoError(t, err)
-	assert.True(t, hasUniqueIndex(addressIndexes, "kind", "address"))
+	assert.True(t, hasIndex(addressIndexes, "kind", "address"))
 	assertPrimaryKeyColumns(t, x, "codespace_manager_address", "manager_id", "kind")
-
-	managerTokenIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_manager_token")
-	require.NoError(t, err)
-	assert.True(t, hasUniqueIndex(managerTokenIndexes, "token"))
-	assertPrimaryKeyColumns(t, x, "codespace_manager_token", "user_id")
 
 	giteaTokenIndexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "codespace_gitea_token")
 	require.NoError(t, err)

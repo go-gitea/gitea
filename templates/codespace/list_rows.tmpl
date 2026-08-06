@@ -6,7 +6,7 @@
 					<div class="item-main">
 						<div class="item-header">
 							<div class="item-title">
-								<a href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">{{if .RepoFullName}}{{.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}</a>
+								<a href="{{AppSubUrl}}/-/codespaces/{{.ID}}">{{if .RepoFullName}}{{.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}</a>
 								<span class="ui tiny label codespace-state-label codespace-state-{{.DisplayStatus}}">{{ctx.Locale.Tr .DisplayStatusKey}}</span>
 							</div>
 						</div>
@@ -25,29 +25,29 @@
 								data-modal-form.url="{{AppSubUrl}}{{.Workspace.OpenPath}}" data-modal-form.target="_blank"
 								data-modal-endpoint-label="{{ctx.Locale.Tr "codespace.workspace"}}" data-modal-access-kind="{{ctx.Locale.Tr "codespace.authenticated_endpoint"}}">{{svg "octicon-terminal" 16}}</button>
 						{{else}}
-							<a class="ui tiny icon button" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.details"}}" aria-label="{{ctx.Locale.Tr "codespace.details"}}">{{svg "octicon-eye" 16}}</a>
+							<a class="ui tiny icon button" href="{{AppSubUrl}}/-/codespaces/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.details"}}" aria-label="{{ctx.Locale.Tr "codespace.details"}}">{{svg "octicon-eye" 16}}</a>
 						{{end}}
 						{{if or .CanResume (and .CanContinue (not .CanOpen)) .CanStop .CanConfigureAutoStop .CanDelete}}<span class="codespace-list-action-divider" aria-hidden="true"></span>{{end}}
 						{{if .CanResume}}
-							<form class="form-fetch-action tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{.UUID}}/resume">
+							<form class="form-fetch-action tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{.ID}}/resume">
 								{{$.CsrfTokenHtml}}
 								<input type="hidden" name="return_to" value="{{$.CodespaceListReturnTo}}">
 								<button class="ui tiny icon button" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.resume_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.resume_confirm"}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.resume"}}" aria-label="{{ctx.Locale.Tr "codespace.resume"}}">{{svg "octicon-play" 16}}</button>
 							</form>
 						{{end}}
 						{{if and .CanContinue (not .CanOpen)}}
-							<form class="form-fetch-action tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{.UUID}}/continue">
+							<form class="form-fetch-action tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{.ID}}/continue">
 								{{$.CsrfTokenHtml}}
 								<input type="hidden" name="return_to" value="{{$.CodespaceListReturnTo}}">
 								<button class="ui tiny icon button" type="submit" data-tooltip-content="{{ctx.Locale.Tr "codespace.continue"}}" aria-label="{{ctx.Locale.Tr "codespace.continue"}}">{{svg "octicon-play" 16}}</button>
 							</form>
 						{{end}}
 						{{if .CanStop}}
-							<button class="ui tiny icon button link-action" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{.UUID}}/stop{{QueryBuild "?" "return_to" $.CodespaceListReturnTo}}" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.stop_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.stop_confirm"}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.stop"}}" aria-label="{{ctx.Locale.Tr "codespace.stop"}}">{{svg "octicon-stop" 16}}</button>
+							<button class="ui tiny icon button link-action" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{.ID}}/stop{{QueryBuild "?" "return_to" $.CodespaceListReturnTo}}" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.stop_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.stop_confirm"}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.stop"}}" aria-label="{{ctx.Locale.Tr "codespace.stop"}}">{{svg "octicon-stop" 16}}</button>
 						{{end}}
 						{{if .CanConfigureAutoStop}}
 							<button class="ui tiny icon button codespace-settings-button" type="button" data-tooltip-content="{{ctx.Locale.Tr "settings_title"}}" aria-label="{{ctx.Locale.Tr "settings_title"}}"
-								data-settings-url="{{AppSubUrl}}/-/codespaces/{{.UUID}}/auto-stop" data-return-to="{{$.CodespaceListReturnTo}}"
+								data-settings-url="{{AppSubUrl}}/-/codespaces/{{.ID}}/auto-stop" data-return-to="{{$.CodespaceListReturnTo}}"
 								data-auto-stop-mode="{{.AutoStop.Mode}}" data-auto-stop-timeout-value="{{.AutoStop.Timeout.Value}}" data-auto-stop-timeout-unit="{{.AutoStop.Timeout.Unit}}"
 								data-auto-stop-configurable="true" data-auto-stop-out-of-range="{{.AutoStop.CustomTimeoutOutOfRange}}"
 								data-auto-stop-effective="{{if .AutoStop.EffectiveEnabled}}{{ctx.Locale.Tr "codespace.auto_stop_effective" (ctx.Locale.Tr .AutoStop.EffectiveTimeout.TranslationKey .AutoStop.EffectiveTimeout.Value)}}{{else}}{{ctx.Locale.Tr "codespace.auto_stop_effective_never"}}{{end}}"
@@ -55,7 +55,7 @@
 								data-auto-stop-range="{{ctx.Locale.Tr "codespace.auto_stop_range" (ctx.Locale.Tr .AutoStop.Minimum.TranslationKey .AutoStop.Minimum.Value) (ctx.Locale.Tr .AutoStop.Maximum.TranslationKey .AutoStop.Maximum.Value)}}">{{svg "octicon-gear" 16}}</button>
 						{{end}}
 						{{if .CanDelete}}
-							<button class="ui red tiny icon button link-action" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{.UUID}}/delete{{QueryBuild "?" "return_to" $.CodespaceListReturnTo}}" data-tooltip-content="{{ctx.Locale.Tr "delete"}}" aria-label="{{ctx.Locale.Tr "delete"}}"
+							<button class="ui red tiny icon button link-action" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{.ID}}/delete{{QueryBuild "?" "return_to" $.CodespaceListReturnTo}}" data-tooltip-content="{{ctx.Locale.Tr "delete"}}" aria-label="{{ctx.Locale.Tr "delete"}}"
 								data-modal-confirm-header="{{ctx.Locale.Tr "codespace.delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_confirm" .ShortUUID}}"
 								>{{svg "octicon-trash" 16}}</button>
 						{{end}}

@@ -33,24 +33,6 @@ type Service struct {
 	codespacev1connect.UnimplementedManagerServiceHandler
 }
 
-// RegisterManager exchanges a registration token for a Manager identity.
-func (s *Service) RegisterManager(
-	ctx context.Context,
-	req *connect.Request[codespacev1.RegisterManagerRequest],
-) (*connect.Response[codespacev1.RegisterManagerResponse], error) {
-	manager, secret, err := codespace_service.RegisterManager(ctx, req.Msg.GetRegistrationToken())
-	if err != nil {
-		return nil, serviceFailureError(err, connect.CodeInternal, "internal_error", []serviceErrorCase{
-			{target: codespace_service.ErrRegistrationUnauthenticated, code: connect.CodeUnauthenticated, category: "unauthenticated"},
-			{target: codespace_service.ErrRegistrationStateUnavailable, code: connect.CodeFailedPrecondition, category: "state_unavailable"},
-		})
-	}
-	return connect.NewResponse(&codespacev1.RegisterManagerResponse{
-		ManagerId:     manager.ID,
-		ManagerSecret: secret,
-	}), nil
-}
-
 // DeclareManager stores the authenticated Manager's current declaration.
 func (s *Service) DeclareManager(
 	ctx context.Context,
@@ -68,10 +50,7 @@ func (s *Service) DeclareManager(
 		GatewaySSHHostKeyFingerprintSHA256: req.Msg.GetGatewaySshHostKeyFingerprintSha256(),
 		GatewaySSHHostKeyUpdatedUnix:       req.Msg.GetGatewaySshHostKeyUpdatedUnix(),
 	}); err != nil {
-		return nil, serviceFailureError(err, connect.CodeInvalidArgument, "invalid_declaration", []serviceErrorCase{
-			{target: codespace_service.ErrDeclareGatewayURLConflict, code: connect.CodeFailedPrecondition, category: "gateway_url_conflict"},
-			{target: codespace_service.ErrDeclareGatewaySSHAddrConflict, code: connect.CodeFailedPrecondition, category: "gateway_ssh_addr_conflict"},
-		})
+		return nil, serviceFailureError(err, "invalid_declaration", nil)
 	}
 	heartbeatMillis, metadataRefreshMillis, maxMessageBytes, giteaWebURL := codespace_service.ManagerServiceTimings()
 	return connect.NewResponse(&codespacev1.DeclareManagerResponse{
@@ -96,12 +75,33 @@ func (s *Service) FetchOperations(
 		CleanupCapacityAvailable: req.Msg.GetCleanupCapacityAvailable(),
 	})
 	if err != nil {
-		return nil, serviceFailureError(err, connect.CodeInvalidArgument, "invalid_argument", []serviceErrorCase{
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
 			{target: codespace_service.ErrFetchStateHistoryConflict, code: connect.CodeFailedPrecondition, category: "state_history_conflict"},
 			{target: codespace_service.ErrFetchManagerUnavailable, code: connect.CodeUnavailable, category: "manager_offline"},
 		})
 	}
 	return connect.NewResponse(result), nil
+}
+
+// BindRuntimeIdentity stores the Manager-allocated runtime UUID for an active create operation.
+func (s *Service) BindRuntimeIdentity(
+	ctx context.Context,
+	req *connect.Request[codespacev1.BindRuntimeIdentityRequest],
+) (*connect.Response[codespacev1.BindRuntimeIdentityResponse], error) {
+	manager := GetManager(ctx)
+	runtimeUUID, err := codespace_service.BindRuntimeIdentity(ctx, manager, codespace_service.BindRuntimeIdentityOptions{
+		CodespaceID:       req.Msg.GetCodespaceId(),
+		OperationRVersion: req.Msg.GetOperationRversion(),
+		RuntimeUUID:       req.Msg.GetRuntimeUuid(),
+	})
+	if err != nil {
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
+			{target: codespace_service.ErrBindRuntimeIdentityNotFound, code: connect.CodeNotFound, category: "codespace_not_found"},
+			{target: codespace_service.ErrBindRuntimeIdentityStateConflict, code: connect.CodeFailedPrecondition, category: "state_conflict"},
+			{target: codespace_service.ErrBindRuntimeIdentityConflict, code: connect.CodeFailedPrecondition, category: "runtime_uuid_conflict"},
+		})
+	}
+	return connect.NewResponse(&codespacev1.BindRuntimeIdentityResponse{RuntimeUuid: runtimeUUID}), nil
 }
 
 // ReportInstances accepts a complete Runtime inventory snapshot.
@@ -137,13 +137,13 @@ func (s *Service) FinalizeOperation(
 ) (*connect.Response[codespacev1.FinalizeOperationResponse], error) {
 	manager := GetManager(ctx)
 	response, err := codespace_service.FinalizeOperation(ctx, manager, codespace_service.FinalizeOperationOptions{
-		CodespaceUUID:     req.Msg.GetCodespaceUuid(),
+		CodespaceUUID:     req.Msg.GetRuntimeUuid(),
 		OperationRVersion: req.Msg.GetOperationRversion(),
 		OperationType:     req.Msg.GetOperationType(),
 		FinalStatus:       req.Msg.GetStatus(),
 	})
 	if err != nil {
-		return nil, serviceFailureError(err, connect.CodeInvalidArgument, "invalid_argument", []serviceErrorCase{
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
 			{target: codespace_service.ErrFinalizeGiteaTokenRequired, code: connect.CodeFailedPrecondition, category: "gitea_token_required"},
 			{target: codespace_service.ErrFinalizeMetadataRequired, code: connect.CodeFailedPrecondition, category: "metadata_required"},
 		})
@@ -158,7 +158,7 @@ func (s *Service) UpdateLog(
 ) (*connect.Response[codespacev1.UpdateLogResponse], error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.UpdateLog(ctx, manager, codespace_service.UpdateLogOptions{
-		CodespaceUUID:     req.Msg.GetCodespaceUuid(),
+		CodespaceUUID:     req.Msg.GetRuntimeUuid(),
 		OperationRVersion: req.Msg.GetOperationRversion(),
 		Offset:            req.Msg.GetOffset(),
 		Lines:             req.Msg.GetLines(),
@@ -190,7 +190,7 @@ func (s *Service) ReportRuntimeMetadata(
 ) (*connect.Response[codespacev1.ReportRuntimeMetadataResponse], error) {
 	manager := GetManager(ctx)
 	err := codespace_service.ReportRuntimeMetadata(ctx, manager, codespace_service.ReportRuntimeMetadataOptions{
-		CodespaceUUID:      req.Msg.GetCodespaceUuid(),
+		CodespaceUUID:      req.Msg.GetRuntimeUuid(),
 		Metadata:           req.Msg.GetMetadata(),
 		MetadataGeneration: req.Msg.GetMetadataGeneration(),
 	})
@@ -207,7 +207,7 @@ func (s *Service) ReportRuntimeTransition(
 ) (*connect.Response[codespacev1.ReportRuntimeTransitionResponse], error) {
 	manager := GetManager(ctx)
 	err := codespace_service.ReportRuntimeTransition(ctx, manager, codespace_service.ReportRuntimeTransitionOptions{
-		CodespaceUUID:             req.Msg.GetCodespaceUuid(),
+		CodespaceUUID:             req.Msg.GetRuntimeUuid(),
 		RuntimeGeneration:         req.Msg.GetRuntimeGeneration(),
 		ObservedOperationRVersion: req.Msg.GetObservedOperationRversion(),
 		RuntimeState:              req.Msg.GetRuntimeState(),
@@ -251,16 +251,16 @@ func reportRuntimeError(err error, cases []serviceErrorCase) error {
 	if errors.As(err, &staleGeneration) {
 		return failureErrorWithStaleGeneration(connect.CodeFailedPrecondition, "stale_generation", staleGeneration.CurrentGeneration, err)
 	}
-	return serviceFailureError(err, connect.CodeInvalidArgument, "invalid_argument", cases)
+	return serviceFailureError(err, "invalid_argument", cases)
 }
 
-func serviceFailureError(err error, fallbackCode connect.Code, fallbackCategory string, cases []serviceErrorCase) error {
+func serviceFailureError(err error, fallbackCategory string, cases []serviceErrorCase) error {
 	for _, errCase := range cases {
 		if errors.Is(err, errCase.target) {
 			return failureError(errCase.code, errCase.category, err)
 		}
 	}
-	return failureError(fallbackCode, fallbackCategory, err)
+	return failureError(connect.CodeInvalidArgument, fallbackCategory, err)
 }
 
 // RequestRuntimeAccess returns the authenticated Manager's current runtime access material.
@@ -270,12 +270,12 @@ func (s *Service) RequestRuntimeAccess(
 ) (*connect.Response[codespacev1.RequestRuntimeAccessResponse], error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.RequestRuntimeAccess(ctx, manager, codespace_service.RequestRuntimeAccessOptions{
-		CodespaceUUID:     req.Msg.GetCodespaceUuid(),
+		CodespaceUUID:     req.Msg.GetRuntimeUuid(),
 		OperationRVersion: req.Msg.GetOperationRversion(),
 		GitSSHPublicKey:   req.Msg.GetGitSshKey().GetPublicKey(),
 	})
 	if err != nil {
-		return nil, serviceFailureError(err, connect.CodeInvalidArgument, "invalid_argument", []serviceErrorCase{
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
 			{target: codespace_service.ErrRequestRuntimeAccessNotFound, code: connect.CodeNotFound, category: "codespace_not_found"},
 			{target: codespace_service.ErrRequestRuntimeAccessManagerMismatch, code: connect.CodeFailedPrecondition, category: "manager_mismatch"},
 			{target: codespace_service.ErrRequestRuntimeAccessStateUnavailable, code: connect.CodeFailedPrecondition, category: "state_unavailable"},
@@ -309,13 +309,13 @@ func (s *Service) RequestIdleStop(
 	manager := GetManager(ctx)
 	settings := req.Msg.GetObservedSettings()
 	result, err := codespace_service.RequestIdleStop(ctx, manager, codespace_service.RequestIdleStopOptions{
-		CodespaceUUID:                 req.Msg.GetCodespaceUuid(),
+		CodespaceUUID:                 req.Msg.GetRuntimeUuid(),
 		ObservedAutoStopEnabled:       settings.GetAutoStopEnabled(),
 		ObservedIdleTimeoutSeconds:    settings.GetIdleTimeoutSeconds(),
 		ObservedInteractionGeneration: settings.GetInteractionGeneration(),
 	})
 	if err != nil {
-		return nil, serviceFailureError(err, connect.CodeInvalidArgument, "invalid_argument", []serviceErrorCase{
+		return nil, serviceFailureError(err, "invalid_argument", []serviceErrorCase{
 			{target: codespace_service.ErrRequestIdleStopNotFound, code: connect.CodeNotFound, category: "codespace_not_found"},
 			{target: codespace_service.ErrRequestIdleStopManagerMismatch, code: connect.CodeFailedPrecondition, category: "manager_mismatch"},
 			{target: codespace_service.ErrRequestIdleStopManagerUnavailable, code: connect.CodeUnavailable, category: "manager_offline"},
@@ -332,7 +332,7 @@ func (s *Service) ValidatePublicEndpoint(
 ) (*connect.Response[codespacev1.ValidatePublicEndpointResponse], error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.ValidatePublicEndpoint(ctx, manager, codespace_service.ValidatePublicEndpointOptions{
-		CodespaceUUID: req.Msg.GetCodespaceUuid(),
+		CodespaceUUID: req.Msg.GetRuntimeUuid(),
 		EndpointID:    req.Msg.GetEndpointId(),
 	})
 	if err != nil {
@@ -363,7 +363,7 @@ func (s *Service) VerifySSHPublicKey(
 ) (*connect.Response[codespacev1.VerifySSHPublicKeyResponse], error) {
 	manager := GetManager(ctx)
 	result, err := codespace_service.VerifySSHPublicKey(ctx, manager, codespace_service.VerifySSHPublicKeyOptions{
-		CodespaceUUID: req.Msg.GetCodespaceUuid(),
+		CodespaceUUID: req.Msg.GetRuntimeUuid(),
 		PublicKey:     req.Msg.GetPublicKey(),
 	})
 	if err != nil {

@@ -4,6 +4,7 @@
 package codespace
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -44,7 +45,7 @@ func TestListCreatorCodespacesShowsRunningWorkspace(t *testing.T) {
 	assert.NotEmpty(t, row.CommitLink)
 	assert.Equal(t, refreshStableMilliseconds, row.RefreshAfterMillis)
 	require.NotNil(t, row.Workspace)
-	assert.Equal(t, "/-/codespaces/"+codespaceUUID+"/open", row.Workspace.OpenPath)
+	assert.Equal(t, "/-/codespaces/"+strconv.FormatInt(row.ID, 10)+"/open", row.Workspace.OpenPath)
 	assert.Empty(t, row.Endpoints)
 	assert.Nil(t, row.ResourceUsage)
 	assert.Nil(t, row.SSH)
@@ -231,7 +232,7 @@ func TestGetCreatorCodespaceKeepsQueuedIdleStopInteractive(t *testing.T) {
 		{"endpoint_id": "public-app", "label": "Public app", "public": true},
 	})))
 
-	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceUUID: codespaceUUID})
+	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
 	require.NoError(t, err)
 
 	assert.Equal(t, DisplayRunning, view.DisplayStatus)
@@ -261,7 +262,7 @@ func TestGetCreatorCodespaceShowsTransitionsAndPermissions(t *testing.T) {
 		OperationStatus: codespace_model.OperationStatusQueued,
 	})
 
-	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceUUID: codespaceUUID})
+	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
 	require.NoError(t, err)
 	assert.Equal(t, DisplayQueued, view.DisplayStatus)
 	assert.Equal(t, DetailModeLogs, view.DetailMode)
@@ -269,7 +270,7 @@ func TestGetCreatorCodespaceShowsTransitionsAndPermissions(t *testing.T) {
 	assert.False(t, view.CanOpen)
 	assert.True(t, view.CanDelete)
 
-	_, err = GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 2, CodespaceUUID: codespaceUUID})
+	_, err = GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 2, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
 	require.ErrorIs(t, err, ErrViewPermissionDenied)
 }
 
@@ -290,7 +291,7 @@ func TestGetCreatorCodespaceShowsCurrentBootStage(t *testing.T) {
 	entry.Metadata.Boot.Stage = bootStagePrepareWorkspace
 	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, entry))
 
-	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceUUID: codespaceUUID})
+	view, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
 	require.NoError(t, err)
 	assert.Equal(t, DisplayBooting, view.DisplayStatus)
 	assert.Equal(t, DetailModeLogs, view.DetailMode)
@@ -307,7 +308,7 @@ func TestStoppedCreatorCodespaceResumeRequiresOnlineManager(t *testing.T) {
 		Status: codespace_model.StatusStopped,
 	})
 
-	offlineView, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceUUID: offlineUUID})
+	offlineView, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, offlineUUID)})
 	require.NoError(t, err)
 	assert.Equal(t, DisplayStopped, offlineView.DisplayStatus)
 	assert.False(t, offlineView.CanResume)
@@ -319,7 +320,7 @@ func TestStoppedCreatorCodespaceResumeRequiresOnlineManager(t *testing.T) {
 		Status: codespace_model.StatusStopped,
 	})
 
-	onlineView, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceUUID: onlineUUID})
+	onlineView, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, onlineUUID)})
 	require.NoError(t, err)
 	assert.Equal(t, DisplayStopped, onlineView.DisplayStatus)
 	assert.True(t, onlineView.CanResume)
@@ -328,7 +329,7 @@ func TestStoppedCreatorCodespaceResumeRequiresOnlineManager(t *testing.T) {
 		RuntimeState: codespace_model.ManagerRuntimeStateRecovering,
 	})
 	require.NoError(t, err)
-	recoveringView, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceUUID: onlineUUID})
+	recoveringView, err := GetCreatorCodespace(t.Context(), CreatorDetailOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, onlineUUID)})
 	require.NoError(t, err)
 	assert.False(t, recoveringView.CanResume)
 }

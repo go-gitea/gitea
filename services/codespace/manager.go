@@ -14,10 +14,8 @@ import (
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/setting"
 )
 
 var (
@@ -28,18 +26,16 @@ var (
 const managerMaxEnvironments = 64
 
 var (
-	// ErrRegistrationUnauthenticated is returned when a registration token is not current.
-	ErrRegistrationUnauthenticated = errors.New("manager registration unauthenticated")
-	// ErrRegistrationStateUnavailable is returned when Codespace is not accepting new Manager registrations.
-	ErrRegistrationStateUnavailable = errors.New("manager registration state unavailable")
 	// ErrManagerUnregistered is returned when the Manager ID has no current row.
 	ErrManagerUnregistered = errors.New("manager unregistered")
 	// ErrManagerUnauthenticated is returned when the Manager credential is not valid.
 	ErrManagerUnauthenticated = errors.New("manager unauthenticated")
-	// ErrDeclareGatewayURLConflict is returned when another Manager already uses the Gateway URL.
-	ErrDeclareGatewayURLConflict = errors.New("manager gateway url conflict")
-	// ErrDeclareGatewaySSHAddrConflict is returned when another Manager already uses the Gateway SSH address.
-	ErrDeclareGatewaySSHAddrConflict = errors.New("manager gateway ssh address conflict")
+	// ErrBindRuntimeIdentityNotFound is returned when the create operation cannot be found.
+	ErrBindRuntimeIdentityNotFound = errors.New("runtime identity target not found")
+	// ErrBindRuntimeIdentityStateConflict is returned when the create operation cannot accept a runtime UUID.
+	ErrBindRuntimeIdentityStateConflict = errors.New("runtime identity state conflict")
+	// ErrBindRuntimeIdentityConflict is returned when the runtime UUID is already bound elsewhere.
+	ErrBindRuntimeIdentityConflict = errors.New("runtime identity conflict")
 )
 
 // DeclareManagerOptions contains the full Manager declaration accepted by Gitea.
@@ -55,70 +51,61 @@ type DeclareManagerOptions struct {
 	GatewaySSHHostKeyUpdatedUnix       int64
 }
 
+// BindRuntimeIdentityOptions contains the manager-created runtime identity for one create operation.
+type BindRuntimeIdentityOptions struct {
+	CodespaceID       int64
+	OperationRVersion int64
+	RuntimeUUID       string
+}
+
 // ManagerEnvironmentDeclaration is one environment in a Manager declaration snapshot.
 type ManagerEnvironmentDeclaration struct {
 	Tag         string `json:"tag"`
 	Description string `json:"description,omitempty"`
 }
 
-// RegisterManager exchanges the current site or personal registration token for a Manager identity.
-func RegisterManager(ctx context.Context, registrationToken string) (*codespace_model.Manager, string, error) {
-	if !setting.Codespace.Enabled {
-		return nil, "", ErrRegistrationStateUnavailable
+// BindRuntimeIdentity stores the runtime UUID allocated by the Manager for an active create.
+func BindRuntimeIdentity(ctx context.Context, manager *codespace_model.Manager, opts BindRuntimeIdentityOptions) (string, error) {
+	if manager == nil || manager.ID <= 0 || opts.CodespaceID <= 0 || opts.OperationRVersion <= 0 {
+		return "", ErrBindRuntimeIdentityNotFound
 	}
-	registrationToken = strings.TrimSpace(registrationToken)
-	if registrationToken == "" {
-		return nil, "", ErrRegistrationUnauthenticated
+	if err := codespace_model.ValidateUUID(opts.RuntimeUUID); err != nil {
+		return "", err
 	}
-
-	token, err := loadRegistrationTokenByValue(ctx, registrationToken)
-	if err != nil {
-		return nil, "", err
-	}
-	if token == nil {
-		return nil, "", ErrRegistrationUnauthenticated
-	}
-
-	var manager *codespace_model.Manager
-	var secret string
-	err = globallock.LockAndDo(ctx, codespaceUserRelationLockKey(token.UserID), func(ctx context.Context) error {
+	return opts.RuntimeUUID, globallock.LockAndDo(ctx, codespaceStateLockKey(opts.RuntimeUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
-			currentToken, err := loadRegistrationTokenByValue(ctx, registrationToken)
+			codespace := new(codespace_model.Codespace)
+			has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
 			if err != nil {
 				return err
 			}
-			if currentToken == nil || currentToken.UserID != token.UserID {
-				return ErrRegistrationUnauthenticated
+			if !has || codespace.ManagerID != manager.ID || codespace.OperationRVersion != opts.OperationRVersion ||
+				codespace.OperationType != codespace_model.OperationCreate || codespace.OperationStatus != codespace_model.OperationStatusRunning {
+				return ErrBindRuntimeIdentityNotFound
 			}
-			if currentToken.UserID > 0 {
-				user, err := user_model.GetUserByID(ctx, currentToken.UserID)
-				if err != nil {
-					if user_model.IsErrUserNotExist(err) {
-						return ErrRegistrationUnauthenticated
-					}
-					return err
-				}
-				if user.Type != user_model.UserTypeIndividual {
-					return ErrRegistrationUnauthenticated
-				}
+			if codespace.UUID == opts.RuntimeUUID {
+				return nil
 			}
-			manager = &codespace_model.Manager{
-				UserID:       currentToken.UserID,
-				RuntimeState: codespace_model.ManagerRuntimeStateRecovering,
-				TagsJSON:     "[]",
-				CreatedUnix:  time.Now().Unix(),
+			if codespace.UUID != "" {
+				return ErrBindRuntimeIdentityStateConflict
 			}
-			secret = manager.GenerateManagerSecret()
-			if _, err := db.GetEngine(ctx).Insert(manager); err != nil {
+			used, err := db.GetEngine(ctx).Where("uuid = ? AND id <> ?", opts.RuntimeUUID, codespace.ID).Exist(new(codespace_model.Codespace))
+			if err != nil {
 				return err
 			}
-			return nil
+			if used {
+				return ErrBindRuntimeIdentityConflict
+			}
+			affected, err := db.GetEngine(ctx).Where("id = ? AND uuid = ?", codespace.ID, "").Cols("uuid", "updated_unix").Update(&codespace_model.Codespace{
+				UUID:        opts.RuntimeUUID,
+				UpdatedUnix: time.Now().Unix(),
+			})
+			if err == nil && affected == 0 {
+				return ErrBindRuntimeIdentityStateConflict
+			}
+			return err
 		})
 	})
-	if err != nil {
-		return nil, "", err
-	}
-	return manager, secret, nil
 }
 
 // AuthenticateManager verifies a Manager id and plaintext secret.
@@ -171,13 +158,6 @@ func DeclareManager(ctx context.Context, manager *codespace_model.Manager, opts 
 			if !has {
 				return ErrManagerUnregistered
 			}
-			if err := checkManagerAddressConflict(ctx, currentManager.ID, codespace_model.ManagerAddressGateway, opts.GatewayURL); err != nil {
-				return err
-			}
-			if err := checkManagerAddressConflict(ctx, currentManager.ID, codespace_model.ManagerAddressSSH, opts.GatewaySSHAddr); err != nil {
-				return err
-			}
-
 			now := time.Now().Unix()
 			updates := &codespace_model.Manager{
 				Name:                               opts.Name,
@@ -212,24 +192,6 @@ func DeclareManager(ctx context.Context, manager *codespace_model.Manager, opts 
 			return nil
 		})
 	})
-}
-
-func checkManagerAddressConflict(ctx context.Context, managerID int64, kind, address string) error {
-	existing := new(codespace_model.ManagerAddress)
-	has, err := db.GetEngine(ctx).
-		Where("kind = ? AND address = ? AND manager_id <> ?", kind, address, managerID).
-		Get(existing)
-	if err != nil || !has {
-		return err
-	}
-	switch kind {
-	case codespace_model.ManagerAddressGateway:
-		return ErrDeclareGatewayURLConflict
-	case codespace_model.ManagerAddressSSH:
-		return ErrDeclareGatewaySSHAddrConflict
-	default:
-		return errors.New("manager address conflict")
-	}
 }
 
 func normalizeDeclareManagerOptions(opts DeclareManagerOptions) (DeclareManagerOptions, error) {
@@ -316,13 +278,4 @@ func normalizeManagerEnvironments(environments []*codespacev1.EnvironmentTag) ([
 		normalized = append(normalized, ManagerEnvironmentDeclaration{Tag: tag, Description: description})
 	}
 	return normalized, nil
-}
-
-func loadRegistrationTokenByValue(ctx context.Context, tokenValue string) (*codespace_model.ManagerToken, error) {
-	token := new(codespace_model.ManagerToken)
-	has, err := db.GetEngine(ctx).Where("token = ?", tokenValue).Get(token)
-	if err != nil || !has {
-		return nil, err
-	}
-	return token, nil
 }

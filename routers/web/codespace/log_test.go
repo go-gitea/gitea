@@ -40,9 +40,9 @@ func TestLogsReturnsJSONPage(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"/logs?offset=0&limit=40")
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs?offset=0&limit=40")
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	Logs(ctx)
 
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -62,10 +62,9 @@ func TestLogsReturnsJSONPage(t *testing.T) {
 func TestLogsRejectsInvalidArgument(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	codespaceUUID := "93909090-9090-4090-8090-909090909090"
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"/logs?offset=bad")
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/1/logs?offset=bad")
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", "1")
 	Logs(ctx)
 
 	require.Equal(t, http.StatusBadRequest, resp.Code)
@@ -80,16 +79,16 @@ func TestLogsHideOtherCreatorCodespace(t *testing.T) {
 	codespaceUUID := "97909090-9090-4090-8090-909090909090"
 	insertWebLogCodespace(t, manager.ID, codespaceUUID, 98)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"/logs")
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs")
 	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	Logs(ctx)
 	require.Equal(t, http.StatusNotFound, resp.Code)
 	assert.Equal(t, "codespace_not_found", decodeLogError(t, resp.Body.Bytes()).Category)
 
-	ctx, resp = contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"/logs/download")
+	ctx, resp = contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")
 	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	DownloadLogs(ctx)
 	require.Equal(t, http.StatusNotFound, resp.Code)
 }
@@ -111,9 +110,9 @@ func TestLogsReportsOffsetConflict(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"/logs?offset="+strconv.FormatInt(result.NextOffset+1, 10))
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs?offset="+strconv.FormatInt(result.NextOffset+1, 10))
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	Logs(ctx)
 
 	require.Equal(t, http.StatusConflict, resp.Code)
@@ -139,21 +138,21 @@ func TestLogPageAndDownloadUseStoredContent(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	detailCtx, detailResp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID, contexttest.MockContextOption{Render: templates.PageRenderer()})
+	detailCtx, detailResp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10), contexttest.MockContextOption{Render: templates.PageRenderer()})
 	contexttest.LoadUser(t, detailCtx, 1)
-	detailCtx.SetPathParam("uuid", codespaceUUID)
+	detailCtx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	Detail(detailCtx)
 	require.Equal(t, http.StatusOK, detailResp.Code)
 	assert.Contains(t, detailResp.Body.String(), "data-log-next-offset=\"0\"")
-	assert.Contains(t, detailResp.Body.String(), "/-/codespaces/"+codespaceUUID+"/logs/download")
+	assert.Contains(t, detailResp.Body.String(), "/-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")
 
-	downloadCtx, downloadResp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"/logs/download")
+	downloadCtx, downloadResp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")
 	contexttest.LoadUser(t, downloadCtx, 1)
-	downloadCtx.SetPathParam("uuid", codespaceUUID)
+	downloadCtx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	DownloadLogs(downloadCtx)
 	require.Equal(t, http.StatusOK, downloadResp.Code)
 	assert.Equal(t, "no-store", downloadResp.Header().Get("Cache-Control"))
-	assert.Contains(t, downloadResp.Header().Get("Content-Disposition"), codespaceUUID+".log")
+	assert.Contains(t, downloadResp.Header().Get("Content-Disposition"), "codespace-"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+".log")
 	assert.Contains(t, downloadResp.Body.String(), "download same\n")
 }
 
@@ -178,9 +177,9 @@ func TestDownloadLogsReadsAllPages(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"/logs/download")
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/logs/download")
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	DownloadLogs(ctx)
 
 	require.Equal(t, http.StatusOK, resp.Code)

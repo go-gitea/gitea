@@ -148,16 +148,16 @@ func validateFetchOptions(opts FetchOperationsOptions) error {
 		if observed == nil {
 			return errors.New("observed operation is required")
 		}
-		if err := codespace_model.ValidateUUID(observed.GetCodespaceUuid()); err != nil {
+		if err := codespace_model.ValidateUUID(observed.GetRuntimeUuid()); err != nil {
 			return err
 		}
 		if observed.GetOperationRversion() <= 0 {
 			return errors.New("observed operation_rversion must be positive")
 		}
-		if _, ok := seen[observed.GetCodespaceUuid()]; ok {
+		if _, ok := seen[observed.GetRuntimeUuid()]; ok {
 			return errors.New("observed_operations contains duplicate codespace uuid")
 		}
-		seen[observed.GetCodespaceUuid()] = struct{}{}
+		seen[observed.GetRuntimeUuid()] = struct{}{}
 	}
 	for _, acceptedType := range opts.AcceptedOperationTypes {
 		if acceptedType != codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_CREATE && acceptedType != codespacev1.AcceptedOperationType_ACCEPTED_OPERATION_TYPE_RESUME {
@@ -238,9 +238,9 @@ func isManagerOffline(manager *codespace_model.Manager) bool {
 func validateObservedOperationHistory(ctx context.Context, managerID int64, observed []*codespacev1.ObservedOperation) (map[string]int64, error) {
 	observedVersions := make(map[string]int64, len(observed))
 	for _, item := range observed {
-		observedVersions[item.GetCodespaceUuid()] = item.GetOperationRversion()
+		observedVersions[item.GetRuntimeUuid()] = item.GetOperationRversion()
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", item.GetCodespaceUuid()).Get(codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", item.GetRuntimeUuid()).Get(codespace)
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +264,7 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 	}
 	grantTime := time.Now()
 	for _, row := range rows {
-		err := globallock.LockAndDo(ctx, codespaceStateLockKey(row.UUID), func(ctx context.Context) error {
+		err := globallock.LockAndDo(ctx, codespaceRowLockKey(row.ID), func(ctx context.Context) error {
 			return db.WithTx(ctx, func(ctx context.Context) error {
 				codespace := new(codespace_model.Codespace)
 				has, err := db.GetEngine(ctx).ID(row.ID).Get(codespace)
@@ -301,7 +301,7 @@ func appendRunningOperations(ctx context.Context, managerID int64, observedVersi
 				}
 				if observedVersion == codespace.OperationRVersion {
 					result.RenewedLeases = append(result.RenewedLeases, &codespacev1.RenewedOperationLease{
-						CodespaceUuid:             codespace.UUID,
+						RuntimeUuid:               codespace.UUID,
 						OperationRversion:         codespace.OperationRVersion,
 						LeaseValidForMilliseconds: leaseMillis,
 					})
@@ -355,7 +355,7 @@ func claimQueuedOperations(ctx context.Context, managerID, managerUserID int64, 
 		}
 		if isQueuedExpired(candidate, grantTime) {
 			var summary *internalStateSummary
-			err := globallock.LockAndDo(ctx, codespaceStateLockKey(candidate.UUID), func(ctx context.Context) error {
+			err := globallock.LockAndDo(ctx, codespaceRowLockKey(candidate.ID), func(ctx context.Context) error {
 				return db.WithTx(ctx, func(ctx context.Context) error {
 					current := new(codespace_model.Codespace)
 					has, err := db.GetEngine(ctx).ID(candidate.ID).Get(current)
@@ -510,7 +510,8 @@ func ceilUnix(t time.Time) int64 {
 func buildOperationPayload(ctx context.Context, codespace *codespace_model.Codespace, leaseMillis int64) (*codespacev1.OperationPayload, error) {
 	payload := &codespacev1.OperationPayload{
 		OperationRversion:         codespace.OperationRVersion,
-		CodespaceUuid:             codespace.UUID,
+		CodespaceId:               codespace.ID,
+		RuntimeUuid:               codespace.UUID,
 		LogOffset:                 codespace.LogSize,
 		LeaseValidForMilliseconds: leaseMillis,
 	}
@@ -538,7 +539,8 @@ func buildOperationPayload(ctx context.Context, codespace *codespace_model.Codes
 func buildAbortOperationPayload(codespace *codespace_model.Codespace) *codespacev1.OperationPayload {
 	payload := &codespacev1.OperationPayload{
 		OperationRversion: codespace.OperationRVersion,
-		CodespaceUuid:     codespace.UUID,
+		CodespaceId:       codespace.ID,
+		RuntimeUuid:       codespace.UUID,
 		LogOffset:         codespace.LogSize,
 	}
 	if codespace.OperationType == codespace_model.OperationResume {

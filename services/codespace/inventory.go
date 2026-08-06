@@ -48,7 +48,7 @@ func ReportInstances(ctx context.Context, manager *codespace_model.Manager, opts
 	reported := make(map[string]*codespacev1.RuntimeInstanceRef, len(opts.Instances))
 	response := &codespacev1.ReportInstancesResponse{Results: make([]*codespacev1.RuntimeInstanceResult, 0, len(opts.Instances))}
 	for _, instance := range opts.Instances {
-		reported[instance.GetCodespaceUuid()] = instance
+		reported[instance.GetRuntimeUuid()] = instance
 		if err := ensureInventoryGenerationCurrent(ctx, manager.ID, opts.InventoryGeneration); err != nil {
 			return nil, err
 		}
@@ -79,13 +79,13 @@ func validateReportInstancesOptions(opts ReportInstancesOptions) error {
 		if instance == nil {
 			return errors.New("runtime instance is required")
 		}
-		if err := codespace_model.ValidateUUID(instance.GetCodespaceUuid()); err != nil {
+		if err := codespace_model.ValidateUUID(instance.GetRuntimeUuid()); err != nil {
 			return err
 		}
-		if _, ok := seen[instance.GetCodespaceUuid()]; ok {
-			return fmt.Errorf("duplicate codespace_uuid %q", instance.GetCodespaceUuid())
+		if _, ok := seen[instance.GetRuntimeUuid()]; ok {
+			return fmt.Errorf("duplicate codespace_uuid %q", instance.GetRuntimeUuid())
 		}
-		seen[instance.GetCodespaceUuid()] = struct{}{}
+		seen[instance.GetRuntimeUuid()] = struct{}{}
 		if !validRuntimeInstanceState(instance.GetRuntimeState()) {
 			return fmt.Errorf("invalid runtime_state %d", instance.GetRuntimeState())
 		}
@@ -114,7 +114,7 @@ func precheckInventoryObservedVersions(ctx context.Context, managerID int64, ins
 			continue
 		}
 		codespace := new(codespace_model.Codespace)
-		has, err := db.GetEngine(ctx).Where("uuid = ?", instance.GetCodespaceUuid()).Get(codespace)
+		has, err := db.GetEngine(ctx).Where("uuid = ?", instance.GetRuntimeUuid()).Get(codespace)
 		if err != nil {
 			return err
 		}
@@ -170,11 +170,11 @@ func ensureInventoryGenerationCurrent(ctx context.Context, managerID, inventoryG
 
 func processReportedRuntimeInstance(ctx context.Context, managerID int64, instance *codespacev1.RuntimeInstanceRef) (*codespacev1.RuntimeInstanceResult, error) {
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).Where("uuid = ?", instance.GetCodespaceUuid()).Get(codespace)
+	has, err := db.GetEngine(ctx).Where("uuid = ?", instance.GetRuntimeUuid()).Get(codespace)
 	if err != nil {
 		return nil, err
 	}
-	result := &codespacev1.RuntimeInstanceResult{CodespaceUuid: instance.GetCodespaceUuid()}
+	result := &codespacev1.RuntimeInstanceResult{RuntimeUuid: instance.GetRuntimeUuid()}
 	if !has {
 		result.Action = codespacev1.RuntimeReconcileAction_RUNTIME_RECONCILE_ACTION_CLEANUP_LOCAL_RUNTIME
 		return result, nil

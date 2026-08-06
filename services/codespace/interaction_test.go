@@ -33,8 +33,8 @@ func TestContinueCodespaceCancelsQueuedIdleStop(t *testing.T) {
 	})
 
 	result, err := ContinueCodespace(t.Context(), ContinueCodespaceOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 	})
 	require.NoError(t, err)
 	assert.EqualValues(t, 5, result.InteractionGeneration)
@@ -59,8 +59,8 @@ func TestContinueCodespaceKeepsLifecycleUpdatedUnixWithoutIdleStop(t *testing.T)
 	})
 
 	result, err := ContinueCodespace(t.Context(), ContinueCodespaceOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
 	})
 	require.NoError(t, err)
 	assert.EqualValues(t, 5, result.InteractionGeneration)
@@ -86,8 +86,8 @@ func TestContinueCodespaceRejectsRunningStopAndVersionExhausted(t *testing.T) {
 		OperationDeadlineUnix: time.Now().Add(time.Minute).Unix(),
 	})
 	_, err := ContinueCodespace(t.Context(), ContinueCodespaceOptions{
-		UserID:        1,
-		CodespaceUUID: runningStopUUID,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, runningStopUUID),
 	})
 	require.ErrorIs(t, err, ErrInteractionStateUnavailable)
 
@@ -98,8 +98,8 @@ func TestContinueCodespaceRejectsRunningStopAndVersionExhausted(t *testing.T) {
 		InteractionGeneration: math.MaxInt64,
 	})
 	_, err = ContinueCodespace(t.Context(), ContinueCodespaceOptions{
-		UserID:        1,
-		CodespaceUUID: exhaustedUUID,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, exhaustedUUID),
 	})
 	require.ErrorIs(t, err, ErrInteractionVersionExhausted)
 }
@@ -120,7 +120,7 @@ func TestUpdateAutoStopCancelsQueuedIdleOnlyWhenRuntimePolicyChanges(t *testing.
 	})
 	result, err := UpdateAutoStop(t.Context(), UpdateAutoStopOptions{
 		UserID:               1,
-		CodespaceUUID:        changedUUID,
+		CodespaceID:          codespaceIDByUUID(t, changedUUID),
 		Mode:                 codespace_model.AutoStopModeCustom,
 		CustomTimeoutSeconds: int64((10 * time.Minute) / time.Second),
 	})
@@ -145,7 +145,7 @@ func TestUpdateAutoStopCancelsQueuedIdleOnlyWhenRuntimePolicyChanges(t *testing.
 	})
 	_, err = UpdateAutoStop(t.Context(), UpdateAutoStopOptions{
 		UserID:               1,
-		CodespaceUUID:        samePolicyUUID,
+		CodespaceID:          codespaceIDByUUID(t, samePolicyUUID),
 		Mode:                 codespace_model.AutoStopModeCustom,
 		CustomTimeoutSeconds: int64(setting.Codespace.AutoStopDefaultTimeout / time.Second),
 	})
@@ -167,9 +167,9 @@ func TestUpdateAutoStopKeepsLifecycleUpdatedUnixWithoutIdleStopCancellation(t *t
 	})
 
 	_, err := UpdateAutoStop(t.Context(), UpdateAutoStopOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		Mode:          codespace_model.AutoStopModeNever,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		Mode:        codespace_model.AutoStopModeNever,
 	})
 	require.NoError(t, err)
 	row := loadServiceCodespace(t, codespaceUUID)
@@ -187,9 +187,9 @@ func TestUpdateAutoStopValidationAndState(t *testing.T) {
 		Status: codespace_model.StatusStopped,
 	})
 	_, err := UpdateAutoStop(t.Context(), UpdateAutoStopOptions{
-		UserID:        1,
-		CodespaceUUID: stoppedUUID,
-		Mode:          codespace_model.AutoStopModeNever,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, stoppedUUID),
+		Mode:        codespace_model.AutoStopModeNever,
 	})
 	require.NoError(t, err)
 	row := loadServiceCodespace(t, stoppedUUID)
@@ -198,7 +198,7 @@ func TestUpdateAutoStopValidationAndState(t *testing.T) {
 
 	_, err = UpdateAutoStop(t.Context(), UpdateAutoStopOptions{
 		UserID:               1,
-		CodespaceUUID:        stoppedUUID,
+		CodespaceID:          codespaceIDByUUID(t, stoppedUUID),
 		Mode:                 codespace_model.AutoStopModeCustom,
 		CustomTimeoutSeconds: int64((setting.Codespace.AutoStopMinTimeout / time.Second) - 1),
 	})
@@ -210,9 +210,9 @@ func TestUpdateAutoStopValidationAndState(t *testing.T) {
 		Status: codespace_model.StatusCreating,
 	})
 	_, err = UpdateAutoStop(t.Context(), UpdateAutoStopOptions{
-		UserID:        1,
-		CodespaceUUID: creatingUUID,
-		Mode:          codespace_model.AutoStopModeNever,
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, creatingUUID),
+		Mode:        codespace_model.AutoStopModeNever,
 	})
 	require.ErrorIs(t, err, ErrInteractionStateUnavailable)
 }

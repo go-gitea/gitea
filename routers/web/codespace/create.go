@@ -98,7 +98,7 @@ func Create(ctx *context.Context) {
 		handleCreateError(ctx, err)
 		return
 	}
-	ctx.Redirect(setting.AppSubURL+codespaceDetailPath(result.CodespaceUUID), http.StatusSeeOther)
+	ctx.Redirect(setting.AppSubURL+codespaceDetailPath(result.CodespaceID), http.StatusSeeOther)
 }
 
 func renderCreateConfirm(ctx *context.Context, status int, plan *codespace_service.CreateCodespacePlan, opts codespace_service.CreateCodespaceOptions, errorMessage template.HTML) {

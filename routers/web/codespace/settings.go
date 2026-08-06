@@ -23,7 +23,7 @@ const (
 	tplUserDevContainerTemplates   templates.TplName = "codespace/user_devcontainer_templates"
 )
 
-// AdminManagers renders site-wide Manager and global registration token settings.
+// AdminManagers renders site-wide Manager settings.
 func AdminManagers(ctx *context.Context) {
 	renderManagerSettings(ctx, managerSettingsRenderOptions{
 		Scope:      codespace_service.ManagerSettingsScopeSite,
@@ -51,9 +51,9 @@ func AdminManagerDelete(ctx *context.Context) {
 	})
 }
 
-// AdminManagersResetRegistrationToken resets the global Manager registration token.
-func AdminManagersResetRegistrationToken(ctx *context.Context) {
-	handleManagerSettingsResetRegistrationToken(ctx, managerSettingsRenderOptions{
+// AdminManagersCreateManager creates a site-wide Manager identity.
+func AdminManagersCreateManager(ctx *context.Context) {
+	handleManagerSettingsCreateManager(ctx, managerSettingsRenderOptions{
 		Scope:      codespace_service.ManagerSettingsScopeSite,
 		ActionBase: setting.AppSubURL + "/-/admin/codespaces/managers",
 		Template:   tplAdminCodespaceManagers,
@@ -91,7 +91,7 @@ func AdminDevContainerTemplateDelete(ctx *context.Context) {
 	})
 }
 
-// UserSettings renders current user's Manager and registration token settings.
+// UserSettings renders current user's Manager settings.
 func UserSettings(ctx *context.Context) {
 	renderManagerSettings(ctx, managerSettingsRenderOptions{
 		Scope:      codespace_service.ManagerSettingsScopeUser,
@@ -122,9 +122,9 @@ func UserManagerDelete(ctx *context.Context) {
 	})
 }
 
-// UserSettingsResetRegistrationToken resets the current user's Manager registration token.
-func UserSettingsResetRegistrationToken(ctx *context.Context) {
-	handleManagerSettingsResetRegistrationToken(ctx, managerSettingsRenderOptions{
+// UserSettingsCreateManager creates a Manager identity owned by the current user.
+func UserSettingsCreateManager(ctx *context.Context) {
+	handleManagerSettingsCreateManager(ctx, managerSettingsRenderOptions{
 		Scope:      codespace_service.ManagerSettingsScopeUser,
 		UserID:     ctx.Doer.ID,
 		ActionBase: setting.AppSubURL + "/user/settings/codespaces/managers",
@@ -228,13 +228,20 @@ func handleDevContainerTemplateActionError(ctx *context.Context, redirectTo stri
 }
 
 func renderManagerSettings(ctx *context.Context, opts managerSettingsRenderOptions) {
+	if !populateManagerSettingsData(ctx, opts) {
+		return
+	}
+	ctx.HTML(http.StatusOK, opts.Template)
+}
+
+func populateManagerSettingsData(ctx *context.Context, opts managerSettingsRenderOptions) bool {
 	settingsView, err := codespace_service.ListManagerSettings(ctx, codespace_service.ManagerSettingsOptions{
 		Scope:  opts.Scope,
 		UserID: opts.UserID,
 	})
 	if err != nil {
 		ctx.ServerError("ListManagerSettings", err)
-		return
+		return false
 	}
 	ctx.Data["Title"] = "Codespaces"
 	ctx.Data[opts.PageFlag] = true
@@ -251,7 +258,7 @@ func renderManagerSettings(ctx *context.Context, opts managerSettingsRenderOptio
 		})
 		if err != nil {
 			ctx.ServerError("ListUnassignedCodespaces", err)
-			return
+			return false
 		}
 		ctx.Data["Codespaces"] = unassigned.Rows
 		ctx.Data["CodespaceTotal"] = unassigned.Total
@@ -259,7 +266,7 @@ func renderManagerSettings(ctx *context.Context, opts managerSettingsRenderOptio
 		ctx.Data["CodespaceActionBase"] = opts.ActionBase + "/unassigned"
 		ctx.Data["Page"] = context.NewPagination(unassigned.Total, setting.UI.Admin.UserPagingNum, page, 5)
 	}
-	ctx.HTML(http.StatusOK, opts.Template)
+	return true
 }
 
 func renderManagerDetail(ctx *context.Context, opts managerSettingsRenderOptions) {
@@ -305,8 +312,8 @@ func handleManagerDelete(ctx *context.Context, opts managerSettingsRenderOptions
 	ctx.JSONRedirect(opts.ActionBase)
 }
 
-func handleManagerSettingsResetRegistrationToken(ctx *context.Context, opts managerSettingsRenderOptions) {
-	_, err := codespace_service.ResetRegistrationToken(ctx, codespace_service.ManagerSettingsOptions{
+func handleManagerSettingsCreateManager(ctx *context.Context, opts managerSettingsRenderOptions) {
+	result, err := codespace_service.CreateManager(ctx, codespace_service.ManagerSettingsOptions{
 		Scope:  opts.Scope,
 		UserID: opts.UserID,
 	})
@@ -314,8 +321,12 @@ func handleManagerSettingsResetRegistrationToken(ctx *context.Context, opts mana
 		handleManagerSettingsActionError(ctx, opts.ActionBase, err)
 		return
 	}
-	ctx.Flash.Success(ctx.Tr("codespace.registration_token_reset"))
-	ctx.JSONRedirect(opts.ActionBase)
+	if !populateManagerSettingsData(ctx, opts) {
+		return
+	}
+	ctx.Data["NewManagerID"] = result.ManagerID
+	ctx.Data["NewManagerSecret"] = result.Secret
+	ctx.HTML(http.StatusOK, opts.Template)
 }
 
 func handleManagerSettingsActionError(ctx *context.Context, redirectTo string, err error) {

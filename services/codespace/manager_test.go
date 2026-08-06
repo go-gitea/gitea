@@ -188,6 +188,142 @@ func TestWarnManagerGatewayAddressConflicts(t *testing.T) {
 	require.NoError(t, WarnManagerGatewayAddressConflicts(t.Context()))
 }
 
+func TestBindRuntimeIdentityAssignsManagerRuntimeUUID(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	manager := insertServiceManager(t)
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		Status:            codespace_model.StatusCreating,
+		OperationRVersion: 3,
+		OperationType:     codespace_model.OperationCreate,
+		OperationStatus:   codespace_model.OperationStatusRunning,
+	})
+	codespace := new(codespace_model.Codespace)
+	has, err := db.GetEngine(t.Context()).Where("manager_id = ? AND uuid = ?", manager.ID, "").Get(codespace)
+	require.NoError(t, err)
+	require.True(t, has)
+
+	runtimeUUID := "34343434-3434-4434-8434-343434343434"
+	boundUUID, err := BindRuntimeIdentity(t.Context(), manager, BindRuntimeIdentityOptions{
+		CodespaceID:       codespace.ID,
+		OperationRVersion: 3,
+		RuntimeUUID:       runtimeUUID,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, runtimeUUID, boundUUID)
+	assert.Equal(t, runtimeUUID, loadServiceCodespace(t, runtimeUUID).UUID)
+
+	boundUUID, err = BindRuntimeIdentity(t.Context(), manager, BindRuntimeIdentityOptions{
+		CodespaceID:       codespace.ID,
+		OperationRVersion: 3,
+		RuntimeUUID:       runtimeUUID,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, runtimeUUID, boundUUID)
+
+	insertServiceCodespace(t, manager.ID, &codespace_model.Codespace{
+		Status:            codespace_model.StatusCreating,
+		OperationRVersion: 4,
+		OperationType:     codespace_model.OperationCreate,
+		OperationStatus:   codespace_model.OperationStatusRunning,
+	})
+	otherCodespace := new(codespace_model.Codespace)
+	has, err = db.GetEngine(t.Context()).Where("manager_id = ? AND uuid = ? AND id <> ?", manager.ID, "", codespace.ID).Get(otherCodespace)
+	require.NoError(t, err)
+	require.True(t, has)
+	_, err = BindRuntimeIdentity(t.Context(), manager, BindRuntimeIdentityOptions{
+		CodespaceID:       otherCodespace.ID,
+		OperationRVersion: 4,
+		RuntimeUUID:       runtimeUUID,
+	})
+	require.ErrorIs(t, err, ErrBindRuntimeIdentityConflict)
+}
+
+func TestBindRuntimeIdentityRejectsInvalidOperationState(t *testing.T) {
+	runtimeUUID := "45454545-4545-4454-8454-454545454545"
+
+	for _, tc := range []struct {
+		name     string
+		setup    func(*testing.T, *codespace_model.Manager) (*codespace_model.Codespace, *codespace_model.Manager, int64)
+		expected error
+	}{
+		{
+			name: "wrong manager",
+			setup: func(t *testing.T, manager *codespace_model.Manager) (*codespace_model.Codespace, *codespace_model.Manager, int64) {
+				otherManager := insertServiceManager(t)
+				codespace := insertRuntimeIdentityTarget(t, manager, "")
+				return codespace, otherManager, codespace.OperationRVersion
+			},
+			expected: ErrBindRuntimeIdentityNotFound,
+		},
+		{
+			name: "wrong operation version",
+			setup: func(t *testing.T, manager *codespace_model.Manager) (*codespace_model.Codespace, *codespace_model.Manager, int64) {
+				codespace := insertRuntimeIdentityTarget(t, manager, "")
+				return codespace, manager, codespace.OperationRVersion + 1
+			},
+			expected: ErrBindRuntimeIdentityNotFound,
+		},
+		{
+			name: "queued operation",
+			setup: func(t *testing.T, manager *codespace_model.Manager) (*codespace_model.Codespace, *codespace_model.Manager, int64) {
+				codespace := insertRuntimeIdentityTarget(t, manager, "")
+				codespace.OperationStatus = codespace_model.OperationStatusQueued
+				_, err := db.GetEngine(t.Context()).ID(codespace.ID).Cols("operation_status").Update(codespace)
+				require.NoError(t, err)
+				return codespace, manager, codespace.OperationRVersion
+			},
+			expected: ErrBindRuntimeIdentityNotFound,
+		},
+		{
+			name: "stop operation",
+			setup: func(t *testing.T, manager *codespace_model.Manager) (*codespace_model.Codespace, *codespace_model.Manager, int64) {
+				codespace := insertRuntimeIdentityTarget(t, manager, "")
+				codespace.OperationType = codespace_model.OperationStop
+				_, err := db.GetEngine(t.Context()).ID(codespace.ID).Cols("operation_type").Update(codespace)
+				require.NoError(t, err)
+				return codespace, manager, codespace.OperationRVersion
+			},
+			expected: ErrBindRuntimeIdentityNotFound,
+		},
+		{
+			name: "already bound",
+			setup: func(t *testing.T, manager *codespace_model.Manager) (*codespace_model.Codespace, *codespace_model.Manager, int64) {
+				codespace := insertRuntimeIdentityTarget(t, manager, "56565656-5656-4656-8656-565656565656")
+				return codespace, manager, codespace.OperationRVersion
+			},
+			expected: ErrBindRuntimeIdentityStateConflict,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			manager := insertServiceManager(t)
+			codespace, bindManager, operationRVersion := tc.setup(t, manager)
+
+			_, err := BindRuntimeIdentity(t.Context(), bindManager, BindRuntimeIdentityOptions{
+				CodespaceID:       codespace.ID,
+				OperationRVersion: operationRVersion,
+				RuntimeUUID:       runtimeUUID,
+			})
+			require.ErrorIs(t, err, tc.expected)
+		})
+	}
+}
+
+func insertRuntimeIdentityTarget(t *testing.T, manager *codespace_model.Manager, runtimeUUID string) *codespace_model.Codespace {
+	t.Helper()
+
+	codespace := &codespace_model.Codespace{
+		UUID:              runtimeUUID,
+		Status:            codespace_model.StatusCreating,
+		OperationRVersion: 3,
+		OperationType:     codespace_model.OperationCreate,
+		OperationStatus:   codespace_model.OperationStatusRunning,
+	}
+	insertServiceCodespace(t, manager.ID, codespace)
+	return codespace
+}
+
 func TestCodespaceInitSkipsGatewayAddressValidationWhenDisabled(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	mockGatewayScopeSettings(t, "https://gitea.example.com/", "", false)

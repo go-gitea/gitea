@@ -25,7 +25,7 @@ func TestStopCodespaceQueuesUserStopAndTakesQueuedIdleStop(t *testing.T) {
 		Status:            codespace_model.StatusRunning,
 		OperationRVersion: 15,
 	})
-	result, err := StopCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: codespaceUUID})
+	result, err := StopCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
 	require.NoError(t, err)
 	assert.Equal(t, codespace_model.StatusRunning, result.Status)
 	assert.Equal(t, codespace_model.OperationStop, result.OperationType)
@@ -45,7 +45,7 @@ func TestStopCodespaceQueuesUserStopAndTakesQueuedIdleStop(t *testing.T) {
 		OperationCreatedUnix: time.Now().Unix(),
 	})
 	updatedUnix := loadServiceCodespace(t, idleUUID).UpdatedUnix
-	result, err = StopCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: idleUUID})
+	result, err = StopCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, idleUUID)})
 	require.NoError(t, err)
 	assert.EqualValues(t, 17, result.OperationRVersion)
 	row = loadServiceCodespace(t, idleUUID)
@@ -67,7 +67,7 @@ func TestStopCodespaceRejectsActiveUserStop(t *testing.T) {
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	_, err := StopCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: queuedUUID})
+	_, err := StopCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, queuedUUID)})
 	require.ErrorIs(t, err, ErrLifecycleActionStateUnavailable)
 
 	runningUUID := "68686868-6868-4686-8686-686868686870"
@@ -82,7 +82,7 @@ func TestStopCodespaceRejectsActiveUserStop(t *testing.T) {
 		OperationStartedUnix:  time.Now().Unix(),
 		OperationDeadlineUnix: time.Now().Add(time.Minute).Unix(),
 	})
-	_, err = StopCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: runningUUID})
+	_, err = StopCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, runningUUID)})
 	require.ErrorIs(t, err, ErrLifecycleActionStateUnavailable)
 }
 
@@ -97,7 +97,7 @@ func TestResumeCodespaceQueuesResume(t *testing.T) {
 		OperationRVersion:     18,
 		InteractionGeneration: 7,
 	})
-	result, err := ResumeCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: codespaceUUID})
+	result, err := ResumeCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
 	require.NoError(t, err)
 	assert.Equal(t, codespace_model.StatusStopped, result.Status)
 	assert.Equal(t, codespace_model.OperationResume, result.OperationType)
@@ -122,7 +122,7 @@ func TestDeleteCodespacePhysicalForUnboundCreatingAndFailed(t *testing.T) {
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	result, err := DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: creatingUUID})
+	result, err := DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, creatingUUID)})
 	require.NoError(t, err)
 	assert.True(t, result.Deleted)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", creatingUUID)
@@ -133,7 +133,7 @@ func TestDeleteCodespacePhysicalForUnboundCreatingAndFailed(t *testing.T) {
 		Status: codespace_model.StatusFailed,
 	})
 	insertServiceCredentials(t, failedUUID)
-	result, err = DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: failedUUID})
+	result, err = DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, failedUUID)})
 	require.NoError(t, err)
 	assert.True(t, result.Deleted)
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", failedUUID)
@@ -205,7 +205,7 @@ func TestDeleteCodespaceQueuesBoundDeleteAndReplacesOperation(t *testing.T) {
 			})
 			insertServiceCredentials(t, tc.uuid)
 
-			result, err := DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: tc.uuid})
+			result, err := DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, tc.uuid)})
 			require.NoError(t, err)
 			assert.False(t, result.Deleted)
 			assert.Equal(t, codespace_model.StatusDeleting, result.Status)
@@ -235,9 +235,9 @@ func TestLifecycleActionValidation(t *testing.T) {
 		OperationTrigger:     codespace_model.OperationTriggerUser,
 		OperationCreatedUnix: time.Now().Unix(),
 	})
-	_, err := ResumeCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: runningUUID})
+	_, err := ResumeCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, runningUUID)})
 	require.ErrorIs(t, err, ErrLifecycleActionStateUnavailable)
-	_, err = DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: runningUUID})
+	_, err = DeleteCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, runningUUID)})
 	require.ErrorIs(t, err, ErrLifecycleActionVersionExhausted)
 }
 
@@ -252,7 +252,7 @@ func TestLifecycleActionsRequireCreator(t *testing.T) {
 		OperationRVersion: 24,
 	})
 
-	_, err := StopCodespace(t.Context(), LifecycleActionOptions{UserID: 2, CodespaceUUID: codespaceUUID})
+	_, err := StopCodespace(t.Context(), LifecycleActionOptions{UserID: 2, CodespaceID: codespaceIDByUUID(t, codespaceUUID)})
 	require.ErrorIs(t, err, ErrLifecycleActionPermissionDenied)
 	row := loadServiceCodespace(t, codespaceUUID)
 	assert.Equal(t, codespace_model.StatusRunning, row.Status)

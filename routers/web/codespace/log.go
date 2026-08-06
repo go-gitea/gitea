@@ -26,6 +26,10 @@ func Logs(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
+	codespaceID, ok := codespaceIDParam(ctx)
+	if !ok {
+		return
+	}
 	offset, ok := parseOptionalInt64Query(ctx, "offset", 0)
 	if !ok {
 		writeLogError(ctx, http.StatusBadRequest, "invalid_argument", 0)
@@ -37,10 +41,10 @@ func Logs(ctx *context.Context) {
 		return
 	}
 	result, err := codespace_service.ReadLog(ctx, codespace_service.ReadLogOptions{
-		UserID:        ctx.Doer.ID,
-		CodespaceUUID: ctx.PathParam("uuid"),
-		Offset:        offset,
-		Limit:         limit,
+		UserID:      ctx.Doer.ID,
+		CodespaceID: codespaceID,
+		Offset:      offset,
+		Limit:       limit,
 	})
 	if err != nil {
 		var offsetErr *codespace_service.LogOffsetError
@@ -74,11 +78,14 @@ func DownloadLogs(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	codespaceUUID := ctx.PathParam("uuid")
+	codespaceID, ok := codespaceIDParam(ctx)
+	if !ok {
+		return
+	}
 	result, err := codespace_service.ReadLog(ctx, codespace_service.ReadLogOptions{
-		UserID:        ctx.Doer.ID,
-		CodespaceUUID: codespaceUUID,
-		Limit:         codespace_service.LogReadMaxBytes,
+		UserID:      ctx.Doer.ID,
+		CodespaceID: codespaceID,
+		Limit:       codespace_service.LogReadMaxBytes,
 	})
 	if err != nil {
 		handleDownloadLogError(ctx, err)
@@ -87,7 +94,7 @@ func DownloadLogs(ctx *context.Context) {
 
 	ctx.RespHeader().Set("Cache-Control", "no-store")
 	ctx.RespHeader().Set("Content-Type", "text/plain; charset=utf-8")
-	ctx.RespHeader().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment(codespaceUUID+".log"))
+	ctx.RespHeader().Set("Content-Disposition", httplib.EncodeContentDispositionAttachment("codespace-"+strconv.FormatInt(codespaceID, 10)+".log"))
 	ctx.Resp.WriteHeader(http.StatusOK)
 	for {
 		for _, line := range result.Lines {
@@ -99,13 +106,13 @@ func DownloadLogs(ctx *context.Context) {
 			return
 		}
 		result, err = codespace_service.ReadLog(ctx, codespace_service.ReadLogOptions{
-			UserID:        ctx.Doer.ID,
-			CodespaceUUID: codespaceUUID,
-			Offset:        result.NextOffset,
-			Limit:         codespace_service.LogReadMaxBytes,
+			UserID:      ctx.Doer.ID,
+			CodespaceID: codespaceID,
+			Offset:      result.NextOffset,
+			Limit:       codespace_service.LogReadMaxBytes,
 		})
 		if err != nil {
-			log.Error("Read Codespace log %s after response started: %v", codespaceUUID, err)
+			log.Error("Read Codespace log %d after response started: %v", codespaceID, err)
 			return
 		}
 	}

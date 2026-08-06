@@ -14,67 +14,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRegistrationTokenSettingsLifecycle(t *testing.T) {
+func TestCreateManagerReturnsOneTimeSecret(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	opts := ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 1}
-	settings, err := ListManagerSettings(t.Context(), opts)
+	result, err := CreateManager(t.Context(), opts)
 	require.NoError(t, err)
-	require.Len(t, settings.RegistrationToken, 64)
-
-	token, err := GetOrCreateRegistrationToken(t.Context(), opts)
+	require.NotZero(t, result.ManagerID)
+	require.NotEmpty(t, result.Secret)
+	manager, err := AuthenticateManager(t.Context(), result.ManagerID, result.Secret)
 	require.NoError(t, err)
-	assert.Equal(t, settings.RegistrationToken, token)
-
-	sameToken, err := GetOrCreateRegistrationToken(t.Context(), opts)
-	require.NoError(t, err)
-	assert.Equal(t, token, sameToken)
-
-	resetToken, err := ResetRegistrationToken(t.Context(), opts)
-	require.NoError(t, err)
-	require.Len(t, resetToken, 64)
-	assert.NotEqual(t, token, resetToken)
-
-	assertServiceNotExists(t, new(codespace_model.ManagerToken), "token = ?", token)
-	assertServiceExists(t, new(codespace_model.ManagerToken), "user_id = ? AND token = ?", 1, resetToken)
-}
-
-func TestRegisterManagerUsesCurrentTokenAndKeepsSecretAfterReset(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	opts := ManagerSettingsOptions{Scope: ManagerSettingsScopeSite}
-	token, err := GetOrCreateRegistrationToken(t.Context(), opts)
-	require.NoError(t, err)
-
-	manager, secret, err := RegisterManager(t.Context(), token)
-	require.NoError(t, err)
-	assert.EqualValues(t, 0, manager.UserID)
-	_, err = AuthenticateManager(t.Context(), manager.ID, secret)
-	require.NoError(t, err)
-
-	resetToken, err := ResetRegistrationToken(t.Context(), opts)
-	require.NoError(t, err)
-	_, err = AuthenticateManager(t.Context(), manager.ID, secret)
-	require.NoError(t, err)
-	_, _, err = RegisterManager(t.Context(), token)
-	require.Error(t, err)
-
-	resetManager, _, err := RegisterManager(t.Context(), resetToken)
-	require.NoError(t, err)
-	assert.NotEqual(t, manager.ID, resetManager.ID)
+	assert.EqualValues(t, 1, manager.UserID)
+	assert.Equal(t, codespace_model.ManagerRuntimeStateRecovering, manager.RuntimeState)
 }
 
 func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	userToken, err := GetOrCreateRegistrationToken(t.Context(), ManagerSettingsOptions{
-		Scope:  ManagerSettingsScopeUser,
-		UserID: 1,
-	})
-	require.NoError(t, err)
 	globalManager := insertServiceManager(t)
 	globalManager.TagsJSON = `[{"tag":"default","description":"Site environment"}]`
-	_, err = db.GetEngine(t.Context()).ID(globalManager.ID).Cols("tags_json").Update(globalManager)
+	_, err := db.GetEngine(t.Context()).ID(globalManager.ID).Cols("tags_json").Update(globalManager)
 	require.NoError(t, err)
 	userManager := insertServiceManager(t)
 	userManager.UserID = 1
@@ -174,7 +133,6 @@ func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
 	assertServiceNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
 	assertServiceNotExists(t, new(codespace_model.GiteaToken), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 	assertServiceNotExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
-	assertServiceExists(t, new(codespace_model.ManagerToken), "user_id = ? AND token = ?", 1, userToken)
 }
 
 func TestPersonalManagerDeleteRejectsForeignBindingBeforeCleanup(t *testing.T) {
@@ -200,25 +158,11 @@ func TestPersonalManagerDeleteRejectsForeignBindingBeforeCleanup(t *testing.T) {
 func TestManagerSettingsRequireIndividualUser(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	_, err := GetOrCreateRegistrationToken(t.Context(), ManagerSettingsOptions{
+	_, err := CreateManager(t.Context(), ManagerSettingsOptions{
 		Scope:  ManagerSettingsScopeUser,
 		UserID: 3,
 	})
 	require.ErrorContains(t, err, "not an individual")
-}
-
-func TestRegisterManagerRejectsOrganizationToken(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	token := &codespace_model.ManagerToken{
-		Token:  "organization-registration-token",
-		UserID: 3,
-	}
-	require.NoError(t, db.Insert(t.Context(), token))
-
-	_, _, err := RegisterManager(t.Context(), token.Token)
-	require.ErrorIs(t, err, ErrRegistrationUnauthenticated)
-	assertServiceNotExists(t, new(codespace_model.Manager), "user_id = ?", token.UserID)
 }
 
 func insertSettingsManagerAddress(t *testing.T, managerID int64, kind, address string) {

@@ -19,16 +19,16 @@ func TestCodespaceActionHelpers(t *testing.T) {
 			input string
 			want  string
 		}{
-			{"", "/-/codespaces/uuid"},
+			{"", "/-/codespaces/12"},
 			{"/-/codespaces?state=deleted", "/-/codespaces?state=deleted"},
-			{"/-/codespaces/uuid?tab=logs", "/-/codespaces/uuid?tab=logs"},
-			{"/-/codespaces/other", "/-/codespaces/uuid"},
-			{"https://example.com/", "/-/codespaces/uuid"},
-			{"//example.com/", "/-/codespaces/uuid"},
-			{"relative", "/-/codespaces/uuid"},
+			{"/-/codespaces/12?tab=logs", "/-/codespaces/12?tab=logs"},
+			{"/-/codespaces/other", "/-/codespaces/12"},
+			{"https://example.com/", "/-/codespaces/12"},
+			{"//example.com/", "/-/codespaces/12"},
+			{"relative", "/-/codespaces/12"},
 		}
 		for _, test := range tests {
-			assert.Equal(t, test.want, codespaceActionReturnPath("uuid", test.input, codespaceDetailPath("uuid")))
+			assert.Equal(t, test.want, codespaceActionReturnPath(12, test.input, codespaceDetailPath(12)))
 		}
 		assert.Equal(t, "/-/codespaces?owner=org&page=2", codespaceListPath("org", 2))
 	})
@@ -80,16 +80,16 @@ func TestCodespaceActionErrorResponses(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/test/action")
-			ctx.SetPathParam("uuid", "test")
+			ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/12/action")
+			ctx.SetPathParam("codespace_id", "12")
 			if test.interaction {
-				handleInteractionError(ctx, "TestAction", test.err, "/-/codespaces/test")
+				handleInteractionError(ctx, "TestAction", test.err, "/-/codespaces/12")
 			} else {
-				handleLifecycleActionError(ctx, "TestAction", test.err, "/-/codespaces/test")
+				handleLifecycleActionError(ctx, "TestAction", test.err, "/-/codespaces/12")
 			}
 			assert.Equal(t, test.status, resp.Code)
 			if test.redirect {
-				assert.Equal(t, "/-/codespaces/test", resp.Header().Get("Location"))
+				assert.Equal(t, "/-/codespaces/12", resp.Header().Get("Location"))
 			}
 		})
 	}

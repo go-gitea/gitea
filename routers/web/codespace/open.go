@@ -31,10 +31,14 @@ func openEndpoint(ctx *context.Context, endpointID string) {
 		ctx.NotFound(nil)
 		return
 	}
+	codespaceID, ok := codespaceIDParam(ctx)
+	if !ok {
+		return
+	}
 	result, err := codespace_service.OpenEndpoint(ctx, codespace_service.OpenEndpointOptions{
-		UserID:        ctx.Doer.ID,
-		CodespaceUUID: ctx.PathParam("uuid"),
-		EndpointID:    endpointID,
+		UserID:      ctx.Doer.ID,
+		CodespaceID: codespaceID,
+		EndpointID:  endpointID,
 	})
 	if err != nil {
 		if errors.Is(err, codespace_service.ErrOpenEndpointNotFound) {
@@ -43,7 +47,7 @@ func openEndpoint(ctx *context.Context, endpointID string) {
 		}
 		if errors.Is(err, codespace_service.ErrOpenEndpointUnavailable) {
 			ctx.Flash.Warning(ctx.Tr("codespace.open.unavailable"))
-			ctx.Redirect(codespaceDetailPath(ctx.PathParam("uuid")), http.StatusSeeOther)
+			ctx.Redirect(codespaceDetailPath(codespaceID), http.StatusSeeOther)
 			return
 		}
 		ctx.ServerError("OpenEndpoint", err)

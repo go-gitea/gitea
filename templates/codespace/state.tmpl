@@ -1,5 +1,5 @@
 {{$cs := .Codespace}}
-<div id="codespace-live-state" data-state-url="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/state?tab={{.CodespaceTab}}" data-refresh-after-ms="{{$cs.RefreshAfterMillis}}" data-auto-stop-configurable="{{$cs.CanConfigureAutoStop}}" data-detail-mode="{{$cs.DetailMode}}">
+<div id="codespace-live-state" data-state-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/state?tab={{.CodespaceTab}}" data-refresh-after-ms="{{$cs.RefreshAfterMillis}}" data-auto-stop-configurable="{{$cs.CanConfigureAutoStop}}" data-detail-mode="{{$cs.DetailMode}}">
 	<header class="tw-flex tw-flex-col tw-shrink-0 tw-gap-3 tw-mt-2">
 		<div class="codespace-detail-heading">
 			<div class="tw-flex-1 tw-min-w-0">
@@ -25,19 +25,19 @@
 				{{if $hasOpen}}
 					<button class="ui small compact primary button show-modal tw-m-0" type="button" data-modal="#codespace-open-modal" data-modal-form.url="{{AppSubUrl}}{{$cs.Workspace.OpenPath}}" data-modal-form.target="_blank" data-modal-endpoint-label="{{ctx.Locale.Tr "codespace.workspace"}}" data-modal-access-kind="{{ctx.Locale.Tr "codespace.authenticated_endpoint"}}">{{svg "octicon-terminal"}} {{ctx.Locale.Tr "codespace.open_workspace"}}</button>
 				{{else if $cs.CanResume}}
-					<form class="form-fetch-action tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/resume">{{$.CsrfTokenHtml}}<button class="ui small compact primary button tw-m-0" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.resume_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.resume_confirm"}}">{{svg "octicon-play" 16}}{{ctx.Locale.Tr "codespace.resume"}}</button></form>
+					<form class="form-fetch-action tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/resume">{{$.CsrfTokenHtml}}<button class="ui small compact primary button tw-m-0" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.resume_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.resume_confirm"}}">{{svg "octicon-play" 16}}{{ctx.Locale.Tr "codespace.resume"}}</button></form>
 				{{else if $continueIsPrimary}}
-					<form class="tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/continue">{{$.CsrfTokenHtml}}<button class="ui small compact primary button tw-m-0" type="submit">{{svg "octicon-play" 16}}{{ctx.Locale.Tr "codespace.continue"}}</button></form>
+					<form class="tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/continue">{{$.CsrfTokenHtml}}<button class="ui small compact primary button tw-m-0" type="submit">{{svg "octicon-play" 16}}{{ctx.Locale.Tr "codespace.continue"}}</button></form>
 				{{end}}
-				{{if and $cs.CanContinue (not $continueIsPrimary)}}<button class="ui small compact button link-action codespace-continue-action tw-m-0" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/continue">{{svg "octicon-play" 16}}{{ctx.Locale.Tr "codespace.continue"}}</button>{{end}}
-				{{if $cs.CanStop}}<button class="ui small compact button tw-text-red link-action codespace-stop-action tw-m-0" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/stop" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.stop_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.stop_confirm"}}">{{svg "octicon-stop" 16}}{{ctx.Locale.Tr "codespace.stop"}}</button>{{end}}
+				{{if and $cs.CanContinue (not $continueIsPrimary)}}<button class="ui small compact button link-action codespace-continue-action tw-m-0" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/continue">{{svg "octicon-play" 16}}{{ctx.Locale.Tr "codespace.continue"}}</button>{{end}}
+				{{if $cs.CanStop}}<button class="ui small compact button tw-text-red link-action codespace-stop-action tw-m-0" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/stop" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.stop_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.stop_confirm"}}">{{svg "octicon-stop" 16}}{{ctx.Locale.Tr "codespace.stop"}}</button>{{end}}
 				{{if or $cs.CanConfigureAutoStop $cs.CanDelete}}
 					<div class="ui small compact top right pointing dropdown icon button jump codespace-detail-more tw-m-0" data-tooltip-content="{{ctx.Locale.Tr "more_items"}}" aria-label="{{ctx.Locale.Tr "more_items"}}">
 						{{svg "octicon-kebab-horizontal"}}
 						<div class="menu flex-items-menu">
-							{{if $cs.CanConfigureAutoStop}}<a class="item codespace-settings-button" data-settings-url="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/auto-stop" data-return-to="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}" data-auto-stop-mode="{{$cs.AutoStop.Mode}}" data-auto-stop-timeout-value="{{$cs.AutoStop.Timeout.Value}}" data-auto-stop-timeout-unit="{{$cs.AutoStop.Timeout.Unit}}" data-auto-stop-configurable="true" data-auto-stop-out-of-range="{{$cs.AutoStop.CustomTimeoutOutOfRange}}" data-auto-stop-effective="{{if $cs.AutoStop.EffectiveEnabled}}{{ctx.Locale.Tr "codespace.auto_stop_effective" (ctx.Locale.Tr $cs.AutoStop.EffectiveTimeout.TranslationKey $cs.AutoStop.EffectiveTimeout.Value)}}{{else}}{{ctx.Locale.Tr "codespace.auto_stop_effective_never"}}{{end}}" data-auto-stop-default-description="{{ctx.Locale.Tr "codespace.auto_stop_default_desc" (ctx.Locale.Tr $cs.AutoStop.Default.TranslationKey $cs.AutoStop.Default.Value)}}" data-auto-stop-range="{{ctx.Locale.Tr "codespace.auto_stop_range" (ctx.Locale.Tr $cs.AutoStop.Minimum.TranslationKey $cs.AutoStop.Minimum.Value) (ctx.Locale.Tr $cs.AutoStop.Maximum.TranslationKey $cs.AutoStop.Maximum.Value)}}">{{svg "octicon-gear" 16}}{{ctx.Locale.Tr "settings_title"}}</a>{{end}}
+							{{if $cs.CanConfigureAutoStop}}<a class="item codespace-settings-button" data-settings-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/auto-stop" data-return-to="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}" data-auto-stop-mode="{{$cs.AutoStop.Mode}}" data-auto-stop-timeout-value="{{$cs.AutoStop.Timeout.Value}}" data-auto-stop-timeout-unit="{{$cs.AutoStop.Timeout.Unit}}" data-auto-stop-configurable="true" data-auto-stop-out-of-range="{{$cs.AutoStop.CustomTimeoutOutOfRange}}" data-auto-stop-effective="{{if $cs.AutoStop.EffectiveEnabled}}{{ctx.Locale.Tr "codespace.auto_stop_effective" (ctx.Locale.Tr $cs.AutoStop.EffectiveTimeout.TranslationKey $cs.AutoStop.EffectiveTimeout.Value)}}{{else}}{{ctx.Locale.Tr "codespace.auto_stop_effective_never"}}{{end}}" data-auto-stop-default-description="{{ctx.Locale.Tr "codespace.auto_stop_default_desc" (ctx.Locale.Tr $cs.AutoStop.Default.TranslationKey $cs.AutoStop.Default.Value)}}" data-auto-stop-range="{{ctx.Locale.Tr "codespace.auto_stop_range" (ctx.Locale.Tr $cs.AutoStop.Minimum.TranslationKey $cs.AutoStop.Minimum.Value) (ctx.Locale.Tr $cs.AutoStop.Maximum.TranslationKey $cs.AutoStop.Maximum.Value)}}">{{svg "octicon-gear" 16}}{{ctx.Locale.Tr "settings_title"}}</a>{{end}}
 							{{if and $cs.CanConfigureAutoStop $cs.CanDelete}}<div class="divider"></div>{{end}}
-							{{if $cs.CanDelete}}<a class="item link-action tw-text-danger codespace-delete-action" data-url="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}/delete{{QueryBuild "?" "return_to" (printf "%s/-/codespaces" AppSubUrl)}}" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_detail_confirm"}}">{{svg "octicon-trash" 16}}{{ctx.Locale.Tr "delete"}}</a>{{end}}
+							{{if $cs.CanDelete}}<a class="item link-action tw-text-danger codespace-delete-action" data-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/delete{{QueryBuild "?" "return_to" (printf "%s/-/codespaces" AppSubUrl)}}" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_detail_confirm"}}">{{svg "octicon-trash" 16}}{{ctx.Locale.Tr "delete"}}</a>{{end}}
 						</div>
 					</div>
 				{{end}}
@@ -46,8 +46,8 @@
 	</header>
 
 	<nav class="ui secondary pointing menu codespace-detail-tabs" aria-label="{{ctx.Locale.Tr "codespace.codespace"}}">
-		<a class="item {{if eq .CodespaceTab "overview"}}active{{end}}" href="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}?tab=overview">{{ctx.Locale.Tr "codespace.overview"}}</a>
-		<a class="item {{if eq .CodespaceTab "logs"}}active{{end}}" href="{{AppSubUrl}}/-/codespaces/{{$cs.UUID}}?tab=logs">{{ctx.Locale.Tr "codespace.logs"}}</a>
+		<a class="item {{if eq .CodespaceTab "overview"}}active{{end}}" href="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}?tab=overview">{{ctx.Locale.Tr "codespace.overview"}}</a>
+		<a class="item {{if eq .CodespaceTab "logs"}}active{{end}}" href="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}?tab=logs">{{ctx.Locale.Tr "codespace.logs"}}</a>
 	</nav>
 
 	{{if eq .CodespaceTab "overview"}}

@@ -73,10 +73,10 @@ type UpdateLogOptions struct {
 
 // ReadLogOptions identifies one user-facing log page request.
 type ReadLogOptions struct {
-	UserID        int64
-	CodespaceUUID string
-	Offset        int64
-	Limit         int64
+	UserID      int64
+	CodespaceID int64
+	Offset      int64
+	Limit       int64
 }
 
 // ReadLogLine contains one parsed user-facing log line.
@@ -221,8 +221,8 @@ func ReadLog(ctx context.Context, opts ReadLogOptions) (*ReadLogResult, error) {
 	if opts.UserID <= 0 {
 		return nil, fmt.Errorf("%w: user_id must be positive", ErrReadLogInvalidArgument)
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrReadLogInvalidArgument, err)
+	if opts.CodespaceID <= 0 {
+		return nil, fmt.Errorf("%w: codespace_id must be positive", ErrReadLogInvalidArgument)
 	}
 	if opts.Offset < 0 {
 		return nil, &LogOffsetError{Err: ErrReadLogInvalidArgument, CurrentOffset: 0}
@@ -232,7 +232,7 @@ func ReadLog(ctx context.Context, opts ReadLogOptions) (*ReadLogResult, error) {
 	}
 
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}
@@ -246,6 +246,9 @@ func ReadLog(ctx context.Context, opts ReadLogOptions) (*ReadLogResult, error) {
 		return nil, &LogOffsetError{Err: ErrReadLogOffsetConflict, CurrentOffset: codespace.LogSize}
 	}
 	if opts.Offset == codespace.LogSize {
+		return &ReadLogResult{Offset: opts.Offset, NextOffset: opts.Offset, EOF: true, OperationActive: hasActiveOperation(codespace), Lines: []ReadLogLine{}}, nil
+	}
+	if codespace.UUID == "" {
 		return &ReadLogResult{Offset: opts.Offset, NextOffset: opts.Offset, EOF: true, OperationActive: hasActiveOperation(codespace), Lines: []ReadLogLine{}}, nil
 	}
 	lines, nextOffset, eof, truncated, err := readLogLines(ctx, codespaceLogFilename(codespace.UUID), opts.Offset, codespace.LogSize, opts.Limit)

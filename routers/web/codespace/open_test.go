@@ -6,6 +6,7 @@ package codespace
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 	"time"
 
@@ -32,9 +33,9 @@ func TestOpenEndpointRedirectsWithOneTimeCode(t *testing.T) {
 		MetadataGeneration: 1,
 	}))
 
-	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+codespaceUUID+"/open/app-3000")
+	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/open/app-3000")
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	ctx.SetPathParam("endpoint_id", "app-3000")
 	OpenEndpoint(ctx)
 
@@ -63,9 +64,9 @@ func TestOpenEndpointPublicRedirectsWithoutCode(t *testing.T) {
 		MetadataGeneration: 1,
 	}))
 
-	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+codespaceUUID+"/open/app-3000")
+	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/open/app-3000")
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	ctx.SetPathParam("endpoint_id", "app-3000")
 	OpenEndpoint(ctx)
 
@@ -88,9 +89,9 @@ func TestOpenEndpointHidesOtherCreatorCodespace(t *testing.T) {
 	codespaceUUID := "99999999-9999-4999-8999-999999999999"
 	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 93)
 
-	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+codespaceUUID+"/open")
+	ctx, resp := contexttest.MockContext(t, "POST /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10)+"/open")
 	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	Open(ctx)
 
 	require.Equal(t, http.StatusNotFound, resp.Code)

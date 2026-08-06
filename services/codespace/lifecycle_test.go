@@ -53,6 +53,11 @@ func TestFinalizeOperationResumeFailedTransaction(t *testing.T) {
 	assertServiceExists(t, new(codespace_model.SSHKey), "codespace_id = (SELECT id FROM codespace WHERE uuid = ?)", codespaceUUID)
 }
 
+func codespaceIDByUUID(t *testing.T, codespaceUUID string) int64 {
+	t.Helper()
+	return loadServiceCodespace(t, codespaceUUID).ID
+}
+
 func TestFinalizeOperationRejectsWrongManagerAsStale(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
@@ -365,6 +370,15 @@ func loadServiceCodespace(t *testing.T, codespaceUUID string) *codespace_model.C
 	t.Helper()
 	codespace := new(codespace_model.Codespace)
 	has, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(codespace)
+	require.NoError(t, err)
+	require.True(t, has)
+	return codespace
+}
+
+func loadServiceCodespaceByID(t *testing.T, codespaceID int64) *codespace_model.Codespace {
+	t.Helper()
+	codespace := new(codespace_model.Codespace)
+	has, err := db.GetEngine(t.Context()).ID(codespaceID).Get(codespace)
 	require.NoError(t, err)
 	require.True(t, has)
 	return codespace

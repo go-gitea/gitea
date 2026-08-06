@@ -5,16 +5,14 @@ package codespace
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"strings"
+	"time"
 
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/globallock"
-	"gitea.dev/modules/util"
 )
 
 const (
@@ -47,6 +45,12 @@ type DeleteManagerOptions struct {
 	Confirm   bool
 }
 
+// CreateManagerResult returns the Manager identity and one-time plaintext secret.
+type CreateManagerResult struct {
+	ManagerID int64
+	Secret    string
+}
+
 // ManagerDetailOptions selects one Manager management page and its Codespace page.
 type ManagerDetailOptions struct {
 	ManagerSettingsOptions
@@ -62,10 +66,9 @@ type ManagerDetail struct {
 	Total      int64
 }
 
-// ManagerSettings contains registration token and Manager rows for settings pages.
+// ManagerSettings contains Manager rows for settings pages.
 type ManagerSettings struct {
-	RegistrationToken string
-	Managers          []*ManagerSettingsView
+	Managers []*ManagerSettingsView
 }
 
 // ManagerSettingsView contains fields shown on Manager settings pages.
@@ -88,23 +91,24 @@ type ManagerSettingsView struct {
 	BoundCodespaces                    int64
 }
 
-// ListManagerSettings returns the current token row and Manager summaries for one settings page.
+// ListManagerSettings returns Manager summaries for one settings page.
 func ListManagerSettings(ctx context.Context, opts ManagerSettingsOptions) (*ManagerSettings, error) {
 	if err := validateManagerSettingsScope(ctx, opts); err != nil {
 		return nil, err
 	}
-	result := &ManagerSettings{}
-	token, err := GetOrCreateRegistrationToken(ctx, opts)
+	var managers []*codespace_model.Manager
+	query := db.GetEngine(ctx)
+	if opts.Scope != ManagerSettingsScopeSite {
+		query = query.Where("user_id = ?", opts.UserID)
+	}
+	if err := query.Asc("user_id", "id").Find(&managers); err != nil {
+		return nil, err
+	}
+	views, err := settingsManagerViews(ctx, managers, opts.UserID)
 	if err != nil {
 		return nil, err
 	}
-	result.RegistrationToken = token
-	managers, err := listSettingsManagers(ctx, opts)
-	if err != nil {
-		return nil, err
-	}
-	result.Managers = managers
-	return result, nil
+	return &ManagerSettings{Managers: views}, nil
 }
 
 // GetManagerDetail returns one Manager only when it belongs to the requested settings scope.
@@ -142,66 +146,39 @@ func GetManagerDetail(ctx context.Context, opts ManagerDetailOptions) (*ManagerD
 	return &ManagerDetail{Manager: views[0], Codespaces: list.Rows, Total: list.Total}, nil
 }
 
-// GetOrCreateRegistrationToken returns or creates the current site or personal token.
-func GetOrCreateRegistrationToken(ctx context.Context, opts ManagerSettingsOptions) (string, error) {
+// CreateManager creates a Manager identity and returns its secret once.
+func CreateManager(ctx context.Context, opts ManagerSettingsOptions) (*CreateManagerResult, error) {
 	if err := validateManagerSettingsScope(ctx, opts); err != nil {
-		return "", err
+		return nil, err
 	}
-	userID := registrationTokenUserID(opts)
-	var tokenValue string
+	userID := opts.UserID
+	if opts.Scope == ManagerSettingsScopeSite {
+		userID = 0
+	}
+	result := new(CreateManagerResult)
 	err := globallock.LockAndDo(ctx, codespaceUserRelationLockKey(userID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
-			if err := validateManagerSettingsUserInTx(ctx, opts); err != nil {
+			if err := validateManagerSettingsScope(ctx, opts); err != nil {
 				return err
 			}
-			token, err := loadRegistrationTokenByUser(ctx, userID)
-			if err != nil {
+			manager := &codespace_model.Manager{
+				UserID:       userID,
+				RuntimeState: codespace_model.ManagerRuntimeStateRecovering,
+				TagsJSON:     "[]",
+				CreatedUnix:  time.Now().Unix(),
+			}
+			result.Secret = manager.GenerateManagerSecret()
+			if _, err := db.GetEngine(ctx).Insert(manager); err != nil {
 				return err
 			}
-			if token != nil {
-				tokenValue = token.Token
-				return nil
-			}
-			tokenValue = newRegistrationToken()
-			_, err = db.GetEngine(ctx).Insert(&codespace_model.ManagerToken{
-				UserID: userID,
-				Token:  tokenValue,
-			})
-			return err
+			result.ManagerID = manager.ID
+			return nil
 		})
 	})
-	return tokenValue, err
-}
-
-// ResetRegistrationToken replaces the current site or personal token in place.
-func ResetRegistrationToken(ctx context.Context, opts ManagerSettingsOptions) (string, error) {
-	if err := validateManagerSettingsScope(ctx, opts); err != nil {
-		return "", err
+	if err != nil {
+		return nil, err
 	}
-	userID := registrationTokenUserID(opts)
-	var tokenValue string
-	err := globallock.LockAndDo(ctx, codespaceUserRelationLockKey(userID), func(ctx context.Context) error {
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			if err := validateManagerSettingsUserInTx(ctx, opts); err != nil {
-				return err
-			}
-			tokenValue = newRegistrationToken()
-			token, err := loadRegistrationTokenByUser(ctx, userID)
-			if err != nil {
-				return err
-			}
-			if token == nil {
-				_, err = db.GetEngine(ctx).Insert(&codespace_model.ManagerToken{
-					UserID: userID,
-					Token:  tokenValue,
-				})
-				return err
-			}
-			_, err = db.GetEngine(ctx).Where("user_id = ?", userID).Cols("token").Update(&codespace_model.ManagerToken{Token: tokenValue})
-			return err
-		})
-	})
-	return tokenValue, err
+	return result, nil
 }
 
 // DeleteManager removes one Manager identity and all Gitea records bound to it.
@@ -256,15 +233,19 @@ func deleteManagerIdentityLocked(ctx context.Context, managerID int64, batchSize
 			}
 		}
 		for {
-			codespaceUUIDs, err := listManagerCodespaceUUIDs(ctx, managerID, batchSize)
-			if err != nil {
+			var rows []*codespace_model.Codespace
+			if err := db.GetEngine(ctx).
+				Where("manager_id = ?", managerID).
+				Asc("id").
+				Limit(batchSize).
+				Find(&rows); err != nil {
 				return err
 			}
-			if len(codespaceUUIDs) == 0 {
+			if len(rows) == 0 {
 				break
 			}
-			for _, codespaceUUID := range codespaceUUIDs {
-				if err := deleteManagerCodespace(ctx, managerID, codespaceUUID); err != nil {
+			for _, row := range rows {
+				if err := deleteManagerCodespace(ctx, managerID, row.UUID); err != nil {
 					return err
 				}
 			}
@@ -297,18 +278,6 @@ func deleteManagerIdentityLocked(ctx context.Context, managerID int64, batchSize
 			return err
 		})
 	})
-}
-
-func listSettingsManagers(ctx context.Context, opts ManagerSettingsOptions) ([]*ManagerSettingsView, error) {
-	var managers []*codespace_model.Manager
-	query := db.GetEngine(ctx)
-	if opts.Scope != ManagerSettingsScopeSite {
-		query = query.Where("user_id = ?", opts.UserID)
-	}
-	if err := query.Asc("user_id", "id").Find(&managers); err != nil {
-		return nil, err
-	}
-	return settingsManagerViews(ctx, managers, opts.UserID)
 }
 
 func settingsManagerViews(ctx context.Context, managers []*codespace_model.Manager, scopeUserID int64) ([]*ManagerSettingsView, error) {
@@ -461,22 +430,6 @@ func findEnvironmentDescriptionConflicts(ctx context.Context, targetEnvironments
 	return conflicts, nil
 }
 
-func loadRegistrationTokenByUser(ctx context.Context, userID int64) (*codespace_model.ManagerToken, error) {
-	token := new(codespace_model.ManagerToken)
-	has, err := db.GetEngine(ctx).Where("user_id = ?", userID).Get(token)
-	if err != nil || !has {
-		return nil, err
-	}
-	return token, nil
-}
-
-func registrationTokenUserID(opts ManagerSettingsOptions) int64 {
-	if opts.Scope == ManagerSettingsScopeSite {
-		return 0
-	}
-	return opts.UserID
-}
-
 func validateManagerSettingsScope(ctx context.Context, opts ManagerSettingsOptions) error {
 	switch opts.Scope {
 	case ManagerSettingsScopeSite:
@@ -488,39 +441,17 @@ func validateManagerSettingsScope(ctx context.Context, opts ManagerSettingsOptio
 		if opts.UserID <= 0 {
 			return errors.New("user_id must be positive")
 		}
-		return validateManagerSettingsUser(ctx, opts)
+		user, err := user_model.GetUserByID(ctx, opts.UserID)
+		if err != nil {
+			return err
+		}
+		if user.Type != user_model.UserTypeIndividual {
+			return errors.New("user is not an individual")
+		}
+		return nil
 	default:
 		return fmt.Errorf("unsupported manager settings scope %q", opts.Scope)
 	}
-}
-
-func validateManagerSettingsUser(ctx context.Context, opts ManagerSettingsOptions) error {
-	user, err := user_model.GetUserByID(ctx, opts.UserID)
-	if err != nil {
-		return err
-	}
-	return validateManagerSettingsUserType(user)
-}
-
-func validateManagerSettingsUserInTx(ctx context.Context, opts ManagerSettingsOptions) error {
-	if opts.Scope == ManagerSettingsScopeSite {
-		return nil
-	}
-	user, err := user_model.GetUserByID(ctx, opts.UserID)
-	if err != nil {
-		return err
-	}
-	return validateManagerSettingsUserType(user)
-}
-
-func validateManagerSettingsUserType(user *user_model.User) error {
-	if user == nil {
-		return errors.New("user is required")
-	}
-	if user.Type != user_model.UserTypeIndividual {
-		return errors.New("user is not an individual")
-	}
-	return nil
 }
 
 func loadSettingsManager(ctx context.Context, managerID int64) (*codespace_model.Manager, error) {
@@ -546,22 +477,6 @@ func managerInSettingsScope(manager *codespace_model.Manager, scope string, user
 	}
 }
 
-func listManagerCodespaceUUIDs(ctx context.Context, managerID int64, limit int) ([]string, error) {
-	var rows []*codespace_model.Codespace
-	if err := db.GetEngine(ctx).
-		Where("manager_id = ?", managerID).
-		Asc("id").
-		Limit(limit).
-		Find(&rows); err != nil {
-		return nil, err
-	}
-	result := make([]string, 0, len(rows))
-	for _, row := range rows {
-		result = append(result, row.UUID)
-	}
-	return result, nil
-}
-
 func deleteManagerCodespace(ctx context.Context, managerID int64, codespaceUUID string) error {
 	return globallock.LockAndDo(ctx, codespaceStateLockKey(codespaceUUID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
@@ -573,8 +488,4 @@ func deleteManagerCodespace(ctx context.Context, managerID int64, codespaceUUID 
 			return deleteCodespaceForFinal(ctx, codespaceUUID)
 		})
 	})
-}
-
-func newRegistrationToken() string {
-	return strings.ToLower(hex.EncodeToString(util.CryptoRandomBytes(32)))
 }

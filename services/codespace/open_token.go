@@ -57,9 +57,9 @@ const (
 
 // OpenEndpointOptions identifies one authenticated Gitea Web open request.
 type OpenEndpointOptions struct {
-	UserID        int64
-	CodespaceUUID string
-	EndpointID    string
+	UserID      int64
+	CodespaceID int64
+	EndpointID  string
 }
 
 // OpenEndpointResult contains the redirect target produced for one Web open request.
@@ -104,8 +104,8 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 	if err := validateOpenEndpointID(opts.EndpointID); err != nil {
 		return nil, err
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, err
+	if opts.CodespaceID <= 0 {
+		return nil, errors.New("codespace_id must be positive")
 	}
 	if !setting.Codespace.Enabled {
 		return nil, fmt.Errorf("%w: %s", ErrOpenEndpointUnavailable, OpenTokenDeniedStateUnavailable)
@@ -114,10 +114,10 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 	var result *openEndpointResult
 	var unavailableCategory string
 	var tokenCacheKey string
-	err := globallock.LockAndDo(ctx, codespaceStateLockKey(opts.CodespaceUUID), func(ctx context.Context) error {
+	err := globallock.LockAndDo(ctx, codespaceRowLockKey(opts.CodespaceID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
 			codespace := new(codespace_model.Codespace)
-			has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+			has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
 			if err != nil {
 				return err
 			}
@@ -126,6 +126,10 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 			}
 			if codespace.UserID != opts.UserID {
 				return ErrOpenEndpointNotFound
+			}
+			if codespace.UUID == "" {
+				unavailableCategory = OpenTokenDeniedMetadataRebuilding
+				return nil
 			}
 			if codespace.Status != codespace_model.StatusRunning {
 				unavailableCategory = OpenTokenDeniedCodespaceNotRunning
@@ -146,7 +150,7 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 			if err := checkCodespaceCreatorForOpen(ctx, codespace, opts.UserID); err != nil {
 				return err
 			}
-			entry, hasEntry, err := getRuntimeMetadataEntry(opts.CodespaceUUID)
+			entry, hasEntry, err := getRuntimeMetadataEntry(codespace.UUID)
 			if err != nil {
 				return err
 			}
@@ -172,7 +176,7 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 			now := time.Now().Unix()
 			if err := putOpenTokenCacheEntry(tokenCacheKey, openTokenCacheEntry{
 				UserID:        opts.UserID,
-				CodespaceUUID: opts.CodespaceUUID,
+				CodespaceUUID: codespace.UUID,
 				EndpointID:    opts.EndpointID,
 				ManagerID:     codespace.ManagerID,
 				IssuedUnix:    now,
@@ -180,7 +184,7 @@ func openEndpoint(ctx context.Context, opts OpenEndpointOptions) (*openEndpointR
 			}); err != nil {
 				return err
 			}
-			redirectURL, err := gatewayOpenURL(gatewayURL, opts.CodespaceUUID, opts.EndpointID, code)
+			redirectURL, err := gatewayOpenURL(gatewayURL, codespace.UUID, opts.EndpointID, code)
 			if err != nil {
 				return err
 			}
@@ -343,7 +347,7 @@ func ValidateOpenToken(ctx context.Context, manager *codespace_model.Manager, op
 				Outcome: &codespacev1.ValidateOpenTokenResponse_Allowed{
 					Allowed: &codespacev1.OpenTokenBinding{
 						UserId:                currentEntry.UserID,
-						CodespaceUuid:         currentEntry.CodespaceUUID,
+						RuntimeUuid:           currentEntry.CodespaceUUID,
 						EndpointId:            currentEntry.EndpointID,
 						InteractionGeneration: nextGeneration,
 					},
@@ -411,7 +415,7 @@ func openEndpointInfo(codespace *codespace_model.Codespace, metadata runtimeMeta
 	if !found {
 		return unavailableOpenEndpoint(OpenTokenDeniedEndpointNotFound), nil
 	}
-	targetURL, err := gatewayEndpointURL(gatewayURL, opts.CodespaceUUID, opts.EndpointID)
+	targetURL, err := gatewayEndpointURL(gatewayURL, codespace.UUID, opts.EndpointID)
 	if err != nil {
 		return nil, err
 	}

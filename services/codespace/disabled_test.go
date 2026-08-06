@@ -38,9 +38,9 @@ func TestGatewayAndRuntimeRPCsRejectDisabledCodespace(t *testing.T) {
 		{"endpoint_id": "private-api", "label": "API", "public": false},
 	})))
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
-		UserID:        1,
-		CodespaceUUID: runningUUID,
-		EndpointID:    "private-api",
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, runningUUID),
+		EndpointID:  "private-api",
 	})
 	require.NoError(t, err)
 	assert.EqualValues(t, 6, loadServiceCodespace(t, runningUUID).InteractionGeneration)
@@ -56,7 +56,7 @@ func TestGatewayAndRuntimeRPCsRejectDisabledCodespace(t *testing.T) {
 
 	sessionResult, err := RevalidateGatewaySession(t.Context(), manager, &codespacev1.RevalidateGatewaySessionRequest{
 		Session: &codespacev1.RevalidateGatewaySessionRequest_Endpoint{Endpoint: &codespacev1.EndpointSessionBinding{
-			UserId: 1, CodespaceUuid: runningUUID, EndpointId: "private-api",
+			UserId: 1, RuntimeUuid: runningUUID, EndpointId: "private-api",
 		}},
 	})
 	require.NoError(t, err)
@@ -70,9 +70,9 @@ func TestGatewayAndRuntimeRPCsRejectDisabledCodespace(t *testing.T) {
 	assert.Equal(t, SSHAuthDeniedStateUnavailable, sshResult.GetDenied().GetCategory())
 
 	_, err = OpenEndpoint(t.Context(), OpenEndpointOptions{
-		UserID:        1,
-		CodespaceUUID: runningUUID,
-		EndpointID:    "private-api",
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, runningUUID),
+		EndpointID:  "private-api",
 	})
 	require.ErrorIs(t, err, ErrOpenEndpointUnavailable)
 
@@ -136,19 +136,13 @@ func TestDisabledCodespaceRejectsStartupEntrypoints(t *testing.T) {
 		OperationRVersion:     94,
 		InteractionGeneration: 1,
 	})
-	token, err := GetOrCreateRegistrationToken(t.Context(), ManagerSettingsOptions{Scope: ManagerSettingsScopeSite})
-	require.NoError(t, err)
-
 	t.Cleanup(test.MockVariableValue(&setting.Codespace.Enabled, false))
 
-	_, err = ResumeCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceUUID: stoppedUUID})
+	_, err := ResumeCodespace(t.Context(), LifecycleActionOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, stoppedUUID)})
 	require.ErrorIs(t, err, ErrLifecycleActionStateUnavailable)
 	assert.Empty(t, loadServiceCodespace(t, stoppedUUID).OperationType)
 
-	_, err = ContinueCodespace(t.Context(), ContinueCodespaceOptions{UserID: 1, CodespaceUUID: runningUUID})
+	_, err = ContinueCodespace(t.Context(), ContinueCodespaceOptions{UserID: 1, CodespaceID: codespaceIDByUUID(t, runningUUID)})
 	require.ErrorIs(t, err, ErrInteractionStateUnavailable)
 	assert.EqualValues(t, 1, loadServiceCodespace(t, runningUUID).InteractionGeneration)
-
-	_, _, err = RegisterManager(t.Context(), token)
-	require.ErrorIs(t, err, ErrRegistrationStateUnavailable)
 }

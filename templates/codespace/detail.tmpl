@@ -17,12 +17,12 @@
 							<div class="menu codespace-log-menu">
 								<button class="item" type="button" data-codespace-log-toggle-timestamps aria-pressed="false"><span class="codespace-log-menu-check tw-invisible" data-codespace-log-timestamp-check>{{svg "octicon-check" 16}}</span>{{ctx.Locale.Tr "show_timestamps"}}</button>
 								<button class="item" type="button" data-codespace-log-fullscreen data-enter-label="{{ctx.Locale.Tr "codespace.enter_fullscreen"}}" data-exit-label="{{ctx.Locale.Tr "codespace.exit_fullscreen"}}">{{svg "octicon-screen-full" 16}}<span>{{ctx.Locale.Tr "codespace.enter_fullscreen"}}</span></button>
-								<a class="item" href="{{AppSubUrl}}/-/codespaces/{{.Codespace.UUID}}/logs/download">{{svg "octicon-download" 16}}{{ctx.Locale.Tr "codespace.download_logs"}}</a>
+								<a class="item" href="{{AppSubUrl}}/-/codespaces/{{.Codespace.ID}}/logs/download">{{svg "octicon-download" 16}}{{ctx.Locale.Tr "codespace.download_logs"}}</a>
 							</div>
 						</div>
 					</div>
 					<div id="codespace-log-view" class="console codespace-log-view" role="log" aria-label="{{ctx.Locale.Tr "codespace.operation_log"}}"
-						data-log-url="{{AppSubUrl}}/-/codespaces/{{.Codespace.UUID}}/logs" data-log-next-offset="0" data-log-eof="false"
+						data-log-url="{{AppSubUrl}}/-/codespaces/{{.Codespace.ID}}/logs" data-log-next-offset="0" data-log-eof="false"
 						data-log-refresh-after-ms="{{.Codespace.RefreshAfterMillis}}" data-log-line-count="0" data-log-empty="true"
 						data-log-error-message="{{ctx.Locale.Tr "codespace.log_load_failed"}}">
 						<div class="codespace-log-empty" data-log-empty-message>{{ctx.Locale.Tr "codespace.no_log_lines"}}</div>

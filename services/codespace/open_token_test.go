@@ -39,9 +39,9 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 	})))
 
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		EndpointID:    "app-3000",
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	require.Len(t, issued.code, 64)
@@ -59,7 +59,7 @@ func TestOpenEndpointTokenAllowsAndConsumes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, validated.GetAllowed())
 	assert.EqualValues(t, 1, validated.GetAllowed().GetUserId())
-	assert.Equal(t, codespaceUUID, validated.GetAllowed().GetCodespaceUuid())
+	assert.Equal(t, codespaceUUID, validated.GetAllowed().GetRuntimeUuid())
 	assert.Equal(t, "app-3000", validated.GetAllowed().GetEndpointId())
 	assert.EqualValues(t, 7, validated.GetAllowed().GetInteractionGeneration())
 	assert.False(t, cache.GetCache().IsExist(openTokenCacheKey(issued.code)))
@@ -83,9 +83,9 @@ func TestOpenEndpointHidesOtherCreatorCodespace(t *testing.T) {
 	})
 
 	_, err := OpenEndpoint(t.Context(), OpenEndpointOptions{
-		UserID:        2,
-		CodespaceUUID: codespaceUUID,
-		EndpointID:    "workspace",
+		UserID:      2,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		EndpointID:  "workspace",
 	})
 	require.ErrorIs(t, err, ErrOpenEndpointNotFound)
 }
@@ -104,9 +104,9 @@ func TestValidateOpenTokenDeniesAndPreservesTemporarilyInvalidCode(t *testing.T)
 	})
 	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 82, []map[string]any{})))
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		EndpointID:    "workspace",
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		EndpointID:  "workspace",
 	})
 	require.NoError(t, err)
 
@@ -174,9 +174,9 @@ func TestValidateOpenTokenEndpointMustRemainPrivate(t *testing.T) {
 		{"endpoint_id": "app-3000", "label": "App", "public": false},
 	})))
 	issued, err := openEndpoint(t.Context(), OpenEndpointOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		EndpointID:    "app-3000",
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	require.NoError(t, putRuntimeMetadataEntry(codespaceUUID, serviceRuntimeMetadataEntry(t, 84, []map[string]any{
@@ -239,9 +239,9 @@ func TestOpenEndpointPublicRedirectDoesNotIssueCodeOrAdvance(t *testing.T) {
 	})))
 
 	result, err := OpenEndpoint(t.Context(), OpenEndpointOptions{
-		UserID:        1,
-		CodespaceUUID: codespaceUUID,
-		EndpointID:    "app-3000",
+		UserID:      1,
+		CodespaceID: codespaceIDByUUID(t, codespaceUUID),
+		EndpointID:  "app-3000",
 	})
 	require.NoError(t, err)
 	require.True(t, result.Public)

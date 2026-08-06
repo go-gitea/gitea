@@ -56,6 +56,7 @@ type GovernanceList struct {
 
 // GovernanceView contains only the fields non-creator governance pages may show.
 type GovernanceView struct {
+	ID                  int64
 	UUID                string
 	ShortUUID           string
 	DisplayStatus       string
@@ -157,6 +158,7 @@ func governanceCodespaceView(ctx context.Context, codespace *codespace_model.Cod
 	applyCreatorDisplayState(ctx, codespace, view, manager, false)
 
 	result := &GovernanceView{
+		ID:            codespace.ID,
 		UUID:          codespace.UUID,
 		ShortUUID:     shortCodespaceUUID(codespace.UUID),
 		DisplayStatus: view.DisplayStatus,

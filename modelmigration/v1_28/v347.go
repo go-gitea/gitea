@@ -14,7 +14,7 @@ import (
 
 type codespace struct {
 	ID                        int64
-	UUID                      string `xorm:"CHAR(36) NOT NULL UNIQUE"`
+	UUID                      string `xorm:"CHAR(36) NOT NULL DEFAULT '' index"`
 	UserID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RepoID                    int64  `xorm:"NOT NULL DEFAULT 0"`
 	RefType                   string `xorm:"VARCHAR(16) NOT NULL DEFAULT ''"`
@@ -103,13 +103,8 @@ func (*codespaceManager) TableIndices() []*schemas.Index {
 func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 	type codespaceManagerAddress struct {
 		ManagerID int64  `xorm:"pk NOT NULL DEFAULT 0"`
-		Kind      string `xorm:"pk VARCHAR(16) NOT NULL DEFAULT '' unique(kind_address)"`
-		Address   string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' unique(kind_address)"`
-	}
-
-	type codespaceManagerToken struct {
-		Token  string `xorm:"VARCHAR(64) NOT NULL UNIQUE"`
-		UserID int64  `xorm:"pk NOT NULL DEFAULT 0"`
+		Kind      string `xorm:"pk VARCHAR(16) NOT NULL DEFAULT '' index(kind_address)"`
+		Address   string `xorm:"VARCHAR(512) NOT NULL DEFAULT '' index(kind_address)"`
 	}
 
 	type codespaceGiteaToken struct {
@@ -177,7 +172,6 @@ func AddCodespaceTables(_ context.Context, x base.EngineMigration) error {
 		new(codespace),
 		new(codespaceManager),
 		new(codespaceManagerAddress),
-		new(codespaceManagerToken),
 		new(codespaceGiteaToken),
 		new(codespaceSSHKey),
 		new(codespacePermissionAuthorization),

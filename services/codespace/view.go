@@ -73,8 +73,8 @@ type CreatorListOptions struct {
 
 // CreatorDetailOptions selects one creator-owned Codespace for a detail page.
 type CreatorDetailOptions struct {
-	UserID        int64
-	CodespaceUUID string
+	UserID      int64
+	CodespaceID int64
 }
 
 // CreatorCodespaceList contains rows for a creator list page.
@@ -85,6 +85,7 @@ type CreatorCodespaceList struct {
 
 // CreatorCodespaceView contains the server-authoritative presentation state.
 type CreatorCodespaceView struct {
+	ID                   int64
 	UUID                 string
 	ShortUUID            string
 	RepoID               int64
@@ -241,11 +242,11 @@ func GetCreatorCodespace(ctx context.Context, opts CreatorDetailOptions) (*Creat
 	if opts.UserID <= 0 {
 		return nil, errors.New("user_id must be positive")
 	}
-	if err := codespace_model.ValidateUUID(opts.CodespaceUUID); err != nil {
-		return nil, err
+	if opts.CodespaceID <= 0 {
+		return nil, errors.New("codespace_id must be positive")
 	}
 	codespace := new(codespace_model.Codespace)
-	has, err := db.GetEngine(ctx).Where("uuid = ?", opts.CodespaceUUID).Get(codespace)
+	has, err := db.GetEngine(ctx).ID(opts.CodespaceID).Get(codespace)
 	if err != nil {
 		return nil, err
 	}
@@ -270,6 +271,7 @@ func creatorCodespaceView(ctx context.Context, codespace *codespace_model.Codesp
 		}
 	}
 	view := &CreatorCodespaceView{
+		ID:             codespace.ID,
 		UUID:           codespace.UUID,
 		ShortUUID:      shortCodespaceUUID(codespace.UUID),
 		RepoID:         codespace.RepoID,
@@ -434,7 +436,7 @@ func runningDisplayStatus(ctx context.Context, codespace *codespace_model.Codesp
 			view.Workspace = &CreatorEndpointView{
 				EndpointID: workspaceEndpointID,
 				Label:      workspaceEndpointLabel,
-				OpenPath:   codespaceDetailPath(codespace.UUID) + "/open",
+				OpenPath:   codespaceDetailPath(codespace.ID) + "/open",
 			}
 			continue
 		}
@@ -451,7 +453,7 @@ func runningDisplayStatus(ctx context.Context, codespace *codespace_model.Codesp
 			Label:      endpoint.Label,
 			Port:       uint16(port),
 			Public:     endpoint.Public,
-			OpenPath:   codespaceDetailPath(codespace.UUID) + "/open/" + endpoint.EndpointID,
+			OpenPath:   codespaceDetailPath(codespace.ID) + "/open/" + endpoint.EndpointID,
 		})
 	}
 	if view.Workspace == nil {
@@ -567,6 +569,6 @@ func statusSummary(displayStatus string) string {
 	}
 }
 
-func codespaceDetailPath(codespaceUUID string) string {
-	return "/-/codespaces/" + codespaceUUID
+func codespaceDetailPath(codespaceID int64) string {
+	return "/-/codespaces/" + strconv.FormatInt(codespaceID, 10)
 }

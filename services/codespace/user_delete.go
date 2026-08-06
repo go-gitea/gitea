@@ -15,7 +15,7 @@ import (
 
 const userDeleteBatchSize = 100
 
-// DeleteUserResources removes Codespace resources created or registered by one user.
+// DeleteUserResources removes Codespace resources owned by one user.
 func DeleteUserResources(ctx context.Context, userID int64) error {
 	if userID <= 0 {
 		return errors.New("user_id must be positive")
@@ -68,9 +68,6 @@ func deleteUserResourcesLocked(ctx context.Context, userID int64) error {
 			}
 		}
 		if _, err := db.GetEngine(ctx).Where("user_id = ?", userID).Delete(new(codespace_model.PermissionAuthorization)); err != nil {
-			return err
-		}
-		if _, err := db.GetEngine(ctx).Where("user_id = ?", userID).Delete(new(codespace_model.ManagerToken)); err != nil {
 			return err
 		}
 		hasManager, err := db.GetEngine(ctx).Where("user_id = ?", userID).Exist(new(codespace_model.Manager))

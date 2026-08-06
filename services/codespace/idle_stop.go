@@ -6,6 +6,7 @@ package codespace
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
@@ -175,4 +176,8 @@ func settingsChanged(settings RuntimeSettings, opts RequestIdleStopOptions) bool
 
 func codespaceStateLockKey(codespaceUUID string) string {
 	return "codespace_interaction_" + codespaceUUID
+}
+
+func codespaceRowLockKey(codespaceID int64) string {
+	return fmt.Sprintf("codespace_interaction_id_%d", codespaceID)
 }

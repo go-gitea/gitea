@@ -18,7 +18,7 @@
 							{{if $.IsSiteManagerSettings}}
 								<span class="tw-font-mono">{{.ShortUUID}}</span>
 							{{else}}
-								<a class="tw-font-mono" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}">{{.ShortUUID}}</a>
+								<a class="tw-font-mono" href="{{AppSubUrl}}/-/codespaces/{{.ID}}">{{.ShortUUID}}</a>
 							{{end}}
 						</td>
 						<td>
@@ -36,7 +36,7 @@
 									{{if .CanForceDelete}}<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.CodespaceActionBase}}/{{.UUID}}/force-delete">{{$.CsrfTokenHtml}}<input type="hidden" name="confirm" value="force-delete"><button class="btn interact-bg tw-p-2 tw-text-red" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.force_delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.force_delete_confirm" .ShortUUID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.force_delete"}}" aria-label="{{ctx.Locale.Tr "codespace.force_delete"}}">{{svg "octicon-x-circle"}}</button></form>{{end}}
 								</div>
 							{{else}}
-								<a class="btn interact-bg tw-p-2" href="{{AppSubUrl}}/-/codespaces/{{.UUID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.details"}}" aria-label="{{ctx.Locale.Tr "codespace.details"}}">{{svg "octicon-arrow-right"}}</a>
+								<a class="btn interact-bg tw-p-2" href="{{AppSubUrl}}/-/codespaces/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.details"}}" aria-label="{{ctx.Locale.Tr "codespace.details"}}">{{svg "octicon-arrow-right"}}</a>
 							{{end}}
 						</td>
 					</tr>

@@ -5,6 +5,7 @@ package codespace
 
 import (
 	"net/http"
+	"strconv"
 	"testing"
 
 	codespace_model "gitea.dev/models/codespace"
@@ -38,7 +39,7 @@ func TestListRendersCreatorCodespaces(t *testing.T) {
 	require.True(t, ok)
 	require.Len(t, rows, 1)
 	assert.Equal(t, codespaceUUID, rows[0].UUID)
-	assert.Contains(t, resp.Body.String(), codespaceUUID)
+	assert.Contains(t, resp.Body.String(), rows[0].ShortUUID)
 	assert.Contains(t, resp.Body.String(), "context-user-switch")
 	assert.NotNil(t, ctx.Data["Page"])
 }
@@ -73,10 +74,11 @@ func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {
 		OperationType:   codespace_model.OperationCreate,
 		OperationStatus: codespace_model.OperationStatusQueued,
 	})
+	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID, contexttest.MockContextOption{Render: templates.PageRenderer()})
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10), contexttest.MockContextOption{Render: templates.PageRenderer()})
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Detail(ctx)
 
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -98,10 +100,11 @@ func TestDetailPreservesExplicitOverviewTab(t *testing.T) {
 		OperationType:   codespace_model.OperationCreate,
 		OperationStatus: codespace_model.OperationStatusQueued,
 	})
+	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"?tab=overview", contexttest.MockContextOption{Render: templates.PageRenderer()})
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"?tab=overview", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Detail(ctx)
 
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -116,15 +119,16 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 	manager := insertWebOpenManager(t, "https://gateway.example.com")
 	codespaceUUID := "27272727-2727-4727-8727-272727272727"
 	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 94)
+	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 	require.NoError(t, codespace_service.ReportRuntimeMetadata(t.Context(), manager, codespace_service.ReportRuntimeMetadataOptions{
 		CodespaceUUID:      codespaceUUID,
 		Metadata:           webOpenRuntimeMetadata(t, 94, []map[string]any{{"endpoint_id": "app-3000", "label": "App", "public": false}}),
 		MetadataGeneration: 1,
 	}))
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID+"?open_endpoint=app-3000", contexttest.MockContextOption{Render: templates.PageRenderer()})
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"?open_endpoint=app-3000", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	contexttest.LoadUser(t, ctx, 1)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Detail(ctx)
 
 	require.Equal(t, http.StatusOK, resp.Code)
@@ -132,7 +136,7 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "App", modal.Label)
 	assert.Equal(t, "codespace.authenticated_endpoint", modal.Access)
-	assert.Equal(t, "/-/codespaces/"+codespaceUUID+"/open/app-3000", modal.OpenPath)
+	assert.Equal(t, "/-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"/open/app-3000", modal.OpenPath)
 }
 
 func TestDetailRejectsOtherCreator(t *testing.T) {
@@ -143,10 +147,11 @@ func TestDetailRejectsOtherCreator(t *testing.T) {
 		UUID:   codespaceUUID,
 		Status: codespace_model.StatusStopped,
 	})
+	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+codespaceUUID)
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10))
 	contexttest.LoadUser(t, ctx, 2)
-	ctx.SetPathParam("uuid", codespaceUUID)
+	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Detail(ctx)
 
 	require.Equal(t, http.StatusNotFound, resp.Code)
@@ -164,4 +169,13 @@ func insertWebViewCodespace(t *testing.T, codespace *codespace_model.Codespace) 
 	codespace.CreatedUnix = 1
 	codespace.UpdatedUnix = 1
 	require.NoError(t, db.Insert(t.Context(), codespace))
+}
+
+func webCodespaceIDByUUID(t *testing.T, codespaceUUID string) int64 {
+	t.Helper()
+	codespace := new(codespace_model.Codespace)
+	has, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Get(codespace)
+	require.NoError(t, err)
+	require.True(t, has)
+	return codespace.ID
 }

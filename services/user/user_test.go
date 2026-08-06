@@ -158,10 +158,6 @@ func TestDeleteUserCleansCodespaceOwnerResources(t *testing.T) {
 	}
 	require.NoError(t, user_model.CreateUser(t.Context(), user, &user_model.Meta{}))
 	manager := insertUserTestCodespaceManager(t, user.ID)
-	require.NoError(t, db.Insert(t.Context(), &codespace_model.ManagerToken{
-		UserID: user.ID,
-		Token:  "user-delete-codespace-token",
-	}))
 	codespaceUUID := "71717171-7171-4171-8171-717171717171"
 	codespace := &codespace_model.Codespace{
 		UUID:              codespaceUUID,
@@ -191,7 +187,6 @@ func TestDeleteUserCleansCodespaceOwnerResources(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID})
 	assertUserTestNotExists(t, new(codespace_model.Manager), "id = ?", manager.ID)
-	assertUserTestNotExists(t, new(codespace_model.ManagerToken), "user_id = ?", user.ID)
 	assertUserTestNotExists(t, new(codespace_model.Codespace), "uuid = ?", codespaceUUID)
 	assertUserTestNotExists(t, new(codespace_model.GiteaToken), "codespace_id = ?", codespace.ID)
 }
