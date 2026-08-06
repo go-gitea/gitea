@@ -20,6 +20,8 @@ export default defineConfig({
       concurrent: true,
     },
   },
+  // vitest would otherwise resolve the node build, which ships the runtime compiler
+  resolve: {alias: {vue: 'vue/dist/vue.runtime.esm-bundler.js'}},
   define: vueDefines,
   plugins: sharedPlugins(),
 });
