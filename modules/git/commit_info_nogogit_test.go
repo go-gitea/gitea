@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/util"
 
@@ -19,7 +20,8 @@ import (
 )
 
 func TestEntries_GetCommitsInfo_ContextErr(t *testing.T) {
-	repo, err := OpenRepositoryLocal(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+	repoPath, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	repo, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("dummy", repoPath))
 	require.NoError(t, err)
 	defer repo.Close()
 
