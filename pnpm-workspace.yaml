@@ -1,10 +1,6 @@
 savePrefix: ''
-dedupePeerDependents: false
 updateNotifier: false
+ignoreScripts: true
 minimumReleaseAge: 0
-
-allowBuilds:
-  '@scarf/scarf': false
-  core-js: false
-  esbuild: true
-  unrs-resolver: true
+confirmModulesPurge: false
+verifyDepsBeforeRun: false
