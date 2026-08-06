@@ -6,7 +6,10 @@ package jobparser
 import (
 	"errors"
 	"fmt"
+	"math"
+	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"gitea.com/gitea/runner/act/exprparser"
@@ -23,12 +26,6 @@ func NewExpressionEvaluator(interpreter exprparser.Interpreter) *ExpressionEvalu
 	return &ExpressionEvaluator{interpreter: interpreter}
 }
 
-func (ee ExpressionEvaluator) evaluate(in string, defaultStatusCheck exprparser.DefaultStatusCheck) (any, error) {
-	evaluated, err := ee.interpreter.Evaluate(in, defaultStatusCheck)
-
-	return evaluated, err
-}
-
 func (ee ExpressionEvaluator) evaluateScalarYamlNode(node *yaml.Node) error {
 	var in string
 	if err := node.Decode(&in); err != nil {
@@ -37,17 +34,17 @@ func (ee ExpressionEvaluator) evaluateScalarYamlNode(node *yaml.Node) error {
 	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
 		return nil
 	}
-	expr, _ := rewriteSubExpression(in, false)
-	res, err := ee.evaluate(expr, exprparser.DefaultStatusCheckNone)
+	res, err := ee.evaluateScalar(in)
 	if err != nil {
 		return err
 	}
 	return node.Encode(res)
 }
 
+// GitHub has this undocumented feature to merge maps, called insert directive
+var insertDirective = regexp.MustCompile(`\${{\s*insert\s*}}`)
+
 func (ee ExpressionEvaluator) evaluateMappingYamlNode(node *yaml.Node) error {
-	// GitHub has this undocumented feature to merge maps, called insert directive
-	insertDirective := regexp.MustCompile(`\${{\s*insert\s*}}`)
 	for i := 0; i < len(node.Content)/2; {
 		k := node.Content[i*2]
 		v := node.Content[i*2+1]
@@ -102,88 +99,170 @@ func (ee ExpressionEvaluator) EvaluateYamlNode(node *yaml.Node) error {
 	}
 }
 
-func (ee ExpressionEvaluator) Interpolate(in string) string {
-	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
-		return in
-	}
-
-	expr, _ := rewriteSubExpression(in, true)
-	evaluated, err := ee.evaluate(expr, exprparser.DefaultStatusCheckNone)
+// interpolate evaluates every part on its own, so a malformed one cannot restructure its neighbours
+func (ee ExpressionEvaluator) interpolate(in string) (string, error) {
+	parts, err := splitSubExpressions(in)
 	if err != nil {
-		return ""
+		return "", err
 	}
-
-	value, ok := evaluated.(string)
-	if !ok {
-		panic(fmt.Sprintf("Expression %s did not evaluate to a string", expr))
-	}
-
-	return value
-}
-
-func escapeFormatString(in string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(in, "{", "{{"), "}", "}}")
-}
-
-func rewriteSubExpression(in string, forceFormat bool) (string, error) {
-	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
+	if len(parts) == 1 && !parts[0].isExpr {
 		return in, nil
 	}
+	var out strings.Builder
+	out.Grow(len(in))
+	for _, part := range parts {
+		if !part.isExpr {
+			out.WriteString(part.text)
+			continue
+		}
+		evaluated, err := ee.interpreter.Evaluate(part.text, exprparser.DefaultStatusCheckNone)
+		if err != nil {
+			return "", err
+		}
+		out.WriteString(coerceToString(evaluated))
+	}
+	return out.String(), nil
+}
 
-	strPattern := regexp.MustCompile("(?:''|[^'])*'")
-	pos := 0
-	exprStart := -1
-	strStart := -1
-	var results []string
-	var formatOut strings.Builder
-	for pos < len(in) {
-		if strStart > -1 {
-			matches := strPattern.FindStringIndex(in[pos:])
-			if matches == nil {
-				return "", errors.New("unclosed string")
-			}
+// evaluateScalar keeps the type of a lone expression, so `${{ fromJSON('[1,2]') }}` stays an array
+func (ee ExpressionEvaluator) evaluateScalar(in string) (any, error) {
+	parts, err := splitSubExpressions(in)
+	if err != nil {
+		return nil, err
+	}
+	if len(parts) == 1 && parts[0].isExpr {
+		return ee.interpreter.Evaluate(parts[0].text, exprparser.DefaultStatusCheckNone)
+	}
+	return ee.interpolate(in)
+}
 
-			strStart = -1
-			pos += matches[1]
-		} else if exprStart > -1 {
-			exprEnd := strings.Index(in[pos:], "}}")
-			strStart = strings.Index(in[pos:], "'")
+// evaluateCondition evaluates an `if:`, an expression even without `${{ }}`. Mixed content
+// interpolates to a string, so the success() default applies to it separately.
+func (ee ExpressionEvaluator) evaluateCondition(in string) (bool, error) {
+	parts, err := splitSubExpressions(in)
+	if err != nil {
+		return false, err
+	}
+	if len(parts) == 1 {
+		evaluated, err := ee.interpreter.Evaluate(parts[0].text, exprparser.DefaultStatusCheckSuccess)
+		if err != nil {
+			return false, err
+		}
+		return exprparser.IsTruthy(evaluated), nil
+	}
 
-			if exprEnd > -1 && strStart > -1 {
-				if exprEnd < strStart {
-					strStart = -1
-				} else {
-					exprEnd = -1
-				}
-			}
-
-			if exprEnd > -1 {
-				fmt.Fprintf(&formatOut, "{%d}", len(results))
-				results = append(results, strings.TrimSpace(in[exprStart:pos+exprEnd]))
-				pos += exprEnd + 2
-				exprStart = -1
-			} else if strStart > -1 {
-				pos += strStart + 1
-			} else {
-				panic("unclosed expression.")
-			}
-		} else {
-			exprStart = strings.Index(in[pos:], "${{")
-			if exprStart != -1 {
-				formatOut.WriteString(escapeFormatString(in[pos : pos+exprStart]))
-				exprStart = pos + exprStart + 3
-				pos = exprStart
-			} else {
-				formatOut.WriteString(escapeFormatString(in[pos:]))
-				pos = len(in)
-			}
+	// mixed content is a string, so the success() default applies to it separately
+	if !expressionCallsFunction(in, "success", "always", "failure", "cancelled") {
+		status, err := ee.interpreter.Evaluate("success()", exprparser.DefaultStatusCheckNone)
+		if err != nil {
+			return false, err
+		}
+		if !exprparser.IsTruthy(status) {
+			return false, nil
 		}
 	}
+	interpolated, err := ee.interpolate(in)
+	if err != nil {
+		return false, err
+	}
+	return exprparser.IsTruthy(interpolated), nil
+}
 
-	if len(results) == 1 && formatOut.String() == "{0}" && !forceFormat {
-		return in, nil
+// coerceToString converts an evaluated expression value to a string the way GitHub does,
+// see https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#operators
+// An already reflected value is accepted as-is, since Interface() would panic on an invalid one.
+func coerceToString(v any) string {
+	value, ok := v.(reflect.Value)
+	if !ok {
+		value = reflect.ValueOf(v)
 	}
 
-	out := fmt.Sprintf("format('%s', %s)", strings.ReplaceAll(formatOut.String(), "'", "''"), strings.Join(results, ", "))
-	return out, nil
+	switch value.Kind() {
+	case reflect.Invalid:
+		return ""
+
+	case reflect.Bool:
+		return strconv.FormatBool(value.Bool())
+
+	case reflect.String:
+		return value.String()
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(value.Int(), 10)
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return strconv.FormatUint(value.Uint(), 10)
+
+	case reflect.Float32, reflect.Float64:
+		if math.IsInf(value.Float(), 1) {
+			return "Infinity"
+		} else if math.IsInf(value.Float(), -1) {
+			return "-Infinity"
+		}
+		return fmt.Sprintf("%.15G", value.Float())
+
+	case reflect.Slice, reflect.Array:
+		return "Array"
+
+	// contexts such as `github` are pointers to structs, so they stringify as objects too
+	case reflect.Map, reflect.Struct:
+		return "Object"
+
+	case reflect.Interface, reflect.Pointer:
+		if value.IsNil() {
+			return ""
+		}
+		return coerceToString(value.Elem())
+	}
+
+	return fmt.Sprintf("%v", value)
+}
+
+type exprPart struct {
+	text   string
+	isExpr bool
+}
+
+// splitSubExpressions splits in the way GitHub's template reader does, leaving a value without a
+// complete expression literal.
+func splitSubExpressions(in string) ([]exprPart, error) {
+	if !strings.Contains(in, "${{") || !strings.Contains(in, "}}") {
+		return []exprPart{{text: in}}, nil
+	}
+
+	parts := make([]exprPart, 0, 2*strings.Count(in, "${{")+1)
+	for {
+		start := strings.Index(in, "${{")
+		if start < 0 {
+			if in != "" {
+				parts = append(parts, exprPart{text: in})
+			}
+			return parts, nil
+		}
+		if start > 0 {
+			parts = append(parts, exprPart{text: in[:start]})
+		}
+		rest := in[start+len("${{"):]
+		end := indexExprEnd(rest)
+		if end < 0 {
+			return nil, errors.New("unclosed expression")
+		}
+		parts = append(parts, exprPart{text: strings.TrimSpace(rest[:end]), isExpr: true})
+		in = rest[end+len("}}"):]
+	}
+}
+
+// indexExprEnd returns the offset of the `}}` ending an expression, or -1. A quote toggles string
+// state, so a `}}` inside a string does not end it.
+func indexExprEnd(in string) int {
+	inString := false
+	for i := range len(in) {
+		switch {
+		case in[i] == '\'':
+			inString = !inString
+		case !inString && in[i] == '}' && i+1 < len(in) && in[i+1] == '}':
+			return i
+		}
+	}
+	return -1
 }

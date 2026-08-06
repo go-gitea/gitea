@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 
-	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
@@ -518,15 +517,7 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 		matrix = matrixes[0]
 	}
 	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
-	expr, err := rewriteSubExpression(job.If.Value, false)
-	if err != nil {
-		return false, err
-	}
-	result, err := evaluator.evaluate(expr, exprparser.DefaultStatusCheckSuccess)
-	if err != nil {
-		return false, err
-	}
-	return exprparser.IsTruthy(result), nil
+	return evaluator.evaluateCondition(job.If.Value)
 }
 
 // parseMappingNode parse a mapping node and preserve order.
