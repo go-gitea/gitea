@@ -15,11 +15,11 @@ import (
 )
 
 // Block render output:
-// 	<pre class="code-block is-loading"><code class="language-math display">...</code></pre>
+// 	<pre class="code-block is-loading"><code class="language-math">...</code></pre>
 //
-// Keep in mind that there is another "code block" render in "func (r *GlodmarkRender) highlightingRenderer"
+// Keep in mind that there is another "code block" render in "func (r *GoldmarkRender) highlightingRenderer"
 // "highlightingRenderer" outputs the math block with extra "chroma" class:
-// 	<pre class="code-block is-loading"><code class="chroma language-math display">...</code></pre>
+// 	<pre class="code-block is-loading"><code class="chroma language-math">...</code></pre>
 //
 // Special classes:
 // * "is-loading": show a loading indicator

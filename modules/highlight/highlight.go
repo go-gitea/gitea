@@ -192,17 +192,22 @@ func languageForCssAttrName(lang string) (forCSS, forAttr string) {
 }
 
 func CodeBlockAttributes(lang string) (preAttrs, codeAttrs template.HTML) {
-	// Include "language-{LanguageName}" class as part of commonmark spec, "chroma" class is used to highlight the code
-	// It's unclear how to handle special chars for a language name like "Visual Basic.NET" or "C++" or "F#".
-	// The spec seems wrong: https://spec.commonmark.org/0.31.2/#info-string, it just outputs invalid CSS class names.
+	// Code block's "chroma" class is used to highlight the code.
+	// "language-{LanguageName}" class is used as part of commonmark spec.
+	// It's unclear about how to handle special chars for a language name like "Visual Basic.NET" or "C++" or "F#".
+	// The commonmark spec seems wrong: https://spec.commonmark.org/0.31.2/#info-string, it just outputs invalid CSS class names.
 
-	cssName, attrName := languageForCssAttrName(lang)
+	cssName, attrLang := languageForCssAttrName(lang)
 	renderByFrontend := lang == "mermaid" || lang == "math"
-	preExtraAttrs := ""
+	preExtraClasses := ""
 	if renderByFrontend {
-		preExtraAttrs = " is-loading"
+		preExtraClasses = " is-loading"
 	}
 
 	// The "math.ts" strictly depends on the structure: <pre class="code-block"><code class="language-math">...</code></pre>
-	return htmlutil.HTMLFormat(`class="code-block%s"`, preExtraAttrs), htmlutil.HTMLFormat(`class="chroma language-%s" data-code-language="%s"`, cssName, attrName)
+	// * If "pre" exists, it is rendered as "block", otherwise, it is rendered as "inline"
+	// The "mermaid.ts" also strictly depends on the structure: "pre" must exist because it is always rendered as "block".
+	//
+	// Hint: "data-code-language" is not exposed in some cases due to the Markup sanitizer, the rules can be refactored in the future if the attribute is useful.
+	return htmlutil.HTMLFormat(`class="code-block%s"`, preExtraClasses), htmlutil.HTMLFormat(`class="chroma language-%s" data-code-language="%s"`, cssName, attrLang)
 }
