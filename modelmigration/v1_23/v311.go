@@ -4,12 +4,14 @@
 package v1_23
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
-func AddTimeEstimateColumnToIssueTable(x base.EngineMigration) error {
+func AddTimeEstimateColumnToIssueTable(_ context.Context, x base.EngineMigration) error {
 	type Issue struct {
 		TimeEstimate int64 `xorm:"NOT NULL DEFAULT 0"`
 	}

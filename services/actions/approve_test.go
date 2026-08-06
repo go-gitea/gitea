@@ -32,36 +32,64 @@ func TestApproveRuns(t *testing.T) {
 		require.NoError(t, db.Insert(t.Context(), run))
 		return run
 	}
-	insertJob := func(run *actions_model.ActionRun, status actions_model.Status) *actions_model.ActionRunJob {
+	insertJob := func(run *actions_model.ActionRun, status actions_model.Status, needs ...string) *actions_model.ActionRunJob {
 		job := &actions_model.ActionRunJob{
 			RunID: run.ID, RepoID: run.RepoID, OwnerID: run.OwnerID, CommitSHA: run.CommitSHA,
 			Name: "job1", Attempt: 1, JobID: "job1", Status: status,
-			RunsOn: []string{"ubuntu-latest"},
+			RunsOn: []string{"ubuntu-latest"}, Needs: needs,
 		}
 		require.NoError(t, db.Insert(t.Context(), job))
 		return job
 	}
 
-	t.Run("approve blocked run", func(t *testing.T) {
+	t.Run("approve unblocks a job with no dependencies", func(t *testing.T) {
 		run := insertRun(1001, actions_model.StatusBlocked, true, 0)
 		job := insertJob(run, actions_model.StatusBlocked)
 
-		require.NoError(t, ApproveRuns(t.Context(), repo, doer, []int64{run.ID}))
+		approved, err := ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
+		require.NoError(t, err)
+		require.Len(t, approved, 1)
+		assert.False(t, approved[0].NeedApproval)
+		assert.Equal(t, doer.ID, approved[0].ApprovedBy)
 
-		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
-		assert.False(t, run.NeedApproval)
-		assert.Equal(t, doer.ID, run.ApprovedBy)
 		assert.Equal(t, actions_model.StatusWaiting, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
 	})
 
+	t.Run("a job with unmet dependencies stays blocked", func(t *testing.T) {
+		run := insertRun(1002, actions_model.StatusBlocked, true, 0)
+		job := insertJob(run, actions_model.StatusBlocked, "some-other-job")
+
+		approved, err := ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
+		require.NoError(t, err)
+		require.Len(t, approved, 1)
+		assert.False(t, approved[0].NeedApproval)
+
+		assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
+	})
+
 	t.Run("re-approving an approved run is a no-op", func(t *testing.T) {
-		run := insertRun(1002, actions_model.StatusRunning, false, 4)
+		run := insertRun(1005, actions_model.StatusRunning, false, 4)
 		job := insertJob(run, actions_model.StatusRunning)
 
-		require.NoError(t, ApproveRuns(t.Context(), repo, doer, []int64{run.ID}))
-
-		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
-		assert.EqualValues(t, 4, run.ApprovedBy, "approver must not be overwritten")
+		approved, err := ApproveRuns(t.Context(), repo, doer, []int64{run.ID})
+		require.NoError(t, err)
+		require.Len(t, approved, 1)
+		assert.EqualValues(t, 4, approved[0].ApprovedBy, "approver must not be overwritten")
 		assert.Equal(t, actions_model.StatusRunning, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status, "started job must not be reset to waiting")
+	})
+
+	t.Run("approving several runs returns them in the requested order", func(t *testing.T) {
+		run1 := insertRun(1003, actions_model.StatusBlocked, true, 0)
+		insertJob(run1, actions_model.StatusBlocked)
+		run2 := insertRun(1004, actions_model.StatusBlocked, true, 0)
+		insertJob(run2, actions_model.StatusBlocked)
+
+		approved, err := ApproveRuns(t.Context(), repo, doer, []int64{run2.ID, run1.ID})
+		require.NoError(t, err)
+		require.Len(t, approved, 2)
+		assert.Equal(t, run2.ID, approved[0].ID)
+		assert.Equal(t, run1.ID, approved[1].ID)
+		assert.False(t, approved[0].NeedApproval)
+		assert.False(t, approved[1].NeedApproval)
 	})
 }

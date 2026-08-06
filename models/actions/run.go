@@ -92,6 +92,13 @@ func (run *ActionRun) Link() string {
 	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.Link(), run.ID)
 }
 
+func (run *ActionRun) APIURL(ctx context.Context) string {
+	if run.Repo == nil {
+		return ""
+	}
+	return fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID)
+}
+
 func (run *ActionRun) WorkflowLink() string {
 	if run.Repo == nil {
 		return ""

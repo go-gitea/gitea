@@ -94,7 +94,7 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 
 // readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA` and returns its content plus the resolved commit SHA.
 func readWorkflowFromRepo(ctx context.Context, repo *repo_model.Repository, refOrSHA, path string) ([]byte, string, error) {
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, "", fmt.Errorf("open repo %s: %w", repo.FullName(), err)
 	}
@@ -318,6 +318,7 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			continue
 		}
 		needs := parsedChild.Needs()
+		isMatrixDeferred := jobparser.HasDeferredMatrix(parsedChild)
 		if err := sw.SetJob(jobID, parsedChild.EraseNeeds()); err != nil {
 			return err
 		}
@@ -328,11 +329,10 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 
 		parsedChild.Name = util.EllipsisDisplayString(parsedChild.Name, 255)
 
-		// AttemptJobID: prefer a prior-attempt match by (JobID, Name) and fall back to a fresh allocator value for newly-appearing logical jobs.
-		// The two-level key disambiguates matrix instances (same JobID, different Names) and distinct jobs that legally share the same Name (different JobIDs).
+		// AttemptJobID: prefer a prior-attempt match and fall back to a fresh allocator value for newly-appearing logical jobs.
 		var attemptJobID int64
-		if priorChild, ok := priorChildren[jobID][parsedChild.Name]; ok {
-			attemptJobID = priorChild.AttemptJobID
+		if priorID, ok := priorAttemptJobID(priorChildren[jobID], parsedChild.Name, isMatrixDeferred); ok {
+			attemptJobID = priorID
 		} else {
 			attemptJobID, err = actions_model.GetNextAttemptJobID(ctx, run.ID)
 			if err != nil {
@@ -359,6 +359,11 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 			ParentJobID:             caller.ID,
 			WorkflowSourceRepoID:    sourceRepoID,
 			WorkflowSourceCommitSHA: sourceCommitSHA,
+			IsMatrixDeferred:        isMatrixDeferred,
+		}
+		if isMatrixDeferred {
+			// Expansion overwrites WorkflowPayload; keep the raw payload so a rerun can re-derive the matrix.
+			child.DeferredMatrixPayload = payload
 		}
 		if perms := ExtractJobPermissionsFromWorkflow(sw, parsedChild); perms != nil {
 			child.TokenPermissions = perms
@@ -410,4 +415,22 @@ func undoExpansion(ctx context.Context, caller *actions_model.ActionRunJob) erro
 		return fmt.Errorf("release caller %d expansion claim: %w", caller.ID, err)
 	}
 	return nil
+}
+
+// priorAttemptJobID returns the AttemptJobID a re-inserted child should reuse,
+// given the prior attempt's rows of the same JobID indexed by Name.
+func priorAttemptJobID(priorSameJobID map[string]*actions_model.ActionRunJob, name string, isMatrixDeferred bool) (int64, bool) {
+	if isMatrixDeferred {
+		for _, prior := range priorSameJobID {
+			if len(prior.DeferredMatrixPayload) > 0 {
+				return prior.AttemptJobID, true
+			}
+		}
+		return 0, false
+	}
+	prior, ok := priorSameJobID[name]
+	if !ok {
+		return 0, false
+	}
+	return prior.AttemptJobID, true
 }

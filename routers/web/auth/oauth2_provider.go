@@ -472,19 +472,6 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
 
-// OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
-func OIDCWellKnown(ctx *context.Context) {
-	if !setting.OAuth2.Enabled {
-		http.NotFound(ctx.Resp, ctx.Req)
-		return
-	}
-	jwtRegisteredClaims := oauth2_provider.NewJwtRegisteredClaimsFromUser("well-known", 0, nil)
-	ctx.Data["OidcIssuer"] = jwtRegisteredClaims.Issuer // use the consistent issuer from the JWT registered claims
-	ctx.Data["OidcBaseUrl"] = strings.TrimSuffix(setting.AppURL, "/")
-	ctx.Data["SigningKeyMethodAlg"] = oauth2_provider.DefaultSigningKey.SigningMethod().Alg()
-	ctx.JSONTemplate("user/auth/oidc_wellknown")
-}
-
 // OIDCKeys generates the JSON Web Key Set
 func OIDCKeys(ctx *context.Context) {
 	jwk, err := oauth2_provider.DefaultSigningKey.ToJWK()

@@ -1050,26 +1050,9 @@ func Cancel(ctx *context_module.Context) {
 		return
 	}
 
-	var updatedJobs []*actions_model.ActionRunJob
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
-		if err != nil {
-			return fmt.Errorf("cancel jobs: %w", err)
-		}
-		updatedJobs = append(updatedJobs, cancelledJobs...)
-		return nil
-	}); err != nil {
-		ctx.ServerError("StopTask", err)
+	if _, err := actions_service.CancelRun(ctx, run, jobs); err != nil {
+		ctx.ServerError("CancelRun", err)
 		return
-	}
-
-	actions_service.CreateCommitStatusForRunJobs(ctx, run, jobs...)
-	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
-
-	actions_service.NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
-	if len(updatedJobs) > 0 {
-		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, run.RepoID, run.ID)
 	}
 	ctx.JSONOK()
 }
@@ -1079,7 +1062,7 @@ func Approve(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-	if err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
+	if _, err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
 		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
@@ -1345,7 +1328,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 		return
 	}
 
-	if err := actions_service.ApproveRuns(ctx, repo, ctx.Doer, runIDs); err != nil {
+	if _, err := actions_service.ApproveRuns(ctx, repo, ctx.Doer, runIDs); err != nil {
 		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
@@ -1476,7 +1459,7 @@ func viewScopedWorkflowFile(ctx *context_module.Context, run *actions_model.Acti
 		return
 	}
 
-	sourceGitRepo, err := git.OpenRepository(sourceRepo)
+	sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return

@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
@@ -71,6 +72,18 @@ type ActionRunJob struct {
 	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON TEXT"`
 	// MaxParallel is strategy.max-parallel, shared by all matrix jobs with the same JobID (0 = unlimited).
 	MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
+
+	// IsMatrixDeferred marks a placeholder for a job whose matrix references `needs.*.outputs.*` and so
+	// could not be expanded at planning time. Its WorkflowPayload still carries the raw, unevaluated
+	// matrix; the job emitter expands it once the needs finish. Only a successful expansion clears the flag:
+	// it survives a terminal status (skipped, cancelled, failed expansion) so a rerun can recognize
+	// the row as unexpanded and re-derive the matrix instead of dispatching the raw payload.
+	IsMatrixDeferred bool `xorm:"NOT NULL DEFAULT FALSE"`
+
+	// DeferredMatrixPayload preserves a deferred-matrix placeholder's original WorkflowPayload (the raw, unevaluated matrix).
+	// A rerun whose needs re-run collapses the combinations back into a single placeholder built from this payload,
+	// so the matrix is re-derived from the fresh outputs.
+	DeferredMatrixPayload []byte `xorm:"LONGBLOB"`
 
 	// RunAttemptID identifies the ActionRunAttempt this job belongs to.
 	// A value of 0 indicates a legacy job created before ActionRunAttempt existed.
@@ -179,6 +192,16 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 
 // ParseJob parses the job structure from the ActionRunJob.WorkflowPayload
 func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
+	if job.IsMatrixDeferred {
+		// The needs were erased before the placeholder was persisted, so jobparser.Parse no longer
+		// recognises the raw matrix it still carries and would re-expand it: see ParseRawSingleWorkflow.
+		_, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+		if err != nil {
+			return nil, fmt.Errorf("job %d deferred matrix placeholder: unable to parse: %w", job.ID, err)
+		}
+		return workflowJob, nil
+	}
+
 	// job.WorkflowPayload is a SingleWorkflow created from an ActionRun's workflow, which exactly contains this job's YAML definition.
 	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
 	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
@@ -238,12 +261,16 @@ func GetLatestAttemptJobsByRepoAndRunID(ctx context.Context, repoID, runID int64
 	if err != nil {
 		return nil, err
 	}
+	return GetLatestAttemptJobsByRun(ctx, run)
+}
+
+func GetLatestAttemptJobsByRun(ctx context.Context, run *ActionRun) (ActionJobList, error) {
 	if run.LatestAttemptID > 0 {
-		return GetRunJobsByRunAndAttemptID(ctx, runID, run.LatestAttemptID)
+		return GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
 	}
 
 	var jobs []*ActionRunJob
-	if err := db.GetEngine(ctx).Where("repo_id=? AND run_id=? AND run_attempt_id=0", repoID, runID).OrderBy("id").Find(&jobs); err != nil {
+	if err := db.GetEngine(ctx).Where("repo_id=? AND run_id=? AND run_attempt_id=0", run.RepoID, run.ID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
 	return jobs, nil
@@ -321,6 +348,53 @@ func GetPriorAttemptChildrenByParent(ctx context.Context, runID, currentAttemptI
 	}
 
 	return nil, nil //nolint:nilnil // every prior attempt skipped this caller
+}
+
+// GetPriorAttemptMatrixCombos returns the most recent prior attempt's combination rows of the given
+// dynamic-matrix job, indexed by Name, so re-expansion keeps AttemptJobIDs stable across attempts.
+func GetPriorAttemptMatrixCombos(ctx context.Context, runID, currentAttemptID, parentAttemptJobID int64, jobID string) (map[string]*ActionRunJob, error) {
+	// An unexpanded placeholder is not a combination, so it is skipped and the search looks further
+	// back past it. Only the columns the scope check and the result need are read: the rows carry
+	// two payload blobs, and every prior attempt of the job is a candidate.
+	var candidates []*ActionRunJob
+	if err := db.GetEngine(ctx).
+		Where("run_id = ? AND job_id = ? AND run_attempt_id < ? AND is_matrix_deferred = ?", runID, jobID, currentAttemptID, false).
+		Cols("id", "name", "attempt_job_id", "run_attempt_id", "parent_job_id").
+		Desc("run_attempt_id").
+		Find(&candidates); err != nil {
+		return nil, fmt.Errorf("find prior matrix combos: %w", err)
+	}
+
+	// Every combination of one attempt shares a parent, so dedupe before the lookup.
+	parentIDs := container.FilterSlice(candidates, func(c *ActionRunJob) (int64, bool) {
+		return c.ParentJobID, c.ParentJobID > 0
+	})
+	parentAttemptIDByRowID := make(map[int64]int64, len(parentIDs))
+	if len(parentIDs) > 0 {
+		var parents []*ActionRunJob
+		if err := db.GetEngine(ctx).In("id", parentIDs).Cols("id", "attempt_job_id").Find(&parents); err != nil {
+			return nil, fmt.Errorf("find prior matrix combo parents: %w", err)
+		}
+		for _, p := range parents {
+			parentAttemptIDByRowID[p.ID] = p.AttemptJobID
+		}
+	}
+
+	// Rows arrive newest-attempt-first, so the first in-scope row fixes the attempt to take.
+	combos := map[string]*ActionRunJob{}
+	newestAttemptID := int64(0)
+	for _, c := range candidates {
+		if parentAttemptIDByRowID[c.ParentJobID] != parentAttemptJobID {
+			continue
+		}
+		if newestAttemptID == 0 {
+			newestAttemptID = c.RunAttemptID
+		} else if c.RunAttemptID != newestAttemptID {
+			break
+		}
+		combos[c.Name] = c
+	}
+	return combos, nil
 }
 
 // GetDirectChildJobsByParent returns the direct child jobs of a parent job (e.g. a reusable workflow caller).

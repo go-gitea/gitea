@@ -1988,7 +1988,6 @@
   "repo.settings.event_force_push": "Vynucené nahrání",
   "repo.settings.event_push_desc": "Nahrání pomocí Gitu do repozitáře.",
   "repo.settings.event_repository": "Repozitář",
-  "repo.settings.event_repository_desc": "Repozitář vytvořen nebo smazán.",
   "repo.settings.event_header_issue": "Události úkolů",
   "repo.settings.event_issues": "Úkoly",
   "repo.settings.event_issue_assign": "Úkol přiřazen",

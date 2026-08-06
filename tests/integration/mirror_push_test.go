@@ -60,14 +60,14 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	ok := mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID)
 	assert.True(t, ok)
 
-	srcGitRepo, err := git.OpenRepository(srcRepo)
+	srcGitRepo, err := git.OpenRepository(t.Context(), srcRepo)
 	assert.NoError(t, err)
 	defer srcGitRepo.Close()
 
 	srcCommit, err := srcGitRepo.GetBranchCommit(t.Context(), "master")
 	assert.NoError(t, err)
 
-	mirrorGitRepo, err := git.OpenRepository(mirrorRepo)
+	mirrorGitRepo, err := git.OpenRepository(t.Context(), mirrorRepo)
 	assert.NoError(t, err)
 	defer mirrorGitRepo.Close()
 

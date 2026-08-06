@@ -9,6 +9,7 @@ import ActionRunJobView from './ActionRunJobView.vue';
 import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
+import {trString} from '../modules/i18n.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -115,7 +116,7 @@ function approveRun() {
 }
 
 async function deleteArtifact(name: string) {
-  if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
+  if (!window.confirm(trString(locale.confirmDeleteArtifact, name))) return;
   await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }

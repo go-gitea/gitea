@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/util"
 )
 
 type FastImportFile struct {
@@ -27,11 +28,13 @@ type FastImportCommit struct {
 func ForceFastImport(ctx context.Context, repo RepositoryFacade, commits []FastImportCommit) error {
 	var buf bytes.Buffer
 	for i, c := range commits {
+		msg := util.IfZero(c.Message, fmt.Sprintf("commit %d", i+1))
 		_, _ = fmt.Fprintf(&buf, "reset %s\n", c.Ref)
 		_, _ = fmt.Fprintf(&buf, "commit %s\nmark :%d\ncommitter Gitea <gitea@example.com> 1500000000 +0000\n", c.Ref, i+1)
-		_, _ = fmt.Fprintf(&buf, "data %d\n%s\n", len(c.Message), c.Message)
+		_, _ = fmt.Fprintf(&buf, "data %d\n%s\n", len(msg), msg)
 		for _, f := range c.Files {
-			_, _ = fmt.Fprintf(&buf, "M %s inline %s\ndata %d\n%s\n", f.Mode.String(), f.Path, len(f.Content), f.Content)
+			mode := util.IfZero(f.Mode, EntryModeBlob)
+			_, _ = fmt.Fprintf(&buf, "M %s inline %s\ndata %d\n%s\n", mode.String(), f.Path, len(f.Content), f.Content)
 		}
 	}
 	buf.WriteString("done\n")
