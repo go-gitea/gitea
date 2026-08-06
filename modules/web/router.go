@@ -36,9 +36,13 @@ func SetForm(dataStore reqctx.ContextDataProvider, obj any) {
 	dataStore.GetData()["__form"] = obj
 }
 
-// GetForm returns the validate form information
-func GetForm(dataStore reqctx.RequestDataStore) any {
-	return dataStore.GetData()["__form"]
+// GetForm returns the validate form information, it returns a zero value if the bound form is not of type T
+func GetForm[T any](dataStore reqctx.RequestDataStore) T {
+	form, ok := dataStore.GetData()["__form"].(T)
+	if !ok {
+		setting.PanicInDevOrTesting("bound form %T does not match the requested type %T", dataStore.GetData()["__form"], form)
+	}
+	return form
 }
 
 // Router defines a route based on chi's router

@@ -192,8 +192,8 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 
 	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, doer, targetGitRepo, refName.String())
 	wontSignReason := ""
-	if asymkey_service.IsErrWontSign(err) {
-		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
+	if errWontSign, ok := err.(*asymkey_service.ErrWontSign); ok {
+		wontSignReason = string(errWontSign.Reason)
 	} else if err != nil {
 		return nil, err
 	}
@@ -956,7 +956,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			ctx.Repo.RefFullName = repoRefFullName(refType, refShortName)
 			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
 			if isRenamedBranch && has {
-				renamedBranchName := ctx.Data["RenamedBranchName"].(string)
+				renamedBranchName, _ := ctx.Data["RenamedBranchName"].(string)
 				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refShortName, renamedBranchName))
 				link := setting.AppSubURL + strings.Replace(ctx.Req.URL.EscapedPath(), util.PathEscapeSegments(refShortName), util.PathEscapeSegments(renamedBranchName), 1)
 				ctx.Redirect(link)

@@ -57,12 +57,18 @@ func (t *Task) IsEnabled() bool {
 
 // GetConfig will return a copy of the task's config
 func (t *Task) GetConfig() Config {
-	if reflect.TypeOf(t.config).Kind() == reflect.Pointer {
+	var newConfig any
+	if configValue := reflect.ValueOf(t.config); configValue.Kind() == reflect.Pointer {
 		// Pointer:
-		return reflect.New(reflect.ValueOf(t.config).Elem().Type()).Interface().(Config)
+		newConfig = reflect.New(configValue.Elem().Type()).Interface()
+	} else {
+		// Not pointer:
+		newConfig = reflect.New(configValue.Type()).Elem().Interface()
 	}
-	// Not pointer:
-	return reflect.New(reflect.TypeOf(t.config)).Elem().Interface().(Config)
+	if config, ok := newConfig.(Config); ok {
+		return config
+	}
+	return t.config // unreachable, a fresh value of the config's own type always implements Config
 }
 
 // Run will run the task incrementing the cron counter with no user defined
@@ -124,9 +130,9 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 		if err := t.fun(ctx, doer, config); err != nil {
 			var message string
 			var status string
-			if db.IsErrCancelled(err) {
+			if errCancelled, ok := err.(db.ErrCancelled); ok {
 				status = "cancelled"
-				message = err.(db.ErrCancelled).Message
+				message = errCancelled.Message
 			} else {
 				status = "error"
 				message = err.Error()
@@ -168,7 +174,7 @@ func GetTask(name string) *Task {
 }
 
 // RegisterTask allows a task to be registered with the cron service
-func RegisterTask(name string, config Config, fun func(context.Context, *user_model.User, Config) error) error {
+func RegisterTask[T Config](name string, config T, fun func(context.Context, *user_model.User, T) error) error {
 	log.Debug("Registering task: %s", name)
 
 	i18nKey := "admin.dashboard." + name
@@ -185,7 +191,13 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 	task := &Task{
 		Name:   name,
 		config: config,
-		fun:    fun,
+		fun: func(ctx context.Context, doer *user_model.User, runConfig Config) error {
+			typedConfig, ok := runConfig.(T)
+			if !ok {
+				return fmt.Errorf("cron task %q was run with config type %T instead of %T", name, runConfig, config)
+			}
+			return fun(ctx, doer, typedConfig)
+		},
 	}
 	lock.Lock()
 	locked := true
@@ -218,7 +230,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 }
 
 // RegisterTaskFatal will register a task but if there is an error log.Fatal
-func RegisterTaskFatal(name string, config Config, fun func(context.Context, *user_model.User, Config) error) {
+func RegisterTaskFatal[T Config](name string, config T, fun func(context.Context, *user_model.User, T) error) {
 	if err := RegisterTask(name, config, fun); err != nil {
 		log.Fatal("Unable to register cron task %s Error: %v", name, err)
 	}

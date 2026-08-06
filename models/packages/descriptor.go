@@ -34,6 +34,7 @@ import (
 	"gitea.dev/modules/packages/rubygems"
 	"gitea.dev/modules/packages/swift"
 	"gitea.dev/modules/packages/vagrant"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
 	"github.com/hashicorp/go-version"
@@ -237,6 +238,16 @@ func GetPackageDescriptorWithCache(ctx context.Context, pv *PackageVersion, c *c
 		Metadata:          metadata,
 		Files:             pfds,
 	}, nil
+}
+
+// DescriptorMetadata returns the descriptor's metadata, which getPackageDescriptor has created from the package type
+func DescriptorMetadata[T interface{ *E }, E any](pd *PackageDescriptor) T {
+	metadata, ok := pd.Metadata.(T)
+	if !ok {
+		setting.PanicInDevOrTesting("package %s of type %s has metadata type %T instead of %T", pd.Package.Name, pd.Package.Type, pd.Metadata, metadata)
+		return T(new(E)) // production keeps working with zero metadata instead of crashing
+	}
+	return metadata
 }
 
 // GetPackageFileDescriptor gets a package file descriptor for a package file

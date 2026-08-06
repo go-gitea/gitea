@@ -189,7 +189,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	var err error
 
-	form := *web.GetForm(ctx).(*forms.InstallForm)
+	form := *web.GetForm[*forms.InstallForm](ctx)
 
 	// fix form values
 	if form.AppURL != "" && form.AppURL[len(form.AppURL)-1] != '/' {
@@ -524,7 +524,12 @@ func SubmitInstall(ctx *context.Context) {
 
 		// Now get the http.Server from this request and shut it down
 		// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
-		srv := ctx.Value(http.ServerContextKey).(*http.Server)
+		srv, ok := ctx.Value(http.ServerContextKey).(*http.Server)
+		if !ok {
+			// FCGI is served by net/http/fcgi instead of an http.Server, so the install server can't hand over to the "normal" server on its own
+			log.Fatal("Unable to shutdown the install server: no http.Server in the request context. Gitea is installed, please start it again.")
+			return
+		}
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
 			log.Error("Unable to shutdown the install server! Error: %v", err)
 		}

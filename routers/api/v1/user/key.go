@@ -243,7 +243,7 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	form := web.GetForm[*api.CreateKeyOption](ctx)
 	CreateUserPublicKey(ctx, *form, ctx.Doer.ID)
 }
 

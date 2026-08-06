@@ -292,7 +292,7 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.SignInForm)
+	form := web.GetForm[*forms.SignInForm](ctx)
 
 	if setting.Service.EnableCaptcha && setting.Service.RequireCaptchaForLogin {
 		context.VerifyCaptcha(ctx, tplSignIn, form)
@@ -545,7 +545,7 @@ func SignUpPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.RegisterForm)
+	form := web.GetForm[*forms.RegisterForm](ctx)
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
@@ -661,6 +661,9 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		}
 
 		// handle error with template
+		var errNameReserved db.ErrNameReserved
+		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
+		var errNameCharsNotAllowed db.ErrNameCharsNotAllowed
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -674,15 +677,15 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		case user_model.IsErrEmailInvalid(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tpl, form)
-		case db.IsErrNameReserved(err):
+		case errors.As(err, &errNameReserved):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
-		case db.IsErrNamePatternNotAllowed(err):
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", errNameReserved.Name), tpl, form)
+		case errors.As(err, &errNamePatternNotAllowed):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
-		case db.IsErrNameCharsNotAllowed(err):
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
+		case errors.As(err, &errNameCharsNotAllowed):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", errNameCharsNotAllowed.Name), tpl, form)
 		default:
 			ctx.ServerError("CreateUser", err)
 		}

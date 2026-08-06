@@ -27,7 +27,7 @@ type PrivateContext struct {
 
 func init() {
 	web.RegisterResponseStatusProvider[*PrivateContext](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(privateContextKey).(*PrivateContext)
+		return GetPrivateContext(req)
 	})
 }
 
@@ -67,7 +67,7 @@ type privateContextKeyType struct{}
 var privateContextKey privateContextKeyType
 
 func GetPrivateContext(req *http.Request) *PrivateContext {
-	return req.Context().Value(privateContextKey).(*PrivateContext)
+	return req.Context().Value(privateContextKey).(*PrivateContext) //nolint:forcetypeassert // PrivateContexter always sets it, and callers can't work with a nil context
 }
 
 func PrivateContexter() func(http.Handler) http.Handler {

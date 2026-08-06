@@ -10,6 +10,7 @@ import (
 	"crypto/sha512"
 	"encoding"
 	"errors"
+	"fmt"
 	"hash"
 	"io"
 )
@@ -56,21 +57,38 @@ func NewMultiHasher() *MultiHasher {
 	}
 }
 
+// marshalHash saves the state of a hash, every stdlib hash implements the marshaler interfaces
+func marshalHash(h hash.Hash) ([]byte, error) {
+	marshaler, ok := h.(encoding.BinaryMarshaler)
+	if !ok {
+		return nil, fmt.Errorf("hash %T does not implement encoding.BinaryMarshaler", h)
+	}
+	return marshaler.MarshalBinary()
+}
+
+func unmarshalHash(h hash.Hash, state []byte) error {
+	unmarshaler, ok := h.(encoding.BinaryUnmarshaler)
+	if !ok {
+		return fmt.Errorf("hash %T does not implement encoding.BinaryUnmarshaler", h)
+	}
+	return unmarshaler.UnmarshalBinary(state)
+}
+
 // MarshalBinary implements encoding.BinaryMarshaler
 func (h *MultiHasher) MarshalBinary() ([]byte, error) {
-	md5Bytes, err := h.md5.(encoding.BinaryMarshaler).MarshalBinary()
+	md5Bytes, err := marshalHash(h.md5)
 	if err != nil {
 		return nil, err
 	}
-	sha1Bytes, err := h.sha1.(encoding.BinaryMarshaler).MarshalBinary()
+	sha1Bytes, err := marshalHash(h.sha1)
 	if err != nil {
 		return nil, err
 	}
-	sha256Bytes, err := h.sha256.(encoding.BinaryMarshaler).MarshalBinary()
+	sha256Bytes, err := marshalHash(h.sha256)
 	if err != nil {
 		return nil, err
 	}
-	sha512Bytes, err := h.sha512.(encoding.BinaryMarshaler).MarshalBinary()
+	sha512Bytes, err := marshalHash(h.sha512)
 	if err != nil {
 		return nil, err
 	}
@@ -89,22 +107,22 @@ func (h *MultiHasher) UnmarshalBinary(b []byte) error {
 		return errors.New("invalid hash state size")
 	}
 
-	if err := h.md5.(encoding.BinaryUnmarshaler).UnmarshalBinary(b[:marshaledSizeMD5]); err != nil {
+	if err := unmarshalHash(h.md5, b[:marshaledSizeMD5]); err != nil {
 		return err
 	}
 
 	b = b[marshaledSizeMD5:]
-	if err := h.sha1.(encoding.BinaryUnmarshaler).UnmarshalBinary(b[:marshaledSizeSHA1]); err != nil {
+	if err := unmarshalHash(h.sha1, b[:marshaledSizeSHA1]); err != nil {
 		return err
 	}
 
 	b = b[marshaledSizeSHA1:]
-	if err := h.sha256.(encoding.BinaryUnmarshaler).UnmarshalBinary(b[:marshaledSizeSHA256]); err != nil {
+	if err := unmarshalHash(h.sha256, b[:marshaledSizeSHA256]); err != nil {
 		return err
 	}
 
 	b = b[marshaledSizeSHA256:]
-	return h.sha512.(encoding.BinaryUnmarshaler).UnmarshalBinary(b[:marshaledSizeSHA512])
+	return unmarshalHash(h.sha512, b[:marshaledSizeSHA512])
 }
 
 // Write implements io.Writer

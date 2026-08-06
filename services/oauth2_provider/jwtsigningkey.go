@@ -81,7 +81,11 @@ type rsaSingingKey struct {
 }
 
 func newRSASingingKey(signingMethod jwt.SigningMethod, key *rsa.PrivateKey) (rsaSingingKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*rsa.PublicKey))
+	pubKey, ok := key.Public().(*rsa.PublicKey)
+	if !ok {
+		return rsaSingingKey{}, jwt.ErrInvalidKeyType
+	}
+	kid, err := util.CreatePublicKeyFingerprint(pubKey)
 	if err != nil {
 		return rsaSingingKey{}, err
 	}
@@ -110,7 +114,10 @@ func (key rsaSingingKey) VerifyKey() any {
 }
 
 func (key rsaSingingKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(*rsa.PublicKey)
+	pubKey, ok := key.key.Public().(*rsa.PublicKey)
+	if !ok {
+		return nil, jwt.ErrInvalidKeyType
+	}
 
 	return map[string]string{
 		"kty": "RSA",
@@ -132,7 +139,11 @@ type eddsaSigningKey struct {
 }
 
 func newEdDSASingingKey(signingMethod jwt.SigningMethod, key ed25519.PrivateKey) (eddsaSigningKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(ed25519.PublicKey))
+	pubKey, ok := key.Public().(ed25519.PublicKey)
+	if !ok {
+		return eddsaSigningKey{}, jwt.ErrInvalidKeyType
+	}
+	kid, err := util.CreatePublicKeyFingerprint(pubKey)
 	if err != nil {
 		return eddsaSigningKey{}, err
 	}
@@ -161,7 +172,10 @@ func (key eddsaSigningKey) VerifyKey() any {
 }
 
 func (key eddsaSigningKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(ed25519.PublicKey)
+	pubKey, ok := key.key.Public().(ed25519.PublicKey)
+	if !ok {
+		return nil, jwt.ErrInvalidKeyType
+	}
 
 	return map[string]string{
 		"alg": key.SigningMethod().Alg(),
@@ -183,7 +197,11 @@ type ecdsaSingingKey struct {
 }
 
 func newECDSASingingKey(signingMethod jwt.SigningMethod, key *ecdsa.PrivateKey) (ecdsaSingingKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*ecdsa.PublicKey))
+	pubKey, ok := key.Public().(*ecdsa.PublicKey)
+	if !ok {
+		return ecdsaSingingKey{}, jwt.ErrInvalidKeyType
+	}
+	kid, err := util.CreatePublicKeyFingerprint(pubKey)
 	if err != nil {
 		return ecdsaSingingKey{}, err
 	}
@@ -212,7 +230,10 @@ func (key ecdsaSingingKey) VerifyKey() any {
 }
 
 func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(*ecdsa.PublicKey)
+	pubKey, ok := key.key.Public().(*ecdsa.PublicKey)
+	if !ok {
+		return nil, jwt.ErrInvalidKeyType
+	}
 
 	// PublicKey.Bytes returns the uncompressed SEC 1 format: 0x04 || X || Y
 	pubKeyBytes, err := pubKey.Bytes()

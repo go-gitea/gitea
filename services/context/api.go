@@ -56,7 +56,7 @@ func (ctx *APIContext) TokenCanAccessRepo(repo *repo_model.Repository) bool {
 
 func init() {
 	web.RegisterResponseStatusProvider[*APIContext](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(apiContextKey).(*APIContext)
+		return GetAPIContext(req)
 	})
 }
 
@@ -185,7 +185,7 @@ var apiContextKey = apiContextKeyType{}
 
 // GetAPIContext returns a context for API routes
 func GetAPIContext(req *http.Request) *APIContext {
-	return req.Context().Value(apiContextKey).(*APIContext)
+	return req.Context().Value(apiContextKey).(*APIContext) //nolint:forcetypeassert // APIContexter always sets it, and callers can't work with a nil context
 }
 
 func genAPILinks(curURL *url.URL, total int64, pageSize, curPage int) []string {

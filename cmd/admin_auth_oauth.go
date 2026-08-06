@@ -226,7 +226,10 @@ func (a *authService) runUpdateOauth(ctx context.Context, c *cli.Command) error 
 		return err
 	}
 
-	oAuth2Config := source.Cfg.(*oauth2.Source)
+	oAuth2Config, err := auth_model.SourceCfg[*oauth2.Source](source)
+	if err != nil {
+		return err
+	}
 
 	if c.IsSet("name") {
 		source.Name = c.String("name")

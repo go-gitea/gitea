@@ -112,7 +112,9 @@ func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 
 	// --- Step 3: Set ExternalIDClaim = "oid" to restore account continuity ---
 	// Set ExternalIDClaim = "oid" so that the OIDC source extracts the same Object ID that the Azure AD V2 provider previously stored.
-	authSource.Cfg.(*oauth2.Source).ExternalIDClaim = "oid"
+	oauth2Source, ok := authSource.Cfg.(*oauth2.Source)
+	require.True(t, ok)
+	oauth2Source.ExternalIDClaim = "oid"
 	err = auth_model.UpdateSource(t.Context(), authSource)
 	require.NoError(t, err)
 

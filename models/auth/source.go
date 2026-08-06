@@ -7,7 +7,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
@@ -98,20 +97,12 @@ type RegisterableSource interface {
 
 var registeredConfigs = map[Type]func() Config{}
 
-// RegisterTypeConfig register a config for a provided type
-func RegisterTypeConfig(typ Type, exemplar Config) {
-	if reflect.TypeOf(exemplar).Kind() == reflect.Pointer {
-		// Pointer:
-		registeredConfigs[typ] = func() Config {
-			return reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(Config)
-		}
-		return
-	}
-
-	// Not a Pointer
-	registeredConfigs[typ] = func() Config {
-		return reflect.New(reflect.TypeOf(exemplar)).Elem().Interface().(Config)
-	}
+// RegisterTypeConfig register a config for a provided type, the exemplar argument only serves type inference
+func RegisterTypeConfig[T interface {
+	*E
+	Config
+}, E any](typ Type, _ T) {
+	registeredConfigs[typ] = func() Config { return T(new(E)) }
 }
 
 // Source represents an external way for authorizing users.
@@ -186,6 +177,15 @@ func (source *Source) IsOAuth2() bool {
 // IsSSPI returns true of this source is of the SSPI type.
 func (source *Source) IsSSPI() bool {
 	return source.Type == SSPI
+}
+
+// SourceCfg returns the source config as T, or an error if the stored config is of another type.
+func SourceCfg[T Config](source *Source) (T, error) {
+	cfg, ok := source.Cfg.(T)
+	if !ok {
+		return cfg, fmt.Errorf("auth source %q (id=%d, type=%s) has config %T, expected %T", source.Name, source.ID, source.Type, source.Cfg, cfg)
+	}
+	return cfg, nil
 }
 
 // HasTLS returns true of this source supports TLS.
@@ -369,12 +369,6 @@ func (err ErrSourceNotExist) Unwrap() error {
 // ErrSourceAlreadyExist represents a "SourceAlreadyExist" kind of error.
 type ErrSourceAlreadyExist struct {
 	Name string
-}
-
-// IsErrSourceAlreadyExist checks if an error is a ErrSourceAlreadyExist.
-func IsErrSourceAlreadyExist(err error) bool {
-	_, ok := err.(ErrSourceAlreadyExist)
-	return ok
 }
 
 func (err ErrSourceAlreadyExist) Error() string {

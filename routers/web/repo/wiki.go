@@ -655,7 +655,7 @@ func NewWiki(ctx *context.Context) {
 
 // NewWikiPost response for wiki create request
 func NewWikiPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWikiForm)
+	form := web.GetForm[*forms.NewWikiForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
 	if ctx.HasError() {
@@ -711,7 +711,7 @@ func EditWiki(ctx *context.Context) {
 
 // EditWikiPost response for wiki modify request
 func EditWikiPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWikiForm)
+	form := web.GetForm[*forms.NewWikiForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
 	if ctx.HasError() {

@@ -21,7 +21,7 @@ var _ EventWriter = (*eventWriterConsole)(nil)
 
 func NewEventWriterConsole(name string, mode WriterMode) EventWriter {
 	w := &eventWriterConsole{EventWriterBaseImpl: NewEventWriterBase(name, "console", mode)}
-	opt := mode.WriterOption.(WriterConsoleOption)
+	opt := writerOption[WriterConsoleOption](name, mode)
 	if opt.Stderr {
 		w.OutputWriteCloser = util.NopCloser{Writer: os.Stderr}
 	} else {

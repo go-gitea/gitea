@@ -136,7 +136,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
+	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
 	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
@@ -347,7 +347,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	//   "500":
 	//     "$ref": "#/responses/error"
 
-	opt := web.GetForm(ctx).(*api.CreateVariableOption)
+	opt := web.GetForm[*api.CreateVariableOption](ctx)
 
 	repoID := ctx.Repo.Repository.ID
 	variableName := ctx.PathParam("variablename")
@@ -414,7 +414,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
+	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID: ctx.Repo.Repository.ID,
@@ -1171,7 +1171,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
-	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
+	opt := web.GetForm[*api.CreateActionWorkflowDispatch](ctx)
 	if opt.Ref == "" {
 		ctx.APIError(http.StatusUnprocessableEntity, "ref is required parameter")
 		return

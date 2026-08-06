@@ -24,7 +24,7 @@ var _ EventWriter = (*eventWriterConn)(nil)
 
 func NewEventWriterConn(writerName string, writerMode WriterMode) EventWriter {
 	w := &eventWriterConn{EventWriterBaseImpl: NewEventWriterBase(writerName, "conn", writerMode)}
-	opt := writerMode.WriterOption.(WriterConnOption)
+	opt := writerOption[WriterConnOption](writerName, writerMode)
 	w.connWriter = connWriter{
 		ReconnectOnMsg: opt.ReconnectOnMsg,
 		Reconnect:      opt.Reconnect,

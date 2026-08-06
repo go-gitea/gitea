@@ -63,8 +63,9 @@ func (t *traceBuiltinSpan) toString(out *strings.Builder, indent int) {
 	}
 	out.WriteString("\n")
 	for _, c := range t.ts.children {
-		span := c.internalSpans[t.internalSpanIdx].(*traceBuiltinSpan)
-		span.toString(out, indent+2)
+		if span, ok := c.internalSpans[t.internalSpanIdx].(*traceBuiltinSpan); ok {
+			span.toString(out, indent+2)
+		}
 	}
 }
 

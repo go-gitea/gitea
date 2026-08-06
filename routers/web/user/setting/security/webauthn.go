@@ -30,7 +30,7 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.WebauthnRegistrationForm)
+	form := web.GetForm[*forms.WebauthnRegistrationForm](ctx)
 	if form.Name == "" {
 		// Set name to the hexadecimal of the current time
 		form.Name = strconv.FormatInt(time.Now().UnixNano(), 16)

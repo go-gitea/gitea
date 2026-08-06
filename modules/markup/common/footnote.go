@@ -237,10 +237,8 @@ func (b *footnoteBlockParser) Continue(node ast.Node, reader text.Reader, pc par
 }
 
 func (b *footnoteBlockParser) Close(node ast.Node, reader text.Reader, pc parser.Context) {
-	var list *FootnoteList
-	if tlist := pc.Get(footnoteListKey); tlist != nil {
-		list = tlist.(*FootnoteList)
-	} else {
+	list, _ := pc.Get(footnoteListKey).(*FootnoteList)
+	if list == nil {
 		list = NewFootnoteList()
 		pc.Set(footnoteListKey, list)
 		node.Parent().InsertBefore(node.Parent(), node, list)
@@ -295,17 +293,17 @@ func (s *footnoteParser) Parse(parent ast.Node, block text.Reader, pc parser.Con
 	value := block.Value(text.NewSegment(segment.Start+open, segment.Start+closes))
 	block.Advance(closes + 1)
 
-	var list *FootnoteList
-	if tlist := pc.Get(footnoteListKey); tlist != nil {
-		list = tlist.(*FootnoteList)
-	}
+	list, _ := pc.Get(footnoteListKey).(*FootnoteList)
 	if list == nil {
 		return nil
 	}
 	index := 0
 	name := []byte{}
 	for def := list.FirstChild(); def != nil; def = def.NextSibling() {
-		d := def.(*Footnote)
+		d, ok := def.(*Footnote)
+		if !ok {
+			continue
+		}
 		if bytes.Equal(d.Ref, value) {
 			if d.Index < 0 {
 				list.Count++
@@ -339,10 +337,8 @@ func NewFootnoteASTTransformer() parser.ASTTransformer {
 }
 
 func (a *footnoteASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
-	var list *FootnoteList
-	if tlist := pc.Get(footnoteListKey); tlist != nil {
-		list = tlist.(*FootnoteList)
-	} else {
+	list, _ := pc.Get(footnoteListKey).(*FootnoteList)
+	if list == nil {
 		return
 	}
 	pc.Set(footnoteListKey, nil)
@@ -352,18 +348,19 @@ func (a *footnoteASTTransformer) Transform(node *ast.Document, reader text.Reade
 		if fc := container.LastChild(); fc != nil && ast.IsParagraph(fc) {
 			container = fc
 		}
-		footnoteNode := footnote.(*Footnote)
-		index := footnoteNode.Index
-		name := footnoteNode.Name
-		if index < 0 {
-			list.RemoveChild(list, footnote)
-		} else {
-			container.AppendChild(container, NewFootnoteBackLink(index, name))
+		if footnoteNode, ok := footnote.(*Footnote); ok {
+			if footnoteNode.Index < 0 {
+				list.RemoveChild(list, footnote)
+			} else {
+				container.AppendChild(container, NewFootnoteBackLink(footnoteNode.Index, footnoteNode.Name))
+			}
 		}
 		footnote = next
 	}
 	list.SortChildren(func(n1, n2 ast.Node) int {
-		if n1.(*Footnote).Index < n2.(*Footnote).Index {
+		fn1, ok1 := n1.(*Footnote)
+		fn2, ok2 := n2.(*Footnote)
+		if ok1 && ok2 && fn1.Index < fn2.Index {
 			return -1
 		}
 		return 1
@@ -402,8 +399,7 @@ func (r *FootnoteHTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegist
 }
 
 func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if entering {
-		n := node.(*FootnoteLink)
+	if n, ok := node.(*FootnoteLink); ok && entering {
 		is := strconv.Itoa(n.Index)
 		_, _ = w.WriteString(`<sup id="fnref:user-content-`)
 		_, _ = w.Write(n.Name)
@@ -417,8 +413,7 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 }
 
 func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if entering {
-		n := node.(*FootnoteBackLink)
+	if n, ok := node.(*FootnoteBackLink); ok && entering {
 		_, _ = w.WriteString(` <a href="#fnref:user-content-`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" class="footnote-backref" role="doc-backlink">`)
@@ -429,7 +424,10 @@ func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source [
 }
 
 func (r *FootnoteHTMLRenderer) renderFootnote(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*Footnote)
+	n, ok := node.(*Footnote)
+	if !ok {
+		return ast.WalkContinue, nil
+	}
 	if entering {
 		_, _ = w.WriteString(`<li id="fn:user-content-`)
 		_, _ = w.Write(n.Name)

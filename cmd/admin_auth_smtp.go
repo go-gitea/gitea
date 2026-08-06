@@ -180,7 +180,10 @@ func (a *authService) runUpdateSMTP(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	smtpConfig := source.Cfg.(*smtp.Source)
+	smtpConfig, err := auth_model.SourceCfg[*smtp.Source](source)
+	if err != nil {
+		return err
+	}
 
 	if err := parseSMTPConfig(c, smtpConfig); err != nil {
 		return err

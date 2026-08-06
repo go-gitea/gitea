@@ -11,6 +11,7 @@ import (
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
+	"gitea.dev/modules/setting"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -43,8 +44,16 @@ func (g *ASTTransformer) applyElementDir(n ast.Node) {
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	firstChild := node.FirstChild()
-	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
-	rc := pc.Get(renderConfigKey).(*RenderConfig)
+	ctx, ok := pc.Get(renderContextKey).(*markup.RenderContext)
+	if !ok {
+		setting.PanicInDevOrTesting("no render context in parser context")
+		return
+	}
+	rc, ok := pc.Get(renderConfigKey).(*RenderConfig)
+	if !ok {
+		setting.PanicInDevOrTesting("no render config in parser context")
+		return
+	}
 
 	tocMode := ""
 	if rc.yamlNode != nil {
@@ -150,9 +159,7 @@ func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.No
 }
 
 func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*ast.Document)
-
-	if val, has := n.AttributeString("lang"); has {
+	if val, has := node.AttributeString("lang"); has {
 		var err error
 		if entering {
 			_, err = w.WriteString("<div")
@@ -212,7 +219,10 @@ func (r *HTMLRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.N
 	if !entering {
 		return ast.WalkContinue, nil
 	}
-	n := node.(*RawHTML)
+	n, ok := node.(*RawHTML)
+	if !ok {
+		return ast.WalkContinue, nil
+	}
 	_, err := w.WriteString(string(r.renderInternal.ProtectSafeAttrs(n.rawHTML)))
 	if err != nil {
 		return ast.WalkStop, err

@@ -189,7 +189,7 @@ func Releases(ctx *context.Context) {
 
 	ctx.Data["Releases"] = releases
 
-	numReleases := ctx.Data["NumReleases"].(int64)
+	numReleases, _ := ctx.Data["NumReleases"].(int64)
 	pager := context.NewPagination(numReleases, listOptions.PageSize, listOptions.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
@@ -387,7 +387,7 @@ func NewRelease(ctx *context.Context) {
 
 // GenerateReleaseNotes builds release notes content for the given tag and base.
 func GenerateReleaseNotes(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.GenerateReleaseNotesForm)
+	form := web.GetForm[*forms.GenerateReleaseNotesForm](ctx)
 
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
@@ -418,7 +418,7 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.NewReleaseForm)
+	form := web.GetForm[*forms.NewReleaseForm](ctx)
 
 	// first, check whether the release exists, and prepare "ShowCreateTagOnlyButton"
 	// the logic should be done before the form error check to make the tmpl has correct variables
@@ -579,7 +579,7 @@ func EditReleasePost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditReleaseForm)
+	form := web.GetForm[*forms.EditReleaseForm](ctx)
 
 	tagName := ctx.PathParam("*")
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)

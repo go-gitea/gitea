@@ -381,16 +381,17 @@ func (a *authService) addLdapBindDn(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
+	ldapConfig := &ldap.Source{
+		Enabled: true, // always true
+	}
 	authSource := &auth.Source{
 		Type:     auth.LDAP,
 		IsActive: true, // active by default
-		Cfg: &ldap.Source{
-			Enabled: true, // always true
-		},
+		Cfg:      ldapConfig,
 	}
 
 	parseAuthSourceLdap(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
+	if err := parseLdapConfig(c, ldapConfig); err != nil {
 		return err
 	}
 
@@ -407,9 +408,13 @@ func (a *authService) updateLdapBindDn(ctx context.Context, c *cli.Command) erro
 	if err != nil {
 		return err
 	}
+	ldapConfig, err := auth.SourceCfg[*ldap.Source](authSource)
+	if err != nil {
+		return err
+	}
 
 	parseAuthSourceLdap(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
+	if err := parseLdapConfig(c, ldapConfig); err != nil {
 		return err
 	}
 
@@ -426,16 +431,17 @@ func (a *authService) addLdapSimpleAuth(ctx context.Context, c *cli.Command) err
 		return err
 	}
 
+	ldapConfig := &ldap.Source{
+		Enabled: true, // always true
+	}
 	authSource := &auth.Source{
 		Type:     auth.DLDAP,
 		IsActive: true, // active by default
-		Cfg: &ldap.Source{
-			Enabled: true, // always true
-		},
+		Cfg:      ldapConfig,
 	}
 
 	parseAuthSourceLdap(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
+	if err := parseLdapConfig(c, ldapConfig); err != nil {
 		return err
 	}
 
@@ -452,9 +458,13 @@ func (a *authService) updateLdapSimpleAuth(ctx context.Context, c *cli.Command) 
 	if err != nil {
 		return err
 	}
+	ldapConfig, err := auth.SourceCfg[*ldap.Source](authSource)
+	if err != nil {
+		return err
+	}
 
 	parseAuthSourceLdap(c, authSource)
-	if err := parseLdapConfig(c, authSource.Cfg.(*ldap.Source)); err != nil {
+	if err := parseLdapConfig(c, ldapConfig); err != nil {
 		return err
 	}
 

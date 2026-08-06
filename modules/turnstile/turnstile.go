@@ -20,7 +20,12 @@ import (
 // httpClient returns an HTTP client that honors Gitea's proxy configuration.
 var httpClient = util.OnceValue[*http.Client]{
 	Func: func() *http.Client {
-		transport := http.DefaultTransport.(*http.Transport).Clone()
+		var transport *http.Transport
+		if defaultTransport, ok := http.DefaultTransport.(*http.Transport); ok {
+			transport = defaultTransport.Clone() // inherit Go's default timeouts and connection pooling
+		} else {
+			transport = &http.Transport{}
+		}
 		transport.Proxy = proxy.Proxy()
 		return &http.Client{Transport: transport}
 	},

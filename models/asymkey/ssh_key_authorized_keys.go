@@ -163,7 +163,11 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 // RegeneratePublicKeys regenerates the authorized_keys file
 func RegeneratePublicKeys(ctx context.Context, t io.Writer) error {
 	if err := db.GetEngine(ctx).Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean any) (err error) {
-		return WriteAuthorizedStringForValidKey(bean.(*PublicKey), t)
+		key, ok := bean.(*PublicKey)
+		if !ok {
+			return fmt.Errorf("unexpected bean type %T", bean)
+		}
+		return WriteAuthorizedStringForValidKey(key, t)
 	}); err != nil {
 		return err
 	}

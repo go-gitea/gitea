@@ -323,7 +323,9 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	readers := make([]io.Reader, 0, len(allChunks))
 	closeReaders := func() {
 		for _, r := range readers {
-			_ = r.(io.Closer).Close() // it guarantees to be io.Closer by the following loop's Open function
+			if closer, ok := r.(io.Closer); ok { // it guarantees to be io.Closer by the following loop's Open function
+				_ = closer.Close()
+			}
 		}
 		readers = nil
 	}

@@ -330,6 +330,15 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 
 	searchResults := make([]*internal.SearchResult, len(result.Hits))
 	for i, hit := range result.Hits {
+		content, okContent := hit.Fields["Content"].(string)
+		language, okLanguage := hit.Fields["Language"].(string)
+		commitID, okCommitID := hit.Fields["CommitID"].(string)
+		updatedAt, okUpdatedAt := hit.Fields["UpdatedAt"].(string)
+		repoID, okRepoID := hit.Fields["RepoID"].(float64)
+		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt || !okRepoID {
+			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
+		}
+
 		startIndex, endIndex := -1, -1
 		for _, locations := range hit.Locations["Content"] {
 			location := locations[0]
@@ -343,21 +352,20 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			}
 		}
 		if len(hit.Locations["Filename"]) > 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(hit.Fields["Content"].(string))
+			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
 		}
 
-		language := hit.Fields["Language"].(string)
 		var updatedUnix timeutil.TimeStamp
-		if t, err := time.Parse(time.RFC3339, hit.Fields["UpdatedAt"].(string)); err == nil {
+		if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
 			updatedUnix = timeutil.TimeStamp(t.Unix())
 		}
 		searchResults[i] = &internal.SearchResult{
-			RepoID:      int64(hit.Fields["RepoID"].(float64)),
+			RepoID:      int64(repoID),
 			StartIndex:  startIndex,
 			EndIndex:    endIndex,
 			Filename:    internal.FilenameOfIndexerID(hit.ID),
-			Content:     hit.Fields["Content"].(string),
-			CommitID:    hit.Fields["CommitID"].(string),
+			Content:     content,
+			CommitID:    commitID,
 			UpdatedUnix: updatedUnix,
 			Language:    language,
 			Color:       enry.GetColor(language),

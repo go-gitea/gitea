@@ -95,8 +95,8 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 				// The "req" might have changed due to the new "req.WithContext" calls
 				// For example: in NewBaseContext, a new "req" with context is created, and the multipart-form is parsed there.
 				// So we always use the latest "req" from the data store.
-				ctxReq := ds.GetContextValue(httplib.RequestContextKey).(*http.Request)
-				if ctxReq.MultipartForm != nil {
+				ctxReq, ok := ds.GetContextValue(httplib.RequestContextKey).(*http.Request)
+				if ok && ctxReq.MultipartForm != nil {
 					_ = ctxReq.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
 				}
 			})

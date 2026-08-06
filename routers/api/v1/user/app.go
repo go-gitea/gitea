@@ -98,7 +98,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
+	form := web.GetForm[*api.CreateAccessTokenOption](ctx)
 
 	t := &auth_model.AccessToken{
 		UID:  ctx.ContextUser.ID,
@@ -242,7 +242,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
 		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return
@@ -406,7 +406,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.PathParamInt64("id")
 
-	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
 		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return

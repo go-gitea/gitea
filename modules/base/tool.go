@@ -64,12 +64,12 @@ func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTi
 	const format = "200601021504"
 
 	var start time.Time
-	var startTimeAny any = startTimeGeneric
-	if t, ok := startTimeAny.(time.Time); ok {
-		start = t
-	} else {
+	switch startTime := any(startTimeGeneric).(type) {
+	case time.Time:
+		start = startTime
+	case string:
 		var err error
-		start, err = time.ParseInLocation(format, startTimeAny.(string), time.Local)
+		start, err = time.ParseInLocation(format, startTime, time.Local)
 		if err != nil {
 			return "" // return an invalid code because the "parse" failed
 		}

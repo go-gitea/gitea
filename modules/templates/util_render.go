@@ -42,6 +42,15 @@ func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 	return &RenderUtils{ctx: ctx, avatarUtils: NewAvatarUtils(ctx)}
 }
 
+func (ut *RenderUtils) locale() translation.Locale {
+	locale, ok := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	if !ok {
+		setting.PanicInDevOrTesting("no locale in context")
+		return translation.NewLocale("")
+	}
+	return locale
+}
+
 // RenderCommitMessage renders commit message title (only title)
 func (ut *RenderUtils) RenderCommitMessage(msg string, repo *repo.Repository) template.HTML {
 	msgLine := strings.TrimSpace(msg)
@@ -98,7 +107,7 @@ func (ut *RenderUtils) RenderIssueSimpleTitle(text string) template.HTML {
 }
 
 func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
-	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	locale := ut.locale()
 	var extraCSSClasses string
 	textColor := util.ContrastColor(label.Color)
 	labelScope := label.ExclusiveScope()
@@ -279,7 +288,7 @@ func (ut *RenderUtils) RenderUnicodeEscapeToggleButton(escapeStatus *charset.Esc
 	if escapeStatus == nil || !escapeStatus.Escaped {
 		return ""
 	}
-	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	locale := ut.locale()
 	var title template.HTML
 	if escapeStatus.HasAmbiguous {
 		title += locale.Tr("repo.ambiguous_runes_line")
@@ -376,7 +385,7 @@ func (ut *RenderUtils) AvatarStackPushCommit(pushCommit *repository.PushCommit) 
 
 // AvatarStackWithNames renders the avatar stack plus a label: `name` / `a and b` / `N people` (opens popup).
 func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) template.HTML {
-	locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+	locale := ut.locale()
 	participants := data.Participants
 
 	var b htmlutil.HTMLBuilder

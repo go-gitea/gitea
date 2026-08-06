@@ -28,7 +28,10 @@ func canAccessReleaseDraft(ctx *context.APIContext) bool {
 		return true
 	}
 	// the request is from an access token with scope
-	scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if !ok {
+		return false
+	}
 	requiredScopes := auth_model.GetRequiredScopes(auth_model.Write, auth_model.AccessTokenScopeCategoryRepository)
 	allow, _ := scope.HasScope(requiredScopes...) // err (invalid token) can be safely ignored
 	return allow
@@ -244,7 +247,7 @@ func CreateRelease(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateReleaseOption)
+	form := web.GetForm[*api.CreateReleaseOption](ctx)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.APIError(http.StatusUnprocessableEntity, "repo is empty")
 		return
@@ -346,7 +349,7 @@ func EditRelease(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditReleaseOption)
+	form := web.GetForm[*api.EditReleaseOption](ctx)
 	id := ctx.PathParamInt64("id")
 	rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, id)
 	if err != nil && !repo_model.IsErrReleaseNotExist(err) {

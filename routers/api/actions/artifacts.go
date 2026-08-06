@@ -98,7 +98,7 @@ type ArtifactContext struct {
 
 func init() {
 	web.RegisterResponseStatusProvider[*ArtifactContext](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(artifactContextKey).(*ArtifactContext)
+		return req.Context().Value(artifactContextKey).(*ArtifactContext) //nolint:forcetypeassert // ArtifactContexter/ArtifactV4Contexter always set it, and handlers can't work with a nil context
 	})
 }
 

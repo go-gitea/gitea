@@ -65,10 +65,10 @@ type Context struct {
 
 func init() {
 	web.RegisterResponseStatusProvider[*Base](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(BaseContextKey).(*Base)
+		return req.Context().Value(BaseContextKey).(*Base) //nolint:forcetypeassert // NewBaseContext always sets it, and handlers can't work with a nil context
 	})
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(WebContextKey).(*Context)
+		return req.Context().Value(WebContextKey).(*Context) //nolint:forcetypeassert // NewWebContext always sets it, and handlers can't work with a nil context
 	})
 }
 

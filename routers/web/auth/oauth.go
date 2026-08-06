@@ -56,13 +56,19 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	if err = authSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
+	oauth2Source, err := auth.SourceCfg[*oauth2.Source](authSource)
+	if err != nil {
+		ctx.ServerError("SignIn", err)
+		return
+	}
+
+	if err = oauth2Source.Callout(ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
 			if err = oauth2.ResetOAuth2(ctx); err != nil {
 				ctx.ServerError("SignIn", err)
 				return
 			}
-			if err = authSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
+			if err = oauth2Source.Callout(ctx.Req, ctx.Resp); err != nil {
 				ctx.ServerError("SignIn", err)
 			}
 			return
@@ -100,8 +106,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 	u, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
 	if err != nil {
-		if user_model.IsErrUserProhibitLogin(err) {
-			uplerr := err.(user_model.ErrUserProhibitLogin)
+		if uplerr, ok := err.(user_model.ErrUserProhibitLogin); ok {
 			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
@@ -188,7 +193,11 @@ func SignInOAuthCallback(ctx *context.Context) {
 				IsActive: optional.Some(!setting.OAuth2Client.RegisterEmailConfirm && !setting.Service.RegisterManualConfirm),
 			}
 
-			source := authSource.Cfg.(*oauth2.Source)
+			source, err := auth.SourceCfg[*oauth2.Source](authSource)
+			if err != nil {
+				ctx.ServerError("SourceCfg", err)
+				return
+			}
 
 			linkAccountData := &LinkAccountData{authSource.ID, gothUser}
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingDisabled {
@@ -369,7 +378,12 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		needs2FA = err == nil
 	}
 
-	oauth2Source := authSource.Cfg.(*oauth2.Source)
+	oauth2Source, err := auth.SourceCfg[*oauth2.Source](authSource)
+	if err != nil {
+		ctx.ServerError("SourceCfg", err)
+		return
+	}
+
 	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(oauth2Source.GroupTeamMap)
 	if err != nil {
 		ctx.ServerError("UnmarshalGroupTeamMapping", err)
@@ -476,7 +490,10 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
 func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
-	oauth2Source := authSource.Cfg.(*oauth2.Source)
+	oauth2Source, err := auth.SourceCfg[*oauth2.Source](authSource)
+	if err != nil {
+		return nil, goth.User{}, err
+	}
 
 	// Make sure that the response is not an error response.
 	errorName := request.FormValue("error")

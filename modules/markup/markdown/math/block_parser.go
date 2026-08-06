@@ -86,8 +86,8 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 
 // Continue parses the current line and returns a result of parsing.
 func (b *blockParser) Continue(node ast.Node, reader text.Reader, pc parser.Context) parser.State {
-	block := node.(*Block)
-	if block.Closed {
+	block, ok := node.(*Block)
+	if !ok || block.Closed {
 		return parser.Close
 	}
 

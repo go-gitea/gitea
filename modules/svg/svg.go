@@ -97,9 +97,10 @@ func renderHTML(icon string, others ...any) (_ template.HTML, usingCache bool) {
 		}
 
 		cacheKey := svgCacheKey{icon, size, class}
-		cachedHTML, cached := svgCache.Load(cacheKey)
-		if cached && !svgItem.mocking {
-			return cachedHTML.(template.HTML), true
+		cachedValue, cached := svgCache.Load(cacheKey)
+		cachedHTML, isHTML := cachedValue.(template.HTML)
+		if cached && isHTML && !svgItem.mocking {
+			return cachedHTML, true
 		}
 
 		// the code is somewhat hacky, but it just works, because the SVG contents are all normalized
