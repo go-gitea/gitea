@@ -148,15 +148,13 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
 	// We deliberately ignore the skip local 2fa setting here because we are linking to a previous user here
-	_, err := auth.GetTwoFactorByUID(ctx, u.ID)
+	hasTwoFactor, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 	if err != nil {
-		if !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("UserLinkAccount", err)
-			return
-		}
-
-		err = externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser)
-		if err != nil {
+		ctx.ServerError("UserLinkAccount", err)
+		return
+	}
+	if !hasTwoFactor {
+		if err := externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser); err != nil {
 			ctx.ServerError("UserLinkAccount", err)
 			return
 		}

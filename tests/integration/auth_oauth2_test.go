@@ -22,6 +22,7 @@ import (
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/tests"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -569,4 +570,106 @@ func TestOAuth2AutoLinkWithTwoFactor(t *testing.T) {
 	assert.Equal(t, localUser.ID, externalLink.UserID)
 
 	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+}
+
+func TestOAuth2AutoLinkWithWebAuthn(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+	defer test.MockVariableValue(&setting.OAuth2Client.AccountLinking, setting.OAuth2AccountLinkingAuto)()
+	defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameEmail)()
+
+	const (
+		sourceName = "test-oauth-auto-link-webauthn"
+		sub        = "oidc-auto-link-webauthn-sub"
+		email      = "oidc-auto-link-webauthn@example.com"
+		userName   = "oidc-auto-link-webauthn"
+	)
+
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: email, Name: "OIDC Auto Link WebAuthn"})
+	addOAuth2Source(t, sourceName, oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+
+	localUser := &user_model.User{Name: userName, Email: email}
+	require.NoError(t, user_model.CreateUser(t.Context(), localUser, &user_model.Meta{}))
+	_, err := auth_model.CreateCredential(t.Context(), localUser.ID, "test-key", &webauthn.Credential{ID: []byte("test-cred-id")})
+	require.NoError(t, err)
+
+	session := emptyTestSession(t)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
+	u, err := url.Parse(resp.Header().Get("Location"))
+	require.NoError(t, err)
+	state := u.Query().Get("state")
+	require.NotEmpty(t, state)
+
+	callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
+	resp = session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+	assert.Contains(t, resp.Header().Get("Location"), "/user/webauthn")
+
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusSeeOther)
+}
+
+func TestResetPasswordWithWebAuthn(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	localUser := &user_model.User{Name: "reset-webauthn", Email: "reset-webauthn@example.com"}
+	require.NoError(t, user_model.CreateUser(t.Context(), localUser, &user_model.Meta{}))
+	_, err := auth_model.CreateCredential(t.Context(), localUser.ID, "test-key", &webauthn.Credential{ID: []byte("reset-cred-id")})
+	require.NoError(t, err)
+
+	code := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, localUser)
+	session := emptyTestSession(t)
+	req := NewRequestWithValues(t, "POST", "/user/recover_account", map[string]string{
+		"code":     code,
+		"password": "new-Password!1",
+	})
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Contains(t, resp.Header().Get("Location"), "/user/webauthn")
+
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusSeeOther)
+}
+
+func TestOAuth2SignInLinkedWithWebAuthn(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	const (
+		sourceName = "test-oauth-signin-webauthn"
+		sub        = "oidc-signin-webauthn-sub"
+		email      = "oidc-signin-webauthn@example.com"
+		userName   = "oidc-signin-webauthn"
+	)
+
+	srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: email, Name: "OIDC SignIn WebAuthn"})
+	addOAuth2Source(t, sourceName, oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		ClientSecret:                  "test-client-secret",
+		OpenIDConnectAutoDiscoveryURL: srv.URL + "/.well-known/openid-configuration",
+	})
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+	require.NoError(t, err)
+
+	localUser := &user_model.User{Name: userName, Email: email}
+	require.NoError(t, user_model.CreateUser(t.Context(), localUser, &user_model.Meta{}))
+	_, err = auth_model.CreateCredential(t.Context(), localUser.ID, "test-key", &webauthn.Credential{ID: []byte("signin-cred-id")})
+	require.NoError(t, err)
+	require.NoError(t, user_model.LinkExternalToUser(t.Context(), localUser, &user_model.ExternalLoginUser{
+		ExternalID: sub, UserID: localUser.ID, LoginSourceID: authSource.ID, Provider: "openidConnect",
+	}))
+
+	session := emptyTestSession(t)
+	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
+	u, err := url.Parse(resp.Header().Get("Location"))
+	require.NoError(t, err)
+	state := u.Query().Get("state")
+	require.NotEmpty(t, state)
+
+	callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
+	resp = session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+	assert.Contains(t, resp.Header().Get("Location"), "/user/webauthn")
+
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusSeeOther)
 }
