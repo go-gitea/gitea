@@ -321,7 +321,6 @@ function getOptions(chartType: ChartType): LineOptions {
   };
 }
 
-// a new object rebuilds the chart, so data and options only change with their inputs
 const mainChart = computed(() => ({
   graphData: toGraphData(totalStats.value.weeks),
   chartOptions: getOptions('main'),

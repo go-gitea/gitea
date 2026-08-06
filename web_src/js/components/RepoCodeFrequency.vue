@@ -81,7 +81,6 @@ async function fetchGraphData() {
   }
 }
 
-// a new object rebuilds the chart
 const graphData = computed(() => toGraphData(data.value));
 
 function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {

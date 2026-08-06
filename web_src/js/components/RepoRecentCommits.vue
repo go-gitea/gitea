@@ -77,7 +77,6 @@ async function fetchGraphData() {
   }
 }
 
-// a new object rebuilds the chart
 const graphData = computed(() => toGraphData(data.value));
 
 function toGraphData(data: DayData[]): ChartData<'bar'> {
