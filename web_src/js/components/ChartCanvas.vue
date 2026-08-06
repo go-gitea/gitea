@@ -5,12 +5,10 @@ import {chartJsColors} from '../utils/color.ts';
 import dayjs from 'dayjs';
 import advancedFormat from 'dayjs/plugin/advancedFormat.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
-import isoWeek from 'dayjs/plugin/isoWeek.js';
 import type {ConfigType, ManipulateType} from 'dayjs';
 
 dayjs.extend(advancedFormat); // the quarter format needs the `Q` token
 dayjs.extend(quarterOfYear);
-dayjs.extend(isoWeek);
 
 Chart.defaults.color = chartJsColors.text;
 Chart.defaults.borderColor = chartJsColors.border;
@@ -37,14 +35,8 @@ _adapters._date.override({
   format: (time: number, format: string) => dayjs(time).format(format),
   add: (time: number, amount: number, unit: TimeUnit) => dayjs(time).add(amount, unit as ManipulateType).valueOf(), // the quarter plugin widens this at runtime
   diff: (max: number, min: number, unit: TimeUnit) => dayjs(max).diff(min, unit),
-  startOf: (time: number, unit: TimeUnit | 'isoWeek', weekday?: number | boolean) => {
-    // chart.js passes `true` here when `time.isoWeekday` is enabled without a day
-    if (unit === 'isoWeek') {
-      const day = typeof weekday === 'number' && weekday > 0 && weekday < 7 ? weekday : 1;
-      return dayjs(time).isoWeekday(day).startOf('day').valueOf();
-    }
-    return dayjs(time).startOf(unit).valueOf();
-  },
+  // chart.js only asks for `isoWeek` when `time.isoWeekday` is set, which we never do
+  startOf: (time: number, unit: TimeUnit) => dayjs(time).startOf(unit).valueOf(),
   endOf: (time: number, unit: TimeUnit) => dayjs(time).endOf(unit).valueOf(),
 });
 

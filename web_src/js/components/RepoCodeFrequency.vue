@@ -79,7 +79,7 @@ async function fetchGraphData() {
 
 const graphData = computed(() => toGraphData(data.value));
 
-function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
+function toGraphData(data: DayData[]): ChartData<'line'> {
   return {
     datasets: [
       {
