@@ -92,28 +92,32 @@ type DiffLineSectionInfo struct {
 	// These line "idx" are 1-based line numbers (inclusive)
 	// Left/Right refer to the left/right side of the diff:
 	//
-	// LastLeftIdx | LastRightIdx   (the last rendered line before this hunk)
-	// [up/down/single expander] @@ hunk info @@
-	// LeftIdx     | RightIdx       (the next rendered line after this hunk)
-
-	LastLeftIdx  int
-	LastRightIdx int
-	LeftIdx      int
-	RightIdx     int
-
-	// Hunk sizes of the hidden lines
-	LeftHunkSize  int
-	RightHunkSize int
-
+	//   LastLeftIdx | LastRightIdx   (the last rendered line number before this hunk)
+	//   [up/down/single expander] @@ hunk info @@
+	//   LeftIdx     | RightIdx       (the next rendered line number after this hunk)
+	//   The hunk has LeftHunkSize lines on left side, RightHunkSize lines on right side.
+	//
 	// For example:
-	// 17 | 31
-	// [up/down] @@ -40,23 +54,9 @@ ....
-	// 40 | 54
+	//   17 | 31    diff line ...
+	//   [up/down] @@ -40,23 +54,7 @@ ....
+	//   40 | 54    diff line ...
+	//     ...      diff line ...
+	//   62 | 60    diff line ...
+	//   (then file end or another hunk)
 	//
 	// In this case:
-	// LastLeftIdx = 17, LastRightIdx = 31
-	// LeftHunkSize = 23, RightHunkSize = 9
-	// LeftIdx = 40, RightIdx = 54
+	//   LastLeftIdx = 17, LastRightIdx = 31
+	//   (left lines 18-39, right lines 31-53 are hidden)
+	//   LeftIdx = 40, RightIdx = 54
+	//   LeftHunkSize = 23, RightHunkSize = 7
+	//   Left hunk ends at line 40+23-1=62 (23 lines), right: 54+7-1=60 (7 lines)
+
+	LastLeftIdx   int
+	LastRightIdx  int
+	LeftIdx       int
+	RightIdx      int
+	LeftHunkSize  int
+	RightHunkSize int
 
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
