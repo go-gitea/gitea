@@ -1064,7 +1064,6 @@ export default defineConfig([
     rules: {
       ...playwright.configs['flat/recommended'].rules,
       'playwright/expect-expect': [0],
-      'playwright/no-skipped-test': [0],
     },
   },
   {

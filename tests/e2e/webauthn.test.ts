@@ -17,10 +17,9 @@ async function signInWithPassword(page: Page, username: string) {
   await page.getByRole('button', {name: 'Sign In'}).click();
 }
 
-// the second factor login rejected the key registration had just created, because Chromium raised it
-// to credProtect level 3, see https://github.com/go-gitea/gitea/issues/33531
+// regression: credProtect level 3 hid the credential from the second-factor login
 test('security key survives credProtect', async ({page, request, browserName}) => {
-  test.skip(browserName !== 'chromium', 'only the CDP authenticator emulates credProtect');
+  test.skip(browserName !== 'chromium', 'only the CDP authenticator emulates credProtect'); // eslint-disable-line playwright/no-skipped-test
 
   const username = `e2e-credprotect-${randomString(8)}`;
   await apiCreateUser(request, username);
@@ -35,7 +34,6 @@ test('security key survives credProtect', async ({page, request, browserName}) =
     hasUserVerification: true,
     hasCredBlob: true, // CDP only emulates credProtect together with credBlob
     isUserVerified: true,
-    automaticPresenceSimulation: true,
   }});
 
   await loginUser(page, username);
