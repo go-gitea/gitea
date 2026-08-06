@@ -1,6 +1,6 @@
 import {build, defineConfig} from 'vite';
 import {stringPlugin} from 'vite-string-plugin';
-import {sharedPlugins, vueDefines} from './tools/shared.ts';
+import {sharedPlugins, sharedResolve, vueDefines} from './tools/shared.ts';
 import {licensePlugin, wrap} from 'rolldown-license-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import path, {basename, join, parse} from 'node:path';
@@ -296,6 +296,7 @@ export default defineConfig(commonViteOpts({
       ],
     },
   },
+  resolve: sharedResolve,
   define: vueDefines,
   plugins: [
     iifePlugin('iife.ts'),
