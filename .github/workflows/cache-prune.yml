@@ -9,8 +9,7 @@ on:
   workflow_dispatch:
   workflow_call:
 
-permissions:
-  actions: write # to delete caches
+permissions: {}
 
 concurrency:
   group: cache-prune
@@ -19,6 +18,8 @@ jobs:
   prune:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
+    permissions:
+      actions: write # to delete caches
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
