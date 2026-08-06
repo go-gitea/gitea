@@ -171,6 +171,63 @@ func TestWebAuthOAuth2(t *testing.T) {
 			assert.Equal(t, "https://example.com/oidc-logout", u.String())
 		})
 
+		t.Run("OAuth2SignInIncludesIDTokenHint", func(t *testing.T) {
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oauth-idtoken")}
+			ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			require.NoError(t, ctx.Session.Set(session.KeySignInMethod, session.SignInMethodOAuth2))
+			require.NoError(t, ctx.Session.Set(session.KeyOIDCIDToken, "mock-id-token"))
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			expectedValues := url.Values{"oidc-key": []string{"oidc-val"}, "post_logout_redirect_uri": []string{setting.AppURL}, "client_id": []string{"mock-client-id"}, "id_token_hint": []string{"mock-id-token"}}
+			assert.Equal(t, expectedValues, u.Query())
+		})
+
+		t.Run("OAuth2CallbackStoresIDTokenForLogout", func(t *testing.T) {
+			defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
+				return goth.User{Provider: "oidc-auth-source", UserID: "oidc-new-user", Email: "oidc-new-user@example.com", IDToken: "real-flow-id-token"}, nil
+			})()
+
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oidc-callback")}
+			ctx, resp := contexttest.MockContext(t, "/user/oauth2/..../callback?code=dummy-code", mockOpt)
+			ctx.SetPathParamRaw("provider", "oidc-auth-source")
+			SignInOAuthCallback(ctx)
+			require.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Equal(t, "real-flow-id-token", ctx.Session.Get(session.KeyOIDCIDToken))
+
+			// signing out the same session must carry the id_token through as id_token_hint
+			ctx, resp = contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			assert.Equal(t, "real-flow-id-token", u.Query().Get("id_token_hint"))
+		})
+
+		t.Run("OAuth2CallbackWithoutIDTokenOmitsHint", func(t *testing.T) {
+			defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
+				return goth.User{Provider: "oidc-auth-source", UserID: "oidc-new-user-2", Email: "oidc-new-user-2@example.com"}, nil
+			})()
+
+			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-oidc-callback-no-token")}
+			ctx, resp := contexttest.MockContext(t, "/user/oauth2/..../callback?code=dummy-code", mockOpt)
+			ctx.SetPathParamRaw("provider", "oidc-auth-source")
+			SignInOAuthCallback(ctx)
+			require.Equal(t, http.StatusSeeOther, resp.Code)
+			assert.Nil(t, ctx.Session.Get(session.KeyOIDCIDToken))
+
+			ctx, resp = contexttest.MockContext(t, "/user/logout", mockOpt)
+			ctx.Doer = oauthUser
+			SignOut(ctx)
+			assert.Equal(t, http.StatusSeeOther, resp.Code)
+			u, err := url.Parse(test.RedirectURL(resp))
+			require.NoError(t, err)
+			assert.Empty(t, u.Query().Get("id_token_hint"))
+		})
+
 		t.Run("PasswordSignInSkipsOIDC", func(t *testing.T) {
 			// OAuth2-linked account signed in via password form must not hit end_session_endpoint.
 			mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid-password")}

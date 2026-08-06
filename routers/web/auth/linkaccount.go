@@ -170,13 +170,17 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 		return
 	}
 
-	if err := regenerateSession(ctx, map[string]any{
-		// User needs to use 2FA, save data and redirect to 2FA page.
+	// User needs to use 2FA, save data and redirect to 2FA page.
+	sessionData := map[string]any{
 		"twofaUid":              u.ID,
 		"twofaRemember":         remember,
 		"linkAccount":           true,
 		session.KeySignInMethod: session.SignInMethodOAuth2,
-	}); err != nil {
+	}
+	if linkAccountData.GothUser.IDToken != "" {
+		sessionData[session.KeyOIDCIDToken] = linkAccountData.GothUser.IDToken
+	}
+	if err := regenerateSession(ctx, sessionData); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
 	}
