@@ -361,12 +361,11 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	needs2FA := false
 	if !authSource.TwoFactorShouldSkip() {
-		_, err := auth.GetTwoFactorByUID(ctx, u.ID)
-		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
+		var err error
+		if needs2FA, err = auth.HasTwoFactorOrWebAuthn(ctx, u.ID); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
-		needs2FA = err == nil
 	}
 
 	oauth2Source := authSource.Cfg.(*oauth2.Source)

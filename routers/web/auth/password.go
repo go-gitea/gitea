@@ -238,6 +238,21 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 
+	// the reset form only carries a TOTP field, so a WebAuthn-only user finishes the second factor on its own page
+	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
+	if err != nil {
+		ctx.ServerError("HasWebAuthnRegistrationsByUID", err)
+		return
+	}
+	if twofa == nil && hasWebAuthn {
+		if err := regenerateSession(ctx, map[string]any{"twofaUid": u.ID, "twofaRemember": remember}); err != nil {
+			ctx.ServerError("RegenerateSession", err)
+			return
+		}
+		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
+		return
+	}
+
 	handleSignIn(ctx, u, remember)
 }
 
