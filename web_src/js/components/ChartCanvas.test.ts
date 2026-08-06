@@ -1,9 +1,11 @@
 import {createApp, h, isReactive, nextTick, reactive, shallowRef} from 'vue';
 import ChartCanvas from './ChartCanvas.vue';
+import {_adapters} from 'chart.js';
 
-const {charts, dateAdapter} = vi.hoisted(() => ({charts: [] as Array<Record<string, any>>, dateAdapter: {} as Record<string, any>}));
+const {charts} = vi.hoisted(() => ({charts: [] as Array<Record<string, any>>}));
 
-vi.mock('chart.js', () => {
+// chart.js cannot initialize without a canvas context, which happy-dom does not provide
+vi.mock('chart.js', async (importOriginal) => {
   class Chart {
     static defaults: Record<string, any> = {};
     static register() {}
@@ -15,7 +17,7 @@ vi.mock('chart.js', () => {
       charts.push(this);
     }
   }
-  return {Chart, BarController: {}, LineController: {}, LinearScale: {}, TimeScale: {}, _adapters: {_date: {override: (a: any) => Object.assign(dateAdapter, a)}}};
+  return {...await importOriginal(), Chart};
 });
 
 test('ChartCanvas', async () => {
@@ -25,9 +27,10 @@ test('ChartCanvas', async () => {
   app.mount(document.createElement('div'));
   expect(charts).toHaveLength(1);
   expect(isReactive(charts[0].data)).toBe(false); // chart.js mutates it
-  const time = Date.UTC(2026, 4, 15); // the date adapter registers during setup
-  expect(dateAdapter.format(time, dateAdapter.formats().quarter)).toEqual('Q2 - 2026');
-  expect(dateAdapter.format(dateAdapter.startOf(time, 'quarter'), 'MMM YYYY')).toEqual('Apr 2026');
+  const adapter = new (_adapters._date as any)({}); // the component registered it during setup
+  const time = Date.UTC(2026, 4, 15);
+  expect(adapter.format(time, adapter.formats().quarter)).toEqual('Q2 - 2026');
+  expect(adapter.format(adapter.startOf(time, 'quarter'), 'MMM YYYY')).toEqual('Apr 2026');
   data.value = reactive({datasets: []});
   await nextTick();
   expect(charts[0].update).toHaveBeenCalledOnce();
