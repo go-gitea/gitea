@@ -24,10 +24,8 @@ test('chart data survives an unrelated re-render', async () => {
   createApp({
     render: () => h(RepoRecentCommits, {locale, class: cssClass.value}),
   }).mount(document.createElement('div'));
-
   await vi.waitUntil(() => chart.renders);
   cssClass.value = 'second';
   await nextTick();
-
   expect(chart.renders).toEqual(1); // a new data object here would rebuild the chart
 });

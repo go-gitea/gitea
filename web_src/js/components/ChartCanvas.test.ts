@@ -23,20 +23,14 @@ test('ChartCanvas', async () => {
   const options = {};
   const app = createApp({render: () => h(ChartCanvas, {type: 'line', data: data.value, options})});
   app.mount(document.createElement('div'));
-
   expect(charts).toHaveLength(1);
   expect(isReactive(charts[0].data)).toBe(false); // chart.js mutates it
-
+  const time = Date.UTC(2026, 4, 15); // the date adapter registers during setup
+  expect(dateAdapter.format(time, dateAdapter.formats().quarter)).toEqual('Q2 - 2026');
+  expect(dateAdapter.format(dateAdapter.startOf(time, 'quarter'), 'MMM YYYY')).toEqual('Apr 2026');
   data.value = reactive({datasets: []});
   await nextTick();
   expect(charts[0].update).toHaveBeenCalledOnce();
-
   app.unmount();
   expect(charts[0].destroy).toHaveBeenCalledOnce();
-});
-
-test('chart date adapter', () => {
-  const time = Date.UTC(2026, 4, 15);
-  expect(dateAdapter.format(time, dateAdapter.formats().quarter)).toEqual('Q2 - 2026');
-  expect(dateAdapter.format(dateAdapter.startOf(time, 'quarter'), 'MMM YYYY')).toEqual('Apr 2026');
 });
