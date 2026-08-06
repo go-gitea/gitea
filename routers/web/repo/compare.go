@@ -735,6 +735,11 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.ServerError("GetBlobByPath", err)
 		return
 	}
+	// "all" fills a whole gap at once, so refuse files that are too large to keep memory bounded
+	if opts.Direction == "all" && blob.Size(ctx) >= setting.UI.MaxDisplayFileSize {
+		ctx.HTTPError(http.StatusRequestEntityTooLarge, "file is too large to expand")
+		return
+	}
 	reader, err := blob.DataAsync(ctx)
 	if err != nil {
 		ctx.ServerError("DataAsync", err)

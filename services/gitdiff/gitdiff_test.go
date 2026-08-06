@@ -920,6 +920,8 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 				"direction=up",
 				"code-comment-more",
 				"1 hidden comment(s)",
+				"data-expand-all-url=",
+				"direction=all",
 			},
 		},
 		{
@@ -951,6 +953,8 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 				`data-hidden-comment-ids=",200,201,"`, // use leading and trailing commas to ensure exact match by CSS selector `attr*=",id,"`
 				"pull_issue_index=42",
 				"2 hidden comment(s)",
+				"data-expand-all-url=",
+				"direction=all",
 			},
 		},
 		{
@@ -974,16 +978,42 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 			},
 			expectContains: []string{
 				"code-expander-button",
+				"data-expand-all-url=",
+				"direction=all",
 			},
 			expectNotContain: []string{
 				"code-comment-more",
+			},
+		},
+		{
+			name: "no expand direction has no expand-all url",
+			line: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:     10,
+					RightIdx:         11, // RightIdx-LastRightIdx <= 1, so GetExpandDirection returns ""
+					LeftIdx:          11,
+					LastLeftIdx:      10,
+					HiddenCommentIDs: nil,
+				},
+			},
+			fileNameHash: "jkl012",
+			data: &DiffBlobExcerptData{
+				BaseLink:      "/repo/blob_excerpt",
+				AfterCommitID: "commit012",
+			},
+			expectContains: []string{
+				`data-expand-direction=""`,
+			},
+			expectNotContain: []string{
+				"data-expand-all-url=",
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.line.RenderBlobExcerptButtons(tt.fileNameHash, tt.data)
+			result := tt.line.RenderBlobExcerptButtons(tt.fileNameHash, tt.data, translation.MockLocale{})
 			resultStr := string(result)
 
 			for _, expected := range tt.expectContains {

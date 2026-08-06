@@ -4,15 +4,17 @@ import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
-import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems, isElemVisible} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {invertFileFolding} from './file-fold.ts';
+import {invertFileFolding, setFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {performFetchActionTrigger} from './common-fetch-action.ts';
+import {performFetchActionTrigger, performFetchAction} from './common-fetch-action.ts';
 import {initImageDiff} from './imagediff.ts';
+import {svg} from '../svg.ts';
+import {confirmModal} from './comp/ConfirmModal.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -26,6 +28,12 @@ function initDiffFileViewToggle(el: HTMLElement) {
     hideElem(queryElemSiblings(target));
     showElem(target);
   }));
+}
+
+// the button is rendered with "tw-hidden", so only show it when the file box actually has an expandable gap
+function initDiffExpandAllLinesButton(btn: HTMLElement) {
+  const fileBox = btn.closest('.diff-file-box')!;
+  if (fileBox.querySelector('.code-expander-buttons[data-expand-all-url]')) showElem(btn);
 }
 
 function initRepoDiffConversationForm() {
@@ -150,6 +158,16 @@ function onDiffFileBodyChange() {
   initRepoIssueContentHistory(); // it scans the whole page via a fetch, so it doesn't fit the per-element observer pattern
 }
 
+async function fetchDiffFileBodyChildren(url: string): Promise<Element[]> {
+  const response = await GET(url);
+  if (!response.ok) throw new Error(`Unable to load diff content: ${response.status} ${response.statusText}`);
+  const respText = await response.text();
+  const respDoc = parseDom(respText, 'text/html');
+  const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body');
+  if (!respFileBody) throw new Error('Unable to find diff file body in the response');
+  return Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
+}
+
 async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
   if (btn.classList.contains('disabled')) return false;
   btn.classList.add('disabled');
@@ -178,20 +196,64 @@ async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
 async function diffLoadFileBody(el: Element) {
   if (el.classList.contains('disabled')) return;
   el.classList.add('disabled');
-  const url = el.getAttribute('data-href')!;
   try {
-    const resp = await GET(url);
-    if (!resp.ok) return;
-    const respText = await resp.text();
-    const respDoc = parseDom(respText, 'text/html');
-    const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!;
-    const respFileBodyChildren = Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
+    const respFileBodyChildren = await fetchDiffFileBodyChildren(el.getAttribute('data-href')!);
     el.parentElement!.replaceWith(...respFileBodyChildren);
     onDiffFileBodyChange();
   } catch (error) {
     console.error('Error:', error);
   } finally {
     el.classList.remove('disabled');
+  }
+}
+
+// Toggles the tooltip/aria-label/icon of the "expand all lines" button between its two states.
+function updateDiffExpandAllLinesButton(btn: HTMLElement, expanded: boolean) {
+  btn.setAttribute('data-expanded', String(expanded));
+  const tooltip = btn.getAttribute(expanded ? 'data-tooltip-content-expanded' : 'data-tooltip-content-collapsed')!;
+  btn.setAttribute('data-tooltip-content', tooltip); // there is a MutationObserver on this attribute to refresh the tippy content
+  btn.setAttribute('aria-label', tooltip);
+  btn.innerHTML = svg(expanded ? 'octicon-fold' : 'octicon-unfold', 14);
+}
+
+async function expandDiffFileAllLines(fileBox: HTMLElement, btn: HTMLElement) {
+  // a folded file (vendored/generated, or already "viewed" in a PR) hides its body via CSS, so expanding
+  // its lines would otherwise happen invisibly; unfold it first so the result is actually visible
+  if (fileBox.getAttribute('data-folded') === 'true') {
+    setFileFolding(fileBox, fileBox.querySelector<HTMLElement>('.fold-file')!, false);
+  }
+  const gapEls = queryElems<HTMLElement>(fileBox, '.code-expander-buttons[data-expand-all-url]');
+  // each gap is expanded through the same fetch-action infra as the existing single-gap expander buttons,
+  // "performFetchAction" already checks response.ok and shows an error toast, leaving a failed gap's row untouched
+  await Promise.all(Array.from(gapEls, (gapEl) => performFetchAction(gapEl, {
+    method: 'GET',
+    url: gapEl.getAttribute('data-expand-all-url')!,
+    loadingIndicator: '',
+    successSync: '$closest(tr)',
+  })));
+  // a gap element only remains in the DOM if its request failed, so only flip the button once every gap succeeded
+  if (!fileBox.querySelector('.code-expander-buttons[data-expand-all-url]')) {
+    updateDiffExpandAllLinesButton(btn, true);
+  }
+}
+
+function hasUnsavedDiffComment(fileBox: HTMLElement): boolean {
+  return Array.from(fileBox.querySelectorAll<HTMLTextAreaElement>('.markdown-text-editor'))
+    .some((textarea) => textarea.value.trim() !== '' && isElemVisible(textarea.closest('form')!));
+}
+
+async function collapseDiffFileAllLines(fileBox: HTMLElement, btn: HTMLElement) {
+  if (hasUnsavedDiffComment(fileBox) && !await confirmModal({content: btn.getAttribute('data-collapse-confirm-text')!, confirmButtonColor: 'red'})) return;
+  try {
+    const respFileBodyChildren = await fetchDiffFileBodyChildren(btn.getAttribute('data-collapse-url')!);
+    fileBox.querySelector('.diff-file-body .file-body')!.replaceChildren(...respFileBodyChildren);
+    // the global selector observer re-inits the freshly inserted per-element pieces on its own, but the
+    // page-wide content-history scan is not per-element, so it still needs to be triggered here
+    onDiffFileBodyChange();
+    updateDiffExpandAllLinesButton(btn, false);
+  } catch (error) {
+    console.error('Error:', error);
+    showErrorToast('An error occurred while collapsing the file.');
   }
 }
 
@@ -252,10 +314,25 @@ export function initRepoDiffView() {
   registerGlobalEventFunc('click', 'diffLoadMoreFiles', (el) => { diffLoadMoreFiles(el) });
   registerGlobalEventFunc('click', 'diffLoadFileBody', diffLoadFileBody);
   registerGlobalEventFunc('click', 'diffFileViewFold', (el) => invertFileFolding(el.closest('.file-content')!, el));
+  registerGlobalEventFunc('click', 'onDiffExpandAllLinesClick', async (btn: HTMLElement) => {
+    if (btn.classList.contains('is-loading')) return;
+    const fileBox = btn.closest<HTMLElement>('.diff-file-box')!;
+    btn.classList.add('is-loading');
+    try {
+      if (btn.getAttribute('data-expanded') === 'true') {
+        await collapseDiffFileAllLines(fileBox, btn);
+      } else {
+        await expandDiffFileAllLines(fileBox, btn);
+      }
+    } finally {
+      btn.classList.remove('is-loading');
+    }
+  });
   registerGlobalInitFunc('initDiffHeaderPopupMenu', initDiffHeaderPopupMenu);
   registerGlobalInitFunc('initDiffFileViewedForm', initDiffFileViewedForm);
   registerGlobalInitFunc('initDiffFileImageDiff', initImageDiff);
   registerGlobalInitFunc('initDiffFileViewToggle', initDiffFileViewToggle);
+  registerGlobalInitFunc('initDiffExpandAllLinesButton', initDiffExpandAllLinesButton);
 
   if (!document.querySelector('#diff-file-boxes')) return;
   initRepoDiffConversationNav(); // "previous" and "next" buttons only appear on "diff" page

@@ -11,6 +11,7 @@ import (
 	"io"
 
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 
 	"github.com/alecthomas/chroma/v2"
 )
@@ -84,10 +85,10 @@ func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExc
 		lastLeft += chunkSize
 		lastRight += chunkSize
 	} else {
-		offset := -1
-		if direction == "down" {
-			offset = 0
-		}
+		// direction=="all" (and direction=="single") both land here: fill the whole gap in one
+		// response, no chunking. A gap with no following hunk (leftHunkSize/rightHunkSize both 0)
+		// runs to the end of the file, so its last line is inclusive.
+		offset := util.Iif(leftHunkSize <= 0 && rightHunkSize <= 0, 0, -1)
 		err = fillExcerptLines(section, filePath, reader, language, lastLeft, lastRight, idxRight-lastRight+offset)
 		leftHunkSize = 0
 		rightHunkSize = 0
