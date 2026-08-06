@@ -6,11 +6,13 @@ package jobparser
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
 	"gitea.com/gitea/runner/act/exprparser"
 	"gitea.com/gitea/runner/act/model"
+	"github.com/rhysd/actionlint"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -48,7 +50,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	}
 
 	evaluator := NewExpressionEvaluator(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Github: pc.gitContext, Vars: pc.vars, Inputs: pc.inputs}, exprparser.Config{}))
-	workflow.RunName = evaluator.Interpolate(workflow.RunName)
+	if workflow.RunName, err = evaluator.interpolate(workflow.RunName); err != nil {
+		return nil, fmt.Errorf("interpolate run-name: %w", err)
+	}
 
 	for i, id := range ids {
 		job := jobs[i]
@@ -63,10 +67,14 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 			}
 			job.Strategy.RawMatrix = encodeMatrix(matrix)
 			evaluator := NewExpressionEvaluator(NewInterpeter(id, origin.GetJob(id), matrix, pc.gitContext, results, pc.vars, pc.inputs))
-			job.Name = nameWithMatrix(job.Name, matrix, evaluator)
+			if job.Name, err = nameWithMatrix(job.Name, matrix, evaluator); err != nil {
+				return nil, fmt.Errorf("interpolate name for job %q: %w", id, err)
+			}
 			runsOn := origin.GetJob(id).RunsOn()
 			for i, v := range runsOn {
-				runsOn[i] = evaluator.Interpolate(v)
+				if runsOn[i], err = evaluator.interpolate(v); err != nil {
+					return nil, fmt.Errorf("interpolate runs-on for job %q: %w", id, err)
+				}
 			}
 			job.RawRunsOn = encodeRunsOn(runsOn)
 			if err := evaluator.EvaluateYamlNode(&job.RawContinueOnError); err != nil {
@@ -150,16 +158,45 @@ func encodeRunsOn(runsOn []string) yaml.Node {
 	return node
 }
 
-func nameWithMatrix(name string, m map[string]any, evaluator *ExpressionEvaluator) string {
+func nameWithMatrix(name string, m map[string]any, evaluator *ExpressionEvaluator) (string, error) {
 	if len(m) == 0 {
-		return name
+		return name, nil
 	}
 
 	if !strings.Contains(name, "${{") || !strings.Contains(name, "}}") {
-		return name + " " + matrixName(m)
+		return name + " " + matrixName(m), nil
 	}
 
-	return evaluator.Interpolate(name)
+	return evaluator.interpolate(name)
+}
+
+// expressionCallsFunction reports whether any ${{ }} expression in value calls one of the functions.
+func expressionCallsFunction(value string, names ...string) bool {
+	parts, err := splitSubExpressions(value)
+	if err != nil {
+		return true // unparseable here, let the expansion report it against the real values
+	}
+	for _, part := range parts {
+		if !part.isExpr {
+			continue
+		}
+		// The lexer needs the closing `}}` that the scanner strips.
+		expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(part.text + "}}"))
+		if err != nil {
+			return true // unparseable here, let the expansion report it against the real values
+		}
+		found := false
+		actionlint.VisitExprNode(expr, func(node, _ actionlint.ExprNode, entering bool) {
+			call, ok := node.(*actionlint.FuncCallNode)
+			if entering && ok && slices.Contains(names, strings.ToLower(call.Callee)) {
+				found = true
+			}
+		})
+		if found {
+			return true
+		}
+	}
+	return false
 }
 
 func matrixName(m map[string]any) string {
