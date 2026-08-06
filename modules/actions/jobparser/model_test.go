@@ -527,6 +527,10 @@ func TestEvaluateJobIfExpression(t *testing.T) {
 		{name: "cancelled", ifCond: "${{ cancelled() }}", needResult: "success", expected: false},
 		{name: "not cancelled or failure", ifCond: "${{ !(cancelled() || failure()) }}", needResult: "success", expected: true},
 		{name: "not cancelled or failure, need failed", ifCond: "${{ !(cancelled() || failure()) }}", needResult: "failure", expected: false},
+		// a condition is an expression with or without `${{ }}`, literal text around one makes it a string
+		{name: "bare expression", ifCond: "always()", needResult: "failure", expected: true},
+		{name: "literal text keeps the success() default", ifCond: "x ${{ 1 }}", needResult: "failure", expected: false},
+		{name: "literal text around a status function drops it", ifCond: "x ${{ always() }}", needResult: "failure", expected: true},
 	}
 	for _, kase := range kases {
 		t.Run(kase.name, func(t *testing.T) {
