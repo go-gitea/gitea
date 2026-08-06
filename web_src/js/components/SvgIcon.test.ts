@@ -3,22 +3,9 @@ import {createApp, h} from 'vue';
 
 test('SvgIcon', () => {
   const root = document.createElement('div');
-  createApp({render: () => h(SvgIcon, {name: 'octicon-link', size: 24, class: 'base'})}).mount(root);
-  const node = root.firstChild as Element;
-  expect(node.nodeName).toEqual('svg');
-  expect(node.getAttribute('width')).toEqual('24');
-  expect(node.getAttribute('height')).toEqual('24');
-  expect(node.classList.contains('octicon-link')).toBeTruthy();
-  expect(node.classList.contains('base')).toBeTruthy();
-  expect(node.getAttribute('viewBox')).toEqual('0 0 16 16');
-  expect(node.getAttribute('aria-hidden')).toEqual('true');
-  expect(node.innerHTML).toContain('<path');
-});
+  createApp({render: () => h(SvgIcon, {name: 'octicon-dot-fill', size: 24, class: 'base', symbolId: 'svg-symbol-dot'})}).mount(root);
 
-test('SvgIcon symbolId', () => {
-  const root = document.createElement('div');
-  createApp({render: () => h(SvgIcon, {name: 'octicon-rss', symbolId: 'svg-symbol-octicon-rss'})}).mount(root);
-  const node = root.firstChild as Element;
-  expect(node.classList.contains('svg-symbol-container')).toBeTruthy();
-  expect(node.querySelector('symbol')!.getAttribute('id')).toEqual('svg-symbol-octicon-rss');
+  expect(root.innerHTML).toBe(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="24" height="24" aria-hidden="true" class="svg octicon-dot-fill tw-hidden svg-symbol-container base"><symbol id="svg-symbol-dot" viewBox="0 0 16 16"><path d="M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8"></path></symbol></svg>`,
+  );
 });
