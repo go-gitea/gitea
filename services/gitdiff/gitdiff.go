@@ -83,18 +83,18 @@ type DiffLine struct {
 	cachedDiffInline *DiffInline
 }
 
-// DiffLineSectionInfo represents diff line section meta data
+// DiffLineSectionInfo represents diff line section metadata
 type DiffLineSectionInfo struct {
 	language *diffVarMutable[string]
 
 	Path string
 
-	// These line "idx" are 1-based line numbers
+	// These line "idx" are 1-based line numbers (inclusive)
 	// Left/Right refer to the left/right side of the diff:
 	//
-	// LastLeftIdx | LastRightIdx
-	// [up/down expander] @@ hunk info @@
-	// LeftIdx     | RightIdx
+	// LastLeftIdx | LastRightIdx   (the last rendered line before this hunk)
+	// [up/down/single expander] @@ hunk info @@
+	// LeftIdx     | RightIdx       (the next rendered line after this hunk)
 
 	LastLeftIdx  int
 	LastRightIdx int
