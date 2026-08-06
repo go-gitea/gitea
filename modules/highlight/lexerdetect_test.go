@@ -72,12 +72,3 @@ func TestDetectChromaLexer(t *testing.T) {
 		assert.Equal(t, c.byLang, byLang, "case: %+v", c)
 	}
 }
-
-func TestLanguageCssClassName(t *testing.T) {
-	for _, s := range []string{"", "FALLback", "plainTEXT"} {
-		assert.Equal(t, "language-text", LanguageCssClassName(s))
-	}
-	assert.Equal(t, "language-python", LanguageCssClassName("Python"))
-	assert.Equal(t, "language-visual_basic", LanguageCssClassName("Visual Basic"))
-	assert.Equal(t, "language-c___x", LanguageCssClassName("c++-x"))
-}

@@ -78,20 +78,9 @@ func (r *GoldmarkRender) Convert(source []byte, writer io.Writer, opts ...parser
 
 func (r *GoldmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
 	if entering {
-		preClasses := "code-block"
 		languageBytes, _ := c.Language()
-		languageStr := string(languageBytes)
-		if languageStr == "mermaid" || languageStr == "math" {
-			preClasses += " is-loading"
-		}
-		// FIXME: CHROMA-RENDER-LANGUAGE-CSS: only "language-mermaid" and "language-math" are used,
-		// other languages do not need the CSS class, should be refactored (remove the unnecessary CSS class) in the future.
-		// BTW: the "data-code-language" is a no-op at the moment, need to refactor the sanitizer in the future together.
-		languageCssName := highlight.LanguageCssClassName(languageStr)
-		// include language-x class as part of commonmark spec, "chroma" class is used to highlight the code
-		// the "display" class is used by "js/markup/math.ts" to render the code element as a block
-		// the "math.ts" strictly depends on the structure: <pre class="code-block is-loading"><code class="language-math display">...</code></pre>
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre class="%s"><code class="chroma %s display" data-code-language="%s">`, preClasses, languageCssName, languageStr)
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(string(languageBytes))
+		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
 		if err != nil {
 			return
 		}
