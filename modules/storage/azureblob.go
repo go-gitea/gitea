@@ -317,7 +317,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 			return convertAzureBlobErr(err)
 		}
 		for _, object := range resp.Segment.BlobItems {
-			blobClient := a.getBlobClient(*object.Name)
+			blobClient := a.getBlobClientByFullName(*object.Name)
 			object := &azureBlobObject{
 				Context:    a.ctx,
 				blobClient: blobClient,
@@ -336,9 +336,12 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 	return nil
 }
 
-// Delete delete a file
 func (a *AzureBlobStorage) getBlobClient(path string) *blob.Client {
-	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(a.buildAzureBlobPath(path))
+	return a.getBlobClientByFullName(a.buildAzureBlobPath(path))
+}
+
+func (a *AzureBlobStorage) getBlobClientByFullName(fullName string) *blob.Client {
+	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(fullName)
 }
 
 func init() {
