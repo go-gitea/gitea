@@ -148,12 +148,9 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 		return
 	}
 
-	// Now handle account linking if that's requested
-	if ctx.Session.Get("linkAccount") != nil {
-		if err := linkAccountFromContext(ctx, user); err != nil {
-			ctx.ServerError("LinkAccountFromStore", err)
-			return
-		}
+	if err := completePendingLinks(ctx, user); err != nil {
+		ctx.ServerError("completePendingLinks", err)
+		return
 	}
 
 	remember := false // TODO: implement remember me
@@ -263,12 +260,9 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 		return
 	}
 
-	// Now handle account linking if that's requested
-	if ctx.Session.Get("linkAccount") != nil {
-		if err := linkAccountFromContext(ctx, user); err != nil {
-			ctx.ServerError("LinkAccountFromStore", err)
-			return
-		}
+	if err := completePendingLinks(ctx, user); err != nil {
+		ctx.ServerError("completePendingLinks", err)
+		return
 	}
 
 	remember := ctx.Session.Get("twofaRemember").(bool)

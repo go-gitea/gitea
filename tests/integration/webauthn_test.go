@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// one credential serves both the passkey and the second-factor login, so their user verification is coupled
+// one credential serves both logins, so their user verification is coupled
 func TestWebAuthnUserVerification(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
