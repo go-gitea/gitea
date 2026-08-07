@@ -190,6 +190,10 @@ func convertTimelineItem(it *gqlTimelineItem) *base.Comment {
 	case "AutoMergeDisabledEvent":
 		c.CommentType = "pull_cancel_scheduled_merge"
 	default:
+		// Normally unreachable: the query's itemTypes argument only requests the
+		// types handled above. Reaching this means the itemTypes list and this
+		// switch have drifted apart — log it so the dropped event is visible.
+		log.Warn("github graphql: dropping unhandled timeline event type %q (node %s)", it.Typename, it.ID)
 		return nil
 	}
 	return c
