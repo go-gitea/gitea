@@ -104,6 +104,7 @@ func TestParsePackage(t *testing.T) {
 				data := createPackage(c, map[string][]byte{
 					".PKGINFO":        createPKGINFOContent(packageName, packageVersion),
 					"/test/dummy.txt": {},
+					"usr/lib/legit\n\n%FILES%\n/etc/cron.d/x": {}, // must not reach the file list
 				})
 
 				p, err := ParsePackage(data)
