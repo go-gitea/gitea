@@ -1082,7 +1082,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			rightLine = lineSectionInfo.RightIdx
 			continue
 		case '\\':
-			if maxLines > -1 && curFileLinesCount >= maxLines {
+			if maxLines > -1 && curFileLinesCount > maxLines {
 				curFile.IsIncomplete = true
 				continue
 			}
@@ -1096,7 +1096,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 		case '+':
 			curFileLinesCount++
 			curFile.Addition++
-			if maxLines > -1 && curFileLinesCount >= maxLines {
+			if maxLines > -1 && curFileLinesCount > maxLines {
 				curFile.IsIncomplete = true
 				continue
 			}
@@ -1127,7 +1127,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 		case '-':
 			curFileLinesCount++
 			curFile.Deletion++
-			if maxLines > -1 && curFileLinesCount >= maxLines {
+			if maxLines > -1 && curFileLinesCount > maxLines {
 				curFile.IsIncomplete = true
 				continue
 			}
@@ -1154,7 +1154,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			}
 		case ' ':
 			curFileLinesCount++
-			if maxLines > -1 && curFileLinesCount >= maxLines {
+			if maxLines > -1 && curFileLinesCount > maxLines {
 				curFile.IsIncomplete = true
 				continue
 			}

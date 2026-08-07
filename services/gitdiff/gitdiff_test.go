@@ -548,6 +548,37 @@ index 0000000..6bb8f39
 	}
 }
 
+func TestParsePatchExactLineLimit(t *testing.T) {
+	for _, test := range []struct {
+		name, hunk   string
+		limit, lines int
+		incomplete   bool
+	}{
+		{name: "zero", limit: 0, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "one", limit: 1, lines: 1, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "N plus one", limit: 2, lines: 2, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "N", limit: 3, lines: 3, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n"},
+		{name: "addition", limit: 1, lines: 1, hunk: "@@ -0,0 +1 @@\n+one\n"},
+		{name: "deletion", limit: 1, lines: 1, hunk: "@@ -1 +0,0 @@\n-one\n"},
+		{name: "marker has no cost", limit: 1, lines: 1, hunk: "@@ -1 +1 @@\n line\n\\ No newline at end of file\n"},
+		{name: "hunk at capacity", limit: 1, lines: 1, hunk: "@@ -1 +1 @@\n one\n@@ -3 +3 @@\n three\n", incomplete: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			patch := "diff --git a/file b/file\n--- a/file\n+++ b/file\n" + test.hunk
+			diff, err := ParsePatch(t.Context(), test.limit, 5000, 10, strings.NewReader(patch), "")
+			require.NoError(t, err)
+			require.Len(t, diff.Files, 1)
+			lines := 0
+			for _, section := range diff.Files[0].Sections {
+				lines += len(section.Lines) - 1
+			}
+			assert.Equal(t, test.lines, lines)
+			assert.Len(t, diff.Files[0].Sections, min(test.limit, 1))
+			assert.Equal(t, test.incomplete, diff.Files[0].IsIncomplete)
+		})
+	}
+}
+
 func setupDefaultDiff() *Diff {
 	return &Diff{
 		Files: []*DiffFile{
