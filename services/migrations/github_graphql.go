@@ -43,6 +43,9 @@ import (
 const (
 	// GraphQL returns at most 100 nodes per connection page.
 	githubGraphQLPageSize = 100
+	// The PR stream asks for fewer nodes per page: each PR carries nested
+	// reviews and review comments, so 20 is the budget-safe full size.
+	githubGraphQLPRPageSize = 20
 	// Pause when the GraphQL points budget drops to this, mirroring the REST
 	// GithubLimitRateRemaining guard.
 	githubGraphQLPointsFloor = 10
@@ -62,10 +65,18 @@ const (
 	// hours long and hundreds of requests, one such blip must not abort the
 	// whole run.
 	maxGraphQLTransientRetries = 5
-	// graphQLTransientRetryBase is the initial backoff for transient-failure
-	// retries; doubled each attempt.
-	graphQLTransientRetryBase = 2 * time.Second
 )
+
+// graphQLTransientRetryBase is the initial backoff for transient-failure
+// retries; doubled each attempt. A variable so tests can shrink it.
+var graphQLTransientRetryBase = 2 * time.Second
+
+// errGraphQLTransientExhausted marks a request that kept failing transiently
+// through the whole retry budget. Page-driven callers use it to shrink the
+// page and try again: a *deterministic* 502 (one specific page whose response
+// is too heavy for the backend) never succeeds at the same size no matter how
+// often it is retried.
+var errGraphQLTransientExhausted = errors.New("github graphql: transient retries exhausted")
 
 // graphQLRequest is the POST body for a GraphQL call.
 type graphQLRequest struct {
@@ -127,10 +138,10 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 		if err != nil {
 			// Network-level failure (connection reset, DNS blip). Transient:
 			// back off and retry rather than aborting an hours-long sweep.
-			if retryErr := g.waitGraphQLTransient(ctx, attempt, fmt.Sprintf("request failed: %v", err)); retryErr == nil {
-				continue
+			if retryErr := g.waitGraphQLTransient(ctx, attempt, fmt.Sprintf("request failed: %v", err)); retryErr != nil {
+				return retryErr
 			}
-			return err
+			continue
 		}
 
 		if resp.StatusCode != http.StatusOK {
@@ -138,9 +149,10 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 			// GitHub's GraphQL endpoint 502s sporadically under heavy queries;
 			// any 5xx is the server's problem, not the query's — retry.
 			if resp.StatusCode >= http.StatusInternalServerError {
-				if retryErr := g.waitGraphQLTransient(ctx, attempt, "status "+resp.Status); retryErr == nil {
-					continue
+				if retryErr := g.waitGraphQLTransient(ctx, attempt, "status "+resp.Status); retryErr != nil {
+					return retryErr
 				}
+				continue
 			}
 			return fmt.Errorf("github graphql: unexpected status %s", resp.Status)
 		}
@@ -156,10 +168,10 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 			// A 200 whose body dies mid-stream (truncated JSON, connection cut
 			// while reading). The transport cannot retry this — the failure
 			// happens after the response headers — so retry here.
-			if retryErr := g.waitGraphQLTransient(ctx, attempt, fmt.Sprintf("truncated response: %v", decodeErr)); retryErr == nil {
-				continue
+			if retryErr := g.waitGraphQLTransient(ctx, attempt, fmt.Sprintf("truncated response: %v", decodeErr)); retryErr != nil {
+				return retryErr
 			}
-			return decodeErr
+			continue
 		}
 
 		if len(envelope.Errors) > 0 {
@@ -183,7 +195,7 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 // when the retry budget is exhausted or the context was cancelled.
 func (g *GithubDownloaderV3) waitGraphQLTransient(ctx context.Context, attempt int, reason string) error {
 	if attempt >= maxGraphQLTransientRetries {
-		return fmt.Errorf("github graphql: transient retries exhausted: %s", reason)
+		return fmt.Errorf("%w: %s", errGraphQLTransientExhausted, reason)
 	}
 	wait := graphQLTransientRetryBase << attempt
 	log.Warn("github graphql: transient failure (%s), retrying in %s (attempt %d/%d)",
@@ -289,9 +301,9 @@ func (g *GithubDownloaderV3) graphQLIssuesQuery() string {
 		issueReactions = "reactions(first:100){totalCount nodes{content user{login ... on User{databaseId}}}}"
 	}
 	return fmt.Sprintf(`
-query($owner:String!,$name:String!,$cursor:String,$since:DateTime){
+query($owner:String!,$name:String!,$cursor:String,$since:DateTime,$first:Int!){
   repository(owner:$owner,name:$name){
-    issues(first:100,after:$cursor,orderBy:{field:UPDATED_AT,direction:ASC},filterBy:{since:$since}){
+    issues(first:$first,after:$cursor,orderBy:{field:UPDATED_AT,direction:ASC},filterBy:{since:$since}){
       pageInfo{hasNextPage endCursor}
       nodes{
         id number title body state createdAt updatedAt closedAt
@@ -419,7 +431,7 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 	}
 
 	var resp gqlIssuesResponse
-	if err := g.doGraphQL(ctx, g.graphQLIssuesQuery(), vars, &resp); err != nil {
+	if err := g.doGraphQLPageShrink(ctx, g.graphQLIssuesQuery(), vars, &resp, githubGraphQLPageSize, "issues"); err != nil {
 		return nil, false, err
 	}
 	g.respectGraphQLBudget(ctx, resp.RateLimit)
@@ -710,6 +722,28 @@ func (g *GithubDownloaderV3) fetchNodeReactions(ctx context.Context, ids []strin
 		out[n.ID] = convertGraphQLReactions(n.Reactions)
 	}
 	return out, nil
+}
+
+// doGraphQLPageShrink runs a page query whose connection size is the $first
+// variable, halving the page and re-requesting the same cursor whenever the
+// transient retry budget is exhausted. A deterministic 502 — one specific page
+// whose response payload is too heavy for GitHub's backend — never succeeds at
+// the same size, but does at a smaller one; the cursor still advances by
+// however many nodes the smaller page returned, and the next page starts back
+// at full size.
+func (g *GithubDownloaderV3) doGraphQLPageShrink(ctx context.Context, query string, vars map[string]any, out any, fullSize int, what string) error {
+	for pageSize := fullSize; ; {
+		vars["first"] = pageSize
+		err := g.doGraphQL(ctx, query, vars, out)
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, errGraphQLTransientExhausted) || pageSize <= 1 {
+			return err
+		}
+		pageSize = max(1, pageSize/2)
+		log.Warn("github graphql: %s page keeps failing transiently — shrinking page size to %d and retrying", what, pageSize)
+	}
 }
 
 // getCachedComments serves the comments gathered by the GraphQL issue sweep,

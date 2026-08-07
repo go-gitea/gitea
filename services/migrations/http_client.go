@@ -54,11 +54,14 @@ func NewMigrationHTTPTransport() *http.Transport {
 
 const (
 	retryMaxRetries = 5
-	retryBaseDelay  = time.Second
 	retryMaxDelay   = 30 * time.Second
 	// cap an honored Retry-After so a hostile/huge value can't stall a sync
 	retryMaxRetryAfter = 5 * time.Minute
 )
+
+// retryBaseDelay is the initial backoff between transport-level retries;
+// doubled each retry. A variable so tests can shrink it.
+var retryBaseDelay = time.Second
 
 // retryTransport wraps an http.RoundTripper and transparently retries migration
 // API requests that fail with transient errors: network failures and 5xx

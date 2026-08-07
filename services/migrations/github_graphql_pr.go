@@ -39,9 +39,9 @@ func (g *GithubDownloaderV3) graphQLPullRequestsQuery() string {
 		prReactions = "reactions(first:100){totalCount nodes{content user{login ... on User{databaseId}}}}"
 	}
 	return fmt.Sprintf(`
-query($owner:String!,$name:String!,$cursor:String){
+query($owner:String!,$name:String!,$cursor:String,$first:Int!){
   repository(owner:$owner,name:$name){
-    pullRequests(first:20,after:$cursor,orderBy:{field:UPDATED_AT,direction:DESC},states:[OPEN,CLOSED,MERGED]){
+    pullRequests(first:$first,after:$cursor,orderBy:{field:UPDATED_AT,direction:DESC},states:[OPEN,CLOSED,MERGED]){
       pageInfo{hasNextPage endCursor}
       nodes{
         id number title body state createdAt updatedAt closedAt mergedAt isDraft
@@ -200,7 +200,7 @@ func (g *GithubDownloaderV3) getNewPullRequestsGraphQL(ctx context.Context, page
 	}
 
 	var resp gqlPullRequestsResponse
-	if err := g.doGraphQL(ctx, g.graphQLPullRequestsQuery(), vars, &resp); err != nil {
+	if err := g.doGraphQLPageShrink(ctx, g.graphQLPullRequestsQuery(), vars, &resp, githubGraphQLPRPageSize, "pull requests"); err != nil {
 		return nil, false, err
 	}
 	g.respectGraphQLBudget(ctx, resp.RateLimit)

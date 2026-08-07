@@ -293,13 +293,13 @@ func TestDoGraphQLRetriesTransientFailures(t *testing.T) {
 		}},
 		{"truncated body", func(w http.ResponseWriter) {
 			w.Header().Set("Content-Length", "1024") // promise more than is sent
-			_, _ = io.WriteString(w, `{"data":{"vi`)  // cut mid-stream
+			_, _ = io.WriteString(w, `{"data":{"vi`) // cut mid-stream
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			var calls int32
+			var calls atomic.Int32
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if atomic.AddInt32(&calls, 1) <= 2 {
+				if calls.Add(1) <= 2 {
 					tc.bad(w)
 					return
 				}
@@ -317,7 +317,49 @@ func TestDoGraphQLRetriesTransientFailures(t *testing.T) {
 			}
 			require.NoError(t, d.doGraphQL(t.Context(), `query{viewer{login}}`, nil, &out))
 			assert.Equal(t, "ok", out.Viewer.Login)
-			assert.EqualValues(t, 3, atomic.LoadInt32(&calls), "two transient failures should be retried, third attempt succeeds")
+			assert.EqualValues(t, 3, calls.Load(), "two transient failures should be retried, third attempt succeeds")
 		})
 	}
+}
+
+// TestDoGraphQLPageShrink: a deterministic 502 — one specific page whose
+// response is too heavy for the backend — never succeeds at the same size, so
+// after the transient retry budget is exhausted the page is halved and the
+// same cursor re-requested. The stub 502s any request with first > 25.
+func TestDoGraphQLPageShrink(t *testing.T) {
+	prevBase, prevTransportBase := graphQLTransientRetryBase, retryBaseDelay
+	graphQLTransientRetryBase, retryBaseDelay = time.Millisecond, time.Millisecond
+	defer func() { graphQLTransientRetryBase, retryBaseDelay = prevBase, prevTransportBase }()
+
+	var sizes []int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Variables struct {
+				First int `json:"first"`
+			} `json:"variables"`
+		}
+		body, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(body, &req)
+		sizes = append(sizes, req.Variables.First)
+		if req.Variables.First > 25 {
+			w.WriteHeader(http.StatusBadGateway)
+			return
+		}
+		_, _ = io.WriteString(w, `{"data":{"repository":{"issues":{"pageInfo":{"hasNextPage":false,"endCursor":""},"nodes":[]}}}}`)
+	}))
+	defer srv.Close()
+
+	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
+	require.NoError(t, err)
+
+	var resp gqlIssuesResponse
+	vars := map[string]any{"owner": "o", "name": "r"}
+	require.NoError(t, d.doGraphQLPageShrink(t.Context(), d.graphQLIssuesQuery(), vars, &resp, githubGraphQLPageSize, "issues"))
+
+	// each size is attempted (1 + maxGraphQLTransientRetries) times before the
+	// shrink; the request sequence must end at a size that fits
+	require.NotEmpty(t, sizes)
+	assert.Equal(t, 100, sizes[0])
+	assert.Equal(t, 25, sizes[len(sizes)-1])
+	assert.Equal(t, 25, vars["first"])
 }
