@@ -311,24 +311,26 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 	pager := a.client.NewListBlobsFlatPager(a.cfg.Container, &container.ListBlobsFlatOptions{
 		Prefix: &dirName,
 	})
+
+	callback := func(object *azureBlobObject, objPath string, fn func(path string, obj Object) error) error {
+		defer object.Close()
+		return fn(objPath, object)
+	}
 	for pager.More() {
 		resp, err := pager.NextPage(a.ctx)
 		if err != nil {
 			return convertAzureBlobErr(err)
 		}
-		for _, object := range resp.Segment.BlobItems {
-			blobClient := a.getBlobClientByFullName(*object.Name)
-			object := &azureBlobObject{
+		for _, azureObj := range resp.Segment.BlobItems {
+			objPath := strings.TrimPrefix(*azureObj.Name, a.cfg.BasePath)
+			objWrap := &azureBlobObject{
 				Context:    a.ctx,
-				blobClient: blobClient,
-				Name:       *object.Name,
-				Size:       *object.Properties.ContentLength,
-				ModTime:    object.Properties.LastModified,
+				blobClient: a.getBlobClient(objPath),
+				Name:       *azureObj.Name,
+				Size:       *azureObj.Properties.ContentLength,
+				ModTime:    azureObj.Properties.LastModified,
 			}
-			if err := func(object *azureBlobObject, fn func(path string, obj Object) error) error {
-				defer object.Close()
-				return fn(strings.TrimPrefix(object.Name, a.cfg.BasePath), object)
-			}(object, fn); err != nil {
+			if err := callback(objWrap, objPath, fn); err != nil {
 				return convertAzureBlobErr(err)
 			}
 		}
@@ -337,11 +339,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 }
 
 func (a *AzureBlobStorage) getBlobClient(path string) *blob.Client {
-	return a.getBlobClientByFullName(a.buildAzureBlobPath(path))
-}
-
-func (a *AzureBlobStorage) getBlobClientByFullName(fullName string) *blob.Client {
-	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(fullName)
+	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(a.buildAzureBlobPath(path))
 }
 
 func init() {

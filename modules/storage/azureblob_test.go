@@ -10,12 +10,13 @@ import (
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func prepareAzureStorageConfig(t *testing.T) *setting.Storage {
+func prepareAzureStorageConfig(t *testing.T, basePath ...string) *setting.Storage {
 	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_ENDPOINT", "http://devstoreaccount1.azurite.local:10000")
 	return &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
@@ -25,7 +26,7 @@ func prepareAzureStorageConfig(t *testing.T) *setting.Storage {
 			AccountName: "devstoreaccount1",
 			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
 			Container:   "test-container",
-			BasePath:    "test-base-path",
+			BasePath:    util.OptionalArg(basePath),
 		},
 	}
 }
@@ -108,7 +109,7 @@ func Test_azureBlobObject(t *testing.T) {
 }
 
 func TestAzureBlobStorageDumpArchive(t *testing.T) {
-	s, err := NewStorage(setting.AzureBlobStorageType, prepareAzureStorageConfig(t))
+	s, err := NewStorage(setting.AzureBlobStorageType, prepareAzureStorageConfig(t, "test-base-path"))
 	require.NoError(t, err)
 
 	const objPath = "aa/bb/deadbeefcafe"
