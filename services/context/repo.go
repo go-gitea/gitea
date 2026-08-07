@@ -251,18 +251,6 @@ func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_
 	return r.Repository.IsDependenciesEnabled(ctx) && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
-// GetCommitsCount returns cached commit count for current view
-func (r *Repository) GetCommitsCount(ctx context.Context) (int64, error) {
-	if r.Commit == nil {
-		return 0, nil
-	}
-	contextName := r.RefFullName.ShortName()
-	isRef := r.RefFullName.IsBranch() || r.RefFullName.IsTag()
-	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, isRef), func() (int64, error) {
-		return git.CommitsCountOfCommit(ctx, r.Repository, r.Commit.ID.String())
-	})
-}
-
 // GetCommitGraphsCount returns cached commit count for current view
 func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, branches, files []string) (int64, error) {
 	cacheKey := fmt.Sprintf("commits-count-%d-graph-%t-%s-%s", r.Repository.ID, hidePRRefs, branches, files)
@@ -906,7 +894,7 @@ func RepoRefByDefaultBranch() func(*Context) {
 		ctx.Repo.RefFullName = git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
 		ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
 		ctx.Repo.Commit, _ = ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.BranchName)
-		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount(ctx)
+		ctx.Repo.CommitsCount, _ = git.GetCommitsCountCache(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName, ctx.Repo.Commit)
 		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
@@ -1053,7 +1041,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
 
-		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount(ctx)
+		ctx.Repo.CommitsCount, err = git.GetCommitsCountCache(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName, ctx.Repo.Commit)
 		if err != nil {
 			ctx.ServerError("GetCommitsCount", err)
 			return
@@ -1068,7 +1056,6 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			}
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 	}
 }
 

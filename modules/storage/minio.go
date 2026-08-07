@@ -26,6 +26,8 @@ import (
 
 var _ ObjectStorage = &MinioStorage{}
 
+const unknownSizePartSize = 1024 * 1024 * 16 // same as minio-go's minPartSize
+
 type minioObject struct {
 	*minio.Object
 }
@@ -37,6 +39,23 @@ func (m *minioObject) Stat() (os.FileInfo, error) {
 	}
 
 	return &minioFileInfo{oi}, nil
+}
+
+// minio reports a missing key on the first Read, ReadAt or Seek rather than on Open, so all
+// of them convert it like Stat does.
+func (m *minioObject) Read(p []byte) (int, error) {
+	n, err := m.Object.Read(p)
+	return n, convertMinioErr(err)
+}
+
+func (m *minioObject) ReadAt(p []byte, off int64) (int, error) {
+	n, err := m.Object.ReadAt(p, off)
+	return n, convertMinioErr(err)
+}
+
+func (m *minioObject) Seek(offset int64, whence int) (int64, error) {
+	n, err := m.Object.Seek(offset, whence)
+	return n, convertMinioErr(err)
 }
 
 // MinioStorage returns a minio bucket storage
@@ -211,6 +230,10 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 			// * https://www.backblaze.com/b2/docs/s3_compatible_api.html
 			// do not support "x-amz-checksum-algorithm" header, so use legacy MD5 checksum
 			SendContentMd5: m.cfg.ChecksumAlgorithm == "md5",
+
+			// with an unknown size (-1) minio-go assumes a 5TiB object and buffers a 528MiB part for it, even
+			// for a payload of a few KiB, so pin the part size there, a known size derives its own
+			PartSize: util.Iif[uint64](size < 0, unknownSizePartSize, 0),
 		},
 	)
 	if err != nil {

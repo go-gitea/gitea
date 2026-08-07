@@ -260,7 +260,7 @@ func MatchCallerInputsAgainstSpec(spec *WorkflowCallSpec, evaluated map[string]a
 func parseWorkflowCallInput(name string, typ InputType, v any) (any, error) {
 	switch typ {
 	case InputTypeString:
-		return toString(v), nil
+		return coerceToString(v), nil
 	case InputTypeBoolean:
 		// strict type matching: a boolean input only accepts a native bool, not a "true"/"false" string
 		if b, ok := v.(bool); ok {
@@ -361,41 +361,15 @@ func EvaluateWorkflowCallOutputs(spec *WorkflowCallSpec, gitCtx *model.GithubCon
 		Vars:   vars,
 		Inputs: inputs,
 	}
-	interpreter := exprparser.NewInterpeter(env, exprparser.Config{})
+	evaluator := NewExpressionEvaluator(exprparser.NewInterpeter(env, exprparser.Config{}))
 
 	out := make(map[string]string, len(spec.Outputs))
 	for name, o := range spec.Outputs {
-		v, err := evaluateWorkflowCallOutputValue(interpreter, o.Value)
+		v, err := evaluator.interpolate(o.Value)
 		if err != nil {
 			return nil, fmt.Errorf("workflow_call output %q: %w", name, err)
 		}
 		out[name] = v
 	}
 	return out, nil
-}
-
-func evaluateWorkflowCallOutputValue(interpreter exprparser.Interpreter, value string) (string, error) {
-	if !strings.Contains(value, "${{") || !strings.Contains(value, "}}") {
-		return value, nil
-	}
-	expr, err := rewriteSubExpression(value, true)
-	if err != nil {
-		return "", err
-	}
-	evaluated, err := interpreter.Evaluate(expr, exprparser.DefaultStatusCheckNone)
-	if err != nil {
-		return "", err
-	}
-	return toString(evaluated), nil
-}
-
-func toString(v any) string {
-	switch s := v.(type) {
-	case string:
-		return s
-	case nil:
-		return ""
-	default:
-		return fmt.Sprintf("%v", s)
-	}
 }

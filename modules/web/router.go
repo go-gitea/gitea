@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web/middleware"
@@ -256,7 +257,7 @@ func (r *Router) normalizeRequestPath(resp http.ResponseWriter, req *http.Reques
 			normalizedPath = "/" + remainingPath
 		} else if normalizedPath == setting.AppSubURL {
 			normalizedPath = "/"
-		} else if !strings.HasPrefix(normalizedPath+"/", "/v2/") {
+		} else if !strings.HasPrefix(normalizedPath+"/", "/v2/") && !public.IsViteDevRequest(req) {
 			// do not respond to other requests, to simulate a real sub-path environment
 			resp.Header().Add("Content-Type", "text/html; charset=utf-8")
 			resp.WriteHeader(http.StatusNotFound)

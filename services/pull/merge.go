@@ -24,7 +24,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
@@ -294,8 +293,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 
 	// Reset cached commit count
-	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
-
+	git.RemoveCommitsCountCache(pr.Issue.Repo, git.RefNameFromBranch(pr.BaseBranch))
 	return handleCloseCrossReferences(ctx, pr, doer)
 }
 

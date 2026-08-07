@@ -36,7 +36,7 @@ func Test_CheckProjectColumnsConsistency(t *testing.T) {
 		return
 	}
 
-	assert.NoError(t, CheckProjectColumnsConsistency(x))
+	assert.NoError(t, CheckProjectColumnsConsistency(t.Context(), x))
 
 	// check if default column was added
 	var defaultColumn ProjectBoardV293

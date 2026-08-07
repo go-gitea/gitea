@@ -9,8 +9,7 @@ on:
   workflow_dispatch:
   workflow_call:
 
-permissions:
-  actions: write # to delete caches
+permissions: {}
 
 concurrency:
   group: cache-prune
@@ -19,6 +18,8 @@ jobs:
   prune:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
+    permissions:
+      actions: write # to delete caches
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -30,9 +31,8 @@ jobs:
           caches=$(gh cache list --limit 1000 --sort last_accessed_at --order asc --json id,key,sizeInBytes)
           size=$(jq '[.[].sizeInBytes] | add // 0' <<< "$caches")
           echo "cache usage: $((size / 1000000)) MB"
-          jq -r '.[] | "\(.id) \(.sizeInBytes) \(.key)"' <<< "$caches" |
-            while [ "$size" -gt 6500000000 ] && read -r id bytes key; do
-              echo "deleting $key"
-              gh cache delete "$id"
-              size=$((size - bytes))
-            done
+          while [ "$size" -gt 6500000000 ] && read -r id bytes key; do
+            echo "deleting $key"
+            gh cache delete "$id"
+            size=$((size - bytes))
+          done <<< "$(jq -r '.[] | "\(.id) \(.sizeInBytes) \(.key)"' <<< "$caches")"

@@ -101,7 +101,7 @@ jobs:
     needs: job1
     if: ${{ always() && needs.job1.result == 'success' }}
     steps:
-      - run: echo "will be checked by act_runner"
+      - run: echo "will be checked by runner"
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
@@ -120,7 +120,7 @@ jobs:
     needs: job1
     if: ${{ always() && needs.job1.result == 'failure' }}
     steps:
-      - run: echo "will be checked by act_runner"
+      - run: echo "will be checked by runner"
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},

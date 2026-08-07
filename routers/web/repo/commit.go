@@ -7,7 +7,6 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strings"
 
@@ -21,9 +20,9 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
-	"gitea.dev/modules/charset"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
@@ -406,13 +405,12 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
-	note := &git.Note{}
-	err = git.GetNote(ctx, gitRepo, commitID, note)
+	note, noteLastCommit, err := git.GetNoteWithLastCommit(ctx, gitRepo, commitID)
 	if err == nil {
-		ctx.Data["NoteCommit"] = note.Commit
-		ctx.Data["NoteAuthor"] = user_model.GetUserByGitAuthor(ctx, note.Commit)
+		ctx.Data["NoteCommit"] = noteLastCommit
+		ctx.Data["NoteAuthor"] = user_model.GetUserByGitAuthor(ctx, noteLastCommit)
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefSubURL: "commit/" + util.PathEscapeSegments(commitID)})
-		htmlMessage := template.HTML(template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
+		htmlMessage := htmlutil.EscapeString(note.BlobMessage.MessageUTF8())
 		ctx.Data["NoteRendered"] = markup.PostProcessCommitMessage(rctx, htmlMessage)
 	} else if !git.IsErrNotExist(err) {
 		log.Error("GetNote: %v", err)
