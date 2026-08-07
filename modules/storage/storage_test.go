@@ -18,32 +18,32 @@ func TestObjectStoragePath(t *testing.T) {
 	assert.Empty(t, buildObjectStorePath(base, "."))
 	assert.Equal(t, "a", buildObjectStorePath(base, "/a"))
 	assert.Equal(t, "a/b", buildObjectStorePath(base, "/a/b/"))
-	assert.Empty(t, buildObjectStorePathPrefix(base,""))
-	assert.Equal(t, "a/", buildObjectStorePathPrefix(base,"/a/"))
+	assert.Empty(t, buildObjectStorePathPrefix(base, ""))
+	assert.Equal(t, "a/", buildObjectStorePathPrefix(base, "/a/"))
 
 	base = "/"
 	assert.Empty(t, buildObjectStorePath(base, "/"))
 	assert.Empty(t, buildObjectStorePath(base, "."))
 	assert.Equal(t, "a", buildObjectStorePath(base, "/a"))
 	assert.Equal(t, "a/b", buildObjectStorePath(base, "/a/b/"))
-	assert.Empty(t, buildObjectStorePathPrefix(base,""))
-	assert.Equal(t, "a/", buildObjectStorePathPrefix(base,"/a/"))
+	assert.Empty(t, buildObjectStorePathPrefix(base, ""))
+	assert.Equal(t, "a/", buildObjectStorePathPrefix(base, "/a/"))
 
 	base = "/base"
 	assert.Equal(t, "base", buildObjectStorePath(base, "/"))
 	assert.Equal(t, "base", buildObjectStorePath(base, "."))
 	assert.Equal(t, "base/a", buildObjectStorePath(base, "/a"))
 	assert.Equal(t, "base/a/b", buildObjectStorePath(base, "/a/b/"))
-	assert.Equal(t, "base/", buildObjectStorePathPrefix(base,""))
-	assert.Equal(t, "base/a/", buildObjectStorePathPrefix(base,"/a/"))
+	assert.Equal(t, "base/", buildObjectStorePathPrefix(base, ""))
+	assert.Equal(t, "base/a/", buildObjectStorePathPrefix(base, "/a/"))
 
 	base = "/base/"
 	assert.Equal(t, "base", buildObjectStorePath(base, "/"))
 	assert.Equal(t, "base", buildObjectStorePath(base, "."))
 	assert.Equal(t, "base/a", buildObjectStorePath(base, "/a"))
 	assert.Equal(t, "base/a/b", buildObjectStorePath(base, "/a/b/"))
-	assert.Equal(t, "base/", buildObjectStorePathPrefix(base,""))
-	assert.Equal(t, "base/a/", buildObjectStorePathPrefix(base,"/a/"))
+	assert.Equal(t, "base/", buildObjectStorePathPrefix(base, ""))
+	assert.Equal(t, "base/a/", buildObjectStorePathPrefix(base, "/a/"))
 }
 
 func testStorageIterator(t *testing.T, objStore ObjectStorage) {
@@ -60,9 +60,16 @@ func testStorageIterator(t *testing.T, objStore ObjectStorage) {
 		_, err := objStore.Save(f[0], strings.NewReader(f[1]), -1)
 		assert.NoError(t, err)
 	}
+	defer func() {
+		for _, f := range testFiles {
+			_ = objStore.Delete(f[0])
+		}
+	}()
 
 	expectedList := map[string][]string{
 		"a":           {"a/1.txt"},
+		"a/":          {"a/1.txt"},
+		"/a/":         {"a/1.txt"},
 		"b":           {"b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt"},
 		"":            {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
 		"/":           {"a/1.txt", "b/1.txt", "b/2.txt", "b/3.txt", "b/x 4.txt", "ab/1.txt"},
