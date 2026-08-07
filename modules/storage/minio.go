@@ -26,6 +26,8 @@ import (
 
 var _ ObjectStorage = &MinioStorage{}
 
+const unknownSizePartSize = 1024 * 1024 * 16 // same as minio-go's minPartSize
+
 type minioObject struct {
 	*minio.Object
 }
@@ -156,20 +158,11 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	p = strings.TrimPrefix(util.PathJoinRelX(m.basePath, p), "/") // object store doesn't use slash for root path
-	if p == "." {
-		p = "" // object store doesn't use dot as relative path
-	}
-	return p
+	return buildObjectStorePath(m.basePath, p)
 }
 
 func (m *MinioStorage) buildMinioDirPrefix(p string) string {
-	// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
-	p = m.buildMinioPath(p) + "/"
-	if p == "/" {
-		p = "" // object store doesn't use slash for root path
-	}
-	return p
+	return buildObjectStorePathPrefix(m.basePath, p)
 }
 
 func buildMinioCredentials(config setting.MinioStorageConfig) *credentials.Credentials {
@@ -228,6 +221,10 @@ func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error)
 			// * https://www.backblaze.com/b2/docs/s3_compatible_api.html
 			// do not support "x-amz-checksum-algorithm" header, so use legacy MD5 checksum
 			SendContentMd5: m.cfg.ChecksumAlgorithm == "md5",
+
+			// with an unknown size (-1) minio-go assumes a 5TiB object and buffers a 528MiB part for it, even
+			// for a payload of a few KiB, so pin the part size there, a known size derives its own
+			PartSize: util.Iif[uint64](size < 0, unknownSizePartSize, 0),
 		},
 	)
 	if err != nil {
@@ -306,22 +303,26 @@ func (m *MinioStorage) ServeDirectURL(storePath, name, method string, opt *Serve
 	return u, convertMinioErr(err)
 }
 
-// IterateObjects iterates across the objects in the miniostorage
 func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
-	opts := minio.GetObjectOptions{}
-	// FIXME: this loop is not right and causes resource leaking, see the comment of ListObjects
-	for mObjInfo := range m.client.ListObjects(m.ctx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    m.buildMinioDirPrefix(dirName),
-		Recursive: true,
-	}) {
-		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, opts)
+	basePrefix := m.buildMinioDirPrefix("")
+	dirPrefix := m.buildMinioDirPrefix(dirName)
+	callback := func(object *minio.Object, objPath string) error {
+		defer object.Close()
+		return fn(objPath, &minioObject{object})
+	}
+
+	ctxList, ctxListCancel := context.WithCancel(m.ctx)
+	defer ctxListCancel() // ListObjectsIter: make sure to cancel the passed context, without that you might leak coroutines
+
+	getOpts := minio.GetObjectOptions{}
+	listOpts := minio.ListObjectsOptions{Prefix: dirPrefix, Recursive: true}
+	for mObjInfo := range m.client.ListObjectsIter(ctxList, m.bucket, listOpts) {
+		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, getOpts)
 		if err != nil {
 			return convertMinioErr(err)
 		}
-		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
-			defer object.Close()
-			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &minioObject{object})
-		}(object, fn); err != nil {
+		objPath := strings.TrimPrefix(mObjInfo.Key, basePrefix)
+		if err := callback(object, objPath); err != nil {
 			return convertMinioErr(err)
 		}
 	}

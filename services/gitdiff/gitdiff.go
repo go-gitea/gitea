@@ -83,37 +83,41 @@ type DiffLine struct {
 	cachedDiffInline *DiffInline
 }
 
-// DiffLineSectionInfo represents diff line section meta data
+// DiffLineSectionInfo represents diff line section metadata
 type DiffLineSectionInfo struct {
 	language *diffVarMutable[string]
 
 	Path string
 
-	// These line "idx" are 1-based line numbers
+	// These line "idx" are 1-based line numbers (inclusive)
 	// Left/Right refer to the left/right side of the diff:
 	//
-	// LastLeftIdx | LastRightIdx
-	// [up/down expander] @@ hunk info @@
-	// LeftIdx     | RightIdx
-
-	LastLeftIdx  int
-	LastRightIdx int
-	LeftIdx      int
-	RightIdx     int
-
-	// Hunk sizes of the hidden lines
-	LeftHunkSize  int
-	RightHunkSize int
-
+	//   LastLeftIdx | LastRightIdx   (the last rendered line number before this hunk)
+	//   [up/down/single expander] @@ hunk info @@
+	//   LeftIdx     | RightIdx       (the next rendered line number after this hunk)
+	//   The hunk has LeftHunkSize lines on left side, RightHunkSize lines on right side.
+	//
 	// For example:
-	// 17 | 31
-	// [up/down] @@ -40,23 +54,9 @@ ....
-	// 40 | 54
+	//   17 | 31    diff line ...
+	//   [up/down] @@ -40,23 +54,7 @@ ....
+	//   40 | 54    diff line ...
+	//     ...      diff line ...
+	//   62 | 60    diff line ...
+	//   (then file end or another hunk)
 	//
 	// In this case:
-	// LastLeftIdx = 17, LastRightIdx = 31
-	// LeftHunkSize = 23, RightHunkSize = 9
-	// LeftIdx = 40, RightIdx = 54
+	//   LastLeftIdx = 17, LastRightIdx = 31
+	//   (left lines 18-39, right lines 31-53 are hidden)
+	//   LeftIdx = 40, RightIdx = 54
+	//   LeftHunkSize = 23, RightHunkSize = 7
+	//   Left hunk ends at line 40+23-1=62 (23 lines), right: 54+7-1=60 (7 lines)
+
+	LastLeftIdx   int
+	LastRightIdx  int
+	LeftIdx       int
+	RightIdx      int
+	LeftHunkSize  int
+	RightHunkSize int
 
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
@@ -503,16 +507,15 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	// * for "bin" type: need the pre-fetched buffer to detect content type (e.g.: help to render image diff)
 	// * for "text" type: need to read up to "highlight limit size" to do full-file-highlighting
 	contentLimit := util.Iif(diffFile.IsBin, typesniffer.SniffContentSize, MaxFullFileHighlightSizeLimit)
-	var leftLineCount, rightLineCount int
 	var leftBlobType, rightBlobType typesniffer.SniffedType
 	if (diffFile.Type == DiffFileDel || diffFile.Type == DiffFileChange) && leftCommit != nil {
 		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, leftCommit, diffFile.OldName, contentLimit)
-		diffFile.LeftBlob, diffFile.LeftBlobSize, leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
+		diffFile.LeftBlob, diffFile.LeftBlobSize, ret.leftLineCount, ret.leftContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		leftBlobType = typesniffer.DetectContentType(ret.leftContent.buf.Bytes())
 	}
 	if (diffFile.Type == DiffFileAdd || diffFile.Type == DiffFileChange) && rightCommit != nil {
 		c := getCommitFileBlobAndLimitedContent(ctx, gitRepo, rightCommit, diffFile.OldName, contentLimit)
-		diffFile.RightBlob, diffFile.RightBlobSize, rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
+		diffFile.RightBlob, diffFile.RightBlobSize, ret.rightLineCount, ret.rightContent = c.gitBlob, c.blobSize, c.lineCount, c.limitedContent
 		rightBlobType = typesniffer.DetectContentType(ret.rightContent.buf.Bytes())
 	}
 
@@ -534,7 +537,7 @@ func (diffFile *DiffFile) prepareDiffRenderDetail(ctx context.Context, gitRepo *
 	// check whether the text file diff needs a tail section
 	lastSection := diffFile.Sections[len(diffFile.Sections)-1]
 	lastLine := lastSection.Lines[len(lastSection.Lines)-1]
-	if leftLineCount <= lastLine.LeftIdx || rightLineCount <= lastLine.RightIdx {
+	if ret.leftLineCount <= lastLine.LeftIdx || ret.rightLineCount <= lastLine.RightIdx {
 		return ret
 	}
 	ret.needTailSection = true

@@ -3,9 +3,13 @@
 
 package v1_10
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddStatusCheckColumnsForProtectedBranches(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddStatusCheckColumnsForProtectedBranches(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		EnableStatusCheck   bool     `xorm:"NOT NULL DEFAULT false"`
 		StatusCheckContexts []string `xorm:"JSON TEXT"`

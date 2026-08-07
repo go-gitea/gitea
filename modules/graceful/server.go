@@ -101,10 +101,6 @@ func (srv *Server) ListenAndServe(serve ServeFunction, useProxyProtocol bool) er
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction, useProxyProtocol, proxyProtocolTLSBridging bool) error {
 	go srv.awaitShutdown()
 
-	if tlsConfig.MinVersion == 0 {
-		tlsConfig.MinVersion = tls.VersionTLS12
-	}
-
 	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {
 		log.Error("Unable to get Listener: %v", err)

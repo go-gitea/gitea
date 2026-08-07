@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"fmt"
@@ -20,6 +19,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	pub_module "gitea.dev/modules/packages/pub"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -34,26 +34,19 @@ func TestPackagePub(t *testing.T) {
 
 	packageName := "test_package"
 	packageVersion := "1.0.1"
+	packageVersionLatest := "1.0.2"
 	packageDescription := "Test Description"
 
 	filename := packageVersion + ".tar.gz"
 
-	pubspecContent := `name: ` + packageName + `
-version: ` + packageVersion + `
-description: ` + packageDescription
-
-	var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
-	archive := tar.NewWriter(zw)
-	archive.WriteHeader(&tar.Header{
-		Name: "pubspec.yaml",
-		Mode: 0o600,
-		Size: int64(len(pubspecContent)),
-	})
-	archive.Write([]byte(pubspecContent))
-	archive.Close()
-	zw.Close()
-	content := buf.Bytes()
+	buildPackage := func(version string) []byte {
+		return test.WriteTarCompression(gzip.NewWriter, map[string]string{
+			"pubspec.yaml": `name: ` + packageName + `
+version: ` + version + `
+description: ` + packageDescription,
+		}).Bytes()
+	}
+	content := buildPackage(packageVersion)
 
 	root := fmt.Sprintf("/api/packages/%s/pub", user.Name)
 
@@ -120,6 +113,8 @@ description: ` + packageDescription
 		assert.Equal(t, int64(len(content)), pb.Size)
 
 		_ = uploadFile(t, result.URL, content, http.StatusConflict)
+
+		uploadFile(t, result.URL, buildPackage(packageVersionLatest), http.StatusNoContent)
 	})
 
 	t.Run("Download", func(t *testing.T) {
@@ -169,9 +164,10 @@ description: ` + packageDescription
 
 		assert.Equal(t, packageName, result.Name)
 		assert.NotNil(t, result.Latest)
-		assert.Len(t, result.Versions, 1)
-		assert.Equal(t, result.Latest.Version, result.Versions[0].Version)
-		assert.Equal(t, packageVersion, result.Latest.Version)
+		assert.Len(t, result.Versions, 2)
+		assert.Equal(t, packageVersion, result.Versions[0].Version)
+		assert.Equal(t, packageVersionLatest, result.Versions[1].Version)
+		assert.Equal(t, packageVersionLatest, result.Latest.Version)
 		assert.NotNil(t, result.Latest.Pubspec)
 	})
 }

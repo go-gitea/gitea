@@ -53,8 +53,17 @@ func WebAuthnRegister(ctx *context.Context) {
 	}
 
 	webAuthnUser := wa.NewWebAuthnUser(ctx, ctx.Doer)
-	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration(webAuthnUser, webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
+	// the exclusions stop enrolling the same authenticator twice
+	credentials, err := auth.GetWebAuthnCredentialsByUID(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
+		return
+	}
+	exclusions := webauthn.Credentials(credentials.ToCredentials()).CredentialDescriptors()
+	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration(webAuthnUser, webauthn.WithExclusions(exclusions), webauthn.WithAuthenticatorSelection(protocol.AuthenticatorSelection{
 		ResidentKey: protocol.ResidentKeyRequirementRequired,
+		// anything else makes Chromium raise it to credProtect level 3, hiding it from the second factor
+		UserVerification: protocol.VerificationRequired,
 	}))
 	if err != nil {
 		ctx.ServerError("Unable to BeginRegistration", err)
