@@ -402,8 +402,12 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 
 	beforeCommitID := ci.CompareBase
 
-	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
+	if ctx.FormBool("plain") {
+		writePlainDiff(ctx, ci.HeadGitRepo, beforeCommitID, headCommitID, files)
+		return
+	}
+	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	if len(files) == 2 || len(files) == 1 {
 		maxLines, maxFiles = -1, -1
 	}
@@ -420,7 +424,7 @@ func (cpi *comparePageInfoType) prepareCompareDiff(ctx *context.Context, whitesp
 			MaxFiles:           maxFiles,
 			WhitespaceBehavior: whitespaceBehavior,
 			DirectComparison:   ci.DirectComparison(),
-		}, ctx.FormStrings("files")...)
+		}, files...)
 	if err != nil {
 		ctx.ServerError("GetDiff", err)
 		return

@@ -27,8 +27,13 @@ const (
 )
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
-func GetRawDiff(ctx context.Context, repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) (retErr error) {
-	cmd, err := getRepoRawDiffForFileCmd(ctx, repo, "", commitID, diffType, "")
+func GetRawDiff(ctx context.Context, repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) error {
+	return WriteRawDiff(ctx, repo, "", commitID, diffType, writer)
+}
+
+// WriteRawDiff writes a raw diff between commits, optionally limited to literal pathspecs.
+func WriteRawDiff(ctx context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, writer io.Writer, files ...string) error {
+	cmd, err := getRepoRawDiffForFileCmd(ctx, repo, startCommit, endCommit, diffType, files...)
 	if err != nil {
 		return fmt.Errorf("getRepoRawDiffForFileCmd: %w", err)
 	}
@@ -40,7 +45,11 @@ func GetFileDiffCutAroundLine(
 	ctx context.Context, repo *Repository, startCommit, endCommit, treePath string,
 	line int64, old bool, numbersOfLine int,
 ) (ret string, retErr error) {
-	cmd, err := getRepoRawDiffForFileCmd(ctx, repo, startCommit, endCommit, RawDiffNormal, treePath)
+	var files []string
+	if treePath != "" {
+		files = []string{treePath}
+	}
+	cmd, err := getRepoRawDiffForFileCmd(ctx, repo, startCommit, endCommit, RawDiffNormal, files...)
 	if err != nil {
 		return "", fmt.Errorf("getRepoRawDiffForFileCmd: %w", err)
 	}
@@ -53,19 +62,16 @@ func GetFileDiffCutAroundLine(
 	return ret, cmd.RunWithStderr(ctx)
 }
 
-// getRepoRawDiffForFile returns an io.Reader for the diff results of file in given commit ID
-// and a "finish" function to wait for the git command and clean up resources after reading is done.
-func getRepoRawDiffForFileCmd(ctx context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string) (*gitcmd.Command, error) {
-	commit, err := repo.GetCommit(ctx, endCommit)
-	if err != nil {
-		return nil, err
-	}
-	var files []string
-	if len(file) > 0 {
-		files = append(files, file)
+func getRepoRawDiffForFileCmd(ctx context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, files ...string) (*gitcmd.Command, error) {
+	var commit *Commit
+	if startCommit == "" {
+		var err error
+		if commit, err = repo.GetCommit(ctx, endCommit); err != nil {
+			return nil, err
+		}
 	}
 
-	cmd := gitcmd.NewCommand().WithRepo(repo)
+	cmd := gitcmd.NewCommand("--literal-pathspecs").WithRepo(repo)
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {

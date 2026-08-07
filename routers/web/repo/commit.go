@@ -311,9 +311,13 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
+	files := ctx.FormStrings("files")
+	if ctx.FormBool("plain") {
+		writePlainDiff(ctx, gitRepo, "", commitID, files)
+		return
+	}
 	fileOnly := ctx.FormBool("file-only")
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
-	files := ctx.FormStrings("files")
 	if fileOnly && (len(files) == 2 || len(files) == 1) {
 		maxLines, maxFiles = -1, -1
 	}

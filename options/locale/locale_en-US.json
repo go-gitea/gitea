@@ -2601,6 +2601,7 @@
   "repo.diff.file_mode_changed": "File mode changed.",
   "repo.diff.file_whitespace_only_changes": "Whitespace-only changes.",
   "repo.diff.view_file": "View File",
+  "repo.diff.view_plain": "View plain diff",
   "repo.diff.file_before": "Before",
   "repo.diff.file_after": "After",
   "repo.diff.file_image_width": "Width",

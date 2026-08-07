@@ -4,11 +4,58 @@
 package git
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"gitea.dev/modules/git/gitcmd"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestRawDiffLiteralFile(t *testing.T) {
+	repoDir := filepath.Join(t.TempDir(), "repo.git")
+	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(repoDir).Run(t.Context()))
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinBytes([]byte(`commit refs/heads/base
+committer Test <test@example.com> 1700000000 +0000
+data 0
+M 100644 inline ":(glob)**"
+data 4
+old
+M 100644 inline other.txt
+data 5
+base
+
+commit refs/heads/head
+committer Test <test@example.com> 1700000001 +0000
+data 0
+from refs/heads/base
+M 100644 inline ":(glob)**"
+data 4
+new
+M 100644 inline other.txt
+data 6
+other
+`)).RunStdString(t.Context())
+	require.NoError(t, runErr)
+	repo, err := OpenRepositoryLocal(t.Context(), repoDir)
+	require.NoError(t, err)
+	defer repo.Close()
+
+	var diff strings.Builder
+	require.NoError(t, WriteRawDiff(t.Context(), repo, "", "base", RawDiffNormal, &diff, ":(glob)**"))
+	assert.Contains(t, diff.String(), "diff --git a/:(glob)** b/:(glob)**")
+	assert.Contains(t, diff.String(), "+old\n")
+	assert.NotContains(t, diff.String(), "other.txt")
+
+	diff.Reset()
+	require.NoError(t, WriteRawDiff(t.Context(), repo, "base", "head", RawDiffNormal, &diff, ":(glob)**"))
+	header, hunk, found := strings.Cut(diff.String(), "@@ -1 +1 @@\n")
+	require.True(t, found)
+	assert.Contains(t, header, "diff --git a/:(glob)** b/:(glob)**")
+	assert.Equal(t, "-old\n+new\n", hunk)
+}
 
 const exampleDiff = `diff --git a/README.md b/README.md
 --- a/README.md
