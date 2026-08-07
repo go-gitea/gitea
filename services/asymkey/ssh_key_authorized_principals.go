@@ -18,6 +18,8 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
+
+	"xorm.io/builder"
 )
 
 // This file contains functions for creating authorized_principals files
@@ -88,11 +90,7 @@ func rewriteAllPrincipalKeys(ctx context.Context) error {
 }
 
 func regeneratePrincipalKeys(ctx context.Context, t io.Writer) error {
-	if err := db.GetEngine(ctx).Where("type = ?", asymkey_model.KeyTypePrincipal).Iterate(new(asymkey_model.PublicKey), func(idx int, bean any) (err error) {
-		key, ok := bean.(*asymkey_model.PublicKey)
-		if !ok {
-			return fmt.Errorf("unexpected bean type %T", bean)
-		}
+	if err := db.Iterate(ctx, builder.Eq{"type": asymkey_model.KeyTypePrincipal}, func(ctx context.Context, key *asymkey_model.PublicKey) error {
 		return asymkey_model.WriteAuthorizedStringForValidKey(key, t)
 	}); err != nil {
 		return err

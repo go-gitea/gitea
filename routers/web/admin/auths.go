@@ -347,11 +347,7 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["HasTLS"] = source.HasTLS()
 
 	if source.IsOAuth2() {
-		oauth2Source, err := auth.SourceCfg[*oauth2.Source](source)
-		if err != nil {
-			ctx.ServerError("SourceCfg", err)
-			return
-		}
+		oauth2Source := auth.MustSourceCfg[*oauth2.Source](source)
 		for _, provider := range oauth2providers {
 			if provider.Name() == oauth2Source.Name() {
 				ctx.Data["CurrentOAuth2Provider"] = provider

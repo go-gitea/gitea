@@ -75,6 +75,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/util"
@@ -98,7 +99,7 @@ type ArtifactContext struct {
 
 func init() {
 	web.RegisterResponseStatusProvider[*ArtifactContext](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(artifactContextKey).(*ArtifactContext) //nolint:forcetypeassert // ArtifactContexter/ArtifactV4Contexter always set it, and handlers can't work with a nil context
+		return reqctx.MustContextValue[*ArtifactContext](req.Context(), artifactContextKey)
 	})
 }
 

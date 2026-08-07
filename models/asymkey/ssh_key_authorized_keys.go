@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/util"
 
 	"golang.org/x/crypto/ssh"
+	"xorm.io/builder"
 )
 
 // AuthorizedStringCommentPrefix is a magic tag
@@ -162,11 +163,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 
 // RegeneratePublicKeys regenerates the authorized_keys file
 func RegeneratePublicKeys(ctx context.Context, t io.Writer) error {
-	if err := db.GetEngine(ctx).Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean any) (err error) {
-		key, ok := bean.(*PublicKey)
-		if !ok {
-			return fmt.Errorf("unexpected bean type %T", bean)
-		}
+	if err := db.Iterate(ctx, builder.Neq{"type": KeyTypePrincipal}, func(ctx context.Context, key *PublicKey) error {
 		return WriteAuthorizedStringForValidKey(key, t)
 	}); err != nil {
 		return err

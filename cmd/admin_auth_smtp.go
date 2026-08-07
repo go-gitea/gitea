@@ -175,15 +175,11 @@ func (a *authService) runUpdateSMTP(ctx context.Context, c *cli.Command) error {
 		return err
 	}
 
-	source, err := a.getAuthSourceByID(ctx, c.Int64("id"))
+	source, err := a.getAuthSourceOfType(ctx, c.Int64("id"), auth_model.SMTP)
 	if err != nil {
 		return err
 	}
-
-	smtpConfig, err := auth_model.SourceCfg[*smtp.Source](source)
-	if err != nil {
-		return err
-	}
+	smtpConfig := auth_model.MustSourceCfg[*smtp.Source](source)
 
 	if err := parseSMTPConfig(c, smtpConfig); err != nil {
 		return err

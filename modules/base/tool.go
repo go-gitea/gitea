@@ -73,6 +73,8 @@ func CreateTimeLimitCode[T time.Time | string](data string, minutes int, startTi
 		if err != nil {
 			return "" // return an invalid code because the "parse" failed
 		}
+	default:
+		panic(fmt.Sprintf("unsupported start time type %T", startTime)) // it shouldn't happen
 	}
 	startStr := start.Format(format)
 	end := start.Add(time.Minute * time.Duration(minutes))

@@ -40,7 +40,7 @@ func SetForm(dataStore reqctx.ContextDataProvider, obj any) {
 func GetForm[T any](dataStore reqctx.RequestDataStore) T {
 	form, ok := dataStore.GetData()["__form"].(T)
 	if !ok {
-		setting.PanicInDevOrTesting("bound form %T does not match the requested type %T", dataStore.GetData()["__form"], form)
+		setting.PanicInDevOrTesting("bound form %T does not match the requested type %s", dataStore.GetData()["__form"], reflect.TypeFor[T]())
 	}
 	return form
 }

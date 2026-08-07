@@ -48,8 +48,8 @@ func calReleaseNumCommitsBehind(ctx stdCtx.Context, repoCtx *context.Repository,
 	if _, ok := countCache[target]; !ok {
 		commit, err := repoCtx.GitRepo.GetBranchCommit(ctx, target)
 		if err != nil {
-			var errNotExist git.ErrNotExist
-			if target == repoCtx.Repository.DefaultBranch || !errors.As(err, &errNotExist) {
+			_, isNotExist := errors.AsType[git.ErrNotExist](err)
+			if target == repoCtx.Repository.DefaultBranch || !isNotExist {
 				return fmt.Errorf("GetBranchCommit: %w", err)
 			}
 			// fallback to default branch
@@ -189,7 +189,10 @@ func Releases(ctx *context.Context) {
 
 	ctx.Data["Releases"] = releases
 
-	numReleases, _ := ctx.Data["NumReleases"].(int64)
+	numReleases, ok := ctx.Data["NumReleases"].(int64)
+	if !ok {
+		setting.PanicInDevOrTesting("NumReleases is %T, expected int64", ctx.Data["NumReleases"])
+	}
 	pager := context.NewPagination(numReleases, listOptions.PageSize, listOptions.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager

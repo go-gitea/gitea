@@ -956,7 +956,10 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 			ctx.Repo.RefFullName = repoRefFullName(refType, refShortName)
 			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
 			if isRenamedBranch && has {
-				renamedBranchName, _ := ctx.Data["RenamedBranchName"].(string)
+				renamedBranchName, ok := ctx.Data["RenamedBranchName"].(string)
+				if !ok {
+					setting.PanicInDevOrTesting("RenamedBranchName is %T, expected string", ctx.Data["RenamedBranchName"])
+				}
 				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refShortName, renamedBranchName))
 				link := setting.AppSubURL + strings.Replace(ctx.Req.URL.EscapedPath(), util.PathEscapeSegments(refShortName), util.PathEscapeSegments(renamedBranchName), 1)
 				ctx.Redirect(link)

@@ -166,8 +166,12 @@ func (f *fixturesLoaderInternal) Load() error {
 		return err
 	}
 	f.tableSyncMap.Range(func(k, v any) bool {
-		tableName, _ := k.(string)
-		if synced, _ := v.(bool); !synced && f.fixtures[tableName] == nil {
+		tableName, isName := k.(string)
+		synced, isSynced := v.(bool)
+		if !isName || !isSynced {
+			panic(fmt.Sprintf("unexpected table sync entry %T=%T", k, v))
+		}
+		if !synced && f.fixtures[tableName] == nil {
 			_, _ = f.xormEngine.Context(ctx).Exec("DELETE FROM `" + tableName + "`")
 		}
 		f.tableSyncMap.Store(tableName, true)

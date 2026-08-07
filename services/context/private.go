@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/process"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/web"
 	web_types "gitea.dev/modules/web/types"
 )
@@ -67,7 +68,7 @@ type privateContextKeyType struct{}
 var privateContextKey privateContextKeyType
 
 func GetPrivateContext(req *http.Request) *PrivateContext {
-	return req.Context().Value(privateContextKey).(*PrivateContext) //nolint:forcetypeassert // PrivateContexter always sets it, and callers can't work with a nil context
+	return reqctx.MustContextValue[*PrivateContext](req.Context(), privateContextKey)
 }
 
 func PrivateContexter() func(http.Handler) http.Handler {

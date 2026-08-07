@@ -253,11 +253,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		ctx.ServerError("GetSourceByID", err)
 		return
 	}
-	source, err := auth.SourceCfg[*oauth2.Source](authSource)
-	if err != nil {
-		ctx.ServerError("SourceCfg", err)
-		return
-	}
+	source := auth.MustSourceCfg[*oauth2.Source](authSource)
 	if err := syncGroupsToTeams(ctx, source, &linkAccountData.GothUser, u); err != nil {
 		ctx.ServerError("SyncGroupsToTeams", err)
 		return

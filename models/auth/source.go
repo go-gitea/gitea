@@ -7,6 +7,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
@@ -179,13 +180,14 @@ func (source *Source) IsSSPI() bool {
 	return source.Type == SSPI
 }
 
-// SourceCfg returns the source config as T, or an error if the stored config is of another type.
-func SourceCfg[T Config](source *Source) (T, error) {
+// MustSourceCfg returns the source's config as T. The registry populates Cfg from the
+// source type, so a mismatch is a programming error the caller can't recover from.
+func MustSourceCfg[T Config](source *Source) T {
 	cfg, ok := source.Cfg.(T)
 	if !ok {
-		return cfg, fmt.Errorf("auth source %q (id=%d, type=%s) has config %T, expected %T", source.Name, source.ID, source.Type, source.Cfg, cfg)
+		panic(fmt.Sprintf("auth source %q (id=%d, type=%s) has config %T, expected %s", source.Name, source.ID, source.Type, source.Cfg, reflect.TypeFor[T]()))
 	}
-	return cfg, nil
+	return cfg
 }
 
 // HasTLS returns true of this source supports TLS.

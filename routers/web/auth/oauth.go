@@ -56,11 +56,7 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	oauth2Source, err := auth.SourceCfg[*oauth2.Source](authSource)
-	if err != nil {
-		ctx.ServerError("SignIn", err)
-		return
-	}
+	oauth2Source := auth.MustSourceCfg[*oauth2.Source](authSource)
 
 	if err = oauth2Source.Callout(ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
@@ -193,11 +189,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				IsActive: optional.Some(!setting.OAuth2Client.RegisterEmailConfirm && !setting.Service.RegisterManualConfirm),
 			}
 
-			source, err := auth.SourceCfg[*oauth2.Source](authSource)
-			if err != nil {
-				ctx.ServerError("SourceCfg", err)
-				return
-			}
+			source := auth.MustSourceCfg[*oauth2.Source](authSource)
 
 			linkAccountData := &LinkAccountData{authSource.ID, gothUser}
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingDisabled {
@@ -377,11 +369,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		}
 	}
 
-	oauth2Source, err := auth.SourceCfg[*oauth2.Source](authSource)
-	if err != nil {
-		ctx.ServerError("SourceCfg", err)
-		return
-	}
+	oauth2Source := auth.MustSourceCfg[*oauth2.Source](authSource)
 
 	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(oauth2Source.GroupTeamMap)
 	if err != nil {
@@ -472,10 +460,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
 func oAuth2UserLoginCallback(ctx *context.Context, authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
-	oauth2Source, err := auth.SourceCfg[*oauth2.Source](authSource)
-	if err != nil {
-		return nil, goth.User{}, err
-	}
+	oauth2Source := auth.MustSourceCfg[*oauth2.Source](authSource)
 
 	// Make sure that the response is not an error response.
 	errorName := request.FormValue("error")

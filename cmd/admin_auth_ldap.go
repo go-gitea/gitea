@@ -354,13 +354,10 @@ func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
 	return 0, false
 }
 
-// getAuthSource gets the login source by its id defined in the command line flags.
-// It returns an error if the id is not set, does not match any source or if the source is not of expected type.
-func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authType auth.Type) (*auth.Source, error) {
-	if err := argsSet(c, "id"); err != nil {
-		return nil, err
-	}
-	authSource, err := a.getAuthSourceByID(ctx, c.Int64("id"))
+// getAuthSourceOfType gets the login source by id.
+// It returns an error if the id does not match any source or if the source is not of the expected type.
+func (a *authService) getAuthSourceOfType(ctx context.Context, id int64, authType auth.Type) (*auth.Source, error) {
+	authSource, err := a.getAuthSourceByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -370,6 +367,15 @@ func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authTyp
 	}
 
 	return authSource, nil
+}
+
+// getAuthSource gets the login source by its id defined in the command line flags.
+// It returns an error if the id is not set, does not match any source or if the source is not of expected type.
+func (a *authService) getAuthSource(ctx context.Context, c *cli.Command, authType auth.Type) (*auth.Source, error) {
+	if err := argsSet(c, "id"); err != nil {
+		return nil, err
+	}
+	return a.getAuthSourceOfType(ctx, c.Int64("id"), authType)
 }
 
 // addLdapBindDn adds a new LDAP via Bind DN authentication source.
@@ -408,10 +414,7 @@ func (a *authService) updateLdapBindDn(ctx context.Context, c *cli.Command) erro
 	if err != nil {
 		return err
 	}
-	ldapConfig, err := auth.SourceCfg[*ldap.Source](authSource)
-	if err != nil {
-		return err
-	}
+	ldapConfig := auth.MustSourceCfg[*ldap.Source](authSource)
 
 	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, ldapConfig); err != nil {
@@ -458,10 +461,7 @@ func (a *authService) updateLdapSimpleAuth(ctx context.Context, c *cli.Command) 
 	if err != nil {
 		return err
 	}
-	ldapConfig, err := auth.SourceCfg[*ldap.Source](authSource)
-	if err != nil {
-		return err
-	}
+	ldapConfig := auth.MustSourceCfg[*ldap.Source](authSource)
 
 	parseAuthSourceLdap(c, authSource)
 	if err := parseLdapConfig(c, ldapConfig); err != nil {
