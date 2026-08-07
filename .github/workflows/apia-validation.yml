@@ -74,7 +74,9 @@ jobs:
           BASELINE_URL: http://localhost:30301
           STAGING_URL: http://localhost:30302
         shell: powershell
-        run: python $env:APIA_HOME/pipeline/pipeline.py
+        run: |
+          $apiaHome = if ($env:APIA_HOME) { $env:APIA_HOME } else { "$env:USERPROFILE\apia" }
+          python "$apiaHome\pipeline\pipeline.py"
 
       - name: Teardown staging
         if: always()
