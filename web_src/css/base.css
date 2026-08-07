@@ -273,7 +273,6 @@ a {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-line: none;
-  text-decoration-skip-ink: all;
 }
 
 a:hover {
