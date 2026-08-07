@@ -24993,6 +24993,11 @@
           "description": "The target commitish for the release",
           "type": "string",
           "x-go-name": "Target"
+        },
+        "use_commit_date": {
+          "description": "Use the target commit's date as the git tag's creation date instead of the current time",
+          "type": "boolean",
+          "x-go-name": "UseCommitDate"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -25136,6 +25141,11 @@
           "description": "The target commit SHA or branch name for the tag",
           "type": "string",
           "x-go-name": "Target"
+        },
+        "use_commit_date": {
+          "description": "Use the target commit's date as the git tag's creation date instead of the current time",
+          "type": "boolean",
+          "x-go-name": "UseCommitDate"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
