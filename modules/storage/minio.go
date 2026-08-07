@@ -311,11 +311,13 @@ func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj O
 		return fn(objPath, &minioObject{object})
 	}
 
+	ctxList, ctxListCancel := context.WithCancel(m.ctx)
 	listOpts := minio.ListObjectsOptions{Prefix: dirPrefix, Recursive: true}
-	listChan := m.client.ListObjects(m.ctx, m.bucket, listOpts)
+	listChan := m.client.ListObjects(ctxList, m.bucket, listOpts)
 	defer func() {
 		// ListObjects: caller must drain the channel entirely and wait until channel is closed before proceeding,
 		// without waiting on the channel to be closed completely you might leak goroutines.
+		ctxListCancel() // cancel the list operation if the callback returns an error
 		for range listChan {
 		}
 	}()
