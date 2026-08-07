@@ -32,6 +32,11 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 		_, err = l.Save(f[0], strings.NewReader(f[1]), -1)
 		assert.NoError(t, err)
 	}
+	defer func() {
+		for _, f := range testFiles {
+			_ = l.Delete(f[0])
+		}
+	}()
 
 	expectedList := map[string][]string{
 		"a":           {"a/1.txt"},

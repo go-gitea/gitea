@@ -335,7 +335,6 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 	return nil
 }
 
-// Delete delete a file
 func (a *AzureBlobStorage) getBlobClient(path string) *blob.Client {
 	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(a.buildAzureBlobPath(path))
 }
