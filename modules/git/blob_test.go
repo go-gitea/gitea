@@ -7,6 +7,7 @@ package git
 import (
 	"io"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,4 +56,21 @@ func Benchmark_Blob_Data(b *testing.B) {
 		io.ReadAll(r)
 		_ = r.Close()
 	}
+}
+
+func TestGetBlobLineCount(t *testing.T) {
+	size, count, err := getBlobLineCount(strings.NewReader(""), nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, size)
+	assert.Equal(t, 0, count)
+
+	size, count, err = getBlobLineCount(strings.NewReader("\n"), nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, size)
+	assert.Equal(t, 1, count)
+
+	size, count, err = getBlobLineCount(strings.NewReader("a\nb"), nil)
+	assert.NoError(t, err)
+	assert.EqualValues(t, 3, size)
+	assert.Equal(t, 2, count)
 }
