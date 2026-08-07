@@ -60,7 +60,7 @@ jobs:
           }
 
       - name: Run K6 load test
-        run: k6 run k6/load-test.js --env BASELINE_URL=http://localhost:30301 --env STAGING_URL=http://localhost:30302
+        run: k6 run k6/load-test.js --summary-export=k6-summary.json --env BASELINE_URL=http://localhost:30301 --env STAGING_URL=http://localhost:30302
 
       - name: Run APIA pipeline
         env:
