@@ -22,6 +22,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
@@ -253,8 +254,9 @@ func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_
 
 // GetCommitGraphsCount returns cached commit count for current view
 func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, refs, files []string) (int64, error) {
-refFileStr := fmt.Sprintf("%q:%q", refs, files)
-	cacheKey := cache.SafeCacheKey(fmt.Sprintf("git-commits-graph-count:%d:%v", r.Repository.ID, hidePRRefs), refFileStr)
+	refFileKey := strings.Join(refs, "\x00") + "\x00\x00" + strings.Join(files, "\x00")
+	refFileKey = base.EncodeSha256(refFileKey)
+	cacheKey := cache.SafeCacheKey(fmt.Sprintf("git-commits-graph-count:%d:%v", r.Repository.ID, hidePRRefs), refFileKey)
 	return cache.GetInt64(cacheKey, func() (int64, error) {
 		if len(refs) == 0 {
 			return git.AllCommitsCount(ctx, r.Repository, hidePRRefs, files...)
