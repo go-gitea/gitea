@@ -14,11 +14,11 @@ import (
 // AddCreatedUnixToActionUserIsDeletedIndex extends the c_u composite index on
 // the action table to include created_unix, enabling efficient ORDER BY on the
 // dashboard feed query without a full sort of all matching rows.
-func AddCreatedUnixToActionUserIsDeletedIndex(x base.EngineMigration) error {
+func AddCreatedUnixToActionUserIsDeletedIndex(ctx context.Context, x base.EngineMigration) error {
 	// xorm Sync cannot reliably update an index when another index already
 	// covers the same columns in a different order (Equal() is order-insensitive).
 	// Drop the old c_u index explicitly, then recreate it with the new column set.
-	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "action")
+	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "action")
 	if err != nil {
 		return err
 	}

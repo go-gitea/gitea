@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14
+        image: postgres:14@sha256:caf49e3b10d377aa2cfee478591d623808527beb27125d38797b418013f72d81
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -35,7 +35,7 @@ jobs:
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2025.7.23
+        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
@@ -57,7 +57,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14
+        image: postgres:14@sha256:caf49e3b10d377aa2cfee478591d623808527beb27125d38797b418013f72d81
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -71,7 +71,7 @@ jobs:
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2025.7.23
+        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15@sha256:aeda96cd85b0cadeb3a3b900789f3b85e902c994052dadbaf8dd99a539e2ef93
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -125,13 +125,13 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1
+        image: getmeili/meilisearch:v1@sha256:d36e713e8f89483af1ab0d72011bbd503f5ab100b68ccbfad51c39e3f0a0567d
         env:
           MEILI_ENV: development # disable auth
         ports:
           - "7700:7700"
       redis:
-        image: redis:latest@sha256:d265e1f86a79646243cf3622d0381688322b3564793b3f3b83b4fe841eaa80a4
+        image: redis:latest@sha256:3cdb04fc82d909d929d4fcf30ee8011491a8dcc0a91a44b8757fa13077d0e06f
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -140,14 +140,14 @@ jobs:
         ports:
           - 6379:6379
       minio:
-        image: bitnamilegacy/minio:2025.7.23
+        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:7aee5546ecffb850634c5f67ed87f59dba02a0eb24b7c7e01f5bd9148bd5edd9
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:d5bb99496dc82ef0e34401ced6726d2f5d8fcbdf48670ba067ee3b394884cc3a
         ports:
           - 10000:10000
     steps:
@@ -182,7 +182,7 @@ jobs:
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
-        image: bitnamilegacy/mysql:8.4
+        image: bitnamilegacy/mysql:8.4@sha256:7089d796fc9b4629a628bd445e4afabe607351ee665444c3197bdeaed812ea65
         env:
           ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
@@ -191,7 +191,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15@sha256:aeda96cd85b0cadeb3a3b900789f3b85e902c994052dadbaf8dd99a539e2ef93
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -229,7 +229,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:46f719fd3457d4e7e8e5845fe00c35c20e7bae7ff1e8b9fe595f2a81029f5ba8
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
@@ -237,7 +237,7 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:7aee5546ecffb850634c5f67ed87f59dba02a0eb24b7c7e01f5bd9148bd5edd9
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:d5bb99496dc82ef0e34401ced6726d2f5d8fcbdf48670ba067ee3b394884cc3a
         ports:
           - 10000:10000
     steps:

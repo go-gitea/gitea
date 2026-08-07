@@ -4,11 +4,13 @@
 package v1_22
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func CreateAuthTokenTable(x base.EngineMigration) error {
+func CreateAuthTokenTable(_ context.Context, x base.EngineMigration) error {
 	type AuthToken struct {
 		ID          string `xorm:"pk"`
 		TokenHash   string

@@ -11,7 +11,7 @@ COMMA := ,
 
 XGO_VERSION := go-1.26.x
 
-AIR_PACKAGE ?= github.com/air-verse/air@v1.67.1 # renovate: datasource=go
+AIR_PACKAGE ?= github.com/air-verse/air@v1.67.3 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.8.0 # renovate: datasource=go
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.16 # renovate: datasource=go
@@ -348,7 +348,7 @@ lint-editorconfig:
 .PHONY: lint-actions
 lint-actions: .venv ## lint action workflow files
 	@$(GO) run $(ACTIONLINT_PACKAGE)
-	@uv run --frozen zizmor --quiet --min-confidence=medium .github
+	@uv run --frozen zizmor --quiet --persona=pedantic --min-confidence=medium .github
 
 .PHONY: lint-shell
 lint-shell: ## lint shell scripts

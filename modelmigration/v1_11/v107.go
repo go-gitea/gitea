@@ -3,9 +3,13 @@
 
 package v1_11
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddTemplateToRepo(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddTemplateToRepo(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		IsTemplate bool  `xorm:"INDEX NOT NULL DEFAULT false"`
 		TemplateID int64 `xorm:"INDEX"`

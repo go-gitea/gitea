@@ -487,7 +487,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		return nil, err
 	}
 	task := &ActionTask{}
-	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+	applyState := func(ctx context.Context) error {
 		if has, err := db.GetEngine(ctx).ID(taskID).Get(task); err != nil {
 			return err
 		} else if !has {
@@ -552,6 +552,10 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 		}
 		return nil
+	}
+	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+		// A half-written report leaves the task done with a running job, which no retry repairs.
+		return db.WithTx(ctx, applyState)
 	})
 	return task, err
 }
