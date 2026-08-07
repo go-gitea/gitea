@@ -120,7 +120,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 					return err
 				}
 
-				newSorting, err := project_model.GetColumnIssueNextSorting(ctx, projectID, defaultColumn.ID)
+				newSorting, err := project_model.GetColumnIssueNextSorting(ctx, defaultColumn)
 				if err != nil {
 					return err
 				}

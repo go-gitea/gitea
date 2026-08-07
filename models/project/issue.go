@@ -35,7 +35,7 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 
 // columnIssueIDs lists the project_board_id values a column claims. Rows written before
 // 1.22 carry 0, which the board renders in the default column, so the default column has
-// to claim them too. Both membership queries below share this so they cannot disagree.
+// to claim them too.
 func columnIssueIDs(column *Column) []int64 {
 	if column.Default {
 		return []int64{column.ID, 0}
@@ -62,15 +62,15 @@ func GetColumnIssueIDs(ctx context.Context, column *Column) ([]int64, error) {
 }
 
 // GetColumnIssueNextSorting returns the sorting value to append an issue at the end of the column.
-func GetColumnIssueNextSorting(ctx context.Context, projectID, columnID int64) (int64, error) {
+func GetColumnIssueNextSorting(ctx context.Context, column *Column) (int64, error) {
 	res := struct {
 		MaxSorting int64
 		IssueCount int64
 	}{}
 	if _, err := db.GetEngine(ctx).Select("max(sorting) AS max_sorting, count(*) AS issue_count").
 		Table("project_issue").
-		Where("project_id=?", projectID).
-		And("project_board_id=?", columnID).
+		Where("project_id=?", column.ProjectID).
+		In("project_board_id", columnIssueIDs(column)).
 		Get(&res); err != nil {
 		return 0, err
 	}
@@ -94,7 +94,7 @@ func moveIssuesToAnotherColumn(ctx context.Context, oldColumn, newColumn *Column
 		return nil
 	}
 
-	nextSorting, err := GetColumnIssueNextSorting(ctx, newColumn.ProjectID, newColumn.ID)
+	nextSorting, err := GetColumnIssueNextSorting(ctx, newColumn)
 	if err != nil {
 		return err
 	}

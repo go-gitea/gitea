@@ -5,10 +5,12 @@ package project
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -100,6 +102,9 @@ func Test_MoveColumnsOnProject(t *testing.T) {
 	assert.Equal(t, columns[1].ID, columnsAfter[0].ID)
 	assert.Equal(t, columns[2].ID, columnsAfter[1].ID)
 	assert.Equal(t, columns[0].ID, columnsAfter[2].ID)
+
+	err = MoveColumnsOnProject(t.Context(), project1, map[int64]int64{200: columns[0].ID})
+	assert.ErrorIs(t, err, util.ErrUnprocessableContent) // int8 column, 200 would wrap
 }
 
 func Test_NewColumn(t *testing.T) {
@@ -123,4 +128,28 @@ func Test_NewColumn(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "maximum number of columns reached")
+}
+
+func Test_ColumnSorting(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	t.Run("appending an issue counts the legacy rows the default column renders", func(t *testing.T) {
+		_, err := db.Exec(t.Context(), "UPDATE `project_issue` SET sorting=9 WHERE project_id=1 AND project_board_id=0")
+		assert.NoError(t, err)
+
+		defaultColumn, err := GetColumn(t.Context(), 1)
+		assert.NoError(t, err)
+		next, err := GetColumnIssueNextSorting(t.Context(), defaultColumn)
+		assert.NoError(t, err)
+		assert.EqualValues(t, 10, next)
+	})
+
+	t.Run("appending a column at the int8 maximum does not wrap to the front", func(t *testing.T) {
+		_, err := db.Exec(t.Context(), "UPDATE `project_board` SET sorting=? WHERE id=3", math.MaxInt8)
+		assert.NoError(t, err)
+
+		appended := &Column{Title: "appended", ProjectID: 1}
+		assert.NoError(t, NewColumn(t.Context(), appended))
+		assert.EqualValues(t, math.MaxInt8, appended.Sorting)
+	})
 }

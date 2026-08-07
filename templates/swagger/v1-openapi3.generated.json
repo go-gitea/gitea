@@ -7906,7 +7906,7 @@
             "x-go-name": "ColumnID"
           },
           "sorting": {
-            "description": "Optional sorting position within the target column",
+            "description": "Position within the column, ascending. Omit to append. Negative values sort above\nthe rest, equal values are ordered newest first.",
             "format": "int64",
             "type": "integer",
             "x-go-name": "Sorting"
@@ -15171,7 +15171,7 @@
             }
           },
           {
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "in": "path",
             "name": "issue_id",
             "required": true,
@@ -15190,6 +15190,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Remove an issue from a project column",
@@ -15231,7 +15234,7 @@
             }
           },
           {
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "in": "path",
             "name": "issue_id",
             "required": true,
@@ -15253,6 +15256,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add an issue to a project column",
@@ -15285,7 +15291,7 @@
             }
           },
           {
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "in": "path",
             "name": "issue_id",
             "required": true,
@@ -15317,6 +15323,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Move an issue between a project's columns",
@@ -28265,7 +28274,7 @@
             }
           },
           {
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "in": "path",
             "name": "issue_id",
             "required": true,
@@ -28337,7 +28346,7 @@
             }
           },
           {
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "in": "path",
             "name": "issue_id",
             "required": true,
@@ -28403,7 +28412,7 @@
             }
           },
           {
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "in": "path",
             "name": "issue_id",
             "required": true,
@@ -35912,7 +35921,7 @@
             }
           },
           {
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "in": "path",
             "name": "issue_id",
             "required": true,
@@ -35931,6 +35940,9 @@
           },
           "404": {
             "$ref": "#/components/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Remove an issue from a project column",
@@ -35963,7 +35975,7 @@
             }
           },
           {
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "in": "path",
             "name": "issue_id",
             "required": true,
@@ -35985,6 +35997,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Add an issue to a project column",
@@ -36008,7 +36023,7 @@
             }
           },
           {
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "in": "path",
             "name": "issue_id",
             "required": true,
@@ -36040,6 +36055,9 @@
           },
           "422": {
             "$ref": "#/components/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/components/responses/repoArchivedError"
           }
         },
         "summary": "Move an issue between a project's columns",

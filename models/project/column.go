@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 
 	"gitea.dev/models/db"
@@ -144,6 +145,7 @@ func NewColumn(ctx context.Context, column *Column) error {
 	if err := validateColumnColor(column.Color); err != nil {
 		return err
 	}
+	column.Title = util.EllipsisDisplayString(column.Title, 255)
 
 	res := struct {
 		MaxSorting  int64
@@ -156,7 +158,8 @@ func NewColumn(ctx context.Context, column *Column) error {
 	if res.ColumnCount >= maxProjectColumns {
 		return util.ErrorWrap(util.ErrUnprocessableContent, "maximum number of columns reached")
 	}
-	column.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
+	// MaxInt8+1 would wrap the appended column to the front
+	column.Sorting = int8(min(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0), math.MaxInt8))
 	_, err := db.GetEngine(ctx).Insert(column)
 	return err
 }
@@ -242,6 +245,7 @@ func UpdateColumn(ctx context.Context, column *Column) error {
 	if err := validateColumnColor(column.Color); err != nil {
 		return err
 	}
+	column.Title = util.EllipsisDisplayString(column.Title, 255)
 	_, err := db.GetEngine(ctx).ID(column.ID).Cols("title", "sorting", "color").Update(column)
 	return err
 }
@@ -328,6 +332,11 @@ func SetDefaultColumn(ctx context.Context, projectID, columnID int64) error {
 
 // MoveColumnsOnProject sorts columns in a project
 func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs map[int64]int64) error {
+	for sorting := range sortedColumnIDs {
+		if sorting < math.MinInt8 || sorting > math.MaxInt8 {
+			return util.ErrorWrap(util.ErrUnprocessableContent, "column sorting %d is out of range", sorting)
+		}
+	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 		columnIDs := util.ValuesOfMap(sortedColumnIDs)

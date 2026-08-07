@@ -115,6 +115,7 @@ type MoveProjectIssueOption struct {
 	// Target column to move the issue into
 	// required: true
 	ColumnID int64 `json:"column_id" binding:"Required"`
-	// Optional sorting position within the target column
+	// Position within the column, ascending. Omit to append. Negative values sort above
+	// the rest, equal values are ordered newest first.
 	Sorting *int64 `json:"sorting,omitempty"`
 }

@@ -139,6 +139,11 @@ func (s projectScope) findIssue(ctx *context.APIContext) *issues_model.Issue {
 			ctx.APIErrorNotFound()
 			return nil
 		}
+		// the repo route group has mustNotBeArchived, owner boards have to check per issue
+		if issue.Repo.IsArchived {
+			ctx.APIError(http.StatusLocked, "repo is archived")
+			return nil
+		}
 	}
 	return issue
 }
@@ -1541,7 +1546,7 @@ func MoveProjectColumns(ctx *context.APIContext) {
 	}
 
 	if err := project_model.MoveColumnsOnProject(ctx, project, sortedColumnIDs); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -1743,7 +1748,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//   required: true
 	// - name: issue_id
 	//   in: path
-	//   description: id of the issue
+	//   description: global id of the issue, not the repository-local index
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -1783,7 +1788,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//   required: true
 	// - name: issue_id
 	//   in: path
-	//   description: id of the issue
+	//   description: global id of the issue, not the repository-local index
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -1796,6 +1801,8 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation POST /user/projects/{id}/columns/{column_id}/issues/{issue_id} user userCurrentAddIssueToProjectColumn
 	// ---
@@ -1816,7 +1823,7 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//   required: true
 	// - name: issue_id
 	//   in: path
-	//   description: id of the issue
+	//   description: global id of the issue, not the repository-local index
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -1829,6 +1836,8 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	column, issue := projectScopeFromContext(ctx).findColumnIssue(ctx)
 	if ctx.Written() {
@@ -1870,7 +1879,7 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//   required: true
 	// - name: issue_id
 	//   in: path
-	//   description: id of the issue
+	//   description: global id of the issue, not the repository-local index
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -1907,7 +1916,7 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//   required: true
 	// - name: issue_id
 	//   in: path
-	//   description: id of the issue
+	//   description: global id of the issue, not the repository-local index
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -1918,6 +1927,8 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation DELETE /user/projects/{id}/columns/{column_id}/issues/{issue_id} user userCurrentRemoveIssueFromProjectColumn
 	// ---
@@ -1937,7 +1948,7 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//   required: true
 	// - name: issue_id
 	//   in: path
-	//   description: id of the issue
+	//   description: global id of the issue, not the repository-local index
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -1948,6 +1959,8 @@ func RemoveIssueFromProjectColumn(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	column, issue := projectScopeFromContext(ctx).findColumnIssue(ctx)
 	if ctx.Written() {
@@ -1985,7 +1998,7 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	//   required: true
 	// - name: issue_id
 	//   in: path
-	//   description: id of the issue
+	//   description: global id of the issue, not the repository-local index
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -2024,7 +2037,7 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	//   required: true
 	// - name: issue_id
 	//   in: path
-	//   description: id of the issue
+	//   description: global id of the issue, not the repository-local index
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -2041,6 +2054,8 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	// swagger:operation POST /user/projects/{id}/issues/{issue_id}/move user userCurrentMoveProjectIssue
 	// ---
@@ -2056,7 +2071,7 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	//   required: true
 	// - name: issue_id
 	//   in: path
-	//   description: id of the issue
+	//   description: global id of the issue, not the repository-local index
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -2073,6 +2088,8 @@ func MoveProjectIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
 
 	scope := projectScopeFromContext(ctx)
 	project := scope.findOpenProject(ctx)

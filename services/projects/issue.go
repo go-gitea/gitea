@@ -46,7 +46,7 @@ func MoveIssueToColumn(ctx context.Context, doer *user_model.User, issue *issues
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		position := sorting.Value()
 		if !sorting.Has() {
-			next, err := project_model.GetColumnIssueNextSorting(ctx, column.ProjectID, column.ID)
+			next, err := project_model.GetColumnIssueNextSorting(ctx, column)
 			if err != nil {
 				return err
 			}

@@ -4028,7 +4028,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "name": "issue_id",
             "in": "path",
             "required": true
@@ -4046,6 +4046,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -4082,7 +4085,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "name": "issue_id",
             "in": "path",
             "required": true
@@ -4097,6 +4100,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -4130,7 +4136,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "name": "issue_id",
             "in": "path",
             "required": true
@@ -4155,6 +4161,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -16054,7 +16063,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "name": "issue_id",
             "in": "path",
             "required": true
@@ -16118,7 +16127,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "name": "issue_id",
             "in": "path",
             "required": true
@@ -16176,7 +16185,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "name": "issue_id",
             "in": "path",
             "required": true
@@ -23274,7 +23283,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "name": "issue_id",
             "in": "path",
             "required": true
@@ -23292,6 +23301,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -23321,7 +23333,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "name": "issue_id",
             "in": "path",
             "required": true
@@ -23336,6 +23348,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -23362,7 +23377,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "global id of the issue, not the repository-local index",
             "name": "issue_id",
             "in": "path",
             "required": true
@@ -23387,6 +23402,9 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       }
@@ -30732,7 +30750,7 @@
           "x-go-name": "ColumnID"
         },
         "sorting": {
-          "description": "Optional sorting position within the target column",
+          "description": "Position within the column, ascending. Omit to append. Negative values sort above\nthe rest, equal values are ordered newest first.",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Sorting"
