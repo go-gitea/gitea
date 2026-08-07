@@ -158,20 +158,11 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	p = strings.TrimPrefix(util.PathJoinRelX(m.basePath, p), "/") // object store doesn't use slash for root path
-	if p == "." {
-		p = "" // object store doesn't use dot as relative path
-	}
-	return p
+	return buildObjectStorePath(m.basePath, p)
 }
 
 func (m *MinioStorage) buildMinioDirPrefix(p string) string {
-	// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
-	p = m.buildMinioPath(p) + "/"
-	if p == "/" {
-		p = "" // object store doesn't use slash for root path
-	}
-	return p
+	return buildObjectStorePathPrefix(m.basePath, p)
 }
 
 func buildMinioCredentials(config setting.MinioStorageConfig) *credentials.Credentials {
