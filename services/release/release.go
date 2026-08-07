@@ -102,11 +102,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 				}
 			}
 
-			target := rel.Target
-			if target == "" {
-				target = rel.Repo.DefaultBranch
-			}
-
+			target := util.IfZero(rel.Target, rel.Repo.DefaultBranch)
 			commit, err := gitRepo.GetCommit(ctx, target)
 			if err != nil {
 				return false, err
