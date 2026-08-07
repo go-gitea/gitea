@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -79,7 +80,9 @@ func testStorageIterator(t *testing.T, objStore ObjectStorage) {
 	for dir, expected := range expectedList {
 		count := 0
 		err := objStore.IterateObjects(dir, func(path string, f Object) error {
-			defer f.Close()
+			content, err := io.ReadAll(f)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, content)
 			assert.Contains(t, expected, path)
 			count++
 			return nil
