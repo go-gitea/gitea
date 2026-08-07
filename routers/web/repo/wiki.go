@@ -657,7 +657,7 @@ func NewWiki(ctx *context.Context) {
 func NewWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 
-	if ctx.HasError() { // form binding validation error
+	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
@@ -711,7 +711,7 @@ func EditWiki(ctx *context.Context) {
 func EditWikiPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWikiForm)
 
-	if ctx.HasError() { // form binding validation error
+	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}

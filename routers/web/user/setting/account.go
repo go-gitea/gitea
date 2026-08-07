@@ -172,7 +172,7 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 
-	if ctx.HasError() { // form binding validation error
+	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}

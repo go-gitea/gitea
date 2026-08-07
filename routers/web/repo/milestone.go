@@ -107,7 +107,7 @@ func NewMilestone(ctx *context.Context) {
 func NewMilestonePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
 
-	if ctx.HasError() { // form binding validation error
+	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
@@ -159,7 +159,7 @@ func EditMilestone(ctx *context.Context) {
 func EditMilestonePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
 
-	if ctx.HasError() { // form binding validation error
+	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}

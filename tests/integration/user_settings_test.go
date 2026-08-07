@@ -400,22 +400,19 @@ func TestUserSettingsKeys(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		session := loginUser(t, "user2")
-		addKey := func(title string) *httptest.ResponseRecorder {
+		addKey := func(title string, expectedStatus int) *httptest.ResponseRecorder {
 			req := NewRequestWithValues(t, "POST", "/user/settings/keys", map[string]string{
 				"type":    "ssh",
 				"title":   title,
-				"content": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment",
+				"content": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf",
 			})
-			return session.MakeRequest(t, req, NoExpectedStatus)
+			return session.MakeRequest(t, req, expectedStatus)
 		}
 
-		resp := addKey("test-key")
-		assert.Equal(t, http.StatusOK, resp.Code)
-		assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+		assert.NotEmpty(t, test.RedirectURL(addKey("test-key", http.StatusOK)))
 
-		// re-adding the same key must report the error as JSON, not re-render the page with a 200
-		resp = addKey("test-key-again")
-		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		// a duplicate key is answered with a JSON error, not with a re-rendered page
+		resp := addKey("test-key-again", http.StatusBadRequest)
 		assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 	})
 }

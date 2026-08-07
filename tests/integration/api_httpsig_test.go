@@ -103,7 +103,7 @@ func TestHTTPSigCert(t *testing.T) {
 	})
 
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	assert.NotNil(t, test.ParseJSONRedirect(resp.Body.Bytes()).Redirect)
+	assert.NotEmpty(t, test.RedirectURL(resp))
 
 	pkcert, _, _, _, err := ssh.ParseAuthorizedKey([]byte(httpsigCertificate))
 	if err != nil {

@@ -37,7 +37,7 @@ func DeployKeys(ctx *context.Context) {
 func DeployKeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
 
-	if ctx.HasError() { // form binding validation error
+	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
