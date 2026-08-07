@@ -7,10 +7,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/util"
 )
+
+type FastImportInit struct {
+	Bare         bool
+	ObjectFormat string
+}
 
 type FastImportFile struct {
 	Mode    EntryMode
@@ -22,6 +29,20 @@ type FastImportCommit struct {
 	Ref     string
 	Message string
 	Files   []FastImportFile
+}
+
+// ForceFastImportWithInit is for mainly for testing purpose
+func ForceFastImportWithInit(ctx context.Context, repoLocalPath string, commits []FastImportCommit, initOpts ...FastImportInit) (RepositoryFacade, error) {
+	repo := gitrepo.RepositoryUnmanaged(repoLocalPath)
+	initOpt := util.OptionalArg(initOpts, FastImportInit{Bare: true})
+	if exist, _ := IsRepositoryExist(ctx, repo); !exist {
+		_ = os.MkdirAll(repoLocalPath, 0o755)
+		err := InitRepositoryLocal(ctx, repoLocalPath, initOpt.Bare, util.IfZero(initOpt.ObjectFormat, "sha1"))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return repo, ForceFastImport(ctx, repo, commits)
 }
 
 // ForceFastImport is for mainly for testing purpose
