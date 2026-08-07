@@ -4,6 +4,8 @@
 package migrations
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -79,12 +81,12 @@ func TestDoGraphQLRetriesOnRateLimited(t *testing.T) {
 	assert.EqualValues(t, 2, calls.Load(), "RATE_LIMITED should be waited out and the request retried once")
 }
 
-// TestGraphQLQueryReactionGating guards the MAX_NODE_LIMIT_EXCEEDED fix: reactions
-// must never be nested under comments (issues×comments×reactions = 1,000,000 nodes,
-// which GitHub rejects), and must be omitted entirely when SkipReactions is set.
-// The reactions COUNT is the tell — with reactions wanted it must appear exactly
-// once (the entity level); a second occurrence means the fatal comment-nesting
-// regressed.
+// TestGraphQLQueryReactionGating guards the shape that stays under BOTH GitHub
+// limits: the 500k node cap and the per-query compute budget. When reactions are
+// skipped, none are requested. When wanted, the content query carries only the
+// entity-level reactions (one connection) — comment reactions must NOT be nested
+// (a 3rd connection level blows the limits), they come from the batched node-id
+// pass (attachCommentReactions) instead.
 func TestGraphQLQueryReactionGating(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
@@ -96,10 +98,67 @@ func TestGraphQLQueryReactionGating(t *testing.T) {
 		skip := tc.query(&GithubDownloaderV3{SkipReactions: true})
 		keep := tc.query(&GithubDownloaderV3{SkipReactions: false})
 		assert.Equal(t, 0, strings.Count(skip, "reactions"), "%s: SkipReactions must omit all reactions", tc.name)
-		assert.Equal(t, 1, strings.Count(keep, "reactions"), "%s: reactions only at the entity level, never nested under comments", tc.name)
-		// the comments connection must carry no nested reactions in either mode
-		assert.NotContains(t, skip, "comments(first:100){totalCount nodes{databaseId body createdAt updatedAt author{login ... on User{databaseId}} reactions", tc.name)
+		assert.Equal(t, 1, strings.Count(keep, "reactions("), "%s: exactly one reactions connection (entity-level); comment reactions must not be nested", tc.name)
+		assert.Contains(t, keep, "reactions(first:100){totalCount", "%s: entity reactions carry totalCount for the overflow sweep", tc.name)
 	}
+}
+
+func TestIsGraphQLResourceLimited(t *testing.T) {
+	rl := fmt.Errorf("github graphql: %w", graphQLError{Type: "RESOURCE_LIMITS_EXCEEDED", Message: "too expensive"})
+	assert.True(t, isGraphQLResourceLimited(rl))
+	assert.False(t, isGraphQLResourceLimited(fmt.Errorf("github graphql: %w", graphQLError{Type: "RATE_LIMITED"})))
+	assert.False(t, isGraphQLResourceLimited(errors.New("plain")))
+}
+
+// TestFetchNodeReactionsAdaptiveShrink: a batch that comes back
+// RESOURCE_LIMITS_EXCEEDED is halved and retried, not aborted. The stub rejects
+// any multi-id batch, so a 2-id request must split into two 1-id requests and
+// still return reactions for both.
+func TestFetchNodeReactionsAdaptiveShrink(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Variables struct {
+				IDs []string `json:"ids"`
+			} `json:"variables"`
+		}
+		body, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(body, &req)
+		if len(req.Variables.IDs) > 1 {
+			_, _ = io.WriteString(w, `{"errors":[{"type":"RESOURCE_LIMITS_EXCEEDED","message":"too expensive"}]}`)
+			return
+		}
+		id := req.Variables.IDs[0]
+		_, _ = io.WriteString(w, `{"data":{"nodes":[{"id":"`+id+`","reactions":{"totalCount":1,"nodes":[{"content":"HEART","user":{"login":"u","databaseId":1}}]}}]}}`)
+	}))
+	defer srv.Close()
+
+	d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
+	require.NoError(t, err)
+
+	got, err := d.fetchNodeReactions(t.Context(), []string{"c1", "c2"})
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	require.Len(t, got["c1"], 1)
+	assert.Equal(t, "heart", got["c1"][0].Content)
+	require.Len(t, got["c2"], 1)
+}
+
+// TestReactionsWithSweepNoOverflow: when an entity's reaction count fits the
+// batched page (totalCount == nodes), reactions (incl. the reacting user) come
+// straight from the query with no sweep — so it must not touch a (nil) client.
+func TestReactionsWithSweepNoOverflow(t *testing.T) {
+	var conn gqlReactionConn
+	require.NoError(t, json.Unmarshal([]byte(`{"totalCount":2,"nodes":[
+		{"content":"THUMBS_UP","user":{"login":"alice","databaseId":11}},
+		{"content":"HEART","user":{"login":"bob","databaseId":22}}]}`), &conn))
+	r, err := (&GithubDownloaderV3{}).reactionsWithSweep(t.Context(), "node-id", conn)
+	require.NoError(t, err)
+	require.Len(t, r, 2)
+	assert.Equal(t, "+1", r[0].Content)
+	assert.EqualValues(t, 11, r[0].UserID)
+	assert.Equal(t, "alice", r[0].UserName)
+	assert.Equal(t, "heart", r[1].Content)
+	assert.Equal(t, "bob", r[1].UserName)
 }
 
 func TestGraphQLEndpoint(t *testing.T) {
@@ -139,11 +198,11 @@ func TestGraphQLIssuesResponseParsing(t *testing.T) {
 	          "milestone": {"title": "v1.0"},
 	          "labels": {"nodes": [{"name": "bug", "color": "d73a4a", "description": "defect"}]},
 	          "assignees": {"nodes": [{"login": "maintainer"}]},
-	          "reactions": {"nodes": [{"content": "THUMBS_UP"}, {"content": "HEART"}]},
+	          "reactions": {"totalCount": 2, "nodes": [{"content": "THUMBS_UP", "user": {"login": "alice", "databaseId": 11}}, {"content": "HEART", "user": {"login": "bob", "databaseId": 22}}]},
 	          "comments": {
 	            "totalCount": 1,
 	            "nodes": [
-	              {"databaseId": 900001, "body": "same here", "createdAt": "2024-01-05T00:00:00Z", "updatedAt": "2024-01-05T00:00:00Z", "author": {"login": "reporter", "databaseId": 111}, "reactions": {"nodes": [{"content": "ROCKET"}]}}
+	              {"id": "IC_node1", "databaseId": 900001, "body": "same here", "createdAt": "2024-01-05T00:00:00Z", "updatedAt": "2024-01-05T00:00:00Z", "author": {"login": "reporter", "databaseId": 111}}
 	            ]
 	          }
 	        }
@@ -170,20 +229,23 @@ func TestGraphQLIssuesResponseParsing(t *testing.T) {
 	require.NotNil(t, node.Milestone)
 	assert.Equal(t, "v1.0", node.Milestone.Title)
 
-	// reactions convert with the enum→content mapping
+	// reactions convert with the enum→content mapping and the reacting user
 	reactions := convertGraphQLReactions(node.Reactions)
 	require.Len(t, reactions, 2)
 	assert.Equal(t, "+1", reactions[0].Content)
+	assert.EqualValues(t, 11, reactions[0].UserID)
+	assert.Equal(t, "alice", reactions[0].UserName)
 	assert.Equal(t, "heart", reactions[1].Content)
 
-	// comments convert and carry the issue number as IssueIndex + remote id as Index
+	// comments convert and carry the issue number as IssueIndex + remote id as
+	// Index. Comment reactions are NOT part of the content query — they come from
+	// the batched node-id pass (attachCommentReactions) — so none are set here.
 	comments := convertGraphQLComments(node.Number, node.Comments.Nodes)
 	require.Len(t, comments, 1)
 	assert.EqualValues(t, 42, comments[0].IssueIndex)
 	assert.EqualValues(t, 900001, comments[0].Index)
 	assert.Equal(t, "reporter", comments[0].PosterName)
-	require.Len(t, comments[0].Reactions, 1)
-	assert.Equal(t, "rocket", comments[0].Reactions[0].Content)
+	assert.Empty(t, comments[0].Reactions, "comment reactions come from the node-id pass, not the content query")
 }
 
 // TestGetCachedComments checks the cache-paging that serves GraphQL-fetched

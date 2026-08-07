@@ -21,7 +21,6 @@ package migrations
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"hash/fnv"
 	"maps"
@@ -255,8 +254,7 @@ func (g *GithubDownloaderV3) fetchTimelineEvents(ctx context.Context, ids []stri
 		RateLimit graphQLRateLimit `json:"rateLimit"`
 	}
 	if err := g.doGraphQL(ctx, graphQLTimelineBatchQuery(), map[string]any{"ids": ids}, &resp); err != nil {
-		var ge graphQLError
-		if errors.As(err, &ge) && ge.Type == "RESOURCE_LIMITS_EXCEEDED" && len(ids) > 1 {
+		if isGraphQLResourceLimited(err) && len(ids) > 1 {
 			mid := len(ids) / 2
 			left, err := g.fetchTimelineEvents(ctx, ids[:mid])
 			if err != nil {

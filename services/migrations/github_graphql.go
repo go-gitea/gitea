@@ -13,17 +13,22 @@ package migrations
 // far more forgiving for this batched shape. This collapses dozens of REST calls
 // into one.
 //
-// GraphQL is the default path for GitHub migrations. The REST downloader is
-// kept as fallback. Scope: the issues stream (issues + their comments + reactions +
-// labels). Pull-request reviews/review-threads over GraphQL are a TODO — they
-// still go through the REST path. Comment/reaction pages beyond the first 100 for
-// a single entity fall back to REST for that entity so nothing is silently
-// dropped.
+// GraphQL is the default path for GitHub migrations ([migrations] USE_GRAPHQL);
+// the REST downloader is kept as fallback. Scope: the issues stream (issues +
+// comments + reactions + labels, this file), the pull-request stream (PRs +
+// comments + reviews + review threads, github_graphql_pr.go) and timeline
+// events (github_graphql_timeline.go). Comment reactions are fetched by a
+// batched node-id pass (attachCommentReactions); review-comment reactions are
+// not fetched yet (4-deep nesting, needs its own pass — a follow-up). Comment
+// pages beyond the first 100 for a single entity fall back to REST for that
+// entity so nothing is silently dropped.
 
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -223,17 +228,18 @@ func (g *GithubDownloaderV3) respectGraphQLBudget(ctx context.Context, rl graphQ
 // --- issues query -----------------------------------------------------------
 
 // graphQLIssuesQuery builds the issues query. GitHub costs a query by the product
-// of first: down each path and rejects anything over 500,000 possible nodes, so
-// nesting reactions under comments — issues(100)×comments(100)×reactions(100) =
-// 1,000,000 — is refused outright (MAX_NODE_LIMIT_EXCEEDED). Reactions are also
-// exactly what a mirror skips (SkipReactions), so we never nest them under
-// comments and include the cheap issue-level reactions only when reactions are
-// actually wanted (a non-mirror migration). This keeps the query at ~16k nodes
-// (skip) / ~26k (with reactions), far under the ceiling.
+// of first: down each path and rejects anything over 500,000 possible nodes, and
+// separately budgets per-query compute. Reactions are kept SHALLOW: nesting them
+// under comments (issues×comments×reactions) is a 3rd connection level that blows
+// both limits — issues(100)×comments(100)×reactions(100) = 1,000,000 nodes is
+// refused outright (MAX_NODE_LIMIT_EXCEEDED). So the content query carries only
+// the issue-level reactions (one level, 100×100 = 10k, cheap); comment reactions
+// are fetched afterwards by a batched node-id pass (attachCommentReactions),
+// which stays two levels deep. When reactions are skipped none are requested.
 func (g *GithubDownloaderV3) graphQLIssuesQuery() string {
 	issueReactions := ""
 	if !g.SkipReactions {
-		issueReactions = "reactions(first:100){nodes{content user{login ... on User{databaseId}}}}"
+		issueReactions = "reactions(first:100){totalCount nodes{content user{login ... on User{databaseId}}}}"
 	}
 	return fmt.Sprintf(`
 query($owner:String!,$name:String!,$cursor:String,$since:DateTime){
@@ -251,7 +257,7 @@ query($owner:String!,$name:String!,$cursor:String,$since:DateTime){
         comments(first:100){
           totalCount
           nodes{
-            databaseId body createdAt updatedAt
+            id databaseId body createdAt updatedAt
             author{login ... on User{databaseId}}
           }
         }
@@ -268,24 +274,29 @@ type gqlActor struct {
 	DatabaseID int64  `json:"databaseId"`
 }
 
+type gqlReactionNode struct {
+	Content string   `json:"content"`
+	User    gqlActor `json:"user"`
+}
+
 type gqlReactionConn struct {
-	Nodes []struct {
-		Content string   `json:"content"`
-		User    gqlActor `json:"user"`
-	} `json:"nodes"`
+	// TotalCount lets the batched query detect when an entity's reactions
+	// overflowed the (capped) page returned, so the remainder can be swept.
+	TotalCount int               `json:"totalCount"`
+	Nodes      []gqlReactionNode `json:"nodes"`
 }
 
 type gqlComment struct {
-	DatabaseID int64           `json:"databaseId"`
-	Body       string          `json:"body"`
-	CreatedAt  time.Time       `json:"createdAt"`
-	UpdatedAt  time.Time       `json:"updatedAt"`
-	Author     gqlActor        `json:"author"`
-	Reactions  gqlReactionConn `json:"reactions"`
+	ID         string    `json:"id"` // GraphQL node id, for the reactions node-id pass
+	DatabaseID int64     `json:"databaseId"`
+	Body       string    `json:"body"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+	Author     gqlActor  `json:"author"`
 }
 
 type gqlIssue struct {
-	ID        string     `json:"id"` // GraphQL node id, for the timeline node-id pass
+	ID        string     `json:"id"` // GraphQL node id, for the reactions sweep and timeline pass
 	Number    int64      `json:"number"`
 	Title     string     `json:"title"`
 	Body      string     `json:"body"`
@@ -370,6 +381,9 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 	issues := make([]*base.Issue, 0, len(resp.Repository.Issues.Nodes))
 	// issue node id -> number, for the timeline node-id pass after this page
 	timelineTargets := map[string]int64{}
+	// GraphQL-fetched comments whose reactions are pulled by the batched node-id
+	// pass after this page is built (keyed by comment node id).
+	commentReactionTargets := map[string]*base.Comment{}
 	for i := range resp.Repository.Issues.Nodes {
 		node := &resp.Repository.Issues.Nodes[i]
 
@@ -386,6 +400,10 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 			milestone = node.Milestone.Title
 		}
 
+		issueReactions, err := g.reactionsWithSweep(ctx, node.ID, node.Reactions)
+		if err != nil {
+			return nil, false, err
+		}
 		issues = append(issues, &base.Issue{
 			Number:       node.Number,
 			Title:        node.Title,
@@ -400,14 +418,15 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 			IsLocked:     node.Locked,
 			Labels:       labels,
 			Assignees:    assignees,
-			Reactions:    convertGraphQLReactions(node.Reactions),
+			Reactions:    issueReactions,
 			ForeignIndex: node.Number,
 		})
 		timelineTargets[node.ID] = node.Number
 
 		// Cache the comments that came back with the issue so the comment phase
 		// serves them for free. If the issue has more than one page of comments,
-		// fall back to REST for the complete set (correctness over the fast path).
+		// fall back to REST for the complete set (correctness over the fast path;
+		// the REST path fetches comment reactions itself).
 		if node.Comments.TotalCount > len(node.Comments.Nodes) {
 			rest, err := g.getComments(ctx, &base.Issue{Number: node.Number, ForeignIndex: node.Number})
 			if err != nil {
@@ -416,14 +435,22 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 			g.gqlComments[node.Number] = rest
 			continue
 		}
-		g.gqlComments[node.Number] = convertGraphQLComments(node.Number, node.Comments.Nodes)
+		cached := convertGraphQLComments(node.Number, node.Comments.Nodes)
+		g.gqlComments[node.Number] = cached
+		for j := range cached {
+			commentReactionTargets[node.Comments.Nodes[j].ID] = cached[j]
+		}
 	}
 
 	log.Info("metadata sync [%s/%s]: issues page %d — fetched %d issues, %d with timeline targets",
 		g.repoOwner, g.repoName, page, len(issues), len(timelineTargets))
 
-	// Timeline events are a best-effort enrichment fetched in a separate sweep;
-	// a failure here must never abort the issue/PR/comment import (see #37).
+	// Comment reactions and timeline events are best-effort enrichments fetched
+	// in separate sweeps; a failure in either must never abort the
+	// issue/PR/comment import (see #37).
+	if err := g.attachCommentReactions(ctx, commentReactionTargets); err != nil {
+		log.Error("github graphql: comment reactions sync failed, importing without them: %v", err)
+	}
 	if len(timelineTargets) > 0 {
 		if err := g.attachTimelineEvents(ctx, timelineTargets); err != nil {
 			log.Error("github graphql: timeline events sync failed, importing without them: %v", err)
@@ -433,9 +460,14 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 	return issues, !resp.Repository.Issues.PageInfo.HasNextPage, nil
 }
 
+// convertGraphQLComments maps a set of GraphQL comment nodes to base.Comment,
+// preserving order (1:1 with nodes). Reactions are NOT set here — comment
+// reactions are fetched separately by attachCommentReactions to keep the content
+// query shallow (see graphQLIssuesQuery).
 func convertGraphQLComments(issueNumber int64, nodes []gqlComment) []*base.Comment {
 	comments := make([]*base.Comment, 0, len(nodes))
-	for _, c := range nodes {
+	for i := range nodes {
+		c := &nodes[i]
 		comments = append(comments, &base.Comment{
 			IssueIndex: issueNumber,
 			Index:      c.DatabaseID,
@@ -444,10 +476,69 @@ func convertGraphQLComments(issueNumber int64, nodes []gqlComment) []*base.Comme
 			Content:    c.Body,
 			Created:    c.CreatedAt,
 			Updated:    c.UpdatedAt,
-			Reactions:  convertGraphQLReactions(c.Reactions),
 		})
 	}
 	return comments
+}
+
+// reactionsWithSweep converts an entity's (issue/PR) reactions. The batched query
+// caps the reaction page; when an entity has more reactions than the cap
+// returned, sweep the remainder by node id so nothing is silently dropped.
+func (g *GithubDownloaderV3) reactionsWithSweep(ctx context.Context, nodeID string, conn gqlReactionConn) ([]*base.Reaction, error) {
+	if conn.TotalCount > len(conn.Nodes) && nodeID != "" {
+		return g.sweepReactions(ctx, nodeID)
+	}
+	return convertGraphQLReactions(conn), nil
+}
+
+// graphQLReactionsSweepQuery pages the full reaction list for a single node (any
+// Reactable: issue, PR, or comment), addressed by its GraphQL node id.
+const graphQLReactionsSweepQuery = `
+query($id:ID!,$cursor:String){
+  node(id:$id){
+    ... on Reactable{
+      reactions(first:100,after:$cursor){
+        pageInfo{hasNextPage endCursor}
+        nodes{content user{login ... on User{databaseId}}}
+      }
+    }
+  }
+  rateLimit{cost remaining resetAt}
+}`
+
+// sweepReactions fetches every reaction for one node over GraphQL, following the
+// cursor. Used for the rare entity or comment whose reactions overflowed the
+// capped batched page.
+func (g *GithubDownloaderV3) sweepReactions(ctx context.Context, nodeID string) ([]*base.Reaction, error) {
+	var all []*base.Reaction
+	cursor := ""
+	for {
+		vars := map[string]any{"id": nodeID}
+		if cursor != "" {
+			vars["cursor"] = cursor
+		}
+		var resp struct {
+			Node struct {
+				Reactions struct {
+					PageInfo struct {
+						HasNextPage bool   `json:"hasNextPage"`
+						EndCursor   string `json:"endCursor"`
+					} `json:"pageInfo"`
+					Nodes []gqlReactionNode `json:"nodes"`
+				} `json:"reactions"`
+			} `json:"node"`
+			RateLimit graphQLRateLimit `json:"rateLimit"`
+		}
+		if err := g.doGraphQL(ctx, graphQLReactionsSweepQuery, vars, &resp); err != nil {
+			return nil, err
+		}
+		g.respectGraphQLBudget(ctx, resp.RateLimit)
+		all = append(all, convertGraphQLReactions(gqlReactionConn{Nodes: resp.Node.Reactions.Nodes})...)
+		if !resp.Node.Reactions.PageInfo.HasNextPage {
+			return all, nil
+		}
+		cursor = resp.Node.Reactions.PageInfo.EndCursor
+	}
 }
 
 // convertGraphQLReactions maps GitHub's GraphQL reaction content enum
@@ -465,6 +556,113 @@ func convertGraphQLReactions(conn gqlReactionConn) []*base.Reaction {
 		})
 	}
 	return reactions
+}
+
+// nodeReactionsBatchSize is how many node ids are asked for reactions per request.
+// 100 ids × reactions(first:100) = 10k nodes, two levels deep — well under both
+// the node cap and the per-query compute budget.
+const nodeReactionsBatchSize = 100
+
+// graphQLNodeReactionsQuery fetches reactions for a batch of nodes by id in one
+// request. Two levels deep (nodes → reactions), so it avoids the compute-budget
+// blowup of nesting reactions under comments in the content query. Any Reactable
+// (issue, PR, comment) works; here it's used for comment ids.
+const graphQLNodeReactionsQuery = `
+query($ids:[ID!]!){
+  nodes(ids:$ids){
+    id
+    ... on Reactable{reactions(first:100){totalCount nodes{content user{login ... on User{databaseId}}}}}
+  }
+  rateLimit{cost remaining resetAt}
+}`
+
+// isGraphQLResourceLimited reports whether err is GitHub's
+// RESOURCE_LIMITS_EXCEEDED (the per-query compute budget, distinct from
+// RATE_LIMITED and the node cap).
+func isGraphQLResourceLimited(err error) bool {
+	var ge graphQLError
+	return errors.As(err, &ge) && ge.Type == "RESOURCE_LIMITS_EXCEEDED"
+}
+
+// attachCommentReactions fetches reactions for the given comments (keyed by their
+// GraphQL node id) via the batched node-id pass and sets them in place, so the
+// cached comments carry reactions when the comment phase persists them. No-op
+// when reactions are skipped.
+func (g *GithubDownloaderV3) attachCommentReactions(ctx context.Context, byNodeID map[string]*base.Comment) error {
+	if g.SkipReactions || len(byNodeID) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(byNodeID))
+	for id := range byNodeID {
+		if id != "" {
+			ids = append(ids, id)
+		}
+	}
+	slices.Sort(ids) // deterministic batching
+	for start := 0; start < len(ids); start += nodeReactionsBatchSize {
+		end := min(start+nodeReactionsBatchSize, len(ids))
+		byID, err := g.fetchNodeReactions(ctx, ids[start:end])
+		if err != nil {
+			return err
+		}
+		for id, reactions := range byID {
+			if c := byNodeID[id]; c != nil {
+				c.Reactions = reactions
+			}
+		}
+	}
+	return nil
+}
+
+// fetchNodeReactions returns reactions for a batch of node ids. On
+// RESOURCE_LIMITS_EXCEEDED it halves the batch and retries (adaptive shrink)
+// rather than aborting; a node whose reactions overflow one page falls back to
+// the per-node sweep.
+func (g *GithubDownloaderV3) fetchNodeReactions(ctx context.Context, ids []string) (map[string][]*base.Reaction, error) {
+	if len(ids) == 0 {
+		return map[string][]*base.Reaction{}, nil
+	}
+	var resp struct {
+		Nodes []struct {
+			ID        string          `json:"id"`
+			Reactions gqlReactionConn `json:"reactions"`
+		} `json:"nodes"`
+		RateLimit graphQLRateLimit `json:"rateLimit"`
+	}
+	if err := g.doGraphQL(ctx, graphQLNodeReactionsQuery, map[string]any{"ids": ids}, &resp); err != nil {
+		if isGraphQLResourceLimited(err) && len(ids) > 1 {
+			mid := len(ids) / 2
+			left, err := g.fetchNodeReactions(ctx, ids[:mid])
+			if err != nil {
+				return nil, err
+			}
+			right, err := g.fetchNodeReactions(ctx, ids[mid:])
+			if err != nil {
+				return nil, err
+			}
+			maps.Copy(left, right)
+			return left, nil
+		}
+		return nil, err
+	}
+	g.respectGraphQLBudget(ctx, resp.RateLimit)
+
+	out := make(map[string][]*base.Reaction, len(resp.Nodes))
+	for _, n := range resp.Nodes {
+		if n.ID == "" {
+			continue // null node (unresolvable id)
+		}
+		if n.Reactions.TotalCount > len(n.Reactions.Nodes) {
+			swept, err := g.sweepReactions(ctx, n.ID)
+			if err != nil {
+				return nil, err
+			}
+			out[n.ID] = swept
+			continue
+		}
+		out[n.ID] = convertGraphQLReactions(n.Reactions)
+	}
+	return out, nil
 }
 
 // getCachedComments serves the comments gathered by the GraphQL issue sweep,

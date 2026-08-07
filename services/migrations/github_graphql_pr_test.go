@@ -68,7 +68,9 @@ func TestGraphQLPullRequestParsing(t *testing.T) {
 	g := &GithubDownloaderV3{baseURL: "https://github.com", repoOwner: "go-gitea", repoName: "gitea"}
 
 	// PR metadata + head/base + constructed patch URL + merged/closed convention
-	pr := g.convertGraphQLPullRequest(node)
+	// (no reaction overflow in the fixture, so no sweep is triggered)
+	pr, err := g.convertGraphQLPullRequest(t.Context(), node)
+	require.NoError(t, err)
 	assert.EqualValues(t, 7, pr.Number)
 	assert.Equal(t, "closed", pr.State) // MERGED reports as closed, like REST
 	assert.True(t, pr.Merged)

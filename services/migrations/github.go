@@ -1030,7 +1030,7 @@ func (g *GithubDownloaderV3) GetNewReviews(ctx context.Context, reviewable base.
 		// per-PR ListReviews + per-review ListReviewComments N+1.
 		return g.gqlReviews[reviewable.GetForeignIndex()], nil
 	}
-	return g.GetReviews(ctx, reviewable)
+	return g.getReviewsREST(ctx, reviewable)
 }
 
 func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
@@ -1040,6 +1040,13 @@ func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Rev
 		// REST per-PR ListReviews + per-review ListReviewComments N+1.
 		return g.gqlReviews[reviewable.GetForeignIndex()], nil
 	}
+	return g.getReviewsREST(ctx, reviewable)
+}
+
+// getReviewsREST is the REST implementation behind GetReviews. It is also the
+// fallback the GraphQL PR sweep uses when a pull request's review set overflows
+// one page, so it must never consult the GraphQL cache.
+func (g *GithubDownloaderV3) getReviewsREST(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
 	if g.SkipReviews {
 		return allReviews, nil

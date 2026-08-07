@@ -24,16 +24,19 @@ import (
 	base "gitea.dev/modules/migration"
 )
 
-// graphQLPullRequestsQuery builds the PR query. Same 500k-node ceiling as the
-// issues query: nesting reactions under comments (pullRequests×comments×reactions)
-// is both the biggest node-cost path and exactly the metadata a mirror skips, so
-// reactions are never nested under comments; the cheap PR-level reactions are
-// included only when reactions are wanted. This keeps the query ~55k nodes (the
-// dominant path is reviews(50)×comments(50) = 50k), far under the ceiling.
+// graphQLPullRequestsQuery builds the PR query. Same 500k-node ceiling and
+// per-query compute budget as the issues query: nesting reactions under comments
+// (pullRequests×comments×reactions) is a 3rd connection level that blows both,
+// so the content query carries only the PR-level reactions; PR-comment reactions
+// come from the batched node-id pass (attachCommentReactions). Review-comment
+// reactions are deliberately NOT fetched: that path is four deep
+// (pullRequests×reviews×comments×reactions) and needs a separate pass — a
+// follow-up. The dominant node path stays reviews(50)×comments(50) = 50k, far
+// under the ceiling.
 func (g *GithubDownloaderV3) graphQLPullRequestsQuery() string {
 	prReactions := ""
 	if !g.SkipReactions {
-		prReactions = "reactions(first:100){nodes{content user{login ... on User{databaseId}}}}"
+		prReactions = "reactions(first:100){totalCount nodes{content user{login ... on User{databaseId}}}}"
 	}
 	return fmt.Sprintf(`
 query($owner:String!,$name:String!,$cursor:String){
@@ -52,7 +55,7 @@ query($owner:String!,$name:String!,$cursor:String){
         labels(first:30){nodes{name color description}}
         assignees(first:30){nodes{login}}
         %s
-        comments(first:100){totalCount nodes{databaseId body createdAt updatedAt author{login ... on User{databaseId}}}}
+        comments(first:100){totalCount nodes{id databaseId body createdAt updatedAt author{login ... on User{databaseId}}}}
         reviews(first:50){totalCount nodes{
           databaseId state body createdAt submittedAt
           author{login ... on User{databaseId}}
@@ -107,7 +110,7 @@ type gqlReview struct {
 }
 
 type gqlPullRequest struct {
-	ID        string     `json:"id"` // GraphQL node id, for the timeline node-id pass
+	ID        string     `json:"id"` // GraphQL node id, for the reactions sweep and timeline pass
 	Number    int64      `json:"number"`
 	Title     string     `json:"title"`
 	Body      string     `json:"body"`
@@ -206,6 +209,9 @@ func (g *GithubDownloaderV3) getNewPullRequestsGraphQL(ctx context.Context, page
 	allPRs := make([]*base.PullRequest, 0, len(resp.Repository.PullRequests.Nodes))
 	// PR node id -> number, for the timeline node-id pass after this page
 	timelineTargets := map[string]int64{}
+	// PR-comment reactions are fetched by the batched node-id pass after this
+	// page is built (keyed by comment node id).
+	commentReactionTargets := map[string]*base.Comment{}
 	hitWatermark := false
 	for i := range resp.Repository.PullRequests.Nodes {
 		node := &resp.Repository.PullRequests.Nodes[i]
@@ -217,14 +223,18 @@ func (g *GithubDownloaderV3) getNewPullRequestsGraphQL(ctx context.Context, page
 			break
 		}
 
-		pr := g.convertGraphQLPullRequest(node)
+		pr, err := g.convertGraphQLPullRequest(ctx, node)
+		if err != nil {
+			return nil, false, err
+		}
 		allPRs = append(allPRs, pr)
 		timelineTargets[node.ID] = node.Number
 		// SECURITY: ensure the PR is safe (mirrors the REST path)
 		_ = CheckAndEnsureSafePR(pr, g.baseURL, g)
 
 		// Cache the PR's issue-comments into the shared cache (served by the
-		// comment phase). Overflow -> REST for this PR's comments.
+		// comment phase). Overflow -> REST for this PR's comments (the REST path
+		// fetches comment reactions itself).
 		if node.Comments.TotalCount > len(node.Comments.Nodes) {
 			rest, err := g.getComments(ctx, pr)
 			if err != nil {
@@ -232,14 +242,18 @@ func (g *GithubDownloaderV3) getNewPullRequestsGraphQL(ctx context.Context, page
 			}
 			g.gqlComments[node.Number] = rest
 		} else {
-			g.gqlComments[node.Number] = convertGraphQLComments(node.Number, node.Comments.Nodes)
+			cached := convertGraphQLComments(node.Number, node.Comments.Nodes)
+			g.gqlComments[node.Number] = cached
+			for j := range cached {
+				commentReactionTargets[node.Comments.Nodes[j].ID] = cached[j]
+			}
 		}
 
 		// Cache reviews (with inline comments). If any review set or a review's
 		// comment set overflows one page, fall back to REST for the whole PR's
 		// reviews so nothing is dropped.
 		if g.reviewsOverflow(node) {
-			restReviews, err := g.GetReviews(ctx, pr)
+			restReviews, err := g.getReviewsREST(ctx, pr)
 			if err != nil {
 				return nil, false, err
 			}
@@ -252,7 +266,11 @@ func (g *GithubDownloaderV3) getNewPullRequestsGraphQL(ctx context.Context, page
 	log.Info("metadata sync [%s/%s]: PRs page %d — %d new, %d timeline targets, watermark_reached=%v",
 		g.repoOwner, g.repoName, page, len(allPRs), len(timelineTargets), hitWatermark)
 
-	// Best-effort: a timeline failure must not abort the PR/comment import (#37).
+	// Best-effort: reaction + timeline sweeps must not abort the PR/comment
+	// import (#37).
+	if err := g.attachCommentReactions(ctx, commentReactionTargets); err != nil {
+		log.Error("github graphql: PR comment reactions sync failed, importing without them: %v", err)
+	}
 	if len(timelineTargets) > 0 {
 		if err := g.attachTimelineEvents(ctx, timelineTargets); err != nil {
 			log.Error("github graphql: PR timeline events sync failed, importing without them: %v", err)
@@ -276,7 +294,11 @@ func (g *GithubDownloaderV3) reviewsOverflow(node *gqlPullRequest) bool {
 	return false
 }
 
-func (g *GithubDownloaderV3) convertGraphQLPullRequest(node *gqlPullRequest) *base.PullRequest {
+func (g *GithubDownloaderV3) convertGraphQLPullRequest(ctx context.Context, node *gqlPullRequest) (*base.PullRequest, error) {
+	prReactions, err := g.reactionsWithSweep(ctx, node.ID, node.Reactions)
+	if err != nil {
+		return nil, err
+	}
 	labels := make([]*base.Label, 0, len(node.Labels.Nodes))
 	for _, l := range node.Labels.Nodes {
 		labels = append(labels, &base.Label{Name: l.Name, Color: l.Color, Description: l.Description})
@@ -333,10 +355,10 @@ func (g *GithubDownloaderV3) convertGraphQLPullRequest(node *gqlPullRequest) *ba
 		Base:           baseBranch,
 		Assignees:      assignees,
 		IsLocked:       node.Locked,
-		Reactions:      convertGraphQLReactions(node.Reactions),
+		Reactions:      prReactions,
 		ForeignIndex:   node.Number,
 		IsDraft:        node.IsDraft,
-	}
+	}, nil
 }
 
 // convertGraphQLReviews maps a PR's GraphQL reviews (and their inline comments)
