@@ -111,10 +111,7 @@ func (l *redisLocker) startExtend() {
 
 	toExtend := make([]*redsync.Mutex, 0)
 	l.mutexM.Range(func(_, value any) bool {
-		m, ok := value.(*redsync.Mutex)
-		if !ok {
-			return true
-		}
+		m := value.(*redsync.Mutex) //nolint:forcetypeassert // mutexM only ever holds *redsync.Mutex
 
 		// Extend the lock if it is not expired.
 		// Although the mutex will be removed from the map before it is released,

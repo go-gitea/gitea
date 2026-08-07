@@ -270,7 +270,8 @@ func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, comm
 func payloadAs[T api.Payloader](payload api.Payloader, triggedEvent webhook_module.HookEventType) (T, bool) {
 	typedPayload, ok := payload.(T)
 	if !ok {
-		log.Error("Event %q was triggered with payload type %T instead of %T", triggedEvent, payload, typedPayload)
+		// the event type determines the payload type, so a mismatch can only be a programming error
+		panic(fmt.Sprintf("event %q was triggered with payload type %T instead of %T", triggedEvent, payload, typedPayload))
 	}
 	return typedPayload, ok
 }

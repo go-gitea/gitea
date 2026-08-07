@@ -4,7 +4,6 @@
 package admin
 
 import (
-	"errors"
 	"net/http"
 
 	"gitea.dev/modules/log"
@@ -40,11 +39,7 @@ func ListCronTasks(ctx *context.APIContext) {
 	count := len(tasks)
 
 	listOpts := utils.GetListOptions(ctx)
-	tasks, ok := util.PaginateSlice(tasks, listOpts.Page, listOpts.PageSize).(cron.TaskTable)
-	if !ok {
-		ctx.APIErrorInternal(errors.New("unexpected type from PaginateSlice"))
-		return
-	}
+	tasks = util.PaginateSlice(tasks, listOpts.Page, listOpts.PageSize)
 
 	res := make([]structs.Cron, len(tasks))
 	for i, task := range tasks {
