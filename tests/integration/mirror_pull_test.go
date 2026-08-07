@@ -92,7 +92,7 @@ func TestMirrorPull(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        true,
-	}, nil, ""))
+	}, nil, "", false))
 
 	_, err = repo_model.GetMirrorByRepoID(ctx, mirrorRepo.ID)
 	assert.NoError(t, err)

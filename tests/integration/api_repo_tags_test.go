@@ -9,8 +9,10 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
@@ -80,4 +82,37 @@ func createNewTagUsingAPI(t *testing.T, token, ownerName, repoName, name, target
 
 	respObj := DecodeJSON(t, resp, &api.Tag{})
 	return respObj
+}
+
+func TestAPIRepoTagCreateWithUseCommitDate(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	repoName := "repo1"
+	target := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+
+	gitRepo, err := git.OpenRepository(t.Context(), &repo_model.Repository{OwnerName: user.Name, Name: repoName})
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	commit, err := gitRepo.GetCommit(t.Context(), target)
+	require.NoError(t, err)
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/tags", user.Name, repoName)
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateTagOption{
+		TagName:       "use-commit-date-tag",
+		Message:       "tagged with commit date",
+		Target:        target,
+		UseCommitDate: true,
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusCreated)
+
+	newTag := DecodeJSON(t, resp, &api.Tag{})
+	assert.True(t, commit.Committer.When.Equal(newTag.Commit.Created), "expected tag commit date %v, got %v", commit.Committer.When, newTag.Commit.Created)
+
+	// cleanup
+	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s", user.Name, repoName, newTag.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, delReq, http.StatusNoContent)
 }

@@ -33,14 +33,14 @@ func TestCreateNewTagProtected(t *testing.T) {
 	t.Run("Code", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		err := release.CreateNewTag(t.Context(), owner, repo, "master", "t-first", "first tag")
+		err := release.CreateNewTag(t.Context(), owner, repo, "master", "t-first", "first tag", false)
 		assert.NoError(t, err)
 
-		err = release.CreateNewTag(t.Context(), owner, repo, "master", "v-2", "second tag")
+		err = release.CreateNewTag(t.Context(), owner, repo, "master", "v-2", "second tag", false)
 		assert.Error(t, err)
 		assert.True(t, release.IsErrProtectedTagName(err))
 
-		err = release.CreateNewTag(t.Context(), owner, repo, "master", "v-1.1", "third tag")
+		err = release.CreateNewTag(t.Context(), owner, repo, "master", "v-1.1", "third tag", false)
 		assert.NoError(t, err)
 	})
 

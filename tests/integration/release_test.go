@@ -11,6 +11,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/translation"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title string, preRelease, draft bool) {
@@ -82,6 +84,41 @@ func TestCreateRelease(t *testing.T) {
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
 
 	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").TrString("repo.release.stable"), 4)
+}
+
+func TestCreateReleaseUseCommitDate(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+	commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
+	require.NoError(t, err)
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo1/releases/new")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+
+	req = NewRequestWithValues(t, "POST", link, map[string]string{
+		"tag_name":        "v0.0.1-use-commit-date",
+		"tag_target":      "master",
+		"title":           "v0.0.1-use-commit-date",
+		"content":         "release note",
+		"add_tag_msg":     "on",
+		"use_commit_date": "on",
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()))
+
+	tag, err := gitRepo.GetTag(t.Context(), "v0.0.1-use-commit-date")
+	require.NoError(t, err)
+	require.NotNil(t, tag.Tagger)
+	assert.True(t, commit.Committer.When.Equal(tag.Tagger.When), "expected tagger date %v, got %v", commit.Committer.When, tag.Tagger.When)
 }
 
 func TestCreateReleasePreRelease(t *testing.T) {
