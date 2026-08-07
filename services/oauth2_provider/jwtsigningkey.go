@@ -81,8 +81,7 @@ type rsaSingingKey struct {
 }
 
 func newRSASingingKey(signingMethod jwt.SigningMethod, key *rsa.PrivateKey) (rsaSingingKey, error) {
-	//nolint:forcetypeassert // (*rsa.PrivateKey).Public always returns *rsa.PublicKey
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*rsa.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*rsa.PublicKey)) //nolint:forcetypeassert // (*rsa.PrivateKey).Public always returns *rsa.PublicKey
 	if err != nil {
 		return rsaSingingKey{}, err
 	}
@@ -133,8 +132,7 @@ type eddsaSigningKey struct {
 }
 
 func newEdDSASingingKey(signingMethod jwt.SigningMethod, key ed25519.PrivateKey) (eddsaSigningKey, error) {
-	//nolint:forcetypeassert // ed25519.PrivateKey.Public always returns ed25519.PublicKey
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(ed25519.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(key.Public().(ed25519.PublicKey)) //nolint:forcetypeassert // ed25519.PrivateKey.Public always returns ed25519.PublicKey
 	if err != nil {
 		return eddsaSigningKey{}, err
 	}
@@ -185,8 +183,7 @@ type ecdsaSingingKey struct {
 }
 
 func newECDSASingingKey(signingMethod jwt.SigningMethod, key *ecdsa.PrivateKey) (ecdsaSingingKey, error) {
-	//nolint:forcetypeassert // (*ecdsa.PrivateKey).Public always returns *ecdsa.PublicKey
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*ecdsa.PublicKey))
+	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*ecdsa.PublicKey)) //nolint:forcetypeassert // (*ecdsa.PrivateKey).Public always returns *ecdsa.PublicKey
 	if err != nil {
 		return ecdsaSingingKey{}, err
 	}

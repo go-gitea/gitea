@@ -43,8 +43,8 @@ func (g *ASTTransformer) applyElementDir(n ast.Node) {
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	firstChild := node.FirstChild()
-	//nolint:forcetypeassert // the renderer always seeds both keys before parsing
-	ctx, rc := pc.Get(renderContextKey).(*markup.RenderContext), pc.Get(renderConfigKey).(*RenderConfig)
+	ctx := pc.Get(renderContextKey).(*markup.RenderContext) //nolint:forcetypeassert // the renderer always seeds this key before parsing
+	rc := pc.Get(renderConfigKey).(*RenderConfig)           //nolint:forcetypeassert // the renderer always seeds this key before parsing
 
 	tocMode := ""
 	if rc.yamlNode != nil {

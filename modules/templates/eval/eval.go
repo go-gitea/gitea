@@ -145,8 +145,7 @@ func applyOp2(op operator, n1, n2 Num) Num {
 		f2, _ := util.ToFloat64(n2.Value)
 		return applyOp2Generic(op, f1, f2)
 	}
-	//nolint:forcetypeassert // castFloat64 above already ruled out float, so both values are int64
-	return applyOp2Generic(op, n1.Value.(int64), n2.Value.(int64))
+	return applyOp2Generic(op, n1.Value.(int64), n2.Value.(int64)) //nolint:forcetypeassert // castFloat64 above already ruled out float
 }
 
 func toOp(v any) (operator, error) {

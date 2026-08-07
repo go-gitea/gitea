@@ -354,8 +354,7 @@ func (a *footnoteASTTransformer) Transform(node *ast.Document, reader text.Reade
 		footnote = next
 	}
 	list.SortChildren(func(n1, n2 ast.Node) int {
-		//nolint:forcetypeassert // a FootnoteList only holds *Footnote children
-		if n1.(*Footnote).Index < n2.(*Footnote).Index {
+		if n1.(*Footnote).Index < n2.(*Footnote).Index { //nolint:forcetypeassert // a FootnoteList only holds *Footnote children
 			return -1
 		}
 		return 1
