@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -31,6 +32,11 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 		_, err = l.Save(f[0], strings.NewReader(f[1]), -1)
 		assert.NoError(t, err)
 	}
+	defer func() {
+		for _, f := range testFiles {
+			_ = l.Delete(f[0])
+		}
+	}()
 
 	expectedList := map[string][]string{
 		"a":           {"a/1.txt"},
@@ -43,7 +49,9 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 	for dir, expected := range expectedList {
 		count := 0
 		err = l.IterateObjects(dir, func(path string, f Object) error {
-			defer f.Close()
+			content, err := io.ReadAll(f)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, content)
 			assert.Contains(t, expected, path)
 			count++
 			return nil
