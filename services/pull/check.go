@@ -436,6 +436,53 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 	return true
 }
 
+func wasPullRequestPreviouslyNonEmpty(previousMergeBase, headCommitID string) bool {
+	return previousMergeBase != "" && headCommitID != "" && previousMergeBase != headCommitID
+}
+
+// mergedAsAncestor marks a previously non-empty pull request as merged when its
+// head is now already reachable from the base branch.
+func mergedAsAncestor(ctx context.Context, pr *issues_model.PullRequest) bool {
+	if !pr.IsAncestor() {
+		return false
+	}
+
+	if err := pr.LoadBaseRepo(ctx); err != nil {
+		log.Error("%-v LoadBaseRepo: %v", pr, err)
+		return false
+	}
+
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
+	if err != nil {
+		log.Error("%-v OpenRepository: %v", pr.BaseRepo, err)
+		return false
+	}
+	defer gitRepo.Close()
+
+	commit, err := gitRepo.GetCommit(ctx, pr.HeadCommitID)
+	if err != nil {
+		log.Error("%-v GetCommit[%s]: %v", pr, pr.HeadCommitID, err)
+		return false
+	}
+
+	merger, err := getMergerForManuallyMergedPullRequest(ctx, pr)
+	if err != nil {
+		log.Error("%-v getMergerForManuallyMergedPullRequest: %v", pr, err)
+		return false
+	}
+
+	if merged, err := SetMerged(ctx, pr, commit.ID.String(), timeutil.TimeStamp(commit.Author.When.Unix()), merger, issues_model.PullRequestStatusManuallyMerged); err != nil {
+		log.Error("%-v setMerged: %v", pr, err)
+		return false
+	} else if !merged {
+		return false
+	}
+
+	notify_service.MergePullRequest(ctx, merger, pr)
+	log.Info("mergedAsAncestor[%-v]: Marked as merged into %s/%s by commit id: %s", pr, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
+	return true
+}
+
 // InitializePullRequests checks and tests untested patches of pull requests.
 func InitializePullRequests(ctx context.Context) {
 	// If we prefer to delay the checks, then no need to do any check during startup, there should be not much difference
@@ -490,12 +537,17 @@ func checkPullRequestMergeable(id int64) {
 		return
 	}
 
+	previousMergeBase := pr.MergeBase
 	if err := checkPullRequestBranchMergeable(ctx, pr); err != nil {
 		log.Error("checkPullRequestBranchMergeable[%-v]: %v", pr, err)
 		pr.Status = issues_model.PullRequestStatusError
 		if err := pr.UpdateCols(ctx, "status"); err != nil {
 			log.Error("update pr [%-v] status to PullRequestStatusError failed: %v", pr, err)
 		}
+		return
+	}
+	if wasPullRequestPreviouslyNonEmpty(previousMergeBase, pr.HeadCommitID) && mergedAsAncestor(ctx, pr) {
+		log.Trace("%-v is merged as ancestor (status: %s, merge commit: %s)", pr, pr.Status, pr.MergedCommitID)
 		return
 	}
 	markPullRequestAsMergeable(ctx, pr)

@@ -6,8 +6,40 @@ package pull
 import (
 	"testing"
 
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestSetMergedMarksAlreadyClosedPullRequest(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	require.NoError(t, pr.LoadIssue(ctx))
+
+	pr.Issue.IsClosed = true
+	_, err := db.GetEngine(ctx).ID(pr.Issue.ID).Cols("is_closed").Update(pr.Issue)
+	require.NoError(t, err)
+
+	merger := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	merged, err := SetMerged(ctx, pr, "0123456789012345678901234567890123456789", timeutil.TimeStampNow(), merger, issues_model.PullRequestStatusManuallyMerged)
+	require.NoError(t, err)
+	require.True(t, merged)
+
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.True(t, pr.HasMerged)
+	assert.Equal(t, "0123456789012345678901234567890123456789", pr.MergedCommitID)
+	assert.Equal(t, merger.ID, pr.MergerID)
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: pr.IssueID})
+	assert.True(t, issue.IsClosed)
+}
 
 func Test_expandDefaultMergeMessage(t *testing.T) {
 	type args struct {

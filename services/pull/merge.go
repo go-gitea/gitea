@@ -718,9 +718,10 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 			return false, fmt.Errorf("DeleteScheduledAutoMerge[%d]: %v", pr.ID, err)
 		}
 
-		// Set issue as closed
-		if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, true); err != nil {
-			return false, fmt.Errorf("ChangeIssueStatus: %w", err)
+		if !pr.Issue.IsClosed {
+			if _, err := issues_model.SetIssueAsClosed(ctx, pr.Issue, pr.Merger, true); err != nil {
+				return false, fmt.Errorf("ChangeIssueStatus: %w", err)
+			}
 		}
 
 		// We need to save all of the data used to compute this merge as it may have already been changed by checkPullRequestBranchMergeable. FIXME: need to set some state to prevent checkPullRequestBranchMergeable from running whilst we are merging.
