@@ -38,8 +38,7 @@ func Init() {
 	webauthn.Init()
 }
 
-// handleSignIn clears existing session variables and stores new ones for the specified user object.
-// It is only called when establishing a new session (not on every authenticated request).
+// handleSignIn clears existing session variables and stores new ones for the specified user object
 func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
 	// We need to regenerate the session...
 	newSess, err := session.RegenerateSession(resp, req)
@@ -55,10 +54,10 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 
-	// Single UpdateUser: optional language seed + last login (password/OAuth path also sets last login on sign-in).
 	opts := &user_service.UpdateOptions{SetLastLogin: true}
+	// Language setting of the user overwrites the one previously set
+	// If the user does not have a locale set, we save the current one.
 	if len(user.Language) == 0 {
-		// If the user does not have a locale set, persist the current request locale.
 		opts.Language = optional.Some(middleware.Locale(resp, req).Language())
 	}
 	if err := user_service.UpdateUser(req.Context(), user, opts); err != nil {
