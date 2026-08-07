@@ -24,14 +24,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Fetch staging manifests
-        shell: pwsh
+        shell: powershell
         run: |
           git fetch origin staging --depth=1
           git checkout origin/staging -- k8s/staging.yaml
 
       - name: Set image tag
         id: tag
-        shell: pwsh
+        shell: powershell
         run: |
           $sha = $env:GITHUB_SHA.Substring(0, 8)
           Add-Content $env:GITHUB_OUTPUT "SHA=$sha"
@@ -50,7 +50,7 @@ jobs:
           kubectl rollout status deployment/app -n staging --timeout=120s
 
       - name: Wait for app to be ready
-        shell: pwsh
+        shell: powershell
         run: |
           for ($i = 1; $i -le 30; $i++) {
             try {
@@ -73,10 +73,10 @@ jobs:
           N8N_URL: http://localhost:30678
           BASELINE_URL: http://localhost:30301
           STAGING_URL: http://localhost:30302
-        shell: pwsh
+        shell: powershell
         run: python $env:APIA_HOME/pipeline/pipeline.py
 
       - name: Teardown staging
         if: always()
-        shell: pwsh
+        shell: powershell
         run: kubectl delete -f k8s/staging.yaml --ignore-not-found=true
