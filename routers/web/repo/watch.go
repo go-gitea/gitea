@@ -11,39 +11,18 @@ import (
 	"gitea.dev/services/context"
 )
 
-const (
-	tplWatch           templates.TplName = "repo/header/watch"
-	tplWatchOptionsBtn templates.TplName = "repo/watch_options_button"
-)
+const tplWatch templates.TplName = "repo/header/watch"
 
 func ActionWatch(ctx *context.Context) {
 	doWatch := ctx.PathParam("action") == "watch"
-
-	var watchOptions *repo_model.WatchOptions
-	if doWatch {
-		if ctx.FormString("watch_mode") == "custom" {
-			opts := getWatchOptions(ctx)
-			if !validateWatchOptions(ctx, opts) {
-				return
-			}
-			watchOptions = &opts
-		} else {
-			// "All activity": always (re)enable every event type, even if the user
-			// previously had a Custom selection.
-			watchOptions = &repo_model.WatchOptions{PullRequests: true, Issues: true, Releases: true}
-		}
-	}
-
-	err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, doWatch)
-	if err != nil {
+	if err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, doWatch); err != nil {
 		handleActionError(ctx, err)
 		return
 	}
-
-	if watchOptions != nil {
-		err = repo_model.WatchRepoOptions(ctx, ctx.Doer, ctx.Repo.Repository, *watchOptions)
-		if err != nil {
-			handleActionError(ctx, err)
+	if doWatch { // watching again always restores every event, so "all activity" can undo a custom selection
+		opts := repo_model.WatchOptions{PullRequests: true, Issues: true, Releases: true}
+		if err := repo_model.SetWatchOptions(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, opts); err != nil {
+			ctx.ServerError("SetWatchOptions", err)
 			return
 		}
 	}
@@ -61,43 +40,27 @@ func ActionWatch(ctx *context.Context) {
 		ctx.ServerError("GetRepositoryByName", err)
 		return
 	}
-
 	ctx.HTML(http.StatusOK, tplWatch)
 }
 
+// ActionWatchOptions watches the repository with a custom selection of events
 func ActionWatchOptions(ctx *context.Context) {
-	opts := getWatchOptions(ctx)
-	if !validateWatchOptions(ctx, opts) {
+	opts := repo_model.WatchOptions{
+		PullRequests: ctx.FormBool(string(repo_model.WatchPullRequests)),
+		Issues:       ctx.FormBool(string(repo_model.WatchIssues)),
+		Releases:     ctx.FormBool(string(repo_model.WatchReleases)),
+	}
+	if !opts.PullRequests && !opts.Issues && !opts.Releases {
+		ctx.JSONError(ctx.Tr("repo.watch.options.required"))
 		return
 	}
-
-	err := repo_model.WatchRepoOptions(ctx, ctx.Doer, ctx.Repo.Repository, opts)
-	if err != nil {
+	if err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, true); err != nil {
 		handleActionError(ctx, err)
 		return
 	}
-
-	ctx.Data["RepoID"] = ctx.Repo.Repository.ID
-	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
-	ctx.Data["WatchPullRequests"] = opts.PullRequests
-	ctx.Data["WatchIssues"] = opts.Issues
-	ctx.Data["WatchReleases"] = opts.Releases
-
-	ctx.HTML(http.StatusOK, tplWatchOptionsBtn)
-}
-
-func getWatchOptions(ctx *context.Context) repo_model.WatchOptions {
-	return repo_model.WatchOptions{
-		PullRequests: ctx.FormBool("pull_requests"),
-		Issues:       ctx.FormBool("issues"),
-		Releases:     ctx.FormBool("releases"),
+	if err := repo_model.SetWatchOptions(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, opts); err != nil {
+		ctx.ServerError("SetWatchOptions", err)
+		return
 	}
-}
-
-func validateWatchOptions(ctx *context.Context, opts repo_model.WatchOptions) bool {
-	if opts.PullRequests || opts.Issues || opts.Releases {
-		return true
-	}
-	ctx.JSONError(ctx.Tr("repo.watch.options.required"))
-	return false
+	ctx.JSONRedirect("")
 }

@@ -10,6 +10,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // IssueWatch is connection request for receiving issue notification.
@@ -81,14 +82,8 @@ func CheckIssueWatch(ctx context.Context, user *user_model.User, issue *Issue) (
 	if err != nil {
 		return false, err
 	}
-	if repo_model.IsWatchMode(w.Mode) {
-		enabled := w.Issues
-		if issue.IsPull {
-			enabled = w.PullRequests
-		}
-		if enabled {
-			return true, nil
-		}
+	if repo_model.IsWatchMode(w.Mode) && util.Iif(issue.IsPull, w.PullRequests, w.Issues) {
+		return true, nil
 	}
 	return IsUserParticipantsOfIssue(ctx, user, issue), nil
 }

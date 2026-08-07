@@ -150,13 +150,17 @@ func (ns *notificationService) NewPullRequest(ctx context.Context, pr *issues_mo
 		log.Error("GetRepoWatchersIDs: %v", err)
 		return
 	}
-	toNotify.AddMultiple(repoWatchers...)
+	for _, id := range repoWatchers {
+		toNotify.Add(id)
+	}
 	issueParticipants, err := issues_model.GetParticipantsIDsByIssueID(ctx, pr.IssueID)
 	if err != nil {
 		log.Error("GetParticipantsIDsByIssueID: %v", err)
 		return
 	}
-	toNotify.AddMultiple(issueParticipants...)
+	for _, id := range issueParticipants {
+		toNotify.Add(id)
+	}
 	delete(toNotify, pr.Issue.PosterID)
 	for _, mention := range mentions {
 		toNotify.Add(mention.ID)

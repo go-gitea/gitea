@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 const MailBatchSize = 100 // batch size used in mailIssueCommentBatch
@@ -66,11 +67,7 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
 	if !(comment.Issue.IsPull && comment.Issue.PullRequest.IsWorkInProgress(ctx) && comment.ActionType != activities_model.ActionCreatePullRequest) {
-		watchType := repo_model.WatchIssues
-		if comment.Issue.IsPull {
-			watchType = repo_model.WatchPullRequests
-		}
-
+		watchType := util.Iif(comment.Issue.IsPull, repo_model.WatchPullRequests, repo_model.WatchIssues)
 		ids, err = repo_model.GetRepoWatchersIDs(ctx, comment.Issue.RepoID, watchType)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %w", comment.Issue.RepoID, err)

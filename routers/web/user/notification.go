@@ -399,9 +399,9 @@ func NotificationWatching(ctx *context.Context) {
 	ctx.Data["Total"] = count
 	ctx.Data["Repos"] = repos
 
-	watches, err := repo_model.GetWatches(ctx, repos)
+	watches, err := repo_model.GetUserWatches(ctx, ctx.Doer.ID, repos.IDs())
 	if err != nil {
-		ctx.ServerError("GetWatches", err)
+		ctx.ServerError("GetUserWatches", err)
 		return
 	}
 	ctx.Data["Watches"] = watches
