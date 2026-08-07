@@ -85,7 +85,11 @@ type GithubDownloaderV3 struct {
 	// list. The issues endpoint caps classic page-number pagination at ~page 100,
 	// so a large repo's issues must be walked by cursor instead. Carried on the
 	// downloader (created fresh per sync); reset at the start of each sweep.
-	issuesCursor string
+	// issuesNextPage is the page-number fallback for servers whose Link header
+	// carries no cursor (older GitHub Enterprise): without it a full first page
+	// would be re-requested forever. Exactly one of the two advances a sweep.
+	issuesCursor   string
+	issuesNextPage int
 
 	// useGraphQL opts the issues stream into the batched GraphQL fast path
 	// (see github_graphql.go), which fetches an issue plus its comments and
@@ -479,9 +483,12 @@ func (g *GithubDownloaderV3) getIssuesSince(ctx context.Context, page, perPage i
 	// Paginate by the Link-header `after` cursor, not a page number: GitHub caps
 	// classic page-number pagination on the issues endpoint at ~page 100 (~10k
 	// items), silently truncating a large repository. The cursor has no such cap.
-	// page<=1 marks the first request of a sweep, so reset the cursor there.
+	// Servers whose Link header carries no cursor (older GitHub Enterprise) fall
+	// back to the page number from the same header. page<=1 marks the first
+	// request of a sweep, so reset both there.
 	if page <= 1 {
 		g.issuesCursor = ""
+		g.issuesNextPage = 0
 	}
 	opt := &github.IssueListByRepoOptions{
 		Sort:              sortField,
@@ -489,7 +496,7 @@ func (g *GithubDownloaderV3) getIssuesSince(ctx context.Context, page, perPage i
 		State:             "all",
 		Since:             since,
 		ListCursorOptions: github.ListCursorOptions{After: g.issuesCursor},
-		ListOptions:       github.ListOptions{PerPage: perPage},
+		ListOptions:       github.ListOptions{PerPage: perPage, Page: g.issuesNextPage},
 	}
 
 	allIssues := make([]*base.Issue, 0, perPage)
@@ -498,9 +505,16 @@ func (g *GithubDownloaderV3) getIssuesSince(ctx context.Context, page, perPage i
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
-	log.Trace("Request get issues cursor=%q got %d, next=%q", g.issuesCursor, len(issues), resp.After)
+	log.Trace("Request get issues cursor=%q page=%d got %d, next=%q nextPage=%d", g.issuesCursor, g.issuesNextPage, len(issues), resp.After, resp.NextPage)
 	g.setRate(&resp.Rate)
+	// Prefer the cursor; without one (page-based Link only) advance by page
+	// number so a full page can never be re-requested forever.
 	g.issuesCursor = resp.After
+	if g.issuesCursor == "" {
+		g.issuesNextPage = resp.NextPage
+	} else {
+		g.issuesNextPage = 0
+	}
 	for _, issue := range issues {
 		if issue.IsPullRequest() {
 			continue
@@ -541,9 +555,10 @@ func (g *GithubDownloaderV3) getIssuesSince(ctx context.Context, page, perPage i
 		})
 	}
 
-	// End when the cursor is exhausted AND a short page confirms no more results.
-	// Both conditions together handle cursor-based and page-based responses.
-	isEnd := resp.After == "" && len(issues) < perPage
+	// Terminate on the Link header alone: no next cursor and no next page means
+	// the sweep is done, for cursor-based and page-based servers alike. A short
+	// page mid-results must not be misread as the end of a large backfill.
+	isEnd := resp.After == "" && resp.NextPage == 0
 	return allIssues, isEnd, nil
 }
 
