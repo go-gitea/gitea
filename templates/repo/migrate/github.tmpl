@@ -6,21 +6,21 @@
 		</h3>
 		<div class="ui attached segment">
 			{{template "base/alert" .}}
-			<form class="ui form left-right-form form-fetch-action" action="{{.Link}}" method="post">
+			<form class="ui form left-right-form" action="{{.Link}}" method="post">
 
 				<input id="service_type" type="hidden" name="service" value="{{.service}}">
 
-				<div class="inline required field">
+				<div class="inline required field {{if .Err_CloneAddr}}error{{end}}">
 					<label for="clone_addr">{{ctx.Locale.Tr "repo.migrate.clone_address"}}</label>
-					<input id="clone_addr" name="clone_addr" autofocus required>
+					<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
 					<span class="help">
 					{{ctx.Locale.Tr "repo.migrate.clone_address_desc"}}
 					</span>
 				</div>
 
-				<div class="inline field">
+				<div class="inline field {{if .Err_Auth}}error{{end}}">
 					<label for="auth_token">{{ctx.Locale.Tr "access_token"}}</label>
-					<input id="auth_token" name="auth_token" type="password" autocomplete="new-password" data-need-clear="true">
+					<input id="auth_token" name="auth_token" type="password" autocomplete="new-password" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
 					<a target="_blank" href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">{{svg "octicon-question"}}</a>
 					<span class="help">
 					{{ctx.Locale.Tr "repo.migrate.github_token_desc"}}
@@ -71,7 +71,7 @@
 
 				<div class="divider"></div>
 
-				<div class="inline required field">
+				<div class="inline required field {{if .Err_Owner}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.owner"}}</label>
 					<div class="ui selection owner dropdown ellipsis-text-items">
 						<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
@@ -95,9 +95,9 @@
 					</div>
 				</div>
 
-				<div class="inline required field">
+				<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input id="repo_name" name="repo_name" required maxlength="100">
+					<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
@@ -111,9 +111,9 @@
 						{{end}}
 					</div>
 				</div>
-				<div class="inline field">
+				<div class="inline field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{ctx.Locale.Tr "repo.repo_desc"}}</label>
-					<textarea id="description" name="description" maxlength="2048"></textarea>
+					<textarea id="description" name="description" maxlength="2048">{{.description}}</textarea>
 				</div>
 
 				<div class="inline field">

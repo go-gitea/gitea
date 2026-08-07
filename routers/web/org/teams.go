@@ -369,12 +369,6 @@ func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_mod
 // NewTeamPost response for create new team
 func NewTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
-
-	if ctx.HasError() { // form binding validation error
-		ctx.JSONError(ctx.GetErrMsg())
-		return
-	}
-
 	includesAllRepositories := form.RepoAccess == "all"
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
 	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
@@ -399,22 +393,34 @@ func NewTeamPost(ctx *context.Context) {
 	}
 	t.Units = units
 
+	ctx.Data["Title"] = ctx.Org.Organization.FullName
+	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["PageIsOrgTeamsNew"] = true
+	ctx.Data["Units"] = unit_model.Units
+	ctx.Data["Team"] = t
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, tplTeamNew)
+		return
+	}
+
 	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
-		ctx.JSONError(ctx.Tr("form.team_no_units_error"))
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
 
 	if err := org_service.NewTeam(ctx, t); err != nil {
+		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
-			ctx.JSONError(ctx.Tr("form.team_name_been_taken"))
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
 		default:
 			ctx.ServerError("NewTeam", err)
 		}
 		return
 	}
 	log.Trace("Team created: %s/%s", ctx.Org.Organization.Name, t.Name)
-	ctx.JSONRedirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
+	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
 // TeamMembers render team members page
@@ -539,18 +545,17 @@ func EditTeam(ctx *context.Context) {
 // EditTeamPost response for modify team information
 func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateTeamForm)
-
-	if ctx.HasError() { // form binding validation error
-		ctx.JSONError(ctx.GetErrMsg())
-		return
-	}
-
 	t := ctx.Org.Team
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
 	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
 	isAuthChanged := false
 	isIncludeAllChanged := false
 	includesAllRepositories := form.RepoAccess == "all"
+
+	ctx.Data["Title"] = ctx.Org.Organization.FullName
+	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["Team"] = t
+	ctx.Data["Units"] = unit_model.Units
 
 	if !t.IsOwnerTeam() {
 		t.Name = form.TeamName
@@ -583,21 +588,27 @@ func EditTeamPost(ctx *context.Context) {
 	}
 	t.Units = units
 
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, tplTeamNew)
+		return
+	}
+
 	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
-		ctx.JSONError(ctx.Tr("form.team_no_units_error"))
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
 
 	if err := org_service.UpdateTeam(ctx, t, isAuthChanged, isIncludeAllChanged); err != nil {
+		ctx.Data["Err_TeamName"] = true
 		switch {
 		case org_model.IsErrTeamAlreadyExist(err):
-			ctx.JSONError(ctx.Tr("form.team_name_been_taken"))
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_name_been_taken"), tplTeamNew, &form)
 		default:
 			ctx.ServerError("UpdateTeam", err)
 		}
 		return
 	}
-	ctx.JSONRedirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
+	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
 // DeleteTeam response for the delete team request

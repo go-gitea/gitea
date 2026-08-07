@@ -5,21 +5,21 @@
 		{{ctx.Locale.Tr "org.settings.options"}}
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
-			<div class="field">
+		<form class="ui form" action="{{.Link}}" method="post">
+			<div class="field {{if .Err_FullName}}error{{end}}">
 				<label for="full_name">{{ctx.Locale.Tr "org.org_full_name_holder"}}</label>
 				<input id="full_name" name="full_name" value="{{.Org.FullName}}" maxlength="100">
 			</div>
-			<div class="field">
+			<div class="field {{if .Err_Email}}error{{end}}">
 				<label for="email">{{ctx.Locale.Tr "org.settings.email"}}</label>
 				<input id="email" name="email" type="email" value="{{.Org.Email}}" maxlength="255">
 			</div>
-			<div class="field">
+			<div class="field {{if .Err_Description}}error{{end}}">
 				{{/* it is rendered as markdown, but the length is limited, so at the moment we do not use the markdown editor here */}}
 				<label for="description">{{ctx.Locale.Tr "org.org_desc"}}</label>
 				<textarea id="description" name="description" rows="2" maxlength="255">{{.Org.Description}}</textarea>
 			</div>
-			<div class="field">
+			<div class="field {{if .Err_Website}}error{{end}}">
 				<label for="website">{{ctx.Locale.Tr "org.settings.website"}}</label>
 				<input id="website" name="website" type="url" value="{{.Org.Website}}" maxlength="255">
 			</div>
@@ -41,7 +41,7 @@
 			{{if .SignedUser.IsAdmin}}
 			<div class="divider"></div>
 
-			<div class="inline field">
+			<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
 				<label for="max_repo_creation">{{ctx.Locale.Tr "admin.users.max_repo_creation"}}</label>
 				<input id="max_repo_creation" name="max_repo_creation" type="number" min="-1" value="{{.Org.MaxRepoCreation}}">
 				<p class="help">{{ctx.Locale.Tr "admin.users.max_repo_creation_desc"}}</p>

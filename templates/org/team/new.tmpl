@@ -4,13 +4,13 @@
 	<div class="ui container">
 		<div class="ui grid">
 			<div class="column">
-				<form class="ui form form-fetch-action" action="{{if .PageIsOrgTeamsNew}}{{.OrgLink}}/teams/new{{else}}{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit{{end}}" data-delete-url="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/delete" method="post">
+				<form class="ui form" action="{{if .PageIsOrgTeamsNew}}{{.OrgLink}}/teams/new{{else}}{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit{{end}}" data-delete-url="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/delete" method="post">
 					<h3 class="ui top attached header">
 						{{if .PageIsOrgTeamsNew}}{{ctx.Locale.Tr "org.create_new_team"}}{{else}}{{ctx.Locale.Tr "org.teams.settings"}}{{end}}
 					</h3>
 					<div class="ui attached segment">
 						{{template "base/alert" .}}
-						<div class="required field">
+						<div class="required field {{if .Err_TeamName}}error{{end}}">
 							<label for="team_name">{{ctx.Locale.Tr "org.team_name"}}</label>
 							{{if .Team.IsOwnerTeam}}
 								<input type="hidden" name="team_name" value="{{.Team.Name}}">
@@ -18,7 +18,7 @@
 							<input id="team_name" name="team_name" value="{{.Team.Name}}" required {{if .Team.IsOwnerTeam}}disabled{{end}} autofocus>
 							<span class="help">{{ctx.Locale.Tr "org.team_name_helper"}}</span>
 						</div>
-						<div class="field">
+						<div class="field {{if .Err_Description}}error{{end}}">
 							<label for="description">{{ctx.Locale.Tr "org.team_desc"}}</label>
 							<input id="description" name="description" value="{{.Team.Description}}" maxlength="255">
 							<span class="help">{{ctx.Locale.Tr "org.team_desc_helper"}}</span>

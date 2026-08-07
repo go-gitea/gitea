@@ -59,16 +59,21 @@ func Settings(ctx *context.Context) {
 // SettingsPost response for settings change submitted
 func SettingsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateOrgSettingForm)
+	ctx.Data["Title"] = ctx.Tr("org.settings")
+	ctx.Data["PageIsOrgSettings"] = true
+	ctx.Data["PageIsSettingsOptions"] = true
+	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 
-	if ctx.HasError() { // form binding validation error
-		ctx.JSONError(ctx.GetErrMsg())
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, tplSettingsOptions)
 		return
 	}
 
 	org := ctx.Org.Organization
 	if err := org_service.UpdateOrgEmailAddress(ctx, org, form.Email); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.JSONError(ctx.Tr("form.email_invalid"))
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsOptions, &form)
 			return
 		}
 		ctx.ServerError("UpdateOrgEmailAddress", err)
@@ -93,7 +98,7 @@ func SettingsPost(ctx *context.Context) {
 
 	log.Trace("Organization setting updated: %s", org.Name)
 	ctx.Flash.Success(ctx.Tr("org.settings.update_setting_success"))
-	ctx.JSONRedirect(ctx.Org.OrgLink + "/settings")
+	ctx.Redirect(ctx.Org.OrgLink + "/settings")
 }
 
 // SettingsAvatar response for change avatar on settings page
