@@ -23,7 +23,7 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 			Owner:    &user_model.User{Name: "alice"},
 			Version:  &packages_model.PackageVersion{Version: v, CreatedUnix: timeutil.TimeStamp(publishedUnix)},
 			SemVer:   version.Must(version.NewVersion(v)),
-			Metadata: &npm_module.Metadata{Keywords: []string{v}},
+			Metadata: &npm_module.Metadata{Keywords: []string{"gitea"}},
 			Files:    []*packages_model.PackageFileDescriptor{{File: &packages_model.PackageFile{}, Blob: &packages_model.PackageBlob{}}},
 		}
 	}
@@ -40,7 +40,7 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 		"modified": time.Unix(2000, 0).UTC(),
 	}, result.Time)
 	assert.Equal(t, []npm_module.User{{Name: "alice"}}, result.Maintainers)
-	assert.Equal(t, []string{"1.1.0"}, result.Keywords)
-	assert.Equal(t, []string{"1.0.0"}, result.Versions["1.0.0"].Keywords)
+	assert.Equal(t, []string{"gitea"}, result.Keywords)
+	assert.Equal(t, []string{"gitea"}, result.Versions["1.0.0"].Keywords)
 	assert.Equal(t, []npm_module.User{{Name: "alice"}}, result.Versions["1.0.0"].Maintainers)
 }
