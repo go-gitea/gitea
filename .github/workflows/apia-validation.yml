@@ -3,6 +3,16 @@ name: APIA Performance Validation
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to analyze
+        required: false
+        default: "1"
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   apia-validate:
@@ -48,7 +58,7 @@ jobs:
 
       - name: Run APIA pipeline
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
           REPO: ${{ github.repository }}
           COMMIT_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
