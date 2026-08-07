@@ -5,13 +5,11 @@ package globallock
 
 import (
 	"context"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
 
 	"github.com/go-redsync/redsync/v4"
 	"github.com/stretchr/testify/assert"
@@ -20,14 +18,7 @@ import (
 
 func newTestRedisLocker(t *testing.T) Locker {
 	t.Helper()
-	redisURL := util.IfZero(os.Getenv("TEST_REDIS_URL"), "redis://127.0.0.1:6379/0")
-	rl := NewRedisLocker(redisURL).(*redisLocker)
-	err := rl.conn.Ping(t.Context()).Err()
-	if err != nil && test.AllowSkipExternalService() {
-		t.Skip("no redis server for testing, skipped")
-	}
-	require.NoError(t, err, "redis error for testing: %v", err)
-	return rl
+	return NewRedisLocker(test.PrepareTestRedis(t))
 }
 
 func TestLocker(t *testing.T) {

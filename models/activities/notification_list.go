@@ -69,25 +69,30 @@ func (opts FindNotificationOptions) ToOrders() string {
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to receiver, else send to all watcher
-func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		return createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID)
+// Returns the set of user IDs whose notification rows were created or updated.
+func CreateOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
+	var notifiedIDs []int64
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		var innerErr error
+		notifiedIDs, innerErr = createOrUpdateIssueNotifications(ctx, issueID, commentID, notificationAuthorID, receiverID)
+		return innerErr
 	})
+	return notifiedIDs, err
 }
 
-func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
+func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) ([]int64, error) {
 	// init
 	var toNotify container.Set[int64]
 	notifications, err := db.Find[Notification](ctx, FindNotificationOptions{
 		IssueID: issueID,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	issue, err := issues_model.GetIssueByID(ctx, issueID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if receiverID > 0 {
@@ -97,7 +102,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		toNotify = make(container.Set[int64], 32)
 		issueWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, true)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		toNotify.AddMultiple(issueWatches...)
 		if !(issue.IsPull && issues_model.HasWorkInProgressPrefix(issue.Title)) {
@@ -108,24 +113,24 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 			repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID, repoWatchType)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			toNotify.AddMultiple(repoWatches...)
 		}
 		issueParticipants, err := issue.GetParticipantIDsByIssue(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		toNotify.AddMultiple(issueParticipants...)
 		issueAssignees, err := issues_model.GetAssigneeIDsByIssue(ctx, issueID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		toNotify.AddMultiple(issueAssignees...)
 		if issue.IsPull {
 			issueReviewers, err := issues_model.GetPullRequestRequestedReviewerIDs(ctx, issueID)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			toNotify.AddMultiple(issueReviewers...)
 		}
@@ -135,19 +140,19 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		// explicit unwatch on issue
 		issueUnWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, false)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for _, id := range issueUnWatches {
 			toNotify.Remove(id)
 		}
 	}
 
-	err = issue.LoadRepo(ctx)
-	if err != nil {
-		return err
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, err
 	}
 
 	// notify
+	notifiedIDs := make([]int64, 0, len(toNotify))
 	for userID := range toNotify {
 		issue.Repo.Units = nil
 		user, err := user_model.GetUserByID(ctx, userID)
@@ -156,7 +161,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 				continue
 			}
 
-			return err
+			return nil, err
 		}
 		if issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypePullRequests) {
 			continue
@@ -166,16 +171,16 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 
 		if notificationExists(notifications, issue.ID, userID) {
-			if err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID); err != nil {
-				return err
-			}
-			continue
+			err = updateIssueNotification(ctx, userID, issue.ID, commentID, notificationAuthorID)
+		} else {
+			err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID)
 		}
-		if err = createIssueNotification(ctx, userID, issue, commentID, notificationAuthorID); err != nil {
-			return err
+		if err != nil {
+			return nil, err
 		}
+		notifiedIDs = append(notifiedIDs, userID)
 	}
-	return nil
+	return notifiedIDs, nil
 }
 
 // NotificationList contains a list of notifications

@@ -9,9 +9,13 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/json"
 	api "gitea.dev/modules/structs"
+	webhook_module "gitea.dev/modules/webhook"
 
 	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
@@ -317,4 +321,72 @@ func TestFindTaskNeeds(t *testing.T) {
 	assert.Len(t, ret["job1"].Outputs, 2)
 	assert.Equal(t, "abc", ret["job1"].Outputs["output_a"])
 	assert.Equal(t, "bbb", ret["job1"].Outputs["output_b"])
+}
+
+func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
+	payload := api.PullRequestPayload{
+		PullRequest: &api.PullRequest{
+			Base: &api.PRBranchInfo{
+				Name: "owner:main",
+				Ref:  "main",
+				Sha:  "1234567890abcdef",
+			},
+			Head: &api.PRBranchInfo{
+				Name: "fork:feature",
+				Ref:  "feature",
+				Sha:  "fedcba0987654321",
+			},
+		},
+	}
+	payloadBytes, err := json.Marshal(payload)
+	assert.NoError(t, err)
+
+	run := &actions_model.ActionRun{
+		Event:        webhook_module.HookEventPullRequest,
+		TriggerEvent: string(actions_module.GithubEventPullRequestTarget),
+		EventPayload: string(payloadBytes),
+		TriggerUser:  &user_model.User{Name: "test-user"},
+		Repo:         &repo_model.Repository{Name: "test-repo", OwnerName: "test-owner"},
+	}
+
+	giteaCtx := GenerateGiteaContext(t.Context(), run, nil, nil)
+
+	assert.Equal(t, "refs/heads/main", giteaCtx["ref"])
+	assert.Equal(t, "main", giteaCtx["ref_name"])
+}
+
+// TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,
+// use GetLatestAttempt to load the latest attempt and resolve attempt-related context variables.
+func TestGenerateGiteaContext_NilAttempt(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	require.NoError(t, repo.LoadOwner(t.Context()))
+	actor := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})     // initiated the run
+	triggerer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // initiated the latest attempt
+
+	run := &actions_model.ActionRun{
+		RepoID: repo.ID, Repo: repo, OwnerID: repo.OwnerID,
+		TriggerUserID: actor.ID, TriggerUser: actor,
+		WorkflowID: "test.yml", Index: 99600, Ref: "refs/heads/main",
+		CommitSHA: "c2d72f548424103f01ee1dc02889c1e2bff816b0", TriggerEvent: "push",
+		Status: actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+	attempt := &actions_model.ActionRunAttempt{
+		RepoID: repo.ID, RunID: run.ID, Attempt: 3, TriggerUserID: triggerer.ID, Status: actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), attempt))
+	run.LatestAttemptID = attempt.ID
+	job := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 1, RepoID: repo.ID, OwnerID: repo.OwnerID,
+		Name: "j", JobID: "j", Attempt: attempt.Attempt, Status: actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	// attempt == nil forces the fallback lookup via run.GetLatestAttempt.
+	gitCtx := GenerateGiteaContext(t.Context(), run, nil, job)
+	assert.Equal(t, actor.Name, gitCtx["actor"])
+	assert.Equal(t, triggerer.Name, gitCtx["triggering_actor"])
+	assert.Equal(t, "3", gitCtx["run_attempt"])
 }

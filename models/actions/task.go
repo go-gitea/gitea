@@ -16,6 +16,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
@@ -59,6 +60,12 @@ type ActionTask struct {
 	Updated timeutil.TimeStamp `xorm:"updated index"`
 }
 
+// taskReportTimeout is how long a task may go without contact from its runner before the
+// runner is assumed gone. Runners report state and stream logs every few seconds, both of
+// which refresh ActionTask.Updated. Shorter than setting.Actions.ZombieTaskTimeout because
+// it only decides whether the runner is reachable, not whether the task should be killed.
+const taskReportTimeout = time.Minute
+
 var successfulTokenTaskCache *lru.Cache[string, any]
 
 func init() {
@@ -84,11 +91,15 @@ func (task *ActionTask) IsStopped() bool {
 	return task.Stopped > 0
 }
 
-func (task *ActionTask) GetRunLink() string {
-	if task.Job == nil || task.Job.Run == nil {
+func (task *ActionTask) GetRunJobLink() string {
+	// Run.Repo can be nil when the repository was deleted while task/run rows remain
+	// (TaskList.LoadAttributes copies job.Repo into run.Repo, leaving it nil on a miss).
+	// Run.Link() already returns "" in that case, so guard here to avoid emitting a
+	// broken relative "/jobs/N" link from the Sprintf below.
+	if task.Job == nil || task.Job.Run == nil || task.Job.Run.Repo == nil {
 		return ""
 	}
-	return task.Job.Run.Link()
+	return fmt.Sprintf("%s/jobs/%d", task.Job.Run.Link(), task.Job.ID)
 }
 
 func (task *ActionTask) GetCommitLink() string {
@@ -158,6 +169,15 @@ func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
 	}
 
 	return &task, nil
+}
+
+// GetTasksMapByIDs returns the found tasks keyed by ID, silently omitting IDs that no longer exist.
+func GetTasksMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionTask, error) {
+	tasks := make(map[int64]*ActionTask, len(ids))
+	if len(ids) == 0 {
+		return tasks, nil
+	}
+	return tasks, db.GetEngine(ctx).In("id", ids).Find(&tasks)
 }
 
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
@@ -438,6 +458,18 @@ func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
 	return err
 }
 
+func getRunIDByTaskID(ctx context.Context, taskID int64) (runID int64, _ error) {
+	if has, err := db.GetEngine(ctx).Cols("action_run_job.run_id").
+		Table("action_task").
+		Join("INNER", "action_run_job", "action_run_job.id = action_task.job_id").
+		Where(builder.Eq{"action_task.id": taskID}).Get(&runID); err != nil {
+		return runID, err
+	} else if !has {
+		return runID, util.ErrNotExist
+	}
+	return runID, nil
+}
+
 // UpdateTaskByState updates the task by the state.
 // It will always update the task if the state is not final, even there is no change.
 // So it will update ActionTask.Updated to avoid the task being judged as a zombie task.
@@ -447,21 +479,26 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		stepStates[v.Id] = v
 	}
 
-	return db.WithTx2(ctx, func(ctx context.Context) (*ActionTask, error) {
-		e := db.GetEngine(ctx)
-
-		task := &ActionTask{}
-		if has, err := e.ID(state.Id).Get(task); err != nil {
-			return nil, err
+	// Only one request can update the task because the final state needs to be calculated with all job states.
+	// Otherwise, concurrent requests with transaction will make the SQL read stale job state and result in wrong final state.
+	taskID := state.Id
+	runID, err := getRunIDByTaskID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	task := &ActionTask{}
+	applyState := func(ctx context.Context) error {
+		if has, err := db.GetEngine(ctx).ID(taskID).Get(task); err != nil {
+			return err
 		} else if !has {
-			return nil, util.ErrNotExist
+			return util.ErrNotExist
 		} else if runnerID != task.RunnerID {
-			return nil, errors.New("invalid runner for task")
+			return errors.New("invalid runner for task")
 		}
 
 		if task.Status.IsDone() {
 			// the state is final, do nothing
-			return task, nil
+			return nil
 		}
 
 		// state.Result is not unspecified means the task is finished
@@ -474,7 +511,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 			task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
 			if err := UpdateTask(ctx, task, "status", "stopped"); err != nil {
-				return nil, err
+				return err
 			}
 			if _, err := UpdateRunJob(ctx, &ActionRunJob{
 				ID:      task.JobID,
@@ -482,18 +519,18 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 				Status:  task.Status,
 				Stopped: task.Stopped,
 			}, nil, "status", "stopped"); err != nil {
-				return nil, err
+				return err
 			}
 		} else {
 			// Force update ActionTask.Updated to avoid the task being judged as a zombie task
 			task.Updated = timeutil.TimeStampNow()
 			if err := UpdateTask(ctx, task, "updated"); err != nil {
-				return nil, err
+				return err
 			}
 		}
 
 		if err := task.LoadAttributes(ctx); err != nil {
-			return nil, err
+			return err
 		}
 
 		for _, step := range task.Steps {
@@ -510,13 +547,17 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			} else if step.Started != 0 {
 				step.Status = StatusRunning
 			}
-			if _, err := e.ID(step.ID).Update(step); err != nil {
-				return nil, err
+			if _, err := db.GetEngine(ctx).ID(step.ID).Update(step); err != nil {
+				return err
 			}
 		}
-
-		return task, nil
+		return nil
+	}
+	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+		// A half-written report leaves the task done with a running job, which no retry repairs.
+		return db.WithTx(ctx, applyState)
 	})
+	return task, err
 }
 
 func StopTask(ctx context.Context, taskID int64, status Status) error {
@@ -545,6 +586,10 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			status = StatusCancelled
 		} else if !runner.HasCancellingSupport {
 			status = StatusCancelled
+		} else if task.Updated.AddDuration(taskReportTimeout) < now {
+			// A runner that stopped reporting will never acknowledge the cancellation either,
+			// so skip the handshake instead of waiting for the zombie task cleanup.
+			status = StatusCancelled
 		}
 	}
 
@@ -559,7 +604,10 @@ func StopTask(ctx context.Context, taskID int64, status Status) error {
 			return err
 		}
 
-		return UpdateTask(ctx, task, "status")
+		// NoAutoTime keeps "updated" at the runner's last contact: re-cancelling an already
+		// cancelling task must not defer the timeout above or the zombie task cleanup.
+		_, err := e.ID(task.ID).Cols("status").NoAutoTime().Update(task)
+		return err
 	}
 
 	task.Status = status

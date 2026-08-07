@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -600,8 +601,18 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 	assert.Equal(t, "proposed", (&DiffLine{Comments: []*issues_model.Comment{{Line: 3}}}).GetCommentSide())
 }
 
+func TestDiffLine_GetLineTypeMarker(t *testing.T) {
+	assert.Equal(t, "", (&DiffLine{Content: ""}).GetLineTypeMarker())
+	assert.Equal(t, "+", (&DiffLine{Content: "+added line"}).GetLineTypeMarker())
+	assert.Equal(t, "-", (&DiffLine{Content: "-deleted line"}).GetLineTypeMarker())
+	assert.Equal(t, " ", (&DiffLine{Content: " unchanged line"}).GetLineTypeMarker())
+	// for a real diff line (including hunk header) from diff output, "Content" should always have a prefix char in [" ", "+", "-"].
+	// for other cases, e.g.: a diff line constructed by our code without real diff output, it is undefined behavior at the moment.
+	assert.Equal(t, "", (&DiffLine{Content: "any-content"}).GetLineTypeMarker())
+}
+
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	gitRepo, err := git.OpenRepository(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), "../../modules/git/tests/repos/repo5_pulls")
 	require.NoError(t, err)
 
 	defer gitRepo.Close()
@@ -1109,6 +1120,15 @@ func TestDiffLine_GetExpandDirection(t *testing.T) {
 	}
 }
 
+func TestDiffSection_GetComputedInlineDiffFor(t *testing.T) {
+	t.Run("Section", func(t *testing.T) {
+		diffLine := &DiffLine{Type: DiffLineSection, Content: "@@ -1,3 +1,3 @@ func \u202ename() <b>"}
+		diffInline := (&DiffSection{}).GetComputedInlineDiffFor(diffLine, translation.MockLocale{})
+		assert.True(t, diffInline.EscapeStatus.Escaped)
+		assert.Equal(t, `@@ -1,3 +1,3 @@ func <span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">`+"\u202e"+`</span></span>name() &lt;b&gt;`, string(diffInline.Content))
+	})
+}
+
 func TestHighlightCodeLines(t *testing.T) {
 	t.Run("CharsetDetecting", func(t *testing.T) {
 		diffFile := &DiffFile{
@@ -1143,6 +1163,19 @@ func TestHighlightCodeLines(t *testing.T) {
 			1: `<span class="n">b</span>` + nl,
 		}, ret)
 	})
+	t.Run("CharCR", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name: "a.txt",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{{LeftIdx: 1}, {LeftIdx: 2}},
+				},
+			},
+		}
+		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\rb\r\nc"))
+		assert.Equal(t, "a␍b\n", string(ret[0]))
+		assert.Equal(t, `c`, string(ret[1]))
+	})
 }
 
 func TestSyncUserSpecificDiff_UpdatedFiles(t *testing.T) {
@@ -1173,9 +1206,9 @@ revert
 from :2
 D test2.txt
 D test10.txt`
-	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(pull.BaseRepo.RepoPath()).WithStdinBytes([]byte(stdin)).Run(t.Context()))
+	require.NoError(t, gitcmd.NewCommand("fast-import").WithRepo(pull.BaseRepo).WithStdinBytes([]byte(stdin)).Run(t.Context()))
 
-	gitRepo, err := git.OpenRepository(t.Context(), pull.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(t.Context(), pull.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

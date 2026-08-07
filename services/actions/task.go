@@ -8,11 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"
+	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 
@@ -46,6 +48,17 @@ func TryPickTask(ctx context.Context, runner *actions_model.ActionRunner) (task 
 	}
 	task, ok, err = PickTask(ctx, runner)
 	return task, ok, false, err
+}
+
+// releaseTaskForRunnerCleanup releases a claimed task using a fresh, bounded context. The request context
+// is typically already canceled when we reach the release paths below, and a DB transaction on a canceled
+// context fails immediately, which would strand the claimed job in running state.
+func releaseTaskForRunnerCleanup(t *actions_model.ActionTask) {
+	ctx, cancel := context.WithTimeout(graceful.GetManager().ShutdownContext(), 10*time.Second)
+	defer cancel()
+	if relErr := actions_model.ReleaseTaskForRunner(ctx, t); relErr != nil {
+		log.Error("ReleaseTaskForRunner [task_id: %d]: %v", t.ID, relErr)
+	}
 }
 
 func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv1.Task, bool, error) {
@@ -92,9 +105,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		// The job was already claimed but assembling its payload failed; release the
 		// claim so the job returns to the waiting queue instead of being stranded in
 		// running state with no runner ever executing it.
-		if relErr := actions_model.ReleaseTaskForRunner(ctx, t); relErr != nil {
-			log.Error("ReleaseTaskForRunner [task_id: %d]: %v", t.ID, relErr)
-		}
+		releaseTaskForRunnerCleanup(t)
 		return nil, false, err
 	}
 	actionTask = t
@@ -110,9 +121,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	// The job is claimed and its payload assembled, but if the request context was cancelled meanwhile, response can no longer reach the runner.
 	// Release the claim so another runner can pick the job up.
 	if err := ctx.Err(); err != nil {
-		if relErr := actions_model.ReleaseTaskForRunner(ctx, t); relErr != nil {
-			log.Error("ReleaseTaskForRunner [task_id: %d]: %v", t.ID, relErr)
-		}
+		releaseTaskForRunnerCleanup(t)
 		return nil, false, err
 	}
 

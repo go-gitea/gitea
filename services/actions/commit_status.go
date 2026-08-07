@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -16,10 +17,12 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/commitstatus"
+	"gitea.dev/modules/glob"
 	"gitea.dev/modules/log"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
+	pull_service "gitea.dev/services/pull"
 	commitstatus_service "gitea.dev/services/repository/commitstatus"
 )
 
@@ -51,6 +54,13 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 
 	for _, job := range jobs {
+		// A deferred-matrix placeholder's name changes when it expands, so a status created while it
+		// waits would be orphaned. The emitter reloads the jobs after expanding and creates them
+		// then. A placeholder that reached a final status (skipped by its `if:`, cancelled with the
+		// run, or failed to expand) never expands, so it keeps its own name and still deserves a status.
+		if job.IsMatrixDeferred && !job.Status.IsDone() {
+			continue
+		}
 		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job); err != nil {
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
@@ -153,12 +163,43 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 	return createWorkflowCommitStatus(ctx, repo, commitID, ctxName, run.WorkflowID, toCommitStatus(job.Status), targetURL, toCommitStatusDescription(job))
 }
 
+// getAllRequiredStatusContextGlobs returns the compiled globs of every status-check context required in the repo:
+// its protected branch rules' contexts and its required scoped workflows' patterns (see EffectiveRequiredContexts).
+func getAllRequiredStatusContextGlobs(ctx context.Context, repo *repo_model.Repository) ([]glob.Glob, error) {
+	rules, err := git_model.FindRepoProtectedBranchRules(ctx, repo.ID)
+	if err != nil {
+		return nil, fmt.Errorf("FindRepoProtectedBranchRules: %w", err)
+	}
+	required, err := pull_service.EffectiveRequiredContexts(ctx, repo, rules...)
+	if err != nil {
+		return nil, fmt.Errorf("EffectiveRequiredContexts: %w", err)
+	}
+	globs := make([]glob.Glob, 0, len(required))
+	for _, c := range required {
+		if gp, err := glob.Compile(c); err != nil {
+			log.Error("glob.Compile %q: %v", c, err)
+		} else {
+			globs = append(globs, gp)
+		}
+	}
+	return globs, nil
+}
+
 // CreateSkippedCommitStatusForFilteredWorkflow posts a skipped commit status for each job of a
 // workflow that matched the triggering event but was excluded by a branch/paths filter.
 // This lets a required status check tied to that context be satisfied without the workflow running.
+// Only contexts matching requiredGlobs are posted; a non-required context gets no skipped status.
 // No ActionRun is created, so the status has no target URL (there is no run/job to link to).
 // A non-empty scopedPrefix prefixes each context with its source repo, matching scoped runs.
-func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *repo_model.Repository, event webhook_module.HookEventType, triggerEvent, workflowID string, content []byte, payload api.Payloader, scopedPrefix string) error {
+//
+// TODO: requiredGlobs over-approximates by including every protected branch rule's required contexts.
+// If possible, the set should be narrowed to the required contexts of a specific branch protection rule (and the contexts from required scoped workflows).
+// Currently, a `push` event must keep the repo-wide union since its future pull request base branch is unknown.
+func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *repo_model.Repository, event webhook_module.HookEventType, triggerEvent, workflowID string, content []byte, payload api.Payloader, scopedPrefix string, requiredGlobs []glob.Glob) error {
+	if len(requiredGlobs) == 0 {
+		return nil // nothing is required, so no skipped status is needed
+	}
+
 	// Derive the status event name and target commit from the payload.
 	// TODO: this mirrors getCommitStatusEventNameAndCommitID, which derives the same from a persisted run. Should merge the logic if possible.
 	var statusEvent, commitID string
@@ -200,6 +241,10 @@ func CreateSkippedCommitStatusForFilteredWorkflow(ctx context.Context, repo *rep
 		if scopedPrefix != "" {
 			ctxName = actions_module.ScopedWorkflowStatusContextName(scopedPrefix, displayName, jobName, statusEvent)
 		}
+		// Only a required context needs the skipped status.
+		if !slices.ContainsFunc(requiredGlobs, func(gp glob.Glob) bool { return gp.Match(ctxName) }) {
+			continue
+		}
 		// "Skipped" mirrors toCommitStatusDescription for StatusSkipped.
 		if err := createWorkflowCommitStatus(ctx, repo, commitID, ctxName, workflowID, commitstatus.CommitStatusSkipped, "", "Skipped"); err != nil {
 			return err
@@ -227,7 +272,10 @@ func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 	for _, v := range statuses {
-		if v.ContextHash == legacyHash && v.Context == ctxName {
+		// Only adopt the legacy (Context-only) hash from a row the Actions user itself created before the
+		// #35699 fix, i.e. a pre-upgrade in-flight run. Adopting it from an external integration or the API
+		// would collapse two same-named workflows back into a single check.
+		if v.ContextHash == legacyHash && v.Context == ctxName && v.CreatorID == user_model.ActionsUserID {
 			ctxHash = legacyHash
 			break
 		}

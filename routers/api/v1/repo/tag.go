@@ -55,7 +55,7 @@ func ListTags(ctx *context.APIContext) {
 
 	listOpts := utils.GetListOptions(ctx)
 
-	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
+	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(ctx, listOpts.Page, listOpts.PageSize)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -107,13 +107,13 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 		return
 	}
 
-	tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha)
+	tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(ctx, sha)
 	if err != nil {
 		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetTagCommit(tag.Name)
+	commit, err := ctx.Repo.GitRepo.GetTagCommit(ctx, tag.Name)
 	if err != nil {
 		ctx.APIError(http.StatusBadRequest, err.Error())
 		return
@@ -151,7 +151,7 @@ func GetTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	tagName := ctx.PathParam("*")
 
-	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
+	tag, err := ctx.Repo.GitRepo.GetTag(ctx, tagName)
 	if err != nil {
 		ctx.APIErrorNotFound("tag doesn't exist: " + tagName)
 		return
@@ -201,7 +201,7 @@ func CreateTag(ctx *context.APIContext) {
 		form.Target = ctx.Repo.Repository.DefaultBranch
 	}
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(form.Target)
+	commit, err := ctx.Repo.GitRepo.GetCommit(ctx, form.Target)
 	if err != nil {
 		ctx.APIError(http.StatusNotFound, fmt.Sprintf("target not found: %v", err))
 		return
@@ -221,7 +221,7 @@ func CreateTag(ctx *context.APIContext) {
 		return
 	}
 
-	tag, err := ctx.Repo.GitRepo.GetTag(form.TagName)
+	tag, err := ctx.Repo.GitRepo.GetTag(ctx, form.TagName)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

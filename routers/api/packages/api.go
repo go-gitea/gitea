@@ -73,7 +73,9 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				}
 
 				if publicOnly {
-					if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+					// a public-only token must not reach limited-visibility owners either,
+					// matching how orgs/users are enforced elsewhere in this file
+					if ctx.Package != nil && !ctx.Package.Owner.Visibility.IsPublic() {
 						ctx.HTTPError(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
 						return
 					}
@@ -133,7 +135,7 @@ func CommonRoutes() *web.Router {
 			r.Group("/{branch}/{repository}", func() {
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), alpine.UploadPackageFile)
 				r.Group("/{architecture}", func() {
-					r.Get("/APKINDEX.tar.gz", alpine.GetRepositoryFile)
+					r.Methods("HEAD,GET", "/APKINDEX.tar.gz", alpine.GetRepositoryFile)
 					r.Group("/{filename}", func() {
 						r.Get("", alpine.DownloadPackageFile)
 						r.Delete("", reqPackageAccess(perm.AccessModeWrite), alpine.DeletePackageFile)

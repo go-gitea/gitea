@@ -21,7 +21,8 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0))
+	_, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0)
+	assert.NoError(t, err)
 
 	// User 9 is inactive, thus notifications for user 1 and 4 are created
 	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 1, IssueID: issue.ID})
@@ -118,7 +119,8 @@ func TestUpdateNotificationStatuses(t *testing.T) {
 		&activities_model.Notification{UserID: user.ID, Status: activities_model.NotificationStatusRead})
 	notfPinned := unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{UserID: user.ID, Status: activities_model.NotificationStatusPinned})
-	assert.NoError(t, activities_model.UpdateNotificationStatuses(t.Context(), user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead))
+	_, err := activities_model.UpdateNotificationStatuses(t.Context(), user, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead)
+	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t,
 		&activities_model.Notification{ID: notfUnread.ID, Status: activities_model.NotificationStatusRead})
 	unittest.AssertExistsAndLoadBean(t,
@@ -132,7 +134,8 @@ func TestSetIssueReadBy(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 	assert.NoError(t, db.WithTx(t.Context(), func(ctx context.Context) error {
-		return activities_model.SetIssueReadBy(ctx, issue.ID, user.ID)
+		_, err := activities_model.SetIssueReadBy(ctx, issue.ID, user.ID)
+		return err
 	}))
 
 	nt, err := activities_model.GetIssueNotification(t.Context(), user.ID, issue.ID)
@@ -156,7 +159,8 @@ func TestIssueNotificationWithWatchOptions(t *testing.T) {
 		Releases:     true,
 	}))
 
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), iss.ID, 0, doer.ID, 0))
+	_, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), iss.ID, 0, doer.ID, 0)
+	assert.NoError(t, err)
 	notification, err := activities_model.GetIssueNotification(t.Context(), watcher.ID, iss.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), notification.IssueID) // No notification found
@@ -167,7 +171,8 @@ func TestIssueNotificationWithWatchOptions(t *testing.T) {
 		Releases:     true,
 	}))
 
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), iss.ID, 0, doer.ID, 0))
+	_, err = activities_model.CreateOrUpdateIssueNotifications(t.Context(), iss.ID, 0, doer.ID, 0)
+	assert.NoError(t, err)
 	notification, err = activities_model.GetIssueNotification(t.Context(), watcher.ID, iss.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, activities_model.NotificationStatusUnread, notification.Status)
@@ -189,7 +194,8 @@ func TestPullRequestNotificationWithWatchOptions(t *testing.T) {
 		Releases:     true,
 	}))
 
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), pr.ID, 0, doer.ID, 0))
+	_, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), pr.ID, 0, doer.ID, 0)
+	assert.NoError(t, err)
 	notification, err := activities_model.GetIssueNotification(t.Context(), watcher.ID, pr.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), notification.IssueID) // No notification found
@@ -200,7 +206,8 @@ func TestPullRequestNotificationWithWatchOptions(t *testing.T) {
 		Releases:     true,
 	}))
 
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), pr.ID, 0, doer.ID, 0))
+	_, err = activities_model.CreateOrUpdateIssueNotifications(t.Context(), pr.ID, 0, doer.ID, 0)
+	assert.NoError(t, err)
 	notification, err = activities_model.GetIssueNotification(t.Context(), watcher.ID, pr.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, activities_model.NotificationStatusUnread, notification.Status)

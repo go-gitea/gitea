@@ -102,3 +102,33 @@ func TestAdminDeleteUser(t *testing.T) {
 		})
 	}
 }
+
+func TestAdminImpersonatedUser(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+	currentUsername := func(t *testing.T) string {
+		t.Helper()
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/"), http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		return doc.Find("[data-signed-in-username]").AttrOr("data-signed-in-username", "")
+	}
+
+	// user1 is admin, can visit admin pages
+	assert.Equal(t, "user1", currentUsername(t))
+	session.MakeRequest(t, NewRequest(t, "GET", "/-/admin/users/2"), http.StatusOK)
+
+	// impersonate to user2, user2 can't visit admin pages
+	session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/2/impersonate"), http.StatusOK)
+	assert.Equal(t, "user2", currentUsername(t))
+	session.MakeRequest(t, NewRequest(t, "GET", "/-/admin/users/2"), http.StatusForbidden)
+
+	// exit impersonation, current user is user1(admin) again
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/logout"), http.StatusSeeOther)
+	assert.Equal(t, "user1", currentUsername(t))
+	session.MakeRequest(t, NewRequest(t, "GET", "/-/admin/users/2"), http.StatusOK)
+
+	// completely logout
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/logout"), http.StatusSeeOther)
+	assert.Equal(t, "", currentUsername(t))
+}

@@ -19,9 +19,11 @@ import (
 	user_model "gitea.dev/models/user"
 	auth_module "gitea.dev/modules/auth"
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/hostmatcher"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/proxy"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	source_service "gitea.dev/services/auth/source"
@@ -296,7 +298,23 @@ func showLinkingLogin(ctx *context.Context, authSourceID int64, gothUser goth.Us
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
 }
 
-var oauth2AvatarHTTPClient = &http.Client{Timeout: 30 * time.Second}
+// oauth2AvatarAllowList parses the host allow-list applied to avatar fetches from the global
+// [security] ALLOWED_HOST_LIST, defaulting an empty setting to the built-in "external" set. An empty
+// host-match list would otherwise disable the allow-list check entirely and permit any host, including
+// loopback/private addresses (SSRF).
+func oauth2AvatarAllowList() *hostmatcher.HostMatchList {
+	return hostmatcher.ParseHostMatchList("security.ALLOWED_HOST_LIST", setting.Security.AllowedHostList)
+}
+
+// oauth2AvatarHTTPClient builds the SSRF-protected client for avatar fetches. It is constructed per call
+// so a changed allowlist takes effect (avatar fetches are infrequent, so this is not a hot path).
+func oauth2AvatarHTTPClient() *http.Client {
+	allowList := oauth2AvatarAllowList()
+	return &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: hostmatcher.NewHTTPTransport("oauth2-avatar", allowList, nil, proxy.Proxy(), setting.Proxy.ProxyURLFixed, nil),
+	}
+}
 
 func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_model.User) {
 	if !setting.OAuth2Client.UpdateAvatar || len(avatarURL) == 0 {
@@ -310,7 +328,7 @@ func oauth2UpdateAvatarIfNeed(ctx *context.Context, avatarURL string, u *user_mo
 	// Some hosts (e.g. Wikimedia) reject Go's default User-Agent.
 	req.Header.Set("User-Agent", "Gitea "+setting.AppVer)
 
-	resp, err := oauth2AvatarHTTPClient.Do(req)
+	resp, err := oauth2AvatarHTTPClient().Do(req)
 	if err != nil {
 		log.Warn("fetch %q failed: %v", avatarURL, err)
 		return
@@ -343,12 +361,11 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	needs2FA := false
 	if !authSource.TwoFactorShouldSkip() {
-		_, err := auth.GetTwoFactorByUID(ctx, u.ID)
-		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
+		var err error
+		if needs2FA, err = auth.HasTwoFactorOrWebAuthn(ctx, u.ID); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
-		needs2FA = err == nil
 	}
 
 	oauth2Source := authSource.Cfg.(*oauth2.Source)
@@ -373,7 +390,10 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			ctx.ServerError("GetExternalLogin", err)
 			return
 		}
-		isDisabledByAutoSync := hasExt && extLogin.RefreshToken == ""
+		// the cron clears all three token fields when it disables a user, so require the
+		// full signature; a RefreshToken alone is empty for many normal logins (e.g. GitHub
+		// or OIDC without offline_access), which would otherwise reactivate admin-disabled users
+		isDisabledByAutoSync := hasExt && extLogin.AccessToken == "" && extLogin.RefreshToken == "" && extLogin.ExpiresAt.IsZero()
 		if isDisabledByAutoSync {
 			opts.IsActive = optional.Some(true)
 		}
@@ -407,10 +427,10 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
-		if err := regenerateSession(ctx, nil, map[string]any{
+		if err := regenerateSession(ctx, map[string]any{
 			session.KeyUID:                  u.ID,
-			session.KeyUname:                u.Name,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+			session.KeySignInMethod:         session.SignInMethodOAuth2,
 		}); err != nil {
 			ctx.ServerError("updateSession", err)
 			return
@@ -432,23 +452,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		}
 	}
 
-	if err := regenerateSession(ctx, nil, map[string]any{
-		// User needs to use 2FA, save data and redirect to 2FA page.
-		"twofaUid":      u.ID,
-		"twofaRemember": false,
-	}); err != nil {
-		ctx.ServerError("updateSession", err)
-		return
-	}
-
-	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
-	if err == nil && len(regs) > 0 {
-		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
+	handleTwoFactorRequired(ctx, u, false, map[string]any{session.KeySignInMethod: session.SignInMethodOAuth2})
 }
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful

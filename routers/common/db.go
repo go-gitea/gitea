@@ -8,8 +8,8 @@ import (
 	"errors"
 	"time"
 
+	"gitea.dev/modelmigration"
 	"gitea.dev/models/db"
-	"gitea.dev/models/migrations"
 	system_model "gitea.dev/models/system"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
@@ -45,12 +45,12 @@ func migrateWithSetting(ctx context.Context, x db.EngineMigration) error {
 		return versioned_migration.Migrate(ctx, x)
 	}
 
-	if current, err := migrations.GetCurrentDBVersion(x); err != nil {
+	if current, err := modelmigration.GetCurrentDBVersion(x); err != nil {
 		return err
 	} else if current < 0 {
 		// execute migrations when the database isn't initialized even if AutoMigration is false
 		return versioned_migration.Migrate(ctx, x)
-	} else if expected := migrations.ExpectedDBVersion(); current != expected {
+	} else if expected := modelmigration.ExpectedDBVersion(); current != expected {
 		log.Fatal(`"database.AUTO_MIGRATION" is disabled, but current database version %d is not equal to the expected version %d.`+
 			`You can set "database.AUTO_MIGRATION" to true or migrate manually by running "gitea [--config /path/to/app.ini] migrate"`, current, expected)
 	}
