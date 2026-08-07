@@ -304,12 +304,10 @@ func (a *AzureBlobStorage) ServeDirectURL(storePath, name, method string, reqPar
 
 // IterateObjects iterates across the objects in the azureblobstorage
 func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
-	dirName = a.buildAzureBlobPath(dirName)
-	if dirName != "" {
-		dirName += "/"
-	}
+	basePrefix := buildObjectStorePathPrefix(a.cfg.BasePath, "")
+	dirPrefix := buildObjectStorePathPrefix(a.cfg.BasePath, dirName)
 	pager := a.client.NewListBlobsFlatPager(a.cfg.Container, &container.ListBlobsFlatOptions{
-		Prefix: &dirName,
+		Prefix: &dirPrefix,
 	})
 	for pager.More() {
 		resp, err := pager.NextPage(a.ctx)
@@ -317,7 +315,8 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 			return convertAzureBlobErr(err)
 		}
 		for _, object := range resp.Segment.BlobItems {
-			blobClient := a.getBlobClient(*object.Name)
+			objPath := strings.TrimPrefix(*object.Name, basePrefix)
+			blobClient := a.getBlobClient(objPath)
 			object := &azureBlobObject{
 				Context:    a.ctx,
 				blobClient: blobClient,
@@ -327,7 +326,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 			}
 			if err := func(object *azureBlobObject, fn func(path string, obj Object) error) error {
 				defer object.Close()
-				return fn(strings.TrimPrefix(object.Name, a.cfg.BasePath), object)
+				return fn(objPath, object)
 			}(object, fn); err != nil {
 				return convertAzureBlobErr(err)
 			}
