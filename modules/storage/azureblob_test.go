@@ -152,8 +152,7 @@ func TestAzureBlobStorageDumpArchive(t *testing.T) {
 	const content = "regression test content for issue 35476"
 	_, err = s.Save(objPath, strings.NewReader(content), int64(len(content)))
 	assert.NoError(t, err)
-	defer s.Delete(objPath) //nolint:errcheck
-
+	defer s.Delete(objPath)
 	var archiveBuf bytes.Buffer
 	dumper, err := dump.NewDumper(context.Background(), "zip", &archiveBuf)
 	assert.NoError(t, err)
