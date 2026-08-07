@@ -1,4 +1,4 @@
-# baseline namespace â€” Gitea with Redis cache ENABLED (healthy state)
+﻿# baseline namespace â€” Gitea with Redis cache ENABLED (healthy state)
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -120,3 +120,38 @@ spec:
       port: 3000
       targetPort: 3000
       nodePort: 30301
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-exporter
+  namespace: baseline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-exporter
+  template:
+    metadata:
+      labels:
+        app: redis-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9121"
+        apia.io/domain: "cache"
+    spec:
+      containers:
+        - name: redis-exporter
+          image: oliver006/redis_exporter:latest
+          ports:
+            - containerPort: 9121
+          env:
+            - name: REDIS_ADDR
+              value: "redis://redis:6379"
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 10m
+            limits:
+              memory: 64Mi
