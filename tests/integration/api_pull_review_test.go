@@ -160,6 +160,25 @@ func testAPIPullReviewGeneral(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
+	reviewsURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index)
+	pendingComment := []api.CreatePullReviewComment{{Path: "README.md", Body: "pending comment", NewLineNum: 1}}
+
+	// test SubmitPullReview Comment without body but with pending comments
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Comments: pendingComment}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("%s/%d", reviewsURL, review.ID), &api.SubmitPullReviewOptions{Event: "COMMENT"}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	assert.EqualValues(t, "COMMENT", review.State)
+	assert.Equal(t, 1, review.CodeCommentsCount)
+
+	// test CreatePullReview Comment without body or comments but with pending comments
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Comments: pendingComment}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusOK)
+	req = NewRequestWithJSON(t, http.MethodPost, reviewsURL, &api.CreatePullReviewOptions{Event: "COMMENT"}).AddTokenAuth(token)
+	review = DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.PullReview{})
+	assert.EqualValues(t, "COMMENT", review.State)
+	assert.Equal(t, 1, review.CodeCommentsCount)
+
 	// test CreatePullReview Comment without body but with comments
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", repo.OwnerName, repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
 		// Body:  "",

@@ -506,8 +506,19 @@ func CreatePullReview(ctx *context.APIContext) {
 		return
 	}
 
+	// the review submits any existing pending review, so its comments count too
+	hasComments := len(opts.Comments) > 0
+	if !hasComments {
+		pendingReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, pr.Issue)
+		if err != nil && !issues_model.IsErrReviewNotExist(err) {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		hasComments = pendingReview != nil && pendingReview.GetCodeCommentsCount(ctx) > 0
+	}
+
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, len(opts.Comments) > 0)
+	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, hasComments)
 	if isWrong {
 		return
 	}
@@ -634,7 +645,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	}
 
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, len(review.Comments) > 0)
+	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, len(review.CodeComments) > 0)
 	if isWrong {
 		return
 	}
@@ -710,6 +721,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *issues_model.PullRequest
 		}
 	default:
 		reviewType = issues_model.ReviewTypePending
+		needsBody = !hasComments
 	}
 
 	// reject reviews with empty body if a body is required for this call
