@@ -62,15 +62,15 @@ func TestGetBlobLineCount(t *testing.T) {
 	size, count, err := getBlobLineCount(strings.NewReader(""), nil)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, size)
-	assert.EqualValues(t, 0, count)
+	assert.Equal(t, 0, count)
 
 	size, count, err = getBlobLineCount(strings.NewReader("\n"), nil)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, size)
-	assert.EqualValues(t, 1, count)
+	assert.Equal(t, 1, count)
 
 	size, count, err = getBlobLineCount(strings.NewReader("a\nb"), nil)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, size)
-	assert.EqualValues(t, 2, count)
+	assert.Equal(t, 2, count)
 }
