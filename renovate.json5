@@ -20,7 +20,6 @@
   "postUpgradeTasks": {
     "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
     "installTools": {
-      // branches without gomod or npm updates get neither toolchain otherwise, node ships with the renovate image
       "golang": {},
       "pnpm": {},
     },
