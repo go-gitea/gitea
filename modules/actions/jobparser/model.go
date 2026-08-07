@@ -279,7 +279,7 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 		matrix = matrixes[0]
 	}
 
-	evaluator := expreval.NewFromInterpreter(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
+	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
 	var node yaml.Node
 	if err := node.Encode(rc); err != nil {
 		return "", false, fmt.Errorf("failed to encode concurrency: %w", err)
@@ -527,7 +527,7 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 			matrix = matrixes[0]
 		}
 	}
-	evaluator := expreval.NewFromInterpreter(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
+	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
 	return evaluator.EvalBool(job.If.Value, exprparser.DefaultStatusCheckSuccess)
 }
 

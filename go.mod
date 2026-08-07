@@ -12,7 +12,7 @@ require (
 	gitea.com/go-chi/session v0.0.0-20260708011333-ebced8a7a2d6
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
-	gitea.dev/actionslib v0.6.1-0.20260806221014-d5dbc3fc1f21
+	gitea.dev/actionslib v0.6.1-0.20260807092433-54af44e858f7
 	gitea.dev/sdk v1.2.0
 	github.com/42wim/httpsig v1.2.4
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432

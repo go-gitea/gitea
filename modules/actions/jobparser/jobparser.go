@@ -128,7 +128,7 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 		return nil, fmt.Errorf("invalid jobs: %w", err)
 	}
 
-	evaluator := expreval.NewFromInterpreter(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Github: pc.gitContext, Vars: pc.vars, Inputs: pc.inputs}, exprparser.Config{}))
+	evaluator := expreval.New(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Github: pc.gitContext, Vars: pc.vars, Inputs: pc.inputs}, exprparser.Config{}).Evaluate)
 	if workflow.RunName, err = evaluator.Interpolate(workflow.RunName); err != nil {
 		return nil, fmt.Errorf("interpolate run-name: %w", err)
 	}
@@ -196,7 +196,7 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 	}}
 
 	// Resolve fromJson(needs.*.outputs.*) and friends into concrete matrix values.
-	if err := expreval.NewFromInterpreter(NewInterpeter(jobID, actJob, nil, gitCtx, results, vars, inputs)).
+	if err := expreval.New(NewInterpeter(jobID, actJob, nil, gitCtx, results, vars, inputs).Evaluate).
 		EvaluateYamlNode(&actJob.Strategy.RawMatrix); err != nil {
 		return nil, fmt.Errorf("evaluate matrix: %w", err)
 	}
@@ -272,7 +272,7 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob
 			combo.Name = jobID
 		}
 		combo.Strategy.RawMatrix = encodeMatrix(matrix)
-		evaluator := expreval.NewFromInterpreter(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs))
+		evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs).Evaluate)
 		if combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator); err != nil {
 			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
 		}

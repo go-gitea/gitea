@@ -186,7 +186,7 @@ func EvaluateCallerWith(
 		matrix = matrixes[0]
 	}
 
-	evaluator := expreval.NewFromInterpreter(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
+	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
 
 	out := make(map[string]any, len(job.With))
 	for k, raw := range job.With {
@@ -362,7 +362,7 @@ func EvaluateWorkflowCallOutputs(spec *WorkflowCallSpec, gitCtx *model.GithubCon
 		Vars:   vars,
 		Inputs: inputs,
 	}
-	evaluator := expreval.NewFromInterpreter(exprparser.NewInterpeter(env, exprparser.Config{}))
+	evaluator := expreval.New(exprparser.NewInterpeter(env, exprparser.Config{}).Evaluate)
 
 	out := make(map[string]string, len(spec.Outputs))
 	for name, o := range spec.Outputs {
