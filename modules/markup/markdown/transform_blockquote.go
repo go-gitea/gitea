@@ -6,6 +6,7 @@ package markdown
 import (
 	"strings"
 
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/svg"
 
 	"github.com/yuin/goldmark/ast"
@@ -38,7 +39,9 @@ func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast
 	return ast.WalkContinue, nil
 }
 
-func (g *ASTTransformer) extractBlockquoteAttentionEmphasis(firstParagraph ast.Node, reader text.Reader) (string, []ast.Node) {
+var attentionTypes = container.SetOf("note", "tip", "important", "warning", "caution")
+
+func extractBlockquoteAttentionEmphasis(firstParagraph ast.Node, reader text.Reader) (string, []ast.Node) {
 	if firstParagraph.ChildCount() < 1 {
 		return "", nil
 	}
@@ -51,13 +54,13 @@ func (g *ASTTransformer) extractBlockquoteAttentionEmphasis(firstParagraph ast.N
 		return "", nil
 	}
 	attentionType := strings.ToLower(val1)
-	if g.attentionTypes.Contains(attentionType) {
+	if attentionTypes.Contains(attentionType) {
 		return attentionType, []ast.Node{node1}
 	}
 	return "", nil
 }
 
-func (g *ASTTransformer) extractBlockquoteAttention2(firstParagraph ast.Node, reader text.Reader) (string, []ast.Node) {
+func extractBlockquoteAttention2(firstParagraph ast.Node, reader text.Reader) (string, []ast.Node) {
 	if firstParagraph.ChildCount() < 2 {
 		return "", nil
 	}
@@ -74,14 +77,14 @@ func (g *ASTTransformer) extractBlockquoteAttention2(firstParagraph ast.Node, re
 	// goldmark splits the text at "\[!TYPE" + "\]" or "\[" + "!TYPE\]" depending on the enabled inline parsers
 	if inner, ok := strings.CutPrefix(val1+val2, `\[!`); ok && strings.HasSuffix(val2, `\]`) {
 		attentionType := strings.ToLower(strings.TrimSuffix(inner, `\]`))
-		if g.attentionTypes.Contains(attentionType) {
+		if attentionTypes.Contains(attentionType) {
 			return attentionType, []ast.Node{node1, node2}
 		}
 	}
 	return "", nil
 }
 
-func (g *ASTTransformer) extractBlockquoteAttention3(firstParagraph ast.Node, reader text.Reader) (string, []ast.Node) {
+func extractBlockquoteAttention3(firstParagraph ast.Node, reader text.Reader) (string, []ast.Node) {
 	if firstParagraph.ChildCount() < 3 {
 		return "", nil
 	}
@@ -105,10 +108,21 @@ func (g *ASTTransformer) extractBlockquoteAttention3(firstParagraph ast.Node, re
 	}
 
 	attentionType := strings.ToLower(val2[1:])
-	if g.attentionTypes.Contains(attentionType) {
+	if attentionTypes.Contains(attentionType) {
 		return attentionType, []ast.Node{node1, node2, node3}
 	}
 	return "", nil
+}
+
+func extractBlockquoteAttention(firstParagraph ast.Node, reader text.Reader) (string, []ast.Node) {
+	attentionType, processedNodes := extractBlockquoteAttentionEmphasis(firstParagraph, reader)
+	if attentionType == "" {
+		attentionType, processedNodes = extractBlockquoteAttention2(firstParagraph, reader)
+	}
+	if attentionType == "" {
+		attentionType, processedNodes = extractBlockquoteAttention3(firstParagraph, reader)
+	}
+	return attentionType, processedNodes
 }
 
 func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Reader) (ast.WalkStatus, error) {
@@ -124,13 +138,7 @@ func (g *ASTTransformer) transformBlockquote(v *ast.Blockquote, reader text.Read
 	}
 	g.applyElementDir(firstParagraph)
 
-	attentionType, processedNodes := g.extractBlockquoteAttentionEmphasis(firstParagraph, reader)
-	if attentionType == "" {
-		attentionType, processedNodes = g.extractBlockquoteAttention2(firstParagraph, reader)
-	}
-	if attentionType == "" {
-		attentionType, processedNodes = g.extractBlockquoteAttention3(firstParagraph, reader)
-	}
+	attentionType, processedNodes := extractBlockquoteAttention(firstParagraph, reader)
 	if attentionType == "" {
 		return ast.WalkContinue, nil
 	}

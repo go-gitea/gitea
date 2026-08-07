@@ -6,7 +6,6 @@ package markdown
 import (
 	"fmt"
 
-	"gitea.dev/modules/container"
 	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
@@ -24,14 +23,10 @@ import (
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct {
 	renderInternal *internal.RenderInternal
-	attentionTypes container.Set[string]
 }
 
 func NewASTTransformer(renderInternal *internal.RenderInternal) *ASTTransformer {
-	return &ASTTransformer{
-		renderInternal: renderInternal,
-		attentionTypes: container.SetOf("note", "tip", "important", "warning", "caution"),
-	}
+	return &ASTTransformer{renderInternal: renderInternal}
 }
 
 func (g *ASTTransformer) applyElementDir(n ast.Node) {
