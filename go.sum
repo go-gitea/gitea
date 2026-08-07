@@ -22,8 +22,8 @@ gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4 h1:IFT+hup2xejHq
 gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
-gitea.dev/actionslib v0.6.1-0.20260807092433-54af44e858f7 h1:3lPYQMCfog4MTRyCBKvhjxqrmCYdenKPLlXx4nS6AdQ=
-gitea.dev/actionslib v0.6.1-0.20260807092433-54af44e858f7/go.mod h1:DI3Lqp+8TrycM7/semMdqsDQOHaBskjIAuMn+SXfZJ0=
+gitea.dev/actionslib v0.6.1-0.20260807195159-b43d318f1760 h1:/S/MWOCjpcORyaD5+h5+lxIyzdBzUm9llFd0yhY+4/I=
+gitea.dev/actionslib v0.6.1-0.20260807195159-b43d318f1760/go.mod h1:DI3Lqp+8TrycM7/semMdqsDQOHaBskjIAuMn+SXfZJ0=
 gitea.dev/sdk v1.2.0 h1:avRtJl/nKCGispgSalo9czoZM9Rto1awnE0caNAoXGo=
 gitea.dev/sdk v1.2.0/go.mod h1:rfh5oNdIK24cbCREwIn1tqWKQW+IICXFGWJyebuOAOE=
 github.com/42wim/httpsig v1.2.4 h1:mI5bH0nm4xn7K18fo1K3okNDRq8CCJ0KbBYWyA6r8lU=
