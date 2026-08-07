@@ -304,22 +304,28 @@ func (m *MinioStorage) ServeDirectURL(storePath, name, method string, opt *Serve
 }
 
 func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
-	opts := minio.GetObjectOptions{}
-	basePathPrefix := m.buildMinioDirPrefix("")
+	basePrefix := m.buildMinioDirPrefix("")
+	dirPrefix := m.buildMinioDirPrefix(dirName)
 	callback := func(object *minio.Object, objPath string) error {
 		defer object.Close()
 		return fn(objPath, &minioObject{object})
 	}
-	// FIXME: this loop is not right and causes resource leaking, see the comment of ListObjects
-	for mObjInfo := range m.client.ListObjects(m.ctx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    m.buildMinioDirPrefix(dirName),
-		Recursive: true,
-	}) {
-		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, opts)
+
+	listOpts := minio.ListObjectsOptions{Prefix: dirPrefix, Recursive: true}
+	listChan := m.client.ListObjects(m.ctx, m.bucket, listOpts)
+	defer func() {
+		// ListObjects: caller must drain the channel entirely and wait until channel is closed before proceeding,
+		// without waiting on the channel to be closed completely you might leak goroutines.
+		for range listChan {
+		}
+	}()
+	getOpts := minio.GetObjectOptions{}
+	for mObjInfo := range listChan {
+		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, getOpts)
 		if err != nil {
 			return convertMinioErr(err)
 		}
-		objPath := strings.TrimPrefix(mObjInfo.Key, basePathPrefix)
+		objPath := strings.TrimPrefix(mObjInfo.Key, basePrefix)
 		if err := callback(object, objPath); err != nil {
 			return convertMinioErr(err)
 		}
