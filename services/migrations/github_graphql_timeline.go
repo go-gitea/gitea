@@ -39,7 +39,11 @@ const timelineBatchSize = 100
 // PullRequest-only — including them in the Issue timelineItems (itemTypes arg OR an
 // `... on MergedEvent` fragment) is a hard GraphQL validation error that aborts the
 // whole timeline pass. issueTimelineItemTypes is the set valid on BOTH unions; the PR
-// query adds the PR-only types on top.
+// query adds the PR-only types on top. The complete lists of accepted values are the
+// IssueTimelineItemsItemType and PullRequestTimelineItemsItemType enums:
+// https://docs.github.com/en/graphql/reference/enums#issuetimelineitemsitemtype
+// https://docs.github.com/en/graphql/reference/enums#pullrequesttimelineitemsitemtype
+// The types handled here are the subset with a Gitea comment-type equivalent.
 const (
 	issueTimelineItemTypes = "CLOSED_EVENT,REOPENED_EVENT,LOCKED_EVENT,UNLOCKED_EVENT,RENAMED_TITLE_EVENT,LABELED_EVENT,UNLABELED_EVENT,MILESTONED_EVENT,DEMILESTONED_EVENT,PINNED_EVENT,UNPINNED_EVENT"
 	prTimelineItemTypes    = issueTimelineItemTypes + ",MERGED_EVENT,HEAD_REF_DELETED_EVENT,AUTO_MERGE_ENABLED_EVENT,AUTO_MERGE_DISABLED_EVENT"
