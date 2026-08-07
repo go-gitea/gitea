@@ -10,12 +10,13 @@ import (
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func prepareMinioStorageConfig(t *testing.T) *setting.Storage {
+func prepareMinioStorageConfig(t *testing.T, basePath ...string) *setting.Storage {
 	return &setting.Storage{
 		MinioConfig: setting.MinioStorageConfig{
 			Endpoint:        test.ExternalServiceHTTP(t, "TEST_MINIO_ENDPOINT", "minio:9000"),
@@ -23,6 +24,7 @@ func prepareMinioStorageConfig(t *testing.T) *setting.Storage {
 			SecretAccessKey: "12345678",
 			Bucket:          "gitea",
 			Location:        "us-east-1",
+			BasePath:        util.OptionalArg(basePath),
 		},
 	}
 }
@@ -35,8 +37,7 @@ func TestMinioStorage(t *testing.T) {
 		testStorageGeneral(t, objStore)
 	})
 	t.Run("WithBasePath", func(t *testing.T) {
-		config := prepareMinioStorageConfig(t)
-		config.MinioConfig.BasePath = "test-base-path"
+		config := prepareMinioStorageConfig(t, "test-base-path")
 		objStore, err := NewStorage(setting.MinioStorageType, config)
 		require.NoError(t, err)
 		testStorageGeneral(t, objStore)
