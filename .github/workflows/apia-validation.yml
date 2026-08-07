@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
 
       - name: Fetch staging manifests
         shell: powershell
@@ -34,7 +35,8 @@ jobs:
       - name: Capture git diff
         shell: powershell
         run: |
-          git diff HEAD..origin/staging > "$env:GITHUB_WORKSPACE\git-diff.txt"
+          git fetch origin main --depth=1
+          git diff origin/main..HEAD > "$env:GITHUB_WORKSPACE\git-diff.txt"
           Write-Host "Git diff captured: $((Get-Item $env:GITHUB_WORKSPACE\git-diff.txt).Length) bytes"
 
       - name: Set image tag
