@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, nextTick, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch, type ShallowRef} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {showErrorToast} from '../modules/toast.ts';
 import {GET} from '../modules/fetch.ts';
 import {pathEscapeSegments} from '../utils/url.ts';

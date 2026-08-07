@@ -187,7 +187,7 @@ func TestCancelJobs_NestedBlockedReusableCaller(t *testing.T) {
 	// Cancel all jobs of the attempt, ordered by id (parent before child).
 	jobs, err := GetRunJobsByRunAndAttemptID(ctx, run.ID, attempt.ID)
 	require.NoError(t, err)
-	_, err = CancelJobs(ctx, jobs)
+	_, err = CancelJobs(ctx, jobs, false)
 	require.NoError(t, err)
 
 	for _, j := range []*ActionRunJob{outer, inner} {
@@ -272,7 +272,7 @@ func TestSettleRunAfterCancel(t *testing.T) {
 			run, jobs := newStuckRun(t, tc.withAttempt, tc.withJob)
 
 			// mirrors what the CancelRun service does
-			cancelled, err := CancelJobs(t.Context(), jobs)
+			cancelled, err := CancelJobs(t.Context(), jobs, false)
 			require.NoError(t, err)
 			assert.Empty(t, cancelled, "nothing is cancellable, so the run row has to be settled explicitly")
 			require.NoError(t, SettleRunAfterCancel(t.Context(), run))
@@ -325,5 +325,79 @@ jobs:
 		require.NotNil(t, parsed)
 		// Parse bakes the combination into the name, ParseRawSingleWorkflow would not.
 		assert.Equal(t, "build (1)", parsed.Name)
+	})
+}
+
+func TestForceCancelJobs(t *testing.T) {
+	assertCancelled := func(t *testing.T, task *ActionTask, job *ActionRunJob) {
+		t.Helper()
+
+		taskAfter := unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID})
+		assert.Equal(t, StatusCancelled, taskAfter.Status)
+		assert.NotZero(t, taskAfter.Stopped)
+
+		jobAfter := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+		assert.Equal(t, StatusCancelled, jobAfter.Status)
+		assert.NotZero(t, jobAfter.Stopped)
+	}
+
+	// A running task is force-cancelled directly, without trying the graceful cancel first.
+	t.Run("running task", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		task, job := newRunningTaskForCancelling(t, "force-cancel-job", true)
+
+		cancelledJobs, err := CancelJobs(t.Context(), []*ActionRunJob{job}, true)
+		require.NoError(t, err)
+		require.Len(t, cancelledJobs, 1)
+		assert.Equal(t, StatusCancelled, cancelledJobs[0].Status)
+		assertCancelled(t, task, job)
+	})
+
+	// A task already in the cancelling handshake whose runner never finishes the cleanup.
+	t.Run("cancelling task", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		task, job := newRunningTaskForCancelling(t, "force-cancel-cancelling-job", true)
+
+		cancelling, err := CancelJobs(t.Context(), []*ActionRunJob{job}, false)
+		require.NoError(t, err)
+		require.Len(t, cancelling, 1)
+		assert.Equal(t, StatusCancelling, cancelling[0].Status)
+
+		job = unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID})
+		cancelled, err := CancelJobs(t.Context(), []*ActionRunJob{job}, true)
+		require.NoError(t, err)
+		require.Len(t, cancelled, 1)
+		assertCancelled(t, task, job)
+	})
+
+	// A caller is cancelled through its descendants, so the force has to reach their tasks too.
+	t.Run("reusable caller", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		task, child := newRunningTaskForCancelling(t, "force-cancel-child", true)
+
+		caller := &ActionRunJob{
+			RunID:            child.RunID,
+			RepoID:           child.RepoID,
+			OwnerID:          child.OwnerID,
+			CommitSHA:        child.CommitSHA,
+			Name:             "force-cancel-caller",
+			JobID:            "force-cancel-caller",
+			Attempt:          1,
+			Status:           StatusRunning,
+			IsReusableCaller: true,
+			IsExpanded:       true,
+		}
+		require.NoError(t, db.Insert(t.Context(), caller))
+		child.ParentJobID = caller.ID
+		_, err := UpdateRunJob(t.Context(), child, nil, "parent_job_id")
+		require.NoError(t, err)
+
+		cancelled, err := CancelJobs(t.Context(), []*ActionRunJob{caller}, true)
+		require.NoError(t, err)
+		require.Len(t, cancelled, 2)
+		assertCancelled(t, task, child)
+
+		callerAfter := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: caller.ID})
+		assert.Equal(t, StatusCancelled, callerAfter.Status)
 	})
 }

@@ -404,5 +404,5 @@ func CancelPreviousJobsByRunConcurrency(ctx context.Context, attempt *ActionRunA
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}
 
-	return CancelJobs(ctx, jobsToCancel)
+	return CancelJobs(ctx, jobsToCancel, false)
 }
