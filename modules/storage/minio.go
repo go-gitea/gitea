@@ -303,9 +303,13 @@ func (m *MinioStorage) ServeDirectURL(storePath, name, method string, opt *Serve
 	return u, convertMinioErr(err)
 }
 
-// IterateObjects iterates across the objects in the miniostorage
 func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
 	opts := minio.GetObjectOptions{}
+	basePathPrefix := m.buildMinioDirPrefix("")
+	callback := func(object *minio.Object, objPath string) error {
+		defer object.Close()
+		return fn(objPath, &minioObject{object})
+	}
 	// FIXME: this loop is not right and causes resource leaking, see the comment of ListObjects
 	for mObjInfo := range m.client.ListObjects(m.ctx, m.bucket, minio.ListObjectsOptions{
 		Prefix:    m.buildMinioDirPrefix(dirName),
@@ -315,10 +319,8 @@ func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj O
 		if err != nil {
 			return convertMinioErr(err)
 		}
-		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
-			defer object.Close()
-			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &minioObject{object})
-		}(object, fn); err != nil {
+		objPath := strings.TrimPrefix(mObjInfo.Key, basePathPrefix)
+		if err := callback(object, objPath); err != nil {
 			return convertMinioErr(err)
 		}
 	}

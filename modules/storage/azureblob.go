@@ -298,12 +298,13 @@ func (a *AzureBlobStorage) ServeDirectURL(storePath, name, method string, reqPar
 }
 
 func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
+	basePrefix := buildObjectStorePathPrefix(a.cfg.BasePath, "")
 	dirPrefix := buildObjectStorePathPrefix(a.cfg.BasePath, dirName)
 	pager := a.client.NewListBlobsFlatPager(a.cfg.Container, &container.ListBlobsFlatOptions{
 		Prefix: &dirPrefix,
 	})
 
-	callback := func(object *azureBlobObject, objPath string, fn func(path string, obj Object) error) error {
+	callback := func(object *azureBlobObject, objPath string) error {
 		defer object.Close()
 		return fn(objPath, object)
 	}
@@ -313,7 +314,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 			return convertAzureBlobErr(err)
 		}
 		for _, azureObj := range resp.Segment.BlobItems {
-			objPath := strings.TrimPrefix(*azureObj.Name, dirPrefix)
+			objPath := strings.TrimPrefix(*azureObj.Name, basePrefix)
 			objWrap := &azureBlobObject{
 				ctx:        a.ctx,
 				blobClient: a.getBlobClient(objPath),
@@ -321,7 +322,7 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 				size:       *azureObj.Properties.ContentLength,
 				modTime:    azureObj.Properties.LastModified,
 			}
-			if err := callback(objWrap, objPath, fn); err != nil {
+			if err := callback(objWrap, objPath); err != nil {
 				return convertAzureBlobErr(err)
 			}
 		}

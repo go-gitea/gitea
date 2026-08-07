@@ -137,8 +137,9 @@ func testStorageURLContentTypeAndDisposition(t *testing.T, objStore ObjectStorag
 
 func testStorageGeneral(t *testing.T, objStore ObjectStorage) {
 	t.Run("StorageIterator", func(t *testing.T) { testStorageIterator(t, objStore) })
+
 	if _, ok := objStore.(*LocalStorage); ok {
-		t.Skipf("Skipping StorageURLContentTypeAndDisposition test for local storage")
+		t.Skipf("Skipping tests for local storage")
 	}
 	t.Run("StorageURLContentTypeAndDisposition", func(t *testing.T) { testStorageURLContentTypeAndDisposition(t, objStore) })
 }
