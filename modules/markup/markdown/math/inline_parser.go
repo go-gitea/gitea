@@ -160,13 +160,13 @@ func trimBlock(node *Inline, block text.Reader) {
 	}
 
 	// trim first space and last space
-	first, ok := node.FirstChild().(*ast.Text)
-	if !ok || !(!first.Segment.IsEmpty() && block.Source()[first.Segment.Start] == ' ') {
+	first := node.FirstChild().(*ast.Text) //nolint:forcetypeassert // an inline math node only holds text children
+	if !(!first.Segment.IsEmpty() && block.Source()[first.Segment.Start] == ' ') {
 		return
 	}
 
-	last, ok := node.LastChild().(*ast.Text)
-	if !ok || !(!last.Segment.IsEmpty() && block.Source()[last.Segment.Stop-1] == ' ') {
+	last := node.LastChild().(*ast.Text) //nolint:forcetypeassert // an inline math node only holds text children
+	if !(!last.Segment.IsEmpty() && block.Source()[last.Segment.Stop-1] == ' ') {
 		return
 	}
 

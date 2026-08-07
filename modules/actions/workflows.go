@@ -267,13 +267,13 @@ func DetectScheduledWorkflows(ctx context.Context, gitRepo *git.Repository, comm
 }
 
 // payloadAs returns the payload as the type the event is expected to carry
-func payloadAs[T api.Payloader](payload api.Payloader, triggedEvent webhook_module.HookEventType) (T, bool) {
+func payloadAs[T api.Payloader](payload api.Payloader, triggedEvent webhook_module.HookEventType) T {
 	typedPayload, ok := payload.(T)
 	if !ok {
 		// the event type determines the payload type, so a mismatch can only be a programming error
 		panic(fmt.Sprintf("event %q was triggered with payload type %T instead of %T", triggedEvent, payload, typedPayload))
 	}
-	return typedPayload, ok
+	return typedPayload
 }
 
 func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *git.Commit, triggedEvent webhook_module.HookEventType, payload api.Payloader, evt *jobparser.Event) detectResult {
@@ -296,10 +296,7 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 
 	case // push
 		webhook_module.HookEventPush:
-		pushPayload, ok := payloadAs[*api.PushPayload](payload, triggedEvent)
-		if !ok {
-			return detectNotApplicable
-		}
+		pushPayload := payloadAs[*api.PushPayload](payload, triggedEvent)
 		return matchPushEvent(ctx, gitRepo, commit, pushPayload, evt)
 
 	case // issues
@@ -307,10 +304,7 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 		webhook_module.HookEventIssueAssign,
 		webhook_module.HookEventIssueLabel,
 		webhook_module.HookEventIssueMilestone:
-		issuePayload, ok := payloadAs[*api.IssuePayload](payload, triggedEvent)
-		if !ok {
-			return detectNotApplicable
-		}
+		issuePayload := payloadAs[*api.IssuePayload](payload, triggedEvent)
 		if matchIssuesEvent(issuePayload, evt) {
 			return detectMatched
 		}
@@ -321,10 +315,7 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 		// `pull_request_comment` is same as `issue_comment`
 		// See https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_comment-use-issue_comment
 		webhook_module.HookEventPullRequestComment:
-		issueCommentPayload, ok := payloadAs[*api.IssueCommentPayload](payload, triggedEvent)
-		if !ok {
-			return detectNotApplicable
-		}
+		issueCommentPayload := payloadAs[*api.IssueCommentPayload](payload, triggedEvent)
 		if matchIssueCommentEvent(issueCommentPayload, evt) {
 			return detectMatched
 		}
@@ -337,19 +328,13 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 		webhook_module.HookEventPullRequestLabel,
 		webhook_module.HookEventPullRequestReviewRequest,
 		webhook_module.HookEventPullRequestMilestone:
-		pullRequestPayload, ok := payloadAs[*api.PullRequestPayload](payload, triggedEvent)
-		if !ok {
-			return detectNotApplicable
-		}
+		pullRequestPayload := payloadAs[*api.PullRequestPayload](payload, triggedEvent)
 		return matchPullRequestEvent(ctx, gitRepo, commit, pullRequestPayload, evt)
 
 	case // pull_request_review
 		webhook_module.HookEventPullRequestReviewApproved,
 		webhook_module.HookEventPullRequestReviewRejected:
-		reviewPayload, ok := payloadAs[*api.PullRequestPayload](payload, triggedEvent)
-		if !ok {
-			return detectNotApplicable
-		}
+		reviewPayload := payloadAs[*api.PullRequestPayload](payload, triggedEvent)
 		if matchPullRequestReviewEvent(reviewPayload, evt) {
 			return detectMatched
 		}
@@ -357,10 +342,7 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 
 	case // pull_request_review_comment
 		webhook_module.HookEventPullRequestReviewComment:
-		reviewCommentPayload, ok := payloadAs[*api.PullRequestPayload](payload, triggedEvent)
-		if !ok {
-			return detectNotApplicable
-		}
+		reviewCommentPayload := payloadAs[*api.PullRequestPayload](payload, triggedEvent)
 		if matchPullRequestReviewCommentEvent(reviewCommentPayload, evt) {
 			return detectMatched
 		}
@@ -368,10 +350,7 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 
 	case // release
 		webhook_module.HookEventRelease:
-		releasePayload, ok := payloadAs[*api.ReleasePayload](payload, triggedEvent)
-		if !ok {
-			return detectNotApplicable
-		}
+		releasePayload := payloadAs[*api.ReleasePayload](payload, triggedEvent)
 		if matchReleaseEvent(releasePayload, evt) {
 			return detectMatched
 		}
@@ -379,10 +358,7 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 
 	case // registry_package
 		webhook_module.HookEventPackage:
-		packagePayload, ok := payloadAs[*api.PackagePayload](payload, triggedEvent)
-		if !ok {
-			return detectNotApplicable
-		}
+		packagePayload := payloadAs[*api.PackagePayload](payload, triggedEvent)
 		if matchPackageEvent(packagePayload, evt) {
 			return detectMatched
 		}
@@ -390,10 +366,7 @@ func detectWorkflowMatch(ctx context.Context, gitRepo *git.Repository, commit *g
 
 	case // workflow_run
 		webhook_module.HookEventWorkflowRun:
-		workflowRunPayload, ok := payloadAs[*api.WorkflowRunPayload](payload, triggedEvent)
-		if !ok {
-			return detectNotApplicable
-		}
+		workflowRunPayload := payloadAs[*api.WorkflowRunPayload](payload, triggedEvent)
 		if matchWorkflowRunEvent(workflowRunPayload, evt) {
 			return detectMatched
 		}

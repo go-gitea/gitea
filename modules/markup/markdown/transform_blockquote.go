@@ -17,7 +17,8 @@ import (
 
 // renderAttention renders a quote marked with i.e. "> **Note**" or "> [!Warning]" with a corresponding svg
 func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if n, ok := node.(*Attention); ok && entering {
+	if entering {
+		n := node.(*Attention) //nolint:forcetypeassert // registered for KindAttention only
 		var octiconName string
 		switch n.AttentionType {
 		case "tip":

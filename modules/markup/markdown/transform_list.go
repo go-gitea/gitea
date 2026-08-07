@@ -15,10 +15,7 @@ import (
 )
 
 func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n, ok := node.(*TaskCheckBoxListItem)
-	if !ok {
-		return ast.WalkContinue, nil
-	}
+	n := node.(*TaskCheckBoxListItem) //nolint:forcetypeassert // registered for KindTaskCheckBoxListItem only
 	if entering {
 		if n.Attributes() != nil {
 			_, _ = w.WriteString("<li")
@@ -63,8 +60,8 @@ func (g *ASTTransformer) transformList(_ *markup.RenderContext, v *ast.List, rc 
 		v.RemoveChildren(v)
 
 		for _, child := range children {
-			listItem, ok := child.(*ast.ListItem)
-			if !ok || !child.HasChildren() || !child.FirstChild().HasChildren() {
+			listItem := child.(*ast.ListItem) //nolint:forcetypeassert // a list only holds list items
+			if !child.HasChildren() || !child.FirstChild().HasChildren() {
 				v.AppendChild(v, child)
 				continue
 			}

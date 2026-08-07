@@ -177,10 +177,7 @@ func GetListenerTCP(network string, address *net.TCPAddr) (*net.TCPListener, err
 	// look for a provided listener
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
-			tcpListener, ok := l.(*net.TCPListener)
-			if !ok {
-				return nil, fmt.Errorf("provided listener for %s is a %T, not a *net.TCPListener", address, l)
-			}
+			tcpListener := l.(*net.TCPListener) //nolint:forcetypeassert // a listener matching a *net.TCPAddr is a *net.TCPListener
 
 			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
 			needsUnlink := providedListenersToUnlink[i]
@@ -216,10 +213,7 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 	// look for a provided listener
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
-			unixListener, ok := l.(*net.UnixListener)
-			if !ok {
-				return nil, fmt.Errorf("provided listener for %s is a %T, not a *net.UnixListener", address, l)
-			}
+			unixListener := l.(*net.UnixListener) //nolint:forcetypeassert // a listener matching a *net.UnixAddr is a *net.UnixListener
 
 			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
 			needsUnlink := providedListenersToUnlink[i]

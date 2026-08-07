@@ -32,15 +32,6 @@ type WriterMode struct {
 	WriterOption any
 }
 
-// writerOption returns the writer's specified option, a zero option is used if the mode carries a wrong type
-func writerOption[T any](writerName string, mode WriterMode) T {
-	opt, ok := mode.WriterOption.(T)
-	if !ok {
-		FallbackErrorf("log writer %q has an invalid option %T, expected %T", writerName, mode.WriterOption, opt)
-	}
-	return opt
-}
-
 // EventWriterProvider is the function for creating a new EventWriter
 type EventWriterProvider func(writerName string, writerMode WriterMode) EventWriter
 

@@ -300,10 +300,7 @@ func (s *footnoteParser) Parse(parent ast.Node, block text.Reader, pc parser.Con
 	index := 0
 	name := []byte{}
 	for def := list.FirstChild(); def != nil; def = def.NextSibling() {
-		d, ok := def.(*Footnote)
-		if !ok {
-			continue
-		}
+		d := def.(*Footnote) //nolint:forcetypeassert // a FootnoteList only holds *Footnote children
 		if bytes.Equal(d.Ref, value) {
 			if d.Index < 0 {
 				list.Count++
@@ -348,19 +345,17 @@ func (a *footnoteASTTransformer) Transform(node *ast.Document, reader text.Reade
 		if fc := container.LastChild(); fc != nil && ast.IsParagraph(fc) {
 			container = fc
 		}
-		if footnoteNode, ok := footnote.(*Footnote); ok {
-			if footnoteNode.Index < 0 {
-				list.RemoveChild(list, footnote)
-			} else {
-				container.AppendChild(container, NewFootnoteBackLink(footnoteNode.Index, footnoteNode.Name))
-			}
+		footnoteNode := footnote.(*Footnote) //nolint:forcetypeassert // a FootnoteList only holds *Footnote children
+		if footnoteNode.Index < 0 {
+			list.RemoveChild(list, footnote)
+		} else {
+			container.AppendChild(container, NewFootnoteBackLink(footnoteNode.Index, footnoteNode.Name))
 		}
 		footnote = next
 	}
 	list.SortChildren(func(n1, n2 ast.Node) int {
-		fn1, ok1 := n1.(*Footnote)
-		fn2, ok2 := n2.(*Footnote)
-		if ok1 && ok2 && fn1.Index < fn2.Index {
+		//nolint:forcetypeassert // a FootnoteList only holds *Footnote children
+		if n1.(*Footnote).Index < n2.(*Footnote).Index {
 			return -1
 		}
 		return 1
@@ -399,7 +394,8 @@ func (r *FootnoteHTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegist
 }
 
 func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if n, ok := node.(*FootnoteLink); ok && entering {
+	if entering {
+		n := node.(*FootnoteLink) //nolint:forcetypeassert // registered for KindFootnoteLink only
 		is := strconv.Itoa(n.Index)
 		_, _ = w.WriteString(`<sup id="fnref:user-content-`)
 		_, _ = w.Write(n.Name)
@@ -413,7 +409,8 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 }
 
 func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	if n, ok := node.(*FootnoteBackLink); ok && entering {
+	if entering {
+		n := node.(*FootnoteBackLink) //nolint:forcetypeassert // registered for KindFootnoteBackLink only
 		_, _ = w.WriteString(` <a href="#fnref:user-content-`)
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`" class="footnote-backref" role="doc-backlink">`)
@@ -424,10 +421,7 @@ func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source [
 }
 
 func (r *FootnoteHTMLRenderer) renderFootnote(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n, ok := node.(*Footnote)
-	if !ok {
-		return ast.WalkContinue, nil
-	}
+	n := node.(*Footnote) //nolint:forcetypeassert // registered for KindFootnote only
 	if entering {
 		_, _ = w.WriteString(`<li id="fn:user-content-`)
 		_, _ = w.Write(n.Name)

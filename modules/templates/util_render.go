@@ -43,12 +43,7 @@ func NewRenderUtils(ctx reqctx.RequestContext) *RenderUtils {
 }
 
 func (ut *RenderUtils) locale() translation.Locale {
-	locale, ok := ut.ctx.Value(translation.ContextKey).(translation.Locale)
-	if !ok {
-		setting.PanicInDevOrTesting("no locale in context")
-		return translation.NewLocale("")
-	}
-	return locale
+	return ut.ctx.Value(translation.ContextKey).(translation.Locale) //nolint:forcetypeassert // the render context always carries a locale
 }
 
 // RenderCommitMessage renders commit message title (only title)

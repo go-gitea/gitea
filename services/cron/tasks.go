@@ -65,10 +65,7 @@ func (t *Task) GetConfig() Config {
 		// Not pointer:
 		newConfig = reflect.New(configValue.Type()).Elem().Interface()
 	}
-	if config, ok := newConfig.(Config); ok {
-		return config
-	}
-	return t.config // unreachable, a fresh value of the config's own type always implements Config
+	return newConfig.(Config) //nolint:forcetypeassert // a fresh value of the config's own type always implements Config
 }
 
 // Run will run the task incrementing the cron counter with no user defined

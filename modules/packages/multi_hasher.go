@@ -10,7 +10,6 @@ import (
 	"crypto/sha512"
 	"encoding"
 	"errors"
-	"fmt"
 	"hash"
 	"io"
 )
@@ -59,19 +58,11 @@ func NewMultiHasher() *MultiHasher {
 
 // marshalHash saves the state of a hash, every stdlib hash implements the marshaler interfaces
 func marshalHash(h hash.Hash) ([]byte, error) {
-	marshaler, ok := h.(encoding.BinaryMarshaler)
-	if !ok {
-		return nil, fmt.Errorf("hash %T does not implement encoding.BinaryMarshaler", h)
-	}
-	return marshaler.MarshalBinary()
+	return h.(encoding.BinaryMarshaler).MarshalBinary() //nolint:forcetypeassert // every hash used here is a stdlib hash
 }
 
 func unmarshalHash(h hash.Hash, state []byte) error {
-	unmarshaler, ok := h.(encoding.BinaryUnmarshaler)
-	if !ok {
-		return fmt.Errorf("hash %T does not implement encoding.BinaryUnmarshaler", h)
-	}
-	return unmarshaler.UnmarshalBinary(state)
+	return h.(encoding.BinaryUnmarshaler).UnmarshalBinary(state) //nolint:forcetypeassert // every hash used here is a stdlib hash
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler

@@ -6,7 +6,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -144,11 +143,7 @@ func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
 	if len(sources) > 1 {
 		return nil, errors.New("more than one active login source of type SSPI found")
 	}
-	cfg, ok := sources[0].Cfg.(*sspi.Source)
-	if !ok {
-		return nil, fmt.Errorf("active login source of type SSPI has config %T, expected *sspi.Source", sources[0].Cfg)
-	}
-	return cfg, nil
+	return sources[0].Cfg.(*sspi.Source), nil //nolint:forcetypeassert // the query above only returns SSPI sources
 }
 
 func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {

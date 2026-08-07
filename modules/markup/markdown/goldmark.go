@@ -11,7 +11,6 @@ import (
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
-	"gitea.dev/modules/setting"
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
@@ -44,16 +43,8 @@ func (g *ASTTransformer) applyElementDir(n ast.Node) {
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	firstChild := node.FirstChild()
-	ctx, ok := pc.Get(renderContextKey).(*markup.RenderContext)
-	if !ok {
-		setting.PanicInDevOrTesting("no render context in parser context")
-		return
-	}
-	rc, ok := pc.Get(renderConfigKey).(*RenderConfig)
-	if !ok {
-		setting.PanicInDevOrTesting("no render config in parser context")
-		return
-	}
+	//nolint:forcetypeassert // the renderer always seeds both keys before parsing
+	ctx, rc := pc.Get(renderContextKey).(*markup.RenderContext), pc.Get(renderConfigKey).(*RenderConfig)
 
 	tocMode := ""
 	if rc.yamlNode != nil {
@@ -219,10 +210,7 @@ func (r *HTMLRenderer) renderRawHTML(w util.BufWriter, source []byte, node ast.N
 	if !entering {
 		return ast.WalkContinue, nil
 	}
-	n, ok := node.(*RawHTML)
-	if !ok {
-		return ast.WalkContinue, nil
-	}
+	n := node.(*RawHTML) //nolint:forcetypeassert // registered for KindRawHTML only
 	_, err := w.WriteString(string(r.renderInternal.ProtectSafeAttrs(n.rawHTML)))
 	if err != nil {
 		return ast.WalkStop, err

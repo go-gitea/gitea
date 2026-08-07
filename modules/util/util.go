@@ -94,17 +94,21 @@ func CryptoRandomBytes(length int64) []byte {
 	return buf
 }
 
-// chaCha8RandPool holds *rand2.ChaCha8 generators, an empty pool returns nil and the caller seeds a new one
-var chaCha8RandPool sync.Pool
+var chaCha8RandPool = sync.OnceValue(func() *sync.Pool {
+	return &sync.Pool{
+		New: func() any {
+			seed := CryptoRandomBytes(32)
+			return rand2.NewChaCha8([32]byte(seed))
+		},
+	}
+})
 
 func FastCryptoRandomBytes(length int) []byte {
 	// ChaCha8 is about 20x times faster than system's crypto/rand.
 	// It is suitable for UUIDs, session IDs, etc
-	chaCha8Rand, ok := chaCha8RandPool.Get().(*rand2.ChaCha8)
-	if !ok {
-		chaCha8Rand = rand2.NewChaCha8([32]byte(CryptoRandomBytes(32)))
-	}
-	defer chaCha8RandPool.Put(chaCha8Rand)
+	pool := chaCha8RandPool()
+	chaCha8Rand := pool.Get().(*rand2.ChaCha8) //nolint:forcetypeassert // the pool's New only ever makes *rand2.ChaCha8
+	defer pool.Put(chaCha8Rand)
 	buf := make([]byte, length)
 	_, _ = chaCha8Rand.Read(buf)
 	return buf
@@ -273,8 +277,9 @@ type EnumConst[T comparable] interface {
 // otherwise returns the first item of enums as default value.
 func EnumValue[T comparable](val EnumConst[T]) (ret T, valid bool) {
 	enums := val.EnumValues()
-	if v, ok := val.(T); ok && slices.Contains(enums, v) {
-		return v, true
+	//nolint:forcetypeassert // EnumConst[T] is only implemented by types whose underlying type is T
+	if slices.Contains(enums, val.(T)) {
+		return val.(T), true
 	}
 	return enums[0], false
 }
