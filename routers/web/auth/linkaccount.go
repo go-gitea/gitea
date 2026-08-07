@@ -148,15 +148,13 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
 	// We deliberately ignore the skip local 2fa setting here because we are linking to a previous user here
-	_, err := auth.GetTwoFactorByUID(ctx, u.ID)
+	hasTwoFactor, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 	if err != nil {
-		if !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.ServerError("UserLinkAccount", err)
-			return
-		}
-
-		err = externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser)
-		if err != nil {
+		ctx.ServerError("UserLinkAccount", err)
+		return
+	}
+	if !hasTwoFactor {
+		if err := externalaccount.LinkAccountToUser(ctx, linkAccountData.AuthSourceID, u, linkAccountData.GothUser); err != nil {
 			ctx.ServerError("UserLinkAccount", err)
 			return
 		}
@@ -170,25 +168,10 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 		return
 	}
 
-	if err := regenerateSession(ctx, map[string]any{
-		// User needs to use 2FA, save data and redirect to 2FA page.
-		"twofaUid":              u.ID,
-		"twofaRemember":         remember,
+	handleTwoFactorRequired(ctx, u, remember, map[string]any{
 		"linkAccount":           true,
 		session.KeySignInMethod: session.SignInMethodOAuth2,
-	}); err != nil {
-		ctx.ServerError("RegenerateSession", err)
-		return
-	}
-
-	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
-	if err == nil && len(regs) > 0 {
-		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
+	})
 }
 
 // LinkAccountPostRegister handle the creation of a new account for an external account using signUp
@@ -281,6 +264,15 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	handleSignIn(ctx, u, false)
+}
+
+func completePendingLinks(ctx *context.Context, user *user_model.User) error {
+	if ctx.Session.Get("linkAccount") != nil {
+		if err := linkAccountFromContext(ctx, user); err != nil {
+			return err
+		}
+	}
+	return openIDConnectFromContext(ctx, user)
 }
 
 func linkAccountFromContext(ctx *context.Context, user *user_model.User) error {

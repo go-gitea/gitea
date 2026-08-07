@@ -55,7 +55,8 @@ func WebAuthnPasskeyAssertion(ctx *context.Context) {
 		return
 	}
 
-	assertion, sessionData, err := wa.WebAuthn.BeginDiscoverableLogin()
+	// a passkey is the only factor here
+	assertion, sessionData, err := wa.WebAuthn.BeginDiscoverableLogin(webauthn.WithUserVerification(protocol.VerificationRequired))
 	if err != nil {
 		ctx.ServerError("webauthn.BeginDiscoverableLogin", err)
 		return
@@ -92,7 +93,7 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 	parsedResponse, err := protocol.ParseCredentialRequestResponse(ctx.Req)
 	if err != nil {
 		// Failed authentication attempt.
-		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
+		log.Info("Failed authentication attempt from %s: %v", ctx.RemoteAddr(), err)
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -148,12 +149,9 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 		return
 	}
 
-	// Now handle account linking if that's requested
-	if ctx.Session.Get("linkAccount") != nil {
-		if err := linkAccountFromContext(ctx, user); err != nil {
-			ctx.ServerError("LinkAccountFromStore", err)
-			return
-		}
+	if err := completePendingLinks(ctx, user); err != nil {
+		ctx.ServerError("completePendingLinks", err)
+		return
 	}
 
 	remember := false // TODO: implement remember me
@@ -187,7 +185,8 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 	}
 
 	webAuthnUser := wa.NewWebAuthnUser(ctx, user)
-	assertion, sessionData, err := wa.WebAuthn.BeginLogin(webAuthnUser)
+	// "discouraged" would hide credProtect protected credentials
+	assertion, sessionData, err := wa.WebAuthn.BeginLogin(webAuthnUser, webauthn.WithUserVerification(protocol.VerificationPreferred))
 	if err != nil {
 		ctx.ServerError("webauthn.BeginLogin", err)
 		return
@@ -262,12 +261,9 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 		return
 	}
 
-	// Now handle account linking if that's requested
-	if ctx.Session.Get("linkAccount") != nil {
-		if err := linkAccountFromContext(ctx, user); err != nil {
-			ctx.ServerError("LinkAccountFromStore", err)
-			return
-		}
+	if err := completePendingLinks(ctx, user); err != nil {
+		ctx.ServerError("completePendingLinks", err)
+		return
 	}
 
 	remember, _ := ctx.Session.Get("twofaRemember").(bool)

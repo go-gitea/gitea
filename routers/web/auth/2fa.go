@@ -72,12 +72,9 @@ func TwoFactorPost(ctx *context.Context) {
 			return
 		}
 
-		if ctx.Session.Get("linkAccount") != nil {
-			err = linkAccountFromContext(ctx, u)
-			if err != nil {
-				ctx.ServerError("UserSignIn", err)
-				return
-			}
+		if err = completePendingLinks(ctx, u); err != nil {
+			ctx.ServerError("completePendingLinks", err)
+			return
 		}
 
 		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
@@ -140,6 +137,11 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
+			return
+		}
+
+		if err = completePendingLinks(ctx, u); err != nil {
+			ctx.ServerError("completePendingLinks", err)
 			return
 		}
 

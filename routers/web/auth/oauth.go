@@ -370,12 +370,11 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 
 	needs2FA := false
 	if !authSource.TwoFactorShouldSkip() {
-		_, err := auth.GetTwoFactorByUID(ctx, u.ID)
-		if err != nil && !auth.IsErrTwoFactorNotEnrolled(err) {
+		var err error
+		if needs2FA, err = auth.HasTwoFactorOrWebAuthn(ctx, u.ID); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
-		needs2FA = err == nil
 	}
 
 	oauth2Source, err := auth.SourceCfg[*oauth2.Source](authSource)
@@ -467,24 +466,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		}
 	}
 
-	if err := regenerateSession(ctx, map[string]any{
-		// User needs to use 2FA, save data and redirect to 2FA page.
-		"twofaUid":              u.ID,
-		"twofaRemember":         false,
-		session.KeySignInMethod: session.SignInMethodOAuth2,
-	}); err != nil {
-		ctx.ServerError("updateSession", err)
-		return
-	}
-
-	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
-	regs, err := auth.GetWebAuthnCredentialsByUID(ctx, u.ID)
-	if err == nil && len(regs) > 0 {
-		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
+	handleTwoFactorRequired(ctx, u, false, map[string]any{session.KeySignInMethod: session.SignInMethodOAuth2})
 }
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
