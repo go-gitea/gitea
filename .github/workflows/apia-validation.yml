@@ -1,7 +1,7 @@
 name: APIA Performance Validation
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -20,8 +20,10 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout code
+      - name: Checkout PR head
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Fetch staging manifests
         shell: powershell
