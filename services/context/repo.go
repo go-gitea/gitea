@@ -254,7 +254,7 @@ func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_
 // GetCommitGraphsCount returns cached commit count for current view
 func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, refs, files []string) (int64, error) {
 	refFileStr := strings.Join(refs, "\n") + "\n\n" + strings.Join(files, "\n")
-	cacheKey := cache.SafeCacheKey(fmt.Sprintf("git-commits-graph:%d:%v", r.Repository.ID, hidePRRefs), refFileStr)
+	cacheKey := cache.SafeCacheKey(fmt.Sprintf("git-commits-graph-count:%d:%v", r.Repository.ID, hidePRRefs), refFileStr)
 	return cache.GetInt64(cacheKey, func() (int64, error) {
 		if len(refs) == 0 {
 			return git.AllCommitsCount(ctx, r.Repository, hidePRRefs, files...)
