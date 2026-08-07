@@ -18,12 +18,6 @@ export const vueDefines = {
   __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
 };
 
-export const sharedResolve = {
-  alias: {
-    vue: 'vue/dist/vue.runtime.esm-bundler.js', // https://github.com/vuejs/core/issues/14416
-  },
-};
-
 export function sharedPlugins(): Plugin[] {
   return [
     stringPlugin(),

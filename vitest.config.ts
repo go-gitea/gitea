@@ -1,5 +1,5 @@
 import {defineConfig} from 'vitest/config';
-import {sharedPlugins, sharedResolve, vueDefines} from './tools/shared.ts';
+import {sharedPlugins, vueDefines} from './tools/shared.ts';
 
 export default defineConfig({
   test: {
@@ -20,7 +20,6 @@ export default defineConfig({
       concurrent: true,
     },
   },
-  resolve: sharedResolve,
   define: vueDefines,
   plugins: sharedPlugins(),
 });
