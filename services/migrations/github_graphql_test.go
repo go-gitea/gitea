@@ -278,3 +278,46 @@ func TestGetCachedComments(t *testing.T) {
 	assert.True(t, isEnd)
 	assert.Empty(t, page3)
 }
+
+// TestDoGraphQLRetriesTransientFailures: a 502 and a truncated body are
+// transient — on a sweep that is hours long and hundreds of requests, one such
+// blip must not abort the whole run. Each must be retried until a good
+// response arrives.
+func TestDoGraphQLRetriesTransientFailures(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		bad  func(w http.ResponseWriter)
+	}{
+		{"bad gateway", func(w http.ResponseWriter) {
+			w.WriteHeader(http.StatusBadGateway)
+		}},
+		{"truncated body", func(w http.ResponseWriter) {
+			w.Header().Set("Content-Length", "1024") // promise more than is sent
+			_, _ = io.WriteString(w, `{"data":{"vi`)  // cut mid-stream
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var calls int32
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if atomic.AddInt32(&calls, 1) <= 2 {
+					tc.bad(w)
+					return
+				}
+				_, _ = io.WriteString(w, `{"data":{"viewer":{"login":"ok"}}}`)
+			}))
+			defer srv.Close()
+
+			d, err := NewGithubDownloaderV3(t.Context(), srv.URL, "", "", "tok", "o", "r")
+			require.NoError(t, err)
+
+			var out struct {
+				Viewer struct {
+					Login string `json:"login"`
+				} `json:"viewer"`
+			}
+			require.NoError(t, d.doGraphQL(t.Context(), `query{viewer{login}}`, nil, &out))
+			assert.Equal(t, "ok", out.Viewer.Login)
+			assert.EqualValues(t, 3, atomic.LoadInt32(&calls), "two transient failures should be retried, third attempt succeeds")
+		})
+	}
+}

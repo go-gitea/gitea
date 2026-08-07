@@ -56,6 +56,15 @@ const (
 	// graphQLRateResetFallback is used when a RATE_LIMITED response carries no
 	// usable reset header.
 	graphQLRateResetFallback = time.Minute
+	// maxGraphQLTransientRetries bounds retries of transient transport failures
+	// (5xx responses, network errors, truncated response bodies). GitHub's
+	// GraphQL endpoint 502s sporadically under heavy queries; on a sweep that is
+	// hours long and hundreds of requests, one such blip must not abort the
+	// whole run.
+	maxGraphQLTransientRetries = 5
+	// graphQLTransientRetryBase is the initial backoff for transient-failure
+	// retries; doubled each attempt.
+	graphQLTransientRetryBase = 2 * time.Second
 )
 
 // graphQLRequest is the POST body for a GraphQL call.
@@ -116,11 +125,23 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 
 		resp, err := g.getClient().Client().Do(req)
 		if err != nil {
+			// Network-level failure (connection reset, DNS blip). Transient:
+			// back off and retry rather than aborting an hours-long sweep.
+			if retryErr := g.waitGraphQLTransient(ctx, attempt, fmt.Sprintf("request failed: %v", err)); retryErr == nil {
+				continue
+			}
 			return err
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			resp.Body.Close()
+			// GitHub's GraphQL endpoint 502s sporadically under heavy queries;
+			// any 5xx is the server's problem, not the query's — retry.
+			if resp.StatusCode >= http.StatusInternalServerError {
+				if retryErr := g.waitGraphQLTransient(ctx, attempt, "status "+resp.Status); retryErr == nil {
+					continue
+				}
+			}
 			return fmt.Errorf("github graphql: unexpected status %s", resp.Status)
 		}
 
@@ -132,6 +153,12 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 		header := resp.Header
 		resp.Body.Close()
 		if decodeErr != nil {
+			// A 200 whose body dies mid-stream (truncated JSON, connection cut
+			// while reading). The transport cannot retry this — the failure
+			// happens after the response headers — so retry here.
+			if retryErr := g.waitGraphQLTransient(ctx, attempt, fmt.Sprintf("truncated response: %v", decodeErr)); retryErr == nil {
+				continue
+			}
 			return decodeErr
 		}
 
@@ -148,6 +175,26 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 			return fmt.Errorf("github graphql: %w", envelope.Errors[0])
 		}
 		return json.Unmarshal(envelope.Data, out)
+	}
+}
+
+// waitGraphQLTransient sleeps out an exponential backoff before a transient
+// failure is retried. Returns nil when the caller should retry, or an error
+// when the retry budget is exhausted or the context was cancelled.
+func (g *GithubDownloaderV3) waitGraphQLTransient(ctx context.Context, attempt int, reason string) error {
+	if attempt >= maxGraphQLTransientRetries {
+		return fmt.Errorf("github graphql: transient retries exhausted: %s", reason)
+	}
+	wait := graphQLTransientRetryBase << attempt
+	log.Warn("github graphql: transient failure (%s), retrying in %s (attempt %d/%d)",
+		reason, wait, attempt+1, maxGraphQLTransientRetries)
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
 	}
 }
 
