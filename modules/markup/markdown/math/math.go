@@ -37,6 +37,13 @@ func NewExtension(renderInternal *internal.RenderInternal, opts ...Options) *Ext
 	return r
 }
 
+// BlockParserOption returns the Goldmark option for Gitea math blocks.
+func BlockParserOption(parseDollars, parseSquare bool) parser.Option {
+	return parser.WithBlockParsers(
+		util.Prioritized(NewBlockParser(parseDollars, parseSquare), 701),
+	)
+}
+
 // Extend extends goldmark with our parsers and renderers
 func (e *Extension) Extend(m goldmark.Markdown) {
 	if !e.options.Enabled {
@@ -50,9 +57,7 @@ func (e *Extension) Extend(m goldmark.Markdown) {
 	inlines = append(inlines, util.Prioritized(NewInlineDollarParser(e.options.ParseInlineDollar), 502))
 
 	m.Parser().AddOptions(parser.WithInlineParsers(inlines...))
-	m.Parser().AddOptions(parser.WithBlockParsers(
-		util.Prioritized(NewBlockParser(e.options.ParseBlockDollar, e.options.ParseBlockSquareBrackets), 701),
-	))
+	m.Parser().AddOptions(BlockParserOption(e.options.ParseBlockDollar, e.options.ParseBlockSquareBrackets))
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
 		util.Prioritized(NewBlockRenderer(e.renderInternal), 501),
 		util.Prioritized(NewInlineRenderer(e.renderInternal), 502),
