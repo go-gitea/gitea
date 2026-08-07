@@ -1,15 +1,12 @@
 <script lang="ts" setup>
 import {computed, onMounted, shallowRef} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import dayjs from 'dayjs';
 import {GET} from '../modules/fetch.ts';
-import {Line as ChartLine} from 'vue-chartjs';
+import ChartCanvas from './ChartCanvas.vue';
 import {
   Chart,
   Title,
-  BarElement,
-  LinearScale,
-  TimeScale,
   PointElement,
   LineElement,
   Filler,
@@ -19,7 +16,6 @@ import {
 } from 'chart.js';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import {chartJsColors} from '../utils/color.ts';
-import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
@@ -56,13 +52,7 @@ type LineOptions = ChartOptions<'line'> & {
  };
 }
 
-Chart.defaults.color = chartJsColors.text;
-Chart.defaults.borderColor = chartJsColors.border;
-
 Chart.register(
-  TimeScale,
-  LinearScale,
-  BarElement,
   Title,
   PointElement,
   LineElement,
@@ -102,7 +92,8 @@ const errorText = shallowRef('');
 const totalStats = shallowRef<Record<string, any>>({});
 const sortedContributors = shallowRef<Array<Record<string, any>>>([]);
 const type = shallowRef<ContributionType>('commits');
-let contributorsStats: Record<string, any> = {}; // these three are not read during render
+let contributorsStats: Record<string, any> = {};
+// plain values, so the main chart options do not follow the zoomed range
 let xAxisStart: number | null = null;
 let xAxisEnd: number | null = null;
 const xAxisMin = shallowRef<number | null>(null);
@@ -301,8 +292,9 @@ function getOptions(chartType: ChartType): LineOptions {
     },
     scales: {
       x: {
-        min: xAxisMin.value ?? undefined,
-        max: xAxisMax.value ?? undefined,
+        // the main chart keeps its own zoom range
+        min: (chartType === 'main' ? xAxisStart : xAxisMin.value) ?? undefined,
+        max: (chartType === 'main' ? xAxisEnd : xAxisMax.value) ?? undefined,
         type: 'time',
         grid: {
           display: false,
@@ -325,6 +317,17 @@ function getOptions(chartType: ChartType): LineOptions {
     },
   };
 }
+
+const mainChart = computed(() => ({
+  graphData: toGraphData(totalStats.value.weeks),
+  chartOptions: getOptions('main'),
+}));
+
+const contributorCharts = computed(() => sortedContributors.value.map((contributor) => ({
+  contributor,
+  graphData: toGraphData(contributor.weeks),
+  chartOptions: getOptions('contributor'), // chart.js mutates it, so each chart needs its own
+})));
 </script>
 <template>
   <div>
@@ -386,16 +389,15 @@ function getOptions(chartType: ChartType): LineOptions {
           {{ errorText }}
         </div>
       </div>
-      <ChartLine
-        v-memo="[totalStats.weeks, type]" v-if="Object.keys(totalStats).length !== 0"
-        :data="toGraphData(totalStats.weeks)" :options="getOptions('main')"
+      <ChartCanvas
+        v-if="Object.keys(totalStats).length !== 0"
+        type="line" :data="mainChart.graphData" :options="mainChart.chartOptions"
       />
     </div>
     <div class="contributor-grid">
       <div
-        v-for="(contributor, index) in sortedContributors"
+        v-for="({contributor, graphData, chartOptions}, index) in contributorCharts"
         :key="index"
-        v-memo="[sortedContributors, type]"
       >
         <div class="ui top attached header tw-flex tw-flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
@@ -421,9 +423,10 @@ function getOptions(chartType: ChartType): LineOptions {
         </div>
         <div class="ui attached segment">
           <div>
-            <ChartLine
-              :data="toGraphData(contributor.weeks)"
-              :options="getOptions('contributor')"
+            <ChartCanvas
+              type="line"
+              :data="graphData"
+              :options="chartOptions"
             />
           </div>
         </div>
