@@ -18,7 +18,6 @@
 }
 .console a:hover {
   color: var(--color-primary);
-  text-underline-position: auto; /* the global "a:hover" sets "under", which would shift the underline */
 }
 
 @keyframes blink-animation {
