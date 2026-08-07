@@ -49,20 +49,32 @@ func (b *Blob) GetBlobLineCount(ctx context.Context, w io.Writer) (size int64, c
 		return 0, 0, err
 	}
 	defer reader.Close()
+	return getBlobLineCount(reader, w)
+}
+
+func getBlobLineCount(r io.Reader, w io.Writer) (size int64, count int, _ error) {
 	buf := make([]byte, 32*1024)
-	size, count = 0, 1
-	lineSep := []byte{'\n'}
+	size, count = 0, 0
+	var lastChar byte
+	lineSep := []byte("\n")
 	for {
-		c, err := reader.Read(buf)
+		c, err := r.Read(buf)
 		size += int64(c)
 		if w != nil {
 			if _, err := w.Write(buf[:c]); err != nil {
 				return size, count, err
 			}
 		}
-		count += bytes.Count(buf[:c], lineSep)
+		if c > 0 {
+			count += bytes.Count(buf[:c], lineSep)
+			lastChar = buf[c-1]
+		}
 		switch {
 		case errors.Is(err, io.EOF):
+			if size > 0 && lastChar != '\n' {
+				// it should match "git diff" hunk line number. "a\nb" => 2 lines, "a\nb\n" => 2 lines
+				count++
+			}
 			return size, count, nil
 		case err != nil:
 			return size, count, err

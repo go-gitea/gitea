@@ -98,8 +98,8 @@ func TestGetDiffForRender(t *testing.T) {
 			ExpandDirection: "down",
 			LastLeftIdx:     76,
 			LastRightIdx:    73,
-			LeftIdx:         104,
-			RightIdx:        101,
+			LeftIdx:         103, // left has 103 lines
+			RightIdx:        100, // right has 100 lines
 		},
 	}
 	for idx, exp := range expectedSections {
