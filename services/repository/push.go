@@ -13,7 +13,6 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
@@ -205,7 +204,7 @@ func pushQueueHandleUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				notify_service.PushCommits(ctx, pusher, repo, opts, commits)
 
 				// Cache for big repository
-				if err := CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
+				if err := CacheRef(graceful.GetManager().HammerContext(), gitRepo, opts.RefFullName); err != nil {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
@@ -309,16 +308,7 @@ func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo 
 		OldCommitID: opts.OldCommitID,
 		NewCommitID: opts.NewCommitID,
 	})
-
-	if isForcePush {
-		log.Trace("Push %s is a force push", opts.NewCommitID)
-
-		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
-	} else {
-		// TODO: increment update the commit count cache but not remove
-		cache.Remove(repo.GetCommitsCountCacheKey(opts.RefName(), true))
-	}
-
+	git.RemoveCommitsCountCache(repo, opts.RefFullName)
 	return l, nil
 }
 

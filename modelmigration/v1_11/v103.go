@@ -3,9 +3,13 @@
 
 package v1_11
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddWhitelistDeployKeysToBranches(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddWhitelistDeployKeysToBranches(_ context.Context, x base.EngineMigration) error {
 	type ProtectedBranch struct {
 		ID                  int64
 		WhitelistDeployKeys bool `xorm:"NOT NULL DEFAULT false"`

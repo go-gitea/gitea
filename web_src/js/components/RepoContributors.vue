@@ -1,7 +1,9 @@
-<script lang="ts">
-import {defineComponent, type PropType} from 'vue';
+<script lang="ts" setup>
+import {computed, onMounted, shallowRef} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import dayjs from 'dayjs';
+import {GET} from '../modules/fetch.ts';
+import {Line as ChartLine} from 'vue-chartjs';
 import {
   Chart,
   Title,
@@ -15,20 +17,23 @@ import {
   type ChartData,
   type Plugin,
 } from 'chart.js';
-import {GET} from '../modules/fetch.ts';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import {Line as ChartLine} from 'vue-chartjs';
+import {chartJsColors} from '../utils/color.ts';
+import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {
   startDaysBetween,
   firstStartDateAfterDate,
   fillEmptyStartDaysWithZeroes,
 } from '../utils/time.ts';
-import {chartJsColors} from '../utils/color.ts';
 import {errorMessage} from '../modules/errors.ts';
 import {sleep} from '../utils.ts';
-import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
+
+type ContributionType = 'commits' | 'additions' | 'deletions';
+type ChartType = 'main' | 'contributor';
+
+const oneWeek = 7 * 24 * 60 * 60 * 1000;
 
 const customEventListener: Plugin = {
   id: 'customEventListener',
@@ -37,7 +42,7 @@ const customEventListener: Plugin = {
     // so we need to check whether args.replay is true to avoid call loops
     if (args.event.type === 'dblclick' && opts.chartType === 'main' && !args.replay) {
       chart.resetZoom();
-      opts.instance.updateOtherCharts(args.event, true);
+      opts.onDoubleClick({chart}, true);
     }
   },
 };
@@ -45,8 +50,8 @@ const customEventListener: Plugin = {
 type LineOptions = ChartOptions<'line'> & {
  plugins?: {
    customEventListener?: {
-     chartType: string;
-     instance: unknown;
+     chartType: ChartType;
+     onDoubleClick: (args: {chart: Chart}, reset: boolean) => void;
    };
  };
 }
@@ -66,6 +71,12 @@ Chart.register(
   customEventListener,
 );
 
+// rounds up to the next multiple of the leading power of ten, so the axis does not rescale on zoom and pan
+function roundUpMax(maxValue: number) {
+  const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
+  return Math.ceil(coefficient) * 10 ** exp;
+}
+
 type ContributorsData = {
   total: {
     weeks: Record<string, any>,
@@ -73,270 +84,247 @@ type ContributorsData = {
   [other: string]: Record<string, Record<string, any>>,
 }
 
-export default defineComponent({
-  components: {ChartLine, SvgIcon},
-  props: {
-    locale: {
-      type: Object as PropType<Record<string, any>>,
-      required: true,
+const props = defineProps<{
+  locale: {
+    filterLabel: string;
+    contributionType: Record<ContributionType, string>;
+    loadingTitle: string;
+    loadingTitleFailed: string;
+    loadingInfo: string;
+    chartZoomHint: string;
+  };
+  repoLink: string;
+  repoDefaultBranchName: string;
+}>();
+
+const isLoading = shallowRef(false);
+const errorText = shallowRef('');
+const totalStats = shallowRef<Record<string, any>>({});
+const sortedContributors = shallowRef<Array<Record<string, any>>>([]);
+const type = shallowRef<ContributionType>('commits');
+let contributorsStats: Record<string, any> = {}; // these three are not read during render
+let xAxisStart: number | null = null;
+let xAxisEnd: number | null = null;
+const xAxisMin = shallowRef<number | null>(null);
+const xAxisMax = shallowRef<number | null>(null);
+
+onMounted(() => {
+  fetchGraphData();
+
+  fomanticQuery('#repo-contributors').dropdown({
+    onChange: (val: ContributionType) => {
+      xAxisMin.value = xAxisStart;
+      xAxisMax.value = xAxisEnd;
+      type.value = val;
+      sortContributors();
     },
-    repoLink: {
-      type: String,
-      required: true,
-    },
-    repoDefaultBranchName: {
-      type: String,
-      required: true,
-    },
-  },
-  data: () => ({
-    isLoading: false,
-    errorText: '',
-    totalStats: {} as Record<string, any>,
-    sortedContributors: {} as Record<string, any>,
-    type: 'commits',
-    contributorsStats: {} as Record<string, any>,
-    xAxisStart: null as number | null,
-    xAxisEnd: null as number | null,
-    xAxisMin: null as number | null,
-    xAxisMax: null as number | null,
-  }),
-  mounted() {
-    this.fetchGraphData();
-
-    fomanticQuery('#repo-contributors').dropdown({
-      onChange: (val: string) => {
-        this.xAxisMin = this.xAxisStart;
-        this.xAxisMax = this.xAxisEnd;
-        this.type = val;
-        this.sortContributors();
-      },
-    });
-  },
-  methods: {
-    sortContributors() {
-      const contributors: Record<string, any> = this.filterContributorWeeksByDateRange();
-      const criteria = `total_${this.type}`;
-      this.sortedContributors = Object.values(contributors)
-        .filter((contributor) => contributor[criteria] !== 0)
-        .sort((a, b) => a[criteria] > b[criteria] ? -1 : a[criteria] === b[criteria] ? 0 : 1)
-        .slice(0, 100);
-    },
-
-    getContributorSearchQuery(contributorEmail: string) {
-      const min = dayjs(this.xAxisMin).format('YYYY-MM-DD');
-      const max = dayjs(this.xAxisMax).format('YYYY-MM-DD');
-      const params = new URLSearchParams({
-        'q': `after:${min}, before:${max}, author:${contributorEmail}`,
-      });
-      return `${this.repoLink}/commits/branch/${pathEscapeSegments(this.repoDefaultBranchName)}/search?${params.toString()}`;
-    },
-
-    async fetchGraphData() {
-      this.isLoading = true;
-      try {
-        let response: Response;
-        do {
-          response = await GET(`${this.repoLink}/activity/contributors/data`);
-          if (response.status === 202) {
-            await sleep(1000); // wait for 1 second before retrying
-          }
-        } while (response.status === 202);
-        if (response.ok) {
-          const data = await response.json() as ContributorsData;
-          const {total, ...other} = data;
-          // below line might be deleted if we are sure go produces map always sorted by keys
-          total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
-
-          const weekValues = Object.values(total.weeks);
-          this.xAxisStart = weekValues[0].week;
-          this.xAxisEnd = firstStartDateAfterDate(new Date());
-          const startDays = startDaysBetween(this.xAxisStart, this.xAxisEnd);
-          total.weeks = fillEmptyStartDaysWithZeroes(startDays, total.weeks);
-          this.xAxisMin = this.xAxisStart;
-          this.xAxisMax = this.xAxisEnd;
-          this.contributorsStats = {};
-          for (const [email, user] of Object.entries(other)) {
-            user.weeks = fillEmptyStartDaysWithZeroes(startDays, user.weeks);
-            this.contributorsStats[email] = user;
-          }
-          this.sortContributors();
-          this.totalStats = total;
-          this.errorText = '';
-        } else {
-          this.errorText = response.statusText;
-        }
-      } catch (err) {
-        this.errorText = errorMessage(err);
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    filterContributorWeeksByDateRange() {
-      const filteredData: Record<string, any> = {};
-      const data = this.contributorsStats;
-      for (const key of Object.keys(data)) {
-        const user = data[key];
-        user.total_commits = 0;
-        user.total_additions = 0;
-        user.total_deletions = 0;
-        user.max_contribution_type = 0;
-        const filteredWeeks = user.weeks.filter((week: Record<string, number>) => {
-          const oneWeek = 7 * 24 * 60 * 60 * 1000;
-          if (week.week >= this.xAxisMin! - oneWeek && week.week <= this.xAxisMax! + oneWeek) {
-            user.total_commits += week.commits;
-            user.total_additions += week.additions;
-            user.total_deletions += week.deletions;
-            if (week[this.type] > user.max_contribution_type) {
-              user.max_contribution_type = week[this.type];
-            }
-            return true;
-          }
-          return false;
-        });
-        // this line is required. See https://github.com/sahinakkaya/gitea/pull/3#discussion_r1396495722
-        // for details.
-        user.max_contribution_type += 1;
-
-        filteredData[key] = {...user, weeks: filteredWeeks, email: key};
-      }
-
-      return filteredData;
-    },
-
-    maxMainGraph() {
-      // This method calculates maximum value for Y value of the main graph. If the number
-      // of maximum contributions for selected contribution type is 15.955 it is probably
-      // better to round it up to 20.000.This method is responsible for doing that.
-      // Normally, chartjs handles this automatically, but it will resize the graph when you
-      // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
-      const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o: Record<string, any>) => o[this.type]),
-      );
-      const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
-      if (coefficient % 1 === 0) return maxValue;
-      return (1 - (coefficient % 1)) * 10 ** exp + maxValue;
-    },
-
-    maxContributorGraph() {
-      // Similar to maxMainGraph method this method calculates maximum value for Y value
-      // for contributors' graph. If I let chartjs do this for me, it will choose different
-      // maxY value for each contributors' graph which again makes it harder to compare.
-      const maxValue = Math.max(
-        ...this.sortedContributors.map((c: Record<string, any>) => c.max_contribution_type),
-      );
-      const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
-      if (coefficient % 1 === 0) return maxValue;
-      return (1 - (coefficient % 1)) * 10 ** exp + maxValue;
-    },
-
-    toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
-      return {
-        datasets: [
-          {
-            data: data.map((i) => ({x: i.week, y: i[this.type]})),
-            pointRadius: 0,
-            pointHitRadius: 0,
-            fill: 'start',
-            backgroundColor: chartJsColors[this.type],
-            borderWidth: 0,
-            tension: 0.3,
-          },
-        ],
-      };
-    },
-
-    updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
-      const minVal = Number(chart.options.scales?.x?.min);
-      const maxVal = Number(chart.options.scales?.x?.max);
-      if (reset) {
-        this.xAxisMin = this.xAxisStart;
-        this.xAxisMax = this.xAxisEnd;
-        this.sortContributors();
-      } else if (minVal) {
-        this.xAxisMin = minVal;
-        this.xAxisMax = maxVal;
-        this.sortContributors();
-      }
-    },
-
-    getOptions(type: string): LineOptions {
-      return {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove', 'dblclick'],
-        plugins: {
-          title: {
-            display: type === 'main',
-            text: this.locale.chartZoomHint,
-            position: 'top',
-            align: 'center',
-          },
-          customEventListener: {
-            chartType: type,
-            instance: this,
-          },
-          zoom: {
-            pan: {
-              enabled: true,
-              modifierKey: 'shift',
-              mode: 'x',
-              threshold: 20,
-              onPanComplete: this.updateOtherCharts,
-            },
-            limits: {
-              x: {
-                // Check https://www.chartjs.org/chartjs-plugin-zoom/latest/guide/options.html#scale-limits
-                // to know what each option means
-                min: 'original',
-                max: 'original',
-
-                // number of milliseconds in 2 weeks. Minimum x range will be 2 weeks when you zoom on the graph
-                minRange: 2 * 7 * 24 * 60 * 60 * 1000,
-              },
-            },
-            zoom: {
-              drag: {
-                enabled: type === 'main',
-              },
-              pinch: {
-                enabled: type === 'main',
-              },
-              mode: 'x',
-              onZoomComplete: this.updateOtherCharts,
-            },
-          },
-        },
-        scales: {
-          x: {
-            min: this.xAxisMin ?? undefined,
-            max: this.xAxisMax ?? undefined,
-            type: 'time',
-            grid: {
-              display: false,
-            },
-            time: {
-              minUnit: 'month',
-            },
-            ticks: {
-              maxRotation: 0,
-              maxTicksLimit: type === 'main' ? 12 : 6,
-            },
-          },
-          y: {
-            min: 0,
-            max: type === 'main' ? this.maxMainGraph() : this.maxContributorGraph(),
-            ticks: {
-              maxTicksLimit: type === 'main' ? 6 : 4,
-            },
-          },
-        },
-      };
-    },
-  },
+  });
 });
+
+function sortContributors() {
+  const criteria = `total_${type.value}`;
+  sortedContributors.value = filterContributorWeeksByDateRange()
+    .filter((contributor) => contributor[criteria] !== 0)
+    .sort((a, b) => b[criteria] - a[criteria])
+    .slice(0, 100);
+}
+
+const searchBase = computed(() => {
+  const min = dayjs(xAxisMin.value).format('YYYY-MM-DD');
+  const max = dayjs(xAxisMax.value).format('YYYY-MM-DD');
+  return {prefix: `after:${min}, before:${max}, author:`, branch: pathEscapeSegments(props.repoDefaultBranchName)};
+});
+
+function getContributorSearchQuery(contributorEmail: string) {
+  const params = new URLSearchParams({'q': `${searchBase.value.prefix}${contributorEmail}`});
+  return `${props.repoLink}/commits/branch/${searchBase.value.branch}/search?${params.toString()}`;
+}
+
+async function fetchGraphData() {
+  isLoading.value = true;
+  try {
+    let response: Response;
+    do {
+      response = await GET(`${props.repoLink}/activity/contributors/data`);
+      if (response.status === 202) {
+        await sleep(1000); // wait for 1 second before retrying
+      }
+    } while (response.status === 202);
+    if (response.ok) {
+      const data = await response.json() as ContributorsData;
+      const {total, ...other} = data;
+      // below line might be deleted if we are sure go produces map always sorted by keys
+      total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
+
+      const weekValues = Object.values(total.weeks);
+      xAxisStart = weekValues[0].week;
+      xAxisEnd = firstStartDateAfterDate(new Date());
+      const startDays = startDaysBetween(xAxisStart, xAxisEnd);
+      total.weeks = fillEmptyStartDaysWithZeroes(startDays, total.weeks);
+      xAxisMin.value = xAxisStart;
+      xAxisMax.value = xAxisEnd;
+      contributorsStats = Object.fromEntries(Object.entries(other).map(([email, user]) => {
+        return [email, {...user, weeks: fillEmptyStartDaysWithZeroes(startDays, user.weeks)}];
+      }));
+      sortContributors();
+      totalStats.value = total;
+      errorText.value = '';
+    } else {
+      errorText.value = response.statusText;
+    }
+  } catch (err) {
+    errorText.value = errorMessage(err);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+function filterContributorWeeksByDateRange() {
+  const filteredData: Array<Record<string, any>> = [];
+  const minTime = xAxisMin.value! - oneWeek;
+  const maxTime = xAxisMax.value! + oneWeek;
+  const contributionType = type.value;
+  for (const [key, user] of Object.entries(contributorsStats)) {
+    user.total_commits = 0;
+    user.total_additions = 0;
+    user.total_deletions = 0;
+    user.max_contribution_type = 0;
+    const filteredWeeks = user.weeks.filter((week: Record<string, number>) => {
+      if (week.week >= minTime && week.week <= maxTime) {
+        user.total_commits += week.commits;
+        user.total_additions += week.additions;
+        user.total_deletions += week.deletions;
+        if (week[contributionType] > user.max_contribution_type) {
+          user.max_contribution_type = week[contributionType];
+        }
+        return true;
+      }
+      return false;
+    });
+    // this line is required. See https://github.com/sahinakkaya/gitea/pull/3#discussion_r1396495722
+    // for details.
+    user.max_contribution_type += 1;
+
+    filteredData.push({...user, weeks: filteredWeeks, email: key});
+  }
+
+  return filteredData;
+}
+
+const maxMainGraph = computed(() => {
+  return roundUpMax(Math.max(...totalStats.value.weeks.map((o: Record<string, any>) => o[type.value])));
+});
+
+// one shared maximum, otherwise the contributor graphs cannot be compared
+const maxContributorGraph = computed(() => {
+  return roundUpMax(Math.max(...sortedContributors.value.map((c: Record<string, any>) => c.max_contribution_type)));
+});
+
+function toGraphData(data: Array<Record<string, any>>): ChartData<'line'> {
+  const contributionType = type.value;
+  return {
+    datasets: [
+      {
+        data: data.map((i) => ({x: i.week, y: i[contributionType]})),
+        pointRadius: 0,
+        pointHitRadius: 0,
+        fill: 'start',
+        backgroundColor: chartJsColors[type.value],
+        borderWidth: 0,
+        tension: 0.3,
+      },
+    ],
+  };
+}
+
+function updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
+  const minVal = Number(chart.options.scales?.x?.min);
+  const maxVal = Number(chart.options.scales?.x?.max);
+  if (reset) {
+    xAxisMin.value = xAxisStart;
+    xAxisMax.value = xAxisEnd;
+    sortContributors();
+  } else if (minVal) {
+    xAxisMin.value = minVal;
+    xAxisMax.value = maxVal;
+    sortContributors();
+  }
+}
+
+function getOptions(chartType: ChartType): LineOptions {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove', 'dblclick'],
+    plugins: {
+      title: {
+        display: chartType === 'main',
+        text: props.locale.chartZoomHint,
+        position: 'top',
+        align: 'center',
+      },
+      customEventListener: {
+        chartType,
+        onDoubleClick: updateOtherCharts,
+      },
+      zoom: {
+        pan: {
+          enabled: true,
+          modifierKey: 'shift',
+          mode: 'x',
+          threshold: 20,
+          onPanComplete: updateOtherCharts,
+        },
+        limits: {
+          x: {
+            // Check https://www.chartjs.org/chartjs-plugin-zoom/latest/guide/options.html#scale-limits
+            // to know what each option means
+            min: 'original',
+            max: 'original',
+
+            minRange: 2 * oneWeek, // do not zoom in tighter than two weeks
+
+          },
+        },
+        zoom: {
+          drag: {
+            enabled: chartType === 'main',
+          },
+          pinch: {
+            enabled: chartType === 'main',
+          },
+          mode: 'x',
+          onZoomComplete: updateOtherCharts,
+        },
+      },
+    },
+    scales: {
+      x: {
+        min: xAxisMin.value ?? undefined,
+        max: xAxisMax.value ?? undefined,
+        type: 'time',
+        grid: {
+          display: false,
+        },
+        time: {
+          minUnit: 'month',
+        },
+        ticks: {
+          maxRotation: 0,
+          maxTicksLimit: chartType === 'main' ? 12 : 6,
+        },
+      },
+      y: {
+        min: 0,
+        max: chartType === 'main' ? maxMainGraph.value : maxContributorGraph.value,
+        ticks: {
+          maxTicksLimit: chartType === 'main' ? 6 : 4,
+        },
+      },
+    },
+  };
+}
 </script>
 <template>
   <div>

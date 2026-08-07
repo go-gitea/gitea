@@ -1,6 +1,5 @@
 import {defineConfig} from 'vitest/config';
-import vuePlugin from '@vitejs/plugin-vue';
-import {stringPlugin} from 'vite-string-plugin';
+import {sharedPlugins, vueDefines} from './tools/shared.ts';
 
 export default defineConfig({
   test: {
@@ -21,8 +20,6 @@ export default defineConfig({
       concurrent: true,
     },
   },
-  plugins: [
-    stringPlugin(),
-    vuePlugin(),
-  ],
+  define: vueDefines,
+  plugins: sharedPlugins(),
 });

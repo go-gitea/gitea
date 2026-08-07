@@ -1429,8 +1429,13 @@ func Routes() *web.Router {
 							m.Delete("", reqToken(), reqRepoWriter(unit.TypeActions), repo.DeleteActionRun)
 							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Post("/rerun-failed-jobs", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunFailedWorkflowRun)
-							m.Get("/jobs", repo.ListWorkflowRunJobs)
-							m.Post("/jobs/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
+							m.Post("/cancel", reqToken(), reqRepoWriter(unit.TypeActions), repo.CancelWorkflowRun)
+							m.Post("/approve", reqToken(), reqRepoWriter(unit.TypeActions), repo.ApproveWorkflowRun)
+							m.Group("/jobs", func() {
+								m.Get("", repo.ListWorkflowRunJobs)
+								m.Post("/{job_id}/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowJob)
+							})
+							m.Get("/logs", reqToken(), repo.GetWorkflowRunLogs)
 							m.Get("/artifacts", repo.GetArtifactsOfRun)
 						})
 					})
@@ -1546,7 +1551,11 @@ func Routes() *web.Router {
 						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
-					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
+					m.Group("", func() {
+						m.Get("", repo.GetAllCommits)
+						m.Get("/{sha}", repo.GetSingleCommit) // GitHub-compatible endpoint
+						m.Get("/{sha}.{diffType:diff|patch}", repo.DownloadCommitDiffOrPatch)
+					}, context.ReferencesGitRepo(true))
 					m.PathGroup("/*", func(g *web.RouterPathGroup) {
 						// Mis-configured reverse proxy might decode the `%2F` to slash ahead, so we need to support both formats (escaped, unescaped) here.
 						// It also matches GitHub's behavior

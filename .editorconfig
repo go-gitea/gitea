@@ -22,9 +22,6 @@ insert_final_newline = false
 indent_style = space
 insert_final_newline = false
 
-[templates/user/auth/oidc_wellknown.tmpl]
-indent_style = space
-
 [templates/shared/actions/runner_badge_*.tmpl]
 # editconfig lint requires these XML-like files to have charset defined, but the files don't have.
 charset = unset

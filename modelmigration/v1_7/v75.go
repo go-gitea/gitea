@@ -4,12 +4,14 @@
 package v1_7
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/builder"
 )
 
-func ClearNonusedData(x base.EngineMigration) error {
+func ClearNonusedData(_ context.Context, x base.EngineMigration) error {
 	condDelete := func(colName string) builder.Cond {
 		return builder.NotIn(colName, builder.Select("id").From("`user`"))
 	}

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"maps"
 	"net/http"
 	"net/url"
 	"strings"
@@ -328,46 +329,35 @@ func SignInPost(ctx *context.Context) {
 
 	// If this user is enrolled in 2FA TOTP, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
-	hasTOTPtwofa, err := auth.HasTwoFactorByUID(ctx, u.ID)
+	hasTwoFactor, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 	if err != nil {
-		ctx.ServerError("UserSignIn", err)
+		ctx.ServerError("HasTwoFactorOrWebAuthn", err)
 		return
 	}
-
-	// Check if the user has webauthn registration
-	hasWebAuthnTwofa, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
-	if err != nil {
-		ctx.ServerError("UserSignIn", err)
-		return
-	}
-
-	if !hasTOTPtwofa && !hasWebAuthnTwofa {
-		// No two-factor auth configured we can sign in the user
+	if !hasTwoFactor {
 		handleSignIn(ctx, u, form.Remember)
 		return
 	}
 
-	updates := map[string]any{
-		// User will need to use 2FA TOTP or WebAuthn, save data
-		"twofaUid":      u.ID,
-		"twofaRemember": form.Remember,
-	}
-	if hasTOTPtwofa {
-		// User will need to use WebAuthn, save data
-		updates["totpEnrolled"] = u.ID
-	}
+	handleTwoFactorRequired(ctx, u, form.Remember, nil)
+}
+
+func handleTwoFactorRequired(ctx *context.Context, u *user_model.User, remember bool, extra map[string]any) {
+	updates := map[string]any{"twofaUid": u.ID, "twofaRemember": remember}
+	maps.Copy(updates, extra)
 	if err := regenerateSession(ctx, updates); err != nil {
-		ctx.ServerError("UserSignIn: Unable to update session", err)
+		ctx.ServerError("RegenerateSession", err)
 		return
 	}
-
-	// If we have WebAuthn redirect there first
-	if hasWebAuthnTwofa {
+	hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
+	if err != nil {
+		ctx.ServerError("HasWebAuthnRegistrationsByUID", err)
+		return
+	}
+	if hasWebAuthn {
 		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
 	}
-
-	// Fallback to 2FA
 	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 

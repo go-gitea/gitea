@@ -56,7 +56,7 @@ func Test_RemigrateU2FCredentials(t *testing.T) {
 	}
 
 	// Run the migration
-	if err := RemigrateU2FCredentials(x); err != nil {
+	if err := RemigrateU2FCredentials(t.Context(), x); err != nil {
 		assert.NoError(t, err)
 		return
 	}

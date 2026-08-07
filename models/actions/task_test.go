@@ -4,7 +4,10 @@
 package actions
 
 import (
+	"context"
+	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
@@ -17,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"xorm.io/xorm/contexts"
 )
 
 func TestActionTask_GetRunJobLink(t *testing.T) {
@@ -355,6 +359,35 @@ func TestCreateTaskForRunnerPagination(t *testing.T) {
 	claimed := unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: target.ID})
 	assert.Equal(t, StatusRunning, claimed.Status)
 	assert.Equal(t, task.ID, claimed.TaskID)
+}
+
+type failFirstStepWrite struct{ fired atomic.Bool }
+
+func (h *failFirstStepWrite) BeforeProcess(c *contexts.ContextHook) (context.Context, error) {
+	if !h.fired.Load() && strings.HasPrefix(c.SQL, "UPDATE") && strings.Contains(c.SQL, "action_task_step") {
+		h.fired.Store(true)
+		return nil, errors.New("interrupted")
+	}
+	return c.Ctx, nil
+}
+
+func (*failFirstStepWrite) AfterProcess(*contexts.ContextHook) error { return nil }
+
+// TestUpdateTaskByStateIsAtomic checks that an interrupted report writes nothing: a surviving task or
+// job write would hit the "state is final" early return, which no retry or cleanup repairs.
+func TestUpdateTaskByStateIsAtomic(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	task, job := newRunningTaskForCancelling(t, "atomic-report-job", true)
+	require.NoError(t, db.Insert(t.Context(), &ActionTaskStep{TaskID: task.ID, RepoID: task.RepoID, Status: StatusRunning}))
+	unittest.GetXORMEngine().AddHook(&failFirstStepWrite{})
+	finalState := &runnerv1.TaskState{Id: task.ID, Result: runnerv1.Result_RESULT_SUCCESS, StoppedAt: timestamppb.Now()}
+	_, err := UpdateTaskByState(t.Context(), task.RunnerID, finalState)
+	require.Error(t, err)
+	assert.Equal(t, StatusRunning, unittest.AssertExistsAndLoadBean(t, &ActionTask{ID: task.ID}).Status)
+	assert.Equal(t, StatusRunning, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status)
+	_, err = UpdateTaskByState(t.Context(), task.RunnerID, finalState)
+	require.NoError(t, err)
+	assert.Equal(t, StatusSuccess, unittest.AssertExistsAndLoadBean(t, &ActionRunJob{ID: job.ID}).Status)
 }
 
 // newRunningTaskForCancelling inserts a running run/job/task assigned to a fresh runner,
