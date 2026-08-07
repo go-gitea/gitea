@@ -8,6 +8,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -196,4 +197,92 @@ func TestCancelJobs_NestedBlockedReusableCaller(t *testing.T) {
 	assert.Equal(t, StatusCancelled, gotAttempt.Status, "attempt must aggregate to Cancelled")
 	gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
 	assert.Equal(t, StatusCancelled, gotRun.Status, "run must aggregate to Cancelled, not stay Blocked")
+}
+
+func TestSettleRunAfterCancel(t *testing.T) {
+	// A run that cancelling updates no job in, because its jobs all reached a final status already
+	// or because it has none at all. Its own row has to be settled explicitly, or the run can never
+	// finish and can never be deleted either.
+
+	newStuckRun := func(t *testing.T, withAttempt, withJob bool) (*ActionRun, []*ActionRunJob) {
+		t.Helper()
+		ctx := t.Context()
+
+		run := &ActionRun{
+			Title:         "stuck-waiting",
+			RepoID:        4,
+			Index:         9801,
+			OwnerID:       1,
+			WorkflowID:    "test.yaml",
+			TriggerUserID: 1,
+			Ref:           "refs/heads/master",
+			CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+			Event:         "push",
+			TriggerEvent:  "push",
+			EventPayload:  "{}",
+			Status:        StatusWaiting,
+		}
+		require.NoError(t, db.Insert(ctx, run))
+
+		var runAttemptID int64
+		if withAttempt {
+			attempt := &ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1, TriggerUserID: 1, Status: StatusWaiting}
+			require.NoError(t, db.Insert(ctx, attempt))
+			run.LatestAttemptID = attempt.ID
+			require.NoError(t, UpdateRun(ctx, run, "latest_attempt_id"))
+			runAttemptID = attempt.ID
+		}
+
+		if !withJob {
+			return run, nil
+		}
+		job := &ActionRunJob{
+			RunID:        run.ID,
+			RunAttemptID: runAttemptID,
+			RepoID:       run.RepoID,
+			OwnerID:      run.OwnerID,
+			CommitSHA:    run.CommitSHA,
+			Name:         "job1",
+			JobID:        "job1",
+			Attempt:      1,
+			Status:       StatusSuccess,
+			Stopped:      timeutil.TimeStampNow(),
+		}
+		require.NoError(t, db.Insert(ctx, job))
+		return run, []*ActionRunJob{job}
+	}
+
+	cases := []struct {
+		name        string
+		withAttempt bool
+		withJob     bool
+		want        Status
+	}{
+		{"done job", true, true, StatusSuccess},
+		// Runs created before migration v331 have no attempt, their status lives on the run row itself.
+		{"done job on a legacy run without attempt", false, true, StatusSuccess},
+		// Aggregation cannot reach a final status without any job, so cancelling has to end the run itself.
+		{"no job at all", true, false, StatusCancelled},
+		{"no job at all on a legacy run without attempt", false, false, StatusCancelled},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.NoError(t, unittest.PrepareTestDatabase())
+			run, jobs := newStuckRun(t, tc.withAttempt, tc.withJob)
+
+			// mirrors what the CancelRun service does
+			cancelled, err := CancelJobs(t.Context(), jobs)
+			require.NoError(t, err)
+			assert.Empty(t, cancelled, "nothing is cancellable, so the run row has to be settled explicitly")
+			require.NoError(t, SettleRunAfterCancel(t.Context(), run))
+
+			if tc.withAttempt {
+				gotAttempt := unittest.AssertExistsAndLoadBean(t, &ActionRunAttempt{ID: run.LatestAttemptID})
+				assert.Equal(t, tc.want, gotAttempt.Status)
+			}
+			gotRun := unittest.AssertExistsAndLoadBean(t, &ActionRun{ID: run.ID})
+			assert.Equal(t, tc.want, gotRun.Status)
+			assert.NotZero(t, gotRun.Stopped)
+		})
+	}
 }
