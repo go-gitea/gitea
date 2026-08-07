@@ -12,7 +12,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +24,7 @@ import (
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates/vars"
 	"gitea.dev/modules/util"
 
 	"github.com/huandu/xstrings"
@@ -42,8 +42,7 @@ type expansion struct {
 }
 
 var globalVars = sync.OnceValue(func() (ret struct {
-	defaultTransformers    []transformer
-	fileNameSanitizeRegexp *regexp.Regexp
+	defaultTransformers []transformer
 },
 ) {
 	ret.defaultTransformers = []transformer{
@@ -55,10 +54,6 @@ var globalVars = sync.OnceValue(func() (ret struct {
 		{Name: "UPPER", Transform: strings.ToUpper},
 		{Name: "TITLE", Transform: util.ToTitleCase},
 	}
-
-	// invalid filename contents, based on https://github.com/sindresorhus/filename-reserved-regex
-	// "COM10" needs to be opened with UNC "\\.\COM10" on Windows, so itself is valid
-	ret.fileNameSanitizeRegexp = regexp.MustCompile(`(?i)[<>:"/\\|?*\x{0000}-\x{001F}]|^(con|prn|aux|nul|com\d|lpt\d)$`)
 	return ret
 })
 
@@ -92,12 +87,7 @@ func generateExpansion(ctx context.Context, src string, templateRepo, generateRe
 		}
 	}
 
-	return os.Expand(src, func(key string) string {
-		if val, ok := expansionMap[key]; ok {
-			return val
-		}
-		return key
-	})
+	return vars.ExpandShellLike(src, expansionMap)
 }
 
 type giteaTemplateFileMatcher struct {
@@ -340,7 +330,9 @@ func (gro GenerateRepoOptions) IsValid() bool {
 func filePathSanitize(s string) string {
 	fields := strings.Split(filepath.ToSlash(s), "/")
 	for i, field := range fields {
-		field = strings.TrimSpace(strings.TrimSpace(globalVars().fileNameSanitizeRegexp.ReplaceAllString(field, "_")))
+		field = util.PathNameValidator().InvalidChars.ReplaceAllString(field, "_")
+		field = util.PathNameValidator().InvalidNames.ReplaceAllString(field, "_")
+		field = strings.TrimSpace(field)
 		if strings.HasPrefix(field, "..") {
 			field = "__" + field[2:]
 		}

@@ -117,6 +117,7 @@ func performRuleEditPost(ctx *context.Context, owner *user_model.User, pcr *pack
 			return
 		} else if has {
 			ctx.Data["Err_Type"] = true
+			ctx.Flash.Error(ctx.Tr("packages.owner.settings.cleanuprules.type.already_exists"), true)
 			ctx.HTML(http.StatusOK, template)
 			return
 		}

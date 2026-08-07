@@ -8,10 +8,12 @@
 name: cache-seeder
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths:
+      - "go.mod" # a toolchain bump invalidates the build caches
       - "go.sum"
       - ".golangci.yml"
       - ".github/actions/go-cache/action.yml"
@@ -67,6 +69,14 @@ jobs:
       - run: make generate-go
         env:
           TAGS: ${{ matrix.tags }}
-      - run: make ${{ matrix.target }}
+      - run: make "$TARGET"
         env:
           TAGS: ${{ matrix.tags }}
+          TARGET: ${{ matrix.target }}
+
+  # reclaims the caches this run superseded, so the next save still fits in the allowance
+  prune:
+    needs: [gobuild, lint]
+    permissions:
+      actions: write
+    uses: ./.github/workflows/cache-prune.yml

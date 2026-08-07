@@ -132,14 +132,8 @@ func testViewRepoWithCache(t *testing.T) {
 	}
 
 	// FIXME: these test don't seem quite right, no enough assert
-	// no last commit cache
-	testView(t)
-	// enable last commit cache for all repositories
-	defer test.MockVariableValue(&setting.CacheService.LastCommit.CommitsCount, 0)()
-	// first view will not hit the cache
-	testView(t)
-	// second view will hit the cache
-	testView(t)
+	testView(t) // first view will not hit the cache, need execute git operations
+	testView(t) // second view will hit the cache
 }
 
 func testViewRepoPrivate(t *testing.T) {
@@ -580,7 +574,7 @@ func testGeneratedSourceLink(t *testing.T) {
 
 		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
 		assert.True(t, exists)
-		assert.Equal(t, "/user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
+		assert.Equal(t, setting.AppURL+"user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d/README.md?display=source", dataURL)
 	})
 
 	t.Run("Non-Rendered file", func(t *testing.T) {
@@ -597,7 +591,7 @@ func testGeneratedSourceLink(t *testing.T) {
 
 		dataURL, exists = doc.doc.Find(".ref-in-new-issue").Attr("data-url-param-body-link")
 		assert.True(t, exists)
-		assert.Equal(t, "/user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
+		assert.Equal(t, setting.AppURL+"user27/repo49/src/commit/aacbdfe9e1c4b47f60abe81849045fa4e96f1d75/test/test.txt", dataURL)
 	})
 }
 
