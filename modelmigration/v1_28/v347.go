@@ -12,7 +12,7 @@ import (
 )
 
 func AddWatchOptions(_ context.Context, x base.EngineMigration) error {
-	type Watch struct { //revive:disable-line:exported
+	type Watch struct {
 		PullRequests bool `xorm:"NOT NULL DEFAULT true"`
 		Issues       bool `xorm:"NOT NULL DEFAULT true"`
 		Releases     bool `xorm:"NOT NULL DEFAULT true"`
