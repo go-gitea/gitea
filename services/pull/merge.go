@@ -144,30 +144,23 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), body, nil
 }
 
-
 // resolveMergeMessageTemplate returns the content of the merge message template for the given
 // merge style. It first looks for a style-specific template ({STYLE}_TEMPLATE.md), and falls back
-// to the generic MERGE_TEMPLATE.md if the style-specific one is not found.
+// to the generic DEFAULT_TEMPLATE.md if the style-specific one is not found.
 func resolveMergeMessageTemplate(ctx context.Context, baseGitRepo *git.Repository, commit *git.Commit, mergeStyle repo_model.MergeStyle) (string, error) {
 	templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
 	templateContent, err := commit.GetFileContent(ctx, baseGitRepo, templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
-	if err != nil {
-		if !git.IsErrNotExist(err) {
-			return "", err
-		}
-		// If the style-specific template doesn't exist, fall back to the generic MERGE_TEMPLATE.md
-		if mergeStyle == repo_model.MergeStyleMerge {
-			return "", nil
-		}
-		templateContent, err = commit.GetFileContent(ctx, baseGitRepo, ".gitea/default_merge_message/MERGE_TEMPLATE.md", setting.Repository.PullRequest.DefaultMergeMessageSize)
-		if err != nil {
-			if !git.IsErrNotExist(err) {
-				return "", err
-			}
-			return "", nil
-		}
+	if err == nil {
+		return templateContent, nil
 	}
-	return templateContent, nil
+	if !git.IsErrNotExist(err) {
+		return "", err
+	}
+	templateContent, err = commit.GetFileContent(ctx, baseGitRepo, ".gitea/default_merge_message/DEFAULT_TEMPLATE.md", setting.Repository.PullRequest.DefaultMergeMessageSize)
+	if err == nil || git.IsErrNotExist(err) {
+		return templateContent, nil
+	}
+	return "", err
 }
 
 func expandDefaultMergeMessage(template string, vars map[string]string) (message, body string) {
