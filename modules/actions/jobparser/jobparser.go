@@ -72,9 +72,14 @@ func ExpressionReadsMatrix(ifValue string) bool {
 // the status functions that run a job whatever its needs did rather than under the implicit success().
 // Keep in sync with act's exprparser, which owns the same list for the evaluation itself.
 func ExpressionIgnoresNeedResults(ifValue string) bool {
-	return expressionsMatch(asIfExpression(ifValue), func(node actionlint.ExprNode) bool {
+	return expressionCallsFunction(asIfExpression(ifValue), "always", "failure", "cancelled")
+}
+
+// expressionCallsFunction reports whether any ${{ }} expression in value calls one of the functions.
+func expressionCallsFunction(value string, names ...string) bool {
+	return expressionsMatch(value, func(node actionlint.ExprNode) bool {
 		call, ok := node.(*actionlint.FuncCallNode)
-		return ok && slices.Contains([]string{"always", "failure", "cancelled"}, strings.ToLower(call.Callee))
+		return ok && slices.Contains(names, strings.ToLower(call.Callee))
 	})
 }
 
@@ -98,14 +103,16 @@ func expressionReadsContext(value, contextName string) bool {
 
 // expressionsMatch reports whether any ${{ }} expression in value holds a node the predicate accepts.
 func expressionsMatch(value string, match func(node actionlint.ExprNode) bool) bool {
-	for rest := value; ; {
-		_, after, found := strings.Cut(rest, "${{")
-		if !found {
-			return false
+	parts, err := splitSubExpressions(value)
+	if err != nil {
+		return true // unparseable here, let the expansion report it against the real values
+	}
+	for _, part := range parts {
+		if !part.isExpr {
+			continue
 		}
-		rest = after
-		// The lexer ends the expression at its closing `}}`, so it can be handed the whole remainder.
-		expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(rest))
+		// The lexer needs the closing `}}` that the scanner strips.
+		expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(part.text + "}}"))
 		if err != nil {
 			return true // unparseable here, let the expansion report it against the real values
 		}
@@ -119,6 +126,7 @@ func expressionsMatch(value string, match func(node actionlint.ExprNode) bool) b
 			return true
 		}
 	}
+	return false
 }
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
@@ -155,7 +163,9 @@ func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {
 	}
 
 	evaluator := NewExpressionEvaluator(exprparser.NewInterpeter(&exprparser.EvaluationEnvironment{Github: pc.gitContext, Vars: pc.vars, Inputs: pc.inputs}, exprparser.Config{}))
-	workflow.RunName = evaluator.Interpolate(workflow.RunName)
+	if workflow.RunName, err = evaluator.interpolate(workflow.RunName); err != nil {
+		return nil, fmt.Errorf("interpolate run-name: %w", err)
+	}
 
 	for i, id := range ids {
 		job := jobs[i]
@@ -289,6 +299,7 @@ func validateMatrixFilters(job *model.Job) error {
 func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
 	srcRunsOn := src.RunsOn()
 	combos := make([]*Job, 0, len(matrixes))
+	var err error
 	for _, matrix := range matrixes {
 		combo := src.Clone()
 		if combo.Name == "" {
@@ -296,10 +307,14 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob
 		}
 		combo.Strategy.RawMatrix = encodeMatrix(matrix)
 		evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, gitCtx, results, vars, inputs))
-		combo.Name = nameWithMatrix(combo.Name, matrix, evaluator)
+		if combo.Name, err = nameWithMatrix(combo.Name, matrix, evaluator); err != nil {
+			return nil, fmt.Errorf("interpolate name for job %q: %w", jobID, err)
+		}
 		runsOn := slices.Clone(srcRunsOn)
 		for i := range runsOn {
-			runsOn[i] = evaluator.Interpolate(runsOn[i])
+			if runsOn[i], err = evaluator.interpolate(runsOn[i]); err != nil {
+				return nil, fmt.Errorf("interpolate runs-on for job %q: %w", jobID, err)
+			}
 		}
 		combo.RawRunsOn = encodeRunsOn(runsOn)
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
@@ -371,16 +386,16 @@ func encodeRunsOn(runsOn []string) yaml.Node {
 	return node
 }
 
-func nameWithMatrix(name string, m map[string]any, evaluator *ExpressionEvaluator) string {
+func nameWithMatrix(name string, m map[string]any, evaluator *ExpressionEvaluator) (string, error) {
 	if len(m) == 0 {
-		return name
+		return name, nil
 	}
 
 	if !strings.Contains(name, "${{") || !strings.Contains(name, "}}") {
-		return name + " " + matrixName(m)
+		return name + " " + matrixName(m), nil
 	}
 
-	return evaluator.Interpolate(name)
+	return evaluator.interpolate(name)
 }
 
 func matrixName(m map[string]any) string {

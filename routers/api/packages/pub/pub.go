@@ -108,7 +108,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 
 	jsonResponse(ctx, http.StatusOK, &packageVersions{
 		Name:     pds[0].Package.Name,
-		Latest:   packageDescriptorToMetadata(baseURL, pds[0]),
+		Latest:   versions[len(versions)-1], // versions mirrors pds, sorted ascending
 		Versions: versions,
 	})
 }

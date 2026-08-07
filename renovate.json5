@@ -101,6 +101,10 @@
       "allowedVersions": "/^2019($|[.-])/", // pin to oldest in extended support
     },
     {
+      "matchPackageNames": ["docker.elastic.co/elasticsearch/elasticsearch"],
+      "allowedVersions": "/^8($|[.-])/", // pin to oldest supported major
+    },
+    {
       "matchManagers": ["gomod"],
       "postUpdateOptions": ["gomodUpdateImportPaths"],
     },
