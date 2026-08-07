@@ -2660,6 +2660,8 @@
   "repo.release.downloads": "Downloads",
   "repo.release.download_count": "Downloads: %s",
   "repo.release.add_tag_msg": "Use the title and content of release as tag message.",
+  "repo.release.use_commit_date": "Use the target commit's date as the tag creation date.",
+  "repo.release.use_commit_date_helper": "Useful when retroactively creating a release for an older commit, so it doesn't appear as the most recent release.",
   "repo.release.add_tag": "Create Tag Only",
   "repo.release.releases_for": "Releases for %s",
   "repo.release.tags_for": "Tags for %s",

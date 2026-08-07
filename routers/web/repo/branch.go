@@ -195,7 +195,7 @@ func CreateBranch(ctx *context.Context) {
 		if ctx.Repo.RefFullName.IsBranch() {
 			target = ctx.Repo.BranchName
 		}
-		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
+		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "", false)
 	} else if ctx.Repo.RefFullName.IsBranch() {
 		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.BranchName, form.NewBranchName)
 	} else {

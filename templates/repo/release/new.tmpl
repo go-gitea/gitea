@@ -105,6 +105,13 @@
 						<label><strong>{{ctx.Locale.Tr "repo.release.add_tag_msg"}}</strong></label>
 					</div>
 				</div>
+				<div class="field">
+					<div class="ui checkbox">
+						<input type="checkbox" name="use_commit_date">
+						<label><strong>{{ctx.Locale.Tr "repo.release.use_commit_date"}}</strong></label>
+					</div>
+					<div class="help tw-block tw-ml-[21px]">{{ctx.Locale.Tr "repo.release.use_commit_date_helper"}}</div>
+				</div>
 			{{else}}
 				<input type="hidden" name="add_tag_msg" value="false">
 			{{end}}
