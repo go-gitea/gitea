@@ -24,6 +24,7 @@ import (
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates/vars"
 	"gitea.dev/modules/util"
 
 	"github.com/huandu/xstrings"
@@ -86,12 +87,7 @@ func generateExpansion(ctx context.Context, src string, templateRepo, generateRe
 		}
 	}
 
-	return os.Expand(src, func(key string) string {
-		if val, ok := expansionMap[key]; ok {
-			return val
-		}
-		return key
-	})
+	return vars.ExpandShellLike(src, expansionMap)
 }
 
 type giteaTemplateFileMatcher struct {
