@@ -24,7 +24,8 @@ func prepareAzureStorageConfig(t *testing.T) *setting.Storage {
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
 			AccountName: "devstoreaccount1",
 			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
-			Container:   "test",
+			Container:   "test-container",
+			BasePath:    "test-base-path",
 		},
 	}
 }
@@ -79,7 +80,7 @@ func TestAzureBlobStoragePath(t *testing.T) {
 
 func Test_azureBlobObject(t *testing.T) {
 	s, err := NewStorage(setting.AzureBlobStorageType, prepareAzureStorageConfig(t))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	data := "Q2xTckt6Y1hDOWh0"
 	_, err = s.Save("test.txt", strings.NewReader(data), int64(len(data)))
@@ -108,13 +109,13 @@ func Test_azureBlobObject(t *testing.T) {
 
 func TestAzureBlobStorageDumpArchive(t *testing.T) {
 	s, err := NewStorage(setting.AzureBlobStorageType, prepareAzureStorageConfig(t))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	const objPath = "aa/bb/deadbeefcafe"
 	const content = "regression test content for issue 35476"
 	_, err = s.Save(objPath, strings.NewReader(content), int64(len(content)))
 	require.NoError(t, err)
-	defer s.Delete(objPath) //nolint:errcheck
+	defer s.Delete(objPath)
 
 	err = s.IterateObjects("", func(path string, object Object) error {
 		assert.Equal(t, "/"+objPath, path)
