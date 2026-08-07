@@ -81,7 +81,7 @@ type rsaSingingKey struct {
 }
 
 func newRSASingingKey(signingMethod jwt.SigningMethod, key *rsa.PrivateKey) (rsaSingingKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*rsa.PublicKey)) //nolint:forcetypeassert // (*rsa.PrivateKey).Public always returns *rsa.PublicKey
+	kid, err := util.CreatePublicKeyFingerprint(&key.PublicKey)
 	if err != nil {
 		return rsaSingingKey{}, err
 	}
@@ -110,7 +110,7 @@ func (key rsaSingingKey) VerifyKey() any {
 }
 
 func (key rsaSingingKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(*rsa.PublicKey) //nolint:forcetypeassert // (*rsa.PrivateKey).Public always returns *rsa.PublicKey
+	pubKey := &key.key.PublicKey
 
 	return map[string]string{
 		"kty": "RSA",
@@ -183,7 +183,7 @@ type ecdsaSingingKey struct {
 }
 
 func newECDSASingingKey(signingMethod jwt.SigningMethod, key *ecdsa.PrivateKey) (ecdsaSingingKey, error) {
-	kid, err := util.CreatePublicKeyFingerprint(key.Public().(*ecdsa.PublicKey)) //nolint:forcetypeassert // (*ecdsa.PrivateKey).Public always returns *ecdsa.PublicKey
+	kid, err := util.CreatePublicKeyFingerprint(&key.PublicKey)
 	if err != nil {
 		return ecdsaSingingKey{}, err
 	}
@@ -212,7 +212,7 @@ func (key ecdsaSingingKey) VerifyKey() any {
 }
 
 func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
-	pubKey := key.key.Public().(*ecdsa.PublicKey) //nolint:forcetypeassert // (*ecdsa.PrivateKey).Public always returns *ecdsa.PublicKey
+	pubKey := &key.key.PublicKey
 
 	// PublicKey.Bytes returns the uncompressed SEC 1 format: 0x04 || X || Y
 	pubKeyBytes, err := pubKey.Bytes()

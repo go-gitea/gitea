@@ -270,16 +270,16 @@ func OptionalArg[T any](optArg []T, defaultValue ...T) (ret T) {
 }
 
 type EnumConst[T comparable] interface {
+	comparable
 	EnumValues() []T
 }
 
 // EnumValue returns the value if it's in the enum const's values,
 // otherwise returns the first item of enums as default value.
-func EnumValue[T comparable](val EnumConst[T]) (ret T, valid bool) {
+func EnumValue[T EnumConst[T]](val T) (ret T, valid bool) {
 	enums := val.EnumValues()
-	//nolint:forcetypeassert // EnumConst[T] is only implemented by types whose underlying type is T
-	if slices.Contains(enums, val.(T)) {
-		return val.(T), true
+	if slices.Contains(enums, val) {
+		return val, true
 	}
 	return enums[0], false
 }

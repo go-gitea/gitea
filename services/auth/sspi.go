@@ -143,7 +143,7 @@ func (s *SSPI) getConfig(ctx context.Context) (*sspi.Source, error) {
 	if len(sources) > 1 {
 		return nil, errors.New("more than one active login source of type SSPI found")
 	}
-	return sources[0].Cfg.(*sspi.Source), nil //nolint:forcetypeassert // the query above only returns SSPI sources
+	return auth.MustSourceCfg[*sspi.Source](sources[0]), nil
 }
 
 func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
