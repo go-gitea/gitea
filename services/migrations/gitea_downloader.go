@@ -685,21 +685,22 @@ func (g *GiteaDownloader) GetReviews(ctx context.Context, reviewable base.Review
 			}
 			var reviewComments []*base.ReviewComment
 			for i := range rcl {
-				line := int(rcl[i].LineNum)
+				line := int64(rcl[i].LineNum)
 				if rcl[i].OldLineNum > 0 {
-					line = int(rcl[i].OldLineNum) * -1
+					line = -int64(rcl[i].OldLineNum)
 				}
 
 				reviewComments = append(reviewComments, &base.ReviewComment{
-					ID:        rcl[i].ID,
-					Content:   rcl[i].Body,
-					TreePath:  rcl[i].Path,
-					DiffHunk:  rcl[i].DiffHunk,
-					Line:      line,
-					CommitID:  rcl[i].CommitID,
-					PosterID:  rcl[i].Reviewer.ID,
-					CreatedAt: rcl[i].Created,
-					UpdatedAt: rcl[i].Updated,
+					ID:         rcl[i].ID,
+					Content:    rcl[i].Body,
+					TreePath:   rcl[i].Path,
+					DiffHunk:   rcl[i].DiffHunk,
+					Line:       line,
+					CommitID:   rcl[i].CommitID,
+					PosterID:   rcl[i].Reviewer.ID,
+					PosterName: rcl[i].Reviewer.UserName,
+					CreatedAt:  rcl[i].Created,
+					UpdatedAt:  rcl[i].Updated,
 				})
 			}
 

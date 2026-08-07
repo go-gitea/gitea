@@ -865,9 +865,8 @@ func convertReviewState(state string) issues_model.ReviewType {
 
 // CreateReviews create pull request reviews of currently migrated issues
 func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base.Review) error {
-	cms := make([]*issues_model.Review, 0, len(reviews))
+	cms := make([]*issues_model.InsertReviewOptions, 0, len(reviews))
 	for _, review := range reviews {
-		var issue *issues_model.Issue
 		issue, ok := g.issues[review.IssueIndex]
 		if !ok {
 			return fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex)
@@ -876,7 +875,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
 		}
 
-		cm := issues_model.Review{
+		cm := &issues_model.Review{
 			Type:        convertReviewState(review.State),
 			IssueID:     issue.ID,
 			Content:     review.Content,
@@ -884,17 +883,31 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 		}
-
-		if err := g.remapUser(ctx, review, &cm); err != nil {
+		if review.State == base.ReviewStateRequestReview {
+			reviewerID, err := g.remapUserID(ctx, review)
+			if err != nil {
+				return err
+			}
+			if reviewerID == 0 {
+				continue
+			}
+			cm.ReviewerID = reviewerID
+		} else if err := g.remapUser(ctx, review, cm); err != nil {
 			return err
 		}
 
-		cms = append(cms, &cm)
+		headerReactions, err := g.remapReactions(ctx, review.Reactions)
+		if err != nil {
+			return err
+		}
+		insertOptions := &issues_model.InsertReviewOptions{Review: cm, HeaderReactions: headerReactions}
+		cms = append(cms, insertOptions)
+		if len(review.Comments) == 0 {
+			continue
+		}
 
-		// get pr
 		pr, ok := g.prCache[issue.ID]
 		if !ok {
-			var err error
 			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(ctx, issue.ID)
 			if err != nil {
 				return err
@@ -902,7 +915,6 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			g.prCache[issue.ID] = pr
 		}
 		if pr.MergeBase == "" {
-			// No mergebase -> no basis for any patches
 			log.Warn("PR #%d in %s/%s: does not have a merge base, all review comments will be ignored", pr.Index, g.repoOwner, g.repoName)
 			continue
 		}
@@ -915,50 +927,61 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 
 		for _, comment := range review.Comments {
 			line := comment.Line
+			position := comment.Position
 			if line != 0 {
-				comment.Position = 1
+				position = 1
 			} else if comment.DiffHunk != "" {
-				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
+				_, _, parsedLine, _ := git.ParseDiffHunkString(comment.DiffHunk)
+				line = int64(parsedLine)
 			}
+			storedLine := line + int64(position) - 1
 
-			// SECURITY: The TreePath must be cleaned! use relative path
-			comment.TreePath = util.PathJoinRel(comment.TreePath)
-
+			treePath := util.PathJoinRel(comment.TreePath)
 			patch, _ := git.GetFileDiffCutAroundLine(ctx,
-				g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath,
-				int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+				g.gitRepo, pr.MergeBase, headCommitID, treePath,
+				int64((&issues_model.Comment{Line: storedLine}).UnsignedLine()), storedLine < 0, setting.UI.CodeCommentLines,
 			)
 
-			if comment.CreatedAt.IsZero() {
-				comment.CreatedAt = review.CreatedAt
+			createdAt := comment.CreatedAt
+			if createdAt.IsZero() {
+				createdAt = review.CreatedAt
 			}
-			if comment.UpdatedAt.IsZero() {
-				comment.UpdatedAt = comment.CreatedAt
+			updatedAt := comment.UpdatedAt
+			if updatedAt.IsZero() {
+				updatedAt = createdAt
 			}
 
+			commitID := comment.CommitID
 			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
-			if !objectFormat.IsValid(comment.CommitID) {
-				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
-				comment.CommitID = headCommitID
+			if !objectFormat.IsValid(commitID) {
+				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", commitID, comment.ID, pr.Index, g.repoOwner, g.repoName, headCommitID)
+				commitID = headCommitID
 			}
 
-			c := issues_model.Comment{
+			c := &issues_model.Comment{
 				Type:        issues_model.CommentTypeCode,
 				IssueID:     issue.ID,
 				Content:     comment.Content,
-				Line:        int64(line + comment.Position - 1),
-				TreePath:    comment.TreePath,
-				CommitSHA:   comment.CommitID,
+				Line:        storedLine,
+				TreePath:    treePath,
+				CommitSHA:   commitID,
 				Patch:       patch,
-				CreatedUnix: timeutil.TimeStamp(comment.CreatedAt.Unix()),
-				UpdatedUnix: timeutil.TimeStamp(comment.UpdatedAt.Unix()),
+				CreatedUnix: timeutil.TimeStamp(createdAt.Unix()),
+				UpdatedUnix: timeutil.TimeStamp(updatedAt.Unix()),
 			}
-
-			if err := g.remapUser(ctx, review, &c); err != nil {
+			if comment.PosterName != "" {
+				err = g.remapUser(ctx, comment, c)
+			} else {
+				err = g.remapUser(ctx, review, c)
+			}
+			if err != nil {
 				return err
 			}
-
-			cm.Comments = append(cm.Comments, &c)
+			c.Reactions, err = g.remapReactions(ctx, comment.Reactions)
+			if err != nil {
+				return err
+			}
+			insertOptions.Comments = append(insertOptions.Comments, c)
 		}
 	}
 

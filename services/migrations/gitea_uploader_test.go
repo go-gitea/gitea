@@ -259,6 +259,49 @@ func TestGiteaUploadPullRequestMetadata(t *testing.T) {
 	assert.Equal(t, user_model.GhostUserID, pullRequest.MergerID)
 }
 
+func TestGiteaUploadReviewRequestTargets(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	uploader := NewGiteaLocalUploader(ctx, doer, "owner", "repo")
+	uploader.sameApp = true
+	uploader.issues[9004] = issue
+
+	requestedAt := time.Date(2036, 1, 1, 0, 0, 0, 0, time.UTC)
+	reactedAt := requestedAt.Add(time.Minute)
+	require.NoError(t, uploader.CreateReviews(ctx,
+		&base.Review{IssueIndex: 9004, ReviewerID: reviewer.ID, ReviewerName: reviewer.Name, State: base.ReviewStateRequestReview, CreatedAt: requestedAt},
+		&base.Review{IssueIndex: 9004, ReviewerID: 999999, ReviewerName: "missing", State: base.ReviewStateRequestReview, CreatedAt: requestedAt.Add(time.Second)},
+		&base.Review{
+			IssueIndex: 9004, ReviewerID: doer.ID, ReviewerName: doer.Name, State: base.ReviewStateCommented,
+			CreatedAt: requestedAt.Add(time.Minute), Content: "reaction timestamp",
+			Reactions: []*base.Reaction{{UserID: reviewer.ID, UserName: reviewer.Name, Content: "+1", Created: reactedAt}},
+		},
+	))
+
+	var requests []*issues_model.Review
+	require.NoError(t, db.GetEngine(ctx).Where("issue_id = ? AND type = ? AND created_unix >= ?", issue.ID, issues_model.ReviewTypeRequest, timeutil.TimeStamp(requestedAt.Unix())).Find(&requests))
+	require.Len(t, requests, 1)
+	assert.Equal(t, reviewer.ID, requests[0].ReviewerID)
+	assert.NotEqual(t, doer.ID, requests[0].ReviewerID)
+
+	var review issues_model.Review
+	has, err := db.GetEngine(ctx).Where("issue_id = ? AND content = ?", issue.ID, "reaction timestamp").Get(&review)
+	require.NoError(t, err)
+	require.True(t, has)
+	var header issues_model.Comment
+	has, err = db.GetEngine(ctx).Where("review_id = ? AND type = ?", review.ID, issues_model.CommentTypeReview).Get(&header)
+	require.NoError(t, err)
+	require.True(t, has)
+	var reaction issues_model.Reaction
+	has, err = db.GetEngine(ctx).Where("comment_id = ? AND type = ?", header.ID, "+1").Get(&reaction)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.Equal(t, timeutil.TimeStamp(reactedAt.Unix()), reaction.CreatedUnix)
+}
+
 func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

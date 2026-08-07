@@ -653,17 +653,24 @@ func DismissReview(ctx context.Context, review *Review, isDismiss bool) (err err
 	return err
 }
 
-// InsertReviews inserts review and review comments
-func InsertReviews(ctx context.Context, reviews []*Review) error {
+type InsertReviewOptions struct {
+	Review          *Review
+	Comments        []*Comment
+	HeaderReactions ReactionList
+}
+
+// InsertReviews inserts reviews and their comments
+func InsertReviews(ctx context.Context, reviews []*InsertReviewOptions) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
-		for _, review := range reviews {
+		for _, options := range reviews {
+			review := options.Review
 			if _, err := sess.NoAutoTime().Insert(review); err != nil {
 				return err
 			}
 
-			if _, err := sess.NoAutoTime().Insert(&Comment{
+			headerComment := &Comment{
 				Type:             CommentTypeReview,
 				Content:          review.Content,
 				PosterID:         review.ReviewerID,
@@ -673,18 +680,14 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 				ReviewID:         review.ID,
 				CreatedUnix:      review.CreatedUnix,
 				UpdatedUnix:      review.UpdatedUnix,
-			}); err != nil {
-				return err
+				Reactions:        options.HeaderReactions,
 			}
 
-			for _, c := range review.Comments {
+			for _, c := range options.Comments {
 				c.ReviewID = review.ID
 			}
-
-			if len(review.Comments) > 0 {
-				if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
-					return err
-				}
+			if err := insertComments(ctx, append([]*Comment{headerComment}, options.Comments...)); err != nil {
+				return err
 			}
 
 			if err := UpdateIssueNumComments(ctx, review.IssueID); err != nil {

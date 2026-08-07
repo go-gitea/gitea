@@ -226,6 +226,7 @@ func assertReviewEqual(t *testing.T, expected, actual *base.Review) {
 	assert.Equal(t, expected.Content, actual.Content, "Content")
 	assert.WithinDuration(t, expected.CreatedAt, actual.CreatedAt, 10*time.Second)
 	assert.Equal(t, expected.State, actual.State, "State")
+	assertReactionsEqual(t, expected.Reactions, actual.Reactions)
 	assertReviewCommentsEqual(t, expected.Comments, actual.Comments)
 }
 
@@ -247,6 +248,7 @@ func assertReviewCommentEqual(t *testing.T, expected, actual *base.ReviewComment
 	assert.Equal(t, expected.Line, actual.Line)
 	assert.Equal(t, expected.CommitID, actual.CommitID)
 	assert.Equal(t, expected.PosterID, actual.PosterID)
+	assert.Equal(t, expected.PosterName, actual.PosterName)
 	assertReactionsEqual(t, expected.Reactions, actual.Reactions)
 	assertTimeEqual(t, expected.CreatedAt, actual.CreatedAt)
 	assertTimeEqual(t, expected.UpdatedAt, actual.UpdatedAt)

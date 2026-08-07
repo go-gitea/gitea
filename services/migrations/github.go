@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/proxy"
@@ -82,6 +84,10 @@ type GithubDownloaderV3 struct {
 type githubPullRequestMetadata struct {
 	closedBy    *base.ExternalUser
 	closeReason string
+}
+
+type githubPullRequestContext struct {
+	requestedReviewers []*base.ExternalUser
 }
 
 func githubExternalUser(user *github.User) *base.ExternalUser {
@@ -801,6 +807,7 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 			Assignees:     assignees,
 			AssigneeUsers: githubExternalUsers(pr.Assignees),
 			ForeignIndex:  int64(*pr.Number),
+			Context:       githubPullRequestContext{requestedReviewers: githubExternalUsers(pr.RequestedReviewers)},
 			IsDraft:       pr.GetDraft(),
 		}
 		if converted.Merged {
@@ -816,6 +823,11 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 }
 
 func convertGithubReview(r *github.PullRequestReview) *base.Review {
+	state := r.GetState()
+	if state == "DISMISSED" {
+		// REST does not retain whether a dismissed review approved or rejected.
+		state = base.ReviewStateCommented
+	}
 	return &base.Review{
 		ID:           r.GetID(),
 		ReviewerID:   r.GetUser().GetID(),
@@ -823,14 +835,19 @@ func convertGithubReview(r *github.PullRequestReview) *base.Review {
 		CommitID:     r.GetCommitID(),
 		Content:      r.GetBody(),
 		CreatedAt:    r.GetSubmittedAt().Time,
-		State:        r.GetState(),
+		State:        state,
 	}
 }
 
-func (g *GithubDownloaderV3) convertGithubReviewComments(ctx context.Context, cs []*github.PullRequestComment) ([]*base.ReviewComment, error) {
-	rcs := make([]*base.ReviewComment, 0, len(cs))
+type githubReviewComment struct {
+	reviewID       int64
+	reviewCommitID string
+	comment        *base.ReviewComment
+}
+
+func (g *GithubDownloaderV3) convertGithubReviewComments(ctx context.Context, cs []*github.PullRequestComment) ([]githubReviewComment, error) {
+	rcs := make([]githubReviewComment, 0, len(cs))
 	for _, c := range cs {
-		// get reactions
 		var reactions []*base.Reaction
 		if !g.SkipReactions {
 			for i := 1; ; i++ {
@@ -853,26 +870,240 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(ctx context.Context, cs
 						UserID:   reaction.User.GetID(),
 						UserName: reaction.User.GetLogin(),
 						Content:  reaction.GetContent(),
+						Created:  reaction.GetCreatedAt().Time,
 					})
 				}
 			}
 		}
 
-		rcs = append(rcs, &base.ReviewComment{
-			ID:        c.GetID(),
-			InReplyTo: c.GetInReplyTo(),
-			Content:   c.GetBody(),
-			TreePath:  c.GetPath(),
-			DiffHunk:  c.GetDiffHunk(),
-			Position:  c.GetPosition(),
-			CommitID:  c.GetCommitID(),
-			PosterID:  c.GetUser().GetID(),
-			Reactions: reactions,
-			CreatedAt: c.GetCreatedAt().Time,
-			UpdatedAt: c.GetUpdatedAt().Time,
+		line := int64(c.GetLine())
+		if c.GetSide() == "LEFT" {
+			line = -line
+		}
+
+		rcs = append(rcs, githubReviewComment{
+			reviewID:       c.GetPullRequestReviewID(),
+			reviewCommitID: c.GetCommitID(),
+			comment: &base.ReviewComment{
+				ID:         c.GetID(),
+				InReplyTo:  c.GetInReplyTo(),
+				Content:    c.GetBody(),
+				TreePath:   c.GetPath(),
+				DiffHunk:   c.GetDiffHunk(),
+				Position:   c.GetPosition(),
+				Line:       line,
+				CommitID:   c.GetCommitID(),
+				PosterID:   c.GetUser().GetID(),
+				PosterName: c.GetUser().GetLogin(),
+				Reactions:  reactions,
+				CreatedAt:  c.GetCreatedAt().Time,
+				UpdatedAt:  c.GetUpdatedAt().Time,
+			},
 		})
 	}
 	return rcs, nil
+}
+
+func groupGithubReviewComments(reviewsByID map[int64]*base.Review, records []githubReviewComment, issueIndex int64) ([]*base.Review, map[int64]bool) {
+	recordsByID := make(map[int64]*githubReviewComment, len(records))
+	var syntheticReviews []*base.Review
+	for i := range records {
+		record := &records[i]
+		recordsByID[record.comment.ID] = record
+		if _, ok := reviewsByID[record.reviewID]; !ok {
+			review := &base.Review{
+				ID:           record.reviewID,
+				IssueIndex:   issueIndex,
+				ReviewerID:   record.comment.PosterID,
+				ReviewerName: record.comment.PosterName,
+				CommitID:     record.reviewCommitID,
+				CreatedAt:    record.comment.CreatedAt,
+				State:        base.ReviewStateCommented,
+			}
+			reviewsByID[review.ID] = review
+			syntheticReviews = append(syntheticReviews, review)
+		}
+	}
+
+	vacatedReviews := make(map[int64]bool)
+	appended := make(map[int64]bool, len(records))
+	for i := range records {
+		record := &records[i]
+		root, isReply := recordsByID[record.comment.InReplyTo]
+		if isReply && !appended[root.comment.ID] {
+			rootReview := reviewsByID[root.reviewID]
+			rootReview.Comments = append(rootReview.Comments, root.comment)
+			appended[root.comment.ID] = true
+		}
+		if appended[record.comment.ID] {
+			continue
+		}
+		review := reviewsByID[record.reviewID]
+		if isReply {
+			review = reviewsByID[root.reviewID]
+			if review.ID != record.reviewID {
+				vacatedReviews[record.reviewID] = true
+			}
+			record.comment.TreePath = root.comment.TreePath
+			record.comment.DiffHunk = root.comment.DiffHunk
+			record.comment.Position = root.comment.Position
+			record.comment.Line = root.comment.Line
+			record.comment.CommitID = root.comment.CommitID
+		}
+		review.Comments = append(review.Comments, record.comment)
+		appended[record.comment.ID] = true
+	}
+	return syntheticReviews, vacatedReviews
+}
+
+var graphqlReactionContents = map[string]string{
+	"THUMBS_UP":   "+1",
+	"THUMBS_DOWN": "-1",
+	"LAUGH":       "laugh",
+	"HOORAY":      "hooray",
+	"CONFUSED":    "confused",
+	"HEART":       "heart",
+	"ROCKET":      "rocket",
+	"EYES":        "eyes",
+}
+
+const reviewReactionsQuery = `query($owner: String!, $name: String!, $number: Int!, $reviewCursor: String) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviews(first: 100, after: $reviewCursor) {
+        nodes {
+          databaseId
+          reactions(first: 100) {
+            nodes {
+              content
+              createdAt
+              user { login databaseId }
+            }
+            pageInfo { hasNextPage }
+          }
+        }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+}`
+
+type githubGraphQLPageInfo struct {
+	HasNextPage bool   `json:"hasNextPage"`
+	EndCursor   string `json:"endCursor"`
+}
+
+type githubGraphQLConnection[T any] struct {
+	Nodes    []T                   `json:"nodes"`
+	PageInfo githubGraphQLPageInfo `json:"pageInfo"`
+}
+
+type githubGraphQLUser struct {
+	Login      string `json:"login"`
+	DatabaseID int64  `json:"databaseId"`
+}
+
+type githubGraphQLError struct {
+	Message string `json:"message"`
+}
+
+type githubReviewReaction struct {
+	Content   string            `json:"content"`
+	CreatedAt time.Time         `json:"createdAt"`
+	User      githubGraphQLUser `json:"user"`
+}
+
+type githubReactionReview struct {
+	DatabaseID int64                                         `json:"databaseId"`
+	Reactions  githubGraphQLConnection[githubReviewReaction] `json:"reactions"`
+}
+
+type githubReviewReactionsResponse struct {
+	Errors []githubGraphQLError `json:"errors"`
+	Data   struct {
+		Repository struct {
+			PullRequest struct {
+				Reviews githubGraphQLConnection[githubReactionReview] `json:"reviews"`
+			} `json:"pullRequest"`
+		} `json:"repository"`
+	} `json:"data"`
+}
+
+func (g *GithubDownloaderV3) reviewReactions(ctx context.Context, prNumber int64) map[int64][]*base.Reaction {
+	out := make(map[int64][]*base.Reaction)
+	graphqlURL, err := url.Parse(g.getClient().BaseURL())
+	if err != nil {
+		log.Warn("Unable to determine the GitHub GraphQL URL, skipping review reactions: %v", err)
+		return out
+	}
+	if strings.HasSuffix(graphqlURL.Path, "/api/v3/") {
+		graphqlURL.Path = strings.TrimSuffix(graphqlURL.Path, "v3/") + "graphql"
+	} else {
+		graphqlURL.Path = "/graphql"
+	}
+
+	var reviewCursor any
+	for {
+		g.waitAndPickClient(ctx)
+		body, err := json.Marshal(map[string]any{
+			"query": reviewReactionsQuery,
+			"variables": map[string]any{
+				"owner":        g.repoOwner,
+				"name":         g.repoName,
+				"number":       prNumber,
+				"reviewCursor": reviewCursor,
+			},
+		})
+		if err != nil {
+			log.Warn("Unable to fetch GitHub review reactions, skipping them: %v", err)
+			return out
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, graphqlURL.String(), bytes.NewReader(body))
+		if err != nil {
+			log.Warn("Unable to fetch GitHub review reactions, skipping them: %v", err)
+			return out
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := g.getClient().Client().Do(req)
+		if err != nil {
+			log.Warn("Unable to fetch GitHub review reactions, skipping them: %v", err)
+			return out
+		}
+		var result githubReviewReactionsResponse
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		_ = resp.Body.Close()
+		if err != nil || resp.StatusCode != http.StatusOK || len(result.Errors) > 0 {
+			log.Warn("Unable to fetch GitHub review reactions of %s/%s PR %d, skipping them: status %d, %v, %v", g.repoOwner, g.repoName, prNumber, resp.StatusCode, err, result.Errors)
+			return out
+		}
+
+		reviews := result.Data.Repository.PullRequest.Reviews
+		for _, review := range reviews.Nodes {
+			if review.Reactions.PageInfo.HasNextPage {
+				log.Warn("More than 100 reactions on review %d of %s/%s PR %d, dropping the rest", review.DatabaseID, g.repoOwner, g.repoName, prNumber)
+			}
+			for _, reaction := range review.Reactions.Nodes {
+				content, ok := graphqlReactionContents[reaction.Content]
+				if !ok {
+					continue
+				}
+				out[review.DatabaseID] = append(out[review.DatabaseID], &base.Reaction{
+					UserID:   reaction.User.DatabaseID,
+					UserName: reaction.User.Login,
+					Content:  content,
+					Created:  reaction.CreatedAt,
+				})
+			}
+		}
+		if !reviews.PageInfo.HasNextPage {
+			return out
+		}
+		if reviews.PageInfo.EndCursor == "" {
+			log.Warn("GitHub returned another review reaction page without a cursor for %s/%s PR %d, dropping the rest", g.repoOwner, g.repoName, prNumber)
+			return out
+		}
+		reviewCursor = reviews.PageInfo.EndCursor
+	}
 }
 
 // GetReviews returns pull requests review
@@ -885,6 +1116,7 @@ func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Rev
 		PerPage: g.maxPerPage,
 	}
 	// Get approve/request change reviews
+	reviewsByID := make(map[int64]*base.Review)
 	for {
 		g.waitAndPickClient(ctx)
 		reviews, resp, err := g.getClient().PullRequests.ListReviews(ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
@@ -895,28 +1127,7 @@ func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Rev
 		for _, review := range reviews {
 			r := convertGithubReview(review)
 			r.IssueIndex = reviewable.GetLocalIndex()
-			// retrieve all review comments
-			opt2 := &github.ListOptions{
-				PerPage: g.maxPerPage,
-			}
-			for {
-				g.waitAndPickClient(ctx)
-				reviewComments, resp, err := g.getClient().PullRequests.ListReviewComments(ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), review.GetID(), opt2)
-				if err != nil {
-					return nil, fmt.Errorf("error while listing repos: %w", err)
-				}
-				g.setRate(&resp.Rate)
-
-				cs, err := g.convertGithubReviewComments(ctx, reviewComments)
-				if err != nil {
-					return nil, err
-				}
-				r.Comments = append(r.Comments, cs...)
-				if resp.NextPage == 0 {
-					break
-				}
-				opt2.Page = resp.NextPage
-			}
+			reviewsByID[review.GetID()] = r
 			allReviews = append(allReviews, r)
 		}
 		if resp.NextPage == 0 {
@@ -924,17 +1135,55 @@ func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Rev
 		}
 		opt.Page = resp.NextPage
 	}
-	// Get requested reviews
-	g.waitAndPickClient(ctx)
-	reviewers, resp, err := g.getClient().PullRequests.ListReviewers(ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()))
-	if err != nil {
-		return nil, fmt.Errorf("error while listing repos: %w", err)
+
+	if !g.SkipReactions && len(reviewsByID) > 0 {
+		for id, reactions := range g.reviewReactions(ctx, reviewable.GetForeignIndex()) {
+			if review, ok := reviewsByID[id]; ok {
+				review.Reactions = reactions
+			}
+		}
 	}
-	g.setRate(&resp.Rate)
-	for _, user := range reviewers.Users {
+
+	// The PR-wide endpoint includes line and side fields omitted per review.
+	opt2 := &github.PullRequestListCommentsOptions{
+		ListOptions: github.ListOptions{PerPage: g.maxPerPage},
+	}
+	var reviewComments []githubReviewComment
+	for {
+		g.waitAndPickClient(ctx)
+		page, resp, err := g.getClient().PullRequests.ListComments(ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt2)
+		if err != nil {
+			return nil, fmt.Errorf("error while listing review comments: %w", err)
+		}
+		g.setRate(&resp.Rate)
+
+		comments, err := g.convertGithubReviewComments(ctx, page)
+		if err != nil {
+			return nil, err
+		}
+		reviewComments = append(reviewComments, comments...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opt2.Page = resp.NextPage
+	}
+
+	syntheticReviews, vacatedReviews := groupGithubReviewComments(reviewsByID, reviewComments, reviewable.GetLocalIndex())
+	allReviews = append(allReviews, syntheticReviews...)
+	prunedReviews := allReviews[:0]
+	for _, review := range allReviews {
+		if vacatedReviews[review.ID] && review.State == base.ReviewStateCommented && review.Content == "" && len(review.Comments) == 0 && len(review.Reactions) == 0 {
+			continue
+		}
+		prunedReviews = append(prunedReviews, review)
+	}
+	allReviews = prunedReviews
+
+	prContext, _ := reviewable.GetContext().(githubPullRequestContext)
+	for _, user := range prContext.requestedReviewers {
 		r := &base.Review{
-			ReviewerID:   user.GetID(),
-			ReviewerName: user.GetLogin(),
+			ReviewerID:   user.ID,
+			ReviewerName: user.Name,
 			State:        base.ReviewStateRequestReview,
 			IssueIndex:   reviewable.GetLocalIndex(),
 		}
