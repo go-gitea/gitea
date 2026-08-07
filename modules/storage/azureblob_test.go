@@ -10,82 +10,45 @@ import (
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestAzureBlobStorage(t *testing.T) {
+func prepareAzureStorageConfig(t *testing.T, basePath ...string) *setting.Storage {
 	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_ENDPOINT", "http://devstoreaccount1.azurite.local:10000")
-	storageType := setting.AzureBlobStorageType
-	config := &setting.Storage{
+	return &setting.Storage{
 		AzureBlobConfig: setting.AzureBlobStorageConfig{
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
 			Endpoint: endpoint,
 			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
 			AccountName: "devstoreaccount1",
 			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
-			Container:   "test",
+			Container:   "test-container",
+			BasePath:    util.OptionalArg(basePath),
 		},
-	}
-	table := []struct {
-		name string
-		test func(t *testing.T, typStr Type, cfg *setting.Storage)
-	}{
-		{
-			name: "iterator",
-			test: testStorageIterator,
-		},
-		{
-			name: "testBlobStorageURLContentTypeAndDisposition",
-			test: testBlobStorageURLContentTypeAndDisposition,
-		},
-	}
-	for _, entry := range table {
-		t.Run(entry.name, func(t *testing.T) {
-			entry.test(t, storageType, config)
-		})
 	}
 }
 
-func TestAzureBlobStoragePath(t *testing.T) {
-	m := &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: ""}}
-	assert.Empty(t, m.buildAzureBlobPath("/"))
-	assert.Empty(t, m.buildAzureBlobPath("."))
-	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
-	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
-
-	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/"}}
-	assert.Empty(t, m.buildAzureBlobPath("/"))
-	assert.Empty(t, m.buildAzureBlobPath("."))
-	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
-	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
-
-	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/base"}}
-	assert.Equal(t, "base", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "base", m.buildAzureBlobPath("."))
-	assert.Equal(t, "base/a", m.buildAzureBlobPath("/a"))
-	assert.Equal(t, "base/a/b", m.buildAzureBlobPath("/a/b/"))
-
-	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/base/"}}
-	assert.Equal(t, "base", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "base", m.buildAzureBlobPath("."))
-	assert.Equal(t, "base/a", m.buildAzureBlobPath("/a"))
-	assert.Equal(t, "base/a/b", m.buildAzureBlobPath("/a/b/"))
+func TestAzureBlobStorage(t *testing.T) {
+	t.Run("NoBasePath", func(t *testing.T) {
+		config := prepareAzureStorageConfig(t)
+		objStore, err := NewStorage(setting.AzureBlobStorageType, config)
+		require.NoError(t, err)
+		testStorageGeneral(t, objStore)
+	})
+	t.Run("WithBasePath", func(t *testing.T) {
+		config := prepareAzureStorageConfig(t, "test-base-path")
+		objStore, err := NewStorage(setting.AzureBlobStorageType, config)
+		require.NoError(t, err)
+		testStorageGeneral(t, objStore)
+	})
 }
 
 func Test_azureBlobObject(t *testing.T) {
-	endpoint := test.ExternalServiceHTTP(t, "TEST_AZURESTORAGE_ENDPOINT", "http://devstoreaccount1.azurite.local:10000")
-	s, err := NewStorage(setting.AzureBlobStorageType, &setting.Storage{
-		AzureBlobConfig: setting.AzureBlobStorageConfig{
-			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#ip-style-url
-			Endpoint: endpoint,
-			// https://learn.microsoft.com/azure/storage/common/storage-use-azurite?tabs=visual-studio-code#well-known-storage-account-and-key
-			AccountName: "devstoreaccount1",
-			AccountKey:  "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
-			Container:   "test",
-		},
-	})
-	assert.NoError(t, err)
+	s, err := NewStorage(setting.AzureBlobStorageType, prepareAzureStorageConfig(t))
+	require.NoError(t, err)
 
 	data := "Q2xTckt6Y1hDOWh0"
 	_, err = s.Save("test.txt", strings.NewReader(data), int64(len(data)))
