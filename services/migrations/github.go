@@ -57,7 +57,6 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 	if err != nil {
 		return nil, err
 	}
-	downloader.SkipReactions = opts.SkipReactions
 	downloader.useGraphQL = setting.Migrations.UseGraphQL
 	return downloader, nil
 }

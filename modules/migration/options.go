@@ -39,19 +39,6 @@ type MigrateOptions struct {
 	MigrateToRepoID int64
 	MirrorInterval  string `json:"mirror_interval"`
 
-	// mirror-only: enable read-only metadata sync of issues/pull requests
-	// on each mirror update.
-	SyncIssues       bool
-	SyncPullRequests bool
-
-	// SkipReactions omits per-issue and per-comment reaction fetches. Reactions
-	// are an N+1 call storm (one request per issue and per comment) that
-	// dominates the API budget and, on a single transient failure, aborts the
-	// whole pass. The mirror metadata reflection sets this so large repositories
-	// complete in a sane window; reactions are the lowest-value metadata for a
-	// read-only mirror.
-	SkipReactions bool
-
 	AWSAccessKeyID     string
 	AWSSecretAccessKey string `json:",omitempty"`
 
