@@ -65,6 +65,7 @@ spec:
       containers:
         - name: app
           image: localhost:5000/gitea:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
