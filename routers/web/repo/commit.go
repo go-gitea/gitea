@@ -130,8 +130,16 @@ func Graph(ctx *context.Context) {
 	files := ctx.FormStrings("file")
 	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, branchRefs, files)
 	if err != nil {
-		ctx.ServerError("GetCommitGraphsCount", err)
-		return
+		if len(branchRefs) > 0 {
+			// maybe: "fatal: bad revision '.....'" if a ref doesn't exist
+			// maybe it's better to show a 404 page instead of the unclear retry, anyway, a retry isn't harmful, so keep the old behavior
+			branchRefs = nil
+			graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, branchRefs, files)
+		}
+		if err != nil {
+			ctx.ServerError("GetCommitGraphsCount", err)
+			return
+		}
 	}
 
 	page := ctx.FormInt("page")
