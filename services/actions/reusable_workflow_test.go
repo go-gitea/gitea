@@ -42,6 +42,17 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 		assert.ErrorContains(t, err, "cycle detected")
 	})
 
+	t.Run("MixedPrefixCycle", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		// A -> A written with both same-repo prefixes: they name the same file.
+		chain := buildCallerChain(t,
+			"./.gitea/workflows/a.yml",
+			"$/.gitea/workflows/a.yml",
+		)
+		err := checkCallerChain(t.Context(), chain[len(chain)-1])
+		assert.ErrorContains(t, err, "cycle detected")
+	})
+
 	t.Run("NoCycle", func(t *testing.T) {
 		require.NoError(t, unittest.PrepareTestDatabase())
 		// Sanity: linear chain with distinct CallUses must not trip cycle detection.

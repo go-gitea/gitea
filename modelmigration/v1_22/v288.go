@@ -4,6 +4,8 @@
 package v1_22
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
@@ -20,6 +22,6 @@ func (*Blocking) TableName() string {
 	return "user_blocking"
 }
 
-func AddUserBlockingTable(x base.EngineMigration) error {
+func AddUserBlockingTable(_ context.Context, x base.EngineMigration) error {
 	return x.Sync(&Blocking{})
 }

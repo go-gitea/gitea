@@ -120,15 +120,15 @@ func (ut *RenderUtils) RenderLabel(label *issues_model.Label) template.HTML {
 	itemHTML := ut.RenderEmoji(label.Name[len(labelScope)+1:])
 
 	// Make scope and item background colors slightly darker and lighter respectively.
-	// More contrast needed with higher luminance, empirically tweaked.
-	luminance := util.GetRelativeLuminance(label.Color)
-	contrast := 0.01 + luminance*0.03
+	// More contrast needed with higher brightness, empirically tweaked.
+	brightness := util.GetPerceivedBrightness(label.Color)
+	contrast := 0.01 + brightness*0.03
 	// Ensure we add the same amount of contrast also near 0 and 1.
-	darken := contrast + math.Max(luminance+contrast-1.0, 0.0)
-	lighten := contrast + math.Max(contrast-luminance, 0.0)
+	darken := contrast + math.Max(brightness+contrast-1.0, 0.0)
+	lighten := contrast + math.Max(contrast-brightness, 0.0)
 	// Compute the factor to keep RGB values proportional.
-	darkenFactor := math.Max(luminance-darken, 0.0) / math.Max(luminance, 1.0/255.0)
-	lightenFactor := math.Min(luminance+lighten, 1.0) / math.Max(luminance, 1.0/255.0)
+	darkenFactor := math.Max(brightness-darken, 0.0) / math.Max(brightness, 1.0/255.0)
+	lightenFactor := math.Min(brightness+lighten, 1.0) / math.Max(brightness, 1.0/255.0)
 
 	r, g, b := util.HexToRBGColor(label.Color)
 	scopeBytes := []byte{

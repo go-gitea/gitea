@@ -112,14 +112,6 @@ func TestPullView_CodeOwner(t *testing.T) {
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 5})
 			assert.NoError(t, pr.LoadIssue(t.Context()))
 
-			// capture the current PR head ref so we can wait for the async
-			// refs/pull/N/head sync triggered by the next push to complete
-			baseGitRepo, err := git.OpenRepository(t.Context(), repo)
-			require.NoError(t, err)
-			defer baseGitRepo.Close()
-			headRefBefore, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
-			require.NoError(t, err)
-
 			// update the file on the pr branch
 			resp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
 				OldBranch: "codeowner-basebranch",
@@ -133,18 +125,11 @@ func TestPullView_CodeOwner(t *testing.T) {
 			})
 			assert.NoError(t, err)
 
-			// refs/pull/N/head is refreshed asynchronously by the push hook; wait for
-			// it before evaluating code owners, otherwise the changed-file set may not
-			// yet include user8-file.md and the review request would be missed
+			// the push above requests user8's review asynchronously
 			require.Eventually(t, func() bool {
-				headRefAfter, err := baseGitRepo.GetRefCommitID(t.Context(), pr.GetGitHeadRefName())
-				return err == nil && headRefAfter != headRefBefore
-			}, 30*time.Second, 100*time.Millisecond)
-
-			reviewNotifiers, err := issue_service.PullRequestCodeOwnersReview(t.Context(), pr)
-			require.NoError(t, err)
-			require.Len(t, reviewNotifiers, 1)
-			assert.EqualValues(t, 8, reviewNotifiers[0].Reviewer.ID)
+				return unittest.GetCount(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8}) == 1
+			}, 10*time.Second, 20*time.Millisecond, "code owner user8 was never requested for review")
+			unittest.AssertCount(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest}, 2) // only user5 and user8
 
 			err = issue_service.ChangeTitle(t.Context(), pr.Issue, user2, "[WIP] Test Pull Request")
 			assert.NoError(t, err)
