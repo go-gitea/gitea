@@ -29,6 +29,12 @@ jobs:
           git fetch origin staging --depth=1
           git checkout origin/staging -- k8s/staging.yaml
 
+      - name: Capture git diff
+        shell: powershell
+        run: |
+          git diff HEAD..origin/staging > "$env:GITHUB_WORKSPACE\git-diff.txt"
+          Write-Host "Git diff captured: $((Get-Item $env:GITHUB_WORKSPACE\git-diff.txt).Length) bytes"
+
       - name: Set image tag
         id: tag
         shell: powershell
@@ -74,6 +80,7 @@ jobs:
           BASELINE_URL: http://localhost:30301
           STAGING_URL: http://localhost:30302
           K6_RESULT_FILE: ${{ github.workspace }}/k6-summary.json
+          GIT_DIFF_FILE: ${{ github.workspace }}/git-diff.txt
         shell: powershell
         run: |
           $apiaHome = if ($env:APIA_HOME) { $env:APIA_HOME } else { "$env:USERPROFILE\apia" }
