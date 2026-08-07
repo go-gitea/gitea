@@ -1,21 +1,23 @@
-{{$buttonText := ctx.Locale.Tr (Iif $.IsWatchingRepo "repo.watching" "repo.watch")}}
+{{$isIgnoring := and $.IsSigned $.Watch.IsIgnoring}}
+{{$buttonText := ctx.Locale.Tr (Iif $isIgnoring "repo.ignoring" (Iif $.IsWatchingRepo "repo.watching" "repo.watch"))}}
 {{$count := CountFmt .Repository.NumWatches}}
 <div id="repo-header-watch" class="flex-text-block">
 	{{if $.IsSigned}}
 		{{$isAll := and $.IsWatchingRepo $.Watch.PullRequests $.Watch.Issues $.Watch.Releases}}
 		{{$isCustom := and $.IsWatchingRepo (not $isAll)}}
+		{{$isParticipating := not (or $.IsWatchingRepo $isIgnoring)}}
 		<button class="ui dropdown custom compact small basic button" data-global-init="initRepoWatchMenu" aria-label="{{$buttonText}}">
-			{{svg "octicon-eye"}}
+			{{svg (Iif $isIgnoring "octicon-eye-closed" "octicon-eye")}}
 			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
 			<span class="ui small label">{{$count}}</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</button>
 		<div class="tippy-target">
 			{{$participating := ctx.Locale.Tr "repo.watch.mode.participating"}}
-			<a class="item{{if not $.IsWatchingRepo}} active{{end}}" role="menuitem" aria-label="{{$participating}}"
+			<a class="item{{if $isParticipating}} active{{end}}" role="menuitem" aria-label="{{$participating}}"
 				data-fetch-method="post" data-fetch-url="{{$.RepoLink}}/action/unwatch" data-fetch-sync="$body #repo-header-watch"
 			>
-				{{svg "octicon-check" 16 (Iif $.IsWatchingRepo "tw-invisible" "")}}
+				{{svg "octicon-check" 16 (Iif $isParticipating "" "tw-invisible")}}
 				<div>{{$participating}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.participating.desc"}}</div></div>
 			</a>
 			{{$all := ctx.Locale.Tr "repo.watch.mode.all"}}
@@ -25,6 +27,13 @@
 				{{svg "octicon-check" 16 (Iif $isAll "" "tw-invisible")}}
 				<div>{{$all}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.all.desc"}}</div></div>
 			</a>
+			{{$ignore := ctx.Locale.Tr "repo.watch.mode.ignore"}}
+			<a class="item{{if $.Watch.IsIgnoring}} active{{end}}" role="menuitem" aria-label="{{$ignore}}"
+				data-fetch-method="post" data-fetch-url="{{$.RepoLink}}/action/ignore" data-fetch-sync="$body #repo-header-watch"
+			>
+				{{svg "octicon-check" 16 (Iif $.Watch.IsIgnoring "" "tw-invisible")}}
+				<div>{{$ignore}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.ignore.desc"}}</div></div>
+			</a>
 			{{$custom := ctx.Locale.Tr "repo.watch.mode.custom"}}
 			<a class="item{{if $isCustom}} active{{end}}" role="menuitem" aria-label="{{$custom}}"
 				data-global-click="onRepoWatchOptionsClick" data-url="{{$.RepoLink}}/action/watch/options"
@@ -33,8 +42,6 @@
 				{{svg "octicon-check" 16 (Iif $isCustom "" "tw-invisible")}}
 				<div>{{$custom}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.custom.desc"}}</div></div>
 			</a>
-			<div class="divider tw-my-1"></div>
-			<a class="item" role="menuitem" href="{{$.RepoLink}}/watchers">{{svg "octicon-people" 16}}{{ctx.Locale.Tr "repo.watchers"}}</a>
 		</div>
 	{{else}}
 		<a role="button" class="ui compact small basic button" href="{{AppSubUrl}}/user/login" aria-label="{{$buttonText}}" data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}">

@@ -77,6 +77,13 @@ func mailIssueCommentToParticipants(ctx context.Context, comment *mailComment, m
 
 	visited := make(container.Set[int64], len(unfiltered)+len(mentions)+1)
 
+	// muting the repository outranks every other source, including mentions
+	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, comment.Issue.RepoID)
+	if err != nil {
+		return fmt.Errorf("GetRepoIgnorersIDs(%d): %w", comment.Issue.RepoID, err)
+	}
+	visited.AddMultiple(ignorers...)
+
 	// Avoid mailing the doer
 	if comment.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn && !comment.ForceDoerNotification {
 		visited.Add(comment.Doer.ID)

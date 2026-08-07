@@ -143,6 +143,15 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 	}
 
+	// muting the repository outranks every other source, including mentions
+	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, issue.RepoID)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range ignorers {
+		toNotify.Remove(id)
+	}
+
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}

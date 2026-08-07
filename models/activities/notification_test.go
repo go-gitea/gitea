@@ -10,6 +10,7 @@ import (
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
@@ -35,16 +36,34 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 func TestCreateOrUpdateIssueNotificationsForAssigneeAndReviewer(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	// user 8 neither watches repo 1 nor participates in PR 3
-	assert.NoError(t, db.Insert(t.Context(), &issues_model.IssueAssignees{AssigneeID: 8, IssueID: 3}))
+	// user 13 neither watches repo 1 nor participates in PR 3
+	assert.NoError(t, db.Insert(t.Context(), &issues_model.IssueAssignees{AssigneeID: 13, IssueID: 3}))
 	_, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), 3, 0, 1, 0)
 	assert.NoError(t, err)
-	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 8, IssueID: 3})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 13, IssueID: 3})
 
 	// user 1 is a requested reviewer of PR 12 and does not participate in it
 	_, err = activities_model.CreateOrUpdateIssueNotifications(t.Context(), 12, 0, 2, 0)
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 1, IssueID: 12})
+}
+
+func TestCreateOrUpdateIssueNotificationsIgnored(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// user 4 watches repo 1 and would be notified about issue 1
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	assert.NoError(t, repo_model.IgnoreRepo(t.Context(), user, repo))
+
+	notified, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, 0)
+	assert.NoError(t, err)
+	assert.NotContains(t, notified, user.ID)
+
+	// muting outranks a direct receiver too
+	notified, err = activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, user.ID)
+	assert.NoError(t, err)
+	assert.Empty(t, notified)
 }
 
 func TestNotificationsForUser(t *testing.T) {

@@ -14,12 +14,18 @@ import (
 const tplWatch templates.TplName = "repo/header/watch"
 
 func ActionWatch(ctx *context.Context) {
-	doWatch := ctx.PathParam("action") == "watch"
-	if err := repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, doWatch); err != nil {
+	action := ctx.PathParam("action")
+	var err error
+	if action == "ignore" {
+		err = repo_model.IgnoreRepo(ctx, ctx.Doer, ctx.Repo.Repository)
+	} else {
+		err = repo_model.WatchRepo(ctx, ctx.Doer, ctx.Repo.Repository, action == "watch")
+	}
+	if err != nil {
 		handleActionError(ctx, err)
 		return
 	}
-	if doWatch { // watching again always restores every event, so "all activity" can undo a custom selection
+	if action == "watch" { // watching again always restores every event, so "all activity" can undo a custom selection
 		opts := repo_model.WatchOptions{PullRequests: true, Issues: true, Releases: true}
 		if err := repo_model.SetWatchOptions(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, opts); err != nil {
 			ctx.ServerError("SetWatchOptions", err)

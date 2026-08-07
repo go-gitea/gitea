@@ -69,6 +69,11 @@ func GetWatch(ctx context.Context, userID, repoID int64) (*Watch, error) {
 	return watch, nil
 }
 
+// IsIgnoring reports whether the user muted the repository entirely
+func (w *Watch) IsIgnoring() bool {
+	return w.Mode == WatchModeDont
+}
+
 // IsWatchMode Decodes watchability of WatchMode
 func IsWatchMode(mode WatchMode) bool {
 	return mode != WatchModeNone && mode != WatchModeDont
@@ -140,6 +145,15 @@ func WatchRepo(ctx context.Context, doer *user_model.User, repo *Repository, doW
 	return watchRepoMode(ctx, watch, WatchModeNormal)
 }
 
+// IgnoreRepo mutes the repository, so nothing about it reaches the user.
+func IgnoreRepo(ctx context.Context, doer *user_model.User, repo *Repository) error {
+	watch, err := GetWatch(ctx, doer.ID, repo.ID)
+	if err != nil {
+		return err
+	}
+	return watchRepoMode(ctx, watch, WatchModeDont)
+}
+
 type WatchOptions struct {
 	PullRequests bool
 	Issues       bool
@@ -182,6 +196,16 @@ func GetWatchers(ctx context.Context, repoID int64) ([]*Watch, error) {
 		And("`user`.prohibit_login=?", false).
 		Join("INNER", "`user`", "`user`.id = `watch`.user_id").
 		Find(&watches)
+}
+
+// GetRepoIgnorersIDs returns IDs of users who muted the given repo ID
+func GetRepoIgnorersIDs(ctx context.Context, repoID int64) ([]int64, error) {
+	ids := make([]int64, 0, 8)
+	return ids, db.GetEngine(ctx).Table("watch").
+		Where("repo_id=?", repoID).
+		And("mode=?", WatchModeDont).
+		Select("user_id").
+		Find(&ids)
 }
 
 // GetRepoWatchersIDs returns IDs of watchers for a given repo ID that opted into watchType
