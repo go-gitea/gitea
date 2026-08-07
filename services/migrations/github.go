@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/proxy"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 
 	"github.com/google/go-github/v89/github"
@@ -57,7 +58,7 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 		return nil, err
 	}
 	downloader.SkipReactions = opts.SkipReactions
-	downloader.useGraphQL = true
+	downloader.useGraphQL = setting.Migrations.UseGraphQL
 	return downloader, nil
 }
 
@@ -91,11 +92,12 @@ type GithubDownloaderV3 struct {
 	issuesCursor   string
 	issuesNextPage int
 
-	// useGraphQL opts the issues stream into the batched GraphQL fast path
-	// (see github_graphql.go), which fetches an issue plus its comments and
-	// reactions in one request instead of many. gqlIssuesCursor is that path's
-	// pagination cursor and gqlComments caches the comments fetched alongside the
-	// issues so the framework's separate comment phase serves them from memory.
+	// useGraphQL opts the downloader into the batched GraphQL fast path (see
+	// github_graphql.go), which fetches an issue or pull request plus its
+	// comments, reviews and reactions in one request instead of many.
+	// gqlIssuesCursor is the issue stream's pagination cursor and gqlComments
+	// caches the comments fetched alongside the issues so the framework's
+	// separate comment phase serves them from memory.
 	useGraphQL      bool
 	gqlIssuesCursor string
 	gqlComments     map[int64][]*base.Comment
@@ -457,6 +459,11 @@ func (g *GithubDownloaderV3) GetReleases(ctx context.Context) ([]*base.Release, 
 
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
+	if g.useGraphQL {
+		// GraphQL fast path: fetches issues + comments + reactions in one
+		// request. A zero time means all issues.
+		return g.getNewIssuesGraphQL(ctx, page, time.Time{})
+	}
 	// A one-time migration walks by creation order; a zero time means all issues.
 	return g.getIssuesSince(ctx, page, perPage, time.Time{}, "created")
 }
@@ -569,6 +576,11 @@ func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
 
 // GetComments returns comments according issueNumber
 func (g *GithubDownloaderV3) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
+	if g.gqlComments != nil {
+		// GraphQL fast path: the issue/PR sweeps already fetched the comments;
+		// serve them from the cache instead of a second round of API calls.
+		return g.gqlComments[commentable.GetForeignIndex()], false, nil
+	}
 	comments, err := g.getComments(ctx, commentable)
 	return comments, false, err
 }
@@ -651,6 +663,13 @@ func (g *GithubDownloaderV3) getCommentsSince(ctx context.Context, commentable b
 
 // GetAllComments returns repository comments according page and perPageSize
 func (g *GithubDownloaderV3) GetAllComments(ctx context.Context, page, perPage int) ([]*base.Comment, bool, error) {
+	if g.gqlComments != nil {
+		// GraphQL fast path: comments already came back with their issues and
+		// pull requests; serve them from the cache instead of a second round of
+		// API calls. The comment phase runs after both sweeps, so the cache is
+		// complete by the first call here.
+		return g.getCachedComments(page, perPage)
+	}
 	// A one-time migration walks by creation order.
 	return g.getAllCommentsSince(ctx, page, perPage, nil, "created")
 }
@@ -732,6 +751,11 @@ func (g *GithubDownloaderV3) getAllCommentsSince(ctx context.Context, page, perP
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
+	if g.useGraphQL {
+		// GraphQL fast path: fetches pull requests + comments + reviews (with
+		// their inline comments) in one request. A zero time means all of them.
+		return g.getNewPullRequestsGraphQL(ctx, page, time.Time{})
+	}
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -1011,6 +1035,12 @@ func (g *GithubDownloaderV3) GetNewReviews(ctx context.Context, reviewable base.
 }
 
 func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
+	if g.gqlReviews != nil {
+		// GraphQL fast path: reviews (and their inline comments) already came
+		// back with their pull request; serve them from the cache instead of the
+		// REST per-PR ListReviews + per-review ListReviewComments N+1.
+		return g.gqlReviews[reviewable.GetForeignIndex()], nil
+	}
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
 	if g.SkipReviews {
 		return allReviews, nil
