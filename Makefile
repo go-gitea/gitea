@@ -348,7 +348,7 @@ lint-editorconfig:
 .PHONY: lint-actions
 lint-actions: .venv ## lint action workflow files
 	@$(GO) run $(ACTIONLINT_PACKAGE)
-	@uv run --frozen zizmor --quiet --min-confidence=medium .github
+	@uv run --frozen zizmor --quiet --persona=pedantic --min-confidence=medium .github
 
 .PHONY: lint-shell
 lint-shell: ## lint shell scripts
