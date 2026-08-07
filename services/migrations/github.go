@@ -64,28 +64,53 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 // from github via APIv3
 type GithubDownloaderV3 struct {
 	base.NullDownloader
-	clients       []*github.Client
-	baseURL       string
-	repoOwner     string
-	repoName      string
-	userName      string
-	password      string
-	rates         []*github.Rate
-	curClientIdx  int
-	maxPerPage    int
-	SkipReactions bool
-	SkipReviews   bool
+	clients             []*github.Client
+	baseURL             string
+	repoOwner           string
+	repoName            string
+	userName            string
+	password            string
+	rates               []*github.Rate
+	curClientIdx        int
+	maxPerPage          int
+	SkipReactions       bool
+	SkipReviews         bool
+	pullRequestMetadata map[int64]githubPullRequestMetadata
+	warnedPRMetadata    bool
+}
+
+type githubPullRequestMetadata struct {
+	closedBy    *base.ExternalUser
+	closeReason string
+}
+
+func githubExternalUser(user *github.User) *base.ExternalUser {
+	if user == nil {
+		return nil
+	}
+	return &base.ExternalUser{ID: user.GetID(), Name: user.GetLogin()}
+}
+
+func githubExternalUsers(users []*github.User) []*base.ExternalUser {
+	result := make([]*base.ExternalUser, 0, len(users))
+	for _, user := range users {
+		if externalUser := githubExternalUser(user); externalUser != nil {
+			result = append(result, externalUser)
+		}
+	}
+	return result
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
 func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token, repoOwner, repoName string) (*GithubDownloaderV3, error) {
 	downloader := GithubDownloaderV3{
-		userName:   userName,
-		baseURL:    baseURL,
-		password:   password,
-		repoOwner:  repoOwner,
-		repoName:   repoName,
-		maxPerPage: 100,
+		userName:            userName,
+		baseURL:             baseURL,
+		password:            password,
+		repoOwner:           repoOwner,
+		repoName:            repoName,
+		maxPerPage:          100,
+		pullRequestMetadata: make(map[int64]githubPullRequestMetadata),
 	}
 
 	if token != "" {
@@ -441,6 +466,10 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 	g.setRate(&resp.Rate)
 	for _, issue := range issues {
 		if issue.IsPullRequest() {
+			g.pullRequestMetadata[int64(issue.GetNumber())] = githubPullRequestMetadata{
+				closedBy:    githubExternalUser(issue.GetClosedBy()),
+				closeReason: issue.GetStateReason(),
+			}
 			continue
 		}
 
@@ -472,6 +501,7 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 						UserID:   reaction.User.GetID(),
 						UserName: reaction.User.GetLogin(),
 						Content:  reaction.GetContent(),
+						Created:  reaction.GetCreatedAt().Time,
 					})
 				}
 			}
@@ -483,22 +513,25 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 		}
 
 		allIssues = append(allIssues, &base.Issue{
-			Title:        *issue.Title,
-			Number:       int64(*issue.Number),
-			PosterID:     issue.GetUser().GetID(),
-			PosterName:   issue.GetUser().GetLogin(),
-			PosterEmail:  issue.GetUser().GetEmail(),
-			Content:      issue.GetBody(),
-			Milestone:    issue.GetMilestone().GetTitle(),
-			State:        issue.GetState(),
-			Created:      issue.GetCreatedAt().Time,
-			Updated:      issue.GetUpdatedAt().Time,
-			Labels:       labels,
-			Reactions:    reactions,
-			Closed:       issue.ClosedAt.GetTime(),
-			IsLocked:     issue.GetLocked(),
-			Assignees:    assignees,
-			ForeignIndex: int64(*issue.Number),
+			Title:         *issue.Title,
+			Number:        int64(*issue.Number),
+			PosterID:      issue.GetUser().GetID(),
+			PosterName:    issue.GetUser().GetLogin(),
+			PosterEmail:   issue.GetUser().GetEmail(),
+			Content:       issue.GetBody(),
+			Milestone:     issue.GetMilestone().GetTitle(),
+			State:         issue.GetState(),
+			Created:       issue.GetCreatedAt().Time,
+			Updated:       issue.GetUpdatedAt().Time,
+			Labels:        labels,
+			Reactions:     reactions,
+			Closed:        issue.ClosedAt.GetTime(),
+			ClosedBy:      githubExternalUser(issue.GetClosedBy()),
+			CloseReason:   issue.GetStateReason(),
+			IsLocked:      issue.GetLocked(),
+			Assignees:     assignees,
+			AssigneeUsers: githubExternalUsers(issue.Assignees),
+			ForeignIndex:  int64(*issue.Number),
 		})
 	}
 
@@ -560,6 +593,7 @@ func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.C
 							UserID:   reaction.User.GetID(),
 							UserName: reaction.User.GetLogin(),
 							Content:  reaction.GetContent(),
+							Created:  reaction.GetCreatedAt().Time,
 						})
 					}
 				}
@@ -637,6 +671,7 @@ func (g *GithubDownloaderV3) GetAllComments(ctx context.Context, page, perPage i
 						UserID:   reaction.User.GetID(),
 						UserName: reaction.User.GetLogin(),
 						Content:  reaction.GetContent(),
+						Created:  reaction.GetCreatedAt().Time,
 					})
 				}
 			}
@@ -682,6 +717,11 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 	log.Trace("Request get pull requests %d/%d, but in fact get %d", perPage, page, len(prs))
 	g.setRate(&resp.Rate)
 	for _, pr := range prs {
+		metadata, hasMetadata := g.pullRequestMetadata[int64(pr.GetNumber())]
+		if !hasMetadata && !g.warnedPRMetadata && (pr.GetState() == "closed" || pr.MergedAt != nil) {
+			WarnAndNotice("GitHub issue metadata was not fetched; close/merge actors and close reasons will be omitted from migrated pull requests. Migrate issues alongside pull requests to preserve them.")
+			g.warnedPRMetadata = true
+		}
 		labels := make([]*base.Label, 0, len(pr.Labels))
 		for _, l := range pr.Labels {
 			labels = append(labels, convertGithubLabel(l))
@@ -710,6 +750,7 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 						UserID:   reaction.User.GetID(),
 						UserName: reaction.User.GetLogin(),
 						Content:  reaction.GetContent(),
+						Created:  reaction.GetCreatedAt().Time,
 					})
 				}
 			}
@@ -718,7 +759,12 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 		// download patch and saved as tmp file
 		g.waitAndPickClient(ctx)
 
-		allPRs = append(allPRs, &base.PullRequest{
+		assignees := make([]string, 0, len(pr.Assignees))
+		for _, assignee := range pr.Assignees {
+			assignees = append(assignees, assignee.GetLogin())
+		}
+
+		converted := &base.PullRequest{
 			Title:          pr.GetTitle(),
 			Number:         int64(pr.GetNumber()),
 			PosterID:       pr.GetUser().GetID(),
@@ -730,11 +776,13 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 			Created:        pr.GetCreatedAt().Time,
 			Updated:        pr.GetUpdatedAt().Time,
 			Closed:         pr.ClosedAt.GetTime(),
+			ClosedBy:       metadata.closedBy,
+			CloseReason:    metadata.closeReason,
 			Labels:         labels,
 			Merged:         pr.MergedAt != nil,
 			MergeCommitSHA: pr.GetMergeCommitSHA(),
 			MergedTime:     pr.MergedAt.GetTime(),
-			IsLocked:       pr.ActiveLockReason != nil,
+			IsLocked:       pr.GetLocked(),
 			Head: base.PullRequestBranch{
 				Ref:       pr.GetHead().GetRef(),
 				SHA:       pr.GetHead().GetSHA(),
@@ -748,11 +796,17 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 				RepoName:  pr.GetBase().GetRepo().GetName(),
 				OwnerName: pr.GetBase().GetUser().GetLogin(),
 			},
-			PatchURL:     pr.GetPatchURL(), // see below for SECURITY related issues here
-			Reactions:    reactions,
-			ForeignIndex: int64(*pr.Number),
-			IsDraft:      pr.GetDraft(),
-		})
+			PatchURL:      pr.GetPatchURL(), // see below for SECURITY related issues here
+			Reactions:     reactions,
+			Assignees:     assignees,
+			AssigneeUsers: githubExternalUsers(pr.Assignees),
+			ForeignIndex:  int64(*pr.Number),
+			IsDraft:       pr.GetDraft(),
+		}
+		if converted.Merged {
+			converted.MergedBy = metadata.closedBy
+		}
+		allPRs = append(allPRs, converted)
 
 		// SECURITY: Ensure that the PR is safe
 		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)

@@ -5,12 +5,15 @@
 package migrations
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
 
+	system_model "gitea.dev/models/system"
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
 
@@ -227,6 +230,9 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			Closed: new(time.Date(2019, 11, 12, 21, 1, 31, 0, time.UTC)),
 		},
 	}, issues)
+	assert.Equal(t, time.Date(2019, 11, 12, 20, 22, 13, 0, time.UTC), issues[0].Reactions[0].Created)
+	assert.Equal(t, &base.ExternalUser{ID: 1669571, Name: "mrsdizzie"}, issues[0].ClosedBy)
+	assert.Equal(t, "completed", issues[0].CloseReason)
 
 	// downloader.GetComments()
 	comments, _, err := downloader.GetComments(ctx, &base.Issue{Number: 2, ForeignIndex: 2})
@@ -439,6 +445,100 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			},
 		},
 	}, reviews)
+}
+
+func TestGithubPullRequestLockedWithoutReason(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path != "/api/v3/repos/owner/repo/pulls" {
+			http.Error(w, "unexpected request: "+r.URL.String(), http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte(`[{
+  "number":1,"state":"closed","locked":true,"active_lock_reason":null,
+  "title":"locked","user":{"login":"author","id":1},"body":"",
+  "created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z","closed_at":"2026-01-01T00:00:00Z",
+  "head":{"ref":"topic","sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","user":{"login":"author","id":1},"repo":{"name":"repo","clone_url":"https://example.com/author/repo.git"}},
+  "base":{"ref":"main","sha":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","user":{"login":"owner","id":2},"repo":{"name":"repo"}}
+}]`))
+	}))
+	t.Cleanup(server.Close)
+
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "owner", "repo")
+	require.NoError(t, err)
+	downloader.SkipReactions = true
+	prs, _, err := downloader.GetPullRequests(t.Context(), 1, 1)
+	require.NoError(t, err)
+	if assert.Len(t, prs, 1) {
+		assert.True(t, prs[0].IsLocked)
+	}
+}
+
+func TestGithubUserMetadataFromExistingLists(t *testing.T) {
+	noticesBefore := system_model.CountNotices(t.Context())
+	issueRequests := 0
+	pullRequests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v3/repos/owner/repo/issues":
+			issueRequests++
+			_, _ = w.Write([]byte(`[
+  {"number":1,"state":"closed","state_reason":"not_planned","locked":false,"title":"issue","body":"","user":{"login":"author","id":10},"closed_by":{"login":"closer","id":20},"assignees":[{"login":"assigned","id":30}],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","closed_at":"2026-01-02T00:00:00Z"},
+  {"number":2,"state":"closed","state_reason":"completed","locked":false,"title":"pull","body":"","user":{"login":"author","id":10},"closed_by":{"login":"merger","id":40},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","closed_at":"2026-01-02T00:00:00Z","pull_request":{}}
+]`))
+		case "/api/v3/repos/owner/repo/pulls":
+			pullRequests++
+			_, _ = w.Write([]byte(`[{
+  "number":2,"state":"closed","locked":false,"title":"pull","body":"","user":{"login":"author","id":10},
+  "assignees":[{"login":"assigned","id":30}],"requested_reviewers":[{"login":"requested","id":50}],
+  "created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","closed_at":"2026-01-02T00:00:00Z","merged_at":"2026-01-02T00:00:00Z",
+  "head":{"ref":"topic","sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","user":{"login":"author","id":10},"repo":{"name":"repo"}},
+  "base":{"ref":"main","sha":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","user":{"login":"owner","id":60},"repo":{"name":"repo"}}
+}]`))
+		default:
+			http.Error(w, "unexpected request: "+r.URL.String(), http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	downloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "owner", "repo")
+	require.NoError(t, err)
+	downloader.SkipReactions = true
+	issues, _, err := downloader.GetIssues(t.Context(), 1, 100)
+	require.NoError(t, err)
+	if assert.Len(t, issues, 1) {
+		assert.Equal(t, &base.ExternalUser{ID: 20, Name: "closer"}, issues[0].ClosedBy)
+		assert.Equal(t, "not_planned", issues[0].CloseReason)
+		assert.Equal(t, []*base.ExternalUser{{ID: 30, Name: "assigned"}}, issues[0].AssigneeUsers)
+	}
+
+	prs, _, err := downloader.GetPullRequests(t.Context(), 1, 100)
+	require.NoError(t, err)
+	if assert.Len(t, prs, 1) {
+		assert.Equal(t, &base.ExternalUser{ID: 40, Name: "merger"}, prs[0].ClosedBy)
+		assert.Equal(t, &base.ExternalUser{ID: 40, Name: "merger"}, prs[0].MergedBy)
+		assert.Equal(t, "completed", prs[0].CloseReason)
+		assert.Equal(t, []*base.ExternalUser{{ID: 30, Name: "assigned"}}, prs[0].AssigneeUsers)
+	}
+
+	prOnlyDownloader, err := NewGithubDownloaderV3(t.Context(), server.URL, "", "", "", "owner", "repo")
+	require.NoError(t, err)
+	prOnlyDownloader.SkipReactions = true
+	prs, _, err = prOnlyDownloader.GetPullRequests(t.Context(), 1, 100)
+	require.NoError(t, err)
+	if assert.Len(t, prs, 1) {
+		assert.Nil(t, prs[0].ClosedBy)
+		assert.Nil(t, prs[0].MergedBy)
+		assert.Empty(t, prs[0].CloseReason)
+	}
+	firstPRs := prs
+	prs, _, err = prOnlyDownloader.GetPullRequests(t.Context(), 1, 100)
+	require.NoError(t, err)
+	assert.Equal(t, firstPRs, prs)
+	assert.Equal(t, noticesBefore+1, system_model.CountNotices(t.Context()))
+	assert.Equal(t, 1, issueRequests)
+	assert.Equal(t, 3, pullRequests)
 }
 
 func TestGithubMultiToken(t *testing.T) {

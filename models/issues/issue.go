@@ -769,18 +769,20 @@ func insertIssue(ctx context.Context, issue *Issue) error {
 			return err
 		}
 	}
-
-	for _, reaction := range issue.Reactions {
-		reaction.IssueID = issue.ID
+	issueAssignees := make([]IssueAssignees, 0, len(issue.Assignees))
+	for _, assignee := range issue.Assignees {
+		issueAssignees = append(issueAssignees, IssueAssignees{
+			IssueID:    issue.ID,
+			AssigneeID: assignee.ID,
+		})
 	}
-
-	if len(issue.Reactions) > 0 {
-		if _, err := sess.Insert(issue.Reactions); err != nil {
+	if len(issueAssignees) > 0 {
+		if _, err := sess.Insert(issueAssignees); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return insertReactions(ctx, issue.Reactions, issue.ID, 0)
 }
 
 // ChangeIssueTimeEstimate changes the plan time of this issue, as the given user.

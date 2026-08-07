@@ -72,6 +72,13 @@
 		    }
 		]
 	    },
+	    "closed_by": {
+		"$ref": "external_user.json"
+	    },
+	    "close_reason": {
+		"description": "Reason the issue was closed in the source forge.",
+		"type": "string"
+	    },
 	    "labels": {
 		"description": "List of labels.",
 		"type": "array",
@@ -92,6 +99,13 @@
 		"items": {
 		    "description": "Name of a user assigned to the issue.",
 		    "type": "string"
+		}
+	    },
+	    "assignee_users": {
+		"description": "List of assignees identified in the source forge.",
+		"type": "array",
+		"items": {
+		    "$ref": "external_user.json"
 		}
 	    }
 	},

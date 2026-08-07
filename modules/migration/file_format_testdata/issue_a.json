@@ -9,6 +9,10 @@
       "is_locked": false,
       "created": "1985-04-12T23:20:50.52Z",
       "updated": "1986-04-12T23:20:50.52Z",
-      "closed": "1987-04-12T23:20:50.52Z"
+      "closed": "1987-04-12T23:20:50.52Z",
+      "closed_by": {"id": 2, "name": "closer"},
+      "close_reason": "not_planned",
+      "assignee_users": [{"id": 3, "name": "assignee"}],
+      "reactions": [{"user_id": 4, "user_name": "reactor", "content": "+1", "created": "1986-04-12T23:20:50.52Z"}]
   }
 ]
