@@ -32,6 +32,7 @@ import (
 	"gitea.dev/modules/references"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates/vars"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	issue_service "gitea.dev/services/issue"
@@ -163,14 +164,13 @@ func resolveMergeMessageTemplate(ctx context.Context, baseGitRepo *git.Repositor
 	return "", err
 }
 
-func expandDefaultMergeMessage(template string, vars map[string]string) (message, body string) {
+func expandDefaultMergeMessage(template string, varsMap map[string]string) (message, body string) {
 	message = strings.TrimSpace(template)
 	if splits := strings.SplitN(message, "\n", 2); len(splits) == 2 {
 		message = splits[0]
 		body = strings.TrimSpace(splits[1])
 	}
-	mapping := func(s string) string { return vars[s] }
-	return os.Expand(message, mapping), os.Expand(body, mapping)
+	return vars.ExpandShellLike(message, varsMap), vars.ExpandShellLike(body, varsMap)
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request
