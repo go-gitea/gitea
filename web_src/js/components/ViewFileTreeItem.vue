@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {isPlainClick} from '../utils/dom.ts';
 import {shouldTriggerAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {shallowRef} from 'vue';

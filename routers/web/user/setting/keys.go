@@ -164,6 +164,7 @@ func KeysPost(ctx *context.Context) {
 			default:
 				ctx.ServerError("VerifyGPG", err)
 			}
+			return
 		}
 		ctx.Flash.Success(ctx.Tr("settings.verify_gpg_key_success", keyID))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
@@ -236,6 +237,7 @@ func KeysPost(ctx *context.Context) {
 			default:
 				ctx.ServerError("VerifySSH", err)
 			}
+			return
 		}
 		ctx.Flash.Success(ctx.Tr("settings.verify_ssh_key_success", fingerprint))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
