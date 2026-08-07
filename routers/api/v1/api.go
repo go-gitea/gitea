@@ -1363,6 +1363,7 @@ func Routes() *web.Router {
 							m.Post("/rerun", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunWorkflowRun)
 							m.Post("/rerun-failed-jobs", reqToken(), reqRepoWriter(unit.TypeActions), repo.RerunFailedWorkflowRun)
 							m.Post("/cancel", reqToken(), reqRepoWriter(unit.TypeActions), repo.CancelWorkflowRun)
+							m.Post("/force-cancel", reqToken(), reqRepoWriter(unit.TypeActions), repo.ForceCancelWorkflowRun)
 							m.Post("/approve", reqToken(), reqRepoWriter(unit.TypeActions), repo.ApproveWorkflowRun)
 							m.Group("/jobs", func() {
 								m.Get("", repo.ListWorkflowRunJobs)

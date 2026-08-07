@@ -158,20 +158,11 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 }
 
 func (m *MinioStorage) buildMinioPath(p string) string {
-	p = strings.TrimPrefix(util.PathJoinRelX(m.basePath, p), "/") // object store doesn't use slash for root path
-	if p == "." {
-		p = "" // object store doesn't use dot as relative path
-	}
-	return p
+	return buildObjectStorePath(m.basePath, p)
 }
 
 func (m *MinioStorage) buildMinioDirPrefix(p string) string {
-	// ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
-	p = m.buildMinioPath(p) + "/"
-	if p == "/" {
-		p = "" // object store doesn't use slash for root path
-	}
-	return p
+	return buildObjectStorePathPrefix(m.basePath, p)
 }
 
 func buildMinioCredentials(config setting.MinioStorageConfig) *credentials.Credentials {
@@ -312,22 +303,26 @@ func (m *MinioStorage) ServeDirectURL(storePath, name, method string, opt *Serve
 	return u, convertMinioErr(err)
 }
 
-// IterateObjects iterates across the objects in the miniostorage
 func (m *MinioStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
-	opts := minio.GetObjectOptions{}
-	// FIXME: this loop is not right and causes resource leaking, see the comment of ListObjects
-	for mObjInfo := range m.client.ListObjects(m.ctx, m.bucket, minio.ListObjectsOptions{
-		Prefix:    m.buildMinioDirPrefix(dirName),
-		Recursive: true,
-	}) {
-		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, opts)
+	basePrefix := m.buildMinioDirPrefix("")
+	dirPrefix := m.buildMinioDirPrefix(dirName)
+	callback := func(object *minio.Object, objPath string) error {
+		defer object.Close()
+		return fn(objPath, &minioObject{object})
+	}
+
+	ctxList, ctxListCancel := context.WithCancel(m.ctx)
+	defer ctxListCancel() // ListObjectsIter: make sure to cancel the passed context, without that you might leak coroutines
+
+	getOpts := minio.GetObjectOptions{}
+	listOpts := minio.ListObjectsOptions{Prefix: dirPrefix, Recursive: true}
+	for mObjInfo := range m.client.ListObjectsIter(ctxList, m.bucket, listOpts) {
+		object, err := m.client.GetObject(m.ctx, m.bucket, mObjInfo.Key, getOpts)
 		if err != nil {
 			return convertMinioErr(err)
 		}
-		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
-			defer object.Close()
-			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &minioObject{object})
-		}(object, fn); err != nil {
+		objPath := strings.TrimPrefix(mObjInfo.Key, basePrefix)
+		if err := callback(object, objPath); err != nil {
 			return convertMinioErr(err)
 		}
 	}

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {GET} from '../modules/fetch.ts';
 import {generateElemId} from '../utils/dom.ts';
 
