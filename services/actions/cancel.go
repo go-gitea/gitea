@@ -30,7 +30,10 @@ func cancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*action
 		if err != nil {
 			return fmt.Errorf("CancelJobs: %w", err)
 		}
-		return nil
+		if len(updatedJobs) > 0 {
+			return nil // a job update already refreshed the run
+		}
+		return actions_model.SettleRunAfterCancel(ctx, run)
 	}); err != nil {
 		return nil, err
 	}
@@ -39,14 +42,13 @@ func cancelRun(ctx context.Context, run *actions_model.ActionRun, jobs []*action
 	CreateCommitStatusForRunJobs(ctx, run, updatedJobs...)
 	EmitJobsIfReadyByJobs(updatedJobs)
 	NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
-	if len(updatedJobs) == 0 {
-		return run, nil
-	}
 
 	reloaded, err := actions_model.GetRunByRepoAndID(ctx, run.RepoID, run.ID)
 	if err != nil {
 		return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
 	}
-	NotifyWorkflowRunStatusUpdate(ctx, reloaded)
+	if len(updatedJobs) > 0 || reloaded.Status != run.Status {
+		NotifyWorkflowRunStatusUpdate(ctx, reloaded)
+	}
 	return reloaded, nil
 }
