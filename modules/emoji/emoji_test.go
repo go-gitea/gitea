@@ -61,13 +61,18 @@ func TestReplacers(t *testing.T) {
 	}
 }
 
+const (
+	testInputWithEmojis = "This is a test string containing some emojis like \U0001f44d and \U0001f37a and some text in between."
+	testInputNoEmojis   = "This is a test string containing no emojis at all, just plain old ASCII text, which should ideally be scanned very quickly by our trie implementation."
+)
+
 func TestFindEmojiSubmatchIndex(t *testing.T) {
 	type testcase struct {
-		teststring string
-		expected   []int
+		input    string
+		expected []int
 	}
 
-	testcases := []testcase{
+	testCases := []testcase{
 		{
 			"\U0001f44d",
 			[]int{0, len("\U0001f44d")},
@@ -81,13 +86,40 @@ func TestFindEmojiSubmatchIndex(t *testing.T) {
 			[]int{1, 1 + len("\U0001f44d")},
 		},
 		{
-			string([]byte{'\u0001'}) + "\U0001f44d",
+			"\u0001\U0001f44d",
 			[]int{1, 1 + len("\U0001f44d")},
+		},
+		{
+			// This package can handle keycap emoji if it is registered in the emoji data.
+			// However, many other places (e.g.: markup rendering) also might not handle such cases correctly.
+			// For example: how is "**{U+FE0F}{U+20E3}**" rendered in Markdown/Markup?
+			"a 8\U0000fe0f\U000020e3 b", // keycap emoji "8\ufe0f\u20e3" in emoji data
+			[]int{2, 2 + len("8\U0000fe0f\U000020e3")},
+		},
+		{
+			testInputWithEmojis,
+			[]int{50, 54},
+		},
+		{
+			testInputNoEmojis,
+			nil,
 		},
 	}
 
-	for _, kase := range testcases {
-		actual := FindEmojiSubmatchIndex(kase.teststring)
-		assert.Equal(t, kase.expected, actual)
+	for _, tc := range testCases {
+		actual := FindEmojiSubmatchIndex(tc.input)
+		assert.Equal(t, tc.expected, actual)
+	}
+}
+
+func BenchmarkFindEmojiSubmatchIndex(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = FindEmojiSubmatchIndex(testInputWithEmojis)
+	}
+}
+
+func BenchmarkFindEmojiSubmatchIndexNoMatch(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = FindEmojiSubmatchIndex(testInputNoEmojis)
 	}
 }

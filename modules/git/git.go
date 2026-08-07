@@ -13,7 +13,9 @@ import (
 	"runtime"
 	"strings"
 
+	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/tempdir"
@@ -36,7 +38,14 @@ type Features struct {
 	SupportGitMergeTree        bool           // >= 2.40 // we also need "--merge-base"
 }
 
-var defaultFeatures *Features
+type GlobalConfigStruct struct {
+	DiffOrderFile string
+}
+
+var (
+	defaultFeatures *Features
+	GlobalConfig    *GlobalConfigStruct
+)
 
 func (f *Features) CheckVersionAtLeast(atLeast string) bool {
 	return f.gitVersion.Compare(version.Must(version.NewVersion(atLeast))) >= 0
@@ -183,6 +192,7 @@ func RunGitTests(m interface{ Run() int }) {
 }
 
 func runGitTests(m interface{ Run() int }) int {
+	_ = cache.Init()
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
 		return testlogger.MainErrorf("unable to create temp dir: %v", err)
@@ -194,4 +204,12 @@ func runGitTests(m interface{ Run() int }) int {
 		return testlogger.MainErrorf("failed to call Init: %v", err)
 	}
 	return m.Run()
+}
+
+func LockConfigAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
+	return globallock.LockAndDo(ctx, "repo-config:"+repo.GitRepoManagedID(), fn)
+}
+
+func LockWriteAndDo(ctx context.Context, repo RepositoryFacade, fn func(ctx context.Context) error) error {
+	return globallock.LockAndDo(ctx, "repo-write:"+repo.GitRepoManagedID(), fn)
 }

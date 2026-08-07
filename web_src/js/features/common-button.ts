@@ -1,4 +1,3 @@
-import {POST} from '../modules/fetch.ts';
 import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
 import {showFomanticModal} from '../modules/fomantic/modal.ts';
 import {camelize} from 'vue';
@@ -11,74 +10,6 @@ export function initGlobalButtonClickOnEnter(): void {
       el.click();
     }
   });
-}
-
-export function initGlobalDeleteButton(): void {
-  // ".delete-button" shows a confirmation modal defined by `data-modal-id` attribute.
-  // Some model/form elements will be filled by `data-id` / `data-name` / `data-data-xxx` attributes.
-  // If there is a form defined by `data-form`, then the form will be submitted as-is (without any modification).
-  // If there is no form, then the data will be posted to `data-url`.
-  // TODO: do not use this method in new code. `show-modal` / `link-action(data-modal-confirm)` does far better than this.
-  // FIXME: all legacy `delete-button` should be refactored to use `show-modal` or `link-action`
-  for (const btn of document.querySelectorAll<HTMLElement>('.delete-button')) {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      // eslint-disable-next-line github/no-dataset -- code depends on the camel-casing
-      const dataObj = btn.dataset;
-
-      const modalId = btn.getAttribute('data-modal-id');
-      const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`)!;
-
-      // set the modal "display name" by `data-name`
-      const modalNameEl = modal.querySelector('.name');
-      if (modalNameEl) modalNameEl.textContent = btn.getAttribute('data-name');
-
-      // fill the modal elements with data-xxx attributes: `data-data-organization-name="..."` => `<span class="dataOrganizationName">...</span>`
-      for (const [key, value] of Object.entries(dataObj)) {
-        if (key.startsWith('data')) {
-          const textEl = modal.querySelector(`.${key}`);
-          if (textEl) textEl.textContent = value ?? null;
-        }
-      }
-
-      showFomanticModal(modal, {
-        closable: false,
-        onApprove: () => {
-          // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
-          if (btn.getAttribute('data-type') === 'form') {
-            const formSelector = btn.getAttribute('data-form')!;
-            const form = document.querySelector<HTMLFormElement>(formSelector);
-            if (!form) throw new Error(`no form named ${formSelector} found`);
-            modal.classList.add('is-loading'); // the form is not in the modal, so also add loading indicator to the modal
-            form.classList.add('is-loading');
-            form.submit();
-            return false; // prevent modal from closing automatically
-          }
-
-          // prepare an AJAX form by data attributes
-          const postData = new FormData();
-          for (const [key, value] of Object.entries(dataObj)) {
-            if (key.startsWith('data')) { // for data-data-xxx (HTML) -> dataXxx (form)
-              postData.append(key.slice(4), String(value));
-            }
-            if (key === 'id') { // for data-id="..."
-              postData.append('id', String(value));
-            }
-          }
-          (async () => {
-            const response = await POST(btn.getAttribute('data-url')!, {data: postData});
-            if (response.ok) {
-              const data = await response.json();
-              window.location.href = data.redirect;
-            }
-          })();
-          modal.classList.add('is-loading'); // the request is in progress, so also add loading indicator to the modal
-          return false; // prevent modal from closing automatically
-        },
-      });
-    });
-  }
 }
 
 function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
@@ -111,11 +42,20 @@ function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
 }
 
 export type ElementWithAssignableProperties = {
+  nodeName: string;
   getAttribute: (name: string) => string | null;
   setAttribute: (name: string, value: string) => void;
 } & Record<string, any>;
 
 export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
+  if (el.nodeName === 'FORM') {
+    // HINT: GOLANG-HTML-TEMPLATE-URL-ESCAPING: a special case for Golang HTML template escaping.
+    // Golang HTML template only handles some "known" attribute names as URL (e.g.: when the name is "action" or contains "url")
+    // To prevent template developers from making mistakes like `data-modal-form.action="?k={{ValueWithSpecialChars}}" (no escaping),
+    // here we use `data-modal-form.url="?k={{ValueWithSpecialChars}}", then the value gets correctly escaped by Golang HTML template.
+    if (kebabName === 'action') throw new Error(`don't assign element property "action" by value, use "data-modal-form.url" instead`);
+    if (kebabName === 'url') kebabName = 'action';
+  }
   const camelizedName = camelize(kebabName);
   const old = el[camelizedName];
   if (typeof old === 'boolean') {
@@ -128,7 +68,7 @@ export function assignElementProperty(el: ElementWithAssignableProperties, kebab
     // "form" has an edge case: its "<input name=action>" element overwrites the "action" property, we can only set attribute
     el.setAttribute(kebabName, val);
   } else {
-    // in the future, we could introduce a better typing system like `data-modal-form.action:string="..."`
+    // in the future, maybe we could introduce a better typing system if it is really needed
     throw new Error(`cannot assign element property "${camelizedName}" by value "${val}"`);
   }
 }
@@ -140,7 +80,11 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // * Then, try to query '[name=target]'
   // * Then, try to query '.target'
   // * Then, try to query 'target' as HTML tag
-  // If there is a ".{prop-name}" part like "data-modal-form.action", the "form" element's "action" property will be set, the "prop-name" will be camel-cased to "propName".
+  // If there's a ".{prop-name}" part like "data-modal-input.value", the "input" element's "value" property will be set,
+  // the "prop-name" will be camel-cased to "propName" (e.g.: "data-modal-input.read-only" for "readOnly" property).
+  //
+  // HINT: GOLANG-HTML-TEMPLATE-URL-ESCAPING: Form element's "action" property must be set by "data-modal-form.url"
+  // to make the template variables get correctly escaped in the URL.
   e.preventDefault();
   const modalSelector = el.getAttribute('data-modal')!;
   const elModal = document.querySelector(modalSelector);
@@ -156,10 +100,10 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
     const [attrTargetName, attrTargetProp] = attrTargetCombo.split('.');
     // try to find target by: "#target" -> "[name=target]" -> ".target" -> "<target> tag", and then try the modal itself
     const attrTarget = elModal.querySelector(`#${attrTargetName}`) ||
-      elModal.querySelector(`[name=${attrTargetName}]`) ||
+      elModal.querySelector(`[name=${CSS.escape(attrTargetName)}]`) ||
       elModal.querySelector(`.${attrTargetName}`) ||
-      elModal.querySelector(`${attrTargetName}`) ||
-      (elModal.matches(`${attrTargetName}`) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
+      elModal.querySelector(attrTargetName) ||
+      (elModal.matches(attrTargetName) || elModal.matches(`#${attrTargetName}`) || elModal.matches(`.${attrTargetName}`) ? elModal : null);
     if (!attrTarget) {
       if (!window.config.runModeIsProd) throw new Error(`attr target "${attrTargetCombo}" not found for modal`);
       continue;

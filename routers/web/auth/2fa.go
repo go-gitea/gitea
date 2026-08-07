@@ -58,14 +58,14 @@ func TwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	// Validate the passcode with the stored TOTP secret.
-	ok, err := twofa.ValidateTOTP(form.Passcode)
+	// Validate the passcode and atomically consume it to prevent reuse/replay.
+	ok, err := twofa.ValidateAndConsumeTOTP(ctx, form.Passcode)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	if ok && twofa.LastUsedPasscode != form.Passcode {
+	if ok {
 		remember := ctx.Session.Get("twofaRemember").(bool)
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
@@ -73,17 +73,8 @@ func TwoFactorPost(ctx *context.Context) {
 			return
 		}
 
-		if ctx.Session.Get("linkAccount") != nil {
-			err = linkAccountFromContext(ctx, u)
-			if err != nil {
-				ctx.ServerError("UserSignIn", err)
-				return
-			}
-		}
-
-		twofa.LastUsedPasscode = form.Passcode
-		if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
-			ctx.ServerError("UserSignIn", err)
+		if err = completePendingLinks(ctx, u); err != nil {
+			ctx.ServerError("completePendingLinks", err)
 			return
 		}
 
@@ -148,6 +139,11 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
+			return
+		}
+
+		if err = completePendingLinks(ctx, u); err != nil {
+			ctx.ServerError("completePendingLinks", err)
 			return
 		}
 

@@ -17,8 +17,9 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/queue"
 	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -539,7 +540,7 @@ jobs:
 			assert.True(t, crossJob.IsExpanded)
 
 			// cross_job's children come from libRepo/lib.yaml - their source must be libRepo + libRepo's commit.
-			libHead, err := gitrepo.GetBranchCommitID(t.Context(), libRepo, libRepo.DefaultBranch)
+			libHead, err := git.GetBranchCommitID(t.Context(), libRepo, libRepo.DefaultBranch)
 			require.NoError(t, err)
 			callUtilJob := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "call_util_in_lib", ParentJobID: crossJob.ID})
 			assert.True(t, callUtilJob.IsReusableCaller)
@@ -571,6 +572,49 @@ jobs:
 `)
 
 			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRun{RepoID: repo.ID}))
+		})
+
+		t.Run("Nested caller with missing callee fails instead of blocking", func(t *testing.T) {
+			// When the expansion hits a terminal error (e.g. missing callee), the emitter must fail the caller and let the run finish as failed, not retry the expansion forever.
+			apiRepo := createActionsTestRepo(t, user2Token, "nested-caller-missing-callee", false)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
+				`name: Caller
+on: push
+jobs:
+  plain_job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'job'
+  bad_caller:
+    needs: plain_job
+    uses: ./.gitea/workflows/does-not-exist.yml
+`)
+
+			// plain_job runs first; bad_caller is Blocked on needs and is NOT expanded at creation.
+			plainTask := runner.fetchTask(t)
+			_, plainJob, run := getTaskAndJobAndRunByTaskID(t, plainTask.Id)
+			assert.Equal(t, "plain_job", plainJob.JobID)
+			badCallerPre := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID, JobID: "bad_caller"})
+			assert.Equal(t, actions_model.StatusBlocked, badCallerPre.Status)
+			assert.False(t, badCallerPre.IsExpanded)
+
+			runner.execTask(t, plainTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+
+			// The emitter now tries to expand bad_caller, hits the missing callee, and fails the caller.
+			badCaller := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: badCallerPre.ID})
+			assert.Equal(t, actions_model.StatusFailure, badCaller.Status)
+			// No children were inserted (the terminal error precedes the child inserts).
+			assert.Equal(t, 0, unittest.GetCount(t, &actions_model.ActionRunJob{ParentJobID: badCallerPre.ID}))
+
+			finalRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
+			assert.Equal(t, actions_model.StatusFailure, finalRun.Status)
+
+			runner.fetchNoTask(t) // no task scheduled for the failed caller; the run is not stuck
 		})
 
 		t.Run("Fork PR with secrets: inherit does not leak base repo secrets", func(t *testing.T) {
@@ -762,6 +806,73 @@ jobs:
 
 			run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: runID})
 			assert.Equal(t, actions_model.StatusSuccess, run.Status)
+		})
+
+		t.Run("No-needs caller if evaluated inline: false skips, true expands", func(t *testing.T) {
+			// A no-needs reusable-workflow caller is processed inline during InsertRun, where its own
+			// `if:` is now evaluated before expansion:
+			//   - a false `if:` skips the caller without inserting any children, and the skip is
+			//     propagated to a dependent job (via the post-commit emitter kick);
+			//   - a true `if:` still expands the caller into its child jobs.
+			apiRepo := createActionsTestRepo(t, user2Token, "caller-inline-if-test", false)
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/lib.yaml",
+				`name: Lib
+on:
+  workflow_call:
+
+jobs:
+  inner:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo inner
+`)
+			createRepoWorkflowFile(t, user2, user2Token, repo, ".gitea/workflows/caller.yaml",
+				`name: Caller
+on:
+  push:
+    paths:
+      - '.gitea/workflows/caller.yaml'
+jobs:
+  will_skip:
+    if: ${{ false }}
+    uses: ./.gitea/workflows/lib.yaml
+
+  will_run:
+    if: ${{ true }}
+    uses: ./.gitea/workflows/lib.yaml
+
+  after_skip:
+    needs: [will_skip]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo after_skip
+`)
+
+			// drain the emitter queue so the skip has propagated to the dependent job
+			assert.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+
+			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID})
+			runID := run.ID
+
+			// will_skip: a caller with a false `if:` is skipped inline and never expands (no children inserted).
+			willSkip := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "will_skip"})
+			assert.True(t, willSkip.IsReusableCaller)
+			assert.False(t, willSkip.IsExpanded)
+			assert.Equal(t, actions_model.StatusSkipped, willSkip.Status)
+			unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: runID, ParentJobID: willSkip.ID})
+
+			// will_run: a caller with a true `if:` still expands into its child job.
+			willRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "will_run"})
+			assert.True(t, willRun.IsReusableCaller)
+			assert.True(t, willRun.IsExpanded)
+			innerChild := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "inner"})
+			assert.Equal(t, willRun.ID, innerChild.ParentJobID)
+
+			// after_skip: a dependent of the skipped caller resolves to Skipped instead of staying Blocked.
+			afterSkip := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: runID, JobID: "after_skip"})
+			assert.Equal(t, actions_model.StatusSkipped, afterSkip.Status)
 		})
 	})
 }

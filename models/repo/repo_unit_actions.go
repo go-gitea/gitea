@@ -70,6 +70,8 @@ func MakeRestrictedPermissions() ActionsTokenPermissions {
 
 type ActionsConfig struct {
 	DisabledWorkflows []string
+	// DisabledScopedWorkflows maps a scoped workflow's source repository ID to the entry names opted out of in this repository.
+	DisabledScopedWorkflows map[int64][]string
 	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
 	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
 	CollaborativeOwnerIDs []int64
@@ -96,6 +98,29 @@ func (cfg *ActionsConfig) DisableWorkflow(file string) {
 	}
 
 	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)
+}
+
+func (cfg *ActionsConfig) IsScopedWorkflowDisabled(sourceRepoID int64, workflowID string) bool {
+	return slices.Contains(cfg.DisabledScopedWorkflows[sourceRepoID], workflowID)
+}
+
+func (cfg *ActionsConfig) DisableScopedWorkflow(sourceRepoID int64, workflowID string) {
+	if slices.Contains(cfg.DisabledScopedWorkflows[sourceRepoID], workflowID) {
+		return
+	}
+	if cfg.DisabledScopedWorkflows == nil {
+		cfg.DisabledScopedWorkflows = make(map[int64][]string)
+	}
+	cfg.DisabledScopedWorkflows[sourceRepoID] = append(cfg.DisabledScopedWorkflows[sourceRepoID], workflowID)
+}
+
+func (cfg *ActionsConfig) EnableScopedWorkflow(sourceRepoID int64, workflowID string) {
+	workflowIDs := util.SliceRemoveAll(cfg.DisabledScopedWorkflows[sourceRepoID], workflowID)
+	if len(workflowIDs) == 0 {
+		delete(cfg.DisabledScopedWorkflows, sourceRepoID)
+		return
+	}
+	cfg.DisabledScopedWorkflows[sourceRepoID] = workflowIDs
 }
 
 func (cfg *ActionsConfig) AddCollaborativeOwner(ownerID int64) {

@@ -78,7 +78,7 @@ func (c TemplateContext) CurrentWebBanner() *setting.WebBannerType {
 	return nil
 }
 
-// AppFullLink returns a full URL link with AppSubURL for the given app link (no AppSubURL)
+// AppFullLink returns a full URL link with AppSubURL for the given app link
 // If no link is given, it returns the current app full URL with sub-path but without trailing slash (that's why it is not named as AppURL)
 func (c TemplateContext) AppFullLink(link ...string) template.URL {
 	s := httplib.GuessCurrentAppURL(c.parentContext())
@@ -132,8 +132,9 @@ func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
 	//    * Maybe this approach should be avoided, don't make the config system too complex, just let users use A
 	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` +
 		// allow all by default (the same as old releases with no CSP)
-		// maybe some images or markup (external) renders need "data:", need to investigate
-		`default-src * data:;` +
+		// * maybe some images or markup (external) renders need "data:", need to investigate
+		// * avatar upload editor needs "blob:", at least "img-src" and "content-src"
+		`default-src * data: blob:;` +
 
 		// enforce nonce for all scripts, disallow inline scripts
 		`script-src * 'nonce-` + c.CspScriptNonce() + `';` +

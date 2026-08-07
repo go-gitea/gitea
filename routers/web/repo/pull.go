@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -29,7 +28,6 @@ import (
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/graceful"
 	issue_template "gitea.dev/modules/issue/template"
@@ -50,6 +48,7 @@ import (
 	"gitea.dev/services/forms"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	"gitea.dev/services/notifications"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
@@ -152,7 +151,7 @@ func getPullInfo(ctx *context.Context) (issue *issues_model.Issue, ok bool) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
+		if err := notifications.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return nil, false
 		}
@@ -174,14 +173,9 @@ func (prInfo *pullRequestViewInfo) setTemplateDataMergeTarget(ctx *context.Conte
 	ctx.Data["BaseTarget"] = pull.BaseBranch
 	headBranchLink := ""
 	if pull.Flow == issues_model.PullRequestFlowGithub {
-		b, err := git_model.GetBranch(ctx, pull.HeadRepoID, pull.HeadBranch)
-		switch {
-		case err == nil:
-			if !b.IsDeleted {
-				headBranchLink = pull.GetHeadBranchLink(ctx)
-			}
-		case !git_model.IsErrBranchNotExist(err):
-			log.Error("GetBranch: %v", err)
+		headBranchExists, _ := git_model.IsBranchExist(ctx, pull.HeadRepoID, pull.HeadBranch)
+		if headBranchExists {
+			headBranchLink = pull.GetHeadBranchLink(ctx)
 		}
 	}
 	ctx.Data["HeadBranchLink"] = headBranchLink
@@ -203,14 +197,14 @@ func GetPullDiffStats(ctx *context.Context) {
 	}
 
 	// do not report 500 server error to end users if error occurs, otherwise a PR missing ref won't be able to view.
-	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 	if errors.Is(err, util.ErrNotExist) {
 		return
 	} else if err != nil {
 		log.Error("Failed to GetRefCommitID: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, mergeBaseCommitID, headCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, mergeBaseCommitID, headCommitID)
 	if err != nil {
 		log.Error("Failed to GetDiffShortStat: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
@@ -227,13 +221,13 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	if pull.MergeBase == "" {
 		var commitSHA, parentCommit string
 		// If there is a head or a patch file, and it is readable, grab info
-		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 		if err != nil {
 			// Head File does not exist, try the patch
 			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
 			if err == nil {
 				// Recreate pull head in files for next time
-				if err := gitrepo.UpdateRef(ctx, ctx.Repo.Repository, pull.GetGitHeadRefName(), commitSHA); err != nil {
+				if err := git.UpdateRef(ctx, ctx.Repo.Repository, pull.GetGitHeadRefName(), commitSHA); err != nil {
 					log.Error("Could not write head file", err)
 				}
 			} else {
@@ -243,8 +237,8 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 		}
 		if commitSHA != "" {
 			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, _, err = gitrepo.RunCmdString(ctx, ctx.Repo.Repository,
-				gitcmd.NewCommand("rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA))
+			parentCommit, _, err = gitcmd.NewCommand("rev-list", "-1", "--skip=1").
+				AddDynamicArguments(commitSHA).WithRepo(ctx.Repo.Repository).RunStdString(ctx)
 			if err == nil {
 				parentCommit = strings.TrimSpace(parentCommit)
 			}
@@ -276,6 +270,10 @@ type pullMergeBoxData struct {
 	enableStatusCheck bool
 	StatusCheckData   *pullCommitStatusCheckData
 	ShowStatusCheck   bool
+	// hasRequiredStatusContexts is true when at least one required status-check context must be satisfied:
+	// the branch protection's own contexts and/or required scoped workflow checks.
+	// The latter gate the merge even when the rule's own status check is disabled.
+	hasRequiredStatusContexts bool
 
 	hasOverridableBlockers     bool
 	canMergeNow                bool // PR is mergeable, either no blocker, or doer can bypass the blockers
@@ -299,6 +297,7 @@ type pullMergeBoxData struct {
 	isBlockedByApprovals              bool
 	isBlockedByRejection              bool
 	isBlockedByOfficialReviewRequests bool
+	isBlockedByCodeowners             bool
 	isBlockedByOutdatedBranch         bool
 	isBlockedByChangedProtectedFiles  bool
 	requireSigned, willSign           bool
@@ -423,6 +422,16 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
+
+	// Effective required contexts = branch-protection contexts + required scoped workflow checks.
+	requiredContexts := pbRequiredContexts
+	if effective, err := pull_service.EffectiveRequiredContexts(ctx, ctx.Repo.Repository, prInfo.ProtectedBranchRule); err != nil {
+		log.Error("EffectiveRequiredContexts: %v", err)
+	} else {
+		requiredContexts = effective
+	}
+	data.hasRequiredStatusContexts = len(requiredContexts) > 0
+
 	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 	}
@@ -433,7 +442,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		statusCheckData.pullCommitStatusState = combinedCommitStatus.State
 	}
 
-	data.ShowStatusCheck = data.enableStatusCheck || len(statusCheckData.PullCommitStatuses) > 0
+	// Required scoped workflow checks gate the merge even when the branch protection's own status check is disabled,
+	// so the status-check section must render when there are any required contexts, not only when enableStatusCheck is on.
+	data.ShowStatusCheck = data.enableStatusCheck || data.hasRequiredStatusContexts || len(statusCheckData.PullCommitStatuses) > 0
 
 	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
 	if err != nil {
@@ -449,7 +460,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	}
 
 	var missingRequiredChecks []string
-	for _, requiredContext := range pbRequiredContexts {
+	for _, requiredContext := range requiredContexts {
 		contextFound := false
 		matchesRequiredContext := createRequiredContextMatcher(requiredContext)
 		for _, presentStatus := range commitStatuses {
@@ -466,7 +477,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	statusCheckData.MissingRequiredChecks = missingRequiredChecks
 
 	statusCheckData.IsContextRequired = func(context string) bool {
-		for _, c := range pbRequiredContexts {
+		for _, c := range requiredContexts {
 			if c == context {
 				return true
 			}
@@ -481,9 +492,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		}
 		return false
 	}
-	statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pbRequiredContexts)
+	statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts)
 
-	if data.enableStatusCheck {
+	if data.enableStatusCheck || data.hasRequiredStatusContexts {
 		if statusCheckData.RequiredChecksState.IsError() || statusCheckData.RequiredChecksState.IsFailure() {
 			data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.required_status_check_failed"))
 		} else if !statusCheckData.RequiredChecksState.IsSuccess() {
@@ -535,17 +546,17 @@ func getViewPullHeadBranchCommitID(ctx *context.Context, pull *issues_model.Pull
 		if pull.HeadRepo == nil {
 			return "", util.ErrNotExist
 		}
-		headGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, pull.HeadRepo)
+		headGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, pull.HeadRepo)
 		if err != nil {
 			return "", err
 		}
-		return headGitRepo.GetRefCommitID(git.RefNameFromBranch(pull.HeadBranch).String())
+		return headGitRepo.GetRefCommitID(ctx, git.RefNameFromBranch(pull.HeadBranch).String())
 	case issues_model.PullRequestFlowAGit:
-		baseGitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, pull.BaseRepo)
+		baseGitRepo, err := git.RepositoryFromRequestContextOrOpen(ctx, pull.BaseRepo)
 		if err != nil {
 			return "", err
 		}
-		return baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		return baseGitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
 	}
 	setting.PanicInDevOrTesting("invalid pull request flow type: %v", pull.Flow)
 	return "", util.ErrNotExist
@@ -715,7 +726,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	afterCommitID = util.IfZero(afterCommitID, headCommitID)
 	afterCommit := indexCommit(prCompareInfo.Commits, afterCommitID)
 	if afterCommit == nil && afterCommitID == headCommitID {
-		afterCommit, err = gitRepo.GetCommit(afterCommitID)
+		afterCommit, err = gitRepo.GetCommit(ctx, afterCommitID)
 		if err != nil {
 			ctx.ServerError("GetCommit(afterCommitID)", err)
 			return
@@ -728,7 +739,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	var beforeCommit *git.Commit
 	if isSingleCommit {
-		beforeCommit, err = afterCommit.Parent(0)
+		beforeCommit, err = afterCommit.Parent(ctx, ctx.Repo.GitRepo, 0)
 		if err != nil {
 			ctx.ServerError("afterCommit.Parent", err)
 			return
@@ -739,7 +750,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		beforeCommit = indexCommit(prCompareInfo.Commits, beforeCommitID)
 		if beforeCommit == nil && beforeCommitID == prCompareInfo.CompareBase {
 			// base commit is not in the list of the pull request commits
-			beforeCommit, err = gitRepo.GetCommit(beforeCommitID)
+			beforeCommit, err = gitRepo.GetCommit(ctx, beforeCommitID)
 			if err != nil {
 				ctx.ServerError("GetCommit(beforeCommitID)", err)
 				return
@@ -795,7 +806,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		}
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, beforeCommitID, afterCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.GitRepo, beforeCommitID, afterCommitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
@@ -1286,8 +1297,12 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 }
 
 func stopTimerIfAvailable(ctx *context.Context, user *user_model.User, issue *issues_model.Issue) error {
-	_, err := issues_model.FinishIssueStopwatch(ctx, user, issue)
-	return err
+	stopped, err := issues_model.FinishIssueStopwatch(ctx, user, issue)
+	if err != nil || !stopped {
+		return err
+	}
+	notify_service.StopwatchChanged(ctx, user)
+	return nil
 }
 
 func PullsNewRedirect(ctx *context.Context) {
@@ -1310,7 +1325,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	repo := ctx.Repo.Repository
 	comparePageInfo := newComparePageInfo()
-	err := comparePageInfo.parseCompareInfo(ctx)
+	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.JSONErrorNotFound()
 		return
@@ -1361,7 +1376,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
-		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+		if template, err := issue_template.UnmarshalFromRepo(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
 			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}
 	}

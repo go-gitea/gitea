@@ -11,7 +11,6 @@ import (
 	"sort"
 	"strconv"
 
-	activities_model "gitea.dev/models/activities"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -37,6 +36,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
 	issue_service "gitea.dev/services/issue"
+	"gitea.dev/services/notifications"
 	pull_service "gitea.dev/services/pull"
 	user_service "gitea.dev/services/user"
 )
@@ -284,7 +284,7 @@ func handleViewIssueRedirectExternal(ctx *context.Context) {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 				metas := ctx.Repo.Repository.ComposeCommentMetas(ctx)
 				metas["index"] = ctx.PathParam("index")
-				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
+				res, err := vars.ExpandCurlyBrace(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
 					log.Error("unable to expand template vars for issue url. issue: %s, err: %v", metas["index"], err)
 					ctx.ServerError("Expand", err)
@@ -334,7 +334,7 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx.Repo.Repository, ctx.Repo.GitRepo)
+		ctx.Data["NewIssueChooseTemplate"] = issue_service.HasTemplatesOrContactLinks(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	}
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.Permission.CanRead(unit.TypeProjects)
@@ -355,7 +355,7 @@ func ViewIssue(ctx *context.Context) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err := activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
+		if err := notifications.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return
 		}
@@ -418,7 +418,7 @@ func ViewIssue(ctx *context.Context) {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}
 
-	if !setting.IsProd && issue.PullRequest != nil && !issue.PullRequest.IsChecking() && prViewInfo.MergeBoxData != nil {
+	if !setting.IsProd && issue.PullRequest != nil && prViewInfo.MergeBoxData != nil && prViewInfo.MergeBoxData.ReloadingInterval == 0 {
 		prViewInfo.MergeBoxData.ReloadingInterval = 1 // in dev env, force using the reloading logic to make sure it won't break
 	}
 
@@ -495,7 +495,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 
 	wontSignReason := ""
 	if ctx.Doer != nil {
-		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo)
+		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo, pull.BaseBranch, pull.GetGitHeadRefName())
 		data.willSign = sign
 		data.signingKeyMergeDisplay = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
@@ -919,7 +919,6 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 		}
 	}
 
-	data.ReloadingInterval = util.Iif(pull.IsChecking(), 2000, 0)
 	data.ShowMergeInstructions = canWriteToHeadRepo
 	data.ShowPullCommands = pull.HeadRepo != nil && !pull.HasMerged && !issue.IsClosed
 
@@ -941,6 +940,10 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	prConfig := issue.Repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
 	data.AutodetectManualMerge = prConfig.AutodetectManualMerge
 
+	needRefreshMergeBox := pull.IsChecking()
+	needRefreshMergeBox = needRefreshMergeBox || (data.StatusCheckData != nil && data.StatusCheckData.pullCommitStatusState.IsPending())
+	data.ReloadingInterval = util.Iif(needRefreshMergeBox, 5000, 0)
+
 	// Only show the merge box if the PR is not merged, or the branch is deletable.
 	// Otherwise, there is nothing to do, because the PR view page already contains enough information.
 	data.ShowMergeBox = !pull.HasMerged || data.IsPullBranchDeletable
@@ -949,13 +952,13 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 
 	// admin can merge without checks, writer can merge when checks succeed
 	// admin and writer both can make an auto merge schedule (not affected by overridable blockers)
-	data.hasStatusCheckBlocker = data.enableStatusCheck && !data.StatusCheckData.RequiredChecksState.IsSuccess()
+	// Required scoped workflow checks gate the merge even when the rule's own status check is disabled (see IsPullCommitStatusPass),
+	// so block on any required status context, not only when enableStatusCheck is on.
+	data.hasStatusCheckBlocker = (data.enableStatusCheck || data.hasRequiredStatusContexts) && !data.StatusCheckData.RequiredChecksState.IsSuccess()
 
-	// this logic is from:
-	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
-	// HINT: if a PR's status is not mergeable, then it is a non-overridable blocker, such logic is handled separately (see IsStatusMergeable)
 	data.hasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
-		data.isBlockedByOfficialReviewRequests || data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
+		data.isBlockedByOfficialReviewRequests || data.isBlockedByCodeowners ||
+		data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
 		data.hasStatusCheckBlocker
 
 	data.canBypassProtection = isRepoAdmin
@@ -1064,6 +1067,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 	data.isBlockedByOfficialReviewRequests = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
 	if data.isBlockedByOfficialReviewRequests {
 		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_official_review_requests"))
+	}
+
+	data.isBlockedByCodeowners = !issue_service.HasAllRequiredCodeownerReviews(ctx, pb, pull)
+	if data.isBlockedByCodeowners {
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_codeowners"))
 	}
 
 	data.isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)

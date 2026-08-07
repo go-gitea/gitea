@@ -4,9 +4,11 @@
 package git
 
 import (
+	"context"
 	"regexp"
 	"strings"
 
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 )
@@ -50,8 +52,8 @@ type Reference struct {
 }
 
 // Commit return the commit of the reference
-func (ref *Reference) Commit() (*Commit, error) {
-	return ref.repo.getCommit(ref.Object)
+func (ref *Reference) Commit(ctx context.Context) (*Commit, error) {
+	return ref.repo.getCommit(ctx, ref.Object)
 }
 
 // ShortName returns the short name of the reference
@@ -228,13 +230,24 @@ func (ref RefName) RefWebLinkPath() string {
 	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
 }
 
-func ParseRefSuffix(ref string) (string, string) {
+func ParseRefSuffix(ref string) (refName, refSuffix string) {
 	// Partially support https://git-scm.com/docs/gitrevisions
-	if idx := strings.Index(ref, "@{"); idx != -1 {
-		return ref[:idx], ref[idx:]
+	suffixIdx := -1 // earliest suffix mark, so a combined suffix like "main~2^" stays intact
+	for _, mark := range []string{"@{", "^", "~"} {
+		if idx := strings.Index(ref, mark); idx != -1 && (suffixIdx == -1 || idx < suffixIdx) {
+			suffixIdx = idx
+		}
 	}
-	if idx := strings.Index(ref, "^"); idx != -1 {
-		return ref[:idx], ref[idx:]
+	if suffixIdx == -1 {
+		return ref, ""
 	}
-	return ref, ""
+	return ref[:suffixIdx], ref[suffixIdx:]
+}
+
+func UpdateRef(ctx context.Context, repo RepositoryFacade, refName, newCommitID string) error {
+	return gitcmd.NewCommand("update-ref").AddDynamicArguments(refName, newCommitID).WithRepo(repo).Run(ctx)
+}
+
+func RemoveRef(ctx context.Context, repo RepositoryFacade, refName string) error {
+	return gitcmd.NewCommand("update-ref", "--no-deref", "-d").AddDynamicArguments(refName).WithRepo(repo).Run(ctx)
 }

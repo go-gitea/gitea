@@ -1,10 +1,10 @@
-import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
-import {html, htmlRaw} from './utils/html.ts';
+import {htmlRaw} from './utils/html.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
+import giteaFavicon from '../../public/assets/img/favicon.svg';
 import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
 import octiconArrowLeft from '../../public/assets/img/svg/octicon-arrow-left.svg';
@@ -93,6 +93,7 @@ const svgs = {
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
+  'gitea-favicon': giteaFavicon,
   'gitea-running': giteaRunning,
   'octicon-archive': octiconArchive,
   'octicon-arrow-left': octiconArrowLeft,
@@ -220,36 +221,3 @@ export function svgParseOuterInner(name: SvgName) {
   const svgOuter = svgDoc.firstChild as SVGElement;
   return {svgOuter, svgInnerHtml};
 }
-
-export const SvgIcon = defineComponent({
-  name: 'SvgIcon',
-  props: {
-    name: {type: String as PropType<SvgName>, required: true},
-    size: {type: Number, default: 16},
-    symbolId: {type: String},
-  },
-  render() {
-    let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
-    // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
-    // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
-    const attrs: Record<string, any> = {};
-    for (const attr of svgOuter.attributes) {
-      if (attr.name === 'class') continue;
-      attrs[`^${attr.name}`] = attr.value;
-    }
-    attrs[`^width`] = this.size;
-    attrs[`^height`] = this.size;
-
-    const classes = Array.from(svgOuter.classList);
-    if (this.symbolId) {
-      classes.push('tw-hidden', 'svg-symbol-container');
-      svgInnerHtml = html`<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${htmlRaw(svgInnerHtml)}</symbol>`;
-    }
-    // create VNode
-    return h('svg', {
-      ...attrs,
-      class: classes,
-      innerHTML: svgInnerHtml,
-    });
-  },
-});

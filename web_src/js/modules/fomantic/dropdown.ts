@@ -1,5 +1,6 @@
 import type {FomanticInitFunction} from '../../types.ts';
 import {generateElemId, queryElems} from '../../utils/dom.ts';
+import {trString} from '../i18n.ts';
 
 const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
@@ -63,7 +64,7 @@ function updateSelectionLabel(label: HTMLElement) {
   const deleteIcon = label.querySelector('.delete.icon');
   if (deleteIcon) {
     deleteIcon.setAttribute('aria-hidden', 'false');
-    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', label.getAttribute('data-value')!));
+    deleteIcon.setAttribute('aria-label', trString(window.config.i18n.remove_label_str, label.getAttribute('data-value')!));
     deleteIcon.setAttribute('role', 'button');
   }
 }
@@ -253,22 +254,22 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   dropdown.addEventListener('mousedown', () => {
     ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
     ignoreClickPreEvents++;
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('focus', () => {
     ignoreClickPreVisible += isMenuVisible() ? 1 : 0;
     ignoreClickPreEvents++;
     deferredRefreshAriaActiveItem();
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('blur', () => {
     ignoreClickPreVisible = ignoreClickPreEvents = 0;
     deferredRefreshAriaActiveItem(100);
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('mouseup', () => {
     setTimeout(() => {
       ignoreClickPreVisible = ignoreClickPreEvents = 0;
       deferredRefreshAriaActiveItem(100);
     }, 0);
-  }, true);
+  }, {capture: true});
   dropdown.addEventListener('click', (e: MouseEvent) => {
     if (isMenuVisible() &&
       ignoreClickPreVisible !== 2 && // dropdown is switch from invisible to visible
@@ -277,7 +278,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
       e.stopPropagation(); // if the dropdown menu has been opened by focus, do not trigger the next click event again
     }
     ignoreClickPreEvents = ignoreClickPreVisible = 0;
-  }, true);
+  }, {capture: true});
 }
 
 // Although Fomantic Dropdown supports "hideDividers", it doesn't really work with our "scoped dividers"

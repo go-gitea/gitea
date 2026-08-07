@@ -36,11 +36,11 @@ import (
 	"gitea.com/gitea/runner/act/model"
 )
 
-// ListActionsSecrets list an repo's actions secrets
+// ListActionsSecrets list a repo's actions secrets
 func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/actions/secrets repository repoListActionsSecrets
 	// ---
-	// summary: List an repo's actions secrets
+	// summary: List a repo's actions secrets
 	// produces:
 	// - application/json
 	// parameters:
@@ -1024,6 +1024,11 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//   description: if true, the `pull_requests` field on each returned run is emptied
 	//   type: boolean
 	//   required: false
+	// - name: scoped_workflow_source_repo_id
+	//   description: For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.
+	//   in: query
+	//   type: integer
+	//   format: int64
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -1043,20 +1048,25 @@ func ActionsListWorkflowRuns(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	workflowID := ctx.PathParam("workflow_id")
-	// Existing runs prove the workflow is/was valid and cover historical workflows
-	// whose file was later removed. Fall back to a git lookup for never-run workflows.
+	scopedWorkflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
+	// Existing runs prove the workflow is/was valid and cover historical workflows whose file was later removed.
+	// Repo-level never-run workflows fall back to a git lookup; scoped workflows are selected by source repo ID and may return an empty run list.
 	runExists, err := db.Exist[actions_model.ActionRun](ctx, actions_model.FindRunOptions{
-		RepoID:     ctx.Repo.Repository.ID,
-		WorkflowID: workflowID,
+		RepoID:         ctx.Repo.Repository.ID,
+		WorkflowID:     workflowID,
+		WorkflowRepoID: scopedWorkflowSourceRepoID,
+		IsScopedRun:    optional.Some(scopedWorkflowSourceRepoID > 0),
 	}.ToConds())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 	if !runExists {
-		if _, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID); err != nil {
-			ctx.APIErrorAuto(err)
-			return
+		if scopedWorkflowSourceRepoID == 0 {
+			if _, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID); err != nil {
+				ctx.APIErrorAuto(err)
+				return
+			}
 		}
 	}
 
@@ -1141,6 +1151,11 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	//   description: Whether the response should include the workflow run ID and URLs.
 	//   in: query
 	//   type: boolean
+	// - name: scoped_workflow_source_repo_id
+	//   description: For a scoped workflow, the ID of the source repository providing it; omit or 0 for a repo-level workflow.
+	//   in: query
+	//   type: integer
+	//   format: int64
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RunDetails"
@@ -1162,7 +1177,9 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	runID, err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+	// a non-zero scoped_workflow_source_repo_id dispatches a scoped workflow from that source repo; 0/absent is repo-level.
+	scopedWorkflowSourceRepoID := ctx.FormInt64("scoped_workflow_source_repo_id")
+	runID, err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, opt.Ref, scopedWorkflowSourceRepoID, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		if strings.Contains(ctx.Req.Header.Get("Content-Type"), "form-urlencoded") {
 			// The chi framework's "Binding" doesn't support to bind the form map values into a map[string]string
 			// So we have to manually read the `inputs[key]` from the form
@@ -1274,7 +1291,7 @@ func getCurrentRepoActionRunJobsByID(ctx *context.APIContext) (*actions_model.Ac
 		return nil, nil
 	}
 
-	jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
+	jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1296,6 +1313,16 @@ func getCurrentRepoActionRunAttemptByNumber(ctx *context.APIContext) (*actions_m
 		return nil, nil
 	}
 	return run, attempt
+}
+
+func respondRepoActionWorkflowRun(ctx *context.APIContext, run *actions_model.ActionRun) {
+	run.Repo = ctx.Repo.Repository
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
 }
 
 // GetWorkflowRun Gets a specific workflow run.
@@ -1334,12 +1361,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	ctx.JSON(http.StatusOK, convertedRun)
+	respondRepoActionWorkflowRun(ctx, run)
 }
 
 // GetWorkflowRunAttempt Gets a specific workflow run attempt.
@@ -1486,7 +1508,14 @@ func RerunFailedWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, actions_service.GetFailedJobsForRerun(jobs)); err != nil {
+	failedJobs := actions_service.GetFailedJobsForRerun(jobs)
+	// Empty failedJobs means no failed jobs to re-run
+	if len(failedJobs) == 0 {
+		ctx.APIError(http.StatusBadRequest, "this workflow run has no failed jobs to re-run")
+		return
+	}
+
+	if _, err := actions_service.RerunWorkflowRunJobs(ctx, ctx.Repo.Repository, run, ctx.Doer, failedJobs); err != nil {
 		handleWorkflowRerunError(ctx, err)
 		return
 	}

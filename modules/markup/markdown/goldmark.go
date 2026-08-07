@@ -7,6 +7,8 @@ import (
 	"fmt"
 
 	"gitea.dev/modules/container"
+	"gitea.dev/modules/highlight"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/markup/internal"
 
@@ -129,7 +131,8 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 // renderCodeBlock wraps indented code blocks like the fenced renderer
 func (r *HTMLRenderer) renderCodeBlock(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		opening := r.renderInternal.ProtectSafeAttrs(`<div class="code-block-container code-overflow-scroll"><pre class="code-block"><code>`)
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes("") // no language
+		opening := r.renderInternal.ProtectSafeAttrs(htmlutil.HTMLFormat(`<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs))
 		if _, err := w.WriteString(string(opening)); err != nil {
 			return ast.WalkStop, err
 		}

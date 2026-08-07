@@ -177,21 +177,15 @@ func ResetPasswdPost(ctx *context.Context) {
 			regenerateScratchToken = true
 		} else {
 			passcode := ctx.FormString("passcode")
-			ok, err := twofa.ValidateTOTP(passcode)
+			ok, err := twofa.ValidateAndConsumeTOTP(ctx, passcode)
 			if err != nil {
-				ctx.HTTPError(http.StatusInternalServerError, "ValidateTOTP", err.Error())
+				ctx.HTTPError(http.StatusInternalServerError, "ValidateAndConsumeTOTP", err.Error())
 				return
 			}
-			if !ok || twofa.LastUsedPasscode == passcode {
+			if !ok {
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Passcode"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("auth.twofa_passcode_incorrect"), tplResetPassword, nil)
-				return
-			}
-
-			twofa.LastUsedPasscode = passcode
-			if err = auth.UpdateTwoFactor(ctx, twofa); err != nil {
-				ctx.ServerError("ResetPasswdPost: UpdateTwoFactor", err)
 				return
 			}
 		}
@@ -242,6 +236,19 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Flash.Info(ctx.Tr("auth.twofa_scratch_used"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
+	}
+
+	// the reset form only carries a TOTP field, so a WebAuthn-only user finishes on its own page
+	if twofa == nil {
+		hasWebAuthn, err := auth.HasWebAuthnRegistrationsByUID(ctx, u.ID)
+		if err != nil {
+			ctx.ServerError("HasWebAuthnRegistrationsByUID", err)
+			return
+		}
+		if hasWebAuthn {
+			handleTwoFactorRequired(ctx, u, remember, nil)
+			return
+		}
 	}
 
 	handleSignIn(ctx, u, remember)

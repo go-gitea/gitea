@@ -2,7 +2,6 @@
 
 [![](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main)](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain "Release Nightly")
 [![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
-[![](https://goreportcard.com/badge/gitea.dev)](https://goreportcard.com/report/gitea.dev "Go Report Card")
 [![](https://pkg.go.dev/badge/gitea.dev?status.svg)](https://pkg.go.dev/gitea.dev "GoDoc")
 [![](https://img.shields.io/github/release/go-gitea/gitea.svg)](https://github.com/go-gitea/gitea/releases/latest "GitHub release")
 [![](https://www.codetriage.com/go-gitea/gitea/badges/users.svg)](https://www.codetriage.com/go-gitea/gitea "Help Contribute to Open Source")
@@ -77,7 +76,7 @@
 
 ## 官方和第三方項目
 
-我們提供了一個官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一個名為 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一個 Gitea Action 的 [action runner](https://gitea.com/gitea/act_runner)。
+我們提供了一個官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一個名為 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一個 Gitea Action 的 [action runner](https://gitea.com/gitea/runner)。
 
 我們在 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 維護了一個 Gitea 相關項目的列表，您可以在那裡發現更多的第三方項目，包括 SDK、插件、主題等。
 

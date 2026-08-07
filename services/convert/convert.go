@@ -7,6 +7,7 @@ package convert
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
@@ -140,7 +141,7 @@ func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T,
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
 func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo *repo_model.Repository) *api.BranchProtection {
-	readers, err := access_model.GetUsersWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
+	readers, err := access_model.GetUsersWithAnyUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("GetRepoReaders: %v", err)
 	}
@@ -195,6 +196,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		ApprovalsWhitelistTeams:       approvalsWhitelistTeams,
 		BlockOnRejectedReviews:        bp.BlockOnRejectedReviews,
 		BlockOnOfficialReviewRequests: bp.BlockOnOfficialReviewRequests,
+		BlockOnCodeownerReviews:       bp.BlockOnCodeownerReviews,
 		BlockOnOutdatedBranch:         bp.BlockOnOutdatedBranch,
 		DismissStaleApprovals:         bp.DismissStaleApprovals,
 		IgnoreStaleApprovals:          bp.IgnoreStaleApprovals,
@@ -291,7 +293,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
 		if attempt.Attempt > 1 {
-			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1)
+			url := fmt.Sprintf("%s/attempts/%d", run.APIURL(ctx), attempt.Attempt-1)
 			previousAttemptURL = &url
 		}
 	}
@@ -303,13 +305,21 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		}
 	}
 
+	runURL := run.APIURL(ctx)
 	return &api.ActionWorkflowRun{
 		ID:                 run.ID,
-		URL:                fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
+		URL:                runURL,
 		PreviousAttemptURL: previousAttemptURL,
 		HTMLURL:            run.HTMLURL(ctx),
+		JobsURL:            runURL + "/jobs",
+		LogsURL:            runURL + "/logs",
+		ArtifactsURL:       runURL + "/artifacts",
+		CancelURL:          runURL + "/cancel",
+		RerunURL:           runURL + "/rerun",
 		RunNumber:          run.Index,
 		RunAttempt:         runAttempt,
+		CreatedAt:          run.Created.AsLocalTime(),
+		UpdatedAt:          run.Updated.AsLocalTime(),
 		StartedAt:          startedAt,
 		CompletedAt:        completedAt,
 		Event:              run.TriggerEvent,
@@ -412,7 +422,7 @@ func ToWorkflowRunAction(status actions_model.Status) (action string) {
 	switch status {
 	case actions_model.StatusWaiting, actions_model.StatusBlocked:
 		action = "requested"
-	case actions_model.StatusRunning:
+	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
 		if status.IsDone() {
@@ -430,7 +440,7 @@ func ToActionsStatus(status actions_model.Status) (action, conclusion string) {
 		action = "queued" // "waiting" is a naming conflict of the webhook between Gitea and GitHub Actions
 	case actions_model.StatusBlocked:
 		action = "waiting" // naming conflict (as above)
-	case actions_model.StatusRunning:
+	case actions_model.StatusRunning, actions_model.StatusCancelling:
 		action = "in_progress"
 	default:
 		action = "completed"
@@ -521,7 +531,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	}, nil
 }
 
-func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, refName git.RefName, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
+func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, refName git.RefName, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
@@ -552,7 +562,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	createdAt := commit.Author.When
 	updatedAt := commit.Author.When
 
-	content, err := actions.GetContentFromEntry(entry)
+	content, err := actions.GetContentFromEntry(ctx, gitRepo, entry)
 	name := entry.Name()
 	if err == nil {
 		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
@@ -582,31 +592,31 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 }
 
 func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository) ([]*api.ActionWorkflow, error) {
-	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
+	defaultBranchCommit, err := gitrepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
 
-	folder, entries, err := actions.ListWorkflows(defaultBranchCommit)
+	folder, entries, err := actions.ListWorkflows(ctx, gitrepo, defaultBranchCommit)
 	if err != nil {
 		return nil, err
 	}
 
 	workflows := make([]*api.ActionWorkflow, len(entries))
 	for i, entry := range entries {
-		workflows[i] = getActionWorkflowEntry(ctx, repo, defaultBranchCommit, git.RefNameFromBranch(repo.DefaultBranch), folder, entry)
+		workflows[i] = getActionWorkflowEntry(ctx, repo, gitrepo, defaultBranchCommit, git.RefNameFromBranch(repo.DefaultBranch), folder, entry)
 	}
 
 	return workflows, nil
 }
 
-func GetActionWorkflow(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
-	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
+func GetActionWorkflow(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
+	defaultBranchCommit, err := gitRepo.GetBranchCommit(ctx, repo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
 
-	return getActionWorkflowFromCommit(ctx, repo, defaultBranchCommit, git.RefNameFromBranch(repo.DefaultBranch), workflowID)
+	return getActionWorkflowFromCommit(ctx, repo, gitRepo, defaultBranchCommit, git.RefNameFromBranch(repo.DefaultBranch), workflowID)
 }
 
 func GetActionWorkflowByRef(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID string, ref git.RefName) (*api.ActionWorkflow, error) {
@@ -614,31 +624,89 @@ func GetActionWorkflowByRef(ctx context.Context, gitrepo *git.Repository, repo *
 		return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
 	}
 
-	refCommitID, err := gitrepo.GetRefCommitID(ref.String())
+	refCommitID, err := gitrepo.GetRefCommitID(ctx, ref.String())
 	if err != nil {
 		return nil, err
 	}
-	refCommit, err := gitrepo.GetCommit(refCommitID)
+	refCommit, err := gitrepo.GetCommit(ctx, refCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	return getActionWorkflowFromCommit(ctx, repo, refCommit, ref, workflowID)
+	return getActionWorkflowFromCommit(ctx, repo, gitrepo, refCommit, ref, workflowID)
 }
 
-func getActionWorkflowFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, refName git.RefName, workflowID string) (*api.ActionWorkflow, error) {
-	folder, entries, err := actions.ListWorkflows(commit)
+func getActionWorkflowFromCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, refName git.RefName, workflowID string) (*api.ActionWorkflow, error) {
+	folder, entries, err := actions.ListWorkflows(ctx, gitRepo, commit)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, entry := range entries {
 		if entry.Name() == workflowID {
-			return getActionWorkflowEntry(ctx, repo, commit, refName, folder, entry), nil
+			return getActionWorkflowEntry(ctx, repo, gitRepo, commit, refName, folder, entry), nil
 		}
 	}
 
 	return nil, util.NewNotExistErrorf("workflow %q not found", workflowID)
+}
+
+// GetScopedActionWorkflow resolves a scoped workflow definition (under SCOPED_WORKFLOW_DIRS) from the source repo at commitSHA.
+func GetScopedActionWorkflow(ctx context.Context, sourceGitRepo *git.Repository, sourceRepo *repo_model.Repository, workflowID, commitSHA string) (*api.ActionWorkflow, error) {
+	commit, err := sourceGitRepo.GetCommit(ctx, commitSHA)
+	if err != nil {
+		return nil, err
+	}
+
+	folder, entries, err := actions.ListScopedWorkflows(ctx, sourceGitRepo, commit)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.Name() == workflowID {
+			// An empty ref pins HTMLURL to commit (the run's WorkflowCommitSHA) rather than the moving default branch.
+			wf := getActionWorkflowEntry(ctx, sourceRepo, sourceGitRepo, commit, "", folder, entry)
+			// TODO: a scoped workflow has no repo-level representation on the source: the workflow API scans WORKFLOW_DIRS (not SCOPED_WORKFLOW_DIRS),
+			// and the badge only reflects the source's repo-level runs, so neither link resolves a scoped workflow.
+			// Blank them for now and populate once a scoped-aware workflow/badge endpoint exists.
+			wf.URL = ""
+			wf.BadgeURL = ""
+			return wf, nil
+		}
+	}
+
+	return nil, util.NewNotExistErrorf("scoped workflow %q not found", workflowID)
+}
+
+// ResolveActionWorkflowForRun returns the api.ActionWorkflow describing a run's workflow definition.
+// For a scoped run the definition lives in the source repo (run.WorkflowRepoID @ run.WorkflowCommitSHA) under SCOPED_WORKFLOW_DIRS,
+// not in the consuming repo, so it is resolved against the source repo.
+func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun) (*api.ActionWorkflow, error) {
+	if run.IsScopedRun {
+		sourceRepo, err := repo_model.GetRepositoryByID(ctx, run.WorkflowRepoID)
+		if err != nil {
+			return nil, err
+		}
+		sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
+		if err != nil {
+			return nil, err
+		}
+		defer sourceGitRepo.Close()
+		return GetScopedActionWorkflow(ctx, sourceGitRepo, sourceRepo, run.WorkflowID, run.WorkflowCommitSHA)
+	}
+
+	gitRepo, err := git.OpenRepository(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
+
+	convertedWorkflow, err := GetActionWorkflowByRef(ctx, gitRepo, repo, run.WorkflowID, git.RefName(run.Ref))
+	if err != nil && errors.Is(err, util.ErrNotExist) {
+		convertedWorkflow, err = GetActionWorkflow(ctx, gitRepo, repo, run.WorkflowID)
+	}
+	return convertedWorkflow, err
 }
 
 // ToActionArtifact convert a actions_model.ActionArtifact to an api.ActionArtifact
@@ -804,7 +872,7 @@ func ToOrganization(ctx context.Context, org *organization.Organization) *api.Or
 		Description:               org.Description,
 		Website:                   org.Website,
 		Location:                  org.Location,
-		Visibility:                api.UserVisibility(org.Visibility.String()),
+		Visibility:                api.VisibilityString(org.Visibility.String()),
 		RepoAdminChangeTeamAccess: org.RepoAdminChangeTeamAccess,
 	}
 }
@@ -836,6 +904,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
 			Units:                   t.GetUnitNames(),
 			UnitsMap:                t.GetUnitsMap(),
+			Visibility:              api.TeamVisibility(t.Visibility.String()),
 		}
 
 		if loadOrgs {
@@ -880,7 +949,7 @@ func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.
 
 // ToTagProtection convert a git.ProtectedTag to an api.TagProtection
 func ToTagProtection(ctx context.Context, pt *git_model.ProtectedTag, repo *repo_model.Repository) *api.TagProtection {
-	readers, err := access_model.GetUsersWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
+	readers, err := access_model.GetUsersWithAnyUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("GetRepoReaders: %v", err)
 	}

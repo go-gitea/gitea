@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/metrics"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
@@ -28,7 +29,6 @@ import (
 	"gitea.dev/routers/web/admin"
 	"gitea.dev/routers/web/auth"
 	"gitea.dev/routers/web/devtest"
-	"gitea.dev/routers/web/events"
 	"gitea.dev/routers/web/explore"
 	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/healthcheck"
@@ -42,6 +42,7 @@ import (
 	"gitea.dev/routers/web/user"
 	user_setting "gitea.dev/routers/web/user/setting"
 	"gitea.dev/routers/web/user/setting/security"
+	gitea_websocket "gitea.dev/routers/web/websocket"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -159,7 +160,7 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		ctx.IsBasicAuth = ar.IsBasicAuth
 		if ctx.Doer == nil {
 			// ensure the session uid is deleted
-			_ = ctx.Session.Delete("uid")
+			_ = ctx.Session.Delete(session.KeyUID)
 		}
 	}
 	return webAuth
@@ -500,6 +501,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}
 
+	addSettingsScopedWorkflowsRoutes := func() {
+		m.Group("/scoped-workflows", func() {
+			m.Get("", shared_actions.ScopedWorkflows)
+			m.Post("/add", shared_actions.ScopedWorkflowAdd)
+			m.Post("/required", shared_actions.ScopedWorkflowSetRequired)
+			m.Post("/remove", shared_actions.ScopedWorkflowRemove)
+		})
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
@@ -589,7 +599,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", routing.MarkLongPolling(), events.Events)
+	m.Get("/-/ws", routing.MarkLongPolling(), gitea_websocket.Serve)
 
 	m.Group("/login/oauth", func() {
 		m.Group("", func() {
@@ -643,7 +653,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("/webauthn", func() {
 				m.Post("/request_register", web.Bind(forms.WebauthnRegistrationForm{}), security.WebAuthnRegister)
 				m.Post("/register", security.WebauthnRegisterPost)
-				m.Post("/delete", web.Bind(forms.WebauthnDeleteForm{}), security.WebauthnDelete)
+				m.Post("/delete", security.WebauthnDelete)
 			})
 			m.Group("/openid", func() {
 				m.Post("", web.Bind(forms.AddOpenIDForm{}), security.OpenIDPost)
@@ -702,6 +712,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			addSettingsScopedWorkflowsRoutes()
 		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
@@ -785,6 +796,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("/new").Get(admin.NewUser).Post(web.Bind(forms.AdminCreateUserForm{}), admin.NewUserPost)
 			m.Get("/{userid}", admin.ViewUser)
 			m.Combo("/{userid}/edit").Get(admin.EditUser).Post(web.Bind(forms.AdminEditUserForm{}), admin.EditUserPost)
+			m.Post("/{userid}/impersonate", admin.ImpersonateUser)
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind(forms.AvatarForm{}), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
@@ -865,6 +877,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsRunnersRoutes()
 			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 			addSettingsVariablesRoutes()
+			addSettingsScopedWorkflowsRoutes()
 		})
 	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled))
 	// ***** END: Admin *****
@@ -1022,6 +1035,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
+					addSettingsScopedWorkflowsRoutes()
 				}, actions.MustEnableActions)
 
 				m.Post("/rename", web.Bind(forms.RenameOrgForm{}), org.SettingsRenamePost)
@@ -1269,9 +1283,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("/commit/*", context.RepoRefByType(git.RefTypeCommit), repo.TreeViewNodes)
 		})
 		m.Get("/compare", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
-		m.Combo("/compare/*", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists).
-			Get(repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
-			Post(reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+		m.PathGroup("/compare/*", func(g *web.RouterPathGroup) {
+			g.MatchPath("GET", "/<basehead:*>.diff", repo.MustBeNotEmpty, repo.DownloadCompareDiff)
+			g.MatchPath("GET", "/<basehead:*>.patch", repo.MustBeNotEmpty, repo.DownloadComparePatch)
+			g.MatchPath("GET", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+			g.MatchPath("POST", "/<*:*>", repo.MustBeNotEmpty, repo.SetEditorconfigIfExists, reqSignIn, context.RepoMustNotBeArchived(), reqUnitPullsReader, repo.MustAllowPulls, web.Bind(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+		})
 		m.Get("/pulls/new/*", repo.PullsNewRedirect)
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo code: find, compare, list

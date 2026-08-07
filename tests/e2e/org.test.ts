@@ -32,3 +32,21 @@ test('add team member search', async ({page, request}) => {
   const result = page.locator('#search-user-box .results .result').first();
   await expect(result).toContainText(userName);
 });
+
+test('delete team via confirm modal', async ({page, request}) => {
+  const orgName = `e2e-del-team-${randomString(8)}`;
+  const teamName = `team-${randomString(8)}`;
+  await Promise.all([
+    (async () => {
+      await apiCreateOrg(request, orgName);
+      await apiCreateTeam(request, orgName, teamName);
+    })(),
+    login(page),
+  ]);
+
+  await page.goto(`/org/${orgName}/teams/${teamName}/edit`);
+  await page.getByRole('button', {name: 'Delete Team'}).click();
+  await page.getByRole('button', {name: 'Yes'}).click();
+  await expect(page).toHaveURL(new RegExp(`/org/${orgName}/teams$`));
+  await expect(page.getByText('The team has been deleted.')).toBeVisible();
+});
