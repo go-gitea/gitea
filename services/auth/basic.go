@@ -116,6 +116,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 		store.GetData()["LoginMethod"] = ActionTokenMethodName
 		return user_model.NewActionsUserWithTaskID(task.ID), nil
 	}
+	log.Warn("Basic Authorization: token not found for any known token type")
 	return nil, nil //nolint:nilnil // the auth method is not applicable
 }
 
