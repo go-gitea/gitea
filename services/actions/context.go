@@ -20,8 +20,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 type GiteaContext map[string]any
