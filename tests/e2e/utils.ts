@@ -123,7 +123,7 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
 }
 
 /** Password shared by all test users — used for both API user creation and browser login. */
-const testUserPassword = 'e2e-password!aA1';
+export const testUserPassword = 'e2e-password!aA1';
 
 export function apiUserHeaders(username: string) {
   return apiAuthHeader(username, testUserPassword);
