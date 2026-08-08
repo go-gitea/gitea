@@ -25,7 +25,7 @@ func Bind[T any](_ T) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		data := middleware.GetContextData(req.Context())
-		binding.Bind(req, theObj)
+		_ = binding.Bind(req, theObj) // no need to handle "errs" here, the errors are handled in our middleware.Validate (binding.go)
 		SetForm(data, theObj)
 		middleware.AssignForm(theObj, data)
 	}

@@ -42,7 +42,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	}
 	web.SetForm(ctx, &addKeyForm)
 	DeployKeysPost(ctx)
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
@@ -68,7 +68,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	}
 	web.SetForm(ctx, &addKeyForm)
 	DeployKeysPost(ctx)
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
