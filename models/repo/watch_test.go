@@ -167,7 +167,7 @@ func TestWatchOptions(t *testing.T) {
 	assert.NoError(t, repo_model.WatchRepo(t.Context(), user, repo, true))
 	watch, err := repo_model.GetWatch(t.Context(), user.ID, repo.ID)
 	assert.NoError(t, err)
-	assert.True(t, watch.WatchesAll())
+	assert.True(t, watch.IsWatchingAll())
 }
 
 func TestWatchSelectedMode(t *testing.T) {

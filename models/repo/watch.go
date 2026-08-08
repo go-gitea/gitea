@@ -79,8 +79,8 @@ func (w *Watch) IsWatching() bool {
 	return IsWatchMode(w.Mode)
 }
 
-// WatchesAll reports whether every event is enabled, which is the "all activity" mode
-func (w *Watch) WatchesAll() bool {
+// IsWatchingAll reports whether every event is enabled, which is the "all activity" mode
+func (w *Watch) IsWatchingAll() bool {
 	return w.PullRequests && w.Issues && w.Releases
 }
 
@@ -91,7 +91,7 @@ func (w *Watch) SelectedMode() string {
 		return "ignore"
 	case !IsWatchMode(w.Mode), !(w.PullRequests || w.Issues || w.Releases):
 		return "participate" // also the default while there is no watch row
-	case w.WatchesAll():
+	case w.IsWatchingAll():
 		return "all"
 	}
 	return "custom"

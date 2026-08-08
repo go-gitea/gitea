@@ -72,7 +72,7 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 		var allowed bool
 		switch act.OpType {
 		case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
-			allowed = permCode[i] && watcher.WatchesAll()
+			allowed = permCode[i] && watcher.IsWatchingAll()
 		case activities_model.ActionPublishRelease:
 			allowed = permCode[i] && watcher.Releases
 		case activities_model.ActionCreateIssue, activities_model.ActionCommentIssue, activities_model.ActionCloseIssue, activities_model.ActionReopenIssue:
@@ -82,7 +82,7 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 			activities_model.ActionRejectPullRequest, activities_model.ActionPullReviewDismissed, activities_model.ActionPullRequestReadyForReview:
 			allowed = permPR[i] && watcher.PullRequests
 		default:
-			allowed = watcher.WatchesAll() // repository events have no watch option of their own
+			allowed = watcher.IsWatchingAll() // repository events have no watch option of their own
 		}
 		if !allowed {
 			continue
