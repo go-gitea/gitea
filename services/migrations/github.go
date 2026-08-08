@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/log"
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/proxy"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 
 	"github.com/google/go-github/v89/github"
@@ -52,7 +53,12 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 
 	log.Trace("Create github downloader BaseURL: %s %s/%s", baseURL, oldOwner, oldName)
 
-	return NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName)
+	downloader, err := NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName)
+	if err != nil {
+		return nil, err
+	}
+	downloader.useGraphQL = setting.Migrations.UseGraphQL
+	return downloader, nil
 }
 
 // GitServiceType returns the type of git service
@@ -75,6 +81,35 @@ type GithubDownloaderV3 struct {
 	maxPerPage    int
 	SkipReactions bool
 	SkipReviews   bool
+	// issuesCursor is the Link-header `after` cursor for paginating the issues
+	// list. The issues endpoint caps classic page-number pagination at ~page 100,
+	// so a large repo's issues must be walked by cursor instead. Carried on the
+	// downloader (created fresh per sync); reset at the start of each sweep.
+	// issuesNextPage is the page-number fallback for servers whose Link header
+	// carries no cursor (older GitHub Enterprise): without it a full first page
+	// would be re-requested forever. Exactly one of the two advances a sweep.
+	issuesCursor   string
+	issuesNextPage int
+
+	// useGraphQL opts the downloader into the batched GraphQL fast path (see
+	// github_graphql.go), which fetches an issue or pull request plus its
+	// comments, reviews and reactions in one request instead of many.
+	// gqlIssuesCursor is the issue stream's pagination cursor and gqlComments
+	// caches the comments fetched alongside the issues so the framework's
+	// separate comment phase serves them from memory.
+	useGraphQL      bool
+	gqlIssuesCursor string
+	gqlComments     map[int64][]*base.Comment
+	gqlCommentsFlat []*base.Comment
+	// gqlPRCursor paginates the GraphQL pull-request sweep; gqlReviews caches the
+	// reviews (with their inline comments) fetched alongside each PR so the
+	// framework's separate review phase serves them from memory. PR issue-comments
+	// join gqlComments so the comment phase serves issue and PR comments together.
+	gqlPRCursor string
+	gqlReviews  map[int64][]*base.Review
+	// gqlPointsSpent accumulates GitHub's GraphQL points budget spent this run
+	// (benchmark instrumentation; GraphQL is billed on points, not requests/hr).
+	gqlPointsSpent int64
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -97,7 +132,7 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 			)
 			client := &http.Client{
 				Transport: &oauth2.Transport{
-					Base:   NewMigrationHTTPTransport(),
+					Base:   newRetryTransport(NewMigrationHTTPTransport()),
 					Source: oauth2.ReuseTokenSource(nil, ts),
 				},
 			}
@@ -113,13 +148,18 @@ func NewGithubDownloaderV3(_ context.Context, baseURL, userName, password, token
 			return proxy.Proxy()(req)
 		}
 		client := &http.Client{
-			Transport: transport,
+			Transport: newRetryTransport(transport),
 		}
 		if err := downloader.addClient(client, baseURL); err != nil {
 			return nil, err
 		}
 	}
 	return &downloader, nil
+}
+
+// SupportSyncing returns true if it supports syncing an already-migrated repository
+func (g *GithubDownloaderV3) SupportSyncing() bool {
+	return true
 }
 
 // String implements Stringer
@@ -329,7 +369,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 		r.Published = rel.PublishedAt.Time
 	}
 
-	httpClient := newMigrationHTTPClient()
+	httpClient := NewMigrationHTTPClient()
 
 	for _, asset := range rel.Assets {
 		assetID := asset.GetID() // Don't optimize this, for closure we need a local variable TODO: no need to do so in new Golang
@@ -418,17 +458,51 @@ func (g *GithubDownloaderV3) GetReleases(ctx context.Context) ([]*base.Release, 
 
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
+	if g.useGraphQL {
+		// GraphQL fast path: fetches issues + comments + reactions in one
+		// request. A zero time means all issues.
+		return g.getNewIssuesGraphQL(ctx, page, time.Time{})
+	}
+	// A one-time migration walks by creation order; a zero time means all issues.
+	return g.getIssuesSince(ctx, page, perPage, time.Time{}, "created")
+}
+
+// GetNewIssues returns issues updated after the given time, paginated
+func (g *GithubDownloaderV3) GetNewIssues(ctx context.Context, page, perPage int, updatedAfter time.Time) ([]*base.Issue, bool, error) {
+	// A resumable sync walks by UPDATE order so the max updated_unix already
+	// stored is an exact resume point: everything before it is done, everything
+	// at/after it still needs syncing. (Walking by creation order would let the
+	// updated-based watermark skip older-but-recently-touched issues.)
+	if g.useGraphQL {
+		// GraphQL fast path: fetches issues + comments + reactions in one request.
+		return g.getNewIssuesGraphQL(ctx, page, updatedAfter)
+	}
+	return g.getIssuesSince(ctx, page, perPage, updatedAfter, "updated")
+}
+
+// getIssuesSince returns issues updated after the given time sorted ascending by
+// sortField ("created" or "updated"); a zero time returns all issues
+func (g *GithubDownloaderV3) getIssuesSince(ctx context.Context, page, perPage int, since time.Time, sortField string) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
+	// Paginate by the Link-header `after` cursor, not a page number: GitHub caps
+	// classic page-number pagination on the issues endpoint at ~page 100 (~10k
+	// items), silently truncating a large repository. The cursor has no such cap.
+	// Servers whose Link header carries no cursor (older GitHub Enterprise) fall
+	// back to the page number from the same header. page<=1 marks the first
+	// request of a sweep, so reset both there.
+	if page <= 1 {
+		g.issuesCursor = ""
+		g.issuesNextPage = 0
+	}
 	opt := &github.IssueListByRepoOptions{
-		Sort:      "created",
-		Direction: "asc",
-		State:     "all",
-		ListOptions: github.ListOptions{
-			PerPage: perPage,
-			Page:    page,
-		},
+		Sort:              sortField,
+		Direction:         "asc",
+		State:             "all",
+		Since:             since,
+		ListCursorOptions: github.ListCursorOptions{After: g.issuesCursor},
+		ListOptions:       github.ListOptions{PerPage: perPage, Page: g.issuesNextPage},
 	}
 
 	allIssues := make([]*base.Issue, 0, perPage)
@@ -437,8 +511,16 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %w", err)
 	}
-	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
+	log.Trace("Request get issues cursor=%q page=%d got %d, next=%q nextPage=%d", g.issuesCursor, g.issuesNextPage, len(issues), resp.After, resp.NextPage)
 	g.setRate(&resp.Rate)
+	// Prefer the cursor; without one (page-based Link only) advance by page
+	// number so a full page can never be re-requested forever.
+	g.issuesCursor = resp.After
+	if g.issuesCursor == "" {
+		g.issuesNextPage = resp.NextPage
+	} else {
+		g.issuesNextPage = 0
+	}
 	for _, issue := range issues {
 		if issue.IsPullRequest() {
 			continue
@@ -449,32 +531,9 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 			labels = append(labels, convertGithubLabel(l))
 		}
 
-		// get reactions
-		var reactions []*base.Reaction
-		if !g.SkipReactions {
-			for i := 1; ; i++ {
-				g.waitAndPickClient(ctx)
-				res, resp, err := g.getClient().Reactions.ListIssueReactions(ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListReactionOptions{
-					ListOptions: github.ListOptions{
-						Page:    i,
-						PerPage: perPage,
-					},
-				})
-				if err != nil {
-					return nil, false, err
-				}
-				g.setRate(&resp.Rate)
-				if len(res) == 0 {
-					break
-				}
-				for _, reaction := range res {
-					reactions = append(reactions, &base.Reaction{
-						UserID:   reaction.User.GetID(),
-						UserName: reaction.User.GetLogin(),
-						Content:  reaction.GetContent(),
-					})
-				}
-			}
+		reactions, err := g.getIssueReactions(ctx, issue.GetNumber(), perPage)
+		if err != nil {
+			return nil, false, err
 		}
 
 		var assignees []string
@@ -502,7 +561,11 @@ func (g *GithubDownloaderV3) GetIssues(ctx context.Context, page, perPage int) (
 		})
 	}
 
-	return allIssues, len(issues) < perPage, nil
+	// Terminate on the Link header alone: no next cursor and no next page means
+	// the sweep is done, for cursor-based and page-based servers alike. A short
+	// page mid-results must not be misread as the end of a large backfill.
+	isEnd := resp.After == "" && resp.NextPage == 0
+	return allIssues, isEnd, nil
 }
 
 // SupportGetRepoComments return true if it supports get repo comments
@@ -512,11 +575,22 @@ func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
 
 // GetComments returns comments according issueNumber
 func (g *GithubDownloaderV3) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
+	if g.gqlComments != nil {
+		// GraphQL fast path: the issue/PR sweeps already fetched the comments;
+		// serve them from the cache instead of a second round of API calls.
+		return g.gqlComments[commentable.GetForeignIndex()], false, nil
+	}
 	comments, err := g.getComments(ctx, commentable)
 	return comments, false, err
 }
 
 func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, error) {
+	return g.getCommentsSince(ctx, commentable, nil)
+}
+
+// getCommentsSince returns an issue's or pull request's comments; a non-nil
+// since returns only those updated at or after it
+func (g *GithubDownloaderV3) getCommentsSince(ctx context.Context, commentable base.Commentable, since *time.Time) ([]*base.Comment, error) {
 	var (
 		allComments = make([]*base.Comment, 0, g.maxPerPage)
 		created     = "created"
@@ -525,6 +599,7 @@ func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.C
 	opt := &github.IssueListCommentsOptions{
 		Sort:      &created,
 		Direction: &asc,
+		Since:     since,
 		ListOptions: github.ListOptions{
 			PerPage: g.maxPerPage,
 		},
@@ -587,17 +662,31 @@ func (g *GithubDownloaderV3) getComments(ctx context.Context, commentable base.C
 
 // GetAllComments returns repository comments according page and perPageSize
 func (g *GithubDownloaderV3) GetAllComments(ctx context.Context, page, perPage int) ([]*base.Comment, bool, error) {
+	if g.gqlComments != nil {
+		// GraphQL fast path: comments already came back with their issues and
+		// pull requests; serve them from the cache instead of a second round of
+		// API calls. The comment phase runs after both sweeps, so the cache is
+		// complete by the first call here.
+		return g.getCachedComments(page, perPage)
+	}
+	// A one-time migration walks by creation order.
+	return g.getAllCommentsSince(ctx, page, perPage, nil, "created")
+}
+
+// getAllCommentsSince returns all repository issue and pull request comments
+// paginated; a non-nil since returns only those updated at or after it
+func (g *GithubDownloaderV3) getAllCommentsSince(ctx context.Context, page, perPage int, since *time.Time, sortField string) ([]*base.Comment, bool, error) {
 	var (
 		allComments = make([]*base.Comment, 0, perPage)
-		created     = "created"
 		asc         = "asc"
 	)
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
 	opt := &github.IssueListCommentsOptions{
-		Sort:      &created,
+		Sort:      &sortField,
 		Direction: &asc,
+		Since:     since,
 		ListOptions: github.ListOptions{
 			Page:    page,
 			PerPage: perPage,
@@ -661,6 +750,11 @@ func (g *GithubDownloaderV3) GetAllComments(ctx context.Context, page, perPage i
 
 // GetPullRequests returns pull requests according page and perPage
 func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
+	if g.useGraphQL {
+		// GraphQL fast path: fetches pull requests + comments + reviews (with
+		// their inline comments) in one request. A zero time means all of them.
+		return g.getNewPullRequestsGraphQL(ctx, page, time.Time{})
+	}
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -682,83 +776,157 @@ func (g *GithubDownloaderV3) GetPullRequests(ctx context.Context, page, perPage 
 	log.Trace("Request get pull requests %d/%d, but in fact get %d", perPage, page, len(prs))
 	g.setRate(&resp.Rate)
 	for _, pr := range prs {
-		labels := make([]*base.Label, 0, len(pr.Labels))
-		for _, l := range pr.Labels {
-			labels = append(labels, convertGithubLabel(l))
+		basePR, err := g.convertGithubPullRequest(ctx, pr, perPage)
+		if err != nil {
+			return nil, false, err
 		}
-
-		// get reactions
-		var reactions []*base.Reaction
-		if !g.SkipReactions {
-			for i := 1; ; i++ {
-				g.waitAndPickClient(ctx)
-				res, resp, err := g.getClient().Reactions.ListIssueReactions(ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListReactionOptions{
-					ListOptions: github.ListOptions{
-						Page:    i,
-						PerPage: perPage,
-					},
-				})
-				if err != nil {
-					return nil, false, err
-				}
-				g.setRate(&resp.Rate)
-				if len(res) == 0 {
-					break
-				}
-				for _, reaction := range res {
-					reactions = append(reactions, &base.Reaction{
-						UserID:   reaction.User.GetID(),
-						UserName: reaction.User.GetLogin(),
-						Content:  reaction.GetContent(),
-					})
-				}
-			}
-		}
-
-		// download patch and saved as tmp file
-		g.waitAndPickClient(ctx)
-
-		allPRs = append(allPRs, &base.PullRequest{
-			Title:          pr.GetTitle(),
-			Number:         int64(pr.GetNumber()),
-			PosterID:       pr.GetUser().GetID(),
-			PosterName:     pr.GetUser().GetLogin(),
-			PosterEmail:    pr.GetUser().GetEmail(),
-			Content:        pr.GetBody(),
-			Milestone:      pr.GetMilestone().GetTitle(),
-			State:          pr.GetState(),
-			Created:        pr.GetCreatedAt().Time,
-			Updated:        pr.GetUpdatedAt().Time,
-			Closed:         pr.ClosedAt.GetTime(),
-			Labels:         labels,
-			Merged:         pr.MergedAt != nil,
-			MergeCommitSHA: pr.GetMergeCommitSHA(),
-			MergedTime:     pr.MergedAt.GetTime(),
-			IsLocked:       pr.ActiveLockReason != nil,
-			Head: base.PullRequestBranch{
-				Ref:       pr.GetHead().GetRef(),
-				SHA:       pr.GetHead().GetSHA(),
-				OwnerName: pr.GetHead().GetUser().GetLogin(),
-				RepoName:  pr.GetHead().GetRepo().GetName(),
-				CloneURL:  pr.GetHead().GetRepo().GetCloneURL(), // see below for SECURITY related issues here
-			},
-			Base: base.PullRequestBranch{
-				Ref:       pr.GetBase().GetRef(),
-				SHA:       pr.GetBase().GetSHA(),
-				RepoName:  pr.GetBase().GetRepo().GetName(),
-				OwnerName: pr.GetBase().GetUser().GetLogin(),
-			},
-			PatchURL:     pr.GetPatchURL(), // see below for SECURITY related issues here
-			Reactions:    reactions,
-			ForeignIndex: int64(*pr.Number),
-			IsDraft:      pr.GetDraft(),
-		})
+		allPRs = append(allPRs, basePR)
 
 		// SECURITY: Ensure that the PR is safe
-		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
+		_ = CheckAndEnsureSafePR(basePR, g.baseURL, g)
 	}
 
-	return allPRs, len(prs) < perPage, nil
+	// Terminate on the Link header, not len(prs) < perPage (see getIssuesSince):
+	// a short page mid-results must not be misread as the end of a large backfill.
+	return allPRs, resp.NextPage == 0, nil
+}
+
+// GetNewPullRequests returns pull requests updated after the given time, paginated.
+// The pull request list API has no `since` filter, so it lists by most recently
+// updated and stops as soon as a pull request older than updatedAfter appears.
+// The search API is deliberately avoided: its results are capped at 1,000 and it
+// has a separate, much smaller rate limit.
+func (g *GithubDownloaderV3) GetNewPullRequests(ctx context.Context, page, perPage int, updatedAfter time.Time) ([]*base.PullRequest, bool, error) {
+	if g.useGraphQL {
+		// GraphQL fast path: fetches PRs + comments + reviews + review comments in
+		// one batched request instead of the REST per-PR review/comment N+1.
+		return g.getNewPullRequestsGraphQL(ctx, page, updatedAfter)
+	}
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
+	opt := &github.PullRequestListOptions{
+		Sort:      "updated",
+		Direction: "asc",
+		State:     "all",
+		ListOptions: github.ListOptions{
+			PerPage: perPage,
+			Page:    page,
+		},
+	}
+	allPRs := make([]*base.PullRequest, 0, perPage)
+	g.waitAndPickClient(ctx)
+	prs, resp, err := g.getClient().PullRequests.List(ctx, g.repoOwner, g.repoName, opt)
+	if err != nil {
+		return nil, false, fmt.Errorf("error while listing pull requests: %w", err)
+	}
+	log.Trace("Request get new pull requests %d/%d, but in fact get %d", perPage, page, len(prs))
+	g.setRate(&resp.Rate)
+	for _, pr := range prs {
+		// Walk ascending by update time and skip what is already synced (older
+		// than the watermark). The GitHub pull-request list has no server-side
+		// "since" filter, so the already-done head is skipped client-side;
+		// paginating to the true end rather than stopping early is what lets a
+		// partial sweep resume from the max updated_unix already stored.
+		if pr.GetUpdatedAt().Time.Before(updatedAfter) {
+			continue
+		}
+		basePR, err := g.convertGithubPullRequest(ctx, pr, perPage)
+		if err != nil {
+			return nil, false, err
+		}
+		allPRs = append(allPRs, basePR)
+
+		// SECURITY: Ensure that the PR is safe
+		_ = CheckAndEnsureSafePR(basePR, g.baseURL, g)
+	}
+
+	// Terminate on the Link header, not len(prs) < perPage (see getIssuesSince):
+	// a short page mid-results must not be misread as the end of a large backfill.
+	return allPRs, resp.NextPage == 0, nil
+}
+
+func (g *GithubDownloaderV3) convertGithubPullRequest(ctx context.Context, pr *github.PullRequest, perPage int) (*base.PullRequest, error) {
+	labels := make([]*base.Label, 0, len(pr.Labels))
+	for _, l := range pr.Labels {
+		labels = append(labels, convertGithubLabel(l))
+	}
+
+	reactions, err := g.getIssueReactions(ctx, pr.GetNumber(), perPage)
+	if err != nil {
+		return nil, err
+	}
+
+	// download patch and saved as tmp file
+	g.waitAndPickClient(ctx)
+
+	return &base.PullRequest{
+		Title:          pr.GetTitle(),
+		Number:         int64(pr.GetNumber()),
+		PosterID:       pr.GetUser().GetID(),
+		PosterName:     pr.GetUser().GetLogin(),
+		PosterEmail:    pr.GetUser().GetEmail(),
+		Content:        pr.GetBody(),
+		Milestone:      pr.GetMilestone().GetTitle(),
+		State:          pr.GetState(),
+		Created:        pr.GetCreatedAt().Time,
+		Updated:        pr.GetUpdatedAt().Time,
+		Closed:         pr.ClosedAt.GetTime(),
+		Labels:         labels,
+		Merged:         pr.MergedAt != nil,
+		MergeCommitSHA: pr.GetMergeCommitSHA(),
+		MergedTime:     pr.MergedAt.GetTime(),
+		IsLocked:       pr.ActiveLockReason != nil,
+		Head: base.PullRequestBranch{
+			Ref:       pr.GetHead().GetRef(),
+			SHA:       pr.GetHead().GetSHA(),
+			OwnerName: pr.GetHead().GetUser().GetLogin(),
+			RepoName:  pr.GetHead().GetRepo().GetName(),
+			CloneURL:  pr.GetHead().GetRepo().GetCloneURL(), // see below for SECURITY related issues here
+		},
+		Base: base.PullRequestBranch{
+			Ref:       pr.GetBase().GetRef(),
+			SHA:       pr.GetBase().GetSHA(),
+			RepoName:  pr.GetBase().GetRepo().GetName(),
+			OwnerName: pr.GetBase().GetUser().GetLogin(),
+		},
+		PatchURL:     pr.GetPatchURL(), // see below for SECURITY related issues here
+		Reactions:    reactions,
+		ForeignIndex: int64(*pr.Number),
+		IsDraft:      pr.GetDraft(),
+	}, nil
+}
+
+// getIssueReactions returns the reactions on an issue or pull request
+func (g *GithubDownloaderV3) getIssueReactions(ctx context.Context, number, perPage int) ([]*base.Reaction, error) {
+	var reactions []*base.Reaction
+	if g.SkipReactions {
+		return reactions, nil
+	}
+	for i := 1; ; i++ {
+		g.waitAndPickClient(ctx)
+		res, resp, err := g.getClient().Reactions.ListIssueReactions(ctx, g.repoOwner, g.repoName, number, &github.ListReactionOptions{
+			ListOptions: github.ListOptions{
+				Page:    i,
+				PerPage: perPage,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		g.setRate(&resp.Rate)
+		if len(res) == 0 {
+			break
+		}
+		for _, reaction := range res {
+			reactions = append(reactions, &base.Reaction{
+				UserID:   reaction.User.GetID(),
+				UserName: reaction.User.GetLogin(),
+				Content:  reaction.GetContent(),
+			})
+		}
+	}
+	return reactions, nil
 }
 
 func convertGithubReview(r *github.PullRequestReview) *base.Review {
@@ -822,7 +990,63 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(ctx context.Context, cs
 }
 
 // GetReviews returns pull requests review
+// nilIfZero returns a pointer to t, or nil when t is the zero time. The comment
+// APIs take a *time.Time `since`; a pointer to the zero time would be serialized
+// as since=0001-01-01, which GitHub rejects with 422, so a zero time (first
+// sync, no watermark) must be sent as nil to omit the filter and fetch all.
+func nilIfZero(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return &t
+}
+
+// GetNewComments returns an issue's or pull request's comments updated at or
+// after the given time
+func (g *GithubDownloaderV3) GetNewComments(ctx context.Context, commentable base.Commentable, updatedAfter time.Time) ([]*base.Comment, bool, error) {
+	comments, err := g.getCommentsSince(ctx, commentable, nilIfZero(updatedAfter))
+	return comments, false, err
+}
+
+// GetAllNewComments returns all repository comments updated at or after the
+// given time, paginated
+func (g *GithubDownloaderV3) GetAllNewComments(ctx context.Context, page, perPage int, updatedAfter time.Time) ([]*base.Comment, bool, error) {
+	if g.useGraphQL {
+		// GraphQL fast path: comments already came back with their issues; serve
+		// them from the cache instead of a second round of API calls.
+		return g.getCachedComments(page, perPage)
+	}
+	// A resumable sync walks by UPDATE order so the max comment updated_unix
+	// already stored is an exact resume point.
+	return g.getAllCommentsSince(ctx, page, perPage, nilIfZero(updatedAfter), "updated")
+}
+
+// GetNewReviews returns a pull request's reviews updated at or after the given
+// time. GitHub's reviews API has no since filter, so all reviews are refetched.
+func (g *GithubDownloaderV3) GetNewReviews(ctx context.Context, reviewable base.Reviewable, updatedAfter time.Time) ([]*base.Review, error) {
+	if g.useGraphQL {
+		// GraphQL fast path: reviews (and their inline comments) already came back
+		// with their pull request; serve them from the cache instead of the REST
+		// per-PR ListReviews + per-review ListReviewComments N+1.
+		return g.gqlReviews[reviewable.GetForeignIndex()], nil
+	}
+	return g.getReviewsREST(ctx, reviewable)
+}
+
 func (g *GithubDownloaderV3) GetReviews(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
+	if g.gqlReviews != nil {
+		// GraphQL fast path: reviews (and their inline comments) already came
+		// back with their pull request; serve them from the cache instead of the
+		// REST per-PR ListReviews + per-review ListReviewComments N+1.
+		return g.gqlReviews[reviewable.GetForeignIndex()], nil
+	}
+	return g.getReviewsREST(ctx, reviewable)
+}
+
+// getReviewsREST is the REST implementation behind GetReviews. It is also the
+// fallback the GraphQL PR sweep uses when a pull request's review set overflows
+// one page, so it must never consult the GraphQL cache.
+func (g *GithubDownloaderV3) getReviewsREST(ctx context.Context, reviewable base.Reviewable) ([]*base.Review, error) {
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
 	if g.SkipReviews {
 		return allReviews, nil
