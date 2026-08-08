@@ -70,7 +70,11 @@
 		{{if $.PullMirror}}
 			<div class="secondary-info">
 				{{ctx.Locale.Tr "repo.mirror_from"}}
-				<a target="_blank" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
+				{{if $.PullMirror.IsSSHRemoteAddress}}
+					<span>{{$.PullMirror.RemoteAddress}}</span>
+				{{else}}
+					<a target="_blank" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
+				{{end}}
 				{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{DateUtils.TimeSince $.PullMirror.UpdatedUnix}}{{end}}
 			</div>
 		{{end}}
