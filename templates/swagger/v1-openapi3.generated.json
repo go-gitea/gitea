@@ -4102,7 +4102,7 @@
           "name"
         ],
         "type": "object",
-        "x-go-package": "code.gitea.io/gitea/modules/structs"
+        "x-go-package": "gitea.dev/modules/structs"
       },
       "CreateHookOption": {
         "description": "CreateHookOption options when create a hook",
@@ -7032,6 +7032,7 @@
         "description": "HTTPSDeployKey an HTTPS deploy key/token",
         "properties": {
           "created_at": {
+            "description": "Created is the time when the deploy key was created",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Created"
@@ -7076,6 +7077,7 @@
             "x-go-name": "TokenLastEight"
           },
           "updated_at": {
+            "description": "Updated is the time when the deploy key was last updated",
             "format": "date-time",
             "type": "string",
             "x-go-name": "Updated"
@@ -7088,7 +7090,7 @@
           }
         },
         "type": "object",
-        "x-go-package": "code.gitea.io/gitea/modules/structs"
+        "x-go-package": "gitea.dev/modules/structs"
       },
       "Hook": {
         "description": "Hook a hook is a web hook when one repository changed",
