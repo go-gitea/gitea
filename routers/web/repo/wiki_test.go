@@ -12,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/contexttest"
 	"gitea.dev/services/forms"
@@ -125,7 +126,7 @@ func TestNewWikiPost(t *testing.T) {
 	} {
 		unittest.PrepareTestEnv(t)
 
-		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_new")
+		ctx, resp := contexttest.MockContext(t, "user2/repo1/wiki/?action=_new")
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, 1)
 		web.SetForm(ctx, &forms.NewWikiForm{
@@ -134,7 +135,8 @@ func TestNewWikiPost(t *testing.T) {
 			Message: message,
 		})
 		NewWikiPost(ctx)
-		assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+		assert.NotEmpty(t, test.RedirectURL(resp))
 		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
 		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)))
 	}
@@ -143,7 +145,7 @@ func TestNewWikiPost(t *testing.T) {
 func TestNewWikiPost_ReservedName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/?action=_new")
+	ctx, resp := contexttest.MockContext(t, "user2/repo1/wiki/?action=_new")
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.NewWikiForm{
@@ -152,8 +154,8 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 		Message: message,
 	})
 	NewWikiPost(ctx)
-	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
-	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page", "_edit"), ctx.Flash.ErrorMsg)
+	assert.Equal(t, http.StatusBadRequest, ctx.Resp.WrittenStatus())
+	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page", "_edit"), test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 	assertWikiNotExists(t, ctx.Repo.Repository, "_edit")
 }
 
@@ -183,7 +185,7 @@ func TestEditWikiPost(t *testing.T) {
 		"New/<page>",
 	} {
 		unittest.PrepareTestEnv(t)
-		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Home?action=_new")
+		ctx, resp := contexttest.MockContext(t, "user2/repo1/wiki/Home?action=_new")
 		ctx.SetPathParam("*", "Home")
 		contexttest.LoadUser(t, ctx, 2)
 		contexttest.LoadRepo(t, ctx, 1)
@@ -193,7 +195,8 @@ func TestEditWikiPost(t *testing.T) {
 			Message: message,
 		})
 		EditWikiPost(ctx)
-		assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+		assert.NotEmpty(t, test.RedirectURL(resp))
 		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
 		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)))
 		if title != "Home" {

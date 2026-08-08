@@ -36,15 +36,15 @@
 	</div>
 	<br>
 
-	<div {{if not .HasPrincipalError}}class="tw-hidden"{{end}} id="add-ssh-principal-panel">
+	<div class="tw-hidden" id="add-ssh-principal-panel">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.add_new_principal"}}
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
-				<div class="field {{if .Err_Content}}error{{end}}">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
+				<div class="field">
 					<label for="ssh-principal-content">{{ctx.Locale.Tr "settings.principal_content"}}</label>
-					<input id="ssh-principal-content" name="content" value="{{.content}}" autofocus required>
+					<input id="ssh-principal-content" name="content" autofocus required>
 				</div>
 				<input name="title" type="hidden" value="principal">
 				<input name="type" type="hidden" value="principal">

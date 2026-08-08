@@ -107,9 +107,6 @@ func EmailPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.AddEmailForm)
-	ctx.Data["Title"] = ctx.Tr("settings_title")
-	ctx.Data["PageIsSettingsAccount"] = true
-	ctx.Data["Email"] = ctx.Doer.Email
 
 	// Make email address primary.
 	if ctx.FormString("_method") == "PRIMARY" {
@@ -176,22 +173,17 @@ func EmailPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		loadAccountData(ctx)
-
-		ctx.HTML(http.StatusOK, tplSettingsAccount)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	if err := user.AddEmailAddresses(ctx, ctx.Doer, []string{form.Email}); err != nil {
-		if user_model.IsErrEmailAlreadyUsed(err) {
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
-		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
-			loadAccountData(ctx)
-
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
-		} else {
+		switch {
+		case user_model.IsErrEmailAlreadyUsed(err):
+			ctx.JSONError(ctx.Tr("form.email_been_used"))
+		case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
+			ctx.JSONError(ctx.Tr("form.email_invalid"))
+		default:
 			ctx.ServerError("AddEmailAddresses", err)
 		}
 		return
@@ -210,7 +202,7 @@ func EmailPost(ctx *context.Context) {
 	}
 
 	log.Trace("Email address added: %s", form.Email)
-	ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/account")
 }
 
 // DeleteEmail response for delete user's email

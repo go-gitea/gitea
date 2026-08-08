@@ -21,12 +21,12 @@
 			{{end}}
 		</h2>
 		{{template "base/alert" .}}
-		<form class="ui form" action="{{.Link}}" method="post">
-				<div class="field {{if .Err_Title}}error{{end}}">
+		<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
+				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.milestones.title"}}</label>
 					<input name="title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">
 				</div>
-				<div class="field {{if .Err_Deadline}}error{{end}}">
+				<div class="field">
 					<label>
 						{{ctx.Locale.Tr "repo.milestones.due_date"}}
 						<a id="milestone-clear-deadline">{{ctx.Locale.Tr "repo.milestones.clear"}}</a>

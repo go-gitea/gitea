@@ -79,7 +79,7 @@
 			{{if and (not .Verified) (eq $.VerifyingID .KeyID)}}
 				<div class="ui  segment">
 					<h4>{{ctx.Locale.Tr "settings.gpg_token_required"}}</h4>
-					<form class="ui form{{if $.HasGPGVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
+					<form class="ui form form-fetch-action" action="{{$.Link}}" method="post">
 						<input type="hidden" name="title" value="none">
 						<input type="hidden" name="content" value="{{.KeyID}}">
 						<input type="hidden" name="key_id" value="{{.KeyID}}">
@@ -94,7 +94,7 @@
 						</div>
 						<div class="field">
 							<label for="signature">{{ctx.Locale.Tr "settings.gpg_token_signature"}}</label>
-							<textarea id="gpg-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
+							<textarea id="gpg-key-signature" name="signature" placeholder="{{ctx.Locale.Tr "settings.key_signature_gpg_placeholder"}}" required></textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_gpg">
 						<button class="ui primary button">

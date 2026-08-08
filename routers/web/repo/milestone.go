@@ -106,19 +106,15 @@ func NewMilestone(ctx *context.Context) {
 // NewMilestonePost response for creating milestone
 func NewMilestonePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
-	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
-	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["PageIsMilestones"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplMilestoneNew)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	deadlineUnix, err := common.ParseDeadlineDateToEndOfDay(form.Deadline)
 	if err != nil {
-		ctx.Data["Err_Deadline"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
+		ctx.JSONError(ctx.Tr("repo.milestones.invalid_due_date_format"))
 		return
 	}
 
@@ -133,7 +129,7 @@ func NewMilestonePost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.milestones.create_success", form.Title))
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
 }
 
 // EditMilestone render edting milestone page
@@ -162,19 +158,15 @@ func EditMilestone(ctx *context.Context) {
 // EditMilestonePost response for edting milestone
 func EditMilestonePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
-	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
-	ctx.Data["PageIsMilestones"] = true
-	ctx.Data["PageIsEditMilestone"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplMilestoneNew)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
 	deadlineUnix, err := common.ParseDeadlineDateToEndOfDay(form.Deadline)
 	if err != nil {
-		ctx.Data["Err_Deadline"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.milestones.invalid_due_date_format"), tplMilestoneNew, &form)
+		ctx.JSONError(ctx.Tr("repo.milestones.invalid_due_date_format"))
 		return
 	}
 
@@ -196,7 +188,7 @@ func EditMilestonePost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.milestones.edit_success", m.Name))
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/milestones")
 }
 
 // ChangeMilestoneStatus response for change a milestone's status

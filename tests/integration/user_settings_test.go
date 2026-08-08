@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -393,6 +394,26 @@ func TestUserSettingsKeys(t *testing.T) {
 		session := loginUser(t, "user2")
 		req := NewRequest(t, "GET", "/user/settings/keys")
 		_ = session.MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("add ssh key responds with json", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, "user2")
+		addKey := func(title string, expectedStatus int) *httptest.ResponseRecorder {
+			req := NewRequestWithValues(t, "POST", "/user/settings/keys", map[string]string{
+				"type":    "ssh",
+				"title":   title,
+				"content": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf",
+			})
+			return session.MakeRequest(t, req, expectedStatus)
+		}
+
+		assert.NotEmpty(t, test.RedirectURL(addKey("test-key", http.StatusOK)))
+
+		// a duplicate key is answered with a JSON error, not with a re-rendered page
+		resp := addKey("test-key-again", http.StatusBadRequest)
+		assert.NotEmpty(t, test.ParseJSONError(resp.Body.Bytes()).ErrorMessage)
 	})
 }
 

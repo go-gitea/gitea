@@ -31,7 +31,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	defer test.MockVariableValue(&setting.SSH.RootPath, t.TempDir())()
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys")
+	ctx, resp := contexttest.MockContext(t, "user2/repo1/settings/keys")
 
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 2)
@@ -42,7 +42,8 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	}
 	web.SetForm(ctx, &addKeyForm)
 	DeployKeysPost(ctx)
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+	assert.NotEmpty(t, test.RedirectURL(resp))
 
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
@@ -56,7 +57,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 
 	unittest.PrepareTestEnv(t)
 
-	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys")
+	ctx, resp := contexttest.MockContext(t, "user2/repo1/settings/keys")
 
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadRepo(t, ctx, 2)
@@ -68,7 +69,8 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	}
 	web.SetForm(ctx, &addKeyForm)
 	DeployKeysPost(ctx)
-	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+	assert.NotEmpty(t, test.RedirectURL(resp))
 
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
