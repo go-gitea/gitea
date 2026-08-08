@@ -81,17 +81,22 @@ func GetWebContext(ctx context.Context) *Context {
 	return webCtx
 }
 
-// ValidateContext is a special context for form validation middleware. It may be different from other contexts.
-type ValidateContext struct {
-	*Base
-}
-
 // GetValidateContext gets a context for middleware form validation
-func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
+func GetValidateContext(req *http.Request) (ctx *middleware.ValidateContext) {
 	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
-		ctx = &ValidateContext{Base: ctxAPI.Base}
+		ctx = &middleware.ValidateContext{
+			Data:   ctxAPI.Data,
+			Locale: ctxAPI.Locale,
+			Req:    ctxAPI.Req,
+			Resp:   ctxAPI.Resp,
+		}
 	} else if ctxWeb, ok := req.Context().Value(WebContextKey).(*Context); ok {
-		ctx = &ValidateContext{Base: ctxWeb.Base}
+		ctx = &middleware.ValidateContext{
+			Data:   ctxWeb.Data,
+			Locale: ctxWeb.Locale,
+			Req:    ctxWeb.Req,
+			Resp:   ctxWeb.Resp,
+		}
 	} else {
 		panic("invalid context, expect either APIContext or Context")
 	}

@@ -5,9 +5,12 @@
 package middleware
 
 import (
+	"net/http"
 	"reflect"
 	"strings"
 
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
@@ -15,6 +18,14 @@ import (
 
 	"gitea.com/go-chi/binding"
 )
+
+// ValidateContext is a special context for form validation middleware. It may be different from other contexts.
+type ValidateContext struct {
+	Locale translation.Locale
+	Data   reqctx.ContextData
+	Req    *http.Request
+	Resp   http.ResponseWriter
+}
 
 // Form form binding interface
 type Form interface {
@@ -159,20 +170,30 @@ func buildValidationErrorForUser(f Form, l translation.Locale, bindingErrs bindi
 	return errorMessage, errorFieldName, fieldNames
 }
 
-func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Locale) binding.Errors {
+func Validate(ctx *ValidateContext, errs binding.Errors, f Form) binding.Errors {
 	// try to restore the form's values as much as possible,
 	// especially for RenderWithErrDeprecated to re-render the form with errors
-	AssignForm(f, data)
+	AssignForm(f, ctx.Data)
 
-	errorMessage, errorFieldName, _ := buildValidationErrorForUser(f, l, errs)
-	if errorMessage != "" {
-		// if HasError=true, then must set default error message
-		// because still a lot of places use `ctx.Data["ErrorMsg"].(string)` even if the error fields can't be found
-		data["HasError"] = true
-		data["ErrorMsg"] = errorMessage
-		if errorFieldName != "" {
-			data["Err_"+errorFieldName] = true
-		}
+	errorMessage, errorFieldName, fieldNames := buildValidationErrorForUser(f, ctx.Locale, errs)
+	if errorMessage == "" {
+		return errs
+	}
+
+	if ctx.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
+		ctx.Resp.Header().Set("Content-Type", "application/json")
+		_ = json.MarshalWrite(ctx.Resp, map[string]any{
+			"errorMessage": errorMessage,
+			"errorFields":  fieldNames,
+		})
+		return errs
+	}
+
+	// legacy template error display
+	ctx.Data["HasError"] = true
+	ctx.Data["ErrorMsg"] = errorMessage
+	if errorFieldName != "" {
+		ctx.Data["Err_"+errorFieldName] = true
 	}
 	return errs
 }
