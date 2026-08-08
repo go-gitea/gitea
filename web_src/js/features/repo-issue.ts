@@ -243,9 +243,10 @@ export function initRepoPullRequestReview() {
     handleReply(el);
   });
 
-  // The following part is only for diff views
-  if (!document.querySelector('.repository.pull.diff')) return;
+  // The following part is only for diff views (PR diff or commit diff)
+  if (!document.querySelector('.repository.diff')) return;
 
+  // the review panel only exists on the PR files page
   const elReviewBtn = document.querySelector('.js-btn-review');
   const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
   if (elReviewBtn && elReviewPanel) {

@@ -149,6 +149,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&activities_model.Action{RepoID: repo.ID},
 		&repo_model.Collaboration{RepoID: repoID},
 		&issues_model.Comment{RefRepoID: repoID},
+		&repo_model.CommitComment{RepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
 		&git_model.CommitStatusIndex{RepoID: repoID},
 		&git_model.CommitStatusSummary{RepoID: repoID},

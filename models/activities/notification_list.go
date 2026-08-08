@@ -183,7 +183,7 @@ func (nl NotificationList) LoadAttributes(ctx context.Context) error {
 	if _, err := nl.LoadComments(ctx); err != nil {
 		return err
 	}
-	return nil
+	return nl.LoadCommitComments(ctx)
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {
@@ -453,6 +453,38 @@ func (nl NotificationList) LoadComments(ctx context.Context) ([]int, error) {
 		}
 	}
 	return failures, nil
+}
+
+// LoadCommitComments clears the CommitCommentID of SourceCommit notifications
+// whose commit comment has since been deleted, so list pages and the API don't
+// render dangling anchors.
+func (nl NotificationList) LoadCommitComments(ctx context.Context) error {
+	pending := make(container.Set[int64])
+	for _, n := range nl {
+		if n.Source == NotificationSourceCommit && n.CommitCommentID != 0 {
+			pending.Add(n.CommitCommentID)
+		}
+	}
+	if len(pending) == 0 {
+		return nil
+	}
+
+	repoIDs, err := repo_model.FindCommitCommentRepoIDs(ctx, pending.Values())
+	if err != nil {
+		return err
+	}
+
+	for _, n := range nl {
+		if n.Source != NotificationSourceCommit || n.CommitCommentID == 0 {
+			continue
+		}
+		// Match on repo id too: the single-row helper GetCommitCommentByID
+		// enforces that pairing and the list path should stay consistent.
+		if repoIDs[n.CommitCommentID] != n.RepoID {
+			n.CommitCommentID = 0
+		}
+	}
+	return nil
 }
 
 // LoadIssuePullRequests loads all issues' pull requests if possible

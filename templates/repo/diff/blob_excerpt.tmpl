@@ -1,5 +1,7 @@
 {{$diffBlobExcerptData := .DiffBlobExcerptData}}
 {{$canCreateComment := and ctx.RootData.SignedUserID $diffBlobExcerptData.PullIssueIndex}}
+{{/* the commit diff has its own standalone inline comments, keyed by real diff side */}}
+{{$canCommitComment := and ctx.RootData.SignedUserID ctx.RootData.CanCommentOnCommit}}
 {{if $.IsSplitStyle}}
 	{{range $k, $line := $.section.Lines}}
 	<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}} line-expanded" data-line-type="{{.GetHTMLDiffLineType}}">
@@ -20,6 +22,10 @@
 					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
 						{{- svg "octicon-plus" -}}
 					</button>
+				{{- else if and $canCommitComment $line.LeftIdx -}}
+					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-left{{if not $line.CanCommentLeft}} tw-invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">
+						{{- svg "octicon-plus" -}}
+					</button>
 				{{- end -}}
 				{{- if $line.LeftIdx -}}
 					{{- template "repo/diff/section_code" dict "diff" $inlineDiff -}}
@@ -31,8 +37,8 @@
 			<td class="lines-escape lines-escape-new">{{if and $line.RightIdx}}{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}{{end}}</td>
 			<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-new">
-				{{- if and $canCreateComment $line.RightIdx -}}
-					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
+				{{- if and (or $canCreateComment $canCommitComment) $line.RightIdx -}}
+					<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-right{{if not $line.CanCommentRight}} tw-invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">
 						{{- svg "octicon-plus" -}}
 					</button>
 				{{- end -}}
@@ -58,6 +64,7 @@
 			</td>
 		</tr>
 	{{end}}
+	{{template "repo/diff/commit_conversation_row" dict "root" $ "left" $line.CommitCommentsLeft "right" $line.CommitCommentsRight "lineType" $line.GetHTMLDiffLineType "split" true}}
 	{{end}}
 {{else}}
 	{{range $k, $line := $.section.Lines}}
@@ -72,8 +79,8 @@
 		<td class="lines-escape">{{ctx.RenderUtils.RenderUnicodeEscapeToggleButton $inlineDiff.EscapeStatus}}</td>
 		<td class="lines-type-marker"><span class="tw-font-mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 		<td class="lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">
-			{{- if and $canCreateComment -}}
-				<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
+			{{- if or $canCreateComment $canCommitComment -}}
+				<button type="button" aria-label="{{ctx.Locale.Tr "repo.diff.comment.add_line_comment"}}" class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if not $line.CanCommentUnified}} tw-invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">
 					{{- svg "octicon-plus" -}}
 				</button>
 			{{- end -}}
@@ -87,5 +94,6 @@
 			</td>
 		</tr>
 	{{end}}
+	{{template "repo/diff/commit_conversation_row" dict "root" $ "left" $line.CommitCommentsLeft "right" $line.CommitCommentsRight "lineType" $line.GetHTMLDiffLineType}}
 	{{end}}
 {{end}}
