@@ -4,9 +4,13 @@
 package pull
 
 import (
+	"path/filepath"
 	"testing"
 
+	"gitea.dev/modules/git"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_expandDefaultMergeMessage(t *testing.T) {
@@ -89,4 +93,48 @@ func TestAddCommitMessageTailer(t *testing.T) {
 	// add tailer for message with existing tailer and different value (will append)
 	assert.Equal(t, "title\n\nTest-tailer: v1\nTest-tailer: v2", AddCommitMessageTailer("title\n\nTest-tailer: v1", "Test-tailer", "v2"))
 	assert.Equal(t, "title\n\nTest-tailer: v1\nTest-tailer: v2", AddCommitMessageTailer("title\n\nTest-tailer: v1\n", "Test-tailer", "v2"))
+}
+
+func TestResolveMergeMessageTemplate(t *testing.T) {
+	t.Run("NoDefault", func(t *testing.T) {
+		repo, err := git.ForceFastImportWithInit(t.Context(), filepath.Join(t.TempDir(), "test-repo"), []git.FastImportCommit{
+			{Ref: "refs/heads/master", Files: []git.FastImportFile{
+				{Path: ".gitea/default_merge_message/REBASE_TEMPLATE.md", Content: "rebase template"},
+			}},
+		})
+		require.NoError(t, err)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+
+		commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
+		require.NoError(t, err)
+		tmpl, err := resolveMergeMessageTemplate(t.Context(), gitRepo, commit, "merge")
+		assert.NoError(t, err)
+		assert.Equal(t, "", tmpl)
+		tmpl, err = resolveMergeMessageTemplate(t.Context(), gitRepo, commit, "rebase")
+		assert.NoError(t, err)
+		assert.Equal(t, "rebase template", tmpl)
+	})
+	t.Run("WithDefault", func(t *testing.T) {
+		repo, err := git.ForceFastImportWithInit(t.Context(), filepath.Join(t.TempDir(), "test-repo"), []git.FastImportCommit{
+			{Ref: "refs/heads/master", Files: []git.FastImportFile{
+				{Path: ".gitea/default_merge_message/DEFAULT_TEMPLATE.md", Content: "default template"},
+				{Path: ".gitea/default_merge_message/REBASE_TEMPLATE.md", Content: "rebase template"},
+			}},
+		})
+		require.NoError(t, err)
+		gitRepo, err := git.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+
+		commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
+		require.NoError(t, err)
+		tmpl, err := resolveMergeMessageTemplate(t.Context(), gitRepo, commit, "merge")
+		assert.NoError(t, err)
+		assert.Equal(t, "default template", tmpl)
+		tmpl, err = resolveMergeMessageTemplate(t.Context(), gitRepo, commit, "rebase")
+		assert.NoError(t, err)
+		assert.Equal(t, "rebase template", tmpl)
+	})
 }

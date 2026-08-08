@@ -5,14 +5,17 @@ package vars
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
 
-// Expand replaces all variables like {var} by `vars` map, it always returns the expanded string regardless of errors
-// if error occurs, the error part doesn't change and is returned as it is.
-func Expand(template string, vars map[string]string) (string, error) {
+// ExpandCurlyBrace replaces all variables like {var} by `vars` map,
+// it always returns the expanded string regardless of errors.
+// if error occurs (wrong syntax, missing variable), the error part doesn't change and is returned as it is.
+func ExpandCurlyBrace(template string, vars map[string]string) (string, error) {
 	// in the future, if necessary, we can introduce some escape-char,
 	// for example: it will use `#' as a reversed char, templates will use `{#{}` to do escape and output char '{'.
 	var buf strings.Builder
@@ -70,4 +73,27 @@ func Expand(template string, vars map[string]string) (string, error) {
 	}
 
 	return buf.String(), err
+}
+
+var globalVars = sync.OnceValue(func() (ret struct {
+	regexpShellLike *regexp.Regexp
+},
+) {
+	ret.regexpShellLike = regexp.MustCompile(`(\$\{[a-zA-Z_]\w*\}|\$[a-zA-Z_]\w*)`)
+	return ret
+})
+
+// ExpandShellLike works like os.Expand, the difference is that this function keeps the non-existing keys
+func ExpandShellLike(template string, vars map[string]string) string {
+	re := globalVars().regexpShellLike
+	return re.ReplaceAllStringFunc(template, func(s string) string {
+		key := s[1:]
+		if strings.HasPrefix(key, "{") && strings.HasSuffix(key, "}") {
+			key = key[1 : len(key)-1]
+		}
+		if val, ok := vars[key]; ok {
+			return val
+		}
+		return s
+	})
 }

@@ -266,6 +266,11 @@ async function webAuthnRegisterRequest() {
     });
     await webauthnRegistered(credential);
   } catch (err) {
+    // an already registered authenticator raises this
+    if (err instanceof DOMException && err.name === 'InvalidStateError') {
+      webAuthnError('duplicated');
+      return;
+    }
     webAuthnError('unknown', errorMessage(err));
   }
 }
