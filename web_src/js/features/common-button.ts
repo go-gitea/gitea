@@ -111,8 +111,10 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
 
     if (attrTargetProp) {
       assignElementProperty(attrTarget, attrTargetProp, attrib.value);
+    } else if (attrTarget.matches('input[type=checkbox], input[type=radio]')) {
+      (attrTarget as HTMLInputElement).checked = attrib.value === 'true';
     } else if (attrTarget.matches('input, textarea')) {
-      (attrTarget as HTMLInputElement | HTMLTextAreaElement).value = attrib.value; // FIXME: add more supports like checkbox
+      (attrTarget as HTMLInputElement | HTMLTextAreaElement).value = attrib.value;
     } else {
       attrTarget.textContent = attrib.value; // FIXME: it should be more strict here, only handle div/span/p
     }
