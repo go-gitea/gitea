@@ -22,7 +22,6 @@ import (
 	packages_module "gitea.dev/modules/packages"
 	conan_module "gitea.dev/modules/packages/conan"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 	"gitea.dev/routers/api/packages/helper"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -105,12 +104,11 @@ func ExtractPathParameters(ctx *context.Context) {
 }
 
 func getRecipeReference(ctx *context.Context) *conan_module.RecipeReference {
-	return util.GetMapValueOrDefault[*conan_module.RecipeReference](ctx.Data, recipeReferenceKey, nil)
+	return ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference) //nolint:forcetypeassert // must be valid
 }
 
-// getPackageReference returns nil on routes without a package reference
 func getPackageReference(ctx *context.Context) *conan_module.PackageReference {
-	return util.GetMapValueOrDefault[*conan_module.PackageReference](ctx.Data, packageReferenceKey, nil)
+	return ctx.Data[packageReferenceKey].(*conan_module.PackageReference) //nolint:forcetypeassert // must be valid
 }
 
 // Ping reports the server capabilities
