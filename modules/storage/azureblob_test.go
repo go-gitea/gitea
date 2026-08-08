@@ -27,24 +27,16 @@ func TestAzureBlobStorage(t *testing.T) {
 			Container:   "test",
 		},
 	}
-	table := []struct {
-		name string
-		test func(t *testing.T, typStr Type, cfg *setting.Storage)
-	}{
-		{
-			name: "iterator",
-			test: testStorageIterator,
-		},
-		{
-			name: "testBlobStorageURLContentTypeAndDisposition",
-			test: testBlobStorageURLContentTypeAndDisposition,
-		},
-	}
-	for _, entry := range table {
-		t.Run(entry.name, func(t *testing.T) {
-			entry.test(t, storageType, config)
-		})
-	}
+	t.Run("Iterator", func(t *testing.T) {
+		testStorageIterator(t, storageType, config)
+	})
+	t.Run("BlobStorageURLContentTypeAndDisposition", func(t *testing.T) {
+		testBlobStorageURLContentTypeAndDisposition(t, storageType, config)
+	})
+	t.Run("IteratorWithBasePath", func(t *testing.T) {
+		config.AzureBlobConfig.BasePath = "test-base-path"
+		testStorageIterator(t, storageType, config)
+	})
 }
 
 func TestAzureBlobStoragePath(t *testing.T) {
