@@ -13,7 +13,6 @@ import (
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/indexer/code/internal"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 )
 
 func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (string, error) {
@@ -39,62 +38,9 @@ func getRepoChanges(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 	}
 
 	if needGenesis {
-		return genesisChanges(ctx, repo, gitRepo, revision)
+		return internal.GenesisChanges(ctx, repo, gitRepo, revision)
 	}
 	return nonGenesisChanges(ctx, repo, gitRepo, revision)
-}
-
-func isIndexable(entry *git.TreeEntry) bool {
-	if !entry.IsRegular() && !entry.IsExecutable() {
-		return false
-	}
-	name := strings.ToLower(entry.Name())
-	for _, g := range setting.Indexer.ExcludePatterns {
-		if g.Match(name) {
-			return false
-		}
-	}
-	for _, g := range setting.Indexer.IncludePatterns {
-		if g.Match(name) {
-			return true
-		}
-	}
-	return len(setting.Indexer.IncludePatterns) == 0
-}
-
-// parseGitLsTreeOutput parses the output of a `git ls-tree -r --full-name` command
-func parseGitLsTreeOutput(ctx context.Context, gitRepo *git.Repository, stdout []byte) ([]internal.FileUpdate, error) {
-	entries, err := git.ParseTreeEntries(stdout)
-	if err != nil {
-		return nil, err
-	}
-	idxCount := 0
-	updates := make([]internal.FileUpdate, len(entries))
-	for _, entry := range entries {
-		if isIndexable(entry) {
-			updates[idxCount] = internal.FileUpdate{
-				Filename: entry.Name(),
-				BlobSha:  entry.ID.String(),
-				Size:     entry.GetSize(ctx, gitRepo),
-				Sized:    true,
-			}
-			idxCount++
-		}
-	}
-	return updates[:idxCount], nil
-}
-
-// genesisChanges get changes to add repo to the indexer for the first time
-func genesisChanges(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, revision string) (*internal.RepoChanges, error) {
-	var changes internal.RepoChanges
-	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "--full-tree", "-l", "-r").AddDynamicArguments(revision).WithRepo(repo).RunStdBytes(ctx)
-	if runErr != nil {
-		return nil, runErr
-	}
-
-	var err error
-	changes.Updates, err = parseGitLsTreeOutput(ctx, gitRepo, stdout)
-	return &changes, err
 }
 
 // nonGenesisChanges get changes since the previous indexer update
@@ -108,7 +54,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, gitRepo
 		if err := (*globalIndexer.Load()).Delete(ctx, repo.ID); err != nil {
 			return nil, err
 		}
-		return genesisChanges(ctx, repo, gitRepo, revision)
+		return internal.GenesisChanges(ctx, repo, gitRepo, revision)
 	}
 
 	var changes internal.RepoChanges
@@ -123,7 +69,7 @@ func nonGenesisChanges(ctx context.Context, repo *repo_model.Repository, gitRepo
 			return err
 		}
 
-		updates, err1 := parseGitLsTreeOutput(ctx, gitRepo, lsTreeStdout)
+		updates, err1 := internal.ParseGitLsTreeOutput(ctx, gitRepo, lsTreeStdout)
 		if err1 != nil {
 			return err1
 		}
