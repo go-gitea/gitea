@@ -51,7 +51,7 @@
 		{{if .EnablePasskeyAuth}}
 			<div id="passkey-auth-navigator" class="tw-flex tw-flex-col tw-gap-3 tw-pt-3">
 				{{template "user/auth/webauthn_error" .}}
-				<a class="signin-passkey ui button external-login-link tw-gap-3">{{svg "octicon-passkey-fill"}} {{ctx.Locale.Tr "auth.signin_passkey"}}</a>
+				<a class="signin-passkey ui button tw-gap-3">{{svg "octicon-passkey-fill"}} {{ctx.Locale.Tr "auth.signin_passkey"}}</a>
 			</div>
 		{{end}}
 
