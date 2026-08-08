@@ -123,33 +123,19 @@ func ParsePackage(sr io.ReaderAt, size int64, mr io.Reader) (*Package, error) {
 		},
 	}
 
-	// Find the directory containing the package manifest(s). A source archive
-	// contains the package at the archive root or inside a single top level
-	// directory (`swift package archive-source` output). Repositories often
-	// contain additional nested packages (test fixtures, example projects,
-	// benchmark packages, e.g. `Utils/Debugger/FormatterFixtures/Package.swift`
-	// in swift-collections) whose manifests must not be treated as the package
-	// manifest. Pick the shallowest directory containing a manifest rather
-	// than requiring a specific layout, so unusual but previously accepted
-	// archives keep working.
-	// The leading directory is only ever replaced by a strictly better one,
-	// so files of a directory that lost once can be dropped immediately.
+	// Nested packages (test fixtures, examples, benchmarks) ship their own manifests, which must not
+	// replace the package manifest. The package sits at the archive root or in a single top level
+	// directory, so keep only the shallowest manifest directory, breaking ties by name for stability.
 	var manifestFiles []*zip.File
-	manifestDir, manifestDirDepth := "", -1
+	manifestDir, manifestDepth := "", 0
 	for _, file := range zr.File {
 		if strings.HasSuffix(file.Name, "/") || !manifestPattern.MatchString(path.Base(file.Name)) {
 			continue
 		}
-		dir := path.Dir(file.Name)
-		depth := 0
-		if dir != "." {
-			depth = strings.Count(dir, "/") + 1
-		}
+		dir, depth := path.Dir(file.Name), strings.Count(file.Name, "/")
 		switch {
-		case manifestDirDepth < 0 || depth < manifestDirDepth ||
-			(depth == manifestDirDepth && dir < manifestDir):
-			manifestDir, manifestDirDepth = dir, depth
-			manifestFiles = append(manifestFiles[:0], file)
+		case manifestFiles == nil || depth < manifestDepth || (depth == manifestDepth && dir < manifestDir):
+			manifestDir, manifestDepth, manifestFiles = dir, depth, []*zip.File{file}
 		case dir == manifestDir:
 			manifestFiles = append(manifestFiles, file)
 		}
