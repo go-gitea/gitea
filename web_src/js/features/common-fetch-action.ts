@@ -96,7 +96,7 @@ function resetFormErrorFields(elForm: HTMLFormElement) {
   queryElems(elForm, '.field.error', (el) => el.classList.remove('error'));
 }
 
-function handleFetchActionErrorFields(el: HTMLElement, errorFields: string[]) {
+export function handleFetchActionErrorFields(el: HTMLElement, errorFields: string[]) {
   // The "error field" only works in a form.
   // And non-form requests do not need such "error field" because the requests are just from a button or a link in such cases.
   if (el.nodeName !== 'FORM') return;
