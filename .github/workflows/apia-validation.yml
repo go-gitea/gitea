@@ -71,6 +71,17 @@ jobs:
             sleep 10
           done
 
+      - name: Run Playwright frontend measurement
+        shell: bash
+        continue-on-error: true
+        env:
+          BASELINE_URL: http://localhost:30301
+          STAGING_URL: http://localhost:30302
+          OUTPUT_FILE: /tmp/playwright-results.json
+        run: |
+          node $APIA_HOME/playwright/measure.js
+          echo "PLAYWRIGHT_RESULT_FILE=/tmp/playwright-results.json" >> $GITHUB_ENV
+
       - name: Run K6 load test
         shell: bash
         run: |
