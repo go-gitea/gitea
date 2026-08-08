@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/actionslib/pkg/model"
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/actions/workflowpattern"
 	"gitea.dev/modules/git"
@@ -21,7 +22,6 @@ import (
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 
-	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 

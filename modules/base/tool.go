@@ -23,7 +23,7 @@ import (
 // EncodeSha256 string to sha256 hex value.
 func EncodeSha256(str string) string {
 	h := sha256.New()
-	_, _ = h.Write([]byte(str))
+	_, _ = h.Write(util.UnsafeStringToBytes(str))
 	return hex.EncodeToString(h.Sum(nil))
 }
 

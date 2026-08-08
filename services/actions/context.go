@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	actions_module "gitea.dev/modules/actions"
