@@ -106,21 +106,22 @@ func (r *Release) LoadRepo(ctx context.Context) (err error) {
 	return err
 }
 
+func (r *Release) LoadPublisher(ctx context.Context) error {
+	if r.Publisher != nil {
+		return nil
+	}
+	var err error
+	r.PublisherID, r.Publisher, err = user_model.GetPossibleUserByID(ctx, r.PublisherID)
+	return err
+}
+
 // LoadAttributes load repo and publisher attributes for a release
-func (r *Release) LoadAttributes(ctx context.Context) (err error) {
+func (r *Release) LoadAttributes(ctx context.Context) error {
 	if err := r.LoadRepo(ctx); err != nil {
 		return err
 	}
-
-	if r.Publisher == nil {
-		r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				r.Publisher = user_model.NewGhostUser()
-			} else {
-				return err
-			}
-		}
+	if err := r.LoadPublisher(ctx); err != nil {
+		return err
 	}
 	return GetReleaseAttachments(ctx, r)
 }

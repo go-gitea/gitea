@@ -32,6 +32,7 @@ import (
 	"gitea.dev/services/context"
 	git_service "gitea.dev/services/git"
 	"gitea.dev/services/gitdiff"
+	"gitea.dev/services/notifications"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/services/repository/gitgraph"
 )
@@ -313,6 +314,13 @@ func Diff(ctx *context.Context) {
 	}
 	if len(commitID) != commit.ID.Type().FullLength() {
 		commitID = commit.ID.String()
+	}
+
+	if ctx.IsSigned {
+		if err := notifications.SetCommitReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID, commitID); err != nil {
+			ctx.ServerError("SetCommitReadBy", err)
+			return
+		}
 	}
 
 	fileOnly := ctx.FormBool("file-only")

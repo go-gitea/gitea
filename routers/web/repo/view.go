@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	activities_model "gitea.dev/models/activities"
 	admin_model "gitea.dev/models/admin"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
@@ -202,14 +201,6 @@ func checkHomeCodeViewable(ctx *context.Context) {
 			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed
 			ctx.HTML(http.StatusOK, tplMigrating)
 			return
-		}
-
-		if ctx.IsSigned {
-			// Set repo notification-status read if unread
-			if err := activities_model.SetRepoReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
-				ctx.ServerError("ReadBy", err)
-				return
-			}
 		}
 
 		var firstUnit *unit_model.Unit

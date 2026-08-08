@@ -420,6 +420,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(344, "Add deferred-matrix columns to ActionRunJob", v1_28.AddDeferredMatrixColumnsToActionRunJob),
 		newMigration(345, "Add block on CODEOWNERS reviews branch protection", v1_28.AddBlockOnCodeownerReviews),
 		newMigration(346, "Add license_path column to repo_license and backfill", v1_28.AddLicensePathToRepoLicense),
+		newMigration(347, "Replace notification subject columns with a typed subject identity", v1_28.AddNotificationSubjectIdentity),
 	}
 	return preparedMigrations
 }

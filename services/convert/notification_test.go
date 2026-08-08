@@ -55,7 +55,7 @@ func TestToNotificationThreadOmitsSubjectWhenAccessRevoked(t *testing.T) {
 		RepoID:      repo.ID,
 		Status:      activities_model.NotificationStatusUnread,
 		Source:      activities_model.NotificationSourceIssue,
-		IssueID:     issue.ID,
+		SubjectID:   issue.ID,
 		UpdatedUnix: timeutil.TimeStampNow(),
 		Issue:       issue,
 		Repository:  repo,
@@ -107,7 +107,7 @@ func TestToNotificationThread(t *testing.T) {
 			RepoID:     repo.ID,
 			Status:     activities_model.NotificationStatusUnread,
 			Source:     activities_model.NotificationSourcePullRequest,
-			IssueID:    issue.ID,
+			SubjectID:  issue.ID,
 			Issue:      issue,
 			Repository: repo,
 		}
@@ -129,7 +129,7 @@ func TestToNotificationThread(t *testing.T) {
 			RepoID:     repo.ID,
 			Status:     activities_model.NotificationStatusUnread,
 			Source:     activities_model.NotificationSourcePullRequest,
-			IssueID:    issue.ID,
+			SubjectID:  issue.ID,
 			Issue:      issue,
 			Repository: repo,
 		}
@@ -139,6 +139,54 @@ func TestToNotificationThread(t *testing.T) {
 		assert.Equal(t, api.NotifySubjectPull, thread.Subject.Type)
 		assert.Equal(t, api.NotifySubjectStateOpen, thread.Subject.State)
 	})
+}
+
+// The API list endpoints load subjects best-effort and keep notifications whose subject is
+// gone. Converting such a notification must not panic — it used to dereference a nil
+// Release and take the whole endpoint down with a 500.
+func TestToNotificationThreadWithMissingSubject(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NoError(t, repo.LoadOwner(ctx))
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	for _, tc := range []struct {
+		name         string
+		source       activities_model.NotificationSource
+		subjectID    int64
+		subjectRef   string
+		title        string
+		expectedType api.NotifySubjectType
+	}{
+		{"deleted release", activities_model.NotificationSourceRelease, unittest.NonexistentID, "", "v9.9.9", api.NotifySubjectRelease},
+		{"deleted issue", activities_model.NotificationSourceIssue, unittest.NonexistentID, "", "a deleted issue", api.NotifySubjectIssue},
+		{"deleted pull request", activities_model.NotificationSourcePullRequest, unittest.NonexistentID, "", "a deleted pull", api.NotifySubjectPull},
+		{"missing commit", activities_model.NotificationSourceCommit, 0, "deadbeef", "a commit message", api.NotifySubjectCommit},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			n := &activities_model.Notification{
+				ID:          4242,
+				UserID:      user.ID,
+				RepoID:      repo.ID,
+				Status:      activities_model.NotificationStatusUnread,
+				Source:      tc.source,
+				SubjectID:   tc.subjectID,
+				SubjectRef:  tc.subjectRef,
+				Title:       tc.title,
+				UpdatedUnix: timeutil.TimeStampNow(),
+				Repository:  repo,
+				User:        user,
+			}
+
+			var thread *api.NotificationThread
+			require.NotPanics(t, func() { thread = ToNotificationThread(ctx, n) })
+			require.NotNil(t, thread.Subject)
+			assert.Equal(t, tc.expectedType, thread.Subject.Type)
+			assert.Equal(t, tc.title, thread.Subject.Title, "the snapshotted title is served when the subject is gone")
+		})
+	}
 }
 
 func newRepoNotification(t *testing.T, repoID, userID int64) *activities_model.Notification {

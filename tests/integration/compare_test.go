@@ -138,6 +138,19 @@ func TestCompareBranches(t *testing.T) {
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 }
 
+// An existing pull request renders its issue icon on the compare page; reading the icon off
+// the template context instead of the issue used to 500 the whole page.
+func TestCompareWithExistingPullRequest(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/repo1/compare/master...branch2")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	assert.Equal(t, "#3", strings.TrimSpace(htmlDoc.doc.Find(".issue-title .index").Text()))
+}
+
 func TestCompareWithRefSuffix(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
