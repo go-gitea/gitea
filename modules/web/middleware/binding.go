@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -49,7 +50,8 @@ func AssignForm(form any, data map[string]any) {
 	}
 }
 
-func getRuleBody(field reflect.StructField, prefix string) string {
+func getRuleBody(field reflect.StructField, ruleName string) string {
+	prefix := ruleName + "("
 	for rule := range strings.SplitSeq(field.Tag.Get("binding"), ";") {
 		if strings.HasPrefix(rule, prefix) {
 			return rule[len(prefix) : len(rule)-1]
@@ -58,35 +60,103 @@ func getRuleBody(field reflect.StructField, prefix string) string {
 	return ""
 }
 
-// GetSize get size int form tag
-func GetSize(field reflect.StructField) string {
-	return getRuleBody(field, "Size(")
-}
-
-// GetMinSize get minimal size in form tag
-func GetMinSize(field reflect.StructField) string {
-	return getRuleBody(field, "MinSize(")
-}
-
-// GetMaxSize get max size in form tag
-func GetMaxSize(field reflect.StructField) string {
-	return getRuleBody(field, "MaxSize(")
-}
-
-// GetInclude get include in form tag
-func GetInclude(field reflect.StructField) string {
-	return getRuleBody(field, "Include(")
-}
-
-func ReportValidationError(errs binding.Errors, data map[string]any, fieldName, classification, errorMsg string) binding.Errors {
-	errs.Add([]string{fieldName}, classification, errorMsg)
-
-	data["HasError"] = true
-	data["ErrorMsg"] = fieldName + ": " + errorMsg
-	data["Err_"+fieldName] = true
-	// there is already a reported validation error, so no need to generate default error messages in Validate()
-	data["HasErrorFormValidation"] = true
+func AddValidationError(errs binding.Errors, fieldName, errorMsg string) binding.Errors {
+	errs.Add([]string{fieldName}, validation.ErrCustomMessage, errorMsg)
 	return errs
+}
+
+func getFieldDisplayNameForMessage(f Form, l translation.Locale, fieldNames []string) (field reflect.StructField, ok bool, displayName string) {
+	if len(fieldNames) == 0 {
+		return field, false, ""
+	}
+	typ := reflect.TypeOf(f)
+	if typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+
+	field, fieldExists := typ.FieldByName(fieldNames[0])
+	if !fieldExists {
+		return field, false, ""
+	}
+
+	if field.Tag.Get("form") == "-" {
+		return field, false, ""
+	}
+
+	trKeyFallback := "form." + field.Name
+	trKey := util.IfZero(field.Tag.Get("locale"), trKeyFallback)
+	displayName = l.TrString(trKey)
+	if displayName == trKeyFallback {
+		displayName = field.Name
+	}
+	return field, true, displayName
+}
+
+func buildValidationErrorForUser(f Form, l translation.Locale, bindingErrs binding.Errors) (errorMessage, errorFieldName string, fieldNames []string) {
+	if bindingErrs.Len() == 0 {
+		return "", "", nil
+	}
+	bindingErr := bindingErrs[0]
+	fieldNames, classification, bindingErrMsg := bindingErr.FieldNames, bindingErr.Classification, bindingErr.Message
+	field, ok, fieldDisplayName := getFieldDisplayNameForMessage(f, l, fieldNames)
+	if !ok {
+		return l.TrString("error.occurred"), "", fieldNames
+	}
+
+	errorFieldName = field.Name
+	switch classification {
+	case binding.ERR_REQUIRED:
+		errorMessage = l.TrString("form.require_error", fieldDisplayName)
+	case binding.ERR_ALPHA_DASH:
+		errorMessage = l.TrString("form.alpha_dash_error", fieldDisplayName)
+	case binding.ERR_ALPHA_DASH_DOT:
+		errorMessage = l.TrString("form.alpha_dash_dot_error", fieldDisplayName)
+	case binding.ERR_MIN_SIZE:
+		errorMessage = l.TrString("form.min_size_error", fieldDisplayName, getRuleBody(field, "MinSize"))
+	case binding.ERR_MAX_SIZE:
+		errorMessage = l.TrString("form.max_size_error", fieldDisplayName, getRuleBody(field, "MaxSize"))
+	case binding.ERR_EMAIL:
+		errorMessage = l.TrString("form.email_error", fieldDisplayName)
+	case binding.ERR_URL:
+		errorMessage = l.TrString("form.url_error", fieldDisplayName)
+	case binding.ERR_IN:
+		ruleBody := getRuleBody(field, "In")
+		if strings.HasPrefix(ruleBody, ",") {
+			ruleBody = "(empty)" + ruleBody
+		}
+		errorMessage = l.TrString("form.in_error", fieldDisplayName, ruleBody)
+	case binding.ERR_INCLUDE:
+		errorMessage = l.TrString("form.include_error", fieldDisplayName, getRuleBody(field, "Include"))
+
+	case validation.ErrCustomMessage:
+		errorMessage = bindingErrMsg
+	case validation.ErrGitRefName:
+		errorMessage = l.TrString("form.git_ref_name_error", fieldDisplayName)
+	case validation.ErrGlobPattern:
+		errorMessage = l.TrString("form.glob_pattern_error", fieldDisplayName, bindingErrMsg)
+	case validation.ErrRegexPattern:
+		errorMessage = l.TrString("form.regex_pattern_error", fieldDisplayName, bindingErrMsg)
+	case validation.ErrUsername:
+		errorMessage = l.TrString("form.username_error", fieldDisplayName)
+	case validation.ErrInvalidGroupTeamMap:
+		errorMessage = l.TrString("form.invalid_group_team_map_error", fieldDisplayName, bindingErrMsg)
+	case validation.ErrInvalidBadgeSlug:
+		errorMessage = l.TrString("form.invalid_slug_error", fieldDisplayName)
+	default:
+		setting.PanicInDevOrTesting("unknown binding error classification: %v", classification)
+		var msg string
+		if classification != "" && bindingErrMsg != "" {
+			msg = classification + ": " + bindingErrMsg
+		} else {
+			msg = util.IfZero(bindingErrMsg, classification)
+			if msg == "" {
+				setting.PanicInDevOrTesting("no error message for binding error: %v", bindingErr)
+			}
+			msg = util.IfZero(msg, "unknown error")
+		}
+		errorMessage = l.TrString("form.field_invalid_message", fieldDisplayName, msg)
+	}
+	return errorMessage, errorFieldName, fieldNames
 }
 
 func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Locale) binding.Errors {
@@ -94,81 +164,15 @@ func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Lo
 	// especially for RenderWithErrDeprecated to re-render the form with errors
 	AssignForm(f, data)
 
-	if errs.Len() == 0 || data["HasErrorFormValidation"] == true {
-		return errs
-	}
-
-	// if HasError=true, then must set default error message
-	// because still a lot of places use `ctx.Data["ErrorMsg"].(string)` even if the error fields can't be found
-	data["HasError"] = true
-	data["ErrorMsg"] = l.TrString("form.unknown_error")
-
-	typ := reflect.TypeOf(f)
-	if typ.Kind() == reflect.Pointer {
-		typ = typ.Elem()
-	}
-
-	field, fieldExists := typ.FieldByName(errs[0].FieldNames[0])
-	if !fieldExists {
-		return errs
-	}
-
-	if field.Tag.Get("form") == "-" {
-		return errs
-	}
-
-	data["Err_"+field.Name] = true
-
-	trName := field.Tag.Get("locale")
-	if len(trName) == 0 {
-		trName = l.TrString("form." + field.Name)
-	} else {
-		trName = l.TrString(trName)
-	}
-
-	switch errs[0].Classification {
-	case binding.ERR_REQUIRED:
-		data["ErrorMsg"] = trName + l.TrString("form.require_error")
-	case binding.ERR_ALPHA_DASH:
-		data["ErrorMsg"] = trName + l.TrString("form.alpha_dash_error")
-	case binding.ERR_ALPHA_DASH_DOT:
-		data["ErrorMsg"] = trName + l.TrString("form.alpha_dash_dot_error")
-	case validation.ErrGitRefName:
-		data["ErrorMsg"] = trName + l.TrString("form.git_ref_name_error")
-	case binding.ERR_SIZE:
-		data["ErrorMsg"] = trName + l.TrString("form.size_error", GetSize(field))
-	case binding.ERR_MIN_SIZE:
-		data["ErrorMsg"] = trName + l.TrString("form.min_size_error", GetMinSize(field))
-	case binding.ERR_MAX_SIZE:
-		data["ErrorMsg"] = trName + l.TrString("form.max_size_error", GetMaxSize(field))
-	case binding.ERR_EMAIL:
-		data["ErrorMsg"] = trName + l.TrString("form.email_error")
-	case binding.ERR_URL:
-		data["ErrorMsg"] = trName + l.TrString("form.url_error", errs[0].Message)
-	case binding.ERR_INCLUDE:
-		data["ErrorMsg"] = trName + l.TrString("form.include_error", GetInclude(field))
-	case validation.ErrGlobPattern:
-		data["ErrorMsg"] = trName + l.TrString("form.glob_pattern_error", errs[0].Message)
-	case validation.ErrRegexPattern:
-		data["ErrorMsg"] = trName + l.TrString("form.regex_pattern_error", errs[0].Message)
-	case validation.ErrUsername:
-		data["ErrorMsg"] = trName + l.TrString("form.username_error")
-	case validation.ErrInvalidGroupTeamMap:
-		data["ErrorMsg"] = trName + l.TrString("form.invalid_group_team_map_error", errs[0].Message)
-	case validation.ErrInvalidBadgeSlug:
-		data["ErrorMsg"] = trName + l.TrString("form.invalid_slug_error")
-	default:
-		msg := errs[0].Classification
-		if msg != "" && errs[0].Message != "" {
-			msg += ": "
+	errorMessage, errorFieldName, _ := buildValidationErrorForUser(f, l, errs)
+	if errorMessage != "" {
+		// if HasError=true, then must set default error message
+		// because still a lot of places use `ctx.Data["ErrorMsg"].(string)` even if the error fields can't be found
+		data["HasError"] = true
+		data["ErrorMsg"] = errorMessage
+		if errorFieldName != "" {
+			data["Err_"+errorFieldName] = true
 		}
-
-		msg += errs[0].Message
-		if msg == "" {
-			msg = l.TrString("form.unknown_error")
-		}
-		data["ErrorMsg"] = trName + ": " + msg
 	}
-
 	return errs
 }
