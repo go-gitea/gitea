@@ -33,8 +33,8 @@
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{template "package/content/composer_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.Require "title" (ctx.Locale.Tr "packages.composer.dependencies")}}
-				{{template "package/content/composer_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.RequireDev "title" (ctx.Locale.Tr "packages.composer.dependencies.development")}}
+				{{template "package/content/dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.Require "title" (ctx.Locale.Tr "packages.composer.dependencies")}}
+				{{template "package/content/dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.RequireDev "title" (ctx.Locale.Tr "packages.composer.dependencies.development")}}
 			</div>
 		</div>
 	{{end}}
