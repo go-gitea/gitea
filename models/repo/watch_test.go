@@ -167,5 +167,14 @@ func TestWatchOptions(t *testing.T) {
 	assert.NoError(t, repo_model.WatchRepo(t.Context(), user, repo, true))
 	watch, err := repo_model.GetWatch(t.Context(), user.ID, repo.ID)
 	assert.NoError(t, err)
-	assert.True(t, watch.PullRequests && watch.Issues && watch.Releases)
+	assert.True(t, watch.WatchesAll())
+}
+
+func TestWatchSelectedMode(t *testing.T) {
+	// a user without a watch row gets the dummy record, whose flags are the column defaults
+	assert.Equal(t, "participate", (&repo_model.Watch{Mode: repo_model.WatchModeNone, PullRequests: true, Issues: true, Releases: true}).SelectedMode())
+	assert.Equal(t, "participate", (&repo_model.Watch{Mode: repo_model.WatchModeNormal}).SelectedMode())
+	assert.Equal(t, "ignore", (&repo_model.Watch{Mode: repo_model.WatchModeDont}).SelectedMode())
+	assert.Equal(t, "custom", (&repo_model.Watch{Mode: repo_model.WatchModeNormal, Issues: true}).SelectedMode())
+	assert.Equal(t, "all", (&repo_model.Watch{Mode: repo_model.WatchModeAuto, PullRequests: true, Issues: true, Releases: true}).SelectedMode())
 }
