@@ -1,3 +1,4 @@
+{{if or .Orgs .ContextUser.IsOrganization}}
 <div class="secondary-nav tw-border-b tw-border-b-secondary">
 	<div class="ui secondary stackable menu">
 		<div class="item">
@@ -105,3 +106,4 @@
 	{{end}}
 	</div>
 </div>
+{{end}}
