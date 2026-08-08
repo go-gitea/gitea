@@ -34,7 +34,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 
 	latest := pds[len(pds)-1]
 
-	metadata := latest.Metadata.(*npm_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](latest)
 
 	return &npm_module.PackageMetadata{
 		ID:          latest.Package.Name,
@@ -53,7 +53,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 func createPackageMetadataVersion(registryURL string, pd *packages_model.PackageDescriptor) *npm_module.PackageMetadataVersion {
 	hashBytes, _ := hex.DecodeString(pd.Files[0].Blob.HashSHA512)
 
-	metadata := pd.Metadata.(*npm_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
 
 	return &npm_module.PackageMetadataVersion{
 		ID:                   fmt.Sprintf("%s@%s", pd.Package.Name, pd.Version.Version),
@@ -91,7 +91,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 func createPackageSearchResponse(pds []*packages_model.PackageDescriptor, total int64) *npm_module.PackageSearch {
 	objects := make([]*npm_module.PackageSearchObject, 0, len(pds))
 	for _, pd := range pds {
-		metadata := pd.Metadata.(*npm_module.Metadata)
+		metadata := packages_model.DescriptorMetadata[*npm_module.Metadata](pd)
 
 		scope := metadata.Scope
 		if scope == "" {

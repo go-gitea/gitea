@@ -113,7 +113,7 @@ func handleSignInError(ctx *context.Context, userName string, ptrForm any, tmpl 
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
 func LinkAccountPostSignIn(ctx *context.Context) {
-	signInForm := web.GetForm(ctx).(*forms.SignInForm)
+	signInForm := web.GetForm[*forms.SignInForm](ctx)
 
 	ctx.Data["LinkAccountModeSignIn"] = true
 
@@ -176,7 +176,7 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 
 // LinkAccountPostRegister handle the creation of a new account for an external account using signUp
 func LinkAccountPostRegister(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RegisterForm)
+	form := web.GetForm[*forms.RegisterForm](ctx)
 
 	ctx.Data["LinkAccountModeRegister"] = true
 
@@ -253,7 +253,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		ctx.ServerError("GetSourceByID", err)
 		return
 	}
-	source := authSource.Cfg.(*oauth2.Source)
+	source := auth.MustSourceCfg[*oauth2.Source](authSource)
 	if err := syncGroupsToTeams(ctx, source, &linkAccountData.GothUser, u); err != nil {
 		ctx.ServerError("SyncGroupsToTeams", err)
 		return
