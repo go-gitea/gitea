@@ -287,8 +287,8 @@ func evaluateJobIf(t *testing.T, matrixYAML, ifExpr string, deferred bool) (bool
 }
 
 func TestRejectsUnevaluatedMatrixFilters(t *testing.T) {
-	// act dereferences include/exclude entries as mappings without checking, so an unevaluated
-	// expression panics there. Every entry point into act's matrix expansion must reject it. The
+	// An unevaluated expression is still a scalar, which is not a filter act can apply.
+	// Every entry point into act's matrix expansion must reject it. The
 	// expression here reads `vars`, which is available while planning, so the job is not deferred and
 	// nothing will ever resolve the filter: the error is the right answer at both entry points.
 	// A deferred placeholder is the other case, covered by TestEvaluateJobIfExpressionLeavesRawMatrixUnavailable.
@@ -329,8 +329,7 @@ jobs:
 		parseCount  int    // what Parse makes of the stored payload
 		parseErrHas string // ... or the error it fails with
 	}{
-		// The canonical GitHub dynamic-matrix idiom. act dereferences include entries as mappings, so
-		// validateMatrixFilters rejects the still-scalar expression outright.
+		// The canonical GitHub dynamic-matrix idiom. validateMatrixFilters rejects the still-scalar expression outright.
 		{name: "include expression", matrix: "include: ${{ fromJson(needs.setup.outputs.m) }}", parseErrHas: "must be a list of mappings"},
 		// A static vector crossed with the unevaluated expression: one workflow per static value.
 		{name: "static vector and expression", matrix: "os: [a, b]\n        version: ${{ fromJson(needs.setup.outputs.m) }}", parseCount: 2},

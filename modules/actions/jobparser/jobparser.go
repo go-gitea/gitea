@@ -219,7 +219,6 @@ func ExpandMatrixWithNeeds(jobID string, job *Job, gitCtx *model.GithubContext, 
 // matrixesOf is this package's only entry to act's GetMatrixes, so that every caller is covered by
 // the filter check below. A deferred placeholder is the first thing carrying a raw matrix this far,
 // and the emitter reads its `if:` before expanding it.
-// TODO: drop the check once gitea.com/gitea/runner validates the shape itself.
 func matrixesOf(job *model.Job) ([]map[string]any, error) {
 	if err := validateMatrixFilters(job); err != nil {
 		return nil, err
@@ -231,9 +230,9 @@ func matrixesOf(job *model.Job) ([]map[string]any, error) {
 	return matrixes, nil
 }
 
-// validateMatrixFilters rejects an `include`/`exclude` that is not a list of mappings. act asserts
-// that shape without checking, so anything else panics there; an unevaluated ${{ }} expression, which
-// is still a scalar, is the usual way to reach it.
+// validateMatrixFilters rejects an `include`/`exclude` that is not a list of mappings, so that the
+// usual way to get there, an unevaluated ${{ }} expression that is still a scalar, is named as such
+// instead of surfacing from the middle of the expansion.
 func validateMatrixFilters(job *model.Job) error {
 	if job.Strategy == nil || job.Strategy.RawMatrix.Kind != yaml.MappingNode {
 		return nil
