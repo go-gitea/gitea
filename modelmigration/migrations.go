@@ -421,6 +421,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(345, "Add block on CODEOWNERS reviews branch protection", v1_28.AddBlockOnCodeownerReviews),
 		newMigration(346, "Add license_path column to repo_license and backfill", v1_28.AddLicensePathToRepoLicense),
 		newMigration(347, "Add watch options", v1_28.AddWatchOptions),
+		newMigration(348, "Add https_deploy_key table", v1_28.AddHTTPSDeployKeyTable),
 	}
 	return preparedMigrations
 }

@@ -47,3 +47,45 @@ type CreateKeyOption struct {
 	// required: false
 	ReadOnly bool `json:"read_only"`
 }
+
+// HTTPSDeployKey an HTTPS deploy key/token
+type HTTPSDeployKey struct {
+	// ID is the unique identifier for the deploy key
+	ID int64 `json:"id"`
+	// Name is the human-readable name for the key
+	Name string `json:"name"`
+	// URL is the API URL for this deploy key
+	URL string `json:"url"`
+	// Token is the plaintext token, only returned on creation
+	Token string `json:"token,omitempty"`
+	// TokenLastEight is the last 8 characters of the token for identification
+	TokenLastEight string `json:"token_last_eight"`
+	// ReadOnly indicates if the key has read-only access
+	ReadOnly bool `json:"read_only"`
+	// HasUsed indicates if the key has been used for authentication
+	HasUsed bool `json:"has_used"`
+	// HasRecentActivity indicates if the key was used in the last 7 days
+	HasRecentActivity bool `json:"has_recent_activity"`
+	// Repository is the repository this deploy key belongs to
+	Repository *Repository `json:"repository,omitempty"`
+	// swagger:strfmt date-time
+	// Created is the time when the deploy key was created
+	Created time.Time `json:"created_at"`
+	// swagger:strfmt date-time
+	// Updated is the time when the deploy key was last updated
+	Updated time.Time `json:"updated_at"`
+}
+
+// CreateHTTPSDeployKeyOption options when creating an HTTPS deploy key
+// swagger:model CreateHTTPSDeployKeyOption
+type CreateHTTPSDeployKeyOption struct {
+	// Name of the key to add
+	//
+	// required: true
+	// unique: true
+	Name string `json:"name" binding:"Required;MaxSize(50)"`
+	// Describe if the key has only read access or read/write
+	//
+	// required: false
+	ReadOnly bool `json:"read_only"`
+}

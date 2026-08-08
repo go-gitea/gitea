@@ -5,9 +5,11 @@ package setting
 
 import (
 	"net/http"
+	"strconv"
 	"testing"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
@@ -430,4 +432,75 @@ func TestHandleSettingsPostMirrorPreservesExistingUsername(t *testing.T) {
 	password, ok := remoteURL.User.Password()
 	require.True(t, ok)
 	assert.Equal(t, "updated-password", password)
+}
+
+func TestHTTPSDeployKeyCreateAndDelete(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys/https")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+
+	web.SetForm(ctx, &forms.HTTPSDeployKeyForm{
+		Title:      "ci-writable",
+		IsWritable: true,
+	})
+	HTTPSDeployKeysPost(ctx)
+
+	// Handler must render the template directly (200), not redirect (303).
+	// This avoids putting the plaintext token in a cookie-backed flash.
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+
+	keys, err := db.Find[asymkey_model.HTTPSDeployKey](ctx,
+		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: 1})
+	require.NoError(t, err)
+	require.Len(t, keys, 1)
+	assert.Equal(t, "ci-writable", keys[0].Name)
+	assert.False(t, keys[0].IsReadOnly())
+
+	// The plaintext token must be on ctx.Data, NOT in flash/cookies.
+	assert.NotEmpty(t, ctx.Data["HTTPSDeployKeyToken"], "token must be in ctx.Data")
+	assert.NotContains(t, ctx.Flash.SuccessMsg, ctx.Data["HTTPSDeployKeyToken"],
+		"token must NOT be in flash — it is a secret credential")
+
+	// Now delete it.
+	delCtx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys/https/delete")
+	contexttest.LoadUser(t, delCtx, 2)
+	contexttest.LoadRepo(t, delCtx, 1)
+	delCtx.Req.Form.Set("id", strconv.FormatInt(keys[0].ID, 10))
+	DeleteHTTPSDeployKey(delCtx)
+	assert.NotEqual(t, http.StatusInternalServerError, delCtx.Resp.WrittenStatus())
+
+	keys, err = db.Find[asymkey_model.HTTPSDeployKey](ctx,
+		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: 1})
+	require.NoError(t, err)
+	assert.Empty(t, keys)
+}
+
+func TestHTTPSDeployKeysPostValidationError(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+
+	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys/https")
+	contexttest.LoadUser(t, ctx, 2)
+	contexttest.LoadRepo(t, ctx, 1)
+
+	// Empty title should fail the Required binding validation.
+	web.SetForm(ctx, &forms.HTTPSDeployKeyForm{
+		Title:      "",
+		IsWritable: false,
+	})
+	HTTPSDeployKeysPost(ctx)
+
+	// Must render template inline (200), not redirect — so error state is preserved.
+	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+
+	// Error state must be set so the template can show the panel with errors.
+	hasError, ok := ctx.Data["HasError"].(bool)
+	assert.True(t, ok && hasError, "HasError must be set on validation failure")
+
+	// No HTTPS deploy key should have been created.
+	keys, err := db.Find[asymkey_model.HTTPSDeployKey](ctx,
+		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: 1})
+	require.NoError(t, err)
+	assert.Empty(t, keys)
 }
