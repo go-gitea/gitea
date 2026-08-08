@@ -52,6 +52,13 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
 
+	badges, _, err := organization.GetOrgBadges(ctx, org)
+	if err != nil {
+		ctx.ServerError("GetOrgBadges", err)
+		return
+	}
+	ctx.Data["Badges"] = badges
+
 	var orderBy db.SearchOrderBy
 	sortOrder := ctx.FormString("sort")
 	if _, ok := repo_model.OrderByFlatMap[sortOrder]; !ok {
