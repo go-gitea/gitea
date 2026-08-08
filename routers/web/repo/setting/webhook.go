@@ -150,6 +150,9 @@ func WebhooksNew(ctx *context.Context) {
 			"Username": "Gitea",
 		}
 	}
+	if hookType == "feishu" {
+		ctx.Data["FeishuHook"] = &webhook_service.FeishuMeta{}
+	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
 	ctx.Data["BaseLinkNew"] = orCtx.LinkNew
 
@@ -542,6 +545,10 @@ func feishuHookParams(ctx *context.Context) webhookParams {
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
+		Meta: &webhook_service.FeishuMeta{
+			AppID:     form.AppID,
+			AppSecret: form.AppSecret,
+		},
 	}
 }
 
@@ -630,6 +637,8 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		ctx.Data["MatrixHook"] = webhook_service.GetMatrixHook(w)
 	case webhook_module.PACKAGIST:
 		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
+	case webhook_module.FEISHU:
+		ctx.Data["FeishuHook"] = webhook_service.GetFeishuHook(w)
 	}
 
 	ctx.Data["History"], err = w.History(ctx, 1)
