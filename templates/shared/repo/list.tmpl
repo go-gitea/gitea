@@ -57,7 +57,7 @@
 						</a>
 						{{$watch := and $.Watches (index $.Watches .ID)}}
 						{{if $watch}}
-											<button class="btn flex-text-inline show-modal"
+							<button class="btn flex-text-inline show-modal"
 								data-modal="#repo-watch-options-modal"
 								data-modal-form.url="{{.Link}}/action/watch/options"
 								data-modal-issues="{{$watch.Issues}}"
