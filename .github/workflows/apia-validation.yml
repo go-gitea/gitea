@@ -1,19 +1,8 @@
 name: APIA Performance Validation
 
 on:
-  pull_request_target:
+  pull_request:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: PR number to analyze
-        required: false
-        default: "1"
-
-permissions:
-  contents: read
-  pull-requests: write
-  statuses: write
 
 jobs:
   apia-validate:
@@ -21,33 +10,27 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout PR head
+      - name: Checkout PR branch
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Fetch staging manifests
-        shell: powershell
-        run: |
-          git fetch origin staging --depth=1
-          git checkout origin/staging -- k8s/staging.yaml
-
-      - name: Capture git diff
-        shell: powershell
-        run: |
-          git fetch origin main --depth=1
-          git diff origin/main..HEAD -- k8s/ Dockerfile | Out-File -FilePath "$env:GITHUB_WORKSPACE\git-diff.txt" -Encoding utf8
-          Write-Host "Git diff captured: $((Get-Item $env:GITHUB_WORKSPACE\git-diff.txt).Length) bytes"
 
       - name: Set image tag
         id: tag
-        shell: powershell
-        run: |
-          $sha = $env:GITHUB_SHA.Substring(0, 8)
-          Add-Content $env:GITHUB_OUTPUT "SHA=$sha"
+        shell: bash
+        run: echo "SHA=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
-      - name: Build Gitea image from source
-        run: docker build -t localhost:5000/gitea:${{ steps.tag.outputs.SHA }} -t localhost:5000/gitea:staging .
+      - name: Reset baseline to clean state
+        shell: bash
+        run: |
+          kubectl delete namespace baseline --ignore-not-found=true
+          kubectl wait --for=delete namespace/baseline --timeout=90s || true
+          kubectl apply -f k8s/baseline.yaml
+          kubectl rollout status deployment/postgres -n baseline --timeout=90s
+          kubectl rollout status deployment/redis -n baseline --timeout=60s
+          kubectl rollout status deployment/app -n baseline --timeout=180s
+
+      - name: Build Gitea image from PR branch
+        run: |
+          docker build -t localhost:5000/gitea:${{ steps.tag.outputs.SHA }} -t localhost:5000/gitea:staging .
 
       - name: Push to k3d registry
         run: |
@@ -57,30 +40,48 @@ jobs:
       - name: Deploy staging namespace
         run: |
           kubectl apply -f k8s/staging.yaml
-          kubectl rollout status deployment/app -n staging --timeout=120s
+          kubectl rollout status deployment/postgres -n staging --timeout=90s
+          kubectl rollout status deployment/redis -n staging --timeout=60s
+          kubectl rollout status deployment/app -n staging --timeout=180s
 
-      - name: Wait for app to be ready
-        shell: powershell
+      - name: Wait for baseline to be ready
+        shell: bash
         run: |
-          for ($i = 1; $i -le 30; $i++) {
-            try {
-              $null = Invoke-WebRequest -Uri "http://localhost:30302/" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
-              Write-Host "App is ready"; break
-            } catch { Write-Host "Waiting... ($i/30)"; Start-Sleep 10 }
-          }
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:30301/ > /dev/null 2>&1; then
+              echo "Baseline is ready"; break
+            fi
+            echo "Waiting for baseline... ($i/30)"; sleep 10
+          done
 
-      - name: Redeploy baseline clean
+      - name: Wait for staging to be ready
+        shell: bash
         run: |
-          kubectl rollout restart deployment/app deployment/postgres deployment/redis deployment/redis-exporter deployment/pg-exporter -n baseline
-          kubectl rollout status deployment/app -n baseline --timeout=120s
-          echo "Baseline redeployed clean - both environments now start from equivalent state"
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:30302/ > /dev/null 2>&1; then
+              echo "Staging is ready"; break
+            fi
+            echo "Waiting for staging... ($i/30)"; sleep 10
+          done
+
+      - name: Compute git diff
+        shell: bash
+        run: |
+          git fetch origin main
+          git diff origin/main...HEAD -- . > /tmp/pr-diff.patch
+          echo "GIT_DIFF_FILE=/tmp/pr-diff.patch" >> $GITHUB_ENV
 
       - name: Run K6 load test
-        run: k6 run k6/load-test.js --summary-export=k6-summary.json --env BASELINE_URL=http://localhost:30301 --env STAGING_URL=http://localhost:30302
+        shell: bash
+        run: |
+          k6 run k6/load-test.js \
+            --env STAGING_URL=http://localhost:30302 \
+            --summary-export /tmp/k6-summary.json || true
+          echo "K6_RESULT_FILE=/tmp/k6-summary.json" >> $GITHUB_ENV
 
       - name: Run APIA pipeline
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
           COMMIT_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -89,14 +90,9 @@ jobs:
           N8N_URL: http://localhost:30678
           BASELINE_URL: http://localhost:30301
           STAGING_URL: http://localhost:30302
-          K6_RESULT_FILE: ${{ github.workspace }}/k6-summary.json
-          GIT_DIFF_FILE: ${{ github.workspace }}/git-diff.txt
-        shell: powershell
-        run: |
-          $apiaHome = if ($env:APIA_HOME) { $env:APIA_HOME } else { "$env:USERPROFILE\apia" }
-          python "$apiaHome\pipeline\pipeline.py"
+        shell: bash
+        run: python $APIA_HOME/pipeline/pipeline.py
 
       - name: Teardown staging
         if: always()
-        shell: powershell
         run: kubectl delete -f k8s/staging.yaml --ignore-not-found=true
