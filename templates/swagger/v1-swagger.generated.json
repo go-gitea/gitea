@@ -5737,6 +5737,59 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/actions/runs/{run}/force-cancel": {
+      "post": {
+        "description": "Cancels a workflow run without waiting for its runners to acknowledge the cancellation.\nThe jobs are marked cancelled at once and anything a runner reports for them afterwards is discarded.\nOnly use this endpoint when the workflow run does not respond to `POST /repos/{owner}/{repo}/actions/runs/{run}/cancel`.\n",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Force-cancel a workflow run",
+        "operationId": "forceCancelWorkflowRun",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "run ID",
+            "name": "run",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/actions/runs/{run}/jobs": {
       "get": {
         "produces": [
@@ -31247,12 +31300,12 @@
         "X-PerPage": {
           "type": "integer",
           "format": "int64",
-          "description": "Commits per page"
+          "description": "Files per page"
         },
-        "X-Total": {
+        "X-Total-Count": {
           "type": "integer",
           "format": "int64",
-          "description": "Total commit count"
+          "description": "Total file count"
         }
       }
     },
@@ -31311,7 +31364,7 @@
           "format": "int64",
           "description": "Commits per page"
         },
-        "X-Total": {
+        "X-Total-Count": {
           "type": "integer",
           "format": "int64",
           "description": "Total commit count"

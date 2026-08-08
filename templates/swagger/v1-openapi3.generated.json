@@ -213,14 +213,14 @@
             }
           },
           "X-PerPage": {
-            "description": "Commits per page",
+            "description": "Files per page",
             "schema": {
               "format": "int64",
               "type": "integer"
             }
           },
-          "X-Total": {
-            "description": "Total commit count",
+          "X-Total-Count": {
+            "description": "Total file count",
             "schema": {
               "format": "int64",
               "type": "integer"
@@ -311,7 +311,7 @@
               "type": "integer"
             }
           },
-          "X-Total": {
+          "X-Total-Count": {
             "description": "Total commit count",
             "schema": {
               "format": "int64",
@@ -16797,6 +16797,62 @@
           }
         },
         "summary": "Cancel a workflow run and its jobs",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runs/{run}/force-cancel": {
+      "post": {
+        "description": "Cancels a workflow run without waiting for its runners to acknowledge the cancellation.\nThe jobs are marked cancelled at once and anything a runner reports for them afterwards is discarded.\nOnly use this endpoint when the workflow run does not respond to `POST /repos/{owner}/{repo}/actions/runs/{run}/cancel`.\n",
+        "operationId": "forceCancelWorkflowRun",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repository",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "run ID",
+            "in": "path",
+            "name": "run",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/WorkflowRun"
+          },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/conflict"
+          }
+        },
+        "summary": "Force-cancel a workflow run",
         "tags": [
           "repository"
         ]
