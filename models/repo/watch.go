@@ -168,8 +168,8 @@ func WatchRepo(ctx context.Context, doer *user_model.User, repo *Repository, doW
 	return watchRepoMode(ctx, watch, WatchModeNormal)
 }
 
-// IgnoreRepo mutes the repository, so nothing about it reaches the user.
-func IgnoreRepo(ctx context.Context, doer *user_model.User, repo *Repository) error {
+// WatchIgnoreRepo mutes the repository (unwatch), so nothing about it reaches the user.
+func WatchIgnoreRepo(ctx context.Context, doer *user_model.User, repo *Repository) error {
 	watch, err := GetWatch(ctx, doer.ID, repo.ID)
 	if err != nil {
 		return err

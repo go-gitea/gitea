@@ -17,7 +17,7 @@ func ActionWatch(ctx *context.Context) {
 	action := ctx.PathParam("action")
 	var err error
 	if action == "ignore" {
-		err = repo_model.IgnoreRepo(ctx, ctx.Doer, ctx.Repo.Repository)
+		err = repo_model.WatchIgnoreRepo(ctx, ctx.Doer, ctx.Repo.Repository)
 	} else {
 		all := action == "watch" // "participate" is a watch that subscribes to no event on its own
 		err = repo_model.WatchRepoWithOptions(ctx, ctx.Doer, ctx.Repo.Repository, repo_model.WatchOptions{PullRequests: all, Issues: all, Releases: all})
