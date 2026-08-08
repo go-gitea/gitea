@@ -189,10 +189,7 @@ func Releases(ctx *context.Context) {
 
 	ctx.Data["Releases"] = releases
 
-	numReleases, ok := ctx.Data["NumReleases"].(int64)
-	if !ok {
-		setting.PanicInDevOrTesting("NumReleases is %T, expected int64", ctx.Data["NumReleases"])
-	}
+	numReleases := ctx.Data["NumReleases"].(int64) //nolint:forcetypeassert // must exist
 	pager := context.NewPagination(numReleases, listOptions.PageSize, listOptions.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager

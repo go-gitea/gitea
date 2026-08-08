@@ -57,15 +57,10 @@ func (t *Task) IsEnabled() bool {
 
 // GetConfig will return a copy of the task's config
 func (t *Task) GetConfig() Config {
-	var newConfig any
-	if configValue := reflect.ValueOf(t.config); configValue.Kind() == reflect.Pointer {
-		// Pointer:
-		newConfig = reflect.New(configValue.Elem().Type()).Interface()
-	} else {
-		// Not pointer:
-		newConfig = reflect.New(configValue.Type()).Elem().Interface()
+	if reflect.TypeOf(t.config).Kind() == reflect.Pointer {
+		return reflect.New(reflect.ValueOf(t.config).Elem().Type()).Interface().(Config) //nolint:forcetypeassert // pointer
 	}
-	return newConfig.(Config) //nolint:forcetypeassert // a fresh value of the config's own type always implements Config
+	return reflect.New(reflect.TypeOf(t.config)).Elem().Interface().(Config) //nolint:forcetypeassert // not pointer
 }
 
 // Run will run the task incrementing the cron counter with no user defined
@@ -189,11 +184,7 @@ func RegisterTask[T Config](name string, config T, fun func(context.Context, *us
 		Name:   name,
 		config: config,
 		fun: func(ctx context.Context, doer *user_model.User, runConfig Config) error {
-			typedConfig, ok := runConfig.(T)
-			if !ok {
-				return fmt.Errorf("cron task %q was run with config type %T instead of %T", name, runConfig, config)
-			}
-			return fun(ctx, doer, typedConfig)
+			return fun(ctx, doer, runConfig.(T)) //nolint:forcetypeassert // must be valid
 		},
 	}
 	lock.Lock()

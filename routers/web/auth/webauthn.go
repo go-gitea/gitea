@@ -266,7 +266,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 		return
 	}
 
-	remember, _ := ctx.Session.Get("twofaRemember").(bool)
+	remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
 	handleSignInFull(ctx, user, remember)
 	_ = ctx.Session.Delete("twofaUid")
 	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))

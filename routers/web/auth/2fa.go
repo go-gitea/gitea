@@ -65,7 +65,7 @@ func TwoFactorPost(ctx *context.Context) {
 	}
 
 	if ok {
-		remember, _ := ctx.Session.Get("twofaRemember").(bool)
+		remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
@@ -133,7 +133,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 			return
 		}
 
-		remember, _ := ctx.Session.Get("twofaRemember").(bool)
+		remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)

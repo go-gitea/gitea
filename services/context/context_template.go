@@ -29,19 +29,11 @@ func NewTemplateContext(ctx context.Context, req *http.Request) TemplateContext 
 }
 
 func (c TemplateContext) req() *http.Request {
-	req, ok := c["_req"].(*http.Request)
-	if !ok {
-		panic("TemplateContext must be created by NewTemplateContext")
-	}
-	return req
+	return c["_req"].(*http.Request) //nolint:forcetypeassert // must exist
 }
 
 func (c TemplateContext) parentContext() context.Context {
-	ctx, ok := c["_ctx"].(context.Context)
-	if !ok {
-		panic("TemplateContext must be created by NewTemplateContext")
-	}
-	return ctx
+	return c["_ctx"].(context.Context) //nolint:forcetypeassert // must exist
 }
 
 func (c TemplateContext) Deadline() (deadline time.Time, ok bool) {
