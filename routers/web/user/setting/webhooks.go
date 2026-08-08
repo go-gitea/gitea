@@ -25,12 +25,27 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = setting.AppSubURL + "/user/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("settings.hooks.desc")
 
-	ws, err := db.Find[webhook.Webhook](ctx, webhook.ListWebhookOptions{OwnerID: ctx.Doer.ID})
+	// Get current page from the URL
+	page := max(ctx.FormInt("page"), 1)
+
+	// Initialize options using the logged-in User's ID (ctx.Doer.ID)
+	opts := webhook.ListWebhookOptions{
+		OwnerID: ctx.Doer.ID,
+		ListOptions: db.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
+	}
+
+	// Use FindAndCount to get the paginated list and total count
+	ws, count, err := db.FindAndCount[webhook.Webhook](ctx, opts)
 	if err != nil {
 		ctx.ServerError("ListWebhooksByOpts", err)
 		return
 	}
 
+	// Set up the Pager for the template
+	ctx.Data["Page"] = context.NewPagination(int(count), opts.PageSize, page, 5)
 	ctx.Data["Webhooks"] = ws
 	ctx.HTML(http.StatusOK, tplSettingsHooks)
 }
