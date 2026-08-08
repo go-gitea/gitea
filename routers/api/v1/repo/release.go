@@ -282,7 +282,7 @@ func CreateRelease(ctx *context.APIContext) {
 			} else if git.IsErrNotExist(err) {
 				ctx.APIError(http.StatusNotFound, "target not found")
 			} else {
-				ctx.APIErrorInternal(err)
+				ctx.APIErrorAuto(err)
 			}
 			return
 		}
@@ -303,7 +303,7 @@ func CreateRelease(ctx *context.APIContext) {
 		rel.Target = form.Target
 
 		if err = release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 			return
 		}
 	}
@@ -377,7 +377,7 @@ func EditRelease(ctx *context.APIContext) {
 		rel.IsPrerelease = *form.IsPrerelease
 	}
 	if err := release_service.UpdateRelease(ctx, ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 

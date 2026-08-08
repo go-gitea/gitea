@@ -188,6 +188,8 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&actions_model.ActionTasksVersion{RepoID: repoID},
 		&actions_model.ActionScopedWorkflowSource{SourceRepoID: repoID},
 		&issues_model.IssuePin{RepoID: repoID},
+		// repo_model.ImmutableTag is deliberately absent: locked tag names must outlive the
+		// repository so a repository recreated at the same path cannot reuse them.
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
 	}

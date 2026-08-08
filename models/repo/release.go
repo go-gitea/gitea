@@ -85,6 +85,7 @@ type Release struct {
 	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
 	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
+	IsImmutable      bool               `xorm:"NOT NULL DEFAULT false"` // stays true after the release is deleted, the row is then a locked tag
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
@@ -162,6 +163,17 @@ func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, er
 	}
 
 	return db.GetEngine(ctx).Exist(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
+}
+
+// HasImmutableRelease returns true if the tag is backed by an immutable release that still exists,
+// unlike IsTagImmutable, which stays true once the release and the tag are gone.
+func HasImmutableRelease(ctx context.Context, repoID int64, tagName string) (bool, error) {
+	return db.Exist[Release](ctx, builder.Eq{
+		"repo_id":        repoID,
+		"lower_tag_name": strings.ToLower(tagName),
+		"is_immutable":   true,
+		"is_tag":         false,
+	})
 }
 
 // UpdateRelease updates all columns of a release
