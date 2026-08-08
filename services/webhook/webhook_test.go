@@ -31,6 +31,8 @@ func TestWebhookService(t *testing.T) {
 	t.Run("WebhookUserMail", testWebhookUserMail)
 	t.Run("CheckBranchFilter", testWebhookCheckBranchFilter)
 	t.Run("PrepareTestWebhookIgnoresGates", testPrepareTestWebhookIgnoresGates)
+	t.Run("CreateTagIgnoresBranchFilter", testWebhookCreateTagIgnoresBranchFilter)
+	t.Run("PushTagRespectsBranchFilter", testWebhookPushTagRespectsBranchFilter)
 }
 
 func testWebhookGetSlackHook(t *testing.T) {
@@ -166,4 +168,66 @@ func testPrepareTestWebhookIgnoresGates(t *testing.T) {
 	// Manual test delivery always queues so the endpoint can be verified.
 	require.NoError(t, PrepareTestWebhook(t.Context(), hook, webhook_module.HookEventPush, payload))
 	unittest.AssertExistsAndLoadBean(t, hookTask)
+}
+
+func testWebhookCreateTagIgnoresBranchFilter(t *testing.T) {
+	// A create-only webhook with a branch-oriented filter must still deliver
+	// tag create events (#38438). The filter only scopes push / branch ops.
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-create-tag-branch-filter",
+		ContentType: webhook_model.ContentTypeJSON,
+		IsActive:    true,
+		HookEvent: &webhook_module.HookEvent{
+			ChooseEvents: true,
+			BranchFilter: "main",
+			HookEvents: webhook_module.HookEvents{
+				webhook_module.HookEventCreate: true,
+			},
+		},
+	}
+	require.NoError(t, hook.UpdateEvent())
+	require.NoError(t, db.Insert(t.Context(), hook))
+
+	payload := &api.CreatePayload{
+		Sha:     "65f1bf27bc3bf70f64657658635e66094edbcb4d",
+		Ref:     "v-webhook-create",
+		RefType: "tag",
+		Repo:    &api.Repository{Name: repo.Name},
+	}
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventCreate}
+	unittest.AssertNotExistsBean(t, hookTask)
+	require.NoError(t, PrepareWebhook(t.Context(), hook, webhook_module.HookEventCreate, payload))
+	unittest.AssertExistsAndLoadBean(t, hookTask)
+}
+
+func testWebhookPushTagRespectsBranchFilter(t *testing.T) {
+	// Tag *push* events must still honor branch filters so branch-only CI
+	// pipelines are not fired by tags (#35449 / #35567).
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	hook := &webhook_model.Webhook{
+		RepoID:      repo.ID,
+		URL:         "http://localhost/gitea-webhook-test-push-tag-branch-filter",
+		ContentType: webhook_model.ContentTypeJSON,
+		IsActive:    true,
+		HookEvent: &webhook_module.HookEvent{
+			ChooseEvents: true,
+			BranchFilter: "main",
+			HookEvents: webhook_module.HookEvents{
+				webhook_module.HookEventPush: true,
+			},
+		},
+	}
+	require.NoError(t, hook.UpdateEvent())
+	require.NoError(t, db.Insert(t.Context(), hook))
+
+	payload := &api.PushPayload{
+		Ref:     "refs/tags/v-webhook-push",
+		Commits: []*api.PayloadCommit{{}},
+	}
+	hookTask := &webhook_model.HookTask{HookID: hook.ID, EventType: webhook_module.HookEventPush}
+	unittest.AssertNotExistsBean(t, hookTask)
+	require.NoError(t, PrepareWebhook(t.Context(), hook, webhook_module.HookEventPush, payload))
+	unittest.AssertNotExistsBean(t, hookTask)
 }

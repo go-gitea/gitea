@@ -45,24 +45,31 @@ func IsValidHookTaskType(name string) bool {
 // hookQueue is a global queue of web hooks
 var hookQueue *queue.WorkerPoolQueue[int64]
 
-// getPayloadRef returns the full ref name for hook event, if applicable.
-func getPayloadRef(p api.Payloader) git.RefName {
+// getPayloadRefForBranchFilter returns the git ref that branch_filter should be
+// evaluated against, or "" when the branch filter must not apply.
+//
+// Branch filters exist to scope *push* (and branch create/delete) deliveries.
+// Tag create/delete are separate event types; applying a branch-oriented filter
+// (e.g. "main") to them silently drops create/delete tag webhooks (#38438)
+// while still correctly keeping tag *push* events out of branch-only pipelines
+// (#35449 / #35567).
+func getPayloadRefForBranchFilter(p api.Payloader) git.RefName {
 	switch pp := p.(type) {
 	case *api.CreatePayload:
-		switch pp.RefType {
-		case "branch":
+		// Only branch create is subject to the branch filter.
+		if pp.RefType == "branch" {
 			return git.RefNameFromBranch(pp.Ref)
-		case "tag":
-			return git.RefNameFromTag(pp.Ref)
 		}
+		return ""
 	case *api.DeletePayload:
-		switch pp.RefType {
-		case "branch":
+		// Only branch delete is subject to the branch filter.
+		if pp.RefType == "branch" {
 			return git.RefNameFromBranch(pp.Ref)
-		case "tag":
-			return git.RefNameFromTag(pp.Ref)
 		}
+		return ""
 	case *api.PushPayload:
+		// Push events (branch or tag) always go through the branch filter so
+		// tag pushes cannot bypass a branch-only pipeline subscription.
 		return git.RefName(pp.Ref)
 	}
 	return ""
@@ -177,8 +184,9 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return nil
 	}
 
-	// If payload has no associated branch (e.g. it's a new tag, issue, etc.), branch filter has no effect.
-	if ref := getPayloadRef(p); ref != "" {
+	// Branch filter scopes push events and branch create/delete. Tag create/delete
+	// are not filtered here (see getPayloadRefForBranchFilter).
+	if ref := getPayloadRefForBranchFilter(p); ref != "" {
 		// Check the payload's git ref against the webhook's branch filter.
 		if !checkBranchFilter(w.BranchFilter, ref) {
 			return nil

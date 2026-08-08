@@ -26,7 +26,9 @@ import (
 	"gitea.dev/models/webhook"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/queue"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
@@ -168,6 +170,96 @@ func Test_WebhookCreate(t *testing.T) {
 		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
 		assert.Equal(t, "master2", payloads[0].Ref)
 		assert.Equal(t, "branch", payloads[0].RefType)
+	})
+}
+
+func Test_WebhookCreateTagViaGitPush(t *testing.T) {
+	// Regression coverage for #38438: create webhook must fire for tag pushes
+	// even when the webhook is subscribed only to the create event.
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		var (
+			payloads       []api.CreatePayload
+			triggeredEvent string
+			eventHeader    string
+		)
+		provider := newMockWebhookProvider(func(r *http.Request) {
+			content, _ := io.ReadAll(r.Body)
+			var payload api.CreatePayload
+			err := json.Unmarshal(content, &payload)
+			assert.NoError(t, err)
+			payloads = append(payloads, payload)
+			triggeredEvent = string(webhook_module.HookEventCreate)
+			eventHeader = r.Header.Get("X-Gitea-Event")
+		}, http.StatusOK)
+		defer provider.Close()
+
+		session := loginUser(t, "user2")
+		// Subscribe only to create (matches the reporter's configuration).
+		// Use a branch-oriented filter; create tag must still fire (#38438).
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "create", "master")
+
+		// Real git tag push path (post-receive hook -> push queue).
+		httpContext := NewAPITestContext(t, "user2", "repo1")
+		dstPath := t.TempDir()
+		u := *giteaURL
+		u.Path = httpContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+		doGitClone(dstPath, &u)(t)
+
+		tagName := "webhook-create-tag-38438"
+		// lightweight tag is enough to exercise the push-hook create path
+		_, _, err := gitcmd.NewCommand("tag").AddDynamicArguments(tagName).
+			WithDir(dstPath).
+			RunStdString(t.Context())
+		require.NoError(t, err)
+		_, _, err = gitcmd.NewCommand("push", "origin").
+			AddDynamicArguments("refs/tags/" + tagName).
+			WithDir(dstPath).
+			RunStdString(t.Context())
+		require.NoError(t, err)
+
+		// Tag push is processed asynchronously via the push_update queue.
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 10*time.Second))
+
+		require.Equal(t, string(webhook_module.HookEventCreate), triggeredEvent, "create webhook was not triggered for tag push")
+		require.Equal(t, "create", eventHeader)
+		require.Len(t, payloads, 1)
+		assert.Equal(t, "repo1", payloads[0].Repo.Name)
+		assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
+		assert.Equal(t, tagName, payloads[0].Ref)
+		assert.Equal(t, "tag", payloads[0].RefType)
+		assert.NotEmpty(t, payloads[0].Sha)
+	})
+}
+
+func Test_WebhookCreateTagViaAPI(t *testing.T) {
+	// API/UI tag creation should also emit create webhooks.
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		var payloads []api.CreatePayload
+		var triggeredEvent string
+		provider := newMockWebhookProvider(func(r *http.Request) {
+			content, _ := io.ReadAll(r.Body)
+			var payload api.CreatePayload
+			err := json.Unmarshal(content, &payload)
+			assert.NoError(t, err)
+			payloads = append(payloads, payload)
+			triggeredEvent = string(webhook_module.HookEventCreate)
+		}, http.StatusOK)
+		defer provider.Close()
+
+		session := loginUser(t, "user2")
+		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "create")
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		tag := createNewTagUsingAPI(t, token, "user2", "repo1", "webhook-create-tag-api-38438", "master", "api tag")
+		require.NotNil(t, tag)
+
+		require.NoError(t, queue.GetManager().FlushAll(t.Context(), 5*time.Second))
+
+		require.Equal(t, string(webhook_module.HookEventCreate), triggeredEvent)
+		require.Len(t, payloads, 1)
+		assert.Equal(t, "tag", payloads[0].RefType)
+		assert.Equal(t, "webhook-create-tag-api-38438", payloads[0].Ref)
 	})
 }
 
