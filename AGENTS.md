@@ -11,7 +11,7 @@
 - Add the current year to copyright headers of new `.go` files
 - In `options/locale`, only edit `locale_en-US.json`, other locales are synced automatically
 - In TS, use `!` instead of `?.`/`??` when a value always exists
-- In Go, prefer to use modern language features wherever possible, see https://github.com/JetBrains/go-modern-guidelines/blob/main/claude/modern-go-guidelines/skills/use-modern-go/SKILL.md
+- In Go, prefer to use modern language features wherever possible
 - Prefer `tw-*` utilities over inline `style` and `flex-*` helpers over per-child `tw-ml-*`/`tw-mr-*` margins, falling back to `tw-*` where specificity requires `!important`
 - Run `make fmt` after `.go` edits, `make tidy` after `go.mod` edits, `make generate-swagger` after API changes, and lint what changed with `make lint-go`, `lint-js`, `lint-css` or `lint-templates`
 - Fix the cause rather than disabling a linter or weakening a test. Where unavoidable, use the narrowest scope with a trailing comment giving the reason
