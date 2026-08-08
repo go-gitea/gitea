@@ -35,7 +35,7 @@ jobs:
         shell: powershell
         run: |
           git fetch origin main --depth=1
-          git diff origin/main..HEAD | Out-File -FilePath "$env:GITHUB_WORKSPACE\git-diff.txt" -Encoding utf8
+          git diff origin/main..HEAD -- k8s/ Dockerfile go.mod go.sum | Out-File -FilePath "$env:GITHUB_WORKSPACE\git-diff.txt" -Encoding utf8
           Write-Host "Git diff captured: $((Get-Item $env:GITHUB_WORKSPACE\git-diff.txt).Length) bytes"
 
       - name: Set image tag
