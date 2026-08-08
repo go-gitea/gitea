@@ -122,7 +122,7 @@
 				{{end}}
 			</div>
 			<div class="item-trailing">
-				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 32 "tw-text-text-light tw-mr-1"}}
+				{{svg (printf "octicon-%s" (ActionIcon .GetOpType)) 16 (printf "%s tw-mr-1" (ActionIconColor .GetOpType))}}
 			</div>
 		</div>
 	{{end}}
