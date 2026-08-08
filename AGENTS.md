@@ -7,7 +7,7 @@
 - Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
 - Attribute agent authorship on one trailing line in issue and PR comments, never as a PR description section
 - Never rewrite git history unless asked, update PRs with new commits and normal push
-- Comments: write almost none, short and preferably same-line, explaining why for a future reader. Never narrate code, the change or the prompt. Preserve existing ones that still apply. If you need to write a paragraph-long comment, rethink your implementation, it is likely too complicated when it necessiates such a long comment.
+- Comments: write almost none, short and preferably same-line, explaining why for a future reader. Never narrate code, the change or the prompt. Preserve existing ones that still apply. If you need to write a paragraph-long comment, rethink your implementation, it is likely too complicated when it necessitates such a long comment.
 - Add the current year to copyright headers of new `.go` files
 - In `options/locale`, only edit `locale_en-US.json`, other locales are synced automatically
 - In TS, use `!` instead of `?.`/`??` when a value always exists
