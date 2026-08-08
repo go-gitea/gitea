@@ -97,6 +97,8 @@ function resetFormErrorFields(elForm: HTMLFormElement) {
 }
 
 function handleFetchActionErrorFields(el: HTMLElement, errorFields: string[]) {
+  // The "error field" only works in a form.
+  // And non-form requests do not need such "error field" because the requests are just from a button or a link in such cases.
   if (el.nodeName !== 'FORM') return;
   const elForm = el as HTMLFormElement;
   resetFormErrorFields(elForm);
