@@ -24684,7 +24684,7 @@
             "$ref": "#/components/responses/notFound"
           }
         },
-        "summary": "Get users who subscribed on an issue.",
+        "summary": "Get users effectively subscribed to an issue (explicit watches, participants, repo watchers).",
         "tags": [
           "issue"
         ]
