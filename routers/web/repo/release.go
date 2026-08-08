@@ -716,6 +716,12 @@ func ChangeReleaseReaction(ctx *context.Context) {
 		return
 	}
 
+	// drafts are only visible to writers; read-only users shouldn't react to one
+	if rel.IsDraft && !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
+		ctx.NotFound(nil)
+		return
+	}
+
 	if ctx.HasError() {
 		ctx.ServerError("ChangeReleaseReaction", errors.New(ctx.GetErrMsg()))
 		return
@@ -772,8 +778,9 @@ func ChangeReleaseReaction(ctx *context.Context) {
 	}
 
 	html, err := ctx.RenderToHTML(tplReactions, map[string]any{
-		"ActionURL": fmt.Sprintf("%s/releases/%d/reactions", ctx.Repo.RepoLink, rel.ID),
-		"Reactions": reactions.GroupByType(),
+		"ActionURL":       fmt.Sprintf("%s/releases/%d/reactions", ctx.Repo.RepoLink, rel.ID),
+		"Reactions":       reactions.GroupByType(),
+		"HideAddReaction": true,
 	})
 	if err != nil {
 		ctx.ServerError("ChangeReleaseReaction.HTMLString", err)

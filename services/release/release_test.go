@@ -13,7 +13,7 @@ import (
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
@@ -444,10 +444,9 @@ func TestDeleteReleaseByID(t *testing.T) {
 	assert.NotNil(t, reaction)
 
 	// Verify reaction exists
-	reactions, countBefore, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: release.ID})
+	_, countBefore, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: release.ID})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), countBefore)
-	assert.Len(t, reactions, 1)
 
 	// Delete release
 	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, release, user, true))
@@ -456,4 +455,13 @@ func TestDeleteReleaseByID(t *testing.T) {
 	_, countAfter, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: release.ID})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), countAfter)
+
+	// Demoting a release to a tag (delTag=false) keeps the row and its reactions
+	release = unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 5, RepoID: repo.ID})
+	_, err = CreateReleaseReaction(t.Context(), user, release, "heart")
+	assert.NoError(t, err)
+	assert.NoError(t, DeleteReleaseByID(t.Context(), repo, release, user, false))
+	_, countAfterDemote, err := repo_model.FindReactions(t.Context(), repo_model.FindReactionsOptions{ReleaseID: release.ID})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(1), countAfterDemote)
 }

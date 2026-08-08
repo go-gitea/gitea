@@ -397,6 +397,12 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		if _, err := db.DeleteByID[repo_model.Release](ctx, rel.ID); err != nil {
 			return fmt.Errorf("DeleteReleaseByID: %w", err)
 		}
+
+		// reactions only die with the release row; demoting a release to a tag (delTag=false)
+		// keeps the row and its reactions
+		if _, err := db.GetEngine(ctx).Delete(&repo_model.Reaction{ReleaseID: rel.ID}); err != nil {
+			return fmt.Errorf("DeleteReleaseReactions: %w", err)
+		}
 	} else {
 		rel.IsTag = true
 
@@ -408,10 +414,6 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 	rel.Repo = repo
 	if err := rel.LoadAttributes(ctx); err != nil {
 		return fmt.Errorf("LoadAttributes: %w", err)
-	}
-
-	if _, err := db.GetEngine(ctx).Delete(&repo_model.Reaction{ReleaseID: rel.ID}); err != nil {
-		return fmt.Errorf("DeleteReleaseReactions: %w", err)
 	}
 
 	if err := repo_model.DeleteAttachmentsByRelease(ctx, rel.ID); err != nil {
