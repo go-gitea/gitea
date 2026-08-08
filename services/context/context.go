@@ -274,6 +274,7 @@ func (ctx *Context) JSONError(msg any) {
 }
 
 func (ctx *Context) JSONErrorWithField(msg any, field string) {
+	// HINT: JSON-ERROR-WITH-FIELD: ctx.JSONErrorWithField also uses the same logic, there is no suitable package to dedupe at the moment.
 	m := buildJsonErrorMap(msg)
 	m["errorFields"] = []string{field}
 	ctx.JSON(http.StatusBadRequest, m)

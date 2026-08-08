@@ -171,10 +171,6 @@ func buildValidationErrorForUser(f Form, l translation.Locale, bindingErrs bindi
 }
 
 func Validate(ctx *ValidateContext, errs binding.Errors, f Form) binding.Errors {
-	// try to restore the form's values as much as possible,
-	// especially for RenderWithErrDeprecated to re-render the form with errors
-	AssignForm(f, ctx.Data)
-
 	errorMessage, errorFieldName, fieldNames := buildValidationErrorForUser(f, ctx.Locale, errs)
 	if errorMessage == "" {
 		return errs
@@ -182,14 +178,14 @@ func Validate(ctx *ValidateContext, errs binding.Errors, f Form) binding.Errors 
 
 	if ctx.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
 		ctx.Resp.Header().Set("Content-Type", "application/json")
-		_ = json.MarshalWrite(ctx.Resp, map[string]any{
-			"errorMessage": errorMessage,
-			"errorFields":  fieldNames,
-		})
+		// HINT: JSON-ERROR-WITH-FIELD: middleware.Validate also uses the same logic, there is no suitable package to dedupe at the moment.
+		_ = json.MarshalWrite(ctx.Resp, map[string]any{"errorMessage": errorMessage, "errorFields": fieldNames})
 		return errs
 	}
 
-	// legacy template error display
+	// Legacy template error handling: try to restore the form's values as much as possible,
+	// especially for RenderWithErrDeprecated to re-render the form with errors.
+	AssignForm(f, ctx.Data)
 	ctx.Data["HasError"] = true
 	ctx.Data["ErrorMsg"] = errorMessage
 	if errorFieldName != "" {
