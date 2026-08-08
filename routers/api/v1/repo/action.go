@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -32,8 +33,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	secret_service "gitea.dev/services/secrets"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 // ListActionsSecrets list a repo's actions secrets
