@@ -6,6 +6,7 @@ package git
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,7 +79,7 @@ func TestRepository_GetTag(t *testing.T) {
 	aTagMessage := "my annotated message \n - test two line"
 
 	// Create the annotated tag
-	err = bareRepo1.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, aTagCommitID)
+	err = bareRepo1.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, aTagCommitID, nil)
 	if err != nil {
 		assert.NoError(t, err, "Unable to create the annotated tag: %s for ID: %s. Error: %v", aTagName, aTagCommitID, err)
 		return
@@ -150,7 +151,7 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 	aTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
 	aTagName := "annotatedTag"
 	aTagMessage := "my annotated message"
-	bareRepo1.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, aTagCommitID)
+	bareRepo1.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, aTagCommitID, nil)
 	aTagID, _ := bareRepo1.GetTagID(t.Context(), aTagName)
 
 	// Try an annotated tag
@@ -180,6 +181,32 @@ func TestRepository_GetAnnotatedTag(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrNotExist(err))
 	assert.Nil(t, tag4)
+}
+
+func TestRepository_CreateAnnotatedTag_WithTaggerDate(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+
+	clonedPath, err := cloneRepo(t, bareRepo1Path)
+	require.NoError(t, err)
+
+	bareRepo1, err := OpenRepositoryLocal(t.Context(), clonedPath)
+	require.NoError(t, err)
+	defer bareRepo1.Close()
+
+	aTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
+	aTagName := "annotatedTagWithDate"
+	aTagMessage := "tag dated in the past"
+	taggerDate := time.Date(2020, 1, 2, 3, 4, 5, 0, time.UTC)
+
+	require.NoError(t, bareRepo1.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, aTagCommitID, &taggerDate))
+
+	aTagID, err := bareRepo1.GetTagID(t.Context(), aTagName)
+	require.NoError(t, err)
+
+	tag, err := bareRepo1.GetAnnotatedTag(t.Context(), aTagID)
+	require.NoError(t, err)
+	require.NotNil(t, tag.Tagger)
+	assert.True(t, taggerDate.Equal(tag.Tagger.When), "expected tagger date %v, got %v", taggerDate, tag.Tagger.When)
 }
 
 func TestRepository_parseTagRef(t *testing.T) {

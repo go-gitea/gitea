@@ -49,7 +49,7 @@ func TestRelease_Create(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", false))
 
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
@@ -63,7 +63,7 @@ func TestRelease_Create(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", false))
 
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
@@ -77,7 +77,7 @@ func TestRelease_Create(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", false))
 
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
@@ -91,7 +91,7 @@ func TestRelease_Create(t *testing.T) {
 		IsDraft:      true,
 		IsPrerelease: false,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", false))
 
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
@@ -105,7 +105,7 @@ func TestRelease_Create(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: true,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", false))
 
 	testPlayload := "testtest"
 
@@ -129,7 +129,7 @@ func TestRelease_Create(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        true,
 	}
-	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &release, []string{attach.UUID}, "test"))
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &release, []string{attach.UUID}, "test", false))
 }
 
 func TestRelease_Update(t *testing.T) {
@@ -161,7 +161,7 @@ func TestRelease_Update(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", false))
 	release, err := repo_model.GetRelease(t.Context(), repo.ID, "v1.1.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix := release.CreatedUnix
@@ -185,7 +185,7 @@ func TestRelease_Update(t *testing.T) {
 		IsDraft:      true,
 		IsPrerelease: false,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", false))
 	release, err = repo_model.GetRelease(t.Context(), repo.ID, "v1.2.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
@@ -209,7 +209,7 @@ func TestRelease_Update(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: true,
 		IsTag:        false,
-	}, nil, ""))
+	}, nil, "", false))
 	release, err = repo_model.GetRelease(t.Context(), repo.ID, "v1.3.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
@@ -235,7 +235,7 @@ func TestRelease_Update(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	assert.NoError(t, CreateRelease(t.Context(), gitRepo, release, nil, ""))
+	assert.NoError(t, CreateRelease(t.Context(), gitRepo, release, nil, "", false))
 	assert.Positive(t, release.ID)
 
 	release.IsDraft = false
@@ -321,13 +321,13 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	_, err = createTag(t.Context(), gitRepo, release, "")
+	_, err = createTag(t.Context(), gitRepo, release, "", false)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, release.CreatedUnix)
 	releaseCreatedUnix := release.CreatedUnix
 	advance()
 	release.Note = "Changed note"
-	_, err = createTag(t.Context(), gitRepo, release, "")
+	_, err = createTag(t.Context(), gitRepo, release, "", false)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
@@ -345,12 +345,12 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	_, err = createTag(t.Context(), gitRepo, release, "")
+	_, err = createTag(t.Context(), gitRepo, release, "", false)
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	advance()
 	release.Title = "Changed title"
-	_, err = createTag(t.Context(), gitRepo, release, "")
+	_, err = createTag(t.Context(), gitRepo, release, "", false)
 	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
@@ -368,13 +368,13 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: true,
 		IsTag:        false,
 	}
-	_, err = createTag(t.Context(), gitRepo, release, "")
+	_, err = createTag(t.Context(), gitRepo, release, "", false)
 	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	advance()
 	release.Title = "Changed title"
 	release.Note = "Changed note"
-	_, err = createTag(t.Context(), gitRepo, release, "")
+	_, err = createTag(t.Context(), gitRepo, release, "", false)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 }
@@ -385,5 +385,26 @@ func TestCreateNewTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	assert.NoError(t, CreateNewTag(t.Context(), user, repo, "master", "v2.0",
-		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
+		"v2.0 is released \n\n BUGFIX: .... \n\n 123", false))
+}
+
+func TestCreateNewTag_UseCommitDate(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
+	assert.NoError(t, err)
+
+	assert.NoError(t, CreateNewTag(t.Context(), user, repo, "master", "v2.0-dated",
+		"v2.0-dated is released using the commit date", true))
+
+	tag, err := gitRepo.GetTag(t.Context(), "v2.0-dated")
+	assert.NoError(t, err)
+	assert.NotNil(t, tag.Tagger)
+	assert.True(t, commit.Committer.When.Equal(tag.Tagger.When), "expected tagger date %v, got %v", commit.Committer.When, tag.Tagger.When)
 }

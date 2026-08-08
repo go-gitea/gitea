@@ -497,7 +497,7 @@ jobs:
 		assert.NotNil(t, run)
 
 		// create a tag
-		err = release_service.CreateNewTag(t.Context(), user2, repo, branch.CommitID, "test-create-tag", "test create tag event")
+		err = release_service.CreateNewTag(t.Context(), user2, repo, branch.CommitID, "test-create-tag", "test create tag event", false)
 		assert.NoError(t, err)
 		run = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",

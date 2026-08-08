@@ -59,6 +59,8 @@ type CreateReleaseOption struct {
 	IsDraft bool `json:"draft"`
 	// Whether to mark the release as a prerelease
 	IsPrerelease bool `json:"prerelease"`
+	// Use the target commit's date as the git tag's creation date instead of the current time
+	UseCommitDate bool `json:"use_commit_date"`
 }
 
 // EditReleaseOption options when editing a release

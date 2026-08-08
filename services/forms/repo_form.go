@@ -651,15 +651,16 @@ type UpdateAllowEditsForm struct {
 
 // NewReleaseForm form for creating release
 type NewReleaseForm struct {
-	TagName    string `binding:"Required;GitRefName;MaxSize(255)"`
-	Target     string `form:"tag_target" binding:"Required;MaxSize(255)"`
-	Title      string `binding:"MaxSize(255)"`
-	Content    string
-	Draft      bool
-	TagOnly    bool
-	Prerelease bool
-	AddTagMsg  bool
-	Files      []string
+	TagName       string `binding:"Required;GitRefName;MaxSize(255)"`
+	Target        string `form:"tag_target" binding:"Required;MaxSize(255)"`
+	Title         string `binding:"MaxSize(255)"`
+	Content       string
+	Draft         bool
+	TagOnly       bool
+	Prerelease    bool
+	AddTagMsg     bool
+	UseCommitDate bool
+	Files         []string
 }
 
 // Validate validates the fields

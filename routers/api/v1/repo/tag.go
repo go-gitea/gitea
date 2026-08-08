@@ -207,7 +207,7 @@ func CreateTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err := release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
+	if err := release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message, form.UseCommitDate); err != nil {
 		if release_service.IsErrTagAlreadyExists(err) {
 			ctx.APIError(http.StatusConflict, err.Error())
 			return

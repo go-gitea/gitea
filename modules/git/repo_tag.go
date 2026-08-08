@@ -7,7 +7,9 @@ package git
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
+	"time"
 
 	"gitea.dev/modules/git/foreachref"
 	"gitea.dev/modules/git/gitcmd"
@@ -23,13 +25,20 @@ func (repo *Repository) CreateTag(ctx context.Context, name, revision string) er
 	return err
 }
 
-// CreateAnnotatedTag create one annotated tag in the repository
-func (repo *Repository) CreateAnnotatedTag(ctx context.Context, name, message, revision string) error {
-	_, _, err := gitcmd.NewCommand("tag", "-a", "-m").
+// CreateAnnotatedTag create one annotated tag in the repository.
+// If taggerDate is not nil, it is used as the tag's tagger date instead of the current time.
+func (repo *Repository) CreateAnnotatedTag(ctx context.Context, name, message, revision string, taggerDate *time.Time) error {
+	cmd := gitcmd.NewCommand("tag", "-a", "-m").
 		AddDynamicArguments(message).
 		AddDashesAndList(name, revision).
-		WithRepo(repo).
-		RunStdString(ctx)
+		WithRepo(repo)
+	if taggerDate != nil {
+		cmd = cmd.WithEnv(append(os.Environ(),
+			"GIT_AUTHOR_DATE="+taggerDate.Format(time.RFC3339),
+			"GIT_COMMITTER_DATE="+taggerDate.Format(time.RFC3339),
+		))
+	}
+	_, _, err := cmd.RunStdString(ctx)
 	return err
 }
 

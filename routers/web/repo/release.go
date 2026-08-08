@@ -473,7 +473,7 @@ func NewReleasePost(ctx *context.Context) {
 
 	// no release, and tag only
 	if rel == nil && form.TagOnly {
-		if err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, form.Target, form.TagName, newTagMsg); err != nil {
+		if err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, form.Target, form.TagName, newTagMsg, form.UseCommitDate); err != nil {
 			handleTagReleaseError(err)
 			return
 		}
@@ -499,7 +499,7 @@ func NewReleasePost(ctx *context.Context) {
 			IsPrerelease: form.Prerelease,
 			IsTag:        false,
 		}
-		if err = release_service.CreateRelease(ctx, ctx.Repo.GitRepo, rel, attachmentUUIDs, newTagMsg); err != nil {
+		if err = release_service.CreateRelease(ctx, ctx.Repo.GitRepo, rel, attachmentUUIDs, newTagMsg, form.UseCommitDate); err != nil {
 			handleTagReleaseError(err)
 			return
 		}

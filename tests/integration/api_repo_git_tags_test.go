@@ -40,7 +40,7 @@ func TestAPIGitTags(t *testing.T) {
 
 	aTagName := "annotatedTag"
 	aTagMessage := "my annotated message"
-	gitRepo.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, commit.ID.String())
+	gitRepo.CreateAnnotatedTag(t.Context(), aTagName, aTagMessage, commit.ID.String(), nil)
 	aTag, _ := gitRepo.GetTag(t.Context(), aTagName)
 
 	// SHOULD work for annotated tags

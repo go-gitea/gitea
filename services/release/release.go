@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -65,7 +66,7 @@ func (err ErrProtectedTagName) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
-func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string) (bool, error) {
+func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string, useCommitDate bool) (bool, error) {
 	err := rel.LoadAttributes(ctx)
 	if err != nil {
 		return false, err
@@ -107,7 +108,11 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			}
 
 			if len(msg) > 0 {
-				if err = gitRepo.CreateAnnotatedTag(ctx, rel.TagName, msg, commit.ID.String()); err != nil {
+				var taggerDate *time.Time
+				if useCommitDate {
+					taggerDate = &commit.Committer.When
+				}
+				if err = gitRepo.CreateAnnotatedTag(ctx, rel.TagName, msg, commit.ID.String(), taggerDate); err != nil {
 					if strings.Contains(err.Error(), "is not a valid tag name") {
 						return false, ErrInvalidTagName{
 							TagName: rel.TagName,
@@ -166,7 +171,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 }
 
 // CreateRelease creates a new release of repository.
-func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, attachmentUUIDs []string, msg string) error {
+func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, attachmentUUIDs []string, msg string, useCommitDate bool) error {
 	has, err := repo_model.IsReleaseExist(ctx, rel.RepoID, rel.TagName)
 	if err != nil {
 		return err
@@ -176,7 +181,7 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 		}
 	}
 
-	if _, err = createTag(ctx, gitRepo, rel, msg); err != nil {
+	if _, err = createTag(ctx, gitRepo, rel, msg, useCommitDate); err != nil {
 		return err
 	}
 
@@ -217,7 +222,7 @@ func (err ErrTagAlreadyExists) Unwrap() error {
 }
 
 // CreateNewTag creates a new repository tag
-func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit, tagName, msg string) error {
+func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit, tagName, msg string, useCommitDate bool) error {
 	has, err := repo_model.IsReleaseExist(ctx, repo.ID, tagName)
 	if err != nil {
 		return err
@@ -245,7 +250,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		IsTag:        true,
 	}
 
-	if _, err = createTag(ctx, gitRepo, rel, msg); err != nil {
+	if _, err = createTag(ctx, gitRepo, rel, msg, useCommitDate); err != nil {
 		return err
 	}
 
@@ -262,7 +267,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	if rel.ID == 0 {
 		return errors.New("UpdateRelease only accepts an exist release")
 	}
-	isTagCreated, err := createTag(ctx, gitRepo, rel, "")
+	isTagCreated, err := createTag(ctx, gitRepo, rel, "", false)
 	if err != nil {
 		return err
 	}

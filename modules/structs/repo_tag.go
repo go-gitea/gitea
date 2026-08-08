@@ -58,6 +58,8 @@ type CreateTagOption struct {
 	Message string `json:"message"`
 	// The target commit SHA or branch name for the tag
 	Target string `json:"target"`
+	// Use the target commit's date as the git tag's creation date instead of the current time
+	UseCommitDate bool `json:"use_commit_date"`
 }
 
 // TagProtection represents a tag protection
