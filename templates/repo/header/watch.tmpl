@@ -36,9 +36,12 @@
 				<div>{{$ignore}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.ignore.desc"}}</div></div>
 			</a>
 			{{$custom := ctx.Locale.Tr "repo.watch.mode.custom"}}
-			<a class="item{{if $isCustom}} active{{end}}" role="menuitem" aria-label="{{$custom}}"
-				data-global-click="onRepoWatchOptionsClick" data-url="{{$.RepoLink}}/action/watch/options"
-				data-issues="{{$.RepoWatch.Issues}}" data-pull-requests="{{$.RepoWatch.PullRequests}}" data-releases="{{$.RepoWatch.Releases}}"
+			<a class="item {{if $isCustom}}active{{end}} show-modal" role="menuitem" aria-label="{{$custom}}"
+				data-modal="#repo-watch-options-modal"
+				data-modal-form.url="{{$.RepoLink}}/action/watch/options"
+			 	data-modal-issues.checked="{{$.RepoWatch.Issues}}"
+				data-modal-pull_requests.checked="{{$.RepoWatch.PullRequests}}"
+				data-modal-releases.checked="{{$.RepoWatch.Releases}}"
 			>
 				{{svg "octicon-check" 16 (Iif $isCustom "" "tw-invisible")}}
 				<div>{{$custom}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.custom.desc"}}</div></div>

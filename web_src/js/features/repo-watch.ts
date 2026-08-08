@@ -20,14 +20,4 @@ export function initRepoWatch() {
     });
     menu.addEventListener('click', () => watchMenuTippy!.hide());
   });
-
-  registerGlobalEventFunc('click', 'onRepoWatchOptionsClick', (btn: HTMLElement) => {
-    const elModal = document.querySelector<HTMLElement>('#repo-watch-options-modal')!;
-    const form = elModal.querySelector<HTMLFormElement>('form')!;
-    form.action = btn.getAttribute('data-url')!;
-    for (const el of form.querySelectorAll<HTMLInputElement>('input[type=checkbox]')) {
-      el.checked = btn.getAttribute(`data-${el.name.replaceAll('_', '-')}`) === 'true';
-    }
-    showFomanticModal(elModal);
-  });
 }
