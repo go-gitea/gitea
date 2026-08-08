@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"time"
 
 	packages_model "gitea.dev/models/packages"
 	npm_module "gitea.dev/modules/packages/npm"
@@ -22,8 +23,14 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 
 	versions := make(map[string]*npm_module.PackageMetadataVersion)
 	distTags := make(map[string]string)
+	times := make(map[string]time.Time)
+	firstPublished, lastPublished := pds[0].Version.CreatedUnix, pds[0].Version.CreatedUnix
 	for _, pd := range pds {
-		versions[pd.SemVer.String()] = createPackageMetadataVersion(registryURL, pd)
+		semVer := pd.SemVer.String()
+		versions[semVer] = createPackageMetadataVersion(registryURL, pd)
+		times[semVer] = pd.Version.CreatedUnix.AsTimeInLocation(time.UTC)
+		firstPublished = min(firstPublished, pd.Version.CreatedUnix)
+		lastPublished = max(lastPublished, pd.Version.CreatedUnix)
 
 		for _, pvp := range pd.VersionProperties {
 			if pvp.Name == npm_module.TagProperty {
@@ -31,6 +38,10 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 			}
 		}
 	}
+
+	// npm derives both from the versions currently served, so a deletion moves them
+	times["created"] = firstPublished.AsTimeInLocation(time.UTC)
+	times["modified"] = lastPublished.AsTimeInLocation(time.UTC)
 
 	latest := pds[len(pds)-1]
 
@@ -42,7 +53,10 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 		DistTags:    distTags,
 		Description: metadata.Description,
 		Readme:      metadata.Readme,
+		Maintainers: []npm_module.User{{Name: latest.Owner.Name}},
+		Time:        times,
 		Homepage:    metadata.ProjectURL,
+		Keywords:    metadata.Keywords,
 		Author:      npm_module.User{Name: metadata.Author},
 		License:     metadata.License,
 		Versions:    versions,
@@ -61,8 +75,10 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		Version:              pd.Version.Version,
 		Description:          metadata.Description,
 		Author:               npm_module.User{Name: metadata.Author},
+		Maintainers:          []npm_module.User{{Name: pd.Owner.Name}},
 		Homepage:             metadata.ProjectURL,
 		License:              metadata.License,
+		Keywords:             metadata.Keywords,
 		Dependencies:         metadata.Dependencies,
 		BundleDependencies:   metadata.BundleDependencies,
 		DevDependencies:      metadata.DevelopmentDependencies,

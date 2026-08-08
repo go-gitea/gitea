@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 
-	"gitea.com/gitea/runner/act/exprparser"
-	"gitea.com/gitea/runner/act/model"
+	"gitea.dev/actionslib/pkg/expreval"
+	"gitea.dev/actionslib/pkg/exprparser"
+	"gitea.dev/actionslib/pkg/model"
+
 	"go.yaml.in/yaml/v4"
 )
 
@@ -277,7 +279,7 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 		matrix = matrixes[0]
 	}
 
-	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
+	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
 	var node yaml.Node
 	if err := node.Encode(rc); err != nil {
 		return "", false, fmt.Errorf("failed to encode concurrency: %w", err)
@@ -525,16 +527,8 @@ func EvaluateJobIfExpression(jobID string, job *Job, gitCtx map[string]any, resu
 			matrix = matrixes[0]
 		}
 	}
-	evaluator := NewExpressionEvaluator(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs))
-	expr, err := rewriteSubExpression(job.If.Value, false)
-	if err != nil {
-		return false, err
-	}
-	result, err := evaluator.evaluate(expr, exprparser.DefaultStatusCheckSuccess)
-	if err != nil {
-		return false, err
-	}
-	return exprparser.IsTruthy(result), nil
+	evaluator := expreval.New(NewInterpeter(jobID, actJob, matrix, toGitContext(gitCtx), results, vars, inputs).Evaluate)
+	return evaluator.EvalBool(job.If.Value, exprparser.DefaultStatusCheckSuccess)
 }
 
 // parseMappingNode parse a mapping node and preserve order.
