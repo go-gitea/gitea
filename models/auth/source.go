@@ -185,7 +185,7 @@ func (source *Source) IsSSPI() bool {
 func MustSourceCfg[T Config](source *Source) T {
 	cfg, ok := source.Cfg.(T)
 	if !ok {
-		panic(fmt.Sprintf("auth source %q (id=%d, type=%s) has config %T, expected %s", source.Name, source.ID, source.Type, source.Cfg, reflect.TypeFor[T]()))
+		panic(fmt.Errorf("auth source %q (id=%d, type=%s) has config %T, expected %s", source.Name, source.ID, source.Type, source.Cfg, reflect.TypeFor[T]()))
 	}
 	return cfg
 }

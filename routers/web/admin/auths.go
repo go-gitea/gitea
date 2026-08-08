@@ -310,7 +310,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 		TwoFactorPolicy: form.TwoFactorPolicy,
 		Cfg:             config,
 	}); err != nil {
-		if errExist, ok := err.(auth.ErrSourceAlreadyExist); ok {
+		if errExist, ok := errors.AsType[auth.ErrSourceAlreadyExist](err); ok {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", errExist.Name), tplAuthNew, form)
 		} else if errInit, ok := err.(oauth2.ErrOpenIDConnectInitialize); ok {
@@ -421,7 +421,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.Cfg = config
 	source.TwoFactorPolicy = form.TwoFactorPolicy
 	if err := auth.UpdateSource(ctx, source); err != nil {
-		if errExist, ok := err.(auth.ErrSourceAlreadyExist); ok {
+		if errExist, ok := errors.AsType[auth.ErrSourceAlreadyExist](err); ok {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.auths.login_source_exist", errExist.Name), tplAuthEdit, form)
 		} else if oauth2.IsErrOpenIDConnectInitialize(err) {

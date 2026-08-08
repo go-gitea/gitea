@@ -5,6 +5,7 @@ package repo
 
 import (
 	"context"
+	"fmt"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
@@ -302,8 +303,7 @@ func unitConfig[T interface {
 }, E any](r *RepoUnit) T {
 	config, ok := r.Config.(T)
 	if !ok {
-		setting.PanicInDevOrTesting("repo unit %d of type %s has config type %T instead of %T", r.ID, r.Type.LogString(), r.Config, config)
-		return T(new(E)) // production keeps working with a zero config instead of crashing
+		panic(fmt.Errorf("repo unit %d of type %s has config type %T instead of %T", r.ID, r.Type.LogString(), r.Config, config))
 	}
 	return config
 }

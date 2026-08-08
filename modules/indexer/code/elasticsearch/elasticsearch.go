@@ -266,6 +266,7 @@ func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (in
 		commitID, okCommitID := res["commit_id"].(string)
 		updatedAt, okUpdatedAt := res["updated_at"].(float64)
 		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt {
+			setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, hit.Source.String())
 			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
 		}
 

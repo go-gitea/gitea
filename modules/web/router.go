@@ -4,6 +4,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -36,11 +37,11 @@ func SetForm(dataStore reqctx.ContextDataProvider, obj any) {
 	dataStore.GetData()["__form"] = obj
 }
 
-// GetForm returns the validate form information, it returns a zero value if the bound form is not of type T
+// GetForm returns the validate form information
 func GetForm[T any](dataStore reqctx.RequestDataStore) T {
 	form, ok := dataStore.GetData()["__form"].(T)
 	if !ok {
-		setting.PanicInDevOrTesting("bound form %T does not match the requested type %s", dataStore.GetData()["__form"], reflect.TypeFor[T]())
+		panic(fmt.Errorf("bound form %T does not match the requested type %s", dataStore.GetData()["__form"], reflect.TypeFor[T]()))
 	}
 	return form
 }

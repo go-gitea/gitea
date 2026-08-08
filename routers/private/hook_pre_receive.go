@@ -250,7 +250,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	if len(globs) > 0 {
 		_, err := pull_service.CheckFileProtection(ctx, gitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
 		if err != nil {
-			errFilePathProtected, ok := err.(pull_service.ErrFilePathProtected)
+			errFilePathProtected, ok := errors.AsType[pull_service.ErrFilePathProtected](err)
 			if !ok {
 				log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{

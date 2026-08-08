@@ -21,6 +21,7 @@ import (
 	"gitea.dev/modules/indexer/code/internal"
 	indexer_internal "gitea.dev/modules/indexer/internal"
 	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/typesniffer"
@@ -336,6 +337,8 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 		updatedAt, okUpdatedAt := hit.Fields["UpdatedAt"].(string)
 		repoID, okRepoID := hit.Fields["RepoID"].(float64)
 		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt || !okRepoID {
+			hitFieldsJson, _ := json.Marshal(hit.Fields)
+			setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hitFieldsJson))
 			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
 		}
 
