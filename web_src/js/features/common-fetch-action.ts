@@ -125,7 +125,7 @@ async function handleFetchActionError(el: HTMLElement, resp: Response) {
     // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
     // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
     showErrorToast(respJson.errorMessage, {useHtmlBody: respJson.renderFormat === 'html'});
-    if (respJson?.errorFields && respJson?.errorFields.length) {
+    if (respJson?.errorFields?.length) {
       handleFetchActionErrorFields(el, respJson?.errorFields);
     }
   } else {
