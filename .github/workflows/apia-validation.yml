@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set image tag
         id: tag
@@ -21,9 +23,9 @@ jobs:
       - name: Reset baseline to clean state
         shell: bash
         run: |
-          kubectl delete namespace baseline --ignore-not-found=true
+          git show origin/main:k8s/baseline.yaml | kubectl delete -f - --ignore-not-found=true
           kubectl wait --for=delete namespace/baseline --timeout=90s || true
-          kubectl apply -f k8s/baseline.yaml
+          git show origin/main:k8s/baseline.yaml | kubectl apply -f -
           kubectl rollout status deployment/postgres -n baseline --timeout=90s
           kubectl rollout status deployment/redis -n baseline --timeout=60s
           kubectl rollout status deployment/app -n baseline --timeout=180s
@@ -67,7 +69,6 @@ jobs:
       - name: Compute git diff
         shell: bash
         run: |
-          git fetch origin main
           git diff origin/main...HEAD -- . > /tmp/pr-diff.patch
           echo "GIT_DIFF_FILE=/tmp/pr-diff.patch" >> $GITHUB_ENV
 
