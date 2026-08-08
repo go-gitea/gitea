@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/actionslib/pkg/protocol"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/modules/log"
@@ -22,8 +23,8 @@ import (
 )
 
 const (
-	uuidHeaderKey  = "x-runner-uuid"
-	tokenHeaderKey = "x-runner-token"
+	uuidHeaderKey  = protocol.UUIDHeader
+	tokenHeaderKey = protocol.TokenHeader
 )
 
 var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {

@@ -32,6 +32,7 @@ import (
 	"gitea.dev/modules/references"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates/vars"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	issue_service "gitea.dev/services/issue"
@@ -66,17 +67,15 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	reviewedBy := pr.GetApprovers(ctx)
 
 	if mergeStyle != "" {
-		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
 		commit, err := baseGitRepo.GetBranchCommit(ctx, pr.BaseRepo.DefaultBranch)
 		if err != nil {
 			return "", "", err
 		}
-		templateContent, err := commit.GetFileContent(ctx, baseGitRepo, templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
+		templateContent, err := resolveMergeMessageTemplate(ctx, baseGitRepo, commit, mergeStyle)
 		if err != nil {
-			if !git.IsErrNotExist(err) {
-				return "", "", err
-			}
-		} else {
+			return "", "", err
+		}
+		if templateContent != "" {
 			vars := map[string]string{
 				"BaseRepoOwnerName":      pr.BaseRepo.OwnerName,
 				"BaseRepoName":           pr.BaseRepo.Name,
@@ -146,14 +145,32 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), body, nil
 }
 
-func expandDefaultMergeMessage(template string, vars map[string]string) (message, body string) {
+// resolveMergeMessageTemplate returns the content of the merge message template for the given
+// merge style. It first looks for a style-specific template ({STYLE}_TEMPLATE.md), and falls back
+// to the generic DEFAULT_TEMPLATE.md if the style-specific one is not found.
+func resolveMergeMessageTemplate(ctx context.Context, baseGitRepo *git.Repository, commit *git.Commit, mergeStyle repo_model.MergeStyle) (string, error) {
+	templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
+	templateContent, err := commit.GetFileContent(ctx, baseGitRepo, templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
+	if err == nil {
+		return templateContent, nil
+	}
+	if !git.IsErrNotExist(err) {
+		return "", err
+	}
+	templateContent, err = commit.GetFileContent(ctx, baseGitRepo, ".gitea/default_merge_message/DEFAULT_TEMPLATE.md", setting.Repository.PullRequest.DefaultMergeMessageSize)
+	if err == nil || git.IsErrNotExist(err) {
+		return templateContent, nil
+	}
+	return "", err
+}
+
+func expandDefaultMergeMessage(template string, varsMap map[string]string) (message, body string) {
 	message = strings.TrimSpace(template)
 	if splits := strings.SplitN(message, "\n", 2); len(splits) == 2 {
 		message = splits[0]
 		body = strings.TrimSpace(splits[1])
 	}
-	mapping := func(s string) string { return vars[s] }
-	return os.Expand(message, mapping), os.Expand(body, mapping)
+	return vars.ExpandShellLike(message, varsMap), vars.ExpandShellLike(body, varsMap)
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request

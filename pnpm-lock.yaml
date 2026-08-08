@@ -101,9 +101,6 @@ importers:
       chart.js:
         specifier: 4.5.1
         version: 4.5.1
-      chartjs-adapter-dayjs-4:
-        specifier: 1.0.4
-        version: 1.0.4(chart.js@4.5.1)(dayjs@1.11.21)
       chartjs-plugin-zoom:
         specifier: 2.2.0
         version: 2.2.0(chart.js@4.5.1)
@@ -191,9 +188,6 @@ importers:
       vue:
         specifier: 3.5.40
         version: 3.5.40(typescript@6.0.3)
-      vue-chartjs:
-        specifier: 5.3.4
-        version: 5.3.4(chart.js@4.5.1)(vue@3.5.40(typescript@6.0.3))
     devDependencies:
       '@eslint-community/eslint-plugin-eslint-comments':
         specifier: 4.7.2
@@ -1833,13 +1827,6 @@ packages:
   chart.js@4.5.1:
     resolution: {integrity: sha512-GIjfiT9dbmHRiYi6Nl2yFCq7kkwdkp1W/lp2J99rX0yo9tgJGn3lKQATztIjb5tVtevcBtIdICNWqlq5+E8/Pw==}
     engines: {pnpm: '>=8'}
-
-  chartjs-adapter-dayjs-4@1.0.4:
-    resolution: {integrity: sha512-yy9BAYW4aNzPVrCWZetbILegTRb7HokhgospPoC3b5iZ5qdlqNmXts2KdSp6AqnjkPAp/YWyHDxLvIvwt5x81w==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      chart.js: '>=4.0.1'
-      dayjs: ^1.9.7
 
   chartjs-plugin-zoom@2.2.0:
     resolution: {integrity: sha512-in6kcdiTlP6npIVLMd4zXZ08PDUXC52gZ4FAy5oyjk1zX3gKarXMAof7B9eFiisf9WOC3bh2saHg+J5WtLXZeA==}
@@ -4303,12 +4290,6 @@ packages:
   vscode-uri@3.1.0:
     resolution: {integrity: sha512-/BpdSx+yCQGnCvecbyXdxHDkuk55/G3xwnC0GqY4gmQ3j+A+g8kzzgB4Nk/SINjqn6+waqw3EgbVF2QKExkRxQ==}
 
-  vue-chartjs@5.3.4:
-    resolution: {integrity: sha512-x3Fqob8RQvrTdssfi9ecsCzEkFOd8JPmNwSkSQzdfKj/uBsRJs/Y88cZcZIEcPsTVfMGwMo4MOoihoDG2DoE/g==}
-    peerDependencies:
-      chart.js: ^4.1.1
-      vue: ^3.0.0-0 || ^2.7.0
-
   vue-eslint-parser@10.4.0:
     resolution: {integrity: sha512-Vxi9pJdbN3ZnVGLODVtZ7y4Y2kzAAE2Cm0CZ3ZDRvydVYxZ6VrnBhLikBsRS+dpwj4Jv4UCv21PTEwF5rQ9WXg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
@@ -6124,11 +6105,6 @@ snapshots:
   chart.js@4.5.1:
     dependencies:
       '@kurkle/color': 0.3.4
-
-  chartjs-adapter-dayjs-4@1.0.4(chart.js@4.5.1)(dayjs@1.11.21):
-    dependencies:
-      chart.js: 4.5.1
-      dayjs: 1.11.21
 
   chartjs-plugin-zoom@2.2.0(chart.js@4.5.1):
     dependencies:
@@ -8998,11 +8974,6 @@ snapshots:
       - msw
 
   vscode-uri@3.1.0: {}
-
-  vue-chartjs@5.3.4(chart.js@4.5.1)(vue@3.5.40(typescript@6.0.3)):
-    dependencies:
-      chart.js: 4.5.1
-      vue: 3.5.40(typescript@6.0.3)
 
   vue-eslint-parser@10.4.0(eslint@10.8.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2):
     dependencies:

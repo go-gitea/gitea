@@ -14,7 +14,7 @@ import (
 )
 
 // GetCommitGraph return a list of commit (GraphItems) from all branches
-func GetCommitGraph(ctx context.Context, gitRepo *git.Repository, page, maxAllowedColors int, hidePRRefs bool, branches, files []string) (*Graph, error) {
+func GetCommitGraph(ctx context.Context, gitRepo *git.Repository, page, maxAllowedColors int, hidePRRefs bool, refs, files []string) (*Graph, error) {
 	format := "DATA:%D|%H|%ad|%h|%s"
 
 	if page == 0 {
@@ -27,7 +27,7 @@ func GetCommitGraph(ctx context.Context, gitRepo *git.Repository, page, maxAllow
 		graphCmd.AddArguments("--exclude=" + git.PullPrefix + "*")
 	}
 
-	if len(branches) == 0 {
+	if len(refs) == 0 {
 		graphCmd.AddArguments("--tags", "--branches")
 	}
 
@@ -35,8 +35,8 @@ func GetCommitGraph(ctx context.Context, gitRepo *git.Repository, page, maxAllow
 		AddOptionFormat("-n %d", setting.UI.GraphMaxCommitNum*page).
 		AddOptionFormat("--pretty=format:%s", format)
 
-	if len(branches) > 0 {
-		graphCmd.AddDynamicArguments(branches...)
+	if len(refs) > 0 {
+		graphCmd.AddDynamicArguments(refs...)
 	}
 	if len(files) > 0 {
 		graphCmd.AddDashesAndList(files...)
