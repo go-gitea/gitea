@@ -427,3 +427,31 @@ func ToHook(repoLink string, w *webhook_model.Webhook) (*api.Hook, error) {
 		BranchFilter:        w.BranchFilter,
 	}, nil
 }
+
+// ToHookDelivery converts a HookTask to an api.HookDelivery
+// This function is not part of the convert package to prevent an import cycle
+func ToHookDelivery(t *webhook_model.HookTask) *api.HookDelivery {
+	delivery := &api.HookDelivery{
+		UUID:        t.UUID,
+		EventType:   string(t.EventType),
+		IsDelivered: t.IsDelivered,
+		IsSucceeded: t.IsSucceed,
+		Delivered:   t.Delivered.AsTime(),
+	}
+	if t.RequestInfo != nil {
+		delivery.Request = &api.HookDeliveryRequest{
+			URL:        t.RequestInfo.URL,
+			HTTPMethod: t.RequestInfo.HTTPMethod,
+			Headers:    t.RequestInfo.Headers,
+			Body:       t.RequestInfo.Body,
+		}
+	}
+	if t.ResponseInfo != nil {
+		delivery.Response = &api.HookDeliveryResponse{
+			Status:  t.ResponseInfo.Status,
+			Headers: t.ResponseInfo.Headers,
+			Body:    t.ResponseInfo.Body,
+		}
+	}
+	return delivery
+}

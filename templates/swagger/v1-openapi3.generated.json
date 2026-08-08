@@ -624,6 +624,29 @@
         },
         "description": "Hook"
       },
+      "HookDelivery": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HookDelivery"
+            }
+          }
+        },
+        "description": "HookDelivery"
+      },
+      "HookDeliveryList": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/HookDelivery"
+              },
+              "type": "array"
+            }
+          }
+        },
+        "description": "HookDeliveryList"
+      },
       "HookList": {
         "content": {
           "application/json": {
@@ -6907,6 +6930,102 @@
             "format": "date-time",
             "type": "string",
             "x-go-name": "Updated"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "HookDelivery": {
+        "description": "HookDelivery represents a single delivery attempt for a webhook",
+        "properties": {
+          "delivered_at": {
+            "description": "The date and time when the delivery was sent",
+            "format": "date-time",
+            "type": "string",
+            "x-go-name": "Delivered"
+          },
+          "event_type": {
+            "description": "The event type that triggered this delivery",
+            "type": "string",
+            "x-go-name": "EventType"
+          },
+          "is_delivered": {
+            "description": "Whether the delivery has been sent",
+            "type": "boolean",
+            "x-go-name": "IsDelivered"
+          },
+          "is_succeeded": {
+            "description": "Whether the delivery was successful (2xx response)",
+            "type": "boolean",
+            "x-go-name": "IsSucceeded"
+          },
+          "request": {
+            "$ref": "#/components/schemas/HookDeliveryRequest"
+          },
+          "response": {
+            "$ref": "#/components/schemas/HookDeliveryResponse"
+          },
+          "uuid": {
+            "description": "The unique identifier of the delivery",
+            "type": "string",
+            "x-go-name": "UUID"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "HookDeliveryRequest": {
+        "description": "HookDeliveryRequest represents the request information of a webhook delivery",
+        "properties": {
+          "body": {
+            "description": "The body sent with the delivery",
+            "type": "string",
+            "x-go-name": "Body"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The headers sent with the delivery",
+            "type": "object",
+            "x-go-name": "Headers"
+          },
+          "http_method": {
+            "description": "The HTTP method used for the delivery",
+            "type": "string",
+            "x-go-name": "HTTPMethod"
+          },
+          "url": {
+            "description": "The URL the delivery was sent to",
+            "format": "uri",
+            "type": "string",
+            "x-go-name": "URL"
+          }
+        },
+        "type": "object",
+        "x-go-package": "gitea.dev/modules/structs"
+      },
+      "HookDeliveryResponse": {
+        "description": "HookDeliveryResponse represents the response information of a webhook delivery",
+        "properties": {
+          "body": {
+            "description": "The body received in the response",
+            "type": "string",
+            "x-go-name": "Body"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The headers received in the response",
+            "type": "object",
+            "x-go-name": "Headers"
+          },
+          "status": {
+            "description": "The HTTP status code of the response",
+            "format": "int64",
+            "type": "integer",
+            "x-go-name": "Status"
           }
         },
         "type": "object",
@@ -21282,6 +21401,125 @@
           }
         },
         "summary": "Edit a hook in a repository",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/hooks/{id}/deliveries": {
+      "get": {
+        "operationId": "repoListHookDeliveries",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the hook",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/HookDeliveryList"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "List the deliveries of a hook in a repository",
+        "tags": [
+          "repository"
+        ]
+      }
+    },
+    "/repos/{owner}/{repo}/hooks/{id}/deliveries/{uuid}": {
+      "get": {
+        "operationId": "repoGetHookDelivery",
+        "parameters": [
+          {
+            "description": "owner of the repo",
+            "in": "path",
+            "name": "owner",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the repo",
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "id of the hook",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "uuid of the delivery",
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/HookDelivery"
+          },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          }
+        },
+        "summary": "Get a delivery of a hook in a repository",
         "tags": [
           "repository"
         ]
