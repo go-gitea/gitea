@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"errors"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	issues_model "gitea.dev/models/issues"
@@ -448,6 +449,12 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 		return
 	}
 
+	// A Comment-type review with empty body is a synthetic wrapper created to publish
+	// standalone code comments; the per-comment PullRequestCodeComment events carry them.
+	if review.Type == issues_model.ReviewTypeComment && strings.TrimSpace(review.Content) == "" {
+		return
+	}
+
 	if err := pr.LoadIssue(ctx); err != nil {
 		log.Error("pr.LoadIssue: %v", err)
 		return
@@ -470,6 +477,45 @@ func (n *actionsNotifier) PullRequestReview(ctx context.Context, pr *issues_mode
 			Review: &api.ReviewPayload{
 				Type:    string(reviewHookType),
 				Content: review.Content,
+			},
+		}).Notify(ctx)
+}
+
+func (n *actionsNotifier) PullRequestCodeComment(ctx context.Context, pr *issues_model.PullRequest, comment *issues_model.Comment, _ []*user_model.User) {
+	ctx = withMethod(ctx, "PullRequestCodeComment")
+
+	if err := pr.LoadIssue(ctx); err != nil {
+		log.Error("LoadIssue: %v", err)
+		return
+	}
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo: %v", err)
+		return
+	}
+	if comment.Poster == nil {
+		if err := comment.LoadPoster(ctx); err != nil {
+			log.Error("LoadPoster: %v", err)
+			return
+		}
+	}
+
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, pr.Issue.Repo, comment.Poster)
+	if err != nil {
+		log.Error("GetIndividualUserRepoPermission: %v", err)
+		return
+	}
+
+	newNotifyInput(pr.Issue.Repo, comment.Poster, webhook_module.HookEventPullRequestReviewComment).
+		WithRef(comment.CommitSHA).
+		WithPayload(&api.PullRequestPayload{
+			Action:      api.HookIssueReviewed,
+			Index:       pr.Issue.Index,
+			PullRequest: convert.ToAPIPullRequest(ctx, pr, comment.Poster),
+			Repository:  convert.ToRepo(ctx, pr.Issue.Repo, permission),
+			Sender:      convert.ToUser(ctx, comment.Poster, nil),
+			Review: &api.ReviewPayload{
+				Type:    string(webhook_module.HookEventPullRequestReviewComment),
+				Content: comment.Content,
 			},
 		}).Notify(ctx)
 }
