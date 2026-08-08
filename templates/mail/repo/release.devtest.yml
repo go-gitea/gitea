@@ -1,0 +1,14 @@
+Subject: New release in user/repo
+Link: http://localhost/user/repo/releases
+
+# no Attachments mock because "FileSize" requires int64 which yaml cannot produce
+Release:
+  TagName: v1.0.0
+  Title: v1.0.0 - Great Release
+  HTMLURL: http://localhost/user/repo/releases/tag/v1.0.0
+  RenderedNote: This release fixes several bugs and improves performance.
+  Publisher:
+    Name: PublisherName
+  Repo:
+    FullName: user/repo
+    HTMLURL: http://localhost/user/repo
