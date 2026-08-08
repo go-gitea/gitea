@@ -381,7 +381,7 @@ func (f *EditOAuth2ApplicationForm) Validate(req *http.Request, errs binding.Err
 	ctx := context.GetValidateContext(req)
 	invalidURI := DetectInvalidOAuth2ApplicationRedirectURI(util.SplitTrimSpace(f.RedirectURIs, "\n"))
 	if invalidURI != "" {
-		errs = middleware.AddValidationError(errs, "RedirectURIs", ctx.Locale.TrString("form.url_error", `"`+invalidURI+`"`))
+		errs = middleware.AddValidationError(errs, "RedirectURIs", "RedirectURIs: "+ctx.Locale.TrString("form.url_error", `"`+invalidURI+`"`))
 	}
 	return middleware.Validate(ctx, errs, f)
 }

@@ -259,15 +259,24 @@ func (ctx *Context) JSONOK() {
 	ctx.JSON(http.StatusOK, map[string]any{"ok": true}) // this is only a dummy response, frontend seldom uses it
 }
 
-func (ctx *Context) JSONError(msg any) {
+func buildJsonErrorMap(msg any) map[string]any {
 	switch v := msg.(type) {
 	case string:
-		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "text"})
+		return map[string]any{"errorMessage": v, "renderFormat": "text"}
 	case template.HTML:
-		ctx.JSON(http.StatusBadRequest, map[string]any{"errorMessage": v, "renderFormat": "html"})
-	default:
-		panic(fmt.Sprintf("unsupported type: %T", msg))
+		return map[string]any{"errorMessage": v, "renderFormat": "html"}
 	}
+	panic(fmt.Sprintf("unsupported type: %T", msg))
+}
+
+func (ctx *Context) JSONError(msg any) {
+	ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
+}
+
+func (ctx *Context) JSONErrorWithField(msg any, field string) {
+	m := buildJsonErrorMap(msg)
+	m["errorFields"] = []string{field}
+	ctx.JSON(http.StatusBadRequest, m)
 }
 
 func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
@@ -275,5 +284,5 @@ func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
 	if msg == "" {
 		msg = ctx.Locale.TrString("error.not_found")
 	}
-	ctx.JSON(http.StatusNotFound, map[string]any{"errorMessage": msg, "renderFormat": "text"})
+	ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
 }

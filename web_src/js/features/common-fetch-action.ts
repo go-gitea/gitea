@@ -1,6 +1,6 @@
 import {GET, request} from '../modules/fetch.ts';
 import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
-import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML} from '../utils/dom.ts';
+import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage, errorName} from '../modules/errors.ts';
 import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
@@ -92,7 +92,32 @@ async function handleFetchActionSuccess(el: HTMLElement, opt: FetchActionOpts, r
   }
 }
 
-async function handleFetchActionError(resp: Response) {
+function resetFormErrorFields(elForm: HTMLFormElement) {
+  queryElems(elForm, '.field.error', (el) => el.classList.remove('error'));
+}
+
+function handleFetchActionErrorFields(el: HTMLElement, errorFields: string[]) {
+  if (el.nodeName !== 'FORM') return;
+  const elForm = el as HTMLFormElement;
+  resetFormErrorFields(elForm);
+  const fieldNameElemMap : Record<string, HTMLElement> = {};
+  const normalizeFieldName = (name: string) => name.replace(/[^A-Za-z0-9]/g, '').toLowerCase();
+  queryElems(elForm, '[name]', (el) => {
+    const name = el.getAttribute('name');
+    if (!name) return;
+    fieldNameElemMap[normalizeFieldName(name)] = el;
+  });
+  for (const errorField of errorFields) {
+    const name = normalizeFieldName(errorField);
+    const elInput = fieldNameElemMap[name];
+    if (!elInput) continue;
+    const elField = elInput.closest('.field');
+    if (!elField) continue;
+    elField.classList.add('error');
+  }
+}
+
+async function handleFetchActionError(el: HTMLElement, resp: Response) {
   const isRespJson = resp.headers.get('content-type')?.includes('application/json');
   const respText = await resp.text();
   const respJson = isRespJson ? JSON.parse(respText) : null;
@@ -100,6 +125,9 @@ async function handleFetchActionError(resp: Response) {
     // the code was quite messy, sometimes the backend uses "err", sometimes it uses "error", and even "user_error"
     // but at the moment, as a new approach, we only use "errorMessage" here, backend can use JSONError() to respond.
     showErrorToast(respJson.errorMessage, {useHtmlBody: respJson.renderFormat === 'html'});
+    if (respJson?.errorFields && respJson?.errorFields.length) {
+      handleFetchActionErrorFields(el, respJson?.errorFields);
+    }
   } else {
     showErrorToast(`Error ${resp.status} ${resp.statusText}. Response: ${respText.substring(0, 200)}`);
   }
@@ -135,7 +163,7 @@ export async function performFetchActionRequest(el: HTMLElement, opt: FetchActio
     headers.set('X-Gitea-Fetch-Action', '1');
     const resp = await request(url, {method: opt.method, data: opt.data, headers});
     if (resp.ok) return resp;
-    await handleFetchActionError(resp);
+    await handleFetchActionError(el, resp);
   } catch (err) {
     if (errorName(err) !== 'AbortError') {
       console.error(`Fetch action request error:`, err);
@@ -194,9 +222,10 @@ function prepareFormFetchActionOpts(formEl: HTMLFormElement, opts: SubmitFormFet
   };
 }
 
-export async function submitFormFetchAction(formEl: HTMLFormElement, opts: SubmitFormFetchActionOpts = {}) {
+export async function submitFormFetchAction(elForm: HTMLFormElement, opts: SubmitFormFetchActionOpts = {}) {
   hideToastsAll();
-  await performFetchAction(formEl, prepareFormFetchActionOpts(formEl, opts));
+  resetFormErrorFields(elForm);
+  await performFetchAction(elForm, prepareFormFetchActionOpts(elForm, opts));
 }
 
 async function confirmFetchAction(el: HTMLElement) {
