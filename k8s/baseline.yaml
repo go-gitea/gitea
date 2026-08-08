@@ -1,4 +1,4 @@
-# baseline namespace â€” Gitea with Redis cache ENABLED (healthy state)
+# baseline namespace — Gitea with Redis cache ENABLED (healthy state)
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -47,6 +47,61 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: postgres
+  namespace: baseline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: gitea
+            - name: POSTGRES_USER
+              value: gitea
+            - name: POSTGRES_PASSWORD
+              value: gitea
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+              cpu: 200m
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: baseline
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: app
   namespace: baseline
 spec:
@@ -63,6 +118,10 @@ spec:
         prometheus.io/port: "3000"
         apia.io/domain: "backend"
     spec:
+      initContainers:
+        - name: wait-for-db
+          image: postgres:15-alpine
+          command: ['sh', '-c', 'until pg_isready -h postgres -p 5432 -U gitea; do echo waiting; sleep 2; done']
       containers:
         - name: app
           image: k3d-apia-registry:5000/gitea:latest
@@ -71,9 +130,17 @@ spec:
             - containerPort: 3000
           env:
             - name: GITEA__database__DB_TYPE
-              value: sqlite3
-            - name: GITEA__database__PATH
-              value: /data/gitea/gitea.db
+              value: postgres
+            - name: GITEA__database__HOST
+              value: "postgres:5432"
+            - name: GITEA__database__NAME
+              value: gitea
+            - name: GITEA__database__USER
+              value: gitea
+            - name: GITEA__database__PASSWD
+              value: gitea
+            - name: GITEA__database__SSL_MODE
+              value: disable
             - name: GITEA__cache__ENABLED
               value: "true"
             - name: GITEA__cache__ADAPTER
@@ -122,7 +189,6 @@ spec:
       port: 3000
       targetPort: 3000
       nodePort: 30301
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -151,6 +217,41 @@ spec:
           env:
             - name: REDIS_ADDR
               value: "redis://redis:6379"
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 10m
+            limits:
+              memory: 64Mi
+              cpu: 50m
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pg-exporter
+  namespace: baseline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pg-exporter
+  template:
+    metadata:
+      labels:
+        app: pg-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+        apia.io/domain: "database"
+    spec:
+      containers:
+        - name: pg-exporter
+          image: prometheuscommunity/postgres-exporter:latest
+          ports:
+            - containerPort: 9187
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://gitea:gitea@postgres:5432/gitea?sslmode=disable"
           resources:
             requests:
               memory: 32Mi
