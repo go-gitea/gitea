@@ -69,6 +69,12 @@ jobs:
             } catch { Write-Host "Waiting... ($i/30)"; Start-Sleep 10 }
           }
 
+      - name: Redeploy baseline clean
+        run: |
+          kubectl rollout restart deployment/app deployment/postgres deployment/redis deployment/redis-exporter deployment/pg-exporter -n baseline
+          kubectl rollout status deployment/app -n baseline --timeout=120s
+          echo "Baseline redeployed clean — both environments now start from equivalent state"
+
       - name: Run K6 load test
         run: k6 run k6/load-test.js --summary-export=k6-summary.json --env BASELINE_URL=http://localhost:30301 --env STAGING_URL=http://localhost:30302
 
