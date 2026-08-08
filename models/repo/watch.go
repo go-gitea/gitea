@@ -28,14 +28,26 @@ const (
 	WatchModeAuto // 3
 )
 
+// WatchType is the `watch` column gating one kind of notification
+type WatchType string
+
+const (
+	WatchPullRequests WatchType = "pull_requests"
+	WatchIssues       WatchType = "issues"
+	WatchReleases     WatchType = "releases"
+)
+
 // Watch is connection request for receiving repository notification.
 type Watch struct {
-	ID          int64              `xorm:"pk autoincr"`
-	UserID      int64              `xorm:"UNIQUE(watch)"`
-	RepoID      int64              `xorm:"UNIQUE(watch)"`
-	Mode        WatchMode          `xorm:"SMALLINT NOT NULL DEFAULT 1"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	ID           int64              `xorm:"pk autoincr"`
+	UserID       int64              `xorm:"UNIQUE(watch)"`
+	RepoID       int64              `xorm:"UNIQUE(watch)"`
+	Mode         WatchMode          `xorm:"SMALLINT NOT NULL DEFAULT 1"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
+	PullRequests bool               `xorm:"NOT NULL DEFAULT true"`
+	Issues       bool               `xorm:"NOT NULL DEFAULT true"`
+	Releases     bool               `xorm:"NOT NULL DEFAULT true"`
 }
 
 func init() {
@@ -48,13 +60,18 @@ func GetWatch(ctx context.Context, userID, repoID int64) (*Watch, error) {
 	if err != nil {
 		return watch, err
 	}
-	if watch == nil {
-		watch = &Watch{UserID: userID, RepoID: repoID}
+	if watch == nil { // the dummy record must mirror the column defaults
+		watch = &Watch{UserID: userID, RepoID: repoID, PullRequests: true, Issues: true, Releases: true}
 	}
 	if !has {
 		watch.Mode = WatchModeNone
 	}
 	return watch, nil
+}
+
+// IsIgnoring reports whether the user muted the repository entirely
+func (w *Watch) IsIgnoring() bool {
+	return w.Mode == WatchModeDont
 }
 
 // IsWatchMode Decodes watchability of WatchMode
@@ -87,15 +104,16 @@ func watchRepoMode(ctx context.Context, watch *Watch, mode WatchMode) (err error
 		repodiff = -1
 	}
 
+	if repodiff == 1 { // starting to watch resets the options, otherwise a custom selection survives
+		watch.PullRequests, watch.Issues, watch.Releases = true, true, true
+	}
 	watch.Mode = mode
 
 	if !hadrec && needsrec {
-		watch.Mode = mode
 		if err = db.Insert(ctx, watch); err != nil {
 			return err
 		}
 	} else if needsrec {
-		watch.Mode = mode
 		if _, err := db.GetEngine(ctx).ID(watch.ID).AllCols().Update(watch); err != nil {
 			return err
 		}
@@ -127,6 +145,48 @@ func WatchRepo(ctx context.Context, doer *user_model.User, repo *Repository, doW
 	return watchRepoMode(ctx, watch, WatchModeNormal)
 }
 
+// IgnoreRepo mutes the repository, so nothing about it reaches the user.
+func IgnoreRepo(ctx context.Context, doer *user_model.User, repo *Repository) error {
+	watch, err := GetWatch(ctx, doer.ID, repo.ID)
+	if err != nil {
+		return err
+	}
+	return watchRepoMode(ctx, watch, WatchModeDont)
+}
+
+type WatchOptions struct {
+	PullRequests bool
+	Issues       bool
+	Releases     bool
+}
+
+// SetWatchOptions updates the per-event options of a watch, callers must run WatchRepo first
+func SetWatchOptions(ctx context.Context, userID, repoID int64, opts WatchOptions) error {
+	_, err := db.GetEngine(ctx).Where("user_id=? AND repo_id=?", userID, repoID).
+		Cols(string(WatchPullRequests), string(WatchIssues), string(WatchReleases)).
+		Update(&Watch{PullRequests: opts.PullRequests, Issues: opts.Issues, Releases: opts.Releases})
+	return err
+}
+
+// GetUserWatches returns the watches of one user, keyed by repository ID
+func GetUserWatches(ctx context.Context, userID int64, repoIDs []int64) (map[int64]*Watch, error) {
+	if len(repoIDs) == 0 {
+		return map[int64]*Watch{}, nil
+	}
+	watches := make([]*Watch, 0, len(repoIDs))
+	if err := db.GetEngine(ctx).Where("user_id=?", userID).
+		In("repo_id", repoIDs).
+		And("mode<>?", WatchModeDont).
+		Find(&watches); err != nil {
+		return nil, err
+	}
+	watchesByRepo := make(map[int64]*Watch, len(watches))
+	for _, watch := range watches {
+		watchesByRepo[watch.RepoID] = watch
+	}
+	return watchesByRepo, nil
+}
+
 // GetWatchers returns all watchers of given repository.
 func GetWatchers(ctx context.Context, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
@@ -138,14 +198,25 @@ func GetWatchers(ctx context.Context, repoID int64) ([]*Watch, error) {
 		Find(&watches)
 }
 
-// GetRepoWatchersIDs returns IDs of watchers for a given repo ID
+// GetRepoIgnorersIDs returns IDs of users who muted the given repo ID
+func GetRepoIgnorersIDs(ctx context.Context, repoID int64) ([]int64, error) {
+	ids := make([]int64, 0, 8)
+	return ids, db.GetEngine(ctx).Table("watch").
+		Where("repo_id=?", repoID).
+		And("mode=?", WatchModeDont).
+		Select("user_id").
+		Find(&ids)
+}
+
+// GetRepoWatchersIDs returns IDs of watchers for a given repo ID that opted into watchType
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
-func GetRepoWatchersIDs(ctx context.Context, repoID int64) ([]int64, error) {
+func GetRepoWatchersIDs(ctx context.Context, repoID int64, watchType WatchType) ([]int64, error) {
 	ids := make([]int64, 0, 64)
 	return ids, db.GetEngine(ctx).Table("watch").
 		Where("watch.repo_id=?", repoID).
 		And("watch.mode<>?", WatchModeDont).
+		And(builder.Eq{"watch." + string(watchType): true}).
 		Select("user_id").
 		Find(&ids)
 }
