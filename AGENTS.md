@@ -1,7 +1,7 @@
 - Never assume, verify before claiming
 - List development targets with `make help`
 - Read relevant developer documentation in the `docs` folder
-- PR descriptions: minimal, only what and why, no task lists or file listings. Include screenshots for UI changes, before and after when modifying existing UI. Aim for less than 800 characters.
+- PR descriptions: minimal, only what and why, no task lists or file listings. Include screenshots for UI changes, before and after when modifying existing UI. Aim for less than 1000 characters.
 - Reference issues and PRs by full URL, not by number
 - Use Conventional Commits for commit messages and PR titles, plus Gitea's `enhance` type for user-facing enhancements
 - Add an `Assisted-by: AGENT_NAME:MODEL_VERSION` trailer to commit messages, never `Co-Authored-By` or `Signed-off-by`
