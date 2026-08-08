@@ -1,4 +1,4 @@
-﻿# baseline namespace â€” Gitea with Redis cache ENABLED (healthy state)
+# baseline namespace â€” Gitea with Redis cache ENABLED (healthy state)
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -30,6 +30,7 @@ spec:
               cpu: 50m
             limits:
               memory: 128Mi
+              cpu: 100m
 ---
 apiVersion: v1
 kind: Service
@@ -102,6 +103,7 @@ spec:
               cpu: 100m
             limits:
               memory: 512Mi
+              cpu: 500m
       volumes:
         - name: data
           emptyDir: {}
@@ -155,3 +157,4 @@ spec:
               cpu: 10m
             limits:
               memory: 64Mi
+              cpu: 50m
