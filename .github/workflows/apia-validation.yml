@@ -1,0 +1,99 @@
+name: APIA Performance Validation
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  apia-validate:
+    runs-on: self-hosted
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set image tag
+        id: tag
+        shell: bash
+        run: echo "SHA=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      - name: Build Gitea image from PR branch
+        run: |
+          docker build -t localhost:5000/gitea:${{ steps.tag.outputs.SHA }} -t localhost:5000/gitea:staging .
+
+      - name: Push to k3d registry
+        run: |
+          docker push localhost:5000/gitea:${{ steps.tag.outputs.SHA }}
+          docker push localhost:5000/gitea:staging
+
+      - name: Compute git diff
+        shell: bash
+        run: |
+          git diff origin/main...HEAD -- . > /tmp/pr-diff.patch
+          echo "GIT_DIFF_FILE=/tmp/pr-diff.patch" >> $GITHUB_ENV
+
+      - name: Reset baseline and deploy staging in parallel
+        shell: bash
+        run: |
+          kubectl delete namespace baseline --ignore-not-found=true &
+          kubectl delete namespace staging --ignore-not-found=true &
+          wait
+
+          git show origin/main:k8s/baseline.yaml | kubectl apply -f - &
+          kubectl apply -f k8s/staging.yaml &
+          wait
+
+          kubectl rollout status deployment/postgres -n baseline --timeout=90s &
+          kubectl rollout status deployment/postgres -n staging --timeout=90s &
+          wait
+
+          kubectl rollout status deployment/redis -n baseline --timeout=60s
+
+          kubectl rollout status deployment/app -n baseline --timeout=180s &
+          kubectl rollout status deployment/app -n staging --timeout=180s &
+          wait
+
+      - name: Wait for both environments to serve traffic
+        shell: bash
+        run: |
+          for i in $(seq 1 30); do
+            BASELINE_OK=false
+            STAGING_OK=false
+            curl -sf http://localhost:30301/ > /dev/null 2>&1 && BASELINE_OK=true
+            curl -sf http://localhost:30302/ > /dev/null 2>&1 && STAGING_OK=true
+            if $BASELINE_OK && $STAGING_OK; then
+              echo "Both environments ready"; break
+            fi
+            echo "Waiting... baseline=$BASELINE_OK staging=$STAGING_OK ($i/30)"
+            sleep 10
+          done
+
+      - name: Run K6 load test
+        shell: bash
+        run: |
+          k6 run k6/load-test.js \
+            --env BASELINE_URL=http://localhost:30301 \
+            --env STAGING_URL=http://localhost:30302 \
+            --summary-export /tmp/k6-summary.json || true
+          echo "K6_RESULT_FILE=/tmp/k6-summary.json" >> $GITHUB_ENV
+
+      - name: Run APIA pipeline
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROMETHEUS_URL: http://localhost:30090
+          LOKI_URL: http://localhost:30100
+          N8N_URL: http://localhost:30678
+          BASELINE_URL: http://localhost:30301
+          STAGING_URL: http://localhost:30302
+        shell: bash
+        run: python $APIA_HOME/pipeline/pipeline.py
+
+      - name: Teardown staging
+        if: always()
+        run: kubectl delete namespace staging --ignore-not-found=true
