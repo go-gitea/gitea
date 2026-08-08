@@ -285,5 +285,5 @@ func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
 	if msg == "" {
 		msg = ctx.Locale.TrString("error.not_found")
 	}
-	ctx.JSON(http.StatusBadRequest, buildJsonErrorMap(msg))
+	ctx.JSON(http.StatusNotFound, buildJsonErrorMap(msg))
 }

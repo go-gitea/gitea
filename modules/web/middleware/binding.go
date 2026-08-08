@@ -178,6 +178,7 @@ func Validate(ctx *ValidateContext, errs binding.Errors, f Form) binding.Errors 
 
 	if ctx.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
 		ctx.Resp.Header().Set("Content-Type", "application/json")
+		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		// HINT: JSON-ERROR-WITH-FIELD: middleware.Validate also uses the same logic, there is no suitable package to dedupe at the moment.
 		_ = json.MarshalWrite(ctx.Resp, map[string]any{"errorMessage": errorMessage, "errorFields": fieldNames})
 		return errs
