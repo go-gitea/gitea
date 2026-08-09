@@ -293,7 +293,7 @@ func GetFetchActionForm[T interface {
 	*E
 	middleware.Form
 }, E any](ctx *Context) *E {
-	if web.GetForm[any](ctx) != nil {
+	if web.IsFormSet(ctx) {
 		panic("don't mix fetch-action form validation with template-based form validation")
 	}
 	middleware.SkipTmplFormValidationError(ctx)

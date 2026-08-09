@@ -37,6 +37,10 @@ func SetForm(dataStore reqctx.ContextDataProvider, obj any) {
 	dataStore.GetData()["__form"] = obj
 }
 
+func IsFormSet(dataStore reqctx.RequestDataStore) bool {
+	return dataStore.GetData()["__form"] != nil
+}
+
 // GetForm returns the validate form information
 func GetForm[T any](dataStore reqctx.RequestDataStore) T {
 	form, ok := dataStore.GetData()["__form"].(T)
