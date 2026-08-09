@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -545,6 +546,43 @@ index 0000000..6bb8f39
 	_, err = ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(diff3), "")
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
+	}
+}
+
+func TestParsePatchExactLineLimit(t *testing.T) {
+	for _, test := range []struct {
+		name, hunk   string
+		limit, lines int
+		incomplete   bool
+	}{
+		{name: "zero", limit: 0, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "one", limit: 1, lines: 1, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "N plus one", limit: 2, lines: 2, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n", incomplete: true},
+		{name: "N", limit: 3, lines: 3, hunk: "@@ -1,3 +1,3 @@\n one\n two\n three\n"},
+		{name: "addition", limit: 1, lines: 1, hunk: "@@ -0,0 +1 @@\n+one\n"},
+		{name: "deletion", limit: 1, lines: 1, hunk: "@@ -1 +0,0 @@\n-one\n"},
+		{name: "marker has no cost", limit: 1, lines: 1, hunk: "@@ -1 +1 @@\n line\n\\ No newline at end of file\n"},
+		{name: "hunk at capacity", limit: 1, lines: 1, hunk: "@@ -1 +1 @@\n one\n@@ -3 +3 @@\n three\n", incomplete: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			patch := "diff --git a/file b/file\n--- a/file\n+++ b/file\n" + test.hunk
+			diff, err := ParsePatch(t.Context(), test.limit, 5000, 10, strings.NewReader(patch), "")
+			require.NoError(t, err)
+			require.Len(t, diff.Files, 1)
+			diffFile := diff.Files[0]
+			if test.limit == 0 {
+				require.Len(t, diffFile.Sections, 0)
+			} else {
+				require.Len(t, diffFile.Sections, 1)
+				diffSection := diffFile.Sections[0]
+				lineSecCount := 0
+				for _, line := range diffSection.Lines {
+					lineSecCount += util.Iif(line.Type == DiffLineSection, 1, 0)
+				}
+				assert.Equal(t, test.lines, len(diffSection.Lines)-lineSecCount) // actual diff lines
+				assert.Equal(t, test.incomplete, diffFile.IsIncomplete)
+			}
+		})
 	}
 }
 
