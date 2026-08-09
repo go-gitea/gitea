@@ -79,8 +79,8 @@ func (q *baseChannel) PopItem(ctx context.Context) ([]byte, error) {
 		q.set.Remove(string(data))
 		q.mu.Unlock()
 		return data, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	default:
+		return nil, errQueueEmpty
 	}
 }
 

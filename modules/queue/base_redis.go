@@ -79,23 +79,21 @@ func (q *baseRedis) PushItem(ctx context.Context, data []byte) error {
 }
 
 func (q *baseRedis) PopItem(ctx context.Context) ([]byte, error) {
-	return backoffRetErr(ctx, backoffBegin, backoffUpper, infiniteTimerC, func() (retry bool, data []byte, err error) {
-		q.mu.Lock()
-		defer q.mu.Unlock()
+	q.mu.Lock()
+	defer q.mu.Unlock()
 
-		data, err = q.client.LPop(ctx, q.cfg.QueueFullName).Bytes()
-		if err == redis.Nil {
-			return true, nil, nil
+	data, err := q.client.LPop(ctx, q.cfg.QueueFullName).Bytes()
+	if err != nil {
+		if err != redis.Nil {
+			log.Error("Queue %q failed to pop item: %v", q.cfg.QueueFullName, err)
 		}
-		if err != nil {
-			return true, nil, nil
-		}
-		if q.isUnique {
-			// the data has been popped, even if there is any error we can't do anything
-			_ = q.client.SRem(ctx, q.cfg.SetFullName, data).Err()
-		}
-		return false, data, err
-	})
+		return nil, errQueueEmpty // a transient error must not stop the queue for good
+	}
+	if q.isUnique {
+		// the data has been popped, even if there is any error we can't do anything
+		_ = q.client.SRem(ctx, q.cfg.SetFullName, data).Err()
+	}
+	return data, nil
 }
 
 func (q *baseRedis) HasItem(ctx context.Context, data []byte) (bool, error) {

@@ -35,6 +35,7 @@ type WorkerPoolQueue[T any] struct {
 
 	batchChan  chan []T
 	flushChan  chan flushType
+	pushedChan chan struct{}
 	isFlushing atomic.Bool
 
 	batchLength     int
@@ -172,7 +173,12 @@ func (q *WorkerPoolQueue[T]) Push(data T) error {
 			q.safeHandler(data)
 		}
 	}
-	return q.baseQueue.PushItem(q.ctxRun, q.marshal(data))
+	err := q.baseQueue.PushItem(q.ctxRun, q.marshal(data))
+	select {
+	case q.pushedChan <- struct{}{}:
+	default: // already pending, one wake drains the whole queue
+	}
+	return err
 }
 
 // Has only works for unique queues. Keep in mind that this check may not be reliable (due to lacking of proper transaction support)
@@ -234,6 +240,7 @@ func NewWorkerPoolQueueWithContext[T any](ctx context.Context, name string, queu
 	w.ctxRun, _, w.ctxRunCancel = process.GetManager().AddTypedContext(ctx, "Queue: "+w.GetName(), process.SystemProcessType, false)
 	w.batchChan = make(chan []T)
 	w.flushChan = make(chan flushType)
+	w.pushedChan = make(chan struct{}, 1)
 	w.shutdownDone = make(chan struct{})
 	w.shutdownTimeout.Store(int64(shutdownDefaultTimeout))
 	w.workerMaxNum = queueSetting.MaxWorkers

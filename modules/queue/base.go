@@ -5,10 +5,15 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
-var pushBlockTime = 5 * time.Second
+var (
+	pushBlockTime    = 5 * time.Second
+	idlePollInterval = 2 * time.Second
+	errQueueEmpty    = errors.New("queue is empty")
+)
 
 type baseQueue interface {
 	PushItem(ctx context.Context, data []byte) error
@@ -19,12 +24,22 @@ type baseQueue interface {
 	RemoveAll(ctx context.Context) error
 }
 
-func popItemByChan(ctx context.Context, popItemFn func(ctx context.Context) ([]byte, error)) (chanItem chan []byte, chanErr chan error) {
+func popItemByChan(ctx context.Context, popItemFn func(ctx context.Context) ([]byte, error), pushed <-chan struct{}) (chanItem chan []byte, chanErr chan error) {
 	chanItem = make(chan []byte)
 	chanErr = make(chan error)
 	go func() {
 		for {
 			it, err := popItemFn(ctx)
+			if errors.Is(err, errQueueEmpty) {
+				select {
+				case <-pushed:
+					continue
+				case <-time.After(idlePollInterval):
+					continue
+				case <-ctx.Done():
+					err = ctx.Err()
+				}
+			}
 			if err != nil {
 				close(chanItem)
 				chanErr <- err

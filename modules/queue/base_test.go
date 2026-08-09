@@ -72,17 +72,9 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 		assert.NoError(t, err)
 		assert.Equal(t, "bar", string(it))
 
-		// pop an empty queue (timeout, cancel)
-		ctxTimed, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
-		it, err = q.PopItem(ctxTimed)
-		assert.ErrorIs(t, err, context.DeadlineExceeded)
-		assert.Nil(t, it)
-		cancel()
-
-		ctxTimed, cancel = context.WithTimeout(ctx, 10*time.Millisecond)
-		cancel()
-		it, err = q.PopItem(ctxTimed)
-		assert.ErrorIs(t, err, context.Canceled)
+		// pop an empty queue
+		it, err = q.PopItem(ctx)
+		assert.ErrorIs(t, err, errQueueEmpty)
 		assert.Nil(t, it)
 
 		// test blocking push if queue is full
@@ -90,7 +82,7 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 			err = q.PushItem(ctx, fmt.Appendf(nil, "item-%d", i))
 			assert.NoError(t, err)
 		}
-		ctxTimed, cancel = context.WithTimeout(ctx, 10*time.Millisecond)
+		ctxTimed, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
 		err = q.PushItem(ctxTimed, []byte("item-full"))
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
 		cancel()

@@ -50,21 +50,16 @@ func (q *baseLevelQueueCommonImpl) PushItem(ctx context.Context, data []byte) er
 }
 
 func (q *baseLevelQueueCommonImpl) PopItem(ctx context.Context) ([]byte, error) {
-	return backoffRetErr(ctx, backoffBegin, backoffUpper, infiniteTimerC, func() (retry bool, data []byte, err error) {
-		if q.mu != nil {
-			q.mu.Lock()
-			defer q.mu.Unlock()
-		}
+	if q.mu != nil {
+		q.mu.Lock()
+		defer q.mu.Unlock()
+	}
 
-		data, err = q.internalFunc().LPop()
-		if err == levelqueue.ErrNotFound {
-			return true, nil, nil
-		}
-		if err != nil {
-			return false, nil, err
-		}
-		return false, data, nil
-	})
+	data, err := q.internalFunc().LPop()
+	if err == levelqueue.ErrNotFound {
+		return nil, errQueueEmpty
+	}
+	return data, err
 }
 
 func baseLevelQueueCommon(cfg *BaseConfig, mu *sync.Mutex, internalFunc func() baseLevelQueuePushPoper) *baseLevelQueueCommonImpl {
