@@ -239,18 +239,14 @@ func (f *UpdateLanguageForm) Validate(req *http.Request, errs binding.Errors) bi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// Avatar types
-const (
-	AvatarLocal  string = "local"
-	AvatarByMail string = "bymail"
-)
+// AvatarLocal is the AvatarForm.Source value selecting an uploaded avatar over the avatar email
+const AvatarLocal = "local"
 
 // AvatarForm form for changing avatar
 type AvatarForm struct {
-	Source      string
-	Avatar      *multipart.FileHeader
-	Gravatar    string `binding:"OmitEmpty;Email;MaxSize(254)"`
-	Federavatar bool
+	Source   string
+	Avatar   *multipart.FileHeader
+	Gravatar string `binding:"OmitEmpty;Email;MaxSize(254)"`
 }
 
 // Validate validates the fields

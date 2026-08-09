@@ -4,6 +4,7 @@
 package avatars_test
 
 import (
+	"strconv"
 	"testing"
 
 	avatars_model "gitea.dev/models/avatars"
@@ -14,44 +15,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const gravatarSource = "https://secure.gravatar.com/avatar/"
-
-func disableGravatar(t *testing.T) {
-	err := system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.EnableFederatedAvatar.DynKey(): "false"})
-	assert.NoError(t, err)
-	err = system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "true"})
-	assert.NoError(t, err)
-}
-
-func enableGravatar(t *testing.T) {
-	err := system_model.SetSettings(t.Context(), map[string]string{setting.Config().Picture.DisableGravatar.DynKey(): "false"})
-	assert.NoError(t, err)
-	setting.GravatarSource = gravatarSource
-}
-
-func TestHashEmail(t *testing.T) {
-	assert.Equal(t,
-		"d41d8cd98f00b204e9800998ecf8427e",
-		avatars_model.HashEmail(""),
-	)
-	assert.Equal(t,
-		"353cbad9b58e69c96154ad99f92bedc7",
-		avatars_model.HashEmail("gitea@example.com"),
-	)
-}
-
-func TestSizedAvatarLink(t *testing.T) {
+func TestEmailAvatarLink(t *testing.T) {
+	const email = "gitea@example.com"
+	const emailHash = "72af1071d72449afe29e816060e78e78fd85829ba6e2497aa1d4eedd3c9dc611"
 	setting.AppSubURL = "/testsuburl"
+	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
 
-	disableGravatar(t)
-	config.GetDynGetter().InvalidateCache()
+	assert.Equal(t, emailHash, avatars_model.HashEmail(" Gitea@Example.com "))
+
+	setAvatarConfig := func(disableGravatar, enableFederatedAvatar bool) {
+		assert.NoError(t, system_model.SetSettings(t.Context(), map[string]string{
+			setting.Config().Picture.DisableGravatar.DynKey():       strconv.FormatBool(disableGravatar),
+			setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(enableFederatedAvatar),
+		}))
+		config.GetDynGetter().InvalidateCache()
+	}
+
+	setAvatarConfig(true, false)
 	assert.Equal(t, "/testsuburl/assets/img/avatar_default.png",
-		avatars_model.GenerateEmailAvatarFastLink(t.Context(), "gitea@example.com", 100))
+		avatars_model.GenerateEmailAvatarFastLink(t.Context(), email, 100))
 
-	enableGravatar(t)
-	config.GetDynGetter().InvalidateCache()
-	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon&s=100",
-		avatars_model.GenerateEmailAvatarFastLink(t.Context(), "gitea@example.com", 100),
-	)
+	setAvatarConfig(false, false)
+	assert.Equal(t, "https://secure.gravatar.com/avatar/"+emailHash+"?d=identicon&s=100",
+		avatars_model.GenerateEmailAvatarFastLink(t.Context(), email, 100))
+
+	// the fast link only carries the hash, the DNS query happens when the browser follows it
+	setAvatarConfig(false, true)
+	assert.Equal(t, "/testsuburl/avatar/"+emailHash+"?size=100",
+		avatars_model.GenerateEmailAvatarFastLink(t.Context(), email, 100))
+	storedEmail, err := avatars_model.GetEmailForHash(t.Context(), emailHash)
+	assert.NoError(t, err)
+	assert.Equal(t, email, storedEmail)
 }

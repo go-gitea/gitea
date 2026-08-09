@@ -25,14 +25,14 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func GenerateRandomAvatar(ctx context.Context, u *User) error {
-	seed := u.Email
+	seed := []byte(u.Email)
 	if len(seed) == 0 {
-		seed = u.Name
+		seed = []byte(u.Name)
 	}
 
-	img := avatar.RandomImageDefaultSize([]byte(seed))
+	img := avatar.RandomImageDefaultSize(seed)
 
-	u.Avatar = avatars.HashEmail(seed)
+	u.Avatar = avatar.HashAvatar(u.ID, seed)
 
 	_, err := storage.Avatars.Stat(u.CustomAvatarRelativePath())
 	if err != nil {
