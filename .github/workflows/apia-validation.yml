@@ -24,6 +24,7 @@ jobs:
         run: echo "SHA=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
       - name: Build or retag Gitea image
+        shell: bash
         run: |
           git fetch origin main --depth=1
           CHANGED_SRC=$(git diff FETCH_HEAD...HEAD --name-only | grep -v '^k8s/' | grep -v '^\.github/' | wc -l)
@@ -40,11 +41,13 @@ jobs:
           docker push localhost:5000/gitea:staging
 
       - name: Compute git diff
+        shell: bash
         run: |
           git diff FETCH_HEAD...HEAD -- . > /tmp/pr-diff.patch
           echo "GIT_DIFF_FILE=/tmp/pr-diff.patch" >> $GITHUB_ENV
 
       - name: Reset baseline and deploy staging in parallel
+        shell: bash
         run: |
           kubectl delete namespace baseline --ignore-not-found=true &
           kubectl delete namespace staging --ignore-not-found=true &
@@ -65,6 +68,7 @@ jobs:
           wait
 
       - name: Wait for both environments to serve traffic
+        shell: bash
         run: |
           for i in $(seq 1 30); do
             BASELINE_OK=false
@@ -79,6 +83,7 @@ jobs:
           done
 
       - name: Run Playwright frontend measurement
+        shell: bash
         continue-on-error: true
         env:
           BASELINE_URL: http://localhost:30301
@@ -89,6 +94,7 @@ jobs:
           echo "PLAYWRIGHT_RESULT_FILE=/tmp/playwright-results.json" >> $GITHUB_ENV
 
       - name: Run K6 load test
+        shell: bash
         env:
           K6_STAGE_WARMUP: 60
           K6_STAGE_RAMPUP: 30
@@ -110,6 +116,7 @@ jobs:
           echo "K6_TOTAL_S=$(( K6_STAGE_WARMUP + K6_STAGE_RAMPUP + K6_STAGE_MEASURE + K6_STAGE_RAMPDOWN ))" >> $GITHUB_ENV
 
       - name: Run APIA pipeline
+        shell: bash
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
