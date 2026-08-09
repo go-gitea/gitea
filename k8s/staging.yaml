@@ -1,0 +1,186 @@
+# staging namespace — Gitea with cache ADAPTER=memory (Redis removed — regression under test)
+# PostgreSQL is kept; only the Redis cache layer is removed.
+# Expected degradation: cache domain disappears, backend latency increases
+# under load due to in-memory cache not being shared/persisted.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staging
+---
+# ── PostgreSQL ────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          env:
+            - name: POSTGRES_DB
+              value: gitea
+            - name: POSTGRES_USER
+              value: gitea
+            - name: POSTGRES_PASSWORD
+              value: gitea
+          ports:
+            - containerPort: 5432
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: staging
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# ── PostgreSQL exporter (apia.io/domain = database) ──────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pg-exporter
+  namespace: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pg-exporter
+  template:
+    metadata:
+      labels:
+        app: pg-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+        apia.io/domain: "database"
+    spec:
+      containers:
+        - name: pg-exporter
+          image: prometheuscommunity/postgres-exporter:latest
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://gitea:gitea@postgres:5432/gitea?sslmode=disable"
+          ports:
+            - containerPort: 9187
+          resources:
+            requests:
+              memory: 32Mi
+              cpu: 50m
+            limits:
+              memory: 64Mi
+---
+# ── NO Redis, NO redis-exporter — this is the regression ─────────────────────
+# Baseline has Redis deployed with ADAPTER=redis.
+# This staging config removes Redis entirely, forcing ADAPTER=memory.
+# The cache domain will be absent from Prometheus; backend will degrade.
+---
+# ── Gitea app (apia.io/domain = backend) ─────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        apia.io/domain: "backend"
+    spec:
+      containers:
+        - name: app
+          image: k3d-apia-registry:5000/gitea:staging
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GITEA__database__DB_TYPE
+              value: postgres
+            - name: GITEA__database__HOST
+              value: postgres:5432
+            - name: GITEA__database__NAME
+              value: gitea
+            - name: GITEA__database__USER
+              value: gitea
+            - name: GITEA__database__PASSWD
+              value: gitea
+            - name: GITEA__database__SSL_MODE
+              value: disable
+            - name: GITEA__cache__ENABLED
+              value: "true"
+            - name: GITEA__cache__ADAPTER
+              value: memory
+            - name: GITEA__metrics__ENABLED
+              value: "true"
+            - name: GITEA__server__HTTP_PORT
+              value: "3000"
+            - name: GITEA__server__DOMAIN
+              value: localhost
+            - name: GITEA__server__ROOT_URL
+              value: http://localhost:30302
+            - name: GITEA__security__INSTALL_LOCK
+              value: "true"
+            - name: GITEA__security__SECRET_KEY
+              value: apia-staging-secret
+            - name: GITEA__log__LEVEL
+              value: Info
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-svc
+  namespace: staging
+spec:
+  type: NodePort
+  selector:
+    app: app
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      nodePort: 30302
