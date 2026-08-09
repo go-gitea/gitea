@@ -187,8 +187,8 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 }
 
 func GetAccessScope(store DataStore) auth_model.AccessTokenScope {
-	if v, ok := store.GetData()["ApiTokenScope"]; ok {
-		return v.(auth_model.AccessTokenScope)
+	if scope, ok := store.GetData()["ApiTokenScope"].(auth_model.AccessTokenScope); ok {
+		return scope
 	}
 	switch store.GetData()["LoginMethod"] {
 	case OAuth2TokenMethodName:

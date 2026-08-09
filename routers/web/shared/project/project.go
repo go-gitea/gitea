@@ -78,7 +78,7 @@ func MoveColumns(ctx *context.Context) {
 }
 
 func AddColumnToProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
+	form := web.GetForm[*forms.EditProjectColumnForm](ctx)
 	project := findProject(ctx)
 	if ctx.Written() {
 		return
@@ -98,7 +98,7 @@ func AddColumnToProjectPost(ctx *context.Context) {
 }
 
 func EditProjectColumn(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
+	form := web.GetForm[*forms.EditProjectColumnForm](ctx)
 	_, column := findColumn(ctx)
 	if ctx.Written() {
 		return

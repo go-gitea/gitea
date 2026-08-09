@@ -122,8 +122,9 @@ func AccessLogger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()
-			next.ServeHTTP(w, req)
-			recorder.record(start, w.(ResponseWriter), req)
+			respWriter := WrapResponseWriter(w)
+			next.ServeHTTP(respWriter, req)
+			recorder.record(start, respWriter, req)
 		})
 	}
 }
