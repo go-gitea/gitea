@@ -126,6 +126,9 @@ func buildValidationErrorForUser(f Form, l translation.Locale, bindingErrs bindi
 		errorMessage = l.TrString("form.min_size_error", fieldDisplayName, getRuleBody(field, "MinSize"))
 	case binding.ERR_MAX_SIZE:
 		errorMessage = l.TrString("form.max_size_error", fieldDisplayName, getRuleBody(field, "MaxSize"))
+	case binding.ERR_RANGE:
+		rangeMin, rangeMax, _ := strings.Cut(getRuleBody(field, "Range"), ",")
+		errorMessage = l.TrString("form.range_error", fieldDisplayName, rangeMin, rangeMax)
 	case binding.ERR_EMAIL:
 		errorMessage = l.TrString("form.email_error", fieldDisplayName)
 	case binding.ERR_URL:
@@ -179,7 +182,7 @@ func Validate(ctx *ValidateContext, errs binding.Errors, f Form) binding.Errors 
 	if ctx.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
 		ctx.Resp.Header().Set("Content-Type", "application/json")
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
-		// HINT: JSON-ERROR-WITH-FIELD: middleware.Validate also uses the same logic, there is no suitable package to dedupe at the moment.
+		// HINT: JSON-ERROR-WITH-FIELD: ctx.JSONErrorWithField also uses the same logic, there is no suitable package to dedupe at the moment.
 		_ = json.MarshalWrite(ctx.Resp, map[string]any{"errorMessage": errorMessage, "errorFields": fieldNames})
 		return errs
 	}

@@ -542,6 +542,7 @@
   "form.size_error": "%[1]s must be size %[2]s.",
   "form.min_size_error": "%[1]s must contain at least %[2]s characters.",
   "form.max_size_error": "%[1]s must contain at most %[2]s characters.",
+  "form.range_error": "%[1]s must be a number from %[2]s to %[3]s.",
   "form.email_error": "%s is not a valid email address.",
   "form.url_error": "%s is not a valid URL.",
   "form.in_error": "%[1]s must be one of the following: %[2]s.",
