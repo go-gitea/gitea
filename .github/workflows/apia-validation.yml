@@ -9,11 +9,11 @@ jobs:
   apia-validate:
     runs-on: self-hosted
     timeout-minutes: 60
-    defaults:
-      run:
-        shell: 'C:/Program Files/Git/bin/bash.exe --noprofile --norc -e -o pipefail {0}'
 
     steps:
+      - name: Put Git Bash first in PATH
+        run: echo "C:\Program Files\Git\bin" >> $env:GITHUB_PATH
+
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
