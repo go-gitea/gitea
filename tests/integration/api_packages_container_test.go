@@ -427,8 +427,8 @@ func TestPackageContainer(t *testing.T) {
 						assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
 						assert.True(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
-						assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
-						metadata := pd.Metadata.(*container_module.Metadata)
+						metadata, ok := pd.Metadata.(*container_module.Metadata)
+						require.True(t, ok)
 						assert.Equal(t, container_module.TypeOCI, metadata.Type)
 						assert.Len(t, metadata.ImageLayers, 2)
 						assert.Empty(t, metadata.Manifests)
@@ -570,8 +570,8 @@ func TestPackageContainer(t *testing.T) {
 
 				assert.ElementsMatch(t, []string{manifestDigest, untaggedManifestDigest}, getAllByName(pd.VersionProperties, container_module.PropertyManifestReference))
 
-				assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
-				metadata := pd.Metadata.(*container_module.Metadata)
+				metadata, ok := pd.Metadata.(*container_module.Metadata)
+				require.True(t, ok)
 				assert.Equal(t, container_module.TypeOCI, metadata.Type)
 				assert.Len(t, metadata.Manifests, 2)
 				assert.Condition(t, func() bool {

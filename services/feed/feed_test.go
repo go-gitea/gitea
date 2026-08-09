@@ -200,3 +200,19 @@ func TestNotifyWatchers(t *testing.T) {
 		OpType:    action.OpType,
 	})
 }
+
+func TestNotifyWatchersRespectsWatchOptions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// user 1 watches repo 1 for issues only, user 4 keeps every event
+	assert.NoError(t, repo_model.SetWatchOptions(t.Context(), 1, 1, repo_model.WatchOptions{Issues: true}))
+
+	assert.NoError(t, NotifyWatchers(t.Context(),
+		&activities_model.Action{ActUserID: 8, RepoID: 1, OpType: activities_model.ActionCreateIssue},
+		&activities_model.Action{ActUserID: 8, RepoID: 1, OpType: activities_model.ActionApprovePullRequest},
+	))
+
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{UserID: 1, RepoID: 1, OpType: activities_model.ActionCreateIssue})
+	unittest.AssertNotExistsBean(t, &activities_model.Action{UserID: 1, RepoID: 1, OpType: activities_model.ActionApprovePullRequest})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{UserID: 4, RepoID: 1, OpType: activities_model.ActionApprovePullRequest})
+}

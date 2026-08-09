@@ -478,7 +478,7 @@ func CreateProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	scope := projectScopeFromContext(ctx)
-	form := web.GetForm(ctx).(*api.CreateProjectOption)
+	form := web.GetForm[*api.CreateProjectOption](ctx)
 
 	templateType, err := convert.ProjectTemplateTypeFromString(form.TemplateType)
 	if err != nil {
@@ -611,7 +611,7 @@ func EditProject(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.EditProjectOption)
+	form := web.GetForm[*api.EditProjectOption](ctx)
 	if form.Title != nil && util.IsEmptyString(*form.Title) {
 		ctx.APIError(http.StatusUnprocessableEntity, "title must not be empty")
 		return
@@ -951,7 +951,7 @@ func CreateProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.CreateProjectColumnOption)
+	form := web.GetForm[*api.CreateProjectColumnOption](ctx)
 	column := &project_model.Column{
 		Title:     form.Title,
 		Color:     form.Color,
@@ -1185,7 +1185,7 @@ func EditProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.EditProjectColumnOption)
+	form := web.GetForm[*api.EditProjectColumnOption](ctx)
 	if form.Title != nil {
 		if util.IsEmptyString(*form.Title) {
 			ctx.APIError(http.StatusUnprocessableEntity, "title must not be empty")
@@ -1529,7 +1529,7 @@ func MoveProjectColumns(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.MoveProjectColumnsOption)
+	form := web.GetForm[*api.MoveProjectColumnsOption](ctx)
 	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -2097,7 +2097,7 @@ func MoveProjectIssue(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.MoveProjectIssueOption)
+	form := web.GetForm[*api.MoveProjectIssueOption](ctx)
 	column, err := project_model.GetColumnByIDAndProjectID(ctx, form.ColumnID, project.ID)
 	if err != nil {
 		if project_model.IsErrProjectColumnNotExist(err) {
