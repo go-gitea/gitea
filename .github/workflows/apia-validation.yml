@@ -9,6 +9,9 @@ jobs:
   apia-validate:
     runs-on: self-hosted
     timeout-minutes: 60
+    defaults:
+      run:
+        shell: 'C:/Program Files/Git/bin/bash.exe --noprofile --norc -e -o pipefail {0}'
 
     steps:
       - name: Checkout PR branch
@@ -18,11 +21,9 @@ jobs:
 
       - name: Set image tag
         id: tag
-        shell: bash
         run: echo "SHA=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
       - name: Build or retag Gitea image
-        shell: bash
         run: |
           git fetch origin main --depth=1
           CHANGED_SRC=$(git diff FETCH_HEAD...HEAD --name-only | grep -v '^k8s/' | grep -v '^\.github/' | wc -l)
@@ -39,13 +40,11 @@ jobs:
           docker push localhost:5000/gitea:staging
 
       - name: Compute git diff
-        shell: bash
         run: |
           git diff FETCH_HEAD...HEAD -- . > /tmp/pr-diff.patch
           echo "GIT_DIFF_FILE=/tmp/pr-diff.patch" >> $GITHUB_ENV
 
       - name: Reset baseline and deploy staging in parallel
-        shell: bash
         run: |
           kubectl delete namespace baseline --ignore-not-found=true &
           kubectl delete namespace staging --ignore-not-found=true &
@@ -66,7 +65,6 @@ jobs:
           wait
 
       - name: Wait for both environments to serve traffic
-        shell: bash
         run: |
           for i in $(seq 1 30); do
             BASELINE_OK=false
@@ -81,7 +79,6 @@ jobs:
           done
 
       - name: Run Playwright frontend measurement
-        shell: bash
         continue-on-error: true
         env:
           BASELINE_URL: http://localhost:30301
@@ -92,7 +89,6 @@ jobs:
           echo "PLAYWRIGHT_RESULT_FILE=/tmp/playwright-results.json" >> $GITHUB_ENV
 
       - name: Run K6 load test
-        shell: bash
         env:
           K6_STAGE_WARMUP: 60
           K6_STAGE_RAMPUP: 30
@@ -124,7 +120,6 @@ jobs:
           N8N_URL: http://localhost:30678
           BASELINE_URL: http://localhost:30301
           STAGING_URL: http://localhost:30302
-        shell: bash
         run: python $APIA_HOME/pipeline/pipeline.py
 
       - name: Teardown staging
