@@ -109,7 +109,7 @@ func SettingsProtectedBranch(c *context.Context) {
 
 // SettingsProtectedBranchPost updates the protected branch settings
 func SettingsProtectedBranchPost(ctx *context.Context) {
-	f := web.GetForm(ctx).(*forms.ProtectBranchForm)
+	f := web.GetForm[*forms.ProtectBranchForm](ctx)
 	var protectBranch *git_model.ProtectedBranch
 	if f.RuleName == "" {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_rule_name"))
@@ -343,7 +343,7 @@ func UpdateBranchProtectionPriories(ctx *context.Context) {
 
 // RenameBranchPost responses for rename a branch
 func RenameBranchPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RenameBranchForm)
+	form := web.GetForm[*forms.RenameBranchForm](ctx)
 
 	if !ctx.Repo.CanCreateBranch() {
 		ctx.NotFound(nil)

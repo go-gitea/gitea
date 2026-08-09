@@ -153,6 +153,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				return nil, err
 			}
 		} else if !strings.HasPrefix(filename, ".") {
+			if strings.ContainsAny(hd.Name, "\n\r") {
+				continue // a newline would forge extra lines in the pacman index
+			}
 			if err := files.Add(hd.Name); err != nil {
 				return nil, err
 			}

@@ -50,7 +50,7 @@ func LockIssue(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	reason := web.GetForm(ctx).(*api.LockIssueOption).Reason
+	reason := web.GetForm[*api.LockIssueOption](ctx).Reason
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
