@@ -2,13 +2,20 @@
 	<div class="header">{{ctx.Locale.Tr "notifications"}}</div>
 	<form class="ui form form-fetch-action" method="post">
 		<div class="content">
-			{{range $name := StringUtils.Split "issues,pull_requests,releases" ","}}
-				<div class="field">
-					<div class="ui checkbox">
-						<input name="{{$name}}" type="checkbox"><label>{{ctx.Locale.Tr (printf "repo.watch.options.%s" $name)}}</label>
-					</div>
+			<div class="flex-relaxed-list tw-gap-4">
+				<div class="ui checkbox">
+					<input name="issues" type="checkbox">
+					<label>{{ctx.Locale.Tr "repo.watch.options.issues"}}</label>
 				</div>
-			{{end}}
+				<div class="ui checkbox">
+					<input name="pull_requests" type="checkbox">
+					<label>{{ctx.Locale.Tr "repo.watch.options.pull_requests"}}</label>
+				</div>
+				<div class="ui checkbox">
+					<input name="releases" type="checkbox">
+					<label>{{ctx.Locale.Tr "repo.watch.options.releases"}}</label>
+				</div>
+			</div>
 		</div>
 		{{template "base/modal_actions_confirm" dict "ModalButtonTypes" "confirm"}}
 	</form>
