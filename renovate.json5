@@ -19,6 +19,10 @@
   },
   "postUpgradeTasks": {
     "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
+    "installTools": {
+      "golang": {},
+      "pnpm": {},
+    },
     "fileFilters": [
       "go.mod",
       "go.sum",
