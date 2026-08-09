@@ -287,15 +287,13 @@ a:hover {
 a.muted,
 a.suppressed,
 a.silenced,
-.muted-links a,
-.comment-text-line a {
+.muted-links a {
   color: inherit;
 }
 
 a:hover,
 a.muted:hover,
-.muted-links a:hover,
-.comment-text-line a:hover {
+.muted-links a:hover {
   color: var(--color-primary);
 }
 
