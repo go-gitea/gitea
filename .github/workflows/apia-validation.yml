@@ -11,6 +11,8 @@ jobs:
   apia-validate:
     runs-on: self-hosted
     timeout-minutes: 60
+    env:
+      APIA_HOME: C:/Users/aliga/apia
 
     steps:
       - name: Put Git Bash first in PATH
@@ -126,7 +128,7 @@ jobs:
       - name: Run APIA pipeline
         shell: bash
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.inputs.pr_number }}
           REPO: ${{ github.repository }}
           COMMIT_SHA: ${{ github.sha }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -135,6 +137,7 @@ jobs:
           N8N_URL: http://localhost:30678
           BASELINE_URL: http://localhost:30301
           STAGING_URL: http://localhost:30302
+          PYTHONIOENCODING: utf-8
         run: python $APIA_HOME/pipeline/pipeline.py
 
       - name: Teardown staging
