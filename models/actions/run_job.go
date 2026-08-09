@@ -703,7 +703,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 			return cancelledJobs, err
 		}
 
-		cjs, err := CancelJobs(ctx, jobs)
+		cjs, err := CancelJobs(ctx, jobs, false)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -749,17 +749,18 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}
 
-	return CancelJobs(ctx, jobsToCancel)
+	return CancelJobs(ctx, jobsToCancel, false)
 }
 
-// CancelJobs cancels every cancellable job it is given. It leaves the status of a run it
-// cancelled nothing in untouched, SettleRunAfterCancel is what gives such a run a final one.
-func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
+// CancelJobs cancels every cancellable job it is given, force skipping the graceful cancelling
+// handshake so a running task is marked cancelled without waiting for its runner. It leaves the
+// status of a run it cancelled nothing in untouched, SettleRunAfterCancel gives such a run a final one.
+func CancelJobs(ctx context.Context, jobs []*ActionRunJob, force bool) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
 
 	for _, job := range jobs {
 		if job.IsReusableCaller {
-			sub, err := cancelReusableCaller(ctx, job)
+			sub, err := cancelReusableCaller(ctx, job, force)
 			if err != nil {
 				return cancelledJobs, err
 			}
@@ -767,7 +768,7 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 			continue
 		}
 
-		c, err := cancelOneJob(ctx, job)
+		c, err := cancelOneJob(ctx, job, force)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -789,7 +790,7 @@ func SettleRunAfterCancel(ctx context.Context, run *ActionRun) error {
 }
 
 // cancelOneJob cancels a single job and returns the post-cancel row
-func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error) {
+func cancelOneJob(ctx context.Context, job *ActionRunJob, force bool) (*ActionRunJob, error) {
 	if job.Status.IsDone() {
 		return nil, nil //nolint:nilnil // signal "nothing to cancel; not an error"
 	}
@@ -808,7 +809,8 @@ func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error)
 		return job, nil
 	}
 	// Has a task: stop the task and re-read the row.
-	if err := StopTask(ctx, job.TaskID, StatusCancelling); err != nil {
+	stopStatus := util.Iif(force, StatusCancelled, StatusCancelling)
+	if err := StopTask(ctx, job.TaskID, stopStatus); err != nil {
 		return nil, err
 	}
 	updated, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
@@ -819,7 +821,7 @@ func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error)
 }
 
 // cancelReusableCaller cancels `caller` and all its child jobs
-func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionRunJob, error) {
+func cancelReusableCaller(ctx context.Context, caller *ActionRunJob, force bool) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0)
 
 	attemptJobs, err := GetRunJobsByRunAndAttemptID(ctx, caller.RunID, caller.RunAttemptID)
@@ -834,7 +836,7 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionR
 	slices.SortFunc(descendants, func(a, b *ActionRunJob) int { return cmp.Compare(b.ID, a.ID) })
 
 	for _, c := range descendants {
-		cancelled, err := cancelOneJob(ctx, c)
+		cancelled, err := cancelOneJob(ctx, c, force)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -843,7 +845,7 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionR
 		}
 	}
 
-	if c, err := cancelOneJob(ctx, caller); err != nil {
+	if c, err := cancelOneJob(ctx, caller, force); err != nil {
 		return cancelledJobs, err
 	} else if c != nil {
 		cancelledJobs = append(cancelledJobs, c)

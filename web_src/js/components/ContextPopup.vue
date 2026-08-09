@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {getIssueColorClass, getIssueIcon} from '../features/issue.ts';
 import {computed} from 'vue';
 import type {Issue} from '../types.ts';
