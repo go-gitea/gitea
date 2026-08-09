@@ -23,7 +23,7 @@ const levels: ToastLevels = {
   },
   info: {
     icon: 'octicon-info',
-    duration: 2500,
+    duration: 5000,
   },
   warning: {
     icon: 'gitea-exclamation',
