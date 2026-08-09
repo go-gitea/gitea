@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"gitea.dev/models/badges"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/models/unit"
@@ -833,4 +834,58 @@ func GetOwnerRepositoriesByIDs(ctx context.Context, ownerID int64, repoIDs []int
 	}
 	repos := make(RepositoryList, 0, len(repoIDs))
 	return repos, db.GetEngine(ctx).Where(builder.Eq{"owner_id": ownerID}).In("id", repoIDs).Find(&repos)
+}
+
+// LoadBadges loads the badges of the repositories
+func (repos RepositoryList) LoadBadges(ctx context.Context) error {
+	if len(repos) == 0 {
+		return nil
+	}
+
+	repoIDs := make([]int64, 0, len(repos))
+	for _, repo := range repos {
+		if repo.Badges == nil {
+			repoIDs = append(repoIDs, repo.ID)
+		}
+	}
+	if len(repoIDs) == 0 {
+		return nil
+	}
+
+	var repoBadges []RepoBadge
+	if err := db.GetEngine(ctx).Table("repo_badge").In("repo_id", repoIDs).Find(&repoBadges); err != nil {
+		return err
+	}
+
+	badgeIDs := make([]int64, 0, len(repoBadges))
+	for _, rb := range repoBadges {
+		badgeIDs = append(badgeIDs, rb.BadgeID)
+	}
+
+	if len(badgeIDs) == 0 {
+		return nil
+	}
+
+	badgesList := make([]*badges.Badge, 0, len(badgeIDs))
+	if err := db.GetEngine(ctx).Table("badge").In("id", badgeIDs).Find(&badgesList); err != nil {
+		return err
+	}
+
+	badgeMap := make(map[int64]*badges.Badge, len(badgesList))
+	for _, b := range badgesList {
+		badgeMap[b.ID] = b
+	}
+
+	for _, rb := range repoBadges {
+		for _, repo := range repos {
+			if repo.ID == rb.RepoID {
+				if badge, ok := badgeMap[rb.BadgeID]; ok {
+					repo.Badges = append(repo.Badges, badge)
+				}
+				break
+			}
+		}
+	}
+
+	return nil
 }
