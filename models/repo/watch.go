@@ -74,6 +74,29 @@ func (w *Watch) IsIgnoring() bool {
 	return w.Mode == WatchModeDont
 }
 
+// IsWatching reports whether the watch counts the user as a watcher of the repository
+func (w *Watch) IsWatching() bool {
+	return IsWatchMode(w.Mode)
+}
+
+// IsWatchingAll reports whether every event is enabled, which is the "all activity" mode
+func (w *Watch) IsWatchingAll() bool {
+	return w.PullRequests && w.Issues && w.Releases
+}
+
+// SelectedMode returns the mode the user picked in the watch menu
+func (w *Watch) SelectedMode() string {
+	switch {
+	case w.IsIgnoring():
+		return "ignore"
+	case !IsWatchMode(w.Mode), !(w.PullRequests || w.Issues || w.Releases):
+		return "participate" // also the default while there is no watch row
+	case w.IsWatchingAll():
+		return "all"
+	}
+	return "custom"
+}
+
 // IsWatchMode Decodes watchability of WatchMode
 func IsWatchMode(mode WatchMode) bool {
 	return mode != WatchModeNone && mode != WatchModeDont
@@ -145,8 +168,8 @@ func WatchRepo(ctx context.Context, doer *user_model.User, repo *Repository, doW
 	return watchRepoMode(ctx, watch, WatchModeNormal)
 }
 
-// IgnoreRepo mutes the repository, so nothing about it reaches the user.
-func IgnoreRepo(ctx context.Context, doer *user_model.User, repo *Repository) error {
+// WatchIgnoreRepo mutes the repository (unwatch), so nothing about it reaches the user.
+func WatchIgnoreRepo(ctx context.Context, doer *user_model.User, repo *Repository) error {
 	watch, err := GetWatch(ctx, doer.ID, repo.ID)
 	if err != nil {
 		return err
@@ -158,6 +181,16 @@ type WatchOptions struct {
 	PullRequests bool
 	Issues       bool
 	Releases     bool
+}
+
+// WatchRepoWithOptions starts watching the repository and subscribes to the given events
+func WatchRepoWithOptions(ctx context.Context, doer *user_model.User, repo *Repository, opts WatchOptions) error {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := WatchRepo(ctx, doer, repo, true); err != nil {
+			return err
+		}
+		return SetWatchOptions(ctx, doer.ID, repo.ID, opts)
+	})
 }
 
 // SetWatchOptions updates the per-event options of a watch, callers must run WatchRepo first
@@ -187,11 +220,12 @@ func GetUserWatches(ctx context.Context, userID int64, repoIDs []int64) (map[int
 	return watchesByRepo, nil
 }
 
-// GetWatchers returns all watchers of given repository.
+// GetWatchers returns all watchers of given repository, skipping those subscribed to no event.
 func GetWatchers(ctx context.Context, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
 	return watches, db.GetEngine(ctx).Where("`watch`.repo_id=?", repoID).
 		And("`watch`.mode<>?", WatchModeDont).
+		And(builder.Or(builder.Eq{"`watch`.pull_requests": true}, builder.Eq{"`watch`.issues": true}, builder.Eq{"`watch`.releases": true})).
 		And("`user`.is_active=?", true).
 		And("`user`.prohibit_login=?", false).
 		Join("INNER", "`user`", "`user`.id = `watch`.user_id").
