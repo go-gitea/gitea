@@ -455,7 +455,7 @@ func PackageSettings(ctx *context.Context) {
 
 // PackageSettingsPost updates the package settings
 func PackageSettingsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.PackageSettingForm)
+	form := web.GetForm[*forms.PackageSettingForm](ctx)
 	switch form.Action {
 	case "link":
 		packageSettingsPostActionLink(ctx, form)
