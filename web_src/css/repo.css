@@ -521,7 +521,6 @@ td .commit-summary {
   line-height: 1.5; /* label has background, so it can't use parent's line-height */
 }
 
-/* the timeline text is muted, its links behave like "muted-links" */
 .comment-text-line a {
   color: inherit;
 }
