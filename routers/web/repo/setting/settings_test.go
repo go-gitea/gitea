@@ -29,9 +29,7 @@ import (
 )
 
 func TestAddDeployKey(t *testing.T) {
-	defer test.MockVariableValue(&setting.SSH.RootPath, t.TempDir())()
 	unittest.PrepareTestEnv(t)
-
 	t.Run("ReadOnly", func(t *testing.T) {
 		const testKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf\n"
 		ctx, _ := contexttest.MockContext(t, "POST /user2/repo1/settings/keys")
