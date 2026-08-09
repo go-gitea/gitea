@@ -631,7 +631,7 @@ func CreateIssue(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateIssueOption)
+	form := web.GetForm[*api.CreateIssueOption](ctx)
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.Permission.CanWrite(unit.TypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
@@ -759,7 +759,7 @@ func EditIssue(ctx *context.APIContext) {
 	//   "412":
 	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*api.EditIssueOption)
+	form := web.GetForm[*api.EditIssueOption](ctx)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
@@ -1012,7 +1012,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditDeadlineOption)
+	form := web.GetForm[*api.EditDeadlineOption](ctx)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {

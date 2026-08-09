@@ -26,13 +26,17 @@ func TestLocker(t *testing.T) {
 		defer test.MockVariableValue(&redisLockExpiry, 5*time.Second)() // make it shorter for testing
 		locker := newTestRedisLocker(t)
 		testLocker(t, locker)
-		testRedisLocker(t, locker.(*redisLocker))
-		require.NoError(t, locker.(*redisLocker).Close())
+		rl, ok := locker.(*redisLocker)
+		require.True(t, ok)
+		testRedisLocker(t, rl)
+		require.NoError(t, rl.Close())
 	})
 	t.Run("memory", func(t *testing.T) {
 		locker := NewMemoryLocker()
 		testLocker(t, locker)
-		testMemoryLocker(t, locker.(*memoryLocker))
+		ml, ok := locker.(*memoryLocker)
+		require.True(t, ok)
+		testMemoryLocker(t, ml)
 	})
 }
 
@@ -162,7 +166,8 @@ func testRedisLocker(t *testing.T, locker *redisLocker) {
 		// It simulates that there are some problems with extending like network issues or redis server down.
 		v, ok := locker.mutexM.Load("test")
 		require.True(t, ok)
-		m := v.(*redsync.Mutex)
+		m, ok := v.(*redsync.Mutex)
+		require.True(t, ok)
 		_, _ = m.Unlock() // release it to make it impossible to extend
 
 		// In current design, callers can't know the lock can't be extended.

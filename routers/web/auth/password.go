@@ -265,7 +265,7 @@ func MustChangePassword(ctx *context.Context) {
 // MustChangePasswordPost response for updating a user's password after their
 // account was created by an admin
 func MustChangePasswordPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.MustChangePasswordForm)
+	form := web.GetForm[*forms.MustChangePasswordForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
 	if ctx.HasError() {

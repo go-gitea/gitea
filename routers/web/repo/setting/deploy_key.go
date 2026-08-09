@@ -34,7 +34,7 @@ func DeployKeys(ctx *context.Context) {
 
 // DeployKeysPost response for adding a deploy-key of a repository
 func DeployKeysPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddKeyForm)
+	form := web.GetForm[*forms.AddKeyForm](ctx)
 	if ctx.HasError() { // the binding middleware only responds by itself to fetch-action requests
 		ctx.JSONError(ctx.GetErrMsg())
 		return

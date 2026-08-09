@@ -4,6 +4,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -37,8 +38,12 @@ func SetForm(dataStore reqctx.ContextDataProvider, obj any) {
 }
 
 // GetForm returns the validate form information
-func GetForm(dataStore reqctx.RequestDataStore) any {
-	return dataStore.GetData()["__form"]
+func GetForm[T any](dataStore reqctx.RequestDataStore) T {
+	form, ok := dataStore.GetData()["__form"].(T)
+	if !ok {
+		panic(fmt.Errorf("bound form %T does not match the requested type %s", dataStore.GetData()["__form"], reflect.TypeFor[T]()))
+	}
+	return form
 }
 
 // Router defines a route based on chi's router

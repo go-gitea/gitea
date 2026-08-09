@@ -17,7 +17,7 @@ type ProjectIssue struct { //revive:disable-line:exported
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
 
-	// ProjectColumnID should not be zero since 1.22. If it's zero, the issue will not be displayed on UI and it might result in errors.
+	// ProjectColumnID should not be zero since 1.22. Legacy zero rows render in the default column.
 	ProjectColumnID int64 `xorm:"'project_board_id' INDEX"`
 
 	// the sorting order on the column
@@ -33,16 +33,44 @@ func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error 
 	return err
 }
 
+// columnIssueIDs lists the project_board_id values a column claims. Rows written before
+// 1.22 carry 0, which the board renders in the default column, so the default column has
+// to claim them too.
+func columnIssueIDs(column *Column) []int64 {
+	if column.Default {
+		return []int64{column.ID, 0}
+	}
+	return []int64{column.ID}
+}
+
+// IsIssueInColumn reports whether the issue is placed in the column.
+func IsIssueInColumn(ctx context.Context, issueID int64, column *Column) (bool, error) {
+	return db.GetEngine(ctx).
+		Where("issue_id=?", issueID).
+		And("project_id=?", column.ProjectID).
+		In("project_board_id", columnIssueIDs(column)).
+		Exist(new(ProjectIssue))
+}
+
+// GetColumnIssueIDs returns the IDs of the issues placed in a column.
+func GetColumnIssueIDs(ctx context.Context, column *Column) ([]int64, error) {
+	issueIDs := make([]int64, 0, 10)
+	return issueIDs, db.GetEngine(ctx).Table("project_issue").
+		Where("project_id=?", column.ProjectID).
+		In("project_board_id", columnIssueIDs(column)).
+		Cols("issue_id").Find(&issueIDs)
+}
+
 // GetColumnIssueNextSorting returns the sorting value to append an issue at the end of the column.
-func GetColumnIssueNextSorting(ctx context.Context, projectID, columnID int64) (int64, error) {
+func GetColumnIssueNextSorting(ctx context.Context, column *Column) (int64, error) {
 	res := struct {
 		MaxSorting int64
 		IssueCount int64
 	}{}
 	if _, err := db.GetEngine(ctx).Select("max(sorting) AS max_sorting, count(*) AS issue_count").
 		Table("project_issue").
-		Where("project_id=?", projectID).
-		And("project_board_id=?", columnID).
+		Where("project_id=?", column.ProjectID).
+		In("project_board_id", columnIssueIDs(column)).
 		Get(&res); err != nil {
 		return 0, err
 	}
@@ -66,7 +94,7 @@ func moveIssuesToAnotherColumn(ctx context.Context, oldColumn, newColumn *Column
 		return nil
 	}
 
-	nextSorting, err := GetColumnIssueNextSorting(ctx, newColumn.ProjectID, newColumn.ID)
+	nextSorting, err := GetColumnIssueNextSorting(ctx, newColumn)
 	if err != nil {
 		return err
 	}

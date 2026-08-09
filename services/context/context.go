@@ -65,10 +65,10 @@ type Context struct {
 
 func init() {
 	web.RegisterResponseStatusProvider[*Base](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(BaseContextKey).(*Base)
+		return reqctx.MustContextValue[*Base](req.Context(), BaseContextKey)
 	})
 	web.RegisterResponseStatusProvider[*Context](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(WebContextKey).(*Context)
+		return reqctx.MustContextValue[*Context](req.Context(), WebContextKey)
 	})
 }
 
