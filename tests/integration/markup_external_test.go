@@ -78,10 +78,12 @@ func TestExternalMarkupRenderer(t *testing.T) {
 	})
 
 	// above tested in-page rendering (no iframe), then we test iframe mode below
-	r := markup.DetectRendererTypeByFilename("any-file.html").(*external.Renderer)
+	r, ok := markup.DetectRendererTypeByFilename("any-file.html").(*external.Renderer)
+	require.True(t, ok)
 	defer test.MockVariableValue(&r.RenderContentMode, setting.RenderContentModeIframe)()
 	assert.True(t, r.NeedPostProcess())
-	r = markup.DetectRendererTypeByFilename("any-file.no-sanitizer").(*external.Renderer)
+	r, ok = markup.DetectRendererTypeByFilename("any-file.no-sanitizer").(*external.Renderer)
+	require.True(t, ok)
 	defer test.MockVariableValue(&r.RenderContentMode, setting.RenderContentModeIframe)()
 	assert.False(t, r.NeedPostProcess())
 

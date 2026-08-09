@@ -265,7 +265,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	}
 
 	// do changes to attachment. only meaningful change is name.
-	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
+	form := web.GetForm[*api.EditAttachmentOptions](ctx)
 	if form.Name != "" {
 		attachment.Name = form.Name
 	}

@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -77,6 +78,8 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 		return
 	}
 
+	var errNameReserved db.ErrNameReserved
+	var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 	switch {
 	case migrations.IsRateLimitError(err):
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.visit_rate_limit"), tpl, form)
@@ -101,12 +104,12 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 		default:
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 		}
-	case db.IsErrNameReserved(err):
+	case errors.As(err, &errNameReserved):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
-	case db.IsErrNamePatternNotAllowed(err):
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), tpl, form)
+	case errors.As(err, &errNamePatternNotAllowed):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
 		if strings.Contains(err.Error(), "Authentication failed") ||
@@ -124,8 +127,7 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 }
 
 func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl templates.TplName, form *forms.MigrateRepoForm) {
-	if git.IsErrInvalidCloneAddr(err) {
-		addrErr := err.(*git.ErrInvalidCloneAddr)
+	if addrErr, ok := err.(*git.ErrInvalidCloneAddr); ok {
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
@@ -151,7 +153,7 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl templates
 
 // MigratePost response for migrating from external git repository
 func MigratePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.MigrateRepoForm)
+	form := web.GetForm[*forms.MigrateRepoForm](ctx)
 	if setting.Repository.DisableMigrations {
 		ctx.HTTPError(http.StatusForbidden, "MigratePost: the site administrator has disabled migrations")
 		return

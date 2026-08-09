@@ -127,7 +127,7 @@ func SearchPackages(ctx *context.Context) {
 		crates = append(crates, &SearchResultCrate{
 			Name:          pd.Package.Name,
 			LatestVersion: pd.Version.Version,
-			Description:   pd.Metadata.(*cargo_module.Metadata).Description,
+			Description:   packages_model.DescriptorMetadata[*cargo_module.Metadata](pd).Description,
 		})
 	}
 
