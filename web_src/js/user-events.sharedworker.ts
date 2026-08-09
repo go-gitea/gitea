@@ -96,9 +96,7 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
-      // Pushes fired while no client was subscribed (initial connect gap, or a
-      // reconnect window) are dropped server-side, so tell clients to reconcile
-      // their state from the server on every fresh connection.
+      // The server opens each connection with a state snapshot, so clients only need to know it is live.
       this.source.notifyClientsUserEvent({eventType: 'worker-connected'});
     });
 

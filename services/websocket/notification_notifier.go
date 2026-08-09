@@ -27,13 +27,19 @@ func (n *wsNotifier) NotificationCountChange(ctx context.Context, userID int64) 
 	if !pubsub.DefaultBroker.HasTopicSubscribers(pubsub.UserTopic(userID)) {
 		return
 	}
+	if data, ok := unreadNotificationCount(ctx, userID); ok {
+		publishUserEvent(userID, EventNotificationCount, data)
+	}
+}
+
+func unreadNotificationCount(ctx context.Context, userID int64) (notificationCountEventData, bool) {
 	count, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
 		UserID: userID,
 		Status: []activities_model.NotificationStatus{activities_model.NotificationStatusUnread},
 	})
 	if err != nil {
 		log.Error("websocket: count notifications for user %d: %v", userID, err)
-		return
+		return notificationCountEventData{}, false
 	}
-	publishUserEvent(userID, EventNotificationCount, notificationCountEventData{Count: count})
+	return notificationCountEventData{Count: count}, true
 }
