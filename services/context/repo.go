@@ -644,8 +644,7 @@ func repoAssignmentPrepareTemplateData(ctx *Context, data *repoAssignmentPrepare
 			ctx.ServerError("GetWatch", err)
 			return
 		}
-		ctx.Data["Watch"] = watch
-		ctx.Data["IsWatchingRepo"] = repo_model.IsWatchMode(watch.Mode)
+		ctx.Data["RepoWatch"] = watch
 		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
 	}
 
