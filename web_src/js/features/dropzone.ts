@@ -8,7 +8,7 @@ import {errorMessage} from '../modules/errors.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
 import type Dropzone from '@deltablot/dropzone';
 
-type CustomDropzoneFile = Dropzone.DropzoneFile & {uuid: string};
+type CustomDropzoneFile = Dropzone.DropzoneFile & {uuid: string, _removeLink?: HTMLElement};
 
 // dropzone has its owner event dispatcher (emitter)
 export const DropzoneCustomEventReloadFiles = 'dropzone-custom-reload-files';
@@ -57,6 +57,14 @@ function addCopyLink(file: Partial<CustomDropzoneFile>) {
   file.previewTemplate!.append(copyLinkEl);
 }
 
+function addRemoveButton(dzInst: Dropzone, file: CustomDropzoneFile, dictRemoveFile: string) {
+  // dropzone's own "addRemoveLinks" renders an anchor with href="javascript:undefined;", so render the control here instead
+  const removeEl = createElementFromHTML<HTMLButtonElement>(html`<button type="button" class="dz-remove">${dictRemoveFile}</button>`);
+  removeEl.addEventListener('click', () => dzInst.removeFile(file));
+  file._removeLink = removeEl; // dropzone swaps this element's text between "cancel upload" and "remove file"
+  file.previewTemplate.append(removeEl);
+}
+
 type FileUuidDict = Record<string, {submitted: boolean}>;
 
 /**
@@ -72,7 +80,6 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   const opts: Record<string, any> = {
     url: dropzoneEl.getAttribute('data-upload-url'),
     acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')!) ? null : dropzoneEl.getAttribute('data-accepts'),
-    addRemoveLinks: true,
     dictDefaultMessage: dropzoneEl.getAttribute('data-default-message'),
     dictInvalidFileType: dropzoneEl.getAttribute('data-invalid-input-type'),
     dictFileTooBig: dropzoneEl.getAttribute('data-file-too-big'),
@@ -89,6 +96,8 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   // "http://localhost:3000/owner/repo/issues/[object%20Event]"
   // the reason is that the preview "callback(dataURL)" is assign to "img.onerror" then "thumbnail" uses the error object as the dataURL and generates '<img src="[object Event]">'
   const dzInst = await createDropzone(dropzoneEl, opts);
+  dzInst.on('addedfile', (file: CustomDropzoneFile) => addRemoveButton(dzInst, file, opts.dictRemoveFile));
+
   dzInst.on('success', (file: CustomDropzoneFile, resp: any) => {
     file.uuid = resp.uuid;
     fileUuidDict[file.uuid] = {submitted: false};

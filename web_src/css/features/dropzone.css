@@ -52,6 +52,14 @@
   filter: opacity(0.5) !important;
 }
 
+.dropzone .dz-preview .dz-remove {
+  width: 100%;
+  padding: 0;
+  background: none;
+  color: var(--color-primary);
+  font-family: inherit;
+}
+
 .ui .field .dropzone .dz-preview .dz-progress {
   /* by default the progress-bar is vertically centered (top: 50%), it's better to put it after the "details (size, filename)",
   then the layout from top to bottom is: size, filename, progress */
