@@ -15,10 +15,6 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Fetch main for diff
-        shell: bash
-        run: git fetch origin main --depth=1
-
       - name: Set image tag
         id: tag
         shell: bash
@@ -27,6 +23,7 @@ jobs:
       - name: Build or retag Gitea image
         shell: bash
         run: |
+          git fetch origin main --depth=1
           CHANGED_SRC=$(git diff FETCH_HEAD...HEAD --name-only | grep -v '^k8s/' | grep -v '^\.github/' | wc -l)
           if [ "$CHANGED_SRC" -gt "0" ]; then
             echo "Source files changed — building new image..."
