@@ -3,6 +3,7 @@ name: APIA Performance Validation
 on:
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   apia-validate:
