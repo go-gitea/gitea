@@ -152,9 +152,7 @@ func (g *GithubDownloaderV3) waitAndPickClient(ctx context.Context) {
 	var recentIdx int
 	var maxRemaining int
 	for i := 0; i < len(g.clients); i++ {
-		// Probe each client at least once so its rate limit is known. Otherwise,
-		// clients after the first one stay nil forever and are never selected.
-		if g.rates[i] == nil {
+		if g.rates[i] == nil { // probe unknown clients once, else their rate never gets learned
 			g.curClientIdx = i
 			return
 		}
