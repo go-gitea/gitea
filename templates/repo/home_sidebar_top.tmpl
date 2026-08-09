@@ -69,5 +69,17 @@
 			{{$fileSizeFields := StringUtils.Split $fileSizeFormatted " "}}
 			{{svg "octicon-database"}} <b>{{ctx.Locale.PrettyNumber (index $fileSizeFields 0)}}</b> {{index $fileSizeFields 1}}
 		</div>
+
+		{{if not .DisableStars}}
+			<a class="flex-text-block muted" href="{{.RepoLink}}/stars">
+				{{svg "octicon-star"}} <b>{{CountFmt .Repository.NumStars}}</b> {{ctx.Locale.Tr "repo.stars"}}
+			</a>
+		{{end}}
+		<a class="flex-text-block muted" href="{{.RepoLink}}/watchers">
+			{{svg "octicon-eye"}} <b>{{CountFmt .Repository.NumWatches}}</b> {{ctx.Locale.Tr "repo.watchers"}}
+		</a>
+		<a class="flex-text-block muted" href="{{.RepoLink}}/forks">
+			{{svg "octicon-repo-forked"}} <b>{{CountFmt .Repository.NumForks}}</b> {{ctx.Locale.Tr "repo.forks"}}
+		</a>
 	</div>
 </div>
