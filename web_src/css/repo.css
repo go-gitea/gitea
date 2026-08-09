@@ -521,14 +521,6 @@ td .commit-summary {
   line-height: 1.5; /* label has background, so it can't use parent's line-height */
 }
 
-.comment-text-line a {
-  color: inherit;
-}
-
-.comment-text-line a:hover {
-  color: var(--color-primary);
-}
-
 .repository.view.issue .comment-list .timeline-item.commits-list {
   padding-left: 15px;
   padding-top: 0;
