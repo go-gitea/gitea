@@ -26,6 +26,8 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	web_types "gitea.dev/modules/web/types"
+
+	"gitea.com/go-chi/binding"
 )
 
 // Render represents a template render
@@ -274,7 +276,6 @@ func (ctx *Context) JSONError(msg any) {
 }
 
 func (ctx *Context) JSONErrorWithField(msg any, field string) {
-	// HINT: JSON-ERROR-WITH-FIELD: middleware.Validate also uses the same logic, there is no suitable package to dedupe at the moment.
 	m := buildJsonErrorMap(msg)
 	m["errorFields"] = []string{field}
 	ctx.JSON(http.StatusBadRequest, m)
@@ -286,4 +287,21 @@ func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
 		msg = ctx.Locale.TrString("error.not_found")
 	}
 	ctx.JSON(http.StatusNotFound, buildJsonErrorMap(msg))
+}
+
+func GetFetchActionForm[T interface {
+	*E
+	middleware.Form
+}, E any](ctx *Context) *E {
+	middleware.SkipTmplFormValidationError(ctx)
+	form := T(new(E))
+	errs := binding.Bind(ctx.Req, form)
+	errorMessage, fieldName, _ := middleware.BuildValidationErrorForUser(form, ctx.Locale, errs)
+	if errorMessage != "" {
+		ctx.Resp.Header().Set("Content-Type", "application/json")
+		ctx.Resp.WriteHeader(http.StatusBadRequest)
+		ctx.JSONErrorWithField(errorMessage, fieldName)
+		return nil
+	}
+	return form
 }

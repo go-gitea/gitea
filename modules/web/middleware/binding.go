@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"strings"
 
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
@@ -103,7 +102,7 @@ func getFieldDisplayNameForMessage(f Form, l translation.Locale, fieldNames []st
 	return field, true, displayName
 }
 
-func buildValidationErrorForUser(f Form, l translation.Locale, bindingErrs binding.Errors) (errorMessage, errorFieldName string, fieldNames []string) {
+func BuildValidationErrorForUser(f Form, l translation.Locale, bindingErrs binding.Errors) (errorMessage, errorFieldName string, fieldNames []string) {
 	if bindingErrs.Len() == 0 {
 		return "", "", nil
 	}
@@ -173,17 +172,22 @@ func buildValidationErrorForUser(f Form, l translation.Locale, bindingErrs bindi
 	return errorMessage, errorFieldName, fieldNames
 }
 
+type contextKeySkipTmplFormValidationErrorType struct{}
+
+var contextKeySkipTmplFormValidationError contextKeySkipTmplFormValidationErrorType
+
+func SkipTmplFormValidationError(ctx reqctx.RequestContext) {
+	ctx.SetContextValue(contextKeySkipTmplFormValidationError, true)
+}
+
 func Validate(ctx *ValidateContext, errs binding.Errors, f Form) binding.Errors {
-	errorMessage, errorFieldName, fieldNames := buildValidationErrorForUser(f, ctx.Locale, errs)
-	if errorMessage == "" {
+	if ctx.Req.Context().Value(contextKeySkipTmplFormValidationError) == true {
+		// if it is not using tmpl-based validation error handling, just return the errors
+		// for example: when using "form-fetch-action", the validation error can be handled by GetFetchActionForm
 		return errs
 	}
-
-	if ctx.Req.Header.Get("X-Gitea-Fetch-Action") != "" {
-		ctx.Resp.Header().Set("Content-Type", "application/json")
-		ctx.Resp.WriteHeader(http.StatusBadRequest)
-		// HINT: JSON-ERROR-WITH-FIELD: ctx.JSONErrorWithField also uses the same logic, there is no suitable package to dedupe at the moment.
-		_ = json.MarshalWrite(ctx.Resp, map[string]any{"errorMessage": errorMessage, "errorFields": fieldNames})
+	errorMessage, errorFieldName, _ := BuildValidationErrorForUser(f, ctx.Locale, errs)
+	if errorMessage == "" {
 		return errs
 	}
 

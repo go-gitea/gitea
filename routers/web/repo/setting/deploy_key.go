@@ -10,7 +10,6 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/web"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -34,7 +33,10 @@ func DeployKeys(ctx *context.Context) {
 
 // DeployKeysPost response for adding a deploy-key of a repository
 func DeployKeysPost(ctx *context.Context) {
-	form := web.GetForm[*forms.AddKeyForm](ctx)
+	form := context.GetFetchActionForm[*forms.AddKeyForm](ctx)
+	if form == nil {
+		return
+	}
 	content, err := asymkey_model.CheckPublicKeyString(form.Content)
 	if err != nil {
 		if db.IsErrSSHDisabled(err) {
