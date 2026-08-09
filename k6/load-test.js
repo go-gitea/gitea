@@ -39,19 +39,12 @@ export const options = {
   },
 };
 
-const HTML_ENDPOINTS = [
-  '/',
-  '/explore/repos',
-  '/explore/users',
-  '/user/login',
-];
-
-const API_ENDPOINTS = [
-  '/api/v1/repos/search?limit=10',
-  '/api/v1/topics/search?limit=10',
-];
-
-const ALL_ENDPOINTS = [...HTML_ENDPOINTS, ...API_ENDPOINTS];
+// TEST_ENDPOINTS env var overrides defaults — comma-separated list of paths.
+// Set it per-repo to test any app. Defaults are Gitea-specific.
+const ALL_ENDPOINTS = __ENV.TEST_ENDPOINTS
+  ? __ENV.TEST_ENDPOINTS.split(',').map(e => e.trim())
+  : ['/', '/explore/repos', '/explore/users', '/user/login',
+     '/api/v1/repos/search?limit=10', '/api/v1/topics/search?limit=10'];
 
 function runTest(baseURL) {
   const endpoint = ALL_ENDPOINTS[Math.floor(Math.random() * ALL_ENDPOINTS.length)];

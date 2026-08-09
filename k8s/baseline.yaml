@@ -189,7 +189,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: k3d-apia-registry:5000/gitea:latest
+          image: k3d-apia-registry:5000/gitea:staging
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
