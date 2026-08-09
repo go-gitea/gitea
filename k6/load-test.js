@@ -34,8 +34,9 @@ export const options = {
     },
   },
   thresholds: {
-    'http_req_duration{env:staging}': ['p(95)<2000'],
-    'http_req_failed{env:staging}':   ['rate<0.05'],
+    'http_req_duration{env:staging}':  ['p(95)<2000'],
+    'http_req_duration{env:baseline}': ['p(95)<9999999'],
+    'http_req_failed{env:staging}':    ['rate<0.05'],
   },
 };
 
