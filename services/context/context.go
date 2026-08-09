@@ -293,13 +293,15 @@ func GetFetchActionForm[T interface {
 	*E
 	middleware.Form
 }, E any](ctx *Context) *E {
+	if web.GetForm[any](ctx) != nil {
+		panic("don't mix fetch-action form validation with template-based form validation")
+	}
 	middleware.SkipTmplFormValidationError(ctx)
 	form := T(new(E))
 	errs := binding.Bind(ctx.Req, form)
 	errorMessage, fieldName, _ := middleware.BuildValidationErrorForUser(form, ctx.Locale, errs)
 	if errorMessage != "" {
 		ctx.Resp.Header().Set("Content-Type", "application/json")
-		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		ctx.JSONErrorWithField(errorMessage, fieldName)
 		return nil
 	}
