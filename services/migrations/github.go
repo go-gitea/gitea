@@ -152,12 +152,18 @@ func (g *GithubDownloaderV3) waitAndPickClient(ctx context.Context) {
 	var recentIdx int
 	var maxRemaining int
 	for i := 0; i < len(g.clients); i++ {
-		if g.rates[i] != nil && g.rates[i].Remaining > maxRemaining {
+		// Probe each client at least once so its rate limit is known. Otherwise,
+		// clients after the first one stay nil forever and are never selected.
+		if g.rates[i] == nil {
+			g.curClientIdx = i
+			return
+		}
+		if g.rates[i].Remaining > maxRemaining {
 			maxRemaining = g.rates[i].Remaining
 			recentIdx = i
 		}
 	}
-	g.curClientIdx = recentIdx // if no max remain, it will always pick the first client.
+	g.curClientIdx = recentIdx
 
 	for g.rates[g.curClientIdx] != nil && g.rates[g.curClientIdx].Remaining <= GithubLimitRateRemaining {
 		timer := time.NewTimer(time.Until(g.rates[g.curClientIdx].Reset.Time))
