@@ -1,14 +1,11 @@
 name: APIA Performance Validation
 
 on:
-  pull_request:
-    branches: [main]
   workflow_dispatch:
     inputs:
       pr_number:
         description: 'PR number to comment on'
-        required: false
-        default: ''
+        required: true
 
 jobs:
   apia-validate:
