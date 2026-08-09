@@ -13,7 +13,11 @@ jobs:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+
+      - name: Fetch main for diff
+        shell: bash
+        run: git fetch origin main --depth=1
 
       - name: Set image tag
         id: tag
@@ -23,7 +27,7 @@ jobs:
       - name: Build or retag Gitea image
         shell: bash
         run: |
-          CHANGED_SRC=$(git diff origin/main...HEAD --name-only | grep -v '^k8s/' | grep -v '^\.github/' | wc -l)
+          CHANGED_SRC=$(git diff FETCH_HEAD...HEAD --name-only | grep -v '^k8s/' | grep -v '^\.github/' | wc -l)
           if [ "$CHANGED_SRC" -gt "0" ]; then
             echo "Source files changed — building new image..."
             docker build -t localhost:5000/gitea:${{ steps.tag.outputs.SHA }} -t localhost:5000/gitea:staging .
@@ -39,7 +43,7 @@ jobs:
       - name: Compute git diff
         shell: bash
         run: |
-          git diff origin/main...HEAD -- . > /tmp/pr-diff.patch
+          git diff FETCH_HEAD...HEAD -- . > /tmp/pr-diff.patch
           echo "GIT_DIFF_FILE=/tmp/pr-diff.patch" >> $GITHUB_ENV
 
       - name: Reset baseline and deploy staging in parallel
