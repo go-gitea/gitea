@@ -21,12 +21,13 @@ jobs:
 
       - name: Set image tag
         id: tag
-        run: echo "SHA=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+        shell: bash
+        run: echo "SHA=$(git rev-parse --short=8 HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Build or retag Gitea image
         shell: bash
         run: |
-          git fetch origin main --depth=1
+          git fetch origin main --depth=1 || true
           CHANGED_SRC=$(git diff FETCH_HEAD HEAD --name-only | grep -v '^k8s/' | grep -v '^\.github/' | wc -l)
           if [ "$CHANGED_SRC" -gt "0" ]; then
             echo "Source files changed — building new image..."
