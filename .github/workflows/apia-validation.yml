@@ -20,12 +20,19 @@ jobs:
         shell: bash
         run: echo "SHA=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
 
-      - name: Build Gitea image from PR branch
+      - name: Build or retag Gitea image
+        shell: bash
         run: |
-          docker build -t localhost:5000/gitea:${{ steps.tag.outputs.SHA }} -t localhost:5000/gitea:staging .
-
-      - name: Push to k3d registry
-        run: |
+          CHANGED_SRC=$(git diff origin/main...HEAD --name-only | grep -v '^k8s/' | grep -v '^\.github/' | wc -l)
+          if [ "$CHANGED_SRC" -gt "0" ]; then
+            echo "Source files changed — building new image..."
+            docker build -t localhost:5000/gitea:${{ steps.tag.outputs.SHA }} -t localhost:5000/gitea:staging .
+          else
+            echo "k8s-only change — retagging existing image..."
+            docker pull k3d-apia-registry:5000/gitea:latest
+            docker tag k3d-apia-registry:5000/gitea:latest localhost:5000/gitea:${{ steps.tag.outputs.SHA }}
+            docker tag k3d-apia-registry:5000/gitea:latest localhost:5000/gitea:staging
+          fi
           docker push localhost:5000/gitea:${{ steps.tag.outputs.SHA }}
           docker push localhost:5000/gitea:staging
 
@@ -84,12 +91,25 @@ jobs:
 
       - name: Run K6 load test
         shell: bash
+        env:
+          K6_STAGE_WARMUP: 60
+          K6_STAGE_RAMPUP: 30
+          K6_STAGE_MEASURE: 120
+          K6_STAGE_RAMPDOWN: 30
         run: |
           k6 run k6/load-test.js \
             --env BASELINE_URL=http://localhost:30301 \
             --env STAGING_URL=http://localhost:30302 \
+            --env WARMUP_S=$K6_STAGE_WARMUP \
+            --env RAMPUP_S=$K6_STAGE_RAMPUP \
+            --env MEASURE_S=$K6_STAGE_MEASURE \
+            --env RAMPDOWN_S=$K6_STAGE_RAMPDOWN \
             --summary-export /tmp/k6-summary.json || true
+
           echo "K6_RESULT_FILE=/tmp/k6-summary.json" >> $GITHUB_ENV
+          echo "K6_SKIP_START_S=$(( K6_STAGE_WARMUP + K6_STAGE_RAMPUP ))" >> $GITHUB_ENV
+          echo "K6_SKIP_END_S=$K6_STAGE_RAMPDOWN"                          >> $GITHUB_ENV
+          echo "K6_TOTAL_S=$(( K6_STAGE_WARMUP + K6_STAGE_RAMPUP + K6_STAGE_MEASURE + K6_STAGE_RAMPDOWN ))" >> $GITHUB_ENV
 
       - name: Run APIA pipeline
         env:

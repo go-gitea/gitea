@@ -1,9 +1,10 @@
-# baseline namespace - Gitea + PostgreSQL + Redis, healthy state
+# baseline namespace — Gitea with PostgreSQL + Redis cache ENABLED (healthy reference state)
 apiVersion: v1
 kind: Namespace
 metadata:
   name: baseline
 ---
+# ── PostgreSQL ────────────────────────────────────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,8 +30,6 @@ spec:
               value: gitea
             - name: POSTGRES_PASSWORD
               value: gitea
-            - name: PGDATA
-              value: /var/lib/postgresql/data/pgdata
           ports:
             - containerPort: 5432
           resources:
@@ -58,6 +57,7 @@ spec:
     - port: 5432
       targetPort: 5432
 ---
+# ── PostgreSQL exporter (apia.io/domain = database) ──────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -82,29 +82,17 @@ spec:
           image: prometheuscommunity/postgres-exporter:latest
           env:
             - name: DATA_SOURCE_NAME
-              value: postgresql://gitea:gitea@postgres:5432/gitea?sslmode=disable
+              value: "postgresql://gitea:gitea@postgres:5432/gitea?sslmode=disable"
           ports:
             - containerPort: 9187
           resources:
             requests:
               memory: 32Mi
-              cpu: 10m
+              cpu: 50m
             limits:
               memory: 64Mi
-              cpu: 50m
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: pg-exporter
-  namespace: baseline
-spec:
-  selector:
-    app: pg-exporter
-  ports:
-    - port: 9187
-      targetPort: 9187
----
+# ── Redis ─────────────────────────────────────────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -144,6 +132,7 @@ spec:
     - port: 6379
       targetPort: 6379
 ---
+# ── Redis exporter (apia.io/domain = cache) ───────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -168,29 +157,17 @@ spec:
           image: oliver006/redis_exporter:latest
           env:
             - name: REDIS_ADDR
-              value: redis://redis:6379
+              value: "redis://redis:6379"
           ports:
             - containerPort: 9121
           resources:
             requests:
               memory: 32Mi
-              cpu: 10m
+              cpu: 50m
             limits:
               memory: 64Mi
-              cpu: 50m
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis-exporter
-  namespace: baseline
-spec:
-  selector:
-    app: redis-exporter
-  ports:
-    - port: 9121
-      targetPort: 9121
----
+# ── Gitea app (apia.io/domain = backend) ─────────────────────────────────────
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -210,10 +187,6 @@ spec:
         prometheus.io/port: "3000"
         apia.io/domain: "backend"
     spec:
-      initContainers:
-        - name: wait-for-db
-          image: postgres:15-alpine
-          command: ["sh", "-c", "until pg_isready -h postgres -p 5432 -U gitea; do echo waiting; sleep 2; done"]
       containers:
         - name: app
           image: k3d-apia-registry:5000/gitea:latest
@@ -262,7 +235,6 @@ spec:
               cpu: 100m
             limits:
               memory: 512Mi
-              cpu: 500m
       volumes:
         - name: data
           emptyDir: {}
