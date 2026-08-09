@@ -1068,8 +1068,8 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
-			// FIXME: the "-1" can't be right, these "line idx" are all 1-based, maybe there are other bugs that covers this bug.
-			lineSectionInfo := newDiffLineSectionInfo(curFile, line, leftLine-1, rightLine-1)
+			// use "idx-1" as "last idx" (the last line before this hunk)
+			lineSectionInfo := newDiffLineSectionInfo(curFile, line, leftLine-1 /*lastLeftIdx*/, rightLine-1 /*lastRightIdx*/)
 			diffLine := &DiffLine{
 				Type:        DiffLineSection,
 				Content:     line,

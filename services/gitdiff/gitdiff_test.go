@@ -19,6 +19,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -568,13 +569,19 @@ func TestParsePatchExactLineLimit(t *testing.T) {
 			diff, err := ParsePatch(t.Context(), test.limit, 5000, 10, strings.NewReader(patch), "")
 			require.NoError(t, err)
 			require.Len(t, diff.Files, 1)
-			lines := 0
-			for _, section := range diff.Files[0].Sections {
-				lines += len(section.Lines) - 1
+			diffFile := diff.Files[0]
+			if test.limit == 0 {
+				require.Len(t, diffFile.Sections, 0)
+			} else {
+				require.Len(t, diffFile.Sections, 1)
+				diffSection := diffFile.Sections[0]
+				lineSecCount := 0
+				for _, line := range diffSection.Lines {
+					lineSecCount += util.Iif(line.Type == DiffLineSection, 1, 0)
+				}
+				assert.Equal(t, test.lines, len(diffSection.Lines)-lineSecCount) // actual diff lines
+				assert.Equal(t, test.incomplete, diffFile.IsIncomplete)
 			}
-			assert.Equal(t, test.lines, lines)
-			assert.Len(t, diff.Files[0].Sections, min(test.limit, 1))
-			assert.Equal(t, test.incomplete, diff.Files[0].IsIncomplete)
 		})
 	}
 }
