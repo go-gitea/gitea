@@ -511,18 +511,23 @@ td .commit-summary {
   margin-left: -16px;
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line {
+.comment-text-line {
   color: var(--color-text-light);
   flex: 1;
   min-width: 0;
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
+.comment-text-line .ui.label {
   line-height: 1.5; /* label has background, so it can't use parent's line-height */
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line a {
+/* the timeline text is muted, its links behave like "muted-links" */
+.comment-text-line a {
   color: inherit;
+}
+
+.comment-text-line a:hover {
+  color: var(--color-primary);
 }
 
 .repository.view.issue .comment-list .timeline-item.commits-list {

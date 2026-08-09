@@ -361,9 +361,10 @@
 			</div>
 		{{else if eq .Type 22}}
 			<div class="timeline-item-group" id="{{.HashTag}}">
-				<div class="timeline-item event">
-					{{$reviewType := 2}}{{/* default to "comment" type if the review record is missing */}}
-					{{if .Review}}{{$reviewType = .Review.Type}}{{end}}
+				{{/* default to the "comment" type and the comment anchor if the review record is missing */}}
+				{{$reviewType := 2}}{{$reviewHashTag := .HashTag}}
+				{{if .Review}}{{$reviewType = .Review.Type}}{{$reviewHashTag = .Review.HashTag}}{{end}}
+				<div class="timeline-item event"{{if .Review}} id="{{$reviewHashTag}}"{{end}}>
 					{{if not .OriginalAuthor}}
 					{{/* Some timeline avatars need a offset to correctly align with their speech bubble.
 						The condition depends on whether the comment has contents/attachments,
@@ -381,12 +382,13 @@
 					</span>
 					<span class="comment-text-line">
 						{{template "repo/issue/view_content/comments_authorlink" dict "comment" .}}
+						{{$createdLink := HTMLFormat `<a href="#%s">%s</a>` $reviewHashTag $createdStr}}
 						{{if eq $reviewType 1}}
-							{{ctx.Locale.Tr "repo.issues.review.approve" $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.review.approve" $createdLink}}
 						{{else if eq $reviewType 3}}
-							{{ctx.Locale.Tr "repo.issues.review.reject" $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.review.reject" $createdLink}}
 						{{else}}
-							{{ctx.Locale.Tr "repo.issues.review.comment" $createdStr}}
+							{{ctx.Locale.Tr "repo.issues.review.comment" $createdLink}}
 						{{end}}
 						{{if and .Review .Review.Dismissed}}
 							<div class="ui small label">{{ctx.Locale.Tr "repo.issues.review.dismissed_label"}}</div>
