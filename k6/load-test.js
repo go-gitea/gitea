@@ -4,14 +4,18 @@ import { sleep, check } from 'k6';
 const BASELINE_URL = __ENV.BASELINE_URL || 'http://localhost:30301';
 const STAGING_URL  = __ENV.STAGING_URL  || 'http://localhost:30302';
 
-// Identical load profile for both environments.
-// 1 min warm-up at low VUs so caches, connection pools, and DB buffers
-// reach steady state before the measurement window begins.
+// Stage durations — injected from CI so pipeline.py and k6 share the same values.
+// Defaults here must match K6_STAGE_* in apia-validation.yml.
+const WARMUP_S   = parseInt(__ENV.WARMUP_S   || '60',  10);
+const RAMPUP_S   = parseInt(__ENV.RAMPUP_S   || '30',  10);
+const MEASURE_S  = parseInt(__ENV.MEASURE_S  || '120', 10);
+const RAMPDOWN_S = parseInt(__ENV.RAMPDOWN_S || '30',  10);
+
 const STAGES = [
-  { duration: '1m',  target: 5  }, // warm-up
-  { duration: '30s', target: 20 }, // ramp up
-  { duration: '2m',  target: 20 }, // measurement window
-  { duration: '30s', target: 0  }, // ramp down
+  { duration: `${WARMUP_S}s`,   target: 5  },
+  { duration: `${RAMPUP_S}s`,   target: 20 },
+  { duration: `${MEASURE_S}s`,  target: 20 },
+  { duration: `${RAMPDOWN_S}s`, target: 0  },
 ];
 
 export const options = {
@@ -35,7 +39,6 @@ export const options = {
   },
 };
 
-// HTML pages — these rely heavily on Redis session/template cache
 const HTML_ENDPOINTS = [
   '/',
   '/explore/repos',
@@ -43,7 +46,6 @@ const HTML_ENDPOINTS = [
   '/user/login',
 ];
 
-// API endpoints — heavily cache-dependent, shows regression most clearly
 const API_ENDPOINTS = [
   '/api/v1/repos/search?limit=10',
   '/api/v1/topics/search?limit=10',
