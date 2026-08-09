@@ -32,18 +32,17 @@ jobs:
       - name: Build or retag Gitea image
         shell: bash
         run: |
+          SHA=${{ steps.tag.outputs.SHA }}
           git fetch origin main --depth=1 || true
-          CHANGED_SRC=$(git diff FETCH_HEAD HEAD --name-only | grep -v '^k8s/' | grep -v '^\.github/' | wc -l)
-          if [ "$CHANGED_SRC" -gt "0" ]; then
-            echo "Source files changed — building new image..."
-            docker build -t localhost:5000/gitea:${{ steps.tag.outputs.SHA }} -t localhost:5000/gitea:staging .
+          CHANGED_SRC=$(git diff FETCH_HEAD HEAD --name-only | grep -Ev '^(k8s|\.github)/' | wc -l) || CHANGED_SRC=0
+          if [ "$CHANGED_SRC" -gt "0" ] || ! docker image inspect localhost:5000/gitea:staging &>/dev/null; then
+            echo "Building image..."
+            docker build -t localhost:5000/gitea:${SHA} -t localhost:5000/gitea:staging .
           else
             echo "k8s-only change — retagging existing image..."
-            docker pull k3d-apia-registry:5000/gitea:latest
-            docker tag k3d-apia-registry:5000/gitea:latest localhost:5000/gitea:${{ steps.tag.outputs.SHA }}
-            docker tag k3d-apia-registry:5000/gitea:latest localhost:5000/gitea:staging
+            docker tag localhost:5000/gitea:staging localhost:5000/gitea:${SHA}
           fi
-          docker push localhost:5000/gitea:${{ steps.tag.outputs.SHA }}
+          docker push localhost:5000/gitea:${SHA}
           docker push localhost:5000/gitea:staging
 
       - name: Compute git diff
