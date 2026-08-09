@@ -186,7 +186,7 @@ func registerGCLFS() {
 
 	RegisterTaskFatal("gc_lfs", &GCLFSConfig{
 		BaseConfig: BaseConfig{
-			Enabled:    false,
+			Enabled:    true,
 			RunAtStart: false,
 			Schedule:   "@every 24h",
 		},
@@ -207,9 +207,11 @@ func registerGCLFS() {
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		gcLFSConfig := config.(*GCLFSConfig)
 		return repo_service.GarbageCollectLFSMetaObjects(ctx, repo_service.GarbageCollectLFSMetaObjectsOptions{
-			AutoFix:                 true,
-			OlderThan:               time.Now().Add(-gcLFSConfig.OlderThan),
-			UpdatedLessRecentlyThan: time.Now().Add(-gcLFSConfig.LastUpdatedMoreThanAgo),
+			AutoFix:                  true,
+			OlderThan:                time.Now().Add(-gcLFSConfig.OlderThan),
+			UpdatedLessRecentlyThan:  time.Now().Add(-gcLFSConfig.LastUpdatedMoreThanAgo),
+			NumberToCheckPerRepo:     gcLFSConfig.NumberToCheckPerRepo,
+			ProportionToCheckPerRepo: gcLFSConfig.ProportionToCheckPerRepo,
 		})
 	})
 }
