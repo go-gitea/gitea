@@ -54,24 +54,12 @@ jobs:
           kubectl delete namespace staging --ignore-not-found=true &
           wait
 
-          # Baseline: always from main's k8s/baseline.yaml (healthy reference)
+          # Baseline: always from main's k8s/baseline.yaml (permanent healthy reference)
           git show origin/main:k8s/baseline.yaml | kubectl apply -f -
 
-          # Staging: use k8s/staging.yaml if this PR provides one (infrastructure change),
-          # otherwise auto-derive from baseline by substituting namespace + ports.
-          if [ -f k8s/staging.yaml ]; then
-            echo "PR provides k8s/staging.yaml — deploying as-is"
-            kubectl apply -f k8s/staging.yaml
-          else
-            echo "No k8s/staging.yaml — deriving healthy staging from baseline"
-            git show origin/main:k8s/baseline.yaml \
-              | sed 's/namespace: baseline/namespace: staging/g' \
-              | sed 's/nodePort: 30301/nodePort: 30302/g' \
-              | sed 's|http://localhost:30301|http://localhost:30302|g' \
-              | sed 's/gitea:latest/gitea:staging/g' \
-              | sed 's/apia-baseline-secret/apia-staging-secret/g' \
-              | kubectl apply -f -
-          fi
+          # Staging: k8s/staging.yaml from the PR branch.
+          # On main it mirrors baseline (healthy). PRs that change infrastructure modify it.
+          kubectl apply -f k8s/staging.yaml
 
           kubectl rollout status deployment/postgres -n baseline --timeout=90s &
           kubectl rollout status deployment/postgres -n staging --timeout=90s &
