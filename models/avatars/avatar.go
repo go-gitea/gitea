@@ -29,10 +29,13 @@ const (
 	DefaultAvatarPixelSize = 28
 )
 
-// EmailHash represents a pre-generated hash map, it keeps the email out of the rendered page
+const emailHashType = "sha256" // so a later algorithm change can tell old rows apart
+
+// EmailHash keeps the email out of the rendered page
 type EmailHash struct {
-	Hash  string `xorm:"pk varchar(64)"`
-	Email string `xorm:"UNIQUE NOT NULL"`
+	Hash     string `xorm:"pk varchar(64)"`
+	HashType string `xorm:"UNIQUE(email_type) NOT NULL varchar(16)"`
+	Email    string `xorm:"UNIQUE(email_type) NOT NULL"`
 }
 
 func init() {
@@ -103,20 +106,19 @@ func GetEmailForHash(ctx context.Context, hash string) (string, error) {
 	})
 }
 
-// saveEmailHash returns the hash for a provided email,
-// the email and hash are saved into database, which will be used by GetEmailForHash later
+// saveEmailHash returns the hash and stores the pair for GetEmailForHash
 func saveEmailHash(ctx context.Context, email string) string {
 	lowerEmail := strings.ToLower(strings.TrimSpace(email))
 	emailHash := HashEmail(lowerEmail)
-	// the cache entry doubles as the "already stored" marker and warms GetEmailForHash
+	// the cache entry doubles as the "already stored" marker
 	_, _ = cache.GetString("Avatar:"+emailHash, func() (string, error) {
-		// the row usually exists already, a session keeps the duplicate key error away from an outer transaction
+		// a session keeps a duplicate key error away from an outer transaction
 		_ = db.WithTx(ctx, func(ctx context.Context) error {
 			has, err := db.Exist[EmailHash](ctx, builder.Eq{"email": lowerEmail, "`hash`": emailHash})
 			if has || err != nil {
 				return nil
 			}
-			_, _ = db.GetEngine(ctx).Insert(&EmailHash{Email: lowerEmail, Hash: emailHash})
+			_, _ = db.GetEngine(ctx).Insert(&EmailHash{Email: lowerEmail, Hash: emailHash, HashType: emailHashType})
 			return nil
 		})
 		return lowerEmail, nil
@@ -140,7 +142,6 @@ func GenerateUserAvatarImageLink(userAvatar string, size int) string {
 	return setting.AppSubURL + "/avatars/" + url.PathEscape(userAvatar)
 }
 
-// generateSourceAvatarURL returns the email's avatar URL at an avatar source, the source is passed by a copy
 func generateSourceAvatarURL(source url.URL, email string, size int) string {
 	source.Path = path.Join(source.Path, HashEmail(email))
 	urlQuery := source.Query()
@@ -168,7 +169,7 @@ func generateEmailAvatarLink(ctx context.Context, email string, size int, final 
 
 	if setting.Config().Picture.EnableFederatedAvatar.Value(ctx) {
 		if !final {
-			// return a 302 redirection link, so that rendering a page never waits for the DNS query
+			// return a 302 link, so page rendering never waits for the DNS query
 			link := setting.AppSubURL + "/avatar/" + url.PathEscape(saveEmailHash(ctx, email))
 			if size > 0 {
 				link += "?size=" + strconv.Itoa(size)

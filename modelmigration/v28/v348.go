@@ -16,8 +16,9 @@ func RecreateEmailHashTable(_ context.Context, x base.EngineMigration) error {
 	}
 
 	type EmailHash struct {
-		Hash  string `xorm:"pk varchar(64)"`
-		Email string `xorm:"UNIQUE NOT NULL"`
+		Hash     string `xorm:"pk varchar(64)"`
+		HashType string `xorm:"UNIQUE(email_type) NOT NULL varchar(16)"`
+		Email    string `xorm:"UNIQUE(email_type) NOT NULL"`
 	}
 	return x.Sync(new(EmailHash))
 }

@@ -13,8 +13,7 @@ import (
 	"gitea.dev/modules/cache"
 )
 
-// LookupFederatedHost returns the avatar server that the email's domain publishes in a DNS SRV
-// record, or an empty string when it publishes none. See https://wiki.libravatar.org/api/
+// LookupFederatedHost returns the avatar host from the email domain's SRV record. https://wiki.libravatar.org/api/
 func LookupFederatedHost(ctx context.Context, email string, secure bool) string {
 	at := strings.LastIndexByte(email, '@')
 	if at < 0 {
@@ -41,7 +40,7 @@ func LookupFederatedHost(ctx context.Context, email string, secure bool) string 
 	return host
 }
 
-// srvHost formats an SRV record as a host, a target of "." means the service is unavailable (RFC 2782)
+// a target of "." means the service is unavailable (RFC 2782)
 func srvHost(record *net.SRV, defaultPort uint16) string {
 	target := strings.TrimSuffix(record.Target, ".")
 	if target == "" || record.Port == defaultPort {

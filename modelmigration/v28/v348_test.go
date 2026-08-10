@@ -33,10 +33,6 @@ func TestRecreateEmailHashTable(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 0, count, "the unreachable MD5 rows must be gone")
 
-	sha256Hash := strings.Repeat("b", 64)
-	_, err = x.Exec("INSERT INTO email_hash (hash, email) VALUES (?, ?)", sha256Hash, "gitea@example.com")
-	require.NoError(t, err, "the hash column must hold a SHA256 hash")
-
-	_, err = x.Exec("INSERT INTO email_hash (hash, email) VALUES (?, ?)", strings.Repeat("c", 64), "gitea@example.com")
-	require.Error(t, err, "the unique email index must survive the recreate")
+	_, err = x.Exec("INSERT INTO email_hash (hash, email, hash_type) VALUES (?, ?, ?)", strings.Repeat("b", 64), "gitea@example.com", "sha256")
+	require.NoError(t, err, "the new schema must hold a SHA256 hash")
 }

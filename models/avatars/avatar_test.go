@@ -9,6 +9,7 @@ import (
 
 	avatars_model "gitea.dev/models/avatars"
 	system_model "gitea.dev/models/system"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/setting/config"
 
@@ -39,11 +40,12 @@ func TestEmailAvatarLink(t *testing.T) {
 	assert.Equal(t, "https://secure.gravatar.com/avatar/"+emailHash+"?d=identicon&s=100",
 		avatars_model.GenerateEmailAvatarFastLink(t.Context(), email, 100))
 
-	// the fast link only carries the hash, the DNS query happens when the browser follows it
+	// the DNS query waits until the browser follows the link
 	setAvatarConfig(false, true)
 	assert.Equal(t, "/testsuburl/avatar/"+emailHash+"?size=100",
 		avatars_model.GenerateEmailAvatarFastLink(t.Context(), email, 100))
 	storedEmail, err := avatars_model.GetEmailForHash(t.Context(), emailHash)
 	assert.NoError(t, err)
 	assert.Equal(t, email, storedEmail)
+	assert.Equal(t, "sha256", unittest.AssertExistsAndLoadBean(t, &avatars_model.EmailHash{Hash: emailHash}, unittest.OrderBy("hash")).HashType)
 }
