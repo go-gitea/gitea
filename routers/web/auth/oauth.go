@@ -429,15 +429,12 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
-		sessionData := map[string]any{
+		if err := regenerateSession(ctx, map[string]any{
 			session.KeyUID:                  u.ID,
 			session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 			session.KeySignInMethod:         session.SignInMethodOAuth2,
-		}
-		if gothUser.IDToken != "" {
-			sessionData[session.KeyOIDCIDToken] = gothUser.IDToken
-		}
-		if err := regenerateSession(ctx, sessionData); err != nil {
+			session.KeyOIDCIDToken:          gothUser.IDToken, // set even if "": clears any stale token regenerateSession would otherwise carry over
+		}); err != nil {
 			ctx.ServerError("updateSession", err)
 			return
 		}
@@ -458,11 +455,10 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 		}
 	}
 
-	extra := map[string]any{session.KeySignInMethod: session.SignInMethodOAuth2}
-	if gothUser.IDToken != "" {
-		extra[session.KeyOIDCIDToken] = gothUser.IDToken
-	}
-	handleTwoFactorRequired(ctx, u, false, extra)
+	handleTwoFactorRequired(ctx, u, false, map[string]any{
+		session.KeySignInMethod: session.SignInMethodOAuth2,
+		session.KeyOIDCIDToken:  gothUser.IDToken, // set even if "": see regenerateSession call above
+	})
 }
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful

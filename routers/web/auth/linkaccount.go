@@ -168,14 +168,11 @@ func oauth2LinkAccount(ctx *context.Context, u *user_model.User, linkAccountData
 		return
 	}
 
-	extra := map[string]any{
+	handleTwoFactorRequired(ctx, u, remember, map[string]any{
 		"linkAccount":           true,
 		session.KeySignInMethod: session.SignInMethodOAuth2,
-	}
-	if linkAccountData.GothUser.IDToken != "" {
-		extra[session.KeyOIDCIDToken] = linkAccountData.GothUser.IDToken
-	}
-	handleTwoFactorRequired(ctx, u, remember, extra)
+		session.KeyOIDCIDToken:  linkAccountData.GothUser.IDToken, // set even if "": clears any stale token regenerateSession would otherwise carry over
+	})
 }
 
 // LinkAccountPostRegister handle the creation of a new account for an external account using signUp

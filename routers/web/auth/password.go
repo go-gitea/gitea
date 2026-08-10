@@ -12,6 +12,7 @@ import (
 	"gitea.dev/modules/auth/password"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
@@ -246,7 +247,12 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 		if hasWebAuthn {
-			handleTwoFactorRequired(ctx, u, remember, nil)
+			// clear even if unset: a stale OAuth2 sign-in method/id_token from an earlier
+			// session on this browser must not survive a password-reset-initiated 2FA flow
+			handleTwoFactorRequired(ctx, u, remember, map[string]any{
+				session.KeySignInMethod: "",
+				session.KeyOIDCIDToken:  "",
+			})
 			return
 		}
 	}
