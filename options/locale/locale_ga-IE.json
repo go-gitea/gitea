@@ -1156,9 +1156,17 @@
   "repo.star_guest_user": "Sínigh isteach chun an stóras seo a réalú.",
   "repo.watch": "Fhéachaint",
   "repo.watching": "Ag féachaint",
+  "repo.ignoring": "Ag neamhaird",
   "repo.watch.options.issues": "Saincheisteanna",
   "repo.watch.options.pull_requests": "Iarrataí Tarraing",
   "repo.watch.options.releases": "Eisiúintí",
+  "repo.watch.mode.participating": "Rannpháirtíocht agus tráchtanna",
+  "repo.watch.mode.participating.desc": "Faigh fógraí ón stór seo nuair a ghlacann tú páirt nó nuair a luaitear thú.",
+  "repo.watch.mode.all": "Gach gníomhaíocht",
+  "repo.watch.mode.all.desc": "Faigh fógraí do gach imeacht.",
+  "repo.watch.mode.ignore": "Déan neamhaird de",
+  "repo.watch.mode.ignore.desc": "Ná faigh fógraí ón stórlann seo choíche.",
+  "repo.watch.mode.custom": "Saincheaptha",
   "repo.unstar": "Bain Réalta",
   "repo.star": "Réalta",
   "repo.fork": "Forc",
@@ -3935,5 +3943,6 @@
   "actions.general.cross_repo_desc": "Ceadaigh rochtain (léamh amháin) a bheith ag na stórtha uile san úinéir seo ar na stórtha roghnaithe le GITEA_TOKEN agus poist Gníomhartha á reáchtáil.",
   "actions.general.cross_repo_selected": "Stórtha roghnaithe",
   "actions.general.cross_repo_target_repos": "Stórtha Spriocdhírithe",
-  "actions.general.cross_repo_add": "Cuir Stór Sprioc leis"
+  "actions.general.cross_repo_add": "Cuir Stór Sprioc leis",
+  "packages.owner.settings.cleanuprules.type.already_exists": "Tá riail ghlantacháin ann cheana féin don chineál pacáiste seo."
 }
