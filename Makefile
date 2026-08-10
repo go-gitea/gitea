@@ -602,28 +602,6 @@ node_modules: pnpm-lock.yaml
 	uv sync
 	@touch .venv
 
-.PHONY: update
-update: update-go update-js update-py ## update dependencies
-
-.PHONY: update-go
-update-go: ## update go dependencies
-	$(GO) get -u ./...
-	$(MAKE) tidy
-
-.PHONY: update-js
-update-js: node_modules ## update js dependencies
-	pnpm exec updates -u -f package.json
-	rm -rf node_modules pnpm-lock.yaml
-	pnpm install
-	@touch node_modules
-
-.PHONY: update-py
-update-py: node_modules ## update py dependencies
-	pnpm exec updates -u -f pyproject.toml
-	rm -rf .venv uv.lock
-	uv sync
-	@touch .venv
-
 .PHONY: vite
 vite: $(FRONTEND_DEST) ## build vite files
 
