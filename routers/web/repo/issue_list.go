@@ -681,6 +681,8 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 			reviewTyp = issues_model.ReviewTypeReject
 		case "waiting":
 			reviewTyp = issues_model.ReviewTypeRequest
+		case "comment":
+			reviewTyp = issues_model.ReviewTypeComment
 		}
 		for _, count := range counts {
 			if count.Type == reviewTyp {

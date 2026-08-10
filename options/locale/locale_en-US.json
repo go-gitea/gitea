@@ -1853,6 +1853,8 @@
   "repo.pulls.reject_count_n": "%d change requests",
   "repo.pulls.waiting_count_1": "%d waiting review",
   "repo.pulls.waiting_count_n": "%d waiting reviews",
+  "repo.pulls.comment_count_1": "%d commented",
+  "repo.pulls.comment_count_n": "%d commented",
   "repo.pulls.wrong_commit_id": "commit ID must be a commit ID on the target branch",
   "repo.pulls.no_merge_desc": "This pull request cannot be merged because all repository merge options are disabled.",
   "repo.pulls.no_merge_helper": "Enable merge options in the repository settings or merge the pull request manually.",

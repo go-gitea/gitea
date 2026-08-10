@@ -612,6 +612,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			reviewTyp = issues_model.ReviewTypeReject
 		case "waiting":
 			reviewTyp = issues_model.ReviewTypeRequest
+		case "comment":
+			reviewTyp = issues_model.ReviewTypeComment
 		}
 		for _, count := range counts {
 			if count.Type == reviewTyp {
