@@ -686,6 +686,10 @@ jobs:
 	assert.Equal(t, strings.Repeat("A", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-only"))
 	assert.Contains(t, listArtifactNamesForRun(t, run.ID, taskToken3), "job1-v3")
 
+	// a pending upload of this attempt must not shadow the confirmed copy it inherited
+	createTestArtifactV4(t, run.ID, job3.ID, taskToken3, "job1-only")
+	assert.Equal(t, strings.Repeat("A", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-only"))
+
 	// both rows of the inherited v3 artifact are readable
 	inheritedV3 := getArtifactDownloadItemsForRun(t, run.ID, taskToken3, "job1-v3")
 	require.Len(t, inheritedV3, 2)

@@ -963,7 +963,8 @@ func downloadArtifactContentV4ByTask(t *testing.T, runID, jobID int64, taskToken
 	return MakeRequest(t, NewRequest(t, "GET", urlResp.SignedUrl), http.StatusOK).Body.String()
 }
 
-func uploadTestArtifactFileV4(t *testing.T, runID, jobID int64, authToken, artifactName, content string) {
+// createTestArtifactV4 only creates the artifact record, leaving it pending until it is uploaded and finalized
+func createTestArtifactV4(t *testing.T, runID, jobID int64, authToken, artifactName string) string {
 	t.Helper()
 
 	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/CreateArtifact", toProtoJSON(&actions.CreateArtifactRequest{
@@ -974,11 +975,17 @@ func uploadTestArtifactFileV4(t *testing.T, runID, jobID int64, authToken, artif
 		MimeType:                wrapperspb.String("application/zip"),
 	})).AddTokenAuth(authToken)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var uploadResp actions.CreateArtifactResponse
-	require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &uploadResp))
-	require.True(t, uploadResp.Ok)
+	var createResp actions.CreateArtifactResponse
+	require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &createResp))
+	require.True(t, createResp.Ok)
+	return createResp.SignedUploadUrl
+}
 
-	req = NewRequestWithBody(t, "PUT", uploadResp.SignedUploadUrl+"&comp=appendBlock", strings.NewReader(content))
+func uploadTestArtifactFileV4(t *testing.T, runID, jobID int64, authToken, artifactName, content string) {
+	t.Helper()
+
+	signedUploadURL := createTestArtifactV4(t, runID, jobID, authToken, artifactName)
+	req := NewRequestWithBody(t, "PUT", signedUploadURL+"&comp=appendBlock", strings.NewReader(content))
 	MakeRequest(t, req, http.StatusCreated)
 
 	sum := sha256.Sum256([]byte(content))
@@ -989,7 +996,7 @@ func uploadTestArtifactFileV4(t *testing.T, runID, jobID int64, authToken, artif
 		WorkflowRunBackendId:    strconv.FormatInt(runID, 10),
 		WorkflowJobRunBackendId: strconv.FormatInt(jobID, 10),
 	})).AddTokenAuth(authToken)
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var finalizeResp actions.FinalizeArtifactResponse
 	require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &finalizeResp))
 	require.True(t, finalizeResp.Ok)

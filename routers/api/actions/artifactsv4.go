@@ -261,20 +261,28 @@ func (r *artifactV4Routes) verifySignature(ctx *ArtifactContext, endp string) (*
 	return task, artifactName, true
 }
 
-// getOwnAttemptArtifactByName resolves an artifact the given attempt uploaded itself.
-// Upload, finalize and delete take a single attempt so that they can never reach an artifact inherited from an earlier one.
+// getOwnAttemptArtifactByName resolves an artifact of the given attempt whatever its status,
+// since upload and finalize work on the pending row they just created.
 func (r *artifactV4Routes) getOwnAttemptArtifactByName(ctx *ArtifactContext, runID, runAttemptID int64, name string) (*actions_model.ActionArtifact, error) {
-	return r.getReadableArtifactByName(ctx, runID, []int64{runAttemptID}, name)
+	return r.findArtifactByName(ctx, runID, []int64{runAttemptID}, name, nil)
 }
 
-// getReadableArtifactByName resolves an artifact by name within the given attempts, the newest one winning.
-func (r *artifactV4Routes) getReadableArtifactByName(ctx *ArtifactContext, runID int64, runAttemptIDs []int64, name string) (*actions_model.ActionArtifact, error) {
+// getDownloadableArtifactByName resolves the newest artifact with the given name within the attempts whose content can still be served,
+// so a pending, deleted or expired row of a newer attempt does not shadow the confirmed copy inherited from an older one.
+func (r *artifactV4Routes) getDownloadableArtifactByName(ctx *ArtifactContext, runID int64, runAttemptIDs []int64, name string) (*actions_model.ActionArtifact, error) {
+	return r.findArtifactByName(ctx, runID, runAttemptIDs, name, builder.Eq{"status": actions_model.ArtifactStatusUploadConfirmed})
+}
+
+func (r *artifactV4Routes) findArtifactByName(ctx *ArtifactContext, runID int64, runAttemptIDs []int64, name string, extraCond builder.Cond) (*actions_model.ActionArtifact, error) {
+	cond := builder.NewCond().
+		And(builder.Eq{"run_id": runID, "artifact_name": name}, builder.Like{"content_encoding", "%/%"}).
+		And(builder.In("run_attempt_id", runAttemptIDs))
+	if extraCond != nil {
+		cond = cond.And(extraCond)
+	}
+
 	var art actions_model.ActionArtifact
-	has, err := db.GetEngine(ctx).
-		Where(builder.Eq{"run_id": runID, "artifact_name": name}, builder.Like{"content_encoding", "%/%"}).
-		In("run_attempt_id", runAttemptIDs).
-		OrderBy("run_attempt_id DESC, id DESC").
-		Get(&art)
+	has, err := db.GetEngine(ctx).Where(cond).OrderBy("run_attempt_id DESC, id DESC").Get(&art)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -657,14 +665,9 @@ func (r *artifactV4Routes) getSignedArtifactURL(ctx *ArtifactContext) {
 	artifactName := req.Name
 
 	// get artifact by name
-	artifact, err := r.getReadableArtifactByName(ctx, runID, attemptIDs, artifactName)
+	artifact, err := r.getDownloadableArtifactByName(ctx, runID, attemptIDs, artifactName)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
-		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
-		return
-	}
-	if artifact.Status != actions_model.ArtifactStatusUploadConfirmed {
-		log.Error("Error artifact not found: %s", artifact.Status.ToString())
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}
@@ -695,14 +698,9 @@ func (r *artifactV4Routes) downloadArtifact(ctx *ArtifactContext) {
 	}
 
 	// get artifact by name
-	artifact, err := r.getReadableArtifactByName(ctx, task.Job.RunID, attemptIDs, artifactName)
+	artifact, err := r.getDownloadableArtifactByName(ctx, task.Job.RunID, attemptIDs, artifactName)
 	if err != nil {
 		log.Error("Error artifact not found: %v", err)
-		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
-		return
-	}
-	if artifact.Status != actions_model.ArtifactStatusUploadConfirmed {
-		log.Error("Error artifact not found: %s", artifact.Status.ToString())
 		ctx.HTTPError(http.StatusNotFound, "Error artifact not found")
 		return
 	}

@@ -97,11 +97,12 @@ func GetRunAttemptByRunIDAndAttemptNum(ctx context.Context, runID, attemptNum in
 	return &attempt, nil
 }
 
-// GetArtifactAttemptIDs returns the IDs of the attempts whose artifacts the job may read, newest first.
+// GetArtifactAttemptIDs returns the IDs of the attempts whose artifacts the job may read, newest first,
+// always including the job's own attempt.
 // An attempt that re-ran only some of the run's jobs keeps the artifacts of the attempt it re-ran from,
 // because the jobs it passed through never upload them again; a rerun of the whole run starts over.
 func GetArtifactAttemptIDs(ctx context.Context, job *ActionRunJob) ([]int64, error) {
-	if job.Attempt <= 1 {
+	if job.Attempt <= 1 || job.RunAttemptID == 0 {
 		return []int64{job.RunAttemptID}, nil
 	}
 
