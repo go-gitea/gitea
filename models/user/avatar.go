@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 )
 
 // CustomAvatarRelativePath returns user custom avatar relative path.
@@ -25,21 +26,13 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func GenerateRandomAvatar(ctx context.Context, u *User) error {
-	seed := u.Email
-	if len(seed) == 0 {
-		seed = u.Name
-	}
+	seed := []byte(util.IfZero(u.Email, u.Name))
+	u.Avatar = avatar.HashAvatar(u.ID, seed)
 
-	img := avatar.RandomImageDefaultSize([]byte(seed))
-
-	u.Avatar = avatars.HashEmail(seed)
-
-	_, err := storage.Avatars.Stat(u.CustomAvatarRelativePath())
-	if err != nil {
-		// If unable to Stat the avatar file (usually it means non-existing), then try to save a new one
-		// Don't share the images so that we can delete them easily
+	// a failed Stat usually means the file is not there yet
+	if _, err := storage.Avatars.Stat(u.CustomAvatarRelativePath()); err != nil {
 		if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-			return png.Encode(w, img)
+			return png.Encode(w, avatar.RandomImageDefaultSize(seed))
 		}); err != nil {
 			return fmt.Errorf("failed to save avatar %s: %w", u.CustomAvatarRelativePath(), err)
 		}
