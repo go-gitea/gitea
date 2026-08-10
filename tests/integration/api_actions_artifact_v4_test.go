@@ -947,6 +947,22 @@ func testActionRunAttemptArtifactV4(t *testing.T, repo *repo_model.Repository, s
 	assert.Equal(t, strings.Repeat("D", 32), downloadRepoArtifactV4Content(t, session, sharedArtifactsResp.Entries[1].ArchiveDownloadURL))
 }
 
+func downloadArtifactContentV4ByTask(t *testing.T, runID, jobID int64, taskToken, artifactName string) string {
+	t.Helper()
+
+	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/GetSignedArtifactURL", toProtoJSON(&actions.GetSignedArtifactURLRequest{
+		Name:                    artifactName,
+		WorkflowRunBackendId:    strconv.FormatInt(runID, 10),
+		WorkflowJobRunBackendId: strconv.FormatInt(jobID, 10),
+	})).AddTokenAuth(taskToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var urlResp actions.GetSignedArtifactURLResponse
+	require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &urlResp))
+	require.NotEmpty(t, urlResp.SignedUrl)
+
+	return MakeRequest(t, NewRequest(t, "GET", urlResp.SignedUrl), http.StatusOK).Body.String()
+}
+
 func uploadTestArtifactFileV4(t *testing.T, runID, jobID int64, authToken, artifactName, content string) {
 	t.Helper()
 

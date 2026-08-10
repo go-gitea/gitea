@@ -20,7 +20,6 @@ import (
 	"gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 )
@@ -261,9 +260,9 @@ func listOrderedChunksForArtifact(st storage.ObjectStorage, runID, artifactID in
 func mergeChunksForRun(ctx *ArtifactContext, st storage.ObjectStorage, runID, runAttemptID int64, artifactName string) error {
 	// read all db artifacts by name
 	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
-		RunID:        runID,
-		RunAttemptID: optional.Some(runAttemptID),
-		ArtifactName: artifactName,
+		RunID:         runID,
+		RunAttemptIDs: []int64{runAttemptID},
+		ArtifactName:  artifactName,
 	})
 	if err != nil {
 		return err
