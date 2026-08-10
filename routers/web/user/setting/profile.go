@@ -126,6 +126,7 @@ func ProfilePost(ctx *context.Context) {
 func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *user_model.User) error {
 	ctxUser.UseCustomAvatar = form.Source == forms.AvatarLocal
 	if len(form.Gravatar) > 0 {
+		ctxUser.Avatar = "" // UploadAvatar sets the real storage path when a file is uploaded
 		ctxUser.AvatarEmail = form.Gravatar
 	}
 
