@@ -364,6 +364,10 @@ func TestGenerateGiteaContextRefProtected(t *testing.T) {
 		RepoID:   repo.ID,
 		RuleName: "master",
 	}, git_model.WhitelistOptions{}))
+	require.NoError(t, git_model.InsertProtectedTag(t.Context(), &git_model.ProtectedTag{
+		RepoID:      repo.ID,
+		NamePattern: "v*",
+	}))
 
 	gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
 		RepoID:      repo.ID,
@@ -381,7 +385,16 @@ func TestGenerateGiteaContextRefProtected(t *testing.T) {
 		Ref:         "refs/tags/v1.0.0",
 	}, nil, nil)
 
-	assert.Equal(t, false, tagCtx["ref_protected"])
+	assert.Equal(t, true, tagCtx["ref_protected"])
+
+	unprotectedTagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+		RepoID:      repo.ID,
+		Repo:        repo,
+		TriggerUser: &user_model.User{Name: "test-user"},
+		Ref:         "refs/tags/other",
+	}, nil, nil)
+
+	assert.Equal(t, false, unprotectedTagCtx["ref_protected"])
 }
 
 // TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,
