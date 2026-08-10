@@ -352,7 +352,8 @@ func testLDAPUserSyncWithGroupFilter(t *testing.T) {
 	ldapSource := unittest.AssertExistsAndLoadBean(t, &auth_model.Source{
 		Name: "ldap",
 	})
-	ldapConfig := ldapSource.Cfg.(*ldap.Source)
+	ldapConfig, ok := ldapSource.Cfg.(*ldap.Source)
+	require.True(t, ok)
 	ldapConfig.GroupFilter = "(cn=ship_crew)"
 	require.NoError(t, auth_model.UpdateSource(t.Context(), ldapSource))
 

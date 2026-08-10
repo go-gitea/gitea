@@ -27,7 +27,7 @@ func SetSecretsContext(ctx *context.Context, ownerID, repoID int64) {
 }
 
 func PerformSecretsPost(ctx *context.Context, ownerID, repoID int64, redirectURL string) {
-	form := web.GetForm(ctx).(*forms.AddSecretForm)
+	form := web.GetForm[*forms.AddSecretForm](ctx)
 
 	s, _, err := secret_service.CreateOrUpdateSecret(ctx, ownerID, repoID, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
 	if err != nil {

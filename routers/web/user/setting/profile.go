@@ -65,7 +65,7 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
+	form := web.GetForm[*forms.UpdateProfileForm](ctx)
 
 	if form.Name != "" {
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeUsername) {
@@ -175,7 +175,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 
 // AvatarPost response for change user's avatar request
 func AvatarPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form := web.GetForm[*forms.AvatarForm](ctx)
 	if err := UpdateAvatarSetting(ctx, form, ctx.Doer); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
@@ -354,7 +354,7 @@ func Appearance(ctx *context.Context) {
 
 // UpdateUIThemePost is used to update users' specific theme
 func UpdateUIThemePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
+	form := web.GetForm[*forms.UpdateThemeForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
@@ -384,7 +384,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 
 // UpdateUserLang update a user's language
 func UpdateUserLang(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateLanguageForm)
+	form := web.GetForm[*forms.UpdateLanguageForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAppearance"] = true
 

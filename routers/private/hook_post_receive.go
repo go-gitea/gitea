@@ -98,7 +98,7 @@ func hookPostReceiveSyncDatabaseBranches(ctx *gitea_context.PrivateContext, opts
 
 // HookPostReceive updates services and users
 func HookPostReceive(ctx *gitea_context.PrivateContext) {
-	opts := web.GetForm(ctx).(*private.HookOptions)
+	opts := web.GetForm[*private.HookOptions](ctx)
 	if opts.IsWiki {
 		setting.PanicInDevOrTesting("wiki hook-post-receive is not supported")
 		return
