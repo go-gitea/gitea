@@ -56,7 +56,7 @@ func AccountPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.ChangePasswordForm)
+	form := web.GetForm[*forms.ChangePasswordForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
@@ -106,7 +106,7 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AddEmailForm)
+	form := web.GetForm[*forms.AddEmailForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email

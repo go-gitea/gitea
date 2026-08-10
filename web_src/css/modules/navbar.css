@@ -144,8 +144,9 @@
 
 #navbar .item .navbar-admin-badge {
   position: absolute;
-  bottom: calc(100% - 29px);
-  left: calc(100% - 18px);
+  left: auto;
+  right: -7px;
+  bottom: -5px;
   padding: 1.5px;
 }
 

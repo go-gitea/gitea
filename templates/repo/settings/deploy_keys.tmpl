@@ -11,21 +11,21 @@
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<div class="{{if not .HasError}}tw-hidden{{end}} tw-mb-4" id="add-deploy-key-panel">
-				<form class="ui form" action="{{.Link}}" method="post">
+			<div class="tw-hidden tw-mb-4" id="add-deploy-key-panel">
+				<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 					<div class="field">
 						{{ctx.Locale.Tr "repo.settings.deploy_key_desc"}}
 					</div>
-					<div class="field {{if .Err_Title}}error{{end}}">
+					<div class="field">
 						<label for="ssh-key-title">{{ctx.Locale.Tr "repo.settings.title"}}</label>
 						<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
 					</div>
-					<div class="field {{if .Err_Content}}error{{end}}">
+					<div class="field">
 						<label for="ssh-key-content">{{ctx.Locale.Tr "repo.settings.deploy_key_content"}}</label>
 						<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 					</div>
 					<div class="field">
-						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
+						<div class="ui checkbox">
 							<input id="ssh-key-is-writable" name="is_writable" type="checkbox" value="1">
 							<label for="ssh-key-is-writable">
 								{{ctx.Locale.Tr "repo.settings.is_writable"}}

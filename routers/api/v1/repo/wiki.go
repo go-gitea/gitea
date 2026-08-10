@@ -55,7 +55,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
+	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 
 	if util.IsEmptyString(form.Title) {
 		ctx.APIError(http.StatusBadRequest, "title is required")
@@ -133,7 +133,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
+	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 
 	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)

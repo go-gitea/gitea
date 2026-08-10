@@ -101,7 +101,7 @@ func allowedOpenIDURI(uri string) (err error) {
 
 // SignInOpenIDPost response for openid sign in request
 func SignInOpenIDPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.SignInOpenIDForm)
+	form := web.GetForm[*forms.SignInOpenIDForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLoginOpenID"] = true
@@ -293,7 +293,7 @@ func ConnectOpenID(ctx *context.Context) {
 
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
 func ConnectOpenIDPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.ConnectOpenIDForm)
+	form := web.GetForm[*forms.ConnectOpenIDForm](ctx)
 	oid := prepareConnectOpenIDPageData(ctx)
 	if oid == "" {
 		return
@@ -366,7 +366,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.SignUpOpenIDForm)
+	form := web.GetForm[*forms.SignUpOpenIDForm](ctx)
 
 	if setting.Service.AllowOnlyInternalRegistration {
 		ctx.HTTPError(http.StatusForbidden)

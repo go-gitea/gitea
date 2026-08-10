@@ -595,8 +595,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 			// This should not happen as we're using force!
 			log.Error("Unable to push PR head for %s#%d (%-v:%s) due to ErrPushOfDate: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
 			return err
-		} else if git.IsErrPushRejected(err) {
-			rejectErr := err.(*git.ErrPushRejected)
+		} else if rejectErr, ok := err.(*git.ErrPushRejected); ok {
 			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
 			return err
 		} else if git.IsErrMoreThanOne(err) {

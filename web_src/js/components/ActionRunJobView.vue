@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed, nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {addDelegatedEventListener, createElementFromAttrs} from '../utils/dom.ts';
 import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
