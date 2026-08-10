@@ -29,7 +29,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 	seed := []byte(util.IfZero(u.Email, u.Name))
 	u.Avatar = avatar.HashAvatar(u.ID, seed)
 
-	// a failed Stat usually means the file does not exist yet, every user gets an own image so that deleting one is easy
+	// a failed Stat usually means the file is not there yet
 	if _, err := storage.Avatars.Stat(u.CustomAvatarRelativePath()); err != nil {
 		if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
 			return png.Encode(w, avatar.RandomImageDefaultSize(seed))

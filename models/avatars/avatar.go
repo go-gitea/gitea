@@ -32,8 +32,8 @@ const emailHashType = "sha256" // so a later algorithm change can tell old rows 
 // EmailHash keeps the email out of the rendered page
 type EmailHash struct {
 	Hash     string `xorm:"pk varchar(64)"`
-	HashType string `xorm:"UNIQUE(email_type) NOT NULL varchar(16)"`
-	Email    string `xorm:"UNIQUE(email_type) NOT NULL"`
+	Email    string `xorm:"UNIQUE(email_hashtype) NOT NULL"`
+	HashType string `xorm:"UNIQUE(email_hashtype) NOT NULL varchar(16)"`
 }
 
 func init() {
@@ -50,10 +50,15 @@ func HashEmail(email string) string {
 	return base.EncodeSha256(strings.ToLower(strings.TrimSpace(email)))
 }
 
+func emailHashCacheKey(hash string) string {
+	return cache.SafeCacheKey("Avatar", hash)
+}
+
 // GetEmailForHash converts a provided hash to the email
 func GetEmailForHash(ctx context.Context, hash string) (string, error) {
-	return cache.GetString("Avatar:"+hash, func() (string, error) {
-		emailHash, has, err := db.Get[EmailHash](ctx, builder.Eq{"`hash`": strings.ToLower(strings.TrimSpace(hash))})
+	hash = strings.ToLower(strings.TrimSpace(hash))
+	return cache.GetString(emailHashCacheKey(hash), func() (string, error) {
+		emailHash, has, err := db.Get[EmailHash](ctx, builder.Eq{"`hash`": hash})
 		if err != nil {
 			return "", err
 		} else if !has {
@@ -67,13 +72,15 @@ func GetEmailForHash(ctx context.Context, hash string) (string, error) {
 func saveEmailHash(ctx context.Context, email string) string {
 	lowerEmail := strings.ToLower(strings.TrimSpace(email))
 	emailHash := HashEmail(lowerEmail)
-	// the cache entry doubles as the "already stored" marker
-	_, _ = cache.GetString("Avatar:"+emailHash, func() (string, error) {
+	// a key of its own, GetEmailForHash caches an unknown hash as empty
+	_, _ = cache.GetString(cache.SafeCacheKey("AvatarStored", emailHash), func() (string, error) {
 		// the check keeps a duplicate key error out of a transaction the caller may hold
-		if has, err := db.Exist[EmailHash](ctx, builder.Eq{"`hash`": emailHash}); !has && err == nil {
-			_, _ = db.GetEngine(ctx).Insert(&EmailHash{Email: lowerEmail, Hash: emailHash, HashType: emailHashType})
+		has, err := db.Exist[EmailHash](ctx, builder.Eq{"`hash`": emailHash})
+		if err == nil && !has {
+			_, err = db.GetEngine(ctx).Insert(&EmailHash{Email: lowerEmail, Hash: emailHash, HashType: emailHashType})
+			cache.Remove(emailHashCacheKey(emailHash)) // a lookup may have cached it as unknown
 		}
-		return lowerEmail, nil
+		return lowerEmail, err // an error must leave the hash unmarked
 	})
 	return emailHash
 }

@@ -5,6 +5,7 @@ package avatar
 
 import (
 	"context"
+	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -32,6 +33,10 @@ func LookupFederatedHost(ctx context.Context, email string, secure bool) string 
 
 		// LookupSRV already sorts by priority and randomizes by weight (RFC 2782)
 		_, records, err := net.DefaultResolver.LookupSRV(lookupCtx, service, "tcp", domain)
+		var dnsErr *net.DNSError
+		if err != nil && !(errors.As(err, &dnsErr) && dnsErr.IsNotFound) {
+			return "", err // a timeout or a cancelled request must not cache as "no record"
+		}
 		if err != nil || len(records) == 0 {
 			return "", nil
 		}
