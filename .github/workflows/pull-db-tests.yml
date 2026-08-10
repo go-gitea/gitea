@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:caf49e3b10d377aa2cfee478591d623808527beb27125d38797b418013f72d81
+        image: postgres:14@sha256:2f439458ab6a57a925825ae14f9d06910e4fe4a41c8d4a0ae06397e65b707e1b
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -57,7 +57,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:caf49e3b10d377aa2cfee478591d623808527beb27125d38797b418013f72d81
+        image: postgres:14@sha256:2f439458ab6a57a925825ae14f9d06910e4fe4a41c8d4a0ae06397e65b707e1b
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -131,7 +131,7 @@ jobs:
         ports:
           - "7700:7700"
       redis:
-        image: redis:latest@sha256:3cdb04fc82d909d929d4fcf30ee8011491a8dcc0a91a44b8757fa13077d0e06f
+        image: redis:latest@sha256:52334768d4a6594d8969f51a1a6fee3ffa7545f6359a4877229cdc754d2def82
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
