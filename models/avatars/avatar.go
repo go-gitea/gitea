@@ -5,12 +5,10 @@ package avatars
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
-	"sync/atomic"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/avatar"
@@ -42,50 +40,9 @@ func init() {
 	db.RegisterModel(new(EmailHash))
 }
 
-type avatarSettingStruct struct {
-	appSubURL         string
-	gravatarSource    string
-	defaultAvatarLink string
-	gravatarSourceURL *url.URL
-}
-
-var avatarSettingAtomic atomic.Pointer[avatarSettingStruct]
-
-func loadAvatarSetting() (*avatarSettingStruct, error) {
-	s := avatarSettingAtomic.Load()
-	if s != nil && s.appSubURL == setting.AppSubURL && s.gravatarSource == setting.GravatarSource {
-		return s, nil
-	}
-
-	u, err := url.Parse(setting.AppSubURL)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse AppSubURL: %w", err)
-	}
-	u.Path = path.Join(u.Path, "/assets/img/avatar_default.png")
-
-	gravatarSourceURL, err := url.Parse(setting.GravatarSource)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse GravatarSource %q: %w", setting.GravatarSource, err)
-	}
-
-	s = &avatarSettingStruct{
-		appSubURL:         setting.AppSubURL,
-		gravatarSource:    setting.GravatarSource,
-		defaultAvatarLink: u.String(),
-		gravatarSourceURL: gravatarSourceURL,
-	}
-	avatarSettingAtomic.Store(s)
-	return s, nil
-}
-
 // DefaultAvatarLink the default avatar link
 func DefaultAvatarLink() string {
-	a, err := loadAvatarSetting()
-	if err != nil {
-		log.Error("Failed to loadAvatarSetting: %v", err)
-		return ""
-	}
-	return a.defaultAvatarLink
+	return setting.AppSubURL + "/assets/img/avatar_default.png"
 }
 
 // HashEmail hashes an email address the way avatar services address it. https://docs.gravatar.com/api/avatars/images/
@@ -162,31 +119,30 @@ func generateEmailAvatarLink(ctx context.Context, email string, size int, final 
 		return DefaultAvatarLink()
 	}
 
-	avatarSetting, err := loadAvatarSetting()
-	if err != nil {
+	federated := setting.Config().Picture.EnableFederatedAvatar.Value(ctx)
+	if federated && !final {
+		// return a 302 link, so page rendering never waits for the DNS query
+		link := setting.AppSubURL + "/avatar/" + url.PathEscape(saveEmailHash(ctx, email))
+		if size > 0 {
+			link += "?size=" + strconv.Itoa(size)
+		}
+		return link
+	}
+	if !federated && setting.Config().Picture.DisableGravatar.Value(ctx) {
 		return DefaultAvatarLink()
 	}
 
-	if setting.Config().Picture.EnableFederatedAvatar.Value(ctx) {
-		if !final {
-			// return a 302 link, so page rendering never waits for the DNS query
-			link := setting.AppSubURL + "/avatar/" + url.PathEscape(saveEmailHash(ctx, email))
-			if size > 0 {
-				link += "?size=" + strconv.Itoa(size)
-			}
-			return link
-		}
-		source := *avatarSetting.gravatarSourceURL
+	source, err := url.Parse(setting.GravatarSource)
+	if err != nil {
+		log.Error("unable to parse GravatarSource %q: %v", setting.GravatarSource, err)
+		return DefaultAvatarLink()
+	}
+	if federated {
 		if host := avatar.LookupFederatedHost(ctx, email, source.Scheme == "https"); host != "" {
 			source.Host, source.Path = host, "/avatar"
 		}
-		return generateSourceAvatarURL(source, email, size)
 	}
-
-	if !setting.Config().Picture.DisableGravatar.Value(ctx) {
-		return generateSourceAvatarURL(*avatarSetting.gravatarSourceURL, email, size)
-	}
-	return DefaultAvatarLink()
+	return generateSourceAvatarURL(*source, email, size)
 }
 
 // GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")
