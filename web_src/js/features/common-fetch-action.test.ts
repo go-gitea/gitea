@@ -1,4 +1,6 @@
-import {execPseudoSelectorCommands, handleFetchActionSuccessJson} from './common-fetch-action.ts';
+import {execPseudoSelectorCommands, handleFetchActionErrorFields, handleFetchActionSuccessJson} from './common-fetch-action.ts';
+import {createElementFromHTML} from '../utils/dom.ts';
+import {normalizeTestHtml} from '../utils/testhelper.ts';
 
 test('execPseudoSelectorCommands', () => {
   window.document.body.innerHTML = `
@@ -56,4 +58,16 @@ test('handleFetchActionSuccessJson', async () => {
   expect(spyAssign).toHaveBeenCalledTimes(0);
   expect(spyReload).toHaveBeenCalledTimes(1);
   vi.resetAllMocks();
+});
+
+test('handleFetchActionErrorFields', () => {
+  const elForm = createElementFromHTML<HTMLElement>(`<form>
+<div class="error field"></div>
+<div class="field"><input name="Foo_Bar[]"></div>
+</form>`);
+  handleFetchActionErrorFields(elForm, ['foo-BAR', 'other']);
+  expect(normalizeTestHtml(elForm.outerHTML)).toEqual(normalizeTestHtml(`<form>
+<div class="field"></div>
+<div class="field error"><input name="Foo_Bar[]"></div>
+</form>`));
 });
