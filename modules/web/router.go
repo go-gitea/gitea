@@ -4,6 +4,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -25,7 +26,7 @@ func Bind[T any](_ T) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		theObj := new(T) // create a new form obj for every request but not use obj directly
 		data := middleware.GetContextData(req.Context())
-		binding.Bind(req, theObj)
+		_ = binding.Bind(req, theObj) // no need to handle "errs" here, the errors are handled in our middleware.Validate (binding.go)
 		SetForm(data, theObj)
 		middleware.AssignForm(theObj, data)
 	}
@@ -36,9 +37,17 @@ func SetForm(dataStore reqctx.ContextDataProvider, obj any) {
 	dataStore.GetData()["__form"] = obj
 }
 
+func IsFormSet(dataStore reqctx.RequestDataStore) bool {
+	return dataStore.GetData()["__form"] != nil
+}
+
 // GetForm returns the validate form information
-func GetForm(dataStore reqctx.RequestDataStore) any {
-	return dataStore.GetData()["__form"]
+func GetForm[T any](dataStore reqctx.RequestDataStore) T {
+	form, ok := dataStore.GetData()["__form"].(T)
+	if !ok {
+		panic(fmt.Errorf("bound form %T does not match the requested type %s", dataStore.GetData()["__form"], reflect.TypeFor[T]()))
+	}
+	return form
 }
 
 // Router defines a route based on chi's router
