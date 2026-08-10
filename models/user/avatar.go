@@ -16,6 +16,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 )
 
 // CustomAvatarRelativePath returns user custom avatar relative path.
@@ -25,13 +26,8 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func GenerateRandomAvatar(ctx context.Context, u *User) error {
-	seed := []byte(u.Email)
-	if len(seed) == 0 {
-		seed = []byte(u.Name)
-	}
-
+	seed := []byte(util.IfZero(u.Email, u.Name))
 	img := avatar.RandomImageDefaultSize(seed)
-
 	u.Avatar = avatar.HashAvatar(u.ID, seed)
 
 	_, err := storage.Avatars.Stat(u.CustomAvatarRelativePath())

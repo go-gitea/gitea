@@ -69,15 +69,10 @@ func saveEmailHash(ctx context.Context, email string) string {
 	emailHash := HashEmail(lowerEmail)
 	// the cache entry doubles as the "already stored" marker
 	_, _ = cache.GetString("Avatar:"+emailHash, func() (string, error) {
-		// a session keeps a duplicate key error away from an outer transaction
-		_ = db.WithTx(ctx, func(ctx context.Context) error {
-			has, err := db.Exist[EmailHash](ctx, builder.Eq{"email": lowerEmail, "`hash`": emailHash})
-			if has || err != nil {
-				return nil
-			}
+		// the check keeps a duplicate key error out of a transaction the caller may hold
+		if has, err := db.Exist[EmailHash](ctx, builder.Eq{"`hash`": emailHash}); !has && err == nil {
 			_, _ = db.GetEngine(ctx).Insert(&EmailHash{Email: lowerEmail, Hash: emailHash, HashType: emailHashType})
-			return nil
-		})
+		}
 		return lowerEmail, nil
 	})
 	return emailHash
@@ -110,9 +105,7 @@ func generateSourceAvatarURL(source url.URL, email string, size int) string {
 	return source.String()
 }
 
-// generateEmailAvatarLink returns a email avatar link.
-// if final is true, it may use a slow path (eg: query DNS).
-// if final is false, it always uses a fast path.
+// generateEmailAvatarLink returns a email avatar link, a final link may query DNS
 func generateEmailAvatarLink(ctx context.Context, email string, size int, final bool) string {
 	email = strings.TrimSpace(email)
 	if email == "" {
