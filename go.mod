@@ -14,7 +14,6 @@ require (
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
 	gitea.dev/actionslib v0.7.0
 	gitea.dev/sdk v1.2.0
-	github.com/42wim/httpsig v1.2.4
 	github.com/42wim/sshsig v0.0.0-20260317195500-b9f38cf0d432
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.22.0
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.7.0
@@ -125,6 +124,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
+	github.com/42wim/httpsig v1.2.4 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.12.0 // indirect
 	github.com/DataDog/zstd v1.5.7 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
