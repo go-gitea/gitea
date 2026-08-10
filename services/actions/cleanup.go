@@ -268,3 +268,56 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 
 	return nil
 }
+
+const cleanupOldRunsBatchSize = 50
+
+// CleanupOldRuns deletes completed action runs (and all associated jobs, tasks, logs,
+// artifacts, etc.) whose `created` timestamp is older than setting.Actions.RunRetentionDays.
+// If RunRetentionDays is 0 the function is a no-op (runs are kept forever).
+func CleanupOldRuns(ctx context.Context) error {
+	if setting.Actions.RunRetentionDays <= 0 {
+		return nil
+	}
+
+	olderThan := timeutil.TimeStampNow().AddDuration(-time.Duration(setting.Actions.RunRetentionDays) * 24 * time.Hour)
+
+	// Only delete runs that are in a terminal state to avoid interrupting in-progress work.
+	doneStatuses := []actions_model.Status{
+		actions_model.StatusSuccess,
+		actions_model.StatusFailure,
+		actions_model.StatusCancelled,
+		actions_model.StatusSkipped,
+	}
+
+	total := 0
+	for {
+		// Always fetch page 1: as runs are deleted they fall off the result set,
+		// so the first page is effectively a sliding window over remaining old runs.
+		runs, err := db.Find[actions_model.ActionRun](ctx, actions_model.FindRunOptions{
+			ListOptions:   db.ListOptions{PageSize: cleanupOldRunsBatchSize, Page: 1},
+			Status:        doneStatuses,
+			CreatedBefore: olderThan,
+		})
+		if err != nil {
+			return fmt.Errorf("find old runs: %w", err)
+		}
+
+		// Empty page means no more old runs remain.
+		if len(runs) == 0 {
+			break
+		}
+
+		for _, run := range runs {
+			if err := DeleteRun(ctx, run); err != nil {
+				log.Error("Failed to delete old action run %d: %v", run.ID, err)
+				// continue with the next run rather than aborting the whole cleanup
+				continue
+			}
+			total++
+			log.Trace("Deleted old action run %d (created %s)", run.ID, run.Created.AsTime())
+		}
+	}
+
+	log.Info("Deleted %d old action runs (older than %d days)", total, setting.Actions.RunRetentionDays)
+	return nil
+}
