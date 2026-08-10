@@ -109,7 +109,11 @@ func TestAPIRepoTagCreateWithUseCommitDate(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	newTag := DecodeJSON(t, resp, &api.Tag{})
-	assert.True(t, commit.Committer.When.Equal(newTag.Commit.Created), "expected tag commit date %v, got %v", commit.Committer.When, newTag.Commit.Created)
+
+	tagObj, err := gitRepo.GetTag(t.Context(), newTag.Name)
+	require.NoError(t, err)
+	require.NotNil(t, tagObj.Tagger)
+	assert.True(t, commit.Committer.When.Equal(tagObj.Tagger.When), "expected tagger date %v, got %v", commit.Committer.When, tagObj.Tagger.When)
 
 	// cleanup
 	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s", user.Name, repoName, newTag.Name).
