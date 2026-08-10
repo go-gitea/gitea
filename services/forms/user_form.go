@@ -239,8 +239,7 @@ func (f *UpdateLanguageForm) Validate(req *http.Request, errs binding.Errors) bi
 	return middleware.Validate(ctx, errs, f)
 }
 
-// AvatarLocal is the AvatarForm.Source value selecting an uploaded avatar over the avatar email
-const AvatarLocal = "local"
+const AvatarLocal = "local" // the AvatarForm.Source value that selects an uploaded avatar
 
 // AvatarForm form for changing avatar
 type AvatarForm struct {

@@ -27,15 +27,12 @@ func (u *User) CustomAvatarRelativePath() string {
 // GenerateRandomAvatar generates a random avatar for user.
 func GenerateRandomAvatar(ctx context.Context, u *User) error {
 	seed := []byte(util.IfZero(u.Email, u.Name))
-	img := avatar.RandomImageDefaultSize(seed)
 	u.Avatar = avatar.HashAvatar(u.ID, seed)
 
-	_, err := storage.Avatars.Stat(u.CustomAvatarRelativePath())
-	if err != nil {
-		// If unable to Stat the avatar file (usually it means non-existing), then try to save a new one
-		// Don't share the images so that we can delete them easily
+	// a failed Stat usually means the file does not exist yet, every user gets an own image so that deleting one is easy
+	if _, err := storage.Avatars.Stat(u.CustomAvatarRelativePath()); err != nil {
 		if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-			return png.Encode(w, img)
+			return png.Encode(w, avatar.RandomImageDefaultSize(seed))
 		}); err != nil {
 			return fmt.Errorf("failed to save avatar %s: %w", u.CustomAvatarRelativePath(), err)
 		}
