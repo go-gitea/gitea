@@ -50,7 +50,7 @@ type CreateRepoForm struct {
 // Validate validates the fields
 func (f *CreateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // MigrateRepoForm form for migrating repository
@@ -86,7 +86,7 @@ type MigrateRepoForm struct {
 // Validate validates the fields
 func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // RepoSettingForm form for changing repository settings
@@ -163,7 +163,7 @@ type RepoSettingForm struct {
 // Validate validates the fields
 func (f *RepoSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // ProtectBranchForm form for changing protected branch settings
@@ -205,7 +205,7 @@ type ProtectBranchForm struct {
 // Validate validates the fields
 func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // WebhookForm form for changing web hook
@@ -268,7 +268,7 @@ type NewWebhookForm struct {
 // Validate validates the fields
 func (f *NewWebhookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewGogshookForm form for creating gogs hook
@@ -281,7 +281,7 @@ type NewGogshookForm struct {
 // Validate validates the fields
 func (f *NewGogshookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewSlackHookForm form for creating slack hook
@@ -298,13 +298,9 @@ type NewSlackHookForm struct {
 func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
-		errs = append(errs, binding.Error{
-			FieldNames:     []string{"Channel"},
-			Classification: "",
-			Message:        ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"),
-		})
+		errs = middleware.AddValidationError(errs, "Channel", ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"))
 	}
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewDiscordHookForm form for creating discord hook
@@ -318,7 +314,7 @@ type NewDiscordHookForm struct {
 // Validate validates the fields
 func (f *NewDiscordHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewDingtalkHookForm form for creating dingtalk hook
@@ -330,7 +326,7 @@ type NewDingtalkHookForm struct {
 // Validate validates the fields
 func (f *NewDingtalkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewTelegramHookForm form for creating telegram hook
@@ -344,7 +340,7 @@ type NewTelegramHookForm struct {
 // Validate validates the fields
 func (f *NewTelegramHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewMatrixHookForm form for creating Matrix hook
@@ -358,7 +354,7 @@ type NewMatrixHookForm struct {
 // Validate validates the fields
 func (f *NewMatrixHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewMSTeamsHookForm form for creating MS Teams hook
@@ -370,7 +366,7 @@ type NewMSTeamsHookForm struct {
 // Validate validates the fields
 func (f *NewMSTeamsHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewFeishuHookForm form for creating feishu hook
@@ -382,7 +378,7 @@ type NewFeishuHookForm struct {
 // Validate validates the fields
 func (f *NewFeishuHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewWechatWorkHookForm form for creating wechatwork hook
@@ -394,7 +390,7 @@ type NewWechatWorkHookForm struct {
 // Validate validates the fields
 func (f *NewWechatWorkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // NewPackagistHookForm form for creating packagist hook
@@ -408,7 +404,7 @@ type NewPackagistHookForm struct {
 // Validate validates the fields
 func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // CreateIssueForm form for creating issue
@@ -426,7 +422,7 @@ type CreateIssueForm struct {
 // Validate validates the fields
 func (f *CreateIssueForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // CreateCommentForm form for creating comment
@@ -439,7 +435,7 @@ type CreateCommentForm struct {
 // Validate validates the fields
 func (f *CreateCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // ReactionForm form for adding and removing reaction
@@ -450,7 +446,7 @@ type ReactionForm struct {
 // Validate validates the fields
 func (f *ReactionForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // IssueLockForm form for locking an issue
@@ -459,9 +455,9 @@ type IssueLockForm struct {
 }
 
 // Validate validates the fields
-func (i *IssueLockForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+func (f *IssueLockForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, i, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // CreateProjectForm form for creating a project
@@ -489,7 +485,7 @@ type CreateMilestoneForm struct {
 // Validate validates the fields
 func (f *CreateMilestoneForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // CreateLabelForm form for creating label
@@ -506,7 +502,7 @@ type CreateLabelForm struct {
 // Validate validates the fields
 func (f *CreateLabelForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // InitializeLabelsForm form for initializing labels
@@ -517,7 +513,7 @@ type InitializeLabelsForm struct {
 // Validate validates the fields
 func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // MergePullRequestForm form for merging Pull Request
@@ -571,7 +567,7 @@ func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {
 // Validate validates the fields
 func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // CodeCommentForm form for adding code comments for PRs
@@ -590,7 +586,7 @@ type CodeCommentForm struct {
 // Validate validates the fields
 func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // SubmitReviewForm for submitting a finished code review
@@ -604,7 +600,7 @@ type SubmitReviewForm struct {
 // Validate validates the fields
 func (f *SubmitReviewForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // ReviewType will return the corresponding ReviewType for type
@@ -665,7 +661,7 @@ type NewReleaseForm struct {
 // Validate validates the fields
 func (f *NewReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // GenerateReleaseNotesForm retrieves release notes recommendations.
@@ -678,7 +674,7 @@ type GenerateReleaseNotesForm struct {
 // Validate validates the fields
 func (f *GenerateReleaseNotesForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // EditReleaseForm form for changing release
@@ -693,7 +689,7 @@ type EditReleaseForm struct {
 // Validate validates the fields
 func (f *EditReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 //  __      __.__ __   .__
@@ -714,7 +710,7 @@ type NewWikiForm struct {
 // FIXME: use code generation to generate this method.
 func (f *NewWikiForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // ___________.__                 ___________                     __
@@ -733,7 +729,7 @@ type AddTimeManuallyForm struct {
 // Validate validates the fields
 func (f *AddTimeManuallyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // SaveTopicForm form for save topics for repository

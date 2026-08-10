@@ -1225,7 +1225,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/keys", func() {
 			m.Combo("").Get(repo_setting.DeployKeys).
-				Post(web.Bind(forms.AddKeyForm{}), repo_setting.DeployKeysPost)
+				Post(repo_setting.DeployKeysPost)
 			m.Post("/delete", repo_setting.DeleteDeployKey)
 		})
 
