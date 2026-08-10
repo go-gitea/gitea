@@ -92,6 +92,22 @@ jobs:
             sleep 10
           done
 
+      - name: Seed Gitea admin user on both environments
+        shell: bash
+        run: |
+          seed_user() {
+            local ns=$1
+            local POD
+            POD=$(kubectl get pods -n "$ns" -l app=app -o jsonpath='{.items[0].metadata.name}')
+            MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' kubectl exec -n "$ns" "$POD" -- \
+              env GITEA_I_AM_BEING_UNSAFE_RUNNING_AS_ROOT=true GITEA_WORK_DIR=/data/gitea \
+              gitea admin user create \
+              --username apia-admin --password 'Apia2024!' \
+              --email apia@test.local --admin --must-change-password=false 2>&1 || true
+          }
+          seed_user baseline
+          seed_user staging
+
       - name: Run Playwright frontend measurement
         shell: bash
         continue-on-error: true
