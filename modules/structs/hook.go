@@ -80,7 +80,7 @@ type HookDelivery struct {
 	IsSucceeded bool `json:"is_succeeded"`
 	// swagger:strfmt date-time
 	// The date and time when the delivery was sent
-	Delivered time.Time `json:"delivered_at"`
+	Delivered *time.Time `json:"delivered_at"`
 	// The request that was sent
 	Request *HookDeliveryRequest `json:"request"`
 	// The response that was received

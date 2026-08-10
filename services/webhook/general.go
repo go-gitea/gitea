@@ -436,7 +436,10 @@ func ToHookDelivery(t *webhook_model.HookTask) *api.HookDelivery {
 		EventType:   string(t.EventType),
 		IsDelivered: t.IsDelivered,
 		IsSucceeded: t.IsSucceed,
-		Delivered:   t.Delivered.AsTime(),
+	}
+	if t.IsDelivered {
+		delivered := t.Delivered.AsTime()
+		delivery.Delivered = &delivered
 	}
 	if t.RequestInfo != nil {
 		delivery.Request = &api.HookDeliveryRequest{

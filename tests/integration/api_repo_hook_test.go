@@ -147,6 +147,7 @@ func TestAPIListAndGetRepoHookDeliveries(t *testing.T) {
 	assert.Equal(t, deliveredTask.UUID, delivery.UUID)
 	assert.True(t, delivery.IsDelivered)
 	assert.True(t, delivery.IsSucceeded)
+	assert.NotNil(t, delivery.Delivered)
 
 	notFoundReq := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/hooks/%d/deliveries/does-not-exist", owner.Name, repo.Name, hook.ID)).
 		AddTokenAuth(token)
@@ -165,6 +166,7 @@ func TestAPIListAndGetRepoHookDeliveries(t *testing.T) {
 	}
 	if assert.NotNil(t, pending) {
 		assert.Nil(t, pending.Response)
+		assert.Nil(t, pending.Delivered)
 	}
 
 	// a hook ID that belongs to a different repository must not be reachable through this repo's route
