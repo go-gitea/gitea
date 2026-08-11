@@ -38,17 +38,21 @@ var GlobalVars = sync.OnceValue(func() *globalVarsType {
 	return v
 })
 
-func CheckLinkURLScheme(link string) (abs, valid bool) {
+type CheckLinkURLSchemeResult struct {
+	HasScheme, AllowToLinkify bool
+}
+
+func CheckLinkURLScheme(link string) CheckLinkURLSchemeResult {
 	vars := GlobalVars()
 	m := vars.schemeRegexp.FindStringSubmatch(link)
 	if m == nil {
-		return false, true // relative link is always valid
+		return CheckLinkURLSchemeResult{AllowToLinkify: true} // relative link is always valid
 	}
 	urlScheme := m[0]
 	urlScheme = urlScheme[0 : len(urlScheme)-1] // remove the trailing ":"
 	allowed := len(vars.allowedSchemes) == 0 || slices.Contains(vars.allowedSchemes, urlScheme)
 	disabled := slices.Contains(vars.DisallowedSchemes, urlScheme)
-	return true, allowed && !disabled
+	return CheckLinkURLSchemeResult{HasScheme: true, AllowToLinkify: allowed && !disabled}
 }
 
 func InitLinkURLSchemes(customSchemes []string) {

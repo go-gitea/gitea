@@ -37,7 +37,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			if !hasKeyValue {
 				// There is no equal in this argument; this is a mandatory arg
 				if props["name"] == "" {
-					if abs, _ := common.CheckLinkURLScheme(v); abs {
+					if checkLink := common.CheckLinkURLScheme(v); checkLink.HasScheme {
 						// If we clearly see it is a link, we save it so
 
 						// But first we need to ensure, that if both mandatory args provided
@@ -101,8 +101,8 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			image = true
 		}
 
-		absoluteLink, linkValid := common.CheckLinkURLScheme(link)
-		if !linkValid {
+		checkLink := common.CheckLinkURLScheme(link)
+		if !checkLink.AllowToLinkify {
 			return
 		}
 
@@ -117,7 +117,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		childNode.Parent = linkNode
 		// FIXME: it should be fully refactored in the future, it uses various hacky approaches to guess how to encode a path for wiki
 		// When a link contains "/", then we assume that the user has provided a well-encoded link.
-		if !absoluteLink && !strings.Contains(link, "/") {
+		if !checkLink.HasScheme && !strings.Contains(link, "/") {
 			// So only guess for links without "/".
 			if image {
 				link = strings.ReplaceAll(link, " ", "+")
