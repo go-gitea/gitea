@@ -484,11 +484,11 @@ migrations.individual.test\#%:
 
 .PHONY: playwright
 playwright: deps-frontend
-	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/test-e2e.sh install
+	@./tools/playwright.sh
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
-	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: build
 build: frontend backend ## build everything
