@@ -66,12 +66,12 @@ func InitLinkURLSchemes(customSchemes []string) {
 	// HINT: CUSTOM-URL-SCHEMES-ALLOW: setting custom means also allow them besides http/https, no custom means "allow all"
 	if len(schemes) > 0 {
 		schemes.AddMultiple("http", "https")
-		withAuth := make([]string, 0, len(schemes))
+		linkifyRegexps := make([]string, 0, len(schemes))
 		for _, s := range schemes.Values() {
 			s += util.Iif(slices.Contains(xurls.SchemesNoAuthority, s), ":", "://")
-			withAuth = append(withAuth, s)
+			linkifyRegexps = append(linkifyRegexps, regexp.QuoteMeta(s))
 		}
-		GlobalVars().LinkifyRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
+		GlobalVars().LinkifyRegex, _ = xurls.StrictMatchingScheme(strings.Join(linkifyRegexps, "|"))
 		GlobalVars().allowedSchemes = schemes.Values()
 	} else {
 		GlobalVars().LinkifyRegex, _ = xurls.StrictMatchingScheme("https?://") // only auto-linkify http and https
