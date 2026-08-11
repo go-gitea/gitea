@@ -79,13 +79,19 @@ func TestBuildEvent(t *testing.T) {
 		defer test.MockVariableValue(&setting.AppSubURL, "/gitea")()
 		params := RecordParams{Action: audit_model.UserCreate, Actor: ActorFromUser(doer), Scope: ScopeFromUser(u)}
 
-		assert.Equal(t, audit_model.OriginCLI, buildEvent(context.Background(), params).Origin)
+		assert.Equal(t, audit_model.OriginSystem, buildEvent(context.Background(), params).Origin)
+
+		cliCtx := WithOrigin(context.Background(), audit_model.OriginCLI)
+		assert.Equal(t, audit_model.OriginCLI, buildEvent(cliCtx, params).Origin)
 
 		uiCtx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{URL: &url.URL{Path: "/gitea/user/settings"}})
 		assert.Equal(t, audit_model.OriginUI, buildEvent(uiCtx, params).Origin)
 
 		apiCtx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{URL: &url.URL{Path: "/gitea/api/v1/user"}})
 		assert.Equal(t, audit_model.OriginAPI, buildEvent(apiCtx, params).Origin)
+
+		systemAPIContext := WithOrigin(apiCtx, audit_model.OriginSystem)
+		assert.Equal(t, audit_model.OriginSystem, buildEvent(systemAPIContext, params).Origin)
 	})
 }
 

@@ -7,7 +7,8 @@ package audit
 type Origin string
 
 const (
-	OriginUI  Origin = "ui"
-	OriginAPI Origin = "api"
-	OriginCLI Origin = "cli"
+	OriginUI     Origin = "ui"
+	OriginAPI    Origin = "api"
+	OriginCLI    Origin = "cli"
+	OriginSystem Origin = "system"
 )

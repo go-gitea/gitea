@@ -12,7 +12,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
-	"gitea.dev/services/audit"
 	user_service "gitea.dev/services/user"
 
 	"github.com/urfave/cli/v3"
@@ -81,5 +80,5 @@ func runDeleteUser(ctx context.Context, c *cli.Command) error {
 		return fmt.Errorf("the user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return user_service.DeleteUser(audit.WithDoer(ctx, user_model.NewCLIUser()), user, c.Bool("purge"))
+	return user_service.DeleteUser(cliAuditContext(ctx), user, c.Bool("purge"))
 }

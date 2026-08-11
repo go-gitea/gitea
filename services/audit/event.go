@@ -41,6 +41,15 @@ type RecordParams struct {
 	Metadata map[string]any
 }
 
+type originContextKeyType struct{}
+
+var originContextKey originContextKeyType
+
+// WithOrigin returns a context that records audit events with the given origin.
+func WithOrigin(ctx context.Context, origin audit_model.Origin) context.Context {
+	return context.WithValue(ctx, originContextKey, origin)
+}
+
 func (r EntityRef) DisplayName() string {
 	if r.Name != "" {
 		return r.Name
@@ -98,9 +107,13 @@ func getIPAddress(ctx context.Context) string {
 }
 
 func getOrigin(ctx context.Context) audit_model.Origin {
+	if origin, ok := ctx.Value(originContextKey).(audit_model.Origin); ok && origin != "" {
+		return origin
+	}
+
 	req, ok := ctx.Value(httplib.RequestContextKey).(*http.Request)
 	if !ok || req == nil {
-		return audit_model.OriginCLI
+		return audit_model.OriginSystem
 	}
 	if req.URL == nil {
 		return audit_model.OriginUI

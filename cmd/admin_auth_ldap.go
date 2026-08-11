@@ -9,9 +9,7 @@ import (
 	"strings"
 
 	"gitea.dev/models/auth"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/util"
-	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/ldap"
 
@@ -225,10 +223,10 @@ func newAuthService() *authService {
 	return &authService{
 		initDB: initDB,
 		createAuthSource: func(ctx context.Context, source *auth.Source) error {
-			return auth_service.CreateSource(audit.WithDoer(ctx, user_model.NewCLIUser()), source)
+			return auth_service.CreateSource(cliAuditContext(ctx), source)
 		},
 		updateAuthSource: func(ctx context.Context, source *auth.Source) error {
-			return auth_service.UpdateSource(audit.WithDoer(ctx, user_model.NewCLIUser()), source)
+			return auth_service.UpdateSource(cliAuditContext(ctx), source)
 		},
 		getAuthSourceByID: auth.GetSourceByID,
 	}
