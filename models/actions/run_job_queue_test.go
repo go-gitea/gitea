@@ -8,7 +8,6 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,13 +36,7 @@ func TestMoveQueuedJob(t *testing.T) {
 	}
 
 	queueOrder := func() []string {
-		jobs, err := db.Find[ActionRunJob](ctx, FindRunJobOptions{
-			RepoID:           repoID,
-			Statuses:         []Status{StatusWaiting},
-			IsReusableCaller: optional.Some(false),
-			HasTask:          optional.Some(false),
-			OrderBy:          QueuedJobsOrderBy,
-		})
+		jobs, err := db.Find[ActionRunJob](ctx, QueuedJobsOptions(repoID, 0))
 		require.NoError(t, err)
 		names := make([]string, len(jobs))
 		for i, j := range jobs {
@@ -61,20 +54,20 @@ func TestMoveQueuedJob(t *testing.T) {
 	// Default queue_rank is 0 for all, so the queue starts in pure FIFO order.
 	assert.Equal(t, []string{"j1", "j2", "j3", "j4", "j5"}, queueOrder())
 
-	// Promote j5 to the top (dropped above j1).
-	ok, err := MoveQueuedJob(ctx, repoID, 0, 1, 50, j5.ID, 0, j1.ID)
+	// Promote j5 to the top (dropped above j1 → afterID=0).
+	ok, err := MoveQueuedJob(ctx, repoID, 0, j5.ID, 0)
 	require.NoError(t, err)
 	assert.True(t, ok)
 	assert.Equal(t, []string{"j5", "j1", "j2", "j3", "j4"}, queueOrder())
 
-	// Move j1 into the middle (between j3 and j4 in the current order).
-	ok, err = MoveQueuedJob(ctx, repoID, 0, 1, 50, j1.ID, j3.ID, j4.ID)
+	// Move j1 into the middle (after j3 in the current order).
+	ok, err = MoveQueuedJob(ctx, repoID, 0, j1.ID, j3.ID)
 	require.NoError(t, err)
 	assert.True(t, ok)
 	assert.Equal(t, []string{"j5", "j2", "j3", "j1", "j4"}, queueOrder())
 
-	// Send j5 to the bottom (dropped below j4, no successor).
-	ok, err = MoveQueuedJob(ctx, repoID, 0, 1, 50, j5.ID, j4.ID, 0)
+	// Send j5 to the bottom (after j4, the current last remaining neighbour).
+	ok, err = MoveQueuedJob(ctx, repoID, 0, j5.ID, j4.ID)
 	require.NoError(t, err)
 	assert.True(t, ok)
 	assert.Equal(t, []string{"j2", "j3", "j1", "j4", "j5"}, queueOrder())
@@ -86,7 +79,7 @@ func TestMoveQueuedJob(t *testing.T) {
 	// Moving a job that has left the queue reports a stale view instead of erroring.
 	_, err = db.GetEngine(ctx).Exec("UPDATE `action_run_job` SET status = ? WHERE id = ?", StatusRunning, j2.ID)
 	require.NoError(t, err)
-	ok, err = MoveQueuedJob(ctx, repoID, 0, 1, 50, j2.ID, 0, j3.ID)
+	ok, err = MoveQueuedJob(ctx, repoID, 0, j2.ID, 0)
 	require.NoError(t, err)
 	assert.False(t, ok, "moving a no-longer-queued job signals the caller to refresh")
 }

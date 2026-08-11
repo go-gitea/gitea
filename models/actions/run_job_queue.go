@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"slices"
 
 	"gitea.dev/models/db"
@@ -13,14 +14,22 @@ import (
 	"xorm.io/builder"
 )
 
-// queueRankStep spaces manually assigned queue ranks so an insertion between two neighbours
-// almost always has integer room without rewriting the whole page.
+// QueuePageSize is the number of queued jobs per build-queue page. Reordering renumbers exactly
+// the first page (the head runners pick from).
+const QueuePageSize = 50
+
+// queueRankStep spaces ranks assigned during a full page renumber (more negative = earlier pickup).
 const queueRankStep int64 = 1 << 16
 
-// queueScopeOpts builds the FindRunJobOptions that select the waiting, unclaimed, non-reusable-caller
-// jobs a runner could pick up, for the same scope the build queue view uses:
+// errQueueStale signals that the client's queue view no longer matches the first page
+// (a job left the queue or a named neighbour disappeared).
+var errQueueStale = errors.New("actions queue view is stale")
+
+// QueuedJobsOptions selects waiting, unclaimed, non-reusable-caller jobs in runner pickup order
+// for the same scopes the build queue view uses:
 // repoID>0 → a single repo; ownerID>0 → an org/user; both 0 → the whole instance.
-func queueScopeOpts(repoID, ownerID int64) FindRunJobOptions {
+// Keep the predicate/order in sync with CreateTaskForRunner.
+func QueuedJobsOptions(repoID, ownerID int64) FindRunJobOptions {
 	return FindRunJobOptions{
 		RepoID:           repoID,
 		OwnerID:          ownerID,
@@ -38,7 +47,7 @@ func queueRankAtIndex(ctx context.Context, repoID, ownerID int64, idx int) (rank
 	if idx < 0 {
 		return 0, false, nil
 	}
-	opts := queueScopeOpts(repoID, ownerID)
+	opts := QueuedJobsOptions(repoID, ownerID)
 	opts.ListOptions = db.ListOptions{Page: idx + 1, PageSize: 1}
 	rows, err := db.Find[ActionRunJob](ctx, opts)
 	if err != nil {
@@ -50,35 +59,22 @@ func queueRankAtIndex(ctx context.Context, repoID, ownerID int64, idx int) (rank
 	return rows[0].QueueRank, true, nil
 }
 
-// MoveQueuedJob repositions a waiting job in the build queue so runners pick it up in the new order.
+// MoveQueuedJob repositions a waiting job at the head of the build queue (first page only).
 //
 // scope: repoID>0 for a repo queue; ownerID>0 for an org/user queue; both 0 for the instance-wide queue.
-// afterID / beforeID are the ids of the rows that should end up immediately before / after the moved job
-// (0 when it was dropped at the top / bottom of the list). page/pageSize describe the page the admin was
-// viewing; reordering is bounded to that page so it stays cheap regardless of the total queue size. Only the
-// first page may be reordered in practice: the renumbering below anchors to the following page's head only,
-// so applying it to a later page would push that page ahead of the pages preceding it.
+// afterID is the id of the row that should end up immediately before the moved job (0 = move to head).
 //
-// The dropped page is renumbered into evenly spaced negative ranks (more negative = picked earlier), placed
-// strictly ahead of the following page's head. Untouched, rank-0 jobs therefore keep their natural FIFO
+// The first page is renumbered into evenly spaced negative ranks (more negative = picked earlier),
+// placed strictly ahead of the following page's head. Untouched, rank-0 jobs keep their natural FIFO
 // position at the tail, and a newly queued job (rank 0) never jumps ahead of a manually curated queue.
 // Ranks are written with NoAutoTime so the Updated FIFO tiebreak is preserved.
 //
-// It returns false (with a nil error) when the moved job or a named neighbour is no longer queueable on that
-// page, i.e. the client's view is stale and should refresh.
-func MoveQueuedJob(ctx context.Context, repoID, ownerID int64, page, pageSize int, movedID, afterID, beforeID int64) (ok bool, err error) {
-	if pageSize <= 0 {
-		pageSize = 50
-	}
-	if page <= 0 {
-		page = 1
-	}
-
-	err = db.WithTx(ctx, func(ctx context.Context) error {
-		offset := (page - 1) * pageSize
-
-		opts := queueScopeOpts(repoID, ownerID)
-		opts.ListOptions = db.ListOptions{Page: page, PageSize: pageSize}
+// It returns false (with a nil error) when the moved job or afterID neighbour is no longer on the
+// first page, i.e. the client's view is stale and should refresh.
+func MoveQueuedJob(ctx context.Context, repoID, ownerID, movedID, afterID int64) (bool, error) {
+	err := db.WithTx(ctx, func(ctx context.Context) error {
+		opts := QueuedJobsOptions(repoID, ownerID)
+		opts.ListOptions = db.ListOptions{Page: 1, PageSize: QueuePageSize}
 		window, err := db.Find[ActionRunJob](ctx, opts)
 		if err != nil {
 			return err
@@ -90,21 +86,16 @@ func MoveQueuedJob(ctx context.Context, repoID, ownerID int64, page, pageSize in
 		}
 		movedIdx, found := idxByID[movedID]
 		if !found {
-			return nil // moved row left the page (claimed/finished) → stale
+			return errQueueStale
 		}
 		if afterID != 0 {
 			if _, ok := idxByID[afterID]; !ok {
-				return nil // neighbour gone → stale
-			}
-		}
-		if beforeID != 0 {
-			if _, ok := idxByID[beforeID]; !ok {
-				return nil
+				return errQueueStale
 			}
 		}
 		moved := window[movedIdx]
 
-		// Build the new page order: drop the moved row, reinsert it relative to its neighbour.
+		// Build the new page order: drop the moved row, reinsert after afterID (or at head).
 		newOrder := make([]*ActionRunJob, 0, len(window))
 		for _, j := range window {
 			if j.ID != movedID {
@@ -119,19 +110,12 @@ func MoveQueuedJob(ctx context.Context, repoID, ownerID int64, page, pageSize in
 					break
 				}
 			}
-		} else if beforeID != 0 {
-			for i, j := range newOrder {
-				if j.ID == beforeID {
-					insertPos = i
-					break
-				}
-			}
 		}
 		newOrder = slices.Insert(newOrder, insertPos, moved)
 
 		// Anchor below the following page's head (0 = the natural-FIFO tail when there is no next page),
 		// so the whole renumbered page stays ahead of every rank-0 job.
-		hi, hiOK, err := queueRankAtIndex(ctx, repoID, ownerID, offset+len(window))
+		hi, hiOK, err := queueRankAtIndex(ctx, repoID, ownerID, len(window))
 		if err != nil {
 			return err
 		}
@@ -151,13 +135,12 @@ func MoveQueuedJob(ctx context.Context, repoID, ownerID int64, page, pageSize in
 		}
 
 		// Wake idle runners so the new order takes effect on the next poll rather than after a timeout.
-		if err := IncreaseTaskVersion(ctx, moved.OwnerID, moved.RepoID); err != nil {
-			return err
-		}
-		ok = true
-		return nil
+		return IncreaseTaskVersion(ctx, moved.OwnerID, moved.RepoID)
 	})
-	return ok, err
+	if errors.Is(err, errQueueStale) {
+		return false, nil
+	}
+	return err == nil, err
 }
 
 // updateJobQueueRank sets a job's QueueRank without bumping Updated (the queue FIFO tiebreak).

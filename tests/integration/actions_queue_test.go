@@ -85,7 +85,7 @@ func TestActionsQueue(t *testing.T) {
 	assert.NotContains(t, refresh, `<html`, "the refresh response is a fragment, not a full page")
 
 	// Reordering is repo-admin only.
-	moveForm := map[string]string{"id": strconv.FormatInt(job.ID, 10), "page": "1"}
+	moveForm := map[string]string{"id": strconv.FormatInt(job.ID, 10)}
 	sessionUser4.MakeRequest(t, NewRequestWithValues(t, "POST", repoQueue+"/move", moveForm), http.StatusNotFound)
 	sessionUser2.MakeRequest(t, NewRequestWithValues(t, "POST", repoQueue+"/move", moveForm), http.StatusNoContent)
 

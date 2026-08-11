@@ -8,7 +8,6 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/optional"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,7 +65,7 @@ func TestActionJobList_SortMatrixGroupsByName(t *testing.T) {
 }
 
 // TestFindRunJobOptions_Queue verifies the build-queue query mirrors the runner pickup predicate:
-// waiting + unclaimed + non-reusable jobs, ordered by (updated ASC, id ASC).
+// waiting + unclaimed + non-reusable jobs, ordered by (queue_rank ASC, updated ASC, id ASC).
 func TestFindRunJobOptions_Queue(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
@@ -97,7 +96,7 @@ func TestFindRunJobOptions_Queue(t *testing.T) {
 	insert("reusable", StatusWaiting, 0, true)   // reusable caller never runs on a runner
 	insert("running", StatusRunning, 998, false) // running, no longer queued
 
-	// Force `updated` so pickup order (updated ASC, id ASC) differs from insertion/id order: C < A < B.
+	// Force `updated` so pickup order among rank-0 jobs differs from insertion/id order: C < A < B.
 	setUpdated := func(id, ts int64) {
 		_, err := db.GetEngine(ctx).Exec("UPDATE `action_run_job` SET updated = ? WHERE id = ?", ts, id)
 		require.NoError(t, err)
@@ -106,13 +105,7 @@ func TestFindRunJobOptions_Queue(t *testing.T) {
 	setUpdated(jA.ID, 200)
 	setUpdated(jB.ID, 300)
 
-	jobs, total, err := db.FindAndCount[ActionRunJob](ctx, FindRunJobOptions{
-		RepoID:           repoID,
-		Statuses:         []Status{StatusWaiting},
-		IsReusableCaller: optional.Some(false),
-		HasTask:          optional.Some(false),
-		OrderBy:          QueuedJobsOrderBy,
-	})
+	jobs, total, err := db.FindAndCount[ActionRunJob](ctx, QueuedJobsOptions(repoID, 0))
 	require.NoError(t, err)
 	assert.EqualValues(t, 3, total, "only waiting, unclaimed, non-reusable jobs are queued")
 
@@ -120,5 +113,5 @@ func TestFindRunJobOptions_Queue(t *testing.T) {
 	for i, j := range jobs {
 		gotIDs[i] = j.ID
 	}
-	assert.Equal(t, []int64{jC.ID, jA.ID, jB.ID}, gotIDs, "queue is ordered by (updated ASC, id ASC)")
+	assert.Equal(t, []int64{jC.ID, jA.ID, jB.ID}, gotIDs, "rank-0 queue is ordered by (updated ASC, id ASC)")
 }
