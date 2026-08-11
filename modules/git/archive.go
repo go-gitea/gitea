@@ -39,7 +39,8 @@ func CreateArchive(ctx context.Context, repo RepositoryFacade, repoName, format 
 
 // CreateBundle create bundle content to the target path
 func CreateBundle(ctx context.Context, repo RepositoryFacade, commit string, out io.Writer) error {
-	// TODO: use the following steps instead of creating a temp file, also need to iterate and clean up outdated refs
+	// TODO: use the following steps instead of creating a temp repo, also need to iterate and clean up outdated refs
+	// the temp ref has to be under refs/heads/*, otherwise the bundle clones into an empty repository
 	// git update-ref refs/bundle/temp-{timestamp} {commit}
 	// git bundle create - refs/bundle/temp-{timestamp}
 	// git update-ref -d refs/bundle/temp-{timestamp}
@@ -69,18 +70,5 @@ func CreateBundle(ctx context.Context, repo RepositoryFacade, commit string, out
 		return err
 	}
 
-	tmpFile := filepath.Join(tmpDir, "bundle")
-	_, _, err = gitTmpCmd().AddArguments("bundle", "create").AddDynamicArguments(tmpFile, "bundle", "HEAD").RunStdString(ctx)
-	if err != nil {
-		return err
-	}
-
-	fi, err := os.Open(tmpFile)
-	if err != nil {
-		return err
-	}
-	defer fi.Close()
-
-	_, err = io.Copy(out, fi)
-	return err
+	return gitTmpCmd().AddArguments("bundle", "create", "-", "bundle", "HEAD").WithStdoutCopy(out).RunWithStderr(ctx)
 }
