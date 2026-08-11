@@ -389,7 +389,8 @@ test-backend: ## test backend files
 	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend: playwright ## test frontend files
+test-frontend: deps-frontend ## test frontend files
+	@./tools/playwright.sh $(PLAYWRIGHT_FLAGS) chromium
 	pnpm exec vitest
 
 .PHONY: test-check
@@ -484,7 +485,7 @@ migrations.individual.test\#%:
 
 .PHONY: playwright
 playwright: deps-frontend
-	@./tools/playwright.sh $(PLAYWRIGHT_FLAGS)
+	@./tools/playwright.sh $(PLAYWRIGHT_FLAGS) chromium firefox
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend

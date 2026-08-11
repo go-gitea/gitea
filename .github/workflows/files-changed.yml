@@ -73,7 +73,9 @@ jobs:
             frontend:
               - "*.ts"
               - "web_src/**"
-              - "tools/**"
+              - "tools/**/*.ts"
+              - "tools/**/*.json"
+              - "tools/playwright.sh"
               - "tsconfig.json"
               - "assets/emoji.json"
               - "package.json"
