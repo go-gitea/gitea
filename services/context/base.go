@@ -188,6 +188,24 @@ func (b *Base) TrN(cnt any, key1, keyN string, args ...any) template.HTML {
 	return b.Locale.TrN(cnt, key1, keyN, args...)
 }
 
+func CspScriptNonce(ctx reqctx.RequestContext) (ret string) {
+	// Generate a random nonce for each request and cache it in the context to make it usable during the whole rendering process.
+	//
+	// Some "<script>" tags are not in the CSP context, so they don't need nonce,
+	// these tags are written as "<script nonce>" to help developers to know that "no script nonce attribute is missing"
+	// (e.g.: when they grep the codebase for "script" tags)
+	ret, _ = ctx.Value("_cspScriptNonce").(string)
+	if ret == "" {
+		ret = util.FastCryptoRandomHex(32) // 16 bytes / 128 bits entropy
+		ctx.SetContextValue("_cspScriptNonce", ret)
+	}
+	return ret
+}
+
+func (b *Base) SetHeaderContentSecurityPolicyGeneral() {
+	b.Resp.Header().Set("Content-Security-Policy", WebContentSecurityPolicy(CspScriptNonce(b)))
+}
+
 func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
 	reqCtx := reqctx.FromContext(req.Context())
 	b := &Base{
