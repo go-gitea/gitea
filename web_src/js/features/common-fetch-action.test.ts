@@ -40,14 +40,12 @@ test('execPseudoSelectorCommands', () => {
   expect(ret.targets).toEqual(Array.from(document.querySelectorAll('#d1 .x')));
 });
 
-test.each([
-  [{redirect: '/'}, 'push'],
-  [{redirect: ''}, 'reload'],
-  [{}, 'reload'],
-] as const)('handleFetchActionSuccessJson %o', async (respJson, navigationType) => {
+test('handleFetchActionSuccessJson', async () => {
   const navigations = captureNavigations();
-  await handleFetchActionSuccessJson(document.body, respJson);
-  expect(navigations.map((n) => n.type)).toEqual([navigationType]);
+  await handleFetchActionSuccessJson(document.body, {redirect: '/'});
+  await handleFetchActionSuccessJson(document.body, {redirect: ''});
+  await handleFetchActionSuccessJson(document.body, {});
+  expect(navigations.map((n) => n.type)).toEqual(['push', 'reload', 'reload']);
 });
 
 test('handleFetchActionErrorFields', () => {
