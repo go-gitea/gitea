@@ -4,10 +4,12 @@
 package user
 
 import (
+	"context"
 	"testing"
 
 	activities_model "gitea.dev/models/activities"
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	password_module "gitea.dev/modules/auth/password"
@@ -171,6 +173,28 @@ func TestConvertUserType(t *testing.T) {
 	assert.True(t, user_model.IsErrBotUserIsAdmin(err), "expected ErrBotUserIsAdmin, got %v", err)
 	admin = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.Equal(t, user_model.UserTypeIndividual, admin.Type)
+}
+
+func TestConvertUserTypeDoesNotMutateUserOnError(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	originalUser := *user
+	_, err := db.GetEngine(t.Context()).Exec(`CREATE TRIGGER fail_notification_delete
+		BEFORE DELETE ON notification WHEN OLD.user_id = 2
+		BEGIN SELECT RAISE(FAIL, 'forced notification delete failure'); END`)
+	if !assert.NoError(t, err) {
+		return
+	}
+	t.Cleanup(func() {
+		_, err := db.GetEngine(context.Background()).Exec("DROP TRIGGER fail_notification_delete")
+		assert.NoError(t, err)
+	})
+
+	assert.Error(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
+	assert.Equal(t, originalUser, *user)
+	persistedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID})
+	assert.Equal(t, user_model.UserTypeIndividual, persistedUser.Type)
 }
 
 func TestUpdateUserBotCannotBecomeAdmin(t *testing.T) {
