@@ -23,6 +23,7 @@ func TestCreateBundle(t *testing.T) {
 	header, _, ok := strings.Cut(buf.String(), "\n\n")
 	require.True(t, ok)
 	assert.Equal(t, "# v2 git bundle", strings.Split(header, "\n")[0])
-	// a bundle whose only ref sits outside refs/heads/* clones into an empty repository
+	// without a refs/heads/* ref and a HEAD, a clone of the bundle has no branch and no checkout
 	assert.Contains(t, header, "ce064814f4a0d337b333e646ece456cd39fab612 refs/heads/bundle")
+	assert.Contains(t, header, "ce064814f4a0d337b333e646ece456cd39fab612 HEAD")
 }
