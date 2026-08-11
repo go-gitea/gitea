@@ -12,6 +12,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -60,4 +62,18 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, exist)
 	})
+}
+
+func TestCreateRepositoryDirectlyDefaultObjectFormat(t *testing.T) {
+	if !git.DefaultFeatures().SupportHashSha256 {
+		t.Skip("Git does not support SHA-256 repositories")
+	}
+	defer test.MockVariableValue(&setting.Repository.DefaultObjectFormat, "sha256")()
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo, err := CreateRepositoryDirectly(t.Context(), user2, user2, CreateRepoOptions{Name: "sha256-default"}, true)
+	assert.NoError(t, err)
+	assert.Equal(t, "sha256", repo.ObjectFormatName)
+	assert.NoError(t, DeleteRepositoryDirectly(t.Context(), repo.ID))
 }

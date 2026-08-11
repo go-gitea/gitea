@@ -222,9 +222,9 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	}
 
 	if opts.ObjectFormatName == "" {
-		opts.ObjectFormatName = git.Sha1ObjectFormat.Name()
+		opts.ObjectFormatName = setting.Repository.DefaultObjectFormat
 	}
-	if opts.ObjectFormatName != git.Sha1ObjectFormat.Name() && opts.ObjectFormatName != git.Sha256ObjectFormat.Name() {
+	if !git.IsValidObjectFormat(opts.ObjectFormatName) {
 		return nil, fmt.Errorf("unsupported object format: %s", opts.ObjectFormatName)
 	}
 
