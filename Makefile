@@ -484,7 +484,7 @@ migrations.individual.test\#%:
 
 .PHONY: playwright
 playwright: deps-frontend
-	@./tools/playwright.sh
+	@./tools/playwright.sh $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
