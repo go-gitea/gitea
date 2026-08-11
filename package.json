@@ -82,7 +82,6 @@
     "@types/toastify-js": "1.12.4",
     "@typescript-eslint/parser": "8.66.0",
     "@vitejs/plugin-vue": "6.0.8",
-    "@vitest/browser": "4.1.10",
     "@vitest/browser-playwright": "4.1.10",
     "@vitest/eslint-plugin": "1.6.26",
     "eslint": "10.8.0",
