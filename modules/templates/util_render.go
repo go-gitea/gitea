@@ -62,7 +62,7 @@ func (ut *RenderUtils) RenderCommitMessageLinkSubject(msg, urlDefault string, re
 	msgLine, _, _ = strings.Cut(msgLine, "\n")
 	msgLine = strings.TrimSpace(msgLine)
 	rctx := renderhelper.NewRenderContextRepoComment(ut.ctx, repo)
-	rendered := markup.PostProcessCommitMessageSubject(rctx, urlDefault, htmlutil.EscapeString(msgLine))
+	rendered := markup.PostProcessCommitMessageSubject(rctx, urlDefault, msgLine)
 	return renderCodeBlock(rendered)
 }
 
