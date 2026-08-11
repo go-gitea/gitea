@@ -23,8 +23,8 @@ type OAuth2CommonHandlers struct {
 	TplAppEdit         templates.TplName // the template for the application edit page
 }
 
-func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
-	app := ctx.Data["App"].(*auth.OAuth2Application)
+func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context, app *auth.OAuth2Application) {
+	ctx.Data["App"] = app
 	ctx.Data["FormActionPath"] = fmt.Sprintf("%s/%d", oa.BasePathEditPrefix, app.ID)
 
 	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
@@ -39,7 +39,7 @@ func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 
 // AddApp adds an oauth2 application
 func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditOAuth2ApplicationForm)
+	form := web.GetForm[*forms.EditOAuth2ApplicationForm](ctx)
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
 		// go to the application list page
@@ -61,14 +61,13 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 
 	// render the edit page with secret
 	ctx.Flash.Success(ctx.Tr("settings.create_oauth2_application_success"), true)
-	ctx.Data["App"] = app
 	ctx.Data["ClientSecret"], err = app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.ServerError("GenerateClientSecret", err)
 		return
 	}
 
-	oa.renderEditPage(ctx)
+	oa.renderEditPage(ctx, app)
 }
 
 // EditShow displays the given application
@@ -86,13 +85,12 @@ func (oa *OAuth2CommonHandlers) EditShow(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	ctx.Data["App"] = app
-	oa.renderEditPage(ctx)
+	oa.renderEditPage(ctx, app)
 }
 
 // EditSave saves the oauth2 application
 func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditOAuth2ApplicationForm)
+	form := web.GetForm[*forms.EditOAuth2ApplicationForm](ctx)
 
 	if ctx.HasError() {
 		app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
@@ -108,9 +106,7 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 			ctx.NotFound(nil)
 			return
 		}
-		ctx.Data["App"] = app
-
-		oa.renderEditPage(ctx)
+		oa.renderEditPage(ctx, app)
 		return
 	}
 
@@ -145,14 +141,13 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	ctx.Data["App"] = app
 	ctx.Data["ClientSecret"], err = app.GenerateClientSecret(ctx)
 	if err != nil {
 		ctx.ServerError("GenerateClientSecret", err)
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"), true)
-	oa.renderEditPage(ctx)
+	oa.renderEditPage(ctx, app)
 }
 
 // DeleteApp deletes the given oauth2 application

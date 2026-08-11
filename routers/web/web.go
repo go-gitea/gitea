@@ -244,11 +244,9 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 	}
 }
 
-func ctxDataSet(args ...any) func(ctx *context.Context) {
+func ctxDataSet(data reqctx.ContextData) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
-		for i := 0; i < len(args); i += 2 {
-			ctx.Data[args[i].(string)] = args[i+1]
-		}
+		ctx.Data.MergeFrom(data)
 	}
 }
 
@@ -893,7 +891,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsVariablesRoutes()
 			addSettingsScopedWorkflowsRoutes()
 		})
-	}, adminReq, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled))
+	}, adminReq, ctxDataSet(reqctx.ContextData{"EnableOAuth2": setting.OAuth2.Enabled, "EnablePackages": setting.Packages.Enabled}))
 	// ***** END: Admin *****
 
 	m.Group("", func() {
@@ -1079,7 +1077,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					m.Get("", org.BlockedUsers)
 					m.Post("", web.Bind(forms.BlockUserForm{}), org.BlockedUsersPost)
 				})
-			}, ctxDataSet("EnableOAuth2", setting.OAuth2.Enabled, "EnablePackages", setting.Packages.Enabled, "PageIsOrgSettings", true))
+			}, ctxDataSet(reqctx.ContextData{"EnableOAuth2": setting.OAuth2.Enabled, "EnablePackages": setting.Packages.Enabled, "PageIsOrgSettings": true}))
 		}, context.OrgAssignment(context.OrgAssignmentOptions{RequireOwner: true}))
 	}, reqSignIn)
 	// end "/org": most org routes
@@ -1227,7 +1225,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/keys", func() {
 			m.Combo("").Get(repo_setting.DeployKeys).
-				Post(web.Bind(forms.AddKeyForm{}), repo_setting.DeployKeysPost)
+				Post(repo_setting.DeployKeysPost)
 			m.Post("/delete", repo_setting.DeleteDeployKey)
 		})
 
@@ -1268,7 +1266,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	},
 		reqSignIn, context.RepoAssignment, reqRepoAdmin,
-		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
+		ctxDataSet(reqctx.ContextData{"PageIsRepoSettings": true, "LFSStartServer": setting.LFS.StartServer}),
 	)
 	// end "/{username}/{reponame}/settings"
 
@@ -1481,7 +1479,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get(".rss", webAuth.AllowBasic, feedEnabled, repo.TagsListFeedRSS)
 			m.Get(".atom", webAuth.AllowBasic, feedEnabled, repo.TagsListFeedAtom)
 			m.Get("/list", repo.GetTagList)
-		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed))
+		}, ctxDataSet(reqctx.ContextData{"EnableFeed": setting.Other.EnableFeed}))
 		m.Post("/tags/delete", reqSignIn, reqRepoCodeWriter, context.RepoMustNotBeArchived(), repo.DeleteTag)
 	}, optSignIn, context.RepoAssignment, repo.MustBeNotEmpty, reqUnitCodeReader)
 	// end "/{username}/{reponame}": repo tags
@@ -1493,7 +1491,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get(".atom", webAuth.AllowBasic, feedEnabled, repo.ReleasesFeedAtom)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
-		}, ctxDataSet("EnableFeed", setting.Other.EnableFeed))
+		}, ctxDataSet(reqctx.ContextData{"EnableFeed": setting.Other.EnableFeed}))
 		m.Get("/releases/attachments/{uuid}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.GetAttachment)
 		m.Get("/releases/download/{vTag}/{fileName}", webAuth.AllowBasic, webAuth.AllowOAuth2, repo.RedirectDownload)
 		m.Group("/releases", func() {
@@ -1741,7 +1739,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqUnitCodeReader, repo.Search)
 		m.Post("/action/{action:star|unstar}", reqSignIn, starsEnabled, repo.ActionStar)
-		m.Post("/action/{action:watch|unwatch|ignore}", reqSignIn, repo.ActionWatch)
+		m.Post("/action/{action:watch|participate|ignore}", reqSignIn, repo.ActionWatch)
 		m.Post("/action/watch/options", reqSignIn, repo.ActionWatchOptions)
 		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
