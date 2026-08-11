@@ -21,7 +21,7 @@ type SignInOpenIDForm struct {
 // Validate validates the fields
 func (f *SignInOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // SignUpOpenIDForm form for signin up with OpenID
@@ -33,7 +33,7 @@ type SignUpOpenIDForm struct {
 // Validate validates the fields
 func (f *SignUpOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // ConnectOpenIDForm form for connecting an existing account to an OpenID URI
@@ -45,5 +45,5 @@ type ConnectOpenIDForm struct {
 // Validate validates the fields
 func (f *ConnectOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }

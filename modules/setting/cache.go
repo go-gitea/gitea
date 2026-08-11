@@ -12,7 +12,7 @@ import (
 // Cache represents cache settings
 type Cache struct {
 	Adapter  string
-	Interval int
+	Interval int           // GC
 	Conn     string        `ini:"-"`
 	TTL      time.Duration `ini:"ITEM_TTL"`
 }
@@ -22,8 +22,7 @@ var CacheService = struct {
 	Cache `ini:"cache"`
 
 	LastCommit struct {
-		TTL          time.Duration `ini:"ITEM_TTL"`
-		CommitsCount int64
+		TTL time.Duration `ini:"ITEM_TTL"`
 	} `ini:"cache.last_commit"`
 }{
 	Cache: Cache{
@@ -32,11 +31,9 @@ var CacheService = struct {
 		TTL:      16 * time.Hour,
 	},
 	LastCommit: struct {
-		TTL          time.Duration `ini:"ITEM_TTL"`
-		CommitsCount int64
+		TTL time.Duration `ini:"ITEM_TTL"`
 	}{
-		TTL:          8760 * time.Hour,
-		CommitsCount: 1000,
+		TTL: 8760 * time.Hour,
 	},
 }
 
@@ -61,9 +58,6 @@ func loadCacheFrom(rootCfg ConfigProvider) {
 	default:
 		log.Fatal("Unknown cache adapter: %s", CacheService.Adapter)
 	}
-
-	sec = rootCfg.Section("cache.last_commit")
-	CacheService.LastCommit.CommitsCount = sec.Key("COMMITS_COUNT").MustInt64(1000)
 }
 
 // TTLSeconds returns the TTLSeconds or unix timestamp for memcache

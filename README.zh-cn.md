@@ -76,7 +76,7 @@
 
 ## 官方和第三方项目
 
-我们提供了一个官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一个名为 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一个 Gitea Action 的 [action runner](https://gitea.com/gitea/act_runner)。
+我们提供了一个官方的 [go-sdk](https://gitea.com/gitea/go-sdk)，一个名为 [tea](https://gitea.com/gitea/tea) 的 CLI 工具和一个 Gitea Action 的 [action runner](https://gitea.com/gitea/runner)。
 
 我们在 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 维护了一个 Gitea 相关项目的列表，您可以在那里发现更多的第三方项目，包括 SDK、插件、主题等。
 

@@ -21,7 +21,7 @@ func TestGitPatchPrepare(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
-	gitRepo, err := git.OpenRepository(repo1.CodeStorageRepo())
+	gitRepo, err := git.OpenRepository(t.Context(), repo1.CodeStorageRepo())
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

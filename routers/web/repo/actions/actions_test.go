@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -17,7 +18,6 @@ import (
 	"gitea.dev/modules/test"
 	web_context "gitea.dev/services/context"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -261,7 +261,7 @@ func TestIntegrationAndSanitization(t *testing.T) {
 	maliciousNotebook := `{
 		"nbformat": 4,
 		"nbformat_minor": 2,
-		"metadata": {},
+		"metadata": {"language_info":{"name":"any lang"}},
 		"cells": [
 			{
 				"cell_type": "code",
@@ -295,8 +295,8 @@ func TestIntegrationAndSanitization(t *testing.T) {
 		<div class="cell-line">
 			<div class="cell-left cell-prompt">In [1]:</div>
 			<div class="cell-right cell-input">
-				<pre><code class="chroma language-python">
-					<span class="n">a</span><span class="o">=</span><span class="mi">1</span>
+				<pre class="code-block"><code class="chroma language-any_lang" data-code-language="any lang">
+					a=1
 				</code></pre>
 			</div>
 		</div>

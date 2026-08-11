@@ -33,7 +33,7 @@ func Markup(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.MarkupOption)
+	form := web.GetForm[*api.MarkupOption](ctx)
 	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, form.FilePath)
 }
@@ -58,7 +58,7 @@ func Markdown(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.MarkdownOption)
+	form := web.GetForm[*api.MarkdownOption](ctx)
 	mode := util.Iif(form.Wiki, "wiki", form.Mode) //nolint:staticcheck // form.Wiki is deprecated
 	common.RenderMarkup(ctx.Base, ctx.Repo, mode, form.Text, form.Context, "")
 }

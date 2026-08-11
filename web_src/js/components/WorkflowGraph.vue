@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
-import {trN} from '../modules/i18n.ts';
+import {trN, trString} from '../modules/i18n.ts';
 import {debounce} from '../utils/func.ts';
 import type {ActionsJob} from '../modules/gitea-actions.ts';
 import type {ActionRunViewStore} from './ActionRunView.ts';
@@ -113,7 +113,7 @@ const successRateLabel = computed(() => {
 const graphStats = computed(() => [
   trN(props.jobs.length, props.locale.graphJobsCount1, props.locale.graphJobsCountN),
   trN(edges.value.length, props.locale.graphDependenciesCount1, props.locale.graphDependenciesCountN),
-  props.locale.graphSuccessRate.replace('%s', successRateLabel.value),
+  trString(props.locale.graphSuccessRate, successRateLabel.value),
 ].join(' • '));
 
 const minScale = 0.3;

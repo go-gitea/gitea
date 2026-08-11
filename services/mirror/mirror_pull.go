@@ -11,7 +11,6 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	system_model "gitea.dev/models/system"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	giturl "gitea.dev/modules/git/url"
@@ -174,7 +173,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
 
-	gitRepo, err := git.OpenRepository(m.Repo)
+	gitRepo, err := git.OpenRepository(ctx, m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to OpenRepository: %v", m.Repo, err)
 		return nil, false
@@ -266,7 +265,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	for _, branch := range branches {
-		cache.Remove(m.Repo.GetCommitsCountCacheKey(branch, true))
+		git.RemoveCommitsCountCache(m.Repo, git.RefNameFromBranch(branch))
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
@@ -323,7 +322,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
-	gitRepo, err := git.OpenRepository(m.Repo)
+	gitRepo, err := git.OpenRepository(ctx, m.Repo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: unable to OpenRepository: %v", m.Repo, err)
 		return false

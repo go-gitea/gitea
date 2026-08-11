@@ -468,7 +468,7 @@ func RunnersEditPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditRunnerForm)
+	form := web.GetForm[*forms.EditRunnerForm](ctx)
 	runner.Description = form.Description
 
 	err = actions_model.UpdateRunner(ctx, runner, "description")
