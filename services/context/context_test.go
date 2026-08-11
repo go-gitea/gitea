@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"testing"
 
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
@@ -57,7 +58,7 @@ func TestAppFullLink(t *testing.T) {
 	defer test.MockVariableValue(&setting.PublicURLDetection, setting.PublicURLNever)()
 
 	req := httptest.NewRequest(http.MethodGet, "https://gitea.example.com/sub/", nil)
-	tmplCtx := NewTemplateContext(req.Context(), req)
+	tmplCtx := NewTemplateContext(reqctx.NewRequestContextForTest(req.Context()), req)
 
 	assert.Equal(t, "https://gitea.example.com/sub", string(tmplCtx.AppFullLink()))
 	assert.Equal(t, "https://gitea.example.com/sub/user/repo", string(tmplCtx.AppFullLink("user/repo")))
