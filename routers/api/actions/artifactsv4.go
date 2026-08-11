@@ -605,12 +605,16 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := actions_model.FindReadableArtifacts(ctx, actions_model.FindArtifactsOptions{
+	opts := actions_model.FindArtifactsOptions{
 		RunID:                runID,
 		RunAttemptIDs:        attemptIDs,
 		Status:               int(actions_model.ArtifactStatusUploadConfirmed),
 		FinalizedArtifactsV4: true,
-	})
+	}
+	if req.IdFilter != nil {
+		opts.ArtifactID = req.IdFilter.Value
+	}
+	artifacts, err := actions_model.FindReadableArtifacts(ctx, opts)
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, err.Error())
@@ -621,7 +625,7 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 
 	table := map[string]*ListArtifactsResponse_MonolithArtifact{}
 	for _, artifact := range artifacts {
-		if _, ok := table[artifact.ArtifactName]; ok || req.IdFilter != nil && artifact.ID != req.IdFilter.Value || req.NameFilter != nil && artifact.ArtifactName != req.NameFilter.Value {
+		if _, ok := table[artifact.ArtifactName]; ok || req.NameFilter != nil && artifact.ArtifactName != req.NameFilter.Value {
 			table[artifact.ArtifactName] = nil
 			continue
 		}
