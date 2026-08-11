@@ -4,6 +4,7 @@
 package v1_27
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -36,7 +37,7 @@ func isMSSQLMaxTextColumn(column *schemas.Column) bool {
 	return strings.EqualFold(column.SQLType.Name, schemas.Varchar) || strings.EqualFold(column.SQLType.Name, schemas.NVarchar)
 }
 
-func modifyLongTextColumnsForMSSQL(x base.EngineMigration, bean any, columnNames ...string) error {
+func modifyLongTextColumnsForMSSQL(ctx context.Context, x base.EngineMigration, bean any, columnNames ...string) error {
 	table, err := x.TableInfo(bean)
 	if err != nil {
 		return err
@@ -50,7 +51,7 @@ func modifyLongTextColumnsForMSSQL(x base.EngineMigration, bean any, columnNames
 		if isMSSQLMaxTextColumn(column) {
 			continue
 		}
-		if err := base.ModifyColumn(x, table.Name, column); err != nil {
+		if err := base.ModifyColumn(ctx, x, table.Name, column); err != nil {
 			return fmt.Errorf("modify %s.%s: %w", table.Name, columnName, err)
 		}
 	}
@@ -60,13 +61,13 @@ func modifyLongTextColumnsForMSSQL(x base.EngineMigration, bean any, columnNames
 
 // ExpandIssueAndCommentLongTextFieldsForMSSQL expands legacy MSSQL nvarchar(4000)
 // columns to nvarchar(max) so PR push comments and long issue content are not truncated.
-func ExpandIssueAndCommentLongTextFieldsForMSSQL(x base.EngineMigration) error {
+func ExpandIssueAndCommentLongTextFieldsForMSSQL(ctx context.Context, x base.EngineMigration) error {
 	if x.Dialect().URI().DBType != schemas.MSSQL {
 		return nil
 	}
 
-	if err := modifyLongTextColumnsForMSSQL(x, new(issueWithLongTextContent), "content"); err != nil {
+	if err := modifyLongTextColumnsForMSSQL(ctx, x, new(issueWithLongTextContent), "content"); err != nil {
 		return err
 	}
-	return modifyLongTextColumnsForMSSQL(x, new(commentWithLongTextFields), "content", "patch")
+	return modifyLongTextColumnsForMSSQL(ctx, x, new(commentWithLongTextFields), "content", "patch")
 }

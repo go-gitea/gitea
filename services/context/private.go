@@ -13,6 +13,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/process"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/web"
 	web_types "gitea.dev/modules/web/types"
 )
@@ -27,7 +28,7 @@ type PrivateContext struct {
 
 func init() {
 	web.RegisterResponseStatusProvider[*PrivateContext](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(privateContextKey).(*PrivateContext)
+		return GetPrivateContext(req)
 	})
 }
 
@@ -67,7 +68,7 @@ type privateContextKeyType struct{}
 var privateContextKey privateContextKeyType
 
 func GetPrivateContext(req *http.Request) *PrivateContext {
-	return req.Context().Value(privateContextKey).(*PrivateContext)
+	return reqctx.MustContextValue[*PrivateContext](req.Context(), privateContextKey)
 }
 
 func PrivateContexter() func(http.Handler) http.Handler {

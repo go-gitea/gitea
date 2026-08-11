@@ -42,19 +42,19 @@ type AdminEditBadgeForm struct {
 // Validate validates form fields
 func (f *AdminCreateBadgeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // Validate validates form fields
 func (f *AdminEditBadgeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // Validate validates form fields
 func (f *AdminCreateUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // AdminEditUserForm form for admin to create user
@@ -83,7 +83,7 @@ type AdminEditUserForm struct {
 // Validate validates form fields
 func (f *AdminEditUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // AdminDashboardForm form for admin dashboard operations
@@ -95,5 +95,5 @@ type AdminDashboardForm struct {
 // Validate validates form fields
 func (f *AdminDashboardForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }

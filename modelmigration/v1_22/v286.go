@@ -3,6 +3,7 @@
 package v1_22
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -100,7 +101,7 @@ func addObjectFormatNameToRepository(x base.EngineMigration) error {
 	return err
 }
 
-func AdjustDBForSha256(x base.EngineMigration) error {
+func AdjustDBForSha256(_ context.Context, x base.EngineMigration) error {
 	if err := expandHashReferencesToSha256(x); err != nil {
 		return err
 	}

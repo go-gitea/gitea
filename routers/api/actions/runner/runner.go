@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"slices"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
-	"gitea.dev/actions-proto-go/runner/v1/runnerv1connect"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
+	"gitea.dev/actionslib/runner/v1/runnerv1connect"
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"

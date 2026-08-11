@@ -563,7 +563,7 @@ func WikiPages(ctx *context.Context) {
 	}
 	allEntries.CustomSort(base.NaturalSortCompare)
 
-	entries, _, err := allEntries.GetCommitsInfo(ctx, ctx.Repo.RepoLink, wikiGitRepo, commit, treePath)
+	entries, _, err := allEntries.GetCommitsInfo(ctx, 0, ctx.Repo.RepoLink, wikiGitRepo, commit, treePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
@@ -655,7 +655,7 @@ func NewWiki(ctx *context.Context) {
 
 // NewWikiPost response for wiki create request
 func NewWikiPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWikiForm)
+	form := web.GetForm[*forms.NewWikiForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
 	if ctx.HasError() {
@@ -711,7 +711,7 @@ func EditWiki(ctx *context.Context) {
 
 // EditWikiPost response for wiki modify request
 func EditWikiPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWikiForm)
+	form := web.GetForm[*forms.NewWikiForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
 	if ctx.HasError() {

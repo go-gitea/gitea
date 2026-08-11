@@ -135,7 +135,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
 \alpha
 \]
 `,
-			`<pre class="code-block is-loading"><code class="language-math display">
+			`<pre class="code-block is-loading"><code class="language-math">
 \alpha
 </code></pre>
 `,
@@ -147,7 +147,7 @@ func TestMathRenderBlockIndent(t *testing.T) {
  \alpha
  \]
 `,
-			`<pre class="code-block is-loading"><code class="language-math display">
+			`<pre class="code-block is-loading"><code class="language-math">
 \alpha
 </code></pre>
 `,
@@ -162,7 +162,7 @@ a
    d
   \]
 `,
-			`<pre class="code-block is-loading"><code class="language-math display">
+			`<pre class="code-block is-loading"><code class="language-math">
 a
 b
 c
@@ -179,7 +179,7 @@ c
   c
   \]
 `,
-			`<pre class="code-block is-loading"><code class="language-math display">
+			`<pre class="code-block is-loading"><code class="language-math">
 a
  b
 c
@@ -190,7 +190,7 @@ c
 			"indent-0-oneline",
 			`$$ x $$
 foo`,
-			`<code class="language-math display"> x </code>
+			`<code class="language-math"> x </code>
 <p>foo</p>
 `,
 		},
@@ -198,7 +198,7 @@ foo`,
 			"indent-3-oneline",
 			`   $$ x $$<SPACE>
 foo`,
-			`<code class="language-math display"> x </code>
+			`<code class="language-math"> x </code>
 <p>foo</p>
 `,
 		},
@@ -213,10 +213,10 @@ foo`,
 > \]
 `,
 			`<blockquote>
-<pre class="code-block is-loading"><code class="language-math display">
+<pre class="code-block is-loading"><code class="language-math">
 a
 </code></pre>
-<pre class="code-block is-loading"><code class="language-math display">
+<pre class="code-block is-loading"><code class="language-math">
 b
 </code></pre>
 </blockquote>
@@ -232,7 +232,7 @@ b
 2. b`,
 			`<ol>
 <li>a
-<pre class="code-block is-loading"><code class="language-math display">
+<pre class="code-block is-loading"><code class="language-math">
 x
 </code></pre>
 </li>
@@ -288,7 +288,7 @@ a
 $$
 `)
 	setting.Markdown.MathCodeBlockOptions.ParseBlockDollar = true
-	test(t, `<pre class="code-block is-loading"><code class="language-math display">
+	test(t, `<pre class="code-block is-loading"><code class="language-math">
 a
 </code></pre>
 `, `
@@ -307,7 +307,7 @@ a
 \]
 `)
 	setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets = true
-	test(t, `<pre class="code-block is-loading"><code class="language-math display">
+	test(t, `<pre class="code-block is-loading"><code class="language-math">
 a
 </code></pre>
 `, `

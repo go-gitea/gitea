@@ -4,6 +4,8 @@
 package v1_27
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
@@ -19,7 +21,7 @@ func (teamWithVisibility) TableName() string {
 	return "team"
 }
 
-func AddVisibilityToTeam(x base.EngineMigration) error {
+func AddVisibilityToTeam(_ context.Context, x base.EngineMigration) error {
 	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreDropIndices: true,
 		IgnoreConstrains:  true,

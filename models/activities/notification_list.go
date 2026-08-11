@@ -106,7 +106,8 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		}
 		toNotify.AddMultiple(issueWatches...)
 		if !(issue.IsPull && issues_model.HasWorkInProgressPrefix(issue.Title)) {
-			repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID)
+			watchType := util.Iif(issue.IsPull, repo_model.WatchPullRequests, repo_model.WatchIssues)
+			repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID, watchType)
 			if err != nil {
 				return nil, err
 			}
@@ -117,6 +118,18 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 			return nil, err
 		}
 		toNotify.AddMultiple(issueParticipants...)
+		issueAssignees, err := issues_model.GetAssigneeIDsByIssue(ctx, issueID)
+		if err != nil {
+			return nil, err
+		}
+		toNotify.AddMultiple(issueAssignees...)
+		if issue.IsPull {
+			issueReviewers, err := issues_model.GetPullRequestRequestedReviewerIDs(ctx, issueID)
+			if err != nil {
+				return nil, err
+			}
+			toNotify.AddMultiple(issueReviewers...)
+		}
 
 		// don't notify user who cause notification
 		delete(toNotify, notificationAuthorID)
@@ -128,6 +141,15 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		for _, id := range issueUnWatches {
 			toNotify.Remove(id)
 		}
+	}
+
+	// muting the repository outranks every other source, including mentions
+	ignorers, err := repo_model.GetRepoIgnorersIDs(ctx, issue.RepoID)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range ignorers {
+		toNotify.Remove(id)
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {

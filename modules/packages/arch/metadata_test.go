@@ -104,6 +104,7 @@ func TestParsePackage(t *testing.T) {
 				data := createPackage(c, map[string][]byte{
 					".PKGINFO":        createPKGINFOContent(packageName, packageVersion),
 					"/test/dummy.txt": {},
+					"usr/lib/legit\n\n%FILES%\n/etc/cron.d/x": {}, // must not reach the file list
 				})
 
 				p, err := ParsePackage(data)
@@ -175,14 +176,14 @@ func TestParsePackageInfo(t *testing.T) {
 // metadata amplification from a package with a huge number of (tiny) file entries.
 func TestParsePackageTooManyFiles(t *testing.T) {
 	defer test.MockVariableValue(&maxFileEntries, 3)()
-	buf := test.WriteTarCompression(func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }, map[string]string{
+	buf := test.WriteTarCompression(gzip.NewWriter, map[string]string{
 		"file1":    "content1",
 		".PKGINFO": string(createPKGINFOContent(packageName, packageVersion)),
 	})
 	_, err := ParsePackage(buf)
 	assert.NoError(t, err)
 
-	buf = test.WriteTarCompression(func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }, map[string]string{
+	buf = test.WriteTarCompression(gzip.NewWriter, map[string]string{
 		"file1":    "content1",
 		"file2":    "content2",
 		"file3":    "content3",

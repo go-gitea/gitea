@@ -144,7 +144,7 @@ func (repo *Repository) GetTagInfos(ctx context.Context, page, pageSize int) ([]
 			sortTagsByTime(tags)
 			tagsTotal = len(tags)
 			if page != 0 {
-				tags = util.PaginateSlice(tags, page, pageSize).([]*Tag)
+				tags = util.PaginateSlice(tags, page, pageSize)
 			}
 			return nil
 		}).

@@ -115,7 +115,7 @@ func NewUser(ctx *context.Context) {
 
 // NewUserPost response for adding a new user
 func NewUserPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminCreateUserForm)
+	form := web.GetForm[*forms.AdminCreateUserForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
@@ -196,7 +196,31 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
-		handleAdminCreateUserError(ctx, err, form)
+		var errNameReserved db.ErrNameReserved
+		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
+		var errNameCharsNotAllowed db.ErrNameCharsNotAllowed
+		switch {
+		case user_model.IsErrUserAlreadyExist(err):
+			ctx.Data["Err_UserName"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.username_been_taken"), tplUserNew, &form)
+		case user_model.IsErrEmailAlreadyUsed(err):
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserNew, &form)
+		case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, &form)
+		case errors.As(err, &errNameReserved):
+			ctx.Data["Err_UserName"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", errNameReserved.Name), tplUserNew, &form)
+		case errors.As(err, &errNamePatternNotAllowed):
+			ctx.Data["Err_UserName"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplUserNew, &form)
+		case errors.As(err, &errNameCharsNotAllowed):
+			ctx.Data["Err_UserName"] = true
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", errNameCharsNotAllowed.Name), tplUserNew, &form)
+		default:
+			ctx.ServerError("CreateUser", err)
+		}
 		return
 	}
 
@@ -213,32 +237,6 @@ func NewUserPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
-}
-
-// handleAdminCreateUserError renders the new-user page with a field-specific error message
-func handleAdminCreateUserError(ctx *context.Context, err error, form *forms.AdminCreateUserForm) {
-	switch {
-	case user_model.IsErrUserAlreadyExist(err):
-		ctx.Data["Err_UserName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.username_been_taken"), tplUserNew, form)
-	case user_model.IsErrEmailAlreadyUsed(err):
-		ctx.Data["Err_Email"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserNew, form)
-	case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
-		ctx.Data["Err_Email"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, form)
-	case db.IsErrNameReserved(err):
-		ctx.Data["Err_UserName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tplUserNew, form)
-	case db.IsErrNamePatternNotAllowed(err):
-		ctx.Data["Err_UserName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplUserNew, form)
-	case db.IsErrNameCharsNotAllowed(err):
-		ctx.Data["Err_UserName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tplUserNew, form)
-	default:
-		ctx.ServerError("CreateUser", err)
-	}
 }
 
 func prepareUserInfo(ctx *context.Context) *user_model.User {
@@ -350,7 +348,7 @@ func ViewUser(ctx *context.Context) {
 
 // NewBotTokenPost creates an access token for a bot user on behalf of an admin
 func NewBotTokenPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewAccessTokenForm)
+	form := web.GetForm[*forms.NewAccessTokenForm](ctx)
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
 		return
@@ -462,7 +460,7 @@ func EditUserPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
+	form := web.GetForm[*forms.AdminEditUserForm](ctx)
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplUserEdit)
 		return
@@ -712,7 +710,7 @@ func AvatarPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form := web.GetForm[*forms.AvatarForm](ctx)
 	if err := user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {

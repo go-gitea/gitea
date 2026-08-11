@@ -4,6 +4,7 @@
 package v1_14
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
@@ -12,7 +13,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-func FixPostgresIDSequences(x base.EngineMigration) error {
+func FixPostgresIDSequences(_ context.Context, x base.EngineMigration) error {
 	if !setting.Database.Type.IsPostgreSQL() {
 		return nil
 	}

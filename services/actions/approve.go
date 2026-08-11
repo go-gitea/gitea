@@ -14,9 +14,11 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
-func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) error {
+// ApproveRuns returns the approved runs in the same order as runIDs.
+func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) ([]*actions_model.ActionRun, error) {
 	updatedJobs := make([]*actions_model.ActionRunJob, 0)
 	cancelledConcurrencyJobs := make([]*actions_model.ActionRunJob, 0)
 	// Track runs whose reusable callers were just expanded so we can re-emit after the tx commits.
@@ -36,9 +38,15 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
 				return err
 			}
-			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, repo.ID, run.ID)
+			jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
 			if err != nil {
 				return err
+			}
+
+			// approval unblocks every job at once, so max-parallel has to cap them here too
+			slots := maxParallelSlots{}
+			for _, job := range jobs {
+				slots.hold(job, job.Status)
 			}
 
 			for _, job := range jobs {
@@ -47,12 +55,22 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 				if len(job.Needs) > 0 {
 					continue
 				}
+				// Only a job this approval unblocks competes for a slot, one that is already
+				// active was counted by the seeding loop above and must not take a second.
+				isUnblocking := job.Status == actions_model.StatusBlocked
+				// A slot-starved job cannot start, skip the following checks.
+				if isUnblocking && !slots.available(job) {
+					continue
+				}
 				var jobsToCancel []*actions_model.ActionRunJob
 				job.Status, jobsToCancel, err = PrepareToStartJobWithConcurrency(ctx, job)
 				if err != nil {
 					return err
 				}
 				cancelledConcurrencyJobs = append(cancelledConcurrencyJobs, jobsToCancel...)
+				if isUnblocking {
+					applyMaxParallel(job, slots)
+				}
 				if job.Status != actions_model.StatusWaiting {
 					continue
 				}
@@ -91,7 +109,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Re-emit AFTER the tx commits so the newly inserted callee rows transition Blocked -> Waiting.
@@ -106,5 +124,26 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
-	return nil
+	// The batches above already notified every run whose jobs changed, which is the only way
+	// approving alters a run's status, so reload purely to answer the caller.
+	reloaded, err := actions_model.GetRunsByRepoAndID(ctx, repo.ID, runIDs)
+	if err != nil {
+		return nil, fmt.Errorf("GetRunsByRepoAndID: %w", err)
+	}
+	runsByID := make(map[int64]*actions_model.ActionRun, len(reloaded))
+	for _, run := range reloaded {
+		run.Repo = repo // the caller resolved runIDs against this repo, so spare every consumer a reload
+		runsByID[run.ID] = run
+	}
+
+	approvedRuns := make([]*actions_model.ActionRun, 0, len(runIDs))
+	for _, runID := range runIDs {
+		run := runsByID[runID]
+		if run == nil {
+			return nil, util.NewNotExistErrorf("run %d no longer exists after approval", runID)
+		}
+		approvedRuns = append(approvedRuns, run)
+	}
+
+	return approvedRuns, nil
 }
