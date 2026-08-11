@@ -274,7 +274,7 @@ func TestIntegrationAndSanitization(t *testing.T) {
 						"execution_count": 1,
 						"data": {
 							"text/html": [
-								"<div><script>alert('XSS Vector')</script><table class=\"dataframe\"><tr><td>Safe Content</td></tr></table></div>"
+								"<div><script>foo</script><table class=other><tr><td>[[name=no-post-process|link=/link]]</td></tr></table></div>"
 							]
 						},
 						"metadata": {}
@@ -304,7 +304,7 @@ func TestIntegrationAndSanitization(t *testing.T) {
 			<div class="cell-left cell-prompt">Out [1]:</div>
 			<div class="cell-right cell-output">
 				<div class="cell-output-html">
-					<div><table><tbody><tr><td>Safe Content</td></tr></tbody></table></div>
+					<div><table><tr><td>[[name=no-post-process|link=/link]]</td></tr></table></div>
 				</div>
 			</div>
 		</div>
