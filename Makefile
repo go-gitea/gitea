@@ -11,12 +11,12 @@ COMMA := ,
 
 XGO_VERSION := go-1.26.x
 
-AIR_PACKAGE ?= github.com/air-verse/air@v1.67.3 # renovate: datasource=go
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.8.0 # renovate: datasource=go
+AIR_PACKAGE ?= github.com/air-verse/air@v1.67.4 # renovate: datasource=go
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.9.0 # renovate: datasource=go
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.16 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.35.3 # renovate: datasource=go
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.1 # renovate: datasource=go
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.6.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
@@ -212,7 +212,7 @@ fmt: ## format the Go and template code
 
 .PHONY: fmt-check
 fmt-check: fmt
-	@diff=$$(git diff --color=always $(GO_SOURCES) templates $(WEB_DIRS)); \
+	@diff=$$(git diff --color=always $(GO_SOURCES) templates); \
 	if [ -n "$$diff" ]; then \
 	  echo "Please run 'make fmt' and commit the result:"; \
 	  printf "%s" "$${diff}"; \
@@ -599,28 +599,6 @@ node_modules: pnpm-lock.yaml
 	@touch node_modules
 
 .venv: uv.lock
-	uv sync
-	@touch .venv
-
-.PHONY: update
-update: update-go update-js update-py ## update dependencies
-
-.PHONY: update-go
-update-go: ## update go dependencies
-	$(GO) get -u ./...
-	$(MAKE) tidy
-
-.PHONY: update-js
-update-js: node_modules ## update js dependencies
-	pnpm exec updates -u -f package.json
-	rm -rf node_modules pnpm-lock.yaml
-	pnpm install
-	@touch node_modules
-
-.PHONY: update-py
-update-py: node_modules ## update py dependencies
-	pnpm exec updates -u -f pyproject.toml
-	rm -rf .venv uv.lock
 	uv sync
 	@touch .venv
 
