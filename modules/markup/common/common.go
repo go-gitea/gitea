@@ -26,7 +26,7 @@ type globalVarsType struct {
 	DisallowedSchemes []string
 }
 
-const regexpScheme = `[a-z][-+.a-z0-9]*`
+const regexpScheme = `[a-zA-Z][-+.a-zA-Z0-9]*`
 
 var GlobalVars = sync.OnceValue(func() *globalVarsType {
 	v := &globalVarsType{}
@@ -48,7 +48,7 @@ func CheckLinkURLScheme(link string) CheckLinkURLSchemeResult {
 	if m == nil {
 		return CheckLinkURLSchemeResult{AllowToLinkify: true} // relative link is always valid
 	}
-	urlScheme := m[0]
+	urlScheme := strings.ToLower(m[0])
 	urlScheme = urlScheme[0 : len(urlScheme)-1] // remove the trailing ":"
 	allowed := len(vars.allowedSchemes) == 0 || slices.Contains(vars.allowedSchemes, urlScheme)
 	disabled := slices.Contains(vars.DisallowedSchemes, urlScheme)
