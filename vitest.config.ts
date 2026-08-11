@@ -1,25 +1,44 @@
 import {defineConfig} from 'vitest/config';
+import {playwright} from '@vitest/browser-playwright';
 import {sharedPlugins, vueDefines} from './tools/shared.ts';
 
 export default defineConfig({
   test: {
-    include: [
-      'web_src/**/*.test.ts',
-      'tools/eslint-rules/**/*.test.ts',
-    ],
-    setupFiles: ['web_src/js/vitest.setup.ts'],
-    environment: 'happy-dom',
     testTimeout: 20000,
-    open: false,
     allowOnly: true,
     passWithNoTests: true,
     globals: true,
     watch: false,
-    isolate: false,
     sequence: {
       concurrent: true,
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'browser',
+          include: ['web_src/**/*.test.ts'],
+          setupFiles: ['web_src/js/vitest.setup.ts'],
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            screenshotFailures: false,
+            instances: [{browser: 'chromium'}],
+          },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          include: ['tools/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+    ],
   },
   define: vueDefines,
   plugins: sharedPlugins(),
+  publicDir: false,
 });

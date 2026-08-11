@@ -1,8 +1,10 @@
 import {navigateToIframeLink} from './render-iframe.ts';
+import {navigateTo} from '../utils/testhelper.ts';
+
+vi.mock('../utils/testhelper.ts', () => ({navigateTo: vi.fn()}));
 
 describe('navigateToIframeLink', () => {
   const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-  const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
 
   test('safe links', () => {
     navigateToIframeLink('http://example.com', '_blank');
@@ -10,20 +12,20 @@ describe('navigateToIframeLink', () => {
     vi.clearAllMocks();
 
     navigateToIframeLink('https://example.com', '_self');
-    expect(assignSpy).toHaveBeenCalledWith('https://example.com/');
+    expect(navigateTo).toHaveBeenCalledWith('https://example.com/');
     vi.clearAllMocks();
 
     navigateToIframeLink('https://example.com', null);
-    expect(assignSpy).toHaveBeenCalledWith('https://example.com/');
+    expect(navigateTo).toHaveBeenCalledWith('https://example.com/');
     vi.clearAllMocks();
 
     navigateToIframeLink('/path', '');
-    expect(assignSpy).toHaveBeenCalledWith('http://localhost:3000/path');
+    expect(navigateTo).toHaveBeenCalledWith(`${window.location.origin}/path`);
     vi.clearAllMocks();
 
     // input can be any type & any value, keep the same behavior as `window.location.href = 0`
     navigateToIframeLink(0, {});
-    expect(assignSpy).toHaveBeenCalledWith('http://localhost:3000/0');
+    expect(navigateTo).toHaveBeenCalledWith(`${window.location.origin}/0`);
     vi.clearAllMocks();
   });
 
@@ -33,14 +35,12 @@ describe('navigateToIframeLink', () => {
     // eslint-disable-next-line no-script-url
     navigateToIframeLink('javascript:void(0);', '_blank');
     expect(openSpy).toHaveBeenCalledTimes(0);
-    expect(assignSpy).toHaveBeenCalledTimes(0);
-    expect(window.location.href).toBe('http://localhost:3000/');
+    expect(navigateTo).toHaveBeenCalledTimes(0);
     vi.clearAllMocks();
 
     navigateToIframeLink('data:image/svg+xml;utf8,<svg></svg>', '');
     expect(openSpy).toHaveBeenCalledTimes(0);
-    expect(assignSpy).toHaveBeenCalledTimes(0);
-    expect(window.location.href).toBe('http://localhost:3000/');
+    expect(navigateTo).toHaveBeenCalledTimes(0);
     errorSpy.mockRestore();
     vi.clearAllMocks();
   });

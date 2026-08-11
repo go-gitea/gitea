@@ -389,7 +389,7 @@ test-backend: ## test backend files
 	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend: node_modules ## test frontend files
+test-frontend: playwright ## test frontend files
 	pnpm exec vitest
 
 .PHONY: test-check

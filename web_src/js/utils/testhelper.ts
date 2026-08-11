@@ -1,8 +1,11 @@
-// there could be different "testing" concepts, for example: backend's "setting.IsInTesting"
-// even if backend is in testing mode, frontend could be complied in production mode
-// so this function only checks if the frontend is in unit testing mode (usually from *.test.ts files)
-export function isInFrontendUnitTest() {
-  return import.meta.env.MODE === 'test';
+// browser tests can not stub "window.location", so navigation goes through these wrappers instead
+
+export function navigateTo(href: string) {
+  window.location.assign(href);
+}
+
+export function reloadPage() {
+  window.location.reload();
 }
 
 /** strip common indentation from a string and trim it */

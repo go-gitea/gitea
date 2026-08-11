@@ -26,16 +26,16 @@ test('createElementFromAttrs', () => {
 });
 
 test('querySingleVisibleElem', () => {
-  let el = createElementFromHTML('<div></div>');
-  expect(querySingleVisibleElem(el, 'span')).toBeNull();
-  el = createElementFromHTML('<div><span>foo</span></div>');
-  expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('foo');
-  el = createElementFromHTML('<div><span style="display: none;">foo</span><span>bar</span></div>');
-  expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('bar');
-  el = createElementFromHTML('<div><span class="some-class tw-hidden">foo</span><span>bar</span></div>');
-  expect(querySingleVisibleElem(el, 'span')!.textContent).toEqual('bar');
-  el = createElementFromHTML('<div><span>foo</span><span>bar</span></div>');
-  expect(() => querySingleVisibleElem(el, 'span')).toThrow('Expected exactly one visible element');
+  // a real browser only computes layout for elements in the document
+  const querySpan = (html: string) => {
+    document.body.innerHTML = html;
+    return querySingleVisibleElem(document.body, 'span');
+  };
+  expect(querySpan('<div></div>')).toBeNull();
+  expect(querySpan('<div><span>foo</span></div>')!.textContent).toEqual('foo');
+  expect(querySpan('<div><span style="display: none;">foo</span><span>bar</span></div>')!.textContent).toEqual('bar');
+  expect(querySpan('<div><span class="some-class tw-hidden">foo</span><span>bar</span></div>')!.textContent).toEqual('bar');
+  expect(() => querySpan('<div><span>foo</span><span>bar</span></div>')).toThrow('Expected exactly one visible element');
 });
 
 test('queryElemChildren', () => {

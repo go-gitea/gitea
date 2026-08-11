@@ -1,7 +1,8 @@
 import {GET} from '../modules/fetch.ts';
 import {matchEmoji, matchMention} from './match.ts';
 
-vi.mock('../modules/fetch.ts', () => ({
+vi.mock('../modules/fetch.ts', async (importOriginal) => ({
+  ...await importOriginal<object>(),
   GET: vi.fn(),
 }));
 

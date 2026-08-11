@@ -3,7 +3,8 @@ import {POST} from '../modules/fetch.ts';
 import {createSortable} from '../modules/sortable.ts';
 import type {SortableEvent} from 'sortablejs';
 
-vi.mock('../modules/fetch.ts', () => ({
+vi.mock('../modules/fetch.ts', async (importOriginal) => ({
+  ...await importOriginal<object>(),
   POST: vi.fn(),
 }));
 
