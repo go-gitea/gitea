@@ -100,7 +100,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
-	task, job, err = buildRunnerTask(ctx, t)
+	task, job, err = buildRunnerTask(ctx, t, runner)
 	if err != nil {
 		// The job was already claimed but assembling its payload failed; release the
 		// claim so the job returns to the waiting queue instead of being stranded in
@@ -130,7 +130,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 
 // buildRunnerTask assembles the runner-facing task payload for an already-claimed
 // task. All operations are read-only; on error the caller releases the claim.
-func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
+func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask, runner *actions_model.ActionRunner) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
 	if err := t.LoadAttributes(ctx); err != nil {
 		return nil, nil, fmt.Errorf("task LoadAttributes: %w", err)
 	}
@@ -151,7 +151,7 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 		return nil, nil, fmt.Errorf("findTaskNeeds: %w", err)
 	}
 
-	taskContext, err := generateTaskContext(ctx, t)
+	taskContext, err := generateTaskContext(ctx, t, runner)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generateTaskContext: %w", err)
 	}
@@ -166,13 +166,16 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask) (*runnerv
 	}, job, nil
 }
 
-func generateTaskContext(ctx context.Context, t *actions_model.ActionTask) (*structpb.Struct, error) {
+func generateTaskContext(ctx context.Context, t *actions_model.ActionTask, runner *actions_model.ActionRunner) (*structpb.Struct, error) {
 	giteaRuntimeToken, err := CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
 	if err != nil {
 		return nil, err
 	}
 
 	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
+	if t.Job.ParentJobID > 0 && !runner.HasWorkflowCallOriginalEventSupport {
+		gitCtx["event_name"] = "workflow_call"
+	}
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken
 

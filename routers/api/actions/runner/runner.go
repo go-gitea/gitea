@@ -70,18 +70,20 @@ func (s *Service) Register(
 
 	labels := req.Msg.Labels
 	hasCancellingSupport := slices.Contains(req.Msg.GetCapabilities(), runnerCapabilityCancelling)
+	hasWorkflowCallOriginalEventSupport := slices.Contains(req.Msg.GetCapabilities(), runnerCapabilityWorkflowCallOriginalEvent)
 
 	// create new runner
 	name := util.EllipsisDisplayString(req.Msg.Name, 255)
 	runner := &actions_model.ActionRunner{
-		UUID:                 gouuid.New().String(),
-		Name:                 name,
-		OwnerID:              runnerToken.OwnerID,
-		RepoID:               runnerToken.RepoID,
-		Version:              req.Msg.Version,
-		AgentLabels:          labels,
-		Ephemeral:            req.Msg.Ephemeral,
-		HasCancellingSupport: hasCancellingSupport,
+		UUID:                                gouuid.New().String(),
+		Name:                                name,
+		OwnerID:                             runnerToken.OwnerID,
+		RepoID:                              runnerToken.RepoID,
+		Version:                             req.Msg.Version,
+		AgentLabels:                         labels,
+		Ephemeral:                           req.Msg.Ephemeral,
+		HasCancellingSupport:                hasCancellingSupport,
+		HasWorkflowCallOriginalEventSupport: hasWorkflowCallOriginalEventSupport,
 	}
 	runner.GenerateAndFillToken()
 
@@ -114,7 +116,10 @@ func (s *Service) Register(
 // runnerCapabilityCancelling is the wire string the runner advertises in its
 // capabilities list to indicate it understands the transitional cancelling
 // state and will run post-step cleanup before finalizing the task.
-const runnerCapabilityCancelling = "cancelling"
+const (
+	runnerCapabilityCancelling                = "cancelling"
+	runnerCapabilityWorkflowCallOriginalEvent = "workflow-call-original-event"
+)
 
 type declareRequest interface {
 	proto.Message
@@ -132,6 +137,12 @@ func applyDeclareRequestToRunner(runner *actions_model.ActionRunner, req declare
 	if runner.HasCancellingSupport != hasCancellingSupport {
 		runner.HasCancellingSupport = hasCancellingSupport
 		cols = append(cols, "has_cancelling_support")
+	}
+
+	hasWorkflowCallOriginalEventSupport := slices.Contains(req.GetCapabilities(), runnerCapabilityWorkflowCallOriginalEvent)
+	if runner.HasWorkflowCallOriginalEventSupport != hasWorkflowCallOriginalEventSupport {
+		runner.HasWorkflowCallOriginalEventSupport = hasWorkflowCallOriginalEventSupport
+		cols = append(cols, "has_workflow_call_original_event_support")
 	}
 
 	return cols

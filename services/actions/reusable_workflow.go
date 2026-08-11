@@ -293,7 +293,6 @@ func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, att
 	if event, ok := gitCtx["event"].(map[string]any); ok {
 		event["inputs"] = inputs
 	}
-	gitCtx["event_name"] = "workflow_call"
 
 	childWorkflows, err := jobparser.Parse(content,
 		jobparser.WithVars(vars),

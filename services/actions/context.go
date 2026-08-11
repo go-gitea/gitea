@@ -121,12 +121,6 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 					event["inputs"] = cp.Inputs
 				}
 			}
-
-			// Override gitea.event_name to "workflow_call", so that the runner-side `getEvaluatorInputs` can get inputs from event["inputs"].
-			// https://gitea.com/gitea/runner/src/commit/0b9f251b6abb30d5f292a49cfe0c611f7c26d857/act/runner/expression.go#L509
-			// FIXME: The trade-off is that `${{ gitea.event_name }}` inside a reusable workflow's child job reads "workflow_call"
-			// instead of the caller's real trigger event name (push/pull_request/etc.) This is a small deviation from GitHub spec.
-			gitContext["event_name"] = "workflow_call"
 		}
 	}
 

@@ -146,6 +146,48 @@ jobs:
 	assert.Equal(t, 3, children)
 }
 
+func TestInsertCallerChildrenPreservesTriggerEvent(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, Index: 9705, TriggerUserID: 1, TriggerEvent: "push", EventPayload: "{}",
+	}
+	require.NoError(t, db.Insert(ctx, run))
+	require.NoError(t, run.LoadAttributes(ctx))
+
+	attempt := &actions_model.ActionRunAttempt{RepoID: run.RepoID, RunID: run.ID, Attempt: 1}
+	require.NoError(t, db.Insert(ctx, attempt))
+
+	caller := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, RepoID: run.RepoID, OwnerID: run.OwnerID,
+		JobID: "caller", AttemptJobID: 1, IsReusableCaller: true,
+	}
+	require.NoError(t, db.Insert(ctx, caller))
+
+	called := []byte(`name: called
+on:
+  workflow_call:
+jobs:
+  build:
+    runs-on: ${{ gitea.event_name == 'push' && 'ubuntu-latest' || 'wrong-runner' }}
+    steps:
+      - run: echo hi
+`)
+	require.NoError(t, insertCallerChildren(ctx, run, attempt, caller, called, run.RepoID, run.CommitSHA, nil, nil))
+
+	var child *actions_model.ActionRunJob
+	for _, job := range runJobs(t, run.ID, attempt.ID) {
+		if job.ParentJobID == caller.ID {
+			child = job
+			break
+		}
+	}
+
+	require.NotNil(t, child)
+	assert.Equal(t, []string{"ubuntu-latest"}, child.RunsOn)
+}
+
 // An approval-gated run inserts every job as Blocked, so the cap has to be applied on approval.
 func TestApproveRuns_MaxParallel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
