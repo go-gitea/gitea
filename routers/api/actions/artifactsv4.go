@@ -619,6 +619,8 @@ func (r *artifactV4Routes) listArtifacts(ctx *ArtifactContext) {
 
 	list := []*ListArtifactsResponse_MonolithArtifact{}
 
+	// both filters pick from what this attempt may read, so they run after the shadowed artifacts are gone:
+	// a shadowed artifact is not downloadable either, GetSignedArtifactURL resolves by name
 	table := map[string]*ListArtifactsResponse_MonolithArtifact{}
 	for _, artifact := range artifacts {
 		if _, ok := table[artifact.ArtifactName]; ok || req.IdFilter != nil && artifact.ID != req.IdFilter.Value || req.NameFilter != nil && artifact.ArtifactName != req.NameFilter.Value {
