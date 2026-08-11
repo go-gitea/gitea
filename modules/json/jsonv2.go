@@ -80,7 +80,11 @@ type jsonV2Encoder struct {
 }
 
 func (e *jsonV2Encoder) Encode(v any) error {
-	return jsonv2.MarshalWrite(e.writer, v, e.opts)
+	if err := jsonv2.MarshalWrite(e.writer, v, e.opts); err != nil {
+		return err
+	}
+	_, err := e.writer.Write([]byte{'\n'}) // match encoding/json.Encoder.Encode
+	return err
 }
 
 type jsonV2Decoder struct {

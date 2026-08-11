@@ -26,3 +26,12 @@ func TestIndent(t *testing.T) {
 >  "a": 1
 >}`, buf.String())
 }
+
+func TestEncoderEncodeTrailingNewline(t *testing.T) {
+	buf := &bytes.Buffer{}
+	enc := NewEncoder(buf)
+	assert.NoError(t, enc.Encode(map[string]int{"a": 1}))
+	assert.NoError(t, enc.Encode(map[string]int{"b": 2}))
+	assert.Equal(t, 2, bytes.Count(buf.Bytes(), []byte{'\n'}))
+	assert.True(t, bytes.HasSuffix(buf.Bytes(), []byte{'\n'}))
+}
