@@ -24,6 +24,9 @@ SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a
 
 CONTAINER_RUNTIME ?= $(shell hash docker >/dev/null 2>&1 && echo docker || echo podman)
 
+PLAYWRIGHT_BROWSERS ?= chromium firefox
+PLAYWRIGHT_FLAGS ?=
+
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 ifeq ($(HAS_GO), yes)
 	CGO_EXTRA_CFLAGS := -DSQLITE_MAX_VARIABLE_NUMBER=32766
@@ -389,8 +392,7 @@ test-backend: ## test backend files
 	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend: deps-frontend ## test frontend files
-	@./tools/playwright.sh $(PLAYWRIGHT_FLAGS) chromium
+test-frontend: playwright ## test frontend files
 	pnpm exec vitest
 
 .PHONY: test-check
@@ -485,7 +487,7 @@ migrations.individual.test\#%:
 
 .PHONY: playwright
 playwright: deps-frontend
-	@./tools/playwright.sh $(PLAYWRIGHT_FLAGS) chromium firefox
+	@./tools/playwright.sh $(PLAYWRIGHT_FLAGS) $(PLAYWRIGHT_BROWSERS)
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
