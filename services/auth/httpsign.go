@@ -77,9 +77,6 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		log.Error("GetUserByID:  %v", err)
 		return nil, err
 	}
-
-	store.GetData()["IsApiToken"] = true
-
 	log.Trace("HTTP Sign: Logged in user %-v", u)
 
 	return u, nil
