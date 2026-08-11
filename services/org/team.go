@@ -27,15 +27,20 @@ import (
 	"xorm.io/builder"
 )
 
-// recordTeamMemberAudit emits a team membership audit event scoped to the
-// owning organization.
-func recordTeamMemberAudit(ctx context.Context, action audit_model.Action, team *organization.Team, member *user_model.User) {
+// recordTeamAudit emits a team-related audit event scoped to the owning organization.
+func recordTeamAudit(ctx context.Context, action audit_model.Action, team *organization.Team, metadata ...any) {
 	org, err := organization.GetOrgByID(ctx, team.OrgID)
 	if err != nil {
 		log.Error("audit: GetOrgByID(%d): %v", team.OrgID, err)
 		return
 	}
-	audit.Record(ctx, action, org, "team", team.Name, "member", member.Name)
+	audit.Record(ctx, action, org, metadata...)
+}
+
+// recordTeamMemberAudit emits a team membership audit event scoped to the
+// owning organization.
+func recordTeamMemberAudit(ctx context.Context, action audit_model.Action, team *organization.Team, member *user_model.User) {
+	recordTeamAudit(ctx, action, team, "team", team.Name, "member", member.Name)
 }
 
 // NewTeam creates a record of new team.
@@ -99,11 +104,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		return err
 	}
 
-	if org, err := organization.GetOrgByID(ctx, t.OrgID); err != nil {
-		log.Error("audit: GetOrgByID(%d): %v", t.OrgID, err)
-	} else {
-		audit.Record(ctx, audit_model.OrganizationTeamAdd, org, "team", t.Name)
-	}
+	recordTeamAudit(ctx, audit_model.OrganizationTeamAdd, t, "team", t.Name)
 
 	return nil
 }
@@ -182,13 +183,9 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		return err
 	}
 
-	if org, err := organization.GetOrgByID(ctx, t.OrgID); err != nil {
-		log.Error("audit: GetOrgByID(%d): %v", t.OrgID, err)
-	} else {
-		audit.Record(ctx, audit_model.OrganizationTeamUpdate, org, "team", t.Name)
-		if authChanged {
-			audit.Record(ctx, audit_model.OrganizationTeamPermission, org, "team", t.Name, "permission", t.AccessMode.ToString())
-		}
+	recordTeamAudit(ctx, audit_model.OrganizationTeamUpdate, t, "team", t.Name)
+	if authChanged {
+		recordTeamAudit(ctx, audit_model.OrganizationTeamPermission, t, "team", t.Name, "permission", t.AccessMode.ToString())
 	}
 
 	return nil
@@ -245,11 +242,7 @@ func DeleteTeam(ctx context.Context, t *organization.Team) error {
 		return err
 	}
 
-	if org, err := organization.GetOrgByID(ctx, t.OrgID); err != nil {
-		log.Error("audit: GetOrgByID(%d): %v", t.OrgID, err)
-	} else {
-		audit.Record(ctx, audit_model.OrganizationTeamRemove, org, "team", t.Name)
-	}
+	recordTeamAudit(ctx, audit_model.OrganizationTeamRemove, t, "team", t.Name)
 
 	return nil
 }

@@ -12,7 +12,6 @@ import (
 	"path"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -274,12 +273,7 @@ func createWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
-	orCtx.recordWebhookAudit(ctx, audit.ScopedActions{
-		Repo:   audit_model.RepositoryWebhookAdd,
-		Org:    audit_model.OrganizationWebhookAdd,
-		User:   audit_model.UserWebhookAdd,
-		System: audit_model.SystemWebhookAdd,
-	}, w.URL)
+	orCtx.recordWebhookAudit(ctx, audit.WebhookAdd, w.URL)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
@@ -334,12 +328,7 @@ func editWebhook(ctx *context.Context, params webhookParams) {
 		return
 	}
 
-	orCtx.recordWebhookAudit(ctx, audit.ScopedActions{
-		Repo:   audit_model.RepositoryWebhookUpdate,
-		Org:    audit_model.OrganizationWebhookUpdate,
-		User:   audit_model.UserWebhookUpdate,
-		System: audit_model.SystemWebhookUpdate,
-	}, w.URL)
+	orCtx.recordWebhookAudit(ctx, audit.WebhookUpdate, w.URL)
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
@@ -776,7 +765,7 @@ func DeleteWebhook(ctx *context.Context) {
 	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
-		audit.Record(ctx, audit_model.RepositoryWebhookRemove, ctx.Repo.Repository, "webhook", hook.URL)
+		audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.WebhookRemove, "webhook", hook.URL)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}

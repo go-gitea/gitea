@@ -28,13 +28,13 @@ func ViewAuditLogs(ctx *context.Context) {
 
 func ExportAuditLogs(ctx *context.Context) {
 	page := 1
-	findPage := func() ([]*audit.Event, error) {
+	findPage := func() ([]*audit_model.Event, error) {
 		events, _, err := audit.FindEvents(ctx, &audit_model.EventSearchOptions{
-			Sort: audit_model.SortTimestampAsc,
-			Paginator: &db.ListOptions{
+			ListOptions: db.ListOptions{
 				Page:     page,
 				PageSize: auditExportPageSize,
 			},
+			Sort: audit_model.SortTimestampAsc,
 		})
 		return events, err
 	}

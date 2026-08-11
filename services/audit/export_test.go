@@ -14,6 +14,7 @@ import (
 	repository_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -27,17 +28,17 @@ func TestWriteEventsAsJSON(t *testing.T) {
 
 	e := buildEvent(ctx, RecordParams{
 		Action: audit_model.RepositoryMirrorPushAdd,
-		Actor:  ActorFromUser(doer),
+		Actor:  actorFromUser(doer),
 		Scope:  ScopeFromRepository(r),
 		Metadata: metaPairs(
 			"mirror_id", m.ID,
 			"remote_address", m.RemoteAddress,
 		),
 	})
-	e.Time = time.Time{}
+	e.TimestampUnix = timeutil.TimeStamp(time.Time{}.Unix())
 
 	sb := strings.Builder{}
-	assert.NoError(t, WriteEventsAsJSON(&sb, []*Event{e, e}))
+	assert.NoError(t, WriteEventsAsJSON(&sb, []*audit_model.Event{e, e}))
 	out := sb.String()
 	assert.Equal(t, 2, strings.Count(out, "\n"))
 	assert.Contains(t, out, `"action":"repository:mirror:push:add"`)

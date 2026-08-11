@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	packages_model "gitea.dev/models/packages"
 	repo_model "gitea.dev/models/repo"
@@ -184,7 +183,7 @@ func DeleteWebhook(ctx *context.Context) {
 	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Org.Organization.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
-		audit.Record(ctx, audit_model.OrganizationWebhookRemove, ctx.Org.Organization.AsUser(), "webhook", hook.URL)
+		audit.RecordScoped(ctx, ctx.Org.Organization.AsUser(), nil, audit.WebhookRemove, "webhook", hook.URL)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}

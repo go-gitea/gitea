@@ -19,7 +19,6 @@ import (
 
 	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -42,7 +41,6 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/common"
 	actions_service "gitea.dev/services/actions"
-	"gitea.dev/services/audit"
 	context_module "gitea.dev/services/context"
 )
 
@@ -1385,11 +1383,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}
-	action := audit_model.ActionsWorkflowDisable
-	if isEnable {
-		action = audit_model.ActionsWorkflowEnable
-	}
-	audit.Record(ctx, action, ctx.Repo.Repository, "workflow", workflow)
+	actions_service.RecordWorkflowToggle(ctx, ctx.Repo.Repository, workflow, isEnable)
 
 	if isEnable {
 		ctx.Flash.Success(ctx.Tr("actions.workflow.enable_success", workflow))

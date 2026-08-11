@@ -40,14 +40,6 @@
 					<td><code>{{.Origin}}</code></td>
 					<td>
 						{{.Message}}
-						{{if .Metadata}}
-							<dl class="tw-text-xs tw-m-0">
-								{{range $k, $v := .Metadata}}
-									<dt class="tw-inline tw-font-medium">{{$k}}:</dt>
-									<dd class="tw-inline tw-ml-1 tw-mr-2">{{$v}}</dd>
-								{{end}}
-							</dl>
-						{{end}}
 					</td>
 					<td>{{.IPAddress}}</td>
 					<td>{{DateUtils.FullTime .Time}}</td>

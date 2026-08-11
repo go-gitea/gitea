@@ -50,7 +50,7 @@ Each stored event contains:
 - **metadata**: JSON object with action-specific details supplied by the caller
 - **time**: ISO 8601 timestamp when the action happened
 - **ip_address**: IP address from which the request originated
-- **origin**: how the event was initiated: `ui`, `api`, or `cli`
+- **origin**: how the event was initiated: `ui`, `api`, `cli`, or `system`
 
 Example JSONL record:
 

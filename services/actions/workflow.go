@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/actionslib/pkg/model"
@@ -21,13 +22,13 @@ import (
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
-	"gitea.dev/services/context"
+	gitea_context "gitea.dev/services/context"
 	"gitea.dev/services/convert"
 
 	"go.yaml.in/yaml/v4"
 )
 
-func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
+func EnableOrDisableWorkflow(ctx *gitea_context.APIContext, workflowID string, isEnable bool) error {
 	workflow, err := convert.GetActionWorkflow(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, workflowID)
 	if err != nil {
 		return err
@@ -46,12 +47,17 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 		return err
 	}
 
+	RecordWorkflowToggle(ctx, ctx.Repo.Repository, workflow.ID, isEnable)
+	return nil
+}
+
+// RecordWorkflowToggle writes the enable/disable audit event for a workflow.
+func RecordWorkflowToggle(ctx context.Context, repo *repo_model.Repository, workflowID string, isEnable bool) {
 	action := audit_model.ActionsWorkflowDisable
 	if isEnable {
 		action = audit_model.ActionsWorkflowEnable
 	}
-	audit.Record(ctx, action, ctx.Repo.Repository, "workflow", workflow.ID)
-	return nil
+	audit.Record(ctx, action, repo, "workflow", workflowID)
 }
 
 // DispatchActionWorkflow manually triggers a workflow_dispatch run.

@@ -15,7 +15,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/services/audit"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -70,14 +69,14 @@ func TestAdminAuditLogExport(t *testing.T) {
 		found := false
 		scanner := bufio.NewScanner(resp.Body)
 		for scanner.Scan() {
-			var event audit.Event
+			var event audit_model.Event
 			require.NoError(t, json.Unmarshal(scanner.Bytes(), &event))
 			if event.Message == "Export test event" {
 				found = true
 				assert.Equal(t, audit_model.UserCreate, event.Action)
-				assert.Equal(t, "audit-export-actor", event.Actor.Name)
-				assert.Equal(t, "audit-export-scope", event.Scope.Name)
-				assert.Equal(t, "integration-test", event.Metadata["source"])
+				assert.Equal(t, "audit-export-actor", event.Actor().Name)
+				assert.Equal(t, "audit-export-scope", event.Scope().Name)
+				assert.Equal(t, "integration-test", audit_model.DecodeMetadata(event.Metadata)["source"])
 				assert.Equal(t, "192.0.2.1", event.IPAddress)
 				assert.Equal(t, audit_model.OriginAPI, event.Origin)
 			}

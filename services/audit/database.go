@@ -7,22 +7,9 @@ import (
 	"context"
 
 	audit_model "gitea.dev/models/audit"
-	"gitea.dev/modules/timeutil"
 )
 
-func writeToDatabase(ctx context.Context, e *Event) error {
-	_, err := audit_model.InsertEvent(ctx, &audit_model.Event{
-		Action:        e.Action,
-		ActorID:       e.Actor.ID,
-		ActorName:     e.Actor.DisplayName(),
-		ScopeType:     e.Scope.Type,
-		ScopeID:       e.Scope.ID,
-		ScopeName:     e.Scope.DisplayName(),
-		Origin:        e.Origin,
-		Message:       e.Message,
-		Metadata:      encodeMetadata(e.Metadata),
-		IPAddress:     e.IPAddress,
-		TimestampUnix: timeutil.TimeStamp(e.Time.Unix()),
-	})
+func writeToDatabase(ctx context.Context, e *audit_model.Event) error {
+	_, err := audit_model.InsertEvent(ctx, e)
 	return err
 }

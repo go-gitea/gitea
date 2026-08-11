@@ -37,13 +37,13 @@ func TestBuildEvent(t *testing.T) {
 	t.Run("MessageFromTemplate", func(t *testing.T) {
 		e := buildEvent(context.Background(), RecordParams{
 			Action: audit_model.UserCreate,
-			Actor:  ActorFromUser(doer),
+			Actor:  actorFromUser(doer),
 			Scope:  ScopeFromUser(u),
 		})
 
 		assert.Equal(t, audit_model.UserCreate, e.Action)
-		assert.Equal(t, EntityRef{Type: audit_model.ScopeUser, ID: 2, Name: "Doer"}, e.Actor)
-		assert.Equal(t, EntityRef{Type: audit_model.ScopeUser, ID: 1, Name: "TestUser"}, e.Scope)
+		assert.Equal(t, audit_model.EntityRef{Type: audit_model.ScopeUser, ID: 2, Name: "Doer"}, e.Actor())
+		assert.Equal(t, audit_model.EntityRef{Type: audit_model.ScopeUser, ID: 1, Name: "TestUser"}, e.Scope())
 		assert.Equal(t, "Created user TestUser.", e.Message)
 	})
 
@@ -53,7 +53,7 @@ func TestBuildEvent(t *testing.T) {
 
 		e := buildEvent(context.Background(), RecordParams{
 			Action: audit_model.RepositoryMirrorPushAdd,
-			Actor:  ActorFromUser(doer),
+			Actor:  actorFromUser(doer),
 			Scope:  ScopeFromRepository(r),
 			Metadata: metaPairs(
 				"mirror_id", m.ID,
@@ -61,13 +61,13 @@ func TestBuildEvent(t *testing.T) {
 			),
 		})
 
-		assert.Equal(t, "TestUser/TestRepo", e.Scope.Name)
+		assert.Equal(t, "TestUser/TestRepo", e.ScopeName)
 		assert.Equal(t, "Added push mirror to git@example.com:repo.git for repository TestUser/TestRepo.", e.Message)
-		assert.Equal(t, m.ID, e.Metadata["mirror_id"])
+		assert.InDelta(t, float64(m.ID), audit_model.DecodeMetadata(e.Metadata)["mirror_id"], 0)
 	})
 
 	t.Run("IPAddressFromRequest", func(t *testing.T) {
-		params := RecordParams{Action: audit_model.UserCreate, Actor: ActorFromUser(doer), Scope: ScopeFromUser(u)}
+		params := RecordParams{Action: audit_model.UserCreate, Actor: actorFromUser(doer), Scope: ScopeFromUser(u)}
 
 		assert.Empty(t, buildEvent(context.Background(), params).IPAddress)
 
@@ -77,7 +77,7 @@ func TestBuildEvent(t *testing.T) {
 
 	t.Run("OriginFromRequest", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.AppSubURL, "/gitea")()
-		params := RecordParams{Action: audit_model.UserCreate, Actor: ActorFromUser(doer), Scope: ScopeFromUser(u)}
+		params := RecordParams{Action: audit_model.UserCreate, Actor: actorFromUser(doer), Scope: ScopeFromUser(u)}
 
 		assert.Equal(t, audit_model.OriginSystem, buildEvent(context.Background(), params).Origin)
 
@@ -96,7 +96,7 @@ func TestBuildEvent(t *testing.T) {
 }
 
 func TestEntityRefDisplay(t *testing.T) {
-	ref := EntityRef{Type: audit_model.ScopeUser, ID: 1, Name: "TestUser"}
+	ref := audit_model.EntityRef{Type: audit_model.ScopeUser, ID: 1, Name: "TestUser"}
 	assert.Equal(t, "TestUser", ref.DisplayName())
 	assert.Equal(t, "/TestUser", ref.HomeLink())
 	assert.True(t, ref.HasLink())
@@ -107,18 +107,18 @@ func TestEntityRefDisplay(t *testing.T) {
 	assert.False(t, sys.HasLink())
 
 	// a scope whose entity was deleted keeps its ID but has no name to link to
-	deleted := EntityRef{Type: audit_model.ScopeRepository, ID: 3}
+	deleted := audit_model.EntityRef{Type: audit_model.ScopeRepository, ID: 3}
 	assert.Empty(t, deleted.DisplayName())
 	assert.False(t, deleted.HasLink())
 
-	repo := EntityRef{Type: audit_model.ScopeRepository, ID: 3, Name: "Test User/Test Repo"}
+	repo := audit_model.EntityRef{Type: audit_model.ScopeRepository, ID: 3, Name: "Test User/Test Repo"}
 	assert.Equal(t, "/Test%20User/Test%20Repo", repo.HomeLink())
 	assert.True(t, repo.HasLink())
 }
 
 func TestEncodeDecodeMetadata(t *testing.T) {
-	raw := encodeMetadata(metaPairs("repo_id", int64(42), "repo", "o/r"))
-	decoded := decodeMetadata(raw)
+	raw := audit_model.EncodeMetadata(metaPairs("repo_id", int64(42), "repo", "o/r"))
+	decoded := audit_model.DecodeMetadata(raw)
 	assert.InDelta(t, 42.0, decoded["repo_id"], 0) // json numbers decode as float64
 	assert.Equal(t, "o/r", decoded["repo"])
 }
@@ -155,12 +155,14 @@ func TestActorRefWithoutDoer(t *testing.T) {
 }
 
 func TestRenderMessage(t *testing.T) {
-	actor := EntityRef{Type: audit_model.ScopeUser, ID: 1, Name: "Actor"}
-	scope := EntityRef{Type: audit_model.ScopeRepository, ID: 2, Name: "owner/repo"}
+	actor := audit_model.EntityRef{Type: audit_model.ScopeUser, ID: 1, Name: "Actor"}
+	scope := audit_model.EntityRef{Type: audit_model.ScopeRepository, ID: 2, Name: "owner/repo"}
 
 	t.Run("EveryActionHasATemplate", func(t *testing.T) {
 		for _, action := range audit_model.AllActions() {
-			assert.NotEmpty(t, messages[action], "action %q has no message template", action)
+			tmpl, ok := audit_model.MessageTemplate(action)
+			assert.True(t, ok, "action %q has no message template", action)
+			assert.NotEmpty(t, tmpl, "action %q has empty message template", action)
 		}
 	})
 

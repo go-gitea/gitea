@@ -39,6 +39,13 @@ func loadIssueRepo(ctx context.Context, issue *issues_model.Issue) *repo_model.R
 	return issue.Repo
 }
 
+func issueOrPR(issue *issues_model.Issue, issueAction, prAction audit_model.Action) (audit_model.Action, string) {
+	if issue.IsPull {
+		return prAction, "pull_request"
+	}
+	return issueAction, "issue"
+}
+
 func (n *auditNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
 	repo := loadIssueRepo(ctx, issue)
 	if repo == nil {
@@ -53,12 +60,7 @@ func (n *auditNotifier) DeleteIssue(ctx context.Context, doer *user_model.User, 
 	if repo == nil {
 		return
 	}
-	action := audit_model.IssueDelete
-	key := "issue"
-	if issue.IsPull {
-		action = audit_model.PullRequestDelete
-		key = "pull_request"
-	}
+	action, key := issueOrPR(issue, audit_model.IssueDelete, audit_model.PullRequestDelete)
 	RecordAs(ctx, doer, action, repo, key, issueLabel(issue), "issue_id", issue.ID, "title", issue.Title)
 }
 
@@ -93,12 +95,7 @@ func (n *auditNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 }
 
 func (n *auditNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment, _ []*user_model.User) {
-	action := audit_model.IssueCommentCreate
-	key := "issue"
-	if issue.IsPull {
-		action = audit_model.PullRequestCommentCreate
-		key = "pull_request"
-	}
+	action, key := issueOrPR(issue, audit_model.IssueCommentCreate, audit_model.PullRequestCommentCreate)
 	RecordAs(ctx, doer, action, repo, key, issueLabel(issue), "comment_id", comment.ID)
 }
 
@@ -113,12 +110,7 @@ func (n *auditNotifier) DeleteComment(ctx context.Context, doer *user_model.User
 	if repo == nil {
 		return
 	}
-	action := audit_model.IssueCommentDelete
-	key := "issue"
-	if comment.Issue.IsPull {
-		action = audit_model.PullRequestCommentDelete
-		key = "pull_request"
-	}
+	action, key := issueOrPR(comment.Issue, audit_model.IssueCommentDelete, audit_model.PullRequestCommentDelete)
 	RecordAs(ctx, doer, action, repo, key, issueLabel(comment.Issue), "comment_id", comment.ID)
 }
 

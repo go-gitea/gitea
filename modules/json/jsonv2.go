@@ -62,7 +62,7 @@ func (j *JSONv2) Unmarshal(data []byte, v any) error {
 }
 
 func (j *JSONv2) NewEncoder(writer io.Writer) Encoder {
-	return &jsonV2Encoder{writer: writer, opts: j.marshalOptions}
+	return &jsonV2Encoder{enc: jsontext.NewEncoder(writer), opts: j.marshalOptions}
 }
 
 func (j *JSONv2) NewDecoder(reader io.Reader) Decoder {
@@ -75,16 +75,12 @@ func (*JSONv2) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) erro
 }
 
 type jsonV2Encoder struct {
-	writer io.Writer
-	opts   jsonv2.Options
+	enc  *jsontext.Encoder
+	opts jsonv2.Options
 }
 
 func (e *jsonV2Encoder) Encode(v any) error {
-	if err := jsonv2.MarshalWrite(e.writer, v, e.opts); err != nil {
-		return err
-	}
-	_, err := e.writer.Write([]byte{'\n'}) // match encoding/json.Encoder.Encode
-	return err
+	return jsonv2.MarshalEncode(e.enc, v, e.opts) // jsontext.Encoder appends trailing '\n'
 }
 
 type jsonV2Decoder struct {

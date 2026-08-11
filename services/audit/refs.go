@@ -11,69 +11,61 @@ import (
 	"gitea.dev/modules/log"
 )
 
-// EntityRef is a denormalized reference persisted at record time.
-// The audit core only understands scope types; callers supply names and metadata.
-type EntityRef struct {
-	Type audit_model.ScopeType `json:"type"`
-	ID   int64                 `json:"id,omitempty"`
-	Name string                `json:"name,omitempty"`
-}
-
-func ActorFromUser(u *user_model.User) EntityRef {
+func actorFromUser(u *user_model.User) audit_model.EntityRef {
 	if u == nil {
-		return EntityRef{}
+		return audit_model.EntityRef{}
 	}
-	return EntityRef{Type: audit_model.ScopeUser, ID: u.ID, Name: u.Name}
+	return audit_model.EntityRef{Type: audit_model.ScopeUser, ID: u.ID, Name: u.Name}
 }
 
 // actorRef builds the actor reference of an event. An unresolvable actor means
 // an entry point neither runs inside an authenticated request nor called
 // WithDoer; record the event with an "Unknown" actor rather than dropping it,
 // and log so the missing entry point is visible.
-func actorRef(doer *user_model.User) EntityRef {
+func actorRef(doer *user_model.User) audit_model.EntityRef {
 	if doer == nil {
 		log.Error("audit: no actor in context, recording event as unknown actor")
-		return EntityRef{Type: audit_model.ScopeUser, Name: "Unknown"}
+		return audit_model.EntityRef{Type: audit_model.ScopeUser, Name: "Unknown"}
 	}
-	return ActorFromUser(doer)
+	return actorFromUser(doer)
 }
 
-func ScopeFromUser(u *user_model.User) EntityRef {
+func ScopeFromUser(u *user_model.User) audit_model.EntityRef {
 	if u == nil {
-		return EntityRef{}
+		return audit_model.EntityRef{}
 	}
 	if u.IsOrganization() {
-		return EntityRef{Type: audit_model.ScopeOrganization, ID: u.ID, Name: u.Name}
+		return audit_model.EntityRef{Type: audit_model.ScopeOrganization, ID: u.ID, Name: u.Name}
 	}
-	return EntityRef{Type: audit_model.ScopeUser, ID: u.ID, Name: u.Name}
+	return audit_model.EntityRef{Type: audit_model.ScopeUser, ID: u.ID, Name: u.Name}
 }
 
-func ScopeFromOrganization(org *organization_model.Organization) EntityRef {
+func ScopeFromOrganization(org *organization_model.Organization) audit_model.EntityRef {
 	if org == nil {
-		return EntityRef{}
+		return audit_model.EntityRef{}
 	}
-	return EntityRef{Type: audit_model.ScopeOrganization, ID: org.ID, Name: org.Name}
+	return audit_model.EntityRef{Type: audit_model.ScopeOrganization, ID: org.ID, Name: org.Name}
 }
 
-func ScopeFromRepository(repo *repository_model.Repository) EntityRef {
+func ScopeFromRepository(repo *repository_model.Repository) audit_model.EntityRef {
 	if repo == nil {
-		return EntityRef{}
+		return audit_model.EntityRef{}
 	}
-	return EntityRef{Type: audit_model.ScopeRepository, ID: repo.ID, Name: repo.FullName()}
+	return audit_model.EntityRef{Type: audit_model.ScopeRepository, ID: repo.ID, Name: repo.FullName()}
 }
 
-func ScopeSystem() EntityRef {
-	return EntityRef{Type: audit_model.ScopeSystem, Name: "System"}
+func ScopeSystem() audit_model.EntityRef {
+	return audit_model.EntityRef{Type: audit_model.ScopeSystem, Name: "System"}
 }
 
 // scopeRef derives an EntityRef from the affected entity passed to Record.
 // Supported types: *user_model.User, *organization_model.Organization,
 // *repository_model.Repository, EntityRef, or nil for an instance-wide event.
-func scopeRef(scope any) EntityRef {
+func scopeRef(scope any) audit_model.EntityRef {
 	switch s := scope.(type) {
 	case nil:
 		return ScopeSystem()
-	case EntityRef:
+	case audit_model.EntityRef:
 		return s
 	case *user_model.User:
 		return ScopeFromUser(s)

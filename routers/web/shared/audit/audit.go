@@ -39,13 +39,13 @@ func View(ctx *context.Context, opts ViewOptions) {
 	sort := util.Iif(ctx.FormString("sort") == audit_model.SortTimestampAsc, audit_model.SortTimestampAsc, audit_model.SortTimestampDesc)
 
 	searchOpts := &audit_model.EventSearchOptions{
-		Sort:      sort,
-		ScopeType: opts.ScopeType,
-		ScopeID:   opts.ScopeID,
-		Paginator: &db.ListOptions{
+		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.Admin.NoticePagingNum,
 		},
+		Sort:      sort,
+		ScopeType: opts.ScopeType,
+		ScopeID:   opts.ScopeID,
 	}
 
 	ctx.Data["AuditSort"] = searchOpts.Sort

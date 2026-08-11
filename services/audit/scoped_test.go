@@ -14,12 +14,7 @@ import (
 )
 
 func TestResolveScope(t *testing.T) {
-	actions := ScopedActions{
-		Repo:   audit_model.RepositoryWebhookAdd,
-		Org:    audit_model.OrganizationWebhookAdd,
-		User:   audit_model.UserWebhookAdd,
-		System: audit_model.SystemWebhookAdd,
-	}
+	actions := WebhookAdd
 
 	org := &user_model.User{ID: 10, Name: "MyOrg", Type: user_model.UserTypeOrganization}
 	usr := &user_model.User{ID: 11, Name: "MyUser", Type: user_model.UserTypeIndividual}
@@ -66,7 +61,7 @@ func TestRecordHelpersNeverPanic(t *testing.T) {
 	})
 
 	t.Run("scopeRef falls back to system on unsupported type", func(t *testing.T) {
-		var ref EntityRef
+		var ref audit_model.EntityRef
 		assert.NotPanics(t, func() {
 			ref = scopeRef(struct{ Foo string }{Foo: "bar"})
 		})
