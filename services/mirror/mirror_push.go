@@ -137,7 +137,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := git.OpenRepository(storageRepo)
+			gitRepo, err := git.OpenRepository(ctx, storageRepo)
 			if err != nil {
 				log.Error("OpenRepository %s failed: %v", mirrorLogName, err)
 				return errors.New("OpenRepository failed")

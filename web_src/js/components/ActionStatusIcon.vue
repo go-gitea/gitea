@@ -3,7 +3,7 @@
 -->
 <script lang="ts" setup>
 import {computed} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {getActionStatusIcon, type ActionStatusIconVariant} from '../modules/action-status-icon.ts';
 
 const props = withDefaults(defineProps<{

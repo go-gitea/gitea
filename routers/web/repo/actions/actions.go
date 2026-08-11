@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -33,7 +34,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -554,7 +554,9 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 			return false
 		}
 		for _, job := range jobs {
-			if !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
+			// A deferred matrix is unresolvable until its needs finish, so the whole per-job block
+			// is skipped: parsing the payload would report a valid workflow as invalid.
+			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {

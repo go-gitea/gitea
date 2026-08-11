@@ -40,7 +40,7 @@ import (
 
 // CreateNewBranch creates a new repository branch
 func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, oldBranchName, branchName string) (err error) {
-	branch, err := git_model.GetBranch(ctx, repo.ID, oldBranchName)
+	branch, err := git_model.GetBranchExisting(ctx, repo.ID, oldBranchName)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ type Branch struct {
 
 // LoadBranches loads branches from the repository limited by page & pageSize.
 func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, isDeletedBranch optional.Option[bool], keyword string, page, pageSize int) (defaultBranchOptional *Branch, _ []*Branch, _ int64, _ error) {
-	defaultDBBranchOptional, err := git_model.GetBranch(ctx, repo.ID, repo.DefaultBranch)
+	defaultDBBranchOptional, err := git_model.GetBranchExisting(ctx, repo.ID, repo.DefaultBranch)
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return nil, nil, 0, err
 	}
@@ -227,7 +227,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 		if pr.HasMerged {
 			baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
 			if !ok {
-				baseGitRepo, err = git.OpenRepository(pr.BaseRepo)
+				baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo)
 				if err != nil {
 					return nil, fmt.Errorf("OpenRepository: %v", err)
 				}
@@ -413,7 +413,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "target_exist", nil
 	}
 
-	fromBranch, err := git_model.GetBranch(ctx, repo.ID, from)
+	fromBranch, err := git_model.GetBranchExisting(ctx, repo.ID, from)
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			return "from_not_exist", nil
@@ -494,14 +494,9 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 
 // UpdateBranch moves a branch reference to the provided commit. permission check should be done before calling this function.
 func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, branchName, newCommitID, expectedOldCommitID string, force bool) error {
-	branch, err := git_model.GetBranch(ctx, repo.ID, branchName)
+	branch, err := git_model.GetBranchExisting(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
-	}
-	if branch.IsDeleted {
-		return git_model.ErrBranchNotExist{
-			BranchName: branchName,
-		}
 	}
 
 	if expectedOldCommitID != "" {
@@ -768,23 +763,13 @@ type BranchDivergingInfo struct {
 
 // GetBranchDivergingInfo returns the information about the divergence of a patch branch to the base branch.
 func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repository, baseBranch string, headRepo *repo_model.Repository, headBranch string) (*BranchDivergingInfo, error) {
-	headGitBranch, err := git_model.GetBranch(ctx, headRepo.ID, headBranch)
+	headGitBranch, err := git_model.GetBranchExisting(ctx, headRepo.ID, headBranch)
 	if err != nil {
 		return nil, err
 	}
-	if headGitBranch.IsDeleted {
-		return nil, git_model.ErrBranchNotExist{
-			BranchName: headBranch,
-		}
-	}
-	baseGitBranch, err := git_model.GetBranch(ctx, baseRepo.ID, baseBranch)
+	baseGitBranch, err := git_model.GetBranchExisting(ctx, baseRepo.ID, baseBranch)
 	if err != nil {
 		return nil, err
-	}
-	if baseGitBranch.IsDeleted {
-		return nil, git_model.ErrBranchNotExist{
-			BranchName: baseBranch,
-		}
 	}
 
 	info := &BranchDivergingInfo{}

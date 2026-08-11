@@ -1,9 +1,11 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_28
+package v28
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
@@ -27,6 +29,6 @@ func (*AuditEvent) TableName() string {
 	return "audit_event"
 }
 
-func AddAuditEventTable(x base.EngineMigration) error {
+func AddAuditEventTable(_ context.Context, x base.EngineMigration) error {
 	return x.Sync(new(AuditEvent))
 }

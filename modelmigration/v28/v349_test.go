@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_28
+package v28
 
 import (
 	"context"
@@ -22,7 +22,7 @@ func TestAddAuditEventTable(t *testing.T) {
 		return
 	}
 
-	require.NoError(t, AddAuditEventTable(x))
+	require.NoError(t, AddAuditEventTable(t.Context(), x))
 
 	indexes, err := x.Dialect().GetIndexes(x.DB(), context.Background(), "audit_event")
 	require.NoError(t, err)

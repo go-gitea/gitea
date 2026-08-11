@@ -29,11 +29,11 @@ func NewTemplateContext(ctx context.Context, req *http.Request) TemplateContext 
 }
 
 func (c TemplateContext) req() *http.Request {
-	return c["_req"].(*http.Request)
+	return c["_req"].(*http.Request) //nolint:forcetypeassert // must exist
 }
 
 func (c TemplateContext) parentContext() context.Context {
-	return c["_ctx"].(context.Context)
+	return c["_ctx"].(context.Context) //nolint:forcetypeassert // must exist
 }
 
 func (c TemplateContext) Deadline() (deadline time.Time, ok bool) {
@@ -78,7 +78,7 @@ func (c TemplateContext) CurrentWebBanner() *setting.WebBannerType {
 	return nil
 }
 
-// AppFullLink returns a full URL link with AppSubURL for the given app link (no AppSubURL)
+// AppFullLink returns a full URL link with AppSubURL for the given app link
 // If no link is given, it returns the current app full URL with sub-path but without trailing slash (that's why it is not named as AppURL)
 func (c TemplateContext) AppFullLink(link ...string) template.URL {
 	s := httplib.GuessCurrentAppURL(c.parentContext())

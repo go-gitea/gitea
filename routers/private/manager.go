@@ -33,7 +33,7 @@ func ReloadTemplates(ctx *context.PrivateContext) {
 
 // FlushQueues flushes all the Queues
 func FlushQueues(ctx *context.PrivateContext) {
-	opts := web.GetForm(ctx).(*private.FlushOptions)
+	opts := web.GetForm[*private.FlushOptions](ctx)
 	if opts.NonBlocking {
 		// Save the hammer ctx here - as a new one is created each time you call this.
 		baseCtx := graceful.GetManager().HammerContext()
@@ -102,7 +102,7 @@ func RemoveLogger(ctx *context.PrivateContext) {
 
 // AddLogger adds a logger
 func AddLogger(ctx *context.PrivateContext) {
-	opts := web.GetForm(ctx).(*private.LoggerOptions)
+	opts := web.GetForm[*private.LoggerOptions](ctx)
 
 	if len(opts.Logger) == 0 {
 		opts.Logger = log.DEFAULT

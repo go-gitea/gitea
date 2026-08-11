@@ -205,7 +205,7 @@ func runTestGitPush(t *testing.T, u *url.URL, gitOperation func(t *testing.T, gi
 
 	doGitAddRemote(gitPath, "origin", u)(t)
 
-	gitRepo, err := git.OpenRepositoryLocal(gitPath)
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), gitPath)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

@@ -48,7 +48,7 @@ func NewProtectedTagPost(ctx *context.Context) {
 	}
 
 	repo := ctx.Repo.Repository
-	form := web.GetForm(ctx).(*forms.ProtectTagForm)
+	form := web.GetForm[*forms.ProtectTagForm](ctx)
 
 	pt := &git_model.ProtectedTag{
 		RepoID:      repo.ID,
@@ -111,7 +111,7 @@ func EditProtectedTagPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.ProtectTagForm)
+	form := web.GetForm[*forms.ProtectTagForm](ctx)
 
 	pt.NamePattern = strings.TrimSpace(form.NamePattern)
 	pt.AllowlistUserIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistUsers, ","))

@@ -124,7 +124,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepositoryLocal(basePath)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("failed to open new temporary repository in: %s %w", basePath, err)
@@ -283,7 +283,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepositoryLocal(basePath)
+	gitRepo, err := git.OpenRepositoryLocal(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("failed to open new temporary repository in: %s %w", basePath, err)

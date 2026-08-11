@@ -54,7 +54,7 @@ func NewBadge(ctx *context.Context) {
 
 // NewBadgePost response for adding a new badge
 func NewBadgePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminCreateBadgeForm)
+	form := web.GetForm[*forms.AdminCreateBadgeForm](ctx)
 
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
@@ -100,12 +100,11 @@ func ViewBadge(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.badges.details")
 	ctx.Data["PageIsAdminBadges"] = true
 
-	prepareBadgeInfo(ctx)
+	badge := prepareBadgeInfo(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	badge := ctx.Data["Badge"].(*user_model.Badge)
 	opts := &user_model.GetBadgeUsersOptions{
 		ListOptions: db.ListOptions{
 			Page:     1,
@@ -143,7 +142,7 @@ func EditBadgePost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AdminEditBadgeForm)
+	form := web.GetForm[*forms.AdminEditBadgeForm](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return

@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
@@ -69,6 +70,20 @@ type ActionRunJob struct {
 	// Org/repo clamps are enforced when the token is used at runtime.
 	// It is JSON-encoded repo_model.ActionsTokenPermissions and may be empty if not specified.
 	TokenPermissions *repo_model.ActionsTokenPermissions `xorm:"JSON TEXT"`
+	// MaxParallel is strategy.max-parallel, shared by all matrix jobs with the same JobID (0 = unlimited).
+	MaxParallel int `xorm:"NOT NULL DEFAULT 0"`
+
+	// IsMatrixDeferred marks a placeholder for a job whose matrix references `needs.*.outputs.*` and so
+	// could not be expanded at planning time. Its WorkflowPayload still carries the raw, unevaluated
+	// matrix; the job emitter expands it once the needs finish. Only a successful expansion clears the flag:
+	// it survives a terminal status (skipped, cancelled, failed expansion) so a rerun can recognize
+	// the row as unexpanded and re-derive the matrix instead of dispatching the raw payload.
+	IsMatrixDeferred bool `xorm:"NOT NULL DEFAULT FALSE"`
+
+	// DeferredMatrixPayload preserves a deferred-matrix placeholder's original WorkflowPayload (the raw, unevaluated matrix).
+	// A rerun whose needs re-run collapses the combinations back into a single placeholder built from this payload,
+	// so the matrix is re-derived from the fresh outputs.
+	DeferredMatrixPayload []byte `xorm:"LONGBLOB"`
 
 	// RunAttemptID identifies the ActionRunAttempt this job belongs to.
 	// A value of 0 indicates a legacy job created before ActionRunAttempt existed.
@@ -177,6 +192,16 @@ func (job *ActionRunJob) LoadAttributes(ctx context.Context) error {
 
 // ParseJob parses the job structure from the ActionRunJob.WorkflowPayload
 func (job *ActionRunJob) ParseJob() (*jobparser.Job, error) {
+	if job.IsMatrixDeferred {
+		// The needs were erased before the placeholder was persisted, so jobparser.Parse no longer
+		// recognises the raw matrix it still carries and would re-expand it: see ParseRawSingleWorkflow.
+		_, workflowJob, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+		if err != nil {
+			return nil, fmt.Errorf("job %d deferred matrix placeholder: unable to parse: %w", job.ID, err)
+		}
+		return workflowJob, nil
+	}
+
 	// job.WorkflowPayload is a SingleWorkflow created from an ActionRun's workflow, which exactly contains this job's YAML definition.
 	// Ideally it shouldn't be called "Workflow", it is just a job with global workflow fields + trigger
 	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
@@ -236,12 +261,16 @@ func GetLatestAttemptJobsByRepoAndRunID(ctx context.Context, repoID, runID int64
 	if err != nil {
 		return nil, err
 	}
+	return GetLatestAttemptJobsByRun(ctx, run)
+}
+
+func GetLatestAttemptJobsByRun(ctx context.Context, run *ActionRun) (ActionJobList, error) {
 	if run.LatestAttemptID > 0 {
-		return GetRunJobsByRunAndAttemptID(ctx, runID, run.LatestAttemptID)
+		return GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
 	}
 
 	var jobs []*ActionRunJob
-	if err := db.GetEngine(ctx).Where("repo_id=? AND run_id=? AND run_attempt_id=0", repoID, runID).OrderBy("id").Find(&jobs); err != nil {
+	if err := db.GetEngine(ctx).Where("repo_id=? AND run_id=? AND run_attempt_id=0", run.RepoID, run.ID).OrderBy("id").Find(&jobs); err != nil {
 		return nil, err
 	}
 	return jobs, nil
@@ -319,6 +348,53 @@ func GetPriorAttemptChildrenByParent(ctx context.Context, runID, currentAttemptI
 	}
 
 	return nil, nil //nolint:nilnil // every prior attempt skipped this caller
+}
+
+// GetPriorAttemptMatrixCombos returns the most recent prior attempt's combination rows of the given
+// dynamic-matrix job, indexed by Name, so re-expansion keeps AttemptJobIDs stable across attempts.
+func GetPriorAttemptMatrixCombos(ctx context.Context, runID, currentAttemptID, parentAttemptJobID int64, jobID string) (map[string]*ActionRunJob, error) {
+	// An unexpanded placeholder is not a combination, so it is skipped and the search looks further
+	// back past it. Only the columns the scope check and the result need are read: the rows carry
+	// two payload blobs, and every prior attempt of the job is a candidate.
+	var candidates []*ActionRunJob
+	if err := db.GetEngine(ctx).
+		Where("run_id = ? AND job_id = ? AND run_attempt_id < ? AND is_matrix_deferred = ?", runID, jobID, currentAttemptID, false).
+		Cols("id", "name", "attempt_job_id", "run_attempt_id", "parent_job_id").
+		Desc("run_attempt_id").
+		Find(&candidates); err != nil {
+		return nil, fmt.Errorf("find prior matrix combos: %w", err)
+	}
+
+	// Every combination of one attempt shares a parent, so dedupe before the lookup.
+	parentIDs := container.FilterSlice(candidates, func(c *ActionRunJob) (int64, bool) {
+		return c.ParentJobID, c.ParentJobID > 0
+	})
+	parentAttemptIDByRowID := make(map[int64]int64, len(parentIDs))
+	if len(parentIDs) > 0 {
+		var parents []*ActionRunJob
+		if err := db.GetEngine(ctx).In("id", parentIDs).Cols("id", "attempt_job_id").Find(&parents); err != nil {
+			return nil, fmt.Errorf("find prior matrix combo parents: %w", err)
+		}
+		for _, p := range parents {
+			parentAttemptIDByRowID[p.ID] = p.AttemptJobID
+		}
+	}
+
+	// Rows arrive newest-attempt-first, so the first in-scope row fixes the attempt to take.
+	combos := map[string]*ActionRunJob{}
+	newestAttemptID := int64(0)
+	for _, c := range candidates {
+		if parentAttemptIDByRowID[c.ParentJobID] != parentAttemptJobID {
+			continue
+		}
+		if newestAttemptID == 0 {
+			newestAttemptID = c.RunAttemptID
+		} else if c.RunAttemptID != newestAttemptID {
+			break
+		}
+		combos[c.Name] = c
+	}
+	return combos, nil
 }
 
 // GetDirectChildJobsByParent returns the direct child jobs of a parent job (e.g. a reusable workflow caller).
@@ -448,56 +524,72 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		return affected, RefreshReusableCallerStatus(ctx, parent)
 	}
 
-	{
-		// Other goroutines may aggregate the status of the attempt/run and update it too.
-		// So we need to load the current jobs before updating the aggregate state.
-		if job.RunAttemptID > 0 {
-			attempt, err := GetRunAttemptByRepoAndID(ctx, job.RepoID, job.RunAttemptID)
-			if err != nil {
-				return 0, err
-			}
-			jobs, err := GetRunJobsByRunAndAttemptID(ctx, job.RunID, job.RunAttemptID)
-			if err != nil {
-				return 0, err
-			}
-			attempt.Status = AggregateJobStatus(jobs)
-			if attempt.Started.IsZero() && attempt.Status.IsRunning() {
-				attempt.Started = timeutil.TimeStampNow()
-			}
-			if attempt.Stopped.IsZero() && attempt.Status.IsDone() {
-				attempt.Stopped = timeutil.TimeStampNow()
-			}
-			if err := UpdateRunAttempt(ctx, attempt, "status", "started", "stopped"); err != nil {
-				return 0, fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
-			}
-		} else {
-			// TODO: Remove this fallback in the future.
-			// Legacy fallback: jobs created before migration v331 have RunAttemptID=0 and are NOT backfilled.
-			// This path keeps those runs' status consistent when their jobs finish, including:
-			//   - jobs created before migration v331 and complete on the new version starts
-			//   - zombie/abandoned cleanup cron tasks that call UpdateRunJob on legacy jobs
-			run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
-			if err != nil {
-				return 0, err
-			}
-			jobs, err := GetLatestAttemptJobsByRepoAndRunID(ctx, job.RepoID, job.RunID)
-			if err != nil {
-				return 0, err
-			}
-			run.Status = AggregateJobStatus(jobs)
-			if run.Started.IsZero() && run.Status.IsRunning() {
-				run.Started = timeutil.TimeStampNow()
-			}
-			if run.Stopped.IsZero() && run.Status.IsDone() {
-				run.Stopped = timeutil.TimeStampNow()
-			}
-			if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
-				return 0, fmt.Errorf("update run %d: %w", run.ID, err)
-			}
-		}
+	if err := refreshRunStatus(ctx, job.RepoID, job.RunID, job.RunAttemptID, StatusUnknown); err != nil {
+		return 0, err
 	}
 
 	return affected, nil
+}
+
+// refreshRunStatus recomputes the status of an attempt from the jobs currently stored and persists it.
+// The latest attempt propagates its status to its run, an older one only updates itself.
+// noJobsStatus settles an attempt without any job, which AggregateJobStatus cannot conclude on its own.
+func refreshRunStatus(ctx context.Context, repoID, runID, runAttemptID int64, noJobsStatus Status) error {
+	// Other goroutines may aggregate the status of the attempt/run and update it too.
+	// So we need to load the current jobs before updating the aggregate state.
+	if runAttemptID > 0 {
+		attempt, err := GetRunAttemptByRepoAndID(ctx, repoID, runAttemptID)
+		if err != nil {
+			return err
+		}
+		jobs, err := GetRunJobsByRunAndAttemptID(ctx, runID, runAttemptID)
+		if err != nil {
+			return err
+		}
+		attempt.Status = AggregateJobStatus(jobs)
+		if len(jobs) == 0 {
+			attempt.Status = noJobsStatus
+		}
+		if attempt.Started.IsZero() && attempt.Status.IsRunning() {
+			attempt.Started = timeutil.TimeStampNow()
+		}
+		if attempt.Stopped.IsZero() && attempt.Status.IsDone() {
+			attempt.Stopped = timeutil.TimeStampNow()
+		}
+		if err := UpdateRunAttempt(ctx, attempt, "status", "started", "stopped"); err != nil {
+			return fmt.Errorf("update run attempt %d: %w", attempt.ID, err)
+		}
+		return nil
+	}
+
+	// TODO: Remove this fallback in the future.
+	// Legacy fallback: jobs created before migration v331 have RunAttemptID=0 and are NOT backfilled.
+	// This path keeps those runs' status consistent when their jobs finish, including:
+	//   - jobs created before migration v331 and complete on the new version starts
+	//   - zombie/abandoned cleanup cron tasks that call UpdateRunJob on legacy jobs
+	//   - cancelling a legacy run whose jobs are all already done
+	run, err := GetRunByRepoAndID(ctx, repoID, runID)
+	if err != nil {
+		return err
+	}
+	jobs, err := GetLatestAttemptJobsByRun(ctx, run)
+	if err != nil {
+		return err
+	}
+	run.Status = AggregateJobStatus(jobs)
+	if len(jobs) == 0 {
+		run.Status = noJobsStatus
+	}
+	if run.Started.IsZero() && run.Status.IsRunning() {
+		run.Started = timeutil.TimeStampNow()
+	}
+	if run.Stopped.IsZero() && run.Status.IsDone() {
+		run.Stopped = timeutil.TimeStampNow()
+	}
+	if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
+		return fmt.Errorf("update run %d: %w", run.ID, err)
+	}
+	return nil
 }
 
 // RefreshReusableCallerStatus recomputes a reusable workflow caller's Status, Started and Stopped from its current direct children and persists the change.
@@ -611,7 +703,7 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 			return cancelledJobs, err
 		}
 
-		cjs, err := CancelJobs(ctx, jobs)
+		cjs, err := CancelJobs(ctx, jobs, false)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -657,15 +749,18 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 		jobsToCancel = append(jobsToCancel, jobs...)
 	}
 
-	return CancelJobs(ctx, jobsToCancel)
+	return CancelJobs(ctx, jobsToCancel, false)
 }
 
-func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
+// CancelJobs cancels every cancellable job it is given, force skipping the graceful cancelling
+// handshake so a running task is marked cancelled without waiting for its runner. It leaves the
+// status of a run it cancelled nothing in untouched, SettleRunAfterCancel gives such a run a final one.
+func CancelJobs(ctx context.Context, jobs []*ActionRunJob, force bool) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
 
 	for _, job := range jobs {
 		if job.IsReusableCaller {
-			sub, err := cancelReusableCaller(ctx, job)
+			sub, err := cancelReusableCaller(ctx, job, force)
 			if err != nil {
 				return cancelledJobs, err
 			}
@@ -673,7 +768,7 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 			continue
 		}
 
-		c, err := cancelOneJob(ctx, job)
+		c, err := cancelOneJob(ctx, job, force)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -684,8 +779,18 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 	return cancelledJobs, nil
 }
 
+// SettleRunAfterCancel gives a run a final status when cancelling it updated no job at all.
+// A run's status is otherwise only ever written as a side effect of a job update, so a run whose
+// jobs are all done already, or that has no job at all, would stay unfinished forever.
+func SettleRunAfterCancel(ctx context.Context, run *ActionRun) error {
+	if run.Status.IsDone() {
+		return nil
+	}
+	return refreshRunStatus(ctx, run.RepoID, run.ID, run.LatestAttemptID, StatusCancelled)
+}
+
 // cancelOneJob cancels a single job and returns the post-cancel row
-func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error) {
+func cancelOneJob(ctx context.Context, job *ActionRunJob, force bool) (*ActionRunJob, error) {
 	if job.Status.IsDone() {
 		return nil, nil //nolint:nilnil // signal "nothing to cancel; not an error"
 	}
@@ -704,7 +809,8 @@ func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error)
 		return job, nil
 	}
 	// Has a task: stop the task and re-read the row.
-	if err := StopTask(ctx, job.TaskID, StatusCancelling); err != nil {
+	stopStatus := util.Iif(force, StatusCancelled, StatusCancelling)
+	if err := StopTask(ctx, job.TaskID, stopStatus); err != nil {
 		return nil, err
 	}
 	updated, err := GetRunJobByRunAndID(ctx, job.RunID, job.ID)
@@ -715,7 +821,7 @@ func cancelOneJob(ctx context.Context, job *ActionRunJob) (*ActionRunJob, error)
 }
 
 // cancelReusableCaller cancels `caller` and all its child jobs
-func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionRunJob, error) {
+func cancelReusableCaller(ctx context.Context, caller *ActionRunJob, force bool) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0)
 
 	attemptJobs, err := GetRunJobsByRunAndAttemptID(ctx, caller.RunID, caller.RunAttemptID)
@@ -730,7 +836,7 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionR
 	slices.SortFunc(descendants, func(a, b *ActionRunJob) int { return cmp.Compare(b.ID, a.ID) })
 
 	for _, c := range descendants {
-		cancelled, err := cancelOneJob(ctx, c)
+		cancelled, err := cancelOneJob(ctx, c, force)
 		if err != nil {
 			return cancelledJobs, err
 		}
@@ -739,7 +845,7 @@ func cancelReusableCaller(ctx context.Context, caller *ActionRunJob) ([]*ActionR
 		}
 	}
 
-	if c, err := cancelOneJob(ctx, caller); err != nil {
+	if c, err := cancelOneJob(ctx, caller, force); err != nil {
 		return cancelledJobs, err
 	} else if c != nil {
 		cancelledJobs = append(cancelledJobs, c)

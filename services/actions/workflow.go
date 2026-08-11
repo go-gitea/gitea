@@ -6,6 +6,7 @@ package actions
 import (
 	"fmt"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/perm"
@@ -23,7 +24,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 
-	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 

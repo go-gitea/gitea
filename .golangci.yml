@@ -11,6 +11,7 @@ linters:
     - dupl
     - errcheck
     - forbidigo
+    - forcetypeassert
     - gocheckcompilerdirectives
     - gocritic
     - govet
