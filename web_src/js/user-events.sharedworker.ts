@@ -35,15 +35,19 @@ function postWorkerEventMessage(client: MessagePort, msgData: WorkerEventMessage
 class Source {
   url: string;
   clients: Array<MessagePort>;
+  lastServerEvents: Map<string, UserEventMessage>;
 
   constructor(url: string) {
     this.url = url;
     this.clients = [];
+    this.lastServerEvents = new Map();
   }
 
   register(port: MessagePort) {
     if (this.clients.includes(port)) return;
     this.clients.push(port);
+    // the socket delivers each event once, so a late port replays them here
+    for (const event of this.lastServerEvents.values()) postUserEventMessage(port, event);
   }
 
   deregister(port: MessagePort) {
@@ -96,7 +100,7 @@ class WsSource {
     this.ws.addEventListener('open', () => {
       this.reconnectDelay = 1000;
       this.failuresWithoutConnect = 0;
-      // The server opens each connection with a state snapshot, so clients only need to know it is live.
+      // the connection opens with a data snapshot, so this is just liveness
       this.source.notifyClientsUserEvent({eventType: 'worker-connected'});
     });
 
@@ -108,6 +112,7 @@ class WsSource {
           console.error('websocket message is not a valid server user event', msg);
           return;
         }
+        this.source.lastServerEvents.set(msg.eventType, msg);
         this.source.notifyClientsUserEvent(msg);
       } catch (err) {
         console.error('user-events: dropping malformed WebSocket message', err);
