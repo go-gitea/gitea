@@ -25,11 +25,11 @@ var (
 
 // BasicMethodName is the constant name of the basic authentication method
 const (
-	BasicMethodName            = "basic"
-	AccessTokenMethodName      = "access_token"
-	OAuth2TokenMethodName      = "oauth2_token"
-	ActionTokenMethodName      = "action_token"
-	HTTPSDeployTokenMethodName = "https_deploy_token"
+	BasicMethodName       = "basic"
+	AccessTokenMethodName = "access_token"
+	OAuth2TokenMethodName = "oauth2_token"
+	ActionTokenMethodName = "action_token"
+	DeployTokenMethodName = "deploy_token"
 )
 
 // Basic implements the Auth interface and authenticates requests (API requests
@@ -42,7 +42,7 @@ func (b *Basic) Name() string {
 	return BasicMethodName
 }
 
-func (b *Basic) parseAuthBasic(req *http.Request) (ret struct{ authToken, uname, passwd string }) {
+func parseAuthBasic(req *http.Request) (ret struct{ authToken, uname, passwd string }) {
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
 		return ret
@@ -123,7 +123,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	parseBasicRet := b.parseAuthBasic(req)
+	parseBasicRet := parseAuthBasic(req)
 	authToken, uname, passwd := parseBasicRet.authToken, parseBasicRet.uname, parseBasicRet.passwd
 	if authToken == "" && uname == "" {
 		return nil, nil //nolint:nilnil // the auth method is not applicable

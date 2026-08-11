@@ -249,6 +249,49 @@ func CreateDeployKey(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToDeployKey(apiLink, key))
 }
 
+// CreateDeployToken create a deploy token for a repository
+func CreateDeployToken(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/keys/tokens repository repoCreateDeployToken
+	// ---
+	// summary: Add a deploy token to a repository, it authenticates git over HTTPS
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateDeployTokenOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/DeployKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm[*api.CreateDeployTokenOption](ctx)
+	key, err := asymkey_model.AddDeployToken(ctx, ctx.Repo.Repository.ID, form.Title, form.ReadOnly)
+	if err != nil {
+		HandleAddKeyError(ctx, err)
+		return
+	}
+
+	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	ctx.JSON(http.StatusCreated, convert.ToDeployKey(apiLink, key))
+}
+
 // DeleteDeploykey delete deploy key for a repository
 func DeleteDeploykey(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/keys/{id} repository repoDeleteKey
@@ -279,7 +322,8 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.PathParamInt64("id")); err != nil {
+	// a key that is already gone still leaves the caller with the state it asked for
+	if _, err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.PathParamInt64("id")); err != nil && !asymkey_model.IsErrDeployKeyNotExist(err) {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {

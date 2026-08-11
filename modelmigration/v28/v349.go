@@ -7,22 +7,34 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+
+	"xorm.io/xorm"
 )
 
-// AddHTTPSDeployKeyTable introduces the per-repository HTTPS deploy-key
-// credential table. The shape here must stay in lock-step with the
-// HTTPSDeployKey struct in models/asymkey.
-func AddHTTPSDeployKeyTable(_ context.Context, x base.EngineMigration) error {
-	type HTTPSDeployKey struct {
-		ID             int64  `xorm:"pk autoincr"`
-		RepoID         int64  `xorm:"INDEX UNIQUE(s) NOT NULL"`
-		Name           string `xorm:"UNIQUE(s) NOT NULL"`
-		TokenHash      string `xorm:"UNIQUE NOT NULL"`
-		TokenSalt      string `xorm:"NOT NULL"`
-		TokenLastEight string `xorm:"INDEX"`
-		Mode           int    `xorm:"NOT NULL DEFAULT 1"`
-		CreatedUnix    int64  `xorm:"INDEX created"`
-		UpdatedUnix    int64  `xorm:"INDEX updated"`
+func AddTokenToDeployKey(ctx context.Context, x base.EngineMigration) error {
+	// Drop the old UNIQUE(s) index on (key_id, repo_id). Every token row carries key
+	// id 0, so the pair can no longer be unique. addDeployKey still checks it in code.
+	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "deploy_key")
+	if err != nil {
+		return err
 	}
-	return x.Sync(new(HTTPSDeployKey))
+	for _, idx := range indexes {
+		if idx.Name == "s" {
+			if _, err := x.Exec(x.Dialect().DropIndexSQL("deploy_key", idx)); err != nil {
+				return err
+			}
+		}
+	}
+
+	type DeployKey struct {
+		KeyID     int64  `xorm:"INDEX"`
+		RepoID    int64  `xorm:"INDEX"`
+		Type      int    `xorm:"NOT NULL DEFAULT 1"` // every existing row is an SSH key
+		TokenHash string `xorm:"INDEX"`
+	}
+	_, err = x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains:  true,
+		IgnoreDropIndices: true, // the bean only describes the new columns
+	}, new(DeployKey))
+	return err
 }

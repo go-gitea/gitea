@@ -9,35 +9,39 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
-	"gitea.dev/modules/log"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
 
-// DeployKeys render the deploy keys and HTTPS deploy tokens list of a repository page
+// DeployKeys render the deploy keys and tokens list of a repository page
 func DeployKeys(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys") + " / " + ctx.Tr("secrets.secrets")
+	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys_and_tokens")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		Type:   asymkey_model.DeployKeyTypeSSH,
+	})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
 	}
 	ctx.Data["Deploykeys"] = keys
 
-	httpsKeys, err := db.Find[asymkey_model.HTTPSDeployKey](ctx,
-		asymkey_model.ListHTTPSDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	tokens, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		Type:   asymkey_model.DeployKeyTypeToken,
+	})
 	if err != nil {
-		ctx.ServerError("ListHTTPSDeployKeys", err)
+		ctx.ServerError("ListDeployTokens", err)
 		return
 	}
-	ctx.Data["HTTPSDeploykeys"] = httpsKeys
+	ctx.Data["DeployTokens"] = tokens
 
 	ctx.HTML(http.StatusOK, tplDeployKeys)
 }
@@ -83,74 +87,36 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
-// DeleteDeployKey response for deleting a deploy key
+// DeleteDeployKey response for deleting a deploy key or a deploy token
 func DeleteDeployKey(ctx *context.Context) {
-	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
+	key, err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.FormInt64("id"))
+	if err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
 	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
+		msg := util.Iif(key.Type == asymkey_model.DeployKeyTypeToken, "repo.settings.deploy_token_deletion_success", "repo.settings.deploy_key_deletion_success")
+		ctx.Flash.Success(ctx.Tr(msg, key.Name))
 	}
 
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
-// HTTPSDeployKeysPost handles creation of an HTTPS deploy key for the current
-// repository. The plaintext token is rendered inline via ctx.Data so it never
-// touches cookie-backed flash storage.
-func HTTPSDeployKeysPost(ctx *context.Context) {
-	form := web.GetForm[*forms.HTTPSDeployKeyForm](ctx)
-	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
-	ctx.Data["PageIsSettingsKeys"] = true
-
-	if ctx.HasError() {
-		ctx.Data["HasError"] = true
-		ctx.Data["httpsKeyTitle"] = form.Title
-		DeployKeys(ctx)
-		ctx.HTML(http.StatusOK, tplDeployKeys)
+// DeployTokensPost response for adding a deploy token of a repository
+func DeployTokensPost(ctx *context.Context) {
+	form := context.GetFetchActionForm[*forms.AddDeployTokenForm](ctx)
+	if form == nil {
 		return
 	}
 
-	key, token, err := asymkey_model.AddHTTPSDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, !form.IsWritable)
+	key, err := asymkey_model.AddDeployToken(ctx, ctx.Repo.Repository.ID, form.Title, !form.IsWritable)
 	if err != nil {
-		switch {
-		case asymkey_model.IsErrHTTPSDeployKeyNameAlreadyUsed(err):
-			ctx.Data["HasError"] = true
-			ctx.Data["Err_Title"] = true
-		case errors.Is(err, util.ErrInvalidArgument):
-			ctx.Data["HasError"] = true
-			ctx.Data["Err_Title"] = true
-		default:
-			ctx.ServerError("AddHTTPSDeployKey", err)
-			return
+		if asymkey_model.IsErrDeployKeyNameAlreadyUsed(err) {
+			ctx.JSONErrorWithField(ctx.Tr("repo.settings.key_name_used"), "title")
+		} else {
+			ctx.ServerError("AddDeployToken", err)
 		}
-		ctx.Data["httpsKeyTitle"] = form.Title
-		DeployKeys(ctx)
-		ctx.HTML(http.StatusOK, tplDeployKeys)
 		return
 	}
 
-	log.Trace("HTTPS deploy key added: operator=%s repo=%s key=%s (id=%d)",
-		ctx.Doer.Name, ctx.Repo.Repository.FullName(), key.Name, key.ID)
-
-	// Render the page inline with the token in ctx.Data.
-	// This avoids storing the secret credential in cookie-backed flash.
-	DeployKeys(ctx)
-	ctx.Data["HTTPSDeployKeyToken"] = token
-	ctx.Data["HTTPSDeployKeyName"] = key.Name
-	ctx.HTML(http.StatusOK, tplDeployKeys)
-}
-
-// DeleteHTTPSDeployKey deletes a single HTTPS deploy key scoped to the
-// current repository.
-func DeleteHTTPSDeployKey(ctx *context.Context) {
-	id := ctx.FormInt64("id")
-	if err := asymkey_model.DeleteHTTPSDeployKey(ctx, ctx.Repo.Repository.ID, id); err != nil {
-		ctx.Flash.Error("DeleteHTTPSDeployKey: " + err.Error())
-	} else {
-		log.Trace("HTTPS deploy key deleted: operator=%s repo=%s key-id=%d",
-			ctx.Doer.Name, ctx.Repo.Repository.FullName(), id)
-		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
-	}
-
+	ctx.Flash.Success(ctx.Tr("repo.settings.generate_deploy_token_success", htmlutil.HTMLFormat("<code>%s</code>", key.Token)))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }

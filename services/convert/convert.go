@@ -852,25 +852,11 @@ func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
 		KeyID:       key.KeyID,
 		Key:         key.Content,
 		Fingerprint: key.Fingerprint,
+		Token:       key.Token,
 		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
 		Title:       key.Name,
 		Created:     key.CreatedUnix.AsTime(),
 		ReadOnly:    key.Mode == perm.AccessModeRead, // All deploy keys are read-only.
-	}
-}
-
-// ToHTTPSDeployKey convert asymkey_model.HTTPSDeployKey to api.HTTPSDeployKey
-func ToHTTPSDeployKey(apiLink string, key *asymkey_model.HTTPSDeployKey) *api.HTTPSDeployKey {
-	return &api.HTTPSDeployKey{
-		ID:                key.ID,
-		Name:              key.Name,
-		URL:               fmt.Sprintf("%s%d", apiLink, key.ID),
-		TokenLastEight:    key.TokenLastEight,
-		ReadOnly:          key.Mode == perm.AccessModeRead,
-		HasUsed:           key.HasUsed,
-		HasRecentActivity: key.HasRecentActivity,
-		Created:           key.CreatedUnix.AsTime(),
-		Updated:           key.UpdatedUnix.AsTime(),
 	}
 }
 

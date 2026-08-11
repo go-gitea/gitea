@@ -206,3 +206,28 @@ func TestCreateUserKey(t *testing.T) {
 	fingerprintPublicKeys = DecodeJSON(t, resp, []api.PublicKey{})
 	assert.Empty(t, fingerprintPublicKeys)
 }
+
+func TestCreateDeployToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, repoOwner.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	keysURL := fmt.Sprintf("/api/v1/repos/%s/%s/keys", repoOwner.Name, repo.Name)
+
+	req := NewRequestWithJSON(t, "POST", keysURL+"/tokens", api.CreateDeployTokenOption{Title: "ci", ReadOnly: true}).
+		AddTokenAuth(token)
+	created := DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.DeployKey{})
+	assert.NotEmpty(t, created.Token)
+	assert.True(t, created.ReadOnly)
+
+	// a token is listed and deleted like a deploy key, but it is never readable again
+	resp := MakeRequest(t, NewRequest(t, "GET", keysURL).AddTokenAuth(token), http.StatusOK)
+	assert.Len(t, DecodeJSON(t, resp, []api.DeployKey{}), 1)
+	assert.NotContains(t, resp.Body.String(), created.Token)
+
+	MakeRequest(t, NewRequest(t, "DELETE", fmt.Sprintf("%s/%d", keysURL, created.ID)).AddTokenAuth(token), http.StatusNoContent)
+	resp = MakeRequest(t, NewRequest(t, "GET", keysURL).AddTokenAuth(token), http.StatusOK)
+	assert.Empty(t, DecodeJSON(t, resp, []api.DeployKey{}))
+}

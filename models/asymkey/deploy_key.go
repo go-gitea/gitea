@@ -24,14 +24,27 @@ import (
 //
 // This file contains functions specific to DeployKeys
 
+type DeployKeyType int
+
+const (
+	// DeployKeyTypeSSH authenticates over SSH with the public key of KeyID.
+	DeployKeyTypeSSH DeployKeyType = iota + 1
+	// DeployKeyTypeToken authenticates over HTTPS with the token of TokenHash.
+	DeployKeyTypeToken
+)
+
 // DeployKey represents deploy key information and its relation with repository.
 type DeployKey struct {
-	ID          int64 `xorm:"pk autoincr"`
-	KeyID       int64 `xorm:"UNIQUE(s) INDEX"`
-	RepoID      int64 `xorm:"UNIQUE(s) INDEX"`
+	ID          int64         `xorm:"pk autoincr"`
+	KeyID       int64         `xorm:"INDEX"`
+	RepoID      int64         `xorm:"INDEX"`
+	Type        DeployKeyType `xorm:"NOT NULL DEFAULT 1"`
 	Name        string
 	Fingerprint string
 	Content     string `xorm:"-"`
+
+	TokenHash string `xorm:"INDEX"` // sha256 of the token, which carries enough entropy to need no salt
+	Token     string `xorm:"-"`     // only set when the token is created
 
 	Mode perm.AccessMode `xorm:"NOT NULL DEFAULT 1"`
 
@@ -47,8 +60,12 @@ func (key *DeployKey) AfterLoad() {
 	key.HasRecentActivity = key.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
-// GetContent gets associated public key content.
+// GetContent gets associated public key content, a token has none.
 func (key *DeployKey) GetContent(ctx context.Context) error {
+	if key.Type != DeployKeyTypeSSH {
+		return nil
+	}
+
 	pkey, err := GetPublicKeyByID(ctx, key.KeyID)
 	if err != nil {
 		return err
@@ -66,18 +83,8 @@ func init() {
 	db.RegisterModel(new(DeployKey))
 }
 
-func checkDeployKey(ctx context.Context, keyID, repoID int64, name string) error {
-	// Note: We want error detail, not just true or false here.
+func checkDeployKeyName(ctx context.Context, repoID int64, name string) error {
 	has, err := db.GetEngine(ctx).
-		Where("key_id = ? AND repo_id = ?", keyID, repoID).
-		Get(new(DeployKey))
-	if err != nil {
-		return err
-	} else if has {
-		return ErrDeployKeyAlreadyExist{keyID, repoID}
-	}
-
-	has, err = db.GetEngine(ctx).
 		Where("repo_id = ? AND name = ?", repoID, name).
 		Get(new(DeployKey))
 	if err != nil {
@@ -89,6 +96,20 @@ func checkDeployKey(ctx context.Context, keyID, repoID int64, name string) error
 	return nil
 }
 
+func checkDeployKey(ctx context.Context, keyID, repoID int64, name string) error {
+	// Note: We want error detail, not just true or false here.
+	has, err := db.GetEngine(ctx).
+		Where("key_id = ? AND repo_id = ?", keyID, repoID).
+		Get(new(DeployKey))
+	if err != nil {
+		return err
+	} else if has {
+		return ErrDeployKeyAlreadyExist{keyID, repoID}
+	}
+
+	return checkDeployKeyName(ctx, repoID, name)
+}
+
 // addDeployKey adds new key-repo relation.
 func addDeployKey(ctx context.Context, keyID, repoID int64, name, fingerprint string, mode perm.AccessMode) (*DeployKey, error) {
 	if err := checkDeployKey(ctx, keyID, repoID, name); err != nil {
@@ -98,6 +119,7 @@ func addDeployKey(ctx context.Context, keyID, repoID int64, name, fingerprint st
 	key := &DeployKey{
 		KeyID:       keyID,
 		RepoID:      repoID,
+		Type:        DeployKeyTypeSSH,
 		Name:        name,
 		Fingerprint: fingerprint,
 		Mode:        mode,
@@ -189,12 +211,16 @@ type ListDeployKeysOptions struct {
 	RepoID      int64
 	KeyID       int64
 	Fingerprint string
+	Type        DeployKeyType
 }
 
 func (opt ListDeployKeysOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opt.RepoID != 0 {
 		cond = cond.And(builder.Eq{"repo_id": opt.RepoID})
+	}
+	if opt.Type != 0 {
+		cond = cond.And(builder.Eq{"type": opt.Type})
 	}
 	if opt.KeyID != 0 {
 		cond = cond.And(builder.Eq{"key_id": opt.KeyID})

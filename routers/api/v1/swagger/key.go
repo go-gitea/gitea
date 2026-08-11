@@ -48,17 +48,3 @@ type swaggerResponseDeployKeyList struct {
 	// in:body
 	Body []api.DeployKey `json:"body"`
 }
-
-// HTTPSDeployKey
-// swagger:response HTTPSDeployKey
-type swaggerResponseHTTPSDeployKey struct {
-	// in:body
-	Body api.HTTPSDeployKey `json:"body"`
-}
-
-// HTTPSDeployKeyList
-// swagger:response HTTPSDeployKeyList
-type swaggerResponseHTTPSDeployKeyList struct {
-	// in:body
-	Body []api.HTTPSDeployKey `json:"body"`
-}

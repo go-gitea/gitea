@@ -1,0 +1,27 @@
+{{if .Keys}}
+	<div class="flex-divided-list items-with-main">
+		{{range .Keys}}
+			<div class="item">
+				<div class="item-leading">
+					<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg $.Icon 32}}</span>
+				</div>
+				<div class="item-main">
+					<div class="item-title">{{.Name}}</div>
+					{{if .Fingerprint}}
+						<div class="item-body">{{.Fingerprint}}</div>
+					{{end}}
+					<div class="item-body">
+						<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} · {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}} · <span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} · {{ctx.Locale.Tr "settings.can_write_info"}}{{end}}</span></i>
+					</div>
+				</div>
+				<div class="item-trailing">
+					<button class="ui red tiny button link-action" data-modal-confirm="{{$.ModalID}}" data-url="{{$.Link}}/delete?id={{.ID}}">
+						{{ctx.Locale.Tr $.DeleteText}}
+					</button>
+				</div>
+			</div>
+		{{end}}
+	</div>
+{{else}}
+	{{ctx.Locale.Tr .EmptyText}}
+{{end}}

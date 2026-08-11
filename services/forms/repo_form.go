@@ -737,14 +737,14 @@ type SaveTopicForm struct {
 	Topics []string `binding:"topics;Required;"`
 }
 
-// HTTPSDeployKeyForm form for adding an HTTPS deploy key to a repository.
-type HTTPSDeployKeyForm struct {
+// AddDeployTokenForm form for adding a deploy token to a repository
+type AddDeployTokenForm struct {
 	Title      string `binding:"Required;MaxSize(50)"`
 	IsWritable bool
 }
 
 // Validate validates the fields
-func (f *HTTPSDeployKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+func (f *AddDeployTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(ctx, errs, f)
 }

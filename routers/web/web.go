@@ -117,10 +117,8 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 	webAuth.AllowBasic = middlewareSetContextValue(keyAllowBasic{}, true)
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
-	// AllowDeployToken narrows HTTPS deploy-token authentication to the
-	// request contexts that need it (git smart-HTTP). Without this gate, a
-	// deploy token would authenticate as the repo owner on every Basic-auth
-	// endpoint — REST API, attachments, feeds — and act as a full-owner PAT.
+	// without this gate a deploy token would authenticate as the repo owner on every
+	// basic auth endpoint, which would make it as powerful as a token of that owner
 	webAuth.AllowDeployToken = middlewareSetContextValue(keyAllowDeployToken{}, true)
 
 	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
@@ -137,10 +135,8 @@ func newWebAuthMiddleware() *AuthMiddleware {
 			group.Add(&auth_service.OAuth2{})
 		}
 		if allowDeployToken {
-			// Must come before Basic so a valid deploy token short-circuits
-			// the fall-through into username/password sign-in (which would
-			// reject the 40-hex token and leave the caller with a 401).
-			group.Add(&auth_service.HTTPSDeployToken{})
+			// must come before Basic, which would try the token as a password and fail
+			group.Add(&auth_service.DeployToken{})
 		}
 		if allowBasic {
 			group.Add(&auth_service.Basic{})
@@ -1240,9 +1236,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/keys", func() {
 			m.Combo("").Get(repo_setting.DeployKeys).
 				Post(repo_setting.DeployKeysPost)
+			m.Post("/tokens", repo_setting.DeployTokensPost)
 			m.Post("/delete", repo_setting.DeleteDeployKey)
-			m.Post("/https", web.Bind(forms.HTTPSDeployKeyForm{}), repo_setting.HTTPSDeployKeysPost)
-			m.Post("/https/delete", repo_setting.DeleteHTTPSDeployKey)
 		})
 
 		m.Group("/lfs", func() {
