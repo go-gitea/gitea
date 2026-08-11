@@ -32,6 +32,13 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	assert.True(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionCloses, ref.RefAction)
 
+	// changing the action must rewrite ref_action instead of adding a second reference
+	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.NoError(t, issues_model.ChangeIssueContent(t.Context(), pr, d, fmt.Sprintf("content2, mentions #%d", itarget.Index), 0))
+	unittest.AssertCount(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: pr.ID}, 1)
+	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: ref.ID})
+	assert.Equal(t, references.XRefActionNone, ref.RefAction)
+
 	// Comment on PR to reopen issue #1
 	content = fmt.Sprintf("content2, reopens #%d", itarget.Index)
 	c := testCreateComment(t, 2, pr.ID, content)
@@ -88,6 +95,13 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 	assert.Equal(t, issues_model.CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, references.XRefActionNeutered, ref.RefAction)
+
+	// mentioning it again must clear ref_action instead of adding a second reference
+	i.Title = title
+	assert.NoError(t, issues_model.ChangeIssueTitle(t.Context(), i, d, "title2, no mentions"))
+	unittest.AssertCount(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: i.ID}, 1)
+	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: ref.ID})
+	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 }
 
 func TestXRef_ResolveCrossReferences(t *testing.T) {
@@ -153,7 +167,6 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	assert.NoError(t, err)
 	i, err = issues_model.GetIssueByID(ctx, i.ID)
 	assert.NoError(t, err)
-	assert.NoError(t, i.AddCrossReferences(ctx, d, false))
 	assert.NoError(t, committer.Commit())
 	return i
 }
