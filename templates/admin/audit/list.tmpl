@@ -1,6 +1,11 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
 	<div class="admin-setting-content">
-		<h4 class="ui top attached header">{{ctx.Locale.Tr "admin.monitor.audit.title"}}</h4>
+		<h4 class="ui top attached header flex-left-right">
+			<span>{{ctx.Locale.Tr "admin.monitor.audit.title"}}</span>
+			<a class="ui primary small button" href="{{AppSubUrl}}/-/admin/monitor/audit_logs/export">
+				{{svg "octicon-download"}} {{ctx.Locale.Tr "admin.monitor.audit.export"}}
+			</a>
+		</h4>
 		{{template "shared/audit/list" .}}
 	</div>
 {{template "admin/layout_footer" .}}

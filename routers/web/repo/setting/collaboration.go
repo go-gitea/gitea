@@ -14,8 +14,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mailer"
@@ -122,7 +122,7 @@ func CollaborationPost(ctx *context.Context) {
 func ChangeCollaborationAccessMode(ctx *context.Context) {
 	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
 	if err != nil {
-		log.Error("GetUserByID: %v", err)
+		ctx.ServerError("GetUserByID", err)
 		return
 	}
 
@@ -134,7 +134,11 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 		u.ID,
 		accessMode)
 	if err != nil {
-		log.Error("ChangeCollaborationAccessMode: %v", err)
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.HTTPError(http.StatusBadRequest)
+		} else {
+			ctx.ServerError("ChangeCollaborationAccessMode", err)
+		}
 		return
 	}
 
@@ -142,6 +146,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 		audit.Record(ctx, audit_model.RepositoryCollaboratorAccess, ctx.Repo.Repository,
 			"collaborator", u.Name, "access_mode", accessMode.ToString())
 	}
+	ctx.JSONOK()
 }
 
 // DeleteCollaboration delete a collaboration for a repository

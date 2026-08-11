@@ -104,12 +104,13 @@ func RemoveAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 		return nil
 	}
 
-	removed, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
-	if err != nil {
-		return fmt.Errorf("GetTeamRepositories: %w", err)
-	}
-
+	var removed repo_model.RepositoryList
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		var err error
+		removed, err = repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{TeamID: t.ID})
+		if err != nil {
+			return fmt.Errorf("GetTeamRepositories: %w", err)
+		}
 		return removeAllRepositoriesFromTeam(ctx, t)
 	}); err != nil {
 		return err

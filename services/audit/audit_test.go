@@ -6,6 +6,7 @@ package audit
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"testing"
 
 	audit_model "gitea.dev/models/audit"
@@ -13,6 +14,8 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/reqctx"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/modules/web/middleware"
 
 	"github.com/stretchr/testify/assert"
@@ -70,6 +73,19 @@ func TestBuildEvent(t *testing.T) {
 
 		ctx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{RemoteAddr: "127.0.0.1:1234"})
 		assert.Equal(t, "127.0.0.1", buildEvent(ctx, params).IPAddress)
+	})
+
+	t.Run("OriginFromRequest", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.AppSubURL, "/gitea")()
+		params := RecordParams{Action: audit_model.UserCreate, Actor: ActorFromUser(doer), Scope: ScopeFromUser(u)}
+
+		assert.Equal(t, audit_model.OriginCLI, buildEvent(context.Background(), params).Origin)
+
+		uiCtx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{URL: &url.URL{Path: "/gitea/user/settings"}})
+		assert.Equal(t, audit_model.OriginUI, buildEvent(uiCtx, params).Origin)
+
+		apiCtx := context.WithValue(context.Background(), httplib.RequestContextKey, &http.Request{URL: &url.URL{Path: "/gitea/api/v1/user"}})
+		assert.Equal(t, audit_model.OriginAPI, buildEvent(apiCtx, params).Origin)
 	})
 }
 

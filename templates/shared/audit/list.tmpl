@@ -5,6 +5,7 @@
 				<th>{{ctx.Locale.Tr "admin.monitor.audit.actor"}}</th>
 				<th>{{ctx.Locale.Tr "admin.monitor.audit.scope"}}</th>
 				<th>{{ctx.Locale.Tr "admin.monitor.audit.action"}}</th>
+				<th>{{ctx.Locale.Tr "admin.monitor.audit.origin"}}</th>
 				<th>{{ctx.Locale.Tr "admin.monitor.audit.details"}}</th>
 				<th>{{ctx.Locale.Tr "admin.monitor.audit.ip_address"}}</th>
 				<th data-sortt-asc="timestamp_asc" data-sortt-desc="timestamp_desc">{{ctx.Locale.Tr "admin.monitor.audit.timestamp"}}{{SortArrow "timestamp_asc" "timestamp_desc" $.AuditSort false}}</th>
@@ -36,6 +37,7 @@
 						{{end}}
 					</td>
 					<td><code>{{.Action}}</code></td>
+					<td><code>{{.Origin}}</code></td>
 					<td>
 						{{.Message}}
 						{{if .Metadata}}
@@ -51,7 +53,7 @@
 					<td>{{DateUtils.FullTime .Time}}</td>
 				</tr>
 			{{else}}
-				<tr><td colspan="6">{{ctx.Locale.Tr "admin.monitor.audit.no_events"}}</td></tr>
+				<tr><td colspan="7">{{ctx.Locale.Tr "admin.monitor.audit.no_events"}}</td></tr>
 			{{end}}
 		</tbody>
 	</table>

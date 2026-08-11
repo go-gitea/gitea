@@ -31,20 +31,8 @@ ENABLED = true
 ```
 
 Events are then written to the database and shown in the admin, organization, repository and user
-settings. Optionally every event can additionally be mirrored to a file, one JSON object per line,
-for shipping to an external log system:
-
-```ini
-[audit.file]
-ENABLED = true
-; relative paths are resolved against [log] ROOT_PATH
-FILE_NAME = audit.log
-```
-
-See `custom/conf/app.example.ini` for the full set of file rotation options.
-
-The two sinks are written independently, so a failure in one is logged but never blocks the other or
-the request that triggered the event.
+settings. Site administrators can download all events as a JSONL file from **Site Administration >
+Monitoring > Audit Logs** by selecting **Export JSONL**.
 
 ## Events
 
@@ -60,8 +48,11 @@ Each stored event contains:
 - **scope**: the unit the event belongs to — used for filtering in admin/user/org/repo views
 - **message**: human-readable summary shown in the UI
 - **metadata**: JSON object with action-specific details supplied by the caller
+- **time**: ISO 8601 timestamp when the action happened
+- **ip_address**: IP address from which the request originated
+- **origin**: how the event was initiated: `ui`, `api`, or `cli`
 
-Example file/JSON output:
+Example JSONL record:
 
 ```json
 {
@@ -71,7 +62,8 @@ Example file/JSON output:
   "message": "Removed access token my-token from user bob.",
   "metadata": {"token": "my-token"},
   "time": "2026-06-21T12:00:00Z",
-  "ip_address": "127.0.0.1"
+  "ip_address": "127.0.0.1",
+  "origin": "ui"
 }
 ```
 
@@ -196,12 +188,55 @@ pseudo user (`CLI`, `AuthenticationSource`) named by the background task that tr
 | `repository:secret:update` | Updated secret |
 | `repository:secret:remove` | Removed secret |
 
+### Issue Events
+
+| Event | Description |
+| - | - |
+| `issue:create` | Created issue |
+| `issue:delete` | Deleted issue |
+| `issue:comment:create` | Added issue comment |
+| `issue:comment:delete` | Deleted issue comment |
+
+### Pull Request Events
+
+| Event | Description |
+| - | - |
+| `pr:create` | Created pull request |
+| `pr:delete` | Deleted pull request |
+| `pr:merge` | Merged pull request |
+| `pr:comment:create` | Added pull request comment |
+| `pr:comment:delete` | Deleted pull request comment |
+
+### Project Events
+
+| Event | Description |
+| - | - |
+| `project:create` | Created project |
+| `project:update` | Updated project |
+| `project:delete` | Deleted project |
+
+### Wiki Events
+
+| Event | Description |
+| - | - |
+| `wiki:page:create` | Created wiki page |
+| `wiki:page:update` | Updated wiki page |
+| `wiki:page:delete` | Deleted wiki page |
+
+### Actions Events
+
+| Event | Description |
+| - | - |
+| `actions:workflow:enable` | Enabled Actions workflow |
+| `actions:workflow:disable` | Disabled Actions workflow |
+| `actions:workflow:dispatch` | Manually dispatched Actions workflow |
+
 ### System Events
 
 | Event | Description |
 | - | - |
-| `system:startup` | System startup |
-| `system:shutdown` | Normal system shutdown (unexpected shutdowns may not be logged) |
+| `system:startup` | System startup. The message format is stable: `System started [Gitea <version>]` |
+| `system:shutdown` | Normal system shutdown (unexpected shutdowns, such as out-of-memory termination, cannot always be logged) |
 | `system:webhook:add` | Added webhook |
 | `system:webhook:update` | Updated webhook |
 | `system:webhook:remove` | Removed webhook |

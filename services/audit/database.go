@@ -18,6 +18,7 @@ func writeToDatabase(ctx context.Context, e *Event) error {
 		ScopeType:     e.Scope.Type,
 		ScopeID:       e.Scope.ID,
 		ScopeName:     e.Scope.DisplayName(),
+		Origin:        e.Origin,
 		Message:       e.Message,
 		Metadata:      encodeMetadata(e.Metadata),
 		IPAddress:     e.IPAddress,

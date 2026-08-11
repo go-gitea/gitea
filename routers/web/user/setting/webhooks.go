@@ -42,11 +42,7 @@ func DeleteWebhook(ctx *context.Context) {
 	hook, err := webhook.GetWebhookByOwnerID(ctx, ctx.Doer.ID, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByOwnerID: " + err.Error())
-		ctx.JSONRedirect(setting.AppSubURL + "/user/settings/hooks")
-		return
-	}
-
-	if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Doer.ID, hook.ID); err != nil {
+	} else if err := webhook.DeleteWebhookByOwnerID(ctx, ctx.Doer.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOwnerID: " + err.Error())
 	} else {
 		audit.Record(ctx, audit_model.UserWebhookRemove, ctx.Doer, "webhook", hook.URL)

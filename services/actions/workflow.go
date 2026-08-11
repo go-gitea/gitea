@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	actions_model "gitea.dev/models/actions"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -18,6 +19,7 @@ import (
 	"gitea.dev/modules/reqctx"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 
@@ -40,7 +42,16 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 		cfg.DisableWorkflow(workflow.ID)
 	}
 
-	return repo_model.UpdateRepoUnitConfig(ctx, cfgUnit)
+	if err := repo_model.UpdateRepoUnitConfig(ctx, cfgUnit); err != nil {
+		return err
+	}
+
+	action := audit_model.ActionsWorkflowDisable
+	if isEnable {
+		action = audit_model.ActionsWorkflowEnable
+	}
+	audit.Record(ctx, action, ctx.Repo.Repository, "workflow", workflow.ID)
+	return nil
 }
 
 // DispatchActionWorkflow manually triggers a workflow_dispatch run.
@@ -171,6 +182,8 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if err := PrepareRunAndInsert(ctx, content, run, inputsWithDefaults); err != nil {
 		return 0, fmt.Errorf("PrepareRun: %w", err)
 	}
+	audit.RecordAs(ctx, doer, audit_model.ActionsWorkflowDispatch, repo,
+		"workflow", workflowID, "ref", ref, "run_id", run.ID)
 	return run.ID, nil
 }
 

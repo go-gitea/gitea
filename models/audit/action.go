@@ -110,6 +110,29 @@ const (
 	RepositorySecretUpdate           Action = "repository:secret:update"
 	RepositorySecretRemove           Action = "repository:secret:remove"
 
+	IssueCreate        Action = "issue:create"
+	IssueDelete        Action = "issue:delete"
+	IssueCommentCreate Action = "issue:comment:create"
+	IssueCommentDelete Action = "issue:comment:delete"
+
+	PullRequestCreate        Action = "pr:create"
+	PullRequestDelete        Action = "pr:delete"
+	PullRequestMerge         Action = "pr:merge"
+	PullRequestCommentCreate Action = "pr:comment:create"
+	PullRequestCommentDelete Action = "pr:comment:delete"
+
+	ProjectCreate Action = "project:create"
+	ProjectUpdate Action = "project:update"
+	ProjectDelete Action = "project:delete"
+
+	WikiPageCreate Action = "wiki:page:create"
+	WikiPageUpdate Action = "wiki:page:update"
+	WikiPageDelete Action = "wiki:page:delete"
+
+	ActionsWorkflowEnable   Action = "actions:workflow:enable"
+	ActionsWorkflowDisable  Action = "actions:workflow:disable"
+	ActionsWorkflowDispatch Action = "actions:workflow:dispatch"
+
 	SystemStartup                    Action = "system:startup"
 	SystemShutdown                   Action = "system:shutdown"
 	SystemWebhookAdd                 Action = "system:webhook:add"
@@ -232,6 +255,29 @@ func AllActions() []Action {
 		RepositorySecretAdd,
 		RepositorySecretUpdate,
 		RepositorySecretRemove,
+
+		IssueCreate,
+		IssueDelete,
+		IssueCommentCreate,
+		IssueCommentDelete,
+
+		PullRequestCreate,
+		PullRequestDelete,
+		PullRequestMerge,
+		PullRequestCommentCreate,
+		PullRequestCommentDelete,
+
+		ProjectCreate,
+		ProjectUpdate,
+		ProjectDelete,
+
+		WikiPageCreate,
+		WikiPageUpdate,
+		WikiPageDelete,
+
+		ActionsWorkflowEnable,
+		ActionsWorkflowDisable,
+		ActionsWorkflowDispatch,
 
 		SystemStartup,
 		SystemShutdown,

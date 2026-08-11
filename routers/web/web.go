@@ -788,6 +788,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 		m.Group("/monitor", func() {
 			m.Get("/audit_logs", auditLogsEnabled, admin.ViewAuditLogs)
+			m.Get("/audit_logs/export", auditLogsEnabled, admin.ExportAuditLogs)
 			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
 			m.Get("/perftrace", admin.PerfTrace)

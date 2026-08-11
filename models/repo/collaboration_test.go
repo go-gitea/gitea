@@ -11,6 +11,7 @@ import (
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -90,12 +91,15 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 
 	// Not a collaborator.
 	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, unittest.NonexistentID, perm.AccessModeAdmin)
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, util.ErrNotExist)
 	assert.False(t, changed)
 
-	// Discard invalid input.
+	// Reject invalid input.
 	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessMode(-1))
-	assert.NoError(t, err)
+	assert.ErrorIs(t, err, perm.ErrInvalidAccessMode)
+	assert.False(t, changed)
+	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeOwner)
+	assert.ErrorIs(t, err, perm.ErrInvalidAccessMode)
 	assert.False(t, changed)
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})

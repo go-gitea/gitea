@@ -33,24 +33,21 @@ func (u *User) IsGhost() bool {
 }
 
 const (
-	ActionsUserID    int64 = -2
-	ActionsUserName        = "gitea-actions"
-	ActionsUserEmail       = "teabot@gitea.io"
+	ActionsUserID   int64 = -2
+	ActionsUserName       = "gitea-actions"
 )
 
 // NewActionsUser creates and returns a fake user for running the actions.
 func NewActionsUser() *User {
 	return &User{
-		ID:               ActionsUserID,
-		Name:             ActionsUserName,
-		LowerName:        ActionsUserName,
-		IsActive:         true,
-		FullName:         "Gitea Actions",
-		Email:            ActionsUserEmail,
-		KeepEmailPrivate: true,
-		LoginName:        ActionsUserName,
-		Type:             UserTypeBot,
-		Visibility:       structs.VisibleTypePublic,
+		ID:         ActionsUserID,
+		Name:       ActionsUserName,
+		LowerName:  ActionsUserName,
+		IsActive:   true,
+		FullName:   "Gitea Actions",
+		LoginName:  ActionsUserName,
+		Type:       UserTypeBot,
+		Visibility: structs.VisibleTypePublic,
 	}
 }
 

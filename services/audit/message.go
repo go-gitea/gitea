@@ -23,8 +23,8 @@ const (
 //
 // {placeholders} are filled from the event metadata, except for the reserved
 // {scope} and {actor}, which come from the event's entity references. The
-// rendered text is persisted and written to the audit log file, so treat it as
-// a stable interface for log parsers.
+// rendered text is persisted and included in JSONL exports, so treat it as a
+// stable interface for log parsers.
 var messages = map[audit_model.Action]string{
 	audit_model.UserImpersonation:               "User {actor} impersonating user {scope}.",
 	audit_model.UserCreate:                      "Created user {scope}.",
@@ -129,6 +129,29 @@ var messages = map[audit_model.Action]string{
 	audit_model.RepositorySecretAdd:              "Added secret {secret} to repository {scope}.",
 	audit_model.RepositorySecretUpdate:           "Updated secret {secret} of repository {scope}.",
 	audit_model.RepositorySecretRemove:           "Removed secret {secret} from repository {scope}.",
+
+	audit_model.IssueCreate:        "Created issue {issue} in repository {scope}.",
+	audit_model.IssueDelete:        "Deleted issue {issue} from repository {scope}.",
+	audit_model.IssueCommentCreate: "Added comment {comment_id} to issue {issue} in repository {scope}.",
+	audit_model.IssueCommentDelete: "Deleted comment {comment_id} from issue {issue} in repository {scope}.",
+
+	audit_model.PullRequestCreate:        "Created pull request {pull_request} in repository {scope}.",
+	audit_model.PullRequestDelete:        "Deleted pull request {pull_request} from repository {scope}.",
+	audit_model.PullRequestMerge:         "Merged pull request {pull_request} in repository {scope}.",
+	audit_model.PullRequestCommentCreate: "Added comment {comment_id} to pull request {pull_request} in repository {scope}.",
+	audit_model.PullRequestCommentDelete: "Deleted comment {comment_id} from pull request {pull_request} in repository {scope}.",
+
+	audit_model.ProjectCreate: "Created project {project} in {scope}.",
+	audit_model.ProjectUpdate: "Updated project {project} in {scope}.",
+	audit_model.ProjectDelete: "Deleted project {project} from {scope}.",
+
+	audit_model.WikiPageCreate: "Created wiki page {page} in repository {scope}.",
+	audit_model.WikiPageUpdate: "Updated wiki page {page} in repository {scope}.",
+	audit_model.WikiPageDelete: "Deleted wiki page {page} from repository {scope}.",
+
+	audit_model.ActionsWorkflowEnable:   "Enabled Actions workflow {workflow} in repository {scope}.",
+	audit_model.ActionsWorkflowDisable:  "Disabled Actions workflow {workflow} in repository {scope}.",
+	audit_model.ActionsWorkflowDispatch: "Dispatched Actions workflow {workflow} on {ref} in repository {scope}.",
 
 	// Do not change the startup message anymore. We guarantee the stability of this message for
 	// users wanting to parse the log themselves to be able to trace back events across gitea versions.

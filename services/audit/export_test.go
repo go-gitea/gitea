@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWriteEventAsJSON(t *testing.T) {
+func TestWriteEventsAsJSON(t *testing.T) {
 	r := &repository_model.Repository{ID: 3, Name: "TestRepo", OwnerName: "TestUser"}
 	m := &repository_model.PushMirror{ID: 4, RemoteAddress: "git@example.com:repo.git"}
 	doer := &user_model.User{ID: 2, Name: "Doer"}
@@ -37,8 +37,9 @@ func TestWriteEventAsJSON(t *testing.T) {
 	e.Time = time.Time{}
 
 	sb := strings.Builder{}
-	assert.NoError(t, WriteEventAsJSON(&sb, e))
+	assert.NoError(t, WriteEventsAsJSON(&sb, []*Event{e, e}))
 	out := sb.String()
+	assert.Equal(t, 2, strings.Count(out, "\n"))
 	assert.Contains(t, out, `"action":"repository:mirror:push:add"`)
 	assert.Contains(t, out, `"name":"Doer"`)
 	assert.Contains(t, out, `"metadata"`)

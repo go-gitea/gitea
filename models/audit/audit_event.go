@@ -21,11 +21,12 @@ type Event struct {
 	Action        Action `xorm:"INDEX NOT NULL"`
 	ActorID       int64  `xorm:"INDEX NOT NULL"`
 	ActorName     string
-	ScopeType     ScopeType `xorm:"INDEX(scope) NOT NULL"`
-	ScopeID       int64     `xorm:"INDEX(scope) NOT NULL"`
+	ScopeID       int64     `xorm:"INDEX(scope) NOT NULL"` // Entity ID within ScopeType; zero for system.
+	ScopeType     ScopeType `xorm:"INDEX INDEX(scope) NOT NULL"`
 	ScopeName     string
+	Origin        Origin `xorm:"INDEX NOT NULL"`
 	Message       string
-	Metadata      string `xorm:"TEXT JSON"`
+	Metadata      string `xorm:"LONGTEXT JSON"`
 	IPAddress     string
 	TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
 }
@@ -50,6 +51,7 @@ type EventSearchOptions struct {
 	ActorID   int64
 	ScopeType ScopeType
 	ScopeID   int64
+	Origin    Origin
 	Sort      EventSort
 	db.Paginator
 }
@@ -71,6 +73,9 @@ func (opts *EventSearchOptions) ToConds() builder.Cond {
 	if opts.ScopeID != 0 {
 		cond = cond.And(builder.Eq{"audit_event.scope_id": opts.ScopeID})
 	}
+	if opts.Origin != "" {
+		cond = cond.And(builder.Eq{"audit_event.origin": opts.Origin})
+	}
 
 	return cond
 }
@@ -78,13 +83,10 @@ func (opts *EventSearchOptions) ToConds() builder.Cond {
 func (opts *EventSearchOptions) configureOrderBy(e db.Engine) {
 	switch opts.Sort {
 	case SortTimestampAsc:
-		e.Asc("timestamp_unix")
+		e.Asc("timestamp_unix", "id")
 	default:
-		e.Desc("timestamp_unix")
+		e.Desc("timestamp_unix", "id")
 	}
-
-	// Sort by id for stable order with duplicates in the other field
-	e.Asc("id")
 }
 
 func FindEvents(ctx context.Context, opts *EventSearchOptions) ([]*Event, int64, error) {

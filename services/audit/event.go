@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	audit_model "gitea.dev/models/audit"
@@ -28,6 +29,7 @@ type Event struct {
 	Metadata  map[string]any     `json:"metadata,omitempty"`
 	Time      time.Time          `json:"time"`
 	IPAddress string             `json:"ip_address"`
+	Origin    audit_model.Origin `json:"origin"`
 }
 
 // RecordParams describes an audit event. Callers (or domain-specific helpers)
@@ -79,6 +81,7 @@ func buildEvent(ctx context.Context, params RecordParams) *Event {
 		Metadata:  params.Metadata,
 		Time:      time.Now(),
 		IPAddress: getIPAddress(ctx),
+		Origin:    getOrigin(ctx),
 	}
 }
 
@@ -92,6 +95,22 @@ func getIPAddress(ctx context.Context) string {
 		return req.RemoteAddr
 	}
 	return host
+}
+
+func getOrigin(ctx context.Context) audit_model.Origin {
+	req, ok := ctx.Value(httplib.RequestContextKey).(*http.Request)
+	if !ok || req == nil {
+		return audit_model.OriginCLI
+	}
+	if req.URL == nil {
+		return audit_model.OriginUI
+	}
+
+	requestPath := strings.TrimPrefix(req.URL.Path, setting.AppSubURL)
+	if requestPath == "/api" || strings.HasPrefix(requestPath, "/api/") {
+		return audit_model.OriginAPI
+	}
+	return audit_model.OriginUI
 }
 
 // Record writes an audit event for an action against a scope entity. The actor
@@ -122,11 +141,6 @@ func RecordAs(ctx context.Context, doer *user_model.User, action audit_model.Act
 }
 
 // writeEvent persists an audit event when audit logging is enabled.
-//
-// The database is the source of truth (it backs the in-app audit log views); the
-// file sink is an optional append-only mirror for external log shipping. The two
-// are written independently so a failure in one is logged but never blocks the
-// other or the originating request.
 func writeEvent(ctx context.Context, params RecordParams) {
 	if !setting.Audit.Enabled {
 		return
@@ -134,9 +148,6 @@ func writeEvent(ctx context.Context, params RecordParams) {
 
 	e := buildEvent(ctx, params)
 
-	if err := writeToFile(e); err != nil {
-		log.Error("Error writing audit event to file: %v", err)
-	}
 	if err := writeToDatabase(ctx, e); err != nil {
 		log.Error("Error writing audit event %+v to database: %v", e, err)
 	}
@@ -172,6 +183,7 @@ func fromDatabaseEvent(e *audit_model.Event) *Event {
 		Metadata:  decodeMetadata(e.Metadata),
 		Time:      e.TimestampUnix.AsTime(),
 		IPAddress: e.IPAddress,
+		Origin:    e.Origin,
 	}
 }
 

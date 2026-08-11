@@ -66,11 +66,7 @@ func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
 	hook, err := webhook.GetWebhookByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByID: " + err.Error())
-		ctx.JSONRedirect(setting.AppSubURL + "/-/admin/hooks")
-		return
-	}
-
-	if err := webhook.DeleteDefaultSystemWebhook(ctx, hook.ID); err != nil {
+	} else if err := webhook.DeleteDefaultSystemWebhook(ctx, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteDefaultWebhook: " + err.Error())
 	} else {
 		audit.Record(ctx, audit_model.SystemWebhookRemove, nil, "webhook", hook.URL)

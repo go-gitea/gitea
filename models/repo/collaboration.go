@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -114,9 +115,8 @@ func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
 // It reports whether the access mode was actually changed.
 func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid int64, mode perm.AccessMode) (bool, error) {
-	// Discard invalid input
-	if mode <= perm.AccessModeNone || mode > perm.AccessModeOwner {
-		return false, nil
+	if mode < perm.AccessModeRead || mode > perm.AccessModeAdmin {
+		return false, perm.ErrInvalidAccessMode
 	}
 
 	changed := false
@@ -125,7 +125,7 @@ func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid in
 		if err != nil {
 			return fmt.Errorf("get collaboration: %w", err)
 		} else if !has {
-			return nil
+			return util.ErrNotExist
 		}
 
 		if collaboration.Mode == mode {

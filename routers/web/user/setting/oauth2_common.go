@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -197,11 +196,7 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetOAuth2ApplicationByID", err)
-		}
+		ctx.NotFoundOrServerError("GetOAuth2ApplicationByID", auth.IsErrOAuthApplicationNotFound, err)
 		return
 	}
 
@@ -222,6 +217,11 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 
 // RevokeGrant revokes the grant
 func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
+	if oa.Owner == nil || oa.Owner.IsOrganization() {
+		ctx.NotFound(nil)
+		return
+	}
+
 	grant, err := auth.GetOAuth2GrantByID(ctx, ctx.PathParamInt64("grantId"))
 	if err != nil {
 		ctx.ServerError("GetOAuth2GrantByID", err)
@@ -234,11 +234,7 @@ func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 
 	app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.NotFound(err)
-		} else {
-			ctx.ServerError("GetOAuth2ApplicationByID", err)
-		}
+		ctx.NotFoundOrServerError("GetOAuth2ApplicationByID", auth.IsErrOAuthApplicationNotFound, err)
 		return
 	}
 
@@ -247,8 +243,6 @@ func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
 		return
 	}
 
-	// Grant revocation is only reachable from the per-user application list, so
-	// the user-scoped action always applies here.
 	oa.recordAudit(ctx, audit.ScopedActions{
 		User: audit_model.UserOAuth2ApplicationRevoke,
 	}, app.Name)

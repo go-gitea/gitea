@@ -20,7 +20,8 @@ function initRepoSettingsCollaboration() {
         $dropdown.dropdown('hide');
         try {
           const uid = dropdownEl.getAttribute('data-uid')!;
-          await POST(dropdownEl.getAttribute('data-url')!, {data: new URLSearchParams({uid, 'mode': value})});
+          const response = await POST(dropdownEl.getAttribute('data-url')!, {data: new URLSearchParams({uid, 'mode': value})});
+          if (!response.ok) throw new Error(`Invalid server response: ${response.status}`);
           textEl.textContent = text;
           dropdownEl.setAttribute('data-last-value', value);
         } catch {

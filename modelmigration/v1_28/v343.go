@@ -6,8 +6,6 @@ package v1_28
 import (
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
 type AuditEvent struct {
@@ -15,11 +13,12 @@ type AuditEvent struct {
 	Action        string `xorm:"INDEX NOT NULL"`
 	ActorID       int64  `xorm:"INDEX NOT NULL"`
 	ActorName     string
-	ScopeType     string `xorm:"INDEX(scope) NOT NULL"`
 	ScopeID       int64  `xorm:"INDEX(scope) NOT NULL"`
+	ScopeType     string `xorm:"INDEX INDEX(scope) NOT NULL"`
 	ScopeName     string
+	Origin        string `xorm:"INDEX NOT NULL"`
 	Message       string
-	Metadata      string `xorm:"TEXT JSON"`
+	Metadata      string `xorm:"LONGTEXT JSON"`
 	IPAddress     string
 	TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
 }
@@ -29,9 +28,5 @@ func (*AuditEvent) TableName() string {
 }
 
 func AddAuditEventTable(x base.EngineMigration) error {
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains: true,
-		IgnoreIndices:    true,
-	}, new(AuditEvent))
-	return err
+	return x.Sync(new(AuditEvent))
 }
