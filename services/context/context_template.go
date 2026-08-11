@@ -130,8 +130,7 @@ func WebContentSecurityPolicy(scriptNonce string) string {
 		`script-src * 'nonce-` + scriptNonce + `';` +
 
 		// it seems that Vue needs the unsafe-inline, and our custom colors (e.g.: label) also need it
-		`style-src * 'unsafe-inline';` +
-		`">`
+		`style-src * 'unsafe-inline';`
 }
 
 func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {

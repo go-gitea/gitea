@@ -203,7 +203,9 @@ func CspScriptNonce(ctx reqctx.RequestContext) (ret string) {
 }
 
 func (b *Base) SetHeaderContentSecurityPolicyGeneral() {
-	b.Resp.Header().Set("Content-Security-Policy", WebContentSecurityPolicy(CspScriptNonce(b)))
+	if csp := WebContentSecurityPolicy(CspScriptNonce(b)); csp != "" {
+		b.Resp.Header().Set("Content-Security-Policy", csp)
+	}
 }
 
 func NewBaseContext(resp http.ResponseWriter, req *http.Request) *Base {
