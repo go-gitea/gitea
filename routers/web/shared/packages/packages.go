@@ -63,7 +63,7 @@ func PerformRuleEditPost(ctx *context.Context, owner *user_model.User, redirectU
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.PackageCleanupRuleForm)
+	form := web.GetForm[*forms.PackageCleanupRuleForm](ctx)
 
 	if form.Action == "remove" {
 		if err := packages_model.DeleteCleanupRuleByID(ctx, pcr.ID); err != nil {
@@ -85,7 +85,7 @@ func performRuleEditPost(ctx *context.Context, owner *user_model.User, pcr *pack
 		pcr = &packages_model.PackageCleanupRule{}
 	}
 
-	form := web.GetForm(ctx).(*forms.PackageCleanupRuleForm)
+	form := web.GetForm[*forms.PackageCleanupRuleForm](ctx)
 
 	pcr.Enabled = form.Enabled
 	pcr.OwnerID = owner.ID

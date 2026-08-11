@@ -33,10 +33,11 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		// Of text and link contents
 		sl := strings.SplitSeq(content, "|")
 		for v := range sl {
-			if found := strings.Contains(v, "="); !found {
+			before, after, hasKeyValue := strings.Cut(v, "=")
+			if !hasKeyValue {
 				// There is no equal in this argument; this is a mandatory arg
 				if props["name"] == "" {
-					if IsFullURLString(v) {
+					if checkLink := common.CheckLinkURLScheme(v); checkLink.HasScheme {
 						// If we clearly see it is a link, we save it so
 
 						// But first we need to ensure, that if both mandatory args provided
@@ -53,9 +54,6 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 					props["link"] = strings.TrimSpace(v)
 				}
 			} else {
-				// There is an equal; optional argument.
-
-				before, after, _ := strings.Cut(v, "=")
 				key, val := before, html.UnescapeString(after)
 
 				// When parsing HTML, x/net/html will change all quotes which are
@@ -103,6 +101,11 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			image = true
 		}
 
+		checkLink := common.CheckLinkURLScheme(link)
+		if !checkLink.AllowToLinkify {
+			return
+		}
+
 		childNode := &html.Node{}
 		linkNode := &html.Node{
 			FirstChild: childNode,
@@ -112,10 +115,9 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			DataAtom:   atom.A,
 		}
 		childNode.Parent = linkNode
-		absoluteLink := IsFullURLString(link)
 		// FIXME: it should be fully refactored in the future, it uses various hacky approaches to guess how to encode a path for wiki
 		// When a link contains "/", then we assume that the user has provided a well-encoded link.
-		if !absoluteLink && !strings.Contains(link, "/") {
+		if !checkLink.HasScheme && !strings.Contains(link, "/") {
 			// So only guess for links without "/".
 			if image {
 				link = strings.ReplaceAll(link, " ", "+")
@@ -165,7 +167,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 func linkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := common.GlobalVars().LinkRegex.FindStringIndex(node.Data)
+		m := common.GlobalVars().LinkifyRegex.FindStringIndex(node.Data)
 		if m == nil {
 			return
 		}
@@ -184,7 +186,7 @@ func linkProcessor(ctx *RenderContext, node *html.Node) {
 func descriptionLinkProcessor(ctx *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := common.GlobalVars().LinkRegex.FindStringIndex(node.Data)
+		m := common.GlobalVars().LinkifyRegex.FindStringIndex(node.Data)
 		if m == nil {
 			return
 		}

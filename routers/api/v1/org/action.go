@@ -106,7 +106,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
+	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
 	_, created, err := secret_service.CreateOrUpdateSecret(ctx, ctx.Org.Organization.ID, 0, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
@@ -373,7 +373,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	//   "500":
 	//     "$ref": "#/responses/error"
 
-	opt := web.GetForm(ctx).(*api.CreateVariableOption)
+	opt := web.GetForm[*api.CreateVariableOption](ctx)
 
 	ownerID := ctx.Org.Organization.ID
 	variableName := ctx.PathParam("variablename")
@@ -437,7 +437,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
+	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		OwnerID: ctx.Org.Organization.ID,

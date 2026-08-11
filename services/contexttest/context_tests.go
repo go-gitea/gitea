@@ -104,6 +104,12 @@ func MockPrivateContext(t *testing.T, reqPath string) (*context.PrivateContext, 
 	return ctx, resp
 }
 
+func MockRequestPostForm(req *http.Request, formData url.Values) {
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.PostForm = formData
+	maps.Copy(req.Form, formData)
+}
+
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 	var doer *user_model.User

@@ -177,13 +177,15 @@ func GetListenerTCP(network string, address *net.TCPAddr) (*net.TCPListener, err
 	// look for a provided listener
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
+			tcpListener := l.(*net.TCPListener) //nolint:forcetypeassert // a listener matching a *net.TCPAddr is a *net.TCPListener
+
 			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
 			needsUnlink := providedListenersToUnlink[i]
 			providedListenersToUnlink = append(providedListenersToUnlink[:i], providedListenersToUnlink[i+1:]...)
 
 			activeListeners = append(activeListeners, l)
 			activeListenersToUnlink = append(activeListenersToUnlink, needsUnlink)
-			return l.(*net.TCPListener), nil
+			return tcpListener, nil
 		}
 	}
 
@@ -211,13 +213,14 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 	// look for a provided listener
 	for i, l := range providedListeners {
 		if isSameAddr(l.Addr(), address) {
+			unixListener := l.(*net.UnixListener) //nolint:forcetypeassert // a listener matching a *net.UnixAddr is a *net.UnixListener
+
 			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
 			needsUnlink := providedListenersToUnlink[i]
 			providedListenersToUnlink = append(providedListenersToUnlink[:i], providedListenersToUnlink[i+1:]...)
 
 			activeListenersToUnlink = append(activeListenersToUnlink, needsUnlink)
 			activeListeners = append(activeListeners, l)
-			unixListener := l.(*net.UnixListener)
 			if needsUnlink {
 				unixListener.SetUnlinkOnClose(true)
 			}

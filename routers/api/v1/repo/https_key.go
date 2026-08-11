@@ -158,7 +158,7 @@ func CreateHTTPSDeployKey(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateHTTPSDeployKeyOption)
+	form := web.GetForm[*api.CreateHTTPSDeployKeyOption](ctx)
 	key, token, err := asymkey_model.AddHTTPSDeployKey(ctx, ctx.Repo.Repository.ID, form.Name, form.ReadOnly)
 	if err != nil {
 		switch {

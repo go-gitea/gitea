@@ -50,7 +50,7 @@ func createSearchResultResponse(total int64, pds []*packages_model.PackageDescri
 	for _, pd := range pds {
 		results = append(results, &SearchResult{
 			Name:        pd.Package.Name,
-			Description: pd.Metadata.(*composer_module.Metadata).Description,
+			Description: packages_model.DescriptorMetadata[*composer_module.Metadata](pd).Description,
 			Downloads:   pd.Version.DownloadCount,
 		})
 	}
@@ -111,7 +111,7 @@ func createPackageMetadataResponse(ctx *context.Context, registryURL string, pds
 			Version:  pd.Version.Version,
 			Type:     packageType,
 			Created:  pd.Version.CreatedUnix.AsLocalTime(),
-			Metadata: pd.Metadata.(*composer_module.Metadata),
+			Metadata: packages_model.DescriptorMetadata[*composer_module.Metadata](pd),
 			Dist: Dist{
 				Type:     "zip",
 				URL:      fmt.Sprintf("%s/files/%s/%s/%s", registryURL, url.PathEscape(pd.Package.LowerName), url.PathEscape(pd.Version.LowerVersion), url.PathEscape(pd.Files[0].File.LowerName)),

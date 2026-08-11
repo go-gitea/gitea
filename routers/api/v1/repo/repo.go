@@ -298,7 +298,7 @@ func Create(ctx *context.APIContext) {
 	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	opt := web.GetForm(ctx).(*api.CreateRepoOption)
+	opt := web.GetForm[*api.CreateRepoOption](ctx)
 	if ctx.Doer.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
 		ctx.APIError(http.StatusUnprocessableEntity, "not allowed creating repository for organization")
@@ -342,7 +342,7 @@ func Generate(ctx *context.APIContext) {
 	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	form := web.GetForm(ctx).(*api.GenerateRepoOption)
+	form := web.GetForm[*api.GenerateRepoOption](ctx)
 
 	if !ctx.Repo.Repository.IsTemplate {
 		ctx.APIError(http.StatusUnprocessableEntity, "this is not a template repo")
@@ -484,7 +484,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	opt := web.GetForm(ctx).(*api.CreateRepoOption)
+	opt := web.GetForm[*api.CreateRepoOption](ctx)
 	orgName := ctx.PathParam("org")
 	org := prepareDoerCreateRepoInOrg(ctx, orgName)
 	if ctx.Written() {
@@ -603,7 +603,7 @@ func Edit(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := *web.GetForm(ctx).(*api.EditRepoOption)
+	opts := *web.GetForm[*api.EditRepoOption](ctx)
 
 	if err := updateBasicProperties(ctx, opts); err != nil {
 		return
