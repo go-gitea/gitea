@@ -597,6 +597,10 @@ func ConvertUserType(ctx *context.APIContext) {
 		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization, not a user")
 		return
 	}
+	if !ctx.ContextUser.IsIndividual() && !ctx.ContextUser.IsTypeBot() {
+		ctx.APIError(http.StatusUnprocessableEntity, "target user type cannot be converted")
+		return
+	}
 
 	// converting yourself into a bot would drop your own credentials and sign you out
 	if ctx.ContextUser.ID == ctx.Doer.ID {

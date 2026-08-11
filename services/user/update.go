@@ -271,7 +271,8 @@ func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_mo
 		return user_model.ErrBotUserIsAdmin{UID: u.ID, Name: u.Name}
 	}
 
-	u.Type = targetType
+	updatedUser := *u
+	updatedUser.Type = targetType
 	cols := []string{"type"}
 
 	if targetType == user_model.UserTypeBot {
@@ -280,38 +281,43 @@ func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_mo
 		// removed. Access tokens are intentionally KEPT: they are the whole point of a
 		// bot and are managed by the admin afterwards. Owned content (repositories,
 		// organization memberships, issues, ...) is left untouched.
-		u.Passwd = ""
-		u.PasswdHashAlgo = ""
-		u.Salt = ""
-		u.MustChangePassword = false
-		u.LoginType = auth_model.Plain
-		u.LoginSource = 0
-		u.LoginName = ""
+		updatedUser.Passwd = ""
+		updatedUser.PasswdHashAlgo = ""
+		updatedUser.Salt = ""
+		updatedUser.MustChangePassword = false
+		updatedUser.LoginType = auth_model.Plain
+		updatedUser.LoginSource = 0
+		updatedUser.LoginName = ""
 		cols = append(cols, "passwd", "passwd_hash_algo", "salt", "must_change_password", "login_type", "login_source", "login_name")
 
 		// the type flip and all credential teardown must be atomic, otherwise a
 		// mid-sequence failure leaves a half-converted account (e.g. type bot but
 		// OAuth2 grants still live or sessions not revoked)
-		return db.WithTx(ctx, func(ctx context.Context) error {
-			if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
+		if err := db.WithTx(ctx, func(ctx context.Context) error {
+			if err := user_model.UpdateUserCols(ctx, &updatedUser, cols...); err != nil {
 				return err
 			}
 			// revoke persisted sign-in sessions so the former individual cannot stay logged in
-			if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
+			if err := auth_model.DeleteAuthTokensByUserID(ctx, updatedUser.ID); err != nil {
 				return err
 			}
 			// remove OAuth2 applications and grants owned/authorized by the account
-			if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
+			if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, updatedUser.ID); err != nil {
 				return err
 			}
 			// a bot has no inbox, so drop the notifications it accumulated as an individual
-			if err := db.DeleteBeans(ctx, &activities_model.Notification{UserID: u.ID}); err != nil {
+			if err := db.DeleteBeans(ctx, &activities_model.Notification{UserID: updatedUser.ID}); err != nil {
 				return err
 			}
 			// the account is now local, so drop any external (OAuth2/LDAP/...) login links
-			return user_model.RemoveAllAccountLinks(ctx, u)
-		})
+			return user_model.RemoveAllAccountLinks(ctx, &updatedUser)
+		}); err != nil {
+			return err
+		}
+	} else if err := user_model.UpdateUserCols(ctx, &updatedUser, cols...); err != nil {
+		return err
 	}
 
-	return user_model.UpdateUserCols(ctx, u, cols...)
+	*u = updatedUser
+	return nil
 }
