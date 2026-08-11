@@ -116,7 +116,6 @@ require (
 	gopkg.in/ini.v1 v1.67.3
 	modernc.org/sqlite v1.56.0
 	mvdan.cc/xurls/v2 v2.6.0
-	strk.kbt.io/projects/go/libravatar v0.0.0-20260301104140-add494e31dab
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.4.1
 )

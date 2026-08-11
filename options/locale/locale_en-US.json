@@ -711,7 +711,6 @@
   "settings.keep_activity_private": "Hide Activity from profile page",
   "settings.keep_activity_private_popup": "Makes the activity visible only for you and the admins",
   "settings.lookup_avatar_by_mail": "Look Up Avatar by Email Address",
-  "settings.federated_avatar_lookup": "Federated Avatar Lookup",
   "settings.enable_custom_avatar": "Use Custom Avatar",
   "settings.choose_new_avatar": "Choose new avatar",
   "settings.update_avatar": "Update Avatar",
