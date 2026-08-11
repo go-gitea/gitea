@@ -264,7 +264,7 @@ func performRequest(ctx context.Context, client *http.Client, req *http.Request)
 		return res, err
 	}
 
-	if res.StatusCode < http.StatusOK || res.StatusCode >= http.StatusMultipleChoices {
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		defer res.Body.Close()
 		return res, handleErrorResponse(res)
 	}
