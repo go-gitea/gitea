@@ -1,5 +1,4 @@
 import {build, defineConfig} from 'vite';
-import {stringPlugin} from 'vite-string-plugin';
 import {sharedPlugins, vueDefines} from './tools/shared.ts';
 import {licensePlugin, wrap} from 'rolldown-license-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
@@ -87,7 +86,6 @@ function iifeBuildOpts({sourceFileName, write}: {sourceFileName: string, write?:
       rolldownOptions: {output: {entryFileNames: entryFileName}},
       ...(write === false && {write: false}),
     },
-    plugins: [stringPlugin()],
   });
 }
 

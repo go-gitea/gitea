@@ -1,4 +1,4 @@
-import globTestData from './glob.test.txt';
+import globTestData from './glob.test.txt?raw';
 import {globCompile} from './glob.ts';
 
 function loadGlobTestData(): {caseNames: string[], caseDataMap: Record<string, string>} {

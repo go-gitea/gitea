@@ -182,9 +182,6 @@ importers:
       vite:
         specifier: 8.2.0
         version: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
-      vite-string-plugin:
-        specifier: 2.0.5
-        version: 2.0.5(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0))
       vue:
         specifier: 3.5.41
         version: 3.5.41(typescript@6.0.3)
@@ -4212,11 +4209,6 @@ packages:
 
   vanilla-colorful@0.7.2:
     resolution: {integrity: sha512-z2YZusTFC6KnLERx1cgoIRX2CjPRP0W75N+3CC6gbvdX5Ch47rZkEMGO2Xnf+IEmi3RiFLxS18gayMA27iU7Kg==}
-
-  vite-string-plugin@2.0.5:
-    resolution: {integrity: sha512-b4F5xI6zAw+LTbRT2RlPKqdBneHLB9P5aqW9aW7z4zK9/nUEG7Hc8Ml1K2Zwmc0xE0s9k01JcnK+xCFYXLGmZA==}
-    peerDependencies:
-      vite: '*'
 
   vite@8.2.0:
     resolution: {integrity: sha512-pn+CFpM0lwDeKwmOq1ZaBK/9sjorZcgqxki6MbY/jPEVd9vichIlmlD4HmQ5wdP5EgqQCFRaACBxMC7uEGc6lQ==}
@@ -8955,10 +8947,6 @@ snapshots:
   uuid@14.0.0: {}
 
   vanilla-colorful@0.7.2: {}
-
-  vite-string-plugin@2.0.5(vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)):
-    dependencies:
-      vite: 8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0)
 
   vite@8.2.0(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(yaml@2.9.0):
     dependencies:
