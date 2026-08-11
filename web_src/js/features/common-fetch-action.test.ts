@@ -1,12 +1,6 @@
 import {execPseudoSelectorCommands, handleFetchActionErrorFields, handleFetchActionSuccessJson} from './common-fetch-action.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
-import {navigateTo, normalizeTestHtml, reloadPage} from '../utils/testhelper.ts';
-
-vi.mock('../utils/testhelper.ts', async (importOriginal) => ({
-  ...await importOriginal<object>(),
-  navigateTo: vi.fn(),
-  reloadPage: vi.fn(),
-}));
+import {captureNavigations, normalizeTestHtml} from '../utils/testhelper.ts';
 
 test('execPseudoSelectorCommands', () => {
   window.document.body.innerHTML = `
@@ -46,21 +40,14 @@ test('execPseudoSelectorCommands', () => {
   expect(ret.targets).toEqual(Array.from(document.querySelectorAll('#d1 .x')));
 });
 
-test('handleFetchActionSuccessJson', async () => {
-  await handleFetchActionSuccessJson(document.body, {redirect: '/'});
-  expect(navigateTo).toHaveBeenCalledTimes(1);
-  expect(reloadPage).toHaveBeenCalledTimes(0);
-  vi.resetAllMocks();
-
-  await handleFetchActionSuccessJson(document.body, {redirect: ''});
-  expect(navigateTo).toHaveBeenCalledTimes(0);
-  expect(reloadPage).toHaveBeenCalledTimes(1);
-  vi.resetAllMocks();
-
-  await handleFetchActionSuccessJson(document.body, {});
-  expect(navigateTo).toHaveBeenCalledTimes(0);
-  expect(reloadPage).toHaveBeenCalledTimes(1);
-  vi.resetAllMocks();
+test.each([
+  [{redirect: '/'}, 'push'],
+  [{redirect: ''}, 'reload'],
+  [{}, 'reload'],
+] as const)('handleFetchActionSuccessJson %o', async (respJson, navigationType) => {
+  const navigations = captureNavigations();
+  await handleFetchActionSuccessJson(document.body, respJson);
+  expect(navigations.map((n) => n.type)).toEqual([navigationType]);
 });
 
 test('handleFetchActionErrorFields', () => {

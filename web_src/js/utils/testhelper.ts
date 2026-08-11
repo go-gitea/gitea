@@ -1,11 +1,15 @@
-// browser tests can not stub "window.location", so navigation goes through these wrappers instead
+import {onTestFinished} from 'vitest';
 
-export function navigateTo(href: string) {
-  window.location.assign(href);
-}
-
-export function reloadPage() {
-  window.location.reload();
+/** Record and block navigations, as a real browser forbids stubbing "window.location" */
+export function captureNavigations() {
+  const navigations: Array<{url: string, type: NavigationType}> = [];
+  const onNavigate = (e: NavigateEvent) => {
+    navigations.push({url: e.destination.url, type: e.navigationType});
+    e.preventDefault();
+  };
+  window.navigation.addEventListener('navigate', onNavigate);
+  onTestFinished(() => window.navigation.removeEventListener('navigate', onNavigate));
+  return navigations;
 }
 
 /** strip common indentation from a string and trim it */

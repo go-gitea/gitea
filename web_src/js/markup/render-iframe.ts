@@ -1,6 +1,5 @@
 import {generateElemId} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
-import {navigateTo} from '../utils/testhelper.ts';
 import {isDarkTheme} from '../utils.ts';
 
 function safeRenderIframeLink(link: any): string | null {
@@ -28,7 +27,7 @@ export function navigateToIframeLink(unsafeLink: any, target: any) {
     return;
   }
   // treat all other targets including ("_top", "_self", etc.) as same tab navigation
-  navigateTo(linkHref);
+  window.location.assign(linkHref);
 }
 
 function getRealBackgroundColor(el: HTMLElement) {
