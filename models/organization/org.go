@@ -303,7 +303,7 @@ func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.Us
 		}
 	}
 
-	if org.Visibility.IsPublic() {
+	if org.Visibility.IsPublic() || (doer != nil && org.Visibility.IsLimited()) {
 		return perm.AccessModeRead
 	}
 
