@@ -148,7 +148,6 @@ type FindArtifactsOptions struct {
 	RepoID               int64
 	RunID                int64
 	RunAttemptIDs        []int64 // empty means every attempt; pass 0 to target legacy artifacts, which have run_attempt_id=0
-	ArtifactID           int64
 	ArtifactName         string
 	Status               int
 	FinalizedArtifactsV4 bool
@@ -170,9 +169,6 @@ func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	}
 	if len(opts.RunAttemptIDs) > 0 {
 		cond = cond.And(builder.In("run_attempt_id", opts.RunAttemptIDs))
-	}
-	if opts.ArtifactID > 0 {
-		cond = cond.And(builder.Eq{"id": opts.ArtifactID})
 	}
 	if opts.ArtifactName != "" {
 		cond = cond.And(builder.Eq{"artifact_name": opts.ArtifactName})

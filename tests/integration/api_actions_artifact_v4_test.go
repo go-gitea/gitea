@@ -1002,53 +1002,22 @@ func uploadTestArtifactFileV4(t *testing.T, runID, jobID int64, authToken, artif
 	require.True(t, finalizeResp.Ok)
 }
 
-func listArtifactsForRunV4(t *testing.T, taskToken string, req *actions.ListArtifactsRequest) []*actions.ListArtifactsResponse_MonolithArtifact {
-	t.Helper()
-
-	httpReq := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(req)).AddTokenAuth(taskToken)
-	resp := MakeRequest(t, httpReq, http.StatusOK)
-	var listResp actions.ListArtifactsResponse
-	require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &listResp))
-	return listResp.Artifacts
-}
-
 func listArtifactNamesForRunV4(t *testing.T, runID, jobID int64, taskToken string) []string {
 	t.Helper()
 
-	artifacts := listArtifactsForRunV4(t, taskToken, &actions.ListArtifactsRequest{
+	req := NewRequestWithBody(t, "POST", "/twirp/github.actions.results.api.v1.ArtifactService/ListArtifacts", toProtoJSON(&actions.ListArtifactsRequest{
 		WorkflowRunBackendId:    strconv.FormatInt(runID, 10),
 		WorkflowJobRunBackendId: strconv.FormatInt(jobID, 10),
-	})
+	})).AddTokenAuth(taskToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	var listResp actions.ListArtifactsResponse
+	require.NoError(t, protojson.Unmarshal(resp.Body.Bytes(), &listResp))
 
-	names := make([]string, 0, len(artifacts))
-	for _, item := range artifacts {
+	names := make([]string, 0, len(listResp.Artifacts))
+	for _, item := range listResp.Artifacts {
 		names = append(names, item.Name)
 	}
 	return names
-}
-
-func listArtifactIDForRunV4(t *testing.T, runID, jobID int64, taskToken, artifactName string) int64 {
-	t.Helper()
-
-	artifacts := listArtifactsForRunV4(t, taskToken, &actions.ListArtifactsRequest{
-		NameFilter:              wrapperspb.String(artifactName),
-		WorkflowRunBackendId:    strconv.FormatInt(runID, 10),
-		WorkflowJobRunBackendId: strconv.FormatInt(jobID, 10),
-	})
-	require.Len(t, artifacts, 1)
-	return artifacts[0].DatabaseId
-}
-
-func listArtifactIDByFilterV4(t *testing.T, runID, jobID, artifactID int64, taskToken string) int64 {
-	t.Helper()
-
-	artifacts := listArtifactsForRunV4(t, taskToken, &actions.ListArtifactsRequest{
-		IdFilter:                wrapperspb.Int64(artifactID),
-		WorkflowRunBackendId:    strconv.FormatInt(runID, 10),
-		WorkflowJobRunBackendId: strconv.FormatInt(jobID, 10),
-	})
-	require.Len(t, artifacts, 1)
-	return artifacts[0].DatabaseId
 }
 
 func downloadRepoArtifactV4Content(t *testing.T, session *TestSession, archiveDownloadURL string) string {

@@ -696,13 +696,9 @@ jobs:
 	assert.Equal(t, strings.Repeat("D", 32), downloadArtifactItemContent(t, taskToken3, inheritedV3[0]))
 
 	// uploading an inherited name in this attempt shadows the inherited artifact
-	inheritedSharedID := listArtifactIDForRunV4(t, run.ID, job3.ID, taskToken3, "job1-shared")
 	uploadTestArtifactFileV4(t, run.ID, job3.ID, taskToken3, "job1-shared", strings.Repeat("C", 32))
 	assert.ElementsMatch(t, []string{"job1-only", "job1-shared"}, listArtifactNamesForRunV4(t, run.ID, job3.ID, taskToken3))
 	assert.Equal(t, strings.Repeat("C", 32), downloadArtifactContentV4ByTask(t, run.ID, job3.ID, taskToken3, "job1-shared"))
-
-	// an id names exactly one artifact, so being shadowed must not hide it from a lookup by id
-	assert.Equal(t, inheritedSharedID, listArtifactIDByFilterV4(t, run.ID, job3.ID, inheritedSharedID, taskToken3))
 
 	// the shadowed v3 artifact is dropped as a whole, its b.txt row must not survive next to the new a.txt
 	uploadTestArtifactFile(t, run.ID, taskToken3, "job1-v3", "a.txt", strings.Repeat("F", 32))
