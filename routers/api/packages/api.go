@@ -42,7 +42,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
 		scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 		if hasApiTokenScope {
-			{ // it's a personal access token but not oauth2 token
+			{ // request authenticated by a scoped token; enforce package scope restrictions
 				scopeMatched := false
 				var err error
 				switch accessMode {
