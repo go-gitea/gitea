@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
@@ -16,13 +17,29 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]any, error) {
+// getWorkflowDispatchInputsFromRun returns the `inputs.*` context for a workflow_dispatch job's
+// server-side `if:` evaluation. run.EventPayload (and thus `github.event.inputs`) keeps GitHub's
+// raw string values, so `type: boolean` inputs are re-coerced here from job's own WorkflowPayload,
+// which still carries the workflow's `on:` declaration (see SingleWorkflow.CloneHeader).
+// job may be nil for workflow-level (run) concurrency evaluation, which has no job in scope; the
+// coercion is then skipped and boolean inputs are compared as the raw dispatch strings.
+func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if run.Event != "workflow_dispatch" {
 		return map[string]any{}, nil
 	}
 	var payload api.WorkflowDispatchPayload
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 		return nil, err
+	}
+	if job == nil {
+		return payload.Inputs, nil
+	}
+	swf, _, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
+	if err != nil {
+		return nil, fmt.Errorf("parse job %d workflow payload: %w", job.ID, err)
+	}
+	if dispatch := (&model.Workflow{RawOn: swf.RawOn}).WorkflowDispatchConfig(); dispatch != nil {
+		coerceDispatchInputTypes(dispatch, payload.Inputs)
 	}
 	return payload.Inputs, nil
 }
@@ -32,7 +49,7 @@ func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun) (map[string]
 //   - For reusable workflow children (and nested callers), this is the direct parent caller's CallPayload.Inputs
 func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if job.ParentJobID == 0 {
-		return getWorkflowDispatchInputsFromRun(run)
+		return getWorkflowDispatchInputsFromRun(run, job)
 	}
 
 	caller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)

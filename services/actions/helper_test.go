@@ -63,6 +63,58 @@ jobs:
 	}
 }
 
+func TestGetWorkflowDispatchInputsFromRunCoercesBooleans(t *testing.T) {
+	// Regression: a workflow_dispatch boolean input is stored as the string "true"/"false" in
+	// run.EventPayload (github.event.inputs must stay a string, matching GitHub). The `inputs`
+	// context used by a needs-gated job's server-side `if:` evaluation must still see it as a
+	// real boolean, or `if: ${{ inputs.deploy == true }}` never matches and the job stays
+	// blocked forever - the job's own WorkflowPayload carries the `on:` declaration needed to
+	// tell which inputs are booleans.
+	run := &actions_model.ActionRun{
+		Event: "workflow_dispatch",
+		EventPayload: func() string {
+			payload, err := json.Marshal(api.WorkflowDispatchPayload{
+				Inputs: map[string]any{"deploy": "true", "env": "prod"},
+			})
+			require.NoError(t, err)
+			return string(payload)
+		}(),
+	}
+	job := &actions_model.ActionRunJob{
+		ID: 1, JobID: "deploy",
+		WorkflowPayload: []byte(`name: test
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        type: boolean
+        default: true
+      env:
+        type: string
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo
+`),
+	}
+
+	inputs, err := getWorkflowDispatchInputsFromRun(run, job)
+	require.NoError(t, err)
+	assert.Equal(t, true, inputs["deploy"])
+	assert.Equal(t, "prod", inputs["env"])
+
+	// github.event.inputs (the raw event payload) must be left untouched: still the dispatch string.
+	var payload api.WorkflowDispatchPayload
+	require.NoError(t, json.Unmarshal([]byte(run.EventPayload), &payload))
+	assert.Equal(t, "true", payload.Inputs["deploy"])
+
+	// job == nil (workflow-level concurrency, no job in scope) skips coercion rather than failing.
+	inputs, err = getWorkflowDispatchInputsFromRun(run, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "true", inputs["deploy"])
+}
+
 func TestPullRequestTargetBaseSHA(t *testing.T) {
 	prPayload := func(baseSHA string) string {
 		payload, err := json.Marshal(api.PullRequestPayload{

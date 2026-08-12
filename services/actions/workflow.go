@@ -5,6 +5,7 @@ package actions
 
 import (
 	"fmt"
+	"maps"
 
 	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
@@ -144,20 +145,18 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
 		return 0, err
 	}
-	// The dispatch callbacks fill boolean inputs as the strings "true"/"false". Normalize them to
-	// native JSON booleans so `type: boolean` inputs match GitHub, whose `inputs` context preserves
-	// booleans as booleans. Without this, a server-side needs-gated job `if: inputs.flag == true`
-	// evaluates against the string "true" and never matches, leaving the job blocked forever.
-	coerceDispatchInputTypes(workflowDispatch, inputsWithDefaults)
 
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
 	// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 	// https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_dispatch
+	// `github.event.inputs` mirrors this raw payload, where GitHub keeps every workflow_dispatch
+	// input as a string. Clone before coercing below, so that boolean inputs stay strings here,
+	// same as GitHub, while the separate `inputs` context (coerced below) gets native booleans.
 	workflowDispatchPayload := &api.WorkflowDispatchPayload{
 		Workflow:   workflowID,
 		Ref:        ref,
 		Repository: convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		Inputs:     inputsWithDefaults,
+		Inputs:     maps.Clone(inputsWithDefaults),
 		Sender:     convert.ToUserWithAccessMode(ctx, doer, perm.AccessModeNone),
 	}
 
@@ -166,6 +165,12 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, fmt.Errorf("JSONPayload: %w", err)
 	}
 	run.EventPayload = string(eventPayload)
+
+	// The dispatch callbacks fill boolean inputs as the strings "true"/"false". Normalize them to
+	// native JSON booleans so `type: boolean` inputs match GitHub, whose `inputs` context preserves
+	// booleans as booleans. Without this, a server-side needs-gated job `if: inputs.flag == true`
+	// evaluates against the string "true" and never matches, leaving the job blocked forever.
+	coerceDispatchInputTypes(workflowDispatch, inputsWithDefaults)
 
 	// Insert the action run and its associated jobs into the database
 	if err := PrepareRunAndInsert(ctx, content, run, inputsWithDefaults); err != nil {

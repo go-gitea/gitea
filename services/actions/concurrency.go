@@ -27,7 +27,7 @@ func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	if inputs == nil {
 		var err error
-		inputs, err = getWorkflowDispatchInputsFromRun(run)
+		inputs, err = getWorkflowDispatchInputsFromRun(run, nil)
 		if err != nil {
 			return fmt.Errorf("get inputs: %w", err)
 		}
