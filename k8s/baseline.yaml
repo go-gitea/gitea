@@ -20,6 +20,8 @@ spec:
       labels:
         app: postgres
     spec:
+      nodeSelector:
+        apia-role: baseline
       containers:
         - name: postgres
           image: postgres:15-alpine
@@ -77,6 +79,8 @@ spec:
         prometheus.io/port: "9187"
         apia.io/domain: "database"
     spec:
+      nodeSelector:
+        apia-role: baseline
       containers:
         - name: pg-exporter
           image: prometheuscommunity/postgres-exporter:latest
@@ -108,6 +112,8 @@ spec:
       labels:
         app: redis
     spec:
+      nodeSelector:
+        apia-role: baseline
       containers:
         - name: redis
           image: redis:7-alpine
@@ -152,6 +158,8 @@ spec:
         prometheus.io/port: "9121"
         apia.io/domain: "cache"
     spec:
+      nodeSelector:
+        apia-role: baseline
       containers:
         - name: redis-exporter
           image: oliver006/redis_exporter:latest
@@ -187,6 +195,8 @@ spec:
         prometheus.io/port: "3000"
         apia.io/domain: "backend"
     spec:
+      nodeSelector:
+        apia-role: baseline
       containers:
         - name: app
           image: k3d-apia-registry:5000/gitea:staging
