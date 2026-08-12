@@ -68,6 +68,13 @@ func MakeRestrictedPermissions() ActionsTokenPermissions {
 	return ret
 }
 
+// MakeCrossRepoAccessPermissions returns the permission ceiling applied to Actions tokens for
+// fork pull requests and cross-repository access: read-only across every unit, since these tokens
+// must never be allowed to write, but plain reads (e.g. listing PR reviews) are safe (go-gitea/gitea#38444).
+func MakeCrossRepoAccessPermissions() ActionsTokenPermissions {
+	return MakeActionsTokenPermissions(perm.AccessModeRead)
+}
+
 type ActionsConfig struct {
 	DisabledWorkflows []string
 	// DisabledScopedWorkflows maps a scoped workflow's source repository ID to the entry names opted out of in this repository.
