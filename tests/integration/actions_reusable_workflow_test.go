@@ -624,8 +624,6 @@ jobs:
 
 			apiBaseRepo := createActionsTestRepo(t, user2Token, "fork-pr-inherit-test", false)
 			baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-			user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-			defer doAPIDeleteRepository(user2APICtx)(t)
 
 			// Real secret that must never reach a fork PR task.
 			req := NewRequestWithJSON(t, "PUT",
@@ -666,7 +664,6 @@ jobs:
 			apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
 			forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
 			user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-			defer doAPIDeleteRepository(user4APICtx)(t)
 
 			// user4 pushes a change on the fork and opens a PR to base
 			doAPICreateFile(user4APICtx, "user4-fix.txt", &api.CreateFileOptions{
@@ -706,8 +703,6 @@ jobs:
 		t.Run("pull_request_target resolves a local reusable workflow at the base commit", func(t *testing.T) {
 			apiBaseRepo := createActionsTestRepo(t, user2Token, "prt-reusable-test", false)
 			baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-			user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-			defer doAPIDeleteRepository(user2APICtx)(t)
 
 			runner := newMockRunner()
 			runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-prt-runner", []string{"ubuntu-latest"}, false)
@@ -741,7 +736,6 @@ jobs:
 			apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
 			forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
 			user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-			defer doAPIDeleteRepository(user4APICtx)(t)
 
 			// user4 rewrites the reusable workflow the base branch calls into, and opens a PR
 			req = NewRequest(t, "GET",
