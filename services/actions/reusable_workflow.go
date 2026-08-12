@@ -61,7 +61,7 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("look up caller source repo %d: %w", caller.WorkflowSourceRepoID, err)
 		}
-		sourceCommitSHA := resolveSameRepoWorkflowSourceCommit(run, callerRepo.ID, caller.WorkflowSourceCommitSHA)
+		sourceCommitSHA := resolveSameRepoWorkflowSourceCommit(run, caller)
 		if sourceCommitSHA != caller.WorkflowSourceCommitSHA {
 			log.Warn("run %d (pull_request_target) records workflow source commit %s, resolving %q at base commit %s instead", run.ID, caller.WorkflowSourceCommitSHA, ref.Path, sourceCommitSHA)
 		}
@@ -99,14 +99,15 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 
 // resolveSameRepoWorkflowSourceCommit returns the commit to read a same-repo reusable workflow from.
 // pull_request_target runs must resolve local `uses:` at the PR base commit, not a stored head SHA.
-func resolveSameRepoWorkflowSourceCommit(run *actions_model.ActionRun, callerRepoID int64, storedCommitSHA string) string {
-	if run.IsScopedRun || callerRepoID != run.RepoID {
-		return storedCommitSHA
+func resolveSameRepoWorkflowSourceCommit(run *actions_model.ActionRun, caller *actions_model.ActionRunJob) string {
+	// only a SHA copied from the run row can be the polluted head one; a SHA resolved from a `uses:` ref is right by construction
+	if run.IsScopedRun || caller.WorkflowSourceRepoID != run.RepoID || caller.WorkflowSourceCommitSHA != run.WorkflowCommitSHA {
+		return caller.WorkflowSourceCommitSHA
 	}
-	if baseSHA, ok := pullRequestTargetBaseSHA(run); ok && baseSHA != storedCommitSHA {
+	if baseSHA, ok := pullRequestTargetBaseSHA(run); ok && baseSHA != caller.WorkflowSourceCommitSHA {
 		return baseSHA
 	}
-	return storedCommitSHA
+	return caller.WorkflowSourceCommitSHA
 }
 
 // readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA` and returns its content plus the resolved commit SHA.
