@@ -59,6 +59,7 @@ func ParseScopedWorkflows(sourceCommit *git.Commit) ([]*ParsedScopedWorkflow, er
 // It returns the workflows whose `on:` matches, and those that matched the event but were excluded by a branch/paths filter (filtered).
 func MatchScopedWorkflows(
 	parsed []*ParsedScopedWorkflow,
+	sourceCommitSHA string,
 	consumerGitRepo *git.Repository,
 	consumerCommit *git.Commit,
 	triggedEvent webhook_module.HookEventType,
@@ -71,9 +72,10 @@ func MatchScopedWorkflows(
 				continue
 			}
 			dwf := &DetectedWorkflow{
-				EntryName:    p.EntryName,
-				TriggerEvent: evt,
-				Content:      p.Content,
+				EntryName:       p.EntryName,
+				TriggerEvent:    evt,
+				Content:         p.Content,
+				SourceCommitSHA: sourceCommitSHA,
 			}
 			switch detectWorkflowMatch(consumerGitRepo, consumerCommit, triggedEvent, payload, evt) {
 			case detectMatched:
