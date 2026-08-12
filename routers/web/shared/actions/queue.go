@@ -5,9 +5,12 @@ package actions
 
 import (
 	"net/http"
+	"slices"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -42,40 +45,74 @@ func Queue(ctx *context.Context) {
 	})
 }
 
-// RenderQueue queries and renders a build-queue view (queued jobs in pickup order plus running jobs) for the
-// given scope. It serves both the initial full page (s.FullTemplate) and the in-place auto-refresh fragment.
+// queue status filter values, as submitted by the filter bar ("" means every listed status).
+const (
+	queueFilterRunning = "running"
+	queueFilterWaiting = "waiting"
+)
+
+// RenderQueue queries and renders a build-queue view (running jobs followed by queued jobs in pickup order)
+// for the given scope. It serves both the initial full page (s.FullTemplate) and the in-place auto-refresh
+// fragment. Both lists can be narrowed by status and, outside a repo scope, by repository.
 func RenderQueue(ctx *context.Context, s QueueScope) {
 	pageSize := actions_model.QueuePageSize
 	page := max(ctx.FormInt("page"), 1)
 
-	queuedOpts := actions_model.QueuedJobsOptions(s.RepoID, s.OwnerID)
-	queuedOpts.ListOptions = db.ListOptions{Page: page, PageSize: pageSize}
-	queuedJobs, queuedTotal, err := db.FindAndCount[actions_model.ActionRunJob](ctx, queuedOpts)
-	if err != nil {
-		ctx.ServerError("FindQueuedJobs", err)
-		return
+	filterStatus := ctx.FormString("status")
+	if filterStatus != queueFilterRunning && filterStatus != queueFilterWaiting {
+		filterStatus = ""
 	}
-	if err := actions_model.ActionJobList(queuedJobs).LoadAttributes(ctx, true); err != nil {
-		ctx.ServerError("LoadAttributes", err)
-		return
+	// A repo queue is already a single repository, so it offers no owner/repository filter.
+	var filterOwnerID, filterRepoID int64
+	ctx.Data["QueueFilterOwnerID"], ctx.Data["QueueFilterRepoID"] = filterOwnerID, filterRepoID
+	if !s.IsRepo {
+		if err := renderQueueFilterOptions(ctx, s, &filterOwnerID, &filterRepoID); err != nil {
+			ctx.ServerError("renderQueueFilterOptions", err)
+			return
+		}
+	}
+	scopeRepoID := util.Iif(filterRepoID > 0, filterRepoID, s.RepoID)
+	scopeOwnerID := util.Iif(filterOwnerID > 0, filterOwnerID, s.OwnerID)
+	filtered := filterOwnerID > 0 || filterRepoID > 0
+
+	var queuedJobs []*actions_model.ActionRunJob
+	var queuedTotal int64
+	if filterStatus != queueFilterRunning {
+		queuedOpts := actions_model.QueuedJobsOptions(scopeRepoID, scopeOwnerID)
+		queuedOpts.ListOptions = db.ListOptions{Page: page, PageSize: pageSize}
+		var err error
+		queuedJobs, queuedTotal, err = db.FindAndCount[actions_model.ActionRunJob](ctx, queuedOpts)
+		if err != nil {
+			ctx.ServerError("FindQueuedJobs", err)
+			return
+		}
+		if err := actions_model.ActionJobList(queuedJobs).LoadAttributes(ctx, true); err != nil {
+			ctx.ServerError("LoadAttributes", err)
+			return
+		}
 	}
 
-	// running jobs are bounded by the number of online runners, so a single capped page is enough.
-	runningOpts := actions_model.FindRunJobOptions{
-		RepoID:      s.RepoID,
-		OwnerID:     s.OwnerID,
-		ListOptions: db.ListOptions{Page: 1, PageSize: 100},
-		Statuses:    []actions_model.Status{actions_model.StatusRunning},
-		OrderBy:     actions_model.RunningJobsOrderBy,
-	}
-	runningJobs, err := db.Find[actions_model.ActionRunJob](ctx, runningOpts)
-	if err != nil {
-		ctx.ServerError("FindRunningJobs", err)
-		return
-	}
-	if err := actions_model.ActionJobList(runningJobs).LoadAttributes(ctx, true); err != nil {
-		ctx.ServerError("LoadAttributes", err)
-		return
+	// Running jobs are bounded by the number of online runners, so a single capped page is enough:
+	// they head the list on every page instead of taking part in the queued-job pagination.
+	var runningJobs []*actions_model.ActionRunJob
+	if filterStatus != queueFilterWaiting {
+		runningOpts := actions_model.FindRunJobOptions{
+			RepoID:      scopeRepoID,
+			OwnerID:     scopeOwnerID,
+			ListOptions: db.ListOptions{Page: 1, PageSize: 100},
+			Statuses:    []actions_model.Status{actions_model.StatusRunning},
+			OrderBy:     actions_model.RunningJobsOrderBy,
+		}
+		var err error
+		runningJobs, err = db.Find[actions_model.ActionRunJob](ctx, runningOpts)
+		if err != nil {
+			ctx.ServerError("FindRunningJobs", err)
+			return
+		}
+		if err := actions_model.ActionJobList(runningJobs).LoadAttributes(ctx, true); err != nil {
+			ctx.ServerError("LoadAttributes", err)
+			return
+		}
 	}
 
 	// Show which runner is executing each running job (admin "more info").
@@ -93,9 +130,16 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 	ctx.Data["QueuedTotal"] = queuedTotal
 	ctx.Data["QueueOffset"] = (page - 1) * pageSize // absolute position of the first row on this page
 	ctx.Data["RunningJobs"] = runningJobs
+	ctx.Data["QueueTotal"] = queuedTotal + int64(len(runningJobs))
 	ctx.Data["ShowRepoColumn"] = !s.IsRepo
+	ctx.Data["ShowOwnerRepoFilters"] = !s.IsRepo
+	ctx.Data["QueueFilterStatus"] = filterStatus
+	ctx.Data["QueueFilterStatuses"] = []string{queueFilterRunning, queueFilterWaiting}
+	// Positions are absolute pickup positions, which an owner/repository filter would silently misnumber.
+	ctx.Data["ShowQueuePositions"] = !filtered
 	// Reordering renumbers the first page only (the head runners pick from), so gate the handles to page 1.
-	ctx.Data["CanReorder"] = s.CanReorder && page == 1
+	// An owner/repository filter also hides them: the dropped row's neighbours may not be the real ones.
+	ctx.Data["CanReorder"] = s.CanReorder && page == 1 && !filtered
 	ctx.Data["QueueMoveLink"] = s.MoveLink
 
 	pager := context.NewPagination(queuedTotal, pageSize, page, 5)
@@ -118,6 +162,75 @@ func RenderQueue(ctx *context.Context, s QueueScope) {
 		return
 	}
 	ctx.HTML(http.StatusOK, s.FullTemplate)
+}
+
+// QueueFilterOwner is one entry of the build queue's owner filter.
+type QueueFilterOwner struct {
+	ID   int64
+	Name string
+}
+
+// queueFilterOptionsLimit caps how many repositories the filter dropdowns offer. The list only covers
+// repositories with pending work, so the cap is far above any realistic queue.
+const queueFilterOptionsLimit = 200
+
+// renderQueueFilterOptions fills the owner/repository filter dropdowns with the repositories that
+// currently have queued or running jobs, and resolves the requested filters against them. Ids that match
+// nothing on offer are dropped, so a stale link cannot leave the view stuck on an empty filter.
+func renderQueueFilterOptions(ctx *context.Context, s QueueScope, filterOwnerID, filterRepoID *int64) error {
+	repoIDs, err := actions_model.QueueFilterRepoIDs(ctx, s.RepoID, s.OwnerID, queueFilterOptionsLimit)
+	if err != nil {
+		return err
+	}
+	repoMap, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
+	if err != nil {
+		return err
+	}
+
+	repos := make([]*repo_model.Repository, 0, len(repoMap))
+	for _, repo := range repoMap {
+		if repo != nil {
+			repos = append(repos, repo)
+		}
+	}
+	slices.SortFunc(repos, func(a, b *repo_model.Repository) int {
+		return base.NaturalSortCompare(a.FullName(), b.FullName())
+	})
+
+	owners := make([]*QueueFilterOwner, 0, len(repos))
+	for _, repo := range repos {
+		if !slices.ContainsFunc(owners, func(o *QueueFilterOwner) bool { return o.ID == repo.OwnerID }) {
+			owners = append(owners, &QueueFilterOwner{ID: repo.OwnerID, Name: repo.OwnerName})
+		}
+	}
+
+	if reqOwnerID := ctx.FormInt64("owner_id"); reqOwnerID > 0 {
+		for _, owner := range owners {
+			if owner.ID == reqOwnerID {
+				*filterOwnerID = owner.ID
+				ctx.Data["QueueFilterOwnerName"] = owner.Name
+				break
+			}
+		}
+	}
+	if reqRepoID := ctx.FormInt64("repo_id"); reqRepoID > 0 {
+		if repo := repoMap[reqRepoID]; repo != nil {
+			*filterRepoID = repo.ID
+			ctx.Data["QueueFilterRepoName"] = repo.FullName()
+			*filterOwnerID = 0 // a repository is the narrower filter of the two
+			ctx.Data["QueueFilterOwnerName"] = nil
+		}
+	}
+
+	// The repository dropdown only lists the selected owner's repositories, mirroring the selection made.
+	if *filterOwnerID > 0 {
+		repos = slices.DeleteFunc(repos, func(repo *repo_model.Repository) bool { return repo.OwnerID != *filterOwnerID })
+	}
+	ctx.Data["QueueFilterOwners"] = owners
+	ctx.Data["QueueFilterRepos"] = repos
+	ctx.Data["QueueFilterOwnerID"] = *filterOwnerID
+	ctx.Data["QueueFilterRepoID"] = *filterRepoID
+	return nil
 }
 
 // runningJobRunnerNames maps each running job's ID to the name of the runner executing it.

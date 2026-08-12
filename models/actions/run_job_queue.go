@@ -40,6 +40,25 @@ func QueuedJobsOptions(repoID, ownerID int64) FindRunJobOptions {
 	}
 }
 
+// QueueFilterRepoIDs returns the ids of the repositories that currently have a queued or running job in
+// the given scope (see QueuedJobsOptions), so the build-queue filters only offer values that can match.
+// At most limit ids are returned; the list is bounded by pending work rather than by repository count.
+func QueueFilterRepoIDs(ctx context.Context, repoID, ownerID int64, limit int) ([]int64, error) {
+	queued := QueuedJobsOptions(repoID, ownerID).ToConds()
+	cond := builder.Or(queued, builder.Eq{"`action_run_job`.status": StatusRunning})
+	if repoID > 0 {
+		cond = cond.And(builder.Eq{"`action_run_job`.repo_id": repoID})
+	}
+
+	sess := db.GetEngine(ctx).Table("action_run_job").Where(cond).
+		Distinct("`action_run_job`.repo_id").Cols("`action_run_job`.repo_id").Limit(limit)
+	if ownerID > 0 {
+		sess = sess.Join("INNER", "repository", "repository.id = `action_run_job`.repo_id AND repository.owner_id = ?", ownerID)
+	}
+	ids := make([]int64, 0, 10)
+	return ids, sess.Find(&ids)
+}
+
 // queueRankAtIndex returns the queue_rank of the waiting job at the given 0-based position in the
 // scope's pickup order, so callers can anchor a rebalance to a job just outside the current page.
 // found is false when no such row exists (idx past the end, or negative).

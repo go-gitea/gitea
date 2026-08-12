@@ -21,7 +21,11 @@ function bindActionQueueList(el: HTMLElement): void {
     // The queue rows carry no interactive state, so morph the whole fragment in place.
     // Stable ids on the container/tbody/rows let Idiomorph preserve the Sortable-bound tbody.
     const newEl = createElementFromHTML(await resp.text());
-    Idiomorph.morph(el, newEl, {morphStyle: 'outerHTML'});
+    Idiomorph.morph(el, newEl, {
+      morphStyle: 'outerHTML',
+      // Leave the filter bar alone: it carries user input (and a fomantic-enhanced select) that a morph would reset.
+      callbacks: {beforeNodeMorphed: (node) => !(node instanceof Element && node.id === 'actions-queue-filter')},
+    });
     await bindSortable();
   }
 

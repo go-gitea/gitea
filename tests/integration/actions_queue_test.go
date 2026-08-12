@@ -27,34 +27,41 @@ func TestActionsQueue(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}) // public, owned by user2
 
-	// A queued job in repo1: waiting, unclaimed, so it appears in the repo's Actions-tab queue and the
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}) // owned by org3, for the filters
+
+	// A queued job is waiting and unclaimed, so it appears in its repo's Actions-tab queue and in the
 	// instance-wide admin queue.
-	run := &actions_model.ActionRun{
-		Title:         "queue-test",
-		RepoID:        repo1.ID,
-		OwnerID:       user2.ID,
-		Index:         8801,
-		WorkflowID:    "test.yaml",
-		TriggerUserID: user2.ID,
-		Ref:           "refs/heads/master",
-		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		EventPayload:  "{}",
-		Status:        actions_model.StatusWaiting,
+	insertQueuedJob := func(repo *repo_model.Repository, index int64, jobName string) *actions_model.ActionRunJob {
+		run := &actions_model.ActionRun{
+			Title:         "queue-test",
+			RepoID:        repo.ID,
+			OwnerID:       repo.OwnerID,
+			Index:         index,
+			WorkflowID:    "test.yaml",
+			TriggerUserID: user2.ID,
+			Ref:           "refs/heads/master",
+			CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+			Event:         "push",
+			TriggerEvent:  "push",
+			EventPayload:  "{}",
+			Status:        actions_model.StatusWaiting,
+		}
+		require.NoError(t, db.Insert(ctx, run))
+		job := &actions_model.ActionRunJob{
+			RunID:   run.ID,
+			RepoID:  repo.ID,
+			OwnerID: repo.OwnerID,
+			Name:    jobName,
+			JobID:   jobName,
+			RunsOn:  []string{"ubuntu-latest"},
+			Status:  actions_model.StatusWaiting,
+		}
+		require.NoError(t, db.Insert(ctx, job))
+		return job
 	}
-	require.NoError(t, db.Insert(ctx, run))
-	const queuedJobName = "queued-job-marker"
-	job := &actions_model.ActionRunJob{
-		RunID:   run.ID,
-		RepoID:  repo1.ID,
-		OwnerID: user2.ID,
-		Name:    queuedJobName,
-		JobID:   queuedJobName,
-		RunsOn:  []string{"ubuntu-latest"},
-		Status:  actions_model.StatusWaiting,
-	}
-	require.NoError(t, db.Insert(ctx, job))
+	const queuedJobName, otherJobName = "queued-job-marker", "queued-job-other-owner"
+	job := insertQueuedJob(repo1, 8801, queuedJobName)
+	insertQueuedJob(repo3, 8802, otherJobName)
 
 	sessionAdmin := loginUser(t, "user1") // site admin
 	sessionUser2 := loginUser(t, user2.Name)
@@ -74,9 +81,30 @@ func TestActionsQueue(t *testing.T) {
 	assert.NotContains(t, body4, "drag-handle", "non-admins get no reorder handles")
 
 	// The instance-wide admin queue lists the same job.
-	assert.Contains(t,
-		sessionAdmin.MakeRequest(t, NewRequest(t, "GET", "/-/admin/actions/queue"), http.StatusOK).Body.String(),
-		queuedJobName)
+	const adminQueue = "/-/admin/actions/queue"
+	adminBody := func(query string) string {
+		return sessionAdmin.MakeRequest(t, NewRequest(t, "GET", adminQueue+query), http.StatusOK).Body.String()
+	}
+	unfiltered := adminBody("")
+	assert.Contains(t, unfiltered, queuedJobName)
+	assert.Contains(t, unfiltered, otherJobName)
+	// The filter dropdowns only offer repositories that have pending work, so both are listed.
+	assert.Contains(t, unfiltered, "repo_id="+strconv.FormatInt(repo1.ID, 10))
+	assert.Contains(t, unfiltered, "repo_id="+strconv.FormatInt(repo3.ID, 10))
+
+	// Filters narrow the merged list: by status, by owner and by repository.
+	assert.NotContains(t, adminBody("?status=running"), queuedJobName, "a waiting job is hidden by the running filter")
+	assert.Contains(t, adminBody("?status=waiting"), queuedJobName)
+
+	byOwner := adminBody("?owner_id=" + strconv.FormatInt(user2.ID, 10))
+	assert.Contains(t, byOwner, queuedJobName)
+	assert.NotContains(t, byOwner, otherJobName, "org3's job is not user2's")
+
+	byRepo := adminBody("?repo_id=" + strconv.FormatInt(repo3.ID, 10))
+	assert.Contains(t, byRepo, otherJobName)
+	assert.NotContains(t, byRepo, queuedJobName, "repo1's job is not repo3's")
+	// An owner/repository filter hides the reorder handles: dropped-row neighbours would not be the real ones.
+	assert.NotContains(t, byRepo, "drag-handle")
 
 	// The auto-refresh endpoint returns just the list fragment (no full-page chrome), still listing the job.
 	refresh := sessionUser2.MakeRequest(t, NewRequest(t, "GET", repoQueue+"?refresh=1"), http.StatusOK).Body.String()

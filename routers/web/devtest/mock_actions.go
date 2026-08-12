@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/repo/actions"
+	shared_actions "gitea.dev/routers/web/shared/actions"
 	"gitea.dev/services/context"
 )
 
@@ -74,7 +75,7 @@ func MockActionsQueue(ctx *context.Context) {
 	now := time.Now()
 
 	mkRepo := func(id int64, owner, name string) *repo_model.Repository {
-		return &repo_model.Repository{ID: id, OwnerName: owner, Name: name, LowerName: strings.ToLower(name)}
+		return &repo_model.Repository{ID: id, OwnerID: 900, OwnerName: owner, Name: name, LowerName: strings.ToLower(name)}
 	}
 	repoA := mkRepo(1001, "acme", "backend")
 	repoB := mkRepo(1002, "acme", "frontend")
@@ -100,16 +101,33 @@ func MockActionsQueue(ctx *context.Context) {
 		mkJob(202, repoB, 6, "unit-test", []string{"self-hosted"}, 45, actions_model.StatusRunning),
 	}
 
+	// The mock only honours the status filter; the owner/repository dropdowns are left inert.
+	filterStatus := ctx.FormString("status")
+	switch filterStatus {
+	case "running":
+		queued = nil
+	case "waiting":
+		running = nil
+	}
+
 	ctx.Data["QueuedJobs"] = queued
 	ctx.Data["QueuedTotal"] = len(queued)
 	ctx.Data["QueueOffset"] = 0
 	ctx.Data["RunningJobs"] = running
 	ctx.Data["RunningJobRunners"] = map[int64]string{201: "runner-alpha", 202: "runner-beta"}
+	ctx.Data["QueueTotal"] = len(queued) + len(running)
 	ctx.Data["ShowRepoColumn"] = true
+	ctx.Data["ShowOwnerRepoFilters"] = true
+	ctx.Data["ShowQueuePositions"] = true
+	ctx.Data["QueueFilterStatus"] = filterStatus
+	ctx.Data["QueueFilterOwners"] = []*shared_actions.QueueFilterOwner{{ID: repoA.OwnerID, Name: repoA.OwnerName}}
+	ctx.Data["QueueFilterRepos"] = []*repo_model.Repository{repoA, repoB}
+	ctx.Data["QueueFilterOwnerID"] = int64(0)
+	ctx.Data["QueueFilterRepoID"] = int64(0)
 	ctx.Data["ShowRunnerColumn"] = true // admin "more info" view
 	ctx.Data["CanReorder"] = true
 	ctx.Data["QueueMoveLink"] = setting.AppSubURL + "/devtest/actions-queue/move"
-	ctx.Data["QueueRefreshLink"] = setting.AppSubURL + "/devtest/actions-queue?refresh=1"
+	ctx.Data["QueueRefreshLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "refresh", "1")
 	// Refresh rarely so the auto-morph doesn't revert a manual drag while testing the interaction.
 	ctx.Data["QueueRefreshIntervalMs"] = int64(3600000)
 	ctx.Data["Page"] = context.NewPagination(int64(len(queued)), 50, 1, 5)
