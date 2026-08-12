@@ -1,41 +1,6 @@
-<<<<<<< HEAD
-<div id="profile-avatar-card" class="ui card">
-	<div id="profile-avatar" class="content flex">
-	{{if eq .SignedUserID .ContextUser.ID}}
-		<a class="image" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{ctx.Locale.Tr "user.change_avatar"}}">
-			{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
-			{{ctx.AvatarUtils.Avatar .ContextUser 256}}
-		</a>
-	{{else}}
-		<span class="image">
-			{{ctx.AvatarUtils.Avatar .ContextUser 256}}
-		</span>
-	{{end}}
-	</div>
-	<div class="content break-anywhere profile-avatar-name">
-		{{if .ContextUser.FullName}}<span class="header text center">{{.ContextUser.FullName}}</span>{{end}}
-		<span class="username text center">{{.ContextUser.Name}} {{if .IsAdmin}}
-					<a class="muted" href="{{AppSubUrl}}/-/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">
-						{{svg "octicon-gear" 18}}
-					</a>
-				{{end}}</span>
-		<div class="mt-2">
-			<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "mr-1"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
-			{{if .EnableFeed}}
-				<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text-text-light ml-2" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
-			{{end}}
-		</div>
-	</div>
-	<div class="extra content break-anywhere">
-		<ul>
-			{{if .UserBlocking}}
-				<li class="text-red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>
-				{{if .UserBlocking.Note}}
-					<li class="text-xs text-red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</li>
-=======
 <div id="profile-avatar-card" class="ui fitted segment">
 	<div class="flex-divided-list items-px-default muted-links">
-		<div class="item flex-text-block tw-justify-center tw-p-5">
+		<div class="item flex-text-block justify-center p-5">
 		{{if eq .SignedUserID .ContextUser.ID}}
 			<a  class="flex-text-block" href="{{AppSubUrl}}/user/settings" data-tooltip-content="{{ctx.Locale.Tr "user.change_avatar"}}">
 				{{/* the size doesn't take affect (and no need to take affect), image size(width) should be controlled by the parent container since this is not a flex layout*/}}
@@ -47,58 +12,37 @@
 		</div>
 
 		<div class="item flex-relaxed-list">
-			<span class="tw-text-center">
+			<span class="text-center">
 				{{.ContextUser.Name}}
 				{{if .IsAdmin}}
 					<a href="{{AppSubUrl}}/-/admin/users/{{.ContextUser.ID}}" data-tooltip-content="{{ctx.Locale.Tr "admin.users.details"}}">{{svg "octicon-gear" 18}}</a>
->>>>>>> origin/main
 				{{end}}
 			</span>
 			{{if .ContextUser.FullName}}
-				<span class="tw-text-center">{{.ContextUser.FullName}}</span>
+				<span class="text-center">{{.ContextUser.FullName}}</span>
 			{{end}}
-<<<<<<< HEAD
-			{{if .ContextUser.Location}}
-				<li>
-					{{svg "octicon-location"}}
-					<span class="flex-1">{{.ContextUser.Location}}</span>
-					{{if .ContextUserLocationMapURL}}
-						<a href="{{.ContextUserLocationMapURL}}" data-tooltip-content="{{ctx.Locale.Tr "user.show_on_map"}}">
-							{{svg "octicon-link-external"}}
-						</a>
-					{{end}}
-				</li>
-			{{end}}
-			{{if (eq .SignedUserID .ContextUser.ID)}}
-				<li>
-					{{svg "octicon-mail"}}
-					<a class="flex-1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
-					<a class="flex-text-inline" href="{{AppSubUrl}}/user/settings#privacy-user-settings" data-tooltip-content="{{ctx.Locale.Tr (Iif .ShowUserEmail "user.email_visibility.limited" "user.email_visibility.private")}}">
-						{{svg (Iif .ShowUserEmail "octicon-unlock" "octicon-lock")}}
-=======
-			<div class="tw-text-center">
-				<a href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "tw-mr-1"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
+			<div class="text-center">
+				<a href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "mr-1"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
 				{{if .EnableFeed}}
-					<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui tw-text-text-light tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
+					<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text-text-light ml-2" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
 				{{end}}
 			</div>
 		</div>
 
 		{{if .UserBlocking}}
-			<div class="item tw-text-red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</div>
+			<div class="item text-red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</div>
 			{{if .UserBlocking.Note}}
-				<div class="item tw-text-xs tw-text-red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</div>
+				<div class="item text-xs text-red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</div>
 			{{end}}
 		{{end}}
 
 		{{if .ContextUser.Location}}
 			<div class="item">
 				{{svg "octicon-location"}}
-				<span class="tw-flex-1">{{.ContextUser.Location}}</span>
+				<span class="flex-1">{{.ContextUser.Location}}</span>
 				{{if .ContextUserLocationMapURL}}
 					<a href="{{.ContextUserLocationMapURL}}" data-tooltip-content="{{ctx.Locale.Tr "user.show_on_map"}}">
 						{{svg "octicon-link-external"}}
->>>>>>> origin/main
 					</a>
 				{{end}}
 			</div>
@@ -107,7 +51,7 @@
 		{{if (eq .SignedUserID .ContextUser.ID)}}
 			<div class="item flex-text-inline">
 				{{svg "octicon-mail"}}
-				<a class="tw-flex-1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
+				<a class="flex-1" href="mailto:{{.ContextUser.Email}}" rel="nofollow">{{.ContextUser.Email}}</a>
 				<a class="flex-text-inline" href="{{AppSubUrl}}/user/settings#privacy-user-settings" data-tooltip-content="{{ctx.Locale.Tr (Iif .ShowUserEmail "user.email_visibility.limited" "user.email_visibility.private")}}">
 					{{svg (Iif .ShowUserEmail "octicon-unlock" "octicon-lock")}}
 				</a>
@@ -147,22 +91,12 @@
 
 		{{if and .Orgs .HasOrgsVisible}}
 			<div class="item flex-relaxed-list">
-				<div class="flex-text-block tw-flex-wrap">
+				<div class="flex-text-block flex-wrap">
 				{{range .Orgs}}
 					{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID ctx $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 						<a href="{{.HomeLink}}" data-tooltip-content="{{.Name}}">{{ctx.AvatarUtils.Avatar .}}</a>
 					{{end}}
 				{{end}}
-<<<<<<< HEAD
-					{{if .ShowMoreOrgs}}
-						<li><a class="align-center" href="{{.ContextUser.HomeLink}}?tab=organizations" data-tooltip-content="{{ctx.Locale.Tr "user.show_more"}}">{{svg "octicon-kebab-horizontal" 28 "icon p-1"}}</a></li>
-					{{end}}
-				</ul>
-			</li>
-			{{end}}
-			{{if .Badges}}
-			<li>
-=======
 				{{if .ShowMoreOrgs}}
 					<a href="{{.ContextUser.HomeLink}}?tab=organizations" data-tooltip-content="{{ctx.Locale.Tr "user.show_more"}}">{{svg "octicon-kebab-horizontal" 28}}</a>
 				{{end}}
@@ -172,7 +106,6 @@
 
 		{{if .Badges}}
 			<div class="item">
->>>>>>> origin/main
 				<div class="user-badges">
 				{{range .Badges}}
 					<span class="user-badge-item">
@@ -192,7 +125,7 @@
 				<div class="item">
 					{{$buttonExtraClass := Iif $.IsFollowing "" "primary"}}
 					{{$followAction := Iif $.IsFollowing "unfollow" "follow"}}
-					<button class="ui basic {{$buttonExtraClass}} button tw-w-full"
+					<button class="ui basic {{$buttonExtraClass}} button w-full"
 									data-fetch-method="post" data-fetch-url="{{.ContextUser.HomeLink}}?action={{$followAction}}"
 									data-fetch-sync="$body #profile-avatar-card"
 					>

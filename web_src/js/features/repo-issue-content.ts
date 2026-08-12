@@ -13,31 +13,18 @@ let i18nTextDeleteFromHistory: string;
 let i18nTextDeleteFromHistoryConfirm: string;
 
 function showContentHistoryDetail(issueBaseUrl: string, commentId: string, historyId: string, itemTitleHtml: string) {
-<<<<<<< HEAD
-  const elDetailDialog = createElementFromHTML(`
-<div class="ui modal content-history-detail-dialog">
-  ${svg('octicon-x', 16, 'close icon inside')}
-  <div class="header flex-left-right">
-    <div>${itemTitleHtml}</div>
-    <div class="ui dropdown dialog-header-options mr-8 hidden">
-      ${i18nTextOptions}
-      ${svg('octicon-triangle-down', 14, 'dropdown icon')}
-      <div class="menu">
-        <div class="item text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
-=======
   const elDetailDialog = createElementFromHTML(html`
     <div class="ui modal content-history-detail-dialog">
       ${svgRaw('octicon-x', 16, 'close icon inside')}
       <div class="header flex-left-right">
         <div>${htmlRaw(itemTitleHtml)}</div>
-        <div class="ui dropdown dialog-header-options tw-mr-8 tw-hidden">
+        <div class="ui dropdown dialog-header-options mr-8 hidden">
           ${i18nTextOptions}
           ${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
           <div class="menu">
-            <div class="item tw-text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
+            <div class="item text-red" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
           </div>
         </div>
->>>>>>> origin/main
       </div>
       <div class="comment-diff-data is-loading"></div>
     </div>
@@ -108,18 +95,11 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
   const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
-<<<<<<< HEAD
-  const menuHtml = `
-  <div class="ui dropdown interact-fg content-history-menu shrink-0" data-comment-id="${commentId}">
-    &bull; ${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon')}
-    <div class="menu">
-=======
   const menuHtml = html`
-    <div class="ui dropdown interact-fg content-history-menu tw-flex-shrink-0" data-comment-id="${commentId}">
+    <div class="ui dropdown interact-fg content-history-menu flex-shrink-0" data-comment-id="${commentId}">
       &bull; ${i18nTextEdited}${svgRaw('octicon-triangle-down', 14, 'dropdown icon')}
       <div class="menu">
       </div>
->>>>>>> origin/main
     </div>
   `;
 

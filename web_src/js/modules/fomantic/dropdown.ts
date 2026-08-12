@@ -201,8 +201,8 @@ function attachInitElements(dropdown: HTMLElement) {
 
 function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HTMLElement) {
   // when showing, it has class: ".animating.in"
-  // when hiding, it has class: ".fm-visible.animating.out"
-  const isMenuVisible = () => (menu.classList.contains('fm-visible') && !menu.classList.contains('out')) || menu.classList.contains('in');
+  // when hiding, it has class: ".visible.animating.out"
+  const isMenuVisible = () => (menu.classList.contains('visible') && !menu.classList.contains('out')) || menu.classList.contains('in');
 
   // update aria attributes according to current active/selected item
   const refreshAriaActiveItem = () => {
@@ -296,15 +296,9 @@ export function hideScopedEmptyDividers(container: Element) {
   let curScope: string = '', lastVisibleScope: string = '';
   const isDivider = (item: Element) => item.classList.contains('divider');
   const isScopedDivider = (item: Element) => isDivider(item) && item.hasAttribute('data-scope');
-<<<<<<< HEAD
-  const hideDivider = (item: Element) => item.classList.add('hidden', 'fm-transition'); // dropdown has its own classes to hide items
-  const showDivider = (item: Element) => item.classList.remove('hidden', 'fm-transition');
-  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered');
-=======
   const hideDivider = (item: Element) => item.classList.add('hidden'); // dropdown has its own classes to hide items
   const showDivider = (item: Element) => item.classList.remove('hidden');
-  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered') || item.classList.contains('tw-hidden');
->>>>>>> origin/main
+  const isHidden = (item: Element) => item.classList.contains('hidden') || item.classList.contains('filtered') || item.classList.contains('hidden');
   const handleScopeSwitch = (itemScope: string) => {
     if (curScopeVisibleItems.length === 1 && isScopedDivider(curScopeVisibleItems[0])) {
       hideDivider(curScopeVisibleItems[0]);

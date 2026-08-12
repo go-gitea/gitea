@@ -12,22 +12,10 @@
 			</div>
 			<div class="ui attached fitted segment">
 				{{with .Hook}}
-<<<<<<< HEAD
-					<div class="field">
-						<textarea id="content" name="content" class="hidden"
-							data-code-editor-config="{{JsonUtils.EncodeToString $.CodeEditorConfig}}"
-							placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
-						<div class="editor-loading is-loading"></div>
-					</div>
-					<div class="fm-inline field">
-						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_githook"}}</button>
-					</div>
-=======
-					<textarea id="content" name="content" class="tw-hidden"
+					<textarea id="content" name="content" class="hidden"
 						data-code-editor-config="{{JsonUtils.EncodeToString $.CodeEditorConfig}}"
 						placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
 					<div class="editor-loading is-loading"></div>
->>>>>>> origin/main
 				{{end}}
 			</div>
 			<div class="ui attached segment">

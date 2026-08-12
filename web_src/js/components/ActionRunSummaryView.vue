@@ -62,7 +62,7 @@ onBeforeUnmount(() => {
         <span class="action-run-summary-label">
           {{ triggerLabel }} <relative-time :datetime="run.triggeredAt || ''" prefix=""/>
         </span>
-        <div class="flex-text-block tw-flex-wrap action-run-summary-trigger-content">
+        <div class="flex-text-block flex-wrap action-run-summary-trigger-content">
           <component
             :is="triggerUser.link ? 'a' : 'span'"
             v-if="triggerUser"
@@ -72,7 +72,7 @@ onBeforeUnmount(() => {
           >
             <img
               v-if="triggerUser.avatar"
-              class="ui avatar tw-align-middle"
+              class="ui avatar align-middle"
               :src="triggerUser.avatar"
               width="16"
               height="16"
@@ -81,7 +81,7 @@ onBeforeUnmount(() => {
             <span>{{ triggerUser.name }}</span>
           </component>
           <a v-if="run.pullRequest" class="action-run-summary-pr silenced" :href="run.pullRequest.link">{{ run.pullRequest.index }}</a>
-          <span v-else-if="run.commit.branch.name" class="action-run-summary-branch-label tw-max-w-full">
+          <span v-else-if="run.commit.branch.name" class="action-run-summary-branch-label max-w-full">
             <a
               v-if="!run.commit.branch.isDeleted && run.commit.branch.link"
               class="gt-ellipsis silenced"
@@ -90,7 +90,7 @@ onBeforeUnmount(() => {
             >{{ run.commit.branch.name }}</a>
             <span
               v-else
-              class="gt-ellipsis tw-line-through"
+              class="gt-ellipsis line-through"
               :title="run.commit.branch.name"
             >{{ run.commit.branch.name }}</span>
           </span>

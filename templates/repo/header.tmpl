@@ -1,6 +1,6 @@
 <div class="secondary-nav">
 	{{with .Repository}}
-	<div class="ui fm-container">
+	<div class="ui container">
 		<div class="repo-header flex-left-right">
 			{{/* left part */}}
 			<div class="flex-text-block">
@@ -80,7 +80,7 @@
 	{{end}}
 	{{if .IsSigned}}{{template "repo/watch_options_modal"}}{{end}}
 
-	<div class="ui fm-container">
+	<div class="ui container">
 		<overflow-menu class="ui secondary pointing menu">
 			{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
 				<div class="overflow-menu-items">

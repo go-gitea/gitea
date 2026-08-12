@@ -222,16 +222,12 @@ async function loadTabItems() {
           <svg-icon v-if="currentRefType === 'tag'" name="octicon-tag"/>
           <svg-icon v-else-if="currentRefType === 'branch'" name="octicon-git-branch"/>
           <svg-icon v-else name="octicon-git-commit"/>
-<<<<<<< HEAD
-          <strong ref="dropdownRefName" class="inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
-=======
-          <strong class="tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
->>>>>>> origin/main
+          <strong class="inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
     </div>
-    <div class="menu fm-transition" :class="{'fm-visible': menuVisible}" v-show="menuVisible" v-cloak>
+    <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
         <i class="icon"><svg-icon name="octicon-filter" :size="16"/></i>
         <input name="search" ref="elSearchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" :placeholder="searchFieldPlaceholder">
@@ -260,21 +256,12 @@ async function loadTabItems() {
         </div>
         <div class="item" v-if="showCreateNewRef" :class="{active: activeItemIndex === filteredItems.length}" @click="createNewRef()">
           <div v-if="selectedTab === 'tags'">
-<<<<<<< HEAD
             <svg-icon name="octicon-tag" class="mr-1"/>
-            <span v-text="textCreateTag.replace('%s', searchTerm)"/>
-          </div>
-          <div v-else>
-            <svg-icon name="octicon-git-branch" class="mr-1"/>
-            <span v-text="textCreateBranch.replace('%s', searchTerm)"/>
-=======
-            <svg-icon name="octicon-tag" class="tw-mr-1"/>
             <span v-text="trString(textCreateTag, searchTerm)"/>
           </div>
           <div v-else>
-            <svg-icon name="octicon-git-branch" class="tw-mr-1"/>
+            <svg-icon name="octicon-git-branch" class="mr-1"/>
             <span v-text="trString(textCreateBranch, searchTerm)"/>
->>>>>>> origin/main
           </div>
           <div class="text-xs">
             {{ textCreateRefFrom.replace('%s', currentRefShortName) }}

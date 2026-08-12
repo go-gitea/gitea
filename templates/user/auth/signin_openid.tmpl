@@ -1,12 +1,12 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signin openid">
-	<div class="ui middle very relaxed page fm-grid">
+	<div class="ui middle very relaxed page grid">
 		<div class="column flex flex-col gap-4 max-w-2xl m-auto">
 			<a href="{{AppSubUrl}}/user/login" class="mx-auto">
 				<img width="100" height="100" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}">
 			</a>
 
-			<div class="ui fm-container fluid">
+			<div class="ui container fluid">
 				{{template "base/alert" .}}
 				<h4 class="ui top attached header center">
 					{{svg "fontawesome-openid"}}
@@ -14,7 +14,7 @@
 				</h4>
 				<div class="ui attached segment">
 					<form class="ui form m-auto" action="{{.Link}}" method="post">
-						<div class="fm-inline field">
+						<div class="inline field">
 							{{ctx.Locale.Tr "auth.openid_signin_desc"}}
 						</div>
 						<div class="required field {{if .Err_OpenID}}error{{end}}">
@@ -24,20 +24,20 @@
 							</label>
 							<input id="openid" name="openid" value="{{.openid}}" autofocus required>
 						</div>
-						<div class="fm-inline field">
+						<div class="inline field">
 							<div class="ui checkbox">
 								<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
 								<input name="remember" type="checkbox">
 							</div>
 						</div>
-						<div class="fm-inline field">
+						<div class="inline field">
 							<button class="ui primary button w-full">{{ctx.Locale.Tr "sign_in"}}</button>
 						</div>
 					</form>
 				</div>
 			</div>
 
-			<div class="ui fm-container fluid">
+			<div class="ui container fluid">
 				{{template "user/auth/webauthn_error" .}}
 
 				<div class="ui attached segment header top flex flex-col items-center">

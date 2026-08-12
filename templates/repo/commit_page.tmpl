@@ -2,7 +2,7 @@
 {{$commitLinkBase := print $.RepoLink (Iif $.PageIsWiki "/wiki" "") "/commit"}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository diff">
 	{{template "repo/header" .}}
-	<div class="ui fm-container fluid padded">
+	<div class="ui container fluid padded">
 		<div class="ui top attached header clearing segment relative commit-header">
 			<div class="flex mb-4 gap-1">
 				<h3 class="mb-0 flex-1"><span class="commit-summary" title="{{.Commit.MessageTitle}}">{{ctx.RenderUtils.RenderCommitMessage .Commit.MessageUTF8 $.Repository}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses "AdditionalClasses" "inline"}}</h3>
@@ -135,22 +135,13 @@
 					<strong>{{.Commit.Author.Name}}</strong>
 				{{end}}
 			</div>
-			<span class="tw-text-text-light">{{DateUtils.TimeSince .Commit.Committer.When}}</span>
+			<span class="text-text-light">{{DateUtils.TimeSince .Commit.Committer.When}}</span>
 
-<<<<<<< HEAD
-			<span class="text-text-light">{{DateUtils.TimeSince .Commit.Author.When}}</span>
-
-			<div class="flex-text-inline">
-				{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
-					<span class="text-text-light">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
-					{{if and .Verification.CommittingUser .Verification.CommittingUser.ID}}
-=======
 			{{$committerIsAuthor := and (eq .Commit.Committer.Name .Commit.Author.Name) (eq .Commit.Committer.Email .Commit.Author.Email)}}
 			{{if not $committerIsAuthor}}
 				<div class="flex-text-inline">
-					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
+					<span class="text-text-light">{{ctx.Locale.Tr "repo.diff.committed_by"}}</span>
 					{{if and .Verification.CommittingUser}}
->>>>>>> origin/main
 						{{ctx.AvatarUtils.Avatar .Verification.CommittingUser 20}}
 						<strong>{{.Verification.CommittingUser.GetShortDisplayNameLinkHTML}}</strong>
 					{{else}}
@@ -162,7 +153,7 @@
 
 			{{if .CommitOtherParticipants}}
 				<div class="flex-text-inline">
-					<span class="tw-text-text-light">{{ctx.Locale.Tr "repo.diff.coauthored_by"}}</span>
+					<span class="text-text-light">{{ctx.Locale.Tr "repo.diff.coauthored_by"}}</span>
 					{{range $participant := .CommitOtherParticipants}}
 						{{$user := $participant.GiteaUser}}
 						{{$gitIdentity := $participant.GitIdentity}}

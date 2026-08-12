@@ -81,11 +81,7 @@
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name flex flex-1 items-center gap-1 flex-wrap">
 								<div class="flex-text-block">
-<<<<<<< HEAD
-									<button class="fold-file btn interact-bg shrink-0 p-1{{if not $isExpandable}} invisible{{end}}">
-=======
-									<button class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1 {{if not $isExpandable}}tw-invisible{{end}}" data-global-click="diffFileViewFold">
->>>>>>> origin/main
+									<button class="fold-file btn interact-bg flex-shrink-0 p-1 {{if not $isExpandable}}invisible{{end}}" data-global-click="diffFileViewFold">
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
@@ -136,11 +132,7 @@
 									</label>
 								{{end}}
 								{{if not $file.IsSubmodule}}
-<<<<<<< HEAD
-									<button class="btn diff-header-popup-btn p-1">{{svg "octicon-kebab-horizontal" 18}}</button>
-=======
-									<button class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
->>>>>>> origin/main
+									<button class="btn p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
 									<div class="tippy-target">
 										{{if not (or $file.IsIncomplete $file.IsBin)}}
 											<button class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
@@ -161,7 +153,7 @@
 								{{end}}
 							</div>
 						</div>
-						<div class="diff-file-body ui attached unstackable fm-table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
+						<div class="diff-file-body ui attached unstackable table segment" {{if and $file.IsViewed $.IsShowingAllCommits}}data-folded="true"{{end}}>
 							<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hidden{{end}}">
 								{{if or $file.IsIncomplete $file.IsBin}}
 									<div class="diff-file-body binary">

@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content organization members">
 	{{template "org/header" .}}
-	<div class="ui fm-container">
+	<div class="ui container">
 		{{template "base/alert" .}}
 
 		{{if .IsOrganizationOwner}}
@@ -10,7 +10,7 @@
 				<a class="ui primary button" href="./teams">{{ctx.Locale.Tr "org.teams.manage_team_member"}}</a>
 			</div>
 		{{end}}
-		<form class="ui form ignore-dirty tw-my-4">
+		<form class="ui form ignore-dirty my-4">
 			<div class="ui small fluid action input">
 				{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.user_kind")}}
 				{{template "shared/search/button"}}

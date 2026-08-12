@@ -131,7 +131,7 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <!-- make the view container full width to make users easier to read logs -->
-  <div class="ui fluid fm-container">
+  <div class="ui fluid container">
     <div class="action-view-header">
       <a v-if="backLink" class="action-view-back" :href="backLink.href">
         <SvgIcon name="octicon-arrow-left" :size="14"/>
@@ -187,15 +187,9 @@ onBeforeUnmount(() => {
                   <SvgIcon name="octicon-check" :size="14" :class="{'invisible': !Boolean(attempt.current)}"/>
                   <strong class="text-sm gt-ellipsis">{{ formatAttemptTitle(attempt) }}</strong>
                 </div>
-<<<<<<< HEAD
                 <div class="flex-text-block pl-[20px]">
-                  <span class="flex-text-inline shrink-0">
-                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" class="flex-text-block" icon-variant="circle-fill"/>
-=======
-                <div class="flex-text-block tw-pl-[20px]">
-                  <span class="flex-text-inline tw-flex-shrink-0">
+                  <span class="flex-text-inline flex-shrink-0">
                     <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" icon-variant="circle-fill"/>
->>>>>>> origin/main
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
                   <span>•</span>
@@ -208,29 +202,6 @@ onBeforeUnmount(() => {
           </div>
         </div>
       </div>
-<<<<<<< HEAD
-      <div class="action-commit-summary">
-        <span>
-          <a v-if="run.workflowLink" class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>
-          <b v-else>{{ run.workflowID }}</b>
-          :
-        </span>
-        <template v-if="run.isSchedule">
-          {{ locale.scheduled }}
-        </template>
-        <template v-else>
-          {{ locale.commit }}
-          <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-          {{ locale.pushedBy }}
-          <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
-        </template>
-        <span class="ui label max-w-full" v-if="run.commit.shortSHA">
-          <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
-          <a v-else class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
-        </span>
-      </div>
-=======
->>>>>>> origin/main
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
@@ -250,17 +221,8 @@ onBeforeUnmount(() => {
             v-for="item in visibleJobListItems"
             :key="item.job.id"
           >
-<<<<<<< HEAD
-            <a class="contents silenced" :href="item.job.link">
-              <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
-              <span class="min-w-0 gt-ellipsis">{{ item.job.name }}</span>
-              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
-              <span class="job-duration">{{ item.job.duration }}</span>
-            </a>
-=======
             <!-- Callers have no log page of their own; the whole row toggles expansion
                  (matches GitHub Actions, where caller rows are not navigation targets). -->
->>>>>>> origin/main
             <button
               v-if="item.job.isReusableCaller"
               type="button"
@@ -273,7 +235,7 @@ onBeforeUnmount(() => {
               :aria-expanded="!isJobCollapsed(item.job.id)"
             >
               <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
-              <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
+              <span class="min-w-0 gt-ellipsis">{{ item.job.name }}</span>
               <span class="job-duration">{{ item.job.duration }}</span>
               <SvgIcon name="octicon-chevron-down" :size="14" class="job-brief-toggle-icon" :class="{'collapsed': isJobCollapsed(item.job.id)}"/>
             </button>
@@ -285,8 +247,8 @@ onBeforeUnmount(() => {
               :href="item.job.link"
             >
               <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
-              <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
-              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
+              <span class="min-w-0 gt-ellipsis">{{ item.job.name }}</span>
+              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
               <span class="job-duration">{{ item.job.duration }}</span>
             </a>
           </template>
@@ -313,19 +275,15 @@ onBeforeUnmount(() => {
                   <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
-<<<<<<< HEAD
-              <span v-else class="flex-text-block flex-1 text-text-light-2">
-=======
               <span
-                v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2"
+                v-else class="flex-text-block flex-1 min-w-0 text-text-light-2"
                 :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiredAt)"
                 data-tooltip-render="html"
                 data-tooltip-placement="top-end"
               >
->>>>>>> origin/main
                 <SvgIcon name="octicon-file-removed"/>
                 <span class="flex-1 gt-ellipsis">{{ artifact.name }}</span>
-                <span class="ui label shrink-0">{{ locale.artifactExpired }}</span>
+                <span class="ui label flex-shrink-0">{{ locale.artifactExpired }}</span>
               </span>
             </div>
           </div>
@@ -336,17 +294,12 @@ onBeforeUnmount(() => {
         <div class="left-list-header">{{ locale.runDetails }}</div>
         <div class="flex-items-block action-view-sidebar-list">
           <div class="item">
-<<<<<<< HEAD
-            <a class="flex-text-block silenced" :href="`${run.link}/workflow`">
-              <SvgIcon name="octicon-file-code" class="text-text"/>
-=======
             <a v-if="run.canViewWorkflowFile" class="flex-text-block silenced" :href="`${run.link}/workflow`">
-              <SvgIcon name="octicon-file-code" class="tw-text-text"/>
->>>>>>> origin/main
+              <SvgIcon name="octicon-file-code" class="text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
             </a>
             <span v-else class="flex-text-block silenced" :data-tooltip-content="locale.workflowFileNoPermission">
-              <SvgIcon name="octicon-lock" class="tw-text-text"/>
+              <SvgIcon name="octicon-lock" class="text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFileNoPermission }}</span>
             </span>
           </div>

@@ -63,17 +63,10 @@ function showToast(message: string, level: Intent = 'info', {gravity, position, 
   const bodyHtml = useHtmlBody ? message : htmlEscape(message);
   const toast = Toastify({
     selector: parent,
-<<<<<<< HEAD
-    text: `
-      <div class='toast-icon'>${svg(icon)}</div>
-      <div class='toast-body'><span class="toast-duplicate-number hidden">1</span>${body}</div>
-      <button class='btn toast-close'>${svg('octicon-x')}</button>
-=======
     text: html`
       <div class='toast-icon'>${svgRaw(icon)}</div>
-      <div class='toast-body'><span class="toast-duplicate-number tw-hidden">1</span>${htmlRaw(bodyHtml)}</div>
+      <div class='toast-body'><span class="toast-duplicate-number hidden">1</span>${htmlRaw(bodyHtml)}</div>
       <button class='btn toast-close'>${svgRaw('octicon-x')}</button>
->>>>>>> origin/main
     `,
     escapeMarkup: false,
     className: `toast-${level}`,

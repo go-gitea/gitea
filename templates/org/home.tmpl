@@ -2,8 +2,8 @@
 <div role="main" aria-label="{{.Title}}" class="page-content organization profile">
 	{{template "org/header" .}}
 
-	<div class="ui fm-container">
-		<div class="ui mobile reversed stackable fm-grid">
+	<div class="ui container">
+		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
 				{{if .ProfileReadmeContent}}
 					<div id="readme_profile" class="render-content markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>

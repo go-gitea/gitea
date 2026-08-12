@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository milestones">
 	{{template "repo/header" .}}
-	<div class="ui fm-container">
+	<div class="ui container">
 		{{template "base/alert" .}}
 
 		<div class="list-header">
@@ -17,22 +17,6 @@
 		<!-- milestone list -->
 		<div class="flex-divided-list milestone-list">
 			{{range .Milestones}}
-<<<<<<< HEAD
-				<li class="milestone-card">
-					<div class="milestone-header">
-						<h3 class="flex-text-block m-0">
-							{{svg "octicon-milestone" 16}}
-							<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
-						</h3>
-						<div class="flex items-center">
-							<span class="mr-2">{{.Completeness}}%</span>
-							<progress value="{{.Completeness}}" max="100"></progress>
-						</div>
-					</div>
-					<div class="milestone-toolbar">
-						<div class="g-button-group">
-							<div class="flex-text-block">
-=======
 				<div class="item flex-relaxed-list">
 					<div class="flex-left-right">
 						<span class="list-item-large-title">
@@ -45,9 +29,8 @@
 						</div>
 					</div>
 					<div class="list-item-secondary-bar">
-						<div class="flex-text-block tw-flex-wrap">
+						<div class="flex-text-block flex-wrap">
 							<div class="flex-text-inline">
->>>>>>> origin/main
 								{{svg "octicon-issue-opened" 14}}
 								{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 							</div>
@@ -86,11 +69,7 @@
 							</div>
 						</div>
 						{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
-<<<<<<< HEAD
-							<div class="g-button-group">
-=======
-							<div class="flex-text-block tw-flex-wrap">
->>>>>>> origin/main
+							<div class="flex-text-block flex-wrap">
 								<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
 								{{if .IsClosed}}
 									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.milestones.open"}}</a>

@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard issues repository milestones">
 	{{template "user/dashboard/navbar" .}}
-	<div class="ui fm-container">
+	<div class="ui container">
 		<div class="flex-container">
 			<div class="flex-container-nav">
 				<div class="ui secondary vertical filter menu bg-transparent">
@@ -73,31 +73,14 @@
 				</div>
 				<div class="flex-divided-list">
 					{{range .Milestones}}
-<<<<<<< HEAD
-						<li class="milestone-card">
-							<div class="milestone-header">
-								<h3 class="flex-text-block m-0">
-=======
 						<div class="item flex-relaxed-list">
 							<div class="flex-left-right">
 								<span class="list-item-large-title">
->>>>>>> origin/main
 									<span class="ui large label">
 										{{.Repo.FullName}}
 									</span>
 									{{svg "octicon-milestone" 16}}
 									<a class="muted" href="{{.Repo.Link}}/milestone/{{.ID}}">{{.Name}}</a>
-<<<<<<< HEAD
-								</h3>
-								<div class="flex items-center">
-									<span class="mr-2">{{.Completeness}}%</span>
-									<progress value="{{.Completeness}}" max="100"></progress>
-								</div>
-							</div>
-							<div class="milestone-toolbar">
-								<div class="g-button-group">
-									<div class="flex-text-block">
-=======
 								</span>
 								<div class="flex-text-inline">
 									<span>{{.Completeness}}%</span>
@@ -105,9 +88,8 @@
 								</div>
 							</div>
 							<div class="list-item-secondary-bar">
-								<div class="flex-text-block tw-flex-wrap">
+								<div class="flex-text-block flex-wrap">
 									<div class="flex-text-inline">
->>>>>>> origin/main
 										{{svg "octicon-issue-opened" 14}}
 										{{ctx.Locale.PrettyNumber .NumOpenIssues}}&nbsp;{{ctx.Locale.Tr "repo.issues.open_title"}}
 									</div>
@@ -145,20 +127,6 @@
 										{{end}}
 									</div>
 								</div>
-<<<<<<< HEAD
-								{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
-									<div class="g-button-group">
-										<a class="flex-text-inline" href="{{$.Link}}/{{.ID}}/edit">{{svg "octicon-pencil" 14}}{{ctx.Locale.Tr "repo.issues.label_edit"}}</a>
-										{{if .IsClosed}}
-											<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check" 14}}{{ctx.Locale.Tr "repo.milestones.open"}}</a>
-										{{else}}
-											<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 14}}{{ctx.Locale.Tr "repo.milestones.close"}}</a>
-										{{end}}
-										<a class="delete-button flex-text-inline" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
-									</div>
-								{{end}}
-=======
->>>>>>> origin/main
 							</div>
 							{{if .Content}}
 								<div class="render-content markup">{{.RenderedContent}}</div>

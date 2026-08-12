@@ -5,7 +5,7 @@
 
 <div class="page-content repository actions">
 	{{template "repo/header" .}}
-	<div class="ui fm-container">
+	<div class="ui container">
 		{{template "base/alert" .}}
 
 		{{if .HasWorkflowsOrRuns}}
@@ -18,27 +18,23 @@
 							<span class="gt-ellipsis" data-tooltip-content="{{.DisplayName}}">{{.DisplayName}}</span>
 
 							{{if .ErrMsg}}
-<<<<<<< HEAD
-								<span class="flex-text-inline" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "text-red"}}</span>
-=======
-								<span class="flex-text-inline tw-shrink-0" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
->>>>>>> origin/main
+								<span class="flex-text-inline shrink-0" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "text-red"}}</span>
 							{{end}}
 
 							{{if $.ActionsConfig.IsWorkflowDisabled .EntryName}}
-								<div class="ui red label tw-shrink-0">{{ctx.Locale.Tr "disabled"}}</div>
+								<div class="ui red label shrink-0">{{ctx.Locale.Tr "disabled"}}</div>
 							{{end}}
 						</a>
 					{{end}}
 					{{range .ScopedWorkflowGroups}}
 						<details class="item scoped-workflow-group"{{if .IsActive}} open{{end}}>
 							<summary>
-								<span class="gt-ellipsis tw-min-w-0" data-tooltip-content="{{.SourceRepoName}}">{{if .FromInstance}}{{.SourceRepoName}}{{else}}{{.SourceRepoShortName}}{{end}}</span>
+								<span class="gt-ellipsis min-w-0" data-tooltip-content="{{.SourceRepoName}}">{{if .FromInstance}}{{.SourceRepoName}}{{else}}{{.SourceRepoShortName}}{{end}}</span>
 								<span class="ui label">{{if .FromInstance}}{{ctx.Locale.Tr "actions.workflow.scope_global"}}{{else}}{{ctx.Locale.Tr "actions.workflow.scope_owner"}}{{end}}</span>
 							</summary>
 							{{range .Workflows}}
 								<a class="item flex-text-block {{if and (eq .EntryName $.CurWorkflow) (eq .SourceRepoID $.CurWorkflowScopedRepoID)}}active{{end}}" href="?workflow={{.EntryName}}&scoped_workflow_source_repo_id={{.SourceRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
-									<span class="gt-ellipsis tw-min-w-0" data-tooltip-content="{{.EntryName}}">{{.DisplayName}}</span>
+									<span class="gt-ellipsis min-w-0" data-tooltip-content="{{.EntryName}}">{{.DisplayName}}</span>
 									{{if .Required}}
 										<span class="ui label">{{ctx.Locale.Tr "actions.workflow.required"}}</span>
 									{{else if .Disabled}}
@@ -104,7 +100,7 @@
 								</a>
 								{{range .StatusInfoList}}
 									<a class="item{{if eq .Status $.CurStatus}} selected{{end}}" href="?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{.Status}}&branch={{$.CurBranch}}">
-										<span class="flex-text-inline tw-gap-2">
+										<span class="flex-text-inline gap-2">
 											{{template "repo/icons/action_status" (dict "Status" .StatusName)}}
 											{{.DisplayedStatus}}
 										</span>
@@ -132,13 +128,8 @@
 							</div>
 						</div>
 
-<<<<<<< HEAD
-						{{if and .AllowDisableOrEnableWorkflow .CurWorkflowIsListed $.CurWorkflow}}
-						<button class="ui jump dropdown btn interact-bg p-2">
-=======
 						{{if or $showCreateWorkflowBadge $showEnableDisableWorkflow}}
-						<button class="ui jump dropdown btn interact-bg tw-p-2">
->>>>>>> origin/main
+						<button class="ui jump dropdown btn interact-bg p-2">
 							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								{{if $showCreateWorkflowBadge}}

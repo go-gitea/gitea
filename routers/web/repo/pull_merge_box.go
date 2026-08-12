@@ -43,12 +43,7 @@ func (c *pullMergeBoxInfoItemCollection) AddInfoItem(svg, info template.HTML, op
 
 func (c *pullMergeBoxInfoItemCollection) AddErrorItem(info template.HTML, optItems ...[]template.HTML) {
 	c.items = append(c.items, &pullMergeBoxInfoItem{
-<<<<<<< HEAD
-		ItemClass:   "text-red",
-		SvgIconHTML: svg,
-=======
-		SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
->>>>>>> origin/main
+		SvgIconHTML: svg.RenderHTML("octicon-x", 16, "text-red"),
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
 	})

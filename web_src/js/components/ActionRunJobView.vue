@@ -439,7 +439,7 @@ async function hashChangeListener() {
         <button class="btn interact-bg p-2">
           <SvgIcon name="octicon-gear" :size="18"/>
         </button>
-        <div class="menu fm-transition action-job-menu" :class="{'fm-visible': menuVisible}" v-if="menuVisible" v-cloak>
+        <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
           <a class="item" @click="toggleTimeDisplay('seconds')">
             <i class="icon"><SvgIcon :name="timeVisible['log-time-seconds'] ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
             {{ locale.showLogSeconds }}
@@ -497,13 +497,8 @@ async function hashChangeListener() {
         <SvgIcon
           v-else
           name="octicon-chevron-right"
-<<<<<<< HEAD
-          class="mr-2 step-summary-chevron"
-          :class="{'invisible': !isExpandable(jobStep.status)}"
-=======
           class="step-summary-chevron"
-          :class="{'tw-invisible': !isExpandable(jobStep.status)}"
->>>>>>> origin/main
+          :class="{'invisible': !isExpandable(jobStep.status)}"
         />
         <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill"/>
         <span class="step-summary-msg gt-ellipsis">{{ jobStep.summary }}</span>

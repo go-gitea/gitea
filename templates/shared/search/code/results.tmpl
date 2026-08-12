@@ -1,16 +1,10 @@
 <div class="flex-text-block flex-wrap">
 	{{range $term := .SearchResultLanguages}}
-<<<<<<< HEAD
-	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label m-0"
-		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&search_mode={{$.SelectedSearchMode}}">
-		<i class="color-icon mr-2" style="background-color: {{$term.Color}}"></i>
-=======
-	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label tw-m-0 tw-gap-2"
+	<a class="ui {{if eq $.Language $term.Language}}primary{{end}} basic label m-0 gap-2"
 		href="?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}&search_mode={{$.SelectedSearchMode}}">
 		<i class="color-icon" style="background-color: {{$term.Color}}"></i>
->>>>>>> origin/main
 		{{$term.Language}}
-		<div class="detail tw-ml-2">{{$term.Count}}</div>
+		<div class="detail ml-2">{{$term.Count}}</div>
 	</a>
 	{{end}}
 </div>
@@ -32,7 +26,7 @@
 				{{end}}
 				<a role="button" class="ui basic tiny button" rel="nofollow" href="{{$repo.Link}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.diff.view_file"}}</a>
 			</h4>
-			<div class="ui attached fm-table segment">
+			<div class="ui attached table segment">
 				{{template "shared/searchfile" dict "RepoLink" $repo.Link "SearchResult" .}}
 			</div>
 			{{template "shared/searchbottom" dict "root" $ "result" .}}

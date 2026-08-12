@@ -1,6 +1,7 @@
 @import "tailwindcss/theme";
-@import "tailwindcss/utilities";
+@import "tailwindcss/utilities" important;
 @config "../../tailwind.config.ts";
+@source not inline("{transform,shadow,ring,blur,grayscale,invert,filter,backdrop-filter,hidden,container,grid,table,fixed,transition}");
 
 @import "./modules/normalize.css";
 @import "./modules/animations.css";

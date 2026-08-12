@@ -92,7 +92,7 @@ function initDevtestAnsiRender(container: HTMLElement) {
     `${esc}[0muntil something resets it`,
   ];
 
-  const elConsole = createElementFromHTML(html`<div class="console tw-p-2 tw-whitespace-pre-wrap"></div>`);
+  const elConsole = createElementFromHTML(html`<div class="console p-2 whitespace-pre-wrap"></div>`);
   const ansi = new AnsiLineRenderer();
   for (const line of lines) {
     const el = document.createElement('div');

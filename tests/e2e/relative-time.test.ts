@@ -3,6 +3,7 @@ import {assertNoJsError} from './utils.ts';
 
 test('relative-time renders without errors', async ({page}) => {
   await page.goto('/devtest/relative-time');
+  await expect(page.locator('.grid')).toHaveCSS('display', 'grid');
   const relativeTime = page.getByTestId('relative-time-now');
   await expect(relativeTime).toHaveAttribute('data-tooltip-content', /.+/);
   await expect(relativeTime).toHaveText('now');

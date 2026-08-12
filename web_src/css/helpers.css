@@ -3,12 +3,7 @@ Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
 
-/*
-".hidden.hidden" is a double-class so it out-specifies other "display: xxx !important" rules. It is the
-hide utility (formerly "tw-hidden"); toggle it via showElem/hideElem/toggleElem in utils/dom.ts.
-Do NOT use the "[hidden]" attribute (too weak for "display: flex"), a single ".hidden" (historically
-polluted by Fomantic UI), or inline "display: none".
-*/
+/* The double class wins over other important display utilities. Toggle it with the DOM helpers. */
 .hidden.hidden {
   display: none !important;
 }
@@ -16,6 +11,34 @@ polluted by Fomantic UI), or inline "display: none".
 .break-anywhere {
   overflow-wrap: anywhere !important;
 }
+
+.container:not(.ui) {
+  width: 100% !important;
+}
+
+@media (width >= 40rem) {
+  .container:not(.ui) { max-width: 40rem !important; }
+}
+
+@media (width >= 48rem) {
+  .container:not(.ui) { max-width: 48rem !important; }
+}
+
+@media (width >= 64rem) {
+  .container:not(.ui) { max-width: 64rem !important; }
+}
+
+@media (width >= 80rem) {
+  .container:not(.ui) { max-width: 80rem !important; }
+}
+
+@media (width >= 96rem) {
+  .container:not(.ui) { max-width: 96rem !important; }
+}
+
+.grid:not(.ui) { display: grid !important; }
+.table:not(.ui) { display: table !important; }
+.fixed:not(.ui) { position: fixed !important; }
 
 .gt-ellipsis {
   overflow: hidden !important;

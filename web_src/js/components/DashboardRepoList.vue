@@ -404,13 +404,8 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
             <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
               <a class="item" @click="toggleArchivedFilter()">
-<<<<<<< HEAD
-                <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
-                  <!--the "pointer-events-none" is necessary to prevent the checkbox from handling user's input,
-=======
                 <div class="ui checkbox" :title="checkboxArchivedFilterTitle">
-                  <!--the "tw-pointer-events-none" is necessary to prevent the checkbox from handling user's input,
->>>>>>> origin/main
+                  <!--the "pointer-events-none" is necessary to prevent the checkbox from handling user's input,
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
                   <input type="checkbox" class="pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
                   <label>
@@ -420,13 +415,8 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
                 </div>
               </a>
               <a class="item" @click="togglePrivateFilter()">
-<<<<<<< HEAD
-                <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
-                  <input type="checkbox" class="pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
-=======
                 <div class="ui checkbox" :title="checkboxPrivateFilterTitle">
-                  <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
->>>>>>> origin/main
+                  <input type="checkbox" class="pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
                     <svg-icon name="octicon-lock" :size="16" class="mr-1"/>
                     {{ textShowPrivate }}
@@ -436,14 +426,9 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
             </div>
           </div>
         </div>
-<<<<<<< HEAD
-        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter">
-          <div class="overflow-menu-items justify-center">
-=======
         <!-- stay hidden until the first count arrives, otherwise the label resizes after paint -->
-        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter" :class="{'tw-invisible': !initialSearchDone}">
-          <div class="overflow-menu-items tw-justify-center">
->>>>>>> origin/main
+        <overflow-menu class="ui secondary pointing tabular borderless menu repos-filter" :class="{'invisible': !initialSearchDone}">
+          <div class="overflow-menu-items justify-center">
             <a class="item" tabindex="0" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
               {{ textAll }}
               <div v-show="reposFilter === 'all'" class="ui circular mini grey label">{{ repoTypeCount }}</div>
@@ -467,7 +452,7 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
           </div>
         </overflow-menu>
       </div>
-      <div v-if="repos.length" class="ui attached fm-table segment rounded-b">
+      <div v-if="repos.length" class="ui attached table segment rounded-b">
         <ul class="repo-owner-name-list">
           <li class="flex items-center py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
@@ -531,7 +516,7 @@ async function reposFilterKeyControl(e: KeyboardEvent) {
           <p>{{ textNoOrg }}</p>
         </div>
       </div>
-      <div v-else class="ui attached fm-table segment rounded-b">
+      <div v-else class="ui attached table segment rounded-b">
         <ul class="repo-owner-name-list">
           <li class="flex items-center py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">

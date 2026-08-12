@@ -8,17 +8,10 @@
 			{{if .Hooks}}<div class="divider"></div>{{end}}
 			<div class="flex-divided-list">
 				{{range .Hooks}}
-<<<<<<< HEAD
-				<div class="item">
+				<div class="item flex-text-block">
 					<span class="{{if .IsActive}}text-green{{else}}text-text-light{{end}}">{{svg "octicon-dot-fill" 22}}</span>
 					<span class="gt-ellipsis flex-1">{{.Name}}</span>
-					<a class="muted p-2" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">{{svg "octicon-pencil"}}</a>
-=======
-				<div class="item flex-text-block">
-					<span class="{{if .IsActive}}tw-text-green{{else}}tw-text-text-light{{end}}">{{svg "octicon-dot-fill" 22}}</span>
-					<span class="gt-ellipsis tw-flex-1">{{.Name}}</span>
-					<a class="muted tw-pr-2" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">{{svg "octicon-pencil"}}</a>
->>>>>>> origin/main
+					<a class="muted pr-2" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">{{svg "octicon-pencil"}}</a>
 				</div>
 				{{end}}
 			</div>

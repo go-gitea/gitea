@@ -5,23 +5,10 @@ import {onUserEvent} from '../modules/worker.ts';
 const {appSubUrl, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
 
-<<<<<<< HEAD
-async function receiveUpdateCount(event: MessageEvent<{type: string, data: string}>) {
-  try {
-    const data = JSON.parse(event.data.data);
-    for (const count of document.querySelectorAll('.notification_count')) {
-      count.classList.toggle('hidden', data.Count === 0);
-      count.textContent = `${data.Count}`;
-    }
-    await updateNotificationTable();
-  } catch (error) {
-    console.error(error, event);
-=======
 async function receiveUpdateCount(count: number) {
   toggleElem('.notification_count', count !== 0);
   for (const el of document.querySelectorAll('.notification_count')) {
     el.textContent = String(count);
->>>>>>> origin/main
   }
   await updateNotificationTable();
 }

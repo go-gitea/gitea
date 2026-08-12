@@ -9,8 +9,8 @@
 		<div class="ui attached segment">
 			{{template "shared/repo/search" .}}
 		</div>
-		<div class="ui attached fm-table segment">
-			<table class="ui very basic fm-table selectable unstackable">
+		<div class="ui attached table segment">
+			<table class="ui very basic table selectable unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
@@ -85,13 +85,8 @@
 							<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							<td>
-<<<<<<< HEAD
 								<a class="text-red show-modal" href data-modal="#admin-repo-delete-modal"
-									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.ID}}"
-=======
-								<a class="tw-text-red show-modal" href data-modal="#admin-repo-delete-modal"
 									data-modal-form.url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.ID}}"
->>>>>>> origin/main
 									data-modal-repo-name="{{.Name}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>

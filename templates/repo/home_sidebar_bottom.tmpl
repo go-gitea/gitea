@@ -10,21 +10,12 @@
 		<div>
 			<div class="flex-text-block">
 				<div>{{svg "octicon-tag"}}</div>
-<<<<<<< HEAD
-				<a class="gt-ellipsis muted" href="{{.LatestRelease.Link}}" title="{{.LatestRelease.Title}}">{{.LatestRelease.Title}}</a>
+				<a class="gt-ellipsis muted" href="{{.LatestRelease.Link}}" title="{{.LatestRelease.Title}}"><strong>{{.LatestRelease.Title}}</strong></a>
 				<div class="shrink-0">
 					{{template "repo/release/label" (dict "Release" .LatestRelease "IsLatest" true)}}
 				</div>
 			</div>
-			<div class="ml-[24px]">{{DateUtils.TimeSince .LatestRelease.CreatedUnix}}</div>
-=======
-				<a class="gt-ellipsis muted" href="{{.LatestRelease.Link}}" title="{{.LatestRelease.Title}}"><strong>{{.LatestRelease.Title}}</strong></a>
-				<div class="tw-shrink-0">
-					{{template "repo/release/label" (dict "Release" .LatestRelease "IsLatest" true)}}
-				</div>
-			</div>
-			<div class="tw-ml-[24px] tw-text-12">{{DateUtils.TimeSince .LatestRelease.CreatedUnix}}</div>
->>>>>>> origin/main
+			<div class="ml-[24px] text-12">{{DateUtils.TimeSince .LatestRelease.CreatedUnix}}</div>
 		</div>
 	{{end}}
 

@@ -347,7 +347,7 @@ func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HT
 	var b htmlutil.HTMLBuilder
 	b.WriteHTML(`<span class="avatar-stack">`)
 	if overflow > 0 {
-		b.WriteFormat(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
+		b.WriteFormat(`<span class="avatar-stack-overflow-chip text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
 	}
 
 	// FIXME: such "backward" breaks a11y like screen readers

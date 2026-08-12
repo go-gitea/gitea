@@ -37,7 +37,7 @@
 					</div>
 					{{end}}
 				</div>
-				<div class="item-body tw-gap-2">
+				<div class="item-body gap-2">
 					<a class="index flex-text-inline" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
 							{{.Repo.FullName}}#{{.Index}}
@@ -103,17 +103,9 @@
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-<<<<<<< HEAD
-						<span class="due-date flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
-							<span{{if .IsOverdue}} class="text-red"{{end}}>
-								{{svg "octicon-calendar" 14}}
-								{{DateUtils.AbsoluteShort .DeadlineUnix}}
-							</span>
-=======
-						<span class="due-date flex-text-inline {{if .IsOverdue}}tw-text-red{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
+						<span class="due-date flex-text-inline {{if .IsOverdue}}text-red{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date"}}">
 							{{svg "octicon-calendar" 14}}
 							{{DateUtils.AbsoluteShort .DeadlineUnix}}
->>>>>>> origin/main
 						</span>
 					{{end}}
 					{{if .IsPull}}

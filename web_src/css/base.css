@@ -381,15 +381,6 @@ a.label,
   color: var(--color-text-light-2);
 }
 
-<<<<<<< HEAD
-/* styles from removed fomantic transition module ('hidden' is now Tailwind's display:none utility) */
-.fm-visible.fm-transition {
-  display: block !important;
-  visibility: visible !important;
-}
-
-=======
->>>>>>> origin/main
 .ui.comments .comment .metadata {
   color: var(--color-text-light-2);
 }
@@ -422,9 +413,9 @@ a.label,
 .page-content > :first-child:not(.secondary-nav) {
   margin-top: var(--page-spacing);
 }
-/* if .ui.fm-grid is the first child the first grid-column has 'padding-top: 1rem' which we need
+/* if .ui.grid is the first child the first grid-column has 'padding-top: 1rem' which we need
    to compensate here */
-.page-content > :first-child.ui.fm-grid {
+.page-content > :first-child.ui.grid {
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
@@ -454,14 +445,6 @@ a.label,
   margin-right: 4px;
 }
 
-<<<<<<< HEAD
-.ui.fm-inline.delete-button {
-  padding: 8px 15px;
-  font-weight: var(--font-weight-normal);
-}
-
-=======
->>>>>>> origin/main
 .ui .migrate {
   color: var(--color-text-light-2) !important;
 }
@@ -474,13 +457,6 @@ a.label,
   color: var(--color-text) !important;
 }
 
-<<<<<<< HEAD
-.ui .g-border {
-  border: 1px solid;
-}
-
-=======
->>>>>>> origin/main
 .user-menu > .item {
   width: 100%;
   border-radius: 0 !important;

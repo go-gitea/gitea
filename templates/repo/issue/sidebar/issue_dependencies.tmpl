@@ -20,13 +20,8 @@
 			</span>
 			<div class="flex-divided-list">
 				{{range .BlockingDependencies}}
-<<<<<<< HEAD
-					<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} flex-left-right">
-						<div class="item-left flex justify-center flex-col flex-1 gt-ellipsis">
-=======
 					<div class="item {{if .Issue.IsClosed}}is-closed{{end}} flex-left-right">
 						<div class="item-left">
->>>>>>> origin/main
 							<a class="muted issue-dependency-title gt-ellipsis" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
 								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 							</a>
@@ -34,11 +29,7 @@
 								{{.Repository.OwnerName}}/{{.Repository.Name}}
 							</div>
 						</div>
-<<<<<<< HEAD
-						<div class="item-right flex items-center m-1">
-=======
 						<div class="item-right">
->>>>>>> origin/main
 							{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 								<a class="muted show-modal" data-modal="#issue-remove-dependency-confirm"
 									data-modal-remove-dependency-id="{{.Issue.ID}}" data-modal-dependency-type="blocking"
@@ -63,13 +54,8 @@
 			</span>
 			<div class="flex-divided-list">
 				{{range .BlockedByDependencies}}
-<<<<<<< HEAD
-					<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} flex-left-right">
-						<div class="item-left flex justify-center flex-col flex-1 gt-ellipsis">
-=======
 					<div class="item {{if .Issue.IsClosed}}is-closed{{end}} flex-left-right">
 						<div class="item-left">
->>>>>>> origin/main
 							<a class="muted issue-dependency-title gt-ellipsis" href="{{.Issue.Link}}" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
 								#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}
 							</a>
@@ -77,11 +63,7 @@
 								{{.Repository.OwnerName}}/{{.Repository.Name}}
 							</div>
 						</div>
-<<<<<<< HEAD
-						<div class="item-right flex items-center m-1">
-=======
 						<div class="item-right">
->>>>>>> origin/main
 							{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 								<a class="muted show-modal" data-modal="#issue-remove-dependency-confirm"
 									data-modal-remove-dependency-id="{{.Issue.ID}}" data-modal-dependency-type="blockedBy"
@@ -94,13 +76,8 @@
 				{{end}}
 				{{if $.CanCreateIssueDependencies}}
 					{{range .BlockedByDependenciesNotPermitted}}
-<<<<<<< HEAD
-						<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} flex-left-right">
-							<div class="item-left flex justify-center flex-col flex-1 gt-ellipsis">
-=======
 						<div class="item {{if .Issue.IsClosed}}is-closed{{end}} flex-left-right">
 							<div class="item-left">
->>>>>>> origin/main
 								<div class="gt-ellipsis">
 									<span data-tooltip-content="{{ctx.Locale.Tr "repo.issues.dependency.no_permission.can_remove"}}">{{svg "octicon-lock" 16}}</span>
 									<span class="gt-ellipsis issue-dependency-title" data-tooltip-content="#{{.Issue.Index}} {{.Issue.Title | ctx.RenderUtils.RenderEmoji}}">
@@ -111,11 +88,7 @@
 									{{.Repository.OwnerName}}/{{.Repository.Name}}
 								</div>
 							</div>
-<<<<<<< HEAD
-							<div class="item-right flex items-center m-1">
-=======
 							<div class="item-right">
->>>>>>> origin/main
 								{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 									<a class="muted show-modal" data-modal="#issue-remove-dependency-confirm"
 										data-modal-remove-dependency-id="{{.Issue.ID}}" data-modal-dependency-type="blocking"

@@ -9,13 +9,8 @@
 		<h2>{{if $data.IsFiltered}}{{ctx.Locale.Tr "actions.runs.no_results"}}{{else}}{{ctx.Locale.Tr "actions.runs.no_runs"}}{{end}}</h2>
 	</div>
 	{{end}}
-<<<<<<< HEAD
-	{{range $run := .Runs}}
-		<div class="item items-center">
-=======
 	{{range $run := $data.ActionRuns}}
-		<div id="action-run-item-{{$run.ID}}" class="item tw-items-center" data-status="{{$run.Status.String}}">
->>>>>>> origin/main
+		<div id="action-run-item-{{$run.ID}}" class="item items-center" data-status="{{$run.Status.String}}">
 			<div class="item-leading">
 				<span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" $run.Status.String)}}">
 					{{template "repo/icons/action_status" (dict "Status" $run.Status.String "IconVariant" "circle-fill")}}

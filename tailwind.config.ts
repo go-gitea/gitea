@@ -22,22 +22,12 @@ const vars = extractRootVars([
 ].join('\n'));
 
 export default {
-  important: true, // the frameworks are mixed together, so tailwind needs to override other framework's styles
   content: [
     '!**/*_test.go',
     './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
     './web_src/js/**/*.{ts,js,vue}',
   ].filter(Boolean as unknown as <T>(x: T | boolean) => x is T),
-  blocklist: [
-    // disabled on purpose: Gitea styles shadows/transforms/filters with its own CSS and does not use Tailwind's
-    'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
-    'backdrop-filter',
-    // we use double-class .hidden.hidden defined in web_src/css/helpers.css for increased specificity
-    'hidden',
-    // unneeded classes
-    '[-a-zA-Z:0-9_.]',
-  ],
   theme: {
     colors: {
       // make `bg-red` etc work with our CSS variables

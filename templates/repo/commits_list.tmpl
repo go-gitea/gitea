@@ -1,5 +1,5 @@
-<div class="ui attached fm-table segment commit-table">
-	<table class="ui very basic fm-table unstackable" id="commits-table">
+<div class="ui attached table segment commit-table">
+	<table class="ui very basic table unstackable" id="commits-table">
 		<thead>
 			<tr>
 				<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
@@ -16,19 +16,7 @@
 				{{$commitID := $gitCommit.ID.String}}
 				<tr>
 					<td class="author">
-<<<<<<< HEAD
-						<span class="author-wrapper">
-							{{- if .User -}}
-								{{- ctx.AvatarUtils.Avatar .User 20 "mr-2" -}}
-								{{- .User.GetShortDisplayNameLinkHTML -}}
-							{{- else -}}
-								{{- ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 20 "mr-2" -}}
-								{{- .Author.Name -}}
-							{{- end -}}
-						</span>
-=======
 						{{ctx.RenderUtils.AvatarStackWithNames $commit.AvatarStackData}}
->>>>>>> origin/main
 					</td>
 					<td class="sha">
 						{{$commitBaseLink := ""}}
@@ -58,48 +46,24 @@
 						<button class="ui button ellipsis-button" aria-expanded="false" data-global-click="onRepoEllipsisButtonClick">...</button>
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
-<<<<<<< HEAD
-						{{if $commit.MessageBody}}
-						<pre class="commit-body hidden">{{ctx.RenderUtils.RenderCommitBody $commit.MessageUTF8 $.Repository}}</pre>
+						{{if $gitCommit.MessageBody}}
+						<pre class="commit-body hidden">{{ctx.RenderUtils.RenderCommitBody $gitCommit.MessageUTF8 $.Repository}}</pre>
 						{{end}}
 						{{if $.CommitsTagsMap}}
-							{{range (index $.CommitsTagsMap .ID.String)}}
+							{{range (index $.CommitsTagsMap $commitID)}}
 								{{- template "repo/tag/name" dict "AdditionalClasses" "py-0" "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
 							{{end}}
 						{{end}}
 					</td>
-					{{if .Committer}}
-						<td class="text-right">{{DateUtils.TimeSince .Committer.When}}</td>
-					{{else}}
-						<td class="text-right">{{DateUtils.TimeSince .Author.When}}</td>
-					{{end}}
+					<td class="text-right">{{DateUtils.TimeSince $gitCommit.Committer.When}}</td>
 					<td class="text-right py-0">
-						<button class="btn interact-bg p-2 copy-commit-id" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</button>
-=======
-						{{if $gitCommit.MessageBody}}
-						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody $gitCommit.MessageUTF8 $.Repository}}</pre>
-						{{end}}
-						{{if $.CommitsTagsMap}}
-							{{range (index $.CommitsTagsMap $commitID)}}
-								{{- template "repo/tag/name" dict "AdditionalClasses" "tw-py-0" "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
-							{{end}}
-						{{end}}
-					</td>
-					<td class="tw-text-right">{{DateUtils.TimeSince $gitCommit.Committer.When}}</td>
-					<td class="tw-text-right tw-py-0">
-						<button class="btn interact-bg tw-p-2 copy-commit-id" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{$commitID}}">{{svg "octicon-copy"}}</button>
->>>>>>> origin/main
+						<button class="btn interact-bg p-2 copy-commit-id" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{$commitID}}">{{svg "octicon-copy"}}</button>
 						{{/* at the moment, wiki doesn't support these "view" links like "view at history point" */}}
 						{{if not $.PageIsWiki}}
 							{{/* view single file diff */}}
 							{{if $.FileTreePath}}
-<<<<<<< HEAD
 							<a class="btn interact-bg p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
-								href="{{$commitRepoLink}}/commit/{{.ID.String}}?files={{$.FileTreePath}}"
-=======
-							<a class="btn interact-bg tw-p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
 								href="{{$commitRepoLink}}/commit/{{$commitID}}?files={{$.FileTreePath}}"
->>>>>>> origin/main
 							>{{svg "octicon-file-diff"}}</a>
 							{{end}}
 

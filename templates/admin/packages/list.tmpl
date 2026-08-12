@@ -25,8 +25,8 @@
 				</div>
 			</form>
 		</div>
-		<div class="ui attached fm-table segment">
-			<table class="ui very basic fm-table unstackable">
+		<div class="ui attached table segment">
+			<table class="ui very basic table unstackable">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -72,13 +72,8 @@
 							<td>{{FileSize .CalculateBlobSize}}</td>
 							<td>{{DateUtils.AbsoluteShort .Version.CreatedUnix}}</td>
 							<td>
-<<<<<<< HEAD
 								<a class="text-red show-modal" href data-modal="#admin-package-delete-modal"
-									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.Version.ID}}"
-=======
-								<a class="tw-text-red show-modal" href data-modal="#admin-package-delete-modal"
 									data-modal-form.url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.Version.ID}}"
->>>>>>> origin/main
 									data-modal-package-name="{{.Package.Name}}" data-modal-package-version="{{.Version.Version}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>

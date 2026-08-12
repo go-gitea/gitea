@@ -7,18 +7,12 @@
 </div>
 <div id="runWorkflowDispatchModal" class="ui tiny modal">
 	<div class="content">
-<<<<<<< HEAD
-		<form id="runWorkflowDispatchForm" class="ui form ignore-dirty" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}" method="post">
-			<div class="ui fm-inline field required flex items-center">
-				<span class="ui fm-inline required field">
-=======
 		<form id="runWorkflowDispatchForm" class="ui form ignore-dirty" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}" method="post">
-			<div class="ui inline field required tw-flex tw-items-center">
+			<div class="ui inline field required flex items-center">
 				<span class="ui inline required field">
->>>>>>> origin/main
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>
 				</span>
-				<div class="ui fm-inline field dropdown button select-branch branch-selector-dropdown ellipsis-text-items">
+				<div class="ui inline field dropdown button select-branch branch-selector-dropdown ellipsis-text-items">
 					<input type="hidden" name="ref" value="refs/heads/{{index .Branches 0}}"
 								data-fetch-trigger="change" data-fetch-sync="$body #runWorkflowDispatchModalInputs"
 								data-fetch-url="{{$.Link}}/workflow-dispatch-inputs?workflow={{$.CurWorkflow}}&scoped_workflow_source_repo_id={{$.CurWorkflowRepoID}}"
@@ -26,7 +20,7 @@
 					{{svg "octicon-git-branch" 14}}
 					<div class="default text">{{index .Branches 0}}</div>
 					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					<div class="menu fm-transition">
+					<div class="menu transition">
 						<div class="ui icon search input">
 							<i class="icon">{{svg "octicon-filter" 16}}</i>
 							<input name="search" type="text" placeholder="{{ctx.Locale.Tr "repo.filter_branch_and_tag"}}...">
