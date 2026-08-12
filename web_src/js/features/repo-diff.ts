@@ -62,7 +62,7 @@ function initRepoDiffConversationForm() {
 
       if (trLineType) {
         // if there is a line-type for the "tr", it means the form is on the diff page
-        // then hide the "add-code-comment" [+] button for current code line by adding "tw-invisible" because the conversation has been added
+        // then hide the "add-code-comment" [+] button for current code line by adding "invisible" because the conversation has been added
         let selector;
         if (trLineType === 'same') {
           selector = `[data-path="${path}"] .add-code-comment[data-idx="${idx}"]`;
@@ -70,7 +70,7 @@ function initRepoDiffConversationForm() {
           selector = `[data-path="${path}"] .add-code-comment[data-side="${side}"][data-idx="${idx}"]`;
         }
         for (const el of document.querySelectorAll(selector)) {
-          el.classList.add('tw-invisible');
+          el.classList.add('invisible');
         }
       }
 
@@ -122,7 +122,7 @@ function initRepoDiffConversationNav() {
     e.preventDefault();
     const isPrevious = el.matches('.previous-conversation');
     const elCurConversation = el.closest('.comment-code-cloud')!;
-    const elAllConversations = document.querySelectorAll('.comment-code-cloud:not(.tw-hidden)');
+    const elAllConversations = document.querySelectorAll('.comment-code-cloud:not(.hidden)');
     const index = Array.from(elAllConversations).indexOf(elCurConversation);
     const previousIndex = index > 0 ? index - 1 : elAllConversations.length - 1;
     const nextIndex = index < elAllConversations.length - 1 ? index + 1 : 0;

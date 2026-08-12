@@ -23,15 +23,15 @@ const body = computed(() => {
 </script>
 
 <template>
-  <div class="tw-p-4">
-    <div v-if="issue" class="tw-flex tw-flex-col tw-gap-2">
-      <div class="tw-text-12">
+  <div class="p-4">
+    <div v-if="issue" class="flex flex-col gap-2">
+      <div class="text-12">
         <a :href="issue.repository.html_url" class="muted">{{ issue.repository.full_name }}</a>
         on {{ createdAt }}
       </div>
       <div class="flex-text-block">
         <svg-icon :name="getIssueIcon(issue)" :class="getIssueColorClass(issue)"/>
-        <a :href="issue.html_url" class="issue-title tw-font-semibold tw-break-anywhere muted">
+        <a :href="issue.html_url" class="issue-title font-semibold break-anywhere muted">
           {{ issue.title }}
           <span class="index">#{{ issue.number }}</span>
         </a>

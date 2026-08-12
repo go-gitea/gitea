@@ -3,7 +3,7 @@
 </h4>
 <div class="ui attached error danger segment">
 	<div class="flex-divided-list items-with-main">
-		<div class="item tw-items-center">
+		<div class="item items-center">
 			<div class="item-main">
 				<div class="item-title">{{ctx.Locale.Tr "org.settings.visibility"}}</div>
 				<div class="item-body">{{ctx.Locale.Tr "org.settings.visibility_desc"}}</div>
@@ -13,7 +13,7 @@
 			</div>
 		</div>
 
-		<div class="item tw-items-center">
+		<div class="item items-center">
 			<div class="item-main">
 				<div class="item-title">{{ctx.Locale.Tr "org.settings.rename"}}</div>
 				<div class="item-body">{{ctx.Locale.Tr "org.settings.rename_desc"}}</div>
@@ -48,7 +48,7 @@
 		</div>
 		<form class="ui form form-fetch-action" action="{{.Link}}/visibility" method="post">
 			<input type="hidden" name="current_visibility" value="{{.CurrentVisibility}}">
-			<div class="tw-flex tw-flex-col tw-gap-3">
+			<div class="flex flex-col gap-3">
 				<label>{{ctx.Locale.Tr "org.settings.visibility"}}</label>
 				<div class="ui radio checkbox">
 					<input name="visibility" type="radio" value="public" {{if .CurrentVisibility.IsPublic}}checked{{end}}>
@@ -87,7 +87,7 @@
 			<div class="field">
 				<label>
 					{{ctx.Locale.Tr "org.settings.name_confirm"}}
-					<span class="tw-text-red">{{.Org.Name}}</span>
+					<span class="text-red">{{.Org.Name}}</span>
 				</label>
 			</div>
 			<div class="required field">
@@ -125,7 +125,7 @@
 			<div class="field">
 				<label>
 					{{ctx.Locale.Tr "org.settings.name_confirm"}}
-					<span class="tw-text-red">{{.Org.Name}}</span>
+					<span class="text-red">{{.Org.Name}}</span>
 				</label>
 			</div>
 			<div class="required field">

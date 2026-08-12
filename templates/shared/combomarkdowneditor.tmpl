@@ -77,7 +77,7 @@
 		</text-expander>
 		<script nonce="{{ctx.CspScriptNonce}}">
 			if (window.localUserSettings.getBoolean('markdown-editor-monospace')) {
-				document.querySelector('.markdown-text-editor').classList.add('tw-font-mono');
+				document.querySelector('.markdown-text-editor').classList.add('font-mono');
 			}
 		</script>
 	</div>
@@ -85,10 +85,10 @@
 		{{ctx.Locale.Tr "loading"}}
 	</div>
 	<div class="markdown-add-table-panel tippy-target">
-		<div class="ui form tw-p-4 flex-text-block">
-			<input type="number" min="1" value="3" size="3" class="add-table-rows tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.rows"}}">
+		<div class="ui form p-4 flex-text-block">
+			<input type="number" min="1" value="3" size="3" class="add-table-rows w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.rows"}}">
 			x
-			<input type="number" min="1" value="3" size="3" class="add-table-cols tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.cols"}}">
+			<input type="number" min="1" value="3" size="3" class="add-table-cols w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.cols"}}">
 			<button class="ui button primary" type="button">{{ctx.Locale.Tr "editor.buttons.table.add.insert"}}</button>
 		</div>
 	</div>

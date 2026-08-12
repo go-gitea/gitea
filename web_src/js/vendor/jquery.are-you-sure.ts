@@ -2,7 +2,7 @@
 // Fork of the upstream module. The only changes are:
 // * use export to make it work with ES6 modules.
 // * the addition of `const` to make it strict mode compatible.
-// * ignore forms with "ignore-dirty" class, ignore hidden forms (closest('.tw-hidden'))
+// * ignore forms with "ignore-dirty" class, ignore hidden forms (closest('.hidden'))
 // * extract the dirty check logic into a separate function
 
 /*!
@@ -220,7 +220,7 @@ export function shouldTriggerAreYouSure(): boolean {
     const settings = $(form).data(dataKeyAysSettings);
     if (!settings) continue;
     if (!form.matches('.' + settings.dirtyClass)) continue;
-    if (form.closest('.tw-hidden')) continue;
+    if (form.closest('.hidden')) continue;
     return true;
   }
   return false;

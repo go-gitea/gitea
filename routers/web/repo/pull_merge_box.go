@@ -43,7 +43,7 @@ func (c *pullMergeBoxInfoItemCollection) AddInfoItem(svg, info template.HTML, op
 
 func (c *pullMergeBoxInfoItemCollection) AddErrorItem(info template.HTML, optItems ...[]template.HTML) {
 	c.items = append(c.items, &pullMergeBoxInfoItem{
-		SvgIconHTML: svg.RenderHTML("octicon-x", 16, "tw-text-red"),
+		SvgIconHTML: svg.RenderHTML("octicon-x", 16, "text-red"),
 		InfoHTML:    info,
 		ListItems:   util.OptionalArg(optItems),
 	})
@@ -70,19 +70,19 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxIconColor() {
 
 	switch {
 	case pull.HasMerged:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-purple"
+		prInfo.MergeBoxData.TimelineIconClass = "text-purple"
 	case showAsNormalColor:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-text-light"
+		prInfo.MergeBoxData.TimelineIconClass = "text-text-light"
 	case showAsErrorColor:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-red"
+		prInfo.MergeBoxData.TimelineIconClass = "text-red"
 	case showAsWarningColor:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-yellow"
+		prInfo.MergeBoxData.TimelineIconClass = "text-yellow"
 	case hasBlockers:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-red"
+		prInfo.MergeBoxData.TimelineIconClass = "text-red"
 	case pull.IsStatusMergeable():
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-green"
+		prInfo.MergeBoxData.TimelineIconClass = "text-green"
 	default:
-		prInfo.MergeBoxData.TimelineIconClass = "tw-text-text-light"
+		prInfo.MergeBoxData.TimelineIconClass = "text-text-light"
 	}
 }
 

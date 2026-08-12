@@ -106,7 +106,7 @@ export default {
     '@stylistic/value-list-comma-space-after': null,
     '@stylistic/value-list-comma-space-before': null,
     '@stylistic/value-list-max-empty-lines': 0,
-    'at-rule-no-unknown': [true, {ignoreAtRules: ['tailwind']}],
+    'at-rule-no-unknown': [true, {ignoreAtRules: ['tailwind', 'theme', 'source', 'utility', 'custom-variant', 'variant', 'plugin', 'config', 'reference', 'apply']}],
     'at-rule-no-vendor-prefix': true,
     'csstools/value-no-unknown-custom-properties': [true, {importFrom: cssVarFiles}],
     'declaration-block-no-duplicate-properties': [true, {ignore: ['consecutive-duplicates-with-different-values']}],
@@ -120,7 +120,7 @@ export default {
     'length-zero-no-unit': [true, {ignore: ['custom-properties'], ignoreFunctions: ['var']}],
     'media-feature-name-no-vendor-prefix': true,
     'no-descending-specificity': null,
-    'no-invalid-position-at-import-rule': [true, {ignoreAtRules: ['tailwind']}],
+    'no-invalid-position-at-import-rule': [true, {ignoreAtRules: ['tailwind', 'config', 'theme', 'utility', 'plugin', 'source']}],
     'no-unknown-animations': null, // disabled until stylelint supports multi-file linting
     'no-unknown-custom-media': null, // disabled until stylelint supports multi-file linting
     'no-unknown-custom-properties': null,  // disabled until stylelint supports multi-file linting

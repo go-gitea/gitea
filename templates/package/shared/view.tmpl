@@ -1,7 +1,7 @@
 <div class="issue-title-header">
 	{{$packageVersionLink := print $.PackageDescriptor.PackageWebLink "/" (PathEscape .PackageDescriptor.Version.LowerVersion)}}
-	<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-		<h1 class="tw-mb-0">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
+	<div class="flex flex-wrap items-center gap-2">
+		<h1 class="mb-0">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 		<span class="label-list">
 			{{template "package/shared/visibility_badge" dict "Package" .PackageDescriptor.Package "Owner" .PackageDescriptor.Owner}}
 		</span>
@@ -83,19 +83,19 @@
 			{{range .PackageDescriptor.Files}}
 			<div class="item">
 				<a href="{{$packageVersionLink}}/files/{{.File.ID}}">{{.File.Name}}</a>
-				<span class="tw-text-xs tw-whitespace-nowrap">{{FileSize .Blob.Size}}</span>
+				<span class="text-xs whitespace-nowrap">{{FileSize .Blob.Size}}</span>
 			</div>
 			{{end}}
 		</div>
 		{{end}}
 		<div class="divider"></div>
 		<strong>{{ctx.Locale.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
-		<a class="tw-float-right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{ctx.Locale.Tr "packages.versions.view_all"}}</a>
+		<a class="float-right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{ctx.Locale.Tr "packages.versions.view_all"}}</a>
 		<div class="ui relaxed list">
 			{{range .LatestVersions}}
-			<div class="item tw-flex">
-				<a class="tw-flex-1 gt-ellipsis" title="{{.Version}}" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-				<span class="tw-text-xs">{{DateUtils.AbsoluteShort .CreatedUnix}}</span>
+			<div class="item flex">
+				<a class="flex-1 gt-ellipsis" title="{{.Version}}" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
+				<span class="text-xs">{{DateUtils.AbsoluteShort .CreatedUnix}}</span>
 			</div>
 			{{end}}
 		</div>
@@ -115,7 +115,7 @@
 						{{ctx.Locale.Tr "packages.settings.delete.version"}}
 					</div>
 					<div class="content">
-						<div class="ui warning message tw-break-anywhere">
+						<div class="ui warning message break-anywhere">
 							{{ctx.Locale.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
 						</div>
 						<form class="ui form" action="{{$packageVersionLink}}" method="post">

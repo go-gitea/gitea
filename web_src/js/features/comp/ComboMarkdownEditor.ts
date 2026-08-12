@@ -424,7 +424,7 @@ export class ComboMarkdownEditor {
   applyMonospace() {
     const enabled = localUserSettings.getBoolean('markdown-editor-monospace');
     const text = this.buttonMonospace.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text')!;
-    this.textarea.classList.toggle('tw-font-mono', enabled);
+    this.textarea.classList.toggle('font-mono', enabled);
     this.buttonMonospace.setAttribute('data-tooltip-content', text);
     this.buttonMonospace.setAttribute('aria-checked', String(enabled));
   }

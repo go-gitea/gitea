@@ -1,7 +1,7 @@
 {{template "repo/settings/layout_head" (dict "pageClass" "repository settings edit")}}
 	<div class="repo-setting-content">
 		{{if .Repository.IsArchived}}
-			<div class="ui warning message tw-text-center">
+			<div class="ui warning message text-center">
 				{{ctx.Locale.Tr "repo.settings.archive.branchsettings_unavailable"}}
 			</div>
 		{{else}}
@@ -13,7 +13,7 @@
 				<form class="ui form" action="{{.Link}}" method="post">
 					<input type="hidden" name="action" value="default_branch">
 					<div class="flex-text-block">
-						<div class="ui dropdown selection search tw-flex-1 tw-mr-2 tw-max-w-96">
+						<div class="ui dropdown selection search flex-1 mr-2 max-w-96">
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<input type="hidden" name="branch" value="{{.Repository.DefaultBranch}}">
 							<div class="default text">{{.Repository.DefaultBranch}}</div>
@@ -25,7 +25,7 @@
 						</div>
 						<button class="ui primary button"{{if .Repository.IsEmpty}} disabled{{end}}>{{ctx.Locale.Tr "repo.settings.branches.update_default_branch"}}</button>
 					</div>
-					<div class="help tw-mt-4 tw-p-0">{{ctx.Locale.Tr "repo.settings.default_target_branch_desc"}}</div>
+					<div class="help mt-4 p-0">{{ctx.Locale.Tr "repo.settings.default_target_branch_desc"}}</div>
 				</form>
 			</div>
 
@@ -39,8 +39,8 @@
 			<div class="ui attached segment">
 				<div class="flex-divided-list items-with-main" id="protected-branches-list" data-update-priority-url="{{$.Repository.Link}}/settings/branches/priority">
 					{{range .ProtectedBranches}}
-						<div class="item tw-items-center" data-id="{{.ID}}" >
-							<div class="drag-handle tw-cursor-grab">
+						<div class="item items-center" data-id="{{.ID}}" >
+							<div class="drag-handle cursor-grab">
 								{{svg "octicon-grabber" 16}}
 							</div>
 							<div class="item-main">
@@ -56,7 +56,7 @@
 							</div>
 						</div>
 					{{else}}
-						<div class="item tw-text-center">
+						<div class="item text-center">
 							{{ctx.Locale.Tr "repo.settings.no_protected_branch"}}
 						</div>
 					{{end}}

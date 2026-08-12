@@ -222,7 +222,7 @@ async function loadTabItems() {
           <svg-icon v-if="currentRefType === 'tag'" name="octicon-tag"/>
           <svg-icon v-else-if="currentRefType === 'branch'" name="octicon-git-branch"/>
           <svg-icon v-else name="octicon-git-commit"/>
-          <strong class="tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
+          <strong class="inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
       <svg-icon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
@@ -234,10 +234,10 @@ async function loadTabItems() {
       </div>
       <div v-if="showTabBranches" class="branch-tag-tab">
         <a class="branch-tag-item muted" :class="{active: selectedTab === 'branches'}" href="#" @click="handleTabSwitch('branches')">
-          <svg-icon name="octicon-git-branch" :size="16" class="tw-mr-1"/>{{ textBranches }}
+          <svg-icon name="octicon-git-branch" :size="16" class="mr-1"/>{{ textBranches }}
         </a>
         <a v-if="showTabTags" class="branch-tag-item muted" :class="{active: selectedTab === 'tags'}" href="#" @click="handleTabSwitch('tags')">
-          <svg-icon name="octicon-tag" :size="16" class="tw-mr-1"/>{{ textTags }}
+          <svg-icon name="octicon-tag" :size="16" class="mr-1"/>{{ textTags }}
         </a>
       </div>
       <div class="branch-tag-divider"/>
@@ -256,14 +256,14 @@ async function loadTabItems() {
         </div>
         <div class="item" v-if="showCreateNewRef" :class="{active: activeItemIndex === filteredItems.length}" @click="createNewRef()">
           <div v-if="selectedTab === 'tags'">
-            <svg-icon name="octicon-tag" class="tw-mr-1"/>
+            <svg-icon name="octicon-tag" class="mr-1"/>
             <span v-text="trString(textCreateTag, searchTerm)"/>
           </div>
           <div v-else>
-            <svg-icon name="octicon-git-branch" class="tw-mr-1"/>
+            <svg-icon name="octicon-git-branch" class="mr-1"/>
             <span v-text="trString(textCreateBranch, searchTerm)"/>
           </div>
-          <div class="tw-text-xs">
+          <div class="text-xs">
             {{ textCreateRefFrom.replace('%s', currentRefShortName) }}
           </div>
           <form ref="elCreateNewRefForm" method="post" :action="createNewRefFormActionUrl">
@@ -277,7 +277,7 @@ async function loadTabItems() {
         {{ textNoResults }}
       </div>
       <template v-if="showViewAllRefsEntry">
-        <div class="divider tw-m-0"/>
+        <div class="divider m-0"/>
         <a v-if="selectedTab === 'branches'" class="item" :href="currentRepoLink + '/branches'">{{ textViewAllBranches }}</a>
         <a v-if="selectedTab === 'tags'" class="item" :href="currentRepoLink + '/tags'">{{ textViewAllTags }}</a>
       </template>

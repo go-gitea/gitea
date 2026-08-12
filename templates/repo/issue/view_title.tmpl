@@ -1,9 +1,9 @@
 {{if .Flash}}
-	<div class="sixteen wide column tw-mb-2">
+	<div class="sixteen wide column mb-2">
 		{{template "base/alert" .}}
 	</div>
 {{end}}
-<div class="tw-hidden" id="issue-page-info"
+<div class="hidden" id="issue-page-info"
 	data-issue-index="{{$.Issue.Index}}"
 	data-issue-dependency-search-type="{{$.IssueDependencySearchType}}"
 	data-issue-repo-link="{{$.RepoLink}}"
@@ -26,8 +26,8 @@
 		</div>
 	</div>
 	{{if $canEditIssueTitle}}
-	<form class="ui form issue-title tw-hidden" id="issue-title-editor">
-		<div class="ui input tw-flex-1">
+	<form class="ui form issue-title hidden" id="issue-title-editor">
+		<div class="ui input flex-1">
 			<input name="title" value="{{.Issue.Title}}" data-old-title="{{.Issue.Title}}" maxlength="255" autocomplete="off">
 		</div>
 		<div class="issue-title-buttons">
@@ -40,7 +40,7 @@
 	{{end}}
 	<div class="issue-title-meta">
 		{{if .HasMerged}}
-			<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "tw-mr-1"}} {{if eq .Issue.PullRequest.Status 3}}{{ctx.Locale.Tr "repo.pulls.manually_merged"}}{{else}}{{ctx.Locale.Tr "repo.pulls.merged"}}{{end}}</div>
+			<div class="ui purple label issue-state-label">{{svg "octicon-git-merge" 16 "mr-1"}} {{if eq .Issue.PullRequest.Status 3}}{{ctx.Locale.Tr "repo.pulls.manually_merged"}}{{else}}{{ctx.Locale.Tr "repo.pulls.merged"}}{{end}}</div>
 		{{else if .Issue.IsClosed}}
 			<div class="ui red label issue-state-label">{{svg (Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed")}} {{ctx.Locale.Tr "repo.issues.closed_title"}}</div>
 		{{else if .Issue.IsPull}}
@@ -52,7 +52,7 @@
 		{{else}}
 			<div class="ui green label issue-state-label">{{svg "octicon-issue-opened"}} {{ctx.Locale.Tr "repo.issues.open_title"}}</div>
 		{{end}}
-		<div class="tw-ml-2 tw-flex-1 tw-break-anywhere">
+		<div class="ml-2 flex-1 break-anywhere">
 			{{if .Issue.IsPull}}
 				{{$headHref := .HeadTarget}}
 				{{if .HeadBranchLink}}
@@ -61,13 +61,13 @@
 					{{if .Issue.PullRequest.IsAgitFlow}}
 						{{$headHref = HTMLFormat `%s <a href="%s" target="_blank"><span class="ui label basic tiny" data-tooltip-content="%s">AGit</span></a>` $headHref "https://docs.gitea.com/usage/agit" (ctx.Locale.Tr "repo.pull.agit_documentation")}}
 					{{else}}
-						{{$headHref = HTMLFormat `<span class="tw-line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $headHref}}
+						{{$headHref = HTMLFormat `<span class="line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $headHref}}
 					{{end}}
 				{{end}}
 				{{$baseHref := .BaseTarget}}
 				{{if .BaseBranchLink}}
 					{{if .BaseBranchNotExist}}
-						{{$baseHref = HTMLFormat `<span class="tw-line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $baseHref}}
+						{{$baseHref = HTMLFormat `<span class="line-through" data-tooltip-content="%s">%s</span>` (ctx.Locale.Tr "form.target_branch_not_exist") $baseHref}}
 					{{else}}
 						{{$baseHref = HTMLFormat `<a href="%s">%s</a>` .BaseBranchLink $baseHref}}
 					{{end}}
@@ -90,9 +90,9 @@
 							{{ctx.Locale.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref}}
 						</span>
 					{{end}}
-					<span id="pull-desc-editor" class="tw-hidden flex-text-block" data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch">
+					<span id="pull-desc-editor" class="hidden flex-text-block" data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch">
 						<div class="ui floating filter dropdown">
-							<div class="ui basic small button tw-mr-0">
+							<div class="ui basic small button mr-0">
 								<span class="text">{{ctx.Locale.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
 							</div>
 						</div>

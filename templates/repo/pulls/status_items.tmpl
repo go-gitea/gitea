@@ -6,7 +6,7 @@
 {{$commitActionsStatuses :=  ctx.ActionsUtils.CommitStatusesToActionsStatuses $.CommitStatuses}}
 {{range $cs := $.CommitStatuses}}
 	<div class="item commit-status-item">
-		<div class="flex-text-block tw-flex-1">
+		<div class="flex-text-block flex-1">
 			{{$actionStatus := $commitActionsStatuses.IconStatus $cs}}
 			{{if $actionStatus}}
 				{{template "repo/icons/action_status" (dict "Status" $actionStatus "Size" 18 "ClassName" "commit-status icon")}}
@@ -14,7 +14,7 @@
 				{{template "repo/icons/commit_status" $cs}}
 			{{end}}
 			<div class="gt-ellipsis">
-				{{$cs.Context}} <span class="tw-text-text-light-2">{{$cs.Description}}</span>
+				{{$cs.Context}} <span class="text-text-light-2">{{$cs.Description}}</span>
 			</div>
 		</div>
 		<div class="flex-text-block">
@@ -29,8 +29,8 @@
 {{end}}
 {{range $missingCheck := $statusCheckData.MissingRequiredChecks}}
 	<div class="item commit-status-item">
-		<div class="flex-text-block tw-flex-1">
-			{{svg "octicon-dot-fill" 16 "commit-status icon tw-text-yellow"}}
+		<div class="flex-text-block flex-1">
+			{{svg "octicon-dot-fill" 16 "commit-status icon text-yellow"}}
 			<div class="gt-ellipsis">{{$missingCheck}}</div>
 		</div>
 		<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>

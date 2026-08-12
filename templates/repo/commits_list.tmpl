@@ -5,7 +5,7 @@
 				<th class="three wide">{{ctx.Locale.Tr "repo.commits.author"}}</th>
 				<th class="two wide sha">{{StringUtils.ToUpper $.Repository.ObjectFormatName}}</th>
 				<th class="eight wide message">{{ctx.Locale.Tr "repo.commits.message"}}</th>
-				<th class="two wide tw-text-right">{{ctx.Locale.Tr "repo.commits.date"}}</th>
+				<th class="two wide text-right">{{ctx.Locale.Tr "repo.commits.date"}}</th>
 				<th class="one wide"></th>
 			</tr>
 		</thead>
@@ -47,22 +47,22 @@
 						{{end}}
 						{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses}}
 						{{if $gitCommit.MessageBody}}
-						<pre class="commit-body tw-hidden">{{ctx.RenderUtils.RenderCommitBody $gitCommit.MessageUTF8 $.Repository}}</pre>
+						<pre class="commit-body hidden">{{ctx.RenderUtils.RenderCommitBody $gitCommit.MessageUTF8 $.Repository}}</pre>
 						{{end}}
 						{{if $.CommitsTagsMap}}
 							{{range (index $.CommitsTagsMap $commitID)}}
-								{{- template "repo/tag/name" dict "AdditionalClasses" "tw-py-0" "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
+								{{- template "repo/tag/name" dict "AdditionalClasses" "py-0" "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
 							{{end}}
 						{{end}}
 					</td>
-					<td class="tw-text-right">{{DateUtils.TimeSince $gitCommit.Committer.When}}</td>
-					<td class="tw-text-right tw-py-0">
-						<button class="btn interact-bg tw-p-2 copy-commit-id" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{$commitID}}">{{svg "octicon-copy"}}</button>
+					<td class="text-right">{{DateUtils.TimeSince $gitCommit.Committer.When}}</td>
+					<td class="text-right py-0">
+						<button class="btn interact-bg p-2 copy-commit-id" data-tooltip-content="{{ctx.Locale.Tr "copy_hash"}}" data-clipboard-text="{{$commitID}}">{{svg "octicon-copy"}}</button>
 						{{/* at the moment, wiki doesn't support these "view" links like "view at history point" */}}
 						{{if not $.PageIsWiki}}
 							{{/* view single file diff */}}
 							{{if $.FileTreePath}}
-							<a class="btn interact-bg tw-p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
+							<a class="btn interact-bg p-2 view-single-diff" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_file_diff"}}"
 								href="{{$commitRepoLink}}/commit/{{$commitID}}?files={{$.FileTreePath}}"
 							>{{svg "octicon-file-diff"}}</a>
 							{{end}}
@@ -70,7 +70,7 @@
 							{{/* view at history point */}}
 							{{$viewCommitLink := printf "%s/src/commit/%s" $commitRepoLink (PathEscape $commitID)}}
 							{{if $.FileTreePath}}{{$viewCommitLink = printf "%s/%s" $viewCommitLink (PathEscapeSegments $.FileTreePath)}}{{end}}
-							<a class="btn interact-bg tw-p-2 view-commit-path" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
+							<a class="btn interact-bg p-2 view-commit-path" data-tooltip-content="{{ctx.Locale.Tr "repo.commits.view_path"}}" href="{{$viewCommitLink}}">{{svg "octicon-file-code"}}</a>
 						{{end}}
 					</td>
 				</tr>

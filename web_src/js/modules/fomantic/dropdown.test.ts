@@ -64,13 +64,13 @@ test('hideScopedEmptyDividers-hide-last', () => {
   const container = createElementFromHTML(`<div>
 <div class="item">a</div>
 <div class="divider" data-scope="b"></div>
-<div class="item tw-hidden" data-scope="b">b</div>
+<div class="item hidden" data-scope="b">b</div>
 </div>`);
   hideScopedEmptyDividers(container);
   expect(container.innerHTML).toEqual(`
 <div class="item">a</div>
 <div class="divider hidden" data-scope="b"></div>
-<div class="item tw-hidden" data-scope="b">b</div>
+<div class="item hidden" data-scope="b">b</div>
 `);
 });
 
@@ -78,7 +78,7 @@ test('hideScopedEmptyDividers-scoped-items', () => {
   const container = createElementFromHTML(`<div>
 <div class="item" data-scope="">a</div>
 <div class="divider" data-scope="b"></div>
-<div class="item tw-hidden" data-scope="b">b</div>
+<div class="item hidden" data-scope="b">b</div>
 <div class="divider" data-scope=""></div>
 <div class="item" data-scope="">c</div>
 </div>`);
@@ -86,7 +86,7 @@ test('hideScopedEmptyDividers-scoped-items', () => {
   expect(container.innerHTML).toEqual(`
 <div class="item" data-scope="">a</div>
 <div class="divider hidden" data-scope="b"></div>
-<div class="item tw-hidden" data-scope="b">b</div>
+<div class="item hidden" data-scope="b">b</div>
 <div class="divider hidden" data-scope=""></div>
 <div class="item" data-scope="">c</div>
 `);

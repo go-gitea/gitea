@@ -144,11 +144,11 @@ onBeforeUnmount(() => {
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
           <span class="action-info-summary-title-index">#{{ run.index }}</span>
         </div>
-        <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
+        <div class="flex-text-block shrink-0 flex-wrap">
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
             {{ locale.approve }}
           </button>
-          <button class="ui small compact button tw-text-red" @click="cancelRun()" v-else-if="run.canCancel">
+          <button class="ui small compact button text-red" @click="cancelRun()" v-else-if="run.canCancel">
             {{ locale.cancel }}
           </button>
           <template v-if="run.canRerun">
@@ -179,16 +179,16 @@ onBeforeUnmount(() => {
               <a
                 v-for="attempt in run.attempts"
                 :key="attempt.attempt"
-                class="item tw-flex tw-flex-col tw-gap-2"
+                class="item flex flex-col gap-2"
                 :class="attempt.current ? 'selected' : ''"
                 :href="attempt.link"
               >
                 <div class="flex-text-block">
-                  <SvgIcon name="octicon-check" :size="14" :class="{'tw-invisible': !Boolean(attempt.current)}"/>
-                  <strong class="tw-text-sm gt-ellipsis">{{ formatAttemptTitle(attempt) }}</strong>
+                  <SvgIcon name="octicon-check" :size="14" :class="{'invisible': !Boolean(attempt.current)}"/>
+                  <strong class="text-sm gt-ellipsis">{{ formatAttemptTitle(attempt) }}</strong>
                 </div>
-                <div class="flex-text-block tw-pl-[20px]">
-                  <span class="flex-text-inline tw-flex-shrink-0">
+                <div class="flex-text-block pl-[20px]">
+                  <span class="flex-text-inline flex-shrink-0">
                     <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" icon-variant="circle-fill"/>
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
@@ -235,7 +235,7 @@ onBeforeUnmount(() => {
               :aria-expanded="!isJobCollapsed(item.job.id)"
             >
               <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
-              <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
+              <span class="min-w-0 gt-ellipsis">{{ item.job.name }}</span>
               <span class="job-duration">{{ item.job.duration }}</span>
               <SvgIcon name="octicon-chevron-down" :size="14" class="job-brief-toggle-icon" :class="{'collapsed': isJobCollapsed(item.job.id)}"/>
             </button>
@@ -247,8 +247,8 @@ onBeforeUnmount(() => {
               :href="item.job.link"
             >
               <ActionStatusIcon :locale-status="locale.status[item.job.status]" :status="item.job.status" icon-variant="circle-fill"/>
-              <span class="tw-min-w-0 gt-ellipsis">{{ item.job.name }}</span>
-              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button tw-cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
+              <span class="min-w-0 gt-ellipsis">{{ item.job.name }}</span>
+              <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-rerun-button cursor-pointer link-action interact-fg" :data-url="`${run.link}/jobs/${item.job.id}/rerun`" v-if="item.job.canRerun"/>
               <span class="job-duration">{{ item.job.duration }}</span>
             </a>
           </template>
@@ -262,28 +262,28 @@ onBeforeUnmount(() => {
             <div class="item" v-for="artifact in artifacts" :key="artifact.name">
               <template v-if="artifact.status !== 'expired'">
                 <a
-                  class="tw-flex-1 tw-min-w-0 flex-text-block silenced" target="_blank"
+                  class="flex-1 min-w-0 flex-text-block silenced" target="_blank"
                   :href="buildArtifactLink(artifact.name)"
                   :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiresAt)"
                   data-tooltip-render="html"
                   data-tooltip-placement="top-end"
                 >
-                  <SvgIcon name="octicon-file" class="tw-text-text-light"/>
-                  <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
+                  <SvgIcon name="octicon-file" class="text-text-light"/>
+                  <span class="flex-1 gt-ellipsis">{{ artifact.name }}</span>
                 </a>
                 <a v-if="run.canDeleteArtifact" class="silenced" @click="deleteArtifact(artifact.name)">
                   <SvgIcon name="octicon-trash"/>
                 </a>
               </template>
               <span
-                v-else class="flex-text-block tw-flex-1 tw-min-w-0 tw-text-text-light-2"
+                v-else class="flex-text-block flex-1 min-w-0 text-text-light-2"
                 :data-tooltip-content="buildArtifactTooltipHtml(artifact, locale.artifactExpiredAt)"
                 data-tooltip-render="html"
                 data-tooltip-placement="top-end"
               >
                 <SvgIcon name="octicon-file-removed"/>
-                <span class="tw-flex-1 gt-ellipsis">{{ artifact.name }}</span>
-                <span class="ui label tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+                <span class="flex-1 gt-ellipsis">{{ artifact.name }}</span>
+                <span class="ui label flex-shrink-0">{{ locale.artifactExpired }}</span>
               </span>
             </div>
           </div>
@@ -295,11 +295,11 @@ onBeforeUnmount(() => {
         <div class="flex-items-block action-view-sidebar-list">
           <div class="item">
             <a v-if="run.canViewWorkflowFile" class="flex-text-block silenced" :href="`${run.link}/workflow`">
-              <SvgIcon name="octicon-file-code" class="tw-text-text"/>
+              <SvgIcon name="octicon-file-code" class="text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFile }}</span>
             </a>
             <span v-else class="flex-text-block silenced" :data-tooltip-content="locale.workflowFileNoPermission">
-              <SvgIcon name="octicon-lock" class="tw-text-text"/>
+              <SvgIcon name="octicon-lock" class="text-text"/>
               <span class="gt-ellipsis">{{ locale.workflowFileNoPermission }}</span>
             </span>
           </div>

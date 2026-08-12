@@ -316,8 +316,12 @@ textarea:focus,
 }
 
 .ui.form .inline.fields {
+  display: flex !important;
   margin: 0 0 1em;
   align-items: center;
+}
+.ui.form .inline.field:not(.flex) {
+  display: block !important;
 }
 .ui.form .inline.fields .field {
   margin: 0;

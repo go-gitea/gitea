@@ -26,6 +26,6 @@ export async function initAdminSelfCheck() {
   }
 
   // only show the "no problem" if there is no visible "self-check-problem"
-  const hasProblem = Boolean(elContent.querySelectorAll('.self-check-problem:not(.tw-hidden)').length);
+  const hasProblem = Boolean(elContent.querySelectorAll('.self-check-problem:not(.hidden)').length);
   toggleElem(elContent.querySelector('.self-check-no-problem')!, !hasProblem);
 }

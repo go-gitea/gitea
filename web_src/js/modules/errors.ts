@@ -24,7 +24,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error', d
   let msgContainer = parentContainer.querySelector<HTMLDivElement>(`.js-global-error[data-global-error-msg-compact="${CSS.escape(msgCompact)}"]`);
   if (!msgContainer) {
     const el = document.createElement('div');
-    el.innerHTML = html`<div class="ui container js-global-error tw-my-[--page-spacing]"><details class="ui ${msgType} message"><summary></summary></details></div>`;
+    el.innerHTML = html`<div class="ui container js-global-error my-[--page-spacing]"><details class="ui ${msgType} message"><summary></summary></details></div>`;
     msgContainer = el.firstElementChild as HTMLDivElement;
   }
 

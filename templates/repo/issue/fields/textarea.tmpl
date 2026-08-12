@@ -1,5 +1,5 @@
 {{$useMarkdownEditor := not .item.Attributes.render}}
-<div class="field {{if not .item.VisibleOnForm}}tw-hidden{{end}} {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
+<div class="field {{if not .item.VisibleOnForm}}hidden{{end}} {{if $useMarkdownEditor}}combo-editor-dropzone{{end}}">
 	{{template "repo/issue/fields/header" .}}
 
 	{{/* the real form element to provide the value */}}
@@ -8,7 +8,7 @@
 	{{if $useMarkdownEditor}}
 		{{template "shared/combomarkdowneditor" (dict
 			"CustomInit" true
-			"ContainerClasses" "tw-hidden"
+			"ContainerClasses" "hidden"
 			"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment ctx.RootData.Repository)
 			"TextareaContent" .item.Attributes.value
 			"TextareaPlaceholder" .item.Attributes.placeholder
@@ -16,7 +16,7 @@
 		)}}
 
 		{{if .root.IsAttachmentEnabled}}
-		<div class="tw-mt-4 form-field-dropzone tw-hidden">
+		<div class="mt-4 form-field-dropzone hidden">
 			{{template "repo/upload" .root}}
 		</div>
 		{{end}}

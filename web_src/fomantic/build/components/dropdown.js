@@ -4084,7 +4084,7 @@ $.fn.dropdown.settings = {
     search       : 'input.search, .menu > .search > input, .menu input.search',
     sizer        : '> span.sizer',
     text         : '> .text:not(.icon)',
-    unselectable : '.disabled, .filtered, .tw-hidden', // GITEA-PATCH: tw-hidden hides the item so it is also unselectable
+    unselectable : '.disabled, .filtered, .hidden', // GITEA-PATCH: hidden hides the item so it is also unselectable
     clearIcon    : '> .remove.icon'
   },
 

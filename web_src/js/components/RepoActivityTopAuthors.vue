@@ -57,8 +57,8 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="activity-bar-graph tw-w-0 tw-h-0" ref="styleElement"/>
-    <div class="activity-bar-graph-alt tw-w-0 tw-h-0" ref="altStyleElement"/>
+    <div class="activity-bar-graph w-0 h-0" ref="styleElement"/>
+    <div class="activity-bar-graph-alt w-0 h-0" ref="altStyleElement"/>
     <svg :width="graphWidth" :height="chartHeight">
       <g v-for="bar in bars" :key="bar.index" :transform="`translate(${bar.x},0)`">
         <title>{{ bar.author.name }}</title>

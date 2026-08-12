@@ -41,7 +41,7 @@ export function initFomanticTransition() {
         argObj.onShow?.call(el);
       } else {
         el.classList.add('hidden');
-        el.classList.remove('visible'); // don't remove the transition class because the Fomantic animation style is `.hidden.transition`.
+        el.classList.remove('visible'); // keep transition: the show animation style is `.visible.transition`; hide is Tailwind's `.hidden`.
         el.style.removeProperty('display');
         argObj.onHidden?.call(el);
       }

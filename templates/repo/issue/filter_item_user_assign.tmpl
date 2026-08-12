@@ -18,20 +18,20 @@
 		{{if $.TextFilterMatchNone}}
 			{{$isSelected := eq .SelectedUserId "(none)"}}
 			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(none)")}}">
-				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}} {{$.TextFilterMatchNone}}
+				{{svg "octicon-check" 14 (Iif $isSelected "" "invisible")}} {{$.TextFilterMatchNone}}
 			</a>
 		{{end}}
 		{{if $.TextFilterMatchAny}}
 			{{$isSelected := eq .SelectedUserId "(any)"}}
 			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(any)")}}">
-				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}} {{$.TextFilterMatchAny}}
+				{{svg "octicon-check" 14 (Iif $isSelected "" "invisible")}} {{$.TextFilterMatchAny}}
 			</a>
 		{{end}}
 		<div class="divider"></div>
 		{{range $user := .UserSearchList}}
 			{{$isSelected := eq $.SelectedUserId (print $user.ID)}}
 			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL $user.ID)}}">
-				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}}
+				{{svg "octicon-check" 14 (Iif $isSelected "" "invisible")}}
 				{{ctx.AvatarUtils.Avatar $user 20}}{{template "repo/search_name" .}}
 			</a>
 		{{end}}

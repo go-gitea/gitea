@@ -55,8 +55,8 @@ export async function copyToClipboardWithFeedback(target: HTMLElement, content: 
 function replaceWithFeedbackSvg(origSvg: SVGElement, success: boolean): () => void {
   const size = Number(origSvg.getAttribute('width')!);
   const {icon, color} = success ?
-    {icon: 'octicon-check', color: 'tw-text-green'} as const :
-    {icon: 'octicon-x', color: 'tw-text-red'} as const;
+    {icon: 'octicon-check', color: 'text-green'} as const :
+    {icon: 'octicon-x', color: 'text-red'} as const;
   const newSvg = createElementFromHTML<SVGElement>(svg(icon, size, color));
   origSvg.replaceWith(newSvg);
   return () => newSvg.replaceWith(origSvg);

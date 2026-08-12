@@ -24,7 +24,7 @@ const icon = computed(() => {
 
   const classes = Array.from(svgOuter.classList);
   if (props.symbolId) {
-    classes.push('tw-hidden', 'svg-symbol-container');
+    classes.push('hidden', 'svg-symbol-container');
     svgInnerHtml = html`<symbol id="${props.symbolId}" viewBox="${attrs.viewBox}">${htmlRaw(svgInnerHtml)}</symbol>`;
   }
   attrs.innerHTML = svgInnerHtml; // the icons are bundled, they carry no user input

@@ -66,10 +66,10 @@ func GetContentHistoryList(ctx *context.Context) {
 		var fullNameHTML template.HTML
 		userName, fullName := item.UserName, strings.TrimSpace(item.UserFullName)
 		if fullName != "" {
-			fullNameHTML = htmlutil.HTMLFormat(` (<span class="tw-inline-flex tw-max-w-[160px]"><span class="gt-ellipsis">%s</span></span>)`, fullName)
+			fullNameHTML = htmlutil.HTMLFormat(` (<span class="inline-flex max-w-[160px]"><span class="gt-ellipsis">%s</span></span>)`, fullName)
 		}
 
-		avatarHTML := templates.AvatarHTML(item.UserAvatarLink, 24, avatars.DefaultAvatarClass+" tw-mr-2", userName)
+		avatarHTML := templates.AvatarHTML(item.UserAvatarLink, 24, avatars.DefaultAvatarClass+" mr-2", userName)
 		timeSinceHTML := templates.TimeSince(item.EditedUnix)
 		results = append(results, map[string]any{
 			"name":  htmlutil.HTMLFormat("%s <strong>%s</strong>%s %s %s", avatarHTML, userName, fullNameHTML, actionHTML, timeSinceHTML),

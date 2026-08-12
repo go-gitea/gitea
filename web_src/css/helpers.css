@@ -3,6 +3,43 @@ Gitea's tailwind-style CSS helper classes have `gt-` prefix.
 Gitea's private styles use `g-` prefix.
 */
 
+/* The double class wins over other important display utilities. Toggle it with the DOM helpers. */
+.hidden.hidden {
+  display: none !important;
+}
+
+.break-anywhere {
+  overflow-wrap: anywhere !important;
+}
+
+.container:not(.ui) {
+  width: 100% !important;
+}
+
+@media (width >= 40rem) {
+  .container:not(.ui) { max-width: 40rem !important; }
+}
+
+@media (width >= 48rem) {
+  .container:not(.ui) { max-width: 48rem !important; }
+}
+
+@media (width >= 64rem) {
+  .container:not(.ui) { max-width: 64rem !important; }
+}
+
+@media (width >= 80rem) {
+  .container:not(.ui) { max-width: 80rem !important; }
+}
+
+@media (width >= 96rem) {
+  .container:not(.ui) { max-width: 96rem !important; }
+}
+
+.grid:not(.ui) { display: grid !important; }
+.table:not(.ui) { display: table !important; }
+.fixed:not(.ui) { position: fixed !important; }
+
 .gt-ellipsis {
   overflow: hidden !important;
   white-space: nowrap !important;
@@ -31,7 +68,7 @@ Gitea's private styles use `g-` prefix.
 .interact-bg:active { background: var(--color-active) !important; }
 
 @media (max-width: 767.98px) {
-  /* double selector so it wins over .tw-flex (old .gt-df) etc */
+  /* double selector so it wins over .flex (old .gt-df) etc */
   .not-mobile.not-mobile {
     display: none !important;
   }

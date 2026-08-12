@@ -54,7 +54,7 @@ Gitea uses Vue 3 **without** JSX to keep HTML and JavaScript separate.
 
 ## CSS
 
-Prefer Tailwind utility classes with the `tw-` prefix, and the `flex-*` layout
+Prefer Tailwind utility classes and the `flex-*` layout
 helpers over per-child margins. Gitea also ships a small set of custom helpers:
 `gt-` for general helpers and `g-` for framework-level helpers (see
 `web_src/css/helpers.css`); use these only when a Tailwind utility does not exist.
@@ -62,7 +62,7 @@ helpers over per-child margins. Gitea also ships a small set of custom helpers:
 Write class attributes as a single readable unit in templates:
 
 ```html
-<div class="flex-text-inline {{if .IsFoo}}tw-hidden{{end}}"></div>
+<div class="flex-text-inline {{if .IsFoo}}hidden{{end}}"></div>
 ```
 
 ## TypeScript
@@ -87,7 +87,7 @@ in new code. Never bind user-provided data directly onto DOM nodes.
 ## Showing and hiding elements
 
 - In Vue, use `v-if` and `v-show`.
-- In Go templates and plain JavaScript, use the `.tw-hidden` class together with the
+- In Go templates and plain JavaScript, use the `.hidden` class together with the
   `showElem()`, `hideElem()`, and `toggleElem()` helpers from
   [`web_src/js/utils/dom.ts`](../web_src/js/utils/dom.ts).
 

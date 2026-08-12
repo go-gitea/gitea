@@ -271,7 +271,7 @@ func (ut *RenderUtils) RenderFlashMessage(typ, msg string) template.HTML {
 		msgContent = sanitizeHTML(msg)
 	} else if !strings.Contains(msg, "\n") {
 		// If the message is a single line, center-align it by wrapping it
-		msgContent = htmlutil.HTMLFormat(`<div class="tw-text-center">%s</div>`, sanitizeHTML(msg))
+		msgContent = htmlutil.HTMLFormat(`<div class="text-center">%s</div>`, sanitizeHTML(msg))
 	} else {
 		// For a multi-line message, preserve line breaks, and left-align it.
 		msgContent = htmlutil.HTMLFormat(`%s`, sanitizeHTML(strings.ReplaceAll(msg, "\n", "<br>")))
@@ -347,7 +347,7 @@ func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HT
 	var b htmlutil.HTMLBuilder
 	b.WriteHTML(`<span class="avatar-stack">`)
 	if overflow > 0 {
-		b.WriteFormat(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
+		b.WriteFormat(`<span class="avatar-stack-overflow-chip text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
 	}
 
 	// FIXME: such "backward" breaks a11y like screen readers
