@@ -362,7 +362,8 @@ func buildApproveAndInsertRun(
 	isScopedRun bool,
 ) error {
 	if dwf.SourceCommitSHA == "" {
-		return fmt.Errorf("workflow %q has no source commit", dwf.EntryName)
+		// unreachable in the normal flow; catches a test case that builds a DetectedWorkflow without it
+		setting.PanicInDevOrTesting("workflow %q has no source commit", dwf.EntryName)
 	}
 	run := &actions_model.ActionRun{
 		Title:             commit.MessageTitle(),
