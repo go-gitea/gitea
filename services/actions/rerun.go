@@ -287,6 +287,7 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 				newJob.SourceTaskID = 0
 				newJob.Started = 0
 				newJob.Stopped = 0
+				newJob.QueueRank = 0 // a manual queue promotion applies to that attempt only
 				newJob.ConcurrencyGroup = ""
 				newJob.ConcurrencyCancel = false
 				newJob.IsConcurrencyEvaluated = false

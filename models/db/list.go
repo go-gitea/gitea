@@ -129,6 +129,12 @@ type FindOptionsOrder interface {
 	ToOrders() string
 }
 
+// FindOptionsCols is implemented by options that only need a subset of columns populated,
+// e.g. a list view that never reads a model's large payload/blob fields.
+type FindOptionsCols interface {
+	ToCols() []string
+}
+
 // Find represents a common find function which accept an options interface
 func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 	sess := GetEngine(ctx).Where(opts.ToConds())
@@ -143,6 +149,11 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 	if orderOpt, ok := opts.(FindOptionsOrder); ok {
 		if order := orderOpt.ToOrders(); order != "" {
 			sess.OrderBy(order)
+		}
+	}
+	if colsOpt, ok := opts.(FindOptionsCols); ok {
+		if cols := colsOpt.ToCols(); len(cols) > 0 {
+			sess.Cols(cols...)
 		}
 	}
 
@@ -197,6 +208,11 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, er
 	if orderOpt, ok := opts.(FindOptionsOrder); ok {
 		if order := orderOpt.ToOrders(); order != "" {
 			sess.OrderBy(order)
+		}
+	}
+	if colsOpt, ok := opts.(FindOptionsCols); ok {
+		if cols := colsOpt.ToCols(); len(cols) > 0 {
+			sess.Cols(cols...)
 		}
 	}
 

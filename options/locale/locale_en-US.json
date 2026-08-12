@@ -3890,7 +3890,6 @@
   "actions.approve_all_success": "All workflow runs are approved successfully.",
   "actions.queue.all_jobs": "All jobs",
   "actions.queue.position": "#",
-  "actions.queue.job": "Job",
   "actions.queue.runs_on": "Runs on",
   "actions.queue.waiting_or_started": "Waiting / started",
   "actions.queue.no_jobs": "No jobs are running or waiting to be picked up.",

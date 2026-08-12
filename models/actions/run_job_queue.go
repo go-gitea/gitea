@@ -44,38 +44,21 @@ func QueuedJobsOptions(repoID, ownerID int64) FindRunJobOptions {
 // the given scope (see QueuedJobsOptions), so the build-queue filters only offer values that can match.
 // At most limit ids are returned; the list is bounded by pending work rather than by repository count.
 func QueueFilterRepoIDs(ctx context.Context, repoID, ownerID int64, limit int) ([]int64, error) {
-	queued := QueuedJobsOptions(repoID, ownerID).ToConds()
-	cond := builder.Or(queued, builder.Eq{"`action_run_job`.status": StatusRunning})
+	opts := QueuedJobsOptions(repoID, ownerID)
+	cond := builder.Or(opts.ToConds(), builder.Eq{"`action_run_job`.status": StatusRunning})
 	if repoID > 0 {
-		cond = cond.And(builder.Eq{"`action_run_job`.repo_id": repoID})
+		cond = cond.And(builder.Eq{"`action_run_job`.repo_id": repoID}) // the running branch of the OR carries no scope of its own
 	}
 
-	sess := db.GetEngine(ctx).Table("action_run_job").Where(cond).
-		Distinct("`action_run_job`.repo_id").Cols("`action_run_job`.repo_id").Limit(limit)
-	if ownerID > 0 {
-		sess = sess.Join("INNER", "repository", "repository.id = `action_run_job`.repo_id AND repository.owner_id = ?", ownerID)
+	sess := db.GetEngine(ctx).Table("action_run_job")
+	for _, join := range opts.ToJoins() {
+		if err := join(sess); err != nil {
+			return nil, err
+		}
 	}
 	ids := make([]int64, 0, 10)
-	return ids, sess.Find(&ids)
-}
-
-// queueRankAtIndex returns the queue_rank of the waiting job at the given 0-based position in the
-// scope's pickup order, so callers can anchor a rebalance to a job just outside the current page.
-// found is false when no such row exists (idx past the end, or negative).
-func queueRankAtIndex(ctx context.Context, repoID, ownerID int64, idx int) (rank int64, found bool, err error) {
-	if idx < 0 {
-		return 0, false, nil
-	}
-	opts := QueuedJobsOptions(repoID, ownerID)
-	opts.ListOptions = db.ListOptions{Page: idx + 1, PageSize: 1}
-	rows, err := db.Find[ActionRunJob](ctx, opts)
-	if err != nil {
-		return 0, false, err
-	}
-	if len(rows) == 0 {
-		return 0, false, nil
-	}
-	return rows[0].QueueRank, true, nil
+	return ids, sess.Where(cond).
+		Distinct("`action_run_job`.repo_id").Cols("`action_run_job`.repo_id").Limit(limit).Find(&ids)
 }
 
 // MoveQueuedJob repositions a waiting job at the head of the build queue (first page only).
@@ -93,54 +76,37 @@ func queueRankAtIndex(ctx context.Context, repoID, ownerID int64, idx int) (rank
 func MoveQueuedJob(ctx context.Context, repoID, ownerID, movedID, afterID int64) (bool, error) {
 	err := db.WithTx(ctx, func(ctx context.Context) error {
 		opts := QueuedJobsOptions(repoID, ownerID)
-		opts.ListOptions = db.ListOptions{Page: 1, PageSize: QueuePageSize}
+		// One row past the page is the rebalance anchor, so the page costs a single query.
+		opts.ListOptions = db.ListOptions{Page: 1, PageSize: QueuePageSize + 1}
 		window, err := db.Find[ActionRunJob](ctx, opts)
 		if err != nil {
 			return err
 		}
-
-		idxByID := make(map[int64]int, len(window))
-		for i, j := range window {
-			idxByID[j.ID] = i
-		}
-		movedIdx, found := idxByID[movedID]
-		if !found {
-			return errQueueStale
-		}
-		if afterID != 0 {
-			if _, ok := idxByID[afterID]; !ok {
-				return errQueueStale
-			}
-		}
-		moved := window[movedIdx]
-
-		// Build the new page order: drop the moved row, reinsert after afterID (or at head).
-		newOrder := make([]*ActionRunJob, 0, len(window))
-		for _, j := range window {
-			if j.ID != movedID {
-				newOrder = append(newOrder, j)
-			}
-		}
-		insertPos := 0
-		if afterID != 0 {
-			for i, j := range newOrder {
-				if j.ID == afterID {
-					insertPos = i + 1
-					break
-				}
-			}
-		}
-		newOrder = slices.Insert(newOrder, insertPos, moved)
-
 		// Anchor below the following page's head (0 = the natural-FIFO tail when there is no next page),
 		// so the whole renumbered page stays ahead of every rank-0 job.
-		hi, hiOK, err := queueRankAtIndex(ctx, repoID, ownerID, len(window))
-		if err != nil {
-			return err
+		var hi int64
+		if len(window) > QueuePageSize {
+			hi = window[QueuePageSize].QueueRank
+			window = window[:QueuePageSize]
 		}
-		if !hiOK {
-			hi = 0
+
+		movedIdx := slices.IndexFunc(window, func(j *ActionRunJob) bool { return j.ID == movedID })
+		if movedIdx < 0 {
+			return errQueueStale
 		}
+
+		// Build the new page order: drop the moved row, reinsert after afterID (or at head).
+		moved := window[movedIdx]
+		newOrder := slices.Delete(slices.Clone(window), movedIdx, movedIdx+1)
+		insertPos := 0
+		if afterID != 0 {
+			afterIdx := slices.IndexFunc(newOrder, func(j *ActionRunJob) bool { return j.ID == afterID })
+			if afterIdx < 0 {
+				return errQueueStale
+			}
+			insertPos = afterIdx + 1
+		}
+		newOrder = slices.Insert(newOrder, insertPos, moved)
 
 		n := int64(len(newOrder))
 		for i, job := range newOrder {

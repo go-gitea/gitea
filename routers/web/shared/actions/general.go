@@ -12,6 +12,7 @@ import (
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
@@ -21,6 +22,15 @@ const (
 	tplOrgSettingsActionsGeneral  templates.TplName = "org/settings/actions_general"
 	tplUserSettingsActionsGeneral templates.TplName = "user/settings/actions_general"
 )
+
+// RefreshIntervalMs is how often an auto-refreshing Actions list re-fetches itself: poll faster while
+// there is activity, slower when idle so quiet pages don't hammer the server.
+func RefreshIntervalMs(hasActivity bool) int64 {
+	if !setting.IsProd {
+		return util.Iif[int64](hasActivity, 1000, 2*1000) // faster in dev mode to make debug easier
+	}
+	return util.Iif[int64](hasActivity, 3*1000, 12*1000)
+}
 
 // ParseMaxTokenPermissions parses the maximum token permissions from form values
 func ParseMaxTokenPermissions(ctx *context.Context) *repo_model.ActionsTokenPermissions {

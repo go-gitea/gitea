@@ -114,7 +114,12 @@ type FindRunJobOptions struct {
 	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
 	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
 	AccessibleRepoIDsSubQuery *builder.Builder
+	// Cols, when non-empty, restricts the SELECT to these columns instead of the whole row (e.g. skipping
+	// a list view's unused payload/blob columns). Empty means every column, as before this field existed.
+	Cols []string
 }
+
+func (opts FindRunJobOptions) ToCols() []string { return opts.Cols }
 
 var JobOrderByMap = map[string]map[string]db.SearchOrderBy{
 	"asc":  {"id": "`action_run_job`.id ASC"},

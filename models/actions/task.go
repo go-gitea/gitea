@@ -290,10 +290,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	var cursorRank int64
 	var cursorUpdated timeutil.TimeStamp
 	var cursorID int64
-	haveCursor := false
 	for {
 		cond := baseCond
-		if haveCursor {
+		if cursorID > 0 {
 			cond = cond.And(builder.Or(
 				builder.Gt{"queue_rank": cursorRank},
 				builder.And(builder.Eq{"queue_rank": cursorRank}, builder.Gt{"updated": cursorUpdated}),
@@ -326,7 +325,6 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		}
 		last := jobs[len(jobs)-1]
 		cursorRank, cursorUpdated, cursorID = last.QueueRank, last.Updated, last.ID
-		haveCursor = true
 	}
 }
 

@@ -15,12 +15,11 @@ func Queue(ctx *context.Context) {
 	ctx.Data["PageIsActions"] = true
 	ctx.Data["PageIsActionsQueue"] = true
 	shared_actions.RenderQueue(ctx, shared_actions.QueueScope{
-		RepoID:           ctx.Repo.Repository.ID,
-		IsRepo:           true,
-		CanReorder:       ctx.Repo.Permission.IsAdmin(),
-		ShowRunnerColumn: true,
-		MoveLink:         ctx.Repo.RepoLink + "/actions/queue/move",
-		FullTemplate:     "repo/actions/queue",
+		RepoID:       ctx.Repo.Repository.ID,
+		IsRepo:       true,
+		CanReorder:   ctx.Repo.Permission.IsAdmin(),
+		MoveLink:     ctx.Repo.RepoLink + "/actions/queue/move",
+		FullTemplate: "repo/actions/queue",
 	})
 }
 

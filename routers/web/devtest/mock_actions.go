@@ -104,9 +104,9 @@ func MockActionsQueue(ctx *context.Context) {
 	// The mock only honours the status filter; the owner/repository dropdowns are left inert.
 	filterStatus := ctx.FormString("status")
 	switch filterStatus {
-	case "running":
+	case shared_actions.QueueFilterRunning:
 		queued = nil
-	case "waiting":
+	case shared_actions.QueueFilterWaiting:
 		running = nil
 	}
 
@@ -120,11 +120,11 @@ func MockActionsQueue(ctx *context.Context) {
 	ctx.Data["ShowOwnerRepoFilters"] = true
 	ctx.Data["ShowQueuePositions"] = true
 	ctx.Data["QueueFilterStatus"] = filterStatus
+	ctx.Data["QueueFilterStatuses"] = shared_actions.QueueFilterStatuses()
 	ctx.Data["QueueFilterOwners"] = []*shared_actions.QueueFilterOwner{{ID: repoA.OwnerID, Name: repoA.OwnerName}}
 	ctx.Data["QueueFilterRepos"] = []*repo_model.Repository{repoA, repoB}
 	ctx.Data["QueueFilterOwnerID"] = int64(0)
 	ctx.Data["QueueFilterRepoID"] = int64(0)
-	ctx.Data["ShowRunnerColumn"] = true // admin "more info" view
 	ctx.Data["CanReorder"] = true
 	ctx.Data["QueueMoveLink"] = setting.AppSubURL + "/devtest/actions-queue/move"
 	ctx.Data["QueueRefreshLink"] = templates.QueryBuild(setting.AppSubURL+ctx.Req.RequestURI, "refresh", "1")
@@ -142,8 +142,7 @@ func MockActionsQueue(ctx *context.Context) {
 // MockActionsQueueMove accepts a reorder from the devtest queue page, logs the payload the client computed,
 // and returns 204 so the dragged order sticks without touching a database.
 func MockActionsQueueMove(ctx *context.Context) {
-	log.Info("devtest actions-queue move: id=%s after=%s before=%s",
-		ctx.FormString("id"), ctx.FormString("after"), ctx.FormString("before"))
+	log.Info("devtest actions-queue move: id=%s after=%s", ctx.FormString("id"), ctx.FormString("after"))
 	ctx.Status(http.StatusNoContent)
 }
 
