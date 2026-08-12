@@ -117,6 +117,7 @@ jobs:
           K6_STAGE_RAMPDOWN: 30
           K6_VUS: 25
         run: |
+          K6_START_TS=$(date +%s)
           k6 run k6/load-test.js \
             --env BASELINE_URL=http://localhost:30301 \
             --env STAGING_URL=http://localhost:30302 \
@@ -126,8 +127,11 @@ jobs:
             --env RAMPDOWN_S=$K6_STAGE_RAMPDOWN \
             --env VUS=$K6_VUS \
             --summary-export /tmp/k6-summary.json || true
+          K6_END_TS=$(date +%s)
 
           echo "K6_RESULT_FILE=/tmp/k6-summary.json" >> $GITHUB_ENV
+          echo "K6_START_TS=$K6_START_TS"            >> $GITHUB_ENV
+          echo "K6_END_TS=$K6_END_TS"                >> $GITHUB_ENV
           echo "K6_SKIP_START_S=$(( K6_STAGE_WARMUP + K6_STAGE_RAMPUP ))" >> $GITHUB_ENV
           echo "K6_SKIP_END_S=$K6_STAGE_RAMPDOWN"                          >> $GITHUB_ENV
           echo "K6_TOTAL_S=$(( K6_STAGE_WARMUP + K6_STAGE_RAMPUP + K6_STAGE_MEASURE + K6_STAGE_RAMPDOWN ))" >> $GITHUB_ENV
