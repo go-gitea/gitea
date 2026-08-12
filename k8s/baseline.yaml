@@ -203,7 +203,7 @@ spec:
         apia-role: baseline
       containers:
         - name: app
-          image: k3d-apia-registry:5000/gitea:staging
+          image: k3d-apia-registry:5000/gitea:baseline
           imagePullPolicy: Always
           ports:
             - containerPort: 3000

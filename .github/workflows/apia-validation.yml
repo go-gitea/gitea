@@ -33,12 +33,29 @@ jobs:
         run: |
           SHA=${{ steps.tag.outputs.SHA }}
           git fetch origin main --depth=1 || true
+          MAIN_SHA=$(git rev-parse --short=8 FETCH_HEAD)
+
+          # Baseline image: always built from main, cached by main SHA
+          if ! docker image inspect localhost:5000/gitea:baseline-${MAIN_SHA} &>/dev/null; then
+            echo "Building baseline image from main (${MAIN_SHA})..."
+            git worktree add /tmp/baseline-src FETCH_HEAD 2>/dev/null || git worktree add /tmp/baseline-src FETCH_HEAD --force
+            docker build -t localhost:5000/gitea:baseline-${MAIN_SHA} -t localhost:5000/gitea:baseline /tmp/baseline-src
+            docker push localhost:5000/gitea:baseline-${MAIN_SHA}
+            docker push localhost:5000/gitea:baseline
+            git worktree remove /tmp/baseline-src --force
+          else
+            echo "Baseline image up to date (${MAIN_SHA}) — skipping build"
+            docker tag localhost:5000/gitea:baseline-${MAIN_SHA} localhost:5000/gitea:baseline
+            docker push localhost:5000/gitea:baseline
+          fi
+
+          # Staging image: built from PR branch if source changed
           CHANGED_SRC=$(git diff FETCH_HEAD HEAD --name-only | grep -Ev '^(k8s|\.github)/' | wc -l) || CHANGED_SRC=0
           if [ "$CHANGED_SRC" -gt "0" ] || ! docker image inspect localhost:5000/gitea:staging &>/dev/null; then
-            echo "Building image..."
+            echo "Building staging image from PR branch..."
             docker build -t localhost:5000/gitea:${SHA} -t localhost:5000/gitea:staging .
           else
-            echo "k8s-only change — retagging existing image..."
+            echo "k8s-only change — retagging existing staging image..."
             docker tag localhost:5000/gitea:staging localhost:5000/gitea:${SHA}
           fi
           docker push localhost:5000/gitea:${SHA}
