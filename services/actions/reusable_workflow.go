@@ -61,13 +61,9 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("look up caller source repo %d: %w", caller.WorkflowSourceRepoID, err)
 		}
-		sourceCommitSHA := caller.WorkflowSourceCommitSHA
-		// Pin the base commit instead of trusting the stored SHA if the run is triggered via pull_request_target.
-		if !run.IsScopedRun && callerRepo.ID == run.RepoID {
-			if baseSHA, ok := pullRequestTargetBaseSHA(run); ok && baseSHA != sourceCommitSHA {
-				log.Warn("run %d (pull_request_target) records workflow source commit %s, resolving %q at base commit %s instead", run.ID, sourceCommitSHA, ref.Path, baseSHA)
-				sourceCommitSHA = baseSHA
-			}
+		sourceCommitSHA := resolveSameRepoWorkflowSourceCommit(run, callerRepo.ID, caller.WorkflowSourceCommitSHA)
+		if sourceCommitSHA != caller.WorkflowSourceCommitSHA {
+			log.Warn("run %d (pull_request_target) records workflow source commit %s, resolving %q at base commit %s instead", run.ID, caller.WorkflowSourceCommitSHA, ref.Path, sourceCommitSHA)
 		}
 		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, callerRepo, sourceCommitSHA, ref.Path)
 		if err != nil {
@@ -99,6 +95,18 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 		return bytes, repo.ID, resolvedSHA, nil
 	}
 	return nil, 0, "", fmt.Errorf("unsupported uses kind %d", ref.Kind)
+}
+
+// resolveSameRepoWorkflowSourceCommit returns the commit to read a same-repo reusable workflow from.
+// pull_request_target runs must resolve local `uses:` at the PR base commit, not a stored head SHA.
+func resolveSameRepoWorkflowSourceCommit(run *actions_model.ActionRun, callerRepoID int64, storedCommitSHA string) string {
+	if run.IsScopedRun || callerRepoID != run.RepoID {
+		return storedCommitSHA
+	}
+	if baseSHA, ok := pullRequestTargetBaseSHA(run); ok && baseSHA != storedCommitSHA {
+		return baseSHA
+	}
+	return storedCommitSHA
 }
 
 // readWorkflowFromRepo loads a workflow file from `repo` at `refOrSHA` and returns its content plus the resolved commit SHA.

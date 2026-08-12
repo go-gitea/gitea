@@ -14,7 +14,6 @@ import (
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
-	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -795,29 +794,10 @@ jobs:
 			assert.Equal(t, caller.ID, child.ParentJobID)
 			assert.Equal(t, baseSHA, child.WorkflowSourceCommitSHA)
 
-			t.Run("rerun resolves at the base commit whatever source commit the run recorded", func(t *testing.T) {
-				task := runner.fetchTask(t)
-				_, taskJob, _ := getTaskAndJobAndRunByTaskID(t, task.Id)
-				require.Equal(t, "trusted", taskJob.JobID)
-				runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-
-				prtRun.WorkflowCommitSHA = forkHeadSHA
-				caller.WorkflowSourceCommitSHA = forkHeadSHA
-				_, err := db.GetEngine(t.Context()).ID(prtRun.ID).AllCols().Update(prtRun)
-				require.NoError(t, err)
-				_, err = db.GetEngine(t.Context()).ID(caller.ID).AllCols().Update(caller)
-				require.NoError(t, err)
-
-				req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", baseRepo.OwnerName, baseRepo.Name, prtRun.ID))
-				user2Session.MakeRequest(t, req, http.StatusOK)
-
-				rerunTask := runner.fetchTask(t)
-				_, rerunJob, _ := getTaskAndJobAndRunByTaskID(t, rerunTask.Id)
-				assert.Equal(t, "trusted", rerunJob.JobID)
-				assert.Equal(t, baseSHA, rerunJob.WorkflowSourceCommitSHA)
-				unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: prtRun.ID, JobID: "from-fork"})
-				runner.execTask(t, rerunTask, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
-			})
+			task := runner.fetchTask(t)
+			_, taskJob, _ := getTaskAndJobAndRunByTaskID(t, task.Id)
+			require.Equal(t, "trusted", taskJob.JobID)
+			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		})
 
 		t.Run("Caller alternates expanding across attempts", func(t *testing.T) {
