@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitea
+  labels:
+    app.kubernetes.io/name: gitea
+spec:
+  selector:
+    app.kubernetes.io/name: gitea
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

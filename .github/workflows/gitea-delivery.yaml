@@ -1,0 +1,40 @@
+name: Build and deliver Gitea
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - deploy/guardian-demo/**
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Reject generated delivery commits
+        run: .github/scripts/should-deliver.sh
+      - name: Build and push immutable image
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          test "${#SOURCE_SHA}" -eq 40
+          echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build --file Dockerfile.rootless --tag "$IMAGE:$SOURCE_SHA" .
+          docker push "$IMAGE:$SOURCE_SHA"
+      - name: Record the delivered source identity
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          test "${#SOURCE_SHA}" -eq 40
+          sed -i "s#ghcr.io/codgenius/gitea:[0-9a-f]\{40\}#ghcr.io/codgenius/gitea:$SOURCE_SHA#" deploy/guardian-demo/deployment.yaml
+          sed -i "s#guardian.fursa.click/commit-sha: [0-9a-f]\{40\}#guardian.fursa.click/commit-sha: $SOURCE_SHA#g" deploy/guardian-demo/deployment.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/guardian-demo/deployment.yaml
+          git commit -m "ci: deliver Gitea $SOURCE_SHA [gitea-delivery]"
+          git push

@@ -1,0 +1,142 @@
+name: Validate deployed Gitea with Guardian
+
+on:
+  workflow_call:
+    inputs:
+      guardian_url: {required: true, type: string}
+      deployment_url: {required: true, type: string}
+      target_environment: {required: true, type: string}
+      pr_number: {required: true, type: number}
+      expected_commit_sha: {required: true, type: string}
+      kubernetes_namespace: {required: true, type: string}
+      workload_name: {required: true, type: string}
+
+permissions:
+  contents: read
+
+jobs:
+  guardian:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for public Gitea health
+        env:
+          DEPLOYMENT_URL: ${{ inputs.deployment_url }}
+        run: |
+          if [[ ! "$DEPLOYMENT_URL" =~ ^https://([A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?|\[[0-9A-Fa-f:]+\])(:[0-9]{1,5})?/?$ ]]; then
+            echo "DEPLOYMENT_URL must be a valid https URL without a path." >&2
+            exit 1
+          fi
+          health_deadline=$(( $(date +%s) + 300 ))
+          while true; do
+            remaining_seconds=$(( health_deadline - $(date +%s) ))
+            if (( remaining_seconds <= 0 )); then
+              break
+            fi
+            request_timeout=10
+            if (( remaining_seconds < request_timeout )); then
+              request_timeout="$remaining_seconds"
+            fi
+            if curl --fail-with-body --connect-timeout 5 --max-time "$request_timeout" \
+              "$DEPLOYMENT_URL/api/healthz" >/dev/null; then
+              exit 0
+            fi
+            remaining_seconds=$(( health_deadline - $(date +%s) ))
+            if (( remaining_seconds <= 10 )); then
+              break
+            fi
+            sleep 10
+          done
+          echo "Gitea did not become healthy within 5 minutes." >&2
+          exit 1
+      - name: Build Guardian request
+        env:
+          GUARDIAN_URL: ${{ inputs.guardian_url }}
+          DEPLOYMENT_URL: ${{ inputs.deployment_url }}
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          EXPECTED_COMMIT_SHA: ${{ inputs.expected_commit_sha }}
+          KUBERNETES_NAMESPACE: ${{ inputs.kubernetes_namespace }}
+          WORKLOAD_NAME: ${{ inputs.workload_name }}
+        run: |
+          mkdir -p "$RUNNER_TEMP"
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --argjson pr_number "$PR_NUMBER" \
+            --arg expected_commit_sha "$EXPECTED_COMMIT_SHA" \
+            --arg target_environment "$TARGET_ENVIRONMENT" \
+            --arg deployment_url "$DEPLOYMENT_URL" \
+            --arg namespace "$KUBERNETES_NAMESPACE" \
+            --arg workload_name "$WORKLOAD_NAME" \
+            '{repository: $repository, pr_number: $pr_number, expected_commit_sha: $expected_commit_sha, target_environment: $target_environment, deployment_url: $deployment_url, kubernetes: {namespace: $namespace, workload_kind: "Deployment", workload_name: $workload_name}}' \
+            > "$RUNNER_TEMP/guardian-request.json"
+          jq -e 'keys == ["deployment_url", "expected_commit_sha", "kubernetes", "pr_number", "repository", "target_environment"]' \
+            "$RUNNER_TEMP/guardian-request.json" >/dev/null
+      - name: Submit Guardian run
+        env:
+          GUARDIAN_URL: ${{ inputs.guardian_url }}
+        run: |
+          response="$(curl --fail-with-body --connect-timeout 10 --max-time 30 \
+            --request POST "$GUARDIAN_URL/runs" \
+            --header 'content-type: application/json' \
+            --data @"$RUNNER_TEMP/guardian-request.json")"
+          run_id="$(jq -er '.run_id' <<<"$response")"
+          status_url="$(jq -er '.status_url' <<<"$response")"
+          report_url="$(jq -er '.report_url' <<<"$response")"
+          {
+            echo "run_id=$run_id"
+            echo "status_url=$status_url"
+            echo "report_url=$report_url"
+          } >> "$GITHUB_ENV"
+      - name: Poll Guardian and publish reports
+        env:
+          GUARDIAN_URL: ${{ inputs.guardian_url }}
+        run: |
+          poll_deadline=$(( $(date +%s) + 1200 ))
+          while true; do
+            remaining_seconds=$(( poll_deadline - $(date +%s) ))
+            if (( remaining_seconds <= 0 )); then
+              break
+            fi
+            request_timeout=30
+            if (( remaining_seconds < request_timeout )); then
+              request_timeout="$remaining_seconds"
+            fi
+            status="$(curl --fail-with-body --connect-timeout 10 --max-time "$request_timeout" \
+              "$GUARDIAN_URL$status_url")"
+            run_status="$(jq -er '.status' <<<"$status")"
+            stage="$(jq -er '.stage' <<<"$status")"
+            progress="$(jq -er '.progress' <<<"$status")"
+            echo "Guardian run $run_id: $run_status ($stage, $progress%)" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$run_status" == "ERROR" ]]; then
+              curl --fail-with-body --connect-timeout 10 --max-time 30 \
+                "$GUARDIAN_URL$report_url" > "$RUNNER_TEMP/guardian-report.json"
+              jq -r '"## Guardian run \(.run_id)\\n\\nStatus: ERROR\\n\\n\(.reason // "Guardian failed")"' \
+                "$RUNNER_TEMP/guardian-report.json" > "$RUNNER_TEMP/guardian-report.md"
+              cat "$RUNNER_TEMP/guardian-report.md" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+            if [[ "$run_status" == "COMPLETED" ]]; then
+              curl --fail-with-body --connect-timeout 10 --max-time 30 \
+                "$GUARDIAN_URL$report_url" > "$RUNNER_TEMP/guardian-report.json"
+              jq -r '"## Guardian run \(.run_id)\\n\\nResult: \(.validation_result)"' \
+                "$RUNNER_TEMP/guardian-report.json" > "$RUNNER_TEMP/guardian-report.md"
+              cat "$RUNNER_TEMP/guardian-report.md" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            remaining_seconds=$(( poll_deadline - $(date +%s) ))
+            if (( remaining_seconds <= 10 )); then
+              break
+            fi
+            sleep 10
+          done
+          echo "Guardian run $run_id did not reach a terminal state within 20 minutes." >&2
+          exit 1
+      - name: Upload Guardian report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: guardian-report-${{ env.run_id }}
+          path: |
+            ${{ runner.temp }}/guardian-report.json
+            ${{ runner.temp }}/guardian-report.md
+          if-no-files-found: error

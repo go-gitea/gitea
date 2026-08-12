@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: guardian-validator-read-only-target
+subjects:
+  - kind: ServiceAccount
+    name: guardian-validator
+    namespace: guardian-prod
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: guardian-validator-read-only-target
