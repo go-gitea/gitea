@@ -195,21 +195,6 @@ function authenticatedJourney(baseURL) {
       });
     });
     sleep(1);
-
-    group('logout', () => {
-      const settingsPage = http.get(`${baseURL}/user/settings`, {
-        headers: sessionHeaders, timeout: '10s',
-      });
-      const logoutCSRF = extractCSRF(settingsPage.body);
-      http.post(`${baseURL}/user/logout`, { _csrf: logoutCSRF }, {
-        headers: {
-          ...sessionHeaders,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        redirects: 3,
-        timeout: '10s',
-      });
-    });
   });
 }
 
