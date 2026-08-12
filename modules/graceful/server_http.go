@@ -21,7 +21,7 @@ func newHTTPServer(network, address, name string, handler http.Handler) (*Server
 		Protocols:         &protocols,
 		Handler:           handler,
 		BaseContext:       func(net.Listener) context.Context { return GetManager().HammerContext() },
-		ReadHeaderTimeout: 30 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 	server.OnShutdown = func() {
 		httpServer.SetKeepAlivesEnabled(false)
