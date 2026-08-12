@@ -1,6 +1,6 @@
 import {throttle} from '../utils/func.ts';
 import {addDelegatedEventListener, generateElemId, isDocumentFragmentOrElementNode} from '../utils/dom.ts';
-import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg?raw';
+import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
   popup!: HTMLDivElement;

@@ -1,4 +1,5 @@
 import vuePlugin from '@vitejs/plugin-vue';
+import {stringPlugin} from 'vite-string-plugin';
 import type {Plugin} from 'vite';
 
 // custom elements, vue must render these as-is instead of resolving them as components
@@ -19,6 +20,7 @@ export const vueDefines = {
 
 export function sharedPlugins(): Plugin[] {
   return [
+    stringPlugin(),
     vuePlugin({
       template: {
         compilerOptions: {
