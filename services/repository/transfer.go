@@ -64,6 +64,9 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 		if !doer.CanCreateRepoIn(repoTransfer.Recipient) {
 			return LimitReachedError{Limit: repoTransfer.Recipient.MaxCreationLimit()}
 		}
+		if err := checkAndIncrUserRepoNum(ctx, doer, repoTransfer.Recipient); err != nil {
+			return LimitReachedError{Limit: repoTransfer.Recipient.MaxCreationLimit()}
+		}
 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
 			return util.ErrPermissionDenied
@@ -261,9 +264,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// Update repository count.
-	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
-		return fmt.Errorf("increase new owner repository count: %w", err)
-	} else if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
+	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
 		return fmt.Errorf("decrease old owner repository count: %w", err)
 	}
 
@@ -447,6 +448,9 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		// then it will transfer directly without acceptance.
 		if doer.IsAdmin || doer.ID == newOwner.ID {
 			isDirectTransfer = true
+			if err := checkAndIncrUserRepoNum(ctx, doer, newOwner); err != nil {
+				return LimitReachedError{Limit: newOwner.MaxCreationLimit()}
+			}
 			return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
 		}
 
@@ -462,6 +466,9 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 			}
 			if allowed {
 				isDirectTransfer = true
+				if err := checkAndIncrUserRepoNum(ctx, doer, newOwner); err != nil {
+					return LimitReachedError{Limit: newOwner.MaxCreationLimit()}
+				}
 				return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
 			}
 		}

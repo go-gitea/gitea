@@ -349,6 +349,10 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		}
 	}
 
+	if err := checkAndIncrUserRepoNum(ctx, doer, u); err != nil {
+		return err
+	}
+
 	if err = db.Insert(ctx, repo); err != nil {
 		return err
 	}
@@ -405,11 +409,6 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return fmt.Errorf("UpdateUserCols: %w", err)
 	}
 
-	if err = user_model.IncrUserRepoNum(ctx, u.ID); err != nil {
-		return fmt.Errorf("IncrUserRepoNum: %w", err)
-	}
-	u.NumRepos++
-
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, u.ID)
@@ -447,6 +446,22 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return fmt.Errorf("CopyDefaultWebhooksToRepo: %w", err)
 	}
 
+	return nil
+}
+
+func checkAndIncrUserRepoNum(ctx context.Context, doer, owner *user_model.User) error {
+	limit := -1
+	if !doer.IsAdmin {
+		limit = owner.MaxCreationLimit()
+	}
+	updated, err := user_model.IncrUserRepoNum(ctx, owner.ID, limit)
+	if err != nil {
+		return fmt.Errorf("IncrUserRepoNum: %w", err)
+	}
+	if !updated {
+		return repo_model.ErrReachLimitOfRepo{Limit: limit}
+	}
+	owner.NumRepos++
 	return nil
 }
 

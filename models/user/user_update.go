@@ -9,7 +9,14 @@ import (
 	"gitea.dev/models/db"
 )
 
-func IncrUserRepoNum(ctx context.Context, userID int64) error {
-	_, err := db.GetEngine(ctx).Incr("num_repos").ID(userID).Update(new(User))
-	return err
+// IncrUserRepoNum increments a user's repository count if it is below limit.
+// A negative limit means no limit.
+func IncrUserRepoNum(ctx context.Context, userID int64, limit int) (bool, error) {
+	sess := db.GetEngine(ctx).Incr("num_repos").ID(userID)
+	if limit >= 0 {
+		sess.Where("num_repos < ?", limit)
+	}
+
+	updated, err := sess.Update(new(User))
+	return updated > 0, err
 }

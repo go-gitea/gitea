@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -60,4 +61,21 @@ func TestCreateRepositoryDirectly(t *testing.T) {
 		assert.NoError(t, err)
 		assert.False(t, exist)
 	})
+}
+
+func TestCreateRepositoryDirectlyRespectsCurrentRepositoryLimit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	limit := user.NumRepos + 1
+	user.MaxRepoCreation = limit
+
+	_, err := db.GetEngine(t.Context()).Incr("num_repos").ID(user.ID).Update(new(user_model.User))
+	assert.NoError(t, err)
+
+	repo, err := CreateRepositoryDirectly(t.Context(), user, user, CreateRepoOptions{Name: "limit-race"}, true)
+	assert.Nil(t, repo)
+	assert.Error(t, err)
+	assert.True(t, repo_model.IsErrReachLimitOfRepo(err))
+	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerID: user.ID, Name: "limit-race"})
 }
