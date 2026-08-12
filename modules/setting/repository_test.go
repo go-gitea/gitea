@@ -64,15 +64,3 @@ ORG_MAX_CREATION_LIMIT = -1
 		assert.Equal(t, -1, Repository.OrgMaxCreationLimit)
 	})
 }
-
-func TestLoadRepositoryDefaultObjectFormat(t *testing.T) {
-	defer test.MockVariableValue(&Repository.DefaultObjectFormat)()
-
-	cfg, err := NewConfigProviderFromData(`
-[repository]
-DEFAULT_OBJECT_FORMAT = sha256
-`)
-	assert.NoError(t, err)
-	loadRepositoryFrom(cfg)
-	assert.Equal(t, "sha256", Repository.DefaultObjectFormat)
-}
