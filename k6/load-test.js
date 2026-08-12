@@ -10,12 +10,13 @@ const WARMUP_S   = parseInt(__ENV.WARMUP_S   || '60',  10);
 const RAMPUP_S   = parseInt(__ENV.RAMPUP_S   || '30',  10);
 const MEASURE_S  = parseInt(__ENV.MEASURE_S  || '120', 10);
 const RAMPDOWN_S = parseInt(__ENV.RAMPDOWN_S || '30',  10);
+const VUS        = parseInt(__ENV.VUS        || '25',  10);
 
 const STAGES = [
-  { duration: `${WARMUP_S}s`,   target: 5  },
-  { duration: `${RAMPUP_S}s`,   target: 20 },
-  { duration: `${MEASURE_S}s`,  target: 20 },
-  { duration: `${RAMPDOWN_S}s`, target: 0  },
+  { duration: `${WARMUP_S}s`,   target: Math.max(1, Math.floor(VUS * 0.2)) },
+  { duration: `${RAMPUP_S}s`,   target: VUS },
+  { duration: `${MEASURE_S}s`,  target: VUS },
+  { duration: `${RAMPDOWN_S}s`, target: 0   },
 ];
 
 export const options = {

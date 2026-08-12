@@ -27,6 +27,10 @@ spec:
       containers:
         - name: postgres
           image: postgres:15-alpine
+          args:
+            - "postgres"
+            - "-c"
+            - "log_min_duration_statement=100"
           env:
             - name: POSTGRES_DB
               value: gitea
