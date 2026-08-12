@@ -20,11 +20,6 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 		return err
 	}
 
-	owner, err := user_model.GetUserByID(ctx, key.OwnerID)
-	if err != nil {
-		return err
-	}
-
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin && doer.ID != key.OwnerID {
 		return asymkey_model.ErrKeyAccessDenied{
@@ -37,6 +32,8 @@ func DeletePublicKey(ctx context.Context, doer *user_model.User, id int64) (err 
 	if _, err = db.DeleteByID[asymkey_model.PublicKey](ctx, id); err != nil {
 		return err
 	}
+
+	owner := audit.ScopeFromUserID(ctx, key.OwnerID)
 
 	if key.Type == asymkey_model.KeyTypePrincipal {
 		audit.Record(ctx, audit_model.UserKeyPrincipalRemove, owner, "key", key.Name)

@@ -88,7 +88,9 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	mailer.SendResetPasswordMail(u)
 
-	audit.RecordAs(ctx, user_model.NewGhostUser(), audit_model.UserPasswordResetRequest, u)
+	// the request is unauthenticated, so the affected account is the only actor
+	// we can name; the recorded IP address carries the forensic signal
+	audit.RecordAs(ctx, u, audit_model.UserPasswordResetRequest, u)
 
 	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 		log.Error("Set cache(MailResendLimit) fail: %v", err)

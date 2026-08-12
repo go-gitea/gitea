@@ -37,7 +37,7 @@ func TestBuildEvent(t *testing.T) {
 	t.Run("MessageFromTemplate", func(t *testing.T) {
 		e := buildEvent(context.Background(), RecordParams{
 			Action: audit_model.UserCreate,
-			Actor:  actorFromUser(doer),
+			Actor:  actorRef(doer),
 			Scope:  ScopeFromUser(u),
 		})
 
@@ -53,7 +53,7 @@ func TestBuildEvent(t *testing.T) {
 
 		e := buildEvent(context.Background(), RecordParams{
 			Action: audit_model.RepositoryMirrorPushAdd,
-			Actor:  actorFromUser(doer),
+			Actor:  actorRef(doer),
 			Scope:  ScopeFromRepository(r),
 			Metadata: metaPairs(
 				"mirror_id", m.ID,
@@ -67,7 +67,7 @@ func TestBuildEvent(t *testing.T) {
 	})
 
 	t.Run("IPAddressFromRequest", func(t *testing.T) {
-		params := RecordParams{Action: audit_model.UserCreate, Actor: actorFromUser(doer), Scope: ScopeFromUser(u)}
+		params := RecordParams{Action: audit_model.UserCreate, Actor: actorRef(doer), Scope: ScopeFromUser(u)}
 
 		assert.Empty(t, buildEvent(context.Background(), params).IPAddress)
 
@@ -77,7 +77,7 @@ func TestBuildEvent(t *testing.T) {
 
 	t.Run("OriginFromRequest", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.AppSubURL, "/gitea")()
-		params := RecordParams{Action: audit_model.UserCreate, Actor: actorFromUser(doer), Scope: ScopeFromUser(u)}
+		params := RecordParams{Action: audit_model.UserCreate, Actor: actorRef(doer), Scope: ScopeFromUser(u)}
 
 		assert.Equal(t, audit_model.OriginSystem, buildEvent(context.Background(), params).Origin)
 

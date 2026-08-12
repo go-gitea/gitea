@@ -62,7 +62,7 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 			return err
 		}
 
-		recordNameAudit(ctx, u)
+		recordNameChange(ctx, u)
 
 		return nil
 	}
@@ -123,12 +123,12 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 		return err
 	}
 
-	recordNameAudit(ctx, u)
+	recordNameChange(ctx, u)
 
 	return nil
 }
 
-func recordNameAudit(ctx context.Context, u *user_model.User) {
+func recordNameChange(ctx context.Context, u *user_model.User) {
 	if u.IsOrganization() {
 		audit.Record(ctx, audit_model.OrganizationName, u)
 	} else {

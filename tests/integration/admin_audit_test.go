@@ -28,7 +28,7 @@ func TestAdminAuditLogExport(t *testing.T) {
 	userSession := loginUser(t, "user2")
 	defer test.MockVariableValue(&setting.Audit.Enabled, true)()
 
-	_, err := audit_model.InsertEvent(t.Context(), &audit_model.Event{
+	err := audit_model.InsertEvent(t.Context(), &audit_model.Event{
 		Action:        audit_model.UserCreate,
 		ActorID:       1,
 		ActorName:     "audit-export-actor",

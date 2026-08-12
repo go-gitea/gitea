@@ -758,11 +758,7 @@ func DeleteWebhook(ctx *context.Context) {
 	hook, err := webhook.GetWebhookByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByRepoID: " + err.Error())
-		ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/hooks")
-		return
-	}
-
-	if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hook.ID); err != nil {
+	} else if err := webhook.DeleteWebhookByRepoID(ctx, ctx.Repo.Repository.ID, hook.ID); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
 		audit.RecordScoped(ctx, nil, ctx.Repo.Repository, audit.WebhookRemove, "webhook", hook.URL)

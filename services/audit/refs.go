@@ -4,19 +4,14 @@
 package audit
 
 import (
+	"context"
+
 	audit_model "gitea.dev/models/audit"
-	organization_model "gitea.dev/models/organization"
 	repository_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 )
-
-func actorFromUser(u *user_model.User) audit_model.EntityRef {
-	if u == nil {
-		return audit_model.EntityRef{}
-	}
-	return audit_model.EntityRef{Type: audit_model.ScopeUser, ID: u.ID, Name: u.Name}
-}
 
 // actorRef builds the actor reference of an event. An unresolvable actor means
 // an entry point neither runs inside an authenticated request nor called
@@ -27,7 +22,7 @@ func actorRef(doer *user_model.User) audit_model.EntityRef {
 		log.Error("audit: no actor in context, recording event as unknown actor")
 		return audit_model.EntityRef{Type: audit_model.ScopeUser, Name: "Unknown"}
 	}
-	return actorFromUser(doer)
+	return audit_model.EntityRef{Type: audit_model.ScopeUser, ID: doer.ID, Name: doer.Name}
 }
 
 func ScopeFromUser(u *user_model.User) audit_model.EntityRef {
@@ -40,11 +35,21 @@ func ScopeFromUser(u *user_model.User) audit_model.EntityRef {
 	return audit_model.EntityRef{Type: audit_model.ScopeUser, ID: u.ID, Name: u.Name}
 }
 
-func ScopeFromOrganization(org *organization_model.Organization) audit_model.EntityRef {
-	if org == nil {
-		return audit_model.EntityRef{}
+// ScopeFromUserID resolves the scope of a user known only by ID, for call sites
+// that would otherwise load the user solely to name it. It costs nothing while
+// audit logging is off, and a failed lookup still yields a usable scope so the
+// event is never dropped.
+func ScopeFromUserID(ctx context.Context, id int64) audit_model.EntityRef {
+	ref := audit_model.EntityRef{Type: audit_model.ScopeUser, ID: id}
+	if !setting.Audit.Enabled {
+		return ref
 	}
-	return audit_model.EntityRef{Type: audit_model.ScopeOrganization, ID: org.ID, Name: org.Name}
+	u, err := user_model.GetUserByID(ctx, id)
+	if err != nil {
+		log.Error("audit: GetUserByID(%d): %v", id, err)
+		return ref
+	}
+	return ScopeFromUser(u)
 }
 
 func ScopeFromRepository(repo *repository_model.Repository) audit_model.EntityRef {
@@ -55,12 +60,12 @@ func ScopeFromRepository(repo *repository_model.Repository) audit_model.EntityRe
 }
 
 func ScopeSystem() audit_model.EntityRef {
-	return audit_model.EntityRef{Type: audit_model.ScopeSystem, Name: "System"}
+	return audit_model.EntityRef{Type: audit_model.ScopeSystem}
 }
 
 // scopeRef derives an EntityRef from the affected entity passed to Record.
-// Supported types: *user_model.User, *organization_model.Organization,
-// *repository_model.Repository, EntityRef, or nil for an instance-wide event.
+// Supported types: *user_model.User, *repository_model.Repository, EntityRef,
+// or nil for an instance-wide event.
 func scopeRef(scope any) audit_model.EntityRef {
 	switch s := scope.(type) {
 	case nil:
@@ -69,8 +74,6 @@ func scopeRef(scope any) audit_model.EntityRef {
 		return s
 	case *user_model.User:
 		return ScopeFromUser(s)
-	case *organization_model.Organization:
-		return ScopeFromOrganization(s)
 	case *repository_model.Repository:
 		return ScopeFromRepository(s)
 	default:

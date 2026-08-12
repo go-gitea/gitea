@@ -124,17 +124,6 @@ func ActivateEmail(ctx *context.Context) {
 
 	log.Info("Changing activation for User ID: %d, email: %s, primary: %v to %v", uid, email, primary, activate)
 
-	u, err := user_model.GetUserByID(ctx, uid)
-	if err != nil {
-		ctx.ServerError("GetUserByID", err)
-		return
-	}
-	emailAddress, err := user_model.GetEmailAddressOfUser(ctx, email, uid)
-	if err != nil {
-		ctx.ServerError("GetEmailAddressOfUser", err)
-		return
-	}
-
 	if err := user_model.ActivateUserEmail(ctx, uid, email, activate); err != nil {
 		log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
 		if user_model.IsErrEmailAlreadyUsed(err) {
@@ -143,7 +132,12 @@ func ActivateEmail(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))
 		}
 	} else {
-		audit.Record(ctx, audit_model.UserEmailActivate, u, "email", emailAddress.Email, "activated", activate)
+		// the email already changed, so a failed lookup must not fail the request
+		if u, err := user_model.GetUserByID(ctx, uid); err != nil {
+			log.Error("GetUserByID(%d) for audit: %v", uid, err)
+		} else {
+			audit.Record(ctx, audit_model.UserEmailActivate, u, "email", email, "activated", activate)
+		}
 
 		log.Info("Activation for User ID: %d, email: %s, primary: %v changed to %v", uid, email, primary, activate)
 		ctx.Flash.Info(ctx.Tr("admin.emails.updated"))

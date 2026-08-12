@@ -20,8 +20,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	"gitea.dev/services/forms"
-
-	"xorm.io/builder"
 )
 
 // ListAccessTokens list all the access tokens
@@ -218,12 +216,9 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		}
 	}
 
-	t, exist, err := db.Get[auth_model.AccessToken](ctx, builder.Eq{"id": tokenID, "uid": ctx.ContextUser.ID})
+	t, err := auth_model.GetAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID)
 	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if !exist {
-		ctx.APIErrorNotFound()
+		ctx.APIErrorAuto(err)
 		return
 	}
 

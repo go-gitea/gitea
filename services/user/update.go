@@ -268,9 +268,7 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 		if err := auth_model.DeleteAuthTokensByUserID(ctx, u.ID); err != nil {
 			return err
 		}
-	}
 
-	if deleteAuthTokens {
 		audit.Record(ctx, audit_model.UserPassword, u)
 	}
 	if loginSourceChanged {

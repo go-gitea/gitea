@@ -122,7 +122,7 @@ func CollaborationPost(ctx *context.Context) {
 func ChangeCollaborationAccessMode(ctx *context.Context) {
 	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
 	if err != nil {
-		ctx.ServerError("GetUserByID", err)
+		ctx.NotFoundOrServerError("GetUserByID", user_model.IsErrUserNotExist, err)
 		return
 	}
 
@@ -133,12 +133,15 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 		ctx.Repo.Repository,
 		u.ID,
 		accessMode)
-	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.HTTPError(http.StatusBadRequest)
-		} else {
-			ctx.ServerError("ChangeCollaborationAccessMode", err)
-		}
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.HTTPError(http.StatusBadRequest)
+		return
+	case errors.Is(err, util.ErrNotExist):
+		ctx.HTTPError(http.StatusNotFound)
+		return
+	case err != nil:
+		ctx.ServerError("ChangeCollaborationAccessMode", err)
 		return
 	}
 

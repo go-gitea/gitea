@@ -30,13 +30,13 @@ type ViewOptions struct {
 // View renders a paginated audit log listing shared by the admin, user, org and
 // repo settings pages. Only the scope filter, template and page flags differ.
 func View(ctx *context.Context, opts ViewOptions) {
-	ctx.Data["Title"] = ctx.Tr("admin.monitor.audit.title")
+	ctx.Data["Title"] = ctx.Tr("audit.title")
 	maps.Copy(ctx.Data, opts.PageData)
 
 	page := max(ctx.FormInt("page"), 1)
 
 	// only the two known sort values are accepted, anything else falls back to the default
-	sort := util.Iif(ctx.FormString("sort") == audit_model.SortTimestampAsc, audit_model.SortTimestampAsc, audit_model.SortTimestampDesc)
+	sort := util.Iif(audit_model.EventSort(ctx.FormString("sort")) == audit_model.SortTimestampAsc, audit_model.SortTimestampAsc, audit_model.SortTimestampDesc)
 
 	searchOpts := &audit_model.EventSearchOptions{
 		ListOptions: db.ListOptions{
@@ -48,7 +48,7 @@ func View(ctx *context.Context, opts ViewOptions) {
 		ScopeID:   opts.ScopeID,
 	}
 
-	ctx.Data["AuditSort"] = searchOpts.Sort
+	ctx.Data["AuditSort"] = string(searchOpts.Sort)
 
 	evs, total, err := audit.FindEvents(ctx, searchOpts)
 	if err != nil {

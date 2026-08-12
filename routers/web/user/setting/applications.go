@@ -18,8 +18,6 @@ import (
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
-
-	"xorm.io/builder"
 )
 
 const (
@@ -118,17 +116,10 @@ func ApplicationsPost(ctx *context.Context) {
 
 // DeleteApplication response for delete user access token
 func DeleteApplication(ctx *context.Context) {
-	t, exist, err := db.Get[auth_model.AccessToken](ctx, builder.Eq{"id": ctx.FormInt64("id"), "uid": ctx.Doer.ID})
+	t, err := auth_model.GetAccessTokenByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetAccessToken", err)
-		return
-	} else if !exist {
-		ctx.Flash.Error("DeleteAccessTokenByID: not found")
-		ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
-		return
-	}
-
-	if err := auth_model.DeleteAccessTokenByID(ctx, t.ID, ctx.Doer.ID); err != nil {
+		ctx.Flash.Error("GetAccessTokenByID: " + err.Error())
+	} else if err := auth_model.DeleteAccessTokenByID(ctx, t.ID, ctx.Doer.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
 		audit.Record(ctx, audit_model.UserAccessTokenRemove, ctx.Doer, "token", t.Name)

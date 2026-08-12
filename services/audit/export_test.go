@@ -28,7 +28,7 @@ func TestWriteEventsAsJSON(t *testing.T) {
 
 	e := buildEvent(ctx, RecordParams{
 		Action: audit_model.RepositoryMirrorPushAdd,
-		Actor:  actorFromUser(doer),
+		Actor:  actorRef(doer),
 		Scope:  ScopeFromRepository(r),
 		Metadata: metaPairs(
 			"mirror_id", m.ID,

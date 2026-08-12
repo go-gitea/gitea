@@ -148,7 +148,7 @@ func WebauthnDelete(ctx *context.Context) {
 
 	cred, err := auth.GetWebAuthnCredentialByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.ServerError("GetWebAuthnCredentialByID", err)
+		ctx.NotFoundOrServerError("GetWebAuthnCredentialByID", auth.IsErrWebAuthnCredentialNotExist, err)
 		return
 	}
 

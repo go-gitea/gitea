@@ -46,13 +46,18 @@ func issueOrPR(issue *issues_model.Issue, issueAction, prAction audit_model.Acti
 	return issueAction, "issue"
 }
 
+// issueMeta keeps the label, ID and title keys of every issue and pull request
+// event consistent; the ID is always the issue row ID the label refers to.
+func issueMeta(issue *issues_model.Issue, key string) []any {
+	return []any{key, issueLabel(issue), key + "_id", issue.ID, "title", issue.Title}
+}
+
 func (n *auditNotifier) NewIssue(ctx context.Context, issue *issues_model.Issue, _ []*user_model.User) {
 	repo := loadIssueRepo(ctx, issue)
 	if repo == nil {
 		return
 	}
-	RecordAs(ctx, issue.Poster, audit_model.IssueCreate, repo,
-		"issue", issueLabel(issue), "issue_id", issue.ID, "title", issue.Title)
+	RecordAs(ctx, issue.Poster, audit_model.IssueCreate, repo, issueMeta(issue, "issue")...)
 }
 
 func (n *auditNotifier) DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) {
@@ -61,7 +66,7 @@ func (n *auditNotifier) DeleteIssue(ctx context.Context, doer *user_model.User, 
 		return
 	}
 	action, key := issueOrPR(issue, audit_model.IssueDelete, audit_model.PullRequestDelete)
-	RecordAs(ctx, doer, action, repo, key, issueLabel(issue), "issue_id", issue.ID, "title", issue.Title)
+	RecordAs(ctx, doer, action, repo, issueMeta(issue, key)...)
 }
 
 func (n *auditNotifier) NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, _ []*user_model.User) {
@@ -75,8 +80,7 @@ func (n *auditNotifier) NewPullRequest(ctx context.Context, pr *issues_model.Pul
 	if repo == nil {
 		return
 	}
-	RecordAs(ctx, pr.Issue.Poster, audit_model.PullRequestCreate, repo,
-		"pull_request", issueLabel(pr.Issue), "pull_request_id", pr.ID, "title", pr.Issue.Title)
+	RecordAs(ctx, pr.Issue.Poster, audit_model.PullRequestCreate, repo, issueMeta(pr.Issue, "pull_request")...)
 }
 
 func (n *auditNotifier) MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest) {
@@ -90,8 +94,7 @@ func (n *auditNotifier) MergePullRequest(ctx context.Context, doer *user_model.U
 	if repo == nil {
 		return
 	}
-	RecordAs(ctx, doer, audit_model.PullRequestMerge, repo,
-		"pull_request", issueLabel(pr.Issue), "pull_request_id", pr.ID, "title", pr.Issue.Title)
+	RecordAs(ctx, doer, audit_model.PullRequestMerge, repo, issueMeta(pr.Issue, "pull_request")...)
 }
 
 func (n *auditNotifier) CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment, _ []*user_model.User) {

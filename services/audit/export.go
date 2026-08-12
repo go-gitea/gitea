@@ -12,9 +12,12 @@ import (
 
 // WriteEventsAsJSON writes one JSON object per line.
 func WriteEventsAsJSON(w io.Writer, events []*audit_model.Event) error {
-	encoder := json.NewEncoder(w)
 	for _, event := range events {
-		if err := encoder.Encode(event); err != nil {
+		b, err := json.Marshal(event)
+		if err != nil {
+			return err
+		}
+		if _, err := w.Write(append(b, '\n')); err != nil {
 			return err
 		}
 	}

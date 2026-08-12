@@ -23,8 +23,7 @@ func TestFindEventsScopeFilters(t *testing.T) {
 		{Action: RepositoryCreate, ScopeType: ScopeRepository, ScopeID: 7, Origin: OriginSystem, TimestampUnix: timeutil.TimeStamp(1)},
 	}
 	for _, event := range events {
-		_, err := InsertEvent(t.Context(), event)
-		require.NoError(t, err)
+		require.NoError(t, InsertEvent(t.Context(), event))
 	}
 
 	byType, _, err := FindEvents(t.Context(), &EventSearchOptions{ScopeType: ScopeRepository})

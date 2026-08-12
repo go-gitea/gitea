@@ -118,11 +118,11 @@ func DecodeMetadata(raw string) map[string]any {
 	return m
 }
 
-func InsertEvent(ctx context.Context, e *Event) (*Event, error) {
-	return e, db.Insert(ctx, e)
+func InsertEvent(ctx context.Context, e *Event) error {
+	return db.Insert(ctx, e)
 }
 
-type EventSort = string
+type EventSort string
 
 const (
 	SortTimestampAsc  EventSort = "timestamp_asc"

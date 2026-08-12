@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/openid"
 	"gitea.dev/modules/log"
@@ -18,8 +17,6 @@ import (
 	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
-
-	"xorm.io/builder"
 )
 
 // OpenIDPost response for change user's openid
@@ -125,12 +122,13 @@ func DeleteOpenID(ctx *context.Context) {
 		return
 	}
 
-	oid, exist, err := db.Get[user_model.UserOpenID](ctx, builder.Eq{"id": ctx.FormInt64("id"), "uid": ctx.Doer.ID})
+	oid, err := user_model.GetUserOpenIDByID(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
 	if err != nil {
-		ctx.ServerError("GetUserOpenID", err)
-		return
-	} else if !exist {
-		ctx.HTTPError(http.StatusNotFound)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.HTTPError(http.StatusNotFound)
+		} else {
+			ctx.ServerError("GetUserOpenIDByID", err)
+		}
 		return
 	}
 

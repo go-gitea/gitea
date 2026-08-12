@@ -114,7 +114,7 @@ func writeEvent(ctx context.Context, params RecordParams) {
 
 	e := buildEvent(ctx, params)
 
-	if err := writeToDatabase(ctx, e); err != nil {
+	if err := audit_model.InsertEvent(ctx, e); err != nil {
 		log.Error("Error writing audit event action=%s actor=%s scope=%s/%d to database: %v", e.Action, e.ActorName, e.ScopeType, e.ScopeID, err)
 	}
 }

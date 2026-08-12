@@ -16,7 +16,6 @@ import (
 	"time"
 
 	audit_model "gitea.dev/models/audit"
-	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/gtprof"
@@ -230,12 +229,12 @@ func serveInstalled(c *cli.Command) error {
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
 
-	// Do not change this message anymore. We guarantee the stability of this message for users wanting to parse the log themselves to be able to trace back events across gitea versions.
-	audit.RecordAs(context.Background(), user_model.NewCLIUser(), audit_model.SystemStartup, nil, "version", setting.AppVer)
+	auditCtx := cliAuditContext(context.Background())
+	audit.Record(auditCtx, audit_model.SystemStartup, nil, "version", setting.AppVer)
 
 	err := listen(webRoutes, true)
 
-	audit.RecordAs(context.Background(), user_model.NewCLIUser(), audit_model.SystemShutdown, nil)
+	audit.Record(auditCtx, audit_model.SystemShutdown, nil)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	return err

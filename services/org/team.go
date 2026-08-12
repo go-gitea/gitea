@@ -29,12 +29,7 @@ import (
 
 // recordTeamAudit emits a team-related audit event scoped to the owning organization.
 func recordTeamAudit(ctx context.Context, action audit_model.Action, team *organization.Team, metadata ...any) {
-	org, err := organization.GetOrgByID(ctx, team.OrgID)
-	if err != nil {
-		log.Error("audit: GetOrgByID(%d): %v", team.OrgID, err)
-		return
-	}
-	audit.Record(ctx, action, org, metadata...)
+	audit.Record(ctx, action, audit.ScopeFromUserID(ctx, team.OrgID), metadata...)
 }
 
 // recordTeamMemberAudit emits a team membership audit event scoped to the
@@ -93,7 +88,7 @@ func NewTeam(ctx context.Context, t *organization.Team) (err error) {
 		if t.IncludesAllRepositories {
 			err = repo_service.AddAllRepositoriesToTeam(ctx, t)
 			if err != nil {
-				return fmt.Errorf("AddAllRepositoriesToTeam: %w", err)
+				return fmt.Errorf("addAllRepositories: %w", err)
 			}
 		}
 
@@ -174,7 +169,7 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 		if includeAllChanged && t.IncludesAllRepositories {
 			err = repo_service.AddAllRepositoriesToTeam(ctx, t)
 			if err != nil {
-				return fmt.Errorf("AddAllRepositoriesToTeam: %w", err)
+				return fmt.Errorf("addAllRepositories: %w", err)
 			}
 		}
 

@@ -22,19 +22,13 @@ func TestUpdateUser(t *testing.T) {
 
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	assert.Error(t, UpdateUser(
-		t.Context(),
-		admin,
-		&UpdateOptions{
-			IsAdmin: UpdateOptionFieldFromValue(false),
-		}))
+	assert.Error(t, UpdateUser(t.Context(), admin, &UpdateOptions{
+		IsAdmin: UpdateOptionFieldFromValue(false),
+	}))
 
-	assert.NoError(t, UpdateUser(
-		t.Context(),
-		admin,
-		&UpdateOptions{
-			IsAdmin: UpdateOptionFieldFromSync(false),
-		}))
+	assert.NoError(t, UpdateUser(t.Context(), admin, &UpdateOptions{
+		IsAdmin: UpdateOptionFieldFromSync(false),
+	}))
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
 
@@ -107,39 +101,27 @@ func TestUpdateAuth(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
 	userCopy := *user
 
-	assert.NoError(t, UpdateAuth(
-		t.Context(),
-		user,
-		&UpdateAuthOptions{
-			LoginName: optional.Some("new-login"),
-		}))
+	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
+		LoginName: optional.Some("new-login"),
+	}))
 	assert.Equal(t, "new-login", user.LoginName)
 
-	assert.NoError(t, UpdateAuth(
-		t.Context(),
-		user,
-		&UpdateAuthOptions{
-			Password:           optional.Some("%$DRZUVB576tfzgu"),
-			MustChangePassword: optional.Some(true),
-		}))
+	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
+		Password:           optional.Some("%$DRZUVB576tfzgu"),
+		MustChangePassword: optional.Some(true),
+	}))
 	assert.True(t, user.MustChangePassword)
 	assert.NotEqual(t, userCopy.Passwd, user.Passwd)
 	assert.NotEqual(t, userCopy.Salt, user.Salt)
 
-	assert.NoError(t, UpdateAuth(
-		t.Context(),
-		user,
-		&UpdateAuthOptions{
-			ProhibitLogin: optional.Some(true),
-		}))
+	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
+		ProhibitLogin: optional.Some(true),
+	}))
 	assert.True(t, user.ProhibitLogin)
 
-	assert.ErrorIs(t, UpdateAuth(
-		t.Context(),
-		user,
-		&UpdateAuthOptions{
-			Password: optional.Some("aaaa"),
-		}), password_module.ErrMinLength)
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{
+		Password: optional.Some("aaaa"),
+	}), password_module.ErrMinLength)
 }
 
 func TestUpdateUserVisibility(t *testing.T) {
@@ -153,30 +135,21 @@ func TestUpdateUserVisibility(t *testing.T) {
 	defer test.MockVariableValue(&setting.Service.AllowedUserVisibilityModesSlice, setting.AllowedVisibility{false, true, true})()
 
 	// re-submitting the unchanged (now-disallowed) visibility must not fail the whole update
-	assert.NoError(t, UpdateUser(
-		t.Context(),
-		user,
-		&UpdateOptions{
-			FullName:   optional.Some("Changed Name"),
-			Visibility: optional.Some(structs.VisibleTypePublic),
-		}))
+	assert.NoError(t, UpdateUser(t.Context(), user, &UpdateOptions{
+		FullName:   optional.Some("Changed Name"),
+		Visibility: optional.Some(structs.VisibleTypePublic),
+	}))
 	assert.Equal(t, "Changed Name", user.FullName)
 	assert.Equal(t, structs.VisibleTypePublic, user.Visibility)
 
 	// changing to an allowed visibility still works
-	assert.NoError(t, UpdateUser(
-		t.Context(),
-		user,
-		&UpdateOptions{
-			Visibility: optional.Some(structs.VisibleTypePrivate),
-		}))
+	assert.NoError(t, UpdateUser(t.Context(), user, &UpdateOptions{
+		Visibility: optional.Some(structs.VisibleTypePrivate),
+	}))
 	assert.Equal(t, structs.VisibleTypePrivate, user.Visibility)
 
 	// genuinely changing to a disallowed visibility is still rejected
-	assert.Error(t, UpdateUser(
-		t.Context(),
-		user,
-		&UpdateOptions{
-			Visibility: optional.Some(structs.VisibleTypePublic),
-		}))
+	assert.Error(t, UpdateUser(t.Context(), user, &UpdateOptions{
+		Visibility: optional.Some(structs.VisibleTypePublic),
+	}))
 }

@@ -194,17 +194,14 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 
 // RevokeGrant revokes the grant
 func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
-	if oa.Owner == nil || oa.Owner.IsOrganization() {
-		ctx.NotFound(nil)
-		return
-	}
-
 	grant, err := auth.GetOAuth2GrantByID(ctx, ctx.PathParamInt64("grantId"))
 	if err != nil {
 		ctx.ServerError("GetOAuth2GrantByID", err)
 		return
 	}
-	if grant == nil || grant.UserID != oa.ownerID() {
+	// grants belong to individual users, so this also rejects the instance-wide
+	// (owner nil, ID 0) and organization handlers without assuming who routes here
+	if grant == nil || oa.Owner == nil || grant.UserID != oa.Owner.ID {
 		ctx.NotFound(nil)
 		return
 	}
