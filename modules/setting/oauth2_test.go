@@ -60,19 +60,22 @@ func TestGetGeneralSigningSecretSave(t *testing.T) {
 }
 
 func TestOauth2DefaultApplications(t *testing.T) {
-	cfg, _ := NewConfigProviderFromData(``)
-	loadOAuth2From(cfg)
-	assert.Equal(t, []string{"git-credential-oauth", "git-credential-manager", "tea"}, OAuth2.DefaultApplications)
+	defer test.MockVariableValue(&OAuth2)()
 
-	cfg, _ = NewConfigProviderFromData(`[oauth2]
-DEFAULT_APPLICATIONS = tea
-`)
-	loadOAuth2From(cfg)
-	assert.Equal(t, []string{"tea"}, OAuth2.DefaultApplications)
-
-	cfg, _ = NewConfigProviderFromData(`[oauth2]
-DEFAULT_APPLICATIONS =
-`)
-	loadOAuth2From(cfg)
-	assert.Nil(t, OAuth2.DefaultApplications)
+	testConfigLoad(t, []any{loadOAuth2From}, []configTestCase{
+		{
+			name: "defaults",
+			want: []configCheck{field("DEFAULT_APPLICATIONS", &OAuth2.DefaultApplications, []string{"git-credential-oauth", "git-credential-manager", "tea"})},
+		},
+		{
+			name: "a single application",
+			ini:  "[oauth2]\nDEFAULT_APPLICATIONS = tea",
+			want: []configCheck{field("DEFAULT_APPLICATIONS", &OAuth2.DefaultApplications, []string{"tea"})},
+		},
+		{
+			name: "an empty value disables them all",
+			ini:  "[oauth2]\nDEFAULT_APPLICATIONS =",
+			want: []configCheck{field("DEFAULT_APPLICATIONS", &OAuth2.DefaultApplications, []string(nil))},
+		},
+	})
 }

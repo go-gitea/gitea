@@ -5,307 +5,209 @@ package setting
 
 import (
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_getStorageInheritNameSectionTypeForActions(t *testing.T) {
-	iniStr := `
-	[storage]
-	STORAGE_TYPE = minio
-	`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
+	defer test.MockVariableValue(&Actions)()
 
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
+	logType := func() StorageType { return Actions.LogStorage.Type }
+	logBasePath := func() string { return Actions.LogStorage.MinioConfig.BasePath }
+	logDir := func() string { return filepath.Base(Actions.LogStorage.Path) }
+	artifactType := func() StorageType { return Actions.ArtifactStorage.Type }
+	artifactBasePath := func() string { return Actions.ArtifactStorage.MinioConfig.BasePath }
+	artifactDir := func() string { return filepath.Base(Actions.ArtifactStorage.Path) }
 
-	iniStr = `
-[storage.actions_log]
-STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
-
-	iniStr = `
-[storage.actions_log]
-STORAGE_TYPE = my_storage
-
-[storage.my_storage]
-STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "minio", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log/", Actions.LogStorage.MinioConfig.BasePath)
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
-
-	iniStr = `
-[storage.actions_artifacts]
-STORAGE_TYPE = my_storage
-
-[storage.my_storage]
-STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
-
-	iniStr = `
-[storage.actions_artifacts]
-STORAGE_TYPE = my_storage
-
-[storage.my_storage]
-STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "minio", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts/", Actions.ArtifactStorage.MinioConfig.BasePath)
-
-	iniStr = ``
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadActionsFrom(cfg))
-
-	assert.EqualValues(t, "local", Actions.LogStorage.Type)
-	assert.Equal(t, "actions_log", filepath.Base(Actions.LogStorage.Path))
-	assert.EqualValues(t, "local", Actions.ArtifactStorage.Type)
-	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
+	testConfigLoad(t, []any{loadActionsFrom}, []configTestCase{
+		{
+			name: "both inherit the global [storage]",
+			ini:  "[storage]\nSTORAGE_TYPE = minio",
+			want: []configCheck{
+				fieldOf("STORAGE_TYPE", logType, MinioStorageType),
+				fieldOf("MINIO_BASE_PATH", logBasePath, "actions_log/"),
+				fieldOf("STORAGE_TYPE", artifactType, MinioStorageType),
+				fieldOf("MINIO_BASE_PATH", artifactBasePath, "actions_artifacts/"),
+			},
+		},
+		{
+			name: "[storage.actions_log] only affects the log storage",
+			ini:  "[storage.actions_log]\nSTORAGE_TYPE = minio",
+			want: []configCheck{
+				fieldOf("STORAGE_TYPE", logType, MinioStorageType),
+				fieldOf("MINIO_BASE_PATH", logBasePath, "actions_log/"),
+				fieldOf("STORAGE_TYPE", artifactType, LocalStorageType),
+				fieldOf("PATH", artifactDir, "actions_artifacts"),
+			},
+		},
+		{
+			name: "the log storage can name another storage",
+			ini:  "[storage.actions_log]\nSTORAGE_TYPE = my_storage\n\n[storage.my_storage]\nSTORAGE_TYPE = minio",
+			want: []configCheck{
+				fieldOf("STORAGE_TYPE", logType, MinioStorageType),
+				fieldOf("MINIO_BASE_PATH", logBasePath, "actions_log/"),
+				fieldOf("STORAGE_TYPE", artifactType, LocalStorageType),
+				fieldOf("PATH", artifactDir, "actions_artifacts"),
+			},
+		},
+		{
+			name: "the artifact storage can name another storage",
+			ini:  "[storage.actions_artifacts]\nSTORAGE_TYPE = my_storage\n\n[storage.my_storage]\nSTORAGE_TYPE = minio",
+			want: []configCheck{
+				fieldOf("STORAGE_TYPE", logType, LocalStorageType),
+				fieldOf("PATH", logDir, "actions_log"),
+				fieldOf("STORAGE_TYPE", artifactType, MinioStorageType),
+				fieldOf("MINIO_BASE_PATH", artifactBasePath, "actions_artifacts/"),
+			},
+		},
+		{
+			name: "both default to local",
+			want: []configCheck{
+				fieldOf("STORAGE_TYPE", logType, LocalStorageType),
+				fieldOf("PATH", logDir, "actions_log"),
+				fieldOf("STORAGE_TYPE", artifactType, LocalStorageType),
+				fieldOf("PATH", artifactDir, "actions_artifacts"),
+			},
+		},
+	})
 }
 
 func Test_WorkflowDirs(t *testing.T) {
-	oldActions := Actions
-	defer func() {
-		Actions = oldActions
-	}()
+	defer test.MockVariableValue(&Actions)()
 
-	tests := []struct {
-		name     string
-		iniStr   string
-		wantDirs []string
-		wantErr  bool
-	}{
+	testConfigLoad(t, []any{loadActionsFrom}, []configTestCase{
 		{
-			name:     "default",
-			iniStr:   `[actions]`,
-			wantDirs: []string{".gitea/workflows", ".github/workflows"},
+			name: "default",
+			ini:  "[actions]",
+			want: []configCheck{field("WORKFLOW_DIRS", &Actions.WorkflowDirs, []string{".gitea/workflows", ".github/workflows"})},
 		},
 		{
-			name:     "single dir",
-			iniStr:   "[actions]\nWORKFLOW_DIRS = .github/workflows",
-			wantDirs: []string{".github/workflows"},
+			name: "single dir",
+			ini:  "[actions]\nWORKFLOW_DIRS = .github/workflows",
+			want: []configCheck{field("WORKFLOW_DIRS", &Actions.WorkflowDirs, []string{".github/workflows"})},
 		},
 		{
-			name:     "custom order",
-			iniStr:   "[actions]\nWORKFLOW_DIRS = .github/workflows,.gitea/workflows",
-			wantDirs: []string{".github/workflows", ".gitea/workflows"},
+			name: "custom order",
+			ini:  "[actions]\nWORKFLOW_DIRS = .github/workflows,.gitea/workflows",
+			want: []configCheck{field("WORKFLOW_DIRS", &Actions.WorkflowDirs, []string{".github/workflows", ".gitea/workflows"})},
 		},
 		{
-			name:     "whitespace trimming",
-			iniStr:   "[actions]\nWORKFLOW_DIRS = .gitea/workflows , .github/workflows ",
-			wantDirs: []string{".gitea/workflows", ".github/workflows"},
+			name: "whitespace trimming",
+			ini:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows , .github/workflows ",
+			want: []configCheck{field("WORKFLOW_DIRS", &Actions.WorkflowDirs, []string{".gitea/workflows", ".github/workflows"})},
 		},
 		{
-			name:     "trailing slash normalization",
-			iniStr:   "[actions]\nWORKFLOW_DIRS = .gitea/workflows/,.github/workflows/",
-			wantDirs: []string{".gitea/workflows", ".github/workflows"},
+			name: "trailing slash normalization",
+			ini:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows/,.github/workflows/",
+			want: []configCheck{field("WORKFLOW_DIRS", &Actions.WorkflowDirs, []string{".gitea/workflows", ".github/workflows"})},
 		},
 		{
 			name:    "only commas and whitespace",
-			iniStr:  "[actions]\nWORKFLOW_DIRS = , , ,",
-			wantErr: true,
+			ini:     "[actions]\nWORKFLOW_DIRS = , , ,",
+			wantErr: assert.Error,
+			want:    []configCheck{guard(&Actions.WorkflowDirs)},
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := NewConfigProviderFromData(tt.iniStr)
-			require.NoError(t, err)
-			err = loadActionsFrom(cfg)
-			if tt.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantDirs, Actions.WorkflowDirs)
-		})
-	}
+	})
 }
 
 func Test_getDefaultActionsURLForActions(t *testing.T) {
-	oldActions := Actions
-	oldAppURL := AppURL
-	defer func() {
-		Actions = oldActions
-		AppURL = oldAppURL
-	}()
+	defer test.MockVariableValue(&Actions)()
+	defer test.MockVariableValue(&AppURL, "http://test_get_default_actions_url_for_actions:3000/")()
 
-	AppURL = "http://test_get_default_actions_url_for_actions:3000/"
+	actionsURL := func() string { return Actions.DefaultActionsURL.URL() }
 
-	tests := []struct {
-		name    string
-		iniStr  string
-		wantErr assert.ErrorAssertionFunc
-		wantURL string
-	}{
+	testConfigLoad(t, []any{loadActionsFrom}, []configTestCase{
 		{
 			name: "default",
-			iniStr: `
-[actions]
-`,
-			wantErr: assert.NoError,
-			wantURL: "https://github.com",
+			ini:  "[actions]",
+			want: []configCheck{fieldOf("DEFAULT_ACTIONS_URL", actionsURL, "https://github.com")},
 		},
 		{
 			name: "github",
-			iniStr: `
-[actions]
-DEFAULT_ACTIONS_URL = github
-`,
-			wantErr: assert.NoError,
-			wantURL: "https://github.com",
+			ini:  "[actions]\nDEFAULT_ACTIONS_URL = github",
+			want: []configCheck{fieldOf("DEFAULT_ACTIONS_URL", actionsURL, "https://github.com")},
 		},
 		{
 			name: "self",
-			iniStr: `
-[actions]
-DEFAULT_ACTIONS_URL = self
-`,
-			wantErr: assert.NoError,
-			wantURL: "http://test_get_default_actions_url_for_actions:3000",
+			ini:  "[actions]\nDEFAULT_ACTIONS_URL = self",
+			want: []configCheck{fieldOf("DEFAULT_ACTIONS_URL", actionsURL, "http://test_get_default_actions_url_for_actions:3000")},
 		},
 		{
-			name: "custom url",
-			iniStr: `
-[actions]
-DEFAULT_ACTIONS_URL = https://gitea.com
-`,
-			wantErr: assert.NoError,
-			wantURL: "https://github.com",
+			name: "custom url falls back to github",
+			ini:  "[actions]\nDEFAULT_ACTIONS_URL = https://gitea.com",
+			want: []configCheck{fieldOf("DEFAULT_ACTIONS_URL", actionsURL, "https://github.com")},
 		},
 		{
-			name: "custom urls",
-			iniStr: `
-[actions]
-DEFAULT_ACTIONS_URL = https://gitea.com,https://github.com
-`,
-			wantErr: assert.NoError,
-			wantURL: "https://github.com",
+			name: "custom urls fall back to github",
+			ini:  "[actions]\nDEFAULT_ACTIONS_URL = https://gitea.com,https://github.com",
+			want: []configCheck{fieldOf("DEFAULT_ACTIONS_URL", actionsURL, "https://github.com")},
 		},
 		{
-			name: "invalid",
-			iniStr: `
-[actions]
-DEFAULT_ACTIONS_URL = gitea
-`,
+			name:    "invalid",
+			ini:     "[actions]\nDEFAULT_ACTIONS_URL = gitea",
 			wantErr: assert.Error,
-			wantURL: "https://github.com",
+			want: []configCheck{
+				guard(&Actions.DefaultActionsURL),
+				fieldOf("DEFAULT_ACTIONS_URL", actionsURL, "https://github.com"),
+			},
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := NewConfigProviderFromData(tt.iniStr)
-			require.NoError(t, err)
-			if !tt.wantErr(t, loadActionsFrom(cfg)) {
-				return
-			}
-			assert.Equal(t, tt.wantURL, Actions.DefaultActionsURL.URL())
-		})
-	}
+	})
 }
 
 func Test_ScopedWorkflowDirs(t *testing.T) {
 	defer test.MockVariableValue(&Actions)()
 
-	defaultWorkflowDirs := []string{".gitea/workflows", ".github/workflows"}
-	defaultScopedDirs := []string{".gitea/scoped_workflows"}
+	// WORKFLOW_DIRS is guarded rather than asserted: MapTo keeps the current value for an absent
+	// key, so without it a case that sets WORKFLOW_DIRS would leak into the next one
+	scoped := func(want []string) []configCheck {
+		return []configCheck{
+			guard(&Actions.WorkflowDirs),
+			field("SCOPED_WORKFLOW_DIRS", &Actions.ScopedWorkflowDirs, want),
+		}
+	}
+	overlapping := []configCheck{guard(&Actions.WorkflowDirs), guard(&Actions.ScopedWorkflowDirs)}
 
-	tests := []struct {
-		name       string
-		iniStr     string
-		wantScoped []string
-		wantErr    bool
-	}{
+	testConfigLoad(t, []any{loadActionsFrom}, []configTestCase{
 		{
-			name:       "default",
-			iniStr:     `[actions]`,
-			wantScoped: defaultScopedDirs,
+			name: "default",
+			ini:  "[actions]",
+			want: scoped([]string{".gitea/scoped_workflows"}),
 		},
 		{
-			name:       "custom dir",
-			iniStr:     "[actions]\nSCOPED_WORKFLOW_DIRS = .gitea/my-scoped",
-			wantScoped: []string{".gitea/my-scoped"},
+			name: "custom dir",
+			ini:  "[actions]\nSCOPED_WORKFLOW_DIRS = .gitea/my-scoped",
+			want: scoped([]string{".gitea/my-scoped"}),
 		},
 		{
-			name:       "empty disables the feature",
-			iniStr:     "[actions]\nSCOPED_WORKFLOW_DIRS = , ,",
-			wantScoped: []string{},
+			name: "empty disables the feature",
+			ini:  "[actions]\nSCOPED_WORKFLOW_DIRS = , ,",
+			want: scoped([]string{}),
 		},
 		{
 			name:    "overlap equal with workflow dir",
-			iniStr:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows\nSCOPED_WORKFLOW_DIRS = .gitea/workflows",
-			wantErr: true,
+			ini:     "[actions]\nWORKFLOW_DIRS = .gitea/workflows\nSCOPED_WORKFLOW_DIRS = .gitea/workflows",
+			wantErr: assert.Error,
+			want:    overlapping,
 		},
 		{
 			name:    "scoped dir nested under workflow dir",
-			iniStr:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows\nSCOPED_WORKFLOW_DIRS = .gitea/workflows/scoped",
-			wantErr: true,
+			ini:     "[actions]\nWORKFLOW_DIRS = .gitea/workflows\nSCOPED_WORKFLOW_DIRS = .gitea/workflows/scoped",
+			wantErr: assert.Error,
+			want:    overlapping,
 		},
 		{
 			name:    "workflow dir nested under scoped dir",
-			iniStr:  "[actions]\nWORKFLOW_DIRS = .gitea/workflows/ci\nSCOPED_WORKFLOW_DIRS = .gitea/workflows",
-			wantErr: true,
+			ini:     "[actions]\nWORKFLOW_DIRS = .gitea/workflows/ci\nSCOPED_WORKFLOW_DIRS = .gitea/workflows",
+			wantErr: assert.Error,
+			want:    overlapping,
 		},
 		{
-			name:       "no overlap",
-			iniStr:     "[actions]\nSCOPED_WORKFLOW_DIRS = .gitea/scoped",
-			wantScoped: []string{".gitea/scoped"},
+			name: "no overlap",
+			ini:  "[actions]\nSCOPED_WORKFLOW_DIRS = .gitea/scoped",
+			want: scoped([]string{".gitea/scoped"}),
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// reset to defaults so MapTo starts clean (absent keys keep the defaults)
-			Actions.WorkflowDirs = slices.Clone(defaultWorkflowDirs)
-			Actions.ScopedWorkflowDirs = slices.Clone(defaultScopedDirs)
-
-			cfg, err := NewConfigProviderFromData(tt.iniStr)
-			require.NoError(t, err)
-			err = loadActionsFrom(cfg)
-			if tt.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantScoped, Actions.ScopedWorkflowDirs)
-		})
-	}
+	})
 }

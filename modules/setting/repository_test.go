@@ -7,60 +7,45 @@ import (
 	"testing"
 
 	"gitea.dev/modules/test"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadRepositoryCreationLimits(t *testing.T) {
-	defer test.MockVariableValue(&Repository.MaxCreationLimit)()
-	defer test.MockVariableValue(&Repository.UserMaxCreationLimit)()
-	defer test.MockVariableValue(&Repository.OrgMaxCreationLimit)()
+	defer test.MockVariableValue(&Repository)()
 
-	t.Run("ShortcutPropagatesToBoth", func(t *testing.T) {
-		cfg, err := NewConfigProviderFromData(`
-[repository]
-MAX_CREATION_LIMIT = 5
-`)
-		assert.NoError(t, err)
-		loadRepositoryFrom(cfg)
-		assert.Equal(t, 5, Repository.MaxCreationLimit)
-		assert.Equal(t, 5, Repository.UserMaxCreationLimit)
-		assert.Equal(t, 5, Repository.OrgMaxCreationLimit)
-	})
-
-	t.Run("PerTypeKeysOverrideShortcut", func(t *testing.T) {
-		cfg, err := NewConfigProviderFromData(`
-[repository]
-MAX_CREATION_LIMIT = 5
-USER_MAX_CREATION_LIMIT = 0
-ORG_MAX_CREATION_LIMIT = -1
-`)
-		assert.NoError(t, err)
-		loadRepositoryFrom(cfg)
-		assert.Equal(t, 0, Repository.UserMaxCreationLimit)
-		assert.Equal(t, -1, Repository.OrgMaxCreationLimit)
-	})
-
-	t.Run("PartialOverrideOtherInheritsShortcut", func(t *testing.T) {
-		cfg, err := NewConfigProviderFromData(`
-[repository]
-MAX_CREATION_LIMIT = 7
-ORG_MAX_CREATION_LIMIT = -1
-`)
-		assert.NoError(t, err)
-		loadRepositoryFrom(cfg)
-		assert.Equal(t, 7, Repository.UserMaxCreationLimit)
-		assert.Equal(t, -1, Repository.OrgMaxCreationLimit)
-	})
-
-	t.Run("NoKeyDefaultsToNoLimit", func(t *testing.T) {
-		cfg, err := NewConfigProviderFromData(`
-[repository]
-`)
-		assert.NoError(t, err)
-		loadRepositoryFrom(cfg)
-		assert.Equal(t, -1, Repository.MaxCreationLimit)
-		assert.Equal(t, -1, Repository.UserMaxCreationLimit)
-		assert.Equal(t, -1, Repository.OrgMaxCreationLimit)
+	testConfigLoad(t, []any{loadRepositoryFrom}, []configTestCase{
+		{
+			name: "shortcut propagates to both",
+			ini:  "[repository]\nMAX_CREATION_LIMIT = 5",
+			want: []configCheck{
+				field("MAX_CREATION_LIMIT", &Repository.MaxCreationLimit, 5),
+				field("USER_MAX_CREATION_LIMIT", &Repository.UserMaxCreationLimit, 5),
+				field("ORG_MAX_CREATION_LIMIT", &Repository.OrgMaxCreationLimit, 5),
+			},
+		},
+		{
+			name: "per-type keys override the shortcut",
+			ini:  "[repository]\nMAX_CREATION_LIMIT = 5\nUSER_MAX_CREATION_LIMIT = 0\nORG_MAX_CREATION_LIMIT = -1",
+			want: []configCheck{
+				field("USER_MAX_CREATION_LIMIT", &Repository.UserMaxCreationLimit, 0),
+				field("ORG_MAX_CREATION_LIMIT", &Repository.OrgMaxCreationLimit, -1),
+			},
+		},
+		{
+			name: "partial override, the other inherits the shortcut",
+			ini:  "[repository]\nMAX_CREATION_LIMIT = 7\nORG_MAX_CREATION_LIMIT = -1",
+			want: []configCheck{
+				field("USER_MAX_CREATION_LIMIT", &Repository.UserMaxCreationLimit, 7),
+				field("ORG_MAX_CREATION_LIMIT", &Repository.OrgMaxCreationLimit, -1),
+			},
+		},
+		{
+			name: "no key means no limit",
+			ini:  "[repository]",
+			want: []configCheck{
+				field("MAX_CREATION_LIMIT", &Repository.MaxCreationLimit, -1),
+				field("USER_MAX_CREATION_LIMIT", &Repository.UserMaxCreationLimit, -1),
+				field("ORG_MAX_CREATION_LIMIT", &Repository.OrgMaxCreationLimit, -1),
+			},
+		},
 	})
 }

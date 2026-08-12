@@ -7,65 +7,32 @@ import (
 	"testing"
 
 	"gitea.dev/modules/test"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestCacheRedisSharedConnFallback(t *testing.T) {
-	tests := []struct {
-		name     string
-		iniStr   string
-		wantConn string
-	}{
+	defer test.MockVariableValue(&CacheService)()
+	defer test.MockVariableValue(&Redis)()
+
+	testConfigLoad(t, []any{loadRedisFrom, loadCacheFrom}, []configTestCase{
 		{
 			name: "redis adapter with empty HOST falls back to shared [redis]",
-			iniStr: `
-[redis]
-CONN_STR = redis://127.0.0.1:6379/0
-[cache]
-ADAPTER = redis
-`,
-			wantConn: "redis://127.0.0.1:6379/0",
+			ini:  "[redis]\nCONN_STR = redis://127.0.0.1:6379/0\n[cache]\nADAPTER = redis",
+			want: []configCheck{field("HOST", &CacheService.Conn, "redis://127.0.0.1:6379/0")},
 		},
 		{
 			name: "cache HOST wins over shared [redis]",
-			iniStr: `
-[redis]
-CONN_STR = redis://127.0.0.1:6379/0
-[cache]
-ADAPTER = redis
-HOST = redis://10.0.0.1:6379/1
-`,
-			wantConn: "redis://10.0.0.1:6379/1",
+			ini:  "[redis]\nCONN_STR = redis://127.0.0.1:6379/0\n[cache]\nADAPTER = redis\nHOST = redis://10.0.0.1:6379/1",
+			want: []configCheck{field("HOST", &CacheService.Conn, "redis://10.0.0.1:6379/1")},
 		},
 		{
 			name: "no shared [redis] keeps previous behavior (empty conn)",
-			iniStr: `
-[cache]
-ADAPTER = redis
-`,
-			wantConn: "",
+			ini:  "[cache]\nADAPTER = redis",
+			want: []configCheck{field("HOST", &CacheService.Conn, "")},
 		},
 		{
 			name: "memcache adapter is never affected by shared [redis]",
-			iniStr: `
-[redis]
-CONN_STR = redis://127.0.0.1:6379/0
-[cache]
-ADAPTER = memcache
-`,
-			wantConn: "",
+			ini:  "[redis]\nCONN_STR = redis://127.0.0.1:6379/0\n[cache]\nADAPTER = memcache",
+			want: []configCheck{field("HOST", &CacheService.Conn, "")},
 		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			defer test.MockVariableValue(&Redis)()
-			cfg, err := NewConfigProviderFromData(tt.iniStr)
-			assert.NoError(t, err)
-
-			loadRedisFrom(cfg)
-			loadCacheFrom(cfg)
-			assert.Equal(t, tt.wantConn, CacheService.Conn)
-		})
-	}
+	})
 }

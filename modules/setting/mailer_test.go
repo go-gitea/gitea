@@ -7,46 +7,45 @@ import (
 	"testing"
 
 	"gitea.dev/modules/test"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_loadMailerFrom(t *testing.T) {
-	kases := map[string]*Mailer{
-		"smtp.mydomain.test": {
-			SMTPAddr: "smtp.mydomain.test",
-			SMTPPort: "465",
-		},
-		"smtp.mydomain.test:123": {
-			SMTPAddr: "smtp.mydomain.test",
-			SMTPPort: "123",
-		},
-		":123": {
-			SMTPAddr: "127.0.0.1",
-			SMTPPort: "123",
-		},
-	}
-	for host, kase := range kases {
-		t.Run(host, func(t *testing.T) {
-			cfg, _ := NewConfigProviderFromData("")
-			sec := cfg.Section("mailer")
-			sec.NewKey("ENABLED", "true")
-			sec.NewKey("HOST", host)
+	defer test.MockVariableValue(&MailService)()
 
-			// Check mailer setting
-			loadMailerFrom(cfg)
-
-			assert.Equal(t, kase.SMTPAddr, MailService.SMTPAddr)
-			assert.Equal(t, kase.SMTPPort, MailService.SMTPPort)
-		})
+	smtp := func(addr, port string) []configCheck {
+		return []configCheck{
+			fieldOf("HOST", func() string { return MailService.SMTPAddr }, addr),
+			fieldOf("HOST", func() string { return MailService.SMTPPort }, port),
+		}
 	}
+
+	testConfigLoad(t, []any{loadMailerFrom}, []configTestCase{
+		{
+			name: "host without a port",
+			ini:  "[mailer]\nENABLED = true\nHOST = smtp.mydomain.test",
+			want: smtp("smtp.mydomain.test", "465"),
+		},
+		{
+			name: "host with a port",
+			ini:  "[mailer]\nENABLED = true\nHOST = smtp.mydomain.test:123",
+			want: smtp("smtp.mydomain.test", "123"),
+		},
+		{
+			name: "port only",
+			ini:  "[mailer]\nENABLED = true\nHOST = :123",
+			want: smtp("127.0.0.1", "123"),
+		},
+	})
 }
 
 func TestLoadSettingsForInstallMailServiceFlags(t *testing.T) {
 	defer test.MockVariableValue(&Service)()
 	defer test.MockVariableValue(&MailService)()
 
-	cfg, err := NewConfigProviderFromData(`
+	testConfigLoad(t, []any{loadDBSetting, loadServiceFrom, loadMailsFrom}, []configTestCase{
+		{
+			name: "a configured mailer enables the mail services",
+			ini: `
 [database]
 DB_TYPE = postgres
 
@@ -59,12 +58,11 @@ FROM = noreply@example.com
 [service]
 REGISTER_EMAIL_CONFIRM = true
 ENABLE_NOTIFY_MAIL = true
-`)
-	assert.NoError(t, err)
-	loadDBSetting(cfg)
-	loadServiceFrom(cfg)
-	loadMailsFrom(cfg)
-
-	assert.True(t, Service.RegisterEmailConfirm)
-	assert.True(t, Service.EnableNotifyMail)
+`,
+			want: []configCheck{
+				field("REGISTER_EMAIL_CONFIRM", &Service.RegisterEmailConfirm, true),
+				field("ENABLE_NOTIFY_MAIL", &Service.EnableNotifyMail, true),
+			},
+		},
+	})
 }

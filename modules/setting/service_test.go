@@ -54,107 +54,100 @@ func TestLoadServiceVisibilityModes(t *testing.T) {
 		}
 		return ret
 	}
-	testCases := map[string]func(){
-		`
-[service]
-DEFAULT_USER_VISIBILITY = public
-ALLOWED_USER_VISIBILITY_MODES = public,limited,private
-`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
-		`
-		[service]
-		DEFAULT_USER_VISIBILITY = public
-		`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
-		`
-		[service]
-		DEFAULT_USER_VISIBILITY = limited
-		`: func() {
-			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
-		`
-[service]
-ALLOWED_USER_VISIBILITY_MODES = public,limited,private
-`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
-		`
-[service]
-DEFAULT_USER_VISIBILITY = public
-ALLOWED_USER_VISIBILITY_MODES = limited,private
-`: func() {
-			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
-		`
-[service]
-DEFAULT_USER_VISIBILITY = my_type
-ALLOWED_USER_VISIBILITY_MODES = limited,private
-`: func() {
-			assert.Equal(t, structs.VisibleTypeLimited, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
-		`
-[service]
-DEFAULT_USER_VISIBILITY = my_type
-`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public", "limited", "private"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
-		`
-[service]
-DEFAULT_USER_VISIBILITY = public
-ALLOWED_USER_VISIBILITY_MODES = public, limit, privated
-`: func() {
-			assert.Equal(t, structs.VisibleTypePublic, Service.DefaultUserVisibilityMode)
-			assert.Equal(t, visibleTypeSlice("public"), Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice())
-		},
-	}
+	allowedModes := func() []structs.VisibleType { return Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice() }
+	allVisible := visibleTypeSlice("public", "limited", "private")
 
-	for tc, fn := range testCases {
-		t.Run(tc, func(t *testing.T) {
-			Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
-			Service.DefaultUserVisibilityMode = structs.VisibleTypePublic
-			cfg, err := NewConfigProviderFromData(tc)
-			assert.NoError(t, err)
-			loadServiceFrom(cfg)
-			fn()
-		})
-	}
+	testConfigLoad(t, []any{loadServiceFrom}, []configTestCase{
+		{
+			ini: "[service]\nDEFAULT_USER_VISIBILITY = public\nALLOWED_USER_VISIBILITY_MODES = public,limited,private",
+			want: []configCheck{
+				field("DEFAULT_USER_VISIBILITY", &Service.DefaultUserVisibilityMode, structs.VisibleTypePublic),
+				fieldOf("ALLOWED_USER_VISIBILITY_MODES", allowedModes, allVisible),
+			},
+		},
+		{
+			ini: "[service]\nDEFAULT_USER_VISIBILITY = public",
+			want: []configCheck{
+				field("DEFAULT_USER_VISIBILITY", &Service.DefaultUserVisibilityMode, structs.VisibleTypePublic),
+				fieldOf("ALLOWED_USER_VISIBILITY_MODES", allowedModes, allVisible),
+			},
+		},
+		{
+			ini: "[service]\nDEFAULT_USER_VISIBILITY = limited",
+			want: []configCheck{
+				field("DEFAULT_USER_VISIBILITY", &Service.DefaultUserVisibilityMode, structs.VisibleTypeLimited),
+				fieldOf("ALLOWED_USER_VISIBILITY_MODES", allowedModes, allVisible),
+			},
+		},
+		{
+			ini: "[service]\nALLOWED_USER_VISIBILITY_MODES = public,limited,private",
+			want: []configCheck{
+				field("DEFAULT_USER_VISIBILITY", &Service.DefaultUserVisibilityMode, structs.VisibleTypePublic),
+				fieldOf("ALLOWED_USER_VISIBILITY_MODES", allowedModes, allVisible),
+			},
+		},
+		{
+			name: "the default falls back to the first allowed mode",
+			ini:  "[service]\nDEFAULT_USER_VISIBILITY = public\nALLOWED_USER_VISIBILITY_MODES = limited,private",
+			want: []configCheck{
+				field("DEFAULT_USER_VISIBILITY", &Service.DefaultUserVisibilityMode, structs.VisibleTypeLimited),
+				fieldOf("ALLOWED_USER_VISIBILITY_MODES", allowedModes, visibleTypeSlice("limited", "private")),
+			},
+		},
+		{
+			name: "an unknown default falls back to the first allowed mode",
+			ini:  "[service]\nDEFAULT_USER_VISIBILITY = my_type\nALLOWED_USER_VISIBILITY_MODES = limited,private",
+			want: []configCheck{
+				field("DEFAULT_USER_VISIBILITY", &Service.DefaultUserVisibilityMode, structs.VisibleTypeLimited),
+				fieldOf("ALLOWED_USER_VISIBILITY_MODES", allowedModes, visibleTypeSlice("limited", "private")),
+			},
+		},
+		{
+			name: "an unknown default alone falls back to public",
+			ini:  "[service]\nDEFAULT_USER_VISIBILITY = my_type",
+			want: []configCheck{
+				field("DEFAULT_USER_VISIBILITY", &Service.DefaultUserVisibilityMode, structs.VisibleTypePublic),
+				fieldOf("ALLOWED_USER_VISIBILITY_MODES", allowedModes, allVisible),
+			},
+		},
+		{
+			name: "unknown allowed modes are dropped",
+			ini:  "[service]\nDEFAULT_USER_VISIBILITY = public\nALLOWED_USER_VISIBILITY_MODES = public, limit, privated",
+			want: []configCheck{
+				field("DEFAULT_USER_VISIBILITY", &Service.DefaultUserVisibilityMode, structs.VisibleTypePublic),
+				fieldOf("ALLOWED_USER_VISIBILITY_MODES", allowedModes, visibleTypeSlice("public")),
+			},
+		},
+	})
 }
 
 func TestLoadServiceRequireSignInView(t *testing.T) {
 	defer test.MockVariableValue(&Service)()
 
-	cfg, err := NewConfigProviderFromData(`
-[service]
-`)
-	assert.NoError(t, err)
-	loadServiceFrom(cfg)
-	assert.False(t, Service.RequireSignInViewStrict)
-	assert.False(t, Service.BlockAnonymousAccessExpensive)
-
-	cfg, err = NewConfigProviderFromData(`
-[service]
-REQUIRE_SIGNIN_VIEW = true
-`)
-	assert.NoError(t, err)
-	loadServiceFrom(cfg)
-	assert.True(t, Service.RequireSignInViewStrict)
-	assert.False(t, Service.BlockAnonymousAccessExpensive)
-
-	cfg, err = NewConfigProviderFromData(`
-[service]
-REQUIRE_SIGNIN_VIEW = expensive
-`)
-	assert.NoError(t, err)
-	loadServiceFrom(cfg)
-	assert.False(t, Service.RequireSignInViewStrict)
-	assert.True(t, Service.BlockAnonymousAccessExpensive)
+	testConfigLoad(t, []any{loadServiceFrom}, []configTestCase{
+		{
+			name: "unset",
+			ini:  "[service]",
+			want: []configCheck{
+				field("REQUIRE_SIGNIN_VIEW", &Service.RequireSignInViewStrict, false),
+				field("REQUIRE_SIGNIN_VIEW", &Service.BlockAnonymousAccessExpensive, false),
+			},
+		},
+		{
+			name: "true is strict",
+			ini:  "[service]\nREQUIRE_SIGNIN_VIEW = true",
+			want: []configCheck{
+				field("REQUIRE_SIGNIN_VIEW", &Service.RequireSignInViewStrict, true),
+				field("REQUIRE_SIGNIN_VIEW", &Service.BlockAnonymousAccessExpensive, false),
+			},
+		},
+		{
+			name: "expensive blocks anonymous access instead",
+			ini:  "[service]\nREQUIRE_SIGNIN_VIEW = expensive",
+			want: []configCheck{
+				field("REQUIRE_SIGNIN_VIEW", &Service.RequireSignInViewStrict, false),
+				field("REQUIRE_SIGNIN_VIEW", &Service.BlockAnonymousAccessExpensive, true),
+			},
+		},
+	})
 }

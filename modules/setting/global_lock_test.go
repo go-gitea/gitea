@@ -7,68 +7,40 @@ import (
 	"testing"
 
 	"gitea.dev/modules/test"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadGlobalLockConfig(t *testing.T) {
-	t.Run("DefaultGlobalLockConfig", func(t *testing.T) {
-		defer test.MockVariableValue(&Redis)()
-		iniStr := ``
-		cfg, err := NewConfigProviderFromData(iniStr)
-		assert.NoError(t, err)
-		loadRedisFrom(cfg)
-		loadGlobalLockFrom(cfg)
-		assert.Equal(t, "memory", GlobalLock.ServiceType)
-	})
+	defer test.MockVariableValue(&GlobalLock)()
+	defer test.MockVariableValue(&Redis)()
 
-	t.Run("RedisGlobalLockConfig", func(t *testing.T) {
-		defer test.MockVariableValue(&Redis)()
-		iniStr := `
-[global_lock]
-SERVICE_TYPE = redis
-SERVICE_CONN_STR = addrs=127.0.0.1:6379 db=0
-`
-		cfg, err := NewConfigProviderFromData(iniStr)
-		assert.NoError(t, err)
-		loadRedisFrom(cfg)
-		loadGlobalLockFrom(cfg)
-		assert.Equal(t, "redis", GlobalLock.ServiceType)
-		assert.Equal(t, "addrs=127.0.0.1:6379 db=0", GlobalLock.ServiceConnStr)
-	})
-
-	t.Run("RedisGlobalLockFallsBackToSharedRedis", func(t *testing.T) {
-		defer test.MockVariableValue(&Redis)()
-		iniStr := `
-[redis]
-CONN_STR = redis://127.0.0.1:6379/0
-[global_lock]
-SERVICE_TYPE = redis
-`
-		cfg, err := NewConfigProviderFromData(iniStr)
-		assert.NoError(t, err)
-
-		loadRedisFrom(cfg)
-		loadGlobalLockFrom(cfg)
-		assert.Equal(t, "redis", GlobalLock.ServiceType)
-		assert.Equal(t, "redis://127.0.0.1:6379/0", GlobalLock.ServiceConnStr)
-	})
-
-	t.Run("RedisGlobalLockOwnConnWinsOverSharedRedis", func(t *testing.T) {
-		defer test.MockVariableValue(&Redis)()
-		iniStr := `
-[redis]
-CONN_STR = redis://127.0.0.1:6379/0
-[global_lock]
-SERVICE_TYPE = redis
-SERVICE_CONN_STR = redis://10.0.0.1:6379/1
-`
-		cfg, err := NewConfigProviderFromData(iniStr)
-		assert.NoError(t, err)
-
-		loadRedisFrom(cfg)
-		loadGlobalLockFrom(cfg)
-		assert.Equal(t, "redis", GlobalLock.ServiceType)
-		assert.Equal(t, "redis://10.0.0.1:6379/1", GlobalLock.ServiceConnStr)
+	testConfigLoad(t, []any{loadRedisFrom, loadGlobalLockFrom}, []configTestCase{
+		{
+			name: "defaults to memory",
+			want: []configCheck{field("SERVICE_TYPE", &GlobalLock.ServiceType, "memory")},
+		},
+		{
+			name: "redis with its own conn str",
+			ini:  "[global_lock]\nSERVICE_TYPE = redis\nSERVICE_CONN_STR = addrs=127.0.0.1:6379 db=0",
+			want: []configCheck{
+				field("SERVICE_TYPE", &GlobalLock.ServiceType, "redis"),
+				field("SERVICE_CONN_STR", &GlobalLock.ServiceConnStr, "addrs=127.0.0.1:6379 db=0"),
+			},
+		},
+		{
+			name: "redis falls back to the shared [redis] section",
+			ini:  "[redis]\nCONN_STR = redis://127.0.0.1:6379/0\n[global_lock]\nSERVICE_TYPE = redis",
+			want: []configCheck{
+				field("SERVICE_TYPE", &GlobalLock.ServiceType, "redis"),
+				field("SERVICE_CONN_STR", &GlobalLock.ServiceConnStr, "redis://127.0.0.1:6379/0"),
+			},
+		},
+		{
+			name: "own conn str wins over the shared one",
+			ini:  "[redis]\nCONN_STR = redis://127.0.0.1:6379/0\n[global_lock]\nSERVICE_TYPE = redis\nSERVICE_CONN_STR = redis://10.0.0.1:6379/1",
+			want: []configCheck{
+				field("SERVICE_TYPE", &GlobalLock.ServiceType, "redis"),
+				field("SERVICE_CONN_STR", &GlobalLock.ServiceConnStr, "redis://10.0.0.1:6379/1"),
+			},
+		},
 	})
 }
