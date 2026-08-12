@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * SECURITY
   * Fix: orgmode render include path (#38642) (#38645)
   * Fix: git patch apply (#38637) (#38638)
+  * Fix(oauth2): enforce mandatory 2FA policy on OAuth2 authorize/grant endpoints (#38591) (#38606)
 
 * API
   * fix(api): align Swagger schemas for UserSettings and TopicListResponse (#38590) (#38592)
