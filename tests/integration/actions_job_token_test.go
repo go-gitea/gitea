@@ -181,6 +181,16 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 					resp := MakeRequest(t, req, NoExpectedStatus)
 					assertRespCodeForSuccess(t, resp, false)
 				})
+
+				// Restricted-mode tokens deny pull request access by design (contents/packages/releases
+				// read only), so this only applies when the declared mode isn't Restricted.
+				if tt.isFork && tt.repoPermMode != repo_model.ActionsTokenPermissionModeRestricted {
+					t.Run("ReadPullRequests", func(t *testing.T) {
+						req := NewRequest(t, "GET", "/api/v1/repos/"+repo.FullName()+"/pulls").AddTokenAuth(task.Token)
+						resp := MakeRequest(t, req, NoExpectedStatus)
+						assertRespCodeForSuccess(t, resp, true)
+					})
+				}
 			})
 		}
 	})
