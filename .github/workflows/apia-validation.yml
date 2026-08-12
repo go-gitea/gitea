@@ -47,7 +47,8 @@ jobs:
       - name: Compute git diff
         shell: bash
         run: |
-          git diff FETCH_HEAD HEAD -- . > "$RUNNER_TEMP/pr-diff.patch"
+          git fetch origin main --depth=1 2>/dev/null || true
+          git diff FETCH_HEAD HEAD -- . > "$RUNNER_TEMP/pr-diff.patch" 2>/dev/null || touch "$RUNNER_TEMP/pr-diff.patch"
           echo "GIT_DIFF_FILE=$RUNNER_TEMP/pr-diff.patch" >> $GITHUB_ENV
 
       - name: Reset baseline and deploy staging in parallel
