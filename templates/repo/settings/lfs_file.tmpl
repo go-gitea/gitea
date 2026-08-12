@@ -11,7 +11,11 @@
 					<a class="ui primary tiny button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
 				</div>
 			</h4>
+<<<<<<< HEAD
 			<div class="ui bottom attached fm-table unstackable segment">
+=======
+			<div class="ui bottom attached segment file-view-container">
+>>>>>>> origin/main
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				<div class="file-view {{if .IsPlainText}}plain-text{{else if .IsTextFile}}code-view{{end}}">
 					{{if .IsFileTooLarge}}

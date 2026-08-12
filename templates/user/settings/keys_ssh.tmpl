@@ -56,7 +56,7 @@
 						</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button delete-button{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-id="delete-ssh" data-url="{{$.Link}}/delete?type=ssh" data-id="{{.ID}}"{{if index $.ExternalKeys $index}} title="{{ctx.Locale.Tr "settings.ssh_externally_managed"}}"{{end}}>
+					<button class="ui red tiny button link-action{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-confirm="#delete-ssh" data-url="{{$.Link}}/delete?type=ssh&id={{.ID}}"{{if index $.ExternalKeys $index}} title="{{ctx.Locale.Tr "settings.ssh_externally_managed"}}"{{end}}>
 						{{ctx.Locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingFingerprint .Fingerprint)}}
@@ -104,7 +104,7 @@
 			{{end}}
 		{{end}}
 	</div>
-	<div class="ui g-modal-confirm delete modal" id="delete-ssh">
+	<div class="ui small modal" id="delete-ssh">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.ssh_key_deletion"}}

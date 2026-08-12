@@ -77,11 +77,7 @@ func getRunnerByID(ctx *context.APIContext, ownerID, repoID, runnerID int64) (*a
 
 	runner, err := actions_model.GetRunnerByID(ctx, runnerID)
 	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound("Runner not found")
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil, false
 	}
 
@@ -135,7 +131,7 @@ func UpdateRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.EditActionRunnerOption)
+	form := web.GetForm[*api.EditActionRunnerOption](ctx)
 	if form.Disabled == nil {
 		ctx.APIError(http.StatusUnprocessableEntity, "[Disabled]: Required")
 		return

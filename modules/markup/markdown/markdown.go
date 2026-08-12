@@ -11,6 +11,7 @@ import (
 	"io"
 	"strings"
 
+	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
@@ -65,30 +66,21 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 	return pc
 }
 
-type GlodmarkRender struct {
+type GoldmarkRender struct {
 	ctx *markup.RenderContext
 
 	goldmarkMarkdown goldmark.Markdown
 }
 
-func (r *GlodmarkRender) Convert(source []byte, writer io.Writer, opts ...parser.ParseOption) error {
+func (r *GoldmarkRender) Convert(source []byte, writer io.Writer, opts ...parser.ParseOption) error {
 	return r.goldmarkMarkdown.Convert(source, writer, opts...)
 }
 
-func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
+func (r *GoldmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
 	if entering {
 		languageBytes, _ := c.Language()
-		languageStr := giteautil.IfZero(string(languageBytes), "text")
-
-		preClasses := "code-block"
-		if languageStr == "mermaid" || languageStr == "math" {
-			preClasses += " is-loading"
-		}
-
-		// include language-x class as part of commonmark spec, "chroma" class is used to highlight the code
-		// the "display" class is used by "js/markup/math.ts" to render the code element as a block
-		// the "math.ts" strictly depends on the structure: <pre class="code-block is-loading"><code class="language-math display">...</code></pre>
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre class="%s"><code class="chroma language-%s display">`, preClasses, languageStr)
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(string(languageBytes))
+		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
 		if err != nil {
 			return
 		}
@@ -136,10 +128,10 @@ func goldmarkDefaultParser() parser.Parser {
 }
 
 // SpecializedMarkdown sets up the Gitea specific markdown extensions
-func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
+func SpecializedMarkdown(ctx *markup.RenderContext) *GoldmarkRender {
 	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
 	// at the moment it is fast enough (see the benchmarks)
-	r := &GlodmarkRender{ctx: ctx}
+	r := &GoldmarkRender{ctx: ctx}
 	r.goldmarkMarkdown = goldmark.New(
 		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(

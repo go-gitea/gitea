@@ -53,11 +53,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		if issues_model.IsErrCommentNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -72,7 +68,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to get reactions"))
+		ctx.APIError(http.StatusForbidden, "no permission to get reactions")
 		return
 	}
 
@@ -139,7 +135,7 @@ func PostIssueCommentReaction(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 
 	changeIssueCommentReaction(ctx, *form, true)
 }
@@ -182,7 +178,7 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 
 	changeIssueCommentReaction(ctx, *form, false)
 }
@@ -190,11 +186,7 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
-		if issues_model.IsErrCommentNotExist(err) {
-			ctx.APIErrorNotFound(err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -214,7 +206,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 	}
 
 	if comment.Issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to change reaction"))
+		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
 	}
 
@@ -223,7 +215,7 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		reaction, err := issue_service.CreateCommentReaction(ctx, ctx.Doer, comment, form.Reaction)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.APIError(http.StatusForbidden, err)
+				ctx.APIError(http.StatusForbidden, err.Error())
 			} else if issues_model.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
 					User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),
@@ -305,7 +297,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	}
 
 	if !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to get reactions"))
+		ctx.APIError(http.StatusForbidden, "no permission to get reactions")
 		return
 	}
 
@@ -372,7 +364,7 @@ func PostIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, true)
 }
 
@@ -413,7 +405,7 @@ func DeleteIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, false)
 }
 
@@ -429,7 +421,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 	}
 
 	if issue.IsLocked && !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
-		ctx.APIError(http.StatusForbidden, errors.New("no permission to change reaction"))
+		ctx.APIError(http.StatusForbidden, "no permission to change reaction")
 		return
 	}
 
@@ -438,7 +430,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		reaction, err := issue_service.CreateIssueReaction(ctx, ctx.Doer, issue, form.Reaction)
 		if err != nil {
 			if issues_model.IsErrForbiddenIssueReaction(err) || errors.Is(err, user_model.ErrBlockedUser) {
-				ctx.APIError(http.StatusForbidden, err)
+				ctx.APIError(http.StatusForbidden, err.Error())
 			} else if issues_model.IsErrReactionAlreadyExist(err) {
 				ctx.JSON(http.StatusOK, api.Reaction{
 					User:     convert.ToUser(ctx, ctx.Doer, ctx.Doer),

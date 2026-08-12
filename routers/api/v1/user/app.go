@@ -5,7 +5,6 @@
 package user
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -99,7 +98,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
+	form := web.GetForm[*api.CreateAccessTokenOption](ctx)
 
 	t := &auth_model.AccessToken{
 		UID:  ctx.ContextUser.ID,
@@ -112,13 +111,13 @@ func CreateAccessToken(ctx *context.APIContext) {
 		return
 	}
 	if exist {
-		ctx.APIError(http.StatusBadRequest, errors.New("access token name has been used already"))
+		ctx.APIError(http.StatusBadRequest, "access token name has been used already")
 		return
 	}
 
 	scope, err := auth_model.AccessTokenScope(strings.Join(form.Scopes, ",")).Normalize()
 	if err != nil {
-		ctx.APIError(http.StatusBadRequest, fmt.Errorf("invalid access token scope provided: %w", err))
+		ctx.APIError(http.StatusBadRequest, fmt.Sprintf("invalid access token scope provided: %v", err))
 		return
 	}
 	if scope == "" {
@@ -126,6 +125,25 @@ func CreateAccessToken(ctx *context.APIContext) {
 		return
 	}
 	t.Scope = scope
+
+	// a token-authenticated request must not mint a token with a broader scope than its own
+	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if hasApiTokenScope {
+		hasScope, err := apiTokenScope.CanCreateChildScope(scope)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !hasScope {
+			ctx.APIError(http.StatusForbidden, "cannot create an access token with a broader scope than the authenticating token")
+			return
+		}
+		// a public-only token must not mint a token that drops the public-only restriction
+		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
 
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {
 		ctx.APIErrorInternal(err)
@@ -188,21 +206,13 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		case 1:
 			tokenID = tokens[0].ID
 		default:
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("multiple matches for token name '%s'", token))
+			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("multiple matches for token name '%s'", token))
 			return
 		}
 	}
-	if tokenID == 0 {
-		ctx.APIErrorInternal(nil)
-		return
-	}
 
 	if err := auth_model.DeleteAccessTokenByID(ctx, tokenID, ctx.ContextUser.ID); err != nil {
-		if auth_model.IsErrAccessTokenNotExist(err) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -228,7 +238,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
 		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return
@@ -392,7 +402,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.PathParamInt64("id")
 
-	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
 		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return

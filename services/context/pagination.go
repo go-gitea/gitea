@@ -33,8 +33,8 @@ func NewPagination(total int64, pagingNum, current, numPages int) *Pagination {
 	return p
 }
 
-func (p *Pagination) WithCurRows(n int) *Pagination {
-	p.Paginater.SetCurRows(n)
+func (p *Pagination) WithUnlimitedPaging(curRows int, hasNext bool) *Pagination {
+	p.Paginater.SetUnlimitedPaging(curRows, hasNext)
 	return p
 }
 

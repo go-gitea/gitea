@@ -95,7 +95,7 @@ func RequestContextHandler() func(h http.Handler) http.Handler {
 				// The "req" might have changed due to the new "req.WithContext" calls
 				// For example: in NewBaseContext, a new "req" with context is created, and the multipart-form is parsed there.
 				// So we always use the latest "req" from the data store.
-				ctxReq := ds.GetContextValue(httplib.RequestContextKey).(*http.Request)
+				ctxReq := ds.GetContextValue(httplib.RequestContextKey).(*http.Request) //nolint:forcetypeassert // must be valid
 				if ctxReq.MultipartForm != nil {
 					_ = ctxReq.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
 				}
@@ -147,6 +147,9 @@ func MustInitSessioner() func(next http.Handler) http.Handler {
 		Secure:         setting.SessionConfig.Secure,
 		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
+
+		// in the future, if websocket is used, the websocket handler should manage its own session sync (release)
+		IgnoreReleaseForWebSocket: true,
 	})
 	if err != nil {
 		log.Fatal("common.Sessioner failed: %v", err)

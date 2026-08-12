@@ -458,7 +458,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo)
 			if err != nil {
 				ctx.ServerError("canBeAssigned", err)
 				return
@@ -480,7 +480,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 
 // ChangeIssueReaction create a reaction for issue
 func ChangeIssueReaction(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.ReactionForm)
+	form := web.GetForm[*forms.ReactionForm](ctx)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return

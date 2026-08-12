@@ -26,7 +26,7 @@
 						</div>
 					</div>
 					<div class="item-trailing">
-						<button class="ui red tiny button delete-button" data-modal-id="delete-principal" data-url="{{$.Link}}/delete?type=principal" data-id="{{.ID}}">
+						<button class="ui red tiny button link-action" data-modal-confirm="#delete-principal" data-url="{{$.Link}}/delete?type=principal&id={{.ID}}">
 							{{ctx.Locale.Tr "settings.delete_key"}}
 						</button>
 					</div>
@@ -55,7 +55,7 @@
 		</div>
 	</div>
 
-	<div class="ui g-modal-confirm delete modal" id="delete-principal">
+	<div class="ui small modal" id="delete-principal">
 		<div class="header">
 			{{svg "octicon-trash"}}
 			{{ctx.Locale.Tr "settings.ssh_principal_deletion"}}

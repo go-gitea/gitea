@@ -5,12 +5,24 @@ package reqctx
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"maps"
+	"reflect"
 	"sync"
 
 	"gitea.dev/modules/process"
 )
+
+// MustContextValue returns the value stored under key. A missing or mistyped value can only
+// be a programming error, and callers can't do anything useful with a zero value, so it panics.
+func MustContextValue[T any](ctx context.Context, key any) T {
+	value, ok := ctx.Value(key).(T)
+	if !ok {
+		panic(fmt.Sprintf("context value %v is %T, expected %s", key, ctx.Value(key), reflect.TypeFor[T]()))
+	}
+	return value
+}
 
 type ContextDataProvider interface {
 	GetData() ContextData

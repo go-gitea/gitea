@@ -63,11 +63,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -187,7 +183,7 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	}
 
 	// and <Form> represents the dependency
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	dependency := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -248,7 +244,7 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	}
 
 	// and <Form> represents the dependency
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	dependency := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -408,7 +404,7 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	target := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -465,7 +461,7 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.IssueMeta)
+	form := web.GetForm[*api.IssueMeta](ctx)
 	target := getFormIssue(ctx, form)
 	if ctx.Written() {
 		return
@@ -487,11 +483,7 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 	issue.Repo = ctx.Repo.Repository
@@ -508,11 +500,7 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 		var err error
 		repo, err = repo_model.GetRepositoryByOwnerAndName(ctx, form.Owner, form.Name)
 		if err != nil {
-			if repo_model.IsErrRepoNotExist(err) {
-				ctx.APIErrorNotFound("IsErrRepoNotExist", err)
-			} else {
-				ctx.APIErrorInternal(err)
-			}
+			ctx.APIErrorAuto(err)
 			return nil
 		}
 	} else {
@@ -521,11 +509,7 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 
 	issue, err := issues_model.GetIssueByIndex(ctx, repo.ID, form.Index)
 	if err != nil {
-		if issues_model.IsErrIssueNotExist(err) {
-			ctx.APIErrorNotFound("IsErrIssueNotExist", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return nil
 	}
 	issue.Repo = repo

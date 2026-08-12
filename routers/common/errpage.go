@@ -32,7 +32,7 @@ func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode in
 		}
 	}
 
-	httpcache.SetCacheControlInHeader(w.Header(), &httpcache.CacheControlOptions{NoTransform: true})
+	httpcache.SetCacheControlInHeader(w.Header(), &httpcache.CacheControlOptions{})
 	tmplCtx := context.NewTemplateContextForWeb(reqctx.FromContext(req.Context()), req, middleware.Locale(w, req))
 	w.WriteHeader(respCode)
 
@@ -40,6 +40,7 @@ func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode in
 	if acceptsHTML {
 		err := templates.PageRenderer().HTML(outBuf, respCode, tmpl, ctxData, tmplCtx)
 		if err != nil {
+			log.Error("Failed to render error page template %s: %v", tmpl, err)
 			_, _ = w.Write([]byte("Internal server error but failed to render error page template, please collect error logs and report to Gitea issue tracker"))
 			return
 		}

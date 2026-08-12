@@ -101,6 +101,7 @@ code.language-math.is-loading::after {
   animation: pulse-1p5 200ms linear;
 }
 
+<<<<<<< HEAD
 .ui.modal,
 .ui.dimmer.fm-transition {
   animation-name: fadein;
@@ -108,6 +109,8 @@ code.language-math.is-loading::after {
   animation-timing-function: ease-in-out;
 }
 
+=======
+>>>>>>> origin/main
 .rotate-clockwise {
   animation: rotate-clockwise-keyframes 1s linear infinite;
 }

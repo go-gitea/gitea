@@ -161,11 +161,14 @@
 .ui.fm-fixed.fm-table {
   table-layout: fixed;
 }
+<<<<<<< HEAD
 .ui.fm-fixed.fm-table th,
 .ui.fm-fixed.fm-table td {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+=======
+>>>>>>> origin/main
 
 .ui.selectable.fm-table > tbody > tr:hover,
 .ui.fm-table tbody tr td.selectable:hover {

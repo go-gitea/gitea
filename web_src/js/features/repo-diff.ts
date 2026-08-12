@@ -2,8 +2,7 @@ import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {initDiffFileTree} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
-import {initViewedCheckboxListenerFor, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
-import {initImageDiff} from './imagediff.ts';
+import {initExpandAndCollapseFilesButton, initDiffFileViewedForm} from './pull-view-file.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {errorMessage} from '../modules/errors.ts';
@@ -11,10 +10,11 @@ import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
-import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
 import {performFetchActionTrigger} from './common-fetch-action.ts';
+import {initImageDiff} from './imagediff.ts';
 
-function initRepoDiffFileBox(el: HTMLElement) {
+function initDiffFileViewToggle(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
   queryElems(el, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
     queryElemSiblings(btn, '.file-view-toggle', (el) => el.classList.remove('active'));
@@ -129,52 +129,42 @@ function initRepoDiffConversationNav() {
     const navIndex = isPrevious ? previousIndex : nextIndex;
     const elNavConversation = elAllConversations[navIndex];
     const anchor = elNavConversation.querySelector('.comment')!.id;
-    window.location.href = `#${anchor}`;
+    window.location.assign(`#${anchor}`);
   });
 }
 
-function initDiffHeaderPopup() {
-  for (const btn of document.querySelectorAll('.diff-header-popup-btn:not([data-header-popup-initialized])')) {
-    btn.setAttribute('data-header-popup-initialized', '');
-    const popup = btn.nextElementSibling;
-    if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
-    createTippy(btn, {
-      content: popup,
-      theme: 'menu',
-      placement: 'bottom-end',
-      trigger: 'click',
-      interactive: true,
-      hideOnClick: true,
-    });
-  }
+function initDiffHeaderPopupMenu(btn: HTMLElement) {
+  const popup = btn.nextElementSibling;
+  if (!popup?.matches('.tippy-target')) throw new Error('Popup element not found');
+  createTippy(btn, {
+    content: popup,
+    theme: 'menu',
+    placement: 'bottom-end',
+    trigger: 'click',
+    interactive: true,
+    hideOnClick: true,
+  });
 }
 
-// Will be called when the show more (files) button has been pressed
-function onShowMoreFiles() {
-  // TODO: replace these calls with the "observer.ts" methods
-  initRepoIssueContentHistory();
-  initViewedCheckboxListenerFor();
-  initImageDiff();
-  initDiffHeaderPopup();
+function onDiffFileBodyChange() {
+  initRepoIssueContentHistory(); // it scans the whole page via a fetch, so it doesn't fit the per-element observer pattern
 }
 
-async function loadMoreFiles(btn: Element): Promise<boolean> {
-  if (btn.classList.contains('disabled')) {
-    return false;
-  }
-
+async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
+  if (btn.classList.contains('disabled')) return false;
   btn.classList.add('disabled');
   const url = btn.getAttribute('data-href')!;
   try {
-    const response = await GET(url);
-    const resp = await response.text();
-    const respDoc = parseDom(resp, 'text/html');
+    const resp = await GET(url);
+    if (!resp.ok) return false;
+    const respText = await resp.text();
+    const respDoc = parseDom(respText, 'text/html');
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
     // the response is a full HTML page, we need to extract the relevant contents:
     // * append the newly loaded file list items to the existing list
     const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
-    onShowMoreFiles();
+    onDiffFileBodyChange();
     return true;
   } catch (error) {
     console.error('Error:', error);
@@ -185,36 +175,24 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
   return false;
 }
 
-function initRepoDiffShowMore() {
-  addDelegatedEventListener(document, 'click', 'a#diff-show-more-files', (el, e) => {
-    e.preventDefault();
-    loadMoreFiles(el);
-  });
-
-  addDelegatedEventListener(document, 'click', 'a.diff-load-button', async (el, e) => {
-    e.preventDefault();
-    if (el.classList.contains('disabled')) return;
-
-    el.classList.add('disabled');
-    const url = el.getAttribute('data-href')!;
-
-    try {
-      const response = await GET(url);
-      const resp = await response.text();
-      const respDoc = parseDom(resp, 'text/html');
-      const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!;
-      const respFileBodyChildren = Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
-      el.parentElement!.replaceWith(...respFileBodyChildren);
-      // FIXME: calling onShowMoreFiles is not quite right here.
-      // But since onShowMoreFiles mixes "init diff box" and "init diff body" together,
-      // so it still needs to call it to make the "ImageDiff" and something similar work.
-      onShowMoreFiles();
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      el.classList.remove('disabled');
-    }
-  });
+async function diffLoadFileBody(el: Element) {
+  if (el.classList.contains('disabled')) return;
+  el.classList.add('disabled');
+  const url = el.getAttribute('data-href')!;
+  try {
+    const resp = await GET(url);
+    if (!resp.ok) return;
+    const respText = await resp.text();
+    const respDoc = parseDom(respText, 'text/html');
+    const respFileBody = respDoc.querySelector('#diff-file-boxes .diff-file-body .file-body')!;
+    const respFileBodyChildren = Array.from(respFileBody.children); // "children:HTMLCollection" will be empty after replaceWith
+    el.parentElement!.replaceWith(...respFileBodyChildren);
+    onDiffFileBodyChange();
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    el.classList.remove('disabled');
+  }
 }
 
 async function onLocationHashChange() {
@@ -245,7 +223,7 @@ async function onLocationHashChange() {
     const issueCommentPrefix = '#issuecomment-';
     if (currentHash.startsWith(issueCommentPrefix)) {
       const commentId = currentHash.substring(issueCommentPrefix.length);
-      const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${commentId},"]`);
+      const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${CSS.escape(commentId)},"]`);
       if (expandButton) {
         // avoid infinite loop, do not re-click the button if already clicked
         const attrAutoLoadClicked = 'data-auto-load-clicked';
@@ -264,31 +242,27 @@ async function onLocationHashChange() {
     }
 
     // Load more files, await ensures we don't block progress
-    const ok = await loadMoreFiles(showMoreButton);
+    const ok = await diffLoadMoreFiles(showMoreButton);
     if (!ok) return; // failed to load more files
   }
 }
 
-function initRepoDiffHashChangeListener() {
-  window.addEventListener('hashchange', onLocationHashChange);
-  onLocationHashChange();
-}
-
 export function initRepoDiffView() {
   initRepoDiffConversationForm(); // such form appears on the "conversation" page and "diff" page
+  registerGlobalEventFunc('click', 'diffLoadMoreFiles', (el) => { diffLoadMoreFiles(el) });
+  registerGlobalEventFunc('click', 'diffLoadFileBody', diffLoadFileBody);
+  registerGlobalEventFunc('click', 'diffFileViewFold', (el) => invertFileFolding(el.closest('.file-content')!, el));
+  registerGlobalInitFunc('initDiffHeaderPopupMenu', initDiffHeaderPopupMenu);
+  registerGlobalInitFunc('initDiffFileViewedForm', initDiffFileViewedForm);
+  registerGlobalInitFunc('initDiffFileImageDiff', initImageDiff);
+  registerGlobalInitFunc('initDiffFileViewToggle', initDiffFileViewToggle);
 
   if (!document.querySelector('#diff-file-boxes')) return;
   initRepoDiffConversationNav(); // "previous" and "next" buttons only appear on "diff" page
   initDiffFileTree();
   initDiffCommitSelect();
-  initRepoDiffShowMore();
-  initDiffHeaderPopup();
-  initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
-  initRepoDiffHashChangeListener();
 
-  registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
-  addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
-    invertFileFolding(el.closest('.file-content')!, el);
-  });
+  window.addEventListener('hashchange', onLocationHashChange);
+  onLocationHashChange();
 }

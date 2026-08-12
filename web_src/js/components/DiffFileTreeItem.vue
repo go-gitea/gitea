@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import {SvgIcon, type SvgName} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
+import type {SvgName} from '../svg.ts';
 import {shallowRef} from 'vue';
 import {type DiffStatus, type DiffTreeEntry, diffTreeStore} from '../modules/diff-file.ts';
 

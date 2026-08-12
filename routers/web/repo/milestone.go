@@ -105,7 +105,7 @@ func NewMilestone(ctx *context.Context) {
 
 // NewMilestonePost response for creating milestone
 func NewMilestonePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
+	form := web.GetForm[*forms.CreateMilestoneForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
@@ -161,7 +161,7 @@ func EditMilestone(ctx *context.Context) {
 
 // EditMilestonePost response for edting milestone
 func EditMilestonePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
+	form := web.GetForm[*forms.CreateMilestoneForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
@@ -262,7 +262,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 
 	prepareIssueFilterAndList(ctx, milestoneID, projectIDs, optional.None[bool]())
 
-	ret := issue.ParseTemplatesFromDefaultBranch(ctx.Repo.Repository, ctx.Repo.GitRepo)
+	ret := issue.ParseTemplatesFromDefaultBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo)
 	ctx.Data["NewIssueChooseTemplate"] = len(ret.IssueTemplates) > 0
 
 	ctx.Data["CanWriteIssues"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(false)

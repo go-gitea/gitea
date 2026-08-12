@@ -1,7 +1,6 @@
 import {initMarkupCodeMermaid} from './mermaid.ts';
 import {initMarkupCodeMath} from './math.ts';
 import {initMarkupCodeCopy} from './codecopy.ts';
-import {initMarkupRenderAsciicast} from './asciicast.ts';
 import {initMarkupTasklist} from './tasklist.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initExternalRenderIframe} from './render-iframe.ts';
@@ -24,6 +23,5 @@ export function initMarkupContent(): void {
     initMarkupTasklist(el);
     initMarkupCodeMermaid(el);
     initMarkupCodeMath(el);
-    initMarkupRenderAsciicast(el);
   });
 }

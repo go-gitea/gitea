@@ -19,6 +19,8 @@ import (
 	_ "gitea.dev/services/auth/source/ldap" // register the ldap source
 	_ "gitea.dev/services/auth/source/pam"  // register the pam source
 	_ "gitea.dev/services/auth/source/sspi" // register the sspi source
+
+	"xorm.io/builder"
 )
 
 // UserSignIn validates user name and password.
@@ -27,9 +29,8 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 	isEmail := false
 	if strings.Contains(username, "@") {
 		isEmail = true
-		emailAddress := user_model.EmailAddress{LowerEmail: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		has, err := db.GetEngine(ctx).Get(&emailAddress)
+		emailAddress, has, err := db.Get[user_model.EmailAddress](ctx, builder.Eq{"lower_email": strings.ToLower(strings.TrimSpace(username))})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -51,9 +52,23 @@ func UserSignIn(ctx context.Context, username, password string) (*user_model.Use
 	}
 
 	if user != nil {
-		hasUser, err := user_model.GetIndividualUser(ctx, user)
-		if err != nil {
-			return nil, nil, err
+		var hasUser bool
+		var err error
+		if user.ID > 0 {
+			user, err = user_model.GetUserByID(ctx, user.ID)
+			if err != nil && !user_model.IsErrUserNotExist(err) {
+				return nil, nil, err
+			}
+			if user != nil && user.Type != user_model.UserTypeIndividual {
+				return nil, nil, user_model.ErrUserNotExist{Name: username}
+			}
+			hasUser = user != nil
+		} else if user.LowerName != "" {
+			user, err = user_model.GetIndividualUserByName(ctx, user.LowerName)
+			if err != nil && !user_model.IsErrUserNotExist(err) {
+				return nil, nil, err
+			}
+			hasUser = user != nil
 		}
 
 		if hasUser {

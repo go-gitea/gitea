@@ -3,8 +3,13 @@
 	<div>
 		<h1>Commit Sign Badges</h1>
 		{{range $commit := .MockCommits}}
+<<<<<<< HEAD
 			<div class="flex-text-block my-2">
 				{{template "repo/commit_sign_badge" dict "Commit" $commit "CommitBaseLink" "/devtest/commit" "CommitSignVerification" $commit.Verification}}
+=======
+			<div class="flex-text-block tw-my-2">
+				{{template "repo/commit_sign_badge" dict "Commit" $commit.GitCommit "CommitBaseLink" "/devtest/commit" "CommitSignVerification" $commit.Verification}}
+>>>>>>> origin/main
 				{{template "repo/commit_sign_badge" dict "CommitSignVerification" $commit.Verification}}
 			</div>
 		{{end}}

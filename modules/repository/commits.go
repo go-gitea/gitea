@@ -9,19 +9,14 @@ import (
 	"net/url"
 	"time"
 
-	"gitea.dev/models/avatars"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
-	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 )
 
 // PushCommit represents a commit in a push operation.
+// This struct is marshaled as JSON (see ActionContent2Commits)
 type PushCommit struct {
 	Sha1           string
 	Message        string
@@ -33,6 +28,7 @@ type PushCommit struct {
 }
 
 // PushCommits represents list of commits in a push operation.
+// This struct is marshaled as JSON (see ActionContent2Commits)
 type PushCommits struct {
 	Commits    []*PushCommit
 	HeadCommit *PushCommit
@@ -73,7 +69,7 @@ func ToAPIPayloadCommit(ctx context.Context, emailUsers map[string]*user_model.U
 		committerUsername = committer.Name
 	}
 
-	fileStatus, err := gitrepo.GetCommitFileStatus(ctx, repo, commit.Sha1)
+	fileStatus, err := git.GetCommitFileStatus(ctx, repo, commit.Sha1)
 	if err != nil {
 		return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %w", commit.Sha1, err)
 	}
@@ -126,26 +122,6 @@ func (pc *PushCommits) ToAPIPayloadCommits(ctx context.Context, repo *repo_model
 		}
 	}
 	return commits, headCommit, nil
-}
-
-// AvatarLink tries to match user in database with e-mail
-// in order to show custom avatar, and falls back to general avatar link.
-func (pc *PushCommits) AvatarLink(ctx context.Context, email string) string {
-	size := avatars.DefaultAvatarPixelSize * setting.Avatar.RenderedSizeFactor
-
-	v, _ := cache.GetWithContextCache(ctx, cachegroup.EmailAvatarLink, email, func(ctx context.Context, email string) (string, error) {
-		u, err := user_model.GetUserByEmail(ctx, email)
-		if err != nil {
-			if !user_model.IsErrUserNotExist(err) {
-				log.Error("GetUserByEmail: %v", err)
-				return "", err
-			}
-			return avatars.GenerateEmailAvatarFastLink(ctx, email, size), nil
-		}
-		return u.AvatarLinkWithSize(ctx, size), nil
-	})
-
-	return v
 }
 
 // CommitToPushCommit transforms a git.Commit to PushCommit type.

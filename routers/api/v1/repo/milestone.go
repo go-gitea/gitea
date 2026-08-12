@@ -147,7 +147,7 @@ func CreateMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Milestone"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.CreateMilestoneOption)
+	form := web.GetForm[*api.CreateMilestoneOption](ctx)
 
 	var deadlineUnix int64
 	if form.Deadline != nil {
@@ -207,7 +207,7 @@ func EditMilestone(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Milestone"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditMilestoneOption)
+	form := web.GetForm[*api.EditMilestoneOption](ctx)
 	milestone := getMilestoneByIDOrName(ctx)
 	if ctx.Written() {
 		return

@@ -721,11 +721,25 @@ func TestAPIRepoGetAssignees(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees", user.Name, repo.Name).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 	assignees := DecodeJSON(t, resp, []*api.User{})
-	assert.Len(t, assignees, 2)
+	assert.Len(t, assignees, 1)
+
+	assignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, assignee.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	nonAssignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, nonAssignee.Name).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees/%s", user.Name, repo.Name, "org3").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusBadRequest)
 }

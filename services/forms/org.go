@@ -31,7 +31,7 @@ type CreateOrgForm struct {
 // Validate validates the fields
 func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 // UpdateOrgSettingForm form for updating organization settings
@@ -48,7 +48,7 @@ type UpdateOrgSettingForm struct {
 // Validate validates the fields
 func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }
 
 type RenameOrgForm struct {
@@ -70,10 +70,11 @@ type CreateTeamForm struct {
 	Permission       string
 	RepoAccess       string
 	CanCreateOrgRepo bool
+	Visibility       string `binding:"OmitEmpty;In(public,limited,private)"`
 }
 
 // Validate validates the fields
 func (f *CreateTeamForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }

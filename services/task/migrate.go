@@ -27,15 +27,19 @@ import (
 )
 
 func handleCreateError(owner *user_model.User, err error) error {
+	var (
+		errNameReserved          db.ErrNameReserved
+		errNamePatternNotAllowed db.ErrNamePatternNotAllowed
+	)
 	switch {
 	case repo_model.IsErrReachLimitOfRepo(err):
 		return fmt.Errorf("you have already reached your limit of %d repositories", owner.MaxCreationLimit())
 	case repo_model.IsErrRepoAlreadyExist(err):
 		return errors.New("the repository name is already used")
-	case db.IsErrNameReserved(err):
-		return fmt.Errorf("the repository name '%s' is reserved", err.(db.ErrNameReserved).Name)
-	case db.IsErrNamePatternNotAllowed(err):
-		return fmt.Errorf("the pattern '%s' is not allowed in a repository name", err.(db.ErrNamePatternNotAllowed).Pattern)
+	case errors.As(err, &errNameReserved):
+		return fmt.Errorf("the repository name '%s' is reserved", errNameReserved.Name)
+	case errors.As(err, &errNamePatternNotAllowed):
+		return fmt.Errorf("the pattern '%s' is not allowed in a repository name", errNamePatternNotAllowed.Pattern)
 	default:
 		return err
 	}

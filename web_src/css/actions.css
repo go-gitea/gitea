@@ -43,26 +43,54 @@
   align-items: center;
 }
 
-.run-list .item-trailing {
+.run-list-item-trailing {
+  display: flex;
+  gap: var(--gap-block);
+  align-items: center;
+  justify-content: end;
   flex-wrap: nowrap;
   width: 280px;
   flex: 0 0 280px;
 }
 
-.run-list-ref {
-  display: inline-block !important;
-  max-width: 105px;
+.ui.label.run-list-ref {
+  display: inline-block;
+  max-width: 110px;
 }
 
 @media (max-width: 767.98px) {
-  .run-list .item-trailing {
+  .run-list-item-trailing {
     flex-direction: column;
     align-items: flex-end;
-    width: auto;
-    flex-basis: auto;
+    max-width: 30%;
+    flex: 0 0 30%;
   }
-  .run-list-item-right,
-  .run-list-ref {
+  .run-list-item-right {
     max-width: 110px;
   }
+}
+
+.repository.actions .ui.vertical.menu details.scoped-workflow-group > .item {
+  display: flex;
+  padding-left: 2.5em;
+}
+.repository.actions .ui.vertical.menu details.scoped-workflow-group > .item > .gt-ellipsis {
+  font-size: 0.85714286em;
+}
+.repository.actions .ui.vertical.menu details.scoped-workflow-group > .item > .label {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.repository.actions .ui.vertical.menu details.scoped-workflow-group > summary {
+  justify-content: flex-start;
+  gap: var(--gap-block);
+  padding: 0.92857143em 1.14285714em;
+}
+.repository.actions .ui.vertical.menu details.scoped-workflow-group > summary::after {
+  order: 1;
+}
+.repository.actions .ui.vertical.menu details.scoped-workflow-group > summary > .label {
+  order: 2;
+  margin-left: auto;
 }

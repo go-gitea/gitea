@@ -1,6 +1,6 @@
 import {build, defineConfig} from 'vite';
-import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
+import {sharedPlugins, vueDefines} from './tools/shared.ts';
 import {licensePlugin, wrap} from 'rolldown-license-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import path, {basename, join, parse} from 'node:path';
@@ -28,15 +28,6 @@ for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirnam
   themes[parse(path).name] = join(import.meta.dirname, path);
 }
 
-const webComponents = new Set([
-  // our own, in web_src/js/webcomponents
-  'overflow-menu',
-  'relative-time',
-  // from dependencies
-  'markdown-toolbar',
-  'text-expander',
-]);
-
 function failOnWarningsPlugin(): Rolldown.Plugin {
   let warningCount = 0;
   return {
@@ -44,7 +35,7 @@ function failOnWarningsPlugin(): Rolldown.Plugin {
     onLog(level) {
       if (level === 'warn') warningCount++;
     },
-    buildEnd() {
+    closeBundle() {
       if (!warningCount) return;
       throw new Error(`${warningCount} warnings present`);
     },
@@ -55,7 +46,7 @@ const commonRolldownOptions: Rolldown.RolldownOptions = {
   checks: {
     pluginTimings: false,
   },
-  ...(env.CI ? {plugins: [failOnWarningsPlugin()]} : {}),
+  ...(env.CI && {plugins: [failOnWarningsPlugin()]}),
 };
 
 function commonViteOpts({build, ...other}: InlineConfig): InlineConfig {
@@ -181,7 +172,7 @@ function reducedSourcemapPlugin(): Plugin {
     'js/swagger.',
     'js/external-render-frontend.',
     'js/external-render-helper.',
-    'js/eventsource.sharedworker.',
+    'js/user-events.sharedworker.',
   ];
   return {
     name: 'reduced-sourcemap',
@@ -269,7 +260,7 @@ export default defineConfig(commonViteOpts({
         index: join(import.meta.dirname, 'web_src/js/index.ts'),
         swagger: join(import.meta.dirname, 'web_src/js/swagger.ts'),
         'external-render-frontend': join(import.meta.dirname, 'web_src/js/external-render-frontend.ts'),
-        'eventsource.sharedworker': join(import.meta.dirname, 'web_src/js/eventsource.sharedworker.ts'),
+        'user-events.sharedworker': join(import.meta.dirname, 'web_src/js/user-events.sharedworker.ts'),
         devtest: join(import.meta.dirname, 'web_src/css/devtest.css'),
         ...themes,
       },
@@ -296,11 +287,23 @@ export default defineConfig(commonViteOpts({
       },
     },
   },
+<<<<<<< HEAD
   define: {
     __VUE_OPTIONS_API__: true,
     __VUE_PROD_DEVTOOLS__: false,
     __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
   },
+=======
+  css: {
+    transformer: 'postcss',
+    postcss: {
+      plugins: [
+        tailwindcss(tailwindConfig),
+      ],
+    },
+  },
+  define: vueDefines,
+>>>>>>> origin/main
   plugins: [
     tailwindcss(),
     iifePlugin('iife.ts'),
@@ -308,14 +311,7 @@ export default defineConfig(commonViteOpts({
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
-    stringPlugin(),
-    vuePlugin({
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag) => webComponents.has(tag),
-        },
-      },
-    }),
+    ...sharedPlugins(),
     isProduction ? licensePlugin({
       done(deps, context) {
         const line = '-'.repeat(80);

@@ -155,8 +155,6 @@
 					<dt>{{ctx.Locale.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
 					<dd>{{svg (Iif .Service.DefaultAllowOnlyContributorsToTrackTime "octicon-check" "octicon-x")}}</dd>
 				{{end}}
-				<dt>{{ctx.Locale.Tr "admin.config.default_visibility_organization"}}</dt>
-				<dd>{{.Service.DefaultOrgVisibility}}</dd>
 
 				<dt>{{ctx.Locale.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>

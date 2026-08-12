@@ -75,6 +75,7 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/util"
@@ -98,7 +99,7 @@ type ArtifactContext struct {
 
 func init() {
 	web.RegisterResponseStatusProvider[*ArtifactContext](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(artifactContextKey).(*ArtifactContext)
+		return reqctx.MustContextValue[*ArtifactContext](req.Context(), artifactContextKey)
 	})
 }
 
@@ -121,6 +122,9 @@ func ArtifactsRoutes(prefix string) *web.Router {
 		m.Get("/{artifact_id}/download", r.downloadArtifact)
 	})
 
+	// Job summary upload endpoint (GITHUB_STEP_SUMMARY).
+	m.Put(jobSummaryRouteBase, uploadJobSummary)
+
 	return m
 }
 
@@ -140,7 +144,7 @@ func ArtifactContexter() func(next http.Handler) http.Handler {
 				return
 			}
 
-			// New act_runner uses jwt to authenticate
+			// New runner uses jwt to authenticate
 			tID, err := actions_service.ParseAuthorizationToken(req)
 
 			var task *actions.ActionTask
@@ -157,7 +161,7 @@ func ArtifactContexter() func(next http.Handler) http.Handler {
 					return
 				}
 			} else {
-				// Old act_runner uses GITEA_TOKEN to authenticate
+				// Old runner uses GITEA_TOKEN to authenticate
 				authToken := strings.TrimPrefix(authHeader, "Bearer ")
 
 				task, err = actions.GetRunningTaskByToken(req.Context(), authToken)

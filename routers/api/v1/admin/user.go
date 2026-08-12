@@ -40,7 +40,7 @@ func parseAuthSource(ctx *context.APIContext, u *user_model.User, sourceID int64
 	source, err := auth.GetSourceByID(ctx, sourceID)
 	if err != nil {
 		if auth.IsErrSourceNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -75,7 +75,7 @@ func CreateUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateUserOption)
+	form := web.GetForm[*api.CreateUserOption](ctx)
 
 	u := &user_model.User{
 		Name:               form.Username,
@@ -97,14 +97,12 @@ func CreateUser(ctx *context.APIContext) {
 
 	if u.LoginType == auth.Plain {
 		if len(form.Password) < setting.MinPasswordLength {
-			err := errors.New("PasswordIsRequired")
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, "PasswordIsRequired")
 			return
 		}
 
 		if !password.IsComplexEnough(form.Password) {
-			err := errors.New("PasswordComplexity")
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, "PasswordComplexity")
 			return
 		}
 
@@ -112,7 +110,7 @@ func CreateUser(ctx *context.APIContext) {
 			if password.IsErrIsPwnedRequest(err) {
 				log.Error(err.Error())
 			}
-			ctx.APIError(http.StatusBadRequest, errors.New("PasswordPwned"))
+			ctx.APIError(http.StatusBadRequest, "PasswordPwned")
 			return
 		}
 	}
@@ -123,7 +121,7 @@ func CreateUser(ctx *context.APIContext) {
 	}
 
 	if form.Visibility != "" {
-		visibility := api.VisibilityModes[string(form.Visibility)]
+		visibility := api.VisibilityModes[form.Visibility]
 		overwriteDefault.Visibility = &visibility
 	}
 
@@ -143,7 +141,7 @@ func CreateUser(ctx *context.APIContext) {
 			user_model.IsErrEmailCharIsNotSupported(err) ||
 			user_model.IsErrEmailInvalid(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -192,7 +190,7 @@ func EditUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.EditUserOption)
+	form := web.GetForm[*api.EditUserOption](ctx)
 
 	authOpts := &user_service.UpdateAuthOptions{
 		LoginSource:        optional.FromNonDefault(form.SourceID),
@@ -204,11 +202,11 @@ func EditUser(ctx *context.APIContext) {
 	if err := user_service.UpdateAuth(ctx, ctx.ContextUser, authOpts); err != nil {
 		switch {
 		case errors.Is(err, password.ErrMinLength):
-			ctx.APIError(http.StatusBadRequest, fmt.Errorf("password must be at least %d characters", setting.MinPasswordLength))
+			ctx.APIError(http.StatusBadRequest, fmt.Sprintf("password must be at least %d characters", setting.MinPasswordLength))
 		case errors.Is(err, password.ErrComplexity):
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		case errors.Is(err, password.ErrIsPwned), password.IsErrIsPwnedRequest(err):
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -222,9 +220,9 @@ func EditUser(ctx *context.APIContext) {
 				if !user_model.IsEmailDomainAllowed(*form.Email) {
 					err = fmt.Errorf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", *form.Email)
 				}
-				ctx.APIError(http.StatusBadRequest, err)
+				ctx.APIError(http.StatusBadRequest, err.Error())
 			case user_model.IsErrEmailAlreadyUsed(err):
-				ctx.APIError(http.StatusBadRequest, err)
+				ctx.APIError(http.StatusBadRequest, err.Error())
 			default:
 				ctx.APIErrorInternal(err)
 			}
@@ -239,7 +237,7 @@ func EditUser(ctx *context.APIContext) {
 		Description:             optional.FromPtr(form.Description),
 		IsActive:                optional.FromPtr(form.Active),
 		IsAdmin:                 user_service.UpdateOptionFieldFromPtr(form.Admin),
-		Visibility:              optional.FromMapLookup(api.VisibilityModes, string(form.Visibility)),
+		Visibility:              optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		AllowGitHook:            optional.FromPtr(form.AllowGitHook),
 		AllowImportLocal:        optional.FromPtr(form.AllowImportLocal),
 		MaxRepoCreation:         optional.FromPtr(form.MaxRepoCreation),
@@ -249,7 +247,7 @@ func EditUser(ctx *context.APIContext) {
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
 		if user_model.IsErrDeleteLastAdminUser(err) {
-			ctx.APIError(http.StatusBadRequest, err)
+			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -289,13 +287,13 @@ func DeleteUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	if ctx.ContextUser.IsOrganization() {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
+		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not user")
 		return
 	}
 
 	// admin should not delete themself
 	if ctx.ContextUser.ID == ctx.Doer.ID {
-		ctx.APIError(http.StatusUnprocessableEntity, errors.New("you cannot delete yourself"))
+		ctx.APIError(http.StatusUnprocessableEntity, "you cannot delete yourself")
 		return
 	}
 
@@ -304,7 +302,7 @@ func DeleteUser(ctx *context.APIContext) {
 			org_model.IsErrUserHasOrgs(err) ||
 			packages_model.IsErrUserOwnPackages(err) ||
 			user_model.IsErrDeleteLastAdminUser(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -342,7 +340,7 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	form := web.GetForm[*api.CreateKeyOption](ctx)
 
 	user.CreateUserPublicKey(ctx, *form, ctx.ContextUser.ID)
 }
@@ -471,13 +469,11 @@ func SearchUsers(ctx *context.APIContext) {
 
 	var visible []api.VisibleType
 	visibilityParam := ctx.FormString("visibility")
-	if len(visibilityParam) > 0 {
-		if visibility, ok := api.VisibilityModes[visibilityParam]; ok {
-			visible = []api.VisibleType{visibility}
-		} else {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid visibility: \"%s\"", visibilityParam))
-			return
-		}
+	if visibility, ok := api.VisibilityModes[api.VisibilityString(visibilityParam)]; ok {
+		visible = []api.VisibleType{visibility}
+	} else if visibilityParam != "" {
+		ctx.APIError(http.StatusUnprocessableEntity, "invalid visibility")
+		return
 	}
 
 	searchOpts := user_model.SearchUserOptions{
@@ -551,16 +547,16 @@ func RenameUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	if ctx.ContextUser.IsOrganization() {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("%s is an organization not a user", ctx.ContextUser.Name))
+		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization but not user")
 		return
 	}
 
-	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
+	newName := web.GetForm[*api.RenameUserOption](ctx).NewName
 
 	// Check if username has been changed
 	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

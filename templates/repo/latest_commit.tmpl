@@ -2,6 +2,7 @@
 {{if not .LatestCommit}}
 	…
 {{else}}
+<<<<<<< HEAD
 	<span class="author-wrapper">
 	{{- if .LatestCommitUser -}}
 		{{- ctx.AvatarUtils.Avatar .LatestCommitUser 20 "mr-2" -}}
@@ -11,6 +12,9 @@
 		<strong>{{.LatestCommit.Author.Name}}</strong>
 	{{- end -}}
 	</span>
+=======
+	{{ctx.RenderUtils.AvatarStackWithNames .LatestCommitAvatarStackData}}
+>>>>>>> origin/main
 
 	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
 

@@ -1,12 +1,13 @@
-import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
-import {html, htmlRaw} from './utils/html.ts';
+import {htmlRaw} from './utils/html.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
+import giteaFavicon from '../../public/assets/img/favicon.svg';
 import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
+import octiconArrowLeft from '../../public/assets/img/svg/octicon-arrow-left.svg';
 import octiconArrowSwitch from '../../public/assets/img/svg/octicon-arrow-switch.svg';
 import octiconBlocked from '../../public/assets/img/svg/octicon-blocked.svg';
 import octiconBold from '../../public/assets/img/svg/octicon-bold.svg';
@@ -49,6 +50,7 @@ import octiconHistory from '../../public/assets/img/svg/octicon-history.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
 import octiconHome from '../../public/assets/img/svg/octicon-home.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
+import octiconInfo from '../../public/assets/img/svg/octicon-info.svg';
 import octiconIssueClosed from '../../public/assets/img/svg/octicon-issue-closed.svg';
 import octiconIssueOpened from '../../public/assets/img/svg/octicon-issue-opened.svg';
 import octiconItalic from '../../public/assets/img/svg/octicon-italic.svg';
@@ -92,8 +94,10 @@ const svgs = {
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
+  'gitea-favicon': giteaFavicon,
   'gitea-running': giteaRunning,
   'octicon-archive': octiconArchive,
+  'octicon-arrow-left': octiconArrowLeft,
   'octicon-arrow-switch': octiconArrowSwitch,
   'octicon-blocked': octiconBlocked,
   'octicon-bold': octiconBold,
@@ -136,6 +140,7 @@ const svgs = {
   'octicon-horizontal-rule': octiconHorizontalRule,
   'octicon-home': octiconHome,
   'octicon-image': octiconImage,
+  'octicon-info': octiconInfo,
   'octicon-issue-closed': octiconIssueClosed,
   'octicon-issue-opened': octiconIssueOpened,
   'octicon-italic': octiconItalic,
@@ -197,6 +202,10 @@ export function svg(name: SvgName, size = 16, classNames?: string | string[]): s
   return serializeXml(svgNode);
 }
 
+export function svgRaw(name: SvgName, size = 16, classNames?: string | string[]) {
+  return htmlRaw(svg(name, size, classNames));
+}
+
 export function svgParseOuterInner(name: SvgName) {
   const svgStr = svgs[name];
   if (!svgStr) throw new Error(`Unknown SVG icon: ${name}`);
@@ -214,6 +223,7 @@ export function svgParseOuterInner(name: SvgName) {
   const svgOuter = svgDoc.firstChild as SVGElement;
   return {svgOuter, svgInnerHtml};
 }
+<<<<<<< HEAD
 
 export const SvgIcon = defineComponent({
   name: 'SvgIcon',
@@ -247,3 +257,5 @@ export const SvgIcon = defineComponent({
     });
   },
 });
+=======
+>>>>>>> origin/main

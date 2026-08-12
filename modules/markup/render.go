@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup/common"
 	"gitea.dev/modules/markup/internal"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/setting"
@@ -211,11 +212,11 @@ func RenderIFrame(ctx *RenderContext, opts *ExternalRendererOptions, output io.W
 		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
 		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
 	)
-	var extraAttrs template.HTML
-	if opts.ContentSandbox != "" {
-		extraAttrs = htmlutil.HTMLFormat(` sandbox="%s"`, opts.ContentSandbox)
-	}
-	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"%s></iframe>`, src, extraAttrs)
+
+	// The render response should always have correct "sandbox" limits (no same-origin),
+	// otherwise the "render link" direct access can still cause XSS without iframe.
+	// So here we do not need to set sandbox attribute on the iframe.
+	_, err := htmlutil.HTMLPrintf(output, `<iframe data-src="%s" data-global-init="initExternalRenderIframe" class="external-render-iframe"></iframe>`, src)
 	return err
 }
 
@@ -303,9 +304,7 @@ func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, 
 // Init initializes the render global variables
 func Init(renderHelpFuncs *RenderHelperFuncs) {
 	DefaultRenderHelperFuncs = renderHelpFuncs
-	if len(setting.Markdown.CustomURLSchemes) > 0 {
-		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
-	}
+	common.InitLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
 	// since setting maybe changed extensions, this will reload all renderer extensions mapping
 	fileNameRenderers = make(map[string]Renderer)

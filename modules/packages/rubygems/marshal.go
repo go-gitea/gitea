@@ -107,13 +107,13 @@ func (e *MarshalEncoder) marshal(v any) error {
 		return e.marshalArray(val)
 	}
 
-	switch typ.Name() {
-	case "RubyUserMarshal":
-		return e.marshalUserMarshal(val.Interface().(RubyUserMarshal))
-	case "RubyUserDef":
-		return e.marshalUserDef(val.Interface().(RubyUserDef))
-	case "RubyObject":
-		return e.marshalObject(val.Interface().(RubyObject))
+	switch obj := val.Interface().(type) {
+	case RubyUserMarshal:
+		return e.marshalUserMarshal(obj)
+	case RubyUserDef:
+		return e.marshalUserDef(obj)
+	case RubyObject:
+		return e.marshalObject(obj)
 	}
 
 	return ErrUnsupportedType

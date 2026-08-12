@@ -38,22 +38,15 @@ func argsSet(c *cli.Command, args ...string) error {
 }
 
 // confirm waits for user input which confirms an action
-func confirm() (bool, error) {
+func confirm(stdin io.Reader, stdout io.Writer, msg string, args ...any) bool {
 	var response string
-
-	_, err := fmt.Scanln(&response)
-	if err != nil {
-		return false, err
-	}
-
+	_, _ = fmt.Fprintf(stdout, msg, args...)
+	_, _ = fmt.Fscanln(stdin, &response)
 	switch strings.ToLower(response) {
 	case "y", "yes":
-		return true, nil
-	case "n", "no":
-		return false, nil
-	default:
-		return false, errors.New(response + " isn't a correct confirmation string")
+		return true
 	}
+	return false
 }
 
 func initDB(ctx context.Context) error {

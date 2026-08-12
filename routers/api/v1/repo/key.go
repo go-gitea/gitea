@@ -179,7 +179,7 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 	} else if asymkey_model.IsErrKeyUnableVerify(err) {
 		ctx.APIError(http.StatusUnprocessableEntity, "Unable to verify key content")
 	} else {
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid key content: %w", err))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid key content: %v", err))
 	}
 }
 
@@ -231,7 +231,7 @@ func CreateDeployKey(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	form := web.GetForm[*api.CreateKeyOption](ctx)
 	content, err := asymkey_model.CheckPublicKeyString(form.Key)
 	if err != nil {
 		HandleCheckKeyStringError(ctx, err)

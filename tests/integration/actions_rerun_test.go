@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -142,6 +142,28 @@ jobs:
 		runLatestAttempt := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run.ID})
 		job2LatestAttempt := getLatestAttemptJobByTemplateJobID(t, run.ID, job2.ID)
 		assert.Equal(t, runLatestAttempt.LatestAttemptID, job2LatestAttempt.RunAttemptID)
+
+		t.Run("RerunFailedWithNoFailedJobs", func(t *testing.T) {
+			// The run is fully successful, so an empty failed-job list must be rejected rather than fall
+			// through to re-running the whole run.
+			before := getRunLatestAttemptNum(t, run.ID)
+			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun-failed", user2.Name, repo.Name, run.ID))
+			resp := session.MakeRequest(t, req, http.StatusBadRequest)
+			assert.Contains(t, resp.Body.String(), "no failed jobs")
+			assert.Equal(t, before, getRunLatestAttemptNum(t, run.ID))
+			runner.fetchNoTask(t) // no new tasks were scheduled
+		})
+
+		t.Run("RerunFailedWithNoFailedJobsAPI", func(t *testing.T) {
+			// Same rejection on the API route: an empty failed-job list must not fall through to a full re-run.
+			before := getRunLatestAttemptNum(t, run.ID)
+			req := NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/rerun-failed-jobs", user2.Name, repo.Name, run.ID)).
+				AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusBadRequest)
+			assert.Contains(t, resp.Body.String(), "no failed jobs")
+			assert.Equal(t, before, getRunLatestAttemptNum(t, run.ID))
+			runner.fetchNoTask(t)
+		})
 
 		t.Run("AttemptAPI", func(t *testing.T) {
 			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/attempts/2", user2.Name, repo.Name, run.ID)).

@@ -72,7 +72,7 @@ EOF
 
 	// reader can't push
 	_, _, runErr = gitcmd.NewCommand("push", "origin", "refs/heads/master").WithDir(dstLocalPath).RunStdString(t.Context())
-	assert.True(t, gitcmd.StderrContains(runErr, "remote: Repository not found\n"))
+	assert.Contains(t, runErr.Stderr(), "remote: Repository not found\n")
 	req := NewRequest(t, "GET", "/user2/repo1/wiki/raw/Home.md")
 	resp := MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "This is the home page!")

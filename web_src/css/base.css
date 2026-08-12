@@ -273,7 +273,6 @@ a {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-line: none;
-  text-decoration-skip-ink: all;
 }
 
 a:hover {
@@ -382,22 +381,17 @@ a.label,
   color: var(--color-text-light-2);
 }
 
+<<<<<<< HEAD
 /* styles from removed fomantic transition module ('hidden' is now Tailwind's display:none utility) */
 .fm-visible.fm-transition {
   display: block !important;
   visibility: visible !important;
 }
 
+=======
+>>>>>>> origin/main
 .ui.comments .comment .metadata {
   color: var(--color-text-light-2);
-}
-
-img.ui.avatar,
-.ui.avatar img,
-.ui.avatar svg {
-  border-radius: var(--border-radius);
-  object-fit: contain;
-  aspect-ratio: 1;
 }
 
 .full.height {
@@ -434,11 +428,6 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.ui.message.flash-message pre {
-  white-space: pre-line;
-  margin: 0;
-}
-
 .ui .header > i + .content {
   padding-left: 0.75rem;
   vertical-align: middle;
@@ -465,11 +454,14 @@ img.ui.avatar,
   margin-right: 4px;
 }
 
+<<<<<<< HEAD
 .ui.fm-inline.delete-button {
   padding: 8px 15px;
   font-weight: var(--font-weight-normal);
 }
 
+=======
+>>>>>>> origin/main
 .ui .migrate {
   color: var(--color-text-light-2) !important;
 }
@@ -482,10 +474,13 @@ img.ui.avatar,
   color: var(--color-text) !important;
 }
 
+<<<<<<< HEAD
 .ui .g-border {
   border: 1px solid;
 }
 
+=======
+>>>>>>> origin/main
 .user-menu > .item {
   width: 100%;
   border-radius: 0 !important;
@@ -547,6 +542,11 @@ overflow-menu {
   border-bottom: 1px solid var(--color-secondary) !important;
   display: flex;
   position: relative;
+}
+
+/* hide until JS has arranged the items, so the un-collapsed menu is never painted */
+overflow-menu:not([data-ready]) {
+  visibility: hidden;
 }
 
 overflow-menu .overflow-menu-popup {
@@ -636,6 +636,12 @@ overflow-menu .overflow-menu-button:hover {
 
 overflow-menu .ui.label {
   margin-left: 7px !important; /* save some space */
+  font-variant-numeric: tabular-nums; /* equal-width digits so counts don't reflow the row */
+}
+
+/* count not loaded yet, keep the reserved space so filling it in does not shift the row */
+overflow-menu .ui.label:empty {
+  visibility: hidden;
 }
 
 .activity-bar-graph {
@@ -867,7 +873,8 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: var(--gap-inline);
   vertical-align: middle;
-  min-width: 0; /* make ellipsis work */
+  max-width: 100%; /* the inner part might have "gt-ellipsis" */
+  min-width: 0; /* if it is the top flex container, "max-width" works; but if it is inside another flex container, the parent needs to handle the x-axis and here also needs "min-width" */
 }
 
 .ui.ui.labeled.button {
@@ -876,17 +883,20 @@ table th[data-sortt-desc] .svg {
 }
 
 /* this is useful to make a left-right (e.g.: title .... operations) layout with default gap, and it wrap for small widths */
+.ui.modal .header.flex-left-right,
 .flex-left-right {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--gap-block);
+  max-width: 100%;
   min-width: 0;
 }
 
 .ui.list.flex-items-block > .item,
 .ui.vertical.menu.flex-items-block > .item,
+.ui.vertical.menu .item.flex-text-block,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {
@@ -894,6 +904,7 @@ table th[data-sortt-desc] .svg {
   align-items: center;
   gap: var(--gap-block);
   max-width: 100%;
+  min-width: 0;
 }
 
 .flex-left-right > .ui.button,

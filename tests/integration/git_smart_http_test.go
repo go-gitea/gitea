@@ -10,7 +10,9 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -26,6 +28,8 @@ func TestGitSmartHTTP(t *testing.T) {
 		testGitSmartHTTPTokenScopes(t)
 		testRenamedRepoRedirect(t)
 		testGitArchiveRemote(t, u)
+		t.Run("AnonymousAccess-Repo", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, false) })
+		t.Run("AnonymousAccess-Wiki", func(t *testing.T) { testGitSmartHTTPPrivateRepoAnonymousAccess(t, true) })
 	})
 }
 
@@ -143,4 +147,34 @@ func testGitArchiveRemote(t *testing.T, u *url.URL) {
 	t.Run("Fetch HEAD archive", doGitRemoteArchive(u.String(), "HEAD"))
 	t.Run("Fetch HEAD archive subpath", doGitRemoteArchive(u.String(), "HEAD", "test"))
 	t.Run("list compression options", doGitRemoteArchive(u.String(), "--list"))
+}
+
+// testGitSmartHTTPPrivateRepoAnonymousAccess tests that a private repo with
+// anonymous code access enabled can be cloned without credentials.
+func testGitSmartHTTPPrivateRepoAnonymousAccess(t *testing.T, isWiki bool) {
+	// repo1 (ID=1) belongs to user2 and is public by default in fixtures
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, OwnerName: "user2", Name: "repo1"})
+	unitType := util.Iif(isWiki, unit.TypeWiki, unit.TypeCode)
+	repoLink := "/" + repo.FullName() + util.Iif(isWiki, ".wiki", "")
+	gitPullPath := repoLink + "/info/refs?service=git-upload-pack"
+	gitPushPath := repoLink + "/info/refs?service=git-receive-pack"
+
+	// make the repo private
+	require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), &repo_model.Repository{ID: repo.ID, IsPrivate: true}, "is_private"))
+
+	// without anonymous access: anonymous pull must require auth
+	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusUnauthorized)
+
+	// enable anonymous read access on the unit
+	require.NoError(t, repo_model.UpdateRepoUnitPublicAccess(t.Context(), &repo_model.RepoUnit{RepoID: repo.ID, Type: unitType, AnonymousAccessMode: perm.AccessModeRead}))
+
+	// with anonymous code access: anonymous pull must succeed without credentials
+	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusOK)
+
+	// push (receive-pack) must still require auth even with anonymous code access
+	MakeRequest(t, NewRequest(t, "GET", gitPushPath), http.StatusUnauthorized)
+
+	// RequireSignInViewStrict must override anonymous access
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+	MakeRequest(t, NewRequest(t, "GET", gitPullPath), http.StatusUnauthorized)
 }

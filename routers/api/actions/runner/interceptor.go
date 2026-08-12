@@ -8,7 +8,9 @@ import (
 	"crypto/subtle"
 	"errors"
 	"strings"
+	"time"
 
+	"gitea.dev/actionslib/pkg/protocol"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/modules/log"
@@ -21,8 +23,8 @@ import (
 )
 
 const (
-	uuidHeaderKey  = "x-runner-uuid"
-	tokenHeaderKey = "x-runner-token"
+	uuidHeaderKey  = protocol.UUIDHeader
+	tokenHeaderKey = protocol.TokenHeader
 )
 
 var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
@@ -45,14 +47,26 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 
-		cols := []string{"last_online"}
-		runner.LastOnline = timeutil.TimeStampNow()
-		if methodName == "UpdateTask" || methodName == "UpdateLog" {
-			runner.LastActive = timeutil.TimeStampNow()
+		now := time.Now()
+		cols := make([]string, 0, 2)
+		// Debounce last_active too: while a runner streams logs, UpdateLog fires
+		// many times per second and writing on each is a major source of DB load.
+		// Persist only when stale enough to affect the active/idle status.
+		if (methodName == "UpdateTask" || methodName == "UpdateLog") &&
+			actions_model.ShouldPersistLastActive(runner.LastActive, now) {
+			runner.LastActive = timeutil.TimeStamp(now.Unix())
 			cols = append(cols, "last_active")
 		}
-		if err := actions_model.UpdateRunner(ctx, runner, cols...); err != nil {
-			log.Error("can't update runner status: %v", err)
+		// Debounce last_online: writing on every poll is a major source of DB load
+		// with many runners. Persist only when stale enough to affect offline status.
+		if actions_model.ShouldPersistLastOnline(runner.LastOnline, now) {
+			runner.LastOnline = timeutil.TimeStamp(now.Unix())
+			cols = append(cols, "last_online")
+		}
+		if len(cols) > 0 {
+			if err := actions_model.UpdateRunner(ctx, runner, cols...); err != nil {
+				log.Error("can't update runner status: %v", err)
+			}
 		}
 
 		ctx = context.WithValue(ctx, runnerCtxKey{}, runner)

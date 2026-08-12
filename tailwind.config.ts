@@ -24,8 +24,6 @@ const vars = extractRootVars([
 export default {
   important: true, // the frameworks are mixed together, so tailwind needs to override other framework's styles
   content: [
-    '!./templates/swagger/v1_json.tmpl',
-    '!./templates/user/auth/oidc_wellknown.tmpl',
     '!**/*_test.go',
     './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
@@ -88,7 +86,7 @@ export default {
       '8xl': '96px',
       '9xl': '128px',
       ...Object.fromEntries(Array.from({length: 100}, (_, i) => {
-        return [`${i}`, `${i === 0 ? '0' : `${i}px`}`];
+        return [String(i), i === 0 ? '0' : `${i}px`];
       })),
     },
     extend: {

@@ -78,8 +78,3 @@ func (b *Base) FormOptionalBool(key string) optional.Option[bool] {
 	v = v || strings.EqualFold(s, "on")
 	return optional.Some(v)
 }
-
-func (b *Base) SetFormString(key, value string) {
-	_ = b.Req.FormValue(key) // force parse form
-	b.Req.Form.Set(key, value)
-}

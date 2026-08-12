@@ -23,7 +23,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/models/webhook"
 	actions_module "gitea.dev/modules/actions"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -150,7 +150,10 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&repo_model.Collaboration{RepoID: repoID},
 		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
+		&git_model.CommitStatusIndex{RepoID: repoID},
+		&git_model.CommitStatusSummary{RepoID: repoID},
 		&git_model.Branch{RepoID: repoID},
+		&git_model.RenamedBranch{RepoID: repoID},
 		&git_model.LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
 		&repo_model.RepoLicense{RepoID: repoID},
@@ -163,21 +166,27 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		&repo_model.Release{RepoID: repoID},
 		&repo_model.RepoIndexerStatus{RepoID: repoID},
 		&repo_model.Redirect{RedirectRepoID: repoID},
+		&repo_model.RepoTransfer{RepoID: repoID}, // this column doesn't have index, maybe it's fine since the table shouldn't be too large.
 		&repo_model.RepoUnit{RepoID: repoID},
 		&repo_model.Star{RepoID: repoID},
 		&admin_model.Task{RepoID: repoID},
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
 		&secret_model.Secret{RepoID: repoID},
+		&actions_model.ActionVariable{RepoID: repoID},
 		&actions_model.ActionTaskStep{RepoID: repoID},
 		&actions_model.ActionTask{RepoID: repoID},
 		&actions_model.ActionRunJob{RepoID: repoID},
 		&actions_model.ActionRun{RepoID: repoID},
+		&actions_model.ActionRunAttempt{RepoID: repoID},
 		&actions_model.ActionRunner{RepoID: repoID},
 		&actions_model.ActionScheduleSpec{RepoID: repoID},
 		&actions_model.ActionSchedule{RepoID: repoID},
 		&actions_model.ActionArtifact{RepoID: repoID},
+		&actions_model.ActionRunJobSummary{RepoID: repoID},
 		&actions_model.ActionRunnerToken{RepoID: repoID},
+		&actions_model.ActionTasksVersion{RepoID: repoID},
+		&actions_model.ActionScopedWorkflowSource{SourceRepoID: repoID},
 		&issues_model.IssuePin{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %w", err)
@@ -308,7 +317,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	// we delete the file but the database rollback, the repository will be broken.
 
 	// Remove repository files.
-	if err := gitrepo.DeleteRepository(ctx, repo); err != nil {
+	if err := git.DeleteRepository(ctx, repo); err != nil {
 		desc := fmt.Sprintf("Delete repository files (%s): %v", repo.FullName(), err)
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
@@ -316,7 +325,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 	}
 
 	// Remove wiki files if it exists.
-	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
+	if err := git.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
 		desc := fmt.Sprintf("Delete wiki repository files (%s): %v", repo.FullName(), err)
 		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {

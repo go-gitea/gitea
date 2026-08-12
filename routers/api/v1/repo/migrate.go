@@ -56,7 +56,7 @@ func Migrate(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.MigrateRepoOptions)
+	form := web.GetForm[*api.MigrateRepoOptions](ctx)
 
 	// get repoOwner
 	var (
@@ -72,7 +72,7 @@ func Migrate(ctx *context.APIContext) {
 	}
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
@@ -110,12 +110,12 @@ func Migrate(ctx *context.APIContext) {
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
 	if form.Mirror && setting.Mirror.DisableNewPull {
-		ctx.APIError(http.StatusForbidden, errors.New("the site administrator has disabled the creation of new pull mirrors"))
+		ctx.APIError(http.StatusForbidden, "the site administrator has disabled the creation of new pull mirrors")
 		return
 	}
 
 	if setting.Repository.DisableMigrations {
-		ctx.APIError(http.StatusForbidden, errors.New("the site administrator has disabled migrations"))
+		ctx.APIError(http.StatusForbidden, "the site administrator has disabled migrations")
 		return
 	}
 
@@ -217,6 +217,11 @@ func Migrate(ctx *context.APIContext) {
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err error) {
+	var (
+		errNameReserved          db.ErrNameReserved
+		errNameCharsNotAllowed   db.ErrNameCharsNotAllowed
+		errNamePatternNotAllowed db.ErrNamePatternNotAllowed
+	)
 	switch {
 	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.APIError(http.StatusConflict, "The repository with the same name already exists.")
@@ -228,16 +233,16 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 		ctx.APIError(http.StatusUnprocessableEntity, "Remote visit required two factors authentication.")
 	case repo_model.IsErrReachLimitOfRepo(err):
 		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
-	case db.IsErrNameReserved(err):
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The username '%s' is reserved.", err.(db.ErrNameReserved).Name))
-	case db.IsErrNameCharsNotAllowed(err):
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The username '%s' contains invalid characters.", err.(db.ErrNameCharsNotAllowed).Name))
-	case db.IsErrNamePatternNotAllowed(err):
-		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(db.ErrNamePatternNotAllowed).Pattern))
+	case errors.As(err, &errNameReserved):
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The username '%s' is reserved.", errNameReserved.Name))
+	case errors.As(err, &errNameCharsNotAllowed):
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The username '%s' contains invalid characters.", errNameCharsNotAllowed.Name))
+	case errors.As(err, &errNamePatternNotAllowed):
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("The pattern '%s' is not allowed in a username.", errNamePatternNotAllowed.Pattern))
 	case git.IsErrInvalidCloneAddr(err):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	case base.IsErrNotSupported(err):
-		ctx.APIError(http.StatusUnprocessableEntity, err)
+		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
 		if strings.Contains(err.Error(), "Authentication failed") ||
@@ -253,8 +258,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 }
 
 func handleRemoteAddrError(ctx *context.APIContext, err error) {
-	if git.IsErrInvalidCloneAddr(err) {
-		addrErr := err.(*git.ErrInvalidCloneAddr)
+	if addrErr, ok := err.(*git.ErrInvalidCloneAddr); ok {
 		switch {
 		case addrErr.IsURLError:
 			ctx.APIError(http.StatusUnprocessableEntity, "The provided URL is invalid.")

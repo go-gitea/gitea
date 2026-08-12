@@ -1,3 +1,7 @@
+.file-view-container {
+  padding: 0 !important; /* the file-view itself provides padding */
+}
+
 .file-view tr.active .lines-num,
 .file-view tr.active .lines-escape,
 .file-view tr.active .lines-code {

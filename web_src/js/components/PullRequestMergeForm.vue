@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, onUnmounted, shallowRef, watch} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {toggleElem} from '../utils/dom.ts';
 
 const props = defineProps<{
@@ -39,6 +39,7 @@ const mergeButtonStyleClass = computed(() => {
 const mergeSelectStyleClass = computed(() => {
   if (mergeForm.emptyCommit) return '';
   if (mergeStyle.value === mergeStyleManuallyMerged) return 'red';
+  if (!mergeForm.allOverridableChecksOk) return 'red';
   return 'primary';
 });
 

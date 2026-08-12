@@ -1,9 +1,16 @@
 name: giteabot
 
 on:
+  # When main advances, rerun merge queue maintenance so the oldest
+  # reviewed/wait-merge PR can be updated against the new base promptly.
+  push:
+    branches:
+      - main
   # pull_request_target gives this workflow access to GITEABOT_TOKEN on PRs from
   # forks, which the bot needs to write labels, statuses and comments. Safe here
   # because the job only runs a pinned action and never checks out PR HEAD.
+  # These PR lifecycle events drive label maintenance, queue maintenance, and
+  # explicit bot actions triggered by relevant label changes.
   pull_request_target: # zizmor: ignore[dangerous-triggers]
     types:
       - opened
@@ -13,13 +20,19 @@ on:
       - closed
       - review_requested
       - review_request_removed
+  # Review events keep review-derived state such as lgtm labels and status checks
+  # in sync after approvals, edits, or dismissals.
   pull_request_review:
     types:
       - submitted
       - edited
       - dismissed
+  # Periodic maintenance is still useful as a backstop for queue cleanup and
+  # other housekeeping, even though main pushes now trigger it promptly.
   schedule:
     - cron: "15 3 * * *"
+  # Allow maintainers to rerun selected checks manually when debugging bot
+  # behavior without waiting for another repository event.
   workflow_dispatch:
     inputs:
       checks:
@@ -27,11 +40,7 @@ on:
         required: false
         default: labels,merge_queue,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions
 
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
-  statuses: write
+permissions: {}
 
 concurrency:
   group: ${{ format('{0}-{1}', github.workflow, (github.event_name == 'pull_request_target' || github.event_name == 'pull_request_review') && format('pr-{0}', github.event.pull_request.number) || 'maintenance') }}
@@ -42,10 +51,15 @@ jobs:
     if: github.repository == 'go-gitea/gitea'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+      statuses: write
     steps:
       # pull_request_review runs without repository secrets on fork PRs, so fall
       # back to the workflow token for the non-backport checks handled here.
-      - uses: go-gitea/giteabot@f8a6f4c14d46920b4b5448852be3de72d00066f0 # v1.0.3
+      - uses: go-gitea/giteabot@1d822239e9110b50c36192edb3c85883cf12efb3 # v1.0.5
         with:
           github_token: ${{ secrets.GITEABOT_TOKEN || github.token }}
           checks: ${{ github.event.inputs.checks || 'labels,merge_queue,lock,feedback,last_call,milestones,lgtm,translation_comment,pr_actions' }}

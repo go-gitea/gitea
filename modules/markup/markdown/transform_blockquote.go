@@ -18,7 +18,7 @@ import (
 // renderAttention renders a quote marked with i.e. "> **Note**" or "> [!Warning]" with a corresponding svg
 func (r *HTMLRenderer) renderAttention(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		n := node.(*Attention)
+		n := node.(*Attention) //nolint:forcetypeassert // registered for KindAttention only
 		var octiconName string
 		switch n.AttentionType {
 		case "tip":
@@ -46,7 +46,10 @@ func (g *ASTTransformer) extractBlockquoteAttentionEmphasis(firstParagraph ast.N
 	if !ok {
 		return "", nil
 	}
-	val1 := string(node1.Text(reader.Source())) //nolint:staticcheck // Text is deprecated
+	val1, ok := childSingleText(node1, reader.Source())
+	if !ok {
+		return "", nil
+	}
 	attentionType := strings.ToLower(val1)
 	if g.attentionTypes.Contains(attentionType) {
 		return attentionType, []ast.Node{node1}

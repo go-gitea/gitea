@@ -44,11 +44,11 @@ func CreateOrg(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateOrgOption)
+	form := web.GetForm[*api.CreateOrgOption](ctx)
 
 	visibility := api.VisibleTypePublic
 	if form.Visibility != "" {
-		visibility = api.VisibilityModes[string(form.Visibility)]
+		visibility = api.VisibilityModes[form.Visibility]
 	}
 
 	org := &organization.Organization{
@@ -67,7 +67,7 @@ func CreateOrg(ctx *context.APIContext) {
 			db.IsErrNameReserved(err) ||
 			db.IsErrNameCharsNotAllowed(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}

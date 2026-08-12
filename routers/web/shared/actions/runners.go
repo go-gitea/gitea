@@ -251,7 +251,7 @@ func RunnersEditPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditRunnerForm)
+	form := web.GetForm[*forms.EditRunnerForm](ctx)
 	runner.Description = form.Description
 
 	err = actions_model.UpdateRunner(ctx, runner, "description")
@@ -373,14 +373,16 @@ func RunnerBulkActionPost(ctx *context.Context) {
 		return
 	}
 
-	var runnerIDs []int64
-	if rCtx.IsAdmin {
-		// ATTENTION: it completely depends on the assumption that the doer is "site admin"
-		// So it doesn't do extra permission check to the runner IDs
-		// In the future, if you need to support such operation on non-admin pages, be careful!
-		runnerIDs = ctx.FormStringInt64s("ids")
-	} else {
+	if !rCtx.IsAdmin {
 		ctx.HTTPError(http.StatusForbidden, "bulk actions are admin-only")
+		return
+	}
+	// ATTENTION: it completely depends on the assumption that the doer is "site admin"
+	// So it doesn't do extra permission check to the runner IDs
+	// In the future, if you need to support such operation on non-admin pages, be careful!
+	runnerIDs := ctx.FormStringInt64s("ids")
+	if len(runnerIDs) == 0 {
+		ctx.HTTPError(http.StatusBadRequest, "missing runner IDs")
 		return
 	}
 

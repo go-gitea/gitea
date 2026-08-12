@@ -103,7 +103,7 @@ func AddIssueLabels(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.IssueLabelsOption)
+	form := web.GetForm[*api.IssueLabelsOption](ctx)
 	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
 	if err != nil {
 		return
@@ -178,13 +178,12 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	label, err := issues_model.GetLabelByID(ctx, ctx.PathParamInt64("id"))
+	// the label must belong to this repo (or its owning org); otherwise a foreign label ID
+	// is rejected the same way as a nonexistent one, closing a cross-repo enumeration oracle
+	labelID := ctx.PathParamInt64("id")
+	label, err := issues_model.GetLabelInRepoOrOrgByID(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner.ID, ctx.Repo.Owner.IsOrganization(), labelID)
 	if err != nil {
-		if issues_model.IsErrLabelNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 
@@ -233,7 +232,7 @@ func ReplaceIssueLabels(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.IssueLabelsOption)
+	form := web.GetForm[*api.IssueLabelsOption](ctx)
 	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
 	if err != nil {
 		return

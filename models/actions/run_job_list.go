@@ -99,6 +99,10 @@ type FindRunJobOptions struct {
 	UpdatedBefore    timeutil.TimeStamp
 	ConcurrencyGroup string
 	OrderBy          db.SearchOrderBy
+	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
+	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
+	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
+	AccessibleRepoIDsSubQuery *builder.Builder
 }
 
 var JobOrderByMap = map[string]map[string]db.SearchOrderBy{
@@ -132,6 +136,9 @@ func (opts FindRunJobOptions) ToConds() builder.Cond {
 		}
 		cond = cond.And(builder.Eq{"`action_run_job`.concurrency_group": opts.ConcurrencyGroup})
 	}
+	if opts.AccessibleRepoIDsSubQuery != nil {
+		cond = cond.And(builder.In("`action_run_job`.repo_id", opts.AccessibleRepoIDsSubQuery))
+	}
 	return cond
 }
 
@@ -152,3 +159,12 @@ func (opts FindRunJobOptions) ToOrders() string {
 }
 
 var _ db.FindOptionsOrder = FindRunJobOptions{}
+
+// CountRunJobsByRunAndAttemptID counts the jobs belonging to the given run attempt.
+// It is used to enforce MaxJobNumPerRun when reusable-workflow expansion inserts new jobs.
+func CountRunJobsByRunAndAttemptID(ctx context.Context, runID, runAttemptID int64) (int64, error) {
+	return db.Count[ActionRunJob](ctx, FindRunJobOptions{
+		RunID:        runID,
+		RunAttemptID: optional.Some(runAttemptID),
+	})
+}

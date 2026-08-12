@@ -50,12 +50,12 @@ body { background: ${backgroundColor}; }
 }
 
 const iframeId = queryParams.get('gitea-iframe-id');
-if (iframeId) {
-  // iframe is in different origin, so we need to use postMessage to communicate
-  const postIframeMsg = (cmd: string, data: Record<string, any> = {}) => {
-    window.parent.postMessage({giteaIframeCmd: cmd, giteaIframeId: iframeId, ...data}, '*');
-  };
+// iframe is in different origin, so we need to use postMessage to communicate
+const postIframeMsg = (cmd: string, data: Record<string, any> = {}) => {
+  window.parent.postMessage({giteaIframeCmd: cmd, giteaIframeId: iframeId, ...data}, '*');
+};
 
+if (iframeId) {
   const updateIframeHeight = () => {
     if (!document.body) return; // the body might not be available when this function is called
     // Use scrollHeight to get the full content height, even when CSS sets html/body to height:100%
@@ -90,6 +90,4 @@ if (iframeId) {
   });
 }
 
-if (window.testModules) {
-  window.testModules.externalRenderHelper = {isValidCssColor};
-}
+window.giteaExternalRenderHelper = {isValidCssColor, queryParams, postIframeMsg};
