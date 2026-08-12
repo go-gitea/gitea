@@ -6,70 +6,40 @@ package setting
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"gitea.dev/modules/test"
 )
 
 func Test_getStorageInheritNameSectionTypeForRepoArchive(t *testing.T) {
-	// packages storage inherits from storage if nothing configured
-	iniStr := `
-[storage]
-STORAGE_TYPE = minio
-`
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
+	defer test.MockVariableValue(&RepoArchive)()
 
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
-
-	// we can also configure packages storage directly
-	iniStr = `
-[storage.repo-archive]
-STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
-
-	// or we can indicate the storage type in the packages section
-	iniStr = `
-[repo-archive]
-STORAGE_TYPE = my_minio
-
-[storage.my_minio]
-STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "repo-archive/", RepoArchive.Storage.MinioConfig.BasePath)
-
-	// or we can indicate the storage type  and minio base path in the packages section
-	iniStr = `
-[repo-archive]
-STORAGE_TYPE = my_minio
-MINIO_BASE_PATH = my_archive/
-
-[storage.my_minio]
-STORAGE_TYPE = minio
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-
-	assert.EqualValues(t, "minio", RepoArchive.Storage.Type)
-	assert.Equal(t, "my_archive/", RepoArchive.Storage.MinioConfig.BasePath)
+	testConfigLoad(t, []any{loadRepoArchiveFrom}, []configTestCase{
+		{
+			name: "inherits from [storage] if nothing is configured",
+			ini:  "[storage]\nSTORAGE_TYPE = minio",
+			want: minioStorageAt("repo-archive", &RepoArchive.Storage, "repo-archive/"),
+		},
+		{
+			name: "[storage.repo-archive] configures it directly",
+			ini:  "[storage.repo-archive]\nSTORAGE_TYPE = minio",
+			want: minioStorageAt("repo-archive", &RepoArchive.Storage, "repo-archive/"),
+		},
+		{
+			name: "[repo-archive].STORAGE_TYPE can name another storage",
+			ini:  "[repo-archive]\nSTORAGE_TYPE = my_minio\n\n[storage.my_minio]\nSTORAGE_TYPE = minio",
+			want: minioStorageAt("repo-archive", &RepoArchive.Storage, "repo-archive/"),
+		},
+		{
+			name: "[repo-archive].MINIO_BASE_PATH overrides the named storage",
+			ini:  "[repo-archive]\nSTORAGE_TYPE = my_minio\nMINIO_BASE_PATH = my_archive/\n\n[storage.my_minio]\nSTORAGE_TYPE = minio",
+			want: minioStorageAt("repo-archive", &RepoArchive.Storage, "my_archive/"),
+		},
+	})
 }
 
 func Test_RepoArchiveStorage(t *testing.T) {
-	iniStr := `
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-[storage]
+	defer test.MockVariableValue(&RepoArchive)()
+
+	minioSection := `
 STORAGE_TYPE            = minio
 MINIO_ENDPOINT          = s3.my-domain.net
 MINIO_BUCKET            = gitea
@@ -78,34 +48,22 @@ MINIO_USE_SSL           = true
 MINIO_ACCESS_KEY_ID     = correct_key
 MINIO_SECRET_ACCESS_KEY = correct_key
 `
-	cfg, err := NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
+	bucket := []configCheck{
+		guard(&RepoArchive.Storage),
+		fieldOf("STORAGE_TYPE", func() StorageType { return RepoArchive.Storage.Type }, MinioStorageType),
+		fieldOf("MINIO_BUCKET", func() string { return RepoArchive.Storage.MinioConfig.Bucket }, "gitea"),
+	}
 
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	storage := RepoArchive.Storage
-
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
-
-	iniStr = `
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-[storage.repo-archive]
-STORAGE_TYPE = s3
-[storage.s3]
-STORAGE_TYPE            = minio
-MINIO_ENDPOINT          = s3.my-domain.net
-MINIO_BUCKET            = gitea
-MINIO_LOCATION          = homenet
-MINIO_USE_SSL           = true
-MINIO_ACCESS_KEY_ID     = correct_key
-MINIO_SECRET_ACCESS_KEY = correct_key
-`
-	cfg, err = NewConfigProviderFromData(iniStr)
-	assert.NoError(t, err)
-
-	assert.NoError(t, loadRepoArchiveFrom(cfg))
-	storage = RepoArchive.Storage
-
-	assert.EqualValues(t, "minio", storage.Type)
-	assert.Equal(t, "gitea", storage.MinioConfig.Bucket)
+	testConfigLoad(t, []any{loadRepoArchiveFrom}, []configTestCase{
+		{
+			name: "a fully configured [storage] section",
+			ini:  ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n[storage]" + minioSection,
+			want: bucket,
+		},
+		{
+			name: "an indirection through a named storage",
+			ini:  ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n[storage.repo-archive]\nSTORAGE_TYPE = s3\n[storage.s3]" + minioSection,
+			want: bucket,
+		},
+	})
 }
