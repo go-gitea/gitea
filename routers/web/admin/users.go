@@ -62,6 +62,21 @@ func Users(ctx *context.Context) {
 		"SortType":        sortType,
 	}
 
+	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{})
+	if err != nil {
+		ctx.ServerError("auth.Sources", err)
+		return
+	}
+	sourceNames := make(map[int64]string, len(sources))
+	for _, source := range sources {
+		sourceNames[source.ID] = source.Name
+	}
+	ctx.Data["Sources"] = sources
+	ctx.Data["SourceNames"] = sourceNames
+
+	sourceIDFilter := optional.ParseInt64(ctx.FormString("source_id"))
+	ctx.Data["SourceIDFilter"] = sourceIDFilter
+
 	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor: ctx.Doer,
 		Types: []user_model.UserType{user_model.UserTypeIndividual},
@@ -74,6 +89,7 @@ func Users(ctx *context.Context) {
 		IsRestricted:       optional.ParseBool(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
+		SourceID:           sourceIDFilter,
 		IncludeReserved:    true, // administrator needs to list all accounts include reserved, bot, remote ones
 		OrderBy:            db.SearchOrderBy(sortType),
 	}, tplUsers)

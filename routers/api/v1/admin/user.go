@@ -480,7 +480,7 @@ func SearchUsers(ctx *context.APIContext) {
 		Actor:         ctx.Doer,
 		Types:         []user_model.UserType{user_model.UserTypeIndividual},
 		LoginName:     ctx.FormTrim("login_name"),
-		SourceID:      ctx.FormInt64("source_id"),
+		SourceID:      optional.FromNonDefault(ctx.FormInt64("source_id")),
 		Keyword:       ctx.FormTrim("q"),
 		Visible:       visible,
 		OrderBy:       orderBy,

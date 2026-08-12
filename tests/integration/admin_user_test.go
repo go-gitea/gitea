@@ -9,11 +9,15 @@ import (
 	"strconv"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/services/auth/source/ldap"
 	"gitea.dev/tests"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAdminViewUsers(t *testing.T) {
@@ -26,6 +30,39 @@ func TestAdminViewUsers(t *testing.T) {
 	session = loginUser(t, "user2")
 	req = NewRequest(t, "GET", "/-/admin/users")
 	session.MakeRequest(t, req, http.StatusForbidden)
+}
+
+func TestAdminViewUsersFilterAuthSource(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	source := &auth_model.Source{Type: auth_model.LDAP, Name: "test-user-list-filter", IsActive: true, Cfg: &ldap.Source{}}
+	require.NoError(t, auth_model.CreateSource(t.Context(), source))
+
+	user2 := &user_model.User{ID: 2, LoginType: auth_model.LDAP, LoginSource: source.ID}
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), user2, "login_type", "login_source"))
+
+	session := loginUser(t, "user1")
+	listUsers := func(query string) (*HTMLDoc, []string) {
+		req := NewRequest(t, "GET", "/-/admin/users?"+query)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+		return doc, doc.Find("table tbody tr td:nth-child(2) a").Map(func(_ int, s *goquery.Selection) string {
+			return s.Text()
+		})
+	}
+
+	doc, users := listUsers("source_id=") // the "All" option submits an empty value
+	AssertHTMLElement(t, doc, `input[name="source_id"][value=""][checked]`, true)
+	assert.Subset(t, users, []string{"user1", "user2"})
+
+	doc, users = listUsers(fmt.Sprintf("source_id=%d", source.ID)) // the "test-user-list-filter" LDAP source
+	AssertHTMLElement(t, doc, fmt.Sprintf(`input[name="source_id"][value="%d"][checked]`, source.ID), true)
+	assert.Equal(t, []string{"user2"}, users)
+	assert.Equal(t, source.Name, doc.Find("table tbody tr td:nth-child(4)").Text())
+
+	_, users = listUsers("source_id=0") // 0 means the "Local" source
+	assert.Contains(t, users, "user1")
+	assert.NotContains(t, users, "user2")
 }
 
 func TestAdminViewUser(t *testing.T) {
