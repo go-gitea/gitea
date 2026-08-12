@@ -20,6 +20,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
@@ -60,7 +61,15 @@ func loadReusableWorkflowSource(ctx context.Context, run *actions_model.ActionRu
 		if err != nil {
 			return nil, 0, "", fmt.Errorf("look up caller source repo %d: %w", caller.WorkflowSourceRepoID, err)
 		}
-		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, callerRepo, caller.WorkflowSourceCommitSHA, ref.Path)
+		sourceCommitSHA := caller.WorkflowSourceCommitSHA
+		// Pin the base commit instead of trusting the stored SHA if the run is triggered via pull_request_target.
+		if !run.IsScopedRun && callerRepo.ID == run.RepoID {
+			if baseSHA, ok := pullRequestTargetBaseSHA(run); ok && baseSHA != sourceCommitSHA {
+				log.Warn("run %d (pull_request_target) records workflow source commit %s, resolving %q at base commit %s instead", run.ID, sourceCommitSHA, ref.Path, baseSHA)
+				sourceCommitSHA = baseSHA
+			}
+		}
+		bytes, resolvedSHA, err := readWorkflowFromRepo(ctx, callerRepo, sourceCommitSHA, ref.Path)
 		if err != nil {
 			return nil, 0, "", err
 		}
