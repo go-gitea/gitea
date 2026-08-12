@@ -6,8 +6,6 @@ import {
   generateMarkdownLinkForAttachment,
 } from '../dropzone.ts';
 import {subscribe} from '@github/paste-markdown';
-import type CodeMirror from 'codemirror';
-import type EasyMDE from 'easymde';
 import type Dropzone from '@deltablot/dropzone';
 
 let uploadIdCounter = 0;
@@ -64,41 +62,7 @@ class TextareaEditor {
   }
 }
 
-class CodeMirrorEditor {
-  editor: CodeMirror.EditorFromTextArea;
-
-  constructor(editor: CodeMirror.EditorFromTextArea) {
-    this.editor = editor;
-  }
-
-  insertPlaceholder(value: string) {
-    const editor = this.editor;
-    const startPoint = editor.getCursor('start');
-    const endPoint = editor.getCursor('end');
-    editor.replaceSelection(value);
-    endPoint.ch = startPoint.ch + value.length;
-    editor.setSelection(startPoint, endPoint);
-    editor.focus();
-    triggerEditorContentChanged(editor.getTextArea());
-  }
-
-  replacePlaceholder(oldVal: string, newVal: string) {
-    const editor = this.editor;
-    const endPoint = editor.getCursor('end');
-    if (editor.getSelection() === oldVal) {
-      editor.replaceSelection(newVal);
-    } else {
-      editor.setValue(editor.getValue().replace(oldVal, newVal));
-    }
-    endPoint.ch -= oldVal.length;
-    endPoint.ch += newVal.length;
-    editor.setSelection(endPoint, endPoint);
-    editor.focus();
-    triggerEditorContentChanged(editor.getTextArea());
-  }
-}
-
-async function handleUploadFiles(editor: CodeMirrorEditor | TextareaEditor, dropzoneEl: HTMLElement, files: Array<File> | FileList, e: Event) {
+async function handleUploadFiles(editor: TextareaEditor, dropzoneEl: HTMLElement, files: Array<File> | FileList, e: Event) {
   e.preventDefault();
   for (const file of files) {
     const name = file.name.slice(0, file.name.lastIndexOf('.'));
@@ -128,24 +92,6 @@ function getPastedImages(e: ClipboardEvent) {
     }
   }
   return images;
-}
-
-export function initEasyMDEPaste(easyMDE: EasyMDE, dropzoneEl: HTMLElement) {
-  const editor = new CodeMirrorEditor(easyMDE.codemirror as any);
-  easyMDE.codemirror.on('paste', (_, e) => {
-    const images = getPastedImages(e);
-    if (!images.length) return;
-    handleUploadFiles(editor, dropzoneEl, images, e);
-  });
-  easyMDE.codemirror.on('drop', (_, e) => {
-    if (!e.dataTransfer?.files.length) return;
-    handleUploadFiles(editor, dropzoneEl, e.dataTransfer.files, e);
-  });
-  dropzoneEl.dropzone.on(DropzoneCustomEventRemovedFile, ({fileUuid}) => {
-    const oldText = easyMDE.codemirror.getValue();
-    const newText = removeAttachmentLinksFromMarkdown(oldText, fileUuid);
-    if (oldText !== newText) easyMDE.codemirror.setValue(newText);
-  });
 }
 
 export function initTextareaEvents(textarea: HTMLTextAreaElement, dropzoneEl: HTMLElement | null) {

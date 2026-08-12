@@ -494,7 +494,6 @@ function initIssueTemplateCommentEditors(commentForm: HTMLFormElement) {
       showElem(markdownEditor);
       showElem(dropzoneContainer);
 
-      await editor.switchToUserPreference();
       editor.focus();
     });
   };

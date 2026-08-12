@@ -215,7 +215,6 @@
   "editor.buttons.table.cols": "Columns",
   "editor.buttons.mention.tooltip": "Mention a user or team",
   "editor.buttons.ref.tooltip": "Reference an issue or pull request",
-  "editor.buttons.switch_to_legacy.tooltip": "Use the legacy editor instead",
   "editor.buttons.enable_monospace_font": "Enable monospace font",
   "editor.buttons.disable_monospace_font": "Disable monospace font",
   "editor.code_editor.command_palette": "Command Palette",
