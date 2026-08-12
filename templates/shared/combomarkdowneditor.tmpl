@@ -17,11 +17,9 @@
 {{$previewContext := or $editorContext.PreviewContext ""}}
 {{$previewLink := or $editorContext.PreviewLink (print AppSubUrl "/-/markup")}}
 {{$mentionsLink := or $editorContext.MentionsLink ""}}
-{{$supportEasyMDE := or (eq $previewMode "comment") (eq $previewMode "wiki")}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{if .CustomInit}}custom-init{{end}} {{.ContainerClasses}}"
 		data-dropzone-parent-container="{{.DropzoneParentContainer}}"
 		data-content-mode="{{$previewMode}}"
-		data-support-easy-mde="{{$supportEasyMDE}}"
 		data-preview-url="{{$previewLink}}"
 		data-preview-context="{{$previewContext}}"
 		{{if $mentionsLink}}data-mentions-url="{{$mentionsLink}}"{{end}}
@@ -63,9 +61,6 @@
 			{{end}}
 			<div class="markdown-toolbar-group">
 				<button class="markdown-toolbar-button markdown-switch-monospace" role="switch" data-enable-text="{{ctx.Locale.Tr "editor.buttons.enable_monospace_font"}}" data-disable-text="{{ctx.Locale.Tr "editor.buttons.disable_monospace_font"}}">{{svg "octicon-typography"}}</button>
-				{{if $supportEasyMDE}}
-				<button class="markdown-toolbar-button markdown-switch-easymde" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.switch_to_legacy.tooltip"}}">{{svg "octicon-arrow-switch"}}</button>
-				{{end}}
 			</div>
 		</markdown-toolbar>
 		<text-expander keys=": @ #" multiword="#" suffix="">
