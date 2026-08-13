@@ -72,6 +72,28 @@ func NewAccessToken(ctx context.Context, t *AccessToken) error {
 	return err
 }
 
+// RegenerateAccessToken regenerates the token value of an existing access token owned by userID, keeping its name and scope.
+func RegenerateAccessToken(ctx context.Context, id, userID int64) (*AccessToken, error) {
+	t := &AccessToken{}
+	has, err := db.GetEngine(ctx).Where("id=? AND uid=?", id, userID).Get(t)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, util.NewNotExistErrorf("access token not found")
+	}
+
+	salt := util.CryptoRandomString(10)
+	token := util.CryptoRandomBytes(20)
+	t.TokenSalt = salt
+	t.Token = hex.EncodeToString(token)
+	t.TokenHash = HashToken(t.Token, t.TokenSalt)
+	t.TokenLastEight = t.Token[len(t.Token)-8:]
+	if _, err := db.GetEngine(ctx).ID(t.ID).Cols("token_hash", "token_salt", "token_last_eight").Update(t); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
 // DisplayPublicOnly whether to display this as a public-only token.
 func (t *AccessToken) DisplayPublicOnly() bool {
 	publicOnly, err := t.Scope.PublicOnly()
@@ -104,15 +126,13 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 
 	lastEight := token[len(token)-8:]
 	if id := getAccessTokenIDFromCache(token); id > 0 {
-		accessToken := &AccessToken{
-			TokenLastEight: lastEight,
-		}
-		// Re-get the token from the db in case it has been deleted in the intervening period
+		accessToken := &AccessToken{}
+		// Re-get the token from the db in case it has been deleted or regenerated in the intervening period
 		has, err := db.GetEngine(ctx).ID(id).Get(accessToken)
 		if err != nil {
 			return nil, err
 		}
-		if has {
+		if has && subtle.ConstantTimeCompare([]byte(accessToken.TokenHash), []byte(HashToken(token, accessToken.TokenSalt))) == 1 {
 			return accessToken, nil
 		}
 		successfulAccessTokenCache.Remove(token)
