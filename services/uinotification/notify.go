@@ -188,7 +188,7 @@ func (ns *notificationService) NewPullRequest(ctx context.Context, pr *issues_mo
 		return
 	}
 	toNotify := make(container.Set[int64], 32)
-	repoWatchers, err := repo_model.GetRepoWatchersIDs(ctx, pr.Issue.RepoID)
+	repoWatchers, err := repo_model.GetRepoWatchersIDs(ctx, pr.Issue.RepoID, repo_model.WatchPullRequests)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs: %v", err)
 		return
@@ -420,7 +420,7 @@ func (ns *notificationService) UpdateRelease(ctx context.Context, doer *user_mod
 		NotificationAuthorID: rel.PublisherID,
 	}
 
-	repoWatcherIDs, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID)
+	repoWatcherIDs, err := repo_model.GetRepoWatchersIDs(ctx, rel.RepoID, repo_model.WatchReleases)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs: %v", err)
 		return

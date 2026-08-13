@@ -41,17 +41,16 @@ func TwoFactor(ctx *context.Context) {
 
 // TwoFactorPost validates a user's two-factor authentication token.
 func TwoFactorPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
+	form := web.GetForm[*forms.TwoFactorAuthForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
 	// Ensure user is in a 2FA session.
-	idSess := ctx.Session.Get("twofaUid")
-	if idSess == nil {
+	id, hasSession := ctx.Session.Get("twofaUid").(int64)
+	if !hasSession {
 		ctx.ServerError("UserSignIn", errors.New("not in 2FA session"))
 		return
 	}
 
-	id := idSess.(int64)
 	twofa, err := auth.GetTwoFactorByUID(ctx, id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
@@ -66,19 +65,16 @@ func TwoFactorPost(ctx *context.Context) {
 	}
 
 	if ok {
-		remember := ctx.Session.Get("twofaRemember").(bool)
+		remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
 
-		if ctx.Session.Get("linkAccount") != nil {
-			err = linkAccountFromContext(ctx, u)
-			if err != nil {
-				ctx.ServerError("UserSignIn", err)
-				return
-			}
+		if err = completePendingLinks(ctx, u); err != nil {
+			ctx.ServerError("completePendingLinks", err)
+			return
 		}
 
 		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
@@ -108,17 +104,16 @@ func TwoFactorScratch(ctx *context.Context) {
 
 // TwoFactorScratchPost validates and invalidates a user's two-factor scratch token.
 func TwoFactorScratchPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.TwoFactorScratchAuthForm)
+	form := web.GetForm[*forms.TwoFactorScratchAuthForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
 	// Ensure user is in a 2FA session.
-	idSess := ctx.Session.Get("twofaUid")
-	if idSess == nil {
+	id, hasSession := ctx.Session.Get("twofaUid").(int64)
+	if !hasSession {
 		ctx.ServerError("UserSignIn", errors.New("not in 2FA session"))
 		return
 	}
 
-	id := idSess.(int64)
 	twofa, err := auth.GetTwoFactorByUID(ctx, id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
@@ -138,10 +133,15 @@ func TwoFactorScratchPost(ctx *context.Context) {
 			return
 		}
 
-		remember := ctx.Session.Get("twofaRemember").(bool)
+		remember := ctx.Session.Get("twofaRemember").(bool) //nolint:forcetypeassert // must exist
 		u, err := user_model.GetUserByID(ctx, id)
 		if err != nil {
 			ctx.ServerError("UserSignIn", err)
+			return
+		}
+
+		if err = completePendingLinks(ctx, u); err != nil {
+			ctx.ServerError("completePendingLinks", err)
 			return
 		}
 

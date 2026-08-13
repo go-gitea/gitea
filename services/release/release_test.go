@@ -228,7 +228,7 @@ func TestRelease_Update(t *testing.T) {
 		PublisherID:  user.ID,
 		Publisher:    user,
 		TagName:      "v1.1.2",
-		Target:       "master",
+		Target:       "",
 		Title:        "v1.1.2 is released",
 		Note:         "v1.1.2 is released",
 		IsDraft:      true,

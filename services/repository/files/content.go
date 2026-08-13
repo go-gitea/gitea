@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/setting"
@@ -121,21 +120,7 @@ func GetFileContents(ctx context.Context, repo *repo_model.Repository, gitRepo *
 	return getFileContentsByEntryInternal(ctx, repo, gitRepo, refCommit, entry, opts)
 }
 
-func addLastCommitCache(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, cacheKey, fullName, sha string) error {
-	if gitRepo.LastCommitCache == nil {
-		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
-			return git.CommitsCountOfCommit(ctx, repo, sha)
-		})
-		if err != nil {
-			return err
-		}
-		gitRepo.LastCommitCache = git.NewLastCommitCache(commitsCount, fullName, gitRepo, cache.GetCache())
-	}
-	return nil
-}
-
 func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, entry *git.TreeEntry, opts GetContentsOrListOptions) (*api.ContentsResponse, error) {
-	refType := refCommit.RefName.RefType()
 	commit := refCommit.Commit
 	selfURL, err := url.Parse(repo.APIURL() + "/contents/" + util.PathEscapeSegments(opts.TreePath) + "?ref=" + url.QueryEscape(refCommit.InputRef))
 	if err != nil {
@@ -157,11 +142,6 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 	}
 
 	if opts.IncludeCommitMetadata || opts.IncludeCommitMessage {
-		err = addLastCommitCache(ctx, repo, gitRepo, repo.GetCommitsCountCacheKey(refCommit.InputRef, refType != git.RefTypeCommit), repo.FullName(), refCommit.CommitID)
-		if err != nil {
-			return nil, err
-		}
-
 		lastCommit, err := refCommit.Commit.GetCommitByPath(ctx, gitRepo, opts.TreePath)
 		if err != nil {
 			return nil, err

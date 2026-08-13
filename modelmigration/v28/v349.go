@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_28
+package v28
 
 import (
 	"context"
@@ -15,21 +15,21 @@ import (
 
 // Notification sources, mirrored from models/activities at the time of this migration.
 const (
-	notificationSourceIssueV347       = 1
-	notificationSourcePullRequestV347 = 2
-	notificationSourceCommitV347      = 3
-	notificationSourceRepositoryV347  = 4
+	notificationSourceIssueV349       = 1
+	notificationSourcePullRequestV349 = 2
+	notificationSourceCommitV349      = 3
+	notificationSourceRepositoryV349  = 4
 )
 
 // Notification statuses, mirrored from models/activities at the time of this migration.
 const (
-	notificationStatusUnreadV347 = 1
-	notificationStatusPinnedV347 = 3
+	notificationStatusUnreadV349 = 1
+	notificationStatusPinnedV349 = 3
 )
 
-// notificationV347Migrating carries both the old per-source subject columns and the new
+// notificationV349Migrating carries both the old per-source subject columns and the new
 // identity columns, so the backfill can read one and write the other.
-type notificationV347Migrating struct {
+type notificationV349Migrating struct {
 	ID       int64 `xorm:"pk autoincr"`
 	UserID   int64 `xorm:"NOT NULL"`
 	RepoID   int64 `xorm:"NOT NULL"`
@@ -45,13 +45,13 @@ type notificationV347Migrating struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
-func (n *notificationV347Migrating) TableName() string {
+func (n *notificationV349Migrating) TableName() string {
 	return "notification"
 }
 
-// NotificationV347 is the shape after this migration: a notification is identified by
+// NotificationV349 is the shape after this migration: a notification is identified by
 // (user_id, repo_id, source, subject_id, subject_ref) and carries the title it renders with.
-type NotificationV347 struct { //revive:disable-line:exported
+type NotificationV349 struct { //revive:disable-line:exported
 	ID     int64 `xorm:"pk autoincr"`
 	UserID int64 `xorm:"NOT NULL"`
 	RepoID int64 `xorm:"NOT NULL"`
@@ -70,12 +70,12 @@ type NotificationV347 struct { //revive:disable-line:exported
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
-func (n *NotificationV347) TableName() string {
+func (n *NotificationV349) TableName() string {
 	return "notification"
 }
 
 // TableIndices implements xorm's TableIndices interface
-func (n *NotificationV347) TableIndices() []*schemas.Index {
+func (n *NotificationV349) TableIndices() []*schemas.Index {
 	indices := make([]*schemas.Index, 0, 7)
 
 	usuuIndex := schemas.NewIndex("u_s_uu", schemas.IndexType)
@@ -125,33 +125,33 @@ func AddNotificationSubjectIdentity(ctx context.Context, x base.EngineMigration)
 		// indices, so dropping them here would leave the dedupe below scanning an unindexed table
 		if _, err := x.SyncWithOptions(xorm.SyncOptions{
 			IgnoreDropIndices: true,
-		}, new(notificationV347Migrating)); err != nil {
+		}, new(notificationV349Migrating)); err != nil {
 			return err
 		}
 
 		// 2. backfill in bulk — one statement per source rather than one per row
-		if err := backfillNotificationSubjectV347(x); err != nil {
+		if err := backfillNotificationSubjectV349(x); err != nil {
 			return err
 		}
 
 		// 3. collapse rows that the new unique index would reject
-		if err := dedupeNotificationsV347(x); err != nil {
+		if err := dedupeNotificationsV349(x); err != nil {
 			return err
 		}
 	}
 
 	// 4. create the unique index, then drop the columns it replaces
-	if err := x.Sync(new(NotificationV347)); err != nil {
+	if err := x.Sync(new(NotificationV349)); err != nil {
 		return err
 	}
-	return dropNotificationLegacyColumnsV347(ctx, x)
+	return dropNotificationLegacyColumnsV349(ctx, x)
 }
 
-func backfillNotificationSubjectV347(x base.EngineMigration) error {
+func backfillNotificationSubjectV349(x base.EngineMigration) error {
 	// issues and pull requests keep their issue id
 	if _, err := x.Exec(
 		"UPDATE notification SET subject_id = issue_id WHERE source IN (?, ?)",
-		notificationSourceIssueV347, notificationSourcePullRequestV347,
+		notificationSourceIssueV349, notificationSourcePullRequestV349,
 	); err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func backfillNotificationSubjectV347(x base.EngineMigration) error {
 	// commits are identified by their sha, scoped to the repo by repo_id
 	if _, err := x.Exec(
 		"UPDATE notification SET subject_ref = commit_id WHERE source = ? AND commit_id IS NOT NULL",
-		notificationSourceCommitV347,
+		notificationSourceCommitV349,
 	); err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func backfillNotificationSubjectV347(x base.EngineMigration) error {
 	return nil
 }
 
-type notificationDuplicateV347 struct {
+type notificationDuplicateV349 struct {
 	UserID     int64
 	RepoID     int64
 	Source     uint8
@@ -181,11 +181,11 @@ type notificationDuplicateV347 struct {
 	Cnt        int
 }
 
-// dedupeNotificationsV347 collapses duplicate rows that the old schema allowed but the new
+// dedupeNotificationsV349 collapses duplicate rows that the old schema allowed but the new
 // unique index forbids, keeping the most recently updated one. Same group-then-delete
 // shape as AddUniqueIndexForUserBadge (v1_26/v329.go).
-func dedupeNotificationsV347(x base.EngineMigration) error {
-	var duplicates []notificationDuplicateV347
+func dedupeNotificationsV349(x base.EngineMigration) error {
+	var duplicates []notificationDuplicateV349
 	if err := x.Select("user_id, repo_id, source, subject_id, subject_ref, count(*) as cnt").
 		Table("notification").
 		GroupBy("user_id, repo_id, source, subject_id, subject_ref").
@@ -195,7 +195,7 @@ func dedupeNotificationsV347(x base.EngineMigration) error {
 	}
 
 	for _, duplicate := range duplicates {
-		var rows []*notificationV347Migrating
+		var rows []*notificationV349Migrating
 		if err := x.Table("notification").
 			Where("user_id = ?", duplicate.UserID).
 			And("repo_id = ?", duplicate.RepoID).
@@ -211,7 +211,7 @@ func dedupeNotificationsV347(x base.EngineMigration) error {
 		}
 
 		keeper := rows[0]
-		if status := mergeNotificationStatusV347(rows); status != keeper.Status {
+		if status := mergeNotificationStatusV349(rows); status != keeper.Status {
 			if _, err := x.Exec("UPDATE notification SET status = ? WHERE id = ?", status, keeper.ID); err != nil {
 				return err
 			}
@@ -229,22 +229,22 @@ func dedupeNotificationsV347(x base.EngineMigration) error {
 	return nil
 }
 
-// mergeNotificationStatusV347 picks the status the surviving row keeps: pinned wins over
+// mergeNotificationStatusV349 picks the status the surviving row keeps: pinned wins over
 // unread, which wins over read, so collapsing rows never hides something unseen.
-func mergeNotificationStatusV347(rows []*notificationV347Migrating) uint8 {
+func mergeNotificationStatusV349(rows []*notificationV349Migrating) uint8 {
 	merged := rows[0].Status
 	for _, row := range rows {
-		if row.Status == notificationStatusPinnedV347 {
-			return notificationStatusPinnedV347
+		if row.Status == notificationStatusPinnedV349 {
+			return notificationStatusPinnedV349
 		}
-		if row.Status == notificationStatusUnreadV347 {
-			merged = notificationStatusUnreadV347
+		if row.Status == notificationStatusUnreadV349 {
+			merged = notificationStatusUnreadV349
 		}
 	}
 	return merged
 }
 
-func dropNotificationLegacyColumnsV347(ctx context.Context, x base.EngineMigration) error {
+func dropNotificationLegacyColumnsV349(ctx context.Context, x base.EngineMigration) error {
 	columns := make([]string, 0, 2)
 	for _, col := range []string{"issue_id", "commit_id"} {
 		exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "notification", col)
@@ -265,6 +265,6 @@ func dropNotificationLegacyColumnsV347(ctx context.Context, x base.EngineMigrati
 		return err
 	}
 	// DropTableColumns rebuilds the table on SQLite, which drops all existing indexes.
-	// Re-sync to restore the indexes defined on NotificationV347.
-	return x.Sync(new(NotificationV347))
+	// Re-sync to restore the indexes defined on NotificationV349.
+	return x.Sync(new(NotificationV349))
 }

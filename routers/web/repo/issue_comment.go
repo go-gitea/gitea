@@ -41,7 +41,7 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.CreateCommentForm)
+	form := web.GetForm[*forms.CreateCommentForm](ctx)
 	issueType := util.Iif(issue.IsPull, "pulls", "issues")
 
 	if !ctx.IsSigned || (ctx.Doer.ID != issue.PosterID && !ctx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull)) {
@@ -306,7 +306,7 @@ func DeleteComment(ctx *context.Context) {
 
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.ReactionForm)
+	form := web.GetForm[*forms.ReactionForm](ctx)
 	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", issues_model.IsErrCommentNotExist, err)

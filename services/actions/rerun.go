@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -18,7 +19,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
-	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -211,7 +211,11 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		if err := yaml.Unmarshal([]byte(plan.run.RawConcurrency), &rawConcurrency); err != nil {
 			return nil, fmt.Errorf("unmarshal raw concurrency: %w", err)
 		}
-		if err := EvaluateRunConcurrencyFillModel(ctx, plan.run, newAttempt, &rawConcurrency, vars, nil); err != nil {
+		inputs, err := dispatchInputsForRunJobs(plan.run, plan.templateJobs)
+		if err != nil {
+			return nil, err
+		}
+		if err := EvaluateRunConcurrencyFillModel(ctx, plan.run, newAttempt, &rawConcurrency, vars, inputs); err != nil {
 			return nil, err
 		}
 	}
