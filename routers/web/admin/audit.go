@@ -28,18 +28,18 @@ func ViewAuditLogs(ctx *context.Context) {
 
 func ExportAuditLogs(ctx *context.Context) {
 	page := 1
-	findPage := func() ([]*audit_model.Event, error) {
-		events, _, err := audit.FindEvents(ctx, &audit_model.EventSearchOptions{
+	findPage := func() ([]*audit_model.Event, int64, error) {
+		return audit.FindEvents(ctx, &audit_model.EventSearchOptions{
 			ListOptions: db.ListOptions{
 				Page:     page,
 				PageSize: auditExportPageSize,
 			},
 			Sort: audit_model.SortTimestampAsc,
 		})
-		return events, err
 	}
 
-	events, err := findPage()
+	// the first page is fetched before any header is written so a failing query still results in a proper error page
+	events, total, err := findPage()
 	if err != nil {
 		ctx.ServerError("FindEvents", err)
 		return
@@ -47,9 +47,10 @@ func ExportAuditLogs(ctx *context.Context) {
 
 	httplib.ServeSetHeaders(ctx.Resp, httplib.ServeHeaderOptions{
 		ContentType:        "application/x-ndjson; charset=utf-8",
-		Filename:           fmt.Sprintf("gitea-audit-log-%s.jsonl", time.Now().UTC().Format("20060102T150405Z")),
+		Filename:           fmt.Sprintf("gitea-audit-log-%s.jsonl", time.Now().UTC().Format("20060102-150405Z")),
 		ContentDisposition: httplib.ContentDispositionAttachment,
 	})
+	ctx.SetTotalCountHeader(total) // lets a client detect an export truncated by a mid-stream failure
 	ctx.Resp.WriteHeader(http.StatusOK)
 
 	for {
@@ -62,7 +63,7 @@ func ExportAuditLogs(ctx *context.Context) {
 		}
 
 		page++
-		events, err = findPage()
+		events, _, err = findPage()
 		if err != nil {
 			log.Error("Unable to continue audit log export: %v", err)
 			return
