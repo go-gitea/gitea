@@ -16,6 +16,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestDispatchInputsForRunJobs(t *testing.T) {
+	// a child carries the callee's `on: workflow_call`, so only a top-level job answers for the run
+	run := &actions_model.ActionRun{Event: "workflow_dispatch", EventPayload: `{"inputs":{"deploy":"true"}}`}
+	job := &actions_model.ActionRunJob{
+		ID: 1, JobID: "deploy",
+		WorkflowPayload: []byte("on: {workflow_dispatch: {inputs: {deploy: {type: boolean}}}}\njobs:\n  deploy:\n    steps: [{run: echo}]\n"),
+	}
+	child := &actions_model.ActionRunJob{
+		ID: 2, JobID: "called", ParentJobID: job.ID,
+		WorkflowPayload: []byte("on: workflow_call\njobs:\n  called:\n    steps: [{run: echo}]\n"),
+	}
+
+	inputs, err := dispatchInputsForRunJobs(run, []*actions_model.ActionRunJob{child, job})
+	require.NoError(t, err)
+	assert.Equal(t, true, inputs["deploy"])
+}
+
 func TestPullRequestTargetBaseSHA(t *testing.T) {
 	prPayload := func(baseSHA string) string {
 		payload, err := json.Marshal(api.PullRequestPayload{
