@@ -10,7 +10,7 @@
 					{{if $.IsSigned}}
 						<div class="ui custom dropdown" data-global-init="initRepoSwitcher" data-uid="{{.Owner.ID}}" data-current-full-name="{{.FullName}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}">
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="menu">
+							<div class="menu flex-items-menu items-width-limit">
 								<div class="ui icon search input">
 									<input type="text" class="search" autocomplete="off" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" placeholder="{{ctx.Locale.Tr "repo.switch_repository.search"}}">
 								</div>
