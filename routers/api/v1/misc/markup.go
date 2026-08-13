@@ -4,8 +4,9 @@
 package misc
 
 import (
-	"gitea.dev/modules/markup"
-	"gitea.dev/modules/markup/markdown"
+	"io"
+
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -84,9 +85,6 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//     "$ref": "#/responses/MarkdownRender"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	defer ctx.Req.Body.Close()
-	if err := markdown.RenderRaw(markup.NewRenderContext(ctx), ctx.Req.Body, ctx.Resp); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
+	textBytes, _ := io.ReadAll(io.LimitReader(ctx.Req.Body, setting.UI.MaxDisplayFileSize))
+	common.RenderMarkup(ctx.Base, ctx.Repo, "markdown", util.UnsafeBytesToString(textBytes), "", "")
 }

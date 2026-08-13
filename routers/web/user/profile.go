@@ -7,7 +7,6 @@ package user
 import (
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 
 	activities_model "gitea.dev/models/activities"
@@ -22,7 +21,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/org"
 	shared_user "gitea.dev/routers/web/shared/user"
@@ -255,7 +253,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
 			rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{
-				CurrentRefSubURL: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+				CurrentRefSubURL: git.RefNameFromBranch(profileDbRepo.DefaultBranch).RefWebLinkPath(),
 			})
 			if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
