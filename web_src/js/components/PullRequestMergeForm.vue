@@ -42,15 +42,16 @@ const autoMergeWhenSucceed = computed(() => {
   return !mergeForm.allOverridableChecksOk && !forceMerge.value && !mergeStyleDetail.value.hideAutoMerge;
 });
 
+// uncolored: schedule auto-merge; primary: merge now; red: bypass or mark as merged
 const mergeButtonStyleClass = computed(() => {
-  if (mergeStyle.value === mergeStyleManuallyMerged) return 'red';
-  return forceMerge.value ? 'red' : 'primary';
+  if (forceMerge.value || mergeStyle.value === mergeStyleManuallyMerged) return 'red';
+  return autoMergeWhenSucceed.value ? '' : 'primary';
 });
 
 const mergeSelectStyleClass = computed(() => {
   if (mergeForm.emptyCommit) return '';
-  if (mergeStyle.value === mergeStyleManuallyMerged) return 'red';
-  return forceMerge.value ? 'red' : 'primary';
+  if (forceMerge.value || mergeStyle.value === mergeStyleManuallyMerged) return 'red';
+  return autoMergeWhenSucceed.value ? '' : 'primary';
 });
 
 watch(mergeStyle, (val) => {
@@ -147,7 +148,7 @@ function clearMergeMessage() {
         <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">
       </div>
 
-      <div class="flex-text-block tw-gap-3">
+      <div class="flex-text-block">
         <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
           <template v-if="autoMergeWhenSucceed">{{ mergeStyleDetail.textAutoMerge }}</template>
           <template v-else>{{ mergeStyleDetail.textDoMerge }}</template>
@@ -164,7 +165,7 @@ function clearMergeMessage() {
       </div>
     </form>
 
-    <div v-if="!showActionForm" class="tw-flex">
+    <div v-if="!showActionForm" class="flex-text-block">
       <!-- the merge button -->
       <div class="ui buttons merge-button" :class="mergeSelectStyleClass" @click="toggleActionForm(true)">
         <button class="ui button">
@@ -188,11 +189,13 @@ function clearMergeMessage() {
       </div>
 
       <!-- the cancel auto merge button -->
-      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="tw-ml-4">
+      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post">
         <button class="ui button">
           {{ mergeForm.textAutoMergeCancelSchedule }}
         </button>
       </form>
+
+      <a v-if="mergeForm.showPullCommands" class="show-modal" href data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdHint }}</a>
     </div>
   </div>
 </template>

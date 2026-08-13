@@ -164,7 +164,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxInfoItems(ctx *context.Context
 		)
 	}
 
-	// when the doer can bypass overridable blockers, the merge form shows an explicit "bypass rules" checkbox,
+	// when the doer can bypass overridable blockers, the merge form offers switch-to-force-merge,
 	// so no separate admin/allowlist prompt is needed here; only show the positive "can be merged" hint when clear
 	if data.canMergeNow && !data.hasOverridableBlockers && (pull.IsStatusMergeable() || pull.IsEmpty()) {
 		prInfo.MergeBoxData.infoMergePrompts.AddInfoItem(

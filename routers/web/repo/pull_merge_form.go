@@ -122,6 +122,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 		"hasPendingPullRequestMerge":    hasPendingPullRequestMerge,
 		"hasPendingPullRequestMergeTip": hasPendingPullRequestMergeTip,
+
+		"showPullCommands": prInfo.MergeBoxData.ShowPullCommands,
+		"textCmdHint":      ctx.Locale.Tr("repo.pulls.cmd_instruction_hint"),
 	}
 
 	// if this pr can be merged now, then hide the auto merge
