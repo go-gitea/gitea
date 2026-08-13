@@ -372,13 +372,10 @@ td .commit-summary {
 }
 
 .issue-title-edit-pencil {
+  display: inline-flex;
+  align-items: center;
   padding: 4px;
-  vertical-align: middle;
   color: var(--color-text-light-2);
-}
-
-.issue-title-code {
-  position: relative;
 }
 
 .pull-code-panel-popup {
@@ -387,7 +384,7 @@ td .commit-summary {
 
 .pull-code-panel-desc {
   color: var(--color-text-light-2);
-  font-size: 0.9em;
+  font-size: 13px;
 }
 
 .issue-title .label {
