@@ -55,7 +55,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
+	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 
 	if util.IsEmptyString(form.Title) {
 		ctx.APIError(http.StatusBadRequest, "title is required")
@@ -133,7 +133,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
-	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
+	form := web.GetForm[*api.CreateWikiPageOptions](ctx)
 
 	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("pageName"))
 	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
@@ -467,7 +467,7 @@ func findEntryForFile(ctx *context.APIContext, wikiRepo *git.Repository, commit 
 // findWikiRepoCommit opens the wiki repo and returns the latest commit, writing to context on error.
 // The caller is responsible for closing the returned repo again
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
-	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiStorageRepo())
+	wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return nil, nil

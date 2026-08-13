@@ -238,5 +238,21 @@ type swaggerParameterBodies struct {
 	LockIssueOption api.LockIssueOption
 
 	// in:body
+	CreateProjectOption api.CreateProjectOption
+	// in:body
+	EditProjectOption api.EditProjectOption
+
+	// in:body
+	CreateProjectColumnOption api.CreateProjectColumnOption
+	// in:body
+	EditProjectColumnOption api.EditProjectColumnOption
+
+	// in:body
+	MoveProjectColumnsOption api.MoveProjectColumnsOption
+
+	// in:body
+	MoveProjectIssueOption api.MoveProjectIssueOption
+
+	// in:body
 	MergeUpstreamRequest api.MergeUpstreamRequest
 }

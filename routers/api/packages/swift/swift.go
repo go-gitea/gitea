@@ -197,7 +197,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 		return
 	}
 
-	metadata := pd.Metadata.(*swift_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*swift_module.Metadata](pd)
 	repositoryURLs := make([]string, 0, len(pd.VersionProperties))
 	for _, property := range pd.VersionProperties {
 		if property.Name == swift_module.PropertyRepositoryURL {
@@ -278,7 +278,7 @@ func DownloadManifest(ctx *context.Context) {
 			swiftVersion = swift_module.TrimmedVersionString(v)
 		}
 	}
-	m, ok := pd.Metadata.(*swift_module.Metadata).Manifests[swiftVersion]
+	m, ok := packages_model.DescriptorMetadata[*swift_module.Metadata](pd).Manifests[swiftVersion]
 	if !ok {
 		setResponseHeaders(ctx.Resp, &headers{
 			Status:   http.StatusSeeOther,

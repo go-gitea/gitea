@@ -14,7 +14,6 @@ import (
 func TestMain(m *testing.M) {
 	setting.IsInTesting = true
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
-	setting.Markdown.FileNamePatterns = []string{"*.md"}
 	markup.RefreshFileNamePatterns()
 	os.Exit(m.Run())
 }

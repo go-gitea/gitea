@@ -4,12 +4,13 @@
 package v1_16
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 )
 
-func AddTableCommitStatusIndex(x base.EngineMigration) error {
+func AddTableCommitStatusIndex(_ context.Context, x base.EngineMigration) error {
 	// CommitStatusIndex represents a table for commit status index
 	type CommitStatusIndex struct {
 		ID       int64

@@ -16,6 +16,7 @@ import (
 )
 
 type BlobExcerptOptions struct {
+	// More details in DiffLineSectionInfo struct
 	LastLeft      int
 	LastRight     int
 	LeftIndex     int
@@ -26,11 +27,11 @@ type BlobExcerptOptions struct {
 	Language      string
 }
 
-func fillExcerptLines(section *DiffSection, filePath string, reader io.Reader, lang string, idxLeft, idxRight, chunkSize int) error {
+func (diffSection *DiffSection) fillExcerptLines(reader io.Reader, leftStart, rightStart, chunkSize int) error {
 	buf := &bytes.Buffer{}
 	scanner := bufio.NewScanner(reader)
 	var diffLines []*DiffLine
-	for line := 0; line < idxRight+chunkSize; line++ {
+	for rightLineIdx := 1; rightLineIdx < rightStart+chunkSize; rightLineIdx++ {
 		if ok := scanner.Scan(); !ok {
 			break
 		}
@@ -39,12 +40,12 @@ func fillExcerptLines(section *DiffSection, filePath string, reader io.Reader, l
 			buf.WriteString(lineText)
 			buf.WriteByte('\n')
 		}
-		if line < idxRight {
+		if rightLineIdx < rightStart {
 			continue
 		}
 		diffLine := &DiffLine{
-			LeftIdx:  idxLeft + (line - idxRight) + 1,
-			RightIdx: line + 1,
+			LeftIdx:  leftStart + (rightLineIdx - rightStart),
+			RightIdx: rightLineIdx,
 			Type:     DiffLinePlain,
 			Content:  " " + lineText,
 		}
@@ -53,46 +54,53 @@ func fillExcerptLines(section *DiffSection, filePath string, reader io.Reader, l
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("fillExcerptLines scan: %w", err)
 	}
-	section.Lines = diffLines
+	diffSection.Lines = diffLines
 	// DiffLinePlain always uses right lines
-	section.highlightedRightLines.value = highlightCodeLines(filePath, lang, []*DiffSection{section}, false /* right */, buf.Bytes())
+	diffSection.highlightedRightLines.value = highlightCodeLines(diffSection.FileName, diffSection.language.value, []*DiffSection{diffSection}, false /* right */, buf.Bytes())
 	return nil
 }
 
 func BuildBlobExcerptDiffSection(filePath string, reader io.Reader, opts BlobExcerptOptions) (*DiffSection, error) {
 	lastLeft, lastRight, idxLeft, idxRight := opts.LastLeft, opts.LastRight, opts.LeftIndex, opts.RightIndex
 	leftHunkSize, rightHunkSize, direction := opts.LeftHunkSize, opts.RightHunkSize, opts.Direction
-	language := opts.Language
 
-	chunkSize := BlobExcerptChunkSize
+	expandLimit := BlobExcerptChunkSize
 	section := &DiffSection{
-		language:              &diffVarMutable[string]{value: language},
+		language:              &diffVarMutable[string]{value: opts.Language},
 		highlightLexer:        &diffVarMutable[chroma.Lexer]{},
 		highlightedLeftLines:  &diffVarMutable[map[int]template.HTML]{},
 		highlightedRightLines: &diffVarMutable[map[int]template.HTML]{},
 		FileName:              filePath,
 	}
 	var err error
-	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
-		idxLeft -= chunkSize
-		idxRight -= chunkSize
-		leftHunkSize += chunkSize
-		rightHunkSize += chunkSize
-		err = fillExcerptLines(section, filePath, reader, language, idxLeft-1, idxRight-1, chunkSize)
-	} else if direction == "down" && (idxLeft-lastLeft) > chunkSize {
-		err = fillExcerptLines(section, filePath, reader, language, lastLeft, lastRight, chunkSize)
-		lastLeft += chunkSize
-		lastRight += chunkSize
-	} else {
-		offset := -1
-		if direction == "down" {
-			offset = 0
+	remainingLines := idxRight - lastRight
+	if direction == "up" && remainingLines > expandLimit {
+		idxLeft -= expandLimit
+		idxRight -= expandLimit
+		leftHunkSize += expandLimit
+		rightHunkSize += expandLimit
+		err = section.fillExcerptLines(reader, idxLeft, idxRight, expandLimit)
+	} else if direction == "down" && remainingLines > expandLimit {
+		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
+		lastLeft += expandLimit
+		lastRight += expandLimit
+	} else /* "single" or [ ("up" or "down") and (remainingLines <= expandLimit) ] */ {
+		if direction == "up" || direction == "single" {
+			// if the direction is "up" or "single":
+			// * top: last=0, idx=11, chunk=11: line 11 is already rendered, line 0 can be considered as a "virtually rendered line"
+			//   * then need to expand line 10 lines (1-10), so "-1".
+			// * middle: last=100, idx=106, chunk=6: line 100 and 106 are both already rendered
+			//   * then need to expand 5 lines (101-105), so "-1".
+			expandLimit = remainingLines - 1
+		} else {
+			// if the direction is "down": either the hidden lines are too many in the middle (otherwise "single"), or are at the bottom
+			// * "last" line is already rendered, so just render the remaining lines from the next line
+			expandLimit = remainingLines
 		}
-		err = fillExcerptLines(section, filePath, reader, language, lastLeft, lastRight, idxRight-lastRight+offset)
-		leftHunkSize = 0
-		rightHunkSize = 0
-		idxLeft = lastLeft
-		idxRight = lastRight
+		err = section.fillExcerptLines(reader, lastLeft+1, lastRight+1, expandLimit)
+		// now, the hidden lines are fewer than "expand limit", after expand, no hidden lines anymore,
+		// no need to show new "expand buttons" (setting them to 0 will make GetExpandDirection returns "no direction")
+		leftHunkSize, rightHunkSize, idxLeft, idxRight = 0, 0, 0, 0
 	}
 	if err != nil {
 		return nil, err

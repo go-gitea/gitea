@@ -322,7 +322,7 @@ func ValidateRepoMetasForNewIssue(ctx *context.Context, form forms.CreateIssueFo
 
 // NewIssuePost response for creating new issue
 func NewIssuePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateIssueForm)
+	form := web.GetForm[*forms.CreateIssueForm](ctx)
 
 	repo := ctx.Repo.Repository
 

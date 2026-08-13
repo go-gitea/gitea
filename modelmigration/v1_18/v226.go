@@ -4,12 +4,14 @@
 package v1_18
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/builder"
 )
 
-func FixPackageSemverField(x base.EngineMigration) error {
+func FixPackageSemverField(_ context.Context, x base.EngineMigration) error {
 	_, err := x.Exec(builder.Update(builder.Eq{"semver_compatible": false}).From("`package`").Where(builder.In("`type`", "conan", "generic")))
 	return err
 }

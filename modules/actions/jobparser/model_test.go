@@ -4,10 +4,12 @@
 package jobparser
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
-	"gitea.com/gitea/runner/act/model"
+	"gitea.dev/actionslib/pkg/model"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v4"
@@ -465,6 +467,51 @@ func TestParseMappingNode(t *testing.T) {
 	}
 }
 
+func TestEvaluateJobIfExpressionMatrix(t *testing.T) {
+	ifExprs := []string{
+		`${{ contains(fromJSON('["linux","windows"]'), matrix.target) }}`,
+		`${{ contains('["linux","windows"]', matrix.target) }}`,
+	}
+
+	want := map[string]bool{
+		"build (linux)":   true,
+		"build (windows)": true,
+		"build (macos)":   false,
+	}
+
+	for _, ifExpr := range ifExprs {
+		t.Run(ifExpr, func(t *testing.T) {
+			content := fmt.Sprintf(`
+name: test
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: %s
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [linux, windows, macos]
+    steps:
+      - run: echo ${{ matrix.target }}
+`, ifExpr)
+
+			swfs, err := Parse([]byte(content))
+			require.NoError(t, err)
+			require.Len(t, swfs, 3)
+
+			got := make(map[string]bool, len(swfs))
+			for _, swf := range swfs {
+				id, job := swf.Job()
+				shouldRun, err := EvaluateJobIfExpression(id, job, map[string]any{}, map[string]*JobResult{id: {}}, nil, nil, false)
+				require.NoError(t, err)
+				got[job.Name] = shouldRun
+			}
+			assert.Equal(t, want, got)
+		})
+	}
+}
+
 func TestEvaluateJobIfExpression(t *testing.T) {
 	kases := []struct {
 		name       string
@@ -481,6 +528,10 @@ func TestEvaluateJobIfExpression(t *testing.T) {
 		{name: "cancelled", ifCond: "${{ cancelled() }}", needResult: "success", expected: false},
 		{name: "not cancelled or failure", ifCond: "${{ !(cancelled() || failure()) }}", needResult: "success", expected: true},
 		{name: "not cancelled or failure, need failed", ifCond: "${{ !(cancelled() || failure()) }}", needResult: "failure", expected: false},
+		// a condition is an expression with or without `${{ }}`, literal text around one makes it a string
+		{name: "bare expression", ifCond: "always()", needResult: "failure", expected: true},
+		{name: "literal text keeps the success() default", ifCond: "x ${{ 1 }}", needResult: "failure", expected: false},
+		{name: "literal text around a status function drops it", ifCond: "x ${{ always() }}", needResult: "failure", expected: true},
 	}
 	for _, kase := range kases {
 		t.Run(kase.name, func(t *testing.T) {
@@ -516,7 +567,7 @@ jobs:
 				"job1": {Result: kase.needResult},
 				"job2": {Needs: []string{"job1"}},
 			}
-			got, err := EvaluateJobIfExpression("job2", job2, map[string]any{}, results, nil, nil)
+			got, err := EvaluateJobIfExpression("job2", job2, map[string]any{}, results, nil, nil, false)
 			require.NoError(t, err)
 			assert.Equal(t, kase.expected, got)
 		})
