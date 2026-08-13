@@ -16,8 +16,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// dispatchInputsForJob returns the `inputs.*` context of a top-level job of a workflow_dispatch run, empty for any other event.
-// run.EventPayload stores the raw dispatch values, so the declared types are applied here.
+// dispatchInputsForJob types a top-level job's `inputs.*` from EventPayload, empty for other events.
 func dispatchInputsForJob(run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if run.Event != "workflow_dispatch" {
 		return map[string]any{}, nil
@@ -25,6 +24,9 @@ func dispatchInputsForJob(run *actions_model.ActionRun, job *actions_model.Actio
 	var payload api.WorkflowDispatchPayload
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 		return nil, err
+	}
+	if payload.Inputs == nil {
+		payload.Inputs = map[string]any{} // nil reads as "unresolved" in EvaluateRunConcurrencyFillModel
 	}
 	swf, _, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 	if err != nil {
@@ -38,8 +40,7 @@ func dispatchInputsForJob(run *actions_model.ActionRun, job *actions_model.Actio
 	return payload.Inputs, nil
 }
 
-// dispatchInputsForRunJobs returns the run's `inputs.*` context for a workflow-level evaluation.
-// Every job keeps its workflow's header, so any top-level job of the run answers for it.
+// dispatchInputsForRunJobs answers for the whole run, off any top-level job's workflow header.
 func dispatchInputsForRunJobs(run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (map[string]any, error) {
 	for _, job := range jobs {
 		if job.ParentJobID == 0 {

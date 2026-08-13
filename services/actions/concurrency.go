@@ -18,6 +18,7 @@ import (
 // EvaluateRunConcurrencyFillModel evaluates the expressions in a run-level (workflow) concurrency,
 // and fills the run attempt model with the evaluated `concurrency.group` and `concurrency.cancel-in-progress` values.
 // Workflow-level concurrency doesn't depend on the job outputs, so it can always be evaluated if there is no syntax error.
+// Callers must resolve `inputs`, there is no job in scope here to read `on: workflow_dispatch` from.
 // See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#concurrency
 func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, wfRawConcurrency *act_model.RawConcurrency, vars map[string]string, inputs map[string]any) error {
 	if err := run.LoadAttributes(ctx); err != nil {
@@ -28,7 +29,6 @@ func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	if inputs == nil {
 		if run.Event == "workflow_dispatch" {
-			// a run with `on: workflow_dispatch` must carry a non-nil inputs
 			setting.PanicInDevOrTesting("run %d: workflow_dispatch inputs must be resolved by the caller", run.ID)
 		}
 		inputs = map[string]any{}

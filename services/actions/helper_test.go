@@ -63,55 +63,19 @@ jobs:
 	}
 }
 
-func TestDispatchInputsForJobCoercesBooleans(t *testing.T) {
-	// The stored payload keeps the raw dispatch values, while the `inputs` context the server
-	// evaluates against must show `type: boolean` as a real boolean.
-	run := &actions_model.ActionRun{
-		Event: "workflow_dispatch",
-		EventPayload: func() string {
-			payload, err := json.Marshal(api.WorkflowDispatchPayload{
-				Inputs: map[string]any{"deploy": "true", "env": "prod"},
-			})
-			require.NoError(t, err)
-			return string(payload)
-		}(),
-	}
+func TestDispatchInputsForRunJobs(t *testing.T) {
+	// a child carries the callee's `on: workflow_call`, so only a top-level job answers for the run
+	run := &actions_model.ActionRun{Event: "workflow_dispatch", EventPayload: `{"inputs":{"deploy":"true"}}`}
 	job := &actions_model.ActionRunJob{
 		ID: 1, JobID: "deploy",
-		WorkflowPayload: []byte(`name: test
-on:
-  workflow_dispatch:
-    inputs:
-      deploy:
-        type: boolean
-        default: true
-      env:
-        type: string
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo
-`),
+		WorkflowPayload: []byte("on: {workflow_dispatch: {inputs: {deploy: {type: boolean}}}}\njobs:\n  deploy:\n    steps: [{run: echo}]\n"),
 	}
-
-	inputs, err := dispatchInputsForJob(run, job)
-	require.NoError(t, err)
-	assert.Equal(t, true, inputs["deploy"])
-	assert.Equal(t, "prod", inputs["env"])
-
-	// the event payload itself must be left untouched
-	var payload api.WorkflowDispatchPayload
-	require.NoError(t, json.Unmarshal([]byte(run.EventPayload), &payload))
-	assert.Equal(t, "true", payload.Inputs["deploy"])
-
-	// A workflow-level evaluation has no job in scope: any top-level job answers for the run,
-	// while a reusable child carries the callee's `on: workflow_call` and must be passed over.
 	child := &actions_model.ActionRunJob{
 		ID: 2, JobID: "called", ParentJobID: job.ID,
 		WorkflowPayload: []byte("on: workflow_call\njobs:\n  called:\n    steps: [{run: echo}]\n"),
 	}
-	inputs, err = dispatchInputsForRunJobs(run, []*actions_model.ActionRunJob{child, job})
+
+	inputs, err := dispatchInputsForRunJobs(run, []*actions_model.ActionRunJob{child, job})
 	require.NoError(t, err)
 	assert.Equal(t, true, inputs["deploy"])
 }

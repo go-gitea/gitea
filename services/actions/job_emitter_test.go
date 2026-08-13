@@ -226,9 +226,7 @@ jobs:
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
 		{
-			// `inputs` preserves Boolean values as Booleans while `github.event.inputs` converts them to strings:
-			// https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch
-			// A needs-gated job is evaluated server-side, so getting either wrong skips it despite succeeding needs.
+			// a needs-gated job is evaluated server-side, so a mistyped input silently leaves it blocked
 			name: "`if` compares a workflow_dispatch boolean input",
 			run: &actions_model.ActionRun{
 				TriggerUser: &user_model.User{}, Repo: &repo_model.Repository{},
@@ -239,40 +237,21 @@ jobs:
 				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
 				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
 					`
-name: test
 on:
   workflow_dispatch:
     inputs:
       deploy:
         type: boolean
-        default: false
 jobs:
   job2:
     runs-on: ubuntu-latest
     needs: job1
-    if: ${{ inputs.deploy == true }}
+    if: ${{ inputs.deploy == true && github.event.inputs.deploy == 'true' }}
     steps:
-      - run: echo "will be checked by runner"
-`)},
-				{ID: 3, JobID: "job3", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
-					`
-name: test
-on:
-  workflow_dispatch:
-    inputs:
-      deploy:
-        type: boolean
-        default: false
-jobs:
-  job3:
-    runs-on: ubuntu-latest
-    needs: job1
-    if: ${{ github.event.inputs.deploy == 'true' }}
-    steps:
-      - run: echo "will be checked by runner"
+      - run: echo
 `)},
 			},
-			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting, 3: actions_model.StatusWaiting},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
