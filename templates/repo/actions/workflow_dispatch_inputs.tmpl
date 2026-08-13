@@ -19,7 +19,7 @@
 				</select>
 			{{else if eq .Type "boolean"}}
 				<label class="tw-flex flex-text-inline">
-					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
+					<input type="checkbox" name="{{.Name}}" {{if .IsDefaultTrue}}checked{{end}}>
 					{{or .Description .Name}}
 				</label>
 			{{else if eq .Type "number"}}
