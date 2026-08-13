@@ -35,7 +35,7 @@ export default defineConfig({
       },
     ],
   },
+  publicDir: false,
   define: vueDefines,
   plugins: sharedPlugins(),
-  publicDir: false,
 });
