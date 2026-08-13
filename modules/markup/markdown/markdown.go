@@ -11,6 +11,7 @@ import (
 	"io"
 	"strings"
 
+	"gitea.dev/modules/highlight"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
@@ -78,17 +79,8 @@ func (r *GoldmarkRender) Convert(source []byte, writer io.Writer, opts ...parser
 func (r *GoldmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.CodeBlockContext, entering bool) {
 	if entering {
 		languageBytes, _ := c.Language()
-		languageStr := giteautil.IfZero(string(languageBytes), "text")
-
-		preClasses := "code-block"
-		if languageStr == "mermaid" || languageStr == "math" {
-			preClasses += " is-loading"
-		}
-
-		// include language-x class as part of commonmark spec, "chroma" class is used to highlight the code
-		// the "display" class is used by "js/markup/math.ts" to render the code element as a block
-		// the "math.ts" strictly depends on the structure: <pre class="code-block is-loading"><code class="language-math display">...</code></pre>
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre class="%s"><code class="chroma language-%s display">`, preClasses, languageStr)
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(string(languageBytes))
+		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre %s><code %s>`, preAttrs, codeAttrs)
 		if err != nil {
 			return
 		}

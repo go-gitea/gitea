@@ -100,9 +100,8 @@ func DisableTwoFactor(ctx *context.Context) {
 func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 	var otpKey *otp.Key
 	var err error
-	uri := ctx.Session.Get("twofaUri")
-	if uri != nil {
-		otpKey, err = otp.NewKeyFromURL(uri.(string))
+	if uri, ok := ctx.Session.Get("twofaUri").(string); ok {
+		otpKey, err = otp.NewKeyFromURL(uri)
 		if err != nil {
 			ctx.ServerError("SettingsTwoFactor: Failed NewKeyFromURL: ", err)
 			return false
@@ -193,7 +192,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
+	form := web.GetForm[*forms.TwoFactorAuthForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
@@ -218,14 +217,13 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	secretRaw := ctx.Session.Get("twofaSecret")
-	if secretRaw == nil {
+	secret, ok := ctx.Session.Get("twofaSecret").(string)
+	if !ok {
 		ctx.Flash.Error(ctx.Tr("settings.twofa_failed_get_secret"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
 		return
 	}
 
-	secret := secretRaw.(string)
 	if !totp.Validate(form.Passcode, secret) {
 		if !twofaGenerateSecretAndQr(ctx) {
 			return

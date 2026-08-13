@@ -3,8 +3,12 @@
 
 package v1_22
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func DropWronglyCreatedTable(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func DropWronglyCreatedTable(_ context.Context, x base.EngineMigration) error {
 	return x.DropTables("o_auth2_application")
 }

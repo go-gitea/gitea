@@ -10,9 +10,13 @@ import (
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	webhook_module "gitea.dev/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,6 +41,17 @@ func TestCheckCallerChain_Cycle(t *testing.T) {
 			"./.gitea/workflows/a.yml",
 			"./.gitea/workflows/b.yml",
 			"./.gitea/workflows/a.yml",
+		)
+		err := checkCallerChain(t.Context(), chain[len(chain)-1])
+		assert.ErrorContains(t, err, "cycle detected")
+	})
+
+	t.Run("MixedPrefixCycle", func(t *testing.T) {
+		require.NoError(t, unittest.PrepareTestDatabase())
+		// A -> A written with both same-repo prefixes: they name the same file.
+		chain := buildCallerChain(t,
+			"./.gitea/workflows/a.yml",
+			"$/.gitea/workflows/a.yml",
 		)
 		err := checkCallerChain(t.Context(), chain[len(chain)-1])
 		assert.ErrorContains(t, err, "cycle detected")
@@ -277,4 +292,75 @@ func TestUndoExpansion(t *testing.T) {
 	refreshed := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: caller.ID})
 	assert.False(t, refreshed.IsExpanded)
 	unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: sibling.ID})
+}
+
+func TestResolveSameRepoWorkflowSourceCommit(t *testing.T) {
+	prtRun := func(baseSHA string) *actions_model.ActionRun {
+		payload, err := json.Marshal(api.PullRequestPayload{
+			PullRequest: &api.PullRequest{
+				Base: &api.PRBranchInfo{Sha: baseSHA},
+			},
+		})
+		require.NoError(t, err)
+		// a run recorded before the fix points at the PR head commit
+		return &actions_model.ActionRun{
+			ID:                42,
+			RepoID:            1,
+			Event:             webhook_module.HookEventPullRequest,
+			TriggerEvent:      actions_module.GithubEventPullRequestTarget,
+			EventPayload:      string(payload),
+			WorkflowCommitSHA: "head-sha",
+		}
+	}
+	pushRun := &actions_model.ActionRun{
+		RepoID:            1,
+		TriggerEvent:      "push",
+		WorkflowCommitSHA: "head-sha",
+	}
+	caller := func(sourceRepoID int64, sourceCommitSHA string) *actions_model.ActionRunJob {
+		return &actions_model.ActionRunJob{WorkflowSourceRepoID: sourceRepoID, WorkflowSourceCommitSHA: sourceCommitSHA}
+	}
+
+	t.Run("pull_request_target pins to base commit", func(t *testing.T) {
+		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), caller(1, "head-sha"))
+		assert.Equal(t, "base-sha", got)
+	})
+
+	t.Run("legacy nested caller (with head-sha) pins to base commit", func(t *testing.T) {
+		nested := caller(1, "head-sha")
+		nested.ParentJobID = 99
+		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), nested)
+		assert.Equal(t, "base-sha", got)
+	})
+
+	t.Run("pull_request_target keeps stored SHA when already base", func(t *testing.T) {
+		run := prtRun("base-sha")
+		run.WorkflowCommitSHA = "base-sha"
+		got := resolveSameRepoWorkflowSourceCommit(run, caller(1, "base-sha"))
+		assert.Equal(t, "base-sha", got)
+	})
+
+	t.Run("non pull_request_target keeps stored SHA", func(t *testing.T) {
+		got := resolveSameRepoWorkflowSourceCommit(pushRun, caller(1, "head-sha"))
+		assert.Equal(t, "head-sha", got)
+	})
+
+	t.Run("scoped run keeps stored SHA", func(t *testing.T) {
+		run := prtRun("base-sha")
+		run.IsScopedRun = true
+		got := resolveSameRepoWorkflowSourceCommit(run, caller(1, "head-sha"))
+		assert.Equal(t, "head-sha", got)
+	})
+
+	t.Run("cross-repo caller keeps stored SHA", func(t *testing.T) {
+		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), caller(2, "head-sha"))
+		assert.Equal(t, "head-sha", got)
+	})
+
+	t.Run("caller resolved from a uses: ref keeps its own SHA", func(t *testing.T) {
+		nested := caller(1, "tag-v1-sha")
+		nested.ParentJobID = 99
+		got := resolveSameRepoWorkflowSourceCommit(prtRun("base-sha"), nested)
+		assert.Equal(t, "tag-v1-sha", got)
+	})
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"slices"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -18,7 +19,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 
-	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -211,7 +211,11 @@ func execRerunPlan(ctx context.Context, plan *rerunPlan) (*actions_model.ActionR
 		if err := yaml.Unmarshal([]byte(plan.run.RawConcurrency), &rawConcurrency); err != nil {
 			return nil, fmt.Errorf("unmarshal raw concurrency: %w", err)
 		}
-		if err := EvaluateRunConcurrencyFillModel(ctx, plan.run, newAttempt, &rawConcurrency, vars, nil); err != nil {
+		inputs, err := dispatchInputsForRunJobs(plan.run, plan.templateJobs)
+		if err != nil {
+			return nil, err
+		}
+		if err := EvaluateRunConcurrencyFillModel(ctx, plan.run, newAttempt, &rawConcurrency, vars, inputs); err != nil {
 			return nil, err
 		}
 	}
@@ -653,11 +657,14 @@ func (p *rerunPlan) collectMatrixCollapse() {
 		if p.skipCloneTemplateJobIDs.Contains(anchor.ID) {
 			continue
 		}
-		inRerunSet := slices.ContainsFunc(rows, func(j *actions_model.ActionRunJob) bool {
-			return p.rerunAttemptJobIDs.Contains(j.AttemptJobID)
-		})
-		if !inRerunSet {
-			continue // pass-through group, cloned as-is
+		// Gate on the anchor rather than on any row of the group: execRerunPlan only resets a row whose
+		// own AttemptJobID is in the rerun set, so restoring the placeholder onto an anchor it treats
+		// as pass-through would clone a row that keeps its old terminal status while carrying the raw,
+		// unexpanded payload, and nothing expands a job that is not blocked. An anchor can be left
+		// out of the rerun set while a sibling is in it: partially re-running the subtree of a
+		// matrix-expanded reusable caller puts that combination in ancestorAttemptJobIDs instead.
+		if !p.rerunAttemptJobIDs.Contains(anchor.AttemptJobID) {
+			continue // pass-through anchor, the group is cloned as-is
 		}
 		unexpanded := len(rows) == 1 && anchor.IsMatrixDeferred
 		if !unexpanded && !p.hasRerunDependency(anchor) {

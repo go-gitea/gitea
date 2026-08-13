@@ -5,6 +5,8 @@ on:
     - cron: "7 0 * * *" # every day at 00:07 UTC
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   crowdin-pull:
     runs-on: ubuntu-latest
@@ -13,7 +15,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: crowdin/github-action@e0c8f73cdc0fafde9396e056c5038217000a32d1 # v2.16.4
+      - uses: crowdin/github-action@c7af9bc98b01694653031fef2a0dc6c7888ce9bc # v2.17.0
         with:
           upload_sources: true
           upload_translations: false

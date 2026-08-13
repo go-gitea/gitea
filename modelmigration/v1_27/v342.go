@@ -4,13 +4,15 @@
 package v1_27
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func AddScopedWorkflowsSchema(x base.EngineMigration) error {
+func AddScopedWorkflowsSchema(_ context.Context, x base.EngineMigration) error {
 	// Create the action_scoped_workflow_source table
 	type ScopedWorkflowConfig struct {
 		Required bool     `json:"required"`

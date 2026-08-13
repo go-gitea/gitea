@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -36,8 +37,6 @@ import (
 	"gitea.dev/routers/common"
 	actions_service "gitea.dev/services/actions"
 	context_module "gitea.dev/services/context"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) (job *actions_model.ActionRunJob, hasPathParam bool) {
@@ -706,7 +705,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 }
 
 func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
-	req := web.GetForm(ctx).(*ViewRequest)
+	req := web.GetForm[*ViewRequest](ctx)
 	current, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
 	if current == nil {
 		if hasPathParam {
@@ -1038,26 +1037,9 @@ func Cancel(ctx *context_module.Context) {
 		return
 	}
 
-	var updatedJobs []*actions_model.ActionRunJob
-
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		cancelledJobs, err := actions_model.CancelJobs(ctx, jobs)
-		if err != nil {
-			return fmt.Errorf("cancel jobs: %w", err)
-		}
-		updatedJobs = append(updatedJobs, cancelledJobs...)
-		return nil
-	}); err != nil {
-		ctx.ServerError("StopTask", err)
+	if _, err := actions_service.CancelRun(ctx, run, jobs); err != nil {
+		ctx.ServerError("CancelRun", err)
 		return
-	}
-
-	actions_service.CreateCommitStatusForRunJobs(ctx, run, jobs...)
-	actions_service.EmitJobsIfReadyByJobs(updatedJobs)
-
-	actions_service.NotifyWorkflowJobsStatusUpdate(ctx, updatedJobs...)
-	if len(updatedJobs) > 0 {
-		actions_service.NotifyWorkflowRunStatusUpdateWithReload(ctx, run.RepoID, run.ID)
 	}
 	ctx.JSONOK()
 }
@@ -1067,7 +1049,7 @@ func Approve(ctx *context_module.Context) {
 	if ctx.Written() {
 		return
 	}
-	if err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
+	if _, err := actions_service.ApproveRuns(ctx, ctx.Repo.Repository, ctx.Doer, []int64{run.ID}); err != nil {
 		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)
@@ -1210,7 +1192,7 @@ func ApproveAllChecks(ctx *context_module.Context) {
 		return
 	}
 
-	if err := actions_service.ApproveRuns(ctx, repo, ctx.Doer, runIDs); err != nil {
+	if _, err := actions_service.ApproveRuns(ctx, repo, ctx.Doer, runIDs); err != nil {
 		ctx.NotFoundOrServerError("ApproveRuns", func(err error) bool {
 			return errors.Is(err, util.ErrNotExist)
 		}, err)

@@ -14,9 +14,11 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 )
 
-func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) error {
+// ApproveRuns returns the approved runs in the same order as runIDs.
+func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, runIDs []int64) ([]*actions_model.ActionRun, error) {
 	updatedJobs := make([]*actions_model.ActionRunJob, 0)
 	cancelledConcurrencyJobs := make([]*actions_model.ActionRunJob, 0)
 	// Track runs whose reusable callers were just expanded so we can re-emit after the tx commits.
@@ -36,7 +38,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 			if err := actions_model.UpdateRun(ctx, run, "need_approval", "approved_by"); err != nil {
 				return err
 			}
-			jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, repo.ID, run.ID)
+			jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
 			if err != nil {
 				return err
 			}
@@ -107,7 +109,7 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 		return nil
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Re-emit AFTER the tx commits so the newly inserted callee rows transition Blocked -> Waiting.
@@ -122,5 +124,26 @@ func ApproveRuns(ctx context.Context, repo *repo_model.Repository, doer *user_mo
 
 	EmitJobsIfReadyByJobs(cancelledConcurrencyJobs)
 
-	return nil
+	// The batches above already notified every run whose jobs changed, which is the only way
+	// approving alters a run's status, so reload purely to answer the caller.
+	reloaded, err := actions_model.GetRunsByRepoAndID(ctx, repo.ID, runIDs)
+	if err != nil {
+		return nil, fmt.Errorf("GetRunsByRepoAndID: %w", err)
+	}
+	runsByID := make(map[int64]*actions_model.ActionRun, len(reloaded))
+	for _, run := range reloaded {
+		run.Repo = repo // the caller resolved runIDs against this repo, so spare every consumer a reload
+		runsByID[run.ID] = run
+	}
+
+	approvedRuns := make([]*actions_model.ActionRun, 0, len(runIDs))
+	for _, runID := range runIDs {
+		run := runsByID[runID]
+		if run == nil {
+			return nil, util.NewNotExistErrorf("run %d no longer exists after approval", runID)
+		}
+		approvedRuns = append(approvedRuns, run)
+	}
+
+	return approvedRuns, nil
 }

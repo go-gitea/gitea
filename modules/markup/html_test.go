@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/common"
 	"gitea.dev/modules/markup/markdown"
 	"gitea.dev/modules/setting"
 	testModule "gitea.dev/modules/test"
@@ -135,10 +136,10 @@ func TestRender_links(t *testing.T) {
 	defer func() {
 		setting.Markdown.CustomURLSchemes = oldCustomURLSchemes
 		markup.ResetDefaultSanitizerForTesting()
-		markup.CustomLinkURLSchemes(oldCustomURLSchemes)
+		common.InitLinkURLSchemes(oldCustomURLSchemes)
 	}()
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
-	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
+	common.InitLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
 	// Text that should be turned into URL
 	test(
@@ -402,7 +403,6 @@ func TestRender_ShortLinks(t *testing.T) {
 	renderableFileURL := tree + "/markdown_file.md"
 	unrenderableFileURL := tree + "/file.zip"
 	favicon := "http://google.com/favicon.ico"
-
 	test(
 		"[[Link]]",
 		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
@@ -596,11 +596,4 @@ func TestIssue18471(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
-}
-
-func TestIsFullURL(t *testing.T) {
-	assert.True(t, markup.IsFullURLString("https://example.com"))
-	assert.True(t, markup.IsFullURLString("mailto:test@example.com"))
-	assert.True(t, markup.IsFullURLString("data:image/11111"))
-	assert.False(t, markup.IsFullURLString("/foo:bar"))
 }

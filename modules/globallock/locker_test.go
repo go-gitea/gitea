@@ -5,13 +5,11 @@ package globallock
 
 import (
 	"context"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
 	"gitea.dev/modules/test"
-	"gitea.dev/modules/util"
 
 	"github.com/go-redsync/redsync/v4"
 	"github.com/stretchr/testify/assert"
@@ -20,14 +18,7 @@ import (
 
 func newTestRedisLocker(t *testing.T) Locker {
 	t.Helper()
-	redisURL := util.IfZero(os.Getenv("TEST_REDIS_URL"), "redis://127.0.0.1:6379/0")
-	rl := NewRedisLocker(redisURL).(*redisLocker)
-	err := rl.conn.Ping(t.Context()).Err()
-	if err != nil && test.AllowSkipExternalService() {
-		t.Skip("no redis server for testing, skipped")
-	}
-	require.NoError(t, err, "redis error for testing: %v", err)
-	return rl
+	return NewRedisLocker(test.PrepareTestRedis(t))
 }
 
 func TestLocker(t *testing.T) {
@@ -35,13 +26,17 @@ func TestLocker(t *testing.T) {
 		defer test.MockVariableValue(&redisLockExpiry, 5*time.Second)() // make it shorter for testing
 		locker := newTestRedisLocker(t)
 		testLocker(t, locker)
-		testRedisLocker(t, locker.(*redisLocker))
-		require.NoError(t, locker.(*redisLocker).Close())
+		rl, ok := locker.(*redisLocker)
+		require.True(t, ok)
+		testRedisLocker(t, rl)
+		require.NoError(t, rl.Close())
 	})
 	t.Run("memory", func(t *testing.T) {
 		locker := NewMemoryLocker()
 		testLocker(t, locker)
-		testMemoryLocker(t, locker.(*memoryLocker))
+		ml, ok := locker.(*memoryLocker)
+		require.True(t, ok)
+		testMemoryLocker(t, ml)
 	})
 }
 
@@ -171,7 +166,8 @@ func testRedisLocker(t *testing.T, locker *redisLocker) {
 		// It simulates that there are some problems with extending like network issues or redis server down.
 		v, ok := locker.mutexM.Load("test")
 		require.True(t, ok)
-		m := v.(*redsync.Mutex)
+		m, ok := v.(*redsync.Mutex)
+		require.True(t, ok)
 		_, _ = m.Unlock() // release it to make it impossible to extend
 
 		// In current design, callers can't know the lock can't be extended.

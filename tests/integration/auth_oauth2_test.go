@@ -22,6 +22,7 @@ import (
 	"gitea.dev/services/auth/source/oauth2"
 	"gitea.dev/tests"
 
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -112,7 +113,9 @@ func TestMigrateAzureADV2ToOIDC(t *testing.T) {
 
 	// --- Step 3: Set ExternalIDClaim = "oid" to restore account continuity ---
 	// Set ExternalIDClaim = "oid" so that the OIDC source extracts the same Object ID that the Azure AD V2 provider previously stored.
-	authSource.Cfg.(*oauth2.Source).ExternalIDClaim = "oid"
+	oauth2Source, ok := authSource.Cfg.(*oauth2.Source)
+	require.True(t, ok)
+	oauth2Source.ExternalIDClaim = "oid"
 	err = auth_model.UpdateSource(t.Context(), authSource)
 	require.NoError(t, err)
 
@@ -569,4 +572,66 @@ func TestOAuth2AutoLinkWithTwoFactor(t *testing.T) {
 	assert.Equal(t, localUser.ID, externalLink.UserID)
 
 	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusOK)
+}
+
+// a security key must be challenged on every path that issues a session, not just the password login
+func TestWebAuthnSecondFactorRequired(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	newWebAuthnUser := func(t *testing.T, name string) *user_model.User {
+		u := &user_model.User{Name: name, Email: name + "@example.com"}
+		require.NoError(t, user_model.CreateUser(t.Context(), u, &user_model.Meta{}))
+		_, err := auth_model.CreateCredential(t.Context(), u.ID, "test-key", &webauthn.Credential{ID: []byte(name)})
+		require.NoError(t, err)
+		return u
+	}
+
+	assertOAuth2Challenged := func(t *testing.T, sourceName string) {
+		session := emptyTestSession(t)
+		resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/oauth2/"+sourceName), http.StatusTemporaryRedirect)
+		u, err := url.Parse(resp.Header().Get("Location"))
+		require.NoError(t, err)
+		state := u.Query().Get("state")
+		require.NotEmpty(t, state)
+
+		callbackURL := fmt.Sprintf("/user/oauth2/%s/callback?code=test-code&state=%s", sourceName, url.QueryEscape(state))
+		resp = session.MakeRequest(t, NewRequest(t, "GET", callbackURL), http.StatusSeeOther)
+		assert.Contains(t, resp.Header().Get("Location"), "/user/webauthn")
+		session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusSeeOther) // the redirect alone does not prove no session was issued
+	}
+
+	t.Run("OAuth2AutoLink", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+		defer test.MockVariableValue(&setting.OAuth2Client.AccountLinking, setting.OAuth2AccountLinkingAuto)()
+		defer test.MockVariableValue(&setting.OAuth2Client.Username, setting.OAuth2UsernameEmail)()
+
+		const sourceName, sub = "oauth-autolink-webauthn", "autolink-sub"
+		u := newWebAuthnUser(t, "autolink-webauthn")
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: u.Email, Name: u.Name})
+		addOAuth2Source(t, sourceName, newOIDCSource(srv, false, false))
+		assertOAuth2Challenged(t, sourceName)
+	})
+
+	t.Run("OAuth2LinkedIdentity", func(t *testing.T) {
+		const sourceName, sub = "oauth-signin-webauthn", "signin-sub"
+		u := newWebAuthnUser(t, "signin-webauthn")
+		srv := newFakeOIDCServer(t, FakeOIDCConfig{Sub: sub, Email: u.Email, Name: u.Name})
+		addOAuth2Source(t, sourceName, newOIDCSource(srv, false, false))
+		authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), sourceName)
+		require.NoError(t, err)
+		require.NoError(t, user_model.LinkExternalToUser(t.Context(), u, &user_model.ExternalLoginUser{
+			ExternalID: sub, UserID: u.ID, LoginSourceID: authSource.ID, Provider: "openidConnect",
+		}))
+		assertOAuth2Challenged(t, sourceName)
+	})
+
+	t.Run("PasswordReset", func(t *testing.T) {
+		u := newWebAuthnUser(t, "reset-webauthn")
+		code := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, u)
+		session := emptyTestSession(t)
+		req := NewRequestWithValues(t, "POST", "/user/recover_account", map[string]string{"code": code, "password": "new-Password!1"})
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		assert.Contains(t, resp.Header().Get("Location"), "/user/webauthn")
+		session.MakeRequest(t, NewRequest(t, "GET", "/user/settings"), http.StatusSeeOther)
+	})
 }

@@ -60,7 +60,7 @@ func AddIssueAssignees(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := web.GetForm(ctx).(*api.IssueAssigneesOption)
+	opts := web.GetForm[*api.IssueAssigneesOption](ctx)
 	updateIssueAssignees(ctx, *opts, true)
 }
 
@@ -105,7 +105,7 @@ func DeleteIssueAssignees(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := web.GetForm(ctx).(*api.IssueAssigneesOption)
+	opts := web.GetForm[*api.IssueAssigneesOption](ctx)
 	updateIssueAssignees(ctx, *opts, false)
 }
 

@@ -29,6 +29,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestPackageCleanupRuleDuplicateType(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	session := loginUser(t, user.Name)
+
+	// Create the first cleanup rule for the generic package type.
+	req := NewRequestWithValues(t, "POST", "/user/settings/packages/rules/add", map[string]string{
+		"type":        "generic",
+		"action":      "save",
+		"keep_count":  "0",
+		"remove_days": "0",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	// Try to create another cleanup rule for the same package type.
+	req = NewRequestWithValues(t, "POST", "/user/settings/packages/rules/add", map[string]string{
+		"type":        "generic",
+		"action":      "save",
+		"keep_count":  "0",
+		"remove_days": "0",
+	})
+
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "A cleanup rule for this package type already exists.")
+}
+
 func TestPackageAPI(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

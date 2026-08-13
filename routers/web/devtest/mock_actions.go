@@ -608,7 +608,7 @@ func fillViewRunResponseCurrentJob(ctx *context.Context, resp *actions.ViewRespo
 		}
 	}
 
-	req := web.GetForm(ctx).(*actions.ViewRequest)
+	req := web.GetForm[*actions.ViewRequest](ctx)
 	var mockLogOptions []generateMockStepsLogOptions
 	resp.State.CurrentJob.Steps = append(resp.State.CurrentJob.Steps, &actions.ViewJobStep{
 		Summary:  "step 0 (mock slow)",

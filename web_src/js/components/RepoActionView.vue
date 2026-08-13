@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {computed, onBeforeUnmount, ref, toRefs, watch} from 'vue';
 import {resetActionFavicon, syncActionRunFavicon} from '../modules/favicon-status.ts';
@@ -9,6 +9,7 @@ import ActionRunJobView from './ActionRunJobView.vue';
 import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
+import {trString} from '../modules/i18n.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -127,7 +128,7 @@ function artifactPreviewURL(name: string): string {
 }
 
 async function deleteArtifact(name: string) {
-  if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
+  if (!window.confirm(trString(locale.confirmDeleteArtifact, name))) return;
   await DELETE(artifactDownloadURL(name));
   await store.forceReloadCurrentRun();
 }

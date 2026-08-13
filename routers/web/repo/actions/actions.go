@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -33,7 +34,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -759,6 +759,10 @@ type WorkflowDispatchInput struct {
 	Default     string   `yaml:"default"`
 	Type        string   `yaml:"type"`
 	Options     []string `yaml:"options"`
+}
+
+func (i WorkflowDispatchInput) IsDefaultTrue() bool {
+	return util.ParseYamlBool(i.Default)
 }
 
 type WorkflowDispatch struct {
