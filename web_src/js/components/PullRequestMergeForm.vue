@@ -195,7 +195,7 @@ function clearMergeMessage() {
         </button>
       </form>
 
-      <a v-if="mergeForm.showPullCommands" class="show-modal" href data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdHint }}</a>
+      <a v-if="mergeForm.showPullCommands" class="show-modal" href="" data-modal="#pull-merge-cmd-modal">{{ mergeForm.textCmdHint }}</a>
     </div>
   </div>
 </template>
