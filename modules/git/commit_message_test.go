@@ -26,10 +26,12 @@ func TestCommitMessageTrailer(t *testing.T) {
 		{"a", "a", "", ""},
 		{"a\n\nk", "a\n\nk", "", ""},
 		{"a\n\nk:v", "a", "\n\n", "k:v"},
+		{"a\n\nk:v\n  next-line", "a", "\n\n", "k:v\n  next-line"},
+		{"a\n\nk:v\n  next-line\nother: v", "a", "\n\n", "k:v\n  next-line\nother: v"},
 		{"a\n\nk:v\n\n", "a", "\n\n", "k:v\n\n"},
 		{"a\n--\nk:v", "a\n--\nk:v", "", ""},
-		{"a\n---\nk:v", "a", "\n---\n", "k:v"},
-		{"a\n\n---\n\nk:v", "a\n", "\n---\n\n", "k:v"},
+		{"a\n---\nk:v", "a", "\n---\n", "k:v"}, // TODO: should we support such case? No empty line between "---" and the trailer
+		{"a\n\n---\n\nk:v", "a", "\n\n---\n\n", "k:v"},
 
 		{"k: v", "", "", "k: v"},
 		{"\nk:v", "", "\n", "k:v"},
@@ -50,41 +52,44 @@ func TestCommitMessageTrailer(t *testing.T) {
 func TestCommitMessageParticipants(t *testing.T) {
 	sig := func(n, e string) *Signature { return &Signature{Name: n, Email: e} }
 	idt := func(n, e string, r int) *CommitIdentity { return &CommitIdentity{n, e, r} }
-	roleAuthor, roleCommitter, roleCoAuthor := commitIdentityRoleAuthor, commitIdentityRoleCommitter, commitIdentityRoleCoAuthor
+	roleAuthor, _, roleCoAuthor := commitIdentityRoleAuthor, commitIdentityRoleCommitter, commitIdentityRoleCoAuthor
 	type testCase struct {
 		name       string
 		commit     *Commit
 		identities []*CommitIdentity
 	}
-	t.Run("AllParticipants", func(t *testing.T) {
+
+	t.Run("AllAuthors", func(t *testing.T) {
 		cases := []testCase{
 			{
-				"DifferentUsers",
+				"CommitterExcluded",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: x@m.com"},
+					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: Full Name <x@m.com>"},
 				},
-				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("c", "c@m.com", roleCommitter), idt("", "x@m.com", roleCoAuthor)},
+				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("Full Name", "x@m.com", roleCoAuthor)},
 			},
 			{
-				"SameUser",
+				"AuthorIsCoAuthor",
 				&Commit{
-					Author: sig("a", "a@m.com"), Committer: sig("a", "A@M.com"),
-					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: a@m.com"},
+					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
+					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: other-name <a@m.com>"},
 				},
 				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor)},
 			},
 			{
-				"NoCommitter",
+				"EmptyAuthor", // synthesized commits (push feed) may have no author signature at all
 				&Commit{
-					Author: sig("a", "a@m.com"), Committer: sig("", ""),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: Full Name <X@M.com>"},
+					Author: sig("", ""), Committer: sig("", ""),
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
 				},
-				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("Full Name", "X@M.com", roleCoAuthor)},
+				// but if the commit message contains co-authors, the co-authors are still parsed for "all authors"
+				// if it is a problem, the caller should fix the problem (provide correct "author")
+				[]*CommitIdentity{idt("c", "c@m.com", roleCoAuthor)},
 			},
 		}
 		for _, c := range cases {
-			assert.Equal(t, c.identities, c.commit.AllParticipantIdentities(), "case: %s", c.name)
+			assert.Equal(t, c.identities, c.commit.AllAuthorIdentities(), "case: %s", c.name)
 		}
 	})
 	t.Run("CoAuthors", func(t *testing.T) {
@@ -114,16 +119,44 @@ func TestCommitMessageParticipants(t *testing.T) {
 				[]*CommitIdentity{},
 			},
 			{
-				"CoAuthorCommitterNameWithIndex", // restore the committer co-author to the co-author list by the index with correct name
+				"CoAuthorNameOnlyAndDuplicate",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>\nCo-authored-by: c-other <c@m.com>\nCo-authored-by: y <y@m.com>"},
+					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: b\nCo-authored-by: b\nCo-authored-by: c"},
 				},
-				[]*CommitIdentity{idt("x", "x@m.com", roleCoAuthor), idt("c-other", "c@m.com", roleCoAuthor), idt("y", "y@m.com", roleCoAuthor)},
+				[]*CommitIdentity{idt("b", "", roleCoAuthor), idt("c", "", roleCoAuthor)},
 			},
 		}
 		for _, c := range cases {
 			assert.Equal(t, c.identities, c.commit.CoAuthorIdentities(), "case: %s", c.name)
 		}
 	})
+}
+
+func TestCommitMessageMerge(t *testing.T) {
+	cases := []struct {
+		m1, m2 string
+		out    string
+	}{
+		{"", "", ""},
+		{"msg1", "", "msg1"},
+		{"", "msg2", "msg2"},
+		{"msg1", "msg2", "msg1\n\nmsg2"},
+		{"k1: a", "", "k1: a"},
+		{"", "k2: b", "k2: b"},
+		{"k1: a", "k2: b", "k1: a\nk2: b"},
+		{"msg1", "k2: b", "msg1\n\nk2: b"},
+		{"k1: a", "msg2", "msg2\n\nk1: a"},
+		{"msg1\n\nk1: a", "msg2", "msg1\n\nmsg2\n\nk1: a"},
+		{"msg1\n----\nk1: a", "msg2", "msg1\n\nmsg2\n----\nk1: a"},
+		{"msg1\n\n----\n\nk1: a", "msg2", "msg1\n\nmsg2\n\n----\n\nk1: a"},
+		{"msg1", "msg2\n----\nk2: b", "msg1\n\nmsg2\n----\nk2: b"},
+		{"msg1", "msg2\n\nk2: b", "msg1\n\nmsg2\n\nk2: b"},
+		{"msg1\n\nk1: a", "msg2\n\nk2: b", "msg1\n\nmsg2\n\nk1: a\nk2: b"},
+	}
+
+	for i, c := range cases {
+		out := CommitMessageMerge(c.m1, c.m2)
+		assert.Equal(t, c.out, out, "idx=%d, m1=%q m2=%q", i, c.m1, c.m2)
+	}
 }

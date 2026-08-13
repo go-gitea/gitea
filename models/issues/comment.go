@@ -544,6 +544,9 @@ func (c *Comment) GetSanitizedContentHTML() template.HTML {
 
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
 func (c *Comment) LoadLabel(ctx context.Context) error {
+	if c.LabelID == 0 {
+		return nil
+	}
 	var label Label
 	has, err := db.GetEngine(ctx).ID(c.LabelID).Get(&label)
 	if err != nil {
@@ -551,8 +554,8 @@ func (c *Comment) LoadLabel(ctx context.Context) error {
 	} else if has {
 		c.Label = &label
 	} else {
-		// Ignore Label is deleted, but not clear this table
-		log.Warn("Commit %d cannot load label %d", c.ID, c.LabelID)
+		// label was deleted but comment rows referencing it were not cleaned up
+		log.Debug("Comment %d references deleted label %d", c.ID, c.LabelID)
 	}
 
 	return nil
@@ -627,11 +630,18 @@ func UpdateCommentAttachments(ctx context.Context, c *Comment, uuids []string) e
 		return nil
 	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
+		issue, err := GetIssueByID(ctx, c.IssueID)
+		if err != nil {
+			return err
+		}
 		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %w", uuids, err)
 		}
 		for i := range attachments {
+			if err := validateAttachmentForIssue(ctx, issue, attachments[i]); err != nil {
+				return err
+			}
 			attachments[i].IssueID = c.IssueID
 			attachments[i].CommentID = c.ID
 			if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {

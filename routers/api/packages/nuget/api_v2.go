@@ -332,12 +332,8 @@ func createFeedResponse(l *linkBuilder, totalEntries int64, pds []*packages_mode
 	}
 }
 
-func createEntryResponse(l *linkBuilder, pd *packages_model.PackageDescriptor) *FeedEntry {
-	return createEntry(l, pd, true)
-}
-
 func createEntry(l *linkBuilder, pd *packages_model.PackageDescriptor, withNamespace bool) *FeedEntry {
-	metadata := pd.Metadata.(*nuget_module.Metadata)
+	metadata := packages_model.DescriptorMetadata[*nuget_module.Metadata](pd)
 
 	id := l.GetPackageMetadataURL(pd.Package.Name, pd.Version.Version)
 

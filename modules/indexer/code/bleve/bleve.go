@@ -16,12 +16,12 @@ import (
 	"gitea.dev/modules/charset"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/indexer"
 	path_filter "gitea.dev/modules/indexer/code/bleve/token/path"
 	"gitea.dev/modules/indexer/code/internal"
 	indexer_internal "gitea.dev/modules/indexer/internal"
 	inner_bleve "gitea.dev/modules/indexer/internal/bleve"
+	"gitea.dev/modules/json"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/typesniffer"
@@ -163,7 +163,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha))
+		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			return err
 		}
@@ -212,7 +212,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		catfileBatch, err := gitrepo.NewBatch(ctx, repo)
+		catfileBatch, err := git.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}
@@ -331,6 +331,17 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 
 	searchResults := make([]*internal.SearchResult, len(result.Hits))
 	for i, hit := range result.Hits {
+		content, okContent := hit.Fields["Content"].(string)
+		language, okLanguage := hit.Fields["Language"].(string)
+		commitID, okCommitID := hit.Fields["CommitID"].(string)
+		updatedAt, okUpdatedAt := hit.Fields["UpdatedAt"].(string)
+		repoID, okRepoID := hit.Fields["RepoID"].(float64)
+		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt || !okRepoID {
+			hitFieldsJson, _ := json.Marshal(hit.Fields)
+			setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hitFieldsJson))
+			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
+		}
+
 		startIndex, endIndex := -1, -1
 		for _, locations := range hit.Locations["Content"] {
 			location := locations[0]
@@ -344,21 +355,20 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 			}
 		}
 		if len(hit.Locations["Filename"]) > 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(hit.Fields["Content"].(string))
+			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
 		}
 
-		language := hit.Fields["Language"].(string)
 		var updatedUnix timeutil.TimeStamp
-		if t, err := time.Parse(time.RFC3339, hit.Fields["UpdatedAt"].(string)); err == nil {
+		if t, err := time.Parse(time.RFC3339, updatedAt); err == nil {
 			updatedUnix = timeutil.TimeStamp(t.Unix())
 		}
 		searchResults[i] = &internal.SearchResult{
-			RepoID:      int64(hit.Fields["RepoID"].(float64)),
+			RepoID:      int64(repoID),
 			StartIndex:  startIndex,
 			EndIndex:    endIndex,
 			Filename:    internal.FilenameOfIndexerID(hit.ID),
-			Content:     hit.Fields["Content"].(string),
-			CommitID:    hit.Fields["CommitID"].(string),
+			Content:     content,
+			CommitID:    commitID,
 			UpdatedUnix: updatedUnix,
 			Language:    language,
 			Color:       enry.GetColor(language),

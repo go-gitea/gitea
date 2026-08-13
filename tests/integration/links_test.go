@@ -31,6 +31,42 @@ func TestLinks(t *testing.T) {
 	t.Run("NoLoginNotExist", testLinksNoLoginNotExist)
 	t.Run("AsUser", testLinksAsUser)
 	t.Run("RepoCommon", testLinksRepoCommon)
+	t.Run("ApiJson", testLinksApiJson)
+}
+
+func testLinksApiJson(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppVer, "1.2.3")()
+	defer test.MockVariableValue(&setting.AppSubURL)()
+	t.Run("Swagger", func(t *testing.T) {
+		for _, subURL := range []string{"", "/sub"} {
+			setting.AppSubURL = subURL
+			resp := MakeRequest(t, NewRequest(t, "GET", "/swagger.v1.json"), http.StatusOK)
+			decoded := DecodeJSON(t, resp, &struct {
+				BasePath string `json:"basePath"`
+				Info     struct {
+					Version string `json:"version"`
+				}
+			}{})
+			assert.Equal(t, subURL+"/api/v1", decoded.BasePath)
+			assert.Equal(t, "1.2.3", decoded.Info.Version)
+		}
+	})
+	t.Run("OpenAPI3", func(t *testing.T) {
+		for _, subURL := range []string{"", "/sub"} {
+			setting.AppSubURL = subURL
+			resp := MakeRequest(t, NewRequest(t, "GET", "/openapi3.v1.json"), http.StatusOK)
+			decoded := DecodeJSON(t, resp, &struct {
+				Servers []struct {
+					URL string `json:"url"`
+				} `json:"servers"`
+				Info struct {
+					Version string `json:"version"`
+				}
+			}{})
+			assert.Equal(t, subURL+"/api/v1", decoded.Servers[0].URL)
+			assert.Equal(t, "1.2.3", decoded.Info.Version)
+		}
+	})
 }
 
 func testLinksNoLogin(t *testing.T) {

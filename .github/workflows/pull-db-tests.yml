@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14
+        image: postgres:14@sha256:2f439458ab6a57a925825ae14f9d06910e4fe4a41c8d4a0ae06397e65b707e1b
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -35,14 +35,14 @@ jobs:
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2025.7.23
+        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
       - uses: ./.github/actions/pgsql-shard
         with:
@@ -57,7 +57,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14
+        image: postgres:14@sha256:2f439458ab6a57a925825ae14f9d06910e4fe4a41c8d4a0ae06397e65b707e1b
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -71,14 +71,14 @@ jobs:
       minio:
         # as github actions doesn't support "entrypoint", we need to use a non-official image
         # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2025.7.23
+        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
       - uses: ./.github/actions/pgsql-shard
         with:
@@ -90,7 +90,7 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
       - run: make deps-backend
       - run: make backend
@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15@sha256:aeda96cd85b0cadeb3a3b900789f3b85e902c994052dadbaf8dd99a539e2ef93
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -125,13 +125,13 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1
+        image: getmeili/meilisearch:v1@sha256:d36e713e8f89483af1ab0d72011bbd503f5ab100b68ccbfad51c39e3f0a0567d
         env:
           MEILI_ENV: development # disable auth
         ports:
           - "7700:7700"
       redis:
-        image: redis:latest@sha256:c904002d182255b6db3cbe3a1e8ce6c187d15390c39500b59fc07181aabff7bf
+        image: redis:latest@sha256:52334768d4a6594d8969f51a1a6fee3ffa7545f6359a4877229cdc754d2def82
         options: >- # wait until redis has started
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -140,18 +140,18 @@ jobs:
         ports:
           - 6379:6379
       minio:
-        image: bitnamilegacy/minio:2025.7.23
+        image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
         env:
           MINIO_ROOT_USER: 123456
           MINIO_ROOT_PASSWORD: 12345678
         ports:
           - "9000:9000"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:d5bb99496dc82ef0e34401ced6726d2f5d8fcbdf48670ba067ee3b394884cc3a
         ports:
           - 10000:10000
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
@@ -182,7 +182,7 @@ jobs:
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
-        image: bitnamilegacy/mysql:8.4
+        image: bitnamilegacy/mysql:8.4@sha256:7089d796fc9b4629a628bd445e4afabe607351ee665444c3197bdeaed812ea65
         env:
           ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: testgitea
@@ -191,7 +191,7 @@ jobs:
         options: >-
           --mount type=tmpfs,destination=/bitnami/mysql/data
       elasticsearch:
-        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.19.15@sha256:aeda96cd85b0cadeb3a3b900789f3b85e902c994052dadbaf8dd99a539e2ef93
         env:
           discovery.type: single-node
           xpack.security.enabled: false
@@ -208,7 +208,7 @@ jobs:
           - "587:587"
           - "993:993"
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
@@ -229,7 +229,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        image: mcr.microsoft.com/mssql/server:2019-latest@sha256:46f719fd3457d4e7e8e5845fe00c35c20e7bae7ff1e8b9fe595f2a81029f5ba8
         env:
           ACCEPT_EULA: Y
           MSSQL_PID: Standard
@@ -237,11 +237,11 @@ jobs:
         ports:
           - "1433:1433"
       devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
-        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:dae2a5f96553962901304b94e72ef87e299d0825e4b679673bcc527a25076fe4
+        image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:d5bb99496dc82ef0e34401ced6726d2f5d8fcbdf48670ba067ee3b394884cc3a
         ports:
           - 10000:10000
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/go-setup
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'

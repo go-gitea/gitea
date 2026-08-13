@@ -153,7 +153,7 @@ func SystemStatus(ctx *context.Context) {
 
 // DashboardPost run an admin operation
 func DashboardPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
+	form := web.GetForm[*forms.AdminDashboardForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdminDashboard"] = true
 	updateSystemStatus()

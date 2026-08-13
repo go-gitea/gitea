@@ -21,7 +21,7 @@
 		</h1>
 		<div class="issue-title-buttons">
 			{{if .Issue.IsPull}}
-			<button class="ui compact button js-btn-pull-code-panel">
+			<button class="ui compact button" data-global-init="initPullCodePanelButton">
 				{{svg "octicon-code" 16}}
 				<span>{{ctx.Locale.Tr "repo.code"}}</span>
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}

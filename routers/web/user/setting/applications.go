@@ -34,7 +34,7 @@ func Applications(ctx *context.Context) {
 
 // ApplicationsPost response for add user's access token
 func ApplicationsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewAccessTokenForm)
+	form := web.GetForm[*forms.NewAccessTokenForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsApplications"] = true
 
@@ -77,6 +77,26 @@ func ApplicationsPost(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", t.Name))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 		return
+	}
+
+	// a token-authenticated request must not mint a token with a broader scope than its own, nor
+	// drop the public-only restriction. Web routes accept basic-auth PATs/OAuth tokens too, so this
+	// must mirror the REST API guard in routers/api/v1/user/app.go.
+	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if hasApiTokenScope {
+		hasScope, err := apiTokenScope.CanCreateChildScope(t.Scope)
+		if err != nil {
+			ctx.ServerError("CanCreateChildScope", err)
+			return
+		}
+		if !hasScope {
+			ctx.HTTPError(http.StatusForbidden, "cannot create an access token with a broader scope than the authenticating token")
+			return
+		}
+		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
+			ctx.ServerError("EnforcePublicOnlyFrom", err)
+			return
+		}
 	}
 
 	if err := auth_model.NewAccessToken(ctx, t); err != nil {

@@ -199,7 +199,7 @@ func AddTime(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.AddTimeOption)
+	form := web.GetForm[*api.AddTimeOption](ctx)
 	issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		ctx.APIErrorAuto(err)
@@ -221,7 +221,8 @@ func AddTime(ctx *context.APIContext) {
 			// allow only RepoAdmin, Admin and User to add time
 			user, err = user_model.GetUserByName(ctx, form.User)
 			if err != nil {
-				ctx.APIErrorInternal(err)
+				ctx.APIErrorAuto(err)
+				return
 			}
 		}
 	}

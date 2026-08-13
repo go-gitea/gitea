@@ -70,6 +70,10 @@ type FindRunOptions struct {
 	Status           []Status
 	ConcurrencyGroup string
 	CommitSHA        string
+	// AccessibleRepoIDsSubQuery, when non-nil, restricts results to the repo IDs selected by the
+	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
+	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
+	AccessibleRepoIDsSubQuery *builder.Builder
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -101,13 +105,16 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	if opts.CommitSHA != "" {
 		cond = cond.And(builder.Eq{"`action_run`.commit_sha": opts.CommitSHA})
 	}
+	if opts.AccessibleRepoIDsSubQuery != nil {
+		cond = cond.And(builder.In("`action_run`.repo_id", opts.AccessibleRepoIDsSubQuery))
+	}
 	return cond
 }
 
 func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 	if opts.OwnerID > 0 {
 		return []db.JoinFunc{func(sess db.Engine) error {
-			sess.Join("INNER", "repository", "repository.id = repo_id AND repository.owner_id = ?", opts.OwnerID)
+			sess.Join("INNER", "repository", "repository.id = action_run.repo_id AND repository.owner_id = ?", opts.OwnerID)
 			return nil
 		}}
 	}

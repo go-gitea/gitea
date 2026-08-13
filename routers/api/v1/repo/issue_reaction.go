@@ -135,7 +135,7 @@ func PostIssueCommentReaction(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 
 	changeIssueCommentReaction(ctx, *form, true)
 }
@@ -178,7 +178,7 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 
 	changeIssueCommentReaction(ctx, *form, false)
 }
@@ -364,7 +364,7 @@ func PostIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, true)
 }
 
@@ -405,7 +405,7 @@ func DeleteIssueReaction(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	form := web.GetForm(ctx).(*api.EditReactionOption)
+	form := web.GetForm[*api.EditReactionOption](ctx)
 	changeIssueReaction(ctx, *form, false)
 }
 

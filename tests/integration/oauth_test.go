@@ -1299,6 +1299,8 @@ func testSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 	addOAuth2Source(t, "test-oidc-source", oauth2Source)
 	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(ctx, "test-oidc-source")
 	require.NoError(t, err)
+	authSourceCfg, ok := authSource.Cfg.(*oauth2.Source)
+	require.True(t, ok)
 
 	sshKey1 := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf"
 	sshKey2 := "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIE7kM1R02+4ertDKGKEDcKG0s+2vyDDcIvceJ0Gqv5f1AAAABHNzaDo="
@@ -1336,7 +1338,7 @@ func testSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 			defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 			defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
 				return goth.User{
-					Provider: authSource.Cfg.(*oauth2.Source).Provider,
+					Provider: authSourceCfg.Provider,
 					UserID:   "oidc-userid",
 					Email:    "oidc-email@example.com",
 					RawData:  c.mockRawData,
@@ -1404,4 +1406,23 @@ func testOAuthSourceSpecialChars(t *testing.T) {
 	testOAuth2(t, "/user/oauth2/test+plus", http.StatusTemporaryRedirect)
 	testOAuth2(t, "/user/oauth2/test%2Bplus", http.StatusTemporaryRedirect)
 	testOAuth2(t, "/user/oauth2/test%20plus", http.StatusNotFound)
+}
+
+// TestOAuthUserInfoTokenScope verifies the OIDC userinfo endpoint enforces the
+// read:user token scope, so a restrictively-scoped token cannot read identity claims.
+func TestOAuthUserInfoTokenScope(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// a token without the user scope must be rejected
+	miscToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadMisc)
+	req := NewRequest(t, "GET", "/login/oauth/userinfo")
+	req.SetHeader("Authorization", "Bearer "+miscToken)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// a token with read:user is allowed and returns the identity claims
+	userToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadUser)
+	req = NewRequest(t, "GET", "/login/oauth/userinfo")
+	req.SetHeader("Authorization", "Bearer "+userToken)
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Contains(t, resp.Body.String(), "user2@example.com")
 }
