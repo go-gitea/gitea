@@ -66,6 +66,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -74,7 +75,6 @@ import (
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
-	"gitea.dev/modules/optional"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
@@ -337,15 +337,19 @@ type (
 )
 
 func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
-	_, runID, ok := validateRunID(ctx)
+	task, runID, ok := validateRunID(ctx)
+	if !ok {
+		return
+	}
+	attemptIDs, ok := readableArtifactAttemptIDs(ctx, task)
 	if !ok {
 		return
 	}
 
-	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
-		RunID:        runID,
-		RunAttemptID: optional.Some(ctx.ActionTask.Job.RunAttemptID),
-		Status:       int(actions.ArtifactStatusUploadConfirmed),
+	artifacts, err := actions.FindReadableArtifacts(ctx, actions.FindArtifactsOptions{
+		RunID:         runID,
+		RunAttemptIDs: attemptIDs,
+		Status:        int(actions.ArtifactStatusUploadConfirmed),
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
@@ -398,7 +402,7 @@ type (
 
 // getDownloadArtifactURL generates download url for each artifact
 func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
-	_, runID, ok := validateRunID(ctx)
+	task, runID, ok := validateRunID(ctx)
 	if !ok {
 		return
 	}
@@ -408,11 +412,16 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 		return
 	}
 
-	artifacts, err := db.Find[actions.ActionArtifact](ctx, actions.FindArtifactsOptions{
-		RunID:        runID,
-		RunAttemptID: optional.Some(ctx.ActionTask.Job.RunAttemptID),
-		ArtifactName: itemPath,
-		Status:       int(actions.ArtifactStatusUploadConfirmed),
+	attemptIDs, ok := readableArtifactAttemptIDs(ctx, task)
+	if !ok {
+		return
+	}
+
+	artifacts, err := actions.FindReadableArtifacts(ctx, actions.FindArtifactsOptions{
+		RunID:         runID,
+		RunAttemptIDs: attemptIDs,
+		ArtifactName:  itemPath,
+		Status:        int(actions.ArtifactStatusUploadConfirmed),
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
@@ -462,7 +471,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 
 // downloadArtifact downloads artifact content
 func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
-	_, runID, ok := validateRunID(ctx)
+	task, runID, ok := validateRunID(ctx)
 	if !ok {
 		return
 	}
@@ -484,10 +493,17 @@ func (ar artifactRoutes) downloadArtifact(ctx *ArtifactContext) {
 		ctx.HTTPError(http.StatusBadRequest)
 		return
 	}
-	if ctx.ActionTask.Job.RunAttemptID > 0 && artifact.RunAttemptID != ctx.ActionTask.Job.RunAttemptID {
-		log.Error("Error mismatch runAttemptID and artifactID, task: %v, artifact: %v", ctx.ActionTask.Job.RunAttemptID, artifactID)
-		ctx.HTTPError(http.StatusBadRequest)
-		return
+	// resolving the readable attempts costs a query, and an artifact of the task's own attempt never needs it
+	if artifact.RunAttemptID != task.Job.RunAttemptID {
+		attemptIDs, ok := readableArtifactAttemptIDs(ctx, task)
+		if !ok {
+			return
+		}
+		if !slices.Contains(attemptIDs, artifact.RunAttemptID) {
+			log.Error("Error artifact %d belongs to run attempt %d, which the task cannot read: %v", artifactID, artifact.RunAttemptID, attemptIDs)
+			ctx.HTTPError(http.StatusBadRequest)
+			return
+		}
 	}
 	if artifact.Status != actions.ArtifactStatusUploadConfirmed {
 		log.Error("Error artifact not found: %s", artifact.Status.ToString())
