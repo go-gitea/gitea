@@ -34,6 +34,11 @@ func (w *SingleWorkflow) Job() (string, *Job) {
 	return "", nil
 }
 
+// WorkflowDispatchConfig returns the workflow's `on: workflow_dispatch` declaration, or nil if it declares none.
+func (w *SingleWorkflow) WorkflowDispatchConfig() *model.WorkflowDispatch {
+	return (&model.Workflow{RawOn: w.RawOn}).WorkflowDispatchConfig()
+}
+
 func (w *SingleWorkflow) jobs() ([]string, []*Job, error) {
 	ids, jobs, err := parseMappingNode[*Job](&w.RawJobs)
 	if err != nil {

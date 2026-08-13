@@ -63,13 +63,9 @@ jobs:
 	}
 }
 
-func TestGetWorkflowDispatchInputsFromRunCoercesBooleans(t *testing.T) {
-	// Regression: a workflow_dispatch boolean input is stored as the string "true"/"false" in
-	// run.EventPayload (github.event.inputs must stay a string, matching GitHub). The `inputs`
-	// context used by a needs-gated job's server-side `if:` evaluation must still see it as a
-	// real boolean, or `if: ${{ inputs.deploy == true }}` never matches and the job stays
-	// blocked forever - the job's own WorkflowPayload carries the `on:` declaration needed to
-	// tell which inputs are booleans.
+func TestDispatchInputsForJobCoercesBooleans(t *testing.T) {
+	// The stored payload keeps the raw dispatch values, while the `inputs` context the server
+	// evaluates against must show `type: boolean` as a real boolean.
 	run := &actions_model.ActionRun{
 		Event: "workflow_dispatch",
 		EventPayload: func() string {
@@ -99,20 +95,25 @@ jobs:
 `),
 	}
 
-	inputs, err := getWorkflowDispatchInputsFromRun(run, job)
+	inputs, err := dispatchInputsForJob(run, job)
 	require.NoError(t, err)
 	assert.Equal(t, true, inputs["deploy"])
 	assert.Equal(t, "prod", inputs["env"])
 
-	// github.event.inputs (the raw event payload) must be left untouched: still the dispatch string.
+	// the event payload itself must be left untouched
 	var payload api.WorkflowDispatchPayload
 	require.NoError(t, json.Unmarshal([]byte(run.EventPayload), &payload))
 	assert.Equal(t, "true", payload.Inputs["deploy"])
 
-	// job == nil (workflow-level concurrency, no job in scope) skips coercion rather than failing.
-	inputs, err = getWorkflowDispatchInputsFromRun(run, nil)
+	// A workflow-level evaluation has no job in scope: any top-level job answers for the run,
+	// while a reusable child carries the callee's `on: workflow_call` and must be passed over.
+	child := &actions_model.ActionRunJob{
+		ID: 2, JobID: "called", ParentJobID: job.ID,
+		WorkflowPayload: []byte("on: workflow_call\njobs:\n  called:\n    steps: [{run: echo}]\n"),
+	}
+	inputs, err = dispatchInputsForRunJobs(run, []*actions_model.ActionRunJob{child, job})
 	require.NoError(t, err)
-	assert.Equal(t, "true", inputs["deploy"])
+	assert.Equal(t, true, inputs["deploy"])
 }
 
 func TestPullRequestTargetBaseSHA(t *testing.T) {

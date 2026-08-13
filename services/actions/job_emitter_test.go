@@ -12,6 +12,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,6 +32,7 @@ jobs:
 func Test_jobStatusResolver_Resolve(t *testing.T) {
 	tests := []struct {
 		name string
+		run  *actions_model.ActionRun // defaults to stubRun
 		jobs actions_model.ActionJobList
 		want map[int64]actions_model.Status
 	}{
@@ -223,6 +225,55 @@ jobs:
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
+		{
+			// `inputs` preserves Boolean values as Booleans while `github.event.inputs` converts them to strings:
+			// https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch
+			// A needs-gated job is evaluated server-side, so getting either wrong skips it despite succeeding needs.
+			name: "`if` compares a workflow_dispatch boolean input",
+			run: &actions_model.ActionRun{
+				TriggerUser: &user_model.User{}, Repo: &repo_model.Repository{},
+				Event:        "workflow_dispatch",
+				EventPayload: `{"inputs":{"deploy":"true"}}`,
+			},
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+name: test
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        type: boolean
+        default: false
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    if: ${{ inputs.deploy == true }}
+    steps:
+      - run: echo "will be checked by runner"
+`)},
+				{ID: 3, JobID: "job3", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+name: test
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        type: boolean
+        default: false
+jobs:
+  job3:
+    runs-on: ubuntu-latest
+    needs: job1
+    if: ${{ github.event.inputs.deploy == 'true' }}
+    steps:
+      - run: echo "will be checked by runner"
+`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting, 3: actions_model.StatusWaiting},
+		},
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
@@ -232,6 +283,7 @@ jobs:
 			// Each subtest gets a unique RunID / RunAttemptID so jobs from different subtests don't bleed into each other's FindTaskNeeds queries
 			runID := int64(9001 + i)
 			attemptID := int64(9001 + i)
+			run := util.IfZero(tt.run, stubRun)
 
 			// Insert each test job (letting the DB assign IDs) and remember the testID -> dbID mapping so we can translate the expected map.
 			idMap := make(map[int64]int64, len(tt.jobs))
@@ -240,7 +292,7 @@ jobs:
 				j.ID = 0
 				j.RunID = runID
 				j.RunAttemptID = attemptID
-				j.Run = stubRun
+				j.Run = run
 
 				// The resolver evaluates Blocked jobs via evaluateJobIf, which needs a valid YAML payload;
 				// supply a minimal one when the case didn't.

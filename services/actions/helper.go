@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/actions/jobparser"
@@ -17,13 +16,9 @@ import (
 	"gitea.dev/modules/util"
 )
 
-// getWorkflowDispatchInputsFromRun returns the `inputs.*` context for a workflow_dispatch job's
-// server-side `if:` evaluation. run.EventPayload (and thus `github.event.inputs`) keeps GitHub's
-// raw string values, so `type: boolean` inputs are re-coerced here from job's own WorkflowPayload,
-// which still carries the workflow's `on:` declaration (see SingleWorkflow.CloneHeader).
-// job may be nil for workflow-level (run) concurrency evaluation, which has no job in scope; the
-// coercion is then skipped and boolean inputs are compared as the raw dispatch strings.
-func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
+// dispatchInputsForJob returns the `inputs.*` context of a top-level job of a workflow_dispatch run, empty for any other event.
+// run.EventPayload stores the raw dispatch values, so the declared types are applied here.
+func dispatchInputsForJob(run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if run.Event != "workflow_dispatch" {
 		return map[string]any{}, nil
 	}
@@ -31,17 +26,27 @@ func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun, job *actions
 	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
 		return nil, err
 	}
-	if job == nil {
-		return payload.Inputs, nil
-	}
 	swf, _, err := jobparser.ParseRawSingleWorkflow(job.WorkflowPayload)
 	if err != nil {
-		return nil, fmt.Errorf("parse job %d workflow payload: %w", job.ID, err)
+		return nil, util.NewInvalidArgumentErrorf("parse job %d workflow payload: %v", job.ID, err)
 	}
-	if dispatch := (&model.Workflow{RawOn: swf.RawOn}).WorkflowDispatchConfig(); dispatch != nil {
-		coerceDispatchInputTypes(dispatch, payload.Inputs)
+	dispatch := swf.WorkflowDispatchConfig()
+	if dispatch == nil { // without it the values would silently stay untyped
+		return nil, util.NewInvalidArgumentErrorf("job %d payload declares no workflow_dispatch", job.ID)
 	}
+	coerceDispatchInputTypes(dispatch, payload.Inputs)
 	return payload.Inputs, nil
+}
+
+// dispatchInputsForRunJobs returns the run's `inputs.*` context for a workflow-level evaluation.
+// Every job keeps its workflow's header, so any top-level job of the run answers for it.
+func dispatchInputsForRunJobs(run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) (map[string]any, error) {
+	for _, job := range jobs {
+		if job.ParentJobID == 0 {
+			return dispatchInputsForJob(run, job)
+		}
+	}
+	return nil, fmt.Errorf("run %d: no top-level job to read the workflow_dispatch declaration from", run.ID)
 }
 
 // getInputsForJob returns the `inputs.*` top-level expression context for a job's evaluation.
@@ -49,7 +54,7 @@ func getWorkflowDispatchInputsFromRun(run *actions_model.ActionRun, job *actions
 //   - For reusable workflow children (and nested callers), this is the direct parent caller's CallPayload.Inputs
 func getInputsForJob(ctx context.Context, run *actions_model.ActionRun, job *actions_model.ActionRunJob) (map[string]any, error) {
 	if job.ParentJobID == 0 {
-		return getWorkflowDispatchInputsFromRun(run, job)
+		return dispatchInputsForJob(run, job)
 	}
 
 	caller, err := actions_model.GetRunJobByRunAndID(ctx, run.ID, job.ParentJobID)

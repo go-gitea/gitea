@@ -130,10 +130,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, fmt.Errorf("failed to unmarshal workflow content: %w", err)
 	}
 	// get inputs from post
-	workflow := &model.Workflow{
-		RawOn: singleWorkflow.RawOn,
-	}
-	workflowDispatch := workflow.WorkflowDispatchConfig()
+	workflowDispatch := singleWorkflow.WorkflowDispatchConfig()
 	if workflowDispatch == nil {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewInvalidArgumentErrorf("workflow %q has no workflow_dispatch event trigger", workflowID),
@@ -146,17 +143,19 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, err
 	}
 
+	// `github.event.inputs` keeps the raw values the dispatch callbacks filled in,
+	// the `inputs` context below gets the declared types
+	rawInputs := maps.Clone(inputsWithDefaults)
+	coerceDispatchInputTypes(workflowDispatch, inputsWithDefaults)
+
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
 	// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
 	// https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_dispatch
-	// `github.event.inputs` mirrors this raw payload, where GitHub keeps every workflow_dispatch
-	// input as a string. Clone before coercing below, so that boolean inputs stay strings here,
-	// same as GitHub, while the separate `inputs` context (coerced below) gets native booleans.
 	workflowDispatchPayload := &api.WorkflowDispatchPayload{
 		Workflow:   workflowID,
 		Ref:        ref,
 		Repository: convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		Inputs:     maps.Clone(inputsWithDefaults),
+		Inputs:     rawInputs,
 		Sender:     convert.ToUserWithAccessMode(ctx, doer, perm.AccessModeNone),
 	}
 
@@ -165,12 +164,6 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, fmt.Errorf("JSONPayload: %w", err)
 	}
 	run.EventPayload = string(eventPayload)
-
-	// The dispatch callbacks fill boolean inputs as the strings "true"/"false". Normalize them to
-	// native JSON booleans so `type: boolean` inputs match GitHub, whose `inputs` context preserves
-	// booleans as booleans. Without this, a server-side needs-gated job `if: inputs.flag == true`
-	// evaluates against the string "true" and never matches, leaving the job blocked forever.
-	coerceDispatchInputTypes(workflowDispatch, inputsWithDefaults)
 
 	// Insert the action run and its associated jobs into the database
 	if err := PrepareRunAndInsert(ctx, content, run, inputsWithDefaults); err != nil {

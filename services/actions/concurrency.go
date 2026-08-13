@@ -10,6 +10,7 @@ import (
 	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/modules/actions/jobparser"
+	"gitea.dev/modules/setting"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -26,11 +27,11 @@ func EvaluateRunConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 	actionsRunCtx := GenerateGiteaContext(ctx, run, attempt, nil)
 	jobResults := map[string]*jobparser.JobResult{"": {}}
 	if inputs == nil {
-		var err error
-		inputs, err = getWorkflowDispatchInputsFromRun(run, nil)
-		if err != nil {
-			return fmt.Errorf("get inputs: %w", err)
+		if run.Event == "workflow_dispatch" {
+			// a run with `on: workflow_dispatch` must carry a non-nil inputs
+			setting.PanicInDevOrTesting("run %d: workflow_dispatch inputs must be resolved by the caller", run.ID)
 		}
+		inputs = map[string]any{}
 	}
 
 	var err error
