@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import {computed, onMounted, onUnmounted, shallowRef, watch} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {toggleElem} from '../utils/dom.ts';
 
 const props = defineProps<{

@@ -31,10 +31,11 @@ jobs:
       - name: Publish snap
         run: |
           for attempt in 1 2 3 4 5; do
-            snapcraft upload "${{ steps.build.outputs.snap }}" --release latest/edge && exit 0
+            snapcraft upload "$SNAP" --release latest/edge && exit 0
             echo "::warning::snap upload attempt $attempt failed, retrying in 15s"
             sleep 15
           done
           exit 1
         env:
+          SNAP: ${{ steps.build.outputs.snap }}
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}

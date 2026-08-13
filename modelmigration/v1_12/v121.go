@@ -3,9 +3,13 @@
 
 package v1_12
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
 
-func AddIsRestricted(x base.EngineMigration) error {
+	"gitea.dev/modelmigration/base"
+)
+
+func AddIsRestricted(_ context.Context, x base.EngineMigration) error {
 	// User see models/user.go
 	type User struct {
 		ID           int64 `xorm:"pk autoincr"`

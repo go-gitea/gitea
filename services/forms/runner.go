@@ -20,5 +20,5 @@ type EditRunnerForm struct {
 // Validate validates form fields
 func (f *EditRunnerForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(ctx, errs, f)
 }

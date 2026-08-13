@@ -53,7 +53,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 			OldRefSubURL:   "branch/master",
 			NewBranch:      "",
 			ExpectedStatus: http.StatusSeeOther,
-			FlashMessage:   translation.NewLocale("en-US").TrString("form.NewBranchName") + translation.NewLocale("en-US").TrString("form.require_error"),
+			FlashMessage:   translation.NewLocale("en-US").TrString("form.require_error", translation.NewLocale("en-US").TrString("form.NewBranchName")),
 		},
 		{
 			OldRefSubURL:   "branch/master",
@@ -65,7 +65,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 			OldRefSubURL:   "branch/master",
 			NewBranch:      strings.Repeat("b", 101),
 			ExpectedStatus: http.StatusSeeOther,
-			FlashMessage:   translation.NewLocale("en-US").TrString("form.NewBranchName") + translation.NewLocale("en-US").TrString("form.max_size_error", "100"),
+			FlashMessage:   translation.NewLocale("en-US").TrString("form.max_size_error", translation.NewLocale("en-US").TrString("form.NewBranchName"), "100"),
 		},
 		{
 			OldRefSubURL:   "branch/master",

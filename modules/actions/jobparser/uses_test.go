@@ -54,6 +54,11 @@ func TestParseUses(t *testing.T) {
 				want: UsesRef{Kind: UsesKindLocalSameRepo, Path: ".gitea/custom_workflows/x.yaml"},
 			},
 			{
+				name: "self-repo prefix",
+				in:   "$/.gitea/workflows/build.yml",
+				want: UsesRef{Kind: UsesKindLocalSameRepo, Path: ".gitea/workflows/build.yml"},
+			},
+			{
 				name: "leading/trailing whitespace is trimmed",
 				in:   "  ./.gitea/workflows/build.yml  ",
 				want: UsesRef{Kind: UsesKindLocalSameRepo, Path: ".gitea/workflows/build.yml"},
@@ -160,6 +165,7 @@ func TestParseUses(t *testing.T) {
 
 			// Same-repo malformed (note: a wrong *directory* parses and should be rejected by the caller)
 			{name: "same-repo with @ref", in: "./.gitea/workflows/build.yml@v1"},
+			{name: "self-repo with @ref", in: "$/.gitea/workflows/build.yml@v1"},
 			{name: "same-repo wrong extension", in: "./.gitea/workflows/build.txt"},
 			{name: "same-repo missing extension", in: "./.gitea/workflows/build"},
 			{name: "same-repo absolute path", in: "/.gitea/workflows/build.yml"},

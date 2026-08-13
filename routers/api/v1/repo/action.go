@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -32,8 +33,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	secret_service "gitea.dev/services/secrets"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 // ListActionsSecrets list a repo's actions secrets
@@ -136,7 +135,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
+	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
 	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
@@ -347,7 +346,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	//   "500":
 	//     "$ref": "#/responses/error"
 
-	opt := web.GetForm(ctx).(*api.CreateVariableOption)
+	opt := web.GetForm[*api.CreateVariableOption](ctx)
 
 	repoID := ctx.Repo.Repository.ID
 	variableName := ctx.PathParam("variablename")
@@ -414,7 +413,7 @@ func (Action) UpdateVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
+	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 
 	v, err := actions_service.GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID: ctx.Repo.Repository.ID,
@@ -1171,7 +1170,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	workflowID := ctx.PathParam("workflow_id")
-	opt := web.GetForm(ctx).(*api.CreateActionWorkflowDispatch)
+	opt := web.GetForm[*api.CreateActionWorkflowDispatch](ctx)
 	if opt.Ref == "" {
 		ctx.APIError(http.StatusUnprocessableEntity, "ref is required parameter")
 		return
@@ -1291,7 +1290,7 @@ func getCurrentRepoActionRunJobsByID(ctx *context.APIContext) (*actions_model.Ac
 		return nil, nil
 	}
 
-	jobs, err := actions_model.GetLatestAttemptJobsByRepoAndRunID(ctx, run.RepoID, run.ID)
+	jobs, err := actions_model.GetLatestAttemptJobsByRun(ctx, run)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1313,6 +1312,16 @@ func getCurrentRepoActionRunAttemptByNumber(ctx *context.APIContext) (*actions_m
 		return nil, nil
 	}
 	return run, attempt
+}
+
+func respondRepoActionWorkflowRun(ctx *context.APIContext, run *actions_model.ActionRun) {
+	run.Repo = ctx.Repo.Repository
+	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convertedRun)
 }
 
 // GetWorkflowRun Gets a specific workflow run.
@@ -1351,12 +1360,7 @@ func GetWorkflowRun(ctx *context.APIContext) {
 		return
 	}
 
-	convertedRun, err := convert.ToActionWorkflowRun(ctx, run, nil, false)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	ctx.JSON(http.StatusOK, convertedRun)
+	respondRepoActionWorkflowRun(ctx, run)
 }
 
 // GetWorkflowRunAttempt Gets a specific workflow run attempt.

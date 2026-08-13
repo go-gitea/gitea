@@ -189,7 +189,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	var err error
 
-	form := *web.GetForm(ctx).(*forms.InstallForm)
+	form := *web.GetForm[*forms.InstallForm](ctx)
 
 	// fix form values
 	if form.AppURL != "" && form.AppURL[len(form.AppURL)-1] != '/' {
@@ -524,7 +524,7 @@ func SubmitInstall(ctx *context.Context) {
 
 		// Now get the http.Server from this request and shut it down
 		// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
-		srv := ctx.Value(http.ServerContextKey).(*http.Server)
+		srv := ctx.Value(http.ServerContextKey).(*http.Server) //nolint:forcetypeassert // must exist
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
 			log.Error("Unable to shutdown the install server! Error: %v", err)
 		}

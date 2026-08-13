@@ -1,16 +1,18 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_28
+package v28
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 
 	"xorm.io/xorm"
 )
 
 // AddDeferredMatrixColumnsToActionRunJob adds the columns backing deferred (dynamic) matrix expansion
-func AddDeferredMatrixColumnsToActionRunJob(x base.EngineMigration) error {
+func AddDeferredMatrixColumnsToActionRunJob(_ context.Context, x base.EngineMigration) error {
 	type ActionRunJob struct {
 		// IsMatrixDeferred marks jobs whose matrix depends on other jobs' outputs and is therefore expanded only once those jobs finish;
 		IsMatrixDeferred bool `xorm:"NOT NULL DEFAULT FALSE"`

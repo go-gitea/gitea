@@ -4,13 +4,14 @@
 package v1_12
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddLanguageStats(x base.EngineMigration) error {
+func AddLanguageStats(_ context.Context, x base.EngineMigration) error {
 	// LanguageStat see models/repo_language_stats.go
 	type LanguageStat struct {
 		ID          int64 `xorm:"pk autoincr"`
