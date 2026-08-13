@@ -8,10 +8,13 @@
 				<div class="flex-text-block tw-flex-wrap tw-text-18">
 					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
 					{{if $.IsSigned}}
-						<div class="ui search dropdown repo-switcher" data-global-init="initRepoSwitcher" data-uid="{{.Owner.ID}}" data-current-full-name="{{.FullName}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}">
+						<div class="ui custom dropdown" data-global-init="initRepoSwitcher" data-uid="{{.Owner.ID}}" data-current-full-name="{{.FullName}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}">
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<input type="text" class="search" autocomplete="off" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" placeholder="{{ctx.Locale.Tr "repo.switch_repository.search"}}">
-							<div class="menu"></div>
+							<div class="menu">
+								<div class="ui icon search input">
+									<input type="text" class="search" autocomplete="off" aria-label="{{ctx.Locale.Tr "repo.switch_repository"}}" placeholder="{{ctx.Locale.Tr "repo.switch_repository.search"}}">
+								</div>
+							</div>
 						</div>
 					{{end}}
 				</div>

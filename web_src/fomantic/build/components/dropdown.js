@@ -431,7 +431,13 @@ $.fn.dropdown = function(parameters) {
             module.refresh();
           },
           menu: function(values) {
-            $menu.html( templates.menu(values, fields,settings.preserveHTML,settings.className));
+            // GITEA-PATCH: make dropdown menu work with custom children elements (usually "input search")
+            const $menuItems = $(templates.menu(values, fields,settings.preserveHTML,settings.className));
+            $menuItems.attr('data-item-dynamic', '');
+            $menu.find('.item[data-item-dynamic]').remove();
+            $menu.append(...$menuItems);
+            settings.onMenuUpdated();
+
             $item    = $menu.find(selector.item);
             $divider = settings.hideDividers ? $item.parent().children(selector.divider) : $();
           },
@@ -3997,6 +4003,7 @@ $.fn.dropdown.settings = {
   onLabelCreate : function(value, text) { return $(this); },
   onLabelRemove : function(value) { return true; },
   onNoResults   : function(searchTerm) { return true; },
+  onMenuUpdated : function(){},
   onShow        : function(){},
   onHide        : function(){},
 
@@ -4223,6 +4230,8 @@ $.fn.dropdown.settings.templates = {
         if(option[fields.divider]){
           html += '<div class="'+className.divider+'"></div>';
         }
+      } else if( itemType === 'html' ) {
+        html += option.html;
       }
     });
     return html;
