@@ -17,6 +17,7 @@
 {{$previewContext := or $editorContext.PreviewContext ""}}
 {{$previewLink := or $editorContext.PreviewLink (print AppSubUrl "/-/markup")}}
 {{$mentionsLink := or $editorContext.MentionsLink ""}}
+{{/* don't try to remove it, there are still many users who like it: https://github.com/go-gitea/gitea/issues/38228#issuecomment-4809312561 */}}
 {{$supportEasyMDE := or (eq $previewMode "comment") (eq $previewMode "wiki")}}
 <div {{if .ContainerId}}id="{{.ContainerId}}"{{end}} class="combo-markdown-editor {{if .CustomInit}}custom-init{{end}} {{.ContainerClasses}}"
 		data-dropzone-parent-container="{{.DropzoneParentContainer}}"
