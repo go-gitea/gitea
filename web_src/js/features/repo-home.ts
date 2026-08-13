@@ -79,7 +79,6 @@ export function initRepoTopicBar() {
     forceSelection: false,
     fullTextSearch: 'exact',
     fields: {name: 'description', value: 'data-value'},
-    saveRemoteData: false,
     label: {
       transition: 'horizontal flip',
       duration: 200,

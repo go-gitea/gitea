@@ -23,7 +23,6 @@ export function initRepoSwitcher(el: HTMLElement) {
     action: 'hide', // no selection is kept, choosing a repo navigates away
     forceSelection: false, // otherwise closing with Escape commits the highlighted item and navigates
     showOnFocus: false, // reopen from the loaded list instead of blocking on another query
-    saveRemoteData: false,
     apiSettings: {
       cache: false,
       throttleFirstRequest: false, // open without waiting out the throttle, later keystrokes stay debounced
