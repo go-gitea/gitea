@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
@@ -94,6 +95,56 @@ func GetRunAttemptByRunIDAndAttemptNum(ctx context.Context, runID, attemptNum in
 		return nil, fmt.Errorf("run attempt %d for run %d: %w", attemptNum, runID, util.ErrNotExist)
 	}
 	return &attempt, nil
+}
+
+// GetArtifactAttemptIDs returns the IDs of the attempts whose artifacts the job may read, newest first,
+// always including the job's own attempt.
+// An attempt that re-ran only some of the run's jobs keeps the artifacts of the attempt it re-ran from,
+// because the jobs it passed through never upload them again; a rerun of the whole run starts over.
+func GetArtifactAttemptIDs(ctx context.Context, job *ActionRunJob) ([]int64, error) {
+	if job.Attempt <= 1 || job.RunAttemptID == 0 {
+		return []int64{job.RunAttemptID}, nil
+	}
+
+	attempts, err := ListRunAttemptsByRunID(ctx, job.RunID)
+	if err != nil {
+		return nil, err
+	}
+	// a newer attempt is never readable, and attempt 1 has nothing older to continue into
+	candidateIDs := container.FilterSlice(attempts, func(a *ActionRunAttempt) (int64, bool) {
+		return a.ID, a.Attempt > 1 && a.Attempt <= job.Attempt
+	})
+	passThroughAttemptIDs, err := findPassThroughAttemptIDs(ctx, candidateIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]int64, 0, len(attempts))
+	for _, attempt := range attempts {
+		if attempt.Attempt > job.Attempt {
+			continue
+		}
+		ids = append(ids, attempt.ID)
+		if !slices.Contains(passThroughAttemptIDs, attempt.ID) {
+			// stops at the first attempt that passed no job through
+			break
+		}
+	}
+	return ids, nil
+}
+
+// findPassThroughAttemptIDs narrows the given attempts to those that were a rerun of selected jobs:
+// only such a rerun clones jobs carrying a source task.
+// TODO: best-effort. Needs a better way to distinguish between "partial re-run" and "full re-run".
+func findPassThroughAttemptIDs(ctx context.Context, attemptIDs []int64) ([]int64, error) {
+	passThroughAttemptIDs := make([]int64, 0, len(attemptIDs))
+	return passThroughAttemptIDs, db.GetEngine(ctx).
+		Table("action_run_job").
+		Cols("run_attempt_id").
+		In("run_attempt_id", attemptIDs).
+		Where("source_task_id <> 0").
+		Distinct("run_attempt_id").
+		Find(&passThroughAttemptIDs)
 }
 
 // FindConcurrentRunAttempts returns attempts in the given concurrency group and status set.
