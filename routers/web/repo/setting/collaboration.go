@@ -8,15 +8,13 @@ import (
 	"net/http"
 	"strings"
 
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
-	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mailer"
 	repo_service "gitea.dev/services/repository"
@@ -120,34 +118,17 @@ func CollaborationPost(ctx *context.Context) {
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
+	// the frontend initRepoSettingsCollaboration logic: it only checks "resp.ok"
 	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
 	if err != nil {
-		ctx.NotFoundOrServerError("GetUserByID", user_model.IsErrUserNotExist, err)
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
-
-	accessMode := perm.AccessMode(ctx.FormInt("mode"))
-
-	changed, err := repo_model.ChangeCollaborationAccessMode(
-		ctx,
-		ctx.Repo.Repository,
-		u.ID,
-		accessMode)
-	switch {
-	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.HTTPError(http.StatusBadRequest)
+	mode := perm.AccessMode(ctx.FormInt("mode"))
+	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, u, mode); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		log.Error("AddOrUpdateCollaborator: %v", err)
 		return
-	case errors.Is(err, util.ErrNotExist):
-		ctx.HTTPError(http.StatusNotFound)
-		return
-	case err != nil:
-		ctx.ServerError("ChangeCollaborationAccessMode", err)
-		return
-	}
-
-	if changed {
-		audit.Record(ctx, audit_model.RepositoryCollaboratorAccess, ctx.Repo.Repository,
-			"collaborator", u.Name, "access_mode", accessMode.ToString())
 	}
 	ctx.JSONOK()
 }

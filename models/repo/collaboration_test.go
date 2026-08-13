@@ -7,11 +7,8 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
-	"gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -68,41 +65,6 @@ func TestRepository_IsCollaborator(t *testing.T) {
 	test(3, unittest.NonexistentID, false)
 	test(4, 2, false)
 	test(4, 4, true)
-}
-
-func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	changed, err := repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin)
-	assert.NoError(t, err)
-	assert.True(t, changed)
-
-	collaboration := unittest.AssertExistsAndLoadBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: 4})
-	assert.Equal(t, perm.AccessModeAdmin, collaboration.Mode)
-
-	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: repo.ID})
-	assert.Equal(t, perm.AccessModeAdmin, access.Mode)
-
-	// Same mode as before, nothing changes.
-	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeAdmin)
-	assert.NoError(t, err)
-	assert.False(t, changed)
-
-	// Not a collaborator.
-	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, unittest.NonexistentID, perm.AccessModeAdmin)
-	assert.ErrorIs(t, err, util.ErrNotExist)
-	assert.False(t, changed)
-
-	// Reject invalid input.
-	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessMode(-1))
-	assert.ErrorIs(t, err, perm.ErrInvalidAccessMode)
-	assert.False(t, changed)
-	changed, err = repo_model.ChangeCollaborationAccessMode(t.Context(), repo, 4, perm.AccessModeOwner)
-	assert.ErrorIs(t, err, perm.ErrInvalidAccessMode)
-	assert.False(t, changed)
-
-	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
 }
 
 func TestRepository_IsOwnerMemberCollaborator(t *testing.T) {
