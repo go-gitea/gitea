@@ -33,6 +33,7 @@ func AllActions() []Action {
 
 var (
 	UserImpersonation               = define("user:impersonation", "User {actor} impersonating user {scope}.")
+	UserImpersonationExit           = define("user:impersonation:exit", "User {actor} stopped impersonating user {scope}.")
 	UserCreate                      = define("user:create", "Created user {scope}.")
 	UserDelete                      = define("user:delete", "Deleted user {scope}.")
 	UserAuthenticationFailTwoFactor = define("user:authentication:fail:twofactor", "Failed two-factor authentication for user {scope}.")

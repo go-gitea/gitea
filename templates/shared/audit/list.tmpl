@@ -1,3 +1,24 @@
+<div class="ui attached segment">
+	<form class="ui form ignore-dirty">
+		{{if .AuditSort}}<input type="hidden" name="sort" value="{{.AuditSort}}">{{end}}
+		<div class="ui small fluid action input">
+			<input type="text" name="actor" value="{{.AuditFilterActor}}" placeholder="{{ctx.Locale.Tr "audit.filter.actor"}}">
+			<select class="ui small dropdown" name="action">
+				<option value="">{{ctx.Locale.Tr "audit.filter.action"}}</option>
+				{{range $action := .AuditActions}}
+					<option{{if eq $.AuditFilterAction (print $action)}} selected{{end}} value="{{$action}}">{{$action}}</option>
+				{{end}}
+			</select>
+			<select class="ui small dropdown" name="origin">
+				<option value="">{{ctx.Locale.Tr "audit.filter.origin"}}</option>
+				{{range $origin := .AuditOrigins}}
+					<option{{if eq $.AuditFilterOrigin (print $origin)}} selected{{end}} value="{{$origin}}">{{$origin}}</option>
+				{{end}}
+			</select>
+			{{template "shared/search/button"}}
+		</div>
+	</form>
+</div>
 <div class="ui attached table segment">
 	<table class="ui very basic striped table unstackable">
 		<thead>
@@ -15,6 +36,14 @@
 			{{range .AuditEvents}}
 				<tr>
 					<td>
+						{{with .Impersonator}}
+							{{if .HasLink}}
+								<a href="{{.HomeLink}}">{{.DisplayName}}</a>
+							{{else}}
+								{{.DisplayName}}
+							{{end}}
+							<span class="text small">{{ctx.Locale.Tr "audit.impersonating_as"}}</span>
+						{{end}}
 						{{if .Actor.DisplayName}}
 							{{if .Actor.HasLink}}
 								<a href="{{.Actor.HomeLink}}">{{.Actor.DisplayName}}</a>

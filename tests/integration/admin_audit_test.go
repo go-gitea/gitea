@@ -21,6 +21,47 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Events an admin causes while impersonating must stay traceable to the admin,
+// otherwise anything done in an impersonated session is pinned on the victim.
+func TestAdminAuditLogImpersonation(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.Audit.Enabled, true)()
+
+	session := loginUser(t, "user1")
+	session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/2/impersonate"), http.StatusOK)
+
+	session.MakeRequest(t, NewRequestWithValues(t, "POST", "/user/settings/applications", map[string]string{
+		"name":        "impersonated-token",
+		"scope-dummy": "read:user",
+	}), http.StatusSeeOther)
+
+	session.MakeRequest(t, NewRequest(t, "GET", "/user/logout"), http.StatusSeeOther)
+
+	events, _, err := audit_model.FindEvents(t.Context(), &audit_model.EventSearchOptions{ActorID: 1})
+	require.NoError(t, err)
+
+	byAction := make(map[audit_model.Action]*audit_model.Event, len(events))
+	for _, e := range events {
+		byAction[e.Action] = e
+	}
+
+	start := byAction[audit_model.UserImpersonation]
+	require.NotNil(t, start)
+	assert.Equal(t, int64(1), start.ActorID)
+	assert.Equal(t, int64(2), start.ScopeID)
+
+	token := byAction[audit_model.UserAccessTokenAdd]
+	require.NotNil(t, token)
+	assert.Equal(t, int64(2), token.ActorID) // the token really belongs to user2
+	assert.Equal(t, int64(1), token.ImpersonatorID)
+	assert.Equal(t, "user1", token.ImpersonatorName)
+
+	exit := byAction[audit_model.UserImpersonationExit]
+	require.NotNil(t, exit)
+	assert.Equal(t, int64(1), exit.ActorID)
+	assert.Zero(t, exit.ImpersonatorID)
+}
+
 func TestAdminAuditLogExport(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -47,6 +88,22 @@ func TestAdminAuditLogExport(t *testing.T) {
 		resp := adminSession.MakeRequest(t, NewRequest(t, "GET", "/-/admin/monitor/audit_logs"), http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 		assert.Equal(t, 1, doc.doc.Find(`a[href="/-/admin/monitor/audit_logs/export"]`).Length())
+	})
+
+	t.Run("Filter", func(t *testing.T) {
+		resp := adminSession.MakeRequest(t, NewRequest(t, "GET", "/-/admin/monitor/audit_logs?action=user:create&actor=user1&origin=api"), http.StatusOK)
+		assert.Contains(t, resp.Body.String(), "Export test event")
+
+		// an actor that did not cause the event filters it out, as does an unknown one
+		for _, actor := range []string{"user2", "does-not-exist"} {
+			resp = adminSession.MakeRequest(t, NewRequest(t, "GET", "/-/admin/monitor/audit_logs?actor="+actor), http.StatusOK)
+			assert.NotContains(t, resp.Body.String(), "Export test event")
+		}
+	})
+
+	t.Run("FilteredExport", func(t *testing.T) {
+		resp := adminSession.MakeRequest(t, NewRequest(t, "GET", "/-/admin/monitor/audit_logs/export?action=repository:create"), http.StatusOK)
+		assert.NotContains(t, resp.Body.String(), "Export test event")
 	})
 
 	t.Run("AdminOnly", func(t *testing.T) {

@@ -31,8 +31,9 @@ ENABLED = true
 ```
 
 Events are then written to the database and shown in the admin, organization, repository and user
-settings. Site administrators can download all events as a JSONL file from **Site Administration >
-Monitoring > Audit Logs** by selecting **Export JSONL**.
+settings. Every view can be filtered by actor, action and origin. Site administrators can download
+the events as a JSONL file from **Site Administration > Monitoring > Audit Logs** by selecting
+**Export JSONL**, which applies the filters currently in effect.
 
 ## Events
 
@@ -45,6 +46,7 @@ Each stored event contains:
 
 - **action**: machine-readable action identifier (e.g. `user:accesstoken:remove`)
 - **actor**: who performed the action (`id`, `name`)
+- **impersonator**: the admin who performed the action while impersonating the actor, absent otherwise
 - **scope**: the unit the event belongs to — used for filtering in admin/user/org/repo views
 - **message**: human-readable summary shown in the UI
 - **metadata**: JSON object with action-specific details supplied by the caller
@@ -58,6 +60,7 @@ Example JSONL record:
 {
   "action": "user:accesstoken:remove",
   "actor": {"type": "user", "id": 1, "name": "bob"},
+  "impersonator": {"type": "user", "id": 2, "name": "admin"},
   "scope": {"type": "user", "id": 1, "name": "bob"},
   "message": "Removed access token my-token from user bob.",
   "metadata": {"token": "my-token"},
@@ -71,12 +74,16 @@ The audit core does not interpret domain objects. Call sites provide the metadat
 action; the message is rendered from a per-action template in `services/audit/message.go`, so it can
 never drift from the action it describes. The actor is the signed-in user of the request, or the
 pseudo user (`CLI`, `AuthenticationSource`) named by the background task that triggered the event.
+Actions performed during an impersonated session (admin impersonation or API `Sudo`) are recorded on
+the impersonated user, with the admin behind them kept in `impersonator`. Filtering by an actor
+returns both the events they caused themselves and those an admin caused while impersonating them.
 
 ### User Events
 
 | Event | Description |
 | - | - |
 | `user:impersonation` | Admin impersonating user |
+| `user:impersonation:exit` | Admin stopped impersonating user |
 | `user:create` | Created user |
 | `user:delete` | Deleted user |
 | `user:authentication:fail:twofactor` | Failed two-factor authentication for user |

@@ -479,6 +479,7 @@ func ImpersonateUser(ctx *context.Context) {
 		ctx.ServerError("unable to impersonate user", err)
 		return
 	}
+	audit.Record(ctx, audit_model.UserImpersonation, u)
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 

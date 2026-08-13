@@ -14,6 +14,16 @@ type doerContextKeyType struct{}
 
 var doerContextKey doerContextKeyType
 
+type impersonatorContextKeyType struct{}
+
+var impersonatorContextKey impersonatorContextKeyType
+
+// WithImpersonator returns a context that records audit events as performed by
+// the doer on behalf of the given admin.
+func WithImpersonator(ctx context.Context, impersonator *user_model.User) context.Context {
+	return context.WithValue(ctx, impersonatorContextKey, impersonator)
+}
+
 // WithDoer returns a context that records audit events as the given user.
 //
 // Web and API requests need this only in unusual cases: the signed-in user is
@@ -35,6 +45,21 @@ func doerFromContext(ctx context.Context) *user_model.User {
 	if data := middleware.GetContextData(ctx); data != nil {
 		if doer, ok := data[middleware.ContextDataKeySignedUser].(*user_model.User); ok {
 			return doer
+		}
+	}
+	return nil
+}
+
+// ImpersonatorFromContext resolves the admin acting as the doer, so an event
+// recorded during an impersonated session cannot be pinned on the impersonated
+// user alone. Returns nil for ordinary sessions.
+func ImpersonatorFromContext(ctx context.Context) *user_model.User {
+	if impersonator, ok := ctx.Value(impersonatorContextKey).(*user_model.User); ok && impersonator != nil {
+		return impersonator
+	}
+	if data := middleware.GetContextData(ctx); data != nil {
+		if impersonator, ok := data[middleware.ContextDataKeyImpersonator].(*user_model.User); ok {
+			return impersonator
 		}
 	}
 	return nil

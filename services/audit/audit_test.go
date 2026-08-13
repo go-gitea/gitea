@@ -146,6 +146,32 @@ func TestDoerFromContext(t *testing.T) {
 	})
 }
 
+// An impersonated session must never pin an event on the impersonated user
+// alone, otherwise an admin could act in someone else's name untraceably.
+func TestImpersonatorRef(t *testing.T) {
+	admin := &user_model.User{ID: 1, Name: "Admin"}
+	impersonated := &user_model.User{ID: 2, Name: "Impersonated"}
+
+	rc := reqctx.NewRequestContextForTest(context.Background())
+	rc.GetData()[middleware.ContextDataKeySignedUser] = impersonated
+	rc.GetData()[middleware.ContextDataKeyImpersonator] = admin
+
+	assert.Equal(t, admin, ImpersonatorFromContext(rc))
+
+	e := buildEvent(rc, RecordParams{
+		Action:       audit_model.UserPassword,
+		Actor:        actorRef(doerFromContext(rc)),
+		Impersonator: impersonatorRef(ImpersonatorFromContext(rc), doerFromContext(rc)),
+		Scope:        ScopeFromUser(impersonated),
+	})
+	assert.Equal(t, int64(2), e.ActorID)
+	assert.Equal(t, &audit_model.EntityRef{Type: audit_model.ScopeUser, ID: 1, Name: "Admin"}, e.Impersonator())
+
+	// an admin acting as themselves is not an impersonation
+	assert.Nil(t, impersonatorRef(admin, admin))
+	assert.Nil(t, impersonatorRef(nil, impersonated))
+}
+
 // An unresolvable actor must still produce an event, so a missing entry point
 // never silently drops security relevant records.
 func TestActorRefWithoutDoer(t *testing.T) {

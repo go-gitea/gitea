@@ -11,18 +11,20 @@ import (
 )
 
 type AuditEvent struct {
-	ID            int64  `xorm:"pk autoincr"`
-	Action        string `xorm:"INDEX NOT NULL"`
-	ActorID       int64  `xorm:"INDEX NOT NULL"`
-	ActorName     string
-	ScopeID       int64  `xorm:"INDEX(scope) NOT NULL"`
-	ScopeType     string `xorm:"INDEX INDEX(scope) NOT NULL"`
-	ScopeName     string
-	Origin        string `xorm:"INDEX NOT NULL"`
-	Message       string
-	Metadata      string `xorm:"LONGTEXT JSON"`
-	IPAddress     string
-	TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+	ID               int64  `xorm:"pk autoincr"`
+	Action           string `xorm:"INDEX NOT NULL"`
+	ActorID          int64  `xorm:"INDEX NOT NULL"`
+	ActorName        string
+	ImpersonatorID   int64 `xorm:"INDEX"`
+	ImpersonatorName string
+	ScopeID          int64  `xorm:"INDEX(scope) NOT NULL"`
+	ScopeType        string `xorm:"INDEX INDEX(scope) NOT NULL"`
+	ScopeName        string
+	Origin           string `xorm:"INDEX NOT NULL"`
+	Message          string
+	Metadata         string `xorm:"LONGTEXT JSON"`
+	IPAddress        string
+	TimestampUnix    timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
 }
 
 func (*AuditEvent) TableName() string {

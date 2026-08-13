@@ -25,6 +25,16 @@ func actorRef(doer *user_model.User) audit_model.EntityRef {
 	return audit_model.EntityRef{Type: audit_model.ScopeUser, ID: doer.ID, Name: doer.Name}
 }
 
+// impersonatorRef names the admin behind an impersonated session. It is dropped
+// when the actor is the admin themselves, so events an admin performs before
+// entering or after leaving an impersonation are not marked as impersonated.
+func impersonatorRef(impersonator, doer *user_model.User) *audit_model.EntityRef {
+	if impersonator == nil || (doer != nil && impersonator.ID == doer.ID) {
+		return nil
+	}
+	return &audit_model.EntityRef{Type: audit_model.ScopeUser, ID: impersonator.ID, Name: impersonator.Name}
+}
+
 func ScopeFromUser(u *user_model.User) audit_model.EntityRef {
 	if u == nil {
 		return audit_model.EntityRef{}

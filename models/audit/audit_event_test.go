@@ -46,3 +46,25 @@ func TestFindEventsScopeFilters(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, bySystemOrigin, 1)
 }
+
+// Filtering for an admin must surface what they did while impersonating someone.
+func TestFindEventsActorFilterIncludesImpersonations(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	events := []*Event{
+		{Action: UserPassword, ActorID: 10, ScopeType: ScopeUser, ScopeID: 10, TimestampUnix: timeutil.TimeStamp(1)},
+		{Action: UserPassword, ActorID: 11, ImpersonatorID: 10, ScopeType: ScopeUser, ScopeID: 11, TimestampUnix: timeutil.TimeStamp(2)},
+		{Action: UserPassword, ActorID: 12, ScopeType: ScopeUser, ScopeID: 12, TimestampUnix: timeutil.TimeStamp(3)},
+	}
+	for _, event := range events {
+		require.NoError(t, InsertEvent(t.Context(), event))
+	}
+
+	byAdmin, _, err := FindEvents(t.Context(), &EventSearchOptions{ActorID: 10})
+	require.NoError(t, err)
+	assert.Len(t, byAdmin, 2)
+
+	byImpersonated, _, err := FindEvents(t.Context(), &EventSearchOptions{ActorID: 11})
+	require.NoError(t, err)
+	assert.Len(t, byImpersonated, 1)
+}

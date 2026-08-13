@@ -9,7 +9,6 @@ import (
 	"time"
 
 	audit_model "gitea.dev/models/audit"
-	"gitea.dev/models/db"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
 	shared_audit "gitea.dev/routers/web/shared/audit"
@@ -27,15 +26,15 @@ func ViewAuditLogs(ctx *context.Context) {
 }
 
 func ExportAuditLogs(ctx *context.Context) {
+	// the export mirrors the filters of the listing it was started from
+	searchOpts := shared_audit.SearchOptionsFromRequest(ctx, "", 0)
+	searchOpts.Sort = audit_model.SortTimestampAsc
+	searchOpts.PageSize = auditExportPageSize
+
 	page := 1
 	findPage := func() ([]*audit_model.Event, int64, error) {
-		return audit.FindEvents(ctx, &audit_model.EventSearchOptions{
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: auditExportPageSize,
-			},
-			Sort: audit_model.SortTimestampAsc,
-		})
+		searchOpts.Page = page
+		return audit.FindEvents(ctx, searchOpts)
 	}
 
 	// the first page is fetched before any header is written so a failing query still results in a proper error page

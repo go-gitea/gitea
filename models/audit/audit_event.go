@@ -20,18 +20,20 @@ func init() {
 }
 
 type Event struct {
-	ID            int64  `xorm:"pk autoincr"`
-	Action        Action `xorm:"INDEX NOT NULL"`
-	ActorID       int64  `xorm:"INDEX NOT NULL"`
-	ActorName     string
-	ScopeID       int64     `xorm:"INDEX(scope) NOT NULL"` // Entity ID within ScopeType; zero for system.
-	ScopeType     ScopeType `xorm:"INDEX INDEX(scope) NOT NULL"`
-	ScopeName     string
-	Origin        Origin `xorm:"INDEX NOT NULL"`
-	Message       string
-	Metadata      string `xorm:"LONGTEXT JSON"`
-	IPAddress     string
-	TimestampUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
+	ID               int64  `xorm:"pk autoincr"`
+	Action           Action `xorm:"INDEX NOT NULL"`
+	ActorID          int64  `xorm:"INDEX NOT NULL"`
+	ActorName        string
+	ImpersonatorID   int64 `xorm:"INDEX"` // Admin acting as the actor; zero when the actor acted themselves.
+	ImpersonatorName string
+	ScopeID          int64     `xorm:"INDEX(scope) NOT NULL"` // Entity ID within ScopeType; zero for system.
+	ScopeType        ScopeType `xorm:"INDEX INDEX(scope) NOT NULL"`
+	ScopeName        string
+	Origin           Origin `xorm:"INDEX NOT NULL"`
+	Message          string
+	Metadata         string `xorm:"LONGTEXT JSON"`
+	IPAddress        string
+	TimestampUnix    timeutil.TimeStamp `xorm:"INDEX NOT NULL"`
 }
 
 func (*Event) TableName() string {
@@ -40,6 +42,14 @@ func (*Event) TableName() string {
 
 func (e *Event) Actor() EntityRef {
 	return EntityRef{Type: ScopeUser, ID: e.ActorID, Name: e.ActorName}
+}
+
+// Impersonator returns the admin who acted as the actor, or nil.
+func (e *Event) Impersonator() *EntityRef {
+	if e.ImpersonatorID == 0 && e.ImpersonatorName == "" {
+		return nil
+	}
+	return &EntityRef{Type: ScopeUser, ID: e.ImpersonatorID, Name: e.ImpersonatorName}
 }
 
 func (e *Event) Scope() EntityRef {
@@ -52,26 +62,28 @@ func (e *Event) Time() time.Time {
 
 // eventJSON is the nested JSONL export / import shape.
 type eventJSON struct {
-	Action    Action         `json:"action"`
-	Actor     EntityRef      `json:"actor"`
-	Scope     EntityRef      `json:"scope"`
-	Message   string         `json:"message"`
-	Metadata  map[string]any `json:"metadata,omitempty"`
-	Time      time.Time      `json:"time"`
-	IPAddress string         `json:"ip_address"`
-	Origin    Origin         `json:"origin"`
+	Action       Action         `json:"action"`
+	Actor        EntityRef      `json:"actor"`
+	Impersonator *EntityRef     `json:"impersonator,omitempty"`
+	Scope        EntityRef      `json:"scope"`
+	Message      string         `json:"message"`
+	Metadata     map[string]any `json:"metadata,omitempty"`
+	Time         time.Time      `json:"time"`
+	IPAddress    string         `json:"ip_address"`
+	Origin       Origin         `json:"origin"`
 }
 
 func (e *Event) MarshalJSON() ([]byte, error) {
 	return json.Marshal(eventJSON{
-		Action:    e.Action,
-		Actor:     e.Actor(),
-		Scope:     e.Scope(),
-		Message:   e.Message,
-		Metadata:  DecodeMetadata(e.Metadata),
-		Time:      e.Time(),
-		IPAddress: e.IPAddress,
-		Origin:    e.Origin,
+		Action:       e.Action,
+		Actor:        e.Actor(),
+		Impersonator: e.Impersonator(),
+		Scope:        e.Scope(),
+		Message:      e.Message,
+		Metadata:     DecodeMetadata(e.Metadata),
+		Time:         e.Time(),
+		IPAddress:    e.IPAddress,
+		Origin:       e.Origin,
 	})
 }
 
@@ -83,6 +95,10 @@ func (e *Event) UnmarshalJSON(data []byte) error {
 	e.Action = j.Action
 	e.ActorID = j.Actor.ID
 	e.ActorName = j.Actor.Name
+	if j.Impersonator != nil {
+		e.ImpersonatorID = j.Impersonator.ID
+		e.ImpersonatorName = j.Impersonator.Name
+	}
 	e.ScopeType = j.Scope.Type
 	e.ScopeID = j.Scope.ID
 	e.ScopeName = j.Scope.Name
@@ -146,7 +162,8 @@ func (opts *EventSearchOptions) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"action": opts.Action})
 	}
 	if opts.ActorID != 0 {
-		cond = cond.And(builder.Eq{"actor_id": opts.ActorID})
+		// an impersonated event belongs to both the actor and the admin behind it
+		cond = cond.And(builder.Eq{"actor_id": opts.ActorID}.Or(builder.Eq{"impersonator_id": opts.ActorID}))
 	}
 	// applied independently so a missing scope ID narrows the query instead of
 	// silently widening it to every scope
