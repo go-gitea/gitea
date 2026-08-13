@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"io"
 	"regexp"
-	"slices"
 	"strings"
 	"sync"
 
@@ -21,7 +20,6 @@ import (
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
-	"mvdan.cc/xurls/v2"
 )
 
 // Issue name styles
@@ -36,7 +34,6 @@ type globalVarsType struct {
 	shortLinkPattern        *regexp.Regexp
 	anyHashPattern          *regexp.Regexp
 	comparePattern          *regexp.Regexp
-	fullURLPattern          *regexp.Regexp
 	emailRegex              *regexp.Regexp
 	emojiShortCodeRegex     *regexp.Regexp
 	issueFullPattern        *regexp.Regexp
@@ -70,9 +67,6 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
 	v.comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
-	// fullURLPattern matches full URL like "mailto:...", "https://..." and "ssh+git://..."
-	v.fullURLPattern = regexp.MustCompile(`^[a-z][-+\w]+:`)
-
 	// emailRegex is definitely not perfect with edge cases,
 	// it is still accepted by the CommonMark specification, as well as the HTML5 spec:
 	//   http://spec.commonmark.org/0.28/#email-address
@@ -97,34 +91,6 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	v.nulCleaner = strings.NewReplacer("\000", "")
 	return v
 })
-
-func IsFullURLString(link string) bool {
-	return globalVars().fullURLPattern.MatchString(link)
-}
-
-func IsNonEmptyRelativePath(link string) bool {
-	return link != "" && !IsFullURLString(link) && link[0] != '?' && link[0] != '#'
-}
-
-// CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
-func CustomLinkURLSchemes(schemes []string) {
-	schemes = append(schemes, "http", "https")
-	withAuth := make([]string, 0, len(schemes))
-	validScheme := regexp.MustCompile(`^[a-z]+$`)
-	for _, s := range schemes {
-		if !validScheme.MatchString(s) {
-			continue
-		}
-		without := slices.Contains(xurls.SchemesNoAuthority, s)
-		if without {
-			s += ":"
-		} else {
-			s += "://"
-		}
-		withAuth = append(withAuth, s)
-	}
-	common.GlobalVars().LinkRegex, _ = xurls.StrictMatchingScheme(strings.Join(withAuth, "|"))
-}
 
 type processor func(ctx *RenderContext, node *html.Node)
 
@@ -175,21 +141,10 @@ var emojiProcessors = []processor{
 	emojiProcessor,
 }
 
-// isBareURLSubject reports whether the (HTML-escaped) commit subject content
-// is entirely a single URL, ignoring leading/trailing whitespace.
-func isBareURLSubject(content string) bool {
-	s := strings.TrimSpace(html.UnescapeString(content))
-	if s == "" {
-		return false
-	}
-	m := common.GlobalVars().LinkRegex.FindStringIndex(s)
-	return m != nil && m[0] == 0 && m[1] == len(s)
-}
-
 // PostProcessCommitMessageSubject will use the same logic as PostProcess and
 // PostProcessCommitMessage, but will disable the shortLinkProcessor and
 // emailAddressProcessor, and wraps the whole subject in defaultLink.
-func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink string, content template.HTML) template.HTML {
+func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink, content string) template.HTML {
 	procs := []processor{
 		fullIssuePatternProcessor,
 		comparePatternProcessor,
@@ -200,16 +155,19 @@ func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink string, con
 		hashCurrentPatternProcessor,
 		emojiShortCodeProcessor,
 		emojiProcessor,
+		linkProcessor,
 	}
-	// When the whole subject is a bare URL, linkProcessor would turn it into
-	// a competing anchor and hijack the surrounding defaultLink wrapper, leaving
-	// the subject visually unclickable. Match GitHub: render such subjects as
-	// plain text inside defaultLink. Partial URLs inside larger text still become
-	// their own links (nested anchors aren't legal HTML, so the outer defaultLink
-	// naturally breaks on that span, same as on GitHub).
-	if !isBareURLSubject(string(content)) {
-		procs = append(procs, linkProcessor)
+
+	content = strings.TrimSpace(content)
+	m := common.GlobalVars().LinkifyRegex.FindStringSubmatch(content)
+	contentIsFullLink := m != nil && m[0] == content
+	// Only call post-processers when the content is not a full link
+	// If the content is a full link, just render it as its text and add our real link to wrap it
+	// Otherwise: if the content full link gets its "A" element by "linkProcessor", the outer link (our real link) won't work
+	if contentIsFullLink {
+		procs = nil
 	}
+
 	procs = append(procs, func(ctx *RenderContext, node *html.Node) {
 		ch := &html.Node{Parent: node, Type: html.TextNode, Data: node.Data}
 		node.Type = html.ElementNode
@@ -218,7 +176,7 @@ func PostProcessCommitMessageSubject(ctx *RenderContext, defaultLink string, con
 		node.Attr = []html.Attribute{{Key: "href", Val: defaultLink}, {Key: "class", Val: "muted title-full-link"}}
 		node.FirstChild, node.LastChild = ch, ch
 	})
-	rendered := postProcessHTML(ctx, procs, content)
+	rendered := postProcessHTML(ctx, procs, htmlutil.EscapeString(content))
 	return htmlutil.HTMLFormat(`<span class="title-full-link-hover">%s</span>`, rendered)
 }
 

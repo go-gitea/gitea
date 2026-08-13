@@ -12,8 +12,10 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func minimalWorkflowPayload(jobID string) []byte {
@@ -30,6 +32,7 @@ jobs:
 func Test_jobStatusResolver_Resolve(t *testing.T) {
 	tests := []struct {
 		name string
+		run  *actions_model.ActionRun // defaults to stubRun
 		jobs actions_model.ActionJobList
 		want map[int64]actions_model.Status
 	}{
@@ -100,7 +103,7 @@ jobs:
     needs: job1
     if: ${{ always() && needs.job1.result == 'success' }}
     steps:
-      - run: echo "will be checked by act_runner"
+      - run: echo "will be checked by runner"
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
@@ -119,7 +122,7 @@ jobs:
     needs: job1
     if: ${{ always() && needs.job1.result == 'failure' }}
     steps:
-      - run: echo "will be checked by act_runner"
+      - run: echo "will be checked by runner"
 `)},
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
@@ -222,6 +225,34 @@ jobs:
 			},
 			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
 		},
+		{
+			// a needs-gated job is evaluated server-side, so a mistyped input silently leaves it blocked
+			name: "`if` compares a workflow_dispatch boolean input",
+			run: &actions_model.ActionRun{
+				TriggerUser: &user_model.User{}, Repo: &repo_model.Repository{},
+				Event:        "workflow_dispatch",
+				EventPayload: `{"inputs":{"deploy":"true"}}`,
+			},
+			jobs: actions_model.ActionJobList{
+				{ID: 1, JobID: "job1", Status: actions_model.StatusSuccess, Needs: []string{}},
+				{ID: 2, JobID: "job2", Status: actions_model.StatusBlocked, Needs: []string{"job1"}, WorkflowPayload: []byte(
+					`
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        type: boolean
+jobs:
+  job2:
+    runs-on: ubuntu-latest
+    needs: job1
+    if: ${{ inputs.deploy == true && github.event.inputs.deploy == 'true' }}
+    steps:
+      - run: echo
+`)},
+			},
+			want: map[int64]actions_model.Status{2: actions_model.StatusWaiting},
+		},
 	}
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()
@@ -231,6 +262,7 @@ jobs:
 			// Each subtest gets a unique RunID / RunAttemptID so jobs from different subtests don't bleed into each other's FindTaskNeeds queries
 			runID := int64(9001 + i)
 			attemptID := int64(9001 + i)
+			run := util.IfZero(tt.run, stubRun)
 
 			// Insert each test job (letting the DB assign IDs) and remember the testID -> dbID mapping so we can translate the expected map.
 			idMap := make(map[int64]int64, len(tt.jobs))
@@ -239,7 +271,7 @@ jobs:
 				j.ID = 0
 				j.RunID = runID
 				j.RunAttemptID = attemptID
-				j.Run = stubRun
+				j.Run = run
 
 				// The resolver evaluates Blocked jobs via evaluateJobIf, which needs a valid YAML payload;
 				// supply a minimal one when the case didn't.
@@ -257,7 +289,9 @@ jobs:
 			}
 
 			r := newJobStatusResolver(tt.jobs, nil)
-			assert.Equal(t, want, r.Resolve(ctx))
+			got, err := r.Resolve(ctx)
+			require.NoError(t, err)
+			assert.Equal(t, want, got)
 		})
 	}
 }
@@ -277,7 +311,9 @@ func Test_maxParallelConverges(t *testing.T) {
 	}
 
 	for cycle := range totalJobs + 1 {
-		for id, status := range newJobStatusResolver(jobs, nil).Resolve(ctx) {
+		updates, err := newJobStatusResolver(jobs, nil).Resolve(ctx)
+		require.NoError(t, err)
+		for id, status := range updates {
 			jobs[id-1].Status = status
 		}
 		counts := statusCounts(jobs)
@@ -562,7 +598,8 @@ func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
 	}
 
 	for cycle := range 2 * len(callers) {
-		promoted := newJobStatusResolver(callers, nil).Resolve(ctx)
+		promoted, err := newJobStatusResolver(callers, nil).Resolve(ctx)
+		require.NoError(t, err)
 		for id, status := range promoted {
 			caller := idToCaller[id]
 			assert.False(t, caller.IsExpanded, "cycle %d: resolver re-promoted already-expanded caller %d", cycle, id)
@@ -582,4 +619,40 @@ func Test_maxParallelReusableCallerLifecycle(t *testing.T) {
 	}
 
 	assert.Equal(t, len(callers), statusCounts(callers)[actions_model.StatusSuccess])
+}
+
+// Test_jobStatusResolverStopsAfterMatrixInsert covers the invariant that keeps a dynamic matrix's
+// dependents honest: a round resolved after an insert would judge them against a job set that is
+// missing the siblings. See Resolve for why that is wrong.
+func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
+	ctx := t.Context()
+
+	// build (2) stands for the expanded anchor: it reaches a terminal status this round, which is
+	// what would let report (3) resolve in the next one.
+	newChain := func() actions_model.ActionJobList {
+		return actions_model.ActionJobList{
+			{ID: 1, JobID: "generate", Status: actions_model.StatusFailure, WorkflowPayload: minimalWorkflowPayload("generate")},
+			{ID: 2, JobID: "build", Status: actions_model.StatusBlocked, Needs: []string{"generate"}, WorkflowPayload: minimalWorkflowPayload("build")},
+			{ID: 3, JobID: "report", Status: actions_model.StatusBlocked, Needs: []string{"build"}, WorkflowPayload: minimalWorkflowPayload("report")},
+		}
+	}
+
+	t.Run("without an insert the whole chain resolves in one pass", func(t *testing.T) {
+		got, err := newJobStatusResolver(newChain(), nil).Resolve(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, map[int64]actions_model.Status{
+			2: actions_model.StatusSkipped,
+			3: actions_model.StatusSkipped,
+		}, got)
+	})
+
+	t.Run("an insert stops the pass before the dependents are resolved", func(t *testing.T) {
+		r := newJobStatusResolver(newChain(), nil)
+		r.matrixInserted = true // as resolve() sets it once expansion has inserted siblings
+
+		got, err := r.Resolve(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, map[int64]actions_model.Status{2: actions_model.StatusSkipped}, got,
+			"report must wait for the re-emit, which sees the sibling combinations too")
+	})
 }

@@ -156,33 +156,27 @@ func init() {
 	db.RegisterModel(new(RenamedBranch))
 }
 
-func GetBranch(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
+func getBranchWithDeleted(ctx context.Context, repoID int64, branchName string, deleted bool) (*Branch, error) {
 	var branch Branch
-	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).
+		And("is_deleted=?", deleted).Get(&branch)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrBranchNotExist{
-			RepoID:     repoID,
-			BranchName: branchName,
-		}
+		return nil, ErrBranchNotExist{RepoID: repoID, BranchName: branchName}
 	}
-	// FIXME: this design is not right: it doesn't check `branch.IsDeleted`, it doesn't make sense to make callers to check IsDeleted again and again.
-	// It causes inconsistency with `GetBranches` and `git.GetBranch`, and will lead to strange bugs
-	// In the future, there should be 2 functions: `GetBranchExisting` and `GetBranchWithDeleted`
 	return &branch, nil
 }
 
-// IsBranchExist returns true if the branch exists in the repository.
+// GetBranchExisting retrieves a branch that should exist in git repository (excluding soft-deleted ones in database)
+func GetBranchExisting(ctx context.Context, repoID int64, branchName string) (*Branch, error) {
+	return getBranchWithDeleted(ctx, repoID, branchName, false)
+}
+
+// IsBranchExist returns true if the branch should exist in the git repository
 func IsBranchExist(ctx context.Context, repoID int64, branchName string) (bool, error) {
-	var branch Branch
-	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).Get(&branch)
-	if err != nil {
-		return false, err
-	} else if !has {
-		return false, nil
-	}
-	return !branch.IsDeleted, nil
+	return db.GetEngine(ctx).Where("repo_id=?", repoID).And("name=?", branchName).
+		And("is_deleted=?", false).Exist(&Branch{})
 }
 
 func GetBranches(ctx context.Context, repoID int64, branchNames []string, includeDeleted bool) ([]*Branch, error) {
@@ -270,14 +264,6 @@ func UpdateBranch(ctx context.Context, repoID, pusherID int64, branchName string
 
 // MarkBranchAsDeleted marks branch as deleted
 func MarkBranchAsDeleted(ctx context.Context, repoID int64, branchName string, deletedByID int64) error {
-	branch, err := GetBranch(ctx, repoID, branchName)
-	if err != nil {
-		return err
-	}
-	if branch.IsDeleted {
-		return nil
-	}
-
 	cnt, err := db.GetEngine(ctx).Where("repo_id=? AND name=? AND is_deleted=?", repoID, branchName, false).
 		Cols("is_deleted, deleted_by_id, deleted_unix").
 		Update(&Branch{
@@ -289,9 +275,12 @@ func MarkBranchAsDeleted(ctx context.Context, repoID int64, branchName string, d
 		return err
 	}
 	if cnt == 0 {
-		return fmt.Errorf("branch %s not found or has been deleted", branchName)
+		if _, err := getBranchWithDeleted(ctx, repoID, branchName, true); err == nil {
+			return nil
+		}
+		return ErrBranchNotExist{RepoID: repoID, BranchName: branchName}
 	}
-	return err
+	return nil
 }
 
 func RemoveDeletedBranchByID(ctx context.Context, repoID, branchID int64) error {
@@ -491,19 +480,15 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 	}
 
 	var ignoredCommitIDs []string
-	baseDefaultBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
-	if err != nil {
-		log.Warn("GetBranch:DefaultBranch: %v", err)
-	} else {
+	baseDefaultBranch, err := GetBranchExisting(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
+	if err == nil {
 		ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultBranch.CommitID)
 	}
 
 	baseDefaultTargetBranchName := opts.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultTargetBranch
 	if baseDefaultTargetBranchName != "" && baseDefaultTargetBranchName != opts.BaseRepo.DefaultBranch {
-		baseDefaultTargetBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
-		if err != nil {
-			log.Warn("GetBranch:DefaultTargetBranch: %v", err)
-		} else {
+		baseDefaultTargetBranch, err := GetBranchExisting(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
+		if err == nil {
 			ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultTargetBranch.CommitID)
 		}
 	}

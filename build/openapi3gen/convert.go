@@ -23,8 +23,8 @@ import (
 var rxDeprecated = regexp.MustCompile(`(?i)(?:^|[\n.;])\s*deprecated\b`)
 
 // Convert parses a Swagger 2.0 spec and returns an OAS3 spec, applying
-// Gitea-specific post-processing: file-schema fixups, URI formats,
-// deprecated flags, and shared-enum extraction.
+// Gitea-specific post-processing: server URL, file-schema fixups, URI
+// formats, deprecated flags, and shared-enum extraction.
 //
 // astEnumMap is a value-set-key → Go-type-name(s) map (built by
 // ScanSwaggerEnumTypes). When a value set is shared by multiple Go types,
@@ -42,6 +42,7 @@ func Convert(swaggerJSON []byte, astEnumMap map[string][]string) (*openapi3.T, e
 		return nil, fmt.Errorf("converting to openapi 3.0: %w", err)
 	}
 
+	oas3.Servers = openapi3.Servers{{URL: swagger2.BasePath}}
 	fixFileSchemas(oas3)
 	addURIFormats(oas3)
 	addDeprecatedFlags(oas3)

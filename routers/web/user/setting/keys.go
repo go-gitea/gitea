@@ -43,7 +43,7 @@ func Keys(ctx *context.Context) {
 
 // KeysPost response for change user's SSH/GPG keys
 func KeysPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AddKeyForm)
+	form := web.GetForm[*forms.AddKeyForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
@@ -98,6 +98,8 @@ func KeysPost(ctx *context.Context) {
 		}
 		if err != nil {
 			ctx.Data["HasGPGError"] = true
+			var errInvalidTokenSignature asymkey_model.ErrGPGInvalidTokenSignature
+			var errNoEmailFound asymkey_model.ErrGPGNoEmailFound
 			switch {
 			case asymkey_model.IsErrGPGKeyParsing(err):
 				ctx.Flash.Error(ctx.Tr("form.invalid_gpg_key", err.Error()))
@@ -107,20 +109,20 @@ func KeysPost(ctx *context.Context) {
 
 				ctx.Data["Err_Content"] = true
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_key_id_used"), tplSettingsKeys, &form)
-			case asymkey_model.IsErrGPGInvalidTokenSignature(err):
+			case errors.As(err, &errInvalidTokenSignature):
 				loadKeysData(ctx)
 				ctx.Data["Err_Content"] = true
 				ctx.Data["Err_Signature"] = true
-				keyID := err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				keyID := errInvalidTokenSignature.ID
 				ctx.Data["KeyID"] = keyID
 				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
-			case asymkey_model.IsErrGPGNoEmailFound(err):
+			case errors.As(err, &errNoEmailFound):
 				loadKeysData(ctx)
 
 				ctx.Data["Err_Content"] = true
 				ctx.Data["Err_Signature"] = true
-				keyID := err.(asymkey_model.ErrGPGNoEmailFound).ID
+				keyID := errNoEmailFound.ID
 				ctx.Data["KeyID"] = keyID
 				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_no_key_email_found"), tplSettingsKeys, &form)
@@ -149,18 +151,20 @@ func KeysPost(ctx *context.Context) {
 		}
 		if err != nil {
 			ctx.Data["HasGPGVerifyError"] = true
+			var errInvalidTokenSignature asymkey_model.ErrGPGInvalidTokenSignature
 			switch {
-			case asymkey_model.IsErrGPGInvalidTokenSignature(err):
+			case errors.As(err, &errInvalidTokenSignature):
 				loadKeysData(ctx)
 				ctx.Data["VerifyingID"] = form.KeyID
 				ctx.Data["Err_Signature"] = true
-				keyID := err.(asymkey_model.ErrGPGInvalidTokenSignature).ID
+				keyID := errInvalidTokenSignature.ID
 				ctx.Data["KeyID"] = keyID
 				ctx.Data["PaddedKeyID"] = asymkey_model.PaddedKeyID(keyID)
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("VerifyGPG", err)
 			}
+			return
 		}
 		ctx.Flash.Success(ctx.Tr("settings.verify_gpg_key_success", keyID))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
@@ -223,15 +227,17 @@ func KeysPost(ctx *context.Context) {
 		}
 		if err != nil {
 			ctx.Data["HasSSHVerifyError"] = true
+			var errInvalidTokenSignature asymkey_model.ErrSSHInvalidTokenSignature
 			switch {
-			case asymkey_model.IsErrSSHInvalidTokenSignature(err):
+			case errors.As(err, &errInvalidTokenSignature):
 				loadKeysData(ctx)
 				ctx.Data["Err_Signature"] = true
-				ctx.Data["Fingerprint"] = err.(asymkey_model.ErrSSHInvalidTokenSignature).Fingerprint
+				ctx.Data["Fingerprint"] = errInvalidTokenSignature.Fingerprint
 				ctx.RenderWithErrDeprecated(ctx.Tr("settings.ssh_invalid_token_signature"), tplSettingsKeys, &form)
 			default:
 				ctx.ServerError("VerifySSH", err)
 			}
+			return
 		}
 		ctx.Flash.Success(ctx.Tr("settings.verify_ssh_key_success", fingerprint))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")

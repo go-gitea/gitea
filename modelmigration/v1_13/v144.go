@@ -4,13 +4,15 @@
 package v1_13
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/log"
 
 	"xorm.io/builder"
 )
 
-func UpdateMatrixWebhookHTTPMethod(x base.EngineMigration) error {
+func UpdateMatrixWebhookHTTPMethod(_ context.Context, x base.EngineMigration) error {
 	matrixHookTaskType := 9 // value comes from the models package
 	type Webhook struct {
 		HTTPMethod string

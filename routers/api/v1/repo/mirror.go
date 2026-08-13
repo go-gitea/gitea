@@ -291,7 +291,7 @@ func AddPushMirror(ctx *context.APIContext) {
 		return
 	}
 
-	pushMirror := web.GetForm(ctx).(*api.CreatePushMirrorOption)
+	pushMirror := web.GetForm[*api.CreatePushMirrorOption](ctx)
 	CreatePushMirror(ctx, pushMirror)
 }
 
@@ -403,8 +403,7 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 }
 
 func HandleRemoteAddressError(ctx *context.APIContext, err error) {
-	if git.IsErrInvalidCloneAddr(err) {
-		addrErr := err.(*git.ErrInvalidCloneAddr)
+	if addrErr, ok := err.(*git.ErrInvalidCloneAddr); ok {
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.APIError(http.StatusBadRequest, "Invalid mirror protocol")

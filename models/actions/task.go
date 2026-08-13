@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
@@ -169,6 +169,15 @@ func GetTaskByID(ctx context.Context, id int64) (*ActionTask, error) {
 	}
 
 	return &task, nil
+}
+
+// GetTasksMapByIDs returns the found tasks keyed by ID, silently omitting IDs that no longer exist.
+func GetTasksMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionTask, error) {
+	tasks := make(map[int64]*ActionTask, len(ids))
+	if len(ids) == 0 {
+		return tasks, nil
+	}
+	return tasks, db.GetEngine(ctx).In("id", ids).Find(&tasks)
 }
 
 func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, error) {
@@ -478,7 +487,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		return nil, err
 	}
 	task := &ActionTask{}
-	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+	applyState := func(ctx context.Context) error {
 		if has, err := db.GetEngine(ctx).ID(taskID).Get(task); err != nil {
 			return err
 		} else if !has {
@@ -543,6 +552,10 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 		}
 		return nil
+	}
+	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+		// A half-written report leaves the task done with a running job, which no retry repairs.
+		return db.WithTx(ctx, applyState)
 	})
 	return task, err
 }
