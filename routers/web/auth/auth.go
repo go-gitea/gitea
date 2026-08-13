@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -119,10 +120,12 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
-	if err := regenerateSession(ctx, map[string]any{
-		session.KeyUID:                  u.ID,
-		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
-	}); err != nil {
+	updates := signInSessionMeta(ctx)
+	updates[session.KeyUID] = u.ID
+	updates[session.KeyUserHasTwoFactorAuth] = userHasTwoFactorAuth
+	updates[session.KeySignInMethod] = session.SignInMethodRemember
+	updates[session.KeyRememberTokenID] = t.ID
+	if err := regenerateSession(ctx, updates); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}
 
@@ -388,10 +391,11 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	}
 
 	auth_service.ClearSessionKeysForSignIn(ctx.Session)
-	if err := regenerateSession(ctx, map[string]any{
-		session.KeyUID:                  u.ID,
-		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
-	}); err != nil {
+	updates := signInSessionMeta(ctx)
+	updates[session.KeyUID] = u.ID
+	updates[session.KeyUserHasTwoFactorAuth] = userHasTwoFactorAuth
+	updates[session.KeySignInMethod] = session.SignInMethodPassword
+	if err := regenerateSession(ctx, updates); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
 	}
@@ -879,7 +883,10 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 
 	log.Trace("User activated: %s", user.Name)
 
-	if err := regenerateSession(ctx, map[string]any{session.KeyUID: user.ID}); err != nil {
+	updates := signInSessionMeta(ctx)
+	updates[session.KeyUID] = user.ID
+	updates[session.KeySignInMethod] = session.SignInMethodPassword
+	if err := regenerateSession(ctx, updates); err != nil {
 		log.Error("Unable to regenerate session for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
@@ -943,4 +950,13 @@ func regenerateSession(ctx *context.Context, updates map[string]any) error {
 		return fmt.Errorf("store session[%s]: %w", sessID, err)
 	}
 	return nil
+}
+
+// signInSessionMeta returns the common session metadata to record on every sign-in.
+func signInSessionMeta(ctx *context.Context) map[string]any {
+	return map[string]any{
+		session.KeySignInIP:        ctx.RemoteAddr(),
+		session.KeySignInTime:      time.Now().Unix(),
+		session.KeySignInUserAgent: ctx.Req.UserAgent(),
+	}
 }
