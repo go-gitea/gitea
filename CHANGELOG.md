@@ -40,6 +40,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * fix: avoid markup render panic (#38698) (#38703)
   * fix(ui): too many participants shown in commit avatar stacks (#38689) (#38700)
   * fix: support HEAD requests on Alpine registry APKINDEX.tar.gz (#38686) (#38688)
+  * fix(migrations): use all configured GitHub tokens (#38841) (#38846)
 
 ## [1.27.1](https://github.com/go-gitea/gitea/releases/tag/v1.27.1) - 2026-07-27
 
