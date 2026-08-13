@@ -22,7 +22,6 @@ export function initRepoSwitcher(el: HTMLElement) {
   $dropdown.dropdown({
     action: 'hide', // no selection is kept, choosing a repo navigates away
     forceSelection: false, // otherwise closing with Escape commits the highlighted item and navigates
-    minCharacters: 0, // an empty query lists the owner's repositories when the menu opens
     showOnFocus: false, // reopen from the loaded list instead of blocking on another query
     saveRemoteData: false,
     apiSettings: {
