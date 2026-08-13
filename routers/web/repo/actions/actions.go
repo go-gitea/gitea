@@ -760,6 +760,10 @@ type WorkflowDispatchInput struct {
 	Options     []string `yaml:"options"`
 }
 
+func (i WorkflowDispatchInput) IsDefaultTrue() bool {
+	return util.ParseYamlBool(i.Default)
+}
+
 type WorkflowDispatch struct {
 	Inputs []WorkflowDispatchInput
 }
