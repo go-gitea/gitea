@@ -30,6 +30,7 @@ func TestRepository_AddCollaborator(t *testing.T) {
 	testSuccess(1, 4)
 	testSuccess(1, 4)
 	testSuccess(3, 4)
+	testSuccess(1, 9)
 }
 
 func TestRepository_DeleteCollaboration(t *testing.T) {
