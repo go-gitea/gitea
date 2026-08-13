@@ -1,6 +1,7 @@
 import {defineConfig} from 'vitest/config';
 import {playwright} from '@vitest/browser-playwright';
 import {sharedPlugins, vueDefines} from './tools/shared.ts';
+import {env} from 'node:process';
 
 export default defineConfig({
   test: {
@@ -21,9 +22,9 @@ export default defineConfig({
             provider: playwright(),
             headless: true,
             screenshotFailures: false,
-            instances: [
-              {browser: 'chromium', name: 'chromium'},
-            ],
+            instances: ((env.PLAYWRIGHT_BROWSERS || 'chromium firefox')
+              .split(' ') as Array<'chromium' | 'firefox' | 'webkit'>)
+              .map((browser) => ({browser, name: browser})),
           },
         },
       },
