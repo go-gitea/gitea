@@ -115,9 +115,42 @@ func (h Sha256ObjectFormatImpl) ComputeHash(t ObjectType, content []byte) Object
 	return h.MustID(hasher.Sum(nil))
 }
 
+type invalidObjectFormatImpl struct{}
+
+var emptyInvalidObjectID = &Sha1Hash{}
+
+func (h invalidObjectFormatImpl) Name() string {
+	return "invalid-object-format"
+}
+
+func (h invalidObjectFormatImpl) EmptyObjectID() ObjectID {
+	return emptyInvalidObjectID
+}
+
+func (h invalidObjectFormatImpl) EmptyTree() ObjectID {
+	return emptyInvalidObjectID
+}
+
+func (h invalidObjectFormatImpl) FullLength() int {
+	return len(emptyInvalidObjectID) * 2
+}
+
+func (h invalidObjectFormatImpl) IsValid(input string) bool {
+	return false
+}
+
+func (h invalidObjectFormatImpl) MustID(b []byte) ObjectID {
+	return emptyInvalidObjectID
+}
+
+func (h invalidObjectFormatImpl) ComputeHash(t ObjectType, content []byte) ObjectID {
+	return emptyInvalidObjectID
+}
+
 var (
-	Sha1ObjectFormat   ObjectFormat = Sha1ObjectFormatImpl{}
-	Sha256ObjectFormat ObjectFormat = Sha256ObjectFormatImpl{}
+	Sha1ObjectFormat    ObjectFormat = Sha1ObjectFormatImpl{}
+	Sha256ObjectFormat  ObjectFormat = Sha256ObjectFormatImpl{}
+	invalidObjectFormat ObjectFormat = invalidObjectFormatImpl{}
 )
 
 func ObjectFormatFromName(name string) ObjectFormat {
@@ -126,9 +159,9 @@ func ObjectFormatFromName(name string) ObjectFormat {
 			return objectFormat
 		}
 	}
-	return nil
+	return invalidObjectFormat
 }
 
 func IsValidObjectFormat(name string) bool {
-	return ObjectFormatFromName(name) != nil
+	return ObjectFormatFromName(name) != invalidObjectFormat
 }
