@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
@@ -40,8 +41,22 @@ func init() {
 	db.RegisterModel(new(ActionSchedule))
 }
 
-// CreateScheduleTaskBySchedules creates new schedule task.
-func CreateScheduleTaskBySchedules(ctx context.Context, rows []*ActionSchedule) error {
+// PrettyRef returns the short name of the schedule's ref
+func (s *ActionSchedule) PrettyRef() string {
+	return git.RefName(s.Ref).ShortName()
+}
+
+// GetSchedulesMapByIDs returns the schedules by given id slice.
+func GetSchedulesMapByIDs(ctx context.Context, ids []int64) (map[int64]*ActionSchedule, error) {
+	schedules := make(map[int64]*ActionSchedule, len(ids))
+	if len(ids) == 0 {
+		return schedules, nil
+	}
+	return schedules, db.GetEngine(ctx).In("id", ids).Find(&schedules)
+}
+
+// CreateScheduleTask creates new schedule task.
+func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 	// Return early if there are no rows to insert
 	if len(rows) == 0 {
 		return nil
