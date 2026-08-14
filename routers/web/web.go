@@ -185,7 +185,8 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 				return
 			}
 
-			if ctx.Doer.MustChangePassword {
+			// an impersonating admin must not be forced to set the impersonated user's password
+			if ctx.Doer.MustChangePassword && !ctx.DoerIsImpersonated() {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
