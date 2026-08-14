@@ -1,6 +1,4 @@
 {{template "admin/layout_head" (dict "pageClass" "admin edit user")}}
-	{{/* an admin must not convert themselves (they would lose their own session) nor turn a site administrator into a bot */}}
-	{{$canConvertType := and (ne .User.ID .SignedUserID) (or .User.IsTypeBot (and .User.IsIndividual (not .User.IsAdmin)))}}
 	{{$convertTo := Iif .User.IsTypeBot "individual" "bot"}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
@@ -9,27 +7,26 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="./edit" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{/* bot users have no auth source or password; this drives common.ts to hide the .non-bot fields */}}
-				{{if .User.IsTypeBot}}<input type="hidden" id="user_type" value="bot">{{end}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 					<input id="user_name" name="user_name" value="{{.User.Name}}" maxlength="40">
 				</div>
-				<!-- Types and name -->
-				<div class="inline required field non-bot {{if .Err_LoginType}}error{{end}}">
-					<label>{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
-					<div class="ui selection type dropdown">
-						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
-						<div class="text">{{ctx.Locale.Tr "admin.users.local"}}</div>
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="menu">
-							<div class="item" data-value="0-0">{{ctx.Locale.Tr "admin.users.local"}}</div>
-							{{range .Sources}}
-								<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
-							{{end}}
+				{{if not .User.IsTypeBot}}
+					<div class="inline required field {{if .Err_LoginType}}error{{end}}">
+						<label>{{ctx.Locale.Tr "admin.users.auth_source"}}</label>
+						<div class="ui selection type dropdown">
+							<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
+							<div class="text">{{ctx.Locale.Tr "admin.users.local"}}</div>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu">
+								<div class="item" data-value="0-0">{{ctx.Locale.Tr "admin.users.local"}}</div>
+								{{range .Sources}}
+									<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
+								{{end}}
+							</div>
 						</div>
 					</div>
-				</div>
+				{{end}}
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
 					<span class="inline required field"><label for="visibility">{{ctx.Locale.Tr "settings.visibility"}}</label></span>
@@ -57,10 +54,12 @@
 					</div>
 				</div>
 
-				<div class="required non-local non-bot field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
-					<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
-					<input id="login_name" name="login_name" value="{{.User.LoginName}}">
-				</div>
+				{{if not .User.IsTypeBot}}
+					<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}tw-hidden{{end}}">
+						<label for="login_name">{{ctx.Locale.Tr "admin.users.auth_login_name"}}</label>
+						<input id="login_name" name="login_name" value="{{.User.LoginName}}">
+					</div>
+				{{end}}
 				<div class="field {{if .Err_FullName}}error{{end}}">
 					<label for="full_name">{{ctx.Locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.User.FullName}}" maxlength="100">
@@ -69,11 +68,13 @@
 					<label for="email">{{ctx.Locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" required>
 				</div>
-				<div class="local non-bot field {{if .Err_Password}}error{{end}} {{if or .User.IsTypeBot (not (or (.User.IsLocal) (.User.IsOAuth2)))}}tw-hidden{{end}}">
-					<label for="password">{{ctx.Locale.Tr "password"}}</label>
-					<input id="password" name="password" type="password" autocomplete="new-password">
-					<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>
-				</div>
+				{{if not .User.IsTypeBot}}
+					<div class="local field {{if .Err_Password}}error{{end}} {{if not (or .User.IsLocal .User.IsOAuth2)}}tw-hidden{{end}}">
+						<label for="password">{{ctx.Locale.Tr "password"}}</label>
+						<input id="password" name="password" type="password" autocomplete="new-password">
+						<p class="help">{{ctx.Locale.Tr "admin.users.password_helper"}}</p>
+					</div>
+				{{end}}
 
 				<div class="field {{if .Err_Language}}error{{end}}">
 					<label for="language">{{ctx.Locale.Tr "settings.language"}}</label>
@@ -120,12 +121,14 @@
 						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
 					</div>
 				</div>
-				<div class="inline field non-bot">
-					<div class="ui checkbox">
-						<label><strong>{{ctx.Locale.Tr "admin.users.is_admin"}}</strong></label>
-						<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
+				{{if not .User.IsTypeBot}}
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label><strong>{{ctx.Locale.Tr "admin.users.is_admin"}}</strong></label>
+							<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
+						</div>
 					</div>
-				</div>
+				{{end}}
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{ctx.Locale.Tr "admin.users.is_restricted"}}</strong></label>
@@ -207,7 +210,7 @@
 				</div>
 			</form>
 		</div>
-		{{if $canConvertType}}
+		{{if .CanConvertUserType}}
 		<h4 class="ui top attached error header">
 			{{ctx.Locale.Tr "repo.settings.danger_zone"}}
 		</h4>
@@ -229,7 +232,7 @@
 		{{end}}
 	</div>
 
-{{if $canConvertType}}
+{{if .CanConvertUserType}}
 <div class="ui small modal" id="convert-user-type-modal">
 	<div class="header">
 		{{ctx.Locale.Tr (printf "admin.users.convert_type.to_%s" $convertTo)}}

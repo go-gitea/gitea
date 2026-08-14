@@ -79,7 +79,7 @@ var convertibleUserTypes = map[string]UserType{
 func ParseUserType(s string) (UserType, error) {
 	t, ok := convertibleUserTypes[s]
 	if !ok {
-		return 0, fmt.Errorf("invalid user type %q, must be one of: individual, bot", s)
+		return 0, util.NewInvalidArgumentErrorf("invalid user type %q, must be one of: individual, bot", s)
 	}
 	return t, nil
 }

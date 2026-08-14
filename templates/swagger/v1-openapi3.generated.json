@@ -12267,14 +12267,14 @@
           "204": {
             "$ref": "#/components/responses/empty"
           },
+          "400": {
+            "$ref": "#/components/responses/error"
+          },
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/components/responses/validationError"
           }
         },
         "summary": "Convert a user between the individual and bot types",

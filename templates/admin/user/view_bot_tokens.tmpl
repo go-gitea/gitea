@@ -6,19 +6,19 @@
 		<div class="item">
 			{{ctx.Locale.Tr "admin.users.bot_token_desc"}}
 		</div>
-		{{range .Tokens}}
+		{{range $token := .Tokens}}
 			<div class="item">
 				<div class="item-leading">
-					<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.token_state_desc"}}"{{end}}>
+					<span class="{{if $token.HasRecentActivity}}tw-text-green{{end}}" {{if $token.HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.token_state_desc"}}"{{end}}>
 						{{svg "fontawesome-send" 32}}
 					</span>
 				</div>
 				<div class="item-main">
 					<details>
-						<summary><span class="item-title">{{.Name}}</span></summary>
+						<summary><span class="item-title">{{$token.Name}}</span></summary>
 						<p class="tw-my-1">
 							{{ctx.Locale.Tr "settings.repo_and_org_access"}}:
-							{{if .DisplayPublicOnly}}
+							{{if $token.DisplayPublicOnly}}
 								{{ctx.Locale.Tr "settings.permissions_public_only"}}
 							{{else}}
 								{{ctx.Locale.Tr "settings.permissions_access_all"}}
@@ -26,19 +26,19 @@
 						</p>
 						<p class="tw-my-1">{{ctx.Locale.Tr "settings.permissions_list"}}</p>
 						<ul class="tw-my-1">
-						{{range .Scope.StringSlice}}
-							{{if (ne . $.AccessTokenScopePublicOnly)}}
-								<li>{{.}}</li>
+						{{range $scope := $token.Scope.StringSlice}}
+							{{if ne $scope $.ScopePublicOnly}}
+								<li>{{$scope}}</li>
 							{{end}}
 						{{end}}
 						</ul>
 					</details>
 					<div class="item-body">
-						<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} — {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
+						<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort $token.CreatedUnix)}} — {{svg "octicon-info"}} {{if $token.HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if $token.HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort $token.UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}}</i>
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button link-action" data-modal-confirm="#delete-bot-token" data-url="{{$.Link}}/access_tokens/delete?id={{.ID}}">
+					<button class="ui red tiny button link-action" data-modal-confirm="#delete-bot-token" data-url="{{$.Link}}/access_tokens/delete?id={{$token.ID}}">
 						{{svg "octicon-trash"}}
 						{{ctx.Locale.Tr "settings.delete_token"}}
 					</button>
@@ -58,7 +58,7 @@
 			<div class="field">
 				<div class="tw-my-2">{{ctx.Locale.Tr "settings.repo_and_org_access"}}</div>
 				<label class="gt-checkbox">
-					<input type="radio" name="scope-public-only" value="{{$.AccessTokenScopePublicOnly}}"> {{ctx.Locale.Tr "settings.permissions_public_only"}}
+					<input type="radio" name="scope-public-only" value="{{$.ScopePublicOnly}}"> {{ctx.Locale.Tr "settings.permissions_public_only"}}
 				</label>
 				<label class="gt-checkbox">
 					<input type="radio" name="scope-public-only" value="" checked> {{ctx.Locale.Tr "settings.permissions_access_all"}}
@@ -67,7 +67,7 @@
 			<div>
 				<div class="tw-my-2">{{ctx.Locale.Tr "settings.access_token_desc" (HTMLFormat `href="%s/api/swagger" target="_blank"` AppSubUrl) (HTMLFormat `href="%s" target="_blank"` "https://docs.gitea.com/development/oauth2-provider#scopes")}}</div>
 				<table class="ui table unstackable tw-my-2">
-				{{range $category := .TokenCategories}}
+				{{range $category := .ScopeCategories}}
 					<tr>
 						<td>{{$category}}</td>
 						<td><label class="gt-checkbox"><input type="radio" name="scope-{{$category}}" value="" checked> {{ctx.Locale.Tr "settings.permission_no_access"}}</label></td>

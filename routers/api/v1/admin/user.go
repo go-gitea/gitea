@@ -246,10 +246,10 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if err := user_service.UpdateUser(ctx, ctx.ContextUser, opts); err != nil {
-		if user_model.IsErrDeleteLastAdminUser(err) || user_model.IsErrBotUserIsAdmin(err) {
+		if user_model.IsErrDeleteLastAdminUser(err) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -588,40 +588,26 @@ func ConvertUserType(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 
-	if ctx.ContextUser.IsOrganization() {
-		ctx.APIError(http.StatusUnprocessableEntity, "target is an organization, not a user")
-		return
-	}
-	if !ctx.ContextUser.IsIndividual() && !ctx.ContextUser.IsTypeBot() {
-		ctx.APIError(http.StatusUnprocessableEntity, "target user type cannot be converted")
-		return
-	}
-
-	// converting yourself into a bot would drop your own credentials and sign you out
 	if ctx.ContextUser.ID == ctx.Doer.ID {
-		ctx.APIError(http.StatusUnprocessableEntity, "you cannot convert yourself")
+		ctx.APIError(http.StatusBadRequest, "the own account type can not be converted")
 		return
 	}
 
 	targetType, err := user_model.ParseUserType(web.GetForm(ctx).(*api.ConvertUserTypeOption).UserType)
 	if err != nil {
-		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
+		ctx.APIErrorAuto(err)
 		return
 	}
 
 	if err := user_service.ConvertUserType(ctx, ctx.ContextUser, targetType); err != nil {
-		if user_model.IsErrBotUserIsAdmin(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

@@ -154,11 +154,6 @@ func NewUserPost(ctx *context.Context) {
 	// Bot users are created as local accounts without a password or auth source,
 	// matching the behavior of the "gitea admin user create --user-type bot" command.
 	if form.UserType == "bot" {
-		if form.Password != "" {
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("admin.users.bot_no_password"), tplUserNew, &form)
-			return
-		}
 		u.Type = user_model.UserTypeBot
 		u.Passwd = ""
 	} else {
@@ -282,8 +277,18 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		return nil
 	}
 	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
+	// an admin must not convert their own account: it would drop their credentials and sign them out
+	ctx.Data["CanConvertUserType"] = u.ID != ctx.Doer.ID && user_service.CheckConvertUserType(u) == nil
 
 	return u
+}
+
+// botAccessTokensData is the template data of the bot access token management
+type botAccessTokensData struct {
+	Link            string
+	Tokens          []*auth.AccessToken
+	ScopeCategories []string
+	ScopePublicOnly auth.AccessTokenScope
 }
 
 func ViewUser(ctx *context.Context) {
@@ -336,15 +341,18 @@ func ViewUser(ctx *context.Context) {
 
 	// Bot users cannot sign in to generate their own tokens, so admins manage them here.
 	if u.IsTypeBot() {
-		tokens, err := db.Find[auth.AccessToken](ctx, auth.ListAccessTokensOptions{UserID: u.ID})
+		botTokens, err := db.Find[auth.AccessToken](ctx, auth.ListAccessTokensOptions{UserID: u.ID})
 		if err != nil {
 			ctx.ServerError("ListAccessTokens", err)
 			return
 		}
-		ctx.Data["Tokens"] = tokens
-		ctx.Data["AccessTokenScopePublicOnly"] = auth.AccessTokenScopePublicOnly
-		// a bot can never be a site admin, so an admin-scoped token would be useless
-		ctx.Data["TokenCategories"] = util.SliceRemoveAll(auth.GetAccessTokenCategories(), "admin")
+		ctx.Data["BotAccessTokens"] = &botAccessTokensData{
+			Link:   ctx.Link,
+			Tokens: botTokens,
+			// a bot can never be a site admin, so an admin-scoped token would be useless
+			ScopeCategories: util.SliceRemoveAll(auth.GetAccessTokenCategories(), "admin"),
+			ScopePublicOnly: auth.AccessTokenScopePublicOnly,
+		}
 	}
 
 	ctx.HTML(http.StatusOK, tplUserView)
@@ -581,7 +589,7 @@ func EditUserPost(ctx *context.Context) {
 		switch {
 		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
-		case user_model.IsErrBotUserIsAdmin(err):
+		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
 			ctx.RenderWithErrDeprecated(ctx.Tr("admin.users.bot_no_admin"), tplUserEdit, &form)
 		default:
 			ctx.ServerError("UpdateUser", err)
@@ -680,12 +688,6 @@ func ConvertUserType(ctx *context.Context) {
 		return
 	}
 
-	if targetType == u.Type {
-		ctx.Redirect(redirect)
-		return
-	}
-
-	// converting yourself into a bot would drop your own credentials and sign you out
 	if u.ID == ctx.Doer.ID {
 		ctx.Flash.Error(ctx.Tr("admin.users.convert_type.self_not_allowed"))
 		ctx.Redirect(redirect)
@@ -693,10 +695,14 @@ func ConvertUserType(ctx *context.Context) {
 	}
 
 	if err := user_service.ConvertUserType(ctx, u, targetType); err != nil {
-		if user_model.IsErrBotUserIsAdmin(err) {
+		switch {
+		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
 			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
-		} else {
-			ctx.Flash.Error(err.Error())
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.Flash.Error(ctx.Tr("admin.users.user_type.invalid"))
+		default:
+			ctx.ServerError("ConvertUserType", err)
+			return
 		}
 		ctx.Redirect(redirect)
 		return

@@ -1172,14 +1172,14 @@
           "204": {
             "$ref": "#/responses/empty"
           },
+          "400": {
+            "$ref": "#/responses/error"
+          },
           "403": {
             "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }

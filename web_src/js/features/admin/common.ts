@@ -56,50 +56,56 @@ function initAdminRunnerBulk(toolbar: HTMLElement) {
 function initAdminUser() {
   const pageContent = document.querySelector('.page-content.admin.edit.user, .page-content.admin.new.user');
   if (!pageContent) return;
+  if (pageContent.classList.contains('new')) {
+    initAdminUserNew();
+  } else {
+    initAdminUserEdit();
+  }
+}
 
+// the new-user page chooses the user type and the auth source, so all related fields are rendered
+function initAdminUserNew() {
+  const elUserType = document.querySelector<HTMLInputElement>('#user_type')!;
+  const elLoginType = document.querySelector<HTMLInputElement>('#login_type')!;
+  const elUserName = document.querySelector<HTMLInputElement>('#user_name')!;
+  const elLoginName = document.querySelector<HTMLInputElement>('#login_name')!;
+  const elPassword = document.querySelector<HTMLInputElement>('#password')!;
+
+  // all field states are derived from the current selections, so every change recomputes the same way
+  const syncFields = (focusField: boolean) => {
+    const isBot = elUserType.value === 'bot'; // a bot is a local account without an auth source or password
+    const isLocal = !isBot && elLoginType.value.startsWith('0');
+
+    toggleElem('.non-bot', !isBot);
+    if (!isBot) { // fields hidden as ".non-bot" must not be shown again by the local/non-local state
+      toggleElem('.local', isLocal);
+      toggleElem('.non-local', !isLocal);
+    }
+    elLoginName.toggleAttribute('required', !isBot && !isLocal);
+    elPassword.toggleAttribute('required', isLocal);
+
+    if (focusField) (isBot || isLocal ? elUserName : elLoginName).focus();
+  };
+
+  elUserType.addEventListener('change', () => syncFields(true));
+  elLoginType.addEventListener('change', () => syncFields(true));
+  syncFields(false); // the page is re-rendered with the submitted values after a validation error
+}
+
+function initAdminUserEdit() {
   const elLoginType = document.querySelector<HTMLInputElement>('#login_type');
-  const elUserType = document.querySelector<HTMLInputElement>('#user_type');
+  if (!elLoginType) return; // a bot user has no auth source, password or admin flag to edit
+  const elUserName = document.querySelector<HTMLInputElement>('#user_name')!;
+  const elLoginName = document.querySelector<HTMLInputElement>('#login_name')!;
 
-  function onLoginTypeChange() {
-    if (elLoginType!.value?.startsWith('0')) {
-      document.querySelector<HTMLInputElement>('#user_name')?.removeAttribute('disabled');
-      document.querySelector<HTMLInputElement>('#login_name')?.removeAttribute('required');
-      hideElem('.non-local');
-      showElem('.local');
-      document.querySelector<HTMLInputElement>('#user_name')?.focus();
-
-      if (elLoginType!.getAttribute('data-password') === 'required') {
-        document.querySelector('#password')?.setAttribute('required', 'required');
-      }
-    } else {
-      if (document.querySelector<HTMLDivElement>('.admin.edit.user')) {
-        document.querySelector<HTMLInputElement>('#user_name')?.setAttribute('disabled', 'disabled');
-      }
-      document.querySelector<HTMLInputElement>('#login_name')?.setAttribute('required', 'required');
-      showElem('.non-local');
-      hideElem('.local');
-      document.querySelector<HTMLInputElement>('#login_name')?.focus();
-
-      document.querySelector<HTMLInputElement>('#password')?.removeAttribute('required');
-    }
-  }
-
-  // bot users are local accounts without an auth source or password, so hide those fields
-  function onUserTypeChange() {
-    if (elUserType?.value === 'bot') {
-      hideElem('.non-bot');
-      document.querySelector<HTMLInputElement>('#password')?.removeAttribute('required');
-      document.querySelector<HTMLInputElement>('#login_name')?.removeAttribute('required');
-    } else {
-      showElem('.non-bot');
-      onLoginTypeChange();
-    }
-  }
-
-  elLoginType?.addEventListener('change', onLoginTypeChange);
-  elUserType?.addEventListener('change', onUserTypeChange);
-  // only the bot case needs applying up front, the templates already render the other fields
-  if (elUserType?.value === 'bot') onUserTypeChange();
+  elLoginType.addEventListener('change', () => {
+    const isLocal = elLoginType.value.startsWith('0');
+    toggleElem('.local', isLocal);
+    toggleElem('.non-local', !isLocal);
+    elUserName.toggleAttribute('disabled', !isLocal); // only local accounts can be renamed here
+    elLoginName.toggleAttribute('required', !isLocal);
+    (isLocal ? elUserName : elLoginName).focus();
+  });
 }
 
 function initAdminAuthentication() {
