@@ -135,7 +135,7 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 	if opts.IsAdmin.Has() {
 		if opts.IsAdmin.Value().FieldValue /* true */ {
 			if u.IsTypeBot() {
-				return user_model.ErrBotUserIsAdmin{UID: u.ID, Name: u.Name}
+				return user_model.ErrBotCanNotBeAdmin
 			}
 			u.IsAdmin = opts.IsAdmin.Value().FieldValue // set IsAdmin=true
 			cols = append(cols, "is_admin")
@@ -252,24 +252,31 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	return nil
 }
 
+// CheckConvertUserType checks whether the account type of the given user can be converted
+func CheckConvertUserType(u *user_model.User) error {
+	switch {
+	case u.IsAdmin:
+		// automation does not need site-wide root access, so the admin permission has to be
+		// dropped deliberately before the account can become a bot
+		return user_model.ErrBotCanNotBeAdmin
+	case !u.IsIndividual() && !u.IsTypeBot():
+		return user_model.ErrUserTypeCanNotConvert
+	}
+	return nil
+}
+
 // ConvertUserType converts a user between the individual and bot types.
-// Organizations and reserved user types cannot be converted.
 // When converting to a bot the user becomes a local, non-interactive account:
 // its password and auth source are cleared so it can only be used with access tokens.
 func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_model.UserType) error {
-	if u.Type != user_model.UserTypeIndividual && u.Type != user_model.UserTypeBot {
-		return fmt.Errorf("user %q cannot change its type", u.Name)
-	}
-	if targetType != user_model.UserTypeIndividual && targetType != user_model.UserTypeBot {
-		return fmt.Errorf("user %q cannot be converted to the requested type", u.Name)
-	}
 	if u.Type == targetType {
 		return nil
 	}
-	// automation does not need site-wide root access, so the admin permission has to be
-	// dropped deliberately before the account can become a bot
-	if targetType == user_model.UserTypeBot && u.IsAdmin {
-		return user_model.ErrBotUserIsAdmin{UID: u.ID, Name: u.Name}
+	if targetType != user_model.UserTypeIndividual && targetType != user_model.UserTypeBot {
+		return user_model.ErrUserTypeCanNotConvert
+	}
+	if err := CheckConvertUserType(u); err != nil {
+		return err
 	}
 
 	updatedUser := *u

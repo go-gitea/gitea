@@ -176,7 +176,7 @@ func TestConvertUserType(t *testing.T) {
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.True(t, admin.IsAdmin)
 	err := ConvertUserType(t.Context(), admin, user_model.UserTypeBot)
-	assert.True(t, user_model.IsErrBotUserIsAdmin(err), "expected ErrBotUserIsAdmin, got %v", err)
+	assert.ErrorIs(t, err, user_model.ErrBotCanNotBeAdmin)
 	admin = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.Equal(t, user_model.UserTypeIndividual, admin.Type)
 }
@@ -210,7 +210,7 @@ func TestUpdateUserBotCannotBecomeAdmin(t *testing.T) {
 	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
 
 	err := UpdateUser(t.Context(), user, &UpdateOptions{IsAdmin: UpdateOptionFieldFromValue(true)})
-	assert.True(t, user_model.IsErrBotUserIsAdmin(err), "expected ErrBotUserIsAdmin, got %v", err)
+	assert.ErrorIs(t, err, user_model.ErrBotCanNotBeAdmin)
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.False(t, user.IsAdmin)
 }

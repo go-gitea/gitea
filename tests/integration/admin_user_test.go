@@ -145,3 +145,66 @@ func TestAdminImpersonatedUser(t *testing.T) {
 	session.MakeRequest(t, NewRequest(t, "GET", "/user/logout"), http.StatusSeeOther)
 	assert.Equal(t, "", currentUsername(homeDoc(t)))
 }
+
+func TestAdminBotUser(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+
+	t.Run("CreateWithoutPassword", func(t *testing.T) {
+		req := NewRequestWithValues(t, "POST", "/-/admin/users/new", map[string]string{
+			"user_type":  "bot",
+			"login_type": "0-0",
+			"user_name":  "bot-user",
+			"email":      "bot-user@example.com",
+			"visibility": "0",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
+		assert.True(t, bot.IsTypeBot())
+		assert.Empty(t, bot.Passwd)
+		assert.False(t, bot.MustChangePassword)
+
+		// a bot has no auth source or password to edit, but its access tokens are managed by the admin
+		doc := NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d/edit", bot.ID)), http.StatusOK).Body)
+		assert.Empty(t, doc.Find("#login_type").Nodes)
+		assert.Empty(t, doc.Find("#password").Nodes)
+		doc = NewHTMLParser(t, session.MakeRequest(t, NewRequest(t, "GET", fmt.Sprintf("/-/admin/users/%d", bot.ID)), http.StatusOK).Body)
+		assert.NotEmpty(t, doc.Find(`form[action$="/access_tokens"]`).Nodes)
+	})
+
+	t.Run("EditWithoutAuthSource", func(t *testing.T) {
+		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/users/%d/edit", bot.ID), map[string]string{
+			"user_name": "bot-user",
+			"email":     "bot-user@example.com",
+			"full_name": "Bot User",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		bot = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: bot.ID})
+		assert.Equal(t, "Bot User", bot.FullName)
+		assert.True(t, bot.IsTypeBot())
+		assert.Empty(t, bot.Passwd)
+	})
+
+	t.Run("ConvertType", func(t *testing.T) {
+		convert := func(userID int64, userType string) {
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/users/%d/convert_type", userID), map[string]string{"user_type": userType})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+		}
+
+		convert(4, "bot")
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		assert.True(t, user4.IsTypeBot())
+		assert.Empty(t, user4.Passwd)
+
+		convert(4, "individual")
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).IsIndividual())
+
+		// an admin must not convert their own account, nor turn another site administrator into a bot
+		convert(1, "bot")
+		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).IsIndividual())
+	})
+}

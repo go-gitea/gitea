@@ -26,7 +26,7 @@
 		</div>
 	</div>
 	{{if .User.IsTypeBot}}
-		{{template "admin/user/view_bot_tokens" .}}
+		{{template "admin/user/view_bot_tokens" .BotAccessTokens}}
 	{{end}}
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "admin.repositories"}} ({{ctx.Locale.Tr "admin.total" .ReposTotal}})
