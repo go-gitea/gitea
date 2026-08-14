@@ -40,7 +40,7 @@ type AdminEditBadgeForm struct {
 // AdminEditUserForm form for admin to create user
 type AdminEditUserForm struct {
 	middleware.FormDefaultValidator
-	LoginType               string `binding:"Required"`
+	LoginType               string // empty for bot users: they have no auth source to edit
 	UserName                string `binding:"Username;MaxSize(40)"`
 	LoginName               string
 	FullName                string `binding:"MaxSize(100)"`
