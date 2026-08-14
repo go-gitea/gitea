@@ -168,6 +168,7 @@ func TestConvertUserType(t *testing.T) {
 	tokensBefore := unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID})
 	assert.Positive(t, tokensBefore)
 	assert.Positive(t, unittest.GetCount(t, &activities_model.Notification{UserID: user.ID}))
+	assert.Positive(t, unittest.GetCount(t, &user_model.UserOpenID{UID: user.ID}))
 
 	// individual -> bot: credentials, auth source and interactive-auth artifacts are cleared
 	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
@@ -184,6 +185,11 @@ func TestConvertUserType(t *testing.T) {
 	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.OAuth2Application{UID: user.ID}))
 	assert.Equal(t, tokensBefore, unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID}))
 	assert.Equal(t, 0, unittest.GetCount(t, &activities_model.Notification{UserID: user.ID}))
+	assert.Equal(t, 0, unittest.GetCount(t, &user_model.UserOpenID{UID: user.ID}))
+
+	// a bot has no interactive login, so no password can be set on it
+	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{Password: optional.Some("%$DRZUVB576tfzgu")}))
+	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).Passwd)
 
 	// bot -> individual
 	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeIndividual))
