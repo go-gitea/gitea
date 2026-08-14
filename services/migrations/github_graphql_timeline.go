@@ -9,12 +9,12 @@ package migrations
 //
 // They are fetched by a batched node-id pass (like reactions, #27), NOT nested in
 // the content query: a 3rd connection level under issues/PRs blows GitHub's
-// per-query compute budget (RESOURCE_LIMITS_EXCEEDED, #27). Unlike reactions,
-// timeline events bump the issue's updated_at, so a new event re-surfaces the issue
-// in the normal watermark sync — no periodic rescan — and they are immutable and
-// append-only, so no removal reconcile. Gitea renders the timeline sorted by
-// created_unix across comments and typed events, so fetch order is irrelevant as
-// long as each event carries its real event timestamp.
+// per-query compute budget (RESOURCE_LIMITS_EXCEEDED, #27). Gitea renders the
+// timeline sorted by created_unix across comments and typed events, so fetch order
+// is irrelevant as long as each event carries its real event timestamp.
+//
+// An event whose target cannot be resolved locally is dropped by the uploader
+// rather than stored half-formed: see the label/milestone cases in CreateComments.
 //
 // Assignee events are intentionally omitted: a Gitea assignee comment references a
 // user by id with no name fallback, and migrated GitHub users are not Gitea users.
@@ -22,9 +22,9 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"maps"
 	"slices"
+	"sync"
 	"time"
 
 	"gitea.dev/modules/log"
@@ -50,25 +50,25 @@ const (
 )
 
 // Inline-fragment selections, likewise split. These event types expose no databaseId,
-// only the node id.
+// only the node id; their actor's id comes from gqlActorFields.
 const issueTimelineFragments = `
-        ... on ClosedEvent{id createdAt actor{login ... on User{databaseId}}}
-        ... on ReopenedEvent{id createdAt actor{login ... on User{databaseId}}}
-        ... on LockedEvent{id createdAt actor{login ... on User{databaseId}}}
-        ... on UnlockedEvent{id createdAt actor{login ... on User{databaseId}}}
-        ... on RenamedTitleEvent{id createdAt previousTitle currentTitle actor{login ... on User{databaseId}}}
-        ... on LabeledEvent{id createdAt label{name} actor{login ... on User{databaseId}}}
-        ... on UnlabeledEvent{id createdAt label{name} actor{login ... on User{databaseId}}}
-        ... on MilestonedEvent{id createdAt milestoneTitle actor{login ... on User{databaseId}}}
-        ... on DemilestonedEvent{id createdAt milestoneTitle actor{login ... on User{databaseId}}}
-        ... on PinnedEvent{id createdAt actor{login ... on User{databaseId}}}
-        ... on UnpinnedEvent{id createdAt actor{login ... on User{databaseId}}}`
+        ... on ClosedEvent{id createdAt actor{` + gqlActorFields + `}}
+        ... on ReopenedEvent{id createdAt actor{` + gqlActorFields + `}}
+        ... on LockedEvent{id createdAt actor{` + gqlActorFields + `}}
+        ... on UnlockedEvent{id createdAt actor{` + gqlActorFields + `}}
+        ... on RenamedTitleEvent{id createdAt previousTitle currentTitle actor{` + gqlActorFields + `}}
+        ... on LabeledEvent{id createdAt label{name} actor{` + gqlActorFields + `}}
+        ... on UnlabeledEvent{id createdAt label{name} actor{` + gqlActorFields + `}}
+        ... on MilestonedEvent{id createdAt milestoneTitle actor{` + gqlActorFields + `}}
+        ... on DemilestonedEvent{id createdAt milestoneTitle actor{` + gqlActorFields + `}}
+        ... on PinnedEvent{id createdAt actor{` + gqlActorFields + `}}
+        ... on UnpinnedEvent{id createdAt actor{` + gqlActorFields + `}}`
 
 const prTimelineFragments = issueTimelineFragments + `
-        ... on MergedEvent{id createdAt actor{login ... on User{databaseId}}}
-        ... on HeadRefDeletedEvent{id createdAt headRefName actor{login ... on User{databaseId}}}
-        ... on AutoMergeEnabledEvent{id createdAt actor{login ... on User{databaseId}}}
-        ... on AutoMergeDisabledEvent{id createdAt actor{login ... on User{databaseId}}}`
+        ... on MergedEvent{id createdAt actor{` + gqlActorFields + `}}
+        ... on HeadRefDeletedEvent{id createdAt headRefName actor{` + gqlActorFields + `}}
+        ... on AutoMergeEnabledEvent{id createdAt actor{` + gqlActorFields + `}}
+        ... on AutoMergeDisabledEvent{id createdAt actor{` + gqlActorFields + `}}`
 
 // timelineConn wraps a fragment selection in the shared connection envelope.
 func timelineConn(fragments string) string {
@@ -83,7 +83,8 @@ func timelineConn(fragments string) string {
 // graphQLTimelineBatchQuery fetches the first page of timeline events for a batch of
 // issue/PR node ids in one request (two levels deep). Issue and PullRequest both
 // expose timelineItems, and the response merges to the same `timelineItems` key.
-func graphQLTimelineBatchQuery() string {
+// Built once — the query is constant, and a sweep asks for it per batch.
+var graphQLTimelineBatchQuery = sync.OnceValue(func() string {
 	return fmt.Sprintf(`
 query($ids:[ID!]!){
   nodes(ids:$ids){
@@ -93,20 +94,21 @@ query($ids:[ID!]!){
   }
   rateLimit{cost remaining resetAt}
 }`, issueTimelineItemTypes, timelineConn(issueTimelineFragments), prTimelineItemTypes, timelineConn(prTimelineFragments))
-}
+})
 
 // graphQLTimelineSweepQuery pages the remaining timeline of a single hot issue/PR
-// (one with more than one page of events), by node id.
-func graphQLTimelineSweepQuery() string {
+// (one with more than one page of events), by node id. The connection is aliased to
+// `conn` so the shared single-node sweep drives it (see sweepNodeConnection).
+var graphQLTimelineSweepQuery = sync.OnceValue(func() string {
 	return fmt.Sprintf(`
 query($id:ID!,$cursor:String){
   node(id:$id){
-    ... on Issue{timelineItems(first:100,after:$cursor,itemTypes:[%[1]s])%[2]s}
-    ... on PullRequest{timelineItems(first:100,after:$cursor,itemTypes:[%[3]s])%[4]s}
+    ... on Issue{conn:timelineItems(first:100,after:$cursor,itemTypes:[%[1]s])%[2]s}
+    ... on PullRequest{conn:timelineItems(first:100,after:$cursor,itemTypes:[%[3]s])%[4]s}
   }
   rateLimit{cost remaining resetAt}
 }`, issueTimelineItemTypes, timelineConn(issueTimelineFragments), prTimelineItemTypes, timelineConn(prTimelineFragments))
-}
+})
 
 type gqlTimelineItem struct {
 	Typename      string    `json:"__typename"`
@@ -123,27 +125,18 @@ type gqlTimelineItem struct {
 }
 
 type gqlTimelineConn struct {
-	PageInfo struct {
-		HasNextPage bool   `json:"hasNextPage"`
-		EndCursor   string `json:"endCursor"`
-	} `json:"pageInfo"`
-	Nodes []gqlTimelineItem `json:"nodes"`
-}
-
-// timelineEventID hashes a timeline event's GraphQL node id (these events carry no
-// databaseId) to a stable positive int64 for the OriginalID dedup key, so a re-sync
-// upserts each event rather than duplicating it.
-func timelineEventID(nodeID string) int64 {
-	h := fnv.New64a()
-	_, _ = h.Write([]byte(nodeID))
-	return int64(h.Sum64() & 0x7FFFFFFFFFFFFFFF)
+	PageInfo gqlPageInfo       `json:"pageInfo"`
+	Nodes    []gqlTimelineItem `json:"nodes"`
 }
 
 // convertTimelineItem maps one timeline event to a typed base.Comment. Returns nil
 // for events that carry no usable payload (e.g. a label event with no label).
+//
+// Index is deliberately left unset: the uploader builds its comment rows from the
+// type, content and timestamps only, so there is nowhere for a remote id to land
+// and no upsert to key off.
 func convertTimelineItem(it *gqlTimelineItem) *base.Comment {
 	c := &base.Comment{
-		Index:      timelineEventID(it.ID),
 		PosterID:   it.Actor.DatabaseID,
 		PosterName: it.Actor.Login,
 		Created:    it.CreatedAt,
@@ -215,7 +208,7 @@ func convertTimelineItems(items []gqlTimelineItem) []*base.Comment {
 
 // attachTimelineEvents fetches timeline events for the given issues/PRs (keyed by
 // GraphQL node id → local index) and appends them as typed comments to the shared
-// comment cache, so the comment phase persists them interleaved with regular
+// comment cache, so GetComments hands them over interleaved with regular
 // comments. No-op when the map is empty.
 func (g *GithubDownloaderV3) attachTimelineEvents(ctx context.Context, nodeIDToIndex map[string]int64) error {
 	if len(nodeIDToIndex) == 0 {
@@ -299,26 +292,11 @@ func (g *GithubDownloaderV3) fetchTimelineEvents(ctx context.Context, ids []stri
 	return out, nil
 }
 
-// sweepTimelineEvents pages the remaining timeline of one node over GraphQL,
-// following the cursor.
+// sweepTimelineEvents pages the timeline of one node from cursor to its end.
 func (g *GithubDownloaderV3) sweepTimelineEvents(ctx context.Context, nodeID, cursor string) ([]*base.Comment, error) {
-	var all []*base.Comment
-	for {
-		vars := map[string]any{"id": nodeID, "cursor": cursor}
-		var resp struct {
-			Node struct {
-				TimelineItems gqlTimelineConn `json:"timelineItems"`
-			} `json:"node"`
-			RateLimit graphQLRateLimit `json:"rateLimit"`
-		}
-		if err := g.doGraphQL(ctx, graphQLTimelineSweepQuery(), vars, &resp); err != nil {
-			return nil, err
-		}
-		g.respectGraphQLBudget(ctx, resp.RateLimit)
-		all = append(all, convertTimelineItems(resp.Node.TimelineItems.Nodes)...)
-		if !resp.Node.TimelineItems.PageInfo.HasNextPage {
-			return all, nil
-		}
-		cursor = resp.Node.TimelineItems.PageInfo.EndCursor
+	items, err := sweepNodeConnection[gqlTimelineItem](ctx, g, graphQLTimelineSweepQuery(), nodeID, cursor)
+	if err != nil {
+		return nil, err
 	}
+	return convertTimelineItems(items), nil
 }

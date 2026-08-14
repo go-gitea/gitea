@@ -87,7 +87,7 @@ func TestGraphQLPullRequestParsing(t *testing.T) {
 
 	// reviews: one real review (with an inline comment) + one requested-reviewer
 	assert.False(t, g.reviewsOverflow(node))
-	reviews := convertGraphQLReviews(node)
+	reviews := convertGraphQLReviews(node, node.ReviewRequests.Nodes)
 	require.Len(t, reviews, 2)
 	assert.EqualValues(t, 900, reviews[0].ID)
 	assert.Equal(t, "CHANGES_REQUESTED", reviews[0].State)

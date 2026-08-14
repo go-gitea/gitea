@@ -6,7 +6,9 @@ package migrations
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,12 +28,7 @@ import (
 // concurrent callers sharing a single client instead of racing to create their own.
 var migrationHTTPClient = util.OnceValue[*http.Client]{Func: newMigrationHTTPClient}
 
-// NewMigrationHTTPClient returns a new HTTP client for migration with retry support
-func NewMigrationHTTPClient() *http.Client {
-	return newMigrationHTTPClient()
-}
-
-// newMigrationHTTPClient returns a HTTP client for migration
+// newMigrationHTTPClient returns a HTTP client for migration with retry support
 func newMigrationHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: newRetryTransport(NewMigrationHTTPTransport()),
@@ -54,7 +51,6 @@ func NewMigrationHTTPTransport() *http.Transport {
 
 const (
 	retryMaxRetries = 5
-	retryMaxDelay   = 30 * time.Second
 	// cap an honored Retry-After so a hostile/huge value can't stall a sync
 	retryMaxRetryAfter = 5 * time.Minute
 )
@@ -64,11 +60,12 @@ const (
 var retryBaseDelay = time.Second
 
 // retryTransport wraps an http.RoundTripper and transparently retries migration
-// API requests that fail with transient errors: network failures and 5xx
-// responses (e.g. a 502/503/504 from GitHub), plus secondary-rate-limit
-// responses (403/429) that carry a Retry-After. Without this, a single transient
-// hiccup — such as a 504 while fetching one issue's reactions midway through a
-// large repository's metadata sweep — aborts the entire sync. Primary rate limit
+// API requests that fail with transient errors: transient network failures (see
+// isTransientTransportError) and 5xx responses (e.g. a 502/503/504 from GitHub),
+// plus secondary-rate-limit responses (403/429) that carry a Retry-After. Without
+// this, a single transient hiccup — such as a 504 while fetching one issue's
+// reactions midway through a large repository's metadata sweep — aborts the entire
+// sync. Primary rate limit
 // (403 with X-RateLimit-Remaining: 0 and no Retry-After) is intentionally NOT
 // retried here; the downloader already waits for the reset window before its
 // calls, so we leave that handling to it.
@@ -125,9 +122,7 @@ func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		case <-timer.C:
 		}
 
-		if delay < retryMaxDelay {
-			delay *= 2
-		}
+		delay *= 2
 	}
 }
 
@@ -135,7 +130,7 @@ func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 func shouldRetryRequest(resp *http.Response, err error) bool {
 	if err != nil {
 		// network error, timeout, connection reset, unexpected EOF, etc.
-		return true
+		return isTransientTransportError(err)
 	}
 	switch resp.StatusCode {
 	case http.StatusInternalServerError, http.StatusBadGateway,
@@ -147,6 +142,25 @@ func shouldRetryRequest(resp *http.Response, err error) bool {
 		return resp.Header.Get("Retry-After") != ""
 	}
 	return false
+}
+
+// isTransientTransportError reports whether a transport-level failure can plausibly
+// succeed on a retry. A permanent one — the target is refused by the allow/block
+// lists, does not resolve, or fails TLS verification — never will, so it must
+// surface immediately instead of spending the whole backoff budget first (and, with
+// the retrying downloader on top, three times over). Anything unrecognized stays
+// retryable: a reset connection or a truncated body is the common case.
+func isTransientTransportError(err error) bool {
+	if errors.Is(err, hostmatcher.ErrDialNotAllowed) {
+		return false
+	}
+	if _, ok := errors.AsType[*tls.CertificateVerificationError](err); ok {
+		return false
+	}
+	if dnsErr, ok := errors.AsType[*net.DNSError](err); ok {
+		return !dnsErr.IsNotFound
+	}
+	return true
 }
 
 func retryReason(resp *http.Response, err error) string {

@@ -15,8 +15,7 @@ import (
 
 // TestConvertTimelineItems parses a timeline page (the shape of #13603's real
 // timeline plus milestone/rename) and checks each event maps to the right Gitea
-// comment type, meta, actor, and a stable dedup id — and that unmapped types are
-// dropped.
+// comment type, meta and actor — and that unmapped types are dropped.
 func TestConvertTimelineItems(t *testing.T) {
 	const sample = `{"pageInfo":{"hasNextPage":false,"endCursor":""},"nodes":[
       {"__typename":"ClosedEvent","id":"c1","createdAt":"2020-11-17T15:54:33Z","actor":{"login":"jolheiser","databaseId":42128690}},
@@ -72,19 +71,10 @@ func TestConvertTimelineItems(t *testing.T) {
 	assert.Equal(t, "pull_scheduled_merge", events[11].CommentType)
 	assert.Equal(t, "pull_cancel_scheduled_merge", events[12].CommentType)
 
-	// every event carries its real timestamp and a stable positive dedup id
+	// every event carries its real timestamp; Gitea sorts the timeline by it
 	for _, e := range events {
 		assert.False(t, e.Created.IsZero(), "event must carry its GitHub timestamp")
-		assert.Positive(t, e.Index, "event must carry a stable dedup id")
 	}
-}
-
-func TestTimelineEventIDStable(t *testing.T) {
-	id := "MDExOkNsb3NlZEV2ZW50NDAwNjIwMjg0Mw=="
-	idVal := timelineEventID(id)
-	assert.Equal(t, idVal, timelineEventID(id), "same node id -> same dedup key (idempotent re-sync)")
-	assert.NotEqual(t, timelineEventID(id), timelineEventID("MDEyOkxhYmVsZWRFdmVudA=="))
-	assert.Positive(t, timelineEventID(id))
 }
 
 // TestTimelineQueryShape guards the fix for #27's class of bug: the timeline query

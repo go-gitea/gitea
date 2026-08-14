@@ -28,6 +28,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
 	"slices"
@@ -59,23 +60,44 @@ const (
 	// graphQLRateResetFallback is used when a RATE_LIMITED response carries no
 	// usable reset header.
 	graphQLRateResetFallback = time.Minute
-	// maxGraphQLTransientRetries bounds retries of transient transport failures
-	// (5xx responses, network errors, truncated response bodies). GitHub's
-	// GraphQL endpoint 502s sporadically under heavy queries; on a sweep that is
-	// hours long and hundreds of requests, one such blip must not abort the
-	// whole run.
+	// maxGraphQLTransientRetries bounds retries of a response body that died
+	// mid-stream (truncated JSON, connection cut while reading). The retrying
+	// transport cannot retry those — the failure happens after the response
+	// headers — and on a sweep that is hours long and hundreds of requests, one
+	// such blip must not abort the whole run. 5xx responses and network errors
+	// are NOT retried here: retryTransport (http_client.go) already owns those,
+	// and retrying them again would multiply the two budgets together.
 	maxGraphQLTransientRetries = 5
+	// graphQLLabelPageSize / graphQLAssigneePageSize / graphQLReviewRequestPageSize
+	// cap the cheap side connections carried by the content queries. Each selects
+	// totalCount so an entity that exceeds its cap is swept by node id instead of
+	// silently truncated.
+	graphQLLabelPageSize         = 30
+	graphQLAssigneePageSize      = 30
+	graphQLReviewRequestPageSize = 50
 )
 
-// graphQLTransientRetryBase is the initial backoff for transient-failure
-// retries; doubled each attempt. A variable so tests can shrink it.
+// gqlActorFields selects an Actor's login and numeric id. The inline fragments are
+// mandatory: `databaseId` is not on the Actor interface itself, and selecting it
+// only `... on User` loses the id of every Bot (dependabot[bot], github-actions[bot]),
+// Organization and Mannequin author — the REST path returned those, and without them
+// every such author collapses onto original_author_id 0.
+const gqlActorFields = "login ... on User{databaseId} ... on Bot{databaseId} ... on Organization{databaseId} ... on Mannequin{databaseId}"
+
+// gqlReactionFields selects a reaction and its user. Reaction.user is typed User, so
+// databaseId is selected directly.
+const gqlReactionFields = "content user{login databaseId}"
+
+// graphQLTransientRetryBase is the initial backoff before a truncated response is
+// re-requested; doubled each attempt. A variable so tests can shrink it.
 var graphQLTransientRetryBase = 2 * time.Second
 
 // errGraphQLTransientExhausted marks a request that kept failing transiently
-// through the whole retry budget. Page-driven callers use it to shrink the
-// page and try again: a *deterministic* 502 (one specific page whose response
-// is too heavy for the backend) never succeeds at the same size no matter how
-// often it is retried.
+// through the whole retry budget — the transport's, for a 5xx or a network
+// failure, or this file's, for a body that keeps dying mid-stream. Page-driven
+// callers use it to shrink the page and try again: a *deterministic* 502 (one
+// specific page whose response is too heavy for the backend) never succeeds at
+// the same size no matter how often it is retried.
 var errGraphQLTransientExhausted = errors.New("github graphql: transient retries exhausted")
 
 // graphQLRequest is the POST body for a GraphQL call.
@@ -124,7 +146,10 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 		return err
 	}
 
-	for attempt := 0; ; attempt++ {
+	// Two independent budgets: rateWaits bounds how often one request waits out a
+	// throttle, decodeRetries bounds retries of a body that died mid-stream.
+	rateWaits, decodeRetries := 0, 0
+	for {
 		g.waitAndPickClient(ctx)
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, g.graphQLEndpoint(), bytes.NewReader(payload))
@@ -136,25 +161,36 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 
 		resp, err := g.getClient().Client().Do(req)
 		if err != nil {
-			// Network-level failure (connection reset, DNS blip). Transient:
-			// back off and retry rather than aborting an hours-long sweep.
-			if retryErr := g.waitGraphQLTransient(ctx, attempt, fmt.Sprintf("request failed: %v", err)); retryErr != nil {
-				return retryErr
-			}
-			continue
+			// A network-level failure that reaches here already exhausted
+			// retryTransport's budget, so retrying it a second time here would
+			// only multiply the two. Report it as transient so a page-driven
+			// caller shrinks the page instead (doGraphQLPageShrink).
+			return fmt.Errorf("%w: request failed: %w", errGraphQLTransientExhausted, err)
 		}
 
 		if resp.StatusCode != http.StatusOK {
+			detail := readGraphQLErrorBody(resp.Body)
 			resp.Body.Close()
-			// GitHub's GraphQL endpoint 502s sporadically under heavy queries;
-			// any 5xx is the server's problem, not the query's — retry.
-			if resp.StatusCode >= http.StatusInternalServerError {
-				if retryErr := g.waitGraphQLTransient(ctx, attempt, "status "+resp.Status); retryErr != nil {
-					return retryErr
+			switch {
+			case resp.StatusCode >= http.StatusInternalServerError:
+				// GitHub's GraphQL endpoint 502s sporadically under heavy
+				// queries, and retryTransport already retried this one. A page
+				// that still fails is too heavy at this size, not unlucky —
+				// report transient so the caller retries it smaller.
+				return fmt.Errorf("%w: status %s%s", errGraphQLTransientExhausted, resp.Status, detail)
+			case isGraphQLThrottled(resp):
+				// Secondary/abuse rate limit. GitHub answers those with 403 or
+				// 429 and not always a Retry-After, so retryTransport may have
+				// passed it straight through; wait out the window and retry in
+				// place rather than aborting the whole metadata sync.
+				if rateWaits < maxGraphQLRateRetries && g.waitForGraphQLRateReset(ctx, resp.Header) {
+					rateWaits++
+					continue
 				}
-				continue
+				return fmt.Errorf("github graphql: rate limited, status %s%s", resp.Status, detail)
+			default:
+				return fmt.Errorf("github graphql: unexpected status %s%s", resp.Status, detail)
 			}
-			return fmt.Errorf("github graphql: unexpected status %s", resp.Status)
 		}
 
 		var envelope struct {
@@ -168,9 +204,10 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 			// A 200 whose body dies mid-stream (truncated JSON, connection cut
 			// while reading). The transport cannot retry this — the failure
 			// happens after the response headers — so retry here.
-			if retryErr := g.waitGraphQLTransient(ctx, attempt, fmt.Sprintf("truncated response: %v", decodeErr)); retryErr != nil {
+			if retryErr := g.waitGraphQLTransient(ctx, decodeRetries, fmt.Sprintf("truncated response: %v", decodeErr)); retryErr != nil {
 				return retryErr
 			}
+			decodeRetries++
 			continue
 		}
 
@@ -179,8 +216,9 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 			// abuse limit) is exhausted. Wait out the window and retry in place
 			// rather than aborting the whole metadata sync — the REST path does
 			// the same via waitAndPickClient.
-			if isGraphQLRateLimited(envelope.Errors) && attempt < maxGraphQLRateRetries {
+			if isGraphQLRateLimited(envelope.Errors) && rateWaits < maxGraphQLRateRetries {
 				if g.waitForGraphQLRateReset(ctx, header) {
+					rateWaits++
 					continue
 				}
 			}
@@ -190,8 +228,36 @@ func (g *GithubDownloaderV3) doGraphQL(ctx context.Context, query string, vars m
 	}
 }
 
-// waitGraphQLTransient sleeps out an exponential backoff before a transient
-// failure is retried. Returns nil when the caller should retry, or an error
+// maxGraphQLErrorBody bounds how much of a failing response body is quoted in the
+// error: GitHub explains a 403/429/502 in the body, and without it the message says
+// only "unexpected status" and nothing actionable.
+const maxGraphQLErrorBody = 512
+
+// readGraphQLErrorBody returns a bounded, single-line excerpt of a failing response
+// body, prefixed with ": " so it appends cleanly, or "" when the body is empty.
+func readGraphQLErrorBody(body io.Reader) string {
+	buf, err := io.ReadAll(io.LimitReader(body, maxGraphQLErrorBody))
+	if err != nil || len(buf) == 0 {
+		return ""
+	}
+	return ": " + strings.Join(strings.Fields(string(buf)), " ")
+}
+
+// isGraphQLThrottled reports whether a non-200 response is GitHub throttling this
+// client. 429 always is; a 403 only when it carries a rate-limit signal, because a
+// plain 403 is a permission error that no amount of waiting fixes.
+func isGraphQLThrottled(resp *http.Response) bool {
+	switch resp.StatusCode {
+	case http.StatusTooManyRequests:
+		return true
+	case http.StatusForbidden:
+		return resp.Header.Get("Retry-After") != "" || resp.Header.Get("X-RateLimit-Remaining") == "0"
+	}
+	return false
+}
+
+// waitGraphQLTransient sleeps out an exponential backoff before a truncated
+// response is retried. Returns nil when the caller should retry, or an error
 // when the retry budget is exhausted or the context was cancelled.
 func (g *GithubDownloaderV3) waitGraphQLTransient(ctx context.Context, attempt int, reason string) error {
 	if attempt >= maxGraphQLTransientRetries {
@@ -295,39 +361,51 @@ func (g *GithubDownloaderV3) respectGraphQLBudget(ctx context.Context, rl graphQ
 // the issue-level reactions (one level, 100×100 = 10k, cheap); comment reactions
 // are fetched afterwards by a batched node-id pass (attachCommentReactions),
 // which stays two levels deep. When reactions are skipped none are requested.
+//
+// Issues are paged oldest-created-first: cursor pagination over a *mutable* sort
+// key loses rows, so the immutable createdAt is what the cursor walks.
 func (g *GithubDownloaderV3) graphQLIssuesQuery() string {
-	issueReactions := ""
-	if !g.SkipReactions {
-		issueReactions = "reactions(first:100){totalCount nodes{content user{login ... on User{databaseId}}}}"
-	}
-	return fmt.Sprintf(`
-query($owner:String!,$name:String!,$cursor:String,$since:DateTime,$first:Int!){
+	if g.gqlIssuesQuery == "" {
+		issueReactions := ""
+		if !g.SkipReactions {
+			issueReactions = "reactions(first:100){totalCount nodes{" + gqlReactionFields + "}}"
+		}
+		g.gqlIssuesQuery = fmt.Sprintf(`
+query($owner:String!,$name:String!,$cursor:String,$first:Int!){
   repository(owner:$owner,name:$name){
-    issues(first:$first,after:$cursor,orderBy:{field:UPDATED_AT,direction:ASC},filterBy:{since:$since}){
+    issues(first:$first,after:$cursor,orderBy:{field:CREATED_AT,direction:ASC}){
       pageInfo{hasNextPage endCursor}
       nodes{
         id number title body state createdAt updatedAt closedAt
         locked
-        author{login ... on User{databaseId}}
+        author{%[1]s}
         milestone{title}
-        labels(first:30){nodes{name color description}}
-        assignees(first:30){nodes{login}}
-        %s
+        labels(first:%[2]d){totalCount nodes{name color description}}
+        assignees(first:%[3]d){totalCount nodes{login}}
+        %[4]s
         comments(first:100){
           totalCount
           nodes{
             id databaseId body createdAt updatedAt
-            author{login ... on User{databaseId}}
+            author{%[1]s}
           }
         }
       }
     }
   }
   rateLimit{cost remaining resetAt}
-}`, issueReactions)
+}`, gqlActorFields, graphQLLabelPageSize, graphQLAssigneePageSize, issueReactions)
+	}
+	return g.gqlIssuesQuery
 }
 
-// gqlActor is a GitHub Actor; databaseId is only populated for real users.
+// gqlPageInfo is a connection's cursor block, shared by every paged sweep.
+type gqlPageInfo struct {
+	HasNextPage bool   `json:"hasNextPage"`
+	EndCursor   string `json:"endCursor"`
+}
+
+// gqlActor is a GitHub Actor (a user, bot, organization or mannequin).
 type gqlActor struct {
 	Login      string `json:"login"`
 	DatabaseID int64  `json:"databaseId"`
@@ -354,6 +432,28 @@ type gqlComment struct {
 	Author     gqlActor  `json:"author"`
 }
 
+// gqlLabelConn and gqlAssigneeConn carry totalCount so an entity with more labels
+// or assignees than the query's page size is swept rather than truncated.
+type gqlLabelNode struct {
+	Name        string `json:"name"`
+	Color       string `json:"color"`
+	Description string `json:"description"`
+}
+
+type gqlLabelConn struct {
+	TotalCount int            `json:"totalCount"`
+	Nodes      []gqlLabelNode `json:"nodes"`
+}
+
+type gqlAssigneeNode struct {
+	Login string `json:"login"`
+}
+
+type gqlAssigneeConn struct {
+	TotalCount int               `json:"totalCount"`
+	Nodes      []gqlAssigneeNode `json:"nodes"`
+}
+
 type gqlIssue struct {
 	ID        string     `json:"id"` // GraphQL node id, for the reactions sweep and timeline pass
 	Number    int64      `json:"number"`
@@ -368,18 +468,8 @@ type gqlIssue struct {
 	Milestone *struct {
 		Title string `json:"title"`
 	} `json:"milestone"`
-	Labels struct {
-		Nodes []struct {
-			Name        string `json:"name"`
-			Color       string `json:"color"`
-			Description string `json:"description"`
-		} `json:"nodes"`
-	} `json:"labels"`
-	Assignees struct {
-		Nodes []struct {
-			Login string `json:"login"`
-		} `json:"nodes"`
-	} `json:"assignees"`
+	Labels    gqlLabelConn    `json:"labels"`
+	Assignees gqlAssigneeConn `json:"assignees"`
 	Reactions gqlReactionConn `json:"reactions"`
 	Comments  struct {
 		TotalCount int          `json:"totalCount"`
@@ -390,33 +480,25 @@ type gqlIssue struct {
 type gqlIssuesResponse struct {
 	Repository struct {
 		Issues struct {
-			PageInfo struct {
-				HasNextPage bool   `json:"hasNextPage"`
-				EndCursor   string `json:"endCursor"`
-			} `json:"pageInfo"`
-			Nodes []gqlIssue `json:"nodes"`
+			PageInfo gqlPageInfo `json:"pageInfo"`
+			Nodes    []gqlIssue  `json:"nodes"`
 		} `json:"issues"`
 	} `json:"repository"`
 	RateLimit graphQLRateLimit `json:"rateLimit"`
 }
 
-// getNewIssuesGraphQL fetches a page of issues (updated-ascending, resumable like
-// the REST path) together with their comments and reactions in a single request,
-// caching the comments so the framework's separate comment phase serves them from
-// memory instead of re-fetching. Returns the issues, whether this was the last
-// page, and an error.
+// getIssuesGraphQL fetches a page of issues (oldest created first) together with
+// their comments and reactions in a single request, caching the comments so
+// GetComments serves them from memory instead of re-fetching. Returns the issues,
+// whether this was the last page, and an error.
 //
 // page<=1 marks the first request of a sweep and resets the cursor, matching
-// getIssuesSince.
-func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, since time.Time) ([]*base.Issue, bool, error) {
+// getIssuesREST.
+func (g *GithubDownloaderV3) getIssuesGraphQL(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if page <= 1 {
 		g.gqlIssuesCursor = ""
 		g.gqlComments = map[int64][]*base.Comment{}
-		if since.IsZero() {
-			log.Info("metadata sync [%s/%s]: issues — full sweep (no watermark)", g.repoOwner, g.repoName)
-		} else {
-			log.Info("metadata sync [%s/%s]: issues — incremental since %s", g.repoOwner, g.repoName, since.Format(time.RFC3339))
-		}
+		log.Info("metadata sync [%s/%s]: issues — full sweep", g.repoOwner, g.repoName)
 	}
 
 	vars := map[string]any{
@@ -426,16 +508,12 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 	if g.gqlIssuesCursor != "" {
 		vars["cursor"] = g.gqlIssuesCursor
 	}
-	if !since.IsZero() {
-		vars["since"] = since.Format(time.RFC3339)
-	}
 
 	var resp gqlIssuesResponse
-	if err := g.doGraphQLPageShrink(ctx, g.graphQLIssuesQuery(), vars, &resp, githubGraphQLPageSize, "issues"); err != nil {
+	if err := g.doGraphQLPageShrink(ctx, g.graphQLIssuesQuery(), vars, &resp, graphQLPageSize(perPage, githubGraphQLPageSize), "issues"); err != nil {
 		return nil, false, err
 	}
 	g.respectGraphQLBudget(ctx, resp.RateLimit)
-	g.gqlIssuesCursor = resp.Repository.Issues.PageInfo.EndCursor
 
 	issues := make([]*base.Issue, 0, len(resp.Repository.Issues.Nodes))
 	// issue node id -> number, for the timeline node-id pass after this page
@@ -446,13 +524,13 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 	for i := range resp.Repository.Issues.Nodes {
 		node := &resp.Repository.Issues.Nodes[i]
 
-		labels := make([]*base.Label, 0, len(node.Labels.Nodes))
-		for _, l := range node.Labels.Nodes {
-			labels = append(labels, &base.Label{Name: l.Name, Color: l.Color, Description: l.Description})
+		labels, err := g.labelsWithSweep(ctx, node.ID, node.Labels)
+		if err != nil {
+			return nil, false, err
 		}
-		assignees := make([]string, 0, len(node.Assignees.Nodes))
-		for _, a := range node.Assignees.Nodes {
-			assignees = append(assignees, a.Login)
+		assignees, err := g.assigneesWithSweep(ctx, node.ID, node.Assignees)
+		if err != nil {
+			return nil, false, err
 		}
 		var milestone string
 		if node.Milestone != nil {
@@ -482,7 +560,7 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 		})
 		timelineTargets[node.ID] = node.Number
 
-		// Cache the comments that came back with the issue so the comment phase
+		// Cache the comments that came back with the issue so GetComments
 		// serves them for free. If the issue has more than one page of comments,
 		// fall back to REST for the complete set (correctness over the fast path;
 		// the REST path fetches comment reactions itself).
@@ -500,6 +578,12 @@ func (g *GithubDownloaderV3) getNewIssuesGraphQL(ctx context.Context, page int, 
 			commentReactionTargets[node.Comments.Nodes[j].ID] = cached[j]
 		}
 	}
+
+	// Advance only once the whole page converted: the framework retries a failed
+	// page with the SAME page number, so a cursor moved on before a mid-page error
+	// (a reaction sweep or the REST comment fallback failing) would make the retry
+	// return the NEXT page and drop this one's issues with no error surfacing.
+	g.gqlIssuesCursor = resp.Repository.Issues.PageInfo.EndCursor
 
 	log.Info("metadata sync [%s/%s]: issues page %d — fetched %d issues, %d with timeline targets",
 		g.repoOwner, g.repoName, page, len(issues), len(timelineTargets))
@@ -540,6 +624,139 @@ func convertGraphQLComments(issueNumber int64, nodes []gqlComment) []*base.Comme
 	return comments
 }
 
+// graphQLPageSize is the connection size for one content page: the batch size the
+// framework asked for, capped at what the query shape can afford. Honouring
+// perPage matters — it is derived from the uploader's max batch insert size, and a
+// page larger than that overflows the DB's bind-parameter limit on insert.
+func graphQLPageSize(perPage, maxSize int) int {
+	if perPage <= 0 {
+		return maxSize
+	}
+	return min(perPage, maxSize)
+}
+
+// --- single-node connection sweeps ----------------------------------------------
+//
+// The content queries cap every connection they carry, so an entity with more
+// labels, assignees, reviewers or reactions than the cap returns short. Each of
+// those is then paged in full by node id. Every such query aliases its connection
+// to `conn`, so one response shape and one loop (sweepNodeConnection) serves them
+// all.
+
+// gqlNodeConnResponse is the response shape of every single-node connection sweep.
+type gqlNodeConnResponse[T any] struct {
+	Node struct {
+		Conn struct {
+			PageInfo gqlPageInfo `json:"pageInfo"`
+			Nodes    []T         `json:"nodes"`
+		} `json:"conn"`
+	} `json:"node"`
+	RateLimit graphQLRateLimit `json:"rateLimit"`
+}
+
+// sweepNodeConnection pages one node's `conn` connection to its end, starting after
+// startCursor (empty for the first page), and returns every node it yields.
+func sweepNodeConnection[T any](ctx context.Context, g *GithubDownloaderV3, query, nodeID, startCursor string) ([]T, error) {
+	var all []T
+	cursor := startCursor
+	for {
+		vars := map[string]any{"id": nodeID}
+		if cursor != "" {
+			vars["cursor"] = cursor
+		}
+		var resp gqlNodeConnResponse[T]
+		if err := g.doGraphQL(ctx, query, vars, &resp); err != nil {
+			return nil, err
+		}
+		g.respectGraphQLBudget(ctx, resp.RateLimit)
+		all = append(all, resp.Node.Conn.Nodes...)
+		if !resp.Node.Conn.PageInfo.HasNextPage {
+			return all, nil
+		}
+		cursor = resp.Node.Conn.PageInfo.EndCursor
+	}
+}
+
+// graphQLLabelsSweepQuery pages the full label list of a single Labelable (issue or
+// pull request), addressed by its GraphQL node id.
+const graphQLLabelsSweepQuery = `
+query($id:ID!,$cursor:String){
+  node(id:$id){
+    ... on Labelable{
+      conn:labels(first:100,after:$cursor){
+        pageInfo{hasNextPage endCursor}
+        nodes{name color description}
+      }
+    }
+  }
+  rateLimit{cost remaining resetAt}
+}`
+
+// labelsWithSweep converts an entity's labels, paging the rest by node id when the
+// entity carries more of them than the content query asked for.
+func (g *GithubDownloaderV3) labelsWithSweep(ctx context.Context, nodeID string, conn gqlLabelConn) ([]*base.Label, error) {
+	nodes := conn.Nodes
+	if conn.TotalCount > len(nodes) && nodeID != "" {
+		swept, err := sweepNodeConnection[gqlLabelNode](ctx, g, graphQLLabelsSweepQuery, nodeID, "")
+		if err != nil {
+			return nil, err
+		}
+		nodes = swept
+	}
+	labels := make([]*base.Label, 0, len(nodes))
+	for _, l := range nodes {
+		labels = append(labels, &base.Label{Name: l.Name, Color: l.Color, Description: l.Description})
+	}
+	return labels, nil
+}
+
+// graphQLAssigneesSweepQuery pages the full assignee list of a single Assignable.
+const graphQLAssigneesSweepQuery = `
+query($id:ID!,$cursor:String){
+  node(id:$id){
+    ... on Assignable{
+      conn:assignees(first:100,after:$cursor){
+        pageInfo{hasNextPage endCursor}
+        nodes{login}
+      }
+    }
+  }
+  rateLimit{cost remaining resetAt}
+}`
+
+// assigneesWithSweep converts an entity's assignee logins, paging the rest by node
+// id on overflow.
+func (g *GithubDownloaderV3) assigneesWithSweep(ctx context.Context, nodeID string, conn gqlAssigneeConn) ([]string, error) {
+	nodes := conn.Nodes
+	if conn.TotalCount > len(nodes) && nodeID != "" {
+		swept, err := sweepNodeConnection[gqlAssigneeNode](ctx, g, graphQLAssigneesSweepQuery, nodeID, "")
+		if err != nil {
+			return nil, err
+		}
+		nodes = swept
+	}
+	assignees := make([]string, 0, len(nodes))
+	for _, a := range nodes {
+		assignees = append(assignees, a.Login)
+	}
+	return assignees, nil
+}
+
+// graphQLReactionsSweepQuery pages the full reaction list for a single node (any
+// Reactable: issue, PR, or comment), addressed by its GraphQL node id.
+const graphQLReactionsSweepQuery = `
+query($id:ID!,$cursor:String){
+  node(id:$id){
+    ... on Reactable{
+      conn:reactions(first:100,after:$cursor){
+        pageInfo{hasNextPage endCursor}
+        nodes{` + gqlReactionFields + `}
+      }
+    }
+  }
+  rateLimit{cost remaining resetAt}
+}`
+
 // reactionsWithSweep converts an entity's (issue/PR) reactions. The batched query
 // caps the reaction page; when an entity has more reactions than the cap
 // returned, sweep the remainder by node id so nothing is silently dropped.
@@ -550,54 +767,14 @@ func (g *GithubDownloaderV3) reactionsWithSweep(ctx context.Context, nodeID stri
 	return convertGraphQLReactions(conn), nil
 }
 
-// graphQLReactionsSweepQuery pages the full reaction list for a single node (any
-// Reactable: issue, PR, or comment), addressed by its GraphQL node id.
-const graphQLReactionsSweepQuery = `
-query($id:ID!,$cursor:String){
-  node(id:$id){
-    ... on Reactable{
-      reactions(first:100,after:$cursor){
-        pageInfo{hasNextPage endCursor}
-        nodes{content user{login ... on User{databaseId}}}
-      }
-    }
-  }
-  rateLimit{cost remaining resetAt}
-}`
-
-// sweepReactions fetches every reaction for one node over GraphQL, following the
-// cursor. Used for the rare entity or comment whose reactions overflowed the
-// capped batched page.
+// sweepReactions fetches every reaction for one node over GraphQL. Used for the
+// rare entity or comment whose reactions overflowed the capped batched page.
 func (g *GithubDownloaderV3) sweepReactions(ctx context.Context, nodeID string) ([]*base.Reaction, error) {
-	var all []*base.Reaction
-	cursor := ""
-	for {
-		vars := map[string]any{"id": nodeID}
-		if cursor != "" {
-			vars["cursor"] = cursor
-		}
-		var resp struct {
-			Node struct {
-				Reactions struct {
-					PageInfo struct {
-						HasNextPage bool   `json:"hasNextPage"`
-						EndCursor   string `json:"endCursor"`
-					} `json:"pageInfo"`
-					Nodes []gqlReactionNode `json:"nodes"`
-				} `json:"reactions"`
-			} `json:"node"`
-			RateLimit graphQLRateLimit `json:"rateLimit"`
-		}
-		if err := g.doGraphQL(ctx, graphQLReactionsSweepQuery, vars, &resp); err != nil {
-			return nil, err
-		}
-		g.respectGraphQLBudget(ctx, resp.RateLimit)
-		all = append(all, convertGraphQLReactions(gqlReactionConn{Nodes: resp.Node.Reactions.Nodes})...)
-		if !resp.Node.Reactions.PageInfo.HasNextPage {
-			return all, nil
-		}
-		cursor = resp.Node.Reactions.PageInfo.EndCursor
+	nodes, err := sweepNodeConnection[gqlReactionNode](ctx, g, graphQLReactionsSweepQuery, nodeID, "")
+	if err != nil {
+		return nil, err
 	}
+	return convertGraphQLReactions(gqlReactionConn{TotalCount: len(nodes), Nodes: nodes}), nil
 }
 
 // convertGraphQLReactions maps GitHub's GraphQL reaction content enum
@@ -630,7 +807,7 @@ const graphQLNodeReactionsQuery = `
 query($ids:[ID!]!){
   nodes(ids:$ids){
     id
-    ... on Reactable{reactions(first:100){totalCount nodes{content user{login ... on User{databaseId}}}}}
+    ... on Reactable{reactions(first:100){totalCount nodes{` + gqlReactionFields + `}}}
   }
   rateLimit{cost remaining resetAt}
 }`
@@ -645,7 +822,7 @@ func isGraphQLResourceLimited(err error) bool {
 
 // attachCommentReactions fetches reactions for the given comments (keyed by their
 // GraphQL node id) via the batched node-id pass and sets them in place, so the
-// cached comments carry reactions when the comment phase persists them. No-op
+// cached comments carry reactions when they are handed over. No-op
 // when reactions are skipped.
 func (g *GithubDownloaderV3) attachCommentReactions(ctx context.Context, byNodeID map[string]*base.Comment) error {
 	if g.SkipReactions || len(byNodeID) == 0 {
@@ -744,34 +921,6 @@ func (g *GithubDownloaderV3) doGraphQLPageShrink(ctx context.Context, query stri
 		pageSize = max(1, pageSize/2)
 		log.Warn("github graphql: %s page keeps failing transiently — shrinking page size to %d and retrying", what, pageSize)
 	}
-}
-
-// getCachedComments serves the comments gathered by the GraphQL issue sweep,
-// paginated to match the framework's comment phase. It flattens the per-issue
-// cache once (deterministically ordered by issue number) and returns slices of
-// it, so the comment phase makes no additional API calls.
-func (g *GithubDownloaderV3) getCachedComments(page, perPage int) ([]*base.Comment, bool, error) {
-	if g.gqlCommentsFlat == nil {
-		nums := make([]int64, 0, len(g.gqlComments))
-		for n := range g.gqlComments {
-			nums = append(nums, n)
-		}
-		slices.Sort(nums)
-		// non-nil sentinel so an empty sweep isn't re-flattened every call
-		g.gqlCommentsFlat = make([]*base.Comment, 0)
-		for _, n := range nums {
-			g.gqlCommentsFlat = append(g.gqlCommentsFlat, g.gqlComments[n]...)
-		}
-	}
-	if perPage <= 0 {
-		perPage = githubGraphQLPageSize
-	}
-	start := (page - 1) * perPage
-	if start < 0 || start >= len(g.gqlCommentsFlat) {
-		return nil, true, nil
-	}
-	end := min(start+perPage, len(g.gqlCommentsFlat))
-	return g.gqlCommentsFlat[start:end], end >= len(g.gqlCommentsFlat), nil
 }
 
 func graphQLReactionContent(enum string) string {
