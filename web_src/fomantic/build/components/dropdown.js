@@ -431,10 +431,9 @@ $.fn.dropdown = function(parameters) {
             module.refresh();
           },
           menu: function(values) {
-            // GITEA-PATCH: make dropdown menu work with custom children elements (usually "input search")
             const $menuItems = $(templates.menu(values, fields,settings.preserveHTML,settings.className));
             $menuItems.attr('data-item-dynamic', '');
-            $menu.find('.item[data-item-dynamic]').remove();
+            $menu.find('[data-item-dynamic]').remove();
             $menu.append(...$menuItems);
             settings.onMenuUpdated();
 
@@ -3947,7 +3946,7 @@ $.fn.dropdown.settings = {
 
   filterRemoteData       : false,      // Whether API results should be filtered after being returned for query term
   saveRemoteData         : false,      // Whether remote name/value pairs should be stored in sessionStorage to allow remote data to be restored on page refresh
-                                       // saveRemoteData is a wrong design, don't use it.
+                                       // saveRemoteData is a wrong design and buggy, don't use it.
 
   throttle               : 200,        // How long to wait after last user input to search remotely
 

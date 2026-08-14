@@ -151,7 +151,7 @@ $.api = $.fn.api = function(parameters) {
         write: {
           cachedResponse: function(url, response) {
             if(!response) return;
-            if($.isPlainObject(response)) response = JSON.stringify(response);
+            if($.isPlainObject(response) || $.isArray(response)) response = JSON.stringify(response);
             cachedResponses[url] = {cacheTime: Date.now(), respText: response};
           }
         },
@@ -1096,7 +1096,7 @@ $.api.settings = {
   // response was successful, if JSON passed validation
   onSuccess   : function(response, $module) {},
 
-  // request completed, either success or error/failure/abort (jQuery.always)
+  // request completed, either success or error/failure/abort: jQuery.ajax().always()
   onComplete  : function(response, $module) {},
 
   // failed JSON success test
