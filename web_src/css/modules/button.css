@@ -32,6 +32,10 @@
   color: var(--color-text);
 }
 
+.ui.button.hover-opaque:hover {
+  background: var(--color-hover-opaque);
+}
+
 .ui.active.button,
 .ui.button:active,
 .ui.active.button:active,

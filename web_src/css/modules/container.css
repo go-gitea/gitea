@@ -27,7 +27,7 @@
   margin: auto;
 }
 
-.ui.message.site-banner-container > button.dismiss-banner {
+.ui.message.site-banner-container > button.site-banner-button {
   position: absolute;
   right: 20px;
   top: 15px;
