@@ -77,6 +77,84 @@ type PageMeta struct {
 	UpdatedUnix  timeutil.TimeStamp
 }
 
+type WikiTreeNode struct {
+	Name     string
+	IsDir    bool
+	Open     bool
+	SubURL   string
+	Children []*WikiTreeNode
+}
+
+func buildWikiTree(ctx gocontext.Context, wikiRepo *git.Repository, tree *git.Tree, basePath string) ([]*WikiTreeNode, error) {
+	entries, err := tree.ListEntries(ctx, wikiRepo)
+	if err != nil {
+		return nil, err
+	}
+	entries.CustomSort(base.NaturalSortCompare)
+
+	nodes := make([]*WikiTreeNode, 0, len(entries))
+	for _, entry := range entries {
+		if !entry.IsRegular() && !entry.IsDir() {
+			continue
+		}
+
+		if entry.IsDir() {
+			wikiName, err := wiki_service.GitDirPathToWebPath(entry.Name())
+			if err != nil {
+				return nil, err
+			}
+			children, err := buildWikiTree(ctx, wikiRepo, entry.Tree(ctx, wikiRepo), path.Join(basePath, string(wikiName)))
+			if err != nil {
+				return nil, err
+			}
+			if len(children) == 0 {
+				continue
+			}
+			_, displayName := wiki_service.WebPathToUserTitle(wikiName)
+			nodes = append(nodes, &WikiTreeNode{
+				Name:     displayName,
+				IsDir:    true,
+				SubURL:   wiki_service.WebPathToURLPath(wiki_service.WebPath(path.Join(basePath, string(wikiName)))),
+				Children: children,
+			})
+			continue
+		}
+
+		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
+		if err != nil {
+			if repo_model.IsErrWikiInvalidFileName(err) {
+				continue
+			}
+			return nil, err
+		}
+		if basePath == "" && (wikiName == "_Sidebar" || wikiName == "_Footer") {
+			continue
+		}
+		_, displayName := wiki_service.WebPathToUserTitle(wikiName)
+		nodes = append(nodes, &WikiTreeNode{
+			Name:   displayName,
+			SubURL: wiki_service.WebPathToURLPath(wiki_service.WebPath(path.Join(basePath, string(wikiName)))),
+		})
+	}
+	return nodes, nil
+}
+
+func openWikiTreePath(nodes []*WikiTreeNode, pagePath string) bool {
+	for _, node := range nodes {
+		if node.IsDir {
+			node.Open = openWikiTreePath(node.Children, pagePath)
+			if node.Open {
+				return true
+			}
+			continue
+		}
+		if node.SubURL == pagePath {
+			return true
+		}
+	}
+	return false
+}
+
 func treeHasWikiPage(ctx gocontext.Context, wikiRepo *git.Repository, tree *git.Tree) bool {
 	if tree == nil {
 		return false
@@ -206,7 +284,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		}
 		return nil, nil
 	}
-
 	// get the wiki pages list.
 	entries, err := commit.Tree().ListEntries(ctx, wikiGitRepo)
 	if err != nil {
@@ -252,6 +329,13 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	if len(pageName) == 0 {
 		pageName = "Home"
 	}
+	wikiTree, err := buildWikiTree(ctx, wikiGitRepo, commit.Tree(), "")
+	if err != nil {
+		ctx.ServerError("buildWikiTree", err)
+		return nil, nil
+	}
+	openWikiTreePath(wikiTree, wiki_service.WebPathToURLPath(pageName))
+	ctx.Data["WikiTree"] = wikiTree
 
 	_, displayName := wiki_service.WebPathToUserTitle(pageName)
 	ctx.Data["PageURL"] = wiki_service.WebPathToURLPath(pageName)

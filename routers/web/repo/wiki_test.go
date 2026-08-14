@@ -76,6 +76,28 @@ func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {
 	}
 }
 
+func assertWikiTree(t *testing.T, expectedNames []string, tree any) {
+	nodes, ok := tree.([]*WikiTreeNode)
+	require.True(t, ok)
+	require.Len(t, nodes, len(expectedNames))
+
+	for i, node := range nodes {
+		assert.Equal(t, expectedNames[i], node.Name)
+	}
+}
+
+func findWikiTreeNode(t *testing.T, tree any, name string) *WikiTreeNode {
+	nodes, ok := tree.([]*WikiTreeNode)
+	require.True(t, ok)
+	for _, node := range nodes {
+		if node.Name == name {
+			return node
+		}
+	}
+	require.Failf(t, "wiki tree node not found", "%q", name)
+	return nil
+}
+
 func TestWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
@@ -87,6 +109,7 @@ func TestWiki(t *testing.T) {
 		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 		assert.EqualValues(t, "Home", ctx.Data["Title"])
 		assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name", "Unescaped File"}, ctx.Data["Pages"])
+		assertWikiTree(t, []string{"Home", "Page With Image", "Page With Spaced Name", "Unescaped File"}, ctx.Data["WikiTree"])
 	})
 	t.Run("Image", func(t *testing.T) {
 		ctx, _ := contexttest.MockContext(t, "user2/repo1/jpeg.jpg")
@@ -124,6 +147,13 @@ func testNestedWiki(t *testing.T) {
 		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 		assert.EqualValues(t, "Setup", ctx.Data["Title"])
 		assert.EqualValues(t, "Guides", ctx.Data["PageDir"])
+		guides := findWikiTreeNode(t, ctx.Data["WikiTree"], "Guides")
+		require.True(t, guides.IsDir)
+		assert.True(t, guides.Open)
+		require.Equal(t, "Guides", guides.SubURL)
+		require.Len(t, guides.Children, 1)
+		assert.Equal(t, "Setup", guides.Children[0].Name)
+		assert.Equal(t, "Guides/Setup", guides.Children[0].SubURL)
 	})
 
 	t.Run("folder", func(t *testing.T) {
