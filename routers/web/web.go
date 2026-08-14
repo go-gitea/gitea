@@ -166,6 +166,11 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	return webAuth
 }
 
+func doerMustChangePassword(ctx *context.Context) bool {
+	// an impersonating admin must not be forced to set the impersonated user's password
+	return ctx.Doer != nil && ctx.Doer.MustChangePassword && !ctx.DoerIsImpersonated()
+}
+
 // verifyAuthWithOptions checks authentication according to options
 func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Context) {
 	crossOriginProtection := http.NewCrossOriginProtection()
@@ -185,8 +190,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 				return
 			}
 
-			// an impersonating admin must not be forced to set the impersonated user's password
-			if ctx.Doer.MustChangePassword && !ctx.DoerIsImpersonated() {
+			if doerMustChangePassword(ctx) {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
