@@ -214,7 +214,8 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 	}
 
 	deleteAuthTokens := false
-	if opts.Password.Has() && (u.IsLocal() || u.IsOAuth2()) {
+	// only individuals sign in interactively, so only they can have a password
+	if opts.Password.Has() && u.IsIndividual() && (u.IsLocal() || u.IsOAuth2()) {
 		password := opts.Password.Value()
 
 		if len(password) < setting.MinPasswordLength {
@@ -307,6 +308,10 @@ func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_mo
 			}
 			// a bot has no inbox, so drop the notifications it accumulated as an individual
 			if err := db.DeleteBeans(ctx, &activities_model.Notification{UserID: updatedUser.ID}); err != nil {
+				return err
+			}
+			// an OpenID URI is an external identity that can sign the account in, so it goes too
+			if err := db.DeleteBeans(ctx, &user_model.UserOpenID{UID: updatedUser.ID}); err != nil {
 				return err
 			}
 			// the account is now local, so drop any external (OAuth2/LDAP/...) login links
