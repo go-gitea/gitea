@@ -30,12 +30,8 @@ import (
 //   - "/.wiki.git/Home-Page.md"
 //   - "/.wiki.git/100%25 Free.md"
 //   - "/.wiki.git/2000-01-02 meeting.-.md"
-// TODO: support subdirectory in the future
-//
-// Although this package now has the ability to support subdirectory, but the route package doesn't:
-// * Double-escaping problem: the URL "/wiki/abc%2Fdef" becomes "/wiki/abc/def" by ctx.PathParam, which is incorrect
-//   * This problem should have been 99% fixed, but it needs more tests.
-// * The old wiki code's behavior is always using %2F, instead of subdirectory, so there are a lot of legacy "%2F" files in user wikis.
+// A slash in a raw route parameter separates wiki path segments. An encoded slash
+// remains part of a segment so legacy "%2F" wiki page names keep working.
 
 type WebPath string
 
@@ -98,7 +94,10 @@ func WebPathToGitPath(s WebPath) string {
 		ret, _ := url.PathUnescape(string(s))
 		return util.PathJoinRelX(ret)
 	}
+	return WebDirPathToGitPath(s) + ".md"
+}
 
+func WebDirPathToGitPath(s WebPath) string {
 	a := strings.Split(string(s), "/")
 	for i := range a {
 		shouldAddDashMarker := hasDashMarker(a[i])
@@ -107,7 +106,7 @@ func WebPathToGitPath(s WebPath) string {
 		a[i] = strings.ReplaceAll(a[i], "%20", " ") // space is safe to be kept in git path
 		a[i] = strings.ReplaceAll(a[i], "+", " ")
 	}
-	return strings.Join(a, "/") + ".md"
+	return strings.Join(a, "/")
 }
 
 func GitPathToWebPath(s string) (wp WebPath, err error) {
@@ -115,6 +114,18 @@ func GitPathToWebPath(s string) (wp WebPath, err error) {
 		return "", repo_model.ErrWikiInvalidFileName{FileName: s}
 	}
 	s = strings.TrimSuffix(s, ".md")
+	a := strings.Split(s, "/")
+	for i := range a {
+		shouldAddDashMarker := hasDashMarker(a[i])
+		if a[i], err = unescapeSegment(a[i]); err != nil {
+			return "", err
+		}
+		a[i] = escapeSegToWeb(a[i], shouldAddDashMarker)
+	}
+	return WebPath(strings.Join(a, "/")), nil
+}
+
+func GitDirPathToWebPath(s string) (wp WebPath, err error) {
 	a := strings.Split(s, "/")
 	for i := range a {
 		shouldAddDashMarker := hasDashMarker(a[i])
@@ -141,11 +152,15 @@ func WebPathToURLPath(s WebPath) string {
 	return string(s)
 }
 
-func WebPathFromRequest(s string) WebPath {
-	s = util.PathJoinRelX(s)
-	// The old wiki code's behavior is always using %2F, instead of subdirectory.
-	s = strings.ReplaceAll(s, "/", "%2F")
-	return WebPath(s)
+func WebPathFromRequest(s string) (WebPath, error) {
+	segments := strings.Split(s, "/")
+	for _, segment := range segments {
+		unescaped, err := url.PathUnescape(segment)
+		if err != nil || unescaped == "." || unescaped == ".." {
+			return "", repo_model.ErrWikiInvalidFileName{FileName: s}
+		}
+	}
+	return WebPath(util.PathJoinRelX(s)), nil
 }
 
 func UserTitleToWebPath(base, title string) WebPath {

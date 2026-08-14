@@ -51,7 +51,7 @@ func TestRepoWiki(t *testing.T) {
 
 	t.Run("PathInTag", func(t *testing.T) {
 		rctx := NewRenderContextRepoWiki(t.Context(), repo1, RepoWikiOptions{
-			currentTreePath: "my dir",
+			CurrentTreePath: "my dir",
 		}).WithMarkupType(markdown.MarkupName)
 		rendered, err := testRenderString(rctx, `
 <img src="LINK">
@@ -61,5 +61,18 @@ func TestRepoWiki(t *testing.T) {
 		assert.Equal(t, `<a href="/user2/repo1/wiki/my%20dir/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/my%20dir/LINK"/></a>
 <video src="/user2/repo1/wiki/raw/my%20dir/LINK">
 </video>`, rendered)
+	})
+
+	t.Run("RelativePath", func(t *testing.T) {
+		rctx := NewRenderContextRepoWiki(t.Context(), repo1, RepoWikiOptions{
+			CurrentTreePath: "Guides/Configuration",
+		}).WithMarkupType(markdown.MarkupName)
+		rendered, err := testRenderString(rctx, `[Setup](Setup)
+![diagram](assets/diagram.png)
+`)
+		assert.NoError(t, err)
+		assert.Equal(t, `<p><a href="/user2/repo1/wiki/Guides/Configuration/Setup" rel="nofollow">Setup</a>
+<a href="/user2/repo1/wiki/Guides/Configuration/assets/diagram.png" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/Guides/Configuration/assets/diagram.png" alt="diagram"/></a></p>
+`, rendered)
 	})
 }

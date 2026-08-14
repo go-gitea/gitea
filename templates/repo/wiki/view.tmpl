@@ -22,7 +22,7 @@
 							<a class="item muted" href="{{.RepoLink}}/wiki/?action=_pages">{{ctx.Locale.Tr "repo.wiki.pages"}}</a>
 							<div class="divider"></div>
 							{{range .Pages}}
-								<a class="item {{if eq $.Title .Name}}selected{{end}}" href="{{$.RepoLink}}/wiki/{{.SubURL}}">{{.Name}}</a>
+								<a class="item {{if eq $.Title .Name}}selected{{end}}" href="{{$.RepoLink}}/wiki/{{.SubURL}}{{if .IsDir}}?action=_pages{{end}}">{{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -49,7 +49,7 @@
 					{{end}}
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{ctx.Locale.Tr "repo.wiki.edit_page_button"}}</a>
-						<a class="ui small primary button" href="{{.RepoLink}}/wiki?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
+						<a class="ui small primary button" href="{{.RepoLink}}/wiki/{{.PageDir}}?action=_new">{{ctx.Locale.Tr "repo.wiki.new_page_button"}}</a>
 						<a class="ui small red button link-action" href data-modal-confirm="#repo-wiki-delete-page-modal" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete">{{ctx.Locale.Tr "repo.wiki.delete_page_button"}}</a>
 					{{end}}
 				</div>

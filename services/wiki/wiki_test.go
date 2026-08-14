@@ -322,7 +322,24 @@ func TestWebPathConversion(t *testing.T) {
 }
 
 func TestWebPathFromRequest(t *testing.T) {
-	assert.Equal(t, WebPath("a%2Fb"), WebPathFromRequest("a/b"))
-	assert.Equal(t, WebPath("a"), WebPathFromRequest("a"))
-	assert.Equal(t, WebPath("b"), WebPathFromRequest("a/../b"))
+	for _, test := range []struct {
+		request string
+		want    WebPath
+		gitPath string
+		wantErr bool
+	}{
+		{request: "a/b", want: "a/b", gitPath: "a/b.md"},
+		{request: "a%2Fb", want: "a%2Fb", gitPath: "a%2Fb.md"},
+		{request: "a%252Fb", want: "a%252Fb", gitPath: "a%252Fb.md"},
+		{request: "a", want: "a", gitPath: "a.md"},
+		{request: "a/%2e%2e/b", wantErr: true},
+		{request: "a/%", wantErr: true},
+	} {
+		got, err := WebPathFromRequest(test.request)
+		assert.Equal(t, test.wantErr, err != nil, "request: %q", test.request)
+		assert.Equal(t, test.want, got, "request: %q", test.request)
+		if !test.wantErr {
+			assert.Equal(t, test.gitPath, WebPathToGitPath(got), "request: %q", test.request)
+		}
+	}
 }

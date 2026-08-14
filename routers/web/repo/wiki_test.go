@@ -12,6 +12,7 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/test"
 	"gitea.dev/services/contexttest"
@@ -34,14 +35,12 @@ func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.
 
 	commit, err := wikiRepo.GetBranchCommit(t.Context(), "master")
 	assert.NoError(t, err)
-	entries, err := commit.Tree().ListEntries(t.Context(), wikiRepo)
-	assert.NoError(t, err)
-	for _, entry := range entries {
-		if entry.Name() == wiki_service.WebPathToGitPath(wikiName) {
-			return wikiRepo, entry
-		}
+	entry, err := commit.GetTreeEntryByPath(t.Context(), wikiRepo, wiki_service.WebPathToGitPath(wikiName))
+	if git.IsErrNotExist(err) {
+		return wikiRepo, nil
 	}
-	return wikiRepo, nil
+	assert.NoError(t, err)
+	return wikiRepo, entry
 }
 
 func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) string {
@@ -105,7 +104,60 @@ func TestWiki(t *testing.T) {
 	t.Run("EditWikiPost", testEditWikiPost)
 	t.Run("DeletePost", testDeleteWikiPagePost)
 	t.Run("Raw", testWikiRaw)
+	t.Run("Nested", testNestedWiki)
 	t.Run("DefaultWikiBranch", testDefaultWikiBranch)
+}
+
+func testNestedWiki(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NoError(t, wiki_service.AddWikiPage(t.Context(), doer, repo, "Guides", testWikiContent, testWikiMessage))
+	require.NoError(t, wiki_service.AddWikiPage(t.Context(), doer, repo, "Guides/Setup", testWikiContent, testWikiMessage))
+	assertWikiExists(t, repo, "Guides/Setup")
+
+	t.Run("page", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Guides/Setup")
+		ctx.SetPathParamRaw("*", "Guides/Setup")
+		contexttest.LoadRepo(t, ctx, 1)
+		Wiki(ctx)
+		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+		assert.EqualValues(t, "Setup", ctx.Data["Title"])
+		assert.EqualValues(t, "Guides", ctx.Data["PageDir"])
+	})
+
+	t.Run("folder", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Guides?action=_pages")
+		ctx.SetPathParamRaw("*", "Guides")
+		contexttest.LoadRepo(t, ctx, 1)
+		WikiPages(ctx)
+		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+		assertPagesMetas(t, []string{"Setup"}, ctx.Data["Pages"])
+	})
+
+	t.Run("page and folder coexist", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Guides")
+		ctx.SetPathParamRaw("*", "Guides")
+		contexttest.LoadRepo(t, ctx, 1)
+		Wiki(ctx)
+		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+		assert.Equal(t, "Guides", ctx.Data["Title"])
+	})
+
+	t.Run("new page", func(t *testing.T) {
+		ctx, _ := contexttest.MockContext(t, "user2/repo1/wiki/Guides?action=_new")
+		ctx.SetPathParamRaw("*", "Guides")
+		contexttest.LoadUser(t, ctx, 2)
+		contexttest.LoadRepo(t, ctx, 1)
+		contexttest.MockRequestPostForm(ctx.Req, url.Values{
+			"title":   []string{"New page"},
+			"content": []string{testWikiContent},
+			"message": []string{testWikiMessage},
+		})
+		NewWikiPost(ctx)
+		assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
+		assertWikiExists(t, ctx.Repo.Repository, "Guides/New-page")
+	})
 }
 
 func testWikiPages(t *testing.T) {
