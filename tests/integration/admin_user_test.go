@@ -119,7 +119,7 @@ func TestAdminImpersonatedUser(t *testing.T) {
 		return NewHTMLParser(t, resp.Body)
 	}
 	currentUsername := func(doc *HTMLDoc) string {
-		return homeDoc(t).Find("[data-signed-in-username]").AttrOr("data-signed-in-username", "")
+		return doc.Find("[data-signed-in-username]").AttrOr("data-signed-in-username", "")
 	}
 
 	// user1 is admin, can visit admin pages
