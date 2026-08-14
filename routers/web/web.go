@@ -1583,10 +1583,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/wiki", func() {
 		m.Combo("").
 			Get(repo.Wiki).
-			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, web.Bind[*forms.NewWikiForm](), repo.WikiPost)
+			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, repo.WikiPost)
 		m.Combo("/*").
 			Get(repo.Wiki).
-			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, web.Bind[*forms.NewWikiForm](), repo.WikiPost)
+			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, repo.WikiPost)
 		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
