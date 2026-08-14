@@ -37,13 +37,7 @@ func performValidationTest(t *testing.T, testCase validationTestCase) {
 	m := chi.NewRouter()
 
 	m.Post(testRoute, func(resp http.ResponseWriter, req *http.Request) {
-		actual := binding.Validate(req, testCase.data)
-		// see https://github.com/stretchr/testify/issues/435
-		if actual == nil {
-			actual = binding.Errors{}
-		}
-
-		assert.Equal(t, testCase.expectedErrors, actual)
+		assert.Equal(t, testCase.expectedErrors, binding.Validate(req, testCase.data))
 	})
 
 	req, err := http.NewRequest(http.MethodPost, testRoute, nil)
