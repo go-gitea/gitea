@@ -118,20 +118,19 @@ func TestAdminImpersonatedUser(t *testing.T) {
 		resp := session.MakeRequest(t, NewRequest(t, "GET", "/"), http.StatusOK)
 		return NewHTMLParser(t, resp.Body)
 	}
-	currentUsername := func(t *testing.T) string {
-		t.Helper()
+	currentUsername := func(doc *HTMLDoc) string {
 		return homeDoc(t).Find("[data-signed-in-username]").AttrOr("data-signed-in-username", "")
 	}
 
 	// user1 is admin, can visit admin pages
-	assert.Equal(t, "user1", currentUsername(t))
+	assert.Equal(t, "user1", currentUsername(homeDoc(t)))
 	assert.Equal(t, 0, homeDoc(t).Find(".site-banner-container").Length())
 	session.MakeRequest(t, NewRequest(t, "GET", "/-/admin/users/2"), http.StatusOK)
 
 	// impersonate to user2, user2 can't visit admin pages
 	session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/2/impersonate"), http.StatusOK)
 	doc := homeDoc(t)
-	assert.Equal(t, "user2", doc.Find("[data-signed-in-username]").AttrOr("data-signed-in-username", ""))
+	assert.Equal(t, "user2", currentUsername(doc))
 	assert.Contains(t, doc.Find(".site-banner-container").Text(), "user2")
 	session.MakeRequest(t, NewRequest(t, "GET", "/-/admin/users/2"), http.StatusForbidden)
 	// the impersonating admin must not set the password of the impersonated user
@@ -139,10 +138,10 @@ func TestAdminImpersonatedUser(t *testing.T) {
 
 	// exit impersonation, current user is user1(admin) again
 	session.MakeRequest(t, NewRequest(t, "GET", "/user/logout"), http.StatusSeeOther)
-	assert.Equal(t, "user1", currentUsername(t))
+	assert.Equal(t, "user1", currentUsername(homeDoc(t)))
 	session.MakeRequest(t, NewRequest(t, "GET", "/-/admin/users/2"), http.StatusOK)
 
 	// completely logout
 	session.MakeRequest(t, NewRequest(t, "GET", "/user/logout"), http.StatusSeeOther)
-	assert.Equal(t, "", currentUsername(t))
+	assert.Equal(t, "", currentUsername(homeDoc(t)))
 }
