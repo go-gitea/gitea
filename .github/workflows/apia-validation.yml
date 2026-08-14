@@ -154,6 +154,12 @@ jobs:
           echo "K6_SKIP_END_S=$K6_STAGE_RAMPDOWN"                          >> $GITHUB_ENV
           echo "K6_TOTAL_S=$(( K6_STAGE_WARMUP + K6_STAGE_RAMPUP + K6_STAGE_MEASURE + K6_STAGE_RAMPDOWN ))" >> $GITHUB_ENV
 
+      - name: Wait for Promtail to ship staging logs
+        shell: bash
+        run: |
+          echo "Sleeping 90s to let Promtail catch up before Loki queries..."
+          sleep 90
+
       - name: Run APIA pipeline
         shell: bash
         env:
