@@ -104,11 +104,9 @@
 		<details class="item" {{if or .PageIsAdminMonitorAudit .PageIsAdminMonitorStats .PageIsAdminMonitorCron .PageIsAdminMonitorQueue .PageIsAdminMonitorTrace}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "admin.monitor"}}</summary>
 			<div class="menu">
-				{{if .EnableAuditLogs}}
 				<a class="{{if .PageIsAdminMonitorAudit}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/audit_logs">
 					{{ctx.Locale.Tr "audit.title"}}
 				</a>
-				{{end}}
 				<a class="{{if .PageIsAdminMonitorStats}}active {{end}}item" href="{{AppSubUrl}}/-/admin/monitor/stats">
 					{{ctx.Locale.Tr "admin.monitor.stats"}}
 				</a>

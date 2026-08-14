@@ -47,10 +47,8 @@
 			</div>
 		</details>
 		{{end}}
-		{{if .EnableAuditLogs}}
 		<a class="{{if .PageIsSettingsAudit}}active {{end}}item" href="{{.OrgLink}}/settings/audit_logs">
 			{{ctx.Locale.Tr "audit.title"}}
 		</a>
-		{{end}}
 	</div>
 </div>

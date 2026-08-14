@@ -213,7 +213,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 			ctx.Data["DisableStars"] = setting.Repository.DisableStars
 			ctx.Data["EnableActions"] = setting.Actions.Enabled && !unit.TypeActions.UnitGlobalDisabled()
-			ctx.Data["EnableAuditLogs"] = setting.AuditRecordEnabled()
 
 			ctx.Data["AllLangs"] = translation.AllLangs()
 

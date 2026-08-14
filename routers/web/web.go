@@ -407,13 +407,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}
 	}
 
-	auditLogsEnabled := func(ctx *context.Context) {
-		if !setting.AuditRecordEnabled() {
-			ctx.HTTPError(http.StatusNotFound)
-			return
-		}
-	}
-
 	dlSourceEnabled := func(ctx *context.Context) {
 		if setting.Repository.DisableDownloadSourceArchives {
 			ctx.HTTPError(http.StatusNotFound)
@@ -750,7 +743,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
 
-		m.Get("/audit_logs", auditLogsEnabled, user_setting.ViewAuditLogs)
+		m.Get("/audit_logs", user_setting.ViewAuditLogs)
 
 		m.Group("/blocked_users", func() {
 			m.Get("", user_setting.BlockedUsers)
@@ -799,8 +792,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 
 		m.Group("/monitor", func() {
-			m.Get("/audit_logs", auditLogsEnabled, admin.ViewAuditLogs)
-			m.Get("/audit_logs/export", auditLogsEnabled, admin.ExportAuditLogs)
+			m.Get("/audit_logs", admin.ViewAuditLogs)
+			m.Get("/audit_logs/export", admin.ExportAuditLogs)
 			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
 			m.Get("/perftrace", admin.PerfTrace)
@@ -1062,7 +1055,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsScopedWorkflowsRoutes()
 				}, actions.MustEnableActions)
 
-				m.Get("/audit_logs", auditLogsEnabled, org_setting.ViewAuditLogs)
+				m.Get("/audit_logs", org_setting.ViewAuditLogs)
 
 				m.Post("/rename", web.Bind[*forms.RenameOrgForm](), org.SettingsRenamePost)
 				m.Post("/delete", org.SettingsDeleteOrgPost)
@@ -1273,7 +1266,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
 		}, actions.MustEnableActions)
-		m.Get("/audit_logs", auditLogsEnabled, repo_setting.ViewAuditLogs)
+		m.Get("/audit_logs", repo_setting.ViewAuditLogs)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {
 			m.Post("/retry", repo.MigrateRetryPost)
