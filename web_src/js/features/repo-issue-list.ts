@@ -118,7 +118,6 @@ function initDropdownUserRemoteSearch(el: Element) {
 
   if (!searchUrl.includes('?')) searchUrl += '?';
   $searchDropdown.dropdown('setting', {
-    onShow: () => $searchDropdown.dropdown('filter', ' '), // trigger a search on first show
     onMenuUpdated: () => syncItemFromInput(),
     apiSettings: {
       cache: false,

@@ -1081,7 +1081,7 @@ $.api.settings = {
   throttle             : 0,
 
   // whether to throttle first request or only repeated
-  throttleFirstRequest : true,
+  throttleFirstRequest : false,
 
   // standard ajax settings
   method            : 'get',

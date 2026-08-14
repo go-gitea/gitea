@@ -521,8 +521,9 @@ $.fn.dropdown = function(parameters) {
             ? callback
             : function(){}
           ;
-          if(!module.can.show() && module.is.remote()) {
+          if(module.is.remote() && !$module.data('remote-queried')) {
             module.debug('No API results retrieved, searching before show');
+            $module.data('remote-queried', true)
             module.queryRemote(module.get.query(), module.show);
           }
           if( module.can.show() && !module.is.active() ) {
