@@ -120,7 +120,6 @@ function initDropdownUserRemoteSearch(el: Element) {
   $searchDropdown.dropdown('setting', {
     onMenuUpdated: () => syncItemFromInput(),
     apiSettings: {
-      cache: false,
       url: `${searchUrl}&q={query}`,
       onResponse(resp: any) {
         // the content is provided by backend IssuePosters handler

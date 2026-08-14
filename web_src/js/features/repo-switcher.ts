@@ -19,7 +19,6 @@ export function initRepoSwitcher(el: HTMLElement) {
   $dropdown.dropdown({
     showOnFocus: false, // don't auto popup the dropdown menu, avoid interrupting users keyboard navigation on the page
     apiSettings: {
-      cache: false,
       url: el.getAttribute('data-query-url')!,
       onResponse: (response: RepoSearchResponse) => ({results: response.data.map(({repository: repo}) => {
         const svgCheck = repo.full_name === currentFullName ? svg('octicon-check', 16) : '';

@@ -521,9 +521,10 @@ $.fn.dropdown = function(parameters) {
             ? callback
             : function(){}
           ;
-          if(module.is.remote() && !$module.data('remote-queried')) {
+          const dataKeyRemoteQueried = 'remote-queried';
+          if(module.is.remote() && !$module.data(dataKeyRemoteQueried)) {
             module.debug('No API results retrieved, searching before show');
-            $module.data('remote-queried', true)
+            $module.data(dataKeyRemoteQueried, true)
             module.queryRemote(module.get.query(), module.show);
           }
           if( module.can.show() && !module.is.active() ) {
@@ -800,6 +801,9 @@ $.fn.dropdown = function(parameters) {
         },
 
         queryRemote: function(query, callback) {
+          const dataKeyRemoteQuerying = 'remote-querying';
+          if ($module.data(dataKeyRemoteQuerying) === query) return;
+          $module.data(dataKeyRemoteQuerying, query);
           var
             apiSettings = {
               errorDuration : false,
@@ -807,6 +811,11 @@ $.fn.dropdown = function(parameters) {
               throttle      : settings.throttle,
               urlData       : {
                 query: query
+              },
+              onComplete: function() {
+                if ($module.data(dataKeyRemoteQuerying) === query) {
+                  $module.removeData(dataKeyRemoteQuerying);
+                }
               },
               onError: function() {
                 module.add.message(message.serverError);
