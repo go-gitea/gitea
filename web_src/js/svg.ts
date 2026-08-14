@@ -50,7 +50,6 @@ import octiconHistory from '../../public/assets/img/svg/octicon-history.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
 import octiconHome from '../../public/assets/img/svg/octicon-home.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
-import octiconInfo from '../../public/assets/img/svg/octicon-info.svg';
 import octiconIssueClosed from '../../public/assets/img/svg/octicon-issue-closed.svg';
 import octiconIssueOpened from '../../public/assets/img/svg/octicon-issue-opened.svg';
 import octiconItalic from '../../public/assets/img/svg/octicon-italic.svg';
@@ -140,7 +139,6 @@ const svgs = {
   'octicon-horizontal-rule': octiconHorizontalRule,
   'octicon-home': octiconHome,
   'octicon-image': octiconImage,
-  'octicon-info': octiconInfo,
   'octicon-issue-closed': octiconIssueClosed,
   'octicon-issue-opened': octiconIssueOpened,
   'octicon-italic': octiconItalic,

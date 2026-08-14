@@ -1,7 +1,5 @@
 .toastify {
-  color: var(--color-text);
-  background: var(--color-menu);
-  border: 1px solid var(--color-secondary);
+  color: var(--color-white);
   position: fixed;
   opacity: 0;
   transition: all .2s ease;
@@ -17,11 +15,6 @@
 .toastify.on {
   opacity: 1;
 }
-
-.toast-success .toast-icon { color: var(--color-success-text); }
-.toast-info .toast-icon { color: var(--color-info-text); }
-.toast-warning .toast-icon { color: var(--color-warning-text); }
-.toast-error .toast-icon { color: var(--color-error-text); }
 
 .toast-body {
   flex: 1;
