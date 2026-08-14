@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/public"
@@ -64,6 +65,14 @@ func (c TemplateContext) CurrentWebTheme() *webtheme.ThemeMetaInfo {
 		themeName = middleware.GetSiteCookie(c.req(), middleware.CookieTheme)
 	}
 	return webtheme.GuaranteeGetThemeMetaInfo(themeName)
+}
+
+func (c TemplateContext) ImpersonatedUser() *user_model.User {
+	webCtx := GetWebContext(c)
+	if webCtx == nil || webCtx.Doer == nil || !webCtx.DoerIsImpersonated() {
+		return nil
+	}
+	return webCtx.Doer
 }
 
 func (c TemplateContext) CurrentWebBanner() *setting.WebBannerType {
