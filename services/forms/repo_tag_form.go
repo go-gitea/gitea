@@ -3,24 +3,12 @@
 
 package forms
 
-import (
-	"net/http"
-
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/context"
-
-	"gitea.com/go-chi/binding"
-)
+import "gitea.dev/modules/web/middleware"
 
 // ProtectTagForm form for changing protected tag settings
 type ProtectTagForm struct {
+	middleware.FormDefaultValidator
 	NamePattern    string `binding:"Required;GlobOrRegexPattern"`
 	AllowlistUsers string
 	AllowlistTeams string
-}
-
-// Validate validates the fields
-func (f *ProtectTagForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(ctx, errs, f)
 }
