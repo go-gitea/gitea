@@ -24,8 +24,7 @@ export function initRepoSwitcher(el: HTMLElement) {
     apiSettings: {
       cache: false,
       throttleFirstRequest: false, // open without waiting out the throttle, later keystrokes stay debounced
-      // FIXME: it is not right, it slows all repos belonging to the UID under different owners
-      url: `${appSubUrl}/repo/search?q={query}&uid=${uid}&priority_owner_id=${uid}`,
+      url: `${appSubUrl}/repo/search?q={query}&uid=${uid}&exclusive=true`, // only search the repo owned by "uid"
       onResponse: (response: RepoSearchResponse) => ({results: response.data.map(({repository: repo}) => {
         const svgCheck = repo.full_name === currentFullName ? svg('octicon-check', 16) : '';
         const svgRepoIcon = repoIcon(repo);

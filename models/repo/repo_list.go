@@ -169,8 +169,8 @@ type SearchRepoOptions struct {
 	// False -> include just public
 	IsPrivate optional.Option[bool]
 	// None -> include collaborative AND non-collaborative
-	// True -> include just collaborative
-	// False -> include just non-collaborative
+	// True -> include just collaborative (the doer is a collaborator but doesn't own the repo)
+	// False -> include just non-collaborative (the repo must be in the owner's name space)
 	Collaborate optional.Option[bool]
 	// What type of unit the user can be collaborative in,
 	// it is ignored if Collaborate is False.
