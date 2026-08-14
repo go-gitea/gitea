@@ -63,14 +63,19 @@ func (specs SpecList) LoadRepos(ctx context.Context) error {
 
 type FindSpecOptions struct {
 	db.ListOptions
-	RepoID int64
-	Next   int64
+	RepoID      int64
+	ScheduleIDs []int64
+	Next        int64
 }
 
 func (opts FindSpecOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+
+	if len(opts.ScheduleIDs) > 0 {
+		cond = cond.And(builder.In("schedule_id", opts.ScheduleIDs))
 	}
 
 	if opts.Next > 0 {

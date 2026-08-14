@@ -8,7 +8,7 @@
 			<thead>
 				<tr>
 					<th>{{ctx.Locale.Tr "actions.schedules.id"}}</th>
-					{{if not .IsRepoSchedules}}<th>{{ctx.Locale.Tr "actions.schedules.repository"}}</th>{{end}}
+					{{if not .IsRepoSchedules}}<th>{{ctx.Locale.Tr "repository"}}</th>{{end}}
 					<th>{{ctx.Locale.Tr "actions.schedules.workflow"}}</th>
 					<th>{{ctx.Locale.Tr "actions.schedules.spec"}}</th>
 					<th>{{ctx.Locale.Tr "actions.schedules.ref"}}</th>
@@ -23,27 +23,21 @@
 					{{if not $.IsRepoSchedules}}
 					<td>
 						{{if .Repo}}
-							<a href="{{AppSubUrl}}/{{.Repo.OwnerName}}/{{.Repo.Name}}">{{.Repo.OwnerName}}/{{.Repo.Name}}</a>
+							<a href="{{.Repo.Link}}">{{.Repo.FullName}}</a>
 						{{else}}
 							{{.Schedule.RepoID}}
 						{{end}}
 					</td>
 					{{end}}
-					<td>{{.Schedule.Title}}</td>
-					<td>
-						{{range .Specs}}<span class="ui label">{{.Spec}}</span> {{end}}
-					</td>
-					<td><span class="ui label">{{.Schedule.Ref}}</span></td>
-					<td>
-						{{range .Specs}}
-							{{DateUtils.FullTime .Next}}
-						{{end}}
-					</td>
-					<td>
-						{{range .Specs}}
-							{{DateUtils.FullTime .Prev}}
-						{{end}}
-					</td>
+					<td>{{.Schedule.WorkflowID}}</td>
+					<td><span class="ui label">{{.Spec}}</span></td>
+					<td><span class="ui label">{{.Schedule.PrettyRef}}</span></td>
+					{{if .SpecRow}}
+					<td>{{DateUtils.FullTime .SpecRow.Next}}</td>
+					<td>{{if .SpecRow.Prev}}{{DateUtils.FullTime .SpecRow.Prev}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
+					{{else}}
+					<td colspan="2">{{svg "octicon-alert"}} {{ctx.Locale.Tr "actions.schedules.invalid_spec"}}</td>
+					{{end}}
 				</tr>
 				{{end}}
 			</tbody>

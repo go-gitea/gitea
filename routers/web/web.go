@@ -523,9 +523,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	}
 
 	addSettingsSchedulesRoutes := func() {
-		m.Group("/schedules", func() {
-			m.Get("", shared_actions.Schedules)
-		})
+		m.Get("/schedules", shared_actions.Schedules)
 	}
 
 	// FIXME: not all routes need go through same middleware.

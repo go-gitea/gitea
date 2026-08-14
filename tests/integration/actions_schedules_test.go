@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	actions_model "gitea.dev/models/actions"
-	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -25,44 +24,39 @@ func TestActionsSchedules(t *testing.T) {
 
 	ctx := t.Context()
 
-	// Clean slate
-	require.NoError(t, db.DeleteAllRecords("action_schedule"))
-	require.NoError(t, db.DeleteAllRecords("action_schedule_spec"))
-
 	adminSession := loginUser(t, "user1")
 
-	// Create test data
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 
 	require.NoError(t, actions_model.CreateScheduleTask(ctx, []*actions_model.ActionSchedule{
 		{
-			Title:         "ci.yml",
+			Title:         "add ci workflow",
 			Specs:         []string{"0 * * * *"},
 			RepoID:        repo1.ID,
 			OwnerID:       user2.ID,
-			WorkflowID:    "w1",
+			WorkflowID:    "ci.yml",
 			TriggerUserID: user2.ID,
 			Ref:           "refs/heads/main",
 			CommitSHA:     "abc123",
 		},
 		{
-			Title:         "deploy.yml",
-			Specs:         []string{"30 2 * * *"},
+			Title:         "add deploy workflow",
+			Specs:         []string{"30 2 * * *", "totally-not-a-cron-expression"},
 			RepoID:        repo1.ID,
 			OwnerID:       user2.ID,
-			WorkflowID:    "w2",
+			WorkflowID:    "deploy.yml",
 			TriggerUserID: user2.ID,
 			Ref:           "refs/heads/main",
 			CommitSHA:     "def456",
 		},
 		{
-			Title:         "nightly.yml",
+			Title:         "add nightly workflow",
 			Specs:         []string{"0 0 * * *", "0 12 * * *"},
 			RepoID:        repo2.ID,
 			OwnerID:       user2.ID,
-			WorkflowID:    "w3",
+			WorkflowID:    "nightly.yml",
 			TriggerUserID: user2.ID,
 			Ref:           "refs/heads/develop",
 			CommitSHA:     "ghi789",
@@ -84,15 +78,24 @@ func TestActionsSchedules(t *testing.T) {
 			assert.Contains(t, body, "ci.yml")
 			assert.Contains(t, body, "deploy.yml")
 			assert.Contains(t, body, "nightly.yml")
+			assert.NotContains(t, body, "add ci workflow")
 			assert.Contains(t, body, "0 * * * *")
 			assert.Contains(t, body, "30 2 * * *")
 			assert.Contains(t, body, "0 0 * * *")
 			assert.Contains(t, body, "0 12 * * *")
-			assert.Contains(t, body, "refs/heads/main")
-			assert.Contains(t, body, "refs/heads/develop")
-			// Admin view shows both repos
+			assert.Contains(t, body, ">main<")
+			assert.Contains(t, body, ">develop<")
+			assert.NotContains(t, body, "refs/heads/")
 			assert.Contains(t, body, fmt.Sprintf("/%s/%s", repo1.OwnerName, repo1.Name))
 			assert.Contains(t, body, fmt.Sprintf("/%s/%s", repo2.OwnerName, repo2.Name))
+		})
+
+		t.Run("ShowsUnparseableSpec", func(t *testing.T) {
+			req := NewRequest(t, "GET", "/-/admin/actions/schedules")
+			resp := adminSession.MakeRequest(t, req, http.StatusOK)
+			body := resp.Body.String()
+			assert.Contains(t, body, "totally-not-a-cron-expression")
+			assert.Contains(t, body, "Invalid cron expression")
 		})
 
 		t.Run("NonAdminDenied", func(t *testing.T) {
@@ -104,36 +107,32 @@ func TestActionsSchedules(t *testing.T) {
 
 	t.Run("Repo", func(t *testing.T) {
 		repoWebURL := fmt.Sprintf("/%s/%s/settings/actions/schedules", repo1.OwnerName, repo1.Name)
-		sessionRepoAdmin := loginUser(t, repo1.OwnerName)
+		sessionOwner := loginUser(t, user2.Name)
 
 		t.Run("PageRenders", func(t *testing.T) {
 			req := NewRequest(t, "GET", repoWebURL)
-			resp := sessionRepoAdmin.MakeRequest(t, req, http.StatusOK)
+			resp := sessionOwner.MakeRequest(t, req, http.StatusOK)
 			body := resp.Body.String()
 			assert.True(t, test.IsNormalPageCompleted(body))
 		})
 
 		t.Run("ShowsRepoSchedulesOnly", func(t *testing.T) {
 			req := NewRequest(t, "GET", repoWebURL)
-			resp := sessionRepoAdmin.MakeRequest(t, req, http.StatusOK)
+			resp := sessionOwner.MakeRequest(t, req, http.StatusOK)
 			body := resp.Body.String()
-			// repo1 schedules should be present
 			assert.Contains(t, body, "ci.yml")
 			assert.Contains(t, body, "deploy.yml")
 			assert.Contains(t, body, "0 * * * *")
 			assert.Contains(t, body, "30 2 * * *")
-			assert.Contains(t, body, "refs/heads/main")
-			// repo2 schedules should NOT be present
 			assert.NotContains(t, body, "nightly.yml")
 			assert.NotContains(t, body, "0 0 * * *")
 			assert.NotContains(t, body, "0 12 * * *")
-			assert.NotContains(t, body, "refs/heads/develop")
+			assert.NotContains(t, body, ">develop<")
 		})
 
-		t.Run("RepoOwnerCanAccess", func(t *testing.T) {
-			sessionOwner := loginUser(t, user2.Name)
+		t.Run("SiteAdminCanAccess", func(t *testing.T) {
 			req := NewRequest(t, "GET", repoWebURL)
-			sessionOwner.MakeRequest(t, req, http.StatusOK)
+			adminSession.MakeRequest(t, req, http.StatusOK)
 		})
 
 		t.Run("NonAdminDenied", func(t *testing.T) {
