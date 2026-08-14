@@ -385,6 +385,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	if entry == nil || ctx.Written() {
 		return nil, nil
 	}
+	ctx.Data["WikiGitPath"] = pageFilename
 
 	// get page content
 	data := wikiContentsByEntry(ctx, wikiGitRepo, entry)
@@ -495,6 +496,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	if entry == nil || ctx.Written() {
 		return nil, nil
 	}
+	ctx.Data["WikiGitPath"] = pageFilename
 
 	// get commit count - wiki revisions
 	commitsCount, _ := git.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
@@ -651,7 +653,10 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 	wikiName = util.IfZero(wikiName, "Home")
-	wikiPath := wiki_service.WebPathToGitPath(wikiName)
+	wikiPath, ok := ctx.Data["WikiGitPath"].(string)
+	if !ok {
+		wikiPath = wiki_service.WebPathToGitPath(wikiName)
+	}
 	detectedRender := markup.DetectRendererTypeByFilename(wikiPath)
 	if detectedRender == nil || detectedRender.Name() != markdown.MarkupName {
 		ctx.Data["FormatWarning"] = "File extension " + path.Ext(wikiPath) + " is not supported at the moment. Rendered as Markdown."
@@ -694,7 +699,10 @@ func WikiRevision(ctx *context.Context) {
 		return
 	}
 	wikiName = util.IfZero(wikiName, "Home")
-	wikiPath := wiki_service.WebPathToGitPath(wikiName)
+	wikiPath, ok := ctx.Data["WikiGitPath"].(string)
+	if !ok {
+		wikiPath = wiki_service.WebPathToGitPath(wikiName)
+	}
 	lastCommit, err := wikiGitRepo.GetCommitByPath(ctx, wikiPath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
