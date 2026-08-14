@@ -298,6 +298,7 @@ func GetFetchActionForm[T interface {
 	}
 	form := T(new(E))
 	errs := binding.Bind(ctx.Req, form)
+	errs = form.Validate(GetValidateContext(ctx.Req), errs)
 	errorMessage, fieldName, _ := middleware.BuildValidationErrorForUser(form, ctx.Locale, errs)
 	if errorMessage != "" {
 		ctx.Resp.Header().Set("Content-Type", "application/json")

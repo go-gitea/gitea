@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository wiki view">
+<div role="main" aria-label="{{.Title}}" class="page-content repository wiki">
 	{{template "repo/header" .}}
 	{{$title := .title}}
 	<div class="ui container">
@@ -63,7 +63,7 @@
 
 		<div class="wiki-content-parts">
 			{{if .WikiSidebarTocHTML}}
-			<div class="render-content markup wiki-content-sidebar wiki-content-toc">
+			<div class="render-content markup wiki-content-sidebar wiki-content-toc" data-global-init="initRepoWikiSidebarToc">
 				{{.WikiSidebarTocHTML}}
 			</div>
 			{{end}}
