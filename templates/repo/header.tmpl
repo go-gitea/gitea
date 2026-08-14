@@ -8,7 +8,9 @@
 				<div class="flex-text-block tw-flex-wrap tw-text-18">
 					<a class="muted tw-font-normal" href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>/<a class="muted" href="{{$.RepoLink}}">{{.Name}}</a>
 					{{if $.IsSigned}}{{/* actually the switch also works for anonymous users, GitHub only shows it for sign-in users */}}
-						<div class="ui custom dropdown" data-global-init="initRepoSwitcher" data-uid="{{.Owner.ID}}" data-current-full-name="{{.FullName}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}">
+						<div class="ui custom dropdown" data-global-init="initRepoSwitcher" data-current-full-name="{{.FullName}}" data-tooltip-content="{{ctx.Locale.Tr "repo.switch_repository"}}"
+							data-query-url="{{AppSubUrl}}/repo/search?q={query}&uid={{.Owner.ID}}&exclusive=true" {{/* only search the repo owned by "uid" */}}
+						>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu flex-items-menu items-width-limit">
 								<div class="ui icon search input">

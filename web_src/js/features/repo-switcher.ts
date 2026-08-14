@@ -2,8 +2,6 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {svg} from '../svg.ts';
 
-const {appSubUrl} = window.config;
-
 type RepoItem = {full_name: string; html_url: string; private: boolean; fork: boolean};
 type RepoSearchResponse = {data: Array<{repository: RepoItem}>};
 
@@ -16,15 +14,13 @@ function repoIcon(repo: RepoItem): string {
 // quick repo switcher: the caret next to the repo name opens a remote-search dropdown
 // listing the owner's repositories, and navigates to the selected one
 export function initRepoSwitcher(el: HTMLElement) {
-  const uid = el.getAttribute('data-uid');
   const currentFullName = el.getAttribute('data-current-full-name');
   const $dropdown = fomanticQuery(el);
   $dropdown.dropdown({
     showOnFocus: false, // don't auto popup the dropdown menu, avoid interrupting users keyboard navigation on the page
     apiSettings: {
       cache: false,
-      throttleFirstRequest: false, // open without waiting out the throttle, later keystrokes stay debounced
-      url: `${appSubUrl}/repo/search?q={query}&uid=${uid}&exclusive=true`, // only search the repo owned by "uid"
+      url: el.getAttribute('data-query-url')!,
       onResponse: (response: RepoSearchResponse) => ({results: response.data.map(({repository: repo}) => {
         const svgCheck = repo.full_name === currentFullName ? svg('octicon-check', 16) : '';
         const svgRepoIcon = repoIcon(repo);
