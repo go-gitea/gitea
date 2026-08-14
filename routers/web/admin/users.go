@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/explore"
 	user_setting "gitea.dev/routers/web/user/setting"
@@ -340,7 +341,8 @@ func ViewUser(ctx *context.Context) {
 		}
 		ctx.Data["Tokens"] = tokens
 		ctx.Data["AccessTokenScopePublicOnly"] = auth.AccessTokenScopePublicOnly
-		ctx.Data["TokenCategories"] = auth.GetAccessTokenCategories()
+		// a bot can never be a site admin, so an admin-scoped token would be useless
+		ctx.Data["TokenCategories"] = util.SliceRemoveAll(auth.GetAccessTokenCategories(), "admin")
 	}
 
 	ctx.HTML(http.StatusOK, tplUserView)
@@ -368,7 +370,7 @@ func NewBotTokenPost(ctx *context.Context) {
 		return
 	}
 	if !scope.HasPermissionScope() {
-		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
+		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"))
 		ctx.Redirect(redirect)
 		return
 	}

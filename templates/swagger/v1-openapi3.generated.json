@@ -12174,6 +12174,9 @@
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
+          "404": {
+            "$ref": "#/components/responses/notFound"
+          },
           "422": {
             "$ref": "#/components/responses/validationError"
           }
