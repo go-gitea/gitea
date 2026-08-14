@@ -63,15 +63,15 @@ func AddEmail(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.CreateEmailOption)
+	form := web.GetForm[*api.CreateEmailOption](ctx)
 	if len(form.Emails) == 0 {
 		ctx.APIError(http.StatusUnprocessableEntity, "Email list empty")
 		return
 	}
 
 	if err := user_service.AddEmailAddresses(ctx, ctx.Doer, form.Emails); err != nil {
-		if user_model.IsErrEmailAlreadyUsed(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, "Email address has been used: "+err.(user_model.ErrEmailAlreadyUsed).Email)
+		if errEmailAlreadyUsed, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
+			ctx.APIError(http.StatusUnprocessableEntity, "Email address has been used: "+errEmailAlreadyUsed.Email)
 		} else if user_model.IsErrEmailCharIsNotSupported(err) || user_model.IsErrEmailInvalid(err) {
 			email := ""
 			if typedError, ok := err.(user_model.ErrEmailInvalid); ok {
@@ -125,7 +125,7 @@ func DeleteEmail(ctx *context.APIContext) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*api.DeleteEmailOption)
+	form := web.GetForm[*api.DeleteEmailOption](ctx)
 	if len(form.Emails) == 0 {
 		ctx.Status(http.StatusNoContent)
 		return

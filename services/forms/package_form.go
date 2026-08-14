@@ -3,16 +3,10 @@
 
 package forms
 
-import (
-	"net/http"
-
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/context"
-
-	"gitea.com/go-chi/binding"
-)
+import "gitea.dev/modules/web/middleware"
 
 type PackageCleanupRuleForm struct {
+	middleware.FormDefaultValidator
 	ID            int64
 	Enabled       bool
 	Type          string `binding:"Required;In(alpine,arch,cargo,chef,composer,conan,conda,container,cran,debian,generic,go,helm,maven,npm,nuget,pub,pypi,rpm,rubygems,swift,terraform,vagrant)"`
@@ -22,9 +16,4 @@ type PackageCleanupRuleForm struct {
 	RemovePattern string `binding:"RegexPattern"`
 	MatchFullName bool
 	Action        string `binding:"Required;In(save,remove)"`
-}
-
-func (f *PackageCleanupRuleForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

@@ -368,7 +368,7 @@ func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_mod
 
 // NewTeamPost response for create new team
 func NewTeamPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateTeamForm)
+	form := web.GetForm[*forms.CreateTeamForm](ctx)
 	includesAllRepositories := form.RepoAccess == "all"
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
 	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
@@ -544,7 +544,7 @@ func EditTeam(ctx *context.Context) {
 
 // EditTeamPost response for modify team information
 func EditTeamPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateTeamForm)
+	form := web.GetForm[*forms.CreateTeamForm](ctx)
 	t := ctx.Org.Team
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
 	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)

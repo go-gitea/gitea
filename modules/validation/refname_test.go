@@ -17,21 +17,18 @@ func Test_GitRefNameValidation(t *testing.T) {
 			data: TestForm{
 				BranchName: "test",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "Reference name contains single slash",
 			data: TestForm{
 				BranchName: "feature/test",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "Reference name has allowed special characters",
 			data: TestForm{
 				BranchName: "debian/1%1.6.0-2",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "Reference name contains backslash",

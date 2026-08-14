@@ -203,7 +203,7 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.VerifyGPGKeyOption)
+	form := web.GetForm[*api.VerifyGPGKeyOption](ctx)
 	token := asymkey_model.VerificationToken(ctx.Doer, 1)
 	lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
@@ -268,7 +268,7 @@ func CreateGPGKey(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateGPGKeyOption)
+	form := web.GetForm[*api.CreateGPGKeyOption](ctx)
 	CreateUserGPGKey(ctx, *form, ctx.Doer.ID)
 }
 

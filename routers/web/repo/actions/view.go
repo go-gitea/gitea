@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -38,11 +39,10 @@ import (
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/common"
 	actions_service "gitea.dev/services/actions"
 	context_module "gitea.dev/services/context"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 func findCurrentJobByPathParam(ctx *context_module.Context, jobs []*actions_model.ActionRunJob) (job *actions_model.ActionRunJob, hasPathParam bool) {
@@ -278,6 +278,7 @@ type LogCursor struct {
 }
 
 type ViewRequest struct {
+	middleware.FormDefaultValidator
 	LogCursors []LogCursor `json:"logCursors"`
 }
 
@@ -718,7 +719,7 @@ func fillViewRunResponseSummary(ctx *context_module.Context, resp *ViewResponse,
 }
 
 func fillViewRunResponseCurrentJob(ctx *context_module.Context, resp *ViewResponse, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
-	req := web.GetForm(ctx).(*ViewRequest)
+	req := web.GetForm[*ViewRequest](ctx)
 	current, hasPathParam := findCurrentJobByPathParam(ctx, jobs)
 	if current == nil {
 		if hasPathParam {

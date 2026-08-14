@@ -7,7 +7,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.27.1](https://github.com/go-gitea/gitea/releases/tag/v1.27.1) - 2026-07-27
 
 * SECURITY
-  * fix(oauth2): enforce mandatory 2FA policy on OAuth2 authorize/grant endpoints (#38591) (#38606)
+  * Fix: orgmode render include path (#38642) (#38645)
+  * Fix: git patch apply (#38637) (#38638)
+  * Fix(oauth2): enforce mandatory 2FA policy on OAuth2 authorize/grant endpoints (#38591) (#38606)
 
 * API
   * fix(api): align Swagger schemas for UserSettings and TopicListResponse (#38590) (#38592)
