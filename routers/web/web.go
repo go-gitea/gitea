@@ -527,10 +527,6 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 	}
 
-	addSettingsSchedulesRoutes := func() {
-		m.Get("/schedules", shared_actions.Schedules)
-	}
-
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
@@ -734,6 +730,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
 			addSettingsScopedWorkflowsRoutes()
+			m.Get("/schedules", shared_actions.Schedules)
 		}, actions.MustEnableActions)
 
 		m.Get("/organization", user_setting.Organization)
@@ -899,7 +896,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 			addSettingsVariablesRoutes()
 			addSettingsScopedWorkflowsRoutes()
-			addSettingsSchedulesRoutes()
+			m.Get("/schedules", shared_actions.Schedules)
 		})
 	}, adminReq, ctxDataSet(reqctx.ContextData{"EnableOAuth2": setting.OAuth2.Enabled, "EnablePackages": setting.Packages.Enabled}))
 	// ***** END: Admin *****
@@ -1058,6 +1055,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
 					addSettingsScopedWorkflowsRoutes()
+					m.Get("/schedules", shared_actions.Schedules)
 				}, actions.MustEnableActions)
 
 				m.Post("/rename", web.Bind[*forms.RenameOrgForm](), org.SettingsRenamePost)
@@ -1261,7 +1259,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
-			addSettingsSchedulesRoutes()
+			m.Get("/schedules", shared_actions.Schedules)
 			m.Group("/general", func() {
 				m.Group("/collaborative_owner", func() {
 					m.Post("/add", repo_setting.AddCollaborativeOwner)

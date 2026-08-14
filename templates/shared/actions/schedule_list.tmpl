@@ -1,4 +1,4 @@
-<div class="schedule-container">
+<div class="actions-settings-container">
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.schedules.manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 	</h4>
@@ -17,28 +17,43 @@
 				</tr>
 			</thead>
 			<tbody>
-				{{range .Schedules}}
+				{{range $schedule := .Schedules}}
+				{{range $i, $spec := .Specs}}
 				<tr>
-					<td>{{.Schedule.ID}}</td>
+					{{if eq $i 0}}
+					{{/* the cells below describe the schedule, not the cron expression, so they span its spec rows */}}
+					<td rowspan="{{len $schedule.Specs}}">{{$schedule.Schedule.ID}}</td>
 					{{if not $.IsRepoSchedules}}
-					<td>
-						{{if .Repo}}
-							<a href="{{.Repo.Link}}">{{.Repo.FullName}}</a>
+					<td rowspan="{{len $schedule.Specs}}">
+						{{if $schedule.Repo}}
+							<a href="{{$schedule.Repo.Link}}">{{$schedule.Repo.FullName}}</a>
 						{{else}}
-							{{.Schedule.RepoID}}
+							{{$schedule.Schedule.RepoID}}
 						{{end}}
 					</td>
 					{{end}}
-					<td>{{.Schedule.WorkflowID}}</td>
-					<td><span class="ui label">{{.Spec}}</span></td>
-					<td><span class="ui label">{{.Schedule.PrettyRef}}</span></td>
-					{{if .SpecRow}}
-					<td>{{DateUtils.FullTime .SpecRow.Next}}</td>
-					<td>{{if .SpecRow.Prev}}{{DateUtils.FullTime .SpecRow.Prev}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
-					{{else}}
+					<td rowspan="{{len $schedule.Specs}}">{{$schedule.Schedule.WorkflowID}}</td>
+					{{end}}
+					<td><span class="ui label">{{$spec.Spec}}</span></td>
+					{{if eq $i 0}}
+					<td rowspan="{{len $schedule.Specs}}"><span class="ui label">{{$schedule.Schedule.PrettyRef}}</span></td>
+					{{end}}
+					{{if not $spec.Row}}
 					<td colspan="2">{{svg "octicon-alert"}} {{ctx.Locale.Tr "actions.schedules.invalid_spec"}}</td>
+					{{else}}
+					<td>
+						{{if $schedule.SkipReason}}
+							{{svg "octicon-alert"}} {{ctx.Locale.Tr $schedule.SkipReason}}
+						{{else if le $spec.Row.Next 0}}
+							{{svg "octicon-alert"}} {{ctx.Locale.Tr "actions.schedules.unsatisfiable_spec"}}
+						{{else}}
+							{{DateUtils.FullTime $spec.Row.Next}}
+						{{end}}
+					</td>
+					<td>{{if $spec.Row.Prev}}{{DateUtils.FullTime $spec.Row.Prev}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</td>
 					{{end}}
 				</tr>
+				{{end}}
 				{{end}}
 			</tbody>
 		</table>
