@@ -23,7 +23,7 @@ import (
 
 func TestAuditNotifier(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	defer test.MockVariableValue(&setting.Audit.Enabled, true)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 	doer := &user_model.User{ID: 2, Name: "doer"}
 	repo := &repo_model.Repository{ID: 1, OwnerName: "owner", Name: "repo"}
@@ -54,5 +54,30 @@ func TestAuditNotifier(t *testing.T) {
 		ScopeType: audit_model.ScopeRepository,
 		ScopeID:   repo.ID,
 		Origin:    audit_model.OriginUI,
+	})
+
+	notifier.CreateRepository(ctx, doer, doer, repo)
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
+		Action:    audit_model.RepositoryCreate,
+		ActorID:   doer.ID,
+		ScopeType: audit_model.ScopeRepository,
+		ScopeID:   repo.ID,
+		Origin:    audit_model.OriginUI,
+	})
+
+	notifier.TransferRepository(ctx, doer, repo, "previous_owner")
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
+		Action:    audit_model.RepositoryTransferFinish,
+		ActorID:   doer.ID,
+		ScopeType: audit_model.ScopeRepository,
+		ScopeID:   repo.ID,
+		Message:   "Transferred repository owner/repo from previous_owner to owner.",
+	})
+
+	notifier.ChangeDefaultBranch(ctx, repo)
+	unittest.AssertExistsAndLoadBean(t, &audit_model.Event{
+		Action:    audit_model.RepositoryBranchDefault,
+		ScopeType: audit_model.ScopeRepository,
+		ScopeID:   repo.ID,
 	})
 }

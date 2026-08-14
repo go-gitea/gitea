@@ -230,7 +230,7 @@ func serveInstalled(c *cli.Command) error {
 	webRoutes := routers.NormalRoutes()
 
 	auditCtx := cliAuditContext(context.Background())
-	log.Info("Audit logging is %s", util.Iif(setting.Audit.Enabled, "enabled", "disabled"))
+	log.Info("Audit record output: %s", setting.Audit.RecordOutput)
 	audit.Record(auditCtx, audit_model.SystemStartup, nil, "version", setting.AppVer)
 
 	err := listen(webRoutes, true)

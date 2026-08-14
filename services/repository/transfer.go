@@ -358,8 +358,6 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryTransferFinish, newRepo, "old_owner", oldOwner.Name, "new_owner", newRepo.OwnerName)
-
 	for _, team := range teams {
 		audit.Record(ctx, audit_model.RepositoryCollaboratorTeamAdd, newRepo, "team", team.Name)
 	}
@@ -429,8 +427,6 @@ func ChangeRepositoryName(ctx context.Context, doer *user_model.User, repo *repo
 	releaser()
 
 	repo.Name = newRepoName
-
-	audit.Record(ctx, audit_model.RepositoryName, repo, "previous_name", oldRepoName)
 
 	notify_service.RenameRepository(ctx, doer, repo, oldRepoName)
 
@@ -502,8 +498,6 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	if isDirectTransfer {
 		notify_service.TransferRepository(ctx, doer, repo, oldOwnerName)
 	} else {
-		audit.Record(ctx, audit_model.RepositoryTransferStart, repo, "new_owner", newOwner.Name)
-
 		// notify users who are able to accept / reject transfer
 		notify_service.RepoPendingTransfer(ctx, doer, newOwner, repo)
 	}

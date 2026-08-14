@@ -115,7 +115,7 @@ func RecordAs(ctx context.Context, doer *user_model.User, action audit_model.Act
 
 // writeEvent persists an audit event when audit logging is enabled.
 func writeEvent(ctx context.Context, params RecordParams) {
-	if !setting.Audit.Enabled {
+	if !setting.AuditRecordEnabled() {
 		return
 	}
 

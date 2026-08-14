@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	actions_model "gitea.dev/models/actions"
-	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
@@ -31,7 +30,6 @@ import (
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
 	actions_service "gitea.dev/services/actions"
-	"gitea.dev/services/audit"
 	notify_service "gitea.dev/services/notify"
 	release_service "gitea.dev/services/release"
 
@@ -742,8 +740,6 @@ func SetRepoDefaultBranch(ctx context.Context, repo *repo_model.Repository, newB
 	if err := DelRepoDivergenceFromCache(ctx, repo.ID); err != nil {
 		log.Error("DelRepoDivergenceFromCache: %v", err)
 	}
-
-	audit.Record(ctx, audit_model.RepositoryBranchDefault, repo, "default_branch", repo.DefaultBranch)
 
 	notify_service.ChangeDefaultBranch(ctx, repo)
 

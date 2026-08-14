@@ -25,6 +25,30 @@ type auditNotifier struct {
 
 var _ notify_service.Notifier = new(auditNotifier)
 
+func (n *auditNotifier) CreateRepository(ctx context.Context, doer, _ *user_model.User, repo *repo_model.Repository) {
+	RecordAs(ctx, doer, audit_model.RepositoryCreate, repo)
+}
+
+func (n *auditNotifier) ForkRepository(ctx context.Context, doer *user_model.User, oldRepo, repo *repo_model.Repository) {
+	RecordAs(ctx, doer, audit_model.RepositoryCreateFork, repo, "base_repo", oldRepo.FullName())
+}
+
+func (n *auditNotifier) RenameRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
+	RecordAs(ctx, doer, audit_model.RepositoryName, repo, "previous_name", oldRepoName)
+}
+
+func (n *auditNotifier) TransferRepository(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
+	RecordAs(ctx, doer, audit_model.RepositoryTransferFinish, repo, "old_owner", oldOwnerName, "new_owner", repo.OwnerName)
+}
+
+func (n *auditNotifier) RepoPendingTransfer(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) {
+	RecordAs(ctx, doer, audit_model.RepositoryTransferStart, repo, "new_owner", newOwner.Name)
+}
+
+func (n *auditNotifier) ChangeDefaultBranch(ctx context.Context, repo *repo_model.Repository) {
+	Record(ctx, audit_model.RepositoryBranchDefault, repo, "default_branch", repo.DefaultBranch)
+}
+
 func issueLabel(issue *issues_model.Issue) string {
 	return fmt.Sprintf("#%d", issue.Index)
 }

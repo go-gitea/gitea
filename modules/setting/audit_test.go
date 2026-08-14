@@ -13,26 +13,25 @@ import (
 )
 
 func TestLoadAuditFrom(t *testing.T) {
-	t.Run("DisabledByDefault", func(t *testing.T) {
-		defer test.MockVariableValue(&Audit)()
+	for _, tc := range []struct {
+		name     string
+		cfg      string
+		expected AuditRecordOutput
+	}{
+		{name: "DisabledByDefault", cfg: "", expected: AuditRecordOutputDisabled},
+		{name: "Database", cfg: "[audit]\nRECORD_OUTPUT = Database\n", expected: AuditRecordOutputDatabase},
+		{name: "Empty", cfg: "[audit]\nRECORD_OUTPUT =\n", expected: AuditRecordOutputDisabled},
+		{name: "Invalid", cfg: "[audit]\nRECORD_OUTPUT = nonsense\n", expected: AuditRecordOutputDisabled},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer test.MockVariableValue(&Audit)()
 
-		cfg, err := NewConfigProviderFromData("")
-		require.NoError(t, err)
-		loadAuditFrom(cfg)
+			cfg, err := NewConfigProviderFromData(tc.cfg)
+			require.NoError(t, err)
+			loadAuditFrom(cfg)
 
-		assert.False(t, Audit.Enabled)
-	})
-
-	t.Run("Enabled", func(t *testing.T) {
-		defer test.MockVariableValue(&Audit)()
-
-		cfg, err := NewConfigProviderFromData(`
-[audit]
-ENABLED = true
-`)
-		require.NoError(t, err)
-		loadAuditFrom(cfg)
-
-		assert.True(t, Audit.Enabled)
-	})
+			assert.Equal(t, tc.expected, Audit.RecordOutput)
+			assert.Equal(t, tc.expected != AuditRecordOutputDisabled, AuditRecordEnabled())
+		})
+	}
 }

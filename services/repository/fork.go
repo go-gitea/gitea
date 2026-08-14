@@ -207,8 +207,6 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 
 	notify_service.ForkRepository(ctx, doer, opts.BaseRepo, repo)
 
-	audit.Record(ctx, audit_model.RepositoryCreateFork, repo, "base_repo", opts.BaseRepo.FullName())
-
 	return repo, nil
 }
 

@@ -51,7 +51,7 @@ func ScopeFromUser(u *user_model.User) audit_model.EntityRef {
 // event is never dropped.
 func ScopeFromUserID(ctx context.Context, id int64) audit_model.EntityRef {
 	ref := audit_model.EntityRef{Type: audit_model.ScopeUser, ID: id}
-	if !setting.Audit.Enabled {
+	if !setting.AuditRecordEnabled() {
 		return ref
 	}
 	u, err := user_model.GetUserByID(ctx, id)

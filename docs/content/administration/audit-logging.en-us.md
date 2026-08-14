@@ -23,12 +23,17 @@ Audit logging is used to track security related events and provide documentary e
 
 ## Configuration
 
-Audit logging is disabled by default. Enable it with:
+Audit logging is disabled by default. `RECORD_OUTPUT` selects where events are recorded, either
+`disabled` or `database`:
 
 ```ini
 [audit]
-ENABLED = true
+RECORD_OUTPUT = database
+RETENTION_DAYS = 30
 ```
+
+`RETENTION_DAYS` bounds the size of the `audit_event` table; events older than it are removed daily by
+the `cron.delete_old_audit_events` task. Set it to `0` to keep events forever.
 
 Events are then written to the database and shown in the admin, organization, repository and user
 settings. Every view can be filtered by actor, action and origin. Site administrators can download

@@ -56,8 +56,6 @@ func CreateRepository(ctx context.Context, doer, owner *user_model.User, opts Cr
 
 	notify_service.CreateRepository(ctx, doer, owner, repo)
 
-	audit.Record(ctx, audit_model.RepositoryCreate, repo)
-
 	return repo, nil
 }
 

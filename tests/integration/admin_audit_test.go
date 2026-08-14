@@ -25,7 +25,7 @@ import (
 // otherwise anything done in an impersonated session is pinned on the victim.
 func TestAdminAuditLogImpersonation(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Audit.Enabled, true)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 	session := loginUser(t, "user1")
 	session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/2/impersonate"), http.StatusOK)
@@ -67,7 +67,7 @@ func TestAdminAuditLogExport(t *testing.T) {
 
 	adminSession := loginUser(t, "user1")
 	userSession := loginUser(t, "user2")
-	defer test.MockVariableValue(&setting.Audit.Enabled, true)()
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 	err := audit_model.InsertEvent(t.Context(), &audit_model.Event{
 		Action:        audit_model.UserCreate,

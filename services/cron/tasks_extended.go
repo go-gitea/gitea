@@ -8,6 +8,7 @@ import (
 	"time"
 
 	activities_model "gitea.dev/models/activities"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/system"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git/gitcmd"
@@ -137,6 +138,23 @@ func registerDeleteOldActions() {
 	})
 }
 
+func registerDeleteOldAuditEvents() {
+	if !setting.AuditRecordEnabled() || setting.AuditRetentionPeriod() <= 0 {
+		return
+	}
+
+	RegisterTaskFatal("delete_old_audit_events", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
+		},
+		OlderThan: setting.AuditRetentionPeriod(),
+	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
+		return audit_model.DeleteOldEvents(ctx, config.OlderThan)
+	})
+}
+
 func registerUpdateGiteaChecker() {
 	type UpdateCheckerConfig struct {
 		BaseConfig
@@ -230,6 +248,7 @@ func initExtendedTasks() {
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
 	registerDeleteOldActions()
+	registerDeleteOldAuditEvents()
 	registerUpdateGiteaChecker()
 	registerDeleteOldSystemNotices()
 	registerGCLFS()

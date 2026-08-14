@@ -33,45 +33,45 @@
 			</tr>
 		</thead>
 		<tbody>
-			{{range .AuditEvents}}
+			{{range $event := .AuditEvents}}
 				<tr>
 					<td>
-						{{with .Impersonator}}
-							{{if .HasLink}}
-								<a href="{{.HomeLink}}">{{.DisplayName}}</a>
+						{{with $impersonator := $event.Impersonator}}
+							{{if $impersonator.HasLink}}
+								<a href="{{$impersonator.HomeLink}}">{{$impersonator.DisplayName}}</a>
 							{{else}}
-								{{.DisplayName}}
+								{{$impersonator.DisplayName}}
 							{{end}}
 							<span class="text small">{{ctx.Locale.Tr "audit.impersonating_as"}}</span>
 						{{end}}
-						{{if .Actor.DisplayName}}
-							{{if .Actor.HasLink}}
-								<a href="{{.Actor.HomeLink}}">{{.Actor.DisplayName}}</a>
+						{{if $event.Actor.DisplayName}}
+							{{if $event.Actor.HasLink}}
+								<a href="{{$event.Actor.HomeLink}}">{{$event.Actor.DisplayName}}</a>
 							{{else}}
-								{{.Actor.DisplayName}}
+								{{$event.Actor.DisplayName}}
 							{{end}}
 						{{else}}
 							<span class="text small">{{ctx.Locale.Tr "audit.deleted.actor"}}</span>
 						{{end}}
 					</td>
 					<td>
-						{{if .Scope.DisplayName}}
-							{{if .Scope.HasLink}}
-								<a href="{{.Scope.HomeLink}}">{{.Scope.DisplayName}}</a>
+						{{if $event.Scope.DisplayName}}
+							{{if $event.Scope.HasLink}}
+								<a href="{{$event.Scope.HomeLink}}">{{$event.Scope.DisplayName}}</a>
 							{{else}}
-								{{.Scope.DisplayName}}
+								{{$event.Scope.DisplayName}}
 							{{end}}
 						{{else}}
-							<span class="text small">{{ctx.Locale.Tr "audit.deleted.type" .Scope.Type .Scope.ID}}</span>
+							<span class="text small">{{ctx.Locale.Tr "audit.deleted.type" $event.Scope.Type $event.Scope.ID}}</span>
 						{{end}}
 					</td>
-					<td><code>{{.Action}}</code></td>
-					<td><code>{{.Origin}}</code></td>
+					<td><code>{{$event.Action}}</code></td>
+					<td><code>{{$event.Origin}}</code></td>
 					<td>
-						{{.Message}}
+						{{$event.Message}}
 					</td>
-					<td>{{.IPAddress}}</td>
-					<td>{{DateUtils.FullTime .Time}}</td>
+					<td>{{$event.IPAddress}}</td>
+					<td>{{DateUtils.FullTime $event.Time}}</td>
 				</tr>
 			{{else}}
 				<tr><td colspan="7">{{ctx.Locale.Tr "audit.no_events"}}</td></tr>

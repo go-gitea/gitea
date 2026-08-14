@@ -179,7 +179,7 @@ func TestRenameUser(t *testing.T) {
 	})
 
 	t.Run("Only capitalization", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.Audit.Enabled, true)()
+		defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDatabase)()
 
 		caps := strings.ToUpper(user.Name)
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID, Name: caps})

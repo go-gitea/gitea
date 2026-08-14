@@ -408,7 +408,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	}
 
 	auditLogsEnabled := func(ctx *context.Context) {
-		if !setting.Audit.Enabled {
+		if !setting.AuditRecordEnabled() {
 			ctx.HTTPError(http.StatusNotFound)
 			return
 		}

@@ -5,6 +5,7 @@ package audit
 
 import (
 	"testing"
+	"time"
 
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/timeutil"
@@ -67,4 +68,25 @@ func TestFindEventsActorFilterIncludesImpersonations(t *testing.T) {
 	byImpersonated, _, err := FindEvents(t.Context(), &EventSearchOptions{ActorID: 11})
 	require.NoError(t, err)
 	assert.Len(t, byImpersonated, 1)
+}
+
+func TestDeleteOldEvents(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	now := time.Now()
+	old := &Event{Action: UserCreate, ScopeType: ScopeUser, ScopeID: 1, TimestampUnix: timeutil.TimeStamp(now.Add(-48 * time.Hour).Unix())}
+	recent := &Event{Action: UserCreate, ScopeType: ScopeUser, ScopeID: 2, TimestampUnix: timeutil.TimeStamp(now.Unix())}
+	require.NoError(t, InsertEvent(t.Context(), old))
+	require.NoError(t, InsertEvent(t.Context(), recent))
+
+	require.NoError(t, DeleteOldEvents(t.Context(), 0)) // keeps everything
+	_, count, err := FindEvents(t.Context(), &EventSearchOptions{})
+	require.NoError(t, err)
+	assert.EqualValues(t, 2, count)
+
+	require.NoError(t, DeleteOldEvents(t.Context(), 24*time.Hour))
+	remaining, _, err := FindEvents(t.Context(), &EventSearchOptions{})
+	require.NoError(t, err)
+	require.Len(t, remaining, 1)
+	assert.Equal(t, recent.ID, remaining[0].ID)
 }

@@ -138,6 +138,15 @@ func InsertEvent(ctx context.Context, e *Event) error {
 	return db.Insert(ctx, e)
 }
 
+// DeleteOldEvents removes events older than the given duration, keeping everything if it is not positive.
+func DeleteOldEvents(ctx context.Context, olderThan time.Duration) error {
+	if olderThan <= 0 {
+		return nil
+	}
+	_, err := db.GetEngine(ctx).Where("timestamp_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Event{})
+	return err
+}
+
 type EventSort string
 
 const (
