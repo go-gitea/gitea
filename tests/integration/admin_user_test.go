@@ -125,14 +125,14 @@ func TestAdminImpersonatedUser(t *testing.T) {
 
 	// user1 is admin, can visit admin pages
 	assert.Equal(t, "user1", currentUsername(t))
-	assert.Equal(t, 0, homeDoc(t).Find(".impersonate-banner-container").Length())
+	assert.Equal(t, 0, homeDoc(t).Find(".site-banner-container").Length())
 	session.MakeRequest(t, NewRequest(t, "GET", "/-/admin/users/2"), http.StatusOK)
 
 	// impersonate to user2, user2 can't visit admin pages
 	session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/2/impersonate"), http.StatusOK)
 	doc := homeDoc(t)
 	assert.Equal(t, "user2", doc.Find("[data-signed-in-username]").AttrOr("data-signed-in-username", ""))
-	assert.Contains(t, doc.Find(".impersonate-banner-container").Text(), "user2")
+	assert.Contains(t, doc.Find(".site-banner-container").Text(), "user2")
 	session.MakeRequest(t, NewRequest(t, "GET", "/-/admin/users/2"), http.StatusForbidden)
 	// the impersonating admin must not set the password of the impersonated user
 	session.MakeRequest(t, NewRequest(t, "GET", "/user/settings/change_password"), http.StatusSeeOther)
