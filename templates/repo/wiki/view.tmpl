@@ -21,7 +21,9 @@
 						<div class="scrolling menu">
 							<a class="item muted" href="{{.RepoLink}}/wiki/?action=_pages">{{ctx.Locale.Tr "repo.wiki.pages"}}</a>
 							<div class="divider"></div>
-							{{template "repo/wiki/tree" .}}
+							{{range .Pages}}
+								<a class="item {{if eq $.PageURL .SubURL}}selected{{end}}" href="{{$.RepoLink}}/wiki/{{.SubURL}}{{if .IsDir}}?action=_pages{{end}}">{{.Name}}</a>
+							{{end}}
 						</div>
 					</div>
 				</div>
@@ -60,9 +62,16 @@
 		{{end}}
 
 		<div class="wiki-content-parts">
-			{{if .WikiSidebarTocHTML}}
+			{{if or .WikiSidebarTocHTML .WikiTree}}
 			<div class="render-content markup wiki-content-sidebar wiki-content-toc" data-global-init="initRepoWikiSidebarToc">
-				{{.WikiSidebarTocHTML}}
+				{{if .WikiSidebarTocHTML}}{{.WikiSidebarTocHTML}}{{end}}
+				{{if .WikiTree}}
+					{{if .WikiSidebarTocHTML}}<hr>{{end}}
+					<details open>
+						<summary>{{ctx.Locale.Tr "repo.wiki.pages"}}</summary>
+						{{template "repo/wiki/tree" .}}
+					</details>
+				{{end}}
 			</div>
 			{{end}}
 
@@ -103,7 +112,7 @@
 {{template "base/footer" .}}
 
 {{define "repo/wiki/tree"}}
-	<ul class="tw-m-0 tw-pl-4">
+	<ul class="tw-m-0 tw-list-none tw-pl-4">
 		{{range .WikiTree}}
 			<li>
 				{{if .IsDir}}
@@ -120,7 +129,7 @@
 {{end}}
 
 {{define "repo/wiki/tree-nodes"}}
-	<ul class="tw-m-0 tw-pl-4">
+	<ul class="tw-m-0 tw-list-none tw-pl-4">
 		{{range .Nodes}}
 			<li>
 				{{if .IsDir}}

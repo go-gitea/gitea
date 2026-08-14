@@ -97,6 +97,23 @@ func WebPathToGitPath(s WebPath) string {
 	return WebDirPathToGitPath(s) + ".md"
 }
 
+// WebPathToGitPathCandidates returns the Gitea-generated path first, followed
+// by the literal Git path used when a wiki is populated outside the web editor.
+func WebPathToGitPathCandidates(s WebPath) []string {
+	paths := []string{WebPathToGitPath(s)}
+	if strings.HasSuffix(string(s), ".md") {
+		return paths
+	}
+
+	for _, dirPath := range WebDirPathToGitPathCandidates(s) {
+		literalPath := dirPath + ".md"
+		if literalPath != paths[0] {
+			paths = append(paths, literalPath)
+		}
+	}
+	return paths
+}
+
 func WebDirPathToGitPath(s WebPath) string {
 	a := strings.Split(string(s), "/")
 	for i := range a {
@@ -107,6 +124,19 @@ func WebDirPathToGitPath(s WebPath) string {
 		a[i] = strings.ReplaceAll(a[i], "+", " ")
 	}
 	return strings.Join(a, "/")
+}
+
+func WebDirPathToGitPathCandidates(s WebPath) []string {
+	paths := []string{WebDirPathToGitPath(s)}
+	segments := strings.Split(string(s), "/")
+	for i := range segments {
+		segments[i], _ = unescapeSegment(segments[i])
+	}
+	literalPath := util.PathJoinRelX(strings.Join(segments, "/"))
+	if literalPath != paths[0] {
+		paths = append(paths, literalPath)
+	}
+	return paths
 }
 
 func GitPathToWebPath(s string) (wp WebPath, err error) {

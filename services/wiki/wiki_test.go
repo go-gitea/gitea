@@ -84,6 +84,13 @@ func TestWebPathToGitPath(t *testing.T) {
 	}
 }
 
+func TestWebPathToGitPathCandidates(t *testing.T) {
+	assert.Equal(t, []string{"AI-Systems.md", "AI Systems.md"}, WebPathToGitPathCandidates("AI-Systems"))
+	assert.Equal(t, []string{"nested/AI-Systems.md", "nested/AI Systems.md"}, WebPathToGitPathCandidates("nested/AI-Systems"))
+	assert.Equal(t, []string{"AI-Systems.-.md", "AI-Systems.md"}, WebPathToGitPathCandidates("AI-Systems.-"))
+	assert.Equal(t, []string{"Misc-Ideas", "Misc Ideas"}, WebDirPathToGitPathCandidates("Misc-Ideas"))
+}
+
 func TestGitPathToWebPath(t *testing.T) {
 	type test struct {
 		Expected string
