@@ -3069,6 +3069,8 @@
   "admin.users.bot_no_password": "Bot accounts are non-interactive and cannot have a password.",
   "admin.users.impersonate": "Impersonate",
   "admin.users.impersonate_bot_not_allowed": "Bot accounts are non-interactive and cannot be impersonated.",
+  "admin.users.impersonate_stop": "Stop impersonating",
+  "admin.users.impersonating_notice": "You are impersonating <strong>%s</strong>. Actions you take are performed as this user.",
   "admin.users.auth_source": "Authentication Source",
   "admin.users.local": "Local",
   "admin.users.auth_login_name": "Authentication Sign-In Name",

@@ -228,6 +228,11 @@ func (ctx *Context) DoerNeedTwoFactorAuth() bool {
 	return ctx.Session.Get(session.KeyUserHasTwoFactorAuth) == false
 }
 
+// DoerIsImpersonated returns true if the current session is an admin impersonating the doer
+func (ctx *Context) DoerIsImpersonated() bool {
+	return ctx.Session.Get(session.KeyImpersonatorData) != nil
+}
+
 // HasError returns true if error occurs in form validation.
 // Attention: this function changes ctx.Data and ctx.Flash
 // If HasError is called, then before Redirect, the error message should be stored by ctx.Flash.Error(ctx.GetErrMsg()) again.
