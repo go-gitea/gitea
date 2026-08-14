@@ -183,8 +183,7 @@ func WebPathToURLPath(s WebPath) string {
 }
 
 func WebPathFromRequest(s string) (WebPath, error) {
-	segments := strings.Split(s, "/")
-	for _, segment := range segments {
+	for segment := range strings.SplitSeq(s, "/") {
 		unescaped, err := url.PathUnescape(segment)
 		if err != nil || unescaped == "." || unescaped == ".." {
 			return "", repo_model.ErrWikiInvalidFileName{FileName: s}
