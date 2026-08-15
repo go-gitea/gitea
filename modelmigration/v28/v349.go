@@ -12,12 +12,13 @@ import (
 
 func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error {
 	type ActionEnvironment struct {
-		ID                int64              `xorm:"pk autoincr"`
-		RepoID            int64              `xorm:"UNIQUE(repo_name) NOT NULL"`
-		Name              string             `xorm:"UNIQUE(repo_name) NOT NULL"`
-		ProtectedBranches string             `xorm:"TEXT"`
-		CreatedUnix       timeutil.TimeStamp `xorm:"created NOT NULL"`
-		UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
+		ID                    int64              `xorm:"pk autoincr"`
+		RepoID                int64              `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
+		Name                  string             `xorm:"NOT NULL"`
+		LowerName             string             `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
+		AllowedBranchPatterns string             `xorm:"TEXT"`
+		CreatedUnix           timeutil.TimeStamp `xorm:"created NOT NULL"`
+		UpdatedUnix           timeutil.TimeStamp `xorm:"updated"`
 	}
 
 	if err := x.Sync(new(ActionEnvironment)); err != nil {

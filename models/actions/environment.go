@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -16,16 +17,18 @@ import (
 	"xorm.io/builder"
 )
 
-// ActionEnvironment represents a deployment environment for a repository.
-// Secrets and variables can be scoped to an environment and optionally protected by branch policies.
+// ActionEnvironment is a named deployment target holding its own secrets and variables.
 type ActionEnvironment struct {
 	ID     int64  `xorm:"pk autoincr"`
-	RepoID int64  `xorm:"UNIQUE(repo_name) NOT NULL"`
-	Name   string `xorm:"UNIQUE(repo_name) NOT NULL"`
+	RepoID int64  `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
+	Name   string `xorm:"NOT NULL"`
+	// LowerName carries the unique constraint so lookups behave the same on every database,
+	// regardless of the collation MySQL and MSSQL apply to Name.
+	LowerName string `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
 
-	// ProtectedBranches is a glob pattern list (comma-separated) that restricts
-	// which branches can access this environment's secrets and variables. Empty means no restriction.
-	ProtectedBranches string `xorm:"TEXT"`
+	// AllowedBranchPatterns is a newline-separated glob list restricting which refs may use
+	// this environment. Empty allows every ref. Newline-separated because a branch name may contain a comma.
+	AllowedBranchPatterns string `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
@@ -35,7 +38,11 @@ func init() {
 	db.RegisterModel(new(ActionEnvironment))
 }
 
-// ErrEnvironmentNotFound is returned when an environment does not exist.
+const (
+	EnvironmentNameMaxLength = 255
+	branchPatternSeparator   = '/'
+)
+
 type ErrEnvironmentNotFound struct {
 	Name string
 }
@@ -48,7 +55,6 @@ func (err ErrEnvironmentNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrEnvironmentAlreadyExists is returned when creating a duplicate environment.
 type ErrEnvironmentAlreadyExists struct {
 	Name string
 }
@@ -61,11 +67,9 @@ func (err ErrEnvironmentAlreadyExists) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
-// FindEnvironmentsOptions holds filter parameters for listing environments.
 type FindEnvironmentsOptions struct {
 	db.ListOptions
 	RepoID int64
-	Name   string
 }
 
 func (opts FindEnvironmentsOptions) ToConds() builder.Cond {
@@ -73,25 +77,129 @@ func (opts FindEnvironmentsOptions) ToConds() builder.Cond {
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
-	if opts.Name != "" {
-		cond = cond.And(builder.Eq{"name": opts.Name})
-	}
 	return cond
 }
 
-// GetEnvironmentByRepoAndName returns the environment matching the given repo and name.
+func (opts FindEnvironmentsOptions) ToOrders() string {
+	return "lower_name ASC"
+}
+
+// ValidateEnvironmentName rejects names that cannot round-trip through a URL path segment.
+func ValidateEnvironmentName(name string) error {
+	if name == "" {
+		return util.NewInvalidArgumentErrorf("environment name cannot be empty")
+	}
+	if len(name) > EnvironmentNameMaxLength {
+		return util.NewInvalidArgumentErrorf("environment name is too long (max %d characters)", EnvironmentNameMaxLength)
+	}
+	if name != strings.TrimSpace(name) {
+		return util.NewInvalidArgumentErrorf("environment name cannot start or end with whitespace")
+	}
+	if strings.ContainsAny(name, "/\\?#%") {
+		return util.NewInvalidArgumentErrorf(`environment name cannot contain any of / \ ? # %%`)
+	}
+	for _, r := range name {
+		if r < 0x20 || r == 0x7f {
+			return util.NewInvalidArgumentErrorf("environment name cannot contain control characters")
+		}
+	}
+	return nil
+}
+
+// SplitBranchPatterns returns the stored patterns as a list.
+func SplitBranchPatterns(patterns string) []string {
+	var result []string
+	for pattern := range strings.SplitSeq(patterns, "\n") {
+		if pattern = strings.TrimSpace(pattern); pattern != "" {
+			result = append(result, pattern)
+		}
+	}
+	return result
+}
+
+// JoinBranchPatterns renders a pattern list into its stored form, rejecting anything that will not compile.
+func JoinBranchPatterns(patterns []string) (string, error) {
+	var kept []string
+	for _, pattern := range patterns {
+		if pattern = strings.TrimSpace(pattern); pattern == "" {
+			continue
+		}
+		if _, err := glob.Compile(pattern, branchPatternSeparator); err != nil {
+			return "", util.NewInvalidArgumentErrorf("invalid branch pattern %q: %v", pattern, err)
+		}
+		kept = append(kept, pattern)
+	}
+	return strings.Join(kept, "\n"), nil
+}
+
+func (env *ActionEnvironment) BranchPatterns() []string {
+	return SplitBranchPatterns(env.AllowedBranchPatterns)
+}
+
+// MatchesRef reports whether ref may deploy to this environment. An empty pattern list allows every ref.
+// A pattern that fails to compile denies the ref: a policy that cannot be evaluated must not grant access.
+func (env *ActionEnvironment) MatchesRef(ref string) bool {
+	patterns := env.BranchPatterns()
+	if len(patterns) == 0 {
+		return true
+	}
+	// Compile the whole list before matching any of it: stopping at the first match would let a
+	// pattern that cannot compile go unnoticed whenever an earlier one happens to match.
+	globs := make([]glob.Glob, 0, len(patterns))
+	for _, pattern := range patterns {
+		g, err := glob.Compile(pattern, branchPatternSeparator)
+		if err != nil {
+			return false
+		}
+		globs = append(globs, g)
+	}
+
+	shortRef := strings.TrimPrefix(ref, "refs/heads/")
+	if shortRef == ref {
+		shortRef = strings.TrimPrefix(ref, "refs/tags/")
+	}
+	for _, g := range globs {
+		if g.Match(shortRef) {
+			return true
+		}
+	}
+	return false
+}
+
+// ResolveJobEnvironment returns the environment a job deploys to, or nil when it names none or the
+// environment has since been deleted. allowed reports whether the run's ref satisfies the branch policy;
+// a job that is not allowed must be failed rather than run without the environment's credentials.
+func ResolveJobEnvironment(ctx context.Context, job *ActionRunJob) (env *ActionEnvironment, allowed bool, err error) {
+	if job.EnvironmentName == "" {
+		return nil, true, nil
+	}
+	env, err = GetEnvironmentByRepoAndName(ctx, job.RepoID, job.EnvironmentName)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil, true, nil
+		}
+		return nil, false, err
+	}
+	if err := job.LoadRun(ctx); err != nil {
+		return nil, false, err
+	}
+	return env, env.MatchesRef(job.Run.Ref), nil
+}
+
 func GetEnvironmentByRepoAndName(ctx context.Context, repoID int64, name string) (*ActionEnvironment, error) {
-	envs, err := db.Find[ActionEnvironment](ctx, FindEnvironmentsOptions{RepoID: repoID, Name: name})
+	env, has, err := db.Get[ActionEnvironment](ctx, builder.Eq{
+		"repo_id":    repoID,
+		"lower_name": strings.ToLower(name),
+	})
 	if err != nil {
 		return nil, err
 	}
-	if len(envs) == 0 {
+	if !has {
 		return nil, ErrEnvironmentNotFound{Name: name}
 	}
-	return envs[0], nil
+	return env, nil
 }
 
-// GetEnvironmentByID returns the environment with the given id.
 func GetEnvironmentByID(ctx context.Context, id int64) (*ActionEnvironment, error) {
 	env := &ActionEnvironment{}
 	has, err := db.GetEngine(ctx).ID(id).Get(env)
@@ -99,28 +207,28 @@ func GetEnvironmentByID(ctx context.Context, id int64) (*ActionEnvironment, erro
 		return nil, err
 	}
 	if !has {
-		return nil, ErrEnvironmentNotFound{}
+		return nil, ErrEnvironmentNotFound{Name: fmt.Sprintf("id:%d", id)}
 	}
 	return env, nil
 }
 
-// InsertEnvironment creates a new environment for a repository.
-func InsertEnvironment(ctx context.Context, repoID int64, name, protectedBranches string) (*ActionEnvironment, error) {
+func InsertEnvironment(ctx context.Context, repoID int64, name, allowedBranchPatterns string) (*ActionEnvironment, error) {
 	env := &ActionEnvironment{
-		RepoID:            repoID,
-		Name:              name,
-		ProtectedBranches: protectedBranches,
+		RepoID:                repoID,
+		Name:                  name,
+		LowerName:             strings.ToLower(name),
+		AllowedBranchPatterns: allowedBranchPatterns,
 	}
 	return env, db.Insert(ctx, env)
 }
 
-// UpdateEnvironment updates mutable fields of an environment.
 func UpdateEnvironment(ctx context.Context, env *ActionEnvironment) error {
-	_, err := db.GetEngine(ctx).ID(env.ID).Cols("name", "protected_branches").Update(env)
+	env.LowerName = strings.ToLower(env.Name)
+	_, err := db.GetEngine(ctx).ID(env.ID).Cols("name", "lower_name", "allowed_branch_patterns").Update(env)
 	return err
 }
 
-// DeleteEnvironment removes an environment and all its associated secrets and variables.
+// DeleteEnvironment removes an environment together with the secrets and variables scoped to it.
 func DeleteEnvironment(ctx context.Context, repoID, envID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		if _, err := db.GetEngine(ctx).
@@ -137,49 +245,4 @@ func DeleteEnvironment(ctx context.Context, repoID, envID int64) error {
 		_, err := db.GetEngine(ctx).Where("id = ? AND repo_id = ?", envID, repoID).Delete(new(ActionEnvironment))
 		return err
 	})
-}
-
-const protectedBranchGlobSeparator = '/'
-
-// ValidateProtectedBranches reports an error if any comma-separated glob pattern in protectedBranches fails to compile.
-func ValidateProtectedBranches(protectedBranches string) error {
-	for pattern := range strings.SplitSeq(protectedBranches, ",") {
-		pattern = strings.TrimSpace(pattern)
-		if pattern == "" {
-			continue
-		}
-		if _, err := glob.Compile(pattern, protectedBranchGlobSeparator); err != nil {
-			return util.NewInvalidArgumentErrorf("invalid branch pattern %q: %v", pattern, err)
-		}
-	}
-	return nil
-}
-
-// MatchesBranch reports whether ref (e.g. "refs/heads/main" or "refs/tags/v1.0") may access
-// this environment's secrets and variables. An empty policy allows all refs.
-func (env *ActionEnvironment) MatchesBranch(ref string) bool {
-	if env.ProtectedBranches == "" {
-		return true
-	}
-	// Strip refs/heads/ or refs/tags/ prefix for comparison
-	shortRef := strings.TrimPrefix(ref, "refs/heads/")
-	if shortRef == ref {
-		shortRef = strings.TrimPrefix(ref, "refs/tags/")
-	}
-	for pattern := range strings.SplitSeq(env.ProtectedBranches, ",") {
-		pattern = strings.TrimSpace(pattern)
-		if pattern == "" {
-			continue
-		}
-		g, err := glob.Compile(pattern, protectedBranchGlobSeparator)
-		if err != nil {
-			// Skip malformed patterns so one bad glob doesn't deny an otherwise matching ref.
-			continue
-		}
-		ok := g.Match(shortRef)
-		if ok {
-			return true
-		}
-	}
-	return false
 }

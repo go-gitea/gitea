@@ -100,56 +100,11 @@ func GetEnvironment(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, toAPIEnvironment(env))
 }
 
-// CreateEnvironment creates a new environment
-func CreateEnvironment(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/environments repository createEnvironment
+// CreateOrUpdateEnvironment creates or replaces a deployment environment
+func CreateOrUpdateEnvironment(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/environments/{environment_name} repository createOrUpdateEnvironment
 	// ---
-	// summary: Create a deployment environment
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   type: string
-	//   required: true
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/CreateEnvironmentOption"
-	// responses:
-	//   "201":
-	//     "$ref": "#/responses/Environment"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "409":
-	//     description: environment already exists
-
-	opt := web.GetForm[*api.CreateEnvironmentOption](ctx)
-	env, err := actions_service.CreateEnvironment(ctx, ctx.Repo.Repository.ID, opt.Name, opt.ProtectedBranches)
-	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, util.ErrAlreadyExist) {
-			ctx.APIError(http.StatusConflict, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-	ctx.JSON(http.StatusCreated, toAPIEnvironment(env))
-}
-
-// UpdateEnvironment updates an environment
-func UpdateEnvironment(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/environments/{environment_name} repository updateEnvironment
-	// ---
-	// summary: Update a deployment environment
+	// summary: Create or update a deployment environment
 	// consumes:
 	// - application/json
 	// produces:
@@ -170,31 +125,28 @@ func UpdateEnvironment(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/UpdateEnvironmentOption"
+	//     "$ref": "#/definitions/CreateOrUpdateEnvironmentOption"
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Environment"
+	//   "201":
+	//     "$ref": "#/responses/Environment"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
+	opt := web.GetForm[*api.CreateOrUpdateEnvironmentOption](ctx)
+	env, created, err := actions_service.CreateOrUpdateEnvironment(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"), opt.AllowedBranchPatterns)
 	if err != nil {
-		ctx.APIErrorAuto(err)
-		return
-	}
-	opt := web.GetForm[*api.UpdateEnvironmentOption](ctx)
-	updated, err := actions_service.UpdateEnvironment(ctx, ctx.Repo.Repository.ID, env.ID, opt.Name, opt.ProtectedBranches)
-	if err != nil {
-		if errors.Is(err, util.ErrAlreadyExist) {
-			ctx.APIError(http.StatusConflict, err.Error())
-		} else if errors.Is(err, util.ErrInvalidArgument) {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {
 			ctx.APIErrorInternal(err)
 		}
 		return
 	}
-	ctx.JSON(http.StatusOK, toAPIEnvironment(updated))
+	ctx.JSON(util.Iif(created, http.StatusCreated, http.StatusOK), toAPIEnvironment(env))
 }
 
 // DeleteEnvironment deletes an environment
@@ -628,10 +580,10 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 
 func toAPIEnvironment(e *actions_model.ActionEnvironment) *api.ActionEnvironment {
 	return &api.ActionEnvironment{
-		ID:                e.ID,
-		Name:              e.Name,
-		ProtectedBranches: e.ProtectedBranches,
-		CreatedAt:         e.CreatedUnix.AsTime(),
-		UpdatedAt:         e.UpdatedUnix.AsTime(),
+		ID:                    e.ID,
+		Name:                  e.Name,
+		AllowedBranchPatterns: e.BranchPatterns(),
+		CreatedAt:             e.CreatedUnix.AsTime(),
+		UpdatedAt:             e.UpdatedUnix.AsTime(),
 	}
 }

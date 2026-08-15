@@ -19,8 +19,15 @@ func CreateVariable(ctx context.Context, ownerID, repoID, environmentID int64, n
 
 	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, environmentID, name, util.NormalizeStringEOL(data), description)
 	if err != nil {
-		if isUniqueViolation(err) {
-			return nil, util.ErrAlreadyExist
+		// Re-check by name rather than parsing driver-specific constraint text, which differs per
+		// database and per locale. This also closes the race a pre-flight existence check leaves open.
+		if _, lookupErr := GetVariable(ctx, actions_model.FindVariablesOpts{
+			OwnerID:       ownerID,
+			RepoID:        repoID,
+			EnvironmentID: environmentID,
+			Name:          name,
+		}); lookupErr == nil {
+			return nil, util.NewAlreadyExistErrorf("variable %s already exists", strings.ToUpper(name))
 		}
 		return nil, err
 	}
@@ -65,12 +72,4 @@ func GetVariable(ctx context.Context, opts actions_model.FindVariablesOpts) (*ac
 		return nil, util.NewNotExistErrorf("variable not found")
 	}
 	return vars[0], nil
-}
-
-// isUniqueViolation reports whether err is a database unique-constraint violation.
-func isUniqueViolation(err error) bool {
-	msg := err.Error()
-	return strings.Contains(msg, "Duplicate entry") || // MySQL
-		strings.Contains(msg, "duplicate key") || // PostgreSQL
-		strings.Contains(msg, "UNIQUE constraint") // SQLite
 }

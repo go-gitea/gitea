@@ -9701,51 +9701,6 @@
             "$ref": "#/responses/notFound"
           }
         }
-      },
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Create a deployment environment",
-        "operationId": "createEnvironment",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/CreateEnvironmentOption"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "$ref": "#/responses/Environment"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "409": {
-            "description": "environment already exists"
-          }
-        }
       }
     },
     "/repos/{owner}/{repo}/environments/{environment_name}": {
@@ -9787,6 +9742,60 @@
           }
         }
       },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create or update a deployment environment",
+        "operationId": "createOrUpdateEnvironment",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "name": "environment_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateOrUpdateEnvironmentOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Environment"
+          },
+          "201": {
+            "$ref": "#/responses/Environment"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "delete": {
         "tags": [
           "repository"
@@ -9816,54 +9825,6 @@
         "responses": {
           "204": {
             "description": "No Content"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "patch": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Update a deployment environment",
-        "operationId": "updateEnvironment",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "name": "environment_name",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/UpdateEnvironmentOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Environment"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -25381,6 +25342,14 @@
       "description": "ActionEnvironment represents a deployment environment",
       "type": "object",
       "properties": {
+        "allowed_branch_patterns": {
+          "description": "glob patterns naming the branches and tags allowed to deploy to this environment; empty allows all of them",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "AllowedBranchPatterns"
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -25396,11 +25365,6 @@
           "description": "the environment's name",
           "type": "string",
           "x-go-name": "Name"
-        },
-        "protected_branches": {
-          "description": "glob patterns (comma-separated) that restrict which branches can access this environment's secrets and variables; empty means unrestricted",
-          "type": "string",
-          "x-go-name": "ProtectedBranches"
         },
         "updated_at": {
           "type": "string",
@@ -27474,25 +27438,6 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
-    "CreateEnvironmentOption": {
-      "description": "CreateEnvironmentOption options for creating a new environment",
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "protected_branches": {
-          "description": "glob patterns (comma-separated) restricting which branches can access environment secrets and variables",
-          "type": "string",
-          "x-go-name": "ProtectedBranches"
-        }
-      },
-      "x-go-package": "gitea.dev/modules/structs"
-    },
     "CreateFileOptions": {
       "description": "CreateFileOptions options for creating a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
@@ -27852,6 +27797,21 @@
           "description": "Whether to skip secondary authorization",
           "type": "boolean",
           "x-go-name": "SkipSecondaryAuthorization"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "CreateOrUpdateEnvironmentOption": {
+      "description": "CreateOrUpdateEnvironmentOption options for creating or updating a deployment environment",
+      "type": "object",
+      "properties": {
+        "allowed_branch_patterns": {
+          "description": "glob patterns naming the branches and tags allowed to deploy to this environment; empty allows all of them",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "AllowedBranchPatterns"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"
@@ -33972,22 +33932,6 @@
           "description": "Expected old commit SHA of the branch; if provided it must match the current tip",
           "type": "string",
           "x-go-name": "OldCommitID"
-        }
-      },
-      "x-go-package": "gitea.dev/modules/structs"
-    },
-    "UpdateEnvironmentOption": {
-      "description": "UpdateEnvironmentOption options for updating an environment",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "protected_branches": {
-          "description": "glob patterns (comma-separated) restricting which branches can access environment secrets and variables",
-          "type": "string",
-          "x-go-name": "ProtectedBranches"
         }
       },
       "x-go-package": "gitea.dev/modules/structs"

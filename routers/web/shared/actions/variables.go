@@ -6,6 +6,7 @@ package actions
 import (
 	"errors"
 	"net/http"
+	"net/url"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -20,6 +21,8 @@ import (
 )
 
 const (
+	tplEnvironmentEdit templates.TplName = "repo/settings/environment_edit"
+
 	tplRepoVariables  templates.TplName = "repo/settings/actions"
 	tplOrgVariables   templates.TplName = "org/settings/actions"
 	tplUserVariables  templates.TplName = "user/settings/actions"
@@ -29,6 +32,7 @@ const (
 type variablesCtx struct {
 	OwnerID           int64
 	RepoID            int64
+	EnvironmentID     int64
 	IsRepo            bool
 	IsOrg             bool
 	IsUser            bool
@@ -38,6 +42,17 @@ type variablesCtx struct {
 }
 
 func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
+	// An environment page is also a repo settings page, so it has to be recognised first.
+	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok {
+		return &variablesCtx{
+			RepoID:            ctx.Repo.Repository.ID,
+			EnvironmentID:     env.ID,
+			IsRepo:            true,
+			VariablesTemplate: tplEnvironmentEdit,
+			RedirectLink:      ctx.Repo.RepoLink + "/settings/actions/environments/" + url.PathEscape(env.Name),
+		}, nil
+	}
+
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &variablesCtx{
 			OwnerID:           0,
@@ -97,8 +112,9 @@ func Variables(ctx *context.Context) {
 	}
 
 	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		OwnerID: vCtx.OwnerID,
-		RepoID:  vCtx.RepoID,
+		OwnerID:       vCtx.OwnerID,
+		RepoID:        vCtx.RepoID,
+		EnvironmentID: vCtx.EnvironmentID,
 	})
 	if err != nil {
 		ctx.ServerError("FindVariables", err)
@@ -124,7 +140,7 @@ func VariableCreate(ctx *context.Context) {
 
 	form := web.GetForm[*forms.EditVariableForm](ctx)
 
-	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, 0, form.Name, form.Data, form.Description)
+	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, vCtx.EnvironmentID, form.Name, form.Data, form.Description)
 	if err != nil {
 		log.Error("CreateVariable: %v", err)
 		ctx.JSONError(ctx.Tr("actions.variables.creation.failed"))
@@ -170,7 +186,8 @@ func VariableUpdate(ctx *context.Context) {
 
 func findActionsVariable(ctx *context.Context, id int64, vCtx *variablesCtx) *actions_model.ActionVariable {
 	opts := actions_model.FindVariablesOpts{
-		IDs: []int64{id},
+		IDs:           []int64{id},
+		EnvironmentID: vCtx.EnvironmentID,
 	}
 	switch {
 	case vCtx.IsRepo:

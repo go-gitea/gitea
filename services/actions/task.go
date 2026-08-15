@@ -100,6 +100,13 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
+	if denied, err := denyJobByEnvironmentPolicy(ctx, t); err != nil {
+		releaseTaskForRunnerCleanup(t)
+		return nil, false, err
+	} else if denied {
+		return nil, false, nil
+	}
+
 	task, job, err = buildRunnerTask(ctx, t)
 	if err != nil {
 		// The job was already claimed but assembling its payload failed; release the
@@ -126,6 +133,38 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	}
 
 	return task, true, nil
+}
+
+// denyJobByEnvironmentPolicy fails an already-claimed job whose environment rejects the run's ref,
+// reporting whether it did so. Withholding the environment's secrets and letting the job run instead
+// would hand a deployment step empty credentials, which fails later and less legibly.
+func denyJobByEnvironmentPolicy(ctx context.Context, t *actions_model.ActionTask) (bool, error) {
+	if err := t.LoadAttributes(ctx); err != nil {
+		return false, fmt.Errorf("task LoadAttributes: %w", err)
+	}
+	env, allowed, err := actions_model.ResolveJobEnvironment(ctx, t.Job)
+	if err != nil {
+		return false, fmt.Errorf("resolve environment of job %d: %w", t.Job.ID, err)
+	}
+	if env == nil || allowed {
+		return false, nil
+	}
+
+	reason := fmt.Sprintf("Branch is not allowed to deploy to `%s` due to environment protection rules.", env.Name)
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := actions_model.StopTask(ctx, t.ID, actions_model.StatusFailure); err != nil {
+			return err
+		}
+		return actions_model.UpsertActionRunJobSummary(ctx, t.RepoID, t.Job.RunID, t.Job.RunAttemptID, t.Job.ID, 0,
+			actions_model.JobSummaryContentTypeMarkdown, []byte(reason))
+	}); err != nil {
+		return false, fmt.Errorf("fail job %d on environment policy: %w", t.Job.ID, err)
+	}
+
+	log.Info("Job %d denied by the branch policy of environment %q", t.Job.ID, env.Name)
+	NotifyWorkflowJobsAndRunsStatusUpdate(ctx, []*actions_model.ActionRunJob{t.Job})
+	EmitJobsIfReadyByJobs([]*actions_model.ActionRunJob{t.Job})
+	return true, nil
 }
 
 // buildRunnerTask assembles the runner-facing task payload for an already-claimed

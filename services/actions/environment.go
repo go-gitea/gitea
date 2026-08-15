@@ -5,6 +5,8 @@ package actions
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	actions_model "gitea.dev/models/actions"
 	secret_model "gitea.dev/models/secret"
@@ -12,76 +14,110 @@ import (
 	secret_service "gitea.dev/services/secrets"
 )
 
-// CreateEnvironment creates a new deployment environment for a repository.
-func CreateEnvironment(ctx context.Context, repoID int64, name, protectedBranches string) (*actions_model.ActionEnvironment, error) {
-	if name == "" {
-		return nil, util.NewInvalidArgumentErrorf("environment name cannot be empty")
-	}
-	if len(name) > 255 {
-		return nil, util.NewInvalidArgumentErrorf("environment name too long")
-	}
-	if err := actions_model.ValidateProtectedBranches(protectedBranches); err != nil {
+// CreateEnvironment adds a deployment environment to a repository.
+func CreateEnvironment(ctx context.Context, repoID int64, name string, branchPatterns []string) (*actions_model.ActionEnvironment, error) {
+	if err := actions_model.ValidateEnvironmentName(name); err != nil {
 		return nil, err
 	}
-	env, err := actions_model.InsertEnvironment(ctx, repoID, name, protectedBranches)
+	patterns, err := actions_model.JoinBranchPatterns(branchPatterns)
 	if err != nil {
-		if isUniqueViolation(err) {
-			return nil, actions_model.ErrEnvironmentAlreadyExists{Name: name}
+		return nil, err
+	}
+
+	env, err := actions_model.InsertEnvironment(ctx, repoID, name, patterns)
+	if err != nil {
+		// Re-check by name rather than parsing driver-specific constraint text, which differs per
+		// database and per locale. This also closes the race a pre-flight existence check leaves open.
+		if existing, lookupErr := actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name); lookupErr == nil {
+			return nil, actions_model.ErrEnvironmentAlreadyExists{Name: existing.Name}
 		}
 		return nil, err
 	}
 	return env, nil
 }
 
-// UpdateEnvironment updates an existing environment.
-func UpdateEnvironment(ctx context.Context, repoID, envID int64, name, protectedBranches string) (*actions_model.ActionEnvironment, error) {
-	env, err := actions_model.GetEnvironmentByID(ctx, envID)
+// UpdateEnvironment replaces the mutable fields of an existing environment.
+func UpdateEnvironment(ctx context.Context, env *actions_model.ActionEnvironment, name string, branchPatterns []string) error {
+	if err := actions_model.ValidateEnvironmentName(name); err != nil {
+		return err
+	}
+	patterns, err := actions_model.JoinBranchPatterns(branchPatterns)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if env.RepoID != repoID {
-		return nil, util.ErrNotExist
-	}
-	if err := actions_model.ValidateProtectedBranches(protectedBranches); err != nil {
-		return nil, err
-	}
-	if name != "" && name != env.Name {
-		if existing, err := actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name); err == nil && existing != nil {
-			return nil, actions_model.ErrEnvironmentAlreadyExists{Name: name}
+
+	if !strings.EqualFold(name, env.Name) {
+		if _, err := actions_model.GetEnvironmentByRepoAndName(ctx, env.RepoID, name); err == nil {
+			return actions_model.ErrEnvironmentAlreadyExists{Name: name}
+		} else if !errors.Is(err, util.ErrNotExist) {
+			return err
 		}
-		env.Name = name
 	}
-	env.ProtectedBranches = protectedBranches
-	return env, actions_model.UpdateEnvironment(ctx, env)
+
+	env.Name = name
+	env.AllowedBranchPatterns = patterns
+	return actions_model.UpdateEnvironment(ctx, env)
 }
 
-// DeleteEnvironment removes an environment and its scoped secrets/variables.
+// CreateOrUpdateEnvironment backs the idempotent PUT endpoint. The bool reports whether it created the environment.
+func CreateOrUpdateEnvironment(ctx context.Context, repoID int64, name string, branchPatterns []string) (*actions_model.ActionEnvironment, bool, error) {
+	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name)
+	if err != nil {
+		if !errors.Is(err, util.ErrNotExist) {
+			return nil, false, err
+		}
+		created, err := CreateEnvironment(ctx, repoID, name, branchPatterns)
+		return created, true, err
+	}
+	return env, false, UpdateEnvironment(ctx, env, name, branchPatterns)
+}
+
+// GetOrCreateEnvironment resolves an environment named by a workflow, creating it on first reference
+// the way GitHub does. Callers must not use it for fork pull requests, which would let an outside
+// contributor write rows into a repository they cannot otherwise modify.
+func GetOrCreateEnvironment(ctx context.Context, repoID int64, name string) (*actions_model.ActionEnvironment, error) {
+	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name)
+	if err == nil {
+		return env, nil
+	}
+	if !errors.Is(err, util.ErrNotExist) {
+		return nil, err
+	}
+
+	env, err = CreateEnvironment(ctx, repoID, name, nil)
+	if errors.Is(err, util.ErrAlreadyExist) { // lost a race against a concurrent run
+		return actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name)
+	}
+	return env, err
+}
+
 func DeleteEnvironment(ctx context.Context, repoID, envID int64) error {
 	return actions_model.DeleteEnvironment(ctx, repoID, envID)
 }
 
-// CreateOrUpdateEnvSecret creates or updates a secret scoped to an environment.
 func CreateOrUpdateEnvSecret(ctx context.Context, repoID, envID int64, name, data, description string) (*secret_model.Secret, bool, error) {
 	return secret_service.CreateOrUpdateSecret(ctx, 0, repoID, envID, name, data, description)
 }
 
-// DeleteEnvSecret removes a secret from an environment.
 func DeleteEnvSecret(ctx context.Context, repoID, envID int64, name string) error {
 	return secret_service.DeleteSecretByName(ctx, 0, repoID, envID, name)
 }
 
-// CreateEnvVariable creates a variable scoped to an environment.
 func CreateEnvVariable(ctx context.Context, repoID, envID int64, name, data, description string) (*actions_model.ActionVariable, error) {
 	return CreateVariable(ctx, 0, repoID, envID, name, data, description)
 }
 
-// UpdateEnvVariable updates a variable scoped to an environment.
-func UpdateEnvVariable(ctx context.Context, repoID, envID, varID int64, name, data, description string) (*actions_model.ActionVariable, error) {
-	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{
+// findEnvVariable scopes the lookup to the environment so a variable of another scope cannot be reached by ID.
+func findEnvVariable(ctx context.Context, repoID, envID, varID int64) (*actions_model.ActionVariable, error) {
+	return GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID:        repoID,
 		EnvironmentID: envID,
 		IDs:           []int64{varID},
 	})
+}
+
+func UpdateEnvVariable(ctx context.Context, repoID, envID, varID int64, name, data, description string) (*actions_model.ActionVariable, error) {
+	v, err := findEnvVariable(ctx, repoID, envID, varID)
 	if err != nil {
 		return nil, err
 	}
@@ -96,13 +132,8 @@ func UpdateEnvVariable(ctx context.Context, repoID, envID, varID int64, name, da
 	return v, nil
 }
 
-// DeleteEnvVariable removes a variable from an environment.
 func DeleteEnvVariable(ctx context.Context, repoID, envID, varID int64) error {
-	v, err := GetVariable(ctx, actions_model.FindVariablesOpts{
-		RepoID:        repoID,
-		EnvironmentID: envID,
-		IDs:           []int64{varID},
-	})
+	v, err := findEnvVariable(ctx, repoID, envID, varID)
 	if err != nil {
 		return err
 	}

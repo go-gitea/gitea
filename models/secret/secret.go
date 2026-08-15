@@ -5,7 +5,6 @@ package secret
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -192,30 +191,26 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 		baseSecrets[secret.Name] = v
 	}
 
-	// Environment-scoped secrets override repo/org secrets when the job targets a deployment environment.
-	if task.Job.EnvironmentName != "" {
-		env, err := actions_model.GetEnvironmentByRepoAndName(ctx, task.Job.Run.RepoID, task.Job.EnvironmentName)
+	// Environment-scoped secrets override repo/org secrets when the job deploys to an environment.
+	env, allowed, err := actions_model.ResolveJobEnvironment(ctx, task.Job)
+	if err != nil {
+		return nil, fmt.Errorf("resolve environment of job %d: %w", task.Job.ID, err)
+	}
+	if env != nil && allowed {
+		envSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{
+			RepoID:        task.Job.Run.RepoID,
+			EnvironmentID: env.ID,
+		})
 		if err != nil {
-			if !errors.Is(err, util.ErrNotExist) {
-				log.Error("get environment %q for task %d: %v", task.Job.EnvironmentName, task.ID, err)
-			}
-		} else if env.MatchesBranch(task.Job.Run.Ref) {
-			envSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{
-				RepoID:        task.Job.Run.RepoID,
-				EnvironmentID: env.ID,
-			})
+			return nil, fmt.Errorf("find secrets of environment %d: %w", env.ID, err)
+		}
+		for _, s := range envSecrets {
+			v, err := secret_module.DecryptSecret(setting.SecretKey, s.Data)
 			if err != nil {
-				log.Error("find environment secrets for env %d: %v", env.ID, err)
-			} else {
-				for _, s := range envSecrets {
-					v, err := secret_module.DecryptSecret(setting.SecretKey, s.Data)
-					if err != nil {
-						log.Error("Unable to decrypt environment secret %v %q: %v", s.ID, s.Name, err)
-						continue
-					}
-					baseSecrets[s.Name] = v
-				}
+				log.Error("Unable to decrypt environment secret %v %q: %v", s.ID, s.Name, err)
+				continue
 			}
+			baseSecrets[s.Name] = v
 		}
 	}
 

@@ -1256,30 +1256,30 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			m.Group("/environments", func() {
+				m.Get("", repo_setting.Environments)
+				m.Post("/new", repo_setting.EnvironmentCreate)
+				m.Group("/{environment_name}", func() {
+					m.Get("", repo_setting.EnvironmentEdit)
+					m.Post("", repo_setting.EnvironmentUpdate)
+					m.Post("/delete", repo_setting.EnvironmentDelete)
+					m.Group("/secrets", func() {
+						m.Post("", web.Bind[*forms.AddSecretForm](), repo_setting.EnvironmentSecretPost)
+						m.Post("/delete", repo_setting.EnvironmentSecretDelete)
+					})
+					m.Group("/variables", func() {
+						m.Post("/new", web.Bind[*forms.EditVariableForm](), shared_actions.VariableCreate)
+						m.Post("/{variable_id}/edit", web.Bind[*forms.EditVariableForm](), shared_actions.VariableUpdate)
+						m.Post("/{variable_id}/delete", shared_actions.VariableDelete)
+					})
+				}, repo_setting.EnvironmentAssignment)
+			})
 			m.Group("/general", func() {
 				m.Group("/collaborative_owner", func() {
 					m.Post("/add", repo_setting.AddCollaborativeOwner)
 					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
 				})
 				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
-			})
-		}, actions.MustEnableActions)
-		m.Group("/environments", func() {
-			m.Get("", repo_setting.Environments)
-			m.Post("/new", repo_setting.EnvironmentCreate)
-			m.Group("/{environment_name}", func() {
-				m.Get("", repo_setting.EnvironmentEdit)
-				m.Post("", repo_setting.EnvironmentUpdate)
-				m.Post("/delete", repo_setting.EnvironmentDelete)
-				m.Group("/secrets", func() {
-					m.Post("", web.Bind[*forms.AddSecretForm](), repo_setting.EnvironmentSecretPost)
-					m.Post("/delete", repo_setting.EnvironmentSecretDelete)
-				})
-				m.Group("/variables", func() {
-					m.Post("/new", web.Bind[*forms.EditVariableForm](), repo_setting.EnvironmentVariableCreate)
-					m.Post("/{variable_id}/edit", web.Bind[*forms.EditVariableForm](), repo_setting.EnvironmentVariableUpdate)
-					m.Post("/{variable_id}/delete", repo_setting.EnvironmentVariableDelete)
-				})
 			})
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed

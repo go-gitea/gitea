@@ -1329,27 +1329,27 @@ func Routes() *web.Router {
 				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
 
 				m.Group("/environments", func() {
-					m.Get("", reqToken(), reqOwner(), repo.ListEnvironments)
-					m.Post("", reqToken(), reqOwner(), bind(api.CreateEnvironmentOption{}), repo.CreateEnvironment)
+					m.Get("", repo.ListEnvironments)
 					m.Group("/{environment_name}", func() {
-						m.Get("", reqToken(), reqOwner(), repo.GetEnvironment)
-						m.Patch("", reqToken(), reqOwner(), bind(api.UpdateEnvironmentOption{}), repo.UpdateEnvironment)
-						m.Delete("", reqToken(), reqOwner(), repo.DeleteEnvironment)
+						m.Combo("").
+							Get(repo.GetEnvironment).
+							Put(bind(api.CreateOrUpdateEnvironmentOption{}), repo.CreateOrUpdateEnvironment).
+							Delete(repo.DeleteEnvironment)
 						m.Group("/secrets", func() {
-							m.Get("", reqToken(), reqOwner(), repo.ListEnvSecrets)
+							m.Get("", repo.ListEnvSecrets)
 							m.Combo("/{secretname}").
-								Put(reqToken(), reqOwner(), bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateEnvSecret).
-								Delete(reqToken(), reqOwner(), repo.DeleteEnvSecret)
+								Put(bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateEnvSecret).
+								Delete(repo.DeleteEnvSecret)
 						})
 						m.Group("/variables", func() {
-							m.Get("", reqToken(), reqOwner(), repo.ListEnvVariables)
+							m.Get("", repo.ListEnvVariables)
 							m.Combo("/{variablename}").
-								Post(reqToken(), reqOwner(), bind(api.CreateVariableOption{}), repo.CreateEnvVariable).
-								Put(reqToken(), reqOwner(), bind(api.UpdateVariableOption{}), repo.UpdateEnvVariable).
-								Delete(reqToken(), reqOwner(), repo.DeleteEnvVariable)
+								Post(bind(api.CreateVariableOption{}), repo.CreateEnvVariable).
+								Put(bind(api.UpdateVariableOption{}), repo.UpdateEnvVariable).
+								Delete(repo.DeleteEnvVariable)
 						})
 					})
-				})
+				}, reqToken(), reqRepoReader(unit.TypeActions), reqOwner())
 
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)

@@ -178,6 +178,25 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, content []byte
 	return nil
 }
 
+// ensureJobEnvironment creates the environment a job names if the repository does not have it yet,
+// the way GitHub does on first reference, and returns the name to record on the job.
+//
+// Creation is skipped for fork pull requests: the workflow file comes from the fork, so honouring it
+// would let anyone able to open a pull request write rows into the base repository's settings. Such a
+// job still resolves an environment that already exists.
+//
+// A failure here is logged rather than returned. The name is recorded either way, so the worst case is
+// a job whose environment is missing, which resolves to no environment-scoped values.
+func ensureJobEnvironment(ctx context.Context, run *actions_model.ActionRun, name string) string {
+	if name == "" || run.IsForkPullRequest {
+		return name
+	}
+	if _, err := GetOrCreateEnvironment(ctx, run.RepoID, name); err != nil {
+		log.Error("Cannot resolve environment %q of repo %d: %v", name, run.RepoID, err)
+	}
+	return name
+}
+
 // insertRunJob builds a single run job from a parsed workflow job, evaluates its
 // job-level concurrency, inserts it, and — for a ready no-needs reusable caller —
 // inline-expands (or skips) it. It returns the inserted job, any jobs cancelled by
@@ -219,7 +238,7 @@ func insertRunJob(ctx context.Context, run *actions_model.ActionRun, runAttempt 
 		WorkflowSourceRepoID:    run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: run.WorkflowCommitSHA,
 		ContinueOnError:         job.GetContinueOnError(),
-		EnvironmentName:         job.DeploymentEnvironmentName(),
+		EnvironmentName:         ensureJobEnvironment(ctx, run, job.DeploymentEnvironmentName()),
 		IsMatrixDeferred:        isMatrixDeferred,
 		MaxParallel:             parseMaxParallel(id, job.Strategy.MaxParallelString),
 	}

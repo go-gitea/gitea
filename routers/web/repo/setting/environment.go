@@ -14,11 +14,9 @@ import (
 	secret_model "gitea.dev/models/secret"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
+	shared_secrets "gitea.dev/routers/web/shared/secrets"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
-	"gitea.dev/services/forms"
-	secret_service "gitea.dev/services/secrets"
 )
 
 const (
@@ -26,7 +24,39 @@ const (
 	tplEnvironmentEdit templates.TplName = "repo/settings/environment_edit"
 )
 
-// Environments renders the environment list page
+func environmentsLink(ctx *context.Context) string {
+	return ctx.Repo.RepoLink + "/settings/actions/environments"
+}
+
+func environmentLink(ctx *context.Context, env *actions_model.ActionEnvironment) string {
+	return environmentsLink(ctx) + "/" + url.PathEscape(env.Name)
+}
+
+// contextEnvironment returns the environment EnvironmentAssignment put on the request.
+func contextEnvironment(ctx *context.Context) *actions_model.ActionEnvironment {
+	env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment)
+	if !ok {
+		panic("EnvironmentAssignment must run before this handler")
+	}
+	return env
+}
+
+// EnvironmentAssignment loads the environment named in the route and exposes it to the shared
+// secrets and variables handlers, which scope their writes by ctx.Data["Environment"].
+func EnvironmentAssignment(ctx *context.Context) {
+	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetEnvironmentByRepoAndName", err)
+		}
+		return
+	}
+	ctx.Data["Environment"] = env
+	ctx.Data["Link"] = environmentLink(ctx, env)
+}
+
 func Environments(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("environments.environments")
 	ctx.Data["PageIsRepoSettingsEnvironments"] = true
@@ -39,228 +69,93 @@ func Environments(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Environments"] = envs
+	ctx.Data["Link"] = environmentsLink(ctx)
 	ctx.HTML(http.StatusOK, tplEnvironments)
 }
 
-// EnvironmentCreate handles POST to create a new environment
 func EnvironmentCreate(ctx *context.Context) {
 	name := strings.TrimSpace(ctx.FormString("name"))
-	protectedBranches := strings.TrimSpace(ctx.FormString("protected_branches"))
-
-	if name == "" {
-		ctx.Flash.Error(ctx.Tr("environments.creation.failed"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/environments")
-		return
-	}
-
-	_, err := actions_service.CreateEnvironment(ctx, ctx.Repo.Repository.ID, name, protectedBranches)
+	env, err := actions_service.CreateEnvironment(ctx, ctx.Repo.Repository.ID, name, formBranchPatterns(ctx))
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Flash.Error(err.Error())
-		} else {
-			ctx.Flash.Error(ctx.Tr("environments.creation.failed"))
-		}
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/environments")
+		flashEnvironmentError(ctx, err, "environments.creation.failed")
+		ctx.Redirect(environmentsLink(ctx))
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("environments.creation.success", name))
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(name))
+	ctx.Flash.Success(ctx.Tr("environments.creation.success", env.Name))
+	ctx.Redirect(environmentLink(ctx, env))
 }
 
-// EnvironmentEdit renders the environment edit page (secrets + variables)
 func EnvironmentEdit(ctx *context.Context) {
-	envName := ctx.PathParam("environment_name")
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, envName)
-	if err != nil {
-		ctx.NotFound(err)
-		return
-	}
+	env := contextEnvironment(ctx)
+	ctx.Data["Title"] = env.Name
+	ctx.Data["PageIsRepoSettingsEnvironments"] = true
 
 	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
 		RepoID:        ctx.Repo.Repository.ID,
 		EnvironmentID: env.ID,
 	})
 	if err != nil {
-		ctx.ServerError("FindEnvSecrets", err)
+		ctx.ServerError("FindSecrets", err)
 		return
 	}
-
 	variables, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
 		RepoID:        ctx.Repo.Repository.ID,
 		EnvironmentID: env.ID,
 	})
 	if err != nil {
-		ctx.ServerError("FindEnvVariables", err)
+		ctx.ServerError("FindVariables", err)
 		return
 	}
 
-	ctx.Data["Title"] = env.Name
-	ctx.Data["PageIsRepoSettingsEnvironments"] = true
-	ctx.Data["Environment"] = env
 	ctx.Data["Secrets"] = secrets
 	ctx.Data["Variables"] = variables
-	ctx.Data["DataMaxLength"] = secret_model.SecretDataMaxLength
-	ctx.Data["DescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
-	ctx.Data["Link"] = ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName)
+	ctx.Data["SecretDataMaxLength"] = secret_model.SecretDataMaxLength
+	ctx.Data["SecretDescriptionMaxLength"] = secret_model.SecretDescriptionMaxLength
+	ctx.Data["VariableDataMaxLength"] = actions_model.VariableDataMaxLength
+	ctx.Data["VariableDescriptionMaxLength"] = actions_model.VariableDescriptionMaxLength
 	ctx.HTML(http.StatusOK, tplEnvironmentEdit)
 }
 
-// EnvironmentUpdate handles POST to update environment settings
 func EnvironmentUpdate(ctx *context.Context) {
-	envName := ctx.PathParam("environment_name")
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, envName)
-	if err != nil {
-		ctx.NotFound(err)
-		return
-	}
-
-	protectedBranches := strings.TrimSpace(ctx.FormString("protected_branches"))
-	_, err = actions_service.UpdateEnvironment(ctx, ctx.Repo.Repository.ID, env.ID, "", protectedBranches)
-	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Flash.Error(err.Error())
-		} else {
-			ctx.Flash.Error(ctx.Tr("environments.update.failed"))
-		}
+	env := contextEnvironment(ctx)
+	if err := actions_service.UpdateEnvironment(ctx, env, env.Name, formBranchPatterns(ctx)); err != nil {
+		flashEnvironmentError(ctx, err, "environments.update.failed")
 	} else {
 		ctx.Flash.Success(ctx.Tr("environments.update.success"))
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName))
+	ctx.Redirect(environmentLink(ctx, env))
 }
 
-// EnvironmentDelete handles POST to delete an environment
 func EnvironmentDelete(ctx *context.Context) {
-	envName := ctx.PathParam("environment_name")
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, envName)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("environments.deletion.failed"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/settings/environments")
-		return
-	}
-
+	env := contextEnvironment(ctx)
 	if err := actions_service.DeleteEnvironment(ctx, ctx.Repo.Repository.ID, env.ID); err != nil {
 		ctx.Flash.Error(ctx.Tr("environments.deletion.failed"))
 	} else {
 		ctx.Flash.Success(ctx.Tr("environments.deletion.success"))
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/environments")
+	ctx.JSONRedirect(environmentsLink(ctx))
 }
 
-// EnvironmentSecretPost handles POST for adding/updating an environment secret
 func EnvironmentSecretPost(ctx *context.Context) {
-	envName := ctx.PathParam("environment_name")
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, envName)
-	if err != nil {
-		ctx.NotFound(err)
-		return
-	}
-
-	redirectURL := ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName)
-	form := web.GetForm[*forms.AddSecretForm](ctx)
-
-	if err := secret_service.ValidateName(form.Name); err != nil {
-		ctx.Flash.Error(err.Error())
-		ctx.Redirect(redirectURL)
-		return
-	}
-
-	_, _, err = actions_service.CreateOrUpdateEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, form.Name, util.NormalizeStringEOL(form.Data), form.Description)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("secrets.save_failed"))
-	} else {
-		ctx.Flash.Success(ctx.Tr("secrets.save_success", strings.ToUpper(form.Name)))
-	}
-	ctx.JSONRedirect(redirectURL)
+	env := contextEnvironment(ctx)
+	shared_secrets.PerformSecretsPost(ctx, 0, ctx.Repo.Repository.ID, env.ID, environmentLink(ctx, env))
 }
 
-// EnvironmentSecretDelete handles POST for deleting an environment secret
 func EnvironmentSecretDelete(ctx *context.Context) {
-	envName := ctx.PathParam("environment_name")
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, envName)
-	if err != nil {
-		ctx.JSONError(ctx.Tr("secrets.deletion.failed"))
-		return
-	}
-
-	id := ctx.FormInt64("id")
-	secrets, err := db.Find[secret_model.Secret](ctx, secret_model.FindSecretsOptions{
-		RepoID:        ctx.Repo.Repository.ID,
-		EnvironmentID: env.ID,
-		SecretID:      id,
-	})
-	if err != nil || len(secrets) == 0 {
-		ctx.JSONError(ctx.Tr("secrets.deletion.failed"))
-		return
-	}
-
-	if err := actions_service.DeleteEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, secrets[0].Name); err != nil {
-		ctx.JSONError(ctx.Tr("secrets.deletion.failed"))
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("secrets.deletion.success"))
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName))
+	env := contextEnvironment(ctx)
+	shared_secrets.PerformSecretsDelete(ctx, 0, ctx.Repo.Repository.ID, env.ID, environmentLink(ctx, env))
 }
 
-// EnvironmentVariableCreate handles POST for creating an environment variable
-func EnvironmentVariableCreate(ctx *context.Context) {
-	envName := ctx.PathParam("environment_name")
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, envName)
-	if err != nil {
-		ctx.NotFound(err)
-		return
-	}
+// formBranchPatterns reads the textarea holding one glob per line.
+func formBranchPatterns(ctx *context.Context) []string {
+	return actions_model.SplitBranchPatterns(ctx.FormString("allowed_branch_patterns"))
+}
 
-	redirectURL := ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName)
-	form := web.GetForm[*forms.EditVariableForm](ctx)
-
-	_, err = actions_service.CreateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, form.Name, form.Data, form.Description)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("actions.variables.creation.failed"))
+func flashEnvironmentError(ctx *context.Context, err error, fallbackKey string) {
+	if errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, util.ErrAlreadyExist) {
+		ctx.Flash.Error(err.Error())
 	} else {
-		ctx.Flash.Success(ctx.Tr("actions.variables.creation.success", strings.ToUpper(form.Name)))
+		ctx.Flash.Error(ctx.Tr(fallbackKey))
 	}
-	ctx.JSONRedirect(redirectURL)
-}
-
-// EnvironmentVariableUpdate handles POST for updating an environment variable
-func EnvironmentVariableUpdate(ctx *context.Context) {
-	envName := ctx.PathParam("environment_name")
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, envName)
-	if err != nil {
-		ctx.NotFound(err)
-		return
-	}
-
-	redirectURL := ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName)
-	variableID := ctx.PathParamInt64("variable_id")
-	form := web.GetForm[*forms.EditVariableForm](ctx)
-
-	_, err = actions_service.UpdateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, variableID, form.Name, form.Data, form.Description)
-	if err != nil {
-		ctx.Flash.Error(ctx.Tr("actions.variables.edit"))
-	} else {
-		ctx.Flash.Success(ctx.Tr("actions.variables.edit"))
-	}
-	ctx.JSONRedirect(redirectURL)
-}
-
-// EnvironmentVariableDelete handles POST for deleting an environment variable
-func EnvironmentVariableDelete(ctx *context.Context) {
-	envName := ctx.PathParam("environment_name")
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, envName)
-	if err != nil {
-		ctx.JSONError(ctx.Tr("actions.variables.deletion.failed"))
-		return
-	}
-
-	variableID := ctx.PathParamInt64("variable_id")
-	if err := actions_service.DeleteEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, variableID); err != nil {
-		ctx.JSONError(ctx.Tr("actions.variables.deletion.failed"))
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("actions.variables.deletion.success"))
-	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName))
 }

@@ -48,12 +48,13 @@ type actionRunJobBeforeV349 struct {
 func (actionRunJobBeforeV349) TableName() string { return "action_run_job" }
 
 type secretV349 struct {
-	ID            int64  `xorm:"pk autoincr"`
-	OwnerID       int64  `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL"`
-	RepoID        int64  `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-	EnvironmentID int64  `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
-	Name          string `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
-	Data          string `xorm:"LONGTEXT"`
+	ID            int64              `xorm:"pk autoincr"`
+	OwnerID       int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL"`
+	RepoID        int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
+	EnvironmentID int64              `xorm:"INDEX UNIQUE(owner_repo_name) NOT NULL DEFAULT 0"`
+	Name          string             `xorm:"UNIQUE(owner_repo_name) NOT NULL"`
+	Data          string             `xorm:"LONGTEXT"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL"`
 }
 
 func (secretV349) TableName() string { return "secret" }
@@ -76,7 +77,7 @@ func Test_AddActionEnvironmentSchema(t *testing.T) {
 
 	tableMap := migrationtest.LoadTableSchemasMap(t, x)
 	require.ElementsMatch(t, tableMap["action_environment"].ColumnsSeq(),
-		[]string{"id", "repo_id", "name", "protected_branches", "created_unix", "updated_unix"})
+		[]string{"id", "repo_id", "name", "lower_name", "allowed_branch_patterns", "created_unix", "updated_unix"})
 	require.Contains(t, tableMap["action_run_job"].ColumnsSeq(), "environment_name")
 
 	// pre-existing rows survive the recreate and land in the repo/org scope

@@ -120,4 +120,3 @@ prime/
 
 # A Makefile for custom make targets
 Makefile.local
-gitea.dev
