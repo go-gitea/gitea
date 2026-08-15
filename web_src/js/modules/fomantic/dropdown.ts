@@ -1,5 +1,6 @@
 import type {FomanticInitFunction} from '../../types.ts';
 import {generateElemId, queryElems} from '../../utils/dom.ts';
+import {trString} from '../i18n.ts';
 
 const ariaPatchKey = '_giteaAriaPatchDropdown';
 const fomanticDropdownFn = $.fn.dropdown;
@@ -63,7 +64,7 @@ function updateSelectionLabel(label: HTMLElement) {
   const deleteIcon = label.querySelector('.delete.icon');
   if (deleteIcon) {
     deleteIcon.setAttribute('aria-hidden', 'false');
-    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', label.getAttribute('data-value')!));
+    deleteIcon.setAttribute('aria-label', trString(window.config.i18n.remove_label_str, label.getAttribute('data-value')!));
     deleteIcon.setAttribute('role', 'button');
   }
 }

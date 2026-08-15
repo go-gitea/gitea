@@ -6,6 +6,7 @@ package cmd
 import (
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -93,31 +94,25 @@ func runACME(listenAddr string, m http.Handler) error {
 	myACME := certmagic.NewACMEIssuer(magic, certmagic.DefaultACME)
 	magic.Issuers = []certmagic.Issuer{myACME}
 
-	// this obtains certificates or renews them if necessary
-	err := magic.ManageSync(graceful.GetManager().HammerContext(), []string{setting.Domain})
+	// Obtain certificates or renew them if necessary. ManageSync fails closed on
+	// renewal errors even when a still-valid certificate is already on disk, which
+	// takes HTTPS down on restart (https://github.com/go-gitea/gitea/issues/38519).
+	// Prefer keeping the existing cert and retrying renewals asynchronously.
+	ctx := graceful.GetManager().ShutdownContext()
+	err := magic.ManageSync(ctx, []string{setting.Domain})
 	if err != nil {
-		return err
+		cert, cacheErr := magic.CacheManagedCertificate(ctx, setting.Domain)
+		if cacheErr != nil || cert.Expired() {
+			return errors.Join(err, cacheErr)
+		}
+		log.Error("ACME certificate manage failed; continuing with existing certificate: %v", err)
+		if err := magic.ManageAsync(ctx, []string{setting.Domain}); err != nil {
+			log.Error("Failed to start async ACME management: %v", err)
+		}
 	}
 
-	tlsConfig := magic.TLSConfig()
-	tlsConfig.NextProtos = append(tlsConfig.NextProtos, "h2")
-
-	if version := toTLSVersion(setting.SSLMinimumVersion); version != 0 {
-		tlsConfig.MinVersion = version
-	}
-	if version := toTLSVersion(setting.SSLMaximumVersion); version != 0 {
-		tlsConfig.MaxVersion = version
-	}
-
-	// Set curve preferences
-	if curves := toCurvePreferences(setting.SSLCurvePreferences); len(curves) > 0 {
-		tlsConfig.CurvePreferences = curves
-	}
-
-	// Set cipher suites
-	if ciphers := toTLSCiphers(setting.SSLCipherSuites); len(ciphers) > 0 {
-		tlsConfig.CipherSuites = ciphers
-	}
+	// certmagic only advertises its own ACME challenge protocol, applyTLSSettings appends ours
+	tlsConfig := applyTLSSettings(magic.TLSConfig())
 
 	if enableHTTPChallenge {
 		go func() {

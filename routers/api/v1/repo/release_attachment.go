@@ -310,7 +310,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
+	form := web.GetForm[*api.EditAttachmentOptions](ctx)
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")

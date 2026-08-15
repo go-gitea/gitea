@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	secret_model "gitea.dev/models/secret"

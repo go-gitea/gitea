@@ -157,7 +157,7 @@ func EnvironmentSecretPost(ctx *context.Context) {
 	}
 
 	redirectURL := ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName)
-	form := web.GetForm(ctx).(*forms.AddSecretForm)
+	form := web.GetForm[*forms.AddSecretForm](ctx)
 
 	if err := secret_service.ValidateName(form.Name); err != nil {
 		ctx.Flash.Error(err.Error())
@@ -213,7 +213,7 @@ func EnvironmentVariableCreate(ctx *context.Context) {
 	}
 
 	redirectURL := ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName)
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	form := web.GetForm[*forms.EditVariableForm](ctx)
 
 	_, err = actions_service.CreateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, form.Name, form.Data, form.Description)
 	if err != nil {
@@ -235,7 +235,7 @@ func EnvironmentVariableUpdate(ctx *context.Context) {
 
 	redirectURL := ctx.Repo.RepoLink + "/settings/environments/" + url.PathEscape(envName)
 	variableID := ctx.PathParamInt64("variable_id")
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	form := web.GetForm[*forms.EditVariableForm](ctx)
 
 	_, err = actions_service.UpdateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, variableID, form.Name, form.Data, form.Description)
 	if err != nil {

@@ -6,7 +6,6 @@ import {initGlobalCopyToClipboardListener} from './modules/clipboard.ts';
 import {initCopyContent} from './features/copycontent.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
-import {initImageDiff} from './features/imagediff.ts';
 import {initRepoMigration} from './features/repo-migration.ts';
 import {initRepoProjectsView} from './features/repo-projects.ts';
 import {initTableSort} from './features/tablesort.ts';
@@ -39,7 +38,7 @@ import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
 import {initRepoBranchButton} from './features/repo-branch.ts';
 import {initCommonOrganization} from './features/common-organization.ts';
-import {initRepoWikiForm} from './features/repo-wiki.ts';
+import {initRepoWiki} from './features/repo-wiki.ts';
 import {initRepository, initBranchSelectorTabs} from './features/repo-legacy.ts';
 import {initCaptcha} from './features/captcha.ts';
 import {initRepositoryActions} from './features/repo-actions.ts';
@@ -66,6 +65,7 @@ import {initActionsPermissionsForm} from './features/common-actions-permissions.
 import {initRefIssueContextPopup} from './features/ref-issue.ts';
 import {initGlobalShortcut} from './modules/shortcut.ts';
 import {initDevtest} from './modules/devtest.ts';
+import {initRepoWatch} from './features/repo-watch.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -95,7 +95,6 @@ const initPerformanceTracer = callInitFunctions([
   initCommmPageComponents,
 
   initHeatmap,
-  initImageDiff,
   initMarkupAnchors,
   initMarkupContent,
   initRefIssueContextPopup,
@@ -136,13 +135,14 @@ const initPerformanceTracer = callInitFunctions([
   initRepoReleaseNew,
   initRepoTopicBar,
   initRepoViewFileTree,
-  initRepoWikiForm,
+  initRepoWiki,
   initRepository,
   initRepositoryActions,
   initRepositorySearch,
   initRepoContributors,
   initRepoCodeFrequency,
   initRepoRecentCommits,
+  initRepoWatch,
 
   initCommitStatuses,
   initAvatarStackPopup,

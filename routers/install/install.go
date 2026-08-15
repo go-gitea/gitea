@@ -23,6 +23,7 @@ import (
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
@@ -188,7 +189,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	var err error
 
-	form := *web.GetForm(ctx).(*forms.InstallForm)
+	form := *web.GetForm[*forms.InstallForm](ctx)
 
 	// fix form values
 	if form.AppURL != "" && form.AppURL[len(form.AppURL)-1] != '/' {
@@ -502,15 +503,10 @@ func SubmitInstall(ctx *context.Context) {
 		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
 		// Auto-login for admin
-		if err = ctx.Session.Set("uid", u.ID); err != nil {
+		if err = ctx.Session.Set(session.KeyUID, u.ID); err != nil {
 			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
 		}
-		if err = ctx.Session.Set("uname", u.Name); err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
-			return
-		}
-
 		if err = ctx.Session.Release(); err != nil {
 			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 			return
@@ -528,7 +524,7 @@ func SubmitInstall(ctx *context.Context) {
 
 		// Now get the http.Server from this request and shut it down
 		// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
-		srv := ctx.Value(http.ServerContextKey).(*http.Server)
+		srv := ctx.Value(http.ServerContextKey).(*http.Server) //nolint:forcetypeassert // must exist
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
 			log.Error("Unable to shutdown the install server! Error: %v", err)
 		}

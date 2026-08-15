@@ -27,7 +27,7 @@ func registerStopZombieTasks() {
 		Enabled:    true,
 		RunAtStart: true,
 		Schedule:   "@every 5m",
-	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return actions_service.StopZombieTasks(ctx)
 	})
 }
@@ -37,7 +37,7 @@ func registerStopEndlessTasks() {
 		Enabled:    true,
 		RunAtStart: true,
 		Schedule:   "@every 30m",
-	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return actions_service.StopEndlessTasks(ctx)
 	})
 }
@@ -47,7 +47,7 @@ func registerCancelAbandonedJobs() {
 		Enabled:    true,
 		RunAtStart: true,
 		Schedule:   "@every 6h",
-	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return actions_service.CancelAbandonedJobs(ctx)
 	})
 }
@@ -59,7 +59,7 @@ func registerScheduleTasks() {
 		Enabled:    true,
 		RunAtStart: false,
 		Schedule:   "@every 1m",
-	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		// Call the function to start schedule tasks and pass the context.
 		return actions_service.StartScheduleTasks(ctx)
 	})
@@ -70,7 +70,7 @@ func registerActionsCleanup() {
 		Enabled:    true,
 		RunAtStart: false,
 		Schedule:   "@midnight",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {
 		return actions_service.Cleanup(ctx)
 	})
 }

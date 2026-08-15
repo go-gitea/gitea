@@ -130,7 +130,7 @@ func CreateEnvironment(ctx *context.APIContext) {
 	//   "409":
 	//     description: environment already exists
 
-	opt := web.GetForm(ctx).(*api.CreateEnvironmentOption)
+	opt := web.GetForm[*api.CreateEnvironmentOption](ctx)
 	env, err := actions_service.CreateEnvironment(ctx, ctx.Repo.Repository.ID, opt.Name, opt.ProtectedBranches)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -182,7 +182,7 @@ func UpdateEnvironment(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	opt := web.GetForm(ctx).(*api.UpdateEnvironmentOption)
+	opt := web.GetForm[*api.UpdateEnvironmentOption](ctx)
 	updated, err := actions_service.UpdateEnvironment(ctx, ctx.Repo.Repository.ID, env.ID, opt.Name, opt.ProtectedBranches)
 	if err != nil {
 		if errors.Is(err, util.ErrAlreadyExist) {
@@ -339,7 +339,7 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	opt := web.GetForm(ctx).(*api.CreateOrUpdateSecretOption)
+	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 	_, created, err := actions_service.CreateOrUpdateEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
@@ -501,7 +501,7 @@ func CreateEnvVariable(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	opt := web.GetForm(ctx).(*api.CreateVariableOption)
+	opt := web.GetForm[*api.CreateVariableOption](ctx)
 	variableName := strings.ToUpper(ctx.PathParam("variablename"))
 
 	if _, err := actions_service.CreateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, variableName, opt.Value, opt.Description); err != nil {
@@ -569,7 +569,7 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	opt := web.GetForm(ctx).(*api.UpdateVariableOption)
+	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 	if _, err := actions_service.UpdateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, vars[0].ID, opt.Name, opt.Value, opt.Description); err != nil {
 		ctx.APIErrorInternal(err)
 		return
