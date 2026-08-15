@@ -195,10 +195,6 @@ func SubmitInstall(ctx *context.Context) {
 	if form.AppURL != "" && form.AppURL[len(form.AppURL)-1] != '/' {
 		form.AppURL += "/"
 	}
-	form.SMTPAddr = strings.TrimSpace(form.SMTPAddr)
-	form.SMTPPort = strings.TrimSpace(form.SMTPPort)
-	form.SMTPFrom = strings.TrimSpace(form.SMTPFrom)
-	form.SMTPUser = strings.TrimSpace(form.SMTPUser)
 
 	ctx.Data["CurDbType"] = form.DbType
 

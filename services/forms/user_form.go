@@ -21,29 +21,29 @@ import (
 // InstallForm form for installation page
 type InstallForm struct {
 	middleware.FormDefaultValidator
-	DbType   string `binding:"Required"`
-	DbHost   string
-	DbUser   string
+	DbType   string `binding:"TrimSpace;Required"`
+	DbHost   string `binding:"TrimSpace"`
+	DbUser   string `binding:"TrimSpace"`
 	DbPasswd string
-	DbName   string
-	SSLMode  string
-	DbPath   string
-	DbSchema string
+	DbName   string `binding:"TrimSpace"`
+	SSLMode  string `binding:"TrimSpace"`
+	DbPath   string `binding:"TrimSpace"`
+	DbSchema string `binding:"TrimSpace"`
 
-	AppName      string `binding:"Required" locale:"install.app_name"`
-	RepoRootPath string `binding:"Required"`
-	LFSRootPath  string
-	RunUser      string `binding:"Required"`
-	Domain       string `binding:"Required"`
+	AppName      string `binding:"TrimSpace;Required" locale:"install.app_name"`
+	RepoRootPath string `binding:"TrimSpace;Required"`
+	LFSRootPath  string `binding:"TrimSpace"`
+	RunUser      string `binding:"TrimSpace;Required"`
+	Domain       string `binding:"TrimSpace;Required"`
 	SSHPort      int
-	HTTPPort     string `binding:"Required"`
-	AppURL       string `binding:"Required"`
-	LogRootPath  string `binding:"Required"`
+	HTTPPort     string `binding:"TrimSpace;Required"`
+	AppURL       string `binding:"TrimSpace;Required"`
+	LogRootPath  string `binding:"TrimSpace;Required"`
 
-	SMTPAddr        string
-	SMTPPort        string
-	SMTPFrom        string
-	SMTPUser        string `binding:"OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
+	SMTPAddr        string `binding:"TrimSpace"`
+	SMTPPort        string `binding:"TrimSpace"`
+	SMTPFrom        string `binding:"TrimSpace"`
+	SMTPUser        string `binding:"TrimSpace;OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
 	SMTPPasswd      string
 	RegisterConfirm bool
 	MailNotify      bool
@@ -58,14 +58,14 @@ type InstallForm struct {
 	DefaultAllowCreateOrganization bool
 	DefaultEnableTimetracking      bool
 	EnableUpdateChecker            bool
-	NoReplyAddress                 string
+	NoReplyAddress                 string `binding:"TrimSpace"`
 
-	PasswordAlgorithm string
+	PasswordAlgorithm string `binding:"TrimSpace"`
 
-	AdminName          string `binding:"OmitEmpty;Username;MaxSize(30)" locale:"install.admin_name"`
+	AdminName          string `binding:"TrimSpace;OmitEmpty;Username;MaxSize(30)" locale:"install.admin_name"`
 	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
 	AdminConfirmPasswd string
-	AdminEmail         string `binding:"OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
+	AdminEmail         string `binding:"TrimSpace;OmitEmpty;MinSize(3);MaxSize(254);Include(@)" locale:"install.admin_email"`
 
 	// ReinstallConfirmFirst we can not use 1/2/3 or A/B/C here, there is a framework bug, can not parse "reinstall_confirm_1" or "reinstall_confirm_a"
 	ReinstallConfirmFirst  bool

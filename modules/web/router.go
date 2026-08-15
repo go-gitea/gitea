@@ -35,6 +35,7 @@ func Bind[T interface {
 		obj := new(E)
 		var form T = obj
 		vctx := &middleware.ValidateContext{Locale: locale, Data: data, Req: req, Resp: resp}
+		middleware.TrimFormValues(req, obj)
 		errs := binding.Bind(req, obj)
 		errs = form.Validate(vctx, errs)
 		SetForm(data, obj)

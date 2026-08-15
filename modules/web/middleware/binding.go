@@ -5,7 +5,9 @@
 package middleware
 
 import (
+	"net/http"
 	"reflect"
+	"slices"
 	"strings"
 
 	"gitea.dev/modules/setting"
@@ -52,6 +54,60 @@ func AssignForm(form any, data map[string]any) {
 		}
 
 		data[fieldName] = val.Field(i).Interface()
+	}
+}
+
+// TrimFormValues trims the request values bound to fields tagged with the "TrimSpace" binding rule.
+// It runs before binding so that rules like "Required" see the trimmed value.
+func TrimFormValues(req *http.Request, form any) {
+	var names []string
+	collectTrimSpaceFormNames(reflect.TypeOf(form), &names)
+	if len(names) == 0 {
+		return
+	}
+
+	if strings.Contains(req.Header.Get("Content-Type"), "multipart/form-data") {
+		_ = req.ParseMultipartForm(binding.MaxMemory)
+	} else {
+		_ = req.ParseForm()
+	}
+
+	for _, name := range names {
+		trimValues(req.Form[name])
+		trimValues(req.PostForm[name])
+		if req.MultipartForm != nil {
+			trimValues(req.MultipartForm.Value[name])
+		}
+	}
+}
+
+func trimValues(values []string) {
+	for i, v := range values {
+		values[i] = strings.TrimSpace(v)
+	}
+}
+
+func collectTrimSpaceFormNames(typ reflect.Type, names *[]string) {
+	for typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+	if typ.Kind() != reflect.Struct {
+		return
+	}
+	for field := range typ.Fields() {
+		// mirror the nested struct traversal of the binding package's form mapper
+		if field.Type.Kind() == reflect.Struct || (field.Type.Kind() == reflect.Pointer && field.Anonymous) {
+			collectTrimSpaceFormNames(field.Type, names)
+		}
+		fieldName := field.Tag.Get("form")
+		if fieldName == "-" {
+			continue
+		} else if fieldName == "" {
+			fieldName = util.ToSnakeCase(field.Name)
+		}
+		if slices.Contains(strings.Split(field.Tag.Get("binding"), ";"), "TrimSpace") {
+			*names = append(*names, fieldName)
+		}
 	}
 }
 
