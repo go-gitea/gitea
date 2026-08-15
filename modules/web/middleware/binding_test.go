@@ -15,17 +15,16 @@ import (
 )
 
 type testRangeForm struct {
+	FormDefaultValidator
 	Hours int `binding:"Range(0,1000)"`
 }
-
-func (f *testRangeForm) Validate(_ *http.Request, errs binding.Errors) binding.Errors { return errs }
 
 func TestBuildValidationErrorForUser(t *testing.T) {
 	// an out-of-range value must reach its own message instead of the panicking "default" branch
 	form := &testRangeForm{Hours: 2000}
 	errs := binding.Validate(httptest.NewRequest(http.MethodPost, "/", nil), form)
 	errorMessage, errorFieldName, fieldNames := BuildValidationErrorForUser(form, translation.MockLocale{}, errs)
-	assert.Equal(t, "form.range_error:Hours,0,1000", errorMessage)
+	assert.Equal(t, "form.range_error:form.Hours,0,1000", errorMessage)
 	assert.Equal(t, "Hours", errorFieldName)
 	assert.Equal(t, []string{"Hours"}, fieldNames)
 }

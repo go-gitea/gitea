@@ -2,7 +2,7 @@ module gitea.dev
 
 go 1.26.0
 
-toolchain go1.26.5
+toolchain go1.26.6
 
 require (
 	connectrpc.com/connect v1.20.0
@@ -104,19 +104,18 @@ require (
 	gitlab.com/gitlab-org/api/client-go/v2 v2.55.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.5
 	golang.org/x/crypto v0.54.0
-	golang.org/x/image v0.44.0
+	golang.org/x/image v0.45.0
 	golang.org/x/mod v0.38.0
 	golang.org/x/net v0.57.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/sync v0.22.0
 	golang.org/x/sys v0.47.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/ini.v1 v1.67.3
 	modernc.org/sqlite v1.56.0
 	mvdan.cc/xurls/v2 v2.6.0
-	strk.kbt.io/projects/go/libravatar v0.0.0-20260301104140-add494e31dab
 	xorm.io/builder v0.3.13
 	xorm.io/xorm v1.4.1
 )
@@ -267,7 +266,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	go4.org v0.0.0-20260112195520-a5071408f32f // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools v0.47.0 // indirect
+	golang.org/x/tools v0.48.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260610212136-7ab31c22f7ad // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

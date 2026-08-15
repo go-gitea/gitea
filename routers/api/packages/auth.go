@@ -52,7 +52,6 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 	}
 
 	if packageMeta.Scope != "" {
-		store.GetData()["IsApiToken"] = true
 		store.GetData()["ApiTokenScope"] = packageMeta.Scope
 	}
 
