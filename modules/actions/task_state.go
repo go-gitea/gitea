@@ -71,8 +71,8 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 		Name:   postStepName,
 		Status: actions_model.StatusWaiting,
 	}
-	// If the lastHasRunStep is the last step, or it has failed, postStep has started.
-	if lastHasRunStep.Status.IsFailure() || lastHasRunStep == task.Steps[len(task.Steps)-1] {
+	// If no step is left to run, or the lastHasRunStep has failed, postStep has started.
+	if lastHasRunStep.Status.IsFailure() || task.Steps[len(task.Steps)-1].Status.IsDone() {
 		postStep.LogIndex = logIndex
 		postStep.LogLength = task.LogLength - postStep.LogIndex
 		postStep.Started = lastHasRunStep.Stopped
