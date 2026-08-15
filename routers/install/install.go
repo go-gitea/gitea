@@ -195,6 +195,10 @@ func SubmitInstall(ctx *context.Context) {
 	if form.AppURL != "" && form.AppURL[len(form.AppURL)-1] != '/' {
 		form.AppURL += "/"
 	}
+	form.SMTPAddr = strings.TrimSpace(form.SMTPAddr)
+	form.SMTPPort = strings.TrimSpace(form.SMTPPort)
+	form.SMTPFrom = strings.TrimSpace(form.SMTPFrom)
+	form.SMTPUser = strings.TrimSpace(form.SMTPUser)
 
 	ctx.Data["CurDbType"] = form.DbType
 
@@ -360,7 +364,7 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
 
-	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
+	if form.SMTPAddr != "" {
 		if _, err := mail.ParseAddress(form.SMTPFrom); err != nil {
 			ctx.RenderWithErrDeprecated(ctx.Tr("install.smtp_from_invalid"), tplInstall, &form)
 			return

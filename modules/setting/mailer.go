@@ -160,6 +160,10 @@ func loadMailerFrom(rootCfg ConfigProvider) {
 		log.Fatal("Unable to map [mailer] section on to MailService. Error: %v", err)
 	}
 
+	// quoted ini values keep their surrounding spaces, which would break address resolution
+	MailService.SMTPAddr = strings.TrimSpace(MailService.SMTPAddr)
+	MailService.SMTPPort = strings.TrimSpace(MailService.SMTPPort)
+
 	overrideHeader := rootCfg.Section("mailer.override_header").Keys()
 	MailService.OverrideHeader = make(map[string][]string)
 	for _, key := range overrideHeader {
