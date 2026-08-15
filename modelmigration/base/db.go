@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"regexp"
+	"slices"
 	"strings"
 
 	"gitea.dev/models/db" //nolint:depguard // allow to access db in migration
@@ -318,85 +318,54 @@ func DropTableColumns(sess Session, tableName string, columnNames ...string) (er
 
 	switch {
 	case setting.Database.Type.IsSQLite3():
-		// First drop the indexes on the columns
-		res, errIndex := sess.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
-		if errIndex != nil {
-			return errIndex
-		}
-		for _, row := range res {
-			indexName := row["name"]
-			indexRes, err := sess.Query(fmt.Sprintf("PRAGMA index_info(`%s`)", indexName))
-			if err != nil {
-				return err
-			}
-			if len(indexRes) != 1 {
-				continue
-			}
-			indexColumn := string(indexRes[0]["name"])
-			for _, name := range columnNames {
-				if name == indexColumn {
-					_, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName))
-					if err != nil {
-						return err
-					}
-				}
-			}
-		}
-
-		// Here we need to get the columns from the original table
-		sql := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE tbl_name='%s' and type='table'", tableName)
-		res, err := sess.Query(sql)
+		existing, err := sess.Query(fmt.Sprintf("PRAGMA table_info(`%s`)", tableName))
 		if err != nil {
 			return err
 		}
-		tableSQL := string(res[0]["sql"])
-
-		// Get the string offset for column definitions: `CREATE TABLE ( column-definitions... )`
-		columnDefinitionsIndex := strings.Index(tableSQL, "(")
-		if columnDefinitionsIndex < 0 {
-			return errors.New("couldn't find column definitions")
-		}
-
-		// Separate out the column definitions
-		tableSQL = tableSQL[columnDefinitionsIndex:]
-
-		// Remove the required columnNames
+		dropColumns := make([]string, 0, len(columnNames))
 		for _, name := range columnNames {
-			tableSQL = regexp.MustCompile(regexp.QuoteMeta("`"+name+"`")+"[^`,)]*?[,)]").ReplaceAllString(tableSQL, "")
-		}
-
-		// Ensure the query is ended properly
-		tableSQL = strings.TrimSpace(tableSQL)
-		if tableSQL[len(tableSQL)-1] != ')' {
-			if tableSQL[len(tableSQL)-1] == ',' {
-				tableSQL = tableSQL[:len(tableSQL)-1]
+			if slices.ContainsFunc(existing, func(row map[string][]byte) bool {
+				return strings.EqualFold(string(row["name"]), name)
+			}) {
+				dropColumns = append(dropColumns, name)
 			}
-			tableSQL += ")"
+		}
+		if len(dropColumns) == 0 {
+			return nil
 		}
 
-		// Find all the columns in the table
-		columns := regexp.MustCompile("`([^`]*)`").FindAllString(tableSQL, -1)
-
-		tableSQL = fmt.Sprintf("CREATE TABLE `new_%s_new` ", tableName) + tableSQL
-		if _, err := sess.Exec(tableSQL); err != nil {
+		// SQLite refuses to drop a column while any index still covers it, so remove those indexes first
+		indexes, err := sess.Query(fmt.Sprintf("PRAGMA index_list(`%s`)", tableName))
+		if err != nil {
 			return err
 		}
-
-		// Now restore the data
-		columnsSeparated := strings.Join(columns, ",")
-		insertSQL := fmt.Sprintf("INSERT INTO `new_%s_new` (%s) SELECT %s FROM %s", tableName, columnsSeparated, columnsSeparated, tableName)
-		if _, err := sess.Exec(insertSQL); err != nil {
-			return err
+		for _, index := range indexes {
+			indexName := string(index["name"])
+			// an auto-index backs a PRIMARY KEY or UNIQUE constraint and cannot be dropped on its own
+			if strings.HasPrefix(indexName, "sqlite_autoindex_") {
+				continue
+			}
+			indexCols, err := sess.Query(fmt.Sprintf("PRAGMA index_info(`%s`)", indexName))
+			if err != nil {
+				return err
+			}
+			covered := slices.ContainsFunc(indexCols, func(indexCol map[string][]byte) bool {
+				return slices.ContainsFunc(dropColumns, func(name string) bool {
+					return strings.EqualFold(string(indexCol["name"]), name)
+				})
+			})
+			if !covered {
+				continue
+			}
+			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%s`", indexName)); err != nil {
+				return err
+			}
 		}
 
-		// Now drop the old table
-		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
-			return err
-		}
-
-		// Rename the table
-		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `new_%s_new` RENAME TO `%s`", tableName, tableName)); err != nil {
-			return err
+		for _, name := range dropColumns {
+			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN `%s`", tableName, name)); err != nil {
+				return fmt.Errorf("drop table `%s` column `%s`: %w", tableName, name, err)
+			}
 		}
 
 	case setting.Database.Type.IsPostgreSQL():
