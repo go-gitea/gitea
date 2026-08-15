@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"slices"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -67,10 +68,8 @@ func prepareGitPath(ctx context.Context, gitRepo *git.Repository, defaultWikiBra
 	}
 
 	for _, candidate := range gitPaths {
-		for _, filename := range filesInIndex {
-			if filename == candidate {
-				return true, candidate, nil
-			}
+		if slices.Contains(filesInIndex, candidate) {
+			return true, candidate, nil
 		}
 	}
 
@@ -78,14 +77,14 @@ func prepareGitPath(ctx context.Context, gitRepo *git.Repository, defaultWikiBra
 	// second directory whose normalized web path is identical.
 	commit, err := gitRepo.GetBranchCommit(ctx, defaultWikiBranch)
 	if err == nil {
-		for i := len(gitPaths) - 1; i >= 0; i-- {
-			parentPath := path.Dir(gitPaths[i])
+		for _, candidate := range slices.Backward(gitPaths) {
+			parentPath := path.Dir(candidate)
 			if parentPath == "." {
 				continue
 			}
 			entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, parentPath)
 			if err == nil && entry.IsDir() {
-				return false, gitPaths[i], nil
+				return false, candidate, nil
 			}
 			if err != nil && !git.IsErrNotExist(err) {
 				return false, gitPath, err
