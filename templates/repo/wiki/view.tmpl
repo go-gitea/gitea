@@ -75,7 +75,7 @@
 			</div>
 			{{end}}
 
-			<div class="render-content markup wiki-content-main {{if or .WikiSidebarTocHTML .WikiSidebarHTML}}with-sidebar{{end}}">
+			<div class="render-content markup wiki-content-main {{if or .WikiSidebarTocHTML .WikiSidebarHTML .WikiTree}}with-sidebar{{end}}">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus}}
 				{{.WikiContentHTML}}
 			</div>
