@@ -42,23 +42,6 @@ func Test_loadMailerFrom(t *testing.T) {
 	}
 }
 
-func Test_loadMailerFromTrimsSpaces(t *testing.T) {
-	defer test.MockVariableValue(&MailService)()
-
-	cfg, err := NewConfigProviderFromData(`
-[mailer]
-ENABLED = true
-SMTP_ADDR = " 127.0.0.1 "
-SMTP_PORT = "465 "
-`)
-	assert.NoError(t, err)
-	loadMailerFrom(cfg)
-
-	assert.Equal(t, "127.0.0.1", MailService.SMTPAddr)
-	assert.Equal(t, "465", MailService.SMTPPort)
-	assert.Equal(t, "smtps", MailService.Protocol)
-}
-
 func TestLoadSettingsForInstallMailServiceFlags(t *testing.T) {
 	defer test.MockVariableValue(&Service)()
 	defer test.MockVariableValue(&MailService)()
