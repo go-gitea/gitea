@@ -103,25 +103,6 @@ func GenerateGiteaContext(ctx context.Context, run *actions_model.ActionRun, att
 	if job != nil {
 		gitContext["job"] = job.JobID
 		gitContext["run_attempt"] = strconv.FormatInt(job.Attempt, 10)
-
-		if job.ParentJobID > 0 {
-			// Inject the caller's resolved workflow_call inputs into gitea.event.inputs.
-			// The rest of gitea.event stays as the caller's actual trigger event (push/pull_request/etc.)
-			// to match GitHub's semantics (see https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations#github-context).
-			// FIXME: If the run is triggered by "workflow_dispatch", the original inputs of "workflow_dispatch" will be overridden.
-			// If necessary, the caller can send these values to the called workflow via `with:`.
-			caller, err := actions_model.GetRunJobByRunAndID(ctx, job.RunID, job.ParentJobID)
-			if err != nil {
-				log.Error("GenerateGiteaContext: load caller job %d of job %d: %v", job.ParentJobID, job.ID, err)
-			} else if caller.CallPayload != "" {
-				var cp api.WorkflowCallPayload
-				if err := json.Unmarshal([]byte(caller.CallPayload), &cp); err != nil {
-					log.Error("GenerateGiteaContext: decode CallPayload of caller %d: %v", caller.ID, err)
-				} else if cp.Inputs != nil {
-					event["inputs"] = cp.Inputs
-				}
-			}
-		}
 	}
 
 	if attempt == nil {

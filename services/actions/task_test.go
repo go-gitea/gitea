@@ -11,6 +11,8 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -101,6 +103,14 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 	}
 	require.NoError(t, db.Insert(ctx, run))
 
+	payload, err := json.Marshal(api.WorkflowCallPayload{
+		Inputs: map[string]any{
+			"flag": true,
+			"name": "from-caller",
+		},
+	})
+	require.NoError(t, err)
+
 	caller := &actions_model.ActionRunJob{
 		RunID:            run.ID,
 		RepoID:           repo.ID,
@@ -110,7 +120,7 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 		JobID:            "caller",
 		Attempt:          1,
 		Status:           actions_model.StatusRunning,
-		CallPayload:      "{}",
+		CallPayload:      string(payload),
 		IsReusableCaller: true,
 		IsExpanded:       true,
 	}
@@ -164,6 +174,14 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "workflow_call", taskContext.Fields["event_name"].GetStringValue())
+
+		event := taskContext.Fields["event"].GetStructValue().AsMap()
+		inputs, ok := event["inputs"].(map[string]any)
+		require.True(t, ok)
+
+		assert.Equal(t, true, inputs["flag"])
+		assert.Equal(t, "from-caller", inputs["name"])
+		assert.NotContains(t, taskContext.Fields, "workflow_call_inputs")
 	})
 
 	t.Run("capable runner gets original event", func(t *testing.T) {
@@ -175,6 +193,13 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "push", taskContext.Fields["event_name"].GetStringValue())
+
+		inputs := taskContext.Fields["workflow_call_inputs"].GetStructValue().AsMap()
+		assert.Equal(t, true, inputs["flag"])
+		assert.Equal(t, "from-caller", inputs["name"])
+
+		event := taskContext.Fields["event"].GetStructValue().AsMap()
+		assert.NotContains(t, event, "inputs")
 	})
 
 	t.Run("legacy runner keeps original event for top-level job", func(t *testing.T) {
@@ -184,5 +209,6 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "push", taskContext.Fields["event_name"].GetStringValue())
+		assert.NotContains(t, taskContext.Fields, "workflow_call_inputs")
 	})
 }

@@ -290,9 +290,6 @@ func expandReusableWorkflowCaller(ctx context.Context, run *actions_model.Action
 func insertCallerChildren(ctx context.Context, run *actions_model.ActionRun, attempt *actions_model.ActionRunAttempt, caller *actions_model.ActionRunJob, content []byte, sourceRepoID int64, sourceCommitSHA string, vars map[string]string, inputs map[string]any) error {
 	// Parse the called workflow with the caller's `inputs`
 	gitCtx := GenerateGiteaContext(ctx, run, attempt, nil)
-	if event, ok := gitCtx["event"].(map[string]any); ok {
-		event["inputs"] = inputs
-	}
 
 	childWorkflows, err := jobparser.Parse(content,
 		jobparser.WithVars(vars),

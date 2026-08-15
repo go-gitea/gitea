@@ -173,8 +173,21 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask, runne
 	}
 
 	gitCtx := GenerateGiteaContext(ctx, t.Job.Run, nil, t.Job)
-	if t.Job.ParentJobID > 0 && !runner.HasWorkflowCallOriginalEventSupport {
-		gitCtx["event_name"] = "workflow_call"
+	if t.Job.ParentJobID > 0 {
+		inputs, err := getInputsForJob(ctx, t.Job.Run, t.Job)
+		if err != nil {
+			return nil, err
+		}
+
+		if runner.HasWorkflowCallOriginalEventSupport {
+			gitCtx["workflow_call_inputs"] = inputs
+		} else {
+			// Compatibility with older runners.
+			gitCtx["event_name"] = "workflow_call"
+			if event, ok := gitCtx["event"].(map[string]any); ok {
+				event["inputs"] = inputs
+			}
+		}
 	}
 	gitCtx["token"] = t.Token
 	gitCtx["gitea_runtime_token"] = giteaRuntimeToken

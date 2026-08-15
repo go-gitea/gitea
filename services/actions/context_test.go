@@ -389,10 +389,7 @@ func TestGenerateGiteaContextReusableChildPreservesTriggerEvent(t *testing.T) {
 
 	event, ok := gitCtx["event"].(map[string]any)
 	require.True(t, ok)
-
-	inputs, ok := event["inputs"].(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "hello", inputs["message"])
+	assert.NotContains(t, event, "inputs")
 }
 
 func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
