@@ -166,6 +166,11 @@ func newWebAuthMiddleware() *AuthMiddleware {
 	return webAuth
 }
 
+func doerMustChangePassword(ctx *context.Context) bool {
+	// an impersonating admin must not be forced to set the impersonated user's password
+	return ctx.Doer != nil && ctx.Doer.MustChangePassword && !ctx.DoerIsImpersonated()
+}
+
 // verifyAuthWithOptions checks authentication according to options
 func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Context) {
 	crossOriginProtection := http.NewCrossOriginProtection()
@@ -185,7 +190,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 				return
 			}
 
-			if ctx.Doer.MustChangePassword {
+			if doerMustChangePassword(ctx) {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
 					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
 						ctx.HTTPError(http.StatusUnauthorized, ctx.Locale.TrString("auth.must_change_password"))
@@ -1583,10 +1588,10 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Group("/{username}/{reponame}/wiki", func() {
 		m.Combo("").
 			Get(repo.Wiki).
-			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, web.Bind[*forms.NewWikiForm](), repo.WikiPost)
+			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, repo.WikiPost)
 		m.Combo("/*").
 			Get(repo.Wiki).
-			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, web.Bind[*forms.NewWikiForm](), repo.WikiPost)
+			Post(context.RepoMustNotBeArchived(), reqSignIn, reqUnitWikiWriter, repo.WikiPost)
 		m.Get("/blob_excerpt/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 		m.Get("/commit/{sha:[a-f0-9]{7,64}}.{ext:patch|diff}", repo.RawDiff)
