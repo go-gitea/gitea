@@ -118,13 +118,19 @@ func CollaborationPost(ctx *context.Context) {
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
-	if err := repo_model.ChangeCollaborationAccessMode(
-		ctx,
-		ctx.Repo.Repository,
-		ctx.FormInt64("uid"),
-		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
-		log.Error("ChangeCollaborationAccessMode: %v", err)
+	// the frontend initRepoSettingsCollaboration logic: it only checks "resp.ok"
+	u, err := user_model.GetUserByID(ctx, ctx.FormInt64("uid"))
+	if err != nil {
+		ctx.Status(http.StatusBadRequest)
+		return
 	}
+	mode := perm.AccessMode(ctx.FormInt("mode"))
+	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, u, mode); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		log.Error("AddOrUpdateCollaborator: %v", err)
+		return
+	}
+	ctx.JSONOK()
 }
 
 // DeleteCollaboration delete a collaboration for a repository
