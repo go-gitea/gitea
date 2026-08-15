@@ -322,6 +322,29 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	assert.Equal(t, "Home.md", newWikiPath)
 }
 
+func TestPrepareWikiFileName_ReusesExistingLiteralParent(t *testing.T) {
+	tmpDir := t.TempDir()
+	require.NoError(t, git.InitRepositoryLocal(t.Context(), tmpDir, true, git.Sha1ObjectFormat.Name()))
+
+	gitRepo, err := git.OpenRepositoryLocal(t.Context(), tmpDir)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	objectHash, err := gitRepo.HashObjectBytes(t.Context(), []byte("existing"))
+	require.NoError(t, err)
+	require.NoError(t, gitRepo.AddObjectToIndex(t.Context(), "100644", objectHash, "SOAH GDD/Development/existing.md"))
+	tree, err := gitRepo.WriteTree(t.Context())
+	require.NoError(t, err)
+	commit, err := gitRepo.CommitTree(t.Context(), &git.Signature{Name: "Test", Email: "test@example.com"}, &git.Signature{Name: "Test", Email: "test@example.com"}, tree, git.CommitTreeOpts{Message: "seed", NoGPGSign: true})
+	require.NoError(t, err)
+	require.NoError(t, git.UpdateRef(t.Context(), gitRepo, git.BranchPrefix+"master", commit.String()))
+
+	exists, path, err := prepareGitPath(t.Context(), gitRepo, "master", "SOAH-GDD/Development/test")
+	assert.NoError(t, err)
+	assert.False(t, exists)
+	assert.Equal(t, "SOAH GDD/Development/test.md", path)
+}
+
 func TestWebPathConversion(t *testing.T) {
 	assert.Equal(t, "path/wiki", WebPathToURLPath(WebPath("path/wiki")))
 	assert.Equal(t, "wiki", WebPathToURLPath(WebPath("wiki")))

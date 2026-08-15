@@ -7,6 +7,7 @@ package wiki
 import (
 	"context"
 	"fmt"
+	"path"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
@@ -52,11 +53,11 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 // prepareGitPath try to find a suitable file path with file name by the given raw wiki name.
 // return: existence, prepared file path with name, error
 func prepareGitPath(ctx context.Context, gitRepo *git.Repository, defaultWikiBranch string, wikiPath WebPath) (bool, string, error) {
-	unescaped := string(wikiPath) + ".md"
-	gitPath := WebPathToGitPath(wikiPath)
+	gitPaths := WebPathToGitPathCandidates(wikiPath)
+	gitPath := gitPaths[0]
 
-	// Look for both files
-	filesInIndex, err := gitRepo.LsTree(ctx, defaultWikiBranch, unescaped, gitPath)
+	// Look for files using both the generated and literal Git path forms.
+	filesInIndex, err := gitRepo.LsTree(ctx, defaultWikiBranch, gitPaths...)
 	if err != nil {
 		if gitcmd.IsStderr(err, gitcmd.StderrNotValidObjectName) {
 			return false, gitPath, nil // branch doesn't exist
@@ -65,19 +66,34 @@ func prepareGitPath(ctx context.Context, gitRepo *git.Repository, defaultWikiBra
 		return false, gitPath, err
 	}
 
-	foundEscaped := false
-	for _, filename := range filesInIndex {
-		switch filename {
-		case unescaped:
-			// if we find the unescaped file return it
-			return true, unescaped, nil
-		case gitPath:
-			foundEscaped = true
+	for _, candidate := range gitPaths {
+		for _, filename := range filesInIndex {
+			if filename == candidate {
+				return true, candidate, nil
+			}
 		}
 	}
 
-	// If not return whether the escaped file exists, and the escaped filename to keep backwards compatibility.
-	return foundEscaped, gitPath, nil
+	// New pages must reuse the existing parent directory instead of creating a
+	// second directory whose normalized web path is identical.
+	commit, err := gitRepo.GetBranchCommit(ctx, defaultWikiBranch)
+	if err == nil {
+		for i := len(gitPaths) - 1; i >= 0; i-- {
+			parentPath := path.Dir(gitPaths[i])
+			if parentPath == "." {
+				continue
+			}
+			entry, err := commit.GetTreeEntryByPath(ctx, gitRepo, parentPath)
+			if err == nil && entry.IsDir() {
+				return false, gitPaths[i], nil
+			}
+			if err != nil && !git.IsErrNotExist(err) {
+				return false, gitPath, err
+			}
+		}
+	}
+
+	return false, gitPath, nil
 }
 
 // updateWikiPage adds a new page or edits an existing page in repository wiki.
