@@ -125,6 +125,9 @@ type parseContext struct {
 type ParseOption func(c *parseContext)
 
 func getMatrixes(job *model.Job) ([]map[string]any, error) {
+	if err := validateMatrixFilters(job); err != nil {
+		return nil, err
+	}
 	ret, err := job.GetMatrixes()
 	if err != nil {
 		return nil, fmt.Errorf("GetMatrixes: %w", err)
@@ -133,6 +136,35 @@ func getMatrixes(job *model.Job) ([]map[string]any, error) {
 		return matrixName(ret[i]) < matrixName(ret[j])
 	})
 	return ret, nil
+}
+
+// validateMatrixFilters rejects an `include`/`exclude` that is not a list of mappings, so that the
+// usual way to get there, an unevaluated ${{ }} expression that is still a scalar, is named as such
+// instead of panicking inside the expansion.
+func validateMatrixFilters(job *model.Job) error {
+	if job.Strategy == nil || job.Strategy.RawMatrix.Kind != yaml.MappingNode {
+		return nil
+	}
+	content := job.Strategy.RawMatrix.Content
+	for i := 0; i+1 < len(content); i += 2 {
+		name, value := content[i].Value, content[i+1]
+		if name != "include" && name != "exclude" {
+			continue
+		}
+		entries := []*yaml.Node{value}
+		if value.Kind == yaml.SequenceNode {
+			entries = value.Content
+		}
+		for _, entry := range entries {
+			if entry.Kind == yaml.AliasNode {
+				entry = entry.Alias
+			}
+			if entry.Kind != yaml.MappingNode {
+				return fmt.Errorf("matrix %s must be a list of mappings", name)
+			}
+		}
+	}
+	return nil
 }
 
 func encodeMatrix(matrix map[string]any) yaml.Node {
