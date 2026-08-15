@@ -10,7 +10,8 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
-	"gitea.dev/modules/glob"
+	"gitea.dev/modules/actions/workflowpattern"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -22,12 +23,10 @@ type ActionEnvironment struct {
 	ID     int64  `xorm:"pk autoincr"`
 	RepoID int64  `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
 	Name   string `xorm:"NOT NULL"`
-	// LowerName carries the unique constraint so lookups behave the same on every database,
-	// regardless of the collation MySQL and MSSQL apply to Name.
+	// carries the unique constraint, so lookups ignore the collation MySQL and MSSQL apply to Name
 	LowerName string `xorm:"UNIQUE(repo_lower_name) NOT NULL"`
 
-	// AllowedBranchPatterns is a newline-separated glob list restricting which refs may use
-	// this environment. Empty allows every ref. Newline-separated because a branch name may contain a comma.
+	// one glob per line, empty allows every ref; newline-separated because a branch name may contain a comma
 	AllowedBranchPatterns string `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
@@ -38,10 +37,7 @@ func init() {
 	db.RegisterModel(new(ActionEnvironment))
 }
 
-const (
-	EnvironmentNameMaxLength = 255
-	branchPatternSeparator   = '/'
-)
+const EnvironmentNameMaxLength = 255
 
 type ErrEnvironmentNotFound struct {
 	Name string
@@ -67,6 +63,32 @@ func (err ErrEnvironmentAlreadyExists) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
+type ErrInvalidEnvironmentName struct {
+	Name   string
+	Reason string
+}
+
+func (err ErrInvalidEnvironmentName) Error() string {
+	return fmt.Sprintf("invalid environment name %q: %s", err.Name, err.Reason)
+}
+
+func (err ErrInvalidEnvironmentName) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
+type ErrInvalidBranchPattern struct {
+	Pattern string
+	Reason  string
+}
+
+func (err ErrInvalidBranchPattern) Error() string {
+	return fmt.Sprintf("invalid branch pattern %q: %s", err.Pattern, err.Reason)
+}
+
+func (err ErrInvalidBranchPattern) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 type FindEnvironmentsOptions struct {
 	db.ListOptions
 	RepoID int64
@@ -86,21 +108,22 @@ func (opts FindEnvironmentsOptions) ToOrders() string {
 
 // ValidateEnvironmentName rejects names that cannot round-trip through a URL path segment.
 func ValidateEnvironmentName(name string) error {
-	if name == "" {
-		return util.NewInvalidArgumentErrorf("environment name cannot be empty")
-	}
-	if len(name) > EnvironmentNameMaxLength {
-		return util.NewInvalidArgumentErrorf("environment name is too long (max %d characters)", EnvironmentNameMaxLength)
-	}
-	if name != strings.TrimSpace(name) {
-		return util.NewInvalidArgumentErrorf("environment name cannot start or end with whitespace")
-	}
-	if strings.ContainsAny(name, "/\\?#%") {
-		return util.NewInvalidArgumentErrorf(`environment name cannot contain any of / \ ? # %%`)
+	invalid := func(reason string) error { return ErrInvalidEnvironmentName{Name: name, Reason: reason} }
+	switch {
+	case name == "":
+		return invalid("it cannot be empty")
+	case len(name) > EnvironmentNameMaxLength:
+		return invalid(fmt.Sprintf("it is longer than %d characters", EnvironmentNameMaxLength))
+	case name != strings.TrimSpace(name):
+		return invalid("it starts or ends with whitespace")
+	case strings.ContainsAny(name, "/\\?#%"):
+		return invalid(`it contains one of / \ ? # %`)
+	case name == "." || name == "..":
+		return invalid("it is a relative path segment")
 	}
 	for _, r := range name {
 		if r < 0x20 || r == 0x7f {
-			return util.NewInvalidArgumentErrorf("environment name cannot contain control characters")
+			return invalid("it contains a control character")
 		}
 	}
 	return nil
@@ -117,15 +140,15 @@ func SplitBranchPatterns(patterns string) []string {
 	return result
 }
 
-// JoinBranchPatterns renders a pattern list into its stored form, rejecting anything that will not compile.
+// JoinBranchPatterns renders a pattern list into its stored form, rejecting anything MatchesRef could not compile.
 func JoinBranchPatterns(patterns []string) (string, error) {
 	var kept []string
 	for _, pattern := range patterns {
 		if pattern = strings.TrimSpace(pattern); pattern == "" {
 			continue
 		}
-		if _, err := glob.Compile(pattern, branchPatternSeparator); err != nil {
-			return "", util.NewInvalidArgumentErrorf("invalid branch pattern %q: %v", pattern, err)
+		if _, err := workflowpattern.CompilePatterns(pattern); err != nil {
+			return "", ErrInvalidBranchPattern{Pattern: pattern, Reason: err.Error()}
 		}
 		kept = append(kept, pattern)
 	}
@@ -136,39 +159,23 @@ func (env *ActionEnvironment) BranchPatterns() []string {
 	return SplitBranchPatterns(env.AllowedBranchPatterns)
 }
 
-// MatchesRef reports whether ref may deploy to this environment. An empty pattern list allows every ref.
-// A pattern that fails to compile denies the ref: a policy that cannot be evaluated must not grant access.
+// MatchesRef reports whether ref may deploy to this environment, using the same glob dialect as the
+// `on:` branch filters. A policy that cannot be compiled denies the ref rather than granting access.
 func (env *ActionEnvironment) MatchesRef(ref string) bool {
 	patterns := env.BranchPatterns()
 	if len(patterns) == 0 {
 		return true
 	}
-	// Compile the whole list before matching any of it: stopping at the first match would let a
-	// pattern that cannot compile go unnoticed whenever an earlier one happens to match.
-	globs := make([]glob.Glob, 0, len(patterns))
-	for _, pattern := range patterns {
-		g, err := glob.Compile(pattern, branchPatternSeparator)
-		if err != nil {
-			return false
-		}
-		globs = append(globs, g)
+	compiled, err := workflowpattern.CompilePatterns(patterns...)
+	if err != nil {
+		return false
 	}
-
-	shortRef := strings.TrimPrefix(ref, "refs/heads/")
-	if shortRef == ref {
-		shortRef = strings.TrimPrefix(ref, "refs/tags/")
-	}
-	for _, g := range globs {
-		if g.Match(shortRef) {
-			return true
-		}
-	}
-	return false
+	return !workflowpattern.Skip(compiled, []string{git.RefName(ref).ShortName()})
 }
 
 // ResolveJobEnvironment returns the environment a job deploys to, or nil when it names none or the
-// environment has since been deleted. allowed reports whether the run's ref satisfies the branch policy;
-// a job that is not allowed must be failed rather than run without the environment's credentials.
+// environment has since been deleted. A job whose ref is not allowed must be failed rather than run
+// without the environment's credentials.
 func ResolveJobEnvironment(ctx context.Context, job *ActionRunJob) (env *ActionEnvironment, allowed bool, err error) {
 	if job.EnvironmentName == "" {
 		return nil, true, nil

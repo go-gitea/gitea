@@ -29,17 +29,21 @@ func ListEnvironments(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: page
 	//   in: query
+	//   description: page number of results to return (1-based)
 	//   type: integer
 	// - name: limit
 	//   in: query
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -76,14 +80,17 @@ func GetEnvironment(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// responses:
@@ -112,14 +119,17 @@ func CreateOrUpdateEnvironment(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// - name: body
@@ -157,14 +167,17 @@ func DeleteEnvironment(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// responses:
@@ -195,21 +208,26 @@ func ListEnvSecrets(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// - name: page
 	//   in: query
+	//   description: page number of results to return (1-based)
 	//   type: integer
 	// - name: limit
 	//   in: query
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -258,18 +276,22 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// - name: secretname
 	//   in: path
+	//   description: name of the secret
 	//   type: string
 	//   required: true
 	// - name: body
@@ -316,18 +338,22 @@ func DeleteEnvSecret(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// - name: secretname
 	//   in: path
+	//   description: name of the secret
 	//   type: string
 	//   required: true
 	// responses:
@@ -362,14 +388,17 @@ func ListEnvVariables(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// responses:
@@ -420,18 +449,22 @@ func CreateEnvVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// - name: variablename
 	//   in: path
+	//   description: name of the variable
 	//   type: string
 	//   required: true
 	// - name: body
@@ -481,18 +514,22 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// - name: variablename
 	//   in: path
+	//   description: name of the variable
 	//   type: string
 	//   required: true
 	// - name: body
@@ -512,17 +549,13 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	vars, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		RepoID:        ctx.Repo.Repository.ID,
-		EnvironmentID: env.ID,
-		Name:          ctx.PathParam("variablename"),
-	})
-	if err != nil || len(vars) == 0 {
-		ctx.APIErrorNotFound()
+	v, err := actions_service.GetEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("variablename"))
+	if err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
-	if _, err := actions_service.UpdateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, vars[0].ID, opt.Name, opt.Value, opt.Description); err != nil {
+	if err := actions_service.UpdateEnvVariable(ctx, v, opt.Name, opt.Value, opt.Description); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -537,18 +570,22 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
+	//   description: name of the repository
 	//   type: string
 	//   required: true
 	// - name: environment_name
 	//   in: path
+	//   description: name of the environment
 	//   type: string
 	//   required: true
 	// - name: variablename
 	//   in: path
+	//   description: name of the variable
 	//   type: string
 	//   required: true
 	// responses:
@@ -562,27 +599,22 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 		ctx.APIErrorAuto(err)
 		return
 	}
-	vars, err := db.Find[actions_model.ActionVariable](ctx, actions_model.FindVariablesOpts{
-		RepoID:        ctx.Repo.Repository.ID,
-		EnvironmentID: env.ID,
-		Name:          ctx.PathParam("variablename"),
-	})
-	if err != nil || len(vars) == 0 {
-		ctx.APIErrorNotFound()
-		return
-	}
-	if err := actions_service.DeleteEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, vars[0].ID); err != nil {
-		ctx.APIErrorInternal(err)
+	if err := actions_service.DeleteEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("variablename")); err != nil {
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
 }
 
 func toAPIEnvironment(e *actions_model.ActionEnvironment) *api.ActionEnvironment {
+	patterns := e.BranchPatterns()
+	if patterns == nil {
+		patterns = []string{} // the declared type is an array, so an unrestricted environment must not serialise as null
+	}
 	return &api.ActionEnvironment{
 		ID:                    e.ID,
 		Name:                  e.Name,
-		AllowedBranchPatterns: e.BranchPatterns(),
+		AllowedBranchPatterns: patterns,
 		CreatedAt:             e.CreatedUnix.AsTime(),
 		UpdatedAt:             e.UpdatedUnix.AsTime(),
 	}

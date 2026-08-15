@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
@@ -90,7 +91,38 @@ func TestActionsEnvironment(t *testing.T) {
 			body = session.MakeRequest(t, NewRequest(t, "GET", settingsURL+"/production"), http.StatusOK).Body.String()
 			assert.Contains(t, body, "DEPLOY_TOKEN", "the shared secrets partial must render")
 			assert.Contains(t, body, "APP_URL", "the shared variables partial must render")
-			assert.Contains(t, body, "main", "the branch policy must render")
+
+			policy := NewHTMLParser(t, strings.NewReader(body)).Find(`textarea[name="allowed_branch_patterns"]`)
+			assert.Equal(t, "main", policy.Text(), "the branch policy must render into its textarea")
+		})
+
+		t.Run("TheSettingsPageWritesVariablesInTheEnvironmentScope", func(t *testing.T) {
+			session := loginUser(t, user2.Name)
+			envURL := fmt.Sprintf("/%s/%s/settings/actions/environments/production", user2.Name, repo.Name)
+
+			req := NewRequestWithValues(t, "POST", envURL+"/variables/new", map[string]string{"name": "WEB_VAR", "data": "web-value"})
+			session.MakeRequest(t, req, http.StatusOK)
+
+			env := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionEnvironment{RepoID: repo.ID, LowerName: "production"})
+			v := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionVariable{RepoID: repo.ID, Name: "WEB_VAR"})
+			assert.Equal(t, env.ID, v.EnvironmentID)
+
+			req = NewRequest(t, "POST", fmt.Sprintf("%s/variables/%d/delete", envURL, v.ID))
+			session.MakeRequest(t, req, http.StatusOK)
+			unittest.AssertNotExistsBean(t, &actions_model.ActionVariable{ID: v.ID})
+		})
+
+		t.Run("AnEnvironmentNamedNewIsStillEditable", func(t *testing.T) {
+			session := loginUser(t, user2.Name)
+			collectionURL := fmt.Sprintf("/%s/%s/settings/actions/environments", user2.Name, repo.Name)
+
+			req := NewRequestWithValues(t, "POST", collectionURL, map[string]string{"name": "new"})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+			req = NewRequestWithValues(t, "POST", collectionURL+"/new", map[string]string{"allowed_branch_patterns": "main"})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			env := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionEnvironment{RepoID: repo.ID, LowerName: "new"})
+			assert.Equal(t, "main", env.AllowedBranchPatterns, "the edit form must not be routed to creation")
 		})
 
 		t.Run("ADisallowedBranchFailsTheJob", func(t *testing.T) {

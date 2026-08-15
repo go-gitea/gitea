@@ -49,3 +49,27 @@ func TestDeploymentEnvironmentName(t *testing.T) {
 		})
 	}
 }
+
+func TestDeploymentEnvironmentNameInterpolation(t *testing.T) {
+	t.Run("vars", func(t *testing.T) {
+		workflows, err := Parse(
+			[]byte("on: push\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    environment: ${{ vars.STAGE }}\n    steps:\n      - run: echo hi\n"),
+			WithVars(map[string]string{"STAGE": "staging"}))
+		require.NoError(t, err)
+		require.Len(t, workflows, 1)
+		_, job := workflows[0].Job()
+		assert.Equal(t, "staging", job.DeploymentEnvironmentName())
+	})
+
+	t.Run("matrix", func(t *testing.T) {
+		workflows, err := Parse([]byte("on: push\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        target: [staging, production]\n    environment:\n      name: ${{ matrix.target }}\n    steps:\n      - run: echo hi\n"))
+		require.NoError(t, err)
+		require.Len(t, workflows, 2)
+		got := make([]string, 0, len(workflows))
+		for _, w := range workflows {
+			_, job := w.Job()
+			got = append(got, job.DeploymentEnvironmentName())
+		}
+		assert.ElementsMatch(t, []string{"staging", "production"}, got)
+	})
+}

@@ -158,7 +158,9 @@ func UpdateSecret(ctx context.Context, secretID int64, data, description string)
 	return err
 }
 
-func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[string]string, error) {
+// GetSecretsOfTask returns the secrets for a task, overlaying the ones scoped to env, the environment
+// its job deploys to (nil for none).
+func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask, env *actions_model.ActionEnvironment) (map[string]string, error) {
 	baseSecrets := map[string]string{}
 
 	baseSecrets["GITHUB_TOKEN"] = task.Token
@@ -191,12 +193,7 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 		baseSecrets[secret.Name] = v
 	}
 
-	// Environment-scoped secrets override repo/org secrets when the job deploys to an environment.
-	env, allowed, err := actions_model.ResolveJobEnvironment(ctx, task.Job)
-	if err != nil {
-		return nil, fmt.Errorf("resolve environment of job %d: %w", task.Job.ID, err)
-	}
-	if env != nil && allowed {
+	if env != nil {
 		envSecrets, err := db.Find[Secret](ctx, FindSecretsOptions{
 			RepoID:        task.Job.Run.RepoID,
 			EnvironmentID: env.ID,

@@ -19,8 +19,7 @@ func CreateVariable(ctx context.Context, ownerID, repoID, environmentID int64, n
 
 	v, err := actions_model.InsertVariable(ctx, ownerID, repoID, environmentID, name, util.NormalizeStringEOL(data), description)
 	if err != nil {
-		// Re-check by name rather than parsing driver-specific constraint text, which differs per
-		// database and per locale. This also closes the race a pre-flight existence check leaves open.
+		// re-check by name: constraint text differs per driver, and a pre-flight check would still race
 		if _, lookupErr := GetVariable(ctx, actions_model.FindVariablesOpts{
 			OwnerID:       ownerID,
 			RepoID:        repoID,

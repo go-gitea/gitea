@@ -21413,6 +21413,7 @@
         "operationId": "listEnvironments",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21421,6 +21422,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21429,6 +21431,7 @@
             }
           },
           {
+            "description": "page number of results to return (1-based)",
             "in": "query",
             "name": "page",
             "schema": {
@@ -21436,6 +21439,7 @@
             }
           },
           {
+            "description": "page size of results",
             "in": "query",
             "name": "limit",
             "schema": {
@@ -21462,6 +21466,7 @@
         "operationId": "deleteEnvironment",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21470,6 +21475,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21478,6 +21484,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21503,6 +21510,7 @@
         "operationId": "getEnvironment",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21511,6 +21519,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21519,6 +21528,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21544,6 +21554,7 @@
         "operationId": "createOrUpdateEnvironment",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21552,6 +21563,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21560,6 +21572,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21603,6 +21616,7 @@
         "operationId": "listEnvSecrets",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21611,6 +21625,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21619,6 +21634,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21627,6 +21643,7 @@
             }
           },
           {
+            "description": "page number of results to return (1-based)",
             "in": "query",
             "name": "page",
             "schema": {
@@ -21634,6 +21651,7 @@
             }
           },
           {
+            "description": "page size of results",
             "in": "query",
             "name": "limit",
             "schema": {
@@ -21660,6 +21678,7 @@
         "operationId": "deleteEnvSecret",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21668,6 +21687,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21676,6 +21696,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21684,6 +21705,7 @@
             }
           },
           {
+            "description": "name of the secret",
             "in": "path",
             "name": "secretname",
             "required": true,
@@ -21709,6 +21731,7 @@
         "operationId": "createOrUpdateEnvSecret",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21717,6 +21740,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21725,6 +21749,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21733,6 +21758,7 @@
             }
           },
           {
+            "description": "name of the secret",
             "in": "path",
             "name": "secretname",
             "required": true,
@@ -21776,6 +21802,7 @@
         "operationId": "listEnvVariables",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21784,6 +21811,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21792,6 +21820,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21819,6 +21848,7 @@
         "operationId": "deleteEnvVariable",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21827,6 +21857,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21835,6 +21866,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21843,6 +21875,7 @@
             }
           },
           {
+            "description": "name of the variable",
             "in": "path",
             "name": "variablename",
             "required": true,
@@ -21868,6 +21901,7 @@
         "operationId": "createEnvVariable",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21876,6 +21910,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21884,6 +21919,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21892,6 +21928,7 @@
             }
           },
           {
+            "description": "name of the variable",
             "in": "path",
             "name": "variablename",
             "required": true,
@@ -21933,6 +21970,7 @@
         "operationId": "updateEnvVariable",
         "parameters": [
           {
+            "description": "owner of the repo",
             "in": "path",
             "name": "owner",
             "required": true,
@@ -21941,6 +21979,7 @@
             }
           },
           {
+            "description": "name of the repository",
             "in": "path",
             "name": "repo",
             "required": true,
@@ -21949,6 +21988,7 @@
             }
           },
           {
+            "description": "name of the environment",
             "in": "path",
             "name": "environment_name",
             "required": true,
@@ -21957,6 +21997,7 @@
             }
           },
           {
+            "description": "name of the variable",
             "in": "path",
             "name": "variablename",
             "required": true,

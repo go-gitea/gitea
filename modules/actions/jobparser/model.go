@@ -176,9 +176,8 @@ func (j *Job) RunsOn() []string {
 	return (&model.Job{RawRunsOn: j.RawRunsOn}).RunsOn()
 }
 
-// DeploymentEnvironmentName returns the deployment environment name from the job's "environment:" key.
-// It supports both the simple string form ("environment: production") and
-// the object form ("environment: {name: production, url: ...}").
+// DeploymentEnvironmentName returns the job's "environment:" name, in either the scalar
+// ("environment: production") or the object form ("environment: {name: production, url: ...}").
 func (j *Job) DeploymentEnvironmentName() string {
 	if j.RawEnvironment.IsZero() {
 		return ""

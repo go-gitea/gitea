@@ -109,7 +109,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		return nil, failTerminal(fmt.Errorf("expand matrix: %w", err))
 	}
 	// Combinations differ only in what the matrix feeds: the name, the payload, and a
-	// runs-on/continue-on-error that may interpolate matrix.*.
+	// runs-on/continue-on-error/environment that may interpolate matrix.*.
 	applyCombo := func(dst *actions_model.ActionRunJob, combo *jobparser.Job) error {
 		swf := baseSWF.CloneHeader()
 		if err := swf.SetJob(job.JobID, combo.EraseNeeds()); err != nil {
@@ -122,6 +122,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		dst.Name = util.EllipsisDisplayString(combo.Name, 255)
 		dst.WorkflowPayload, dst.RunsOn = payload, combo.RunsOn()
 		dst.ContinueOnError = combo.GetContinueOnError()
+		dst.EnvironmentName = combo.DeploymentEnvironmentName()
 		return nil
 	}
 

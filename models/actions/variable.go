@@ -175,9 +175,9 @@ func GetVariablesOfRun(ctx context.Context, run *ActionRun) (map[string]string, 
 	return variables, nil
 }
 
-// GetVariablesOfJob returns the variables for a job, overlaying the ones scoped to the environment it
-// deploys to. Precedence (high to low): environment > repo > org/user > global
-func GetVariablesOfJob(ctx context.Context, job *ActionRunJob) (map[string]string, error) {
+// GetVariablesOfJob returns the variables for a job, overlaying the ones scoped to env, the environment
+// it deploys to (nil for none). Precedence (high to low): environment > repo > org/user > global
+func GetVariablesOfJob(ctx context.Context, job *ActionRunJob, env *ActionEnvironment) (map[string]string, error) {
 	if err := job.LoadRun(ctx); err != nil {
 		return nil, err
 	}
@@ -185,12 +185,7 @@ func GetVariablesOfJob(ctx context.Context, job *ActionRunJob) (map[string]strin
 	if err != nil {
 		return nil, err
 	}
-
-	env, allowed, err := ResolveJobEnvironment(ctx, job)
-	if err != nil {
-		return nil, fmt.Errorf("resolve environment of job %d: %w", job.ID, err)
-	}
-	if env == nil || !allowed {
+	if env == nil {
 		return variables, nil
 	}
 

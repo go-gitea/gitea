@@ -6,7 +6,6 @@ package actions
 import (
 	"errors"
 	"net/http"
-	"net/url"
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
@@ -21,8 +20,6 @@ import (
 )
 
 const (
-	tplEnvironmentEdit templates.TplName = "repo/settings/environment_edit"
-
 	tplRepoVariables  templates.TplName = "repo/settings/actions"
 	tplOrgVariables   templates.TplName = "org/settings/actions"
 	tplUserVariables  templates.TplName = "user/settings/actions"
@@ -41,18 +38,18 @@ type variablesCtx struct {
 	RedirectLink      string
 }
 
-func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
-	// An environment page is also a repo settings page, so it has to be recognised first.
-	if env, ok := ctx.Data["Environment"].(*actions_model.ActionEnvironment); ok {
-		return &variablesCtx{
-			RepoID:            ctx.Repo.Repository.ID,
-			EnvironmentID:     env.ID,
-			IsRepo:            true,
-			VariablesTemplate: tplEnvironmentEdit,
-			RedirectLink:      ctx.Repo.RepoLink + "/settings/actions/environments/" + url.PathEscape(env.Name),
-		}, nil
+// environmentVariablesCtx scopes variable writes to a repository deployment environment. The environment
+// page renders itself, so it needs no VariablesTemplate.
+func environmentVariablesCtx(repoID, envID int64, redirectLink string) *variablesCtx {
+	return &variablesCtx{
+		RepoID:        repoID,
+		EnvironmentID: envID,
+		IsRepo:        true,
+		RedirectLink:  redirectLink,
 	}
+}
 
+func getVariablesCtx(ctx *context.Context) (*variablesCtx, error) {
 	if ctx.Data["PageIsRepoSettings"] == true {
 		return &variablesCtx{
 			OwnerID:           0,
@@ -132,7 +129,15 @@ func VariableCreate(ctx *context.Context) {
 		ctx.ServerError("getVariablesCtx", err)
 		return
 	}
+	performVariableCreate(ctx, vCtx)
+}
 
+// PerformEnvVariableCreate creates a variable scoped to a repository deployment environment.
+func PerformEnvVariableCreate(ctx *context.Context, repoID, envID int64, redirectLink string) {
+	performVariableCreate(ctx, environmentVariablesCtx(repoID, envID, redirectLink))
+}
+
+func performVariableCreate(ctx *context.Context, vCtx *variablesCtx) {
 	if ctx.HasError() { // form binding validation error
 		ctx.JSONError(ctx.GetErrMsg())
 		return
@@ -157,7 +162,15 @@ func VariableUpdate(ctx *context.Context) {
 		ctx.ServerError("getVariablesCtx", err)
 		return
 	}
+	performVariableUpdate(ctx, vCtx)
+}
 
+// PerformEnvVariableUpdate updates a variable scoped to a repository deployment environment.
+func PerformEnvVariableUpdate(ctx *context.Context, repoID, envID int64, redirectLink string) {
+	performVariableUpdate(ctx, environmentVariablesCtx(repoID, envID, redirectLink))
+}
+
+func performVariableUpdate(ctx *context.Context, vCtx *variablesCtx) {
 	if ctx.HasError() { // form binding validation error
 		ctx.JSONError(ctx.GetErrMsg())
 		return
@@ -223,7 +236,15 @@ func VariableDelete(ctx *context.Context) {
 		ctx.ServerError("getVariablesCtx", err)
 		return
 	}
+	performVariableDelete(ctx, vCtx)
+}
 
+// PerformEnvVariableDelete deletes a variable scoped to a repository deployment environment.
+func PerformEnvVariableDelete(ctx *context.Context, repoID, envID int64, redirectLink string) {
+	performVariableDelete(ctx, environmentVariablesCtx(repoID, envID, redirectLink))
+}
+
+func performVariableDelete(ctx *context.Context, vCtx *variablesCtx) {
 	id := ctx.PathParamInt64("variable_id")
 
 	variable := findActionsVariable(ctx, id, vCtx)

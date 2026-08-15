@@ -10,6 +10,8 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	secret_model "gitea.dev/models/secret"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 	secret_service "gitea.dev/services/secrets"
 )
@@ -26,8 +28,7 @@ func CreateEnvironment(ctx context.Context, repoID int64, name string, branchPat
 
 	env, err := actions_model.InsertEnvironment(ctx, repoID, name, patterns)
 	if err != nil {
-		// Re-check by name rather than parsing driver-specific constraint text, which differs per
-		// database and per locale. This also closes the race a pre-flight existence check leaves open.
+		// re-check by name: constraint text differs per driver, and a pre-flight check would still race
 		if existing, lookupErr := actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name); lookupErr == nil {
 			return nil, actions_model.ErrEnvironmentAlreadyExists{Name: existing.Name}
 		}
@@ -72,9 +73,23 @@ func CreateOrUpdateEnvironment(ctx context.Context, repoID int64, name string, b
 	return env, false, UpdateEnvironment(ctx, env, name, branchPatterns)
 }
 
-// GetOrCreateEnvironment resolves an environment named by a workflow, creating it on first reference
-// the way GitHub does. Callers must not use it for fork pull requests, which would let an outside
-// contributor write rows into a repository they cannot otherwise modify.
+// EnsureEnvironments creates the environments named by jobs on first reference, the way GitHub does.
+// It must stay outside the transaction inserting those jobs: losing the creation race there would abort
+// that whole transaction on PostgreSQL.
+func EnsureEnvironments(ctx context.Context, jobs []*actions_model.ActionRunJob) {
+	seen := make(container.Set[string])
+	for _, job := range jobs {
+		// a fork's workflow must not write rows into the base repository's settings
+		if job.EnvironmentName == "" || job.IsForkPullRequest || !seen.Add(job.EnvironmentName) {
+			continue
+		}
+		if _, err := GetOrCreateEnvironment(ctx, job.RepoID, job.EnvironmentName); err != nil {
+			log.Error("Cannot resolve environment %q of repo %d: %v", job.EnvironmentName, job.RepoID, err)
+		}
+	}
+}
+
+// GetOrCreateEnvironment resolves an environment named by a workflow, creating it on first reference.
 func GetOrCreateEnvironment(ctx context.Context, repoID int64, name string) (*actions_model.ActionEnvironment, error) {
 	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name)
 	if err == nil {
@@ -107,35 +122,25 @@ func CreateEnvVariable(ctx context.Context, repoID, envID int64, name, data, des
 	return CreateVariable(ctx, 0, repoID, envID, name, data, description)
 }
 
-// findEnvVariable scopes the lookup to the environment so a variable of another scope cannot be reached by ID.
-func findEnvVariable(ctx context.Context, repoID, envID, varID int64) (*actions_model.ActionVariable, error) {
+// GetEnvVariable scopes the lookup to the environment so a variable of another scope cannot be reached.
+func GetEnvVariable(ctx context.Context, repoID, envID int64, name string) (*actions_model.ActionVariable, error) {
 	return GetVariable(ctx, actions_model.FindVariablesOpts{
 		RepoID:        repoID,
 		EnvironmentID: envID,
-		IDs:           []int64{varID},
+		Name:          name,
 	})
 }
 
-func UpdateEnvVariable(ctx context.Context, repoID, envID, varID int64, name, data, description string) (*actions_model.ActionVariable, error) {
-	v, err := findEnvVariable(ctx, repoID, envID, varID)
-	if err != nil {
-		return nil, err
-	}
+func UpdateEnvVariable(ctx context.Context, v *actions_model.ActionVariable, name, data, description string) error {
 	if name != "" {
 		v.Name = name
 	}
 	v.Data = data
 	v.Description = description
-	if _, err := UpdateVariableNameData(ctx, v); err != nil {
-		return nil, err
-	}
-	return v, nil
+	_, err := UpdateVariableNameData(ctx, v)
+	return err
 }
 
-func DeleteEnvVariable(ctx context.Context, repoID, envID, varID int64) error {
-	v, err := findEnvVariable(ctx, repoID, envID, varID)
-	if err != nil {
-		return err
-	}
-	return DeleteVariableByID(ctx, v.ID)
+func DeleteEnvVariable(ctx context.Context, repoID, envID int64, name string) error {
+	return DeleteVariableByName(ctx, 0, repoID, envID, name)
 }

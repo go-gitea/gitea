@@ -1258,7 +1258,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsVariablesRoutes()
 			m.Group("/environments", func() {
 				m.Get("", repo_setting.Environments)
-				m.Post("/new", repo_setting.EnvironmentCreate)
+				// creation posts to the collection, so that an environment named "new" is still reachable
+				m.Post("", repo_setting.EnvironmentCreate)
 				m.Group("/{environment_name}", func() {
 					m.Get("", repo_setting.EnvironmentEdit)
 					m.Post("", repo_setting.EnvironmentUpdate)
@@ -1268,9 +1269,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 						m.Post("/delete", repo_setting.EnvironmentSecretDelete)
 					})
 					m.Group("/variables", func() {
-						m.Post("/new", web.Bind[*forms.EditVariableForm](), shared_actions.VariableCreate)
-						m.Post("/{variable_id}/edit", web.Bind[*forms.EditVariableForm](), shared_actions.VariableUpdate)
-						m.Post("/{variable_id}/delete", shared_actions.VariableDelete)
+						m.Post("/new", web.Bind[*forms.EditVariableForm](), repo_setting.EnvironmentVariableCreate)
+						m.Post("/{variable_id}/edit", web.Bind[*forms.EditVariableForm](), repo_setting.EnvironmentVariableUpdate)
+						m.Post("/{variable_id}/delete", repo_setting.EnvironmentVariableDelete)
 					})
 				}, repo_setting.EnvironmentAssignment)
 			})

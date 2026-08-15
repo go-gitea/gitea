@@ -9672,23 +9672,27 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "integer",
+            "description": "page number of results to return (1-based)",
             "name": "page",
             "in": "query"
           },
           {
             "type": "integer",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9716,18 +9720,21 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
@@ -9757,18 +9764,21 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
@@ -9805,18 +9815,21 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
@@ -9845,29 +9858,34 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
           },
           {
             "type": "integer",
+            "description": "page number of results to return (1-based)",
             "name": "page",
             "in": "query"
           },
           {
             "type": "integer",
+            "description": "page size of results",
             "name": "limit",
             "in": "query"
           }
@@ -9898,24 +9916,28 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the secret",
             "name": "secretname",
             "in": "path",
             "required": true
@@ -9952,24 +9974,28 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the secret",
             "name": "secretname",
             "in": "path",
             "required": true
@@ -9998,18 +10024,21 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
@@ -10041,24 +10070,28 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the variable",
             "name": "variablename",
             "in": "path",
             "required": true
@@ -10098,24 +10131,28 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the variable",
             "name": "variablename",
             "in": "path",
             "required": true
@@ -10152,24 +10189,28 @@
         "parameters": [
           {
             "type": "string",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the repository",
             "name": "repo",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the environment",
             "name": "environment_name",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
+            "description": "name of the variable",
             "name": "variablename",
             "in": "path",
             "required": true

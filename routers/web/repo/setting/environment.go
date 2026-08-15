@@ -14,6 +14,7 @@ import (
 	secret_model "gitea.dev/models/secret"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	shared_actions "gitea.dev/routers/web/shared/actions"
 	shared_secrets "gitea.dev/routers/web/shared/secrets"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
@@ -41,8 +42,7 @@ func contextEnvironment(ctx *context.Context) *actions_model.ActionEnvironment {
 	return env
 }
 
-// EnvironmentAssignment loads the environment named in the route and exposes it to the shared
-// secrets and variables handlers, which scope their writes by ctx.Data["Environment"].
+// EnvironmentAssignment loads the environment named in the route for the handlers below it.
 func EnvironmentAssignment(ctx *context.Context) {
 	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
 	if err != nil {
@@ -147,15 +147,38 @@ func EnvironmentSecretDelete(ctx *context.Context) {
 	shared_secrets.PerformSecretsDelete(ctx, 0, ctx.Repo.Repository.ID, env.ID, environmentLink(ctx, env))
 }
 
+func EnvironmentVariableCreate(ctx *context.Context) {
+	env := contextEnvironment(ctx)
+	shared_actions.PerformEnvVariableCreate(ctx, ctx.Repo.Repository.ID, env.ID, environmentLink(ctx, env))
+}
+
+func EnvironmentVariableUpdate(ctx *context.Context) {
+	env := contextEnvironment(ctx)
+	shared_actions.PerformEnvVariableUpdate(ctx, ctx.Repo.Repository.ID, env.ID, environmentLink(ctx, env))
+}
+
+func EnvironmentVariableDelete(ctx *context.Context) {
+	env := contextEnvironment(ctx)
+	shared_actions.PerformEnvVariableDelete(ctx, ctx.Repo.Repository.ID, env.ID, environmentLink(ctx, env))
+}
+
 // formBranchPatterns reads the textarea holding one glob per line.
 func formBranchPatterns(ctx *context.Context) []string {
 	return actions_model.SplitBranchPatterns(ctx.FormString("allowed_branch_patterns"))
 }
 
 func flashEnvironmentError(ctx *context.Context, err error, fallbackKey string) {
-	if errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, util.ErrAlreadyExist) {
-		ctx.Flash.Error(err.Error())
-	} else {
+	var errName actions_model.ErrInvalidEnvironmentName
+	var errPattern actions_model.ErrInvalidBranchPattern
+	var errExists actions_model.ErrEnvironmentAlreadyExists
+	switch {
+	case errors.As(err, &errName):
+		ctx.Flash.Error(ctx.Tr("environments.name_invalid", actions_model.EnvironmentNameMaxLength))
+	case errors.As(err, &errPattern):
+		ctx.Flash.Error(ctx.Tr("environments.branch_pattern_invalid", errPattern.Pattern))
+	case errors.As(err, &errExists):
+		ctx.Flash.Error(ctx.Tr("environments.name_already_exists", errExists.Name))
+	default:
 		ctx.Flash.Error(ctx.Tr(fallbackKey))
 	}
 }

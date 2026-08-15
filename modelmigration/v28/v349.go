@@ -25,8 +25,7 @@ func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error
 		return err
 	}
 
-	// RecreateTable copies data by selecting the new column set from the existing
-	// table, so environment_id has to exist before the unique index is rebuilt.
+	// RecreateTable selects the new column set from the existing table, so environment_id has to exist first
 	{
 		type Secret struct {
 			EnvironmentID int64 `xorm:"NOT NULL DEFAULT 0"`

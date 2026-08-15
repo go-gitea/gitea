@@ -21,8 +21,11 @@ func TestEnvironmentMatchesRef(t *testing.T) {
 		{"branch matches a pattern", "main\nrelease/*", "refs/heads/release/1.0", true},
 		{"branch matches no pattern", "main\nrelease/*", "refs/heads/feature", false},
 		{"tag is matched without its prefix", "v*", "refs/tags/v1.0", true},
-		// A pattern that cannot compile must not be skipped: a policy that cannot be evaluated
-		// has to deny, or a typo silently grants every ref the rest of the list would refuse.
+		// The `on:` branch-filter dialect, so a pattern can be copied from one to the other.
+		{"super wildcard spans slashes", "release/**", "refs/heads/release/1/0", true},
+		{"a catch-all allows a pull request ref", "*", "refs/pull/3/head", true},
+		{"a branch policy denies a pull request ref", "main", "refs/pull/3/head", false},
+		// A policy that cannot be evaluated has to deny, or a typo silently grants every ref the rest of the list would refuse.
 		{"a malformed pattern denies", "main\n[unterminated", "refs/heads/main", false},
 	}
 	for _, tt := range tests {
@@ -38,7 +41,7 @@ func TestValidateEnvironmentName(t *testing.T) {
 		require.NoError(t, ValidateEnvironmentName(name), name)
 	}
 	// Rejected so the name survives a round trip through a URL path segment and a template link.
-	for _, name := range []string{"", "a/b", "a#b", "a?b", "a%b", "a\\b", " leading", "trailing ", "new\nline"} {
+	for _, name := range []string{"", "a/b", "a#b", "a?b", "a%b", "a\\b", " leading", "trailing ", "new\nline", ".", ".."} {
 		require.Error(t, ValidateEnvironmentName(name), "%q must be rejected", name)
 	}
 }

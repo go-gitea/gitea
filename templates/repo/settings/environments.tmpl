@@ -48,7 +48,7 @@
 {{/* New environment dialog */}}
 <div class="ui small modal" id="new-environment-modal">
 	<div class="header">{{ctx.Locale.Tr "environments.new"}}</div>
-	<form class="ui form" action="{{.Link}}/new" method="post">
+	<form class="ui form" action="{{.Link}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="content">
 			<div class="field">

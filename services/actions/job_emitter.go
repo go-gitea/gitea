@@ -249,6 +249,9 @@ func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.Action
 	}
 	result := &jobsCheckResult{Jobs: jobs}
 
+	// covers the children a reusable caller expanded in an earlier pass, whose transaction could not create them
+	EnsureEnvironments(ctx, jobs)
+
 	var attempt *actions_model.ActionRunAttempt
 	if run.LatestAttemptID > 0 {
 		attempt, err = actions_model.GetRunAttemptByRepoAndID(ctx, run.RepoID, run.LatestAttemptID)
