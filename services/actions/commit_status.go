@@ -54,6 +54,13 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 	}
 
 	for _, job := range jobs {
+		// A deferred-matrix placeholder's name changes when it expands, so a status created while it
+		// waits would be orphaned. The emitter reloads the jobs after expanding and creates them
+		// then. A placeholder that reached a final status (skipped by its `if:`, cancelled with the
+		// run, or failed to expand) never expands, so it keeps its own name and still deserves a status.
+		if job.IsMatrixDeferred && !job.Status.IsDone() {
+			continue
+		}
 		if err = createCommitStatus(ctx, run.Repo, event, commitID, scopedPrefix, run, job); err != nil {
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
@@ -265,7 +272,10 @@ func createWorkflowCommitStatus(ctx context.Context, repo *repo_model.Repository
 		return fmt.Errorf("GetLatestCommitStatus: %w", err)
 	}
 	for _, v := range statuses {
-		if v.ContextHash == legacyHash && v.Context == ctxName {
+		// Only adopt the legacy (Context-only) hash from a row the Actions user itself created before the
+		// #35699 fix, i.e. a pre-upgrade in-flight run. Adopting it from an external integration or the API
+		// would collapse two same-named workflows back into a single check.
+		if v.ContextHash == legacyHash && v.Context == ctxName && v.CreatorID == user_model.ActionsUserID {
 			ctxHash = legacyHash
 			break
 		}

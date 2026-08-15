@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 )
 
 // FetchRemoteCommit fetches a specific commit and its related objects from a remote
@@ -21,7 +22,7 @@ import (
 func FetchRemoteCommit(ctx context.Context, repo, remoteRepo RepositoryFacade, commitID string) error {
 	return LockWriteAndDo(ctx, repo, func(ctx context.Context) error {
 		return gitcmd.NewCommand("fetch", "--no-tags").
-			AddDynamicArguments(gitcmd.RepoLocalPath(remoteRepo)).
+			AddDynamicArguments(gitrepo.RepoLocalPath(remoteRepo)).
 			AddDynamicArguments(commitID).
 			WithRepo(repo).Run(ctx)
 	})

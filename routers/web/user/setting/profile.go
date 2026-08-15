@@ -14,11 +14,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/models/avatars"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -64,7 +64,7 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
+	form := web.GetForm[*forms.UpdateProfileForm](ctx)
 
 	if form.Name != "" {
 		if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureChangeUsername) {
@@ -127,11 +127,7 @@ func ProfilePost(ctx *context.Context) {
 func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *user_model.User) error {
 	ctxUser.UseCustomAvatar = form.Source == forms.AvatarLocal
 	if len(form.Gravatar) > 0 {
-		if form.Avatar != nil {
-			ctxUser.Avatar = avatars.HashEmail(form.Gravatar)
-		} else {
-			ctxUser.Avatar = ""
-		}
+		ctxUser.Avatar = "" // UploadAvatar sets the real storage path when a file is uploaded
 		ctxUser.AvatarEmail = form.Gravatar
 	}
 
@@ -175,7 +171,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 
 // AvatarPost response for change user's avatar request
 func AvatarPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form := web.GetForm[*forms.AvatarForm](ctx)
 	if err := UpdateAvatarSetting(ctx, form, ctx.Doer); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
@@ -252,7 +248,7 @@ func Repos(ctx *context.Context) {
 		repoNames := make([]string, 0, setting.UI.Admin.UserPagingNum)
 		repos := map[string]*repo_model.Repository{}
 		// We're going to iterate by pagesize.
-		root := user_model.UserPath(ctxUser.Name)
+		root := gitrepo.UserLocalPath(ctxUser.Name)
 		if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				if os.IsNotExist(err) {
@@ -354,7 +350,7 @@ func Appearance(ctx *context.Context) {
 
 // UpdateUIThemePost is used to update users' specific theme
 func UpdateUIThemePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
+	form := web.GetForm[*forms.UpdateThemeForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
@@ -384,7 +380,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 
 // UpdateUserLang update a user's language
 func UpdateUserLang(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateLanguageForm)
+	form := web.GetForm[*forms.UpdateLanguageForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAppearance"] = true
 

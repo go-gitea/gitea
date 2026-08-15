@@ -5,7 +5,7 @@
 {{if or $hasLeft $hasRight}}
 <tr>
 	<td colspan="2">
-		<div class="image-diff"
+		<div class="image-diff" data-global-init="initDiffFileImageDiff"
 			data-path-before="{{$root.BeforeRawPath}}/{{PathEscapeSegments $file.OldName}}"
 			data-path-after="{{$root.RawPath}}/{{PathEscapeSegments $file.Name}}"
 			data-mime-before="{{$file.LeftBlobMimeType}}"

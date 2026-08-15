@@ -60,6 +60,11 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 	cmd := gitcmd.NewCommand("diff-tree", "--raw", "-r", "--root").
 		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
 
+	// HINT: GIT-DIFF-TREE-UI-CONFIG: apply the diff.orderfile explicitly
+	if git.GlobalConfig.DiffOrderFile != "" {
+		cmd.AddOptionFormat("-O%s", git.GlobalConfig.DiffOrderFile)
+	}
+
 	if useMergeBase {
 		cmd.AddArguments("--merge-base")
 	}

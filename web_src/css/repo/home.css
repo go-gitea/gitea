@@ -21,6 +21,11 @@
   grid-row: 2;
 }
 
+.repo-home-sidebar-top a:hover,
+.repo-home-sidebar-bottom a:hover {
+  text-decoration-line: none;
+}
+
 .repo-home-sidebar-header {
   font-weight: var(--font-weight-semibold);
   font-size: 16px;

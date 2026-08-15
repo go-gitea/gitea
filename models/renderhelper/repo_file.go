@@ -35,11 +35,11 @@ func (r *RepoFile) ResolveLink(link, preferLinkType string) (finalLink string) {
 	case markup.LinkTypeRoot:
 		finalLink = r.ctx.ResolveLinkRoot(link)
 	case markup.LinkTypeRaw:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "raw", r.opts.CurrentRefSubURL), r.opts.CurrentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "raw", r.opts.CurrentRefSubURL), util.PathEscapeSegments(r.opts.CurrentTreePath), link)
 	case markup.LinkTypeMedia:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "media", r.opts.CurrentRefSubURL), r.opts.CurrentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "media", r.opts.CurrentRefSubURL), util.PathEscapeSegments(r.opts.CurrentTreePath), link)
 	default:
-		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "src", r.opts.CurrentRefSubURL), r.opts.CurrentTreePath, link)
+		finalLink = r.ctx.ResolveLinkRelative(path.Join(r.repoLink, "src", r.opts.CurrentRefSubURL), util.PathEscapeSegments(r.opts.CurrentTreePath), link)
 	}
 	return finalLink
 }
@@ -58,9 +58,9 @@ func NewRenderContextRepoFile(ctx context.Context, repo *repo_model.Repository, 
 	helper := &RepoFile{opts: util.OptionalArg(opts)}
 	rctx := markup.NewRenderContext(ctx)
 	helper.ctx = rctx
+	helper.commitChecker = newCommitChecker(ctx, repo)
 	if repo != nil {
 		helper.repoLink = repo.Link()
-		helper.commitChecker = newCommitChecker(ctx, repo)
 		rctx = rctx.WithMetas(repo.ComposeRepoFileMetas(ctx))
 	} else {
 		// this is almost dead code, only to pass the incorrect tests

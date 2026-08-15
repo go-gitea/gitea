@@ -91,7 +91,7 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 		"CloneURL.HTTPS": cloneLink.HTTPS,
 		"OwnerName":      repo.OwnerName,
 	}
-	res, err := vars.Expand(string(data), match)
+	res, err := vars.ExpandCurlyBrace(string(data), match)
 	if err != nil {
 		// here we could just log the error and continue the rendering
 		log.Error("unable to expand template vars for repo README: %s, err: %v", opts.Readme, err)
@@ -308,16 +308,15 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	}
 
 	// 6 - update licenses
-	var licenses []string
 	if len(opts.License) > 0 {
-		licenses = append(licenses, opts.License)
-
+		licenses := make([]repo_model.DetectedLicense, 0, 1)
 		var stdout string
 		stdout, _, err = gitcmd.NewCommand("rev-parse", "HEAD").WithRepo(repo).RunStdString(ctx)
 		if err != nil {
 			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
 		}
+		licenses = append(licenses, repo_model.DetectedLicense{SPDXID: opts.License, LicensePath: LicenseLegacyFile})
 		if err = repo_model.UpdateRepoLicenses(ctx, repo, stdout, licenses); err != nil {
 			return nil, err
 		}

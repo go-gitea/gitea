@@ -1,4 +1,3 @@
-import {decode, encode} from 'uint8-to-base64';
 import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
 import {toggleElemClass, toggleElem} from './utils/dom.ts';
 
@@ -143,22 +142,9 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
   });
 }
 
-export function toAbsoluteUrl(url: string): string {
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  if (url.startsWith('//')) {
-    return `${window.location.protocol}${url}`; // it's also a somewhat absolute URL (with the current scheme)
-  }
-  if (url && !url.startsWith('/')) {
-    throw new Error('unsupported url, it should either start with / or http(s)://');
-  }
-  return `${window.location.origin}${url}`;
-}
-
 /** Encode an Uint8Array into a URLEncoded base64 string. */
 export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
-  return encode(uint8Array)
+  return btoa(Array.from(uint8Array, (byte) => String.fromCharCode(byte)).join(''))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
@@ -166,9 +152,7 @@ export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
 
 /** Decode a URLEncoded base64 to an Uint8Array. */
 export function decodeURLEncodedBase64(base64url: string): Uint8Array {
-  return decode(base64url
-    .replace(/_/g, '/')
-    .replace(/-/g, '+'));
+  return Uint8Array.from(atob(base64url.replace(/_/g, '/').replace(/-/g, '+')), (ch) => ch.charCodeAt(0));
 }
 
 const domParser = new DOMParser();

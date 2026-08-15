@@ -26,6 +26,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/explore"
 	user_setting "gitea.dev/routers/web/user/setting"
+	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	"gitea.dev/services/mailer"
@@ -102,7 +103,7 @@ func NewUser(ctx *context.Context) {
 
 // NewUserPost response for adding a new user
 func NewUserPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AdminCreateUserForm)
+	form := web.GetForm[*forms.AdminCreateUserForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
@@ -170,6 +171,9 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
+		var errNameReserved db.ErrNameReserved
+		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
+		var errNameCharsNotAllowed db.ErrNameCharsNotAllowed
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -180,15 +184,15 @@ func NewUserPost(ctx *context.Context) {
 		case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, &form)
-		case db.IsErrNameReserved(err):
+		case errors.As(err, &errNameReserved):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tplUserNew, &form)
-		case db.IsErrNamePatternNotAllowed(err):
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", errNameReserved.Name), tplUserNew, &form)
+		case errors.As(err, &errNamePatternNotAllowed):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplUserNew, &form)
-		case db.IsErrNameCharsNotAllowed(err):
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplUserNew, &form)
+		case errors.As(err, &errNameCharsNotAllowed):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tplUserNew, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", errNameCharsNotAllowed.Name), tplUserNew, &form)
 		default:
 			ctx.ServerError("CreateUser", err)
 		}
@@ -335,7 +339,7 @@ func EditUserPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
+	form := web.GetForm[*forms.AdminEditUserForm](ctx)
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplUserEdit)
 		return
@@ -460,6 +464,20 @@ func EditUserPost(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
 }
 
+func ImpersonateUser(ctx *context.Context) {
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
+	if err != nil {
+		ctx.JSONError("unable to get user")
+		return
+	}
+	err = auth_service.ImpersonateUser(ctx.Session, u)
+	if err != nil {
+		ctx.ServerError("unable to impersonate user", err)
+		return
+	}
+	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
+}
+
 // DeleteUser response for deleting a user
 func DeleteUser(ctx *context.Context) {
 	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
@@ -507,7 +525,7 @@ func AvatarPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form := web.GetForm[*forms.AvatarForm](ctx)
 	if err := user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {

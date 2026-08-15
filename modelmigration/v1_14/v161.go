@@ -9,7 +9,7 @@ import (
 	"gitea.dev/modelmigration/base"
 )
 
-func ConvertTaskTypeToString(x base.EngineMigration) error {
+func ConvertTaskTypeToString(ctx context.Context, x base.EngineMigration) error {
 	const (
 		GOGS int = iota + 1
 		SLACK
@@ -44,7 +44,7 @@ func ConvertTaskTypeToString(x base.EngineMigration) error {
 	}
 
 	// to keep the migration could be rerun
-	exist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "hook_task", "type")
+	exist, err := x.Dialect().IsColumnExist(x.DB(), ctx, "hook_task", "type")
 	if err != nil {
 		return err
 	}

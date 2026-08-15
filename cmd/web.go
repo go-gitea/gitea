@@ -244,7 +244,8 @@ func servePprof() {
 	_, _, finished := process.GetManager().AddTypedContext(context.TODO(), "Web: PProf Server", process.SystemProcessType, true)
 	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment, it's not worth introducing a configurable option for it.
 	log.Info("Starting pprof server on localhost:6060")
-	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", mux))
+	server := &http.Server{Addr: "localhost:6060", Handler: mux, ReadHeaderTimeout: 10 * time.Second}
+	log.Info("Stopped pprof server: %v", server.ListenAndServe())
 	finished()
 }
 

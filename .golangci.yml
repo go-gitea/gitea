@@ -11,6 +11,7 @@ linters:
     - dupl
     - errcheck
     - forbidigo
+    - forcetypeassert
     - gocheckcompilerdirectives
     - gocritic
     - govet
@@ -55,10 +56,10 @@ linters:
           files:
             - '**/modelmigration/**/*.go'
           deny:
-            - pkg: gitea.dev/models$ # FIXME: it should deny all sub packages like "gitea.dev/models/repo"
-              desc: migrations must not depend on the models package
+            - pkg: gitea.dev/models
+              desc: "migrations must not depend on the models package. HINT: MIGRATION-STRUCT-FROZEN"
             - pkg: gitea.dev/modules/structs
-              desc: migrations must not depend on modules/structs (API structures change over time)
+              desc: "migrations must not depend on modules/structs. HINT: MIGRATION-STRUCT-FROZEN"
     nolintlint:
       allow-unused: false
       require-explanation: true
@@ -87,6 +88,11 @@ linters:
         - name: increment-decrement
         - name: modifies-value-receiver
         - name: package-comments
+        - name: package-naming
+          arguments:
+            - convention-name-check-regex: '^[a-z][a-z0-9_]*$' # underscores are used by migration packages
+              skip-default-bad-name-check: true
+              skip-collision-with-common-std: true
         - name: redefines-builtin-id
         - name: superfluous-else
         - name: time-naming
@@ -96,7 +102,7 @@ linters:
           arguments:
             - [] # AllowList - do not remove as args for the rule are positional and won't work without lists first
             - [] # DenyList
-            - - skip-package-name-checks: true # supress errors from underscore in migration packages
+            - - skip-initialism-name-checks: true
     staticcheck:
       checks:
         - all
@@ -158,9 +164,6 @@ linters:
       - .venv
       - public
       - web_src
-      - third_party$
-      - builtin$
-      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

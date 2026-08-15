@@ -18,18 +18,13 @@ import (
 )
 
 const (
-	// ErrGitRefName is git reference name error
-	ErrGitRefName = "GitRefNameError"
-	// ErrGlobPattern is returned when glob pattern is invalid
-	ErrGlobPattern = "GlobPattern"
-	// ErrRegexPattern is returned when a regex pattern is invalid
-	ErrRegexPattern = "RegexPattern"
-	// ErrUsername is username error
-	ErrUsername = "UsernameError"
-	// ErrInvalidGroupTeamMap is returned when a group team mapping is invalid
+	ErrCustomMessage       = "CustomMessage"
+	ErrGitRefName          = "GitRefNameError"
+	ErrGlobPattern         = "GlobPattern"
+	ErrRegexPattern        = "RegexPattern"
+	ErrUsername            = "UsernameError"
 	ErrInvalidGroupTeamMap = "InvalidGroupTeamMap"
-	// ErrInvalidBadgeSlug is returned when a badge slug is invalid
-	ErrInvalidBadgeSlug = "InvalidBadgeSlug"
+	ErrInvalidBadgeSlug    = "InvalidBadgeSlug"
 )
 
 type jsonProvider struct{}
@@ -61,7 +56,7 @@ func AddBindingRules() {
 }
 
 func addGitRefNameBindingRule() {
-	// Git refname validation rule
+	// Git ref name validation rule
 	binding.AddRule(&binding.Rule{
 		IsMatch: func(rule string) bool {
 			return rule == "GitRefName"

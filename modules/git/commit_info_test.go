@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/modules/git/gitrepo"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -105,8 +107,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 			continue
 		}
 
-		// FIXME: Context.TODO() - if graceful has started we should use its Shutdown context otherwise use install signals in TestMain.
-		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), "/any/repo-link", repo1, commit, testCase.Path)
+		commitsInfo, treeCommit, err := entries.GetCommitsInfo(t.Context(), time.Second, "/any/repo-link", repo1, commit, testCase.Path)
 		assert.NoError(t, err, "Unable to get commit information for entries of subtree: %s in commit: %s from testcase due to error: %v", testCase.Path, testCase.CommitID, err)
 		if err != nil {
 			t.FailNow()
@@ -127,9 +128,9 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 }
 
 func TestEntries_GetCommitsInfo(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepositoryLocal(bareRepo1Path)
-	assert.NoError(t, err)
+	bareRepo1Path, _ := filepath.Abs(filepath.Join(testReposDir, "repo1_bare"))
+	bareRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo1_bare", bareRepo1Path))
+	require.NoError(t, err)
 	defer bareRepo1.Close()
 
 	testGetCommitsInfo(t, bareRepo1)
@@ -138,7 +139,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 	if err != nil {
 		assert.NoError(t, err)
 	}
-	clonedRepo1, err := OpenRepositoryLocal(clonedPath)
+	clonedRepo1, err := OpenRepository(t.Context(), gitrepo.RepositoryManaged("repo1_bare-clone", clonedPath))
 	if err != nil {
 		assert.NoError(t, err)
 	}

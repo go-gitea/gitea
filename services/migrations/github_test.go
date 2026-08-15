@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/unittest"
 	base "gitea.dev/modules/migration"
 
+	"github.com/google/go-github/v89/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -472,4 +473,26 @@ func TestGithubMultiToken(t *testing.T) {
 			assert.Equal(t, tC.expectedCloneURL, cloneURL)
 		})
 	}
+}
+
+func TestGithubMultiTokenClientSelection(t *testing.T) {
+	downloader := &GithubDownloaderV3{
+		clients: make([]*github.Client, 3),
+		rates:   make([]*github.Rate, 3),
+	}
+
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 0, downloader.curClientIdx)
+
+	downloader.rates[0] = &github.Rate{Remaining: 100}
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 1, downloader.curClientIdx)
+
+	downloader.rates[1] = &github.Rate{Remaining: 200}
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 2, downloader.curClientIdx)
+
+	downloader.rates[2] = &github.Rate{Remaining: 50}
+	downloader.waitAndPickClient(t.Context())
+	assert.Equal(t, 1, downloader.curClientIdx)
 }

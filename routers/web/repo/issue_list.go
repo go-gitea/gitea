@@ -21,7 +21,6 @@ import (
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	db_indexer "gitea.dev/modules/indexer/issues/db"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -407,8 +406,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 
 	action := ctx.FormString("action")
 	if action != "open" && action != "close" {
-		log.Warn("Unrecognized action: %s", action)
-		ctx.JSONOK()
+		ctx.JSONError("invalid action: " + action)
 		return
 	}
 
@@ -428,9 +426,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 		if action == "close" && !issue.IsClosed {
 			if err := issue_service.CloseIssue(ctx, issue, ctx.Doer, ""); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
-					ctx.JSON(http.StatusPreconditionFailed, map[string]any{
-						"error": ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index),
-					})
+					ctx.JSONError(ctx.Tr("repo.issues.dependency.issue_batch_close_blocked", issue.Index))
 					return
 				}
 				ctx.ServerError("CloseIssue", err)

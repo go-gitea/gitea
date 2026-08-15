@@ -3,7 +3,11 @@
 
 package v1_11
 
-import "gitea.dev/modelmigration/base"
+import (
+	"context"
+
+	"gitea.dev/modelmigration/base"
+)
 
 // RepoWatchMode specifies what kind of watch the user has on a repository
 type RepoWatchMode int8
@@ -14,7 +18,7 @@ type Watch struct {
 	Mode RepoWatchMode `xorm:"SMALLINT NOT NULL DEFAULT 1"`
 }
 
-func AddModeColumnToWatch(x base.EngineMigration) error {
+func AddModeColumnToWatch(_ context.Context, x base.EngineMigration) error {
 	if err := x.Sync(new(Watch)); err != nil {
 		return err
 	}

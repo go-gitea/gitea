@@ -239,10 +239,10 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// TODO: Deleting task records could break current ephemeral runner implementation. This is a temporary workaround suggested by ChristopherHX.
-		// Since you delete potentially the only task an ephemeral act_runner has ever run, please delete the affected runners first.
+		// Since you delete potentially the only task an ephemeral runner has ever run, please delete the affected runners first.
 		// one of
 		//    call cleanup ephemeral runners first
-		//    delete affected ephemeral act_runners
+		//    delete affected ephemeral runners
 		//    I would make ephemeral runners fully delete directly before formally finishing the task
 		//
 		// See also: https://github.com/go-gitea/gitea/pull/34337#issuecomment-2862222788

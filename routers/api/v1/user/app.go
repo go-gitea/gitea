@@ -98,7 +98,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
+	form := web.GetForm[*api.CreateAccessTokenOption](ctx)
 
 	t := &auth_model.AccessToken{
 		UID:  ctx.ContextUser.ID,
@@ -127,12 +127,8 @@ func CreateAccessToken(ctx *context.APIContext) {
 	t.Scope = scope
 
 	// a token-authenticated request must not mint a token with a broader scope than its own
-	if ctx.Data["IsApiToken"] == true {
-		apiTokenScope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-		if !ok {
-			ctx.APIError(http.StatusForbidden, "the authenticating token has no scope")
-			return
-		}
+	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if hasApiTokenScope {
 		hasScope, err := apiTokenScope.CanCreateChildScope(scope)
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -242,7 +238,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
 		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return
@@ -406,7 +402,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.PathParamInt64("id")
 
-	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
+	data := web.GetForm[*api.CreateOAuth2ApplicationOptions](ctx)
 	if invalidURI := forms.DetectInvalidOAuth2ApplicationRedirectURI(data.RedirectURIs); invalidURI != "" {
 		ctx.APIError(http.StatusBadRequest, "invalid redirect URI: "+invalidURI)
 		return
