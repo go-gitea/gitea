@@ -20,6 +20,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"gitea.dev/modules/session"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
 )
 
 func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2_provider.OIDCToken {
@@ -118,4 +123,76 @@ func TestOAuth2AvatarClientBlocksCloudMetadata(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "can only call allowed HTTP servers",
 		"avatar client must refuse a link-local cloud-metadata address")
+}
+
+func TestGrantApplicationOAuth_AllowsScopeChange(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
+	grant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, UserID: 1})
+
+	oldScope := grant.Scope
+	require.NotEmpty(t, oldScope)
+
+	newScope := oldScope + " email"
+	redirectURI := app.RedirectURIs[0]
+	state := "test-state"
+
+	mockOpt := contexttest.MockContextOption{
+		SessionStore: session.NewMockMemStore("oauth2-scope-change"),
+	}
+	ctx, _ := contexttest.MockContext(t, "/login/oauth2/grant", mockOpt)
+
+	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	require.NoError(t, ctx.Session.Set("client_id", app.ClientID))
+	require.NoError(t, ctx.Session.Set("state", state))
+	require.NoError(t, ctx.Session.Set("redirect_uri", redirectURI))
+
+	web.SetForm(ctx, &forms.GrantApplicationForm{
+		ClientID:    app.ClientID,
+		Granted:     true,
+		RedirectURI: redirectURI,
+		State:       state,
+		Scope:       newScope,
+	})
+
+	GrantApplicationOAuth(ctx)
+
+	updatedGrant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: grant.ID})
+	assert.Equal(t, newScope, updatedGrant.Scope)
+}
+
+func TestAuthorizeOAuth_ConfidentialClientScopeChangeShowsConsent(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
+	require.True(t, app.ConfidentialClient)
+
+	grant := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Grant{ID: 1, UserID: 1})
+	require.NotEmpty(t, grant.Scope)
+
+	newScope := grant.Scope + " email"
+	redirectURI := app.RedirectURIs[0]
+	state := "test-state"
+
+	mockOpt := contexttest.MockContextOption{
+		SessionStore: session.NewMockMemStore("oauth2-confidential-scope-change"),
+	}
+	ctx, resp := contexttest.MockContext(t, "/login/oauth2/authorize", mockOpt)
+
+	ctx.Doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	web.SetForm(ctx, &forms.AuthorizationForm{
+		ResponseType: "code",
+		ClientID:     app.ClientID,
+		RedirectURI:  redirectURI,
+		State:        state,
+		Scope:        newScope,
+	})
+
+	AuthorizeOAuth(ctx)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, newScope, ctx.Data["Scope"])
 }
