@@ -76,6 +76,7 @@ type FindRunOptions struct {
 	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
 	AccessibleRepoIDsSubQuery *builder.Builder
 	CreatedBefore             timeutil.TimeStamp // if non-zero, only return runs created before this timestamp
+	OrderBy                   string             // explicit ORDER BY clause; overrides the default when set
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -127,6 +128,9 @@ func (opts FindRunOptions) ToJoins() []db.JoinFunc {
 }
 
 func (opts FindRunOptions) ToOrders() string {
+	if opts.OrderBy != "" {
+		return opts.OrderBy
+	}
 	// When scoped to a repo, sort by `index`: it reuses the unique
 	// `repo_index` (repo_id, index) index, so the query seeks repo_id and
 	// walks index descending instead of filesorting all matching rows.
