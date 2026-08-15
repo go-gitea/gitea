@@ -77,7 +77,8 @@ func TestSSHKeypair(t *testing.T) {
 		assert.Len(t, privateKey, ed25519.PrivateKeySize)
 
 		// Verify the private key corresponds to the public key
-		publicKey := privateKey.Public().(ed25519.PublicKey)
+		publicKey, ok := privateKey.Public().(ed25519.PublicKey)
+		require.True(t, ok)
 		assert.Len(t, publicKey, ed25519.PublicKeySize)
 	})
 
