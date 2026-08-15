@@ -564,6 +564,13 @@ func (grant *OAuth2Grant) SetNonce(ctx context.Context, nonce string) error {
 	return nil
 }
 
+// SetScope updates the current scope of a grant
+func (grant *OAuth2Grant) SetScope(ctx context.Context, scope string) error {
+	grant.Scope = scope
+	_, err := db.GetEngine(ctx).ID(grant.ID).Cols("scope").Update(grant)
+	return err
+}
+
 // GetOAuth2GrantByID returns the grant with the given ID
 func GetOAuth2GrantByID(ctx context.Context, id int64) (grant *OAuth2Grant, err error) {
 	grant = new(OAuth2Grant)
