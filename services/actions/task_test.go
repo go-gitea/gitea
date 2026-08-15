@@ -85,6 +85,13 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	require.NoError(t, repo.LoadOwner(ctx))
 	actor := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	eventPayload, err := json.Marshal(map[string]any{
+		"inputs": map[string]any{
+			"flag": "false",
+			"name": "original-dispatch",
+		},
+	})
+	require.NoError(t, err)
 
 	run := &actions_model.ActionRun{
 		RepoID:        repo.ID,
@@ -96,9 +103,9 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 		Index:         99602,
 		Ref:           "refs/heads/main",
 		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
-		Event:         "push",
-		TriggerEvent:  "push",
-		EventPayload:  "{}",
+		Event:         "workflow_dispatch",
+		TriggerEvent:  "workflow_dispatch",
+		EventPayload:  string(eventPayload),
 		Status:        actions_model.StatusRunning,
 	}
 	require.NoError(t, db.Insert(ctx, run))
@@ -192,14 +199,18 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 		taskContext, err := generateTaskContext(ctx, task, runner)
 		require.NoError(t, err)
 
-		assert.Equal(t, "push", taskContext.Fields["event_name"].GetStringValue())
+		assert.Equal(t, "workflow_dispatch", taskContext.Fields["event_name"].GetStringValue())
 
 		inputs := taskContext.Fields["workflow_call_inputs"].GetStructValue().AsMap()
 		assert.Equal(t, true, inputs["flag"])
 		assert.Equal(t, "from-caller", inputs["name"])
 
 		event := taskContext.Fields["event"].GetStructValue().AsMap()
-		assert.NotContains(t, event, "inputs")
+		eventInputs, ok := event["inputs"].(map[string]any)
+		require.True(t, ok)
+
+		assert.Equal(t, "false", eventInputs["flag"])
+		assert.Equal(t, "original-dispatch", eventInputs["name"])
 	})
 
 	t.Run("legacy runner keeps original event for top-level job", func(t *testing.T) {
@@ -208,7 +219,14 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 		taskContext, err := generateTaskContext(ctx, topLevelTask, runner)
 		require.NoError(t, err)
 
-		assert.Equal(t, "push", taskContext.Fields["event_name"].GetStringValue())
+		assert.Equal(t, "workflow_dispatch", taskContext.Fields["event_name"].GetStringValue())
 		assert.NotContains(t, taskContext.Fields, "workflow_call_inputs")
+
+		event := taskContext.Fields["event"].GetStructValue().AsMap()
+		eventInputs, ok := event["inputs"].(map[string]any)
+		require.True(t, ok)
+
+		assert.Equal(t, "false", eventInputs["flag"])
+		assert.Equal(t, "original-dispatch", eventInputs["name"])
 	})
 }
