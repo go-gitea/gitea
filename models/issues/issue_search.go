@@ -11,6 +11,7 @@ import (
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
@@ -316,12 +317,19 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 						}),
 					),
 				)).And(
-				builder.In(
-					"team_id", builder.Select("team_id").From("team_unit").Where(
-						builder.Eq{
-							"`team_unit`.org_id": orgID,
-						}.And(
-							builder.In("`team_unit`.type", units),
+				builder.Or(
+					builder.In(
+						"team_id", builder.Select("id").From("team").Where(
+							builder.Eq{"id": teamID}.And(builder.Gte{"authorize": perm.AccessModeWrite}),
+						),
+					),
+					builder.In(
+						"team_id", builder.Select("team_id").From("team_unit").Where(
+							builder.Eq{
+								"`team_unit`.org_id": orgID,
+							}.And(
+								builder.In("`team_unit`.type", units),
+							),
 						),
 					),
 				),

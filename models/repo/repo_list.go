@@ -310,15 +310,12 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 }
 
 // userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
-// A team grants the unit either through an explicit team_unit row (access_mode > none) or by being an
-// admin/owner team (team.authorize >= admin), which grants every unit regardless of team_unit rows —
-// mirroring the HasAdminAccess() short-circuit in access.GetIndividualUserRepoPermission.
 func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
 		Join("INNER", "team", "`team`.id = `team_repo`.team_id").
 		Join("LEFT", "team_unit", builder.Expr("`team_unit`.team_id = `team_repo`.team_id AND `team_unit`.`type` = ?", unitType)).
 		Where(builder.Or(
-			builder.Gte{"`team`.authorize": int(perm.AccessModeAdmin)},
+			builder.Gte{"`team`.authorize": int(perm.AccessModeWrite)},
 			builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)},
 		))
 }

@@ -27790,6 +27790,7 @@
           "x-go-name": "Name"
         },
         "permission": {
+          "description": "Permission: \"admin\" is always blanket admin. \"write\" alone is blanket write on every unit\n(including future ones) and must not be combined with units/units_map. With units/units_map,\nomit write/admin: authorize is stored as none and Permission is only the default for Units.",
           "type": "string",
           "enum": [
             "read",
@@ -29061,6 +29062,7 @@
           "x-go-name": "Name"
         },
         "permission": {
+          "description": "See CreateTeamOption.Permission.",
           "type": "string",
           "enum": [
             "read",

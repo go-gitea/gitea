@@ -33,6 +33,12 @@ func (t TeamList) UnitMaxAccess(tp unit.Type) perm.AccessMode {
 		if team.IsOwnerTeam() {
 			return perm.AccessModeOwner
 		}
+		if team.HasBlanketAccess() {
+			if mode := team.unitAccessMode(tp); mode > maxAccess {
+				maxAccess = mode
+			}
+			continue
+		}
 		for _, teamUnit := range team.Units {
 			if teamUnit.Type != tp {
 				continue

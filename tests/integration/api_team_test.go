@@ -70,7 +70,7 @@ func TestAPITeam(t *testing.T) {
 		Name:                    "team1",
 		Description:             "team one",
 		IncludesAllRepositories: true,
-		Permission:              "write",
+		Permission:              "read",
 		Units:                   []string{"repo.code", "repo.issues"},
 	}
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
@@ -82,6 +82,14 @@ func TestAPITeam(t *testing.T) {
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		api.AccessLevelNameNone, teamToCreate.Units, nil)
 	teamID := apiTeam.ID
+
+	// write + units is rejected (write is blanket-only).
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), &api.CreateTeamOption{
+		Name:       "teamwritewithunits",
+		Permission: "write",
+		Units:      []string{"repo.code"},
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Edit team.
 	editDescription := "team 1"
@@ -131,13 +139,11 @@ func TestAPITeam(t *testing.T) {
 	MakeRequest(t, req, http.StatusNoContent)
 	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
 
-	// create team again via UnitsMap
-	// Create team.
+	// create team again via UnitsMap (granular: do not send permission=write).
 	teamToCreate = &api.CreateTeamOption{
 		Name:                    "team2",
 		Description:             "team two",
 		IncludesAllRepositories: true,
-		Permission:              "write",
 		UnitsMap:                map[string]string{"repo.code": "read", "repo.issues": "write", "repo.wiki": "none"},
 	}
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
@@ -156,7 +162,6 @@ func TestAPITeam(t *testing.T) {
 	teamToEdit = &api.EditTeamOption{
 		Name:                    "teamtwo",
 		Description:             &editDescription,
-		Permission:              "write",
 		IncludesAllRepositories: &editFalse,
 		UnitsMap:                map[string]string{"repo.code": "read", "repo.pulls": "read", "repo.releases": "write"},
 	}
@@ -228,6 +233,51 @@ func TestAPITeam(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
+
+	// Create blanket write team (permission=write, no units).
+	teamToCreate = &api.CreateTeamOption{
+		Name:                    "teamwriteblanket",
+		Description:             "blanket write",
+		IncludesAllRepositories: false,
+		Permission:              "write",
+	}
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams", org.Name), teamToCreate).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusCreated)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	assert.Equal(t, api.AccessLevelNameWrite, apiTeam.Permission)
+	teamBean := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: apiTeam.ID})
+	assert.Equal(t, perm.AccessModeWrite, teamBean.AccessMode)
+	assert.Equal(t, perm.AccessModeWrite, teamBean.UnitAccessMode(t.Context(), unit.TypeActions))
+
+	// Echoing units_map with permission=write must 422 (not silently demote).
+	editDescription = "should fail"
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", apiTeam.ID), &api.EditTeamOption{
+		Name:        apiTeam.Name,
+		Description: &editDescription,
+		Permission:  "write",
+		UnitsMap:    apiTeam.UnitsMap,
+	}).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusUnprocessableEntity)
+
+	// PATCH permission=write alone keeps blanket write.
+	editDescription = "blanket write edited"
+	teamToEdit = &api.EditTeamOption{
+		Name:        apiTeam.Name,
+		Description: &editDescription,
+		Permission:  "write",
+	}
+	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d", apiTeam.ID), teamToEdit).
+		AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	apiTeam = DecodeJSON(t, resp, &api.Team{})
+	assert.Equal(t, api.AccessLevelNameWrite, apiTeam.Permission)
+	teamBean = unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: apiTeam.ID})
+	assert.Equal(t, perm.AccessModeWrite, teamBean.AccessMode)
+	assert.Equal(t, perm.AccessModeWrite, teamBean.UnitAccessMode(t.Context(), unit.TypeActions))
+
+	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d", apiTeam.ID).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
 }
 
 func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, description string, includesAllRepositories bool, permission api.AccessLevelName, units []string, unitsMap map[string]string) {

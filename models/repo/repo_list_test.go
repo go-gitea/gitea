@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -486,10 +488,7 @@ func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
 	assert.Contains(t, publicOnly, int64(32), "a public repo under a public owner stays listed")
 }
 
-// TestUserOrgUnitRepoCondTeamAuthorize pins the team.authorize behavior of userOrgTeamUnitRepoBuilder
-// (exercised through UserOrgUnitRepoCond): an admin/owner team grants every unit even without an explicit
-// team_unit row, while a non-admin team only grants a unit it has an explicit row for. This guards both
-// directions — hiding repos from admin-team members, and over-broadening a plain team's access.
+// TestUserOrgUnitRepoCondTeamAuthorize pins blanket authorize (>= write) vs granular authorize=none.
 func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
@@ -500,17 +499,20 @@ func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 		return ids
 	}
 
-	// Case A: user18 is only on org17's owner team (team5, authorize=owner), linked to the private repo24
-	// but with no Actions team_unit row. The owner authorize must still grant it, mirroring the runtime
-	// HasAdminAccess() short-circuit in access.GetIndividualUserRepoPermission.
-	assert.Contains(t, accessibleRepoIDs(18, 17, unit.TypeActions), int64(24),
-		"an owner team grants a unit it has no explicit team_unit row for")
+	// Owner team5 has no Actions team_unit row but still grants via authorize=owner.
+	assert.Contains(t, accessibleRepoIDs(18, 17, unit.TypeActions), int64(24))
 
-	// Cases B and C share one subject so the team_unit row is the only difference: user4 is only on org3's
-	// write team (team2, authorize=write, non-admin), linked to the private repo3. team2 has an explicit
-	// Projects row but none for Actions.
-	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3),
-		"a non-admin team grants a unit it has an explicit team_unit row for")
+	// team2 is authorize=none with Projects team_unit but no Actions row.
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
 	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3),
-		"a non-admin team must NOT grant a unit it has no team_unit row for")
+		"authorize=none must not grant a unit without a team_unit row")
+
+	// Blanket write authorize grants Actions without a team_unit row.
+	ctx := t.Context()
+	blanket := &organization.Team{OrgID: 3, LowerName: "blanket_write", Name: "blanket_write", AccessMode: perm_model.AccessModeWrite}
+	require.NoError(t, db.Insert(ctx, blanket))
+	require.NoError(t, db.Insert(ctx, &organization.TeamRepo{OrgID: 3, TeamID: blanket.ID, RepoID: 3}))
+	require.NoError(t, db.Insert(ctx, &organization.TeamUser{OrgID: 3, TeamID: blanket.ID, UID: 4}))
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3),
+		"authorize=write grants every unit without team_unit rows")
 }

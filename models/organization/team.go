@@ -151,7 +151,7 @@ func (t *Team) LoadUnits(ctx context.Context) (err error) {
 
 // GetUnitNames returns the team units names
 func (t *Team) GetUnitNames() (res []string) {
-	if t.HasAdminAccess() {
+	if t.HasBlanketAccess() {
 		return unit.AllUnitKeyNames()
 	}
 
@@ -164,9 +164,13 @@ func (t *Team) GetUnitNames() (res []string) {
 // GetUnitsMap returns the team units permissions
 func (t *Team) GetUnitsMap() map[string]string {
 	m := make(map[string]string)
-	if t.HasAdminAccess() {
+	if t.HasBlanketAccess() {
 		for _, u := range unit.Units {
-			m[u.NameKey] = t.AccessMode.ToString()
+			mode := t.AccessMode
+			if u.Type == unit.TypeExternalTracker || u.Type == unit.TypeExternalWiki {
+				mode = perm.AccessModeRead
+			}
+			m[u.NameKey] = mode.ToString()
 		}
 	} else {
 		for _, u := range t.Units {
@@ -195,6 +199,18 @@ func (t *Team) HasAdminAccess() bool {
 	return t.AccessMode >= perm.AccessModeAdmin
 }
 
+func (t *Team) HasBlanketAccess() bool {
+	return t.AccessMode >= perm.AccessModeWrite
+}
+
+func (t *Team) unitAccessMode(tp unit.Type) perm.AccessMode {
+	mode := t.AccessMode
+	if u, ok := unit.Units[tp]; ok {
+		mode = min(mode, u.MaxPerm())
+	}
+	return mode
+}
+
 // LoadMembers returns paginated members in team of organization.
 func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	t.Members, err = GetTeamMembers(ctx, &SearchMembersOptions{
@@ -215,6 +231,9 @@ func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode
 }
 
 func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
+	if t.HasBlanketAccess() {
+		return t.unitAccessMode(tp), true
+	}
 	if err := t.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}

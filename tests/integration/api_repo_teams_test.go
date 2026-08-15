@@ -44,7 +44,7 @@ func TestAPIRepoTeams(t *testing.T) {
 		assert.Equal(t, "test_team", teams[1].Name)
 		assert.False(t, teams[1].CanCreateOrgRepo)
 		assert.Equal(t, []string{"repo.issues"}, teams[1].Units)
-		assert.Equal(t, api.AccessLevelNameWrite, teams[1].Permission)
+		assert.Equal(t, api.AccessLevelNameNone, teams[1].Permission)
 	}
 
 	// IsTeam

@@ -327,39 +327,21 @@ func NewTeam(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
-// FIXME: TEAM-UNIT-PERMISSION: this design is not right, when a new unit is added in the future,
-// The existing teams won't inherit the correct admin permission for the new unit.
-// The full history is like this:
-// 1. There was only "team", no "team unit", so "team.authorize" was used to determine the team permission.
-// 2. Later, "team unit" was introduced, then the usage of "team.authorize" became inconsistent, and causes various bugs.
-//   - Sometimes, "team.authorize" is used to determine the team permission, e.g. admin, owner
-//   - Sometimes, "team unit" is used not really used and "team unit" is used.
-//   - Some functions like `GetTeamsWithAccessToAnyRepoUnit` use both.
-//
-// 3. After introducing "team unit" and more unclear changes, it becomes difficult to maintain team permissions.
-//   - Org owner need to click the permission for each unit, but can't just set a common "write" permission for all units.
-//
-// Ideally, "team.authorize=write" should mean the team has write access to all units including newly (future) added ones.
 func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
 	unitPerms := make(map[unit_model.Type]perm.AccessMode)
 	for _, ut := range unit_model.AllRepoUnitTypes {
-		// Default access mode is none
-		unitPerms[ut] = perm.AccessModeNone
+		if teamPermission >= perm.AccessModeWrite {
+			unitPerms[ut] = min(teamPermission, unit_model.Units[ut].MaxPerm())
+			continue
+		}
 
+		unitPerms[ut] = perm.AccessModeNone
 		v, ok := forms[fmt.Sprintf("unit_%d", ut)]
 		if ok {
 			vv, _ := strconv.Atoi(v[0])
-			if teamPermission >= perm.AccessModeAdmin {
-				unitPerms[ut] = teamPermission
-				// Don't allow `TypeExternal{Tracker,Wiki}` to influence this as they can only be set to READ perms.
-				if ut == unit_model.TypeExternalTracker || ut == unit_model.TypeExternalWiki {
-					unitPerms[ut] = perm.AccessModeRead
-				}
-			} else {
-				unitPerms[ut] = perm.AccessMode(vv)
-				if unitPerms[ut] >= perm.AccessModeAdmin {
-					unitPerms[ut] = perm.AccessModeWrite
-				}
+			unitPerms[ut] = perm.AccessMode(vv)
+			if unitPerms[ut] >= perm.AccessModeAdmin {
+				unitPerms[ut] = perm.AccessModeWrite
 			}
 		}
 	}
@@ -370,7 +352,7 @@ func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_mod
 func NewTeamPost(ctx *context.Context) {
 	form := web.GetForm[*forms.CreateTeamForm](ctx)
 	includesAllRepositories := form.RepoAccess == "all"
-	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeWrite, perm.AccessModeAdmin)
 	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
 
 	t := &org_model.Team{
@@ -404,7 +386,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
+	if t.AccessMode < perm.AccessModeWrite && len(unitPerms) == 0 {
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
@@ -546,7 +528,7 @@ func EditTeam(ctx *context.Context) {
 func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm[*forms.CreateTeamForm](ctx)
 	t := ctx.Org.Team
-	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeAdmin)
+	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeWrite, perm.AccessModeAdmin)
 	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
 	isAuthChanged := false
 	isIncludeAllChanged := false
@@ -593,7 +575,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
+	if t.AccessMode < perm.AccessModeWrite && len(unitPerms) == 0 {
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
