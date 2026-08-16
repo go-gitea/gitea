@@ -289,6 +289,22 @@ func CleanupOldRuns(ctx context.Context) error {
 		actions_model.StatusSkipped,
 	}
 
+	total, err := cleanupOldRuns(ctx, olderThan, doneStatuses, DeleteRun)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Deleted %d old action runs (older than %d days)", total, setting.Actions.RunRetentionDays)
+	return nil
+}
+
+// cleanupOldRuns deletes completed runs created before olderThan in batches of
+// cleanupOldRunsBatchSize, oldest first. deleteRun is the per-run deletion
+// function (DeleteRun in production); it is a parameter so the batch loop can
+// be tested with failure injection. Runs that fail to delete are remembered and
+// skipped in later batches, so a single failing run cannot stall cleanup or be
+// retried on every iteration.
+func cleanupOldRuns(ctx context.Context, olderThan timeutil.TimeStamp, doneStatuses []actions_model.Status, deleteRun func(context.Context, *actions_model.ActionRun) error) (int, error) {
 	total := 0
 	// Runs that fail to delete are remembered and skipped in later batches, so a
 	// single failing run cannot stall cleanup or be retried on every iteration.
@@ -298,7 +314,7 @@ func CleanupOldRuns(ctx context.Context) error {
 		// so the first page is effectively a sliding window over remaining old runs.
 		runs, err := actions_model.FindOldestRuns(ctx, doneStatuses, olderThan, cleanupOldRunsBatchSize)
 		if err != nil {
-			return fmt.Errorf("find old runs: %w", err)
+			return total, fmt.Errorf("find old runs: %w", err)
 		}
 
 		// Skip runs that already failed to delete; if nothing new remains, stop.
@@ -314,7 +330,7 @@ func CleanupOldRuns(ctx context.Context) error {
 		}
 
 		for _, run := range remaining {
-			if err := DeleteRun(ctx, run); err != nil {
+			if err := deleteRun(ctx, run); err != nil {
 				// DeleteRun is expected to never fail, if it fails, there must be a bug that should be fixed.
 				setting.PanicInDevOrTesting("failed to delete old action run %d: %v", run.ID, err)
 				failed.Add(run.ID)
@@ -324,7 +340,5 @@ func CleanupOldRuns(ctx context.Context) error {
 			log.Trace("Deleted old action run %d (created %s)", run.ID, run.Created.AsTime())
 		}
 	}
-
-	log.Info("Deleted %d old action runs (older than %d days)", total, setting.Actions.RunRetentionDays)
-	return nil
+	return total, nil
 }
