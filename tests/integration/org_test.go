@@ -184,8 +184,7 @@ func testOrgRestrictedUser(t *testing.T) {
 
 	resp := adminSession.MakeRequest(t, req, http.StatusCreated)
 	apiTeam := DecodeJSON(t, resp, &api.Team{})
-	checkTeamResponse(t, "CreateTeam_codereader", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		"none", teamToCreate.Units, nil)
+	checkTeamResponse(t, "CreateTeam_codereader", apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories, "none", nil)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		"none", teamToCreate.Units, nil)
 	// teamID := apiTeam.ID

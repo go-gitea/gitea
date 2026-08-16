@@ -28,24 +28,15 @@ func (t TeamList) LoadUnits(ctx context.Context) error {
 }
 
 func (t TeamList) UnitMaxAccess(tp unit.Type) perm.AccessMode {
+	// FIXME: ORG-TEAM-UNIT-MAX-PERMISSION: this function is not right, team can access repo1's code doesn't mean it can access repo2's code
 	maxAccess := perm.AccessModeNone
 	for _, team := range t {
 		if team.IsOwnerTeam() {
 			return perm.AccessModeOwner
 		}
-		if team.HasBlanketAccess() {
-			if mode := team.unitAccessMode(tp); mode > maxAccess {
-				maxAccess = mode
-			}
-			continue
-		}
-		for _, teamUnit := range team.Units {
-			if teamUnit.Type != tp {
-				continue
-			}
-			if teamUnit.AccessMode > maxAccess {
-				maxAccess = teamUnit.AccessMode
-			}
+		mode := team.unitAccessMode(tp)
+		if mode > maxAccess {
+			maxAccess = mode
 		}
 	}
 	return maxAccess

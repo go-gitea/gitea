@@ -32,11 +32,11 @@ type Organization struct {
 }
 
 func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
-	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
+	return org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
 }
 
 func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
-	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
+	return org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
 }
 
 func GetOrganizationByParams(ctx *Context) {

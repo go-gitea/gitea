@@ -333,7 +333,7 @@ func EditTeam(ctx *context.APIContext) {
 			return
 		}
 		isAuthChanged = prevAccessMode != team.AccessMode
-	} else if team.HasBlanketAccess() {
+	} else if team.HasAllUnitAccess() {
 		attachBlanketTeamUnits(team, team.AccessMode)
 	} else if len(form.UnitsMap) > 0 {
 		team.AccessMode = perm.AccessModeNone

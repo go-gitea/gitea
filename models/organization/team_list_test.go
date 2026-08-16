@@ -25,7 +25,7 @@ func Test_GetTeamsByIDs(t *testing.T) {
 	assert.Equal(t, "team1", teams[2].Name)
 }
 
-func TestTeamList_UnitMaxAccessBlanket(t *testing.T) {
+func TestTeamList_UnitMaxAccess(t *testing.T) {
 	adminTeam := &org_model.Team{AccessMode: perm.AccessModeAdmin, Units: nil}
 	writeTeam := &org_model.Team{AccessMode: perm.AccessModeWrite, Units: nil}
 	granularTeam := &org_model.Team{

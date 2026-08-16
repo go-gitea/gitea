@@ -284,8 +284,8 @@ func (org *Organization) CustomAvatarRelativePath() string {
 	return org.Avatar
 }
 
-// UnitPermission returns unit permission
-func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+func (org *Organization) AnyRepoUnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+	// FIXME: ORG-TEAM-UNIT-MAX-PERMISSION: this function is not right, team can access repo1's code doesn't mean it can access repo2's code
 	if doer != nil {
 		teams, err := GetUserOrgTeams(ctx, org.ID, doer.ID)
 		if err != nil {

@@ -151,10 +151,6 @@ func (t *Team) LoadUnits(ctx context.Context) (err error) {
 
 // GetUnitNames returns the team units names
 func (t *Team) GetUnitNames() (res []string) {
-	if t.HasBlanketAccess() {
-		return unit.AllUnitKeyNames()
-	}
-
 	for _, u := range t.Units {
 		res = append(res, unit.Units[u.Type].NameKey)
 	}
@@ -164,18 +160,8 @@ func (t *Team) GetUnitNames() (res []string) {
 // GetUnitsMap returns the team units permissions
 func (t *Team) GetUnitsMap() map[string]string {
 	m := make(map[string]string)
-	if t.HasBlanketAccess() {
-		for _, u := range unit.Units {
-			mode := t.AccessMode
-			if u.Type == unit.TypeExternalTracker || u.Type == unit.TypeExternalWiki {
-				mode = perm.AccessModeRead
-			}
-			m[u.NameKey] = mode.ToString()
-		}
-	} else {
-		for _, u := range t.Units {
-			m[u.Unit().NameKey] = u.AccessMode.ToString()
-		}
+	for _, u := range t.Units {
+		m[u.Unit().NameKey] = u.AccessMode.ToString()
 	}
 	return m
 }
@@ -199,14 +185,14 @@ func (t *Team) HasAdminAccess() bool {
 	return t.AccessMode >= perm.AccessModeAdmin
 }
 
-func (t *Team) HasBlanketAccess() bool {
-	return t.AccessMode >= perm.AccessModeWrite
+func (t *Team) HasAllUnitAccess() bool {
+	return t.AccessMode > perm.AccessModeNone
 }
 
 func (t *Team) unitAccessMode(tp unit.Type) perm.AccessMode {
 	mode := t.AccessMode
-	if u, ok := unit.Units[tp]; ok {
-		mode = min(mode, u.MaxPerm())
+	if unitDef, ok := unit.Units[tp]; ok {
+		mode = min(mode, unitDef.MaxPerm())
 	}
 	return mode
 }
@@ -231,11 +217,11 @@ func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode
 }
 
 func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
-	if t.HasBlanketAccess() {
+	if t.HasAllUnitAccess() {
 		return t.unitAccessMode(tp), true
 	}
 	if err := t.LoadUnits(ctx); err != nil {
-		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
+		log.Error("Error loading team (ID: %d) units: %v", t.ID, err)
 	}
 	for _, u := range t.Units {
 		if u.Type == tp {
