@@ -228,7 +228,7 @@ func testLDAPAuthChange(t *testing.T) {
 	bindDN, _ := doc.Find(`input[name="bind_dn"]`).Attr("value")
 	assert.Equal(t, "uid=gitea,ou=service,dc=planetexpress,dc=com", bindDN)
 
-	req = NewRequestWithValues(t, "POST", hrefAuthSource, te.buildAuthSourcePayload(map[string]string{"group_team_map_removal": "off"}))
+	req = NewRequestWithValues(t, "POST", hrefAuthSource, te.buildAuthSourcePayload(map[string]string{"group_team_map_removal": ""}))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	req = NewRequest(t, "GET", hrefAuthSource)
@@ -492,7 +492,7 @@ func testLDAPPreventInvalidGroupTeamMap(t *testing.T) {
 	te := prepareLdapTestServerEnv()
 
 	session := loginUser(t, "user1")
-	payload := te.buildAuthSourcePayload(map[string]string{"group_team_map": `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "group_team_map_removal": "off"})
+	payload := te.buildAuthSourcePayload(map[string]string{"group_team_map": `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "group_team_map_removal": ""})
 	req := NewRequestWithValues(t, "POST", "/-/admin/auths/new", payload)
 	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
 }
@@ -509,7 +509,6 @@ func testLDAPEmailSignin(t *testing.T) {
 			},
 		},
 		serverHost: "mock-host",
-		serverPort: "mock-port",
 	}
 	defer test.MockVariableValue(&ldap.MockedSearchEntry, func(source *ldap.Source, name, passwd string, directBind bool) *ldap.SearchResult {
 		var u *ldapUser

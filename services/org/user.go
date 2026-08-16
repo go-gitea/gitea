@@ -69,7 +69,7 @@ func RemoveOrgUser(ctx context.Context, org *organization.Organization, user *us
 			if err != nil {
 				return err
 			}
-			if err = repo_model.WatchRepo(ctx, user, repo, false); err != nil {
+			if err = repo_model.WatchRepoAuto(ctx, user, repo, false); err != nil {
 				return err
 			}
 		}
