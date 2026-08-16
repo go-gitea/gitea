@@ -60,9 +60,9 @@
 							<button class="btn flex-text-inline show-modal"
 								data-modal="#repo-watch-options-modal"
 								data-modal-form.url="{{.Link}}/action/watch/options"
-								data-modal-issues="{{$watch.Issues}}"
-								data-modal-pull_requests="{{$watch.PullRequests}}"
-								data-modal-releases="{{$watch.Releases}}"
+								data-modal-issues="{{$watch.IncludeIssues}}"
+								data-modal-pull_requests="{{$watch.IncludePullRequests}}"
+								data-modal-releases="{{$watch.IncludeReleases}}"
 								data-tooltip-content="{{ctx.Locale.Tr "notifications"}}"
 							>{{svg "octicon-gear" 16}}</button>
 						{{end}}
