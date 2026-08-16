@@ -5,7 +5,8 @@
   status: 1 # unread
   source: 1 # issue
   updated_by: 2
-  issue_id: 1
+  subject_id: 1
+  title: issue1
   created_unix: 946684800
   updated_unix: 946684820
 
@@ -16,7 +17,8 @@
   status: 2 # read
   source: 1 # issue
   updated_by: 1
-  issue_id: 2
+  subject_id: 2
+  title: issue2
   created_unix: 946685800
   updated_unix: 946685820
 
@@ -27,7 +29,8 @@
   status: 3 # pinned
   source: 1 # issue
   updated_by: 1
-  issue_id: 3
+  subject_id: 3
+  title: issue3
   created_unix: 946686800
   updated_unix: 946686800
 
@@ -38,7 +41,8 @@
   status: 1 # unread
   source: 1 # issue
   updated_by: 1
-  issue_id: 5
+  subject_id: 5
+  title: issue5
   created_unix: 946687800
   updated_unix: 946687800
 
@@ -49,7 +53,8 @@
   status: 1 # unread
   source: 1 # issue
   updated_by: 5
-  issue_id: 4
+  subject_id: 4
+  title: issue4
   created_unix: 946688800
   updated_unix: 946688820
 

@@ -233,7 +233,6 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 			&issues_model.IssueDependency{IssueID: issue.ID},
 			&issues_model.IssueAssignees{IssueID: issue.ID},
 			&issues_model.IssueUser{IssueID: issue.ID},
-			&activities_model.Notification{IssueID: issue.ID},
 			&issues_model.Reaction{IssueID: issue.ID},
 			&issues_model.IssueWatch{IssueID: issue.ID},
 			&issues_model.Stopwatch{IssueID: issue.ID},
@@ -246,6 +245,10 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 			&issues_model.Comment{DependentIssueID: issue.ID},
 			&issues_model.IssuePin{IssueID: issue.ID},
 		); err != nil {
+			return nil, err
+		}
+
+		if err := activities_model.DeleteIssueNotifications(ctx, issue.ID); err != nil {
 			return nil, err
 		}
 
