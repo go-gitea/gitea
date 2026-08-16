@@ -293,11 +293,7 @@ func CleanupOldRuns(ctx context.Context) error {
 	for {
 		// Always fetch page 1: as runs are deleted they fall off the result set,
 		// so the first page is effectively a sliding window over remaining old runs.
-		runs, err := db.Find[actions_model.ActionRun](ctx, actions_model.FindRunOptions{
-			ListOptions:   db.ListOptions{PageSize: cleanupOldRunsBatchSize, Page: 1},
-			Status:        doneStatuses,
-			CreatedBefore: olderThan,
-		})
+		runs, err := actions_model.FindOldestRuns(ctx, doneStatuses, olderThan, cleanupOldRunsBatchSize)
 		if err != nil {
 			return fmt.Errorf("find old runs: %w", err)
 		}
