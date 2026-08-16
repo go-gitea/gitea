@@ -67,11 +67,11 @@ func TestWatchRepo(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, WatchRepo(t.Context(), user, repo, true))
+	assert.NoError(t, WatchRepoAuto(t.Context(), user, repo, true))
 	unittest.AssertExistsAndLoadBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 
-	assert.NoError(t, WatchRepo(t.Context(), user, repo, false))
+	assert.NoError(t, WatchRepoAuto(t.Context(), user, repo, false))
 	unittest.AssertNotExistsBean(t, &Watch{RepoID: repo.ID, UserID: user.ID})
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 }

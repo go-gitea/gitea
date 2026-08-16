@@ -438,7 +438,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 	}
 
 	if setting.Service.AutoWatchNewRepos {
-		if err = repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
+		if err = repo_model.WatchRepoAuto(ctx, doer, repo, true); err != nil {
 			return fmt.Errorf("WatchRepo: %w", err)
 		}
 	}
