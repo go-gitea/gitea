@@ -299,7 +299,7 @@ func (org *Organization) AnyRepoUnitPermission(ctx context.Context, doer *user_m
 		}
 
 		if len(teams) > 0 {
-			return teams.UnitMaxAccess(ctx, unitType)
+			return teams.AnyRepoUnitMaxAccess(ctx, unitType)
 		}
 	}
 

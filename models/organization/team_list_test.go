@@ -36,9 +36,9 @@ func TestTeamList_UnitMaxAccess(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, perm.AccessModeAdmin, org_model.TeamList{adminTeam}.UnitMaxAccess(ctx, unit.TypeActions))
-	assert.Equal(t, perm.AccessModeWrite, org_model.TeamList{writeTeam}.UnitMaxAccess(ctx, unit.TypeActions))
-	assert.Equal(t, perm.AccessModeWrite, org_model.TeamList{granularTeam}.UnitMaxAccess(ctx, unit.TypeCode))
-	assert.Equal(t, perm.AccessModeNone, org_model.TeamList{granularTeam}.UnitMaxAccess(ctx, unit.TypeActions))
-	assert.Equal(t, perm.AccessModeAdmin, org_model.TeamList{granularTeam, adminTeam}.UnitMaxAccess(ctx, unit.TypeActions))
+	assert.Equal(t, perm.AccessModeAdmin, org_model.TeamList{adminTeam}.AnyRepoUnitMaxAccess(ctx, unit.TypeActions))
+	assert.Equal(t, perm.AccessModeWrite, org_model.TeamList{writeTeam}.AnyRepoUnitMaxAccess(ctx, unit.TypeActions))
+	assert.Equal(t, perm.AccessModeWrite, org_model.TeamList{granularTeam}.AnyRepoUnitMaxAccess(ctx, unit.TypeCode))
+	assert.Equal(t, perm.AccessModeNone, org_model.TeamList{granularTeam}.AnyRepoUnitMaxAccess(ctx, unit.TypeActions))
+	assert.Equal(t, perm.AccessModeAdmin, org_model.TeamList{granularTeam, adminTeam}.AnyRepoUnitMaxAccess(ctx, unit.TypeActions))
 }

@@ -514,10 +514,6 @@ func EditTeam(ctx *context.Context) {
 // EditTeamPost response for modify team information
 func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm[*forms.CreateTeamForm](ctx)
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplTeamNew)
-		return
-	}
 
 	t := ctx.Org.Team
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeWrite, perm.AccessModeAdmin)
@@ -552,6 +548,11 @@ func EditTeamPost(ctx *context.Context) {
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 			return
 		}
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, tplTeamNew)
+		return
 	}
 
 	isAuthChanged := oldTeamAccessMode != t.AccessMode || !maps.Equal(oldTeamUnitsMap, t.GetUnitsMap())
