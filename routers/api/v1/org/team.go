@@ -6,6 +6,7 @@ package org
 
 import (
 	"errors"
+	"maps"
 	"net/http"
 
 	activities_model "gitea.dev/models/activities"
@@ -151,72 +152,45 @@ func GetTeam(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiTeam)
 }
 
-func attachTeamUnits(team *organization.Team, defaultAccessMode perm.AccessMode, units []string) {
-	unitTypes, _ := unit_model.FindUnitTypes(units...)
-	team.Units = make([]*organization.TeamUnit, 0, len(units))
-	for _, tp := range unitTypes {
-		team.Units = append(team.Units, &organization.TeamUnit{
-			OrgID:      team.OrgID,
-			Type:       tp,
-			AccessMode: defaultAccessMode,
-		})
-	}
-}
-
-func attachTeamUnitsMap(team *organization.Team, unitsMap map[string]string) {
-	team.Units = make([]*organization.TeamUnit, 0, len(unitsMap))
-	for unitKey, p := range unitsMap {
-		team.Units = append(team.Units, &organization.TeamUnit{
-			OrgID:      team.OrgID,
-			Type:       unit_model.TypeFromKey(unitKey),
-			AccessMode: perm.ParseAccessMode(p),
-		})
-	}
-}
-
-func attachBlanketTeamUnits(team *organization.Team, mode perm.AccessMode) {
-	team.Units = make([]*organization.TeamUnit, 0, len(unit_model.AllRepoUnitTypes))
-	for _, ut := range unit_model.AllRepoUnitTypes {
-		team.Units = append(team.Units, &organization.TeamUnit{
-			OrgID:      team.OrgID,
-			Type:       ut,
-			AccessMode: min(mode, unit_model.Units[ut].MaxPerm()),
-		})
-	}
-}
-
 // assignTeamPermissionUnits sets authorize + team_unit rows.
 //   - admin: always blanket admin (units ignored)
 //   - write: blanket write; must not send units/units_map (those mean granular)
 //   - units/units_map: granular authorize=none; Permission is only the default for Units (not UnitsMap)
-func assignTeamPermissionUnits(team *organization.Team, permission api.RepoWritePermission, units []string, unitsMap map[string]string) error {
-	requested := perm.ParseAccessMode(string(permission), perm.AccessModeNone, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
-	hasUnits := len(unitsMap) > 0 || len(units) > 0
+func assignTeamPermissionUnits(team *organization.Team, permission string, units []string, unitsMap map[string]string) (changed bool, _ error) {
+	if len(units) > 0 && len(unitsMap) > 0 {
+		return false, util.NewInvalidArgumentErrorf("only one of units or units_map can be set")
+	}
+	if len(units) > 0 {
+		unitsMap = map[string]string{}
+		for _, unit := range units {
+			unitsMap[unit] = permission
+		}
+	}
 
-	if requested >= perm.AccessModeAdmin {
-		team.AccessMode = perm.AccessModeAdmin
-		attachBlanketTeamUnits(team, perm.AccessModeAdmin)
-		return nil
+	oldAccessMode := team.AccessMode
+	var oldUnitPerms, newUnitPerms map[unit_model.Type]perm.AccessMode
+	for _, unit := range team.Units {
+		oldUnitPerms[unit.Type] = unit.AccessMode
 	}
-	if requested >= perm.AccessModeWrite {
-		if hasUnits {
-			return util.ErrorWrap(util.ErrUnprocessableContent, "permission 'write' is blanket access to all units; omit units/units_map, or omit permission 'write' and set units for granular access")
+
+	if len(unitsMap) > 0 {
+		newUnitPerms = map[unit_model.Type]perm.AccessMode{}
+		team.Units = make([]*organization.TeamUnit, 0, len(unitsMap))
+		for unitKey, p := range unitsMap {
+			unitType, unitPerm := unit_model.TypeFromKey(unitKey), perm.ParseAccessMode(p)
+			team.Units = append(team.Units, &organization.TeamUnit{OrgID: team.OrgID, Type: unitType, AccessMode: unitPerm})
+			newUnitPerms[unitType] = unitPerm
 		}
-		team.AccessMode = perm.AccessModeWrite
-		attachBlanketTeamUnits(team, perm.AccessModeWrite)
-		return nil
-	}
-	if hasUnits {
-		team.AccessMode = perm.AccessModeNone
-		if len(unitsMap) > 0 {
-			attachTeamUnitsMap(team, unitsMap)
-			return nil
+	} else {
+		requested := perm.ParseAccessMode(permission, perm.AccessModeNone, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
+		if requested == perm.AccessModeNone {
+			return false, util.NewInvalidArgumentErrorf("no permission specified")
 		}
-		unitPerm := perm.ParseAccessMode(string(permission), perm.AccessModeRead, perm.AccessModeWrite)
-		attachTeamUnits(team, unitPerm, units)
-		return nil
+		team.AccessMode, team.Units = requested, nil
 	}
-	return util.ErrorWrap(util.ErrUnprocessableContent, "units permission should not be empty")
+
+	changed = oldAccessMode != team.AccessMode || !maps.Equal(oldUnitPerms, newUnitPerms)
+	return changed, nil
 }
 
 // CreateTeam api for create a team
@@ -254,7 +228,8 @@ func CreateTeam(ctx *context.APIContext) {
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		Visibility:              organization.NormalizeTeamVisibility(form.Visibility),
 	}
-	if err := assignTeamPermissionUnits(team, form.Permission, form.Units, form.UnitsMap); err != nil {
+	_, err := assignTeamPermissionUnits(team, string(form.Permission), form.Units, form.UnitsMap)
+	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
 	}
@@ -326,21 +301,14 @@ func EditTeam(ctx *context.APIContext) {
 
 	isAuthChanged := false
 	isIncludeAllChanged := false
-	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
-		prevAccessMode := team.AccessMode
-		if err := assignTeamPermissionUnits(team, form.Permission, form.Units, form.UnitsMap); err != nil {
+	hasPermFields := form.Permission != "" || len(form.Units) > 0 || len(form.UnitsMap) > 0
+	if !team.IsOwnerTeam() && hasPermFields {
+		var err error
+		isAuthChanged, err = assignTeamPermissionUnits(team, string(form.Permission), form.Units, form.UnitsMap)
+		if err != nil {
 			ctx.APIErrorAuto(err)
 			return
 		}
-		isAuthChanged = prevAccessMode != team.AccessMode
-	} else if team.HasAllUnitAccess() {
-		attachBlanketTeamUnits(team, team.AccessMode)
-	} else if len(form.UnitsMap) > 0 {
-		team.AccessMode = perm.AccessModeNone
-		attachTeamUnitsMap(team, form.UnitsMap)
-	} else if len(form.Units) > 0 {
-		team.AccessMode = perm.AccessModeNone
-		attachTeamUnits(team, perm.AccessModeRead, form.Units)
 	}
 
 	if !team.IsOwnerTeam() && form.IncludesAllRepositories != nil {
