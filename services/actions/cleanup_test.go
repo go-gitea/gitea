@@ -74,7 +74,7 @@ func TestCleanupOldRuns(t *testing.T) {
 		setting.Actions.RunRetentionDays = 30
 		// cleanupOldRunsBatchSize is 50; insert more than one batch of old runs.
 		oldRuns := make([]*actions_model.ActionRun, 0, cleanupOldRunsBatchSize+5)
-		for i := 0; i < cleanupOldRunsBatchSize+5; i++ {
+		for i := range cleanupOldRunsBatchSize + 5 {
 			oldRuns = append(oldRuns, insertCleanupRun(t, 2100+int64(i), actions_model.StatusSuccess, old))
 		}
 		require.NoError(t, CleanupOldRuns(t.Context()))
