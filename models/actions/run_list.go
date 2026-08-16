@@ -75,7 +75,6 @@ type FindRunOptions struct {
 	// subquery (the caller's accessible repos). A nil value means no restriction. Using a subquery
 	// instead of a materialized ID slice avoids exceeding DB parameter limits for large owners.
 	AccessibleRepoIDsSubQuery *builder.Builder
-	CreatedBefore             timeutil.TimeStamp // if non-zero, only return runs created before this timestamp
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -109,9 +108,6 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 	}
 	if opts.AccessibleRepoIDsSubQuery != nil {
 		cond = cond.And(builder.In("`action_run`.repo_id", opts.AccessibleRepoIDsSubQuery))
-	}
-	if opts.CreatedBefore > 0 {
-		cond = cond.And(builder.Lt{"`action_run`.created": opts.CreatedBefore})
 	}
 	return cond
 }
