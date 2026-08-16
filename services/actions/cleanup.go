@@ -292,7 +292,7 @@ func CleanupOldRuns(ctx context.Context) error {
 	total := 0
 	// Runs that fail to delete are remembered and skipped in later batches, so a
 	// single failing run cannot stall cleanup or be retried on every iteration.
-	failed := make(map[int64]struct{})
+	failed := container.Set[int64]{}
 	for {
 		// Always fetch page 1: as runs are deleted they fall off the result set,
 		// so the first page is effectively a sliding window over remaining old runs.
@@ -304,22 +304,20 @@ func CleanupOldRuns(ctx context.Context) error {
 		// Skip runs that already failed to delete; if nothing new remains, stop.
 		remaining := runs[:0]
 		for _, run := range runs {
-			if _, ok := failed[run.ID]; !ok {
+			if !failed.Contains(run.ID) {
 				remaining = append(remaining, run)
 			}
 		}
 		if len(remaining) == 0 {
+			log.Error("Too many actions runs are unable to delete, please figure out and fix the failures")
 			break
 		}
 
 		for _, run := range remaining {
 			if err := DeleteRun(ctx, run); err != nil {
-				// DeleteRun is expected to never fail: it only removes rows that were
-				// just selected plus their dependents. Surface unexpected failures
-				// loudly in dev/testing, and log them in production.
+				// DeleteRun is expected to never fail, if it fails, there must be a bug that should be fixed.
 				setting.PanicInDevOrTesting("failed to delete old action run %d: %v", run.ID, err)
-				log.Error("Failed to delete old action run %d: %v", run.ID, err)
-				failed[run.ID] = struct{}{}
+				failed.Add(run.ID)
 				continue
 			}
 			total++

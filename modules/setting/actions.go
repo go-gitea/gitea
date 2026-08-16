@@ -128,12 +128,6 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 		Actions.ArtifactRetentionDays = 90
 	}
 
-	// RunRetentionDays: 0 means disabled (runs are kept forever).
-	// A positive value enables automatic deletion of completed runs older than that many days.
-	if Actions.RunRetentionDays < 0 {
-		Actions.RunRetentionDays = 0
-	}
-
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)
 	Actions.EndlessTaskTimeout = sec.Key("ENDLESS_TASK_TIMEOUT").MustDuration(3 * time.Hour)
 	Actions.AbandonedJobTimeout = sec.Key("ABANDONED_JOB_TIMEOUT").MustDuration(24 * time.Hour)
