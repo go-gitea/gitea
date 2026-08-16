@@ -153,9 +153,6 @@ func GetTeam(ctx *context.APIContext) {
 }
 
 // assignTeamPermissionUnits sets authorize + team_unit rows.
-//   - admin: always blanket admin (units ignored)
-//   - write: blanket write; must not send units/units_map (those mean granular)
-//   - units/units_map: granular authorize=none; Permission is only the default for Units (not UnitsMap)
 func assignTeamPermissionUnits(team *organization.Team, permission string, units []string, unitsMap map[string]string) (changed bool, _ error) {
 	if len(units) > 0 && len(unitsMap) > 0 {
 		return false, util.NewInvalidArgumentErrorf("only one of units or units_map can be set")
