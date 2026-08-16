@@ -70,16 +70,13 @@ func getTeamIDsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64,
 		And(builder.In("team_unit.type", append([]unit.Type{unitType}, unitTypesMore...))).
 		And(builder.Expr("team_unit.access_mode >= ?", mode))
 
-	// authorize >= write is blanket; also require authorize >= mode (e.g. admin mode needs admin+).
-	blanketMin := max(mode, perm.AccessModeWrite)
-
 	err = db.GetEngine(ctx).
 		Select("team.id").
 		Table("team").
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ? AND team_repo.repo_id = ?", orgID, repoID).
 		And(builder.Or(
-			builder.Expr("team.authorize >= ?", blanketMin),
+			builder.Expr("team.authorize >= ?", mode),
 			builder.In("team.id", sub),
 		)).
 		Find(&teamIDs)

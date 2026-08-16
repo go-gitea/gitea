@@ -288,8 +288,8 @@ func applyConditions(sess db.Session, opts *IssuesOptions) {
 	}
 }
 
-// teamUnitsRepoCond returns query condition for those repo id in the special org team with special units access
-func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
+// teamUnitsRepoReaderCond returns query condition for those repo id in the special org team with special units access
+func teamUnitsRepoReaderCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
 	return builder.In(id,
 		builder.Select("repo_id").From("team_repo").Where(
 			builder.Eq{
@@ -320,7 +320,7 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 				builder.Or(
 					builder.In(
 						"team_id", builder.Select("id").From("team").Where(
-							builder.Eq{"id": teamID}.And(builder.Gte{"authorize": perm.AccessModeWrite}),
+							builder.Eq{"id": teamID}.And(builder.Gt{"authorize": perm.AccessModeNone}),
 						),
 					),
 					builder.In(
@@ -346,7 +346,7 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, owner *user_mod
 	}
 	if owner != nil && owner.IsOrganization() {
 		if team != nil {
-			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, owner.ID, team.ID, unitType)) // special team member repos
+			cond = cond.And(teamUnitsRepoReaderCond(repoIDstr, userID, owner.ID, team.ID, unitType)) // special team member repos
 		} else {
 			cond = cond.And(
 				builder.Or(

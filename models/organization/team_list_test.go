@@ -26,6 +26,7 @@ func Test_GetTeamsByIDs(t *testing.T) {
 }
 
 func TestTeamList_UnitMaxAccess(t *testing.T) {
+	ctx := t.Context()
 	adminTeam := &org_model.Team{AccessMode: perm.AccessModeAdmin, Units: nil}
 	writeTeam := &org_model.Team{AccessMode: perm.AccessModeWrite, Units: nil}
 	granularTeam := &org_model.Team{
@@ -35,9 +36,9 @@ func TestTeamList_UnitMaxAccess(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, perm.AccessModeAdmin, org_model.TeamList{adminTeam}.UnitMaxAccess(unit.TypeActions))
-	assert.Equal(t, perm.AccessModeWrite, org_model.TeamList{writeTeam}.UnitMaxAccess(unit.TypeActions))
-	assert.Equal(t, perm.AccessModeWrite, org_model.TeamList{granularTeam}.UnitMaxAccess(unit.TypeCode))
-	assert.Equal(t, perm.AccessModeNone, org_model.TeamList{granularTeam}.UnitMaxAccess(unit.TypeActions))
-	assert.Equal(t, perm.AccessModeAdmin, org_model.TeamList{granularTeam, adminTeam}.UnitMaxAccess(unit.TypeActions))
+	assert.Equal(t, perm.AccessModeAdmin, org_model.TeamList{adminTeam}.UnitMaxAccess(ctx, unit.TypeActions))
+	assert.Equal(t, perm.AccessModeWrite, org_model.TeamList{writeTeam}.UnitMaxAccess(ctx, unit.TypeActions))
+	assert.Equal(t, perm.AccessModeWrite, org_model.TeamList{granularTeam}.UnitMaxAccess(ctx, unit.TypeCode))
+	assert.Equal(t, perm.AccessModeNone, org_model.TeamList{granularTeam}.UnitMaxAccess(ctx, unit.TypeActions))
+	assert.Equal(t, perm.AccessModeAdmin, org_model.TeamList{granularTeam, adminTeam}.UnitMaxAccess(ctx, unit.TypeActions))
 }

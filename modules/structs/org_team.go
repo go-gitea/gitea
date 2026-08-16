@@ -53,9 +53,7 @@ type CreateTeamOption struct {
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the team has access to all repositories in the organization
 	IncludesAllRepositories bool `json:"includes_all_repositories"`
-	// Permission: "admin" is always blanket admin. "write" alone is blanket write on every unit
-	// (including future ones) and must not be combined with units/units_map. With units/units_map,
-	// omit write/admin: authorize is stored as none and Permission is only the default for Units.
+	// All units have this permission (read/write/admin)
 	Permission RepoWritePermission `json:"permission"`
 	// example: ["repo.actions","repo.packages","repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.
@@ -76,7 +74,7 @@ type EditTeamOption struct {
 	Description *string `json:"description" binding:"MaxSize(255)"`
 	// Whether the team has access to all repositories in the organization
 	IncludesAllRepositories *bool `json:"includes_all_repositories"`
-	// See CreateTeamOption.Permission.
+	// All units have this permission (read/write/admin)
 	Permission RepoWritePermission `json:"permission"`
 	// example: ["repo.code","repo.issues","repo.ext_issues","repo.wiki","repo.pulls","repo.releases","repo.projects","repo.ext_wiki"]
 	// Deprecated: This variable should be replaced by UnitsMap and will be dropped in later versions.

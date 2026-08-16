@@ -111,8 +111,7 @@ func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
 	return db.Exist[Collaboration](ctx, builder.Eq{"repo_id": repoID, "user_id": userID})
 }
 
-// IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
-func IsOwnerMemberCollaborator(ctx context.Context, repo *Repository, userID int64) (bool, error) {
+func HasAccessToRepoCodeUnit(ctx context.Context, repo *Repository, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
@@ -123,7 +122,7 @@ func IsOwnerMemberCollaborator(ctx context.Context, repo *Repository, userID int
 		Where("team_repo.repo_id = ?", repo.ID).
 		And("team_user.uid = ?", userID).
 		And(builder.Or(
-			builder.Gte{"team.authorize": perm.AccessModeWrite},
+			builder.Gt{"team.authorize": perm.AccessModeNone},
 			builder.Gt{"team_unit.access_mode": perm.AccessModeNone},
 		)).
 		Exist()

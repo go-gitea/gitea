@@ -189,14 +189,6 @@ func (t *Team) HasAllUnitAccess() bool {
 	return t.AccessMode > perm.AccessModeNone
 }
 
-func (t *Team) unitAccessMode(tp unit.Type) perm.AccessMode {
-	mode := t.AccessMode
-	if unitDef, ok := unit.Units[tp]; ok {
-		mode = min(mode, unitDef.MaxPerm())
-	}
-	return mode
-}
-
 // LoadMembers returns paginated members in team of organization.
 func (t *Team) LoadMembers(ctx context.Context) (err error) {
 	t.Members, err = GetTeamMembers(ctx, &SearchMembersOptions{
@@ -218,14 +210,22 @@ func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode
 
 func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
 	if t.HasAllUnitAccess() {
-		return t.unitAccessMode(tp), true
+		mode := t.AccessMode
+		if unitDef, ok := unit.Units[tp]; ok {
+			mode = min(mode, unitDef.MaxPerm())
+		}
+		return mode, true
 	}
+
 	if err := t.LoadUnits(ctx); err != nil {
 		log.Error("Error loading team (ID: %d) units: %v", t.ID, err)
 	}
 	for _, u := range t.Units {
-		if u.Type == tp {
-			return u.AccessMode, true
+		if u.Type != tp {
+			continue
+		}
+		if unitDef, ok := unit.Units[tp]; ok {
+			return min(u.AccessMode, unitDef.MaxPerm()), true
 		}
 	}
 	return perm.AccessModeNone, false

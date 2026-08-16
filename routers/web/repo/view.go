@@ -41,11 +41,12 @@ import (
 	"gitea.dev/services/context"
 	repo_service "gitea.dev/services/repository"
 
+	_ "image/gif"  // for processing gif images
+	_ "image/jpeg" // for processing jpeg images
+	_ "image/png"  // for processing png images
+
 	_ "golang.org/x/image/bmp"  // for processing bmp images
 	_ "golang.org/x/image/webp" // for processing webp images
-	_ "image/gif"               // for processing gif images
-	_ "image/jpeg"              // for processing jpeg images
-	_ "image/png"               // for processing png images
 )
 
 const (
@@ -128,7 +129,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		verification := asymkey_service.ParseCommitWithSignature(ctx, latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return repo_model.IsOwnerMemberCollaborator(ctx, ctx.Repo.Repository, user.ID)
+			return repo_model.HasAccessToRepoCodeUnit(ctx, ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return false

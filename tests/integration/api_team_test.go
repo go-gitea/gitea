@@ -279,7 +279,7 @@ func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, d
 		assert.Equal(t, description, apiTeam.Description, "description")
 		assert.Equal(t, includesAllRepositories, apiTeam.IncludesAllRepositories, "includesAllRepositories")
 		assert.Equal(t, permission, apiTeam.Permission, "permission")
-		assert.EqualValues(t, slices.Collect(maps.Keys(unitsMap)), apiTeam.Units, "unitsMap")
+		assert.ElementsMatch(t, slices.Collect(maps.Keys(unitsMap)), apiTeam.Units, "unitsMap")
 		assert.Equal(t, unitsMap, apiTeam.UnitsMap, "unitsMap")
 	})
 }

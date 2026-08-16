@@ -315,7 +315,7 @@ func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Build
 		Join("INNER", "team", "`team`.id = `team_repo`.team_id").
 		Join("LEFT", "team_unit", builder.Expr("`team_unit`.team_id = `team_repo`.team_id AND `team_unit`.`type` = ?", unitType)).
 		Where(builder.Or(
-			builder.Gte{"`team`.authorize": int(perm.AccessModeWrite)},
+			builder.Gt{"`team`.authorize": int(perm.AccessModeNone)},
 			builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)},
 		))
 }
