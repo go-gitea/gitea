@@ -149,16 +149,11 @@ func (t *Team) LoadUnits(ctx context.Context) (err error) {
 	return err
 }
 
-// GetUnitNames returns the team units names
-func (t *Team) GetUnitNames() (res []string) {
-	for _, u := range t.Units {
-		res = append(res, unit.Units[u.Type].NameKey)
-	}
-	return res
-}
-
 // GetUnitsMap returns the team units permissions
 func (t *Team) GetUnitsMap() map[string]string {
+	if len(t.Units) == 0 {
+		return nil
+	}
 	m := make(map[string]string)
 	for _, u := range t.Units {
 		m[u.Unit().NameKey] = u.AccessMode.ToString()

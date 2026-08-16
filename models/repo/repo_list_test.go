@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"gitea.dev/models/db"
-	"gitea.dev/models/organization"
-	perm_model "gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -488,7 +486,7 @@ func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
 	assert.Contains(t, publicOnly, int64(32), "a public repo under a public owner stays listed")
 }
 
-// TestUserOrgUnitRepoCondTeamAuthorize pins blanket authorize (>= write) vs granular authorize=none.
+// TestUserOrgUnitRepoCondTeamAuthorize pins team.authorize vs team_unit.access_mode
 func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
@@ -502,17 +500,13 @@ func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 	// Owner team5 has no Actions team_unit row but still grants via authorize=owner.
 	assert.Contains(t, accessibleRepoIDs(18, 17, unit.TypeActions), int64(24))
 
-	// team2 is authorize=none with Projects team_unit but no Actions row.
+	// team2 is "authorize=write" with Projects team_unit but no Actions row.
 	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
-	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3),
-		"authorize=none must not grant a unit without a team_unit row")
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
 
-	// Blanket write authorize grants Actions without a team_unit row.
-	ctx := t.Context()
-	blanket := &organization.Team{OrgID: 3, LowerName: "blanket_write", Name: "blanket_write", AccessMode: perm_model.AccessModeWrite}
-	require.NoError(t, db.Insert(ctx, blanket))
-	require.NoError(t, db.Insert(ctx, &organization.TeamRepo{OrgID: 3, TeamID: blanket.ID, RepoID: 3}))
-	require.NoError(t, db.Insert(ctx, &organization.TeamUser{OrgID: 3, TeamID: blanket.ID, UID: 4}))
-	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3),
-		"authorize=write grants every unit without team_unit rows")
+	// now team2 is "authorize=none", no Actions row.
+	_, err := db.GetEngine(t.Context()).Exec("UPDATE team SET authorize=0 WHERE id=2")
+	assert.NoError(t, err)
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
+	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
 }

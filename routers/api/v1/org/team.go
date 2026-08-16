@@ -165,18 +165,12 @@ func assignTeamPermissionUnits(team *organization.Team, permission string, units
 	}
 
 	oldAccessMode := team.AccessMode
-	var oldUnitPerms, newUnitPerms map[unit_model.Type]perm.AccessMode
-	for _, unit := range team.Units {
-		oldUnitPerms[unit.Type] = unit.AccessMode
-	}
-
+	oldUnitPerms := team.GetUnitsMap()
 	if len(unitsMap) > 0 {
-		newUnitPerms = map[unit_model.Type]perm.AccessMode{}
 		team.Units = make([]*organization.TeamUnit, 0, len(unitsMap))
 		for unitKey, p := range unitsMap {
 			unitType, unitPerm := unit_model.TypeFromKey(unitKey), perm.ParseAccessMode(p)
 			team.Units = append(team.Units, &organization.TeamUnit{OrgID: team.OrgID, Type: unitType, AccessMode: unitPerm})
-			newUnitPerms[unitType] = unitPerm
 		}
 	} else {
 		requested := perm.ParseAccessMode(permission, perm.AccessModeNone, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
@@ -186,7 +180,7 @@ func assignTeamPermissionUnits(team *organization.Team, permission string, units
 		team.AccessMode, team.Units = requested, nil
 	}
 
-	changed = oldAccessMode != team.AccessMode || !maps.Equal(oldUnitPerms, newUnitPerms)
+	changed = oldAccessMode != team.AccessMode || !maps.Equal(oldUnitPerms, team.GetUnitsMap())
 	return changed, nil
 }
 

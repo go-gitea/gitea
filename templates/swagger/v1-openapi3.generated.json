@@ -4884,7 +4884,7 @@
                 "$ref": "#/components/schemas/RepoWritePermission"
               }
             ],
-            "description": "Permission: \"admin\" is always blanket admin. \"write\" alone is blanket write on every unit\n(including future ones) and must not be combined with units/units_map. With units/units_map,\nomit write/admin: authorize is stored as none and Permission is only the default for Units."
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,
@@ -6140,7 +6140,7 @@
                 "$ref": "#/components/schemas/RepoWritePermission"
               }
             ],
-            "description": "See CreateTeamOption.Permission."
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,

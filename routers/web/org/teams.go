@@ -7,6 +7,7 @@ package org
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"path"
@@ -327,25 +328,19 @@ func NewTeam(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
-func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
-	unitPerms := make(map[unit_model.Type]perm.AccessMode)
+func paresFormTeamUnits(orgID int64, forms url.Values) (units []*org_model.TeamUnit) {
 	for _, ut := range unit_model.AllRepoUnitTypes {
-		if teamPermission >= perm.AccessModeWrite {
-			unitPerms[ut] = min(teamPermission, unit_model.Units[ut].MaxPerm())
+		v, ok := forms[fmt.Sprintf("unit_%d", ut)]
+		if !ok {
 			continue
 		}
-
-		unitPerms[ut] = perm.AccessModeNone
-		v, ok := forms[fmt.Sprintf("unit_%d", ut)]
-		if ok {
-			vv, _ := strconv.Atoi(v[0])
-			unitPerms[ut] = perm.AccessMode(vv)
-			if unitPerms[ut] >= perm.AccessModeAdmin {
-				unitPerms[ut] = perm.AccessModeWrite
-			}
-		}
+		vv, _ := strconv.Atoi(v[0])
+		mode := perm.AccessMode(vv)
+		mode = min(mode, unit_model.Units[ut].MaxPerm())
+		mode = max(mode, perm.AccessModeWrite)
+		units = append(units, &org_model.TeamUnit{OrgID: orgID, Type: ut, AccessMode: mode})
 	}
-	return unitPerms
+	return units
 }
 
 // NewTeamPost response for create new team
@@ -353,7 +348,6 @@ func NewTeamPost(ctx *context.Context) {
 	form := web.GetForm[*forms.CreateTeamForm](ctx)
 	includesAllRepositories := form.RepoAccess == "all"
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeWrite, perm.AccessModeAdmin)
-	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
 
 	t := &org_model.Team{
 		OrgID:                   ctx.Org.Organization.ID,
@@ -364,16 +358,6 @@ func NewTeamPost(ctx *context.Context) {
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		Visibility:              org_model.NormalizeTeamVisibility(form.Visibility),
 	}
-
-	units := make([]*org_model.TeamUnit, 0, len(unitPerms))
-	for tp, perm := range unitPerms {
-		units = append(units, &org_model.TeamUnit{
-			OrgID:      ctx.Org.Organization.ID,
-			Type:       tp,
-			AccessMode: perm,
-		})
-	}
-	t.Units = units
 
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
@@ -386,9 +370,12 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.AccessMode < perm.AccessModeWrite && len(unitPerms) == 0 {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
-		return
+	if t.AccessMode == perm.AccessModeNone {
+		t.Units = paresFormTeamUnits(ctx.Org.Organization.ID, ctx.Req.Form)
+		if len(t.Units) == 0 {
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
+			return
+		}
 	}
 
 	if err := org_service.NewTeam(ctx, t); err != nil {
@@ -527,10 +514,13 @@ func EditTeam(ctx *context.Context) {
 // EditTeamPost response for modify team information
 func EditTeamPost(ctx *context.Context) {
 	form := web.GetForm[*forms.CreateTeamForm](ctx)
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, tplTeamNew)
+		return
+	}
+
 	t := ctx.Org.Team
 	teamPermission := perm.ParseAccessMode(form.Permission, perm.AccessModeNone, perm.AccessModeWrite, perm.AccessModeAdmin)
-	unitPerms := getUnitPerms(ctx.Req.Form, teamPermission)
-	isAuthChanged := false
 	isIncludeAllChanged := false
 	includesAllRepositories := form.RepoAccess == "all"
 
@@ -539,13 +529,10 @@ func EditTeamPost(ctx *context.Context) {
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
+	oldTeamAccessMode := t.AccessMode
 	if !t.IsOwnerTeam() {
 		t.Name = form.TeamName
-		if t.AccessMode != teamPermission {
-			isAuthChanged = true
-			t.AccessMode = teamPermission
-		}
-
+		t.AccessMode = teamPermission
 		if t.IncludesAllRepositories != includesAllRepositories {
 			isIncludeAllChanged = true
 			t.IncludesAllRepositories = includesAllRepositories
@@ -558,28 +545,17 @@ func EditTeamPost(ctx *context.Context) {
 		t.Visibility = structs.VisibleTypeLimited
 	}
 
+	oldTeamUnitsMap := t.GetUnitsMap()
+	if t.AccessMode == perm.AccessModeNone {
+		t.Units = paresFormTeamUnits(ctx.Org.Organization.ID, ctx.Req.Form)
+		if len(t.Units) == 0 {
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
+			return
+		}
+	}
+
+	isAuthChanged := oldTeamAccessMode != t.AccessMode || !maps.Equal(oldTeamUnitsMap, t.GetUnitsMap())
 	t.Description = form.Description
-	units := make([]*org_model.TeamUnit, 0, len(unitPerms))
-	for tp, perm := range unitPerms {
-		units = append(units, &org_model.TeamUnit{
-			OrgID:      t.OrgID,
-			TeamID:     t.ID,
-			Type:       tp,
-			AccessMode: perm,
-		})
-	}
-	t.Units = units
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplTeamNew)
-		return
-	}
-
-	if t.AccessMode < perm.AccessModeWrite && len(unitPerms) == 0 {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
-		return
-	}
-
 	if err := org_service.UpdateTeam(ctx, t, isAuthChanged, isIncludeAllChanged); err != nil {
 		ctx.Data["Err_TeamName"] = true
 		switch {
