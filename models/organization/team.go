@@ -199,27 +199,21 @@ func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode
 	return accessMode
 }
 
-func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
-	if t.AccessMode > perm.AccessModeNone {
-		mode := t.AccessMode
-		if unitDef, ok := unit.Units[tp]; ok {
-			mode = min(mode, unitDef.MaxPerm())
-		}
-		return mode, true
-	}
-
+func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (mode perm.AccessMode, exist bool) {
 	if err := t.LoadUnits(ctx); err != nil {
 		log.Error("Error loading team (ID: %d) units: %v", t.ID, err)
 	}
 	for _, u := range t.Units {
-		if u.Type != tp {
-			continue
-		}
-		if unitDef, ok := unit.Units[tp]; ok {
-			return min(u.AccessMode, unitDef.MaxPerm()), true
+		if u.Type == tp {
+			mode, exist = u.AccessMode, true
+			break
 		}
 	}
-	return perm.AccessModeNone, false
+	mode = max(mode, t.AccessMode)
+	if unitDef, ok := unit.Units[tp]; ok {
+		mode = min(mode, unitDef.MaxPerm())
+	}
+	return mode, exist || t.AccessMode > perm.AccessModeNone
 }
 
 // IsUsableTeamName tests if a name could be as team name

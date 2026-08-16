@@ -294,27 +294,27 @@ func TestIsUsableTeamName(t *testing.T) {
 	assert.True(t, db.IsErrNameReserved(organization.IsUsableTeamName("new")))
 }
 
-func TestTeam_UnitAccessModeExBlanketWithoutUnitRows(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	adminTeam := &organization.Team{ID: 12, AccessMode: perm.AccessModeAdmin, Units: nil}
-	mode, exist := adminTeam.UnitAccessModeEx(t.Context(), unit.TypeActions)
-	assert.True(t, exist)
-	assert.Equal(t, perm.AccessModeAdmin, mode)
-	assert.Equal(t, perm.AccessModeRead, adminTeam.UnitAccessMode(t.Context(), unit.TypeExternalWiki))
-
-	ownerTeam := &organization.Team{ID: 1, Name: organization.OwnerTeamName, AccessMode: perm.AccessModeOwner, Units: nil}
-	mode, exist = ownerTeam.UnitAccessModeEx(t.Context(), unit.TypePackages)
-	assert.True(t, exist)
-	assert.Equal(t, perm.AccessModeAdmin, mode)
-
-	writeTeam := &organization.Team{ID: 2, AccessMode: perm.AccessModeWrite, Units: nil}
-	mode, exist = writeTeam.UnitAccessModeEx(t.Context(), unit.TypeActions)
+func TestTeam_UnitAccessModeEx(t *testing.T) {
+	team := &organization.Team{
+		AccessMode: perm.AccessModeWrite, Units: []*organization.TeamUnit{
+			{Type: unit.TypeIssues, AccessMode: perm.AccessModeRead}, // team mode wins
+			{Type: unit.TypeWiki, AccessMode: perm.AccessModeAdmin},  // unit mode wins
+		},
+	}
+	mode, exist := team.UnitAccessModeEx(t.Context(), unit.TypeActions)
 	assert.True(t, exist)
 	assert.Equal(t, perm.AccessModeWrite, mode)
+	assert.Equal(t, perm.AccessModeWrite, team.UnitAccessMode(t.Context(), unit.TypeIssues))
+	assert.Equal(t, perm.AccessModeAdmin, team.UnitAccessMode(t.Context(), unit.TypeWiki))
+	assert.Equal(t, perm.AccessModeRead, team.UnitAccessMode(t.Context(), unit.TypeExternalWiki)) // limited by unit definition
 
-	granularTeam := &organization.Team{ID: 2, AccessMode: perm.AccessModeNone, Units: nil}
-	mode, exist = granularTeam.UnitAccessModeEx(t.Context(), unit.TypeActions)
+	team = &organization.Team{AccessMode: perm.AccessModeOwner, Units: []*organization.TeamUnit{}}
+	mode, exist = team.UnitAccessModeEx(t.Context(), unit.TypePackages)
+	assert.True(t, exist)
+	assert.Equal(t, perm.AccessModeAdmin, mode)
+
+	team = &organization.Team{AccessMode: perm.AccessModeNone, Units: []*organization.TeamUnit{}}
+	mode, exist = team.UnitAccessModeEx(t.Context(), unit.TypeActions)
 	assert.False(t, exist)
 	assert.Equal(t, perm.AccessModeNone, mode)
 }
