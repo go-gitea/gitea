@@ -297,7 +297,6 @@ func CleanupOldRuns(ctx context.Context) error {
 			ListOptions:   db.ListOptions{PageSize: cleanupOldRunsBatchSize, Page: 1},
 			Status:        doneStatuses,
 			CreatedBefore: olderThan,
-			OrderBy:       "`action_run`.`id` ASC",
 		})
 		if err != nil {
 			return fmt.Errorf("find old runs: %w", err)
