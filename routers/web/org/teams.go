@@ -6,7 +6,6 @@ package org
 
 import (
 	"errors"
-	"fmt"
 	"maps"
 	"net/http"
 	"net/url"
@@ -330,14 +329,13 @@ func NewTeam(ctx *context.Context) {
 
 func paresFormTeamUnits(orgID int64, forms url.Values) (units []*org_model.TeamUnit) {
 	for _, ut := range unit_model.AllRepoUnitTypes {
-		v, ok := forms[fmt.Sprintf("unit_%d", ut)]
+		v, ok := forms["unit_"+strconv.Itoa(ut.Value())]
 		if !ok {
 			continue
 		}
 		vv, _ := strconv.Atoi(v[0])
 		mode := perm.AccessMode(vv)
-		mode = min(mode, unit_model.Units[ut].MaxPerm())
-		mode = max(mode, perm.AccessModeWrite)
+		mode = min(mode, perm.AccessModeWrite, unit_model.Units[ut].MaxPerm())
 		units = append(units, &org_model.TeamUnit{OrgID: orgID, Type: ut, AccessMode: mode})
 	}
 	return units
