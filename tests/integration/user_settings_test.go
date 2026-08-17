@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/unittest"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -281,6 +283,25 @@ func TestUserSettingsApplications(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 
 		assertNavbar(t, doc)
+	})
+
+	t.Run("RegenerateAccessToken", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, "user2")
+
+		before := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 3, UID: 2})
+
+		req := NewRequestWithValues(t, "POST", "/user/settings/applications/regenerate", map[string]string{
+			"id": "3",
+		})
+		session.MakeRequest(t, req, http.StatusOK)
+
+		after := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{ID: 3, UID: 2})
+		assert.Equal(t, before.Name, after.Name)
+		assert.Equal(t, before.Scope, after.Scope)
+		assert.NotEqual(t, before.TokenHash, after.TokenHash)
+		assert.NotEqual(t, before.TokenSalt, after.TokenSalt)
 	})
 
 	t.Run("OAuth2", func(t *testing.T) {
