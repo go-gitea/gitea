@@ -24,7 +24,7 @@ func TestBleveIndexerTokenFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	batch := inner_bleve.NewFlushingBatch(indexer.inner.Indexer, maxBatchSize)
-	batch.Index("2", &RepoIndexerData{RepoID: 2, Content: "var mDNS=12345", UpdatedAt: time.Now()})
+	batch.Index("2", &RepoIndexerData{RepoID: 2, Content: "mDNS.port=12345", UpdatedAt: time.Now()})
 	batch.Flush()
 
 	testCases := []struct {
