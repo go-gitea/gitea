@@ -32,7 +32,7 @@ jobs:
               | sort_by(.createdAt)[:-1][] | "\(.id) \(.key)"' |
             while read -r id key; do
               echo "deleting $key"
-              gh cache delete "$id" || true # raced with GitHub's own eviction
+              gh cache delete "$id" || true
             done
 
       # Deletes least recently used first, the order GitHub itself evicts in.
