@@ -60,14 +60,19 @@ func init() {
 	})
 }
 
-// NewAccessToken creates new access token.
-func NewAccessToken(ctx context.Context, t *AccessToken) error {
+// setNewTokenValue generates a fresh random token value and fills in its salt, hash, and last-eight.
+func (t *AccessToken) setNewTokenValue() {
 	salt := util.CryptoRandomString(10)
 	token := util.CryptoRandomBytes(20)
 	t.TokenSalt = salt
 	t.Token = hex.EncodeToString(token)
 	t.TokenHash = HashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
+}
+
+// NewAccessToken creates new access token.
+func NewAccessToken(ctx context.Context, t *AccessToken) error {
+	t.setNewTokenValue()
 	_, err := db.GetEngine(ctx).Insert(t)
 	return err
 }
@@ -82,12 +87,7 @@ func RegenerateAccessToken(ctx context.Context, id, userID int64) (*AccessToken,
 		return nil, util.NewNotExistErrorf("access token not found")
 	}
 
-	salt := util.CryptoRandomString(10)
-	token := util.CryptoRandomBytes(20)
-	t.TokenSalt = salt
-	t.Token = hex.EncodeToString(token)
-	t.TokenHash = HashToken(t.Token, t.TokenSalt)
-	t.TokenLastEight = t.Token[len(t.Token)-8:]
+	t.setNewTokenValue()
 	if _, err := db.GetEngine(ctx).ID(t.ID).Cols("token_hash", "token_salt", "token_last_eight").Update(t); err != nil {
 		return nil, err
 	}
