@@ -317,7 +317,9 @@ func cleanupOldRuns(ctx context.Context, olderThan timeutil.TimeStamp, doneStatu
 		}
 
 		if realDeleted == 0 {
-			log.Error("Too many actions runs are unable to delete, please figure out and fix the failures")
+			if len(runs) != 0 {
+				log.Error("Too many actions runs are unable to delete, please figure out and fix the failures")
+			}
 			break
 		}
 	}
