@@ -322,3 +322,9 @@ func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
 	}
 	return added, removed
 }
+
+func MustNoError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
