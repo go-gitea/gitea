@@ -144,6 +144,7 @@ func TestRegenerateAccessToken(t *testing.T) {
 	found, err := auth_model.GetAccessTokenBySHA(t.Context(), regenerated.Token)
 	assert.NoError(t, err)
 	assert.Equal(t, before.ID, found.ID)
+	assert.Equal(t, before.UpdatedUnix, found.UpdatedUnix)
 
 	// wrong owner
 	_, err = auth_model.RegenerateAccessToken(t.Context(), before.ID, before.UID+1)

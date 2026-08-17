@@ -6,6 +6,7 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -97,6 +98,10 @@ func CryptoRandomBytes(length int64) []byte {
 		panic(err) // this should never happen, "rand.Read" never fails
 	}
 	return buf
+}
+
+func CryptoConstTimeEqual[T string | []byte](a, b T) bool {
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
 var chaCha8RandPool = sync.OnceValue(func() *sync.Pool {
