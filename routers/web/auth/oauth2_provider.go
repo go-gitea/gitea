@@ -344,8 +344,8 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	// check if additional scopes
-	ctx.Data["AdditionalScopes"] = oauth2_provider.GrantAdditionalScopes(form.Scope) != auth.AccessTokenScopeAll
+	// Check if the requested scopes differ from the existing grant.
+	ctx.Data["ScopeChanged"] = grant != nil && grant.Scope != form.Scope
 
 	// show authorize page to grant access
 	ctx.Data["Application"] = app
@@ -429,7 +429,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 			return
 		}
 	} else if grant.Scope != form.Scope {
-		if err := grant.SetScope(ctx, form.Scope); err != nil {
+		if err := auth.UpdateGrantScope(ctx, grant, form.Scope); err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
 			return
 		}
