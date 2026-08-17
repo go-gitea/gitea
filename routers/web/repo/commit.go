@@ -7,7 +7,6 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strings"
 
@@ -21,10 +20,9 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
-	"gitea.dev/modules/charset"
 	"gitea.dev/modules/fileicon"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/markup"
 	"gitea.dev/modules/setting"
@@ -76,7 +74,7 @@ func Commits(ctx *context.Context) {
 	}
 
 	// Both `git log branchName` and `git log commitId` work.
-	commits, err := ctx.Repo.Commit.CommitsByRange(page, pageSize, "", "", "")
+	commits, err := ctx.Repo.Commit.CommitsByRange(ctx, ctx.Repo.GitRepo, page, pageSize, "", "", "")
 	if err != nil {
 		ctx.ServerError("CommitsByRange", err)
 		return
@@ -118,21 +116,26 @@ func Graph(ctx *context.Context) {
 	hidePRRefs := ctx.FormBool("hide-pr-refs")
 	ctx.Data["HidePRRefs"] = hidePRRefs
 	branches := ctx.FormStrings("branch")
-	realBranches := make([]string, len(branches))
-	copy(realBranches, branches)
-	for i, branch := range realBranches {
-		if strings.HasPrefix(branch, "--") {
-			realBranches[i] = git.BranchPrefix + branch
-		}
-	}
-	ctx.Data["SelectedBranches"] = realBranches
-	files := ctx.FormStrings("file")
+	ctx.Data["SelectedBranches"] = branches
 
-	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
+	branchRefs := make([]string, 0, len(branches))
+	for _, branchName := range branches {
+		branchRef := branchName
+		if !strings.HasPrefix(branchRef, "refs/") {
+			branchRef = git.BranchPrefix + branchRef
+		}
+		branchRefs = append(branchRefs, branchRef)
+	}
+
+	files := ctx.FormStrings("file")
+	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, branchRefs, files)
 	if err != nil {
-		log.Warn("GetCommitGraphsCount error for generate graph exclude prs: %t branches: %s in %-v, Will Ignore branches and try again. Underlying Error: %v", hidePRRefs, branches, ctx.Repo.Repository, err)
-		realBranches = []string{}
-		graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
+		if len(branchRefs) > 0 {
+			// maybe: "fatal: bad revision '.....'" if a ref doesn't exist
+			// maybe it's better to show a 404 page instead of the unclear retry, anyway, a retry isn't harmful, so keep the old behavior
+			branchRefs = nil
+			graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, branchRefs, files)
+		}
 		if err != nil {
 			ctx.ServerError("GetCommitGraphsCount", err)
 			return
@@ -140,8 +143,7 @@ func Graph(ctx *context.Context) {
 	}
 
 	page := ctx.FormInt("page")
-
-	graph, err := gitgraph.GetCommitGraph(ctx.Repo.GitRepo, page, 0, hidePRRefs, realBranches, files)
+	graph, err := gitgraph.GetCommitGraph(ctx, ctx.Repo.GitRepo, page, 0, hidePRRefs, branchRefs, files)
 	if err != nil {
 		ctx.ServerError("GetCommitGraph", err)
 		return
@@ -154,7 +156,7 @@ func Graph(ctx *context.Context) {
 
 	ctx.Data["Graph"] = graph
 
-	gitRefs, err := ctx.Repo.GitRepo.GetRefs()
+	gitRefs, err := ctx.Repo.GitRepo.GetRefs(ctx)
 	if err != nil {
 		ctx.ServerError("GitRepo.GetRefs", err)
 		return
@@ -189,7 +191,7 @@ func SearchCommits(ctx *context.Context) {
 
 	all := ctx.FormBool("all")
 	opts := git.NewSearchCommitsOptions(query, all)
-	commits, err := ctx.Repo.Commit.SearchCommits(opts)
+	commits, err := ctx.Repo.Commit.SearchCommits(ctx, ctx.Repo.GitRepo, opts)
 	if err != nil {
 		ctx.ServerError("SearchCommits", err)
 		return
@@ -220,7 +222,7 @@ func FileHistory(ctx *context.Context) {
 	ctx.Data["FollowRenameChecked"] = followRename
 
 	page := max(ctx.FormInt("page"), 1)
-	commits, hasMore, err := ctx.Repo.GitRepo.CommitsByFileAndRange(
+	commits, hasMore, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx,
 		git.CommitsByFileAndRangeOptions{
 			Revision:     ctx.Repo.RefFullName.ShortName(), // FIXME: legacy code used ShortName
 			File:         ctx.Repo.TreePath,
@@ -237,7 +239,7 @@ func FileHistory(ctx *context.Context) {
 		// there is no quick method to know the total count when "follow rename"
 		commitsCount = -1
 	} else {
-		commitsCount, err = gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
+		commitsCount, err = git.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
 		if err != nil {
 			ctx.ServerError("FileCommitsCount", err)
 			return
@@ -288,13 +290,11 @@ func Diff(ctx *context.Context) {
 		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
 	}
-	gitRepo := ctx.Repo.GitRepo
-	var gitRepoStore gitrepo.Repository = ctx.Repo.Repository
+	gitRepo := ctx.Repo.GitRepo // don't access ctx.Repo.GitRepo anymore, because it might not be right for wiki repo
 
 	if ctx.Data["PageIsWiki"] != nil {
 		var err error
-		gitRepoStore = ctx.Repo.Repository.WikiStorageRepo()
-		gitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, gitRepoStore)
+		gitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -302,7 +302,7 @@ func Diff(ctx *context.Context) {
 		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
 	}
 
-	commit, err := gitRepo.GetCommit(commitID)
+	commit, err := gitRepo.GetCommit(ctx, commitID)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -334,7 +334,7 @@ func Diff(ctx *context.Context) {
 		ctx.NotFound(err)
 		return
 	}
-	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepoStore, gitRepo, "", commitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, gitRepo, "", commitID)
 	if err != nil {
 		ctx.ServerError("GetDiffShortStat", err)
 		return
@@ -357,7 +357,7 @@ func Diff(ctx *context.Context) {
 	var parentCommit *git.Commit
 	var parentCommitID string
 	if commit.ParentCount() > 0 {
-		parentCommit, err = gitRepo.GetCommit(parents[0])
+		parentCommit, err = gitRepo.GetCommit(ctx, parents[0])
 		if err != nil {
 			ctx.NotFound(err)
 			return
@@ -409,13 +409,12 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
-	note := &git.Note{}
-	err = git.GetNote(ctx, ctx.Repo.GitRepo, commitID, note)
+	note, noteLastCommit, err := git.GetNoteWithLastCommit(ctx, gitRepo, commitID)
 	if err == nil {
-		ctx.Data["NoteCommit"] = note.Commit
-		ctx.Data["NoteAuthor"] = user_model.GetUserByGitAuthor(ctx, note.Commit)
+		ctx.Data["NoteCommit"] = noteLastCommit
+		ctx.Data["NoteAuthor"] = user_model.GetUserByGitAuthor(ctx, noteLastCommit)
 		rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefSubURL: "commit/" + util.PathEscapeSegments(commitID)})
-		htmlMessage := template.HTML(template.HTMLEscapeString(string(charset.ToUTF8WithFallback(note.Message, charset.ConvertOpts{}))))
+		htmlMessage := htmlutil.EscapeString(note.BlobMessage.MessageUTF8())
 		ctx.Data["NoteRendered"] = markup.PostProcessCommitMessage(rctx, htmlMessage)
 	} else if !git.IsErrNotExist(err) {
 		log.Error("GetNote: %v", err)
@@ -433,7 +432,7 @@ func Diff(ctx *context.Context) {
 func RawDiff(ctx *context.Context) {
 	var gitRepo *git.Repository
 	if ctx.Data["PageIsWiki"] != nil {
-		wikiRepo, err := gitrepo.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
+		wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiStorageRepo())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return
@@ -447,7 +446,7 @@ func RawDiff(ctx *context.Context) {
 			return
 		}
 	}
-	if err := git.GetRawDiff(
+	if err := git.GetRawDiff(ctx,
 		gitRepo,
 		ctx.PathParam("sha"),
 		git.RawDiffType(ctx.PathParam("ext")),

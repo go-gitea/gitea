@@ -136,7 +136,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
-	if blob.Size() > lfs.MetaFileMaxSize {
+	if blob.Size(ctx) > lfs.MetaFileMaxSize {
 		// First handle caching for the blob
 		if httpcache.HandleGenericETagPrivateCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
@@ -151,7 +151,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	// OK, now the blob is known to have at most 1024 (lfs pointer max size) bytes,
 	// we can simply read this in one go (This saves reading it twice)
-	lfsPointerBuf, err := blob.GetBlobBytes(lfs.MetaFileMaxSize)
+	lfsPointerBuf, err := blob.GetBlobBytes(ctx, lfs.MetaFileMaxSize)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -202,7 +202,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 }
 
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified *time.Time) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.APIErrorNotFound()
@@ -217,14 +217,14 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEn
 		return nil, nil, nil
 	}
 
-	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
+	latestCommit, err := ctx.Repo.GitRepo.GetTreePathLatestCommit(ctx, ctx.Repo.Commit.ID.String(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil, nil
 	}
 	when := &latestCommit.Committer.When
 
-	return entry.Blob(), entry, when
+	return entry.Blob(ctx.Repo.GitRepo), entry, when
 }
 
 // GetArchive get archive of a repository
@@ -299,7 +299,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ec, _, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+	ec, _, err := ctx.Repo.GetEditorconfig(ctx, ctx.Repo.Commit)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
@@ -323,14 +323,19 @@ func base64Reader(s string) (io.ReadSeeker, error) {
 }
 
 func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
-	commonOpts := web.GetForm(ctx).(api.FileOptionsInterface).GetFileOptions()
+	commonOpts := web.GetForm[api.FileOptionsInterface](ctx).GetFileOptions()
 	commonOpts.BranchName = util.IfZero(commonOpts.BranchName, ctx.Repo.Repository.DefaultBranch)
 	commonOpts.NewBranchName = util.IfZero(commonOpts.NewBranchName, commonOpts.BranchName)
 	if !ctx.Repo.CanWriteToBranch(ctx, ctx.Doer, commonOpts.NewBranchName) && !ctx.IsUserSiteAdmin() {
 		ctx.APIError(http.StatusForbidden, "user should have a permission to write to the target branch")
-		return
 	}
-	changeFileOpts := &files_service.ChangeRepoFilesOptions{
+}
+
+// getAPIChangeRepoFileOptions requires ReqChangeRepoFileOptionsAndCheck to have run, it fills in the branch defaults
+func getAPIChangeRepoFileOptions[T api.FileOptionsInterface](ctx *context.APIContext) (apiOpts T, opts *files_service.ChangeRepoFilesOptions) {
+	apiOpts = web.GetForm[T](ctx)
+	commonOpts := apiOpts.GetFileOptions()
+	opts = &files_service.ChangeRepoFilesOptions{
 		Message:   commonOpts.Message,
 		OldBranch: commonOpts.BranchName,
 		NewBranch: commonOpts.NewBranchName,
@@ -349,17 +354,13 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 		},
 		Signoff: commonOpts.Signoff,
 	}
-	if changeFileOpts.Dates.Author.IsZero() {
-		changeFileOpts.Dates.Author = time.Now()
+	if opts.Dates.Author.IsZero() {
+		opts.Dates.Author = time.Now()
 	}
-	if changeFileOpts.Dates.Committer.IsZero() {
-		changeFileOpts.Dates.Committer = time.Now()
+	if opts.Dates.Committer.IsZero() {
+		opts.Dates.Committer = time.Now()
 	}
-	ctx.Data["__APIChangeRepoFilesOptions"] = changeFileOpts
-}
-
-func getAPIChangeRepoFileOptions[T api.FileOptionsInterface](ctx *context.APIContext) (apiOpts T, opts *files_service.ChangeRepoFilesOptions) {
-	return web.GetForm(ctx).(T), ctx.Data["__APIChangeRepoFilesOptions"].(*files_service.ChangeRepoFilesOptions)
+	return apiOpts, opts
 }
 
 // ChangeFiles handles API call for modifying multiple files
@@ -574,9 +575,8 @@ func UpdateFile(ctx *context.APIContext) {
 }
 
 func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
-	if git.IsErrPushRejected(err) {
-		err := err.(*git.ErrPushRejected)
-		ctx.APIError(http.StatusForbidden, err.Message)
+	if errPushRejected, ok := err.(*git.ErrPushRejected); ok {
+		ctx.APIError(http.StatusForbidden, errPushRejected.Message)
 		return
 	}
 	if files_service.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
@@ -896,7 +896,12 @@ func GetFileContentsGet(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	// The POST method requires "write" permission, so we also support this "GET" method
-	handleGetFileContents(ctx)
+	opts := &api.GetFilesOptions{}
+	if err := json.Unmarshal(util.UnsafeStringToBytes(ctx.FormString("body")), opts); err != nil {
+		ctx.APIError(http.StatusBadRequest, "invalid body parameter")
+		return
+	}
+	handleGetFileContents(ctx, opts)
 }
 
 func GetFileContentsPost(ctx *context.APIContext) {
@@ -940,18 +945,10 @@ func GetFileContentsPost(ctx *context.APIContext) {
 	// This is actually a "read" request, but we need to accept a "files" list, then POST method seems easy to use.
 	// But the permission system requires that the caller must have "write" permission to use POST method.
 	// At the moment, there is no other way to get around the permission check, so there is a "GET" workaround method above.
-	handleGetFileContents(ctx)
+	handleGetFileContents(ctx, web.GetForm[*api.GetFilesOptions](ctx))
 }
 
-func handleGetFileContents(ctx *context.APIContext) {
-	opts, ok := web.GetForm(ctx).(*api.GetFilesOptions)
-	if !ok {
-		err := json.Unmarshal(util.UnsafeStringToBytes(ctx.FormString("body")), &opts)
-		if err != nil {
-			ctx.APIError(http.StatusBadRequest, "invalid body parameter")
-			return
-		}
-	}
+func handleGetFileContents(ctx *context.APIContext, opts *api.GetFilesOptions) {
 	refCommit := resolveRefCommit(ctx, ctx.FormTrim("ref"))
 	if ctx.Written() {
 		return

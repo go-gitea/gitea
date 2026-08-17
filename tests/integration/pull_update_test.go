@@ -17,7 +17,7 @@ import (
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	pull_service "gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 	files_service "gitea.dev/services/repository/files"
@@ -36,7 +36,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		require.NoError(t, pr.LoadIssue(t.Context()))
 
 		// Test GetDiverging
-		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
@@ -50,7 +50,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err = git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)
@@ -84,7 +84,7 @@ func TestAPIPullUpdatePublicOnlyToken(t *testing.T) {
 		MakeRequest(t, req, http.StatusNotFound)
 
 		// the head branch must still be outdated (no push happened)
-		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 
@@ -133,7 +133,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 
 		// Test GetDiverging
-		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
@@ -168,7 +168,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err = git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
@@ -208,7 +208,7 @@ func TestAPIPullUpdateStyleSettings(t *testing.T) {
 
 		// merge update produces a merge commit on top of the head commit (Ahead=2),
 		// rebase update would replay the head commit alone (Ahead=1).
-		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)

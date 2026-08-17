@@ -102,14 +102,14 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		if len(c.Rev) == 0 {
 			continue
 		}
-		c.Commit, err = gitRepo.GetCommit(c.Rev)
+		c.Commit, err = gitRepo.GetCommit(ctx, c.Rev)
 		if err != nil {
 			return fmt.Errorf("GetCommit: %s Error: %w", c.Rev, err)
 		}
 		if c.Commit.Author != nil {
 			emailSet.Add(c.Commit.Author.Email)
 		}
-		for _, sig := range c.Commit.AllParticipantIdentities() {
+		for _, sig := range c.Commit.AllAuthorIdentities() {
 			emailSet.Add(sig.Email)
 		}
 	}
@@ -125,7 +125,7 @@ func (graph *Graph) LoadAndProcessCommits(ctx context.Context, repository *repo_
 		}
 
 		c.User = emailUserMap.GetByEmail(c.Commit.Author.Email)
-		c.AvatarStackData = gituser.BuildAvatarStackData(ctx, c.Commit.AllParticipantIdentities(), emailUserMap)
+		c.AvatarStackData = gituser.BuildAvatarStackData(ctx, c.Commit.AllAuthorIdentities(), emailUserMap)
 
 		c.Verification = asymkey_service.ParseCommitWithSignature(ctx, c.Commit)
 

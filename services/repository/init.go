@@ -13,7 +13,6 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	repo_module "gitea.dev/modules/repository"
 	asymkey_service "gitea.dev/services/asymkey"
@@ -68,7 +67,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git commit: %w", err)
 	}
 
-	if err := gitrepo.PushFromLocal(ctx, tmpPath, repo, git.PushOptions{
+	if err := git.PushFromLocal(ctx, tmpPath, repo, git.PushOptions{
 		LocalRefName: "HEAD",
 		Branch:       repo.DefaultBranch,
 		Env:          repo_module.InternalPushingEnvironment(u, repo),

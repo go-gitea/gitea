@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
@@ -33,7 +34,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -87,7 +87,7 @@ func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsActions"] = true
 
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx, ctx.Repo.Repository.DefaultBranch)
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.Data["NotFoundPrompt"] = ctx.Tr("repo.branch.default_branch_not_exist", ctx.Repo.Repository.DefaultBranch)
 		ctx.NotFound(nil)
@@ -181,9 +181,9 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 	var commit *git.Commit
 	var err error
 	if refName.IsTag() {
-		commit, err = ctx.Repo.GitRepo.GetTagCommit(refName.TagName())
+		commit, err = ctx.Repo.GitRepo.GetTagCommit(ctx, refName.TagName())
 	} else if refName.IsBranch() {
-		commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName.BranchName())
+		commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx, refName.BranchName())
 	} else {
 		ctx.ServerError("UnsupportedRefType", nil)
 		return
@@ -206,7 +206,7 @@ func WorkflowDispatchInputs(ctx *context.Context) {
 func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflows []WorkflowInfo, curWorkflowID string) {
 	curWorkflowID = ctx.FormString("workflow")
 
-	_, entries, err := actions.ListWorkflows(commit)
+	_, entries, err := actions.ListWorkflows(ctx, ctx.Repo.GitRepo, commit)
 	if err != nil {
 		ctx.ServerError("ListWorkflows", err)
 		return nil, ""
@@ -215,7 +215,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 	workflows = make([]WorkflowInfo, 0, len(entries))
 	for _, entry := range entries {
 		workflow := WorkflowInfo{EntryName: entry.Name()}
-		content, err := actions.GetContentFromEntry(entry)
+		content, err := actions.GetContentFromEntry(ctx, ctx.Repo.GitRepo, entry)
 		if err != nil {
 			ctx.ServerError("GetContentFromEntry", err)
 			return nil, ""
@@ -384,7 +384,7 @@ func loadScopedWorkflowModel(ctx *context.Context, repo *repo_model.Repository, 
 	}
 	content, err := actions_service.ScopedWorkflowContent(ctx, sourceRepo, workflowID)
 	if err != nil {
-		log.Error("scoped dispatch: content of %s in %s: %v", workflowID, sourceRepo.RelativePath(), err)
+		log.Error("scoped dispatch: content of %s in %s: %v", workflowID, sourceRepo.FullName(), err)
 		return nil
 	}
 	if content == nil {
@@ -554,7 +554,9 @@ func (data *actionRunListData) processActionRuns(ctx *context.Context) bool {
 			return false
 		}
 		for _, job := range jobs {
-			if !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
+			// A deferred matrix is unresolvable until its needs finish, so the whole per-job block
+			// is skipped: parsing the payload would report a valid workflow as invalid.
+			if job.IsMatrixDeferred || !job.Status.In(actions_model.StatusWaiting, actions_model.StatusBlocked) {
 				continue
 			}
 			if err := actions.ValidateWorkflowContent(job.WorkflowPayload); err != nil {
@@ -756,6 +758,10 @@ type WorkflowDispatchInput struct {
 	Default     string   `yaml:"default"`
 	Type        string   `yaml:"type"`
 	Options     []string `yaml:"options"`
+}
+
+func (i WorkflowDispatchInput) IsDefaultTrue() bool {
+	return util.ParseYamlBool(i.Default)
 }
 
 type WorkflowDispatch struct {

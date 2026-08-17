@@ -89,12 +89,8 @@
 				<div id="diff-file-boxes">
 				{{range $i, $file := .Diff.Files}}
 					{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
-					{{$blobBase := call $.GetBlobByPathForCommit $.BeforeCommit $file.OldName}}
-					{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
-					{{$sniffedTypeBase := call $.GetSniffedTypeForBlob $blobBase}}
-					{{$sniffedTypeHead := call $.GetSniffedTypeForBlob $blobHead}}
-					{{$isImage:= or (call $.IsSniffedTypeAnImage $sniffedTypeBase) (call $.IsSniffedTypeAnImage $sniffedTypeHead)}}
-					{{$isCsv := (call $.IsCsvFile $file)}}
+					{{$isImage:= $file.IsBlobTypeImage}}
+					{{$isCsv := $file.IsBlobTypeCsv}}
 					{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 					{{$isExpandable := or (gt $file.Addition 0) (gt $file.Deletion 0) $file.IsBin}}
 					{{$isReviewFile := and $.IsSigned $.PageIsPullFiles (not $.Repository.IsArchived) $.IsShowingAllCommits}}
@@ -102,7 +98,7 @@
 						<div class="diff-file-header sticky-2nd-row ui top attached header">
 							<div class="diff-file-name tw-flex tw-flex-1 tw-items-center tw-gap-1 tw-flex-wrap">
 								<div class="flex-text-block">
-									<button class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1{{if not $isExpandable}} tw-invisible{{end}}">
+									<button class="fold-file btn interact-bg tw-flex-shrink-0 tw-p-1 {{if not $isExpandable}}tw-invisible{{end}}" data-global-click="diffFileViewFold">
 										{{if $file.ShouldBeHidden}}
 											{{svg "octicon-chevron-right" 18}}
 										{{else}}
@@ -136,7 +132,7 @@
 								{{end}}
 
 								{{if $showFileViewToggle}}
-									<div class="ui compact icon buttons">
+									<div class="ui compact icon buttons" data-global-init="initDiffFileViewToggle">
 										<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
 										<button class="ui tiny basic button file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_rendered"}}">{{svg "octicon-file"}}</button>
 									</div>
@@ -148,12 +144,12 @@
 									<span class="changed-since-last-review unselectable not-mobile">{{ctx.Locale.Tr "repo.pulls.has_changed_since_last_review"}}</span>
 								{{end}}
 								{{if $isReviewFile}}
-									<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.AfterCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
-										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
+									<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.AfterCommitID}}" class="viewed-file-form unselectable {{if $file.IsViewed}}viewed-file-checked-form{{end}}" data-global-init="initDiffFileViewedForm">
+										<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off" {{if $file.IsViewed}}checked{{end}}> {{ctx.Locale.Tr "repo.pulls.has_viewed_file"}}
 									</label>
 								{{end}}
 								{{if not $file.IsSubmodule}}
-									<button class="btn diff-header-popup-btn tw-p-1">{{svg "octicon-kebab-horizontal" 18}}</button>
+									<button class="btn tw-p-1" data-global-init="initDiffHeaderPopupMenu">{{svg "octicon-kebab-horizontal" 18}}</button>
 									<div class="tippy-target">
 										{{if not (or $file.IsIncomplete $file.IsBin)}}
 											<button class="unescape-button item" data-unicode-content-selector="#diff-{{$file.NameHash}}">{{ctx.Locale.Tr "repo.unescape_control_characters"}}</button>
@@ -183,7 +179,7 @@
 												{{ctx.Locale.Tr "repo.diff.file_suppressed_line_too_long"}}
 											{{else}}
 												{{ctx.Locale.Tr "repo.diff.file_suppressed"}}
-												<a class="ui basic tiny button diff-load-button" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
+												<a class="ui basic tiny button" data-global-click="diffLoadFileBody" data-href="?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{ctx.Locale.Tr "repo.diff.load"}}</a>
 											{{end}}
 										{{else}}
 											{{ctx.Locale.Tr "repo.diff.bin_not_shown"}}
@@ -215,9 +211,9 @@
 								<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}}code-diff-split{{else}}code-diff-unified{{end}} tw-overflow-x-scroll">
 									<table class="chroma tw-w-full">
 										{{if $isImage}}
-											{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
-										{{else}}
-											{{template "repo/diff/csv_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead "sniffedTypeBase" $sniffedTypeBase "sniffedTypeHead" $sniffedTypeHead}}
+											{{template "repo/diff/image_diff" dict "file" $file}}
+										{{else if $isCsv}}
+											{{template "repo/diff/csv_diff" dict "file" $file}}
 										{{end}}
 									</table>
 								</div>
@@ -231,7 +227,7 @@
 						<span id="diff-load-progress" class="tw-text-text-light-2" data-text-too-many-files="{{ctx.Locale.Tr "repo.diff.too_many_files"}}">
 							{{ctx.Locale.Tr "repo.diff.too_many_files" (len .Diff.Files) .DiffShortStat.NumFiles}}
 						</span>
-						<a class="ui basic tiny button" id="diff-show-more-files" data-href="?skip-to={{.Diff.End}}&file-only=true"
+						<a class="ui basic tiny button" id="diff-show-more-files" data-global-click="diffLoadMoreFiles" data-href="?skip-to={{.Diff.End}}&file-only=true"
 							data-text-default="{{ctx.Locale.Tr "repo.diff.show_more"}}"
 							data-text-matching="{{ctx.Locale.Tr "repo.diff.show_more_matching"}}"
 						>{{ctx.Locale.Tr "repo.diff.show_more"}}</a>

@@ -24,7 +24,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/cache"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/globallock"
@@ -33,6 +32,7 @@ import (
 	"gitea.dev/modules/references"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates/vars"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	issue_service "gitea.dev/services/issue"
@@ -67,17 +67,15 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	reviewedBy := pr.GetApprovers(ctx)
 
 	if mergeStyle != "" {
-		templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
-		commit, err := baseGitRepo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
+		commit, err := baseGitRepo.GetBranchCommit(ctx, pr.BaseRepo.DefaultBranch)
 		if err != nil {
 			return "", "", err
 		}
-		templateContent, err := commit.GetFileContent(templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
+		templateContent, err := resolveMergeMessageTemplate(ctx, baseGitRepo, commit, mergeStyle)
 		if err != nil {
-			if !git.IsErrNotExist(err) {
-				return "", "", err
-			}
-		} else {
+			return "", "", err
+		}
+		if templateContent != "" {
 			vars := map[string]string{
 				"BaseRepoOwnerName":      pr.BaseRepo.OwnerName,
 				"BaseRepoName":           pr.BaseRepo.Name,
@@ -147,14 +145,32 @@ func getMergeMessage(ctx context.Context, baseGitRepo *git.Repository, pr *issue
 	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), body, nil
 }
 
-func expandDefaultMergeMessage(template string, vars map[string]string) (message, body string) {
+// resolveMergeMessageTemplate returns the content of the merge message template for the given
+// merge style. It first looks for a style-specific template ({STYLE}_TEMPLATE.md), and falls back
+// to the generic DEFAULT_TEMPLATE.md if the style-specific one is not found.
+func resolveMergeMessageTemplate(ctx context.Context, baseGitRepo *git.Repository, commit *git.Commit, mergeStyle repo_model.MergeStyle) (string, error) {
+	templateFilepath := fmt.Sprintf(".gitea/default_merge_message/%s_TEMPLATE.md", strings.ToUpper(string(mergeStyle)))
+	templateContent, err := commit.GetFileContent(ctx, baseGitRepo, templateFilepath, setting.Repository.PullRequest.DefaultMergeMessageSize)
+	if err == nil {
+		return templateContent, nil
+	}
+	if !git.IsErrNotExist(err) {
+		return "", err
+	}
+	templateContent, err = commit.GetFileContent(ctx, baseGitRepo, ".gitea/default_merge_message/DEFAULT_TEMPLATE.md", setting.Repository.PullRequest.DefaultMergeMessageSize)
+	if err == nil || git.IsErrNotExist(err) {
+		return templateContent, nil
+	}
+	return "", err
+}
+
+func expandDefaultMergeMessage(template string, varsMap map[string]string) (message, body string) {
 	message = strings.TrimSpace(template)
 	if splits := strings.SplitN(message, "\n", 2); len(splits) == 2 {
 		message = splits[0]
 		body = strings.TrimSpace(splits[1])
 	}
-	mapping := func(s string) string { return vars[s] }
-	return os.Expand(message, mapping), os.Expand(body, mapping)
+	return vars.ExpandShellLike(message, varsMap), vars.ExpandShellLike(body, varsMap)
 }
 
 // GetDefaultMergeMessage returns default message used when merging pull request
@@ -294,8 +310,7 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 
 	// Reset cached commit count
-	cache.Remove(pr.Issue.Repo.GetCommitsCountCacheKey(pr.BaseBranch, true))
-
+	git.RemoveCommitsCountCache(pr.Issue.Repo, git.RefNameFromBranch(pr.BaseBranch))
 	return handleCloseCrossReferences(ctx, pr, doer)
 }
 
@@ -362,15 +377,15 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	}
 
 	// OK we should cache our current head and origin/headbranch
-	mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "HEAD")
+	mergeHeadSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "HEAD")
 	if err != nil {
 		return "", fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
-	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "original_"+tmpRepoBaseBranch)
+	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, "original_"+tmpRepoBaseBranch)
 	if err != nil {
 		return "", fmt.Errorf("Failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
 	}
-	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, tmpRepoBaseBranch)
+	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpRepo, tmpRepoBaseBranch)
 	if err != nil {
 		return "", fmt.Errorf("Failed to get full commit id for the new merge: %w", err)
 	}
@@ -379,7 +394,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	// I think in the interests of data safety - failures to push to the lfs should prevent
 	// the merge as you can always remerge.
 	if setting.LFS.StartServer {
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
+		if err := LFSPush(ctx, mergeCtx.tmpBasePath, mergeCtx.tmpRepo, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
 			return "", err
 		}
 	}
@@ -602,6 +617,10 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return util.ErrorWrap(ErrNotReadyToMerge, "The head branch is behind the base branch")
 	}
 
+	if !issue_service.HasAllRequiredCodeownerReviews(ctx, pb, pr) {
+		return util.ErrorWrap(ErrNotReadyToMerge, "There are missing code owner reviews")
+	}
+
 	if skipProtectedFilesCheck {
 		return nil
 	}
@@ -642,7 +661,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 			return errors.New("Wrong commit ID")
 		}
 
-		commit, err := baseGitRepo.GetCommit(commitID)
+		commit, err := baseGitRepo.GetCommit(ctx, commitID)
 		if err != nil {
 			if git.IsErrNotExist(err) {
 				return errors.New("Wrong commit ID")
@@ -651,7 +670,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		}
 		commitID = commit.ID.String()
 
-		ok, err := baseGitRepo.IsCommitInBranch(commitID, pr.BaseBranch)
+		ok, err := baseGitRepo.IsCommitInBranch(ctx, commitID, pr.BaseBranch)
 		if err != nil {
 			return err
 		}

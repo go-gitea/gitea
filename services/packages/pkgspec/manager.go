@@ -6,11 +6,13 @@ package pkgspec
 import (
 	packages_model "gitea.dev/models/packages"
 	packages_service "gitea.dev/services/packages"
+	"gitea.dev/services/packages/debian"
 	"gitea.dev/services/packages/terraform"
 )
 
 func InitManager() error {
 	mgr := packages_service.GetSpecManager()
+	mgr.Add(packages_model.TypeDebian, &debian.Specialization{})
 	mgr.Add(packages_model.TypeTerraformState, &terraform.Specialization{})
 	// TODO: add more in the future, refactor the existing code to use this approach
 	return nil

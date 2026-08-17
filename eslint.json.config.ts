@@ -3,9 +3,10 @@ import json from '@eslint/json';
 
 export default defineConfig([
   globalIgnores([
-    '**/.venv',
-    '**/node_modules',
-    '**/public',
+    'public',
+    'custom/public',
+    'data',
+    '.venv',
   ]),
   {
     files: ['**/*.json'],

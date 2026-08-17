@@ -75,7 +75,7 @@ func CreateUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateUserOption)
+	form := web.GetForm[*api.CreateUserOption](ctx)
 
 	u := &user_model.User{
 		Name:               form.Username,
@@ -121,7 +121,7 @@ func CreateUser(ctx *context.APIContext) {
 	}
 
 	if form.Visibility != "" {
-		visibility := api.VisibilityModes[string(form.Visibility)]
+		visibility := api.VisibilityModes[form.Visibility]
 		overwriteDefault.Visibility = &visibility
 	}
 
@@ -190,11 +190,11 @@ func EditUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.EditUserOption)
+	form := web.GetForm[*api.EditUserOption](ctx)
 
 	authOpts := &user_service.UpdateAuthOptions{
 		LoginSource:        optional.FromNonDefault(form.SourceID),
-		LoginName:          optional.Some(form.LoginName),
+		LoginName:          optional.FromPtr(form.LoginName),
 		Password:           optional.FromNonDefault(form.Password),
 		MustChangePassword: optional.FromPtr(form.MustChangePassword),
 		ProhibitLogin:      optional.FromPtr(form.ProhibitLogin),
@@ -237,7 +237,7 @@ func EditUser(ctx *context.APIContext) {
 		Description:             optional.FromPtr(form.Description),
 		IsActive:                optional.FromPtr(form.Active),
 		IsAdmin:                 user_service.UpdateOptionFieldFromPtr(form.Admin),
-		Visibility:              optional.FromMapLookup(api.VisibilityModes, string(form.Visibility)),
+		Visibility:              optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		AllowGitHook:            optional.FromPtr(form.AllowGitHook),
 		AllowImportLocal:        optional.FromPtr(form.AllowImportLocal),
 		MaxRepoCreation:         optional.FromPtr(form.MaxRepoCreation),
@@ -340,7 +340,7 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	form := web.GetForm[*api.CreateKeyOption](ctx)
 
 	user.CreateUserPublicKey(ctx, *form, ctx.ContextUser.ID)
 }
@@ -469,7 +469,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	var visible []api.VisibleType
 	visibilityParam := ctx.FormString("visibility")
-	if visibility, ok := api.VisibilityModes[visibilityParam]; ok {
+	if visibility, ok := api.VisibilityModes[api.VisibilityString(visibilityParam)]; ok {
 		visible = []api.VisibleType{visibility}
 	} else if visibilityParam != "" {
 		ctx.APIError(http.StatusUnprocessableEntity, "invalid visibility")
@@ -551,7 +551,7 @@ func RenameUser(ctx *context.APIContext) {
 		return
 	}
 
-	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
+	newName := web.GetForm[*api.RenameUserOption](ctx).NewName
 
 	// Check if username has been changed
 	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName, ctx.Doer); err != nil {

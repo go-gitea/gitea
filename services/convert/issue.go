@@ -99,7 +99,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		return &api.Issue{}
 	}
 	if len(issue.Projects) > 0 {
-		apiIssue.Projects = ToAPIProjectList(issue.Projects)
+		apiIssue.Projects = ToProjectList(ctx, issue.Projects, doer)
 	}
 
 	if err := issue.LoadAssignees(ctx); err != nil {

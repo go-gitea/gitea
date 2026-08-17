@@ -6,6 +6,8 @@ package actions
 import (
 	"fmt"
 
+	"gitea.dev/actionslib/pkg/exprparser"
+	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
@@ -21,7 +23,6 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 
-	"gitea.com/gitea/runner/act/model"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -85,12 +86,12 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	var runTargetCommit *git.Commit
 	var err error
 	if refName.IsTag() {
-		runTargetCommit, err = gitRepo.GetTagCommit(refName.TagName())
+		runTargetCommit, err = gitRepo.GetTagCommit(ctx, refName.TagName())
 	} else if refName.IsBranch() {
-		runTargetCommit, err = gitRepo.GetBranchCommit(refName.BranchName())
+		runTargetCommit, err = gitRepo.GetBranchCommit(ctx, refName.BranchName())
 	} else {
 		refName = git.RefNameFromBranch(ref)
-		runTargetCommit, err = gitRepo.GetBranchCommit(ref)
+		runTargetCommit, err = gitRepo.GetBranchCommit(ctx, ref)
 	}
 	if err != nil {
 		return 0, util.ErrorWrapTranslatable(
@@ -119,7 +120,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	// resolve the workflow content and record its source on the run (scoped runs read from the source repo)
-	content, err := resolveDispatchWorkflowContent(ctx, repo, runTargetCommit, workflowID, scopedWorkflowSourceRepoID, isScoped, run)
+	content, err := resolveDispatchWorkflowContent(ctx, repo, gitRepo, runTargetCommit, workflowID, scopedWorkflowSourceRepoID, isScoped, run)
 	if err != nil {
 		return 0, err
 	}
@@ -129,10 +130,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, fmt.Errorf("failed to unmarshal workflow content: %w", err)
 	}
 	// get inputs from post
-	workflow := &model.Workflow{
-		RawOn: singleWorkflow.RawOn,
-	}
-	workflowDispatch := workflow.WorkflowDispatchConfig()
+	workflowDispatch := singleWorkflow.WorkflowDispatchConfig()
 	if workflowDispatch == nil {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewInvalidArgumentErrorf("workflow %q has no workflow_dispatch event trigger", workflowID),
@@ -144,6 +142,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
 		return 0, err
 	}
+	coerceDispatchInputTypes(workflowDispatch, inputsWithDefaults)
 
 	// ctx.Req.PostForm -> WorkflowDispatchPayload.Inputs -> ActionRun.EventPayload -> runner: ghc.Event
 	// https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
@@ -152,7 +151,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		Workflow:   workflowID,
 		Ref:        ref,
 		Repository: convert.ToRepo(ctx, repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		Inputs:     inputsWithDefaults,
+		Inputs:     dispatchEventInputs(inputsWithDefaults),
 		Sender:     convert.ToUserWithAccessMode(ctx, doer, perm.AccessModeNone),
 	}
 
@@ -169,21 +168,42 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	return run.ID, nil
 }
 
+// coerceDispatchInputTypes types `inputs`, where boolean is the only non-string dispatch input type.
+func coerceDispatchInputTypes(dispatch *model.WorkflowDispatch, inputs map[string]any) {
+	for name, cfg := range dispatch.Inputs {
+		if cfg.Type != "boolean" {
+			continue
+		}
+		if s, ok := inputs[name].(string); ok {
+			inputs[name] = util.ParseYamlBool(s)
+		}
+	}
+}
+
+// dispatchEventInputs stringifies the typed inputs for `github.event.inputs`.
+func dispatchEventInputs(inputs map[string]any) map[string]any {
+	eventInputs := make(map[string]any, len(inputs))
+	for name, value := range inputs {
+		eventInputs[name] = exprparser.CoerceToString(value)
+	}
+	return eventInputs
+}
+
 // resolveDispatchWorkflowContent returns the YAML for a dispatched workflow and records its source on the run.
 //   - Repo-level: from the consumer's runTargetCommit.
 //   - Scoped: from the source repo's default branch.
-func resolveDispatchWorkflowContent(ctx reqctx.RequestContext, repo *repo_model.Repository, runTargetCommit *git.Commit, workflowID string, sourceRepoID int64, isScoped bool, run *actions_model.ActionRun) ([]byte, error) {
+func resolveDispatchWorkflowContent(ctx reqctx.RequestContext, repo *repo_model.Repository, gitRepo *git.Repository, runTargetCommit *git.Commit, workflowID string, sourceRepoID int64, isScoped bool, run *actions_model.ActionRun) ([]byte, error) {
 	if isScoped {
 		return resolveScopedDispatchContent(ctx, repo, sourceRepoID, workflowID, run)
 	}
 
-	_, entries, err := actions.ListWorkflows(runTargetCommit)
+	_, entries, err := actions.ListWorkflows(ctx, gitRepo, runTargetCommit)
 	if err != nil {
 		return nil, err
 	}
 	for _, e := range entries {
 		if e.Name() == workflowID {
-			return actions.GetContentFromEntry(e)
+			return actions.GetContentFromEntry(ctx, gitRepo, e)
 		}
 	}
 	return nil, util.ErrorWrapTranslatable(

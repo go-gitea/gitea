@@ -214,7 +214,7 @@ func CreateTeam(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	form := web.GetForm(ctx).(*api.CreateTeamOption)
+	form := web.GetForm[*api.CreateTeamOption](ctx)
 	teamPermission := perm.ParseAccessMode(string(form.Permission), perm.AccessModeNone, perm.AccessModeAdmin)
 	team := &organization.Team{
 		OrgID:                   ctx.Org.Organization.ID,
@@ -223,7 +223,7 @@ func CreateTeam(ctx *context.APIContext) {
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 		AccessMode:              teamPermission,
-		Visibility:              organization.NormalizeTeamVisibility(string(form.Visibility)),
+		Visibility:              organization.NormalizeTeamVisibility(form.Visibility),
 	}
 
 	if team.AccessMode < perm.AccessModeAdmin {
@@ -282,7 +282,7 @@ func EditTeam(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	form := web.GetForm(ctx).(*api.EditTeamOption)
+	form := web.GetForm[*api.EditTeamOption](ctx)
 	team := ctx.Org.Team
 	if err := team.LoadUnits(ctx); err != nil {
 		ctx.APIErrorInternal(err)
@@ -302,7 +302,7 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if form.Visibility != nil && !team.IsOwnerTeam() {
-		team.Visibility = organization.NormalizeTeamVisibility(string(*form.Visibility))
+		team.Visibility = organization.NormalizeTeamVisibility(*form.Visibility)
 	}
 
 	isAuthChanged := false

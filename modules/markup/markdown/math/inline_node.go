@@ -19,8 +19,8 @@ func (n *Inline) Inline() {}
 // IsBlank returns if this inline node is empty
 func (n *Inline) IsBlank(source []byte) bool {
 	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-		text := c.(*ast.Text).Segment
-		if !util.IsBlank(text.Value(source)) {
+		text := c.(*ast.Text) //nolint:forcetypeassert // an inline math node only holds text children
+		if !util.IsBlank(text.Segment.Value(source)) {
 			return false
 		}
 	}
