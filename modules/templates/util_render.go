@@ -227,7 +227,7 @@ func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink strin
 		if label == nil {
 			continue
 		}
-		htmlCode.WriteFormat(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
+		htmlCode.WriteFormatf(`<a class="item" href="%s?labels=%d">`, baseLink, label.ID)
 		htmlCode.WriteHTML(ut.RenderLabel(label))
 		htmlCode.WriteHTML("</a>")
 	}
@@ -347,7 +347,7 @@ func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HT
 	var b htmlutil.HTMLBuilder
 	b.WriteHTML(`<span class="avatar-stack">`)
 	if overflow > 0 {
-		b.WriteFormat(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
+		b.WriteFormatf(`<span class="avatar-stack-overflow-chip tw-text-xs" aria-label="+%d more">+%d</span>`, overflow, overflow)
 	}
 
 	// FIXME: such "backward" breaks a11y like screen readers
@@ -361,9 +361,9 @@ func (ut *RenderUtils) AvatarStack(data *user_model.AvatarStackData) template.HT
 func (ut *RenderUtils) writeAvatarStackItem(b *htmlutil.HTMLBuilder, data *user_model.AvatarStackData, participant *user_model.CommitParticipant) {
 	avatar := ut.participantAvatar(participant)
 	if href := ut.participantHref(data, participant); href != "" {
-		b.WriteFormat(`<a href="%s">%s</a>`, href, avatar)
+		b.WriteFormatf(`<a href="%s">%s</a>`, href, avatar)
 	} else {
-		b.WriteFormat(`<span>%s</span>`, avatar)
+		b.WriteFormatf(`<span>%s</span>`, avatar)
 	}
 }
 
@@ -392,10 +392,10 @@ func (ut *RenderUtils) AvatarStackWithNames(data *user_model.AvatarStackData) te
 		b.WriteHTML(ut.participantNameLink(data, participants[0]))
 	case 2:
 		b.WriteHTML(ut.participantNameLink(data, participants[0]))
-		b.WriteFormat(`<span>%s</span>`, locale.Tr("repo.commits.avatar_stack_and"))
+		b.WriteFormatf(`<span>%s</span>`, locale.Tr("repo.commits.avatar_stack_and"))
 		b.WriteHTML(ut.participantNameLink(data, participants[1]))
 	default:
-		b.WriteFormat(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
+		b.WriteFormatf(`<button type="button" class="avatar-stack-popup-trigger" data-global-init="initAvatarStackPopup">%s</button>`,
 			locale.Tr("repo.commits.avatar_stack_people", len(participants)))
 		b.WriteHTML(`<div class="tippy-target"><div class="avatar-stack-popup">`)
 		for _, participant := range participants {
