@@ -77,10 +77,7 @@ func TestBleveIndexerNoAssignee(t *testing.T) {
 	}
 }
 
-// TestBleveIndexerCamelCaseSearch verifies that issue/PR title search is
-// fully case-insensitive for camelCase-style words, regardless of how the
-// user capitalizes their query. See https://github.com/go-gitea/gitea/issues/36228
-func TestBleveIndexerCamelCaseSearch(t *testing.T) {
+func TestBleveIndexerTokenFilter(t *testing.T) {
 	dir := t.TempDir()
 	indexer := NewIndexer(dir)
 	defer indexer.Close()
@@ -89,8 +86,8 @@ func TestBleveIndexerCamelCaseSearch(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, indexer.Index(t.Context(),
-		&internal.IndexerData{ID: 1, Title: "fix(packages): SomeThing needs a rewrite"},
-		&internal.IndexerData{ID: 2, Title: "add support for mDNS discovery"},
+		&internal.IndexerData{ID: 1, Title: "fix(packages): SomeThing needs a rewrite (#12345)"},
+		&internal.IndexerData{ID: 2, Title: "add support for mDNS discovery abc1234"},
 	))
 
 	testCases := []struct {
@@ -100,8 +97,10 @@ func TestBleveIndexerCamelCaseSearch(t *testing.T) {
 	}{
 		{name: "exact original case", keyword: "SomeThing", expectedIDs: []int64{1}},
 		{name: "case matching original transitions", keyword: "someThing", expectedIDs: []int64{1}},
-		{name: "all lower case (regression for #36228)", keyword: "something", expectedIDs: []int64{1}},
+		{name: "all lower case", keyword: "something", expectedIDs: []int64{1}},
 		{name: "all upper case", keyword: "SOMETHING", expectedIDs: []int64{1}},
+		{name: "number match", keyword: "12345", expectedIDs: []int64{1}},
+		{name: "number not match", keyword: "1234", expectedIDs: []int64{2}},
 		{name: "sub-word search still works", keyword: "DNS", expectedIDs: []int64{2}},
 		{name: "sub-word search, lower case", keyword: "mdns", expectedIDs: []int64{2}},
 	}
