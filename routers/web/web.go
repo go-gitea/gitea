@@ -548,8 +548,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Post("/-/markup", reqSignIn, web.Bind[*structs.MarkupOption](), misc.Markup)
 	m.Post("/-/web-banner/dismiss", misc.WebBannerDismiss)
 	m.Get("/-/web-theme/list", misc.WebThemeList)
-	// theme switching must work for anonymous users too (e.g. on the sign-in page), regardless of REQUIRE_SIGNIN_VIEW
-	m.Post("/-/web-theme/apply", verifyAuthWithOptions(&common.VerifyOptions{}), misc.WebThemeApply)
+x	m.Post("/-/web-theme/apply", misc.WebThemeApply)
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
