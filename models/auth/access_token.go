@@ -8,19 +8,14 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"gitea.dev/models/db"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"xorm.io/builder"
 )
-
-var successfulAccessTokenCache *lru.Cache[string, any]
 
 // AccessToken represents a personal access token.
 type AccessToken struct {
@@ -46,18 +41,7 @@ func (t *AccessToken) AfterLoad() {
 }
 
 func init() {
-	db.RegisterModel(new(AccessToken), func() error {
-		if setting.SuccessfulTokensCacheSize > 0 {
-			var err error
-			successfulAccessTokenCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
-			if err != nil {
-				return fmt.Errorf("unable to allocate AccessToken cache: %w", err)
-			}
-		} else {
-			successfulAccessTokenCache = nil
-		}
-		return nil
-	})
+	db.RegisterModel(new(AccessToken))
 }
 
 // setNewTokenValue generates a fresh random token value and fills in its salt, hash, and last-eight.
@@ -103,46 +87,25 @@ func (t *AccessToken) DisplayPublicOnly() bool {
 	return publicOnly
 }
 
-// cachedAccessToken remembers which row a token last matched, and the hash it matched, so a
-// cache hit can be re-confirmed with a cheap comparison instead of paying for HashToken again.
-type cachedAccessToken struct {
-	id        int64
-	tokenHash string
-}
-
-func getAccessTokenFromCache(token string) *cachedAccessToken {
-	if successfulAccessTokenCache == nil {
-		return nil
-	}
-	cInterface, ok := successfulAccessTokenCache.Get(token)
-	if !ok {
-		return nil
-	}
-	c, ok := cInterface.(cachedAccessToken)
-	if !ok {
-		return nil
-	}
-	return &c
-}
-
 // GetAccessTokenBySHA returns access token by given token value
 func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error) {
 	if len(token) < 8 {
 		return nil, util.NewNotExistErrorf("access token not found")
 	}
 
+	cacheKey := "access:" + token
 	lastEight := token[len(token)-8:]
-	if cached := getAccessTokenFromCache(token); cached != nil {
+	if cached, _ := TokenCache().Get(cacheKey); cached != nil {
 		accessToken := &AccessToken{}
 		// Re-get the token from the db in case it has been deleted or regenerated in the intervening period
-		has, err := db.GetEngine(ctx).ID(cached.id).Get(accessToken)
+		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(accessToken)
 		if err != nil {
 			return nil, err
 		}
-		if has && subtle.ConstantTimeCompare([]byte(accessToken.TokenHash), []byte(cached.tokenHash)) == 1 {
+		if has && subtle.ConstantTimeCompare([]byte(accessToken.TokenHash), []byte(cached.TokenHash)) == 1 {
 			return accessToken, nil
 		}
-		successfulAccessTokenCache.Remove(token)
+		TokenCache().Remove(cacheKey)
 	}
 
 	var tokens []AccessToken
@@ -156,9 +119,7 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 	for _, t := range tokens {
 		tempHash := HashToken(token, t.TokenSalt)
 		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
-			if successfulAccessTokenCache != nil {
-				successfulAccessTokenCache.Add(token, cachedAccessToken{id: t.ID, tokenHash: t.TokenHash})
-			}
+			TokenCache().Add(cacheKey, &TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
 			return &t, nil
 		}
 	}
