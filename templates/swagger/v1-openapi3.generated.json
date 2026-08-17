@@ -4956,7 +4956,6 @@
             "x-go-name": "FullName"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -6234,7 +6233,6 @@
             "x-go-name": "Location"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -6286,8 +6284,7 @@
           }
         },
         "required": [
-          "source_id",
-          "login_name"
+          "source_id"
         ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
@@ -10659,7 +10656,6 @@
             "x-go-name": "UserName"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
