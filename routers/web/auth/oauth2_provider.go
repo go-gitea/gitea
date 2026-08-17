@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
@@ -26,7 +25,6 @@ import (
 	"gitea.dev/services/forms"
 	"gitea.dev/services/oauth2_provider"
 
-	"gitea.com/go-chi/binding"
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
@@ -223,16 +221,6 @@ func oauthDoerAuthorizePreCheck(ctx *context.Context, formState string) bool {
 func AuthorizeOAuth(ctx *context.Context) {
 	form := web.GetForm[*forms.AuthorizationForm](ctx)
 	if !oauthDoerAuthorizePreCheck(ctx, form.State) {
-		return
-	}
-	errs := binding.Errors{}
-	errs = form.Validate(ctx.Req, errs)
-	if len(errs) > 0 {
-		var errstring strings.Builder
-		for _, e := range errs {
-			errstring.WriteString(e.Error() + "\n")
-		}
-		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring.String()))
 		return
 	}
 

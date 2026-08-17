@@ -37,7 +37,7 @@
 				<label>{{ctx.Locale.Tr "admin.config.instance_web_banner.enabled"}}</label>
 			</div>
 			{{template "shared/combomarkdowneditor" (dict
-				"ContainerClasses" "web-banner-content-editor"
+				"ContainerClasses" "site-banner-content-editor"
 				"TextareaName" (print $cfgKey ".ContentMessage")
 				"TextareaContent" $banner.ContentMessage
 				"TextareaPlaceholder" (ctx.Locale.Tr "admin.config.instance_web_banner.message_placeholder")

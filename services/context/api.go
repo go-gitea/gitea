@@ -97,6 +97,12 @@ type APIForbiddenError struct {
 	APIError
 }
 
+// APIUnauthorizedError is an unauthorized error response
+// swagger:response unauthorized
+type APIUnauthorizedError struct {
+	APIError
+}
+
 // APINotFound is a not found empty response
 // swagger:response notFound
 type APINotFound struct{}
