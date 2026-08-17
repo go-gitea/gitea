@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -148,11 +147,10 @@ func CleanupEphemeralRunners(ctx context.Context) error {
 	b := builder.Delete(builder.In("id", subQuery)).From("`action_runner`")
 	res, err := db.GetEngine(ctx).Exec(b)
 	if err != nil {
-		return fmt.Errorf("find runners: %w", err)
+		return fmt.Errorf("CleanupEphemeralRunners: Exec(delete): %w", err)
 	}
-	affected, _ := res.RowsAffected()
-	log.Info("Removed %d runners", affected)
-	return nil
+	_, err = res.RowsAffected()
+	return err
 }
 
 // CleanupEphemeralRunnersByPickedTaskOfRepo removes all ephemeral runners that have active/finished tasks on the given repository
@@ -174,7 +172,9 @@ func CleanupEphemeralRunnersByPickedTaskOfRepo(ctx context.Context, repoID int64
 // DeleteRun deletes workflow run, including all logs and artifacts.
 func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	if !run.Status.IsDone() {
-		return errors.New("run is not done")
+		// this should not happen, the callers guarantee that the run status is right
+		setting.PanicInDevOrTesting("DeleteRun called on non-terminal run %d with status %s", run.ID, run.Status)
+		// no need to stop the deletion if the status is not "done" in production
 	}
 
 	repoID := run.RepoID
@@ -262,6 +262,7 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	}
 	for _, art := range artifacts {
 		if err := storage.ActionsArtifacts.Delete(art.StoragePath); err != nil {
+			// don't return any error since the database records have been deleted
 			log.Error("remove artifact file %q: %v", art.StoragePath, err)
 		}
 	}
@@ -269,7 +270,7 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	return nil
 }
 
-const cleanupOldRunsBatchSize = 50
+var cleanupOldRunsBatchSize = 50
 
 // CleanupOldRuns deletes completed action runs (and all associated jobs, tasks, logs,
 // artifacts, etc.) whose `created` timestamp is older than setting.Actions.RunRetentionDays.
@@ -294,7 +295,7 @@ func CleanupOldRuns(ctx context.Context) error {
 		return err
 	}
 
-	log.Info("Deleted %d old action runs (older than %d days)", total, setting.Actions.RunRetentionDays)
+	log.Info("Deleted %d old action runs before %s", total, olderThan.Format(time.RFC3339))
 	return nil
 }
 
@@ -314,22 +315,14 @@ func cleanupOldRuns(ctx context.Context, olderThan timeutil.TimeStamp, doneStatu
 		// so the first page is effectively a sliding window over remaining old runs.
 		runs, err := actions_model.FindOldestRuns(ctx, doneStatuses, olderThan, cleanupOldRunsBatchSize)
 		if err != nil {
-			return total, fmt.Errorf("find old runs: %w", err)
+			return total, fmt.Errorf("FindOldestRuns: %w", err)
 		}
 
-		// Skip runs that already failed to delete; if nothing new remains, stop.
-		remaining := runs[:0]
+		realDeleted := 0
 		for _, run := range runs {
-			if !failed.Contains(run.ID) {
-				remaining = append(remaining, run)
+			if failed.Contains(run.ID) {
+				continue
 			}
-		}
-		if len(remaining) == 0 {
-			log.Error("Too many actions runs are unable to delete, please figure out and fix the failures")
-			break
-		}
-
-		for _, run := range remaining {
 			if err := deleteRun(ctx, run); err != nil {
 				// DeleteRun is expected to never fail, if it fails, there must be a bug that should be fixed.
 				setting.PanicInDevOrTesting("failed to delete old action run %d: %v", run.ID, err)
@@ -337,7 +330,13 @@ func cleanupOldRuns(ctx context.Context, olderThan timeutil.TimeStamp, doneStatu
 				continue
 			}
 			total++
-			log.Trace("Deleted old action run %d (created %s)", run.ID, run.Created.AsTime())
+			realDeleted++
+			log.Trace("Deleted old action run %d (created at %s)", run.ID, run.Created.AsTime())
+		}
+
+		if realDeleted == 0 {
+			log.Error("Too many actions runs are unable to delete, please figure out and fix the failures")
+			break
 		}
 	}
 	return total, nil
