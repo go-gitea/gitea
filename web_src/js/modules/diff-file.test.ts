@@ -1,8 +1,9 @@
 import {countMatchingFiles, diffTreeStoreSetViewed, filterDiffTree, getDiffTreeExtensionStats, reactiveDiffTreeStore, type DiffTreeEntry} from './diff-file.ts';
 
-function file(name: string): DiffTreeEntry {
+function file(name: string, oldName: string = ''): DiffTreeEntry {
   return {
     FullName: name,
+    OldFullName: oldName,
     DisplayName: name.split('/').pop()!,
     DiffStatus: 'added',
     NameHash: name,
@@ -16,6 +17,7 @@ function file(name: string): DiffTreeEntry {
 function dir(name: string, children: DiffTreeEntry[]): DiffTreeEntry {
   return {
     FullName: name,
+    OldFullName: '',
     DisplayName: name.split('/').pop()!,
     EntryMode: 'tree',
     IsViewed: false,
@@ -29,7 +31,7 @@ function dir(name: string, children: DiffTreeEntry[]): DiffTreeEntry {
 function makeStore(children: DiffTreeEntry[]) {
   return reactiveDiffTreeStore({
     TreeRoot: {
-      FullName: '', DisplayName: '', EntryMode: 'tree', IsViewed: false,
+      FullName: '', OldFullName: '', DisplayName: '', EntryMode: 'tree', IsViewed: false,
       NameHash: 'root', DiffStatus: '', FileIcon: '', Children: children,
     },
   }, '', '');
@@ -82,10 +84,60 @@ test('getDiffTreeExtensionStats counts every file in the diff tree', () => {
     file('other.ts'),
   ]);
   expect(getDiffTreeExtensionStats(store)).toEqual([
-    {ext: '.txt', count: 1},
     {ext: '', count: 1},
     {ext: '.ts', count: 1},
+    {ext: '.txt', count: 1},
   ]);
+});
+
+test('getDiffTreeExtensionStats sorts by count, then by extension name', () => {
+  const store = makeStore([
+    file('a.md'), file('b.md'),
+    file('c.ts'), file('d.ts'), file('e.ts'),
+    file('f.css'),
+    file('g.bat'),
+  ]);
+  expect(getDiffTreeExtensionStats(store)).toEqual([
+    {ext: '.ts', count: 3},
+    {ext: '.md', count: 2},
+    {ext: '.bat', count: 1},
+    {ext: '.css', count: 1},
+  ]);
+});
+
+test('dotfiles share the "no extension" bucket instead of each getting their own', () => {
+  const store = makeStore([
+    file('.gitignore'),
+    dir('dir1', [file('dir1/.eslintrc')]),
+    file('Makefile'),
+    file('.golangci.yml'),
+  ]);
+  expect(getDiffTreeExtensionStats(store)).toEqual([
+    {ext: '', count: 3},
+    {ext: '.yml', count: 1},
+  ]);
+
+  store.activeExtensions = [''];
+  expect(visibleNames(filterDiffTree(store))).toEqual(['.gitignore', 'dir1/.eslintrc', 'Makefile']);
+});
+
+test('the search query also matches the pre-rename path, the extension filter does not', () => {
+  const store = makeStore([
+    file('new-name.md', 'old-name.txt'),
+    file('other.ts'),
+  ]);
+
+  store.filenameFilterQuery = 'old-name';
+  expect(visibleNames(filterDiffTree(store))).toEqual(['new-name.md']);
+  expect(countMatchingFiles(store)).toBe(1);
+
+  store.filenameFilterQuery = '';
+  store.activeExtensions = ['.txt'];
+  expect(visibleNames(filterDiffTree(store))).toEqual([]);
+  expect(countMatchingFiles(store)).toBe(0);
+
+  store.activeExtensions = ['.md'];
+  expect(visibleNames(filterDiffTree(store))).toEqual(['new-name.md']);
 });
 
 test('countMatchingFiles counts matching file leaves across the whole PR', () => {

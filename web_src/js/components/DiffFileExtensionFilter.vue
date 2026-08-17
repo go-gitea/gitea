@@ -3,16 +3,9 @@ import {computed, onMounted, onUnmounted, useTemplateRef} from 'vue';
 import type {Instance} from 'tippy.js';
 import {SvgIcon} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {diffTreeStore, getDiffTreeExtensionStats} from '../modules/diff-file.ts';
+import {diffTreeStore, getDiffTreeExtensionStats, type DiffExtensionFilterLocale} from '../modules/diff-file.ts';
 
-const treeEl = document.querySelector('#diff-file-tree')!;
-const locale = {
-  filter_by_file_extension: treeEl.getAttribute('data-text-filter-by-file-extension')!,
-  file_extensions: treeEl.getAttribute('data-text-file-extensions')!,
-  no_file_extension: treeEl.getAttribute('data-text-no-file-extension')!,
-  select_all: treeEl.getAttribute('data-text-select-all-file-extensions')!,
-  select_none: treeEl.getAttribute('data-text-select-none-file-extensions')!,
-};
+const props = defineProps<{locale: DiffExtensionFilterLocale}>();
 
 const store = diffTreeStore();
 const triggerEl = useTemplateRef<HTMLButtonElement>('triggerEl');
@@ -21,6 +14,11 @@ let tippyInstance: Instance;
 
 const allExtensions = computed(() => getDiffTreeExtensionStats(store));
 const isFiltering = computed(() => store.activeExtensions !== 'all');
+
+const allCheckboxProps = computed(() => ({
+  checked: store.activeExtensions === 'all',
+  indeterminate: store.activeExtensions !== 'all' && store.activeExtensions.length > 0,
+}));
 
 function isChecked(ext: string): boolean {
   return store.activeExtensions === 'all' || store.activeExtensions.includes(ext);
@@ -33,12 +31,8 @@ function toggleExt(ext: string) {
   store.activeExtensions = next.size === all.length ? 'all' : Array.from(next);
 }
 
-function selectAll() {
-  store.activeExtensions = 'all';
-}
-
-function selectNone() {
-  store.activeExtensions = [];
+function toggleAll() {
+  store.activeExtensions = store.activeExtensions === 'all' ? [] : 'all';
 }
 
 onMounted(() => {
@@ -64,34 +58,26 @@ onUnmounted(() => {
     type="button"
     class="diff-ext-filter-trigger"
     :class="{'indicator-dot': isFiltering}"
-    :aria-label="locale.filter_by_file_extension"
+    :aria-label="props.locale.filterByFileExtension"
     aria-haspopup="true"
   >
     <SvgIcon name="octicon-filter"/>
   </button>
   <div ref="panelEl" class="tippy-target">
-    <div class="diff-ext-filter-menu">
-      <div class="diff-ext-filter-header">{{ locale.file_extensions }}</div>
+    <div class="diff-ext-filter-menu" role="group" :aria-label="props.locale.fileExtensions">
+      <div class="diff-ext-filter-header">{{ props.locale.fileExtensions }}</div>
       <div class="diff-ext-filter-list">
-        <button
-          v-for="ext in allExtensions"
-          :key="ext.ext"
-          type="button"
-          class="item"
-          role="menuitemcheckbox"
-          :aria-checked="isChecked(ext.ext)"
-          @click="toggleExt(ext.ext)"
-        >
-          <span class="diff-ext-filter-check">
-            <SvgIcon v-if="isChecked(ext.ext)" name="octicon-check" :size="14"/>
-          </span>
-          <span class="gt-ellipsis">{{ ext.ext || locale.no_file_extension }}</span>
+        <label v-for="ext in allExtensions" :key="ext.ext" class="item">
+          <input type="checkbox" :checked="isChecked(ext.ext)" @change="toggleExt(ext.ext)">
+          <span class="gt-ellipsis">{{ ext.ext || props.locale.noFileExtension }}</span>
           <span class="diff-ext-filter-count">{{ ext.count }}</span>
-        </button>
+        </label>
       </div>
       <div class="divider"/>
-      <button type="button" class="item" role="menuitem" @click="selectAll">{{ locale.select_all }}</button>
-      <button type="button" class="item" role="menuitem" @click="selectNone">{{ locale.select_none }}</button>
+      <label class="item">
+        <input type="checkbox" v-bind.prop="allCheckboxProps" @change="toggleAll">
+        <span class="gt-ellipsis">{{ props.locale.allFileExtensions }}</span>
+      </label>
     </div>
   </div>
 </template>
@@ -115,12 +101,12 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
-.diff-ext-filter-check {
-  width: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+.diff-ext-filter-menu .item {
+  cursor: pointer;
+}
+
+.diff-ext-filter-menu .item:has(:focus-visible) {
+  background: var(--color-hover);
 }
 
 .diff-ext-filter-count {

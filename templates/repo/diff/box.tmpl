@@ -66,13 +66,12 @@
 			<div id="diff-file-tree"
 				class="tw-hidden not-mobile"
 				data-text-filter-files="{{ctx.Locale.Tr "repo.diff.filter_files"}}"
-				data-text-filter-files-no-results="{{ctx.Locale.Tr "repo.diff.no_files_matched"}}"
 				data-text-filter-files-clear="{{ctx.Locale.Tr "repo.diff.filter_files_clear"}}"
+				data-text-no-files-matched="{{ctx.Locale.Tr "repo.diff.no_files_matched"}}"
 				data-text-filter-by-file-extension="{{ctx.Locale.Tr "repo.diff.filter_by_file_extension"}}"
 				data-text-file-extensions="{{ctx.Locale.Tr "repo.diff.file_extensions"}}"
 				data-text-no-file-extension="{{ctx.Locale.Tr "repo.diff.no_file_extension"}}"
-				data-text-select-all-file-extensions="{{ctx.Locale.Tr "repo.diff.select_all_file_extensions"}}"
-				data-text-select-none-file-extensions="{{ctx.Locale.Tr "repo.diff.select_none_file_extensions"}}"
+				data-text-all-file-extensions="{{ctx.Locale.Tr "repo.diff.all_file_extensions"}}"
 			></div>
 			<script nonce="{{ctx.CspScriptNonce}}">
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');

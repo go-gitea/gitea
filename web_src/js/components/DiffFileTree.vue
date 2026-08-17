@@ -2,35 +2,29 @@
 import {SvgIcon} from '../svg.ts';
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import DiffFileExtensionFilter from './DiffFileExtensionFilter.vue';
-import {toggleElem} from '../utils/dom.ts';
-import {diffTreeStore, filterDiffTree, applyFiltersToFileBoxes} from '../modules/diff-file.ts';
+import {onInputDebounce, toggleElem} from '../utils/dom.ts';
+import {diffTreeStore, filterDiffTree, applyFiltersToFileBoxes, type DiffFileTreeLocale} from '../modules/diff-file.ts';
 import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
+const props = defineProps<{locale: DiffFileTreeLocale}>();
+
 const store = diffTreeStore();
-
-const el = document.querySelector<HTMLElement>('#diff-file-tree')!;
-
-const filterFilesPlaceholder = el.getAttribute('data-text-filter-files')!;
-const filterFilesNoResults = el.getAttribute('data-text-filter-files-no-results')!;
-const filterFilesClearLabel = el.getAttribute('data-text-filter-files-clear')!;
 
 const visibleTreeItems = computed(() => filterDiffTree(store)?.Children ?? []);
 
-// FIXME: debound or throttle this so we don't run it on every keystroke
-watch(
-  () => [store.filenameFilterQuery, store.activeExtensions] as const,
-  () => applyFiltersToFileBoxes(store),
-);
+watch(() => store.filenameFilterQuery, onInputDebounce(() => applyFiltersToFileBoxes(store)));
+watch(() => store.activeExtensions, () => applyFiltersToFileBoxes(store));
 
 function clearSearch() {
   store.filenameFilterQuery = '';
 }
 
 onMounted(() => {
+  // Default to true if unset
   store.fileTreeIsVisible = localUserSettings.getBoolean(LOCAL_STORAGE_KEY, true);
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
   hashChangeListener();
@@ -48,6 +42,7 @@ function hashChangeListener() {
 }
 
 function expandSelectedFile() {
+  // expand file if the selected file is folded
   if (store.selectedItem) {
     const box = document.querySelector(store.selectedItem);
     const folded = box?.getAttribute('data-folded') === 'true';
@@ -61,6 +56,11 @@ function toggleVisibility() {
 
 function updateVisibility(visible: boolean) {
   store.fileTreeIsVisible = visible;
+  if (!visible) {
+    store.filenameFilterQuery = '';
+    store.activeExtensions = 'all';
+    applyFiltersToFileBoxes(store);
+  }
   localUserSettings.setBoolean(LOCAL_STORAGE_KEY, store.fileTreeIsVisible);
   updateState(store.fileTreeIsVisible);
 }
@@ -87,25 +87,25 @@ function updateState(visible: boolean) {
           type="text"
           v-model="store.filenameFilterQuery"
           class="diff-file-search-input"
-          :placeholder="filterFilesPlaceholder"
-          :aria-label="filterFilesPlaceholder"
+          :placeholder="props.locale.filterFiles"
+          :aria-label="props.locale.filterFiles"
         >
         <button
           v-if="store.filenameFilterQuery"
           type="button"
           class="diff-file-search-clear"
           @click="clearSearch"
-          :aria-label="filterFilesClearLabel"
+          :aria-label="props.locale.filterFilesClear"
         >
           <SvgIcon name="octicon-x" :size="14"/>
         </button>
       </div>
-      <DiffFileExtensionFilter/>
+      <DiffFileExtensionFilter :locale="props.locale"/>
     </div>
     <div class="diff-file-tree-items">
       <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.FullName" :item="item"/>
       <div v-if="visibleTreeItems.length === 0" class="tw-py-4 tw-text-center tw-text-text-light-2">
-        {{ filterFilesNoResults }}
+        {{ props.locale.noFilesMatched }}
       </div>
     </div>
   </div>
