@@ -94,6 +94,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"mime"
 	"net/http"
 	"net/url"
@@ -107,6 +108,7 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/util"
@@ -332,9 +334,10 @@ func (r *artifactV4Routes) createArtifact(ctx *ArtifactContext) {
 
 	artifactName := req.Name
 
-	retentionDays := setting.Actions.ArtifactRetentionDays
+	var retentionDays optional.Option[int64]
 	if req.ExpiresAt != nil {
-		retentionDays = int64(time.Until(req.ExpiresAt.AsTime()).Hours() / 24)
+		hours := time.Until(req.ExpiresAt.AsTime()).Hours()
+		retentionDays = optional.Some(int64(math.Ceil(hours / 24)))
 	}
 	encoding := req.GetMimeType().GetValue()
 	// Validate media type

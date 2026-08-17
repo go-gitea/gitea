@@ -245,25 +245,10 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		return
 	}
 
-	// get upload file size
 	fileRealTotalSize := getUploadFileSize(ctx)
-
-	// get artifact retention days
-	expiredDays := setting.Actions.ArtifactRetentionDays
-	if queryRetentionDays := ctx.Req.URL.Query().Get("retentionDays"); queryRetentionDays != "" {
-		var err error
-		expiredDays, err = strconv.ParseInt(queryRetentionDays, 10, 64)
-		if err != nil {
-			log.Error("Error parse retention days: %v", err)
-			ctx.HTTPError(http.StatusBadRequest, "Error parse retention days")
-			return
-		}
-	}
-	log.Debug("[artifact] upload chunk, name: %s, path: %s, size: %d, retention days: %d",
-		artifactName, artifactPath, fileRealTotalSize, expiredDays)
-
+	retentionDays := ctx.FormOptionalInt64("retentionDays")
 	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, expiredDays)
+	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, retentionDays)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")

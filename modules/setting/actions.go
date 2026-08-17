@@ -46,6 +46,8 @@ var (
 		ScopedWorkflowDirs:     []string{".gitea/scoped_workflows"},
 		MaxRerunAttempts:       defaultMaxRerunAttempts,
 		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
+		ArtifactRetentionDays:  90,  // default to 90 days in GitHub Actions
+		RunRetentionDays:       180, // ps: GitHub Actions also has a limit on web UI: only the first 100 pages are allowed to browse
 	}
 )
 
@@ -121,11 +123,6 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", "", actionsSec)
 	if err != nil {
 		return err
-	}
-
-	// default to 90 days in Github Actions
-	if Actions.ArtifactRetentionDays <= 0 {
-		Actions.ArtifactRetentionDays = 90
 	}
 
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)

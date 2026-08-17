@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"gitea.dev/models/db"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
@@ -90,10 +92,12 @@ type ActionArtifact struct {
 	ExpiredUnix  timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
 }
 
-func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string, expiredDays int64) (*ActionArtifact, error) {
+func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string, expiredDaysOpt optional.Option[int64]) (*ActionArtifact, error) {
 	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
+	expiredDays := expiredDaysOpt.ValueOrDefault(setting.Actions.ArtifactRetentionDays)
+
 	artifact, err := getArtifactByNameAndPath(ctx, t.Job.RunID, t.Job.RunAttemptID, artifactName, artifactPath)
 	if errors.Is(err, util.ErrNotExist) {
 		artifact := &ActionArtifact{
