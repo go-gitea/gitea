@@ -29,7 +29,7 @@ jobs:
         run: |
           gh cache list --limit 1000 --json id,key,ref,createdAt |
             jq -r 'group_by([.ref, (.key | sub("(-go[0-9.]+)?-[0-9a-f]{40,64}(-[0-9]+-[0-9]+)?$"; ""))])[]
-                   | sort_by(.createdAt)[:-1][] | "\(.id) \(.key)"' |
+              | sort_by(.createdAt)[:-1][] | "\(.id) \(.key)"' |
             while read -r id key; do
               echo "deleting $key"
               gh cache delete "$id" || true # raced with GitHub's own eviction
