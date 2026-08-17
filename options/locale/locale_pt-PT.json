@@ -3052,6 +3052,8 @@
   "admin.users.new_success": "A conta de utilizador \"%s\" foi criada.",
   "admin.users.edit": "Editar",
   "admin.users.impersonate": "Fazer-se passar por",
+  "admin.users.impersonate_stop": "Parar de se fazer passar por outro",
+  "admin.users.impersonating_notice": "Está-se a fazer passar por <strong>%s</strong>. O que fizer será como se fosse a outra pessoa a fazê-lo.",
   "admin.users.auth_source": "Fonte de autenticação",
   "admin.users.local": "Local",
   "admin.users.auth_login_name": "Nome de autenticação",

@@ -3,17 +3,11 @@
 
 package forms
 
-import (
-	"net/http"
-
-	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/context"
-
-	"gitea.com/go-chi/binding"
-)
+import "gitea.dev/modules/web/middleware"
 
 // AuthenticationForm form for authentication
 type AuthenticationForm struct {
+	middleware.FormDefaultValidator
 	Type            int    `binding:"Range(2,7)"`
 	Name            string `binding:"Required;MaxSize(30)"`
 	TwoFactorPolicy string
@@ -95,10 +89,4 @@ type AuthenticationForm struct {
 	SSPIStripDomainNames     bool
 	SSPISeparatorReplacement string `binding:"AlphaDashDot;MaxSize(5)"`
 	SSPIDefaultLanguage      string
-}
-
-// Validate validates fields
-func (f *AuthenticationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(ctx, errs, f)
 }
