@@ -20,7 +20,7 @@ import (
 	"xorm.io/builder"
 )
 
-var successfulAccessTokenCache *lru.Cache[string, any]
+var successfulAccessTokenCache *lru.Cache[string, cachedAccessToken]
 
 // AccessToken represents a personal access token.
 type AccessToken struct {
@@ -49,7 +49,7 @@ func init() {
 	db.RegisterModel(new(AccessToken), func() error {
 		if setting.SuccessfulTokensCacheSize > 0 {
 			var err error
-			successfulAccessTokenCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
+			successfulAccessTokenCache, err = lru.New[string, cachedAccessToken](setting.SuccessfulTokensCacheSize)
 			if err != nil {
 				return fmt.Errorf("unable to allocate AccessToken cache: %w", err)
 			}
@@ -114,11 +114,7 @@ func getAccessTokenFromCache(token string) *cachedAccessToken {
 	if successfulAccessTokenCache == nil {
 		return nil
 	}
-	cInterface, ok := successfulAccessTokenCache.Get(token)
-	if !ok {
-		return nil
-	}
-	c, ok := cInterface.(cachedAccessToken)
+	c, ok := successfulAccessTokenCache.Get(token)
 	if !ok {
 		return nil
 	}
