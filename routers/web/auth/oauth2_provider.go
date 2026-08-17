@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
@@ -19,6 +20,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
@@ -345,7 +347,18 @@ func AuthorizeOAuth(ctx *context.Context) {
 	}
 
 	// Check if the requested scopes differ from the existing grant.
-	ctx.Data["ScopeChanged"] = grant != nil && grant.Scope != form.Scope
+	scopeChanged := grant != nil && grant.Scope != form.Scope
+	ctx.Data["ScopeChanged"] = scopeChanged
+	if scopeChanged {
+		oldScopes := strings.Fields(grant.Scope)
+		newScopes := strings.Fields(form.Scope)
+		addedScopes, removedScopes := util.DiffSlice(oldScopes, newScopes)
+
+		ctx.Data["OldScopes"] = oldScopes
+		ctx.Data["NewScopes"] = newScopes
+		ctx.Data["AddedScopes"] = addedScopes
+		ctx.Data["RemovedScopes"] = removedScopes
+	}
 
 	// show authorize page to grant access
 	ctx.Data["Application"] = app

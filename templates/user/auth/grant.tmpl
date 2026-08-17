@@ -15,6 +15,39 @@
 				{{if .ScopeChanged}}
 				<br>
 				{{ctx.Locale.Tr "auth.authorize_application_additional_scopes"}}
+
+				<br><br>
+				<b>{{ctx.Locale.Tr "auth.authorize_application_current_scopes"}}</b>
+				<ul>
+					{{range .OldScopes}}
+					<li>{{.}}</li>
+					{{end}}
+				</ul>
+
+				<b>{{ctx.Locale.Tr "auth.authorize_application_requested_scopes"}}</b>
+				<ul>
+					{{range .NewScopes}}
+					<li>{{.}}</li>
+					{{end}}
+				</ul>
+
+				{{if .AddedScopes}}
+				<b>{{ctx.Locale.Tr "auth.authorize_application_added_scopes"}}</b>
+				<ul>
+					{{range .AddedScopes}}
+					<li>+ {{.}}</li>
+					{{end}}
+				</ul>
+				{{end}}
+
+				{{if .RemovedScopes}}
+				<b>{{ctx.Locale.Tr "auth.authorize_application_removed_scopes"}}</b>
+				<ul>
+					{{range .RemovedScopes}}
+					<li>- {{.}}</li>
+					{{end}}
+				</ul>
+				{{end}}
 				{{end}}
 			</p>
 		</div>
