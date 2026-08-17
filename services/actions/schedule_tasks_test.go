@@ -10,6 +10,7 @@ import (
 	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWithScheduleInEventPayload(t *testing.T) {
@@ -49,9 +50,15 @@ func TestWithScheduleInEventPayload(t *testing.T) {
 		event := map[string]any{}
 		assert.NoError(t, json.Unmarshal([]byte(updated), &event))
 		assert.Equal(t, "@weekly", event["schedule"])
-		assert.Equal(t, "test-repo", event["repository"].(map[string]any)["name"])
-		assert.Equal(t, "test-user", event["sender"].(map[string]any)["login"])
-		assert.Equal(t, "test-org", event["organization"].(map[string]any)["name"])
+		repository, ok := event["repository"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "test-repo", repository["name"])
+		sender, ok := event["sender"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "test-user", sender["login"])
+		organization, ok := event["organization"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "test-org", organization["name"])
 	})
 
 	t.Run("keeps payload when schedule empty", func(t *testing.T) {

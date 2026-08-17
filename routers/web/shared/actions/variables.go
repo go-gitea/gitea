@@ -122,7 +122,7 @@ func VariableCreate(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	form := web.GetForm[*forms.EditVariableForm](ctx)
 
 	v, err := actions_service.CreateVariable(ctx, vCtx.OwnerID, vCtx.RepoID, form.Name, form.Data, form.Description)
 	if err != nil {
@@ -154,7 +154,7 @@ func VariableUpdate(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditVariableForm)
+	form := web.GetForm[*forms.EditVariableForm](ctx)
 	variable.Name = form.Name
 	variable.Data = form.Data
 	variable.Description = form.Description

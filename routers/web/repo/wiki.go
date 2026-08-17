@@ -27,7 +27,6 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
-	"gitea.dev/modules/web"
 	"gitea.dev/routers/common"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -639,6 +638,16 @@ func WikiRaw(ctx *context.Context) {
 	ctx.NotFound(nil)
 }
 
+func wikiHandleEditError(ctx *context.Context, wikiName wiki_service.WebPath, err error) {
+	if repo_model.IsErrWikiReservedName(err) {
+		ctx.JSONErrorWithField(ctx.Tr("repo.wiki.reserved_page", wikiName), "title")
+	} else if repo_model.IsErrWikiAlreadyExist(err) {
+		ctx.JSONErrorWithField(ctx.Tr("repo.wiki.page_already_exists"), "title")
+	} else {
+		ctx.ServerError("EditWiki", err)
+	}
+}
+
 // NewWiki render wiki create page
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
@@ -655,41 +664,25 @@ func NewWiki(ctx *context.Context) {
 
 // NewWikiPost response for wiki create request
 func NewWikiPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWikiForm)
-	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplWikiNew)
-		return
-	}
-
-	if util.IsEmptyString(form.Title) {
-		ctx.RenderWithErrDeprecated(ctx.Tr("repo.issues.new.title_empty"), tplWikiNew, form)
+	form := context.GetFetchActionForm[*forms.WikiEditForm](ctx)
+	if form == nil {
 		return
 	}
 
 	wikiName := wiki_service.UserTitleToWebPath("", form.Title)
-
-	if len(form.Message) == 0 {
+	if form.Message == "" {
 		form.Message = ctx.Locale.TrString("repo.editor.add", form.Title)
 	}
 
-	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
-		if repo_model.IsErrWikiReservedName(err) {
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
-		} else if repo_model.IsErrWikiAlreadyExist(err) {
-			ctx.Data["Err_Title"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
-		} else {
-			ctx.ServerError("AddWikiPage", err)
-		}
+	err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message)
+	if err != nil {
+		wikiHandleEditError(ctx, wikiName, err)
 		return
 	}
 
 	notify_service.NewWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(wikiName), form.Message)
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(wikiName))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(wikiName))
 }
 
 // EditWiki render wiki modify page
@@ -711,38 +704,31 @@ func EditWiki(ctx *context.Context) {
 
 // EditWikiPost response for wiki modify request
 func EditWikiPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWikiForm)
-	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplWikiNew)
+	form := context.GetFetchActionForm[*forms.WikiEditForm](ctx)
+	if form == nil {
 		return
 	}
 
 	oldWikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
 	newWikiName := wiki_service.UserTitleToWebPath("", form.Title)
-
-	if len(form.Message) == 0 {
+	if form.Message == "" {
 		form.Message = ctx.Locale.TrString("repo.editor.update", form.Title)
 	}
 
 	if err := wiki_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
-		ctx.ServerError("EditWikiPage", err)
+		wikiHandleEditError(ctx, newWikiName, err)
 		return
 	}
 
 	notify_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, string(newWikiName), form.Message)
 
-	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(newWikiName))
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.WebPathToURLPath(newWikiName))
 }
 
 // DeleteWikiPagePost delete wiki page
 func DeleteWikiPagePost(ctx *context.Context) {
 	wikiName := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
-	if len(wikiName) == 0 {
-		wikiName = "Home"
-	}
-
+	wikiName = util.IfZero(wikiName, "Home")
 	if err := wiki_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName); err != nil {
 		ctx.ServerError("DeleteWikiPage", err)
 		return

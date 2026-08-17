@@ -108,7 +108,7 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
-	opts := web.GetForm(ctx).(*private.HookOptions)
+	opts := web.GetForm[*private.HookOptions](ctx)
 
 	ourCtx := &preReceiveContext{
 		PrivateContext: ctx,
@@ -225,17 +225,17 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	if protectBranch.RequireSignedCommits {
 		err := verifyCommits(ctx, oldCommitID, newCommitID, gitRepo, ctx.env)
 		if err != nil {
-			if !isErrUnverifiedCommit(err) {
+			errUnverified, ok := err.(*errUnverifiedCommit)
+			if !ok {
 				log.Error("Unable to check commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
 					Err: fmt.Sprintf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err),
 				})
 				return
 			}
-			unverifiedCommit := err.(*errUnverifiedCommit).sha
-			log.Warn("Forbidden: Branch: %s in %-v is protected from unverified commit %s", branchName, repo, unverifiedCommit)
+			log.Warn("Forbidden: Branch: %s in %-v is protected from unverified commit %s", branchName, repo, errUnverified.sha)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, unverifiedCommit),
+				UserMsg: fmt.Sprintf("branch %s is protected from unverified commit %s", branchName, errUnverified.sha),
 			})
 			return
 		}
@@ -251,7 +251,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	if len(globs) > 0 {
 		_, err := pull_service.CheckFileProtection(ctx, gitRepo, branchName, oldCommitID, newCommitID, globs, 1, ctx.env)
 		if err != nil {
-			if !pull_service.IsErrFilePathProtected(err) {
+			errFilePathProtected, ok := errors.AsType[pull_service.ErrFilePathProtected](err)
+			if !ok {
 				log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
 					Err: fmt.Sprintf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err),
@@ -260,7 +261,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			}
 
 			changedProtectedfiles = true
-			protectedFilePath = err.(pull_service.ErrFilePathProtected).Path
+			protectedFilePath = errFilePathProtected.Path
 		}
 	}
 

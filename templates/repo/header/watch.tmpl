@@ -1,19 +1,57 @@
-<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}"{{end}}>
-	{{$buttonText := ctx.Locale.Tr "repo.watch"}}
-	{{if $.IsWatchingRepo}}{{$buttonText = ctx.Locale.Tr "repo.unwatch"}}{{end}}
-	<a role="button" class="ui compact small basic button" aria-label="{{$buttonText}}"
-		{{if $.IsSigned}}
-			data-fetch-method="post"
-			data-fetch-url="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}unwatch{{else}}watch{{end}}"
-			data-fetch-sync="$closest(.ui.labeled.button)"
-		{{else}}
-			href="{{AppSubUrl}}/user/login"
-		{{end}}
-	>
-		{{svg "octicon-eye"}}
-		<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
-	</a>
-	<a class="ui basic label" href="{{$.RepoLink}}/watchers">
-		{{CountFmt .Repository.NumWatches}}
-	</a>
+{{$isIgnoring := and $.IsSigned $.RepoWatch.IsIgnoring}}
+{{$buttonText := ctx.Locale.Tr (Iif $isIgnoring "repo.ignoring" (Iif $.RepoWatch.IsWatching "repo.watching" "repo.watch"))}}
+{{$count := CountFmt .Repository.NumWatches}}
+<div id="repo-header-watch" class="flex-text-block">
+	{{if $.IsSigned}}
+		{{$mode := $.RepoWatch.SelectedMode}}
+		{{$isAll := eq $mode "all"}}
+		{{$isCustom := eq $mode "custom"}}
+		{{$isParticipating := eq $mode "participate"}}
+		<button class="ui dropdown custom compact small basic button" data-global-init="initRepoWatchMenu" aria-label="{{$buttonText}}">
+			{{svg (Iif $isIgnoring "octicon-eye-closed" "octicon-eye")}}
+			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
+			<span class="ui small label">{{$count}}</span>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		</button>
+		<div class="tippy-target">
+			{{$testParticipating := ctx.Locale.Tr "repo.watch.mode.participating"}}
+			<a class="item{{if $isParticipating}} active{{end}}" role="menuitem" aria-label="{{$testParticipating}}"
+				data-fetch-method="post" data-fetch-url="{{$.RepoLink}}/action/participate" data-fetch-sync="$body #repo-header-watch"
+			>
+				{{svg "octicon-check" 16 (Iif $isParticipating "" "tw-invisible")}}
+				<div>{{$testParticipating}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.participating.desc"}}</div></div>
+			</a>
+			{{$textAll := ctx.Locale.Tr "repo.watch.mode.all"}}
+			<a class="item{{if $isAll}} active{{end}}" role="menuitem" aria-label="{{$textAll}}"
+				data-fetch-method="post" data-fetch-url="{{$.RepoLink}}/action/watch" data-fetch-sync="$body #repo-header-watch"
+			>
+				{{svg "octicon-check" 16 (Iif $isAll "" "tw-invisible")}}
+				<div>{{$textAll}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.all.desc"}}</div></div>
+			</a>
+			{{$textIgnore := ctx.Locale.Tr "repo.watch.mode.ignore"}}
+			<a class="item{{if $isIgnoring}} active{{end}}" role="menuitem" aria-label="{{$textIgnore}}"
+				data-fetch-method="post" data-fetch-url="{{$.RepoLink}}/action/ignore" data-fetch-sync="$body #repo-header-watch"
+			>
+				{{svg "octicon-check" 16 (Iif $isIgnoring "" "tw-invisible")}}
+				<div>{{$textIgnore}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.ignore.desc"}}</div></div>
+			</a>
+			{{$textCustom := ctx.Locale.Tr "repo.watch.mode.custom"}}
+			<a class="item {{if $isCustom}}active{{end}} show-modal" role="menuitem" aria-label="{{$textCustom}}"
+				data-modal="#repo-watch-options-modal"
+				data-modal-form.url="{{$.RepoLink}}/action/watch/options"
+				data-modal-issues="{{$.RepoWatch.IncludeIssues}}"
+				data-modal-pull_requests="{{$.RepoWatch.IncludePullRequests}}"
+				data-modal-releases="{{$.RepoWatch.IncludeReleases}}"
+			>
+				{{svg "octicon-check" 16 (Iif $isCustom "" "tw-invisible")}}
+				<div>{{$textCustom}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.custom.desc"}}</div></div>
+			</a>
+		</div>
+	{{else}}
+		<a role="button" class="ui compact small basic button" href="{{AppSubUrl}}/user/login" aria-label="{{$buttonText}}" data-tooltip-content="{{ctx.Locale.Tr "repo.watch_guest_user"}}">
+			{{svg "octicon-eye"}}
+			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
+			<span class="ui small label">{{$count}}</span>
+		</a>
+	{{end}}
 </div>

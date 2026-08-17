@@ -12,10 +12,12 @@ import (
 	"strings"
 	"time"
 
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/public"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/services/webtheme"
 )
@@ -24,16 +26,16 @@ type TemplateContext map[string]any
 
 var _ context.Context = TemplateContext(nil)
 
-func NewTemplateContext(ctx context.Context, req *http.Request) TemplateContext {
+func NewTemplateContext(ctx reqctx.RequestContext, req *http.Request) TemplateContext {
 	return TemplateContext{"_ctx": ctx, "_req": req}
 }
 
 func (c TemplateContext) req() *http.Request {
-	return c["_req"].(*http.Request)
+	return c["_req"].(*http.Request) //nolint:forcetypeassert // must exist
 }
 
-func (c TemplateContext) parentContext() context.Context {
-	return c["_ctx"].(context.Context)
+func (c TemplateContext) parentContext() reqctx.RequestContext {
+	return c["_ctx"].(reqctx.RequestContext) //nolint:forcetypeassert // must exist
 }
 
 func (c TemplateContext) Deadline() (deadline time.Time, ok bool) {
@@ -63,6 +65,14 @@ func (c TemplateContext) CurrentWebTheme() *webtheme.ThemeMetaInfo {
 		themeName = middleware.GetSiteCookie(c.req(), middleware.CookieTheme)
 	}
 	return webtheme.GuaranteeGetThemeMetaInfo(themeName)
+}
+
+func (c TemplateContext) ImpersonatedUser() *user_model.User {
+	webCtx := GetWebContext(c)
+	if webCtx == nil || webCtx.Doer == nil || !webCtx.DoerIsImpersonated() {
+		return nil
+	}
+	return webCtx.Doer
 }
 
 func (c TemplateContext) CurrentWebBanner() *setting.WebBannerType {
@@ -100,21 +110,10 @@ func (c TemplateContext) ScriptImport(path string, typ ...string) template.HTML 
 }
 
 func (c TemplateContext) CspScriptNonce() (ret string) {
-	// Generate a random nonce for each request and cache it in the context to make it usable during the whole rendering process.
-	//
-	// Some "<script>" tags are not in the CSP context, so they don't need nonce,
-	// these tags are written as "<script nonce>" to help developers to know that "no script nonce attribute is missing"
-	// (e.g.: when they grep the codebase for "script" tags)
-
-	ret, _ = c["_cspScriptNonce"].(string)
-	if ret == "" {
-		ret = util.FastCryptoRandomHex(32) // 16 bytes / 128 bits entropy
-		c["_cspScriptNonce"] = ret
-	}
-	return ret
+	return CspScriptNonce(c.parentContext())
 }
 
-func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
+func WebContentSecurityPolicy(scriptNonce string) string {
 	if setting.Security.ContentSecurityPolicyGeneral == "unset" {
 		return "" // if site admin disables the general CSP, then we don't use it
 	}
@@ -130,16 +129,24 @@ func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
 	//    * Browsers will merge and use the stricter rules between Gitea and reverse proxy
 	// B. Introduce some config options in "app.ini"
 	//    * Maybe this approach should be avoided, don't make the config system too complex, just let users use A
-	return template.HTML(`<meta http-equiv="Content-Security-Policy" content="` +
-		// allow all by default (the same as old releases with no CSP)
-		// * maybe some images or markup (external) renders need "data:", need to investigate
-		// * avatar upload editor needs "blob:", at least "img-src" and "content-src"
-		`default-src * data: blob:;` +
+
+	// allow all by default (the same as old releases with no CSP)
+	// * maybe some images or markup (external) renders need "data:", need to investigate
+	// * avatar upload editor needs "blob:", at least "img-src" and "content-src"
+	return `default-src * data: blob:;` +
 
 		// enforce nonce for all scripts, disallow inline scripts
-		`script-src * 'nonce-` + c.CspScriptNonce() + `';` +
+		`script-src * 'nonce-` + scriptNonce + `';` +
 
 		// it seems that Vue needs the unsafe-inline, and our custom colors (e.g.: label) also need it
-		`style-src * 'unsafe-inline';` +
-		`">`)
+		`style-src * 'unsafe-inline';`
+}
+
+func (c TemplateContext) HeadMetaContentSecurityPolicy() template.HTML {
+	scriptNonce := c.CspScriptNonce()
+	csp := WebContentSecurityPolicy(scriptNonce)
+	if csp == "" {
+		return ""
+	}
+	return htmlutil.HTMLFormat(`<meta http-equiv="Content-Security-Policy" content="%s">`, csp)
 }
