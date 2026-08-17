@@ -7,12 +7,12 @@
 		<div class="ui attached segment">
 			{{template "base/alert" .}}
 			<p>
-				{{if not .AdditionalScopes}}
+				{{if not .ScopeChanged}}
 				<b>{{ctx.Locale.Tr "auth.authorize_application_description"}}</b><br>
 				{{end}}
 				{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}<br>
 				{{ctx.Locale.Tr "auth.authorize_application_with_scopes" (HTMLFormat "<b>%s</b>" .Scope)}}
-				{{if .AdditionalScopes}}
+				{{if .ScopeChanged}}
 				<br>
 				{{ctx.Locale.Tr "auth.authorize_application_additional_scopes"}}
 				{{end}}
