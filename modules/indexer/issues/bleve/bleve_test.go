@@ -100,7 +100,7 @@ func TestBleveIndexerTokenFilter(t *testing.T) {
 		{name: "all lower case", keyword: "something", expectedIDs: []int64{1}},
 		{name: "all upper case", keyword: "SOMETHING", expectedIDs: []int64{1}},
 		{name: "number match", keyword: "12345", expectedIDs: []int64{1}},
-		{name: "number not match", keyword: "1234", expectedIDs: []int64{2}},
+		{name: "number as part", keyword: "1234", expectedIDs: []int64{2}},
 		{name: "sub-word search still works", keyword: "DNS", expectedIDs: []int64{2}},
 		{name: "sub-word search, lower case", keyword: "mdns", expectedIDs: []int64{2}},
 		{name: "keyword is camel case", keyword: "addSupport", expectedIDs: []int64{2}},
