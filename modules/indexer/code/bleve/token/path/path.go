@@ -8,13 +8,12 @@ import (
 	"strings"
 
 	"gitea.dev/modules/util"
+
 	"github.com/blevesearch/bleve/v2/analysis"
 	"github.com/blevesearch/bleve/v2/registry"
 )
 
-const (
-	Name = "gitea/path"
-)
+const Name = "gitea/path"
 
 type TokenFilter struct{}
 
