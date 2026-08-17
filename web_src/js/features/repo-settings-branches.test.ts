@@ -4,7 +4,6 @@ import {createSortable} from '../modules/sortable.ts';
 import type {SortableEvent} from 'sortablejs';
 
 vi.mock('../modules/fetch.ts', () => ({POST: vi.fn()}));
-
 vi.mock('../modules/sortable.ts', () => ({createSortable: vi.fn()}));
 
 const branchesHTML = `
