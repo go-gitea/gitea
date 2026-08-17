@@ -26,6 +26,11 @@ func IsEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
 }
 
+// ParseYamlBool parses YAML 1.2 boolean values into bool
+func ParseYamlBool(s string) bool {
+	return s == "true" || s == "True" || s == "TRUE"
+}
+
 // NormalizeEOL will convert Windows (CRLF) and Mac (CR) EOLs to UNIX (LF)
 func NormalizeEOL(input []byte) []byte {
 	var right, left, pos int

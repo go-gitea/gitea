@@ -23,12 +23,11 @@ func canAccessReleaseDraft(ctx *context.APIContext) bool {
 	if !ctx.IsSigned || !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
 		return false
 	}
-	if ctx.Data["IsApiToken"] != true {
+	scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if !hasApiTokenScope {
 		// not API token request, the request is from a user session with write access
 		return true
 	}
-	// the request is from an access token with scope
-	scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope) //nolint:forcetypeassert // must exist
 	requiredScopes := auth_model.GetRequiredScopes(auth_model.Write, auth_model.AccessTokenScopeCategoryRepository)
 	allow, _ := scope.HasScope(requiredScopes...) // err (invalid token) can be safely ignored
 	return allow
