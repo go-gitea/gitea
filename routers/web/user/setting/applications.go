@@ -121,16 +121,15 @@ func DeleteApplication(ctx *context.Context) {
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
 }
 
-// RegenerateApplication response for regenerating a user's access token
-func RegenerateApplication(ctx *context.Context) {
+// RegenerateAccessToken response for regenerating a user's access token
+func RegenerateAccessToken(ctx *context.Context) {
 	t, err := auth_model.RegenerateAccessToken(ctx, ctx.FormInt64("id"), ctx.Doer.ID)
 	if err != nil {
-		ctx.Flash.Error("RegenerateAccessToken: " + err.Error())
-	} else {
-		ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-		ctx.Flash.Info(t.Token)
+		ctx.ServerError("RegenerateAccessToken", err)
+		return
 	}
-
+	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
+	ctx.Flash.Info(t.Token)
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings/applications")
 }
 

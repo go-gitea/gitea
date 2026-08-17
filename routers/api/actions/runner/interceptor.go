@@ -42,7 +42,7 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			}
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-		if !util.CryptoEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
+		if !util.CryptoConstTimeEqual(runner.TokenHash, auth_model.HashToken(token, runner.TokenSalt)) {
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 

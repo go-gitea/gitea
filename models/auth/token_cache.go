@@ -18,6 +18,6 @@ type TokenCacheItem struct {
 
 var TokenCache = sync.OnceValue(func() *lru.Cache[string, *TokenCacheItem] {
 	cacheSize := max(setting.SuccessfulTokensCacheSize, 20)
-	c, _ := lru.New[string, *TokenCacheItem](cacheSize)
+	c, _ := lru.New[string, *TokenCacheItem](cacheSize) // it only fails when size <= 0
 	return c
 })

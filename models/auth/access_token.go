@@ -71,7 +71,7 @@ func RegenerateAccessToken(ctx context.Context, id, userID int64) (*AccessToken,
 	}
 
 	t.setNewTokenValue()
-	if _, err := db.GetEngine(ctx).ID(t.ID).Cols("token_hash", "token_salt", "token_last_eight").Update(t); err != nil {
+	if _, err := db.GetEngine(ctx).ID(t.ID).Cols("token_hash", "token_salt", "token_last_eight").NoAutoTime().Update(t); err != nil {
 		return nil, err
 	}
 	return t, nil
@@ -101,7 +101,7 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 		if err != nil {
 			return nil, err
 		}
-		if has && util.CryptoEqual(accessToken.TokenHash, cached.TokenHash) {
+		if has && util.CryptoConstTimeEqual(accessToken.TokenHash, cached.TokenHash) {
 			return accessToken, nil
 		}
 		// either the token has been deleted or changed, invalidate the cache
@@ -118,7 +118,7 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 
 	for _, t := range tokens {
 		tempHash := HashToken(token, t.TokenSalt)
-		if util.CryptoEqual(t.TokenHash, tempHash) {
+		if util.CryptoConstTimeEqual(t.TokenHash, tempHash) {
 			TokenCache().Add(cacheKey, &TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
 			return &t, nil
 		}

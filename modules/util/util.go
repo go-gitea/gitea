@@ -100,7 +100,7 @@ func CryptoRandomBytes(length int64) []byte {
 	return buf
 }
 
-func CryptoEqual[T string | []byte](a, b T) bool {
+func CryptoConstTimeEqual[T string | []byte](a, b T) bool {
 	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 

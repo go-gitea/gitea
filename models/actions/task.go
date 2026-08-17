@@ -191,7 +191,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 		if err != nil {
 			return nil, err
 		}
-		if has {
+		if has && util.CryptoConstTimeEqual(task.TokenHash, cached.TokenHash) {
 			return task, nil
 		}
 		auth_model.TokenCache().Remove(cacheKey)
@@ -208,7 +208,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 	for _, t := range tasks {
 		tempHash := auth_model.HashToken(token, t.TokenSalt)
-		if util.CryptoEqual(t.TokenHash, tempHash) {
+		if util.CryptoConstTimeEqual(t.TokenHash, tempHash) {
 			auth_model.TokenCache().Add(cacheKey, &auth_model.TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
 			return t, nil
 		}
