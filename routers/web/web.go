@@ -345,15 +345,16 @@ func addProjectBoardRoutes(m *web.Router) {
 
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
-	// required to be signed in or signed out
+	validation.AddBindingRules()
+
+	// middleware: required to be signed in or signed out
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
-	// optional sign in (if signed in, use the user as doer, if not, no doer)
+	// middleware: optional sign in (if signed in, use the user as doer, if not, no doer)
 	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
 	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
-	// only apply DisableCrossOriginProtection
+	// middleware: only apply CrossOriginProtection
 	crossOriginProtect := verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: false})
-	validation.AddBindingRules()
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
