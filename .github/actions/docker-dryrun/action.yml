@@ -3,7 +3,7 @@ description: Composite action that performs the container build steps for a sing
 
 inputs:
   platform:
-    description: The target platform
+    description: "The target platform: linux/amd64, linux/arm64, linux/riscv64."
     required: true
 
 runs:
