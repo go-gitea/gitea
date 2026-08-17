@@ -29,6 +29,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 	}
 
 	prConfig := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
+	committerEmail := ctx.Doer.GetEmail()
 
 	// Check correct values and select default
 	var mergeStyle repo_model.MergeStyle
@@ -85,15 +86,22 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 
 	allOverridableChecksOk := !prInfo.MergeBoxData.hasOverridableBlockers
 	mergeFormProps := map[string]any{
-		"baseLink":                       prInfo.issue.Link(),
-		"textCancel":                     ctx.Locale.Tr("cancel"),
-		"textDeleteBranch":               ctx.Locale.Tr("repo.branch.delete", prInfo.headTarget),
-		"textAutoMergeButtonWhenSucceed": ctx.Locale.Tr("repo.pulls.auto_merge_button_when_succeed"),
-		"textAutoMergeWhenSucceed":       ctx.Locale.Tr("repo.pulls.auto_merge_when_succeed"),
-		"textAutoMergeCancelSchedule":    ctx.Locale.Tr("repo.pulls.auto_merge_cancel_schedule"),
-		"textClearMergeMessage":          ctx.Locale.Tr("repo.pulls.clear_merge_message"),
-		"textClearMergeMessageHint":      ctx.Locale.Tr("repo.pulls.clear_merge_message_hint"),
-		"textMergeCommitId":              ctx.Locale.Tr("repo.pulls.merge_commit_id"),
+		"baseLink":                             prInfo.issue.Link(),
+		"textCancel":                           ctx.Locale.Tr("cancel"),
+		"textDeleteBranch":                     ctx.Locale.Tr("repo.branch.delete", prInfo.headTarget),
+		"textAutoMergeButtonWhenSucceed":       ctx.Locale.Tr("repo.pulls.auto_merge_button_when_succeed"),
+		"textAutoMergeWhenSucceed":             ctx.Locale.Tr("repo.pulls.auto_merge_when_succeed"),
+		"textAutoMergeCancelSchedule":          ctx.Locale.Tr("repo.pulls.auto_merge_cancel_schedule"),
+		"textClearMergeMessage":                ctx.Locale.Tr("repo.pulls.clear_merge_message"),
+		"textClearMergeMessageHint":            ctx.Locale.Tr("repo.pulls.clear_merge_message_hint"),
+		"textMergeCommitId":                    ctx.Locale.Tr("repo.pulls.merge_commit_id"),
+		"textCommitterIdentity":                ctx.Locale.Tr("repo.editor.commit_identity"),
+		"textCommitterIdentityCustom":          ctx.Locale.Tr("repo.editor.commit_identity_custom"),
+		"textCommitterIdentityPlaceholder":     ctx.Locale.Tr("repo.editor.commit_identity_placeholder"),
+		"textCommitterIdentityInvalidFormat":   ctx.Locale.Tr("repo.editor.commit_identity_invalid_format"),
+		"textCommitterIdentityUnverifiedEmail": ctx.Locale.Tr("repo.editor.commit_identity_unverified_email"),
+		"textCommitterIdentityLoadError":       ctx.Locale.Tr("repo.editor.commit_identity_load_error"),
+		"textCommitterIdentityRestore":         ctx.Locale.Tr("repo.editor.commit_identity_restore"),
 
 		"canMergeNow":                   prInfo.MergeBoxData.canMergeNow,
 		"allOverridableChecksOk":        allOverridableChecksOk,
@@ -104,6 +112,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxFormProps(ctx *context.Context
 		"defaultDeleteBranchAfterMerge": prConfig.DefaultDeleteBranchAfterMerge,
 		"mergeMessageFieldPlaceHolder":  ctx.Locale.Tr("repo.editor.commit_message_desc"),
 		"defaultMergeMessage":           defaultMergeBody,
+		"committerName":                 ctx.Doer.GitName(),
+		"committerEmail":                committerEmail,
 
 		"hasPendingPullRequestMerge":    hasPendingPullRequestMerge,
 		"hasPendingPullRequestMergeTip": hasPendingPullRequestMergeTip,

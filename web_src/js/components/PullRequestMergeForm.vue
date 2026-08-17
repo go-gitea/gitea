@@ -47,6 +47,10 @@ const forceMerge = computed(() => {
   return mergeForm.canMergeNow && !mergeForm.allOverridableChecksOk;
 });
 
+const mergeStyleUsesCommitterIdentity = computed(() => {
+  return ['merge', 'rebase-merge', 'squash'].includes(mergeStyle.value);
+});
+
 watch(mergeStyle, (val) => {
   mergeStyleDetail.value = mergeForm.mergeStyles.find((e: any) => e.name === val);
   for (const elem of document.querySelectorAll('[data-pull-merge-style]')) {
@@ -124,6 +128,22 @@ function clearMergeMessage() {
           </template>
         </div>
       </template>
+
+      <div class="field" v-if="!autoMergeWhenSucceed && mergeStyleUsesCommitterIdentity">
+        <label for="gitea-git-identity-picker-committer">{{ mergeForm.textCommitterIdentity }}</label>
+        <gitea-git-identity-picker
+          data-role="committer"
+          data-field-prefix="committer"
+          :data-default-name="mergeForm.committerName"
+          :data-default-email="mergeForm.committerEmail"
+          :data-custom-label="mergeForm.textCommitterIdentityCustom"
+          :data-placeholder="mergeForm.textCommitterIdentityPlaceholder"
+          :data-error-format="mergeForm.textCommitterIdentityInvalidFormat"
+          :data-error-unverified="mergeForm.textCommitterIdentityUnverifiedEmail"
+          :data-error-load="mergeForm.textCommitterIdentityLoadError"
+          :data-restore-label="mergeForm.textCommitterIdentityRestore"
+        />
+      </div>
 
       <div class="field" v-if="mergeStyle === mergeStyleManuallyMerged">
         <input type="text" name="merge_commit_id" :placeholder="mergeForm.textMergeCommitId">

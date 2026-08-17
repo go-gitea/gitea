@@ -25,11 +25,12 @@ import (
 
 type mergeContext struct {
 	*prTmpRepoContext
-	doer      *user_model.User
-	sig       *git.Signature
-	committer *git.Signature
-	signKey   *git.SigningKey
-	env       []string
+	doer              *user_model.User
+	sig               *git.Signature
+	committer         *git.Signature
+	requestedIdentity *git.Signature
+	signKey           *git.SigningKey
+	env               []string
 }
 
 // PrepareGitCmd prepares a git command with the correct directory, environment, and output buffers
@@ -60,7 +61,7 @@ func (err ErrSHADoesNotMatch) Error() string {
 	return fmt.Sprintf("sha does not match [given: %s, expected: %s]", err.GivenSHA, err.CurrentSHA)
 }
 
-func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, expectedHeadCommitID string) (mergeCtx *mergeContext, cancel context.CancelFunc, err error) {
+func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, expectedHeadCommitID string, requestedIdentity *git.Signature) (mergeCtx *mergeContext, cancel context.CancelFunc, err error) {
 	// Clone base repo.
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
@@ -69,8 +70,9 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	mergeCtx = &mergeContext{
-		prTmpRepoContext: prCtx,
-		doer:             doer,
+		prTmpRepoContext:  prCtx,
+		doer:              doer,
+		requestedIdentity: requestedIdentity,
 	}
 
 	if expectedHeadCommitID != "" {
@@ -120,7 +122,11 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 			mergeCtx.committer = signer
 		}
 	}
-
+	if requestedIdentity != nil {
+		// the requested identity acts as user.name/user.email for commits generated during this merge
+		mergeCtx.sig = requestedIdentity
+		mergeCtx.committer = requestedIdentity
+	}
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment

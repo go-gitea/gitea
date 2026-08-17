@@ -68,16 +68,21 @@
 				</div>
 			{{end}}
 		</div>
-		{{if and .CommitCandidateEmails (gt (len .CommitCandidateEmails) 1)}}
-			<div class="field">
-				<label>{{ctx.Locale.Tr "repo.editor.commit_email"}}</label>
-				<select class="ui selection dropdown" name="commit_email">
-					{{- range $email := .CommitCandidateEmails -}}
-						<option {{if eq $email $.CommitDefaultEmail}}selected{{end}} value="{{$email}}">{{$email}}</option>
-					{{- end -}}
-				</select>
-			</div>
-		{{end}}
+		<div class="field">
+			<label for="gitea-git-identity-picker-author">{{ctx.Locale.Tr "repo.editor.commit_identity"}}</label>
+			<gitea-git-identity-picker
+				data-role="author"
+				data-field-prefix="commit"
+				data-default-name="{{.CommitDefaultName}}"
+				data-default-email="{{.CommitDefaultEmail}}"
+				data-custom-label="{{ctx.Locale.Tr "repo.editor.commit_identity_custom"}}"
+				data-placeholder="{{ctx.Locale.Tr "repo.editor.commit_identity_placeholder"}}"
+				data-error-format="{{ctx.Locale.Tr "repo.editor.commit_identity_invalid_format"}}"
+				data-error-unverified="{{ctx.Locale.Tr "repo.editor.commit_identity_unverified_email"}}"
+				data-error-load="{{ctx.Locale.Tr "repo.editor.commit_identity_load_error"}}"
+				data-restore-label="{{ctx.Locale.Tr "repo.editor.commit_identity_restore"}}">
+			</gitea-git-identity-picker>
+		</div>
 	</div>
 	<input type="hidden" name="last_commit" value="{{.last_commit}}">
 	<button id="commit-button" type="submit" class="ui primary button">

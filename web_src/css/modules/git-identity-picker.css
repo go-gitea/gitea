@@ -1,0 +1,42 @@
+gitea-git-identity-picker {
+  display: block;
+  max-width: 100%;
+}
+
+.git-identity-picker-dropdown {
+  width: 340px;
+}
+
+.ui.dropdown.git-identity-picker-dropdown .ui.button.git-identity-picker-button {
+  width: 100%;
+  padding: 0 1em;
+  text-align: left;
+  background: var(--color-input-background);
+  border-color: var(--color-input-border);
+}
+
+.ui.dropdown.git-identity-picker-dropdown .ui.button.git-identity-picker-button:hover,
+.ui.dropdown.git-identity-picker-dropdown .ui.button.git-identity-picker-button:focus {
+  background: var(--color-hover);
+}
+
+.git-identity-picker-dropdown > .menu {
+  width: 100%;
+  min-width: 100%;
+}
+
+.git-identity-picker-dropdown > .menu > .item {
+  /* menu items are <button> for native keyboard support; reset the button
+     appearance so they render like fomantic .item elements */
+  width: 100%;
+  appearance: none;
+  background: transparent;
+}
+
+.git-identity-picker-dropdown > .menu > .item.selected {
+  font-weight: var(--font-weight-semibold);
+}
+
+.ui.action.input > .git-identity-picker-input[aria-invalid="true"] {
+  border-color: var(--color-red);
+}

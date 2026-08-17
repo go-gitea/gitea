@@ -4,37 +4,36 @@
 package repo
 
 import (
+	"strings"
+
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/log"
-	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	files_service "gitea.dev/services/repository/files"
 )
 
 func WebGitOperationCommonData(ctx *context.Context) {
 	// TODO: more places like "wiki page" and "merging a pull request or creating an auto merge merging task"
-	emails, err := user_model.GetActivatedEmailAddresses(ctx, ctx.Doer.ID)
-	if err != nil {
-		log.Error("WebGitOperationCommonData: GetActivatedEmailAddresses: %v", err)
-	}
-	if ctx.Doer.KeepEmailPrivate {
-		emails = append([]string{ctx.Doer.GetPlaceholderEmail()}, emails...)
-	}
-	ctx.Data["CommitCandidateEmails"] = emails
 	ctx.Data["CommitDefaultEmail"] = ctx.Doer.GetEmail()
+	ctx.Data["CommitDefaultName"] = ctx.Doer.GitName()
+	ctx.Data["commit_name"] = ctx.Doer.GitName()
 }
 
-func WebGitOperationGetCommitChosenEmailIdentity(ctx *context.Context, email string) (_ *files_service.IdentityOptions, valid bool) {
-	if ctx.Data["CommitCandidateEmails"] == nil {
-		setting.PanicInDevOrTesting("no CommitCandidateEmails in context data")
+func WebGitOperationGetCommitChosenEmailIdentity(ctx *context.Context, name, email string) (*files_service.IdentityOptions, bool) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		name = ctx.Doer.GitName()
+	} else if strings.ContainsAny(name, "\r\n<>") {
+		return nil, false
 	}
-	emails, _ := ctx.Data["CommitCandidateEmails"].([]string)
-	if email == "" {
-		return nil, true
+	chosenEmail := strings.TrimSpace(email)
+	if chosenEmail == "" {
+		chosenEmail = ctx.Doer.GetEmail()
 	}
-	if util.SliceContainsString(emails, email, true) {
-		return &files_service.IdentityOptions{GitUserEmail: email}, true
+	if chosenEmail != ctx.Doer.GetPlaceholderEmail() {
+		address, err := user_model.GetEmailAddressOfUser(ctx, chosenEmail, ctx.Doer.ID)
+		if err != nil || address == nil || !address.IsActivated {
+			return nil, false
+		}
 	}
-	return nil, false
+	return &files_service.IdentityOptions{GitUserName: name, GitUserEmail: chosenEmail}, true
 }

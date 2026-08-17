@@ -1055,7 +1055,19 @@ func MergePullRequest(ctx *context.Context) {
 	pr.Issue = issue
 	pr.Issue.Repo = ctx.Repo.Repository
 
-	manuallyMerged := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+	mergeStyle := repo_model.MergeStyle(form.Do)
+	var commitIdentity *git.Signature
+	usesFinalCommitterIdentity := mergeStyle == repo_model.MergeStyleMerge || mergeStyle == repo_model.MergeStyleRebaseMerge || mergeStyle == repo_model.MergeStyleSquash
+	if !form.MergeWhenChecksSucceed && usesFinalCommitterIdentity && (form.CommitterEmail != "" || form.CommitterName != "") {
+		chosenIdentity, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, form.CommitterName, form.CommitterEmail)
+		if !valid {
+			ctx.JSONError(ctx.Tr("repo.editor.invalid_commit_email"))
+			return
+		}
+		commitIdentity = &git.Signature{Name: chosenIdentity.GitUserName, Email: chosenIdentity.GitUserEmail}
+	}
+
+	manuallyMerged := mergeStyle == repo_model.MergeStyleManuallyMerged
 
 	mergeCheckType := pull_service.MergeCheckTypeGeneral
 	if form.MergeWhenChecksSucceed {
@@ -1151,7 +1163,7 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.MergeWithIdentity(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false, commitIdentity); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {

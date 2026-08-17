@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
+	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/web"
@@ -34,6 +35,22 @@ const (
 )
 
 // Account renders change user's password, user's email and user suicide page
+// Emails returns the authenticated user's activated email addresses for web forms.
+func Emails(ctx *context.Context) {
+	emails, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.ServerError("GetEmailAddresses", err)
+		return
+	}
+	options := make([]*api.Email, 0, len(emails))
+	for _, email := range emails {
+		if email.IsActivated {
+			options = append(options, &api.Email{Email: email.Email, Verified: true, Primary: email.IsPrimary})
+		}
+	}
+	ctx.JSON(http.StatusOK, options)
+}
+
 func Account(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials, setting.UserFeatureDeletion) {
 		ctx.NotFound(errors.New("account setting are not allowed to be changed"))

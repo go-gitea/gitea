@@ -64,11 +64,15 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return err
 	}
 
+	author := sig
+	if ctx.requestedIdentity != nil {
+		author = ctx.requestedIdentity
+	}
 	if setting.Repository.PullRequest.AddCoCommitterTrailers && ctx.committer.String() != sig.String() {
 		message = AddCommitMessageTailer(message, git.CoAuthoredByTrailer, sig.String())
 	}
 	cmdCommit := gitcmd.NewCommand("commit").
-		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
+		AddOptionFormat("--author='%s <%s>'", author.Name, author.Email).
 		AddOptionFormat("--message=%s", message).
 		AddArguments("--allow-empty")
 	addCommitSigningOptions(cmdCommit, ctx.signKey)

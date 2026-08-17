@@ -297,7 +297,8 @@ func testEditorWebGitCommitEmail(t *testing.T) {
 		t.Run("ChooseEmail", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			paramsForChosenEmail["commit_email"] = "user2@example.com"
-			resp2 = makeReq(t, linkForChosenEmail, paramsForChosenEmail, "User Two", "user2@example.com")
+			paramsForChosenEmail["commit_name"] = "Chosen Commit Name"
+			resp2 = makeReq(t, linkForChosenEmail, paramsForChosenEmail, "Chosen Commit Name", "user2@example.com")
 		})
 		return resp1, resp2
 	}

@@ -424,6 +424,8 @@ type MergePullRequestForm struct {
 	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
+	CommitterName          string `json:"-" form:"committer_name"`
+	CommitterEmail         string `json:"-" form:"committer_email"`
 }
 
 func (f *MergePullRequestForm) UnmarshalJSON(b []byte) error {

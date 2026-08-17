@@ -21,7 +21,7 @@ import (
 // updateHeadByRebaseOnToBase handles updating a PR's head branch by rebasing it on the PR current base branch
 func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) error {
 	// "Clone" base repo and add the cache headers for the head repo and branch
-	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, "")
+	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, "", nil)
 	if err != nil {
 		return err
 	}
