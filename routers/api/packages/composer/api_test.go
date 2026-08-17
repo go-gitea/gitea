@@ -70,8 +70,10 @@ func TestPackageVersionMetadataMarshalJSONWithRawMetadata(t *testing.T) {
 	assert.Contains(t, result, "autoload")
 	assert.Contains(t, result, "extra")
 
-	dist := result["dist"].(map[string]any)
+	dist, ok := result["dist"].(map[string]any)
+	require.Truef(t, ok, "result[\"dist\"] is %T, want map[string]any", result["dist"])
 	assert.Equal(t, "0123456789abcdef", dist["reference"])
-	source := result["source"].(map[string]any)
+	source, ok := result["source"].(map[string]any)
+	require.Truef(t, ok, "result[\"source\"] is %T, want map[string]any", result["source"])
 	assert.Equal(t, "0123456789abcdef", source["reference"])
 }

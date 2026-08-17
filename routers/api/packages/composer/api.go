@@ -239,7 +239,7 @@ func createDevBranchPackageMetadata(ctx *context.Context, packageType string, pd
 		PublishedTime:     pd.Version.CreatedUnix.AsLocalTime(),
 		DefaultBranch:     branch == repo.DefaultBranch,
 		RawMetadata:       rawMetadata,
-		Metadata:          pd.Metadata.(*composer_module.Metadata),
+		Metadata:          pd.Metadata.(*composer_module.Metadata), //nolint:forcetypeassert // metadata type is set by the upload pipeline
 		Dist: Dist{
 			Type:      "zip",
 			URL:       repo.APIURL(ctx) + "/archive/" + util.PathEscapeSegments(reference) + ".zip",
