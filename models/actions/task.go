@@ -5,7 +5,6 @@ package actions
 
 import (
 	"context"
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"strings"
@@ -209,7 +208,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 	for _, t := range tasks {
 		tempHash := auth_model.HashToken(token, t.TokenSalt)
-		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
+		if util.CryptoEqual(t.TokenHash, tempHash) {
 			auth_model.TokenCache().Add(cacheKey, &auth_model.TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
 			return t, nil
 		}

@@ -6,7 +6,6 @@ package auth
 
 import (
 	"context"
-	"crypto/subtle"
 	"encoding/hex"
 	"time"
 
@@ -96,15 +95,16 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 	cacheKey := "access:" + token
 	lastEight := token[len(token)-8:]
 	if cached, _ := TokenCache().Get(cacheKey); cached != nil {
-		accessToken := &AccessToken{}
 		// Re-get the token from the db in case it has been deleted or regenerated in the intervening period
+		accessToken := &AccessToken{}
 		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(accessToken)
 		if err != nil {
 			return nil, err
 		}
-		if has && subtle.ConstantTimeCompare([]byte(accessToken.TokenHash), []byte(cached.TokenHash)) == 1 {
+		if has && util.CryptoEqual(accessToken.TokenHash, cached.TokenHash) {
 			return accessToken, nil
 		}
+		// either the token has been deleted or changed, invalidate the cache
 		TokenCache().Remove(cacheKey)
 	}
 
@@ -118,7 +118,7 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 
 	for _, t := range tokens {
 		tempHash := HashToken(token, t.TokenSalt)
-		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
+		if util.CryptoEqual(t.TokenHash, tempHash) {
 			TokenCache().Add(cacheKey, &TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
 			return &t, nil
 		}
