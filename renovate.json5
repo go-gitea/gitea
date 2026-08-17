@@ -21,6 +21,7 @@
     "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
     "installTools": {
       "golang": {},
+      "node": {},
       "pnpm": {},
     },
     "fileFilters": [
