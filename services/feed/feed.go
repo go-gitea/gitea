@@ -74,13 +74,13 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 		case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
 			allowed = permCode[i] && watcher.IsWatchingAll()
 		case activities_model.ActionPublishRelease:
-			allowed = permCode[i] && watcher.Releases
+			allowed = permCode[i] && watcher.IncludeReleases
 		case activities_model.ActionCreateIssue, activities_model.ActionCommentIssue, activities_model.ActionCloseIssue, activities_model.ActionReopenIssue:
-			allowed = permIssue[i] && watcher.Issues
+			allowed = permIssue[i] && watcher.IncludeIssues
 		case activities_model.ActionCreatePullRequest, activities_model.ActionCommentPull, activities_model.ActionMergePullRequest, activities_model.ActionClosePullRequest,
 			activities_model.ActionReopenPullRequest, activities_model.ActionAutoMergePullRequest, activities_model.ActionApprovePullRequest,
 			activities_model.ActionRejectPullRequest, activities_model.ActionPullReviewDismissed, activities_model.ActionPullRequestReadyForReview:
-			allowed = permPR[i] && watcher.PullRequests
+			allowed = permPR[i] && watcher.IncludePullRequests
 		default:
 			allowed = watcher.IsWatchingAll() // repository events have no watch option of their own
 		}
