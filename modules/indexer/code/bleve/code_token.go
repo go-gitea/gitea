@@ -37,8 +37,8 @@ func (c codeTokenFilter) Filter(stream analysis.TokenStream) (ret analysis.Token
 		ret = append(ret, token)
 		m := c.re.FindAllIndex(token.Term, -1)
 		if len(m) > 1 {
-			for i := 0; i < len(m); i++ {
-				p1, p2 := m[i][0], m[i][1]
+			for _, it := range m {
+				p1, p2 := it[0], it[1]
 				t := &analysis.Token{
 					Start:    token.Start + p1,
 					End:      token.Start + p2,
