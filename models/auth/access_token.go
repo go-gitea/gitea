@@ -103,19 +103,26 @@ func (t *AccessToken) DisplayPublicOnly() bool {
 	return publicOnly
 }
 
-func getAccessTokenIDFromCache(token string) int64 {
+// cachedAccessToken remembers which row a token last matched, and the hash it matched, so a
+// cache hit can be re-confirmed with a cheap comparison instead of paying for HashToken again.
+type cachedAccessToken struct {
+	id        int64
+	tokenHash string
+}
+
+func getAccessTokenFromCache(token string) *cachedAccessToken {
 	if successfulAccessTokenCache == nil {
-		return 0
+		return nil
 	}
-	tInterface, ok := successfulAccessTokenCache.Get(token)
+	cInterface, ok := successfulAccessTokenCache.Get(token)
 	if !ok {
-		return 0
+		return nil
 	}
-	t, ok := tInterface.(int64)
+	c, ok := cInterface.(cachedAccessToken)
 	if !ok {
-		return 0
+		return nil
 	}
-	return t
+	return &c
 }
 
 // GetAccessTokenBySHA returns access token by given token value
@@ -125,14 +132,14 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 	}
 
 	lastEight := token[len(token)-8:]
-	if id := getAccessTokenIDFromCache(token); id > 0 {
+	if cached := getAccessTokenFromCache(token); cached != nil {
 		accessToken := &AccessToken{}
 		// Re-get the token from the db in case it has been deleted or regenerated in the intervening period
-		has, err := db.GetEngine(ctx).ID(id).Get(accessToken)
+		has, err := db.GetEngine(ctx).ID(cached.id).Get(accessToken)
 		if err != nil {
 			return nil, err
 		}
-		if has && subtle.ConstantTimeCompare([]byte(accessToken.TokenHash), []byte(HashToken(token, accessToken.TokenSalt))) == 1 {
+		if has && subtle.ConstantTimeCompare([]byte(accessToken.TokenHash), []byte(cached.tokenHash)) == 1 {
 			return accessToken, nil
 		}
 		successfulAccessTokenCache.Remove(token)
@@ -150,7 +157,7 @@ func GetAccessTokenBySHA(ctx context.Context, token string) (*AccessToken, error
 		tempHash := HashToken(token, t.TokenSalt)
 		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
 			if successfulAccessTokenCache != nil {
-				successfulAccessTokenCache.Add(token, t.ID)
+				successfulAccessTokenCache.Add(token, cachedAccessToken{id: t.ID, tokenHash: t.TokenHash})
 			}
 			return &t, nil
 		}
