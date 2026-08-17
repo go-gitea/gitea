@@ -4,7 +4,10 @@
 package bleve
 
 import (
+	"regexp"
 	"unicode"
+
+	"gitea.dev/modules/util"
 
 	"github.com/blevesearch/bleve/v2/analysis"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/character"
@@ -13,17 +16,50 @@ import (
 
 const codeTokenizerName = "codeTokenizer"
 
-func codeTokenizerConstructor(_ map[string]interface{}, _ *registry.Cache) (analysis.Tokenizer, error) {
+func codeTokenizerConstructor(_ map[string]any, _ *registry.Cache) (analysis.Tokenizer, error) {
 	// Old code used "letter" tokenizer which doesn't support CJK.
 	// Here it still doesn't support CJK, since there is no usable CJK tokenizer at the moment.
 	return character.NewCharacterTokenizer(func(r rune) bool {
-		return unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_'
+		return unicode.IsLetter(r) || unicode.IsNumber(r)
 	}), nil
 }
 
-func init() {
-	err := registry.RegisterTokenizer(codeTokenizerName, codeTokenizerConstructor)
-	if err != nil {
-		panic(err)
+const codeTokenFilterName = "codeTokenFilter"
+
+type codeTokenFilter struct {
+	re *regexp.Regexp
+}
+
+func (c codeTokenFilter) Filter(stream analysis.TokenStream) (ret analysis.TokenStream) {
+	// split one token to "letter" parts and "number" parts (to keep the old behavior).
+	// e.g.: input token="port123", then the output tokens are "port123", "port", "123"
+	for _, token := range stream {
+		ret = append(ret, token)
+		m := c.re.FindAllIndex(token.Term, -1)
+		if len(m) > 1 {
+			for i := 0; i < len(m); i++ {
+				p1, p2 := m[i][0], m[i][1]
+				t := &analysis.Token{
+					Start:    token.Start + p1,
+					End:      token.Start + p2,
+					Term:     token.Term[p1:p2],
+					Position: token.Position,
+					Type:     analysis.AlphaNumeric,
+				}
+				ret = append(ret, t)
+			}
+		}
 	}
+	return ret
+}
+
+func codeTokenFilterConstructor(_ map[string]any, _ *registry.Cache) (analysis.TokenFilter, error) {
+	return &codeTokenFilter{
+		re: regexp.MustCompile("[a-zA-Z]+|[0-9]+"),
+	}, nil
+}
+
+func init() {
+	util.MustNoError(registry.RegisterTokenizer(codeTokenizerName, codeTokenizerConstructor))
+	util.MustNoError(registry.RegisterTokenFilter(codeTokenFilterName, codeTokenFilterConstructor))
 }

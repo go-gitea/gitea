@@ -106,7 +106,7 @@ func generateBleveIndexMapping() (mapping.IndexMapping, error) {
 		"type":          analyzer_custom.Name,
 		"char_filters":  []string{},
 		"tokenizer":     codeTokenizerName,
-		"token_filters": []string{unicodeNormalizeName, lowercase.Name},
+		"token_filters": []string{unicodeNormalizeName, codeTokenFilterName, lowercase.Name},
 	}); err != nil {
 		return nil, err
 	}

@@ -4,6 +4,8 @@
 package bleve
 
 import (
+	"gitea.dev/modules/util"
+
 	"github.com/blevesearch/bleve/v2/analysis"
 	"github.com/blevesearch/bleve/v2/analysis/token/camelcase"
 	"github.com/blevesearch/bleve/v2/registry"
@@ -58,7 +60,5 @@ func camelCaseKeepWholeFilterConstructor(_ map[string]any, _ *registry.Cache) (a
 }
 
 func init() {
-	if err := registry.RegisterTokenFilter(camelCaseKeepWholeName, camelCaseKeepWholeFilterConstructor); err != nil {
-		panic(err)
-	}
+	util.MustNoError(registry.RegisterTokenFilter(camelCaseKeepWholeName, camelCaseKeepWholeFilterConstructor))
 }

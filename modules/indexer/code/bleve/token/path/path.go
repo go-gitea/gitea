@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/modules/util"
 	"github.com/blevesearch/bleve/v2/analysis"
 	"github.com/blevesearch/bleve/v2/registry"
 )
@@ -98,8 +99,5 @@ func generatePathTokens(input analysis.TokenStream, reversed bool) analysis.Toke
 
 func init() {
 	// FIXME: move it to the bleve's init function, but do not call it in global init
-	err := registry.RegisterTokenFilter(Name, TokenFilterConstructor)
-	if err != nil {
-		panic(err)
-	}
+	util.MustNoError(registry.RegisterTokenFilter(Name, TokenFilterConstructor))
 }
