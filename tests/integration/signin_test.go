@@ -184,9 +184,17 @@ func TestRequireSignInView(t *testing.T) {
 	t.Run("RequireSignInView", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 		defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
-		req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
-		resp := MakeRequest(t, req, http.StatusSeeOther)
-		assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
+		t.Run("AccessPublicRepo", func(t *testing.T) {
+			req := NewRequest(t, "GET", "/user2/repo1/src/branch/master")
+			resp := MakeRequest(t, req, http.StatusSeeOther)
+			assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
+		})
+		t.Run("UpdateTheme", func(t *testing.T) {
+			session := emptyTestSession(t)
+			req := NewRequest(t, "POST", "/-/web-theme/apply?theme=gitea-dark")
+			session.MakeRequest(t, req, http.StatusOK)
+			assert.Equal(t, "gitea-dark", session.GetSiteCookie(middleware.CookieTheme))
+		})
 	})
 	t.Run("BlockAnonymousAccessExpensive", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, false)()
@@ -201,15 +209,5 @@ func TestRequireSignInView(t *testing.T) {
 		req = NewRequest(t, "GET", "/user2/repo1/src/branch/master")
 		resp := MakeRequest(t, req, http.StatusSeeOther)
 		assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
-	})
-	t.Run("RequireSignInViewWebThemeApply", func(t *testing.T) {
-		// anonymous users must still be able to switch themes (e.g. on the sign-in page) when sign-in is required to view content
-		defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
-		defer test.MockVariableValue(&testWebRoutes, routers.NormalRoutes())()
-
-		session := emptyTestSession(t)
-		req := NewRequest(t, "POST", "/-/web-theme/apply?theme=gitea-dark")
-		session.MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, "gitea-dark", session.GetSiteCookie(middleware.CookieTheme))
 	})
 }

@@ -351,7 +351,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	// optional sign in (if signed in, use the user as doer, if not, no doer)
 	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
 	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
-
+	// only apply DisableCrossOriginProtection
+	crossOriginProtect := verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: false})
 	validation.AddBindingRules()
 
 	openIDSignInEnabled := func(ctx *context.Context) {
@@ -548,7 +549,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Post("/-/markup", reqSignIn, web.Bind[*structs.MarkupOption](), misc.Markup)
 	m.Post("/-/web-banner/dismiss", misc.WebBannerDismiss)
 	m.Get("/-/web-theme/list", misc.WebThemeList)
-	m.Post("/-/web-theme/apply", misc.WebThemeApply)
+	m.Post("/-/web-theme/apply", crossOriginProtect, misc.WebThemeApply)
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
