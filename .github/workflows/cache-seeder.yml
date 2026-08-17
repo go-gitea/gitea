@@ -76,17 +76,23 @@ jobs:
           TAGS: ${{ matrix.tags }}
           TARGET: ${{ matrix.target }}
 
-  deps:
+  frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/node-setup
+      - run: make deps-frontend
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/python-setup
-      - run: make deps-frontend deps-py
+      - run: make deps-py
 
   # reclaims the caches this run superseded, so the next save still fits in the allowance
   prune:
-    needs: [gobuild, lint, deps]
+    needs: [gobuild, lint, frontend, python]
     permissions:
       actions: write
     uses: ./.github/workflows/cache-prune.yml
