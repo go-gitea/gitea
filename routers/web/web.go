@@ -345,14 +345,16 @@ func addProjectBoardRoutes(m *web.Router) {
 
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
-	// required to be signed in or signed out
+	validation.AddBindingRules()
+
+	// middleware: required to be signed in or signed out
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
-	// optional sign in (if signed in, use the user as doer, if not, no doer)
+	// middleware: optional sign in (if signed in, use the user as doer, if not, no doer)
 	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
 	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
-
-	validation.AddBindingRules()
+	// middleware: only apply CrossOriginProtection
+	crossOriginProtect := verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: false})
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
@@ -439,21 +441,15 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}
 	}
 
-	reqUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode, ignoreGlobal bool) func(ctx *context.Context) {
+	reqAnyRepoUnitAccess := func(unitType unit.Type, accessMode perm.AccessMode, ignoreGlobal bool) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			// only check global disabled units when ignoreGlobal is false
 			if !ignoreGlobal && unitType.UnitGlobalDisabled() {
 				ctx.NotFound(nil)
 				return
 			}
-
-			if ctx.ContextUser == nil {
-				ctx.NotFound(nil)
-				return
-			}
-
 			if ctx.ContextUser.IsOrganization() {
-				if ctx.Org.Organization.UnitPermission(ctx, ctx.Doer, unitType) < accessMode {
+				if ctx.Org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) < accessMode {
 					ctx.NotFound(nil)
 					return
 				}
@@ -548,7 +544,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Post("/-/markup", reqSignIn, web.Bind[*structs.MarkupOption](), misc.Markup)
 	m.Post("/-/web-banner/dismiss", misc.WebBannerDismiss)
 	m.Get("/-/web-theme/list", misc.WebThemeList)
-	m.Post("/-/web-theme/apply", optSignIn, misc.WebThemeApply)
+	m.Post("/-/web-theme/apply", crossOriginProtect, misc.WebThemeApply)
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -695,6 +691,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").Get(user_setting.Applications).
 				Post(web.Bind[*forms.NewAccessTokenForm](), user_setting.ApplicationsPost)
 			m.Post("/delete", user_setting.DeleteApplication)
+			m.Post("/regenerate", user_setting.RegenerateAccessToken)
 		})
 
 		m.Combo("/keys").Get(user_setting.Keys).
@@ -1122,7 +1119,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		}
 
 		// at the moment, only editing "owner-level projects" need to "mention", maybe in the future we can relax the permission check
-		m.Get("/mentions-in-owner", reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), org.GetMentionsInOwner)
+		m.Get("/mentions-in-owner", reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), org.GetMentionsInOwner)
 
 		m.Get("/repositories", org.Repositories)
 		m.Get("/heatmap", user.DashboardHeatmap)
@@ -1131,7 +1128,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Group("", func() {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
-			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+			}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind[*forms.CreateProjectForm](), org.NewProjectPost)
@@ -1144,17 +1141,17 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 					addProjectBoardRoutes(m)
 				})
-			}, reqSignIn, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
+			}, reqSignIn, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true), func(ctx *context.Context) {
 				if ctx.ContextUser.IsIndividual() && ctx.ContextUser.ID != ctx.Doer.ID {
 					ctx.NotFound(nil)
 					return
 				}
 			})
-		}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
+		}, reqAnyRepoUnitAccess(unit.TypeProjects, perm.AccessModeRead, true), individualPermsChecker)
 
 		m.Group("", func() {
 			m.Get("/code", user.CodeSearch)
-		}, reqUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
+		}, reqAnyRepoUnitAccess(unit.TypeCode, perm.AccessModeRead, false), individualPermsChecker)
 	}, optSignIn, context.UserAssignmentWeb(), context.OrgAssignment(context.OrgAssignmentOptions{}))
 	// end "/{username}/-": packages, projects, code
 

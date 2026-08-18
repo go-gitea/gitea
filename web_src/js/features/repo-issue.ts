@@ -303,8 +303,6 @@ export function initRepoIssueReferenceIssue() {
   fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
     apiSettings: {
-      cache: false,
-      rawResponse: true,
       url: `${appSubUrl}/repo/search?q={query}&limit=20`,
       onResponse(response: any) {
         const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
