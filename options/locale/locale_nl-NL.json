@@ -1636,7 +1636,6 @@
   "org.teams.write_access": "Schrijf",
   "org.teams.write_access_helper": "Leden kunnen lezen en pushen naar teamrepositories.",
   "org.teams.admin_access": "Beheerder toegang",
-  "org.teams.admin_access_helper": "Leden kunnen van en naar repositories pullen, pushen, en er medewerkers aan toevoegen.",
   "org.teams.no_desc": "Dit team heeft geen omschrijving",
   "org.teams.settings": "Instellingen",
   "org.teams.owners_permission_desc": "Eigenaren hebben volledige toegang tot <strong>alle repositories</strong> en hebben <strong>beheerder rechten</strong> over de organisatie.",

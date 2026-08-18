@@ -1769,7 +1769,6 @@
   "org.teams.write_access": "Scrittura",
   "org.teams.write_access_helper": "I membri possono leggere e pushare sui repository del team.",
   "org.teams.admin_access": "Accesso amministratore",
-  "org.teams.admin_access_helper": "I membri possono pullare e pushare sulle repository del team e anche aggiungere collaboratori.",
   "org.teams.no_desc": "Questo team non ha alcuna descrizione",
   "org.teams.settings": "Impostazioni",
   "org.teams.owners_permission_desc": "I proprietari hanno pieno accesso a <strong>tutti i repository</strong> e hanno <strong>diritti di amministratore</strong> nell'organizzazione.",
