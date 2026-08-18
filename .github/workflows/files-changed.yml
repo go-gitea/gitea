@@ -50,7 +50,7 @@ jobs:
       shell: ${{ steps.changes.outputs.shell }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: changes
         with:
           filters: |
@@ -73,8 +73,9 @@ jobs:
             frontend:
               - "*.ts"
               - "web_src/**"
-              - "tools/generate-svg.ts"
-              - "tools/generate-svg-vscode-extensions.json"
+              - "tools/**/*.ts"
+              - "tools/**/*.json"
+              - "tools/playwright.sh"
               - "tsconfig.json"
               - "assets/emoji.json"
               - "package.json"
@@ -134,6 +135,7 @@ jobs:
             e2e:
               - "tests/e2e/**"
               - "tools/test-e2e.sh"
+              - "tools/playwright.sh"
               - "playwright.config.ts"
 
             shell:

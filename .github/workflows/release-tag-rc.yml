@@ -50,7 +50,7 @@ jobs:
             cosign sign-blob "$f" --bundle "$f.sigstore.json" --yes
             echo "$GPG_PASSPHRASE" | gpg --pinentry-mode loopback --passphrase-fd 0 --batch --yes --detach-sign -u "$GPG_FINGERPRINT" --output "$f.asc" "$f"
           done
-      # clean branch name to get the folder name in S3
+      # clean branch name to get the folder name in the object storage
       - name: Get cleaned branch name
         id: clean_name
         env:
@@ -59,25 +59,11 @@ jobs:
           REF_NAME=$(echo "$REF" | sed -e 's/refs\/heads\///' -e 's/refs\/tags\/v//' -e 's/release\/v//')
           echo "Cleaned name is ${REF_NAME}"
           echo "branch=${REF_NAME}" >> "$GITHUB_OUTPUT"
-      - name: configure aws
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
-        with:
-          aws-region: ${{ secrets.AWS_REGION }}
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      - name: upload binaries to s3
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          BRANCH: ${{ steps.clean_name.outputs.branch }}
-        run: |
-          aws s3 sync dist/release "s3://$AWS_S3_BUCKET/gitea/$BRANCH" --no-progress
-      # configure-aws-credentials exports AWS_REGION job-wide and it wins over AWS_DEFAULT_REGION, so pin it here
       - name: upload binaries to cloudflare r2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
-          AWS_REGION: auto
           CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
           CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
           BRANCH: ${{ steps.clean_name.outputs.branch }}
@@ -105,6 +91,8 @@ jobs:
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
       - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        with:
+          cache-image: false
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
       - uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         id: meta

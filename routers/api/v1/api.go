@@ -330,7 +330,7 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 
 		// Need OAuth2 token to be present.
 		scope, scopeExists := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-		if ctx.Data["IsApiToken"] != true || !scopeExists {
+		if !scopeExists {
 			return
 		}
 
@@ -816,7 +816,7 @@ func reqProjectsUnitAccess(accessMode perm.AccessMode) func(ctx *context.APICont
 		}
 		// individual visibility is handled by individualPermsChecker
 		if ctx.ContextUser.IsOrganization() &&
-			organization.OrgFromUser(ctx.ContextUser).UnitPermission(ctx, ctx.Doer, unit.TypeProjects) < accessMode {
+			organization.OrgFromUser(ctx.ContextUser).AnyRepoUnitPermission(ctx, ctx.Doer, unit.TypeProjects) < accessMode {
 			ctx.APIErrorNotFound()
 		}
 	}

@@ -62,6 +62,7 @@ func ParseScopedWorkflows(ctx context.Context, gitRepo *git.Repository, sourceCo
 func MatchScopedWorkflows(
 	ctx context.Context,
 	parsed []*ParsedScopedWorkflow,
+	sourceCommitSHA string,
 	consumerGitRepo *git.Repository,
 	consumerCommit *git.Commit,
 	inputEvent webhook_module.HookEventType,
@@ -74,9 +75,10 @@ func MatchScopedWorkflows(
 				continue
 			}
 			dwf := &DetectedWorkflow{
-				EntryName:    p.EntryName,
-				TriggerEvent: evt,
-				Content:      p.Content,
+				EntryName:       p.EntryName,
+				TriggerEvent:    evt,
+				Content:         p.Content,
+				SourceCommitSHA: sourceCommitSHA,
 			}
 			switch detectWorkflowMatch(ctx, consumerGitRepo, consumerCommit, inputEvent, payload, evt) {
 			case detectMatched:

@@ -111,7 +111,7 @@ func Dashboard(ctx *context.Context) {
 
 	prepareHeatmapURL(ctx)
 
-	pageSize := setting.UI.User.RepoPagingNum
+	pageSize := setting.UI.FeedPagingNum
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
