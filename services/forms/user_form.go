@@ -6,7 +6,6 @@ package forms
 
 import (
 	"mime/multipart"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -255,12 +254,6 @@ type EditVariableForm struct {
 type NewAccessTokenForm struct {
 	middleware.FormDefaultValidator
 	Name string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
-}
-
-// Validate validates the fields
-func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AccessTokenScopeFromForm collects all "scope-*" values of a submitted token form

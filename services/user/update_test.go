@@ -17,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -169,6 +170,8 @@ func TestConvertUserType(t *testing.T) {
 	assert.Positive(t, tokensBefore)
 	assert.Positive(t, unittest.GetCount(t, &activities_model.Notification{UserID: user.ID}))
 	assert.Positive(t, unittest.GetCount(t, &user_model.UserOpenID{UID: user.ID}))
+	assert.NoError(t, db.Insert(t.Context(), &auth_model.TwoFactor{UID: user.ID}))
+	assert.NoError(t, db.Insert(t.Context(), &auth_model.WebAuthnCredential{UserID: user.ID, Name: "key"}))
 
 	// individual -> bot: credentials, auth source and interactive-auth artifacts are cleared
 	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeBot))
@@ -186,10 +189,21 @@ func TestConvertUserType(t *testing.T) {
 	assert.Equal(t, tokensBefore, unittest.GetCount(t, &auth_model.AccessToken{UID: user.ID}))
 	assert.Equal(t, 0, unittest.GetCount(t, &activities_model.Notification{UserID: user.ID}))
 	assert.Equal(t, 0, unittest.GetCount(t, &user_model.UserOpenID{UID: user.ID}))
+	// a second factor only guards an interactive sign-in, which the account no longer has
+	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.TwoFactor{UID: user.ID}))
+	assert.Equal(t, 0, unittest.GetCount(t, &auth_model.WebAuthnCredential{UserID: user.ID}))
 
-	// a bot has no interactive login, so no password can be set on it
-	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{Password: optional.Some("%$DRZUVB576tfzgu")}))
+	// a bot has no interactive login, so a password or auth source is rejected rather than ignored
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{Password: optional.Some("%$DRZUVB576tfzgu")}), util.ErrInvalidArgument)
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginSource: optional.Some(int64(1))}), util.ErrInvalidArgument)
+	assert.ErrorIs(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{LoginName: optional.Some("cn=bot")}), util.ErrInvalidArgument)
 	assert.Empty(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).Passwd)
+
+	// an unrelated auth update keeps the bot a local account
+	assert.NoError(t, UpdateAuth(t.Context(), user, &UpdateAuthOptions{ProhibitLogin: optional.Some(true)}))
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.Equal(t, auth_model.Plain, user.LoginType)
+	assert.Empty(t, user.LoginName)
 
 	// bot -> individual
 	assert.NoError(t, ConvertUserType(t.Context(), user, user_model.UserTypeIndividual))
@@ -215,6 +229,7 @@ func TestConvertUserTypeDoesNotMutateUserOnError(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	originalUser := *user
+	// unit tests always run on SQLite (models/unittest/testdb.go), so a trigger is the cheapest mid-transaction failure
 	_, err := db.GetEngine(t.Context()).Exec(`CREATE TRIGGER fail_notification_delete
 		BEFORE DELETE ON notification WHEN OLD.user_id = 2
 		BEGIN SELECT RAISE(FAIL, 'forced notification delete failure'); END`)

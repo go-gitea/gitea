@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"testing"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/tests"
@@ -189,6 +190,60 @@ func TestAdminBotUser(t *testing.T) {
 		assert.Empty(t, bot.Passwd)
 	})
 
+	t.Run("TokenScope", func(t *testing.T) {
+		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
+		tokenURL := fmt.Sprintf("/-/admin/users/%d/access_tokens", bot.ID)
+
+		// a bot can never be a site administrator, so an admin-scoped token must be refused
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
+			"name":        "admin-scoped",
+			"scope-admin": "write:admin",
+		}), http.StatusSeeOther)
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
+
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL, map[string]string{
+			"name":             "ci",
+			"scope-repository": "write:repository",
+		}), http.StatusSeeOther)
+		assert.Equal(t, 1, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
+
+		// tokens of non-bot accounts are managed by the account itself, not here
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/2/access_tokens", map[string]string{
+			"name":             "not-a-bot",
+			"scope-repository": "write:repository",
+		}), http.StatusSeeOther)
+		unittest.AssertNotExistsBean(t, &auth_model.AccessToken{UID: 2, Name: "not-a-bot"})
+
+		token := unittest.AssertExistsAndLoadBean(t, &auth_model.AccessToken{UID: bot.ID, Name: "ci"})
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", tokenURL+"/delete", map[string]string{
+			"id": strconv.FormatInt(token.ID, 10),
+		}), http.StatusOK)
+		assert.Equal(t, 0, unittest.GetCount(t, &auth_model.AccessToken{UID: bot.ID}))
+	})
+
+	t.Run("APIRejectsAuthSource", func(t *testing.T) {
+		bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "bot-user"})
+		for _, body := range []map[string]any{{"login_name": "cn=bot"}, {"source_id": 1}} {
+			req := NewRequestWithJSON(t, "PATCH", "/api/v1/admin/users/"+bot.Name, body).AddBasicAuth("user1")
+			MakeRequest(t, req, http.StatusBadRequest)
+		}
+
+		bot = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: bot.ID})
+		assert.True(t, bot.IsLocal())
+		assert.Empty(t, bot.LoginName)
+	})
+
+	t.Run("EditKeepsLoginNameWithoutLoginType", func(t *testing.T) {
+		// the bot edit form omits login_type; that must not clear the login name of other accounts
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		require.NotEmpty(t, user2.LoginName)
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/2/edit", map[string]string{
+			"user_name": user2.Name,
+			"email":     user2.Email,
+		}), http.StatusSeeOther)
+		assert.Equal(t, user2.LoginName, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).LoginName)
+	})
+
 	t.Run("ConvertType", func(t *testing.T) {
 		convert := func(userID int64, userType string) {
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/users/%d/convert_type", userID), map[string]string{"user_type": userType})
@@ -211,5 +266,8 @@ func TestAdminBotUser(t *testing.T) {
 		convert(4, "bot")
 		session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/4/impersonate"), http.StatusBadRequest)
 		convert(4, "individual")
+
+		session.MakeRequest(t, NewRequestWithValues(t, "POST", "/-/admin/users/99999/convert_type",
+			map[string]string{"user_type": "bot"}), http.StatusNotFound)
 	})
 }

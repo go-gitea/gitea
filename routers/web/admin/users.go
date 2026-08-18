@@ -6,6 +6,7 @@ package admin
 
 import (
 	"errors"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -283,12 +284,17 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 	return u
 }
 
-// botAccessTokensData is the template data of the bot access token management
+// botAccessTokensData feeds shared/user/access_tokens for the bot token management section
 type botAccessTokensData struct {
-	Link            string
+	Description     template.HTML
 	Tokens          []*auth.AccessToken
 	ScopeCategories []string
 	ScopePublicOnly auth.AccessTokenScope
+	CreateURL       string
+	DeleteURL       string
+	RegenerateURL   string // empty: an admin rotates a bot token by deleting and recreating it
+	NameValue       string
+	ErrName         bool
 }
 
 func ViewUser(ctx *context.Context) {
@@ -347,21 +353,33 @@ func ViewUser(ctx *context.Context) {
 			return
 		}
 		ctx.Data["BotAccessTokens"] = &botAccessTokensData{
-			Link:   ctx.Link,
-			Tokens: botTokens,
+			Description: ctx.Tr("admin.users.bot_token_desc"),
+			Tokens:      botTokens,
 			// a bot can never be a site admin, so an admin-scoped token would be useless
 			ScopeCategories: util.SliceRemoveAll(auth.GetAccessTokenCategories(), "admin"),
 			ScopePublicOnly: auth.AccessTokenScopePublicOnly,
+			CreateURL:       ctx.Link + "/access_tokens",
+			DeleteURL:       ctx.Link + "/access_tokens/delete",
 		}
 	}
 
 	ctx.HTML(http.StatusOK, tplUserView)
 }
 
+// getTargetUser loads the user an admin action operates on, without the page data prepareUserInfo collects
+func getTargetUser(ctx *context.Context) *user_model.User {
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetUserByID", user_model.IsErrUserNotExist, err)
+		return nil
+	}
+	return u
+}
+
 // NewBotTokenPost creates an access token for a bot user on behalf of an admin
 func NewBotTokenPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewAccessTokenForm)
-	u := prepareUserInfo(ctx)
+	form := web.GetForm[*forms.NewAccessTokenForm](ctx)
+	u := getTargetUser(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -373,60 +391,41 @@ func NewBotTokenPost(ctx *context.Context) {
 		return
 	}
 
-	_ = ctx.Req.ParseForm()
-	scope, err := forms.AccessTokenScopeFromForm(ctx.Req.Form).Normalize()
-	if err != nil {
-		ctx.ServerError("GetScope", err)
-		return
-	}
-	if !scope.HasPermissionScope() {
-		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"))
-		ctx.Redirect(redirect)
-		return
-	}
-
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.GetErrMsg())
 		ctx.Redirect(redirect)
 		return
 	}
 
-	t := &auth.AccessToken{
-		UID:   u.ID,
-		Name:  form.Name,
-		Scope: scope,
-	}
-
-	exist, err := auth.AccessTokenByNameExists(ctx, t)
-	if err != nil {
-		ctx.ServerError("AccessTokenByNameExists", err)
+	t, err := user_setting.NewAccessTokenFromForm(ctx, u, form.Name, false)
+	switch {
+	case errors.Is(err, user_setting.ErrAccessTokenNoPermission):
+		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"))
+	case errors.Is(err, user_setting.ErrAccessTokenAdminScope):
+		ctx.Flash.Error(ctx.Tr("settings.token_admin_scope_not_allowed"))
+	case errors.Is(err, user_setting.ErrAccessTokenNameDuplicate):
+		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", form.Name))
+	case errors.Is(err, user_setting.ErrAccessTokenScopeEscalation):
+		ctx.HTTPError(http.StatusForbidden, err.Error())
 		return
-	}
-	if exist {
-		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", t.Name))
-		ctx.Redirect(redirect)
+	case err != nil:
+		ctx.ServerError("NewAccessTokenFromForm", err)
 		return
+	default:
+		ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
+		ctx.Flash.Info(t.Token)
 	}
-
-	if err := auth.NewAccessToken(ctx, t); err != nil {
-		ctx.ServerError("NewAccessToken", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
-	ctx.Flash.Info(t.Token)
 	ctx.Redirect(redirect)
 }
 
 // DeleteBotToken deletes an access token of a bot user on behalf of an admin
 func DeleteBotToken(ctx *context.Context) {
-	u := prepareUserInfo(ctx)
+	u := getTargetUser(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	uid := u.ID
-	redirect := setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(uid, 10)
+	redirect := setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10)
 	// only bot tokens are managed here; regular users manage their own tokens
 	if !u.IsTypeBot() {
 		ctx.Flash.Error(ctx.Tr("admin.users.bot_token_only"))
@@ -434,7 +433,7 @@ func DeleteBotToken(ctx *context.Context) {
 		return
 	}
 
-	if err := auth.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), uid); err != nil {
+	if err := auth.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), u.ID); err != nil {
 		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
@@ -504,8 +503,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	authOpts := &user_service.UpdateAuthOptions{
-		Password:  optional.FromNonDefault(form.Password),
-		LoginName: optional.Some(form.LoginName),
+		Password: optional.FromNonDefault(form.Password),
 	}
 
 	// skip self Prohibit Login
@@ -515,20 +513,13 @@ func EditUserPost(ctx *context.Context) {
 		authOpts.ProhibitLogin = optional.Some(form.ProhibitLogin)
 	}
 
+	// the form omits both fields for bots, and an absent auth source must not clear the login name
 	fields := strings.Split(form.LoginType, "-")
 	if len(fields) == 2 {
 		authSource, _ := strconv.ParseInt(fields[1], 10, 64)
 
 		authOpts.LoginSource = optional.Some(authSource)
-	}
-
-	// Bot accounts cannot sign in interactively, so they are local accounts with no
-	// password or auth source (matching the CLI behavior). This must run after the
-	// auth-source fields above so it overrides whatever the (hidden) form submitted.
-	if u.IsTypeBot() {
-		authOpts.Password = optional.None[string]()
-		authOpts.LoginSource = optional.Some(int64(0))
-		authOpts.LoginName = optional.Some("")
+		authOpts.LoginName = optional.Some(form.LoginName)
 	}
 
 	if err := user_service.UpdateAuth(ctx, u, authOpts); err != nil {
@@ -545,6 +536,8 @@ func EditUserPost(ctx *context.Context) {
 		case password.IsErrIsPwnedRequest(err):
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.RenderWithErrDeprecated(err.Error(), tplUserEdit, &form)
 		default:
 			ctx.ServerError("UpdateUser", err)
 		}
@@ -674,9 +667,8 @@ func DeleteUser(ctx *context.Context) {
 
 // ConvertUserType converts a user between the individual and bot types.
 func ConvertUserType(ctx *context.Context) {
-	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
-	if err != nil {
-		ctx.ServerError("GetUserByID", err)
+	u := getTargetUser(ctx)
+	if ctx.Written() {
 		return
 	}
 
