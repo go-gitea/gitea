@@ -4,6 +4,7 @@
 package repository
 
 import (
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -60,6 +61,42 @@ func TestTransferOwnership(t *testing.T) {
 		RepoID:    3,
 		Content:   "org3/repo3",
 	})
+
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &organization.Team{})
+}
+
+func TestTransferOwnershipWithStoragePath(t *testing.T) {
+	registerNotifier()
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	sourceRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	assert.NoError(t, sourceRepo.LoadOwner(t.Context()))
+
+	// simulate a repository stored at a custom location (e.g.: a sub-group)
+	sourceRepo.StoragePath = "org3/custom/repo3.git"
+	require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(), sourceRepo, "storage_path"))
+
+	// cancel the fixture transfer and start a new one to a user whose
+	// directory is untouched by other tests
+	transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), sourceRepo)
+	require.NoError(t, err)
+	require.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
+	recipient := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NoError(t, repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, recipient, sourceRepo.ID, nil))
+
+	// the recipient accepts the transfer
+	require.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, recipient))
+
+	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	assert.EqualValues(t, 2, transferredRepo.OwnerID)
+	assert.Equal(t, "org3/custom/repo3.git", transferredRepo.StoragePath)
+	// the custom storage location is kept as-is, it is not renamed to the new owner path
+	assert.Equal(t, filepath.FromSlash("org3/custom/repo3.git"), transferredRepo.CodeStorageRepo().GitRepoLocation())
+
+	_, err = repo_model.GetPendingRepositoryTransfer(t.Context(), transferredRepo)
+	assert.Error(t, err)
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &organization.Team{})
 }
