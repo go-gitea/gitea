@@ -4,7 +4,7 @@
 <div class="ui attached segment">
 	<div class="flex-divided-list items-with-main">
 		<div class="item">
-			{{ctx.Locale.Tr "admin.users.bot_token_desc"}}
+			{{.Description}}
 		</div>
 		{{range $token := .Tokens}}
 			<div class="item">
@@ -38,7 +38,13 @@
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button link-action" data-modal-confirm="#delete-bot-token" data-url="{{$.Link}}/access_tokens/delete?id={{$token.ID}}">
+					{{if $.RegenerateURL}}
+						<button class="ui tiny button link-action" data-modal-confirm="#regenerate-token" data-url="{{$.RegenerateURL}}?id={{$token.ID}}">
+							{{svg "octicon-sync"}}
+							{{ctx.Locale.Tr "settings.regenerate_token"}}
+						</button>
+					{{end}}
+					<button class="ui red tiny button link-action" data-modal-confirm="#delete-token" data-url="{{$.DeleteURL}}?id={{$token.ID}}">
 						{{svg "octicon-trash"}}
 						{{ctx.Locale.Tr "settings.delete_token"}}
 					</button>
@@ -48,17 +54,17 @@
 	</div>
 </div>
 <div class="ui bottom attached segment">
-	<details {{if not .Tokens}}open{{end}}>
+	<details {{if or .NameValue (not .Tokens)}}open{{end}}>
 		<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.generate_new_token"}}</h4></summary>
-		<form class="ui form ignore-dirty" action="{{.Link}}/access_tokens" method="post">
-			<div class="field">
+		<form class="ui form ignore-dirty" action="{{.CreateURL}}" method="post">
+			<div class="field {{if .ErrName}}error{{end}}">
 				<label for="name">{{ctx.Locale.Tr "settings.token_name"}}</label>
-				<input id="name" name="name" required maxlength="255">
+				<input id="name" name="name" value="{{.NameValue}}" required maxlength="255">
 			</div>
 			<div class="field">
 				<div class="tw-my-2">{{ctx.Locale.Tr "settings.repo_and_org_access"}}</div>
 				<label class="gt-checkbox">
-					<input type="radio" name="scope-public-only" value="{{$.ScopePublicOnly}}"> {{ctx.Locale.Tr "settings.permissions_public_only"}}
+					<input type="radio" name="scope-public-only" value="{{.ScopePublicOnly}}"> {{ctx.Locale.Tr "settings.permissions_public_only"}}
 				</label>
 				<label class="gt-checkbox">
 					<input type="radio" name="scope-public-only" value="" checked> {{ctx.Locale.Tr "settings.permissions_access_all"}}
@@ -84,7 +90,7 @@
 	</details>
 </div>
 
-<div class="ui small modal" id="delete-bot-token">
+<div class="ui small modal" id="delete-token">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "settings.access_token_deletion"}}
@@ -94,3 +100,15 @@
 	</div>
 	{{template "base/modal_actions_confirm"}}
 </div>
+
+{{if .RegenerateURL}}
+	<div class="ui small modal" id="regenerate-token">
+		<div class="header">
+			{{ctx.Locale.Tr "settings.access_token_regeneration"}}
+		</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "settings.access_token_regeneration_desc"}}</p>
+		</div>
+		{{template "base/modal_actions_confirm"}}
+	</div>
+{{end}}

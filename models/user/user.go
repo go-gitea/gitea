@@ -523,9 +523,9 @@ func (u *User) GitName() string {
 }
 
 // IsMailable checks if a user is eligible to receive emails.
-// System users like Ghost and Gitea Actions are excluded.
+// Bots (including the Gitea Actions user) and the Ghost user are excluded: they have no inbox to read.
 func (u *User) IsMailable() bool {
-	return u.IsActive && !u.IsGiteaActions() && !u.IsGhost()
+	return u.IsActive && !u.IsTypeBot() && !u.IsGhost()
 }
 
 // IsUserExist checks if given username exist,

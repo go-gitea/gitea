@@ -15,6 +15,7 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 type UpdateOptionField[T any] struct {
@@ -200,22 +201,32 @@ type UpdateAuthOptions struct {
 }
 
 func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions) error {
-	if opts.LoginSource.Has() {
-		source, err := auth_model.GetSourceByID(ctx, opts.LoginSource.Value())
-		if err != nil {
-			return err
+	if u.IsTypeBot() {
+		// a bot only ever authenticates with an access token, so it has neither a password nor an auth source
+		if opts.Password.Has() {
+			return fmt.Errorf("%w: a bot account cannot have a password", util.ErrInvalidArgument)
 		}
+		if opts.LoginSource.ValueOrDefault(0) != 0 || opts.LoginName.ValueOrDefault("") != "" {
+			return fmt.Errorf("%w: a bot account cannot be linked to an authentication source", util.ErrInvalidArgument)
+		}
+		u.LoginType, u.LoginSource, u.LoginName = auth_model.Plain, 0, ""
+	} else {
+		if opts.LoginSource.Has() {
+			source, err := auth_model.GetSourceByID(ctx, opts.LoginSource.Value())
+			if err != nil {
+				return err
+			}
 
-		u.LoginType = source.Type
-		u.LoginSource = source.ID
-	}
-	if opts.LoginName.Has() {
-		u.LoginName = opts.LoginName.Value()
+			u.LoginType = source.Type
+			u.LoginSource = source.ID
+		}
+		if opts.LoginName.Has() {
+			u.LoginName = opts.LoginName.Value()
+		}
 	}
 
 	deleteAuthTokens := false
-	// only individuals sign in interactively, so only they can have a password
-	if opts.Password.Has() && u.IsIndividual() && (u.IsLocal() || u.IsOAuth2()) {
+	if opts.Password.Has() && (u.IsLocal() || u.IsOAuth2()) {
 		password := opts.Password.Value()
 
 		if len(password) < setting.MinPasswordLength {
@@ -284,11 +295,7 @@ func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_mo
 	cols := []string{"type"}
 
 	if targetType == user_model.UserTypeBot {
-		// A bot is a local, token-only account that cannot sign in interactively, so
-		// every credential and interactive-auth artifact of the former individual is
-		// removed. Access tokens are intentionally KEPT: they are the whole point of a
-		// bot and are managed by the admin afterwards. Owned content (repositories,
-		// organization memberships, issues, ...) is left untouched.
+		// see models/user/bot_user_design.md for the fate of every credential and auth artifact
 		updatedUser.Passwd = ""
 		updatedUser.PasswdHashAlgo = ""
 		updatedUser.Salt = ""
@@ -298,9 +305,7 @@ func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_mo
 		updatedUser.LoginName = ""
 		cols = append(cols, "passwd", "passwd_hash_algo", "salt", "must_change_password", "login_type", "login_source", "login_name")
 
-		// the type flip and all credential teardown must be atomic, otherwise a
-		// mid-sequence failure leaves a half-converted account (e.g. type bot but
-		// OAuth2 grants still live or sessions not revoked)
+		// atomic, so a mid-sequence failure cannot leave a half-converted account
 		if err := db.WithTx(ctx, func(ctx context.Context) error {
 			if err := user_model.UpdateUserCols(ctx, &updatedUser, cols...); err != nil {
 				return err
@@ -311,6 +316,10 @@ func ConvertUserType(ctx context.Context, u *user_model.User, targetType user_mo
 			}
 			// remove OAuth2 applications and grants owned/authorized by the account
 			if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, updatedUser.ID); err != nil {
+				return err
+			}
+			// TOTP and WebAuthn only guard an interactive sign-in, which a bot no longer has
+			if _, _, err := auth_model.DisableTwoFactor(ctx, updatedUser.ID); err != nil {
 				return err
 			}
 			// a bot has no inbox, so drop the notifications it accumulated as an individual

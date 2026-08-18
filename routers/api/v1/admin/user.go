@@ -208,7 +208,7 @@ func EditUser(ctx *context.APIContext) {
 		case errors.Is(err, password.ErrIsPwned), password.IsErrIsPwnedRequest(err):
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		default:
-			ctx.APIErrorInternal(err)
+			ctx.APIErrorAuto(err)
 		}
 		return
 	}
@@ -600,7 +600,7 @@ func ConvertUserType(ctx *context.APIContext) {
 		return
 	}
 
-	targetType, err := user_model.ParseUserType(web.GetForm(ctx).(*api.ConvertUserTypeOption).UserType)
+	targetType, err := user_model.ParseUserType(web.GetForm[*api.ConvertUserTypeOption](ctx).UserType)
 	if err != nil {
 		ctx.APIErrorAuto(err)
 		return
