@@ -5,9 +5,15 @@ package automerge
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
+	issues_model "gitea.dev/models/issues"
+	pull_model "gitea.dev/models/pull"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -55,6 +61,31 @@ func TestHandlerGivesUpAfterMaxTransientRetries(t *testing.T) {
 	assert.Empty(t, handler("1_sha1"))
 	// and a later event for the same item starts counting afresh
 	assert.Equal(t, []string{"1_sha1"}, handler("1_sha1"))
+}
+
+// TestHandlerRequeuesOnRepositoryAccessFailure exercises the full evaluation
+// with nothing mocked but the storage location: a scheduled auto merge whose
+// git repository is momentarily inaccessible must be reported back to the
+// queue for requeueing. It fails against the previous handler, which reported
+// every item as handled and so permanently lost the scheduled merge.
+func TestHandlerRequeuesOnRepositoryAccessFailure(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.NoError(t, pull_model.ScheduleAutoMerge(t.Context(), doer, pr.ID, repo_model.MergeStyleMerge, "", false))
+	defer func() {
+		assert.NoError(t, pull_model.DeleteScheduledAutoMerge(t.Context(), pr.ID))
+	}()
+
+	// point the repository root at an empty directory so opening the base
+	// repository fails the way it would during a storage hiccup
+	defer test.MockVariableValue(&setting.RepoRootPath, t.TempDir())()
+
+	item := fmt.Sprintf("%d_%s", pr.ID, "0123456789012345678901234567890123456789")
+	defer clearTransientFailures(item)
+
+	assert.Equal(t, []string{item}, handler(item))
 }
 
 func TestHandleAutoMergeMissingPullRequestIsTerminal(t *testing.T) {
