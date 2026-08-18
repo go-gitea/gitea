@@ -8,7 +8,12 @@ import (
 
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
+
+	"xorm.io/xorm"
 )
+
+// A partial struct declares no indices, and Sync drops every index it does not find in the struct.
+var syncColumnOnly = xorm.SyncOptions{IgnoreConstrains: true, IgnoreDropIndices: true}
 
 func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error {
 	type ActionEnvironment struct {
@@ -30,7 +35,7 @@ func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error
 		type Secret struct {
 			EnvironmentID int64 `xorm:"NOT NULL DEFAULT 0"`
 		}
-		if err := x.Sync(new(Secret)); err != nil {
+		if _, err := x.SyncWithOptions(syncColumnOnly, new(Secret)); err != nil {
 			return err
 		}
 	}
@@ -38,7 +43,7 @@ func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error
 		type ActionVariable struct {
 			EnvironmentID int64 `xorm:"NOT NULL DEFAULT 0"`
 		}
-		if err := x.Sync(new(ActionVariable)); err != nil {
+		if _, err := x.SyncWithOptions(syncColumnOnly, new(ActionVariable)); err != nil {
 			return err
 		}
 	}
@@ -85,5 +90,6 @@ func AddActionEnvironmentSchema(_ context.Context, x base.EngineMigration) error
 	type ActionRunJob struct {
 		EnvironmentName string `xorm:"VARCHAR(255) NOT NULL DEFAULT ''"`
 	}
-	return x.Sync(new(ActionRunJob))
+	_, err := x.SyncWithOptions(syncColumnOnly, new(ActionRunJob))
+	return err
 }

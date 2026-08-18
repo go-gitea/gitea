@@ -80,6 +80,11 @@ func Test_AddActionEnvironmentSchema(t *testing.T) {
 		[]string{"id", "repo_id", "name", "lower_name", "allowed_branch_patterns", "created_unix", "updated_unix"})
 	require.Contains(t, tableMap["action_run_job"].ColumnsSeq(), "environment_name")
 
+	// adding a column must not cost the table its indices: Sync drops every index a partial struct omits
+	jobIndexes, err := x.Dialect().GetIndexes(x.DB(), t.Context(), "action_run_job")
+	require.NoError(t, err)
+	assert.Len(t, jobIndexes, 1, "the pre-existing repo_id index must survive")
+
 	// pre-existing rows survive the recreate and land in the repo/org scope
 	migrated := &secretV349{}
 	has, err := x.Where("owner_id = ? AND name = ?", 1, "TOKEN").Get(migrated)
