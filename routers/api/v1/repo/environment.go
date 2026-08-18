@@ -99,9 +99,8 @@ func GetEnvironment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	env, ok := getEnvironmentOrError(ctx)
+	if !ok {
 		return
 	}
 	ctx.JSON(http.StatusOK, toAPIEnvironment(env))
@@ -186,9 +185,8 @@ func DeleteEnvironment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	env, ok := getEnvironmentOrError(ctx)
+	if !ok {
 		return
 	}
 	if err := actions_service.DeleteEnvironment(ctx, ctx.Repo.Repository.ID, env.ID); err != nil {
@@ -235,9 +233,8 @@ func ListEnvSecrets(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	env, ok := getEnvironmentOrError(ctx)
+	if !ok {
 		return
 	}
 	listOptions := utils.GetListOptions(ctx)
@@ -308,9 +305,8 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	env, ok := getEnvironmentOrError(ctx)
+	if !ok {
 		return
 	}
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
@@ -362,9 +358,8 @@ func DeleteEnvSecret(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	env, ok := getEnvironmentOrError(ctx)
+	if !ok {
 		return
 	}
 	if err := actions_service.DeleteEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname")); err != nil {
@@ -407,9 +402,8 @@ func ListEnvVariables(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	env, ok := getEnvironmentOrError(ctx)
+	if !ok {
 		return
 	}
 	listOptions := utils.GetListOptions(ctx)
@@ -481,9 +475,8 @@ func CreateEnvVariable(ctx *context.APIContext) {
 	//   "409":
 	//     description: variable already exists
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	env, ok := getEnvironmentOrError(ctx)
+	if !ok {
 		return
 	}
 	opt := web.GetForm[*api.CreateVariableOption](ctx)
@@ -544,9 +537,8 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	env, ok := getEnvironmentOrError(ctx)
+	if !ok {
 		return
 	}
 	v, err := actions_service.GetEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("variablename"))
@@ -594,9 +586,8 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
-	if err != nil {
-		ctx.APIErrorAuto(err)
+	env, ok := getEnvironmentOrError(ctx)
+	if !ok {
 		return
 	}
 	if err := actions_service.DeleteEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("variablename")); err != nil {
@@ -604,6 +595,17 @@ func DeleteEnvVariable(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+// getEnvironmentOrError loads the environment named by the request path, writing the API error
+// response and returning ok=false if it cannot be found.
+func getEnvironmentOrError(ctx *context.APIContext) (env *actions_model.ActionEnvironment, ok bool) {
+	env, err := actions_model.GetEnvironmentByRepoAndName(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"))
+	if err != nil {
+		ctx.APIErrorAuto(err)
+		return nil, false
+	}
+	return env, true
 }
 
 func toAPIEnvironment(e *actions_model.ActionEnvironment) *api.ActionEnvironment {
