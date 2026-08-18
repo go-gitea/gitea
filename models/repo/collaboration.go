@@ -111,16 +111,21 @@ func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
 	return db.Exist[Collaboration](ctx, builder.Eq{"repo_id": repoID, "user_id": userID})
 }
 
-// IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
-func IsOwnerMemberCollaborator(ctx context.Context, repo *Repository, userID int64) (bool, error) {
+func HasAccessToRepoCodeUnit(ctx context.Context, repo *Repository, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	teamMember, err := db.GetEngine(ctx).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
-		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
+	teamMember, err := db.GetEngine(ctx).Table("team_user").
+		Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
+		Join("INNER", "team", "team.id = team_user.team_id").
+		Join("LEFT", "team_unit", "team_unit.team_id = team_user.team_id AND team_unit.`type` = ?", unit.TypeCode).
 		Where("team_repo.repo_id = ?", repo.ID).
-		And("team_unit.`type` = ?", unit.TypeCode).
-		And("team_user.uid = ?", userID).Table("team_user").Exist()
+		And("team_user.uid = ?", userID).
+		And(builder.Or(
+			builder.Gt{"team.authorize": perm.AccessModeNone},
+			builder.Gt{"team_unit.access_mode": perm.AccessModeNone},
+		)).
+		Exist()
 	if err != nil {
 		return false, err
 	}

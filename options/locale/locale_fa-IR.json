@@ -1688,7 +1688,6 @@
   "org.teams.write_access": "نوشتن",
   "org.teams.write_access_helper": "اعضا می‌توانند مخازن مربوط به تیم را بخوانند و کامیت ها در آن درج کنند.",
   "org.teams.admin_access": "دسترسی مدیریت",
-  "org.teams.admin_access_helper": "اعضا می‌توانند واکشی یا درج بر روی مخازن تیم را انجام دهند و می‌توانند به آنها همکار اضافه کنند.",
   "org.teams.no_desc": "توضیحی برای این تیم ثبت نشده‌است",
   "org.teams.settings": "تنظيمات",
   "org.teams.owners_permission_desc": "مالک ها دسترسی کامل به <strong>تمام مخازن</strong> و <strong>دسترسی مدیریت</strong> به سازمان را دارند.",
