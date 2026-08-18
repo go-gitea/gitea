@@ -165,6 +165,8 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 
 	oldOwner := repo.Owner
 	oldOwnerName = oldOwner.Name
+	// GitRepoLocation() depends on OwnerName, remember it before switching owners.
+	oldCodeRepoLoc := repo.GitRepoLocation()
 
 	// Note: we have to set value here to make sure recalculate accesses is based on
 	// new owner.
@@ -304,12 +306,18 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	oldCodeRepo := gitrepo.CodeRepoByName(oldOwner.Name, repo.Name)
+	oldCodeRepo := gitrepo.RepositoryUnmanaged(oldCodeRepoLoc)
 	newCodeRepo := gitrepo.CodeRepoByName(newOwner.Name, repo.Name)
-	if err := git.RenameRepository(ctx, oldCodeRepo, newCodeRepo); err != nil {
-		return fmt.Errorf("rename repository directory: %w", err)
+	if repo.StoragePath != "" {
+		// a custom storage location is stable across owner changes
+		newCodeRepo = oldCodeRepo
 	}
-	repoRenamed = true
+	if oldCodeRepo.GitRepoLocation() != newCodeRepo.GitRepoLocation() {
+		if err := git.RenameRepository(ctx, oldCodeRepo, newCodeRepo); err != nil {
+			return fmt.Errorf("rename repository directory: %w", err)
+		}
+		repoRenamed = true
+	}
 
 	// Rename remote wiki repository to new path and delete local copy.
 	oldWikiRepo := gitrepo.WikiRepoByName(oldOwner.Name, repo.Name)
@@ -377,9 +385,16 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		}
 	}
 
+	oldCodeRepo := repo.CodeStorageRepo()
 	newCodeRepo := gitrepo.CodeRepoByName(repo.OwnerName, newRepoName)
-	if err = git.RenameRepository(ctx, repo, newCodeRepo); err != nil {
-		return fmt.Errorf("rename repository directory: %w", err)
+	if repo.StoragePath != "" {
+		// a custom storage location is stable across renames
+		newCodeRepo = oldCodeRepo
+	}
+	if oldCodeRepo.GitRepoLocation() != newCodeRepo.GitRepoLocation() {
+		if err = git.RenameRepository(ctx, oldCodeRepo, newCodeRepo); err != nil {
+			return fmt.Errorf("rename repository directory: %w", err)
+		}
 	}
 
 	if HasWiki(ctx, repo) {
