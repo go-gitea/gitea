@@ -939,6 +939,10 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
   margin: 0;
 }
 
+.ui.dropdown .menu.items-width-limit .item {
+  max-width: min(500px, calc(100vw - 2em));
+}
+
 .ui.dropdown.ellipsis-text-items {
   /* reset y padding and use the line-height below instead, to avoid the "overflow: hidden" clips the larger image in the "text" element */
   padding-top: 0;
