@@ -1095,7 +1095,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.test.ts', 'web_src/js/test/setup.ts'],
+    files: ['**/*.test.ts', 'web_src/js/vitest.setup.ts'],
     plugins: {vitest},
     languageOptions: {globals: globals.vitest},
     rules: {

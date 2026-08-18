@@ -1123,7 +1123,6 @@
   "org.teams.write_access": "Kirjoita",
   "org.teams.write_access_helper": "Tiimin jäsenet voivat lukea ja työntää tiimin varastoja/varastoihin.",
   "org.teams.admin_access": "Ylläpito-oikeus",
-  "org.teams.admin_access_helper": "Tiimin jäsenet voivat työntää (push) ja vetää (pull) tiimin varastoista/varastoihin ja lisätä yhteistyökumppaneita.",
   "org.teams.no_desc": "Tällä tiimillä ei ole kuvausta",
   "org.teams.settings": "Asetukset",
   "org.teams.owners_permission_desc": "Omistajilla on täydet käyttöoikeudet <strong>kaikkiin organisaation repoihin</strong> sekä organisaation <strong>ylläpitäjän oikeudet</strong>.",
