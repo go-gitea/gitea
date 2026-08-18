@@ -211,6 +211,11 @@ type Repository struct {
 	Topics                          []string           `xorm:"TEXT JSON"`
 	ObjectFormatName                string             `xorm:"VARCHAR(6) NOT NULL DEFAULT 'sha1'"`
 
+	// StoragePath is the relative path of the repository on disk. Empty means
+	// the legacy convention `lower(owner)/lower(name).git`, e.g.: sub-groups
+	// will store repositories at a different location.
+	StoragePath string `xorm:"VARCHAR(255)"`
+
 	TrustModel TrustModelType
 
 	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols

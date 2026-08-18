@@ -4,6 +4,7 @@
 package repo_test
 
 import (
+	"path/filepath"
 	"testing"
 
 	repo_model "gitea.dev/models/repo"
@@ -24,4 +25,17 @@ func TestRepository_GitRepo(t *testing.T) {
 	assert.Equal(t, "user2/repo1.wiki.git", gitrepo.WikiRepoByName(repo.OwnerName, repo.Name).GitRepoLocation())
 	assert.Equal(t, "user2/repo1.wiki.git", repo.WikiStorageRepo().GitRepoLocation())
 	assert.Equal(t, "repo-wiki-1", repo.WikiStorageRepo().GitRepoManagedID())
+}
+
+func TestRepository_GitRepo_WithStoragePath(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// a custom storage path overrides the legacy owner/name convention;
+	// the managed id stays unchanged
+	repo.StoragePath = "user2/group/repo1.git"
+
+	assert.Equal(t, filepath.FromSlash("user2/group/repo1.git"), repo.CodeStorageRepo().GitRepoLocation())
+	assert.Equal(t, "user2/group/repo1.git", repo.GitRepoLocation())
+	assert.Equal(t, "repo-1", repo.CodeStorageRepo().GitRepoManagedID())
 }
