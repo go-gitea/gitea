@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
@@ -148,11 +147,7 @@ func CreateOrUpdateEnvironment(ctx *context.APIContext) {
 	opt := web.GetForm[*api.CreateOrUpdateEnvironmentOption](ctx)
 	env, created, err := actions_service.CreateOrUpdateEnvironment(ctx, ctx.Repo.Repository.ID, ctx.PathParam("environment_name"), opt.AllowedBranchPatterns)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.JSON(util.Iif(created, http.StatusCreated, http.StatusOK), toAPIEnvironment(env))
@@ -189,7 +184,7 @@ func DeleteEnvironment(ctx *context.APIContext) {
 	if !ok {
 		return
 	}
-	if err := actions_service.DeleteEnvironment(ctx, ctx.Repo.Repository.ID, env.ID); err != nil {
+	if err := actions_model.DeleteEnvironment(ctx, ctx.Repo.Repository.ID, env.ID); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
@@ -312,11 +307,7 @@ func CreateOrUpdateEnvSecret(ctx *context.APIContext) {
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 	_, created, err := actions_service.CreateOrUpdateEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	if created {
@@ -363,11 +354,7 @@ func DeleteEnvSecret(ctx *context.APIContext) {
 		return
 	}
 	if err := actions_service.DeleteEnvSecret(ctx, ctx.Repo.Repository.ID, env.ID, ctx.PathParam("secretname")); err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound()
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -396,6 +383,14 @@ func ListEnvVariables(ctx *context.APIContext) {
 	//   description: name of the environment
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/VariableList"
@@ -483,13 +478,7 @@ func CreateEnvVariable(ctx *context.APIContext) {
 	variableName := strings.ToUpper(ctx.PathParam("variablename"))
 
 	if _, err := actions_service.CreateEnvVariable(ctx, ctx.Repo.Repository.ID, env.ID, variableName, opt.Value, opt.Description); err != nil {
-		if errors.Is(err, util.ErrAlreadyExist) {
-			ctx.APIError(http.StatusConflict, err.Error())
-		} else if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.APIError(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusCreated)
@@ -548,7 +537,7 @@ func UpdateEnvVariable(ctx *context.APIContext) {
 	}
 	opt := web.GetForm[*api.UpdateVariableOption](ctx)
 	if err := actions_service.UpdateEnvVariable(ctx, v, opt.Name, opt.Value, opt.Description); err != nil {
-		ctx.APIErrorInternal(err)
+		ctx.APIErrorAuto(err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)

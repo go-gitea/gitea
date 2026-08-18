@@ -5,9 +5,9 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/actions/workflowpattern"
@@ -112,7 +112,7 @@ func ValidateEnvironmentName(name string) error {
 	switch {
 	case name == "":
 		return invalid("it cannot be empty")
-	case len(name) > EnvironmentNameMaxLength:
+	case utf8.RuneCountInString(name) > EnvironmentNameMaxLength: // characters, as the column counts them
 		return invalid(fmt.Sprintf("it is longer than %d characters", EnvironmentNameMaxLength))
 	case name != strings.TrimSpace(name):
 		return invalid("it starts or ends with whitespace")
@@ -173,26 +173,6 @@ func (env *ActionEnvironment) MatchesRef(ref string) bool {
 	return !workflowpattern.Skip(compiled, []string{git.RefName(ref).ShortName()})
 }
 
-// ResolveJobEnvironment returns the environment a job deploys to, or nil when it names none or the
-// environment has since been deleted. A job whose ref is not allowed must be failed rather than run
-// without the environment's credentials.
-func ResolveJobEnvironment(ctx context.Context, job *ActionRunJob) (env *ActionEnvironment, allowed bool, err error) {
-	if job.EnvironmentName == "" {
-		return nil, true, nil
-	}
-	env, err = GetEnvironmentByRepoAndName(ctx, job.RepoID, job.EnvironmentName)
-	if err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			return nil, true, nil
-		}
-		return nil, false, err
-	}
-	if err := job.LoadRun(ctx); err != nil {
-		return nil, false, err
-	}
-	return env, env.MatchesRef(job.Run.Ref), nil
-}
-
 func GetEnvironmentByRepoAndName(ctx context.Context, repoID int64, name string) (*ActionEnvironment, error) {
 	env, has, err := db.Get[ActionEnvironment](ctx, builder.Eq{
 		"repo_id":    repoID,
@@ -203,18 +183,6 @@ func GetEnvironmentByRepoAndName(ctx context.Context, repoID int64, name string)
 	}
 	if !has {
 		return nil, ErrEnvironmentNotFound{Name: name}
-	}
-	return env, nil
-}
-
-func GetEnvironmentByID(ctx context.Context, id int64) (*ActionEnvironment, error) {
-	env := &ActionEnvironment{}
-	has, err := db.GetEngine(ctx).ID(id).Get(env)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrEnvironmentNotFound{Name: fmt.Sprintf("id:%d", id)}
 	}
 	return env, nil
 }

@@ -129,7 +129,7 @@ func EnvironmentUpdate(ctx *context.Context) {
 
 func EnvironmentDelete(ctx *context.Context) {
 	env := contextEnvironment(ctx)
-	if err := actions_service.DeleteEnvironment(ctx, ctx.Repo.Repository.ID, env.ID); err != nil {
+	if err := actions_model.DeleteEnvironment(ctx, ctx.Repo.Repository.ID, env.ID); err != nil {
 		ctx.Flash.Error(ctx.Tr("environments.deletion.failed"))
 	} else {
 		ctx.Flash.Success(ctx.Tr("environments.deletion.success"))

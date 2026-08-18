@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
@@ -22,19 +23,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// workflow deploying to an environment, parameterised by the branch it triggers on.
-func environmentWorkflow(branch string) string {
+func environmentWorkflow(branch, environment string) string {
 	return fmt.Sprintf(`name: deploy
 on:
   push:
     branches: [%s]
 jobs:
   deploy:
-    environment: production
+    environment: %s
     runs-on: ubuntu-latest
     steps:
       - run: echo deploy
-`, branch)
+`, branch, environment)
 }
 
 func TestActionsEnvironment(t *testing.T) {
@@ -72,7 +72,7 @@ func TestActionsEnvironment(t *testing.T) {
 		MakeRequest(t, req, http.StatusCreated)
 
 		t.Run("AnAllowedBranchReceivesTheEnvironmentValues", func(t *testing.T) {
-			opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "add allowed workflow", environmentWorkflow("main"))
+			opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "add allowed workflow", environmentWorkflow("main", "production"))
 			createWorkflowFile(t, token, user2.Name, repo.Name, ".gitea/workflows/deploy.yml", opts)
 
 			task := runner.fetchTask(t)
@@ -125,20 +125,25 @@ func TestActionsEnvironment(t *testing.T) {
 			assert.Equal(t, "main", env.AllowedBranchPatterns, "the edit form must not be routed to creation")
 		})
 
-		t.Run("ADisallowedBranchFailsTheJob", func(t *testing.T) {
-			opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "add denied workflow", environmentWorkflow("feature"))
-			opts.NewBranchName = "feature"
-			createWorkflowFile(t, token, user2.Name, repo.Name, ".gitea/workflows/deploy-feature.yml", opts)
+		// A job that may not deploy must fail rather than run with the environment's credentials withheld.
+		failsToDeploy := func(t *testing.T, branch, environment string) {
+			opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "add "+branch+" workflow", environmentWorkflow(branch, environment))
+			opts.NewBranchName = branch
+			createWorkflowFile(t, token, user2.Name, repo.Name, ".gitea/workflows/deploy-"+branch+".yml", opts)
 
-			// The job must not reach a runner with the environment's credentials withheld.
-			runner.fetchNoTask(t)
+			// the denial happens on the pick, so the runner has to ask before the job can fail
+			require.Eventually(t, func() bool {
+				task, _ := runner.fetchTaskOnce(t, 0)
+				assert.Nil(t, task, "the job must not reach a runner")
+				return unittest.GetCount(t, &actions_model.ActionRunJob{
+					RepoID:          repo.ID,
+					EnvironmentName: environment,
+					Status:          actions_model.StatusFailure,
+				}) == 1
+			}, 5*time.Second, 100*time.Millisecond)
+		}
 
-			job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{
-				RepoID:          repo.ID,
-				EnvironmentName: "production",
-				Status:          actions_model.StatusFailure,
-			})
-			require.NotNil(t, job)
-		})
+		t.Run("ADisallowedBranchFailsTheJob", func(t *testing.T) { failsToDeploy(t, "feature", "production") })
+		t.Run("AnUnusableEnvironmentNameFailsTheJob", func(t *testing.T) { failsToDeploy(t, "unusable", "deploy/prod") })
 	})
 }

@@ -100,18 +100,14 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
-	if err := t.LoadAttributes(ctx); err != nil {
-		releaseTaskForRunnerCleanup(t)
-		return nil, false, fmt.Errorf("task LoadAttributes: %w", err)
-	}
 	// resolved once here: the secrets and variables of the task are scoped by the same environment
-	env, allowed, err := actions_model.ResolveJobEnvironment(ctx, t.Job)
+	env, allowed, err := ResolveJobEnvironment(ctx, t.Job)
 	if err != nil {
 		releaseTaskForRunnerCleanup(t)
 		return nil, false, fmt.Errorf("resolve environment of job %d: %w", t.Job.ID, err)
 	}
-	if env != nil && !allowed {
-		if err := denyJobByEnvironmentPolicy(ctx, t, env); err != nil {
+	if !allowed {
+		if err := denyJobByEnvironment(ctx, t, env); err != nil {
 			releaseTaskForRunnerCleanup(t)
 			return nil, false, err
 		}
@@ -146,10 +142,14 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 	return task, true, nil
 }
 
-// denyJobByEnvironmentPolicy fails an already-claimed job whose environment rejects the run's ref.
+// denyJobByEnvironment fails an already-claimed job that may not deploy: its ref is refused by the
+// environment's branch policy, or (env == nil) no environment exists under the name the workflow gave.
 // Running it with the environment's secrets withheld would fail later and less legibly.
-func denyJobByEnvironmentPolicy(ctx context.Context, t *actions_model.ActionTask, env *actions_model.ActionEnvironment) error {
-	reason := fmt.Sprintf("Branch is not allowed to deploy to `%s` due to environment protection rules.", env.Name)
+func denyJobByEnvironment(ctx context.Context, t *actions_model.ActionTask, env *actions_model.ActionEnvironment) error {
+	reason := fmt.Sprintf("Environment `%s` does not exist.", t.Job.EnvironmentName)
+	if env != nil {
+		reason = fmt.Sprintf("Branch is not allowed to deploy to `%s` due to environment protection rules.", env.Name)
+	}
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err := actions_model.StopTask(ctx, t.ID, actions_model.StatusFailure); err != nil {
 			return err
@@ -160,7 +160,7 @@ func denyJobByEnvironmentPolicy(ctx context.Context, t *actions_model.ActionTask
 		return fmt.Errorf("fail job %d on environment policy: %w", t.Job.ID, err)
 	}
 
-	log.Info("Job %d denied by the branch policy of environment %q", t.Job.ID, env.Name)
+	log.Info("Job %d denied: %s", t.Job.ID, reason)
 	// StopTask wrote the failure through a fresh model, so the claimed job still reads as running
 	job, err := actions_model.GetRunJobByRepoAndID(ctx, t.RepoID, t.JobID)
 	if err != nil {
@@ -172,12 +172,9 @@ func denyJobByEnvironmentPolicy(ctx context.Context, t *actions_model.ActionTask
 	return nil
 }
 
-// buildRunnerTask assembles the runner-facing task payload for an already-claimed
-// task. All operations are read-only; on error the caller releases the claim.
+// buildRunnerTask assembles the runner-facing task payload for an already-claimed task, whose
+// attributes the claim loaded. All operations are read-only; on error the caller releases the claim.
 func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask, env *actions_model.ActionEnvironment) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
-	if err := t.LoadAttributes(ctx); err != nil {
-		return nil, nil, fmt.Errorf("task LoadAttributes: %w", err)
-	}
 	job := t.Job
 
 	secrets, err := secret_model.GetSecretsOfTask(ctx, t, env)

@@ -178,22 +178,29 @@ func (j *Job) RunsOn() []string {
 
 // DeploymentEnvironmentName returns the job's "environment:" name, in either the scalar
 // ("environment: production") or the object form ("environment: {name: production, url: ...}").
+// The "url" is ignored: GitHub evaluates it on the runner.
+// An expression that resolved to nothing decodes as "", so the job deploys to no environment,
+// as on GitHub.
 func (j *Job) DeploymentEnvironmentName() string {
-	if j.RawEnvironment.IsZero() {
-		return ""
+	if HasDeferredMatrix(j) {
+		return "" // still holds the raw expression, which only the expanded combinations resolve
 	}
+	var name string
 	switch j.RawEnvironment.Kind {
 	case yaml.ScalarNode:
-		return j.RawEnvironment.Value
+		if err := j.RawEnvironment.Decode(&name); err != nil {
+			return ""
+		}
 	case yaml.MappingNode:
 		var envMap struct {
 			Name string `yaml:"name"`
 		}
-		if err := j.RawEnvironment.Decode(&envMap); err == nil {
-			return envMap.Name
+		if err := j.RawEnvironment.Decode(&envMap); err != nil {
+			return ""
 		}
+		name = envMap.Name
 	}
-	return ""
+	return name
 }
 
 type Step struct {

@@ -36,6 +36,11 @@ func TestDeploymentEnvironmentName(t *testing.T) {
 			yaml:    "on: push\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    environment:\n      name: preview\n    steps:\n      - run: echo hi\n",
 			wantEnv: "preview",
 		},
+		{
+			name:    "expression resolving to nothing",
+			yaml:    "on: push\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n    environment: ${{ vars.UNSET }}\n    steps:\n      - run: echo hi\n",
+			wantEnv: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -59,6 +64,15 @@ func TestDeploymentEnvironmentNameInterpolation(t *testing.T) {
 		require.Len(t, workflows, 1)
 		_, job := workflows[0].Job()
 		assert.Equal(t, "staging", job.DeploymentEnvironmentName())
+	})
+
+	// the placeholder keeps its expression raw until expansion, so it must not name an environment
+	t.Run("deferred matrix", func(t *testing.T) {
+		workflows, err := Parse([]byte("on: push\njobs:\n  setup:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n  deploy:\n    needs: setup\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        target: ${{ fromJson(needs.setup.outputs.envs) }}\n    environment: ${{ matrix.target }}\n    steps:\n      - run: echo hi\n"))
+		require.NoError(t, err)
+		_, job := workflows[1].Job()
+		require.True(t, HasDeferredMatrix(job))
+		assert.Empty(t, job.DeploymentEnvironmentName())
 	})
 
 	t.Run("matrix", func(t *testing.T) {

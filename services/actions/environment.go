@@ -10,6 +10,8 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	secret_model "gitea.dev/models/secret"
+	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
@@ -68,19 +70,64 @@ func CreateOrUpdateEnvironment(ctx context.Context, repoID int64, name string, b
 			return nil, false, err
 		}
 		created, err := CreateEnvironment(ctx, repoID, name, branchPatterns)
-		return created, true, err
+		if err == nil {
+			return created, true, nil
+		}
+		if !errors.Is(err, util.ErrAlreadyExist) {
+			return nil, false, err
+		}
+		// a concurrent PUT won the race, so update the row it created
+		if env, err = actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name); err != nil {
+			return nil, false, err
+		}
 	}
 	return env, false, UpdateEnvironment(ctx, env, name, branchPatterns)
+}
+
+// jobEnvironmentName is the "environment:" name as a job row stores it, capped to what the column
+// and ValidateEnvironmentName accept so that inserting a job can never fail on it.
+func jobEnvironmentName(job *jobparser.Job) string {
+	return util.EllipsisDisplayString(job.DeploymentEnvironmentName(), actions_model.EnvironmentNameMaxLength)
+}
+
+// ResolveJobEnvironment returns the environment a job deploys to, nil when it names none, and
+// whether it may run. A job that names one it cannot get must fail rather than run with the
+// repository's credentials and no branch policy.
+// It creates the environment on first reference, so that a runner picking the job up before
+// EnsureEnvironments got to it waits for the next poll instead of failing.
+func ResolveJobEnvironment(ctx context.Context, job *actions_model.ActionRunJob) (*actions_model.ActionEnvironment, bool, error) {
+	if job.EnvironmentName == "" {
+		return nil, true, nil
+	}
+	if err := job.LoadRun(ctx); err != nil {
+		return nil, false, err
+	}
+	if actions_module.IsUntrustedForkRun(job.Run) {
+		// no environment is ever created for it, and its secrets are withheld regardless
+		return nil, true, nil
+	}
+
+	env, err := GetOrCreateEnvironment(ctx, job.RepoID, job.EnvironmentName)
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) {
+			return nil, false, nil // no environment can carry this name, so the job can never deploy
+		}
+		return nil, false, err
+	}
+	return env, env.MatchesRef(job.Run.Ref), nil
 }
 
 // EnsureEnvironments creates the environments named by jobs on first reference, the way GitHub does.
 // It must stay outside the transaction inserting those jobs: losing the creation race there would abort
 // that whole transaction on PostgreSQL.
-func EnsureEnvironments(ctx context.Context, jobs []*actions_model.ActionRunJob) {
+func EnsureEnvironments(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob) {
+	if actions_module.IsUntrustedForkRun(run) { // its workflow must not write into the base repository
+		return
+	}
 	seen := make(container.Set[string])
 	for _, job := range jobs {
-		// a fork's workflow must not write rows into the base repository's settings
-		if job.EnvironmentName == "" || job.IsForkPullRequest || !seen.Add(job.EnvironmentName) {
+		// the unique constraint is on the lowercased name, so two spellings would collide on insert
+		if job.EnvironmentName == "" || !seen.Add(strings.ToLower(job.EnvironmentName)) {
 			continue
 		}
 		if _, err := GetOrCreateEnvironment(ctx, job.RepoID, job.EnvironmentName); err != nil {
@@ -104,10 +151,6 @@ func GetOrCreateEnvironment(ctx context.Context, repoID int64, name string) (*ac
 		return actions_model.GetEnvironmentByRepoAndName(ctx, repoID, name)
 	}
 	return env, err
-}
-
-func DeleteEnvironment(ctx context.Context, repoID, envID int64) error {
-	return actions_model.DeleteEnvironment(ctx, repoID, envID)
 }
 
 func CreateOrUpdateEnvSecret(ctx context.Context, repoID, envID int64, name, data, description string) (*secret_model.Secret, bool, error) {

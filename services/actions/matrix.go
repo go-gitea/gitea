@@ -122,7 +122,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 		dst.Name = util.EllipsisDisplayString(combo.Name, 255)
 		dst.WorkflowPayload, dst.RunsOn = payload, combo.RunsOn()
 		dst.ContinueOnError = combo.GetContinueOnError()
-		dst.EnvironmentName = combo.DeploymentEnvironmentName()
+		dst.EnvironmentName = jobEnvironmentName(combo)
 		return nil
 	}
 
@@ -175,7 +175,7 @@ func expandDeferredMatrix(ctx context.Context, job *actions_model.ActionRunJob, 
 	job.IsMatrixDeferred = false
 	affected, err := actions_model.UpdateRunJob(ctx, job,
 		builder.Eq{"is_matrix_deferred": true, "status": actions_model.StatusBlocked},
-		"name", "workflow_payload", "runs_on", "continue_on_error", "is_matrix_deferred")
+		"name", "workflow_payload", "runs_on", "continue_on_error", "environment_name", "is_matrix_deferred")
 	if err != nil {
 		return nil, fmt.Errorf("claim placeholder of job %d: %w", job.ID, err)
 	}
@@ -213,6 +213,7 @@ func restoreDeferredMatrixPlaceholder(clone *actions_model.ActionRunJob) error {
 	clone.WorkflowPayload = slices.Clone(clone.DeferredMatrixPayload)
 	clone.RunsOn = parsed.RunsOn()
 	clone.ContinueOnError = parsed.GetContinueOnError()
+	clone.EnvironmentName = jobEnvironmentName(parsed)
 	clone.IsMatrixDeferred = true
 	return nil
 }
