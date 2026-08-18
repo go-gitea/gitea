@@ -9,7 +9,6 @@
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<p class="color-text-light-2">{{ctx.Locale.Tr "environments.description"}}</p>
 			{{if .Environments}}
 			<div class="flex-divided-list items-with-main">
 				{{range .Environments}}
@@ -19,22 +18,25 @@
 						<div class="item-title">
 							<a href="{{$.Link}}/{{PathEscapeSegments .Name}}">{{.Name}}</a>
 						</div>
-						{{if .AllowedBranchPatterns}}
 						<div class="item-body">
-							{{svg "octicon-git-branch" 14}} {{StringUtils.Join .BranchPatterns ", "}}
+							{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
+							{{if .AllowedBranchPatterns}}·{{svg "octicon-git-branch" 14}} {{StringUtils.Join .BranchPatterns ", "}}{{end}}
 						</div>
-						{{end}}
 					</div>
 					<div class="item-trailing">
-						<span class="color-text-light-2">
-							{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}}
-						</span>
-						<a class="btn interact-bg tw-p-2"
+						<a class="btn interact-bg tw-p-2 silenced"
 							href="{{$.Link}}/{{PathEscapeSegments .Name}}"
 							data-tooltip-content="{{ctx.Locale.Tr "environments.configure"}}"
 						>
-							{{svg "octicon-gear"}}
+							{{svg "octicon-pencil"}}
 						</a>
+						<button class="btn interact-bg tw-p-2 link-action"
+							data-url="{{$.Link}}/{{PathEscapeSegments .Name}}/delete"
+							data-modal-confirm="{{ctx.Locale.Tr "environments.deletion.description"}}"
+							data-tooltip-content="{{ctx.Locale.Tr "environments.deletion"}}"
+						>
+							{{svg "octicon-trash"}}
+						</button>
 					</div>
 				</div>
 				{{end}}

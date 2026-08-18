@@ -42,16 +42,16 @@
 			)}}
 		</div>
 
-		<h4 class="ui top attached header tw-mt-4">{{ctx.Locale.Tr "repo.settings.danger_zone"}}</h4>
-		<div class="ui attached danger segment">
-			<div class="flex-list">
-				<div class="flex-item tw-items-center">
-					<div class="flex-item-main">
-						<div class="flex-item-title">{{ctx.Locale.Tr "environments.deletion"}}</div>
-						<div class="flex-item-body">{{ctx.Locale.Tr "environments.deletion.description"}}</div>
+		<h4 class="ui top attached error header tw-mt-4">{{ctx.Locale.Tr "repo.settings.danger_zone"}}</h4>
+		<div class="ui attached error danger segment">
+			<div class="flex-divided-list items-with-main">
+				<div class="item tw-items-center">
+					<div class="item-main">
+						<div class="item-title">{{ctx.Locale.Tr "environments.deletion"}}</div>
+						<div class="item-body">{{ctx.Locale.Tr "environments.deletion.desc"}}</div>
 					</div>
-					<div class="flex-item-trailing">
-						<button class="ui red button link-action"
+					<div class="item-trailing">
+						<button class="ui basic red button link-action"
 							data-url="{{.Link}}/delete"
 							data-modal-confirm="{{ctx.Locale.Tr "environments.deletion.description"}}"
 						>
