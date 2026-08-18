@@ -280,7 +280,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 			{jobID: "arch-test", name: "arch-test", status: actions_model.StatusSuccess, duration: "3s", needs: []string{"prep-jdk"}},
 			{jobID: "integration-test", name: "integration-test", status: actions_model.StatusSuccess, duration: "4s", needs: []string{"prep-jdk"}},
 
-			{jobID: "build-image", name: "build-image", status: actions_model.StatusSuccess, duration: "3s", needs: []string{
+			{jobID: "build-image", name: "build-image with a very long name that does not fit into the sidebar", status: actions_model.StatusSuccess, duration: "3s", needs: []string{
 				"unit-test",
 				"arch-test",
 				"integration-test",

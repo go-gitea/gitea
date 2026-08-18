@@ -1325,7 +1325,6 @@
   "org.teams.write_access": "Skriv",
   "org.teams.write_access_helper": "Medlemmar kan läsa och pusha till teamets utvecklingskataloger.",
   "org.teams.admin_access": "Administratörsåtkomst",
-  "org.teams.admin_access_helper": "Medlemmar kan pulla och pusha till teamets utvecklingskataloger och lägga till medarbetare till dessa.",
   "org.teams.no_desc": "Detta team har ingen beskrivning",
   "org.teams.settings": "Inställningar",
   "org.teams.owners_permission_desc": "Ägare har full åtkomst till <strong>alla utvecklingskataloger</strong> och har <strong>administratörsåtkomst</strong> till organisationen.",

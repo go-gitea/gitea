@@ -50,12 +50,10 @@
 						<li>{{ctx.Locale.Tr "org.teams.can_create_org_repo"}}</li>
 					{{end}}
 				</ul>
-				{{/* the AccessMode should be either none or admin/owner, the real permissions are provided by each team unit */}}
-				{{if false}}{{/*(eq .Team.AccessMode 2)*/}}
+				{{if (eq .Team.AccessMode 2)}}
 					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
 					{{ctx.Locale.Tr "org.teams.write_permission_desc"}}
-				{{else if (eq .Team.AccessMode 3)}}
-					{{/* FIXME: here might not right, see "FIXME: TEAM-UNIT-PERMISSION", new units might not have correct admin permission*/}}
+				{{else if (ge .Team.AccessMode 3)}}
 					<h3>{{ctx.Locale.Tr "org.settings.permission"}}</h3>
 					{{ctx.Locale.Tr "org.teams.admin_permission_desc"}}
 				{{else}}

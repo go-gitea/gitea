@@ -12,17 +12,20 @@ COMMA := ,
 XGO_VERSION := go-1.26.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1.67.4 # renovate: datasource=go
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.9.0 # renovate: datasource=go
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.11.1 # renovate: datasource=go
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2 # renovate: datasource=go
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.16 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.1 # renovate: datasource=go
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.2 # renovate: datasource=go
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.6.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
 SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
 
 CONTAINER_RUNTIME ?= $(shell hash docker >/dev/null 2>&1 && echo docker || echo podman)
+
+PLAYWRIGHT_BROWSERS ?= chromium firefox
+PLAYWRIGHT_FLAGS ?=
 
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 ifeq ($(HAS_GO), yes)
@@ -389,7 +392,7 @@ test-backend: ## test backend files
 	@$(GO) test $(GOTEST_FLAGS) -tags='$(TAGS)' $(GO_TEST_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend: node_modules ## test frontend files
+test-frontend: playwright ## test frontend files
 	pnpm exec vitest
 
 .PHONY: test-check
@@ -484,11 +487,11 @@ migrations.individual.test\#%:
 
 .PHONY: playwright
 playwright: deps-frontend
-	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) ./tools/test-e2e.sh install
+	@./tools/playwright.sh $(PLAYWRIGHT_FLAGS) $(PLAYWRIGHT_BROWSERS)
 
 .PHONY: test-e2e
 test-e2e: playwright frontend backend
-	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh run $(GITEA_TEST_E2E_FLAGS)
+	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: build
 build: frontend backend ## build everything

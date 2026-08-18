@@ -816,7 +816,7 @@ func reqProjectsUnitAccess(accessMode perm.AccessMode) func(ctx *context.APICont
 		}
 		// individual visibility is handled by individualPermsChecker
 		if ctx.ContextUser.IsOrganization() &&
-			organization.OrgFromUser(ctx.ContextUser).UnitPermission(ctx, ctx.Doer, unit.TypeProjects) < accessMode {
+			organization.OrgFromUser(ctx.ContextUser).AnyRepoUnitPermission(ctx, ctx.Doer, unit.TypeProjects) < accessMode {
 			ctx.APIErrorNotFound()
 		}
 	}

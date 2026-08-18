@@ -558,27 +558,20 @@ type EditReleaseForm struct {
 	Files      []string
 }
 
-//  __      __.__ __   .__
-// /  \    /  \__|  | _|__|
-// \   \/\/   /  |  |/ /  |
-//  \        /|  |    <|  |
-//   \__/\  / |__|__|_ \__|
-//        \/          \/
-
-// NewWikiForm form for creating wiki
-type NewWikiForm struct {
-	middleware.FormDefaultValidator
-	Title   string `binding:"Required"`
-	Content string `binding:"Required"`
+type WikiEditForm struct {
+	Title   string
+	Content string
 	Message string
 }
 
-// ___________.__                 ___________                     __
-// \__    ___/|__| _____   ____   \__    ___/___________    ____ |  | __ ___________
-// |    |   |  |/     \_/ __ \    |    |  \_  __ \__  \ _/ ___\|  |/ // __ \_  __ \
-// |    |   |  |  Y Y  \  ___/    |    |   |  | \// __ \\  \___|    <\  ___/|  | \/
-// |____|   |__|__|_|  /\___  >   |____|   |__|  (____  /\___  >__|_ \\___  >__|
-// \/     \/                        \/     \/     \/    \/
+func (f *WikiEditForm) Validate(ctx *middleware.ValidateContext, errs binding.Errors) binding.Errors {
+	f.Title = strings.TrimSpace(f.Title)
+	if f.Title == "" {
+		errs = middleware.AddValidationError(errs, "title", ctx.Locale.TrString("repo.issues.new.title_empty"))
+	}
+	f.Message = strings.TrimSpace(f.Message)
+	return errs
+}
 
 // AddTimeManuallyForm form that adds spent time manually.
 type AddTimeManuallyForm struct {
