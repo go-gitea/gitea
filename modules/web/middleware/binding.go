@@ -5,6 +5,7 @@
 package middleware
 
 import (
+	"net/http"
 	"reflect"
 	"strings"
 
@@ -14,7 +15,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
-	"gitea.com/go-chi/binding"
+	"gitea.com/go-chi/binding" //nolint:depguard // this package wraps it
 )
 
 type (
@@ -23,11 +24,28 @@ type (
 )
 
 type Form interface {
-	Validate(ctx *ValidateContext, errs binding.Errors) binding.Errors
+	Validate(ctx *ValidateContext, errs validation.BindingErrors) validation.BindingErrors
 }
 
-func init() {
-	binding.SetNameMapper(util.ToSnakeCase)
+func BindFormAny[T any](req *http.Request, binder *binding.Binder, _ T) (ret *T, _ validation.BindingErrors) {
+	typ := reflect.TypeFor[T]()
+	if typ.Kind() != reflect.Struct {
+		panic("BindFormAny: template type must be a struct and the function returns its pointer")
+	}
+	form := new(T)
+	errs := binder.Bind(req, form)
+	return form, errs
+}
+
+func BindFormValidate[T Form](req *http.Request, binder *binding.Binder) (ret T, _ validation.BindingErrors) {
+	locale := req.Context().Value(translation.ContextKey).(translation.Locale) //nolint:forcetypeassert // must exist
+	ptrType := reflect.TypeFor[T]()
+	structType := ptrType.Elem()
+	ptrVal := reflect.New(structType)
+	form := ptrVal.Interface().(Form) //nolint:forcetypeassert // must implement Form
+	errs := binder.Bind(req, form)
+	errs = form.Validate(&ValidateContext{Locale: locale}, errs)
+	return form.(T), errs //nolint:forcetypeassert // must be type T
 }
 
 // AssignForm assign form values back to the template data.
@@ -65,12 +83,12 @@ func getRuleBody(field reflect.StructField, ruleName string) string {
 	return ""
 }
 
-func AddValidationError(errs binding.Errors, fieldName, errorMsg string) binding.Errors {
+func AddValidationError(errs validation.BindingErrors, fieldName, errorMsg string) validation.BindingErrors {
 	errs.Add([]string{fieldName}, validation.ErrCustomMessage, errorMsg)
 	return errs
 }
 
-func getFieldDisplayNameForMessage(f Form, l translation.Locale, fieldNames []string) (field reflect.StructField, ok bool, displayName string) {
+func getFieldDisplayNameForMessage(f any, l translation.Locale, fieldNames []string) (field reflect.StructField, ok bool, displayName string) {
 	if len(fieldNames) == 0 {
 		return field, false, ""
 	}
@@ -106,7 +124,7 @@ func getFieldDisplayNameForMessage(f Form, l translation.Locale, fieldNames []st
 	return field, true, displayName
 }
 
-func BuildValidationErrorForUser(f Form, l translation.Locale, bindingErrs binding.Errors) (errorMessage, errorFieldName string, fieldNames []string) {
+func BuildValidationErrorForUser(f any, l translation.Locale, bindingErrs validation.BindingErrors) (errorMessage, errorFieldName string, fieldNames []string) {
 	if bindingErrs.Len() == 0 {
 		return "", "", nil
 	}

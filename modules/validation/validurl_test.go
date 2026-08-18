@@ -5,92 +5,88 @@ package validation
 
 import (
 	"testing"
-
-	"gitea.com/go-chi/binding"
 )
 
 func Test_ValidURLValidation(t *testing.T) {
-	AddBindingRules()
-
 	urlValidationTestCases := []validationTestCase{
 		{
 			description: "Empty URL",
-			data: TestForm{
+			data: &TestForm{
 				URL: "",
 			},
 		},
 		{
 			description: "URL without port",
-			data: TestForm{
+			data: &TestForm{
 				URL: "http://test.lan/",
 			},
 		},
 		{
 			description: "URL with port",
-			data: TestForm{
+			data: &TestForm{
 				URL: "http://test.lan:3000/",
 			},
 		},
 		{
 			description: "URL with IPv6 address without port",
-			data: TestForm{
+			data: &TestForm{
 				URL: "http://[::1]/",
 			},
 		},
 		{
 			description: "URL with IPv6 address with port",
-			data: TestForm{
+			data: &TestForm{
 				URL: "http://[::1]:3000/",
 			},
 		},
 		{
 			description: "Invalid URL",
-			data: TestForm{
+			data: &TestForm{
 				URL: "http//test.lan/",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"URL"},
-					Classification: binding.ERR_URL,
+					Classification: "UrlError",
 					Message:        "Url",
 				},
 			},
 		},
 		{
 			description: "Invalid schema",
-			data: TestForm{
+			data: &TestForm{
 				URL: "ftp://test.lan/",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"URL"},
-					Classification: binding.ERR_URL,
+					Classification: "UrlError",
 					Message:        "Url",
 				},
 			},
 		},
 		{
 			description: "Invalid port",
-			data: TestForm{
+			data: &TestForm{
 				URL: "http://test.lan:3x4/",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"URL"},
-					Classification: binding.ERR_URL,
+					Classification: "UrlError",
 					Message:        "Url",
 				},
 			},
 		},
 		{
 			description: "Invalid port with IPv6 address",
-			data: TestForm{
+			data: &TestForm{
 				URL: "http://[::1]:3x4/",
 			},
-			expectedErrors: binding.Errors{
-				binding.Error{
+			expectedErrors: BindingErrors{
+				BindingError{
 					FieldNames:     []string{"URL"},
-					Classification: binding.ERR_URL,
+					Classification: "UrlError",
 					Message:        "Url",
 				},
 			},

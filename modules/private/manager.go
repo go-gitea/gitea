@@ -80,14 +80,6 @@ func SetLogSQL(ctx context.Context, on bool) ResponseExtra {
 	return requestJSONClientMsg(req, "Log SQL setting set")
 }
 
-// LoggerOptions represents the options for the add logger call
-type LoggerOptions struct {
-	Logger string
-	Writer string
-	Mode   string
-	Config map[string]any
-}
-
 // Processes return the current processes from this gitea instance
 func Processes(ctx context.Context, out io.Writer, flat, noSystem, stacktraces, json bool, cancel string) ResponseExtra {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/processes?flat=%t&no-system=%t&stacktraces=%t&json=%t&cancel-pid=%s", flat, noSystem, stacktraces, json, url.QueryEscape(cancel))
