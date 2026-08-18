@@ -33,6 +33,26 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
 }
 
+func TestCreateRepoTransferNotificationOrgSkipsBot(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	assert.True(t, org.IsOrganization())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+
+	// user28 and user2 can both create repos in org3; as a bot, user28 is skipped
+	bot := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+	bot.Type = user_model.UserTypeBot
+	assert.NoError(t, user_model.UpdateUserCols(t.Context(), bot, "type"))
+
+	assert.NoError(t, activities_model.CreateRepoTransferNotification(t.Context(), doer, org, repo))
+
+	// the non-bot member is notified under its real user id, the bot is not notified at all
+	notf := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 2, RepoID: repo.ID, Source: activities_model.NotificationSourceRepository})
+	assert.Equal(t, activities_model.NotificationStatusUnread, notf.Status)
+	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: bot.ID, RepoID: repo.ID, Source: activities_model.NotificationSourceRepository})
+}
+
 func TestCreateOrUpdateIssueNotificationsForAssigneeAndReviewer(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
