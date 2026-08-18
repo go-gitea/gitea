@@ -1,22 +1,30 @@
 name: node-setup
-description: Set up pnpm and node and restore caches
+description: Set up pnpm and node and restore the pnpm store cache
 
 inputs:
   cache:
-    description: Cache pnpm downloads
+    description: Restore the pnpm store cache
     default: "true"
 
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      with:
+        node-version: 26
     - if: ${{ inputs.cache == 'true' }}
-      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      id: store
+      shell: bash
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+    - if: ${{ inputs.cache == 'true' && github.workflow == 'cache-seeder' }}
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        node-version: 26
-        cache: pnpm
-        cache-dependency-path: pnpm-lock.yaml
-    - if: ${{ inputs.cache != 'true' }}
-      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        path: ${{ steps.store.outputs.path }}
+        key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+    - if: ${{ inputs.cache == 'true' && github.workflow != 'cache-seeder' }}
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        node-version: 26
+        path: ${{ steps.store.outputs.path }}
+        key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: pnpm-${{ runner.os }}-${{ runner.arch }}-

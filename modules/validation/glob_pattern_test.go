@@ -29,14 +29,12 @@ func Test_GlobPatternValidation(t *testing.T) {
 			data: TestForm{
 				GlobPattern: "",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "Valid glob",
 			data: TestForm{
 				GlobPattern: "{master,release*}",
 			},
-			expectedErrors: binding.Errors{},
 		},
 
 		{

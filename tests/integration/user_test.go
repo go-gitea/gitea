@@ -184,7 +184,7 @@ func testRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			translation.NewLocale("en-US").TrString("form.username_error"),
+			translation.NewLocale("en-US").TrString("form.username_error", "Name"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})

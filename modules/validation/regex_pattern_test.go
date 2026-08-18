@@ -26,14 +26,12 @@ func Test_RegexPatternValidation(t *testing.T) {
 			data: TestForm{
 				RegexPattern: "",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "Valid regex",
 			data: TestForm{
 				RegexPattern: `(\d{1,3})+`,
 			},
-			expectedErrors: binding.Errors{},
 		},
 
 		{

@@ -42,9 +42,7 @@ jobs:
       - run: make lint-spell
 
       - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true' || needs.files-changed.outputs.actions == 'true'
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          python-version: 3.14
+        uses: ./.github/actions/python-setup
       - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true'
         run: make deps-py lint-templates lint-yaml
 
@@ -77,6 +75,7 @@ jobs:
       - run: make deps-frontend
       - run: make lint-frontend
       - run: make checks-frontend
+      - run: make playwright
       - run: make test-frontend
       - run: make frontend
 

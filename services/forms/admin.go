@@ -4,17 +4,13 @@
 package forms
 
 import (
-	"net/http"
-
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/web/middleware"
-	"gitea.dev/services/context"
-
-	"gitea.com/go-chi/binding"
 )
 
 // AdminCreateUserForm form for admin to create user
 type AdminCreateUserForm struct {
+	middleware.FormDefaultValidator
 	LoginType          string `binding:"Required"`
 	LoginName          string
 	UserName           string `binding:"Required;Username;MaxSize(40)"`
@@ -27,6 +23,7 @@ type AdminCreateUserForm struct {
 
 // AdminCreateBadgeForm form for admin to create badge
 type AdminCreateBadgeForm struct {
+	middleware.FormDefaultValidator
 	Slug        string `binding:"Required;BadgeSlug" locale:"admin.badges.slug"`
 	Description string `binding:"Required" locale:"admin.badges.description"`
 	ImageURL    string `binding:"ValidUrl" locale:"admin.badges.image_url"`
@@ -34,30 +31,14 @@ type AdminCreateBadgeForm struct {
 
 // AdminEditBadgeForm form for admin to edit badge
 type AdminEditBadgeForm struct {
+	middleware.FormDefaultValidator
 	Description string `binding:"Required" locale:"admin.badges.description"`
 	ImageURL    string `binding:"ValidUrl" locale:"admin.badges.image_url"`
 }
 
-// Validate validates form fields
-func (f *AdminCreateBadgeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// Validate validates form fields
-func (f *AdminEditBadgeForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// Validate validates form fields
-func (f *AdminCreateUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // AdminEditUserForm form for admin to create user
 type AdminEditUserForm struct {
+	middleware.FormDefaultValidator
 	LoginType               string `binding:"Required"`
 	UserName                string `binding:"Username;MaxSize(40)"`
 	LoginName               string
@@ -79,20 +60,9 @@ type AdminEditUserForm struct {
 	Visibility              structs.VisibleType
 }
 
-// Validate validates form fields
-func (f *AdminEditUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
 // AdminDashboardForm form for admin dashboard operations
 type AdminDashboardForm struct {
+	middleware.FormDefaultValidator
 	Op   string `binding:"required"`
 	From string
-}
-
-// Validate validates form fields
-func (f *AdminDashboardForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
