@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import DiffFileExtensionFilter from './DiffFileExtensionFilter.vue';
 import {onInputDebounce, toggleElem} from '../utils/dom.ts';

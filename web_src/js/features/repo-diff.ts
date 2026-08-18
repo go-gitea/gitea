@@ -148,7 +148,6 @@ function initDiffHeaderPopupMenu(btn: HTMLElement) {
 }
 
 function onDiffFileBodyChange() {
-  applyFiltersToFileBoxes(diffTreeStore());
   initRepoIssueContentHistory(); // it scans the whole page via a fetch, so it doesn't fit the per-element observer pattern
 }
 
@@ -164,6 +163,7 @@ async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
     const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
+    applyFiltersToFileBoxes(diffTreeStore());
     onDiffFileBodyChange();
     return true;
   } catch (error) {

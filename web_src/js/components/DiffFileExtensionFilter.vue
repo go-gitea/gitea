@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {computed, onMounted, onUnmounted, useTemplateRef} from 'vue';
 import type {Instance} from 'tippy.js';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {createTippy} from '../modules/tippy.ts';
 import {diffTreeStore, getDiffTreeExtensionStats, type DiffExtensionFilterLocale} from '../modules/diff-file.ts';
 
