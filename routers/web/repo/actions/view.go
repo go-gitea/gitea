@@ -39,6 +39,7 @@ import (
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/common"
 	actions_service "gitea.dev/services/actions"
 	context_module "gitea.dev/services/context"
@@ -277,6 +278,7 @@ type LogCursor struct {
 }
 
 type ViewRequest struct {
+	middleware.FormDefaultValidator
 	LogCursors []LogCursor `json:"logCursors"`
 }
 

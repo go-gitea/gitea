@@ -486,10 +486,7 @@ func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
 	assert.Contains(t, publicOnly, int64(32), "a public repo under a public owner stays listed")
 }
 
-// TestUserOrgUnitRepoCondTeamAuthorize pins the team.authorize behavior of userOrgTeamUnitRepoBuilder
-// (exercised through UserOrgUnitRepoCond): an admin/owner team grants every unit even without an explicit
-// team_unit row, while a non-admin team only grants a unit it has an explicit row for. This guards both
-// directions — hiding repos from admin-team members, and over-broadening a plain team's access.
+// TestUserOrgUnitRepoCondTeamAuthorize pins team.authorize vs team_unit.access_mode
 func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
@@ -500,17 +497,16 @@ func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
 		return ids
 	}
 
-	// Case A: user18 is only on org17's owner team (team5, authorize=owner), linked to the private repo24
-	// but with no Actions team_unit row. The owner authorize must still grant it, mirroring the runtime
-	// HasAdminAccess() short-circuit in access.GetIndividualUserRepoPermission.
-	assert.Contains(t, accessibleRepoIDs(18, 17, unit.TypeActions), int64(24),
-		"an owner team grants a unit it has no explicit team_unit row for")
+	// Owner team5 has no Actions team_unit row but still grants via authorize=owner.
+	assert.Contains(t, accessibleRepoIDs(18, 17, unit.TypeActions), int64(24))
 
-	// Cases B and C share one subject so the team_unit row is the only difference: user4 is only on org3's
-	// write team (team2, authorize=write, non-admin), linked to the private repo3. team2 has an explicit
-	// Projects row but none for Actions.
-	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3),
-		"a non-admin team grants a unit it has an explicit team_unit row for")
-	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3),
-		"a non-admin team must NOT grant a unit it has no team_unit row for")
+	// team2 is "authorize=write" with Projects team_unit but no Actions row.
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
+
+	// now team2 is "authorize=none", no Actions row.
+	_, err := db.GetEngine(t.Context()).Exec("UPDATE team SET authorize=0 WHERE id=2")
+	assert.NoError(t, err)
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
+	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
 }

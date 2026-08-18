@@ -5,12 +5,11 @@
 package middleware
 
 import (
-	"net/http"
 	"reflect"
 	"strings"
 
-	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -18,17 +17,13 @@ import (
 	"gitea.com/go-chi/binding"
 )
 
-// ValidateContext is a special context for form validation middleware. It may be different from other contexts.
-type ValidateContext struct {
-	Locale translation.Locale
-	Data   reqctx.ContextData
-	Req    *http.Request
-	Resp   http.ResponseWriter
-}
+type (
+	ValidateContext      = structs.ValidateContext
+	FormDefaultValidator = structs.FormDefaultValidator
+)
 
-// Form form binding interface
 type Form interface {
-	binding.Validator
+	Validate(ctx *ValidateContext, errs binding.Errors) binding.Errors
 }
 
 func init() {
@@ -84,9 +79,17 @@ func getFieldDisplayNameForMessage(f Form, l translation.Locale, fieldNames []st
 		typ = typ.Elem()
 	}
 
-	field, fieldExists := typ.FieldByName(fieldNames[0])
+	fieldName := fieldNames[0]
+	field, fieldExists := typ.FieldByName(fieldName)
 	if !fieldExists {
-		return field, false, ""
+		for tryField := range typ.Fields() {
+			if util.ToSnakeCase(tryField.Name) == fieldName || tryField.Tag.Get("form") == fieldName {
+				field, fieldExists = tryField, true
+			}
+		}
+		if !fieldExists {
+			return field, false, ""
+		}
 	}
 
 	if field.Tag.Get("form") == "-" {
@@ -95,8 +98,9 @@ func getFieldDisplayNameForMessage(f Form, l translation.Locale, fieldNames []st
 
 	trKeyFallback := "form." + field.Name
 	trKey := util.IfZero(field.Tag.Get("locale"), trKeyFallback)
-	displayName = l.TrString(trKey)
-	if displayName == trKeyFallback {
+	if l.HasKey(trKey) {
+		displayName = l.TrString(trKey)
+	} else {
 		displayName = field.Name
 	}
 	return field, true, displayName
@@ -156,7 +160,7 @@ func BuildValidationErrorForUser(f Form, l translation.Locale, bindingErrs bindi
 	case validation.ErrInvalidBadgeSlug:
 		errorMessage = l.TrString("form.invalid_slug_error", fieldDisplayName)
 	default:
-		setting.PanicInDevOrTesting("unknown binding error classification: %v", classification)
+		setting.PanicInDevOrTesting("unknown binding error classification for field %T.%s: %v, err: %s", f, errorFieldName, classification, bindingErrMsg)
 		var msg string
 		if classification != "" && bindingErrMsg != "" {
 			msg = classification + ": " + bindingErrMsg
@@ -170,34 +174,4 @@ func BuildValidationErrorForUser(f Form, l translation.Locale, bindingErrs bindi
 		errorMessage = l.TrString("form.field_invalid_message", fieldDisplayName, msg)
 	}
 	return errorMessage, errorFieldName, fieldNames
-}
-
-type contextKeySkipTmplFormValidationErrorType struct{}
-
-var contextKeySkipTmplFormValidationError contextKeySkipTmplFormValidationErrorType
-
-func SkipTmplFormValidationError(ctx reqctx.RequestContext) {
-	ctx.SetContextValue(contextKeySkipTmplFormValidationError, true)
-}
-
-func Validate(ctx *ValidateContext, errs binding.Errors, f Form) binding.Errors {
-	if ctx.Req.Context().Value(contextKeySkipTmplFormValidationError) == true {
-		// if it is not using tmpl-based validation error handling, just return the errors
-		// for example: when using "form-fetch-action", the validation error can be handled by GetFetchActionForm
-		return errs
-	}
-	errorMessage, errorFieldName, _ := BuildValidationErrorForUser(f, ctx.Locale, errs)
-	if errorMessage == "" {
-		return errs
-	}
-
-	// Legacy template error handling: try to restore the form's values as much as possible,
-	// especially for RenderWithErrDeprecated to re-render the form with errors.
-	AssignForm(f, ctx.Data)
-	ctx.Data["HasError"] = true
-	ctx.Data["ErrorMsg"] = errorMessage
-	if errorFieldName != "" {
-		ctx.Data["Err_"+errorFieldName] = true
-	}
-	return errs
 }

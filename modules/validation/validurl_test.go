@@ -18,35 +18,30 @@ func Test_ValidURLValidation(t *testing.T) {
 			data: TestForm{
 				URL: "",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "URL without port",
 			data: TestForm{
 				URL: "http://test.lan/",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "URL with port",
 			data: TestForm{
 				URL: "http://test.lan:3000/",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "URL with IPv6 address without port",
 			data: TestForm{
 				URL: "http://[::1]/",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "URL with IPv6 address with port",
 			data: TestForm{
 				URL: "http://[::1]:3000/",
 			},
-			expectedErrors: binding.Errors{},
 		},
 		{
 			description: "Invalid URL",
