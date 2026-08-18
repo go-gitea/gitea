@@ -1666,7 +1666,6 @@
   "org.teams.write_access": "ලියන්න",
   "org.teams.write_access_helper": "සාමාජිකයින්ට කණ්ඩායම් ගබඩාවට කියවා තල්ලු කළ හැකිය.",
   "org.teams.admin_access": "පරිපාලක ප්‍රවේශය",
-  "org.teams.admin_access_helper": "සාමාජිකයින්ට කණ්ඩායම් ගබඩාවට ඇදගෙන යාමට සහ තල්ලු කිරීමට සහ සහයෝගී කරුවන් එකතු කිරීමට හැකිය.",
   "org.teams.no_desc": "මෙම කණ්ඩායමට සවිස්තරයක් නැත",
   "org.teams.settings": "සැකසුම්",
   "org.teams.owners_permission_desc": "හිමිකරුවන්ට පූර්ණ ප්රවේශය ඇත <strong>සියලුම ගබඩාවල</strong> සහ <strong>පරිපාලක ප්රවේශය</strong> සංවිධානයට ඇත.",

@@ -77,6 +77,7 @@ jobs:
       - run: make deps-frontend
       - run: make lint-frontend
       - run: make checks-frontend
+      - run: make playwright
       - run: make test-frontend
       - run: make frontend
 

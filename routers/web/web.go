@@ -345,14 +345,16 @@ func addProjectBoardRoutes(m *web.Router) {
 
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
-	// required to be signed in or signed out
+	validation.AddBindingRules()
+
+	// middleware: required to be signed in or signed out
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})
-	// optional sign in (if signed in, use the user as doer, if not, no doer)
+	// middleware: optional sign in (if signed in, use the user as doer, if not, no doer)
 	optSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict})
 	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
-
-	validation.AddBindingRules()
+	// middleware: only apply CrossOriginProtection
+	crossOriginProtect := verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: false})
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
@@ -542,7 +544,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Post("/-/markup", reqSignIn, web.Bind[*structs.MarkupOption](), misc.Markup)
 	m.Post("/-/web-banner/dismiss", misc.WebBannerDismiss)
 	m.Get("/-/web-theme/list", misc.WebThemeList)
-	m.Post("/-/web-theme/apply", optSignIn, misc.WebThemeApply)
+	m.Post("/-/web-theme/apply", crossOriginProtect, misc.WebThemeApply)
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
