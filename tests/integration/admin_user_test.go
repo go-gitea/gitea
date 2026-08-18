@@ -206,5 +206,10 @@ func TestAdminBotUser(t *testing.T) {
 		// an admin must not convert their own account, nor turn another site administrator into a bot
 		convert(1, "bot")
 		assert.True(t, unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).IsIndividual())
+
+		// bot accounts are non-interactive, so they cannot be impersonated
+		convert(4, "bot")
+		session.MakeRequest(t, NewRequest(t, "POST", "/-/admin/users/4/impersonate"), http.StatusBadRequest)
+		convert(4, "individual")
 	})
 }

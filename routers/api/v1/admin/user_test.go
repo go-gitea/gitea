@@ -23,5 +23,5 @@ func TestConvertUserTypeRejectsNonConvertibleTarget(t *testing.T) {
 
 	ConvertUserType(ctx)
 
-	assert.Equal(t, http.StatusUnprocessableEntity, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusBadRequest, ctx.Resp.WrittenStatus())
 }

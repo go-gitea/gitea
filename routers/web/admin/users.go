@@ -590,7 +590,8 @@ func EditUserPost(ctx *context.Context) {
 		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
 		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
-			ctx.RenderWithErrDeprecated(ctx.Tr("admin.users.bot_no_admin"), tplUserEdit, &form)
+			ctx.Flash.Error(ctx.Tr("admin.users.bot_no_admin"))
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
 		default:
 			ctx.ServerError("UpdateUser", err)
 		}
