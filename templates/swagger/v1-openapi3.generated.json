@@ -1711,6 +1711,21 @@
         },
         "description": "APIString is a string response"
       },
+      "unauthorized": {
+        "description": "APIUnauthorizedError is an unauthorized error response",
+        "headers": {
+          "message": {
+            "schema": {
+              "type": "string"
+            }
+          },
+          "url": {
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "validationError": {
         "description": "APIValidationError is error format response related to input validation",
         "headers": {
@@ -4885,7 +4900,12 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,
@@ -4962,7 +4982,6 @@
             "x-go-name": "FullName"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -6141,7 +6160,12 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,
@@ -6245,7 +6269,6 @@
             "x-go-name": "Location"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -6297,8 +6320,7 @@
           }
         },
         "required": [
-          "source_id",
-          "login_name"
+          "source_id"
         ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
@@ -10669,7 +10691,6 @@
             "x-go-name": "UserName"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -35046,6 +35067,12 @@
           "200": {
             "$ref": "#/components/responses/string"
           },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          },
           "404": {
             "$ref": "#/components/responses/notFound"
           }
@@ -35062,6 +35089,12 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -35100,6 +35133,12 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/GPGKeyList"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           }
         },
         "summary": "List the authenticated user's GPG keys",
@@ -35122,6 +35161,12 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -35155,6 +35200,9 @@
           "204": {
             "$ref": "#/components/responses/empty"
           },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
@@ -35184,6 +35232,12 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/GPGKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
@@ -35366,6 +35420,12 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/PublicKeyList"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           }
         },
         "summary": "List the authenticated user's public keys",
@@ -35388,6 +35448,12 @@
         "responses": {
           "201": {
             "$ref": "#/components/responses/PublicKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "422": {
             "$ref": "#/components/responses/validationError"
@@ -35418,6 +35484,9 @@
           "204": {
             "$ref": "#/components/responses/empty"
           },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
           "403": {
             "$ref": "#/components/responses/forbidden"
           },
@@ -35447,6 +35516,12 @@
         "responses": {
           "200": {
             "$ref": "#/components/responses/PublicKey"
+          },
+          "401": {
+            "$ref": "#/components/responses/unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
           },
           "404": {
             "$ref": "#/components/responses/notFound"
