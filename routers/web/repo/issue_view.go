@@ -794,7 +794,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
-			git_model.SignCommitsHideActionsURL(ctx, ctx.Doer, comment.Commits)
+			git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, comment.Commits)
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {

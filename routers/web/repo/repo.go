@@ -526,7 +526,7 @@ func SearchRepo(ctx *context.Context) {
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
-	git_model.CommitStatusesHideActionsURL(ctx, ctx.Doer, latestCommitStatuses)
+	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, latestCommitStatuses)
 
 	results := make([]*repo_service.WebSearchRepository, len(repos))
 	for i, repo := range repos {

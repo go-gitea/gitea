@@ -387,7 +387,7 @@ func Diff(ctx *context.Context) {
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
-	git_model.CommitStatusesHideActionsURL(ctx, ctx.Doer, statuses)
+	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
@@ -463,6 +463,6 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	if err != nil {
 		return nil, err
 	}
-	git_model.SignCommitsHideActionsURL(ctx, ctx.Doer, commits)
+	git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, commits)
 	return commits, nil
 }

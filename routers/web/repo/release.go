@@ -143,7 +143,7 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 
 		if canReadCode {
 			statuses := commitStatusMap[r.Sha1]
-			git_model.CommitStatusesHideActionsURL(ctx, ctx.Doer, statuses)
+			git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 			info.CommitStatus = git_model.CalcCommitStatus(statuses)
 			info.CommitStatuses = statuses
 		}

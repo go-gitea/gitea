@@ -990,7 +990,7 @@ func getAllCommitStatus(ctx context.Context, doer *user_model.User, gitRepo *git
 		status.Repo = pr.BaseRepo // the repo is already loaded, spare the permission lookup a query
 	}
 	// CalcCommitStatus copies a TargetURL out of the statuses, so hide before combining
-	git_model.CommitStatusesHideActionsURL(ctx, doer, statuses)
+	git_model.CommitStatusesApplyDoerPermission(ctx, doer, statuses)
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }

@@ -143,7 +143,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		}
-		git_model.CommitStatusesHideActionsURL(ctx, ctx.Doer, statuses)
+		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 
 		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
 		ctx.Data["LatestCommitStatuses"] = statuses

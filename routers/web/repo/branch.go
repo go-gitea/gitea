@@ -73,7 +73,7 @@ func Branches(ctx *context.Context) {
 
 	commitStatus := make(map[string]*git_model.CommitStatus)
 	for commitID, cs := range commitStatuses {
-		git_model.CommitStatusesHideActionsURL(ctx, ctx.Doer, cs)
+		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, cs)
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 

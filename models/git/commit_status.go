@@ -548,9 +548,9 @@ func HashCommitStatusContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
 }
 
-// CommitStatusesHideActionsURL hides the Gitea Actions url of every status whose repository
+// CommitStatusesApplyDoerPermission hides the Gitea Actions url of every status whose repository
 // the doer cannot read the Actions unit of, so the "Details" link does not lead to a 404.
-func CommitStatusesHideActionsURL(ctx context.Context, doer *user_model.User, statuses []*CommitStatus) {
+func CommitStatusesApplyDoerPermission(ctx context.Context, doer *user_model.User, statuses []*CommitStatus) {
 	for _, status := range statuses {
 		if status != nil && !statusRepoCanReadActions(ctx, doer, status) {
 			status.hideActionsURL(ctx)
@@ -558,14 +558,14 @@ func CommitStatusesHideActionsURL(ctx context.Context, doer *user_model.User, st
 	}
 }
 
-// SignCommitsHideActionsURL is CommitStatusesHideActionsURL for a list of commits.
-func SignCommitsHideActionsURL(ctx context.Context, doer *user_model.User, commits []*SignCommitWithStatuses) {
+// SignCommitsApplyDoerPermission is CommitStatusesApplyDoerPermission for a list of commits.
+func SignCommitsApplyDoerPermission(ctx context.Context, doer *user_model.User, commits []*SignCommitWithStatuses) {
 	var statuses []*CommitStatus
 	for _, commit := range commits {
 		statuses = append(statuses, commit.Status)
 		statuses = append(statuses, commit.Statuses...)
 	}
-	CommitStatusesHideActionsURL(ctx, doer, statuses)
+	CommitStatusesApplyDoerPermission(ctx, doer, statuses)
 }
 
 func statusRepoCanReadActions(ctx context.Context, doer *user_model.User, status *CommitStatus) bool {

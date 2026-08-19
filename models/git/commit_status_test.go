@@ -231,7 +231,7 @@ func TestFindRepoRecentCommitStatusContexts(t *testing.T) {
 	}
 }
 
-func TestCommitStatusesHideActionsURL(t *testing.T) {
+func TestCommitStatusesApplyDoerPermission(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// repo4 is public and has the actions unit, repo2 is private and owned by someone else
@@ -255,7 +255,7 @@ func TestCommitStatusesHideActionsURL(t *testing.T) {
 		},
 	}
 
-	git_model.CommitStatusesHideActionsURL(t.Context(), doer, statuses)
+	git_model.CommitStatusesApplyDoerPermission(t.Context(), doer, statuses)
 	assert.Equal(t, visibleURL, statuses[0].TargetURL)
 	assert.Empty(t, statuses[1].TargetURL)
 	assert.Equal(t, "https://mycicd.org/1", statuses[2].TargetURL)
