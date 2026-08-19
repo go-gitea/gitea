@@ -214,6 +214,9 @@ func NewUserPost(ctx *context.Context) {
 
 // handleAdminCreateUserError renders the new-user page with a field-specific error message
 func handleAdminCreateUserError(ctx *context.Context, err error, form *forms.AdminCreateUserForm) {
+	var nameReserved db.ErrNameReserved
+	var namePatternNotAllowed db.ErrNamePatternNotAllowed
+	var nameCharsNotAllowed db.ErrNameCharsNotAllowed
 	switch {
 	case user_model.IsErrUserAlreadyExist(err):
 		ctx.Data["Err_UserName"] = true
@@ -224,15 +227,15 @@ func handleAdminCreateUserError(ctx *context.Context, err error, form *forms.Adm
 	case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
 		ctx.Data["Err_Email"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, form)
-	case db.IsErrNameReserved(err):
+	case errors.As(err, &nameReserved):
 		ctx.Data["Err_UserName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tplUserNew, form)
-	case db.IsErrNamePatternNotAllowed(err):
+		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", nameReserved.Name), tplUserNew, form)
+	case errors.As(err, &namePatternNotAllowed):
 		ctx.Data["Err_UserName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplUserNew, form)
-	case db.IsErrNameCharsNotAllowed(err):
+		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", namePatternNotAllowed.Pattern), tplUserNew, form)
+	case errors.As(err, &nameCharsNotAllowed):
 		ctx.Data["Err_UserName"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tplUserNew, form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", nameCharsNotAllowed.Name), tplUserNew, form)
 	default:
 		ctx.ServerError("CreateUser", err)
 	}
