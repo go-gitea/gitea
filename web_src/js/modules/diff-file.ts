@@ -112,7 +112,7 @@ export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffEx
     extensionMap.set(ext, (extensionMap.get(ext) ?? 0) + 1);
   }
   return Array.from(extensionMap, ([ext, count]) => ({ext, count}))
-    .sort((a, b) => b.count - a.count || a.ext.localeCompare(b.ext));
+    .sort((a, b) => a.ext.localeCompare(b.ext));
 }
 
 type DiffFilter = (newName: string, oldName: string) => boolean;
