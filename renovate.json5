@@ -17,6 +17,23 @@
     "enabled": true,
     "semanticCommitType": "fix", // overrides packageRules
   },
+  "postUpgradeTasks": {
+    "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
+    "installTools": {
+      "golang": {},
+      "node": {},
+      "pnpm": {},
+    },
+    "fileFilters": [
+      "go.mod",
+      "go.sum",
+      "assets/go-licenses.json",
+      "assets/codemirror-languages.json",
+      "public/assets/img/svg/**",
+      "options/fileicon/**",
+    ],
+    "executionMode": "branch",
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -89,17 +106,12 @@
       "allowedVersions": "/^2019($|[.-])/", // pin to oldest in extended support
     },
     {
+      "matchPackageNames": ["docker.elastic.co/elasticsearch/elasticsearch"],
+      "allowedVersions": "/^8($|[.-])/", // pin to oldest supported major
+    },
+    {
       "matchManagers": ["gomod"],
       "postUpdateOptions": ["gomodUpdateImportPaths"],
-      "postUpgradeTasks": {
-        "commands": ["make tidy"],
-        "fileFilters": [
-          "go.mod",
-          "go.sum",
-          "assets/go-licenses.json",
-        ],
-        "executionMode": "branch",
-      },
     },
     {
       "matchManagers": ["gomod"],
@@ -120,23 +132,6 @@
     {
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
-    },
-    {
-      "matchPackageNames": ["@primer/octicons", "material-icon-theme", "svgo"],
-      "postUpgradeTasks": {
-        "commands": ["make svg"],
-        "fileFilters": [
-          "public/assets/img/svg/**",
-          "options/fileicon/**",
-        ],
-      },
-    },
-    {
-      "matchPackageNames": ["@codemirror/language-data", "linguist-languages"],
-      "postUpgradeTasks": {
-        "commands": ["make generate-codemirror-languages"],
-        "fileFilters": ["assets/codemirror-languages.json"],
-      },
     },
   ],
 }

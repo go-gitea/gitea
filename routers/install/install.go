@@ -189,7 +189,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	var err error
 
-	form := *web.GetForm(ctx).(*forms.InstallForm)
+	form := web.GetForm[*forms.InstallForm](ctx)
 
 	// fix form values
 	if form.AppURL != "" && form.AppURL[len(form.AppURL)-1] != '/' {
@@ -206,7 +206,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	if _, err = exec.LookPath("git"); err != nil {
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.test_git_failed", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.test_git_failed", err), tplInstall, form)
 		return
 	}
 
@@ -223,13 +223,13 @@ func SubmitInstall(ctx *context.Context) {
 	setting.Database.Path = form.DbPath
 	setting.Database.LogSQL = !setting.IsProd
 
-	if !checkDatabase(ctx, &form) {
+	if !checkDatabase(ctx, form) {
 		return
 	}
 
 	// Prepare AppDataPath, it is very important for Gitea
 	if err = setting.PrepareAppDataPath(); err != nil {
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_app_data_path", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_app_data_path", err), tplInstall, form)
 		return
 	}
 
@@ -237,7 +237,7 @@ func SubmitInstall(ctx *context.Context) {
 	form.RepoRootPath = strings.ReplaceAll(form.RepoRootPath, "\\", "/")
 	if err = os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_RepoRootPath"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_repo_path", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_repo_path", err), tplInstall, form)
 		return
 	}
 
@@ -246,7 +246,7 @@ func SubmitInstall(ctx *context.Context) {
 		form.LFSRootPath = strings.ReplaceAll(form.LFSRootPath, "\\", "/")
 		if err := os.MkdirAll(form.LFSRootPath, os.ModePerm); err != nil {
 			ctx.Data["Err_LFSRootPath"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_lfs_path", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_lfs_path", err), tplInstall, form)
 			return
 		}
 	}
@@ -255,7 +255,7 @@ func SubmitInstall(ctx *context.Context) {
 	form.LogRootPath = strings.ReplaceAll(form.LogRootPath, "\\", "/")
 	if err = os.MkdirAll(form.LogRootPath, os.ModePerm); err != nil {
 		ctx.Data["Err_LogRootPath"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_log_root_path", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_log_root_path", err), tplInstall, form)
 		return
 	}
 
@@ -309,15 +309,26 @@ func SubmitInstall(ctx *context.Context) {
 	if err = db.InitEngineWithMigration(ctx, versioned_migration.Migrate); err != nil {
 		db.UnsetDefaultEngine()
 		ctx.Data["Err_DbSetting"] = true
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return
 	}
 
-	// Save settings.
+	cfg := fillInstallConfig(ctx, os.Environ(), form)
+	if cfg == nil {
+		return
+	}
+	saveConfigAndRestart(ctx, cfg, form)
+}
+
+func fillInstallConfig(ctx *context.Context, envs []string, form *forms.InstallForm) setting.ConfigProvider {
+	// Some logic also depends on the config values, so EnvironmentToConfig should also be applied first.
+	// EnvironmentToConfig is applied on each start up, so it also must override the "install form", so it must be applied after (twice).
 	cfg, err := setting.NewConfigProviderFromFile(setting.CustomConf)
 	if err != nil {
 		log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
+
+	setting.EnvironmentToConfig(cfg, envs)
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("").Key("RUN_USER").SetValue(form.RunUser)
@@ -362,8 +373,8 @@ func SubmitInstall(ctx *context.Context) {
 
 	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
 		if _, err := mail.ParseAddress(form.SMTPFrom); err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.smtp_from_invalid"), tplInstall, &form)
-			return
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.smtp_from_invalid"), tplInstall, form)
+			return nil
 		}
 
 		cfg.Section("mailer").Key("ENABLED").SetValue("true")
@@ -407,8 +418,8 @@ func SubmitInstall(ctx *context.Context) {
 	if setting.InternalToken == "" {
 		var internalToken string
 		if internalToken, err = generate.NewInternalToken(); err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.internal_token_failed", err), tplInstall, &form)
-			return
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.internal_token_failed", err), tplInstall, form)
+			return nil
 		}
 		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 	}
@@ -424,8 +435,8 @@ func SubmitInstall(ctx *context.Context) {
 	if setting.SecretKey == "" {
 		var secretKey string
 		if secretKey, err = generate.NewSecretKey(); err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
-			return
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.secret_key_failed", err), tplInstall, form)
+			return nil
 		}
 		cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
 	}
@@ -434,24 +445,27 @@ func SubmitInstall(ctx *context.Context) {
 		var algorithm *hash.PasswordHashAlgorithm
 		setting.PasswordHashAlgo, algorithm = hash.SetDefaultPasswordHashAlgorithm(form.PasswordAlgorithm)
 		if algorithm == nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_password_algorithm"), tplInstall, &form)
-			return
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_password_algorithm"), tplInstall, form)
+			return nil
 		}
 		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
 	}
 
+	setting.EnvironmentToConfig(cfg, envs)
+	return cfg
+}
+
+func saveConfigAndRestart(ctx *context.Context, cfg setting.ConfigProvider, form *forms.InstallForm) {
 	log.Info("Save settings to custom config file %s", setting.CustomConf)
 
-	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
+	err := os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, form)
 		return
 	}
 
-	setting.EnvironmentToConfig(cfg, os.Environ())
-
-	if err = cfg.SaveTo(setting.CustomConf); err != nil {
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+	if err := cfg.SaveTo(setting.CustomConf); err != nil {
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, form)
 		return
 	}
 
@@ -482,12 +496,12 @@ func SubmitInstall(ctx *context.Context) {
 			IsActive:     optional.Some(true),
 		}
 
-		if err = user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
+		if err := user_model.CreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
 			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
 				ctx.Data["Err_AdminEmail"] = true
-				ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_admin_setting", err), tplInstall, &form)
+				ctx.RenderWithErrDeprecated(ctx.Tr("install.invalid_admin_setting", err), tplInstall, form)
 				return
 			}
 			log.Info("Admin account already exist")
@@ -504,11 +518,11 @@ func SubmitInstall(ctx *context.Context) {
 
 		// Auto-login for admin
 		if err = ctx.Session.Set(session.KeyUID, u.ID); err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, form)
 			return
 		}
 		if err = ctx.Session.Release(); err != nil {
-			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, form)
 			return
 		}
 	}
@@ -524,7 +538,7 @@ func SubmitInstall(ctx *context.Context) {
 
 		// Now get the http.Server from this request and shut it down
 		// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
-		srv := ctx.Value(http.ServerContextKey).(*http.Server)
+		srv := ctx.Value(http.ServerContextKey).(*http.Server) //nolint:forcetypeassert // must exist
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
 			log.Error("Unable to shutdown the install server! Error: %v", err)
 		}

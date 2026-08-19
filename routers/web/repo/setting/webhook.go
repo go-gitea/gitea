@@ -329,7 +329,7 @@ func GiteaHooksEditPost(ctx *context.Context) {
 }
 
 func giteaHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewWebhookForm)
+	form := web.GetForm[*forms.NewWebhookForm](ctx)
 
 	contentType := webhook.ContentTypeJSON
 	if webhook.HookContentType(form.ContentType) == webhook.ContentTypeForm {
@@ -356,7 +356,7 @@ func GogsHooksEditPost(ctx *context.Context) {
 }
 
 func gogsHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewGogshookForm)
+	form := web.GetForm[*forms.NewGogshookForm](ctx)
 
 	contentType := webhook.ContentTypeJSON
 	if webhook.HookContentType(form.ContentType) == webhook.ContentTypeForm {
@@ -382,7 +382,7 @@ func DiscordHooksEditPost(ctx *context.Context) {
 }
 
 func discordHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewDiscordHookForm)
+	form := web.GetForm[*forms.NewDiscordHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.DISCORD,
@@ -407,7 +407,7 @@ func DingtalkHooksEditPost(ctx *context.Context) {
 }
 
 func dingtalkHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewDingtalkHookForm)
+	form := web.GetForm[*forms.NewDingtalkHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.DINGTALK,
@@ -428,7 +428,7 @@ func TelegramHooksEditPost(ctx *context.Context) {
 }
 
 func telegramHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewTelegramHookForm)
+	form := web.GetForm[*forms.NewTelegramHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.TELEGRAM,
@@ -462,7 +462,7 @@ func matrixRoomIDEncode(roomID string) string {
 }
 
 func matrixHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
+	form := web.GetForm[*forms.NewMatrixHookForm](ctx)
 
 	// TODO: need to migrate to the latest (v3) API: https://spec.matrix.org/v1.18/client-server-api/
 	return webhookParams{
@@ -490,7 +490,7 @@ func MSTeamsHooksEditPost(ctx *context.Context) {
 }
 
 func mSTeamsHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewMSTeamsHookForm)
+	form := web.GetForm[*forms.NewMSTeamsHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.MSTEAMS,
@@ -511,7 +511,7 @@ func SlackHooksEditPost(ctx *context.Context) {
 }
 
 func slackHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewSlackHookForm)
+	form := web.GetForm[*forms.NewSlackHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.SLACK,
@@ -538,7 +538,7 @@ func FeishuHooksEditPost(ctx *context.Context) {
 }
 
 func feishuHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewFeishuHookForm)
+	form := web.GetForm[*forms.NewFeishuHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.FEISHU,
@@ -563,7 +563,7 @@ func WechatworkHooksEditPost(ctx *context.Context) {
 }
 
 func wechatworkHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
+	form := web.GetForm[*forms.NewWechatWorkHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.WECHATWORK,
@@ -584,7 +584,7 @@ func PackagistHooksEditPost(ctx *context.Context) {
 }
 
 func packagistHookParams(ctx *context.Context) webhookParams {
-	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
+	form := web.GetForm[*forms.NewPackagistHookForm](ctx)
 
 	return webhookParams{
 		Type:        webhook_module.PACKAGIST,

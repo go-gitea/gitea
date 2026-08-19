@@ -66,10 +66,7 @@ func (c *Commit) ParentCount() int {
 
 // GetCommitByPath return the commit of relative path object.
 func (c *Commit) GetCommitByPath(ctx context.Context, gitRepo *Repository, relpath string) (*Commit, error) {
-	if gitRepo.LastCommitCache != nil {
-		return gitRepo.LastCommitCache.GetCommitByPath(ctx, c.ID.String(), relpath)
-	}
-	return gitRepo.getCommitByPathWithID(ctx, c.ID, relpath)
+	return gitRepo.LastCommitCache.GetCommitByPath(ctx, c.ID, relpath)
 }
 
 func (c *Commit) Tree() *Tree {

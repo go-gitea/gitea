@@ -1,11 +1,11 @@
-<script lang="ts">
-import {nextTick, defineComponent} from 'vue';
-import {SvgIcon} from '../svg.ts';
+<script lang="ts" setup>
+import {computed, nextTick, onMounted, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
+import SvgIcon from './SvgIcon.vue';
 import {GET} from '../modules/fetch.ts';
-import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {urlQueryEscape} from '../utils/url.ts';
 import type {SvgName} from '../svg.ts';
 
-const {appSubUrl, assetUrlPrefix, pageData} = window.config;
+const {appSubUrl, pageData} = window.config;
 
 type DashboardRepo = {
   id: number,
@@ -31,6 +31,11 @@ type CommitStatusMap = {
   };
 };
 
+type Tab = 'repos' | 'organizations';
+type RepoFilter = 'all' | 'forks' | 'mirrors' | 'sources' | 'collaborative';
+type ArchivedFilter = 'archived' | 'unarchived' | 'both';
+type PrivateFilter = 'private' | 'public' | 'both';
+
 // make sure this matches templates/repo/commit_status.tmpl
 const commitStatus: CommitStatusMap = {
   pending: {name: 'octicon-dot-fill', color: 'tw-text-yellow'},
@@ -41,358 +46,331 @@ const commitStatus: CommitStatusMap = {
   skipped: {name: 'octicon-skip', color: 'tw-text-text-light'},
 };
 
-export default defineComponent({
-  components: {SvgIcon},
-  data() {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get('repo-search-tab') || 'repos';
-    const reposFilter = params.get('repo-search-filter') || 'all';
-    const privateFilter = params.get('repo-search-private') || 'both';
-    const archivedFilter = params.get('repo-search-archived') || 'unarchived';
-    const searchQuery = params.get('repo-search-query') || '';
-    const page = Number(params.get('repo-search-page')) || 1;
+const searchModes = new Map<RepoFilter, string>([
+  ['all', ''],
+  ['forks', 'fork'],
+  ['mirrors', 'mirror'],
+  ['sources', 'source'],
+  ['collaborative', 'collaborative'],
+]);
 
-    return {
-      tab,
-      repos: [] as DashboardRepo[],
-      reposTotalCount: null as number | null,
-      reposFilter,
-      archivedFilter,
-      privateFilter,
-      page,
-      finalPage: 1,
-      searchQuery,
-      isLoading: false,
-      initialSearchDone: false,
-      staticPrefix: assetUrlPrefix,
-      counts: {} as Record<string, number>,
-      repoTypes: {
-        all: {
-          searchMode: '',
-        },
-        forks: {
-          searchMode: 'fork',
-        },
-        mirrors: {
-          searchMode: 'mirror',
-        },
-        sources: {
-          searchMode: 'source',
-        },
-        collaborative: {
-          searchMode: 'collaborative',
-        },
-      } as Record<string, {searchMode: string}>,
-      textArchivedFilterTitles: {} as Record<string, string>,
-      textPrivateFilterTitles: {} as Record<string, string>,
-      organizations: [] as Array<{name: string, full_name: string, num_repos: number, org_visibility: string}>,
-      isOrganization: true,
-      canCreateOrganization: false,
-      organizationsTotalCount: 0,
-      organizationId: 0,
-      searchLimit: 0,
-      uid: 0,
-      teamId: 0,
-      isMirrorsEnabled: false,
-      isStarsEnabled: false,
-      canCreateMigrations: false,
-      textNoOrg: '',
-      textNoRepo: '',
-      textRepository: '',
-      textOrganization: '',
-      textMyRepos: '',
-      textNewRepo: '',
-      textSearchRepos: '',
-      textFilter: '',
-      textShowArchived: '',
-      textShowPrivate: '',
-      textShowBothArchivedUnarchived: '',
-      textShowOnlyUnarchived: '',
-      textShowOnlyArchived: '',
-      textShowBothPrivatePublic: '',
-      textShowOnlyPublic: '',
-      textShowOnlyPrivate: '',
-      textAll: '',
-      textSources: '',
-      textForks: '',
-      textMirrors: '',
-      textCollaborative: '',
-      textFirstPage: '',
-      textPreviousPage: '',
-      textNextPage: '',
-      textLastPage: '',
-      textMyOrgs: '',
-      textNewOrg: '',
-      textOrgVisibilityLimited: '',
-      textOrgVisibilityPrivate: '',
-      subUrl: appSubUrl,
-      ...pageData.dashboardRepoList,
-      activeIndex: -1, // don't select anything at load, first cursor down will select
-    };
-  },
+const pageDataDefaults = {
+  subUrl: appSubUrl,
+  organizations: [] as Array<{name: string, full_name: string, num_repos: number, org_visibility: string}>,
+  isOrganization: true,
+  canCreateOrganization: false,
+  organizationsTotalCount: 0,
+  organizationId: 0,
+  searchLimit: 0,
+  uid: 0,
+  teamId: 0,
+  isMirrorsEnabled: false,
+  textNoOrg: '',
+  textNoRepo: '',
+  textRepository: '',
+  textOrganization: '',
+  textMyRepos: '',
+  textNewRepo: '',
+  textSearchRepos: '',
+  textFilter: '',
+  textShowArchived: '',
+  textShowPrivate: '',
+  textShowBothArchivedUnarchived: '',
+  textShowOnlyUnarchived: '',
+  textShowOnlyArchived: '',
+  textShowBothPrivatePublic: '',
+  textShowOnlyPublic: '',
+  textShowOnlyPrivate: '',
+  textAll: '',
+  textSources: '',
+  textForks: '',
+  textMirrors: '',
+  textCollaborative: '',
+  textFirstPage: '',
+  textPreviousPage: '',
+  textNextPage: '',
+  textLastPage: '',
+  textMyOrgs: '',
+  textNewOrg: '',
+  textOrgVisibilityLimited: '',
+  textOrgVisibilityPrivate: '',
+};
 
-  computed: {
-    showMoreReposLink() {
-      return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
-    },
-    searchURL() {
-      return `${this.subUrl}/repo/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
-      }&page=${this.page}&limit=${this.searchLimit}&mode=${this.repoTypes[this.reposFilter].searchMode
-      }${this.archivedFilter === 'archived' ? '&archived=true' : ''}${this.archivedFilter === 'unarchived' ? '&archived=false' : ''
-      }${this.privateFilter === 'private' ? '&is_private=true' : ''}${this.privateFilter === 'public' ? '&is_private=false' : ''
-      }`;
-    },
-    repoTypeCount() {
-      return this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
-    },
-    checkboxArchivedFilterTitle() {
-      return this.textArchivedFilterTitles[this.archivedFilter];
-    },
-    checkboxArchivedFilterProps() {
-      return {checked: this.archivedFilter === 'archived', indeterminate: this.archivedFilter === 'both'};
-    },
-    checkboxPrivateFilterTitle() {
-      return this.textPrivateFilterTitles[this.privateFilter];
-    },
-    checkboxPrivateFilterProps() {
-      return {checked: this.privateFilter === 'private', indeterminate: this.privateFilter === 'both'};
-    },
-  },
+const {
+  subUrl, organizations, isOrganization, canCreateOrganization, organizationsTotalCount, organizationId,
+  searchLimit, uid, teamId, isMirrorsEnabled,
+  textNoOrg, textNoRepo, textRepository, textOrganization, textMyRepos, textNewRepo, textSearchRepos,
+  textFilter, textShowArchived, textShowPrivate,
+  textShowBothArchivedUnarchived, textShowOnlyUnarchived, textShowOnlyArchived,
+  textShowBothPrivatePublic, textShowOnlyPublic, textShowOnlyPrivate,
+  textAll, textSources, textForks, textMirrors, textCollaborative,
+  textFirstPage, textPreviousPage, textNextPage, textLastPage,
+  textMyOrgs, textNewOrg, textOrgVisibilityLimited, textOrgVisibilityPrivate,
+}: typeof pageDataDefaults = {...pageDataDefaults, ...pageData.dashboardRepoList};
 
-  mounted() {
-    const el = document.querySelector('#dashboard-repo-list')!;
-    this.changeReposFilter(this.reposFilter);
-    fomanticQuery(el.querySelector('.ui.dropdown')!).dropdown();
+const textArchivedFilterTitles = new Map<ArchivedFilter, string>([
+  ['archived', textShowOnlyArchived],
+  ['unarchived', textShowOnlyUnarchived],
+  ['both', textShowBothArchivedUnarchived],
+]);
 
-    this.textArchivedFilterTitles = {
-      'archived': this.textShowOnlyArchived,
-      'unarchived': this.textShowOnlyUnarchived,
-      'both': this.textShowBothArchivedUnarchived,
-    };
+const textPrivateFilterTitles = new Map<PrivateFilter, string>([
+  ['private', textShowOnlyPrivate],
+  ['public', textShowOnlyPublic],
+  ['both', textShowBothPrivatePublic],
+]);
 
-    this.textPrivateFilterTitles = {
-      'private': this.textShowOnlyPrivate,
-      'public': this.textShowOnlyPublic,
-      'both': this.textShowBothPrivatePublic,
-    };
-  },
+const initialParams = new URLSearchParams(window.location.search);
+const tab = shallowRef((initialParams.get('repo-search-tab') || 'repos') as Tab);
+const reposFilter = shallowRef((initialParams.get('repo-search-filter') || 'all') as RepoFilter);
+const privateFilter = shallowRef((initialParams.get('repo-search-private') || 'both') as PrivateFilter);
+const archivedFilter = shallowRef((initialParams.get('repo-search-archived') || 'unarchived') as ArchivedFilter);
+const searchQuery = shallowRef(initialParams.get('repo-search-query') || '');
+const page = shallowRef(Number(initialParams.get('repo-search-page')) || 1);
 
-  methods: {
-    changeTab(tab: string) {
-      this.tab = tab;
-      this.updateHistory();
-    },
+const repos = shallowRef<DashboardRepo[]>([]);
+const reposTotalCount = shallowRef<number | null>(null);
+const finalPage = shallowRef(1);
+const counts = shallowRef<Record<string, number>>({});
+const isLoading = shallowRef(false);
+const initialSearchDone = shallowRef(false);
+const activeIndex = shallowRef(-1); // don't select anything at load, first cursor down will select
 
-    changeReposFilter(filter: string) {
-      this.reposFilter = filter;
-      this.repos = [];
-      this.page = 1;
-      this.searchRepos();
-    },
+const elSearch = useTemplateRef('elSearch') as Readonly<ShallowRef<HTMLInputElement>>;
 
-    updateHistory() {
-      const params = new URLSearchParams(window.location.search);
+const countsKey = computed(() => `${reposFilter.value}:${archivedFilter.value}:${privateFilter.value}`);
+const showMoreReposLink = computed(() => repos.value.length > 0 && repos.value.length < repoTypeCount.value);
+const repoTypeCount = computed(() => counts.value[countsKey.value]);
+const checkboxArchivedFilterTitle = computed(() => textArchivedFilterTitles.get(archivedFilter.value));
+const checkboxArchivedFilterProps = computed(() => ({checked: archivedFilter.value === 'archived', indeterminate: archivedFilter.value === 'both'}));
+const checkboxPrivateFilterTitle = computed(() => textPrivateFilterTitles.get(privateFilter.value));
+const checkboxPrivateFilterProps = computed(() => ({checked: privateFilter.value === 'private', indeterminate: privateFilter.value === 'both'}));
 
-      if (this.tab === 'repos') {
-        params.delete('repo-search-tab');
-      } else {
-        params.set('repo-search-tab', this.tab);
-      }
+// unknown query string values fall back to no mode
+const searchMode = computed(() => searchModes.get(reposFilter.value) ?? '');
 
-      if (this.reposFilter === 'all') {
-        params.delete('repo-search-filter');
-      } else {
-        params.set('repo-search-filter', this.reposFilter);
-      }
-
-      if (this.privateFilter === 'both') {
-        params.delete('repo-search-private');
-      } else {
-        params.set('repo-search-private', this.privateFilter);
-      }
-
-      if (this.archivedFilter === 'unarchived') {
-        params.delete('repo-search-archived');
-      } else {
-        params.set('repo-search-archived', this.archivedFilter);
-      }
-
-      if (this.searchQuery === '') {
-        params.delete('repo-search-query');
-      } else {
-        params.set('repo-search-query', this.searchQuery);
-      }
-
-      if (this.page === 1) {
-        params.delete('repo-search-page');
-      } else {
-        params.set('repo-search-page', `${this.page}`);
-      }
-
-      const queryString = params.toString();
-      if (queryString) {
-        window.history.replaceState({}, '', `?${queryString}`);
-      } else {
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    },
-
-    toggleArchivedFilter() {
-      if (this.archivedFilter === 'unarchived') {
-        this.archivedFilter = 'archived';
-      } else if (this.archivedFilter === 'archived') {
-        this.archivedFilter = 'both';
-      } else { // including both
-        this.archivedFilter = 'unarchived';
-      }
-      this.page = 1;
-      this.repos = [];
-      this.searchRepos();
-    },
-
-    togglePrivateFilter() {
-      if (this.privateFilter === 'both') {
-        this.privateFilter = 'public';
-      } else if (this.privateFilter === 'public') {
-        this.privateFilter = 'private';
-      } else { // including private
-        this.privateFilter = 'both';
-      }
-      this.page = 1;
-      this.repos = [];
-      this.searchRepos();
-    },
-
-    async changePage(page: number) {
-      if (this.isLoading) return;
-
-      this.page = page;
-      if (this.page > this.finalPage) {
-        this.page = this.finalPage;
-      }
-      if (this.page < 1) {
-        this.page = 1;
-      }
-      this.repos = [];
-      await this.searchRepos();
-    },
-
-    async searchRepos() {
-      this.isLoading = true;
-
-      const searchedMode = this.repoTypes[this.reposFilter].searchMode;
-      const searchedURL = this.searchURL;
-      const searchedQuery = this.searchQuery;
-
-      let response, json;
-      try {
-        const firstLoad = this.reposTotalCount === null;
-        if (!this.reposTotalCount) {
-          const totalCountSearchURL = `${this.subUrl}/repo/search?count_only=1&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
-          response = await GET(totalCountSearchURL);
-          this.reposTotalCount = parseInt(response.headers.get('X-Total-Count') ?? '0');
-        }
-        if (firstLoad && this.reposTotalCount) {
-          nextTick(() => {
-            // MDN: If there's no focused element, this is the Document.body or Document.documentElement.
-            if ((document.activeElement === document.body || document.activeElement === document.documentElement)) {
-              (this.$refs.search as HTMLInputElement).focus({preventScroll: true});
-            }
-          });
-        }
-        response = await GET(searchedURL);
-        json = await response.json();
-      } catch {
-        if (searchedURL === this.searchURL) {
-          this.isLoading = false;
-          this.initialSearchDone = true;
-        }
-        return;
-      }
-
-      if (searchedURL === this.searchURL) {
-        this.repos = json.data.map((webSearchRepo: any) => {
-          return {
-            ...webSearchRepo.repository,
-            latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
-            latest_commit_status_state_link: webSearchRepo.latest_commit_status?.TargetURL,
-            locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
-          };
-        });
-        const count = Number(response.headers.get('X-Total-Count'));
-        if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
-          this.reposTotalCount = count;
-        }
-        this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = count;
-        this.finalPage = Math.ceil(count / this.searchLimit);
-        this.updateHistory();
-        this.isLoading = false;
-        this.initialSearchDone = true;
-      }
-    },
-
-    repoIcon(repo: DashboardRepo) {
-      if (repo.fork) {
-        return 'octicon-repo-forked';
-      } else if (repo.mirror) {
-        return 'octicon-mirror';
-      } else if (repo.template) {
-        return `octicon-repo-template`;
-      } else if (repo.private) {
-        return 'octicon-lock';
-      } else if (repo.internal) {
-        return 'octicon-repo';
-      }
-      return 'octicon-repo';
-    },
-
-    statusIcon(status: CommitStatus) {
-      return commitStatus[status].name;
-    },
-
-    statusColor(status: CommitStatus) {
-      return commitStatus[status].color;
-    },
-
-    async reposFilterKeyControl(e: KeyboardEvent) {
-      if (e.isComposing) return;
-      switch (e.key) {
-        case 'Enter':
-          document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
-          break;
-        case 'ArrowUp':
-          if (this.activeIndex > 0) {
-            this.activeIndex--;
-          } else if (this.page > 1) {
-            await this.changePage(this.page - 1);
-            this.activeIndex = this.searchLimit - 1;
-          }
-          break;
-        case 'ArrowDown':
-          if (this.activeIndex < this.repos.length - 1) {
-            this.activeIndex++;
-          } else if (this.page < this.finalPage) {
-            this.activeIndex = 0;
-            await this.changePage(this.page + 1);
-          }
-          break;
-        case 'ArrowRight':
-          if (this.page < this.finalPage) {
-            await this.changePage(this.page + 1);
-          }
-          break;
-        case 'ArrowLeft':
-          if (this.page > 1) {
-            await this.changePage(this.page - 1);
-          }
-          break;
-      }
-      if (this.activeIndex === -1 || this.activeIndex > this.repos.length - 1) {
-        this.activeIndex = 0;
-      }
-    },
-  },
+const searchURL = computed(() => {
+  // unknown query string values send no filter
+  const archived = archivedFilter.value === 'archived' ? '&archived=true' : archivedFilter.value === 'unarchived' ? '&archived=false' : '';
+  const isPrivate = privateFilter.value === 'private' ? '&is_private=true' : privateFilter.value === 'public' ? '&is_private=false' : '';
+  return `${subUrl}/repo/search?sort=updated&order=desc&uid=${uid}&team_id=${teamId}&q=${urlQueryEscape(searchQuery.value)}` +
+    `&page=${page.value}&limit=${searchLimit}&mode=${searchMode.value}${archived}${isPrivate}`;
 });
+
+onMounted(() => {
+  changeReposFilter(reposFilter.value); // the filter dropdown is initialised by the global observer
+});
+
+function changeTab(newTab: Tab) {
+  tab.value = newTab;
+  updateHistory();
+}
+
+function changeReposFilter(filter: RepoFilter) {
+  reposFilter.value = filter;
+  repos.value = [];
+  page.value = 1;
+  searchRepos();
+}
+
+function updateHistory() {
+  const params = new URLSearchParams(window.location.search);
+
+  if (tab.value === 'repos') {
+    params.delete('repo-search-tab');
+  } else {
+    params.set('repo-search-tab', tab.value);
+  }
+
+  if (reposFilter.value === 'all') {
+    params.delete('repo-search-filter');
+  } else {
+    params.set('repo-search-filter', reposFilter.value);
+  }
+
+  if (privateFilter.value === 'both') {
+    params.delete('repo-search-private');
+  } else {
+    params.set('repo-search-private', privateFilter.value);
+  }
+
+  if (archivedFilter.value === 'unarchived') {
+    params.delete('repo-search-archived');
+  } else {
+    params.set('repo-search-archived', archivedFilter.value);
+  }
+
+  if (searchQuery.value === '') {
+    params.delete('repo-search-query');
+  } else {
+    params.set('repo-search-query', searchQuery.value);
+  }
+
+  if (page.value === 1) {
+    params.delete('repo-search-page');
+  } else {
+    params.set('repo-search-page', `${page.value}`);
+  }
+
+  const queryString = params.toString();
+  if (queryString) {
+    window.history.replaceState({}, '', `?${queryString}`);
+  } else {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+function toggleArchivedFilter() {
+  if (archivedFilter.value === 'unarchived') {
+    archivedFilter.value = 'archived';
+  } else if (archivedFilter.value === 'archived') {
+    archivedFilter.value = 'both';
+  } else { // including both
+    archivedFilter.value = 'unarchived';
+  }
+  page.value = 1;
+  repos.value = [];
+  searchRepos();
+}
+
+function togglePrivateFilter() {
+  if (privateFilter.value === 'both') {
+    privateFilter.value = 'public';
+  } else if (privateFilter.value === 'public') {
+    privateFilter.value = 'private';
+  } else { // including private
+    privateFilter.value = 'both';
+  }
+  page.value = 1;
+  repos.value = [];
+  searchRepos();
+}
+
+async function changePage(newPage: number) {
+  if (isLoading.value) return;
+
+  if (newPage > finalPage.value) newPage = finalPage.value;
+  if (newPage < 1) newPage = 1;
+  page.value = newPage;
+  repos.value = [];
+  await searchRepos();
+}
+
+async function searchRepos() {
+  isLoading.value = true;
+
+  const searchedMode = searchMode.value;
+  const searchedURL = searchURL.value;
+  const searchedQuery = searchQuery.value;
+
+  let response: Response, json: any;
+  try {
+    const firstLoad = reposTotalCount.value === null;
+    // independent of the search, so both requests go out together
+    const totalCountSearchURL = `${subUrl}/repo/search?count_only=1&uid=${uid}&team_id=${teamId}&q=&page=1&mode=`;
+    const totalCountRequest = reposTotalCount.value ? null : GET(totalCountSearchURL);
+    const searchRequest = GET(searchedURL);
+    searchRequest.catch(() => {}); // awaited below, marked handled in case the count throws first
+    if (totalCountRequest) {
+      reposTotalCount.value = parseInt((await totalCountRequest).headers.get('X-Total-Count') ?? '0');
+    }
+    if (firstLoad && reposTotalCount.value) {
+      nextTick(() => {
+        // MDN: If there's no focused element, this is the Document.body or Document.documentElement.
+        if ((document.activeElement === document.body || document.activeElement === document.documentElement)) {
+          elSearch.value.focus({preventScroll: true});
+        }
+      });
+    }
+    response = await searchRequest;
+    json = await response.json();
+  } catch {
+    if (searchedURL === searchURL.value) {
+      isLoading.value = false;
+      initialSearchDone.value = true;
+    }
+    return;
+  }
+
+  if (searchedURL === searchURL.value) {
+    repos.value = json.data.map((webSearchRepo: any) => {
+      return {
+        ...webSearchRepo.repository,
+        latest_commit_status_state: webSearchRepo.latest_commit_status?.State, // if latest_commit_status is null, it means there is no commit status
+        latest_commit_status_state_link: webSearchRepo.latest_commit_status?.TargetURL,
+        locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
+      };
+    });
+    const count = parseInt(response.headers.get('X-Total-Count') ?? '0');
+    if (searchedQuery === '' && searchedMode === '' && archivedFilter.value === 'both') {
+      reposTotalCount.value = count;
+    }
+    counts.value = {...counts.value, [countsKey.value]: count};
+    finalPage.value = Math.ceil(count / searchLimit);
+    updateHistory();
+    isLoading.value = false;
+    initialSearchDone.value = true;
+  }
+}
+
+function repoIcon(repo: DashboardRepo): SvgName {
+  if (repo.fork) {
+    return 'octicon-repo-forked';
+  } else if (repo.mirror) {
+    return 'octicon-mirror';
+  } else if (repo.template) {
+    return 'octicon-repo-template';
+  } else if (repo.private) {
+    return 'octicon-lock';
+  }
+  return 'octicon-repo';
+}
+
+function statusIcon(status: CommitStatus) {
+  return commitStatus[status].name;
+}
+
+function statusColor(status: CommitStatus) {
+  return commitStatus[status].color;
+}
+
+async function reposFilterKeyControl(e: KeyboardEvent) {
+  if (e.isComposing) return;
+  switch (e.key) {
+    case 'Enter':
+      document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
+      break;
+    case 'ArrowUp':
+      if (activeIndex.value > 0) {
+        activeIndex.value--;
+      } else if (page.value > 1) {
+        await changePage(page.value - 1);
+        activeIndex.value = searchLimit - 1;
+      }
+      break;
+    case 'ArrowDown':
+      if (activeIndex.value < repos.value.length - 1) {
+        activeIndex.value++;
+      } else if (page.value < finalPage.value) {
+        activeIndex.value = 0;
+        await changePage(page.value + 1);
+      }
+      break;
+    case 'ArrowRight':
+      if (page.value < finalPage.value) {
+        await changePage(page.value + 1);
+      }
+      break;
+    case 'ArrowLeft':
+      if (page.value > 1) {
+        await changePage(page.value - 1);
+      }
+      break;
+  }
+  if (activeIndex.value === -1 || activeIndex.value > repos.value.length - 1) {
+    activeIndex.value = 0;
+  }
+}
 </script>
 <template>
   <div>
@@ -420,13 +398,13 @@ export default defineComponent({
       </div>
       <div v-else class="ui attached segment repos-search">
         <div class="ui small fluid action left icon input">
-          <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
+          <input type="search" spellcheck="false" maxlength="255" @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="elSearch" @keydown="reposFilterKeyControl" :placeholder="textSearchRepos">
           <i class="icon loading-icon-3px" :class="{'is-loading': isLoading}"><svg-icon name="octicon-search" :size="16"/></i>
           <div class="ui dropdown icon button" :title="textFilter">
             <svg-icon name="octicon-filter" :size="16"/>
             <div class="menu">
               <a class="item" @click="toggleArchivedFilter()">
-                <div class="ui checkbox" ref="checkboxArchivedFilter" :title="checkboxArchivedFilterTitle">
+                <div class="ui checkbox" :title="checkboxArchivedFilterTitle">
                   <!--the "tw-pointer-events-none" is necessary to prevent the checkbox from handling user's input,
                       otherwise if the "input" handles click event for intermediate status, it breaks the internal state-->
                   <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxArchivedFilterProps">
@@ -437,7 +415,7 @@ export default defineComponent({
                 </div>
               </a>
               <a class="item" @click="togglePrivateFilter()">
-                <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
+                <div class="ui checkbox" :title="checkboxPrivateFilterTitle">
                   <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
                     <svg-icon name="octicon-lock" :size="16" class="tw-mr-1"/>

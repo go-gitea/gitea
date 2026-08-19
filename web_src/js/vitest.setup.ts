@@ -1,7 +1,7 @@
 import './globals.ts';
 
 window.config = {
-  appUrl: 'http://localhost:3000/',
+  appUrl: `${window.location.origin}/`,
   appSubUrl: '',
   assetUrlPrefix: '/assets',
   sharedWorkerUri: '',

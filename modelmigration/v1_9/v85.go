@@ -4,6 +4,7 @@
 package v1_9
 
 import (
+	"context"
 	"fmt"
 
 	"gitea.dev/modelmigration/base"
@@ -12,7 +13,7 @@ import (
 	"gitea.dev/modules/util"
 )
 
-func HashAppToken(x base.EngineMigration) error {
+func HashAppToken(_ context.Context, x base.EngineMigration) error {
 	// AccessToken see models/token.go
 	type AccessToken struct {
 		ID             int64 `xorm:"pk autoincr"`

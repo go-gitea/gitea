@@ -1,6 +1,6 @@
 import {build, defineConfig} from 'vite';
-import vuePlugin from '@vitejs/plugin-vue';
 import {stringPlugin} from 'vite-string-plugin';
+import {sharedPlugins, vueDefines} from './tools/shared.ts';
 import {licensePlugin, wrap} from 'rolldown-license-plugin';
 import {readFileSync, writeFileSync, mkdirSync, unlinkSync, globSync} from 'node:fs';
 import path, {basename, join, parse} from 'node:path';
@@ -28,15 +28,6 @@ const themes: Record<string, string> = {};
 for (const path of globSync('web_src/css/themes/*.css', {cwd: import.meta.dirname})) {
   themes[parse(path).name] = join(import.meta.dirname, path);
 }
-
-const webComponents = new Set([
-  // our own, in web_src/js/webcomponents
-  'overflow-menu',
-  'relative-time',
-  // from dependencies
-  'markdown-toolbar',
-  'text-expander',
-]);
 
 function failOnWarningsPlugin(): Rolldown.Plugin {
   let warningCount = 0;
@@ -305,25 +296,14 @@ export default defineConfig(commonViteOpts({
       ],
     },
   },
-  define: {
-    __VUE_OPTIONS_API__: true,
-    __VUE_PROD_DEVTOOLS__: false,
-    __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: false,
-  },
+  define: vueDefines,
   plugins: [
     iifePlugin('iife.ts'),
     iifePlugin('external-render-helper.ts'),
     viteDevServerPortPlugin(),
     reducedSourcemapPlugin(),
     filterCssUrlPlugin(),
-    stringPlugin(),
-    vuePlugin({
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag) => webComponents.has(tag),
-        },
-      },
-    }),
+    ...sharedPlugins(),
     isProduction ? licensePlugin({
       done(deps, context) {
         const line = '-'.repeat(80);

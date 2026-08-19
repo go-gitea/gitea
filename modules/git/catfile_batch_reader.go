@@ -52,7 +52,7 @@ func newCatFileBatch(ctx context.Context, repo RepositoryFacade, cmdCatFile *git
 		stdPipeClose()
 	}))
 
-	err := cmdCatFile.WithRepo(repo).StartWithStderr(ctx)
+	err := cmdCatFile.WithParentCallerInfo().WithRepo(repo).StartWithStderr(ctx)
 	if err != nil {
 		log.Error("Unable to start git command %v: %v", cmdCatFile.LogString(), err)
 		// ideally here it should return the error, but it would require refactoring all callers

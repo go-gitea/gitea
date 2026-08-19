@@ -11,12 +11,13 @@ import (
 	"testing"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/queue"
@@ -623,8 +624,6 @@ jobs:
 
 			apiBaseRepo := createActionsTestRepo(t, user2Token, "fork-pr-inherit-test", false)
 			baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-			user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-			defer doAPIDeleteRepository(user2APICtx)(t)
 
 			// Real secret that must never reach a fork PR task.
 			req := NewRequestWithJSON(t, "PUT",
@@ -665,7 +664,6 @@ jobs:
 			apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
 			forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
 			user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
-			defer doAPIDeleteRepository(user4APICtx)(t)
 
 			// user4 pushes a change on the fork and opens a PR to base
 			doAPICreateFile(user4APICtx, "user4-fix.txt", &api.CreateFileOptions{
@@ -699,6 +697,100 @@ jobs:
 				assert.NotEqual(t, "MUST-NOT-LEAK", value, "secret %q leaked the base repo's secret value into a fork PR task", name)
 			}
 
+			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
+		})
+
+		t.Run("pull_request_target resolves a local reusable workflow at the base commit", func(t *testing.T) {
+			apiBaseRepo := createActionsTestRepo(t, user2Token, "prt-reusable-test", false)
+			baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
+
+			runner := newMockRunner()
+			runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-prt-runner", []string{"ubuntu-latest"}, false)
+
+			reusablePath := ".gitea/workflows/reusable.yaml"
+			// A pull_request_target run's workflow should always come from the base branch.
+			createRepoWorkflowFile(t, user2, user2Token, baseRepo, reusablePath, `name: Reusable
+on:
+  workflow_call:
+jobs:
+  trusted:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo trusted
+`)
+			baseFile := createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, ".gitea/workflows/prt.yaml",
+				getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create prt.yaml", `name: PRT
+on: pull_request_target
+jobs:
+  call_reusable:
+    uses: ./.gitea/workflows/reusable.yaml
+    secrets: inherit
+`))
+			baseSHA := baseFile.Commit.SHA
+
+			// user4 forks
+			req := NewRequestWithJSON(t, "POST",
+				fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
+				&api.CreateForkOption{Name: new("prt-reusable-test-fork")}).AddTokenAuth(user4Token)
+			resp := MakeRequest(t, req, http.StatusAccepted)
+			apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
+			forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
+			user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+
+			// user4 rewrites the reusable workflow the base branch calls into, and opens a PR
+			req = NewRequest(t, "GET",
+				fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", forkRepo.OwnerName, forkRepo.Name, reusablePath)).AddTokenAuth(user4Token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			forkReusable := DecodeJSON(t, resp, &api.ContentsResponse{})
+
+			req = NewRequestWithJSON(t, "PUT",
+				fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", forkRepo.OwnerName, forkRepo.Name, reusablePath), &api.UpdateFileOptions{
+					FileOptions: api.FileOptions{
+						NewBranchName: "fork-branch",
+						Message:       "rewrite the reusable workflow",
+						Author:        api.Identity{Name: user4.Name, Email: user4.Email},
+						Committer:     api.Identity{Name: user4.Name, Email: user4.Email},
+						Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
+					},
+					SHA: forkReusable.SHA,
+					ContentBase64: base64.StdEncoding.EncodeToString([]byte(`name: Reusable
+on:
+  workflow_call:
+jobs:
+  from-fork:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo from-fork
+`)),
+				}).AddTokenAuth(user4Token)
+			resp = MakeRequest(t, req, http.StatusOK)
+			forkHeadSHA := DecodeJSON(t, resp, &api.FileResponse{}).Commit.SHA
+			require.NotEqual(t, baseSHA, forkHeadSHA)
+
+			doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":fork-branch")(t)
+
+			assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: baseRepo.ID}))
+			prtRun := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID})
+			assert.Equal(t, actions_module.GithubEventPullRequestTarget, prtRun.TriggerEvent)
+			assert.True(t, prtRun.IsForkPullRequest)
+			assert.False(t, prtRun.NeedApproval)
+			// The run still points at the PR head, but its workflow source must be the base commit.
+			assert.Equal(t, forkHeadSHA, prtRun.CommitSHA)
+			assert.Equal(t, baseSHA, prtRun.WorkflowCommitSHA)
+
+			caller := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: prtRun.ID, JobID: "call_reusable"})
+			assert.Equal(t, baseSHA, caller.WorkflowSourceCommitSHA)
+			assert.NotContains(t, string(caller.ReusableWorkflowContent), "from-fork")
+
+			// The caller has no needs, so it is expanded inline at insert time: the child comes from the base branch.
+			unittest.AssertNotExistsBean(t, &actions_model.ActionRunJob{RunID: prtRun.ID, JobID: "from-fork"})
+			child := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: prtRun.ID, JobID: "trusted"})
+			assert.Equal(t, caller.ID, child.ParentJobID)
+			assert.Equal(t, baseSHA, child.WorkflowSourceCommitSHA)
+
+			task := runner.fetchTask(t)
+			_, taskJob, _ := getTaskAndJobAndRunByTaskID(t, task.Id)
+			require.Equal(t, "trusted", taskJob.JobID)
 			runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		})
 

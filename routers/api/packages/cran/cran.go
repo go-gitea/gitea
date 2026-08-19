@@ -93,7 +93,7 @@ func enumeratePackages(ctx *context.Context, format string, opts *cran_model.Sea
 			}
 		}
 
-		metadata := pd.Metadata.(*cran_module.Metadata)
+		metadata := packages_model.DescriptorMetadata[*cran_module.Metadata](pd)
 
 		fmt.Fprintln(w, "Package:", pd.Package.Name)
 		fmt.Fprintln(w, "Version:", pd.Version.Version)

@@ -25,7 +25,7 @@ type Blob struct {
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync(ctx context.Context) (_ io.ReadCloser, retErr error) {
-	batch, cancel, err := b.repo.CatFileBatch(ctx)
+	batch, cancel, err := b.repo.CatFileBatch()
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (b *Blob) Size(ctx context.Context) int64 {
 		return b.size
 	}
 
-	batch, cancel, err := b.repo.CatFileBatch(ctx)
+	batch, cancel, err := b.repo.CatFileBatch()
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.LogString(), err)
 		return 0
