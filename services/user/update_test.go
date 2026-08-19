@@ -157,6 +157,7 @@ func TestUpdateUserVisibility(t *testing.T) {
 	assert.Error(t, UpdateUser(t.Context(), user, &UpdateOptions{
 		Visibility: optional.Some(structs.VisibleTypePublic),
 	}))
+}
 
 func TestConvertUserType(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
