@@ -307,7 +307,7 @@ it can also be rendered as flex by adding flex-related classes (the general ".it
 }
 
 @media (forced-colors: active) {
-  .ui.label { /* label backgrounds are dropped, outline keeps the boundary without changing metrics */
+  .ui.label {
     outline: 1px solid CanvasText;
     outline-offset: -1px;
   }
