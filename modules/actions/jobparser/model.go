@@ -11,6 +11,7 @@ import (
 	"gitea.dev/actionslib/pkg/expreval"
 	"gitea.dev/actionslib/pkg/exprparser"
 	"gitea.dev/actionslib/pkg/model"
+	"gitea.dev/modules/util"
 
 	"go.yaml.in/yaml/v4"
 )
@@ -32,6 +33,11 @@ func (w *SingleWorkflow) Job() (string, *Job) {
 		return ids[0], jobs[0]
 	}
 	return "", nil
+}
+
+// WorkflowDispatchConfig returns the `on: workflow_dispatch` declaration, nil if there is none.
+func (w *SingleWorkflow) WorkflowDispatchConfig() *model.WorkflowDispatch {
+	return (&model.Workflow{RawOn: w.RawOn}).WorkflowDispatchConfig()
 }
 
 func (w *SingleWorkflow) jobs() ([]string, []*Job, error) {
@@ -294,7 +300,7 @@ func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCt
 	if evaluated.RawExpression != "" {
 		return evaluated.RawExpression, false, nil
 	}
-	return evaluated.Group, evaluated.CancelInProgress == "true", nil
+	return evaluated.Group, util.ParseYamlBool(evaluated.CancelInProgress), nil
 }
 
 func toGitContext(input map[string]any) *model.GithubContext {

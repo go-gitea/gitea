@@ -3,13 +3,11 @@ import {fomanticMobileScreen} from '../modules/fomantic.ts';
 import {POST} from '../modules/fetch.ts';
 import type {ComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
-async function initRepoWikiFormEditor() {
-  const editArea = document.querySelector<HTMLTextAreaElement>('.repository.wiki .combo-markdown-editor textarea');
-  if (!editArea) return;
-
-  const form = document.querySelector('.repository.wiki.new .ui.form')!;
+async function initRepoWikiForm(form: HTMLFormElement) {
   const editorContainer = form.querySelector<HTMLElement>('.combo-markdown-editor')!;
+  const editArea = editorContainer.querySelector<HTMLTextAreaElement>('textarea')!;
   let editor: ComboMarkdownEditor;
 
   let renderRequesting = false;
@@ -69,17 +67,13 @@ async function initRepoWikiFormEditor() {
   });
 }
 
-function collapseWikiTocForMobile(collapse: boolean) {
-  if (collapse) {
-    document.querySelector('.wiki-content-toc details')?.removeAttribute('open');
-  }
-}
-
-export function initRepoWikiForm() {
-  if (!document.querySelector('.page-content.repository.wiki')) return;
-
-  fomanticMobileScreen.addEventListener('change', (e) => collapseWikiTocForMobile(e.matches));
-  collapseWikiTocForMobile(fomanticMobileScreen.matches);
-
-  initRepoWikiFormEditor();
+export function initRepoWiki() {
+  registerGlobalInitFunc('initRepoWikiSidebarToc', (el) => {
+    const collapseWikiTocForMobile = (collapse: boolean) => {
+      if (collapse) el.querySelector('details')?.removeAttribute('open');
+    };
+    fomanticMobileScreen.addEventListener('change', (e) => collapseWikiTocForMobile(e.matches));
+    collapseWikiTocForMobile(fomanticMobileScreen.matches);
+  });
+  registerGlobalInitFunc('initRepoWikiForm', initRepoWikiForm);
 }

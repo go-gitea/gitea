@@ -54,6 +54,47 @@ func TestLabel_ExclusiveScope(t *testing.T) {
 	assert.Equal(t, "scope/subscope", label.ExclusiveScope())
 }
 
+func TestSortLabelsForDisplay(t *testing.T) {
+	labels := []*issues_model.Label{
+		{Name: "priority/low", Exclusive: true, ExclusiveOrder: 4},
+		{Name: "priority/critical", Exclusive: true, ExclusiveOrder: 1},
+		{Name: "priority/medium", Exclusive: true, ExclusiveOrder: 3},
+		{Name: "priority/high", Exclusive: true, ExclusiveOrder: 2},
+		{Name: "bug"},
+		{Name: "enhancement"},
+		{Name: "kind/question", Exclusive: true},
+	}
+	issues_model.SortLabelsForDisplay(labels)
+
+	names := make([]string, 0, len(labels))
+	for _, l := range labels {
+		names = append(names, l.Name)
+	}
+	assert.Equal(t, []string{
+		"bug",
+		"enhancement",
+		"kind/question",
+		"priority/critical",
+		"priority/high",
+		"priority/medium",
+		"priority/low",
+	}, names)
+
+	// labels without an exclusive order in the same scope are listed last, ordered by name
+	labels = []*issues_model.Label{
+		{Name: "scope/unordered-b", Exclusive: true},
+		{Name: "scope/ordered", Exclusive: true, ExclusiveOrder: 1},
+		{Name: "scope/unordered-a", Exclusive: true},
+	}
+	issues_model.SortLabelsForDisplay(labels)
+
+	names = names[:0]
+	for _, l := range labels {
+		names = append(names, l.Name)
+	}
+	assert.Equal(t, []string{"scope/ordered", "scope/unordered-a", "scope/unordered-b"}, names)
+}
+
 func TestNewLabels(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	labels := []*issues_model.Label{
