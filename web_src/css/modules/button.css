@@ -32,6 +32,12 @@
   color: var(--color-text);
 }
 
+.ui.button.hover-opaque:hover {
+  /* ".ui.button:hover" uses alpha channel to "highlight", it doesn't work when the background is not body: the inherited color is not right
+   for such case, use this opaque color */
+  background: var(--color-hover-opaque);
+}
+
 .ui.active.button,
 .ui.button:active,
 .ui.active.button:active,
@@ -324,11 +330,6 @@
   font-size: 0;
   vertical-align: baseline;
   margin: 0 0.25em 0 0;
-}
-
-.delete-button,
-.delete-button:hover {
-  color: var(--color-red);
 }
 
 /* btn is a plain button without any opinionated styling, it only uses flex for vertical alignment like ".ui.button" in base.css */

@@ -41,6 +41,7 @@ func (doc *HTMLDoc) Find(selector string) *goquery.Selection {
 
 // AssertHTMLElement check if the element by selector exists or does not exist depending on checkExists
 func AssertHTMLElement[T int | bool](t testing.TB, doc *HTMLDoc, selector string, checkExists T) {
+	t.Helper()
 	sel := doc.doc.Find(selector)
 	switch v := any(checkExists).(type) {
 	case bool:

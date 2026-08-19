@@ -11,6 +11,7 @@ import (
 	"net/mail"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
@@ -36,18 +37,36 @@ const (
 	controlTar = "control.tar"
 )
 
-var (
-	ErrMissingControlFile     = util.NewInvalidArgumentErrorf("control file is missing")
-	ErrUnsupportedCompression = util.NewInvalidArgumentErrorf("unsupported compression algorithm")
-	ErrInvalidName            = util.NewInvalidArgumentErrorf("package name is invalid")
-	ErrInvalidVersion         = util.NewInvalidArgumentErrorf("package version is invalid")
-	ErrInvalidArchitecture    = util.NewInvalidArgumentErrorf("package architecture is invalid")
+var GlobalVars = sync.OnceValue(func() (ret struct {
+	ErrMissingControlFile     error
+	ErrUnsupportedCompression error
+	ErrInvalidName            error
+	ErrInvalidVersion         error
+	ErrInvalidArchitecture    error
+
+	namePattern    *regexp.Regexp
+	versionPattern *regexp.Regexp
+	symbolPattern  *regexp.Regexp
+},
+) {
+	ret.ErrMissingControlFile = util.NewInvalidArgumentErrorf("control file is missing")
+	ret.ErrUnsupportedCompression = util.NewInvalidArgumentErrorf("unsupported compression algorithm")
+	ret.ErrInvalidName = util.NewInvalidArgumentErrorf("package name is invalid")
+	ret.ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
+	ret.ErrInvalidArchitecture = util.NewInvalidArgumentErrorf("package architecture is invalid")
 
 	// https://www.debian.org/doc/debian-policy/ch-controlfields.html#source
-	namePattern = regexp.MustCompile(`\A[a-z0-9][a-z0-9+-.]+\z`)
+	ret.namePattern = regexp.MustCompile(`\A[a-z0-9][a-z0-9+-.]+\z`)
 	// https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
-	versionPattern = regexp.MustCompile(`\A(?:(0|[1-9][0-9]*):)?[a-zA-Z0-9.+~]+(?:-[a-zA-Z0-9.+-~]+)?\z`)
-)
+	ret.versionPattern = regexp.MustCompile(`\A(?:(0|[1-9][0-9]*):)?[a-zA-Z0-9.+~]+(?:-[a-zA-Z0-9.+-~]+)?\z`)
+
+	// distribution and component are taken from the request path and written
+	// verbatim into the generated line-based Release and Packages indices (and
+	// into the pool/<distribution>/<component> paths referenced from them), so
+	// they must be restricted to a character set that cannot break that format.
+	ret.symbolPattern = regexp.MustCompile(`\A[a-zA-Z0-9][a-zA-Z0-9.~+_-]*\z`)
+	return ret
+})
 
 type Package struct {
 	Name         string
@@ -62,6 +81,10 @@ type Metadata struct {
 	ProjectURL   string   `json:"project_url,omitempty"`
 	Description  string   `json:"description,omitempty"`
 	Dependencies []string `json:"dependencies,omitempty"`
+}
+
+func IsValidDistributionOrComponent(s string) bool {
+	return GlobalVars().symbolPattern.MatchString(s)
 }
 
 // ParsePackage parses the Debian package file
@@ -109,10 +132,13 @@ func ParsePackage(r io.Reader) (*Package, error) {
 
 				inner = zr
 			default:
-				return nil, ErrUnsupportedCompression
+				return nil, GlobalVars().ErrUnsupportedCompression
 			}
 
-			tr := tar.NewReader(inner)
+			// bound the decompressed control archive: it holds only the small control file
+			// and maintainer scripts, so a much larger stream is a decompression bomb
+			const maxControlTarSize = 32 * 1024 * 1024
+			tr := tar.NewReader(io.LimitReader(inner, maxControlTarSize))
 			for {
 				hd, err := tr.Next()
 				if err == io.EOF {
@@ -133,7 +159,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 		}
 	}
 
-	return nil, ErrMissingControlFile
+	return nil, GlobalVars().ErrMissingControlFile
 }
 
 // ParseControlFile parses a Debian control file to retrieve the metadata
@@ -145,6 +171,7 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 	key := ""
 	var depends strings.Builder
 	var control strings.Builder
+	var description strings.Builder
 
 	// https://www.debian.org/doc/debian-policy/ch-controlfields.html#syntax-of-control-files
 	s := bufio.NewScanner(r)
@@ -166,10 +193,13 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 		control.WriteString(line)
 		control.WriteByte('\n')
 
+		// a leading space or tab marks a folded continuation line that belongs to the previous field
+		// (identified by key), not a new "Key: value" pair; only the multi-line fields append here.
+		// Continuation lines may themselves contain a colon, so they must not be re-split on ":".
 		if line[0] == ' ' || line[0] == '\t' {
 			switch key {
 			case "Description":
-				p.Metadata.Description += line
+				description.WriteString(line)
 			case "Depends":
 				depends.WriteString(trimmed)
 			}
@@ -196,7 +226,8 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 					p.Metadata.Maintainer = a.Name
 				}
 			case "Description":
-				p.Metadata.Description = value
+				description.Reset()
+				description.WriteString(value)
 			case "Depends":
 				depends.WriteString(value)
 			case "Homepage":
@@ -210,15 +241,17 @@ func ParseControlFile(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	if !namePattern.MatchString(p.Name) {
-		return nil, ErrInvalidName
+	if !GlobalVars().namePattern.MatchString(p.Name) {
+		return nil, GlobalVars().ErrInvalidName
 	}
-	if !versionPattern.MatchString(p.Version) {
-		return nil, ErrInvalidVersion
+	if !GlobalVars().versionPattern.MatchString(p.Version) {
+		return nil, GlobalVars().ErrInvalidVersion
 	}
 	if p.Architecture == "" {
-		return nil, ErrInvalidArchitecture
+		return nil, GlobalVars().ErrInvalidArchitecture
 	}
+
+	p.Metadata.Description = description.String()
 
 	dependencies := strings.Split(depends.String(), ",")
 	for i := range dependencies {

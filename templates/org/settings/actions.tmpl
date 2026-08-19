@@ -6,6 +6,8 @@
 		{{template "shared/secrets/add_list" .}}
 	{{else if eq .PageType "variables"}}
 		{{template "shared/variables/variable_list" .}}
+	{{else if eq .PageType "scoped-workflows"}}
+		{{template "shared/actions/scoped_workflows" .}}
 	{{end}}
 	</div>
 {{template "org/settings/layout_footer" .}}

@@ -5,8 +5,11 @@
 package issues
 
 import (
+	"cmp"
 	"context"
+	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,12 +28,6 @@ import (
 type ErrRepoLabelNotExist struct {
 	LabelID int64
 	RepoID  int64
-}
-
-// IsErrRepoLabelNotExist checks if an error is a RepoErrLabelNotExist.
-func IsErrRepoLabelNotExist(err error) bool {
-	_, ok := err.(ErrRepoLabelNotExist)
-	return ok
 }
 
 func (err ErrRepoLabelNotExist) Error() string {
@@ -196,6 +193,42 @@ func (l *Label) ExclusiveScope() string {
 	return l.Name[:lastIndex]
 }
 
+// CompareLabelForDisplay compares labels for displaying them in dropdowns or lists.
+// Labels are grouped by their exclusive scope, and labels within the same scope
+// are sorted by their exclusive order, where unordered labels (order 0) come last.
+// Labels without a scope are listed first and everything else falls back to name order.
+func CompareLabelForDisplay(a, b *Label) int {
+	scopeA, scopeB := a.ExclusiveScope(), b.ExclusiveScope()
+	if scopeA != scopeB {
+		if scopeA == "" {
+			return -1
+		}
+		if scopeB == "" {
+			return 1
+		}
+		return strings.Compare(scopeA, scopeB)
+	}
+	if scopeA != "" {
+		orderA, orderB := a.ExclusiveOrder, b.ExclusiveOrder
+		if orderA <= 0 {
+			orderA = math.MaxInt
+		}
+		if orderB <= 0 {
+			orderB = math.MaxInt
+		}
+		if orderA != orderB {
+			return cmp.Compare(orderA, orderB)
+		}
+	}
+	return strings.Compare(a.Name, b.Name)
+}
+
+// SortLabelsForDisplay sorts labels in place for displaying them in dropdowns or lists,
+// grouping them by their exclusive scope and respecting the exclusive order within each scope.
+func SortLabelsForDisplay(labels []*Label) {
+	slices.SortStableFunc(labels, CompareLabelForDisplay)
+}
+
 // NewLabel creates a new label
 func NewLabel(ctx context.Context, l *Label) error {
 	color, err := label.NormalizeColor(l.Color)
@@ -310,6 +343,18 @@ func GetLabelInRepoByName(ctx context.Context, repoID int64, labelName string) (
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
 	return l, nil
+}
+
+// GetLabelInRepoOrOrgByID returns the label with labelID scoped to the repo, falling back to the
+// repo's owning organization when ownerIsOrg is set. It returns ErrRepoLabelNotExist /
+// ErrOrgLabelNotExist when the label is in neither scope, so a foreign-but-existing label ID is
+// indistinguishable from a nonexistent one (no cross-repo enumeration oracle).
+func GetLabelInRepoOrOrgByID(ctx context.Context, repoID, ownerID int64, ownerIsOrg bool, labelID int64) (*Label, error) {
+	label, err := GetLabelInRepoByID(ctx, repoID, labelID)
+	if err != nil && errors.Is(err, util.ErrNotExist) && ownerIsOrg {
+		return GetLabelInOrgByID(ctx, ownerID, labelID)
+	}
+	return label, err
 }
 
 // GetLabelInRepoByID returns a label by ID in given repository.

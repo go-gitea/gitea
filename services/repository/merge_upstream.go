@@ -8,10 +8,11 @@ import (
 	"fmt"
 
 	issue_model "gitea.dev/models/issues"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/util"
@@ -26,6 +27,17 @@ func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_
 	if err = repo.GetBaseRepo(ctx); err != nil {
 		return "", err
 	}
+
+	// The doer must still be able to read the base repository's code. Otherwise a fork created
+	// while the base repo was public could keep pulling commits after it turned private.
+	basePerm, err := access_model.GetDoerRepoPermission(ctx, repo.BaseRepo, doer)
+	if err != nil {
+		return "", err
+	}
+	if !basePerm.CanRead(unit.TypeCode) {
+		return "", util.NewPermissionDeniedErrorf("permission denied to read base repo %d", repo.BaseRepo.ID)
+	}
+
 	divergingInfo, err := GetUpstreamDivergingInfo(ctx, repo, branch)
 	if err != nil {
 		return "", err
@@ -34,7 +46,7 @@ func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_
 		return "up-to-date", nil
 	}
 
-	err = gitrepo.Push(ctx, repo.BaseRepo, repo, git.PushOptions{
+	err = git.PushManaged(ctx, repo.BaseRepo, repo, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s", divergingInfo.BaseBranchName, branch),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	})

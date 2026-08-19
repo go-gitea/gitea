@@ -273,12 +273,10 @@ a {
   color: var(--color-primary);
   cursor: pointer;
   text-decoration-line: none;
-  text-decoration-skip-ink: all;
 }
 
 a:hover {
   text-decoration-line: underline;
-  text-underline-position: under; /* necessary for CJK fonts, otherwise, default "auto" makes the underline cross-over the CJK text bottom */
 }
 
 /* a = always colored, underlined on hover */
@@ -522,6 +520,11 @@ overflow-menu {
   position: relative;
 }
 
+/* hide until JS has arranged the items, so the un-collapsed menu is never painted */
+overflow-menu:not([data-ready]) {
+  visibility: hidden;
+}
+
 overflow-menu .overflow-menu-popup {
   position: absolute;
   top: calc(100% + 8px);
@@ -609,6 +612,12 @@ overflow-menu .overflow-menu-button:hover {
 
 overflow-menu .ui.label {
   margin-left: 7px !important; /* save some space */
+  font-variant-numeric: tabular-nums; /* equal-width digits so counts don't reflow the row */
+}
+
+/* count not loaded yet, keep the reserved space so filling it in does not shift the row */
+overflow-menu .ui.label:empty {
+  visibility: hidden;
 }
 
 .activity-bar-graph {
@@ -863,6 +872,7 @@ table th[data-sortt-desc] .svg {
 
 .ui.list.flex-items-block > .item,
 .ui.vertical.menu.flex-items-block > .item,
+.ui.vertical.menu .item.flex-text-block,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {

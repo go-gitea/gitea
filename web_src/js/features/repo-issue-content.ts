@@ -111,10 +111,8 @@ function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, co
   $fomanticDropdown.dropdown({
     action: 'hide',
     apiSettings: {
-      cache: false,
       url: `${issueBaseUrl}/content-history/list?comment_id=${commentId}`,
     },
-    saveRemoteData: false,
     onHide() {
       $fomanticDropdown.dropdown('change values', null);
     },
@@ -148,7 +146,7 @@ export async function initRepoIssueContentHistory() {
     if (resp.editedHistoryCountMap[0] && elIssueDescription) {
       showContentHistoryMenu(issueBaseUrl, elIssueDescription, '0');
     }
-    for (const [commentId, _editedCount] of Object.entries(resp.editedHistoryCountMap)) {
+    for (const commentId of Object.keys(resp.editedHistoryCountMap)) {
       if (commentId === '0') continue;
       const elIssueComment = document.querySelector(`#issuecomment-${commentId}`);
       if (elIssueComment) showContentHistoryMenu(issueBaseUrl, elIssueComment, commentId);

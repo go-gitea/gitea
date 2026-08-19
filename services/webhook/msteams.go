@@ -187,6 +187,18 @@ func (m msteamsConvertor) IssueComment(p *api.IssueCommentPayload) (MSTeamsPaylo
 func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload, error) {
 	title, _, extraMarkdown, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
+	facts := []*MSTeamsFact{
+		{"Pull request:", fmt.Sprintf("[#%d](%s)", p.PullRequest.Index, p.PullRequest.HTMLURL)},
+	}
+
+	if (p.Action == api.HookIssueReviewRequested || p.Action == api.HookIssueReviewRequestRemoved) && p.RequestedReviewer != nil {
+		reviewerName := p.RequestedReviewer.UserName
+		if p.RequestedReviewer.FullName != "" {
+			reviewerName += " (" + p.RequestedReviewer.FullName + ")"
+		}
+		facts = append(facts, &MSTeamsFact{"Requested Reviewer:", reviewerName})
+	}
+
 	return createMSTeamsPayload(
 		p.Repository,
 		p.Sender,
@@ -194,7 +206,7 @@ func (m msteamsConvertor) PullRequest(p *api.PullRequestPayload) (MSTeamsPayload
 		extraMarkdown,
 		p.PullRequest.HTMLURL,
 		color,
-		&MSTeamsFact{"Pull request #:", strconv.FormatInt(p.PullRequest.ID, 10)},
+		facts...,
 	), nil
 }
 
@@ -231,7 +243,7 @@ func (m msteamsConvertor) Review(p *api.PullRequestPayload, event webhook_module
 		text,
 		p.PullRequest.HTMLURL,
 		color,
-		&MSTeamsFact{"Pull request #:", strconv.FormatInt(p.PullRequest.ID, 10)},
+		&MSTeamsFact{"Pull request:", fmt.Sprintf("[#%d](%s)", p.PullRequest.Index, p.PullRequest.HTMLURL)},
 	), nil
 }
 
@@ -247,6 +259,10 @@ func (m msteamsConvertor) Repository(p *api.RepositoryPayload) (MSTeamsPayload, 
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
 		color = yellowColor
+	case api.HookRepoRenamed:
+		title = fmt.Sprintf("[%s] Repository renamed from %s", p.Repository.FullName, getRepoRenamedFrom(p))
+		url = p.Repository.HTMLURL
+		color = greenColor
 	}
 
 	return createMSTeamsPayload(
@@ -271,7 +287,6 @@ func (m msteamsConvertor) Wiki(p *api.WikiPayload) (MSTeamsPayload, error) {
 		"",
 		p.Repository.HTMLURL+"/wiki/"+url.PathEscape(p.Page),
 		color,
-		&MSTeamsFact{"Repository:", p.Repository.FullName},
 	), nil
 }
 
@@ -346,16 +361,18 @@ func (msteamsConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MSTeamsPayload, 
 	), nil
 }
 
-func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTarget string, color int, fact *MSTeamsFact) MSTeamsPayload {
-	facts := make([]MSTeamsFact, 0, 2)
+func createMSTeamsPayload(r *api.Repository, s *api.User, title, text, actionTarget string, color int, extraFacts ...*MSTeamsFact) MSTeamsPayload {
+	facts := make([]MSTeamsFact, 0, len(extraFacts)+1)
 	if r != nil {
 		facts = append(facts, MSTeamsFact{
 			Name:  "Repository:",
-			Value: r.FullName,
+			Value: fmt.Sprintf("[%s](%s)", r.FullName, r.HTMLURL),
 		})
 	}
-	if fact != nil {
-		facts = append(facts, *fact)
+	for _, f := range extraFacts {
+		if f != nil {
+			facts = append(facts, *f)
+		}
 	}
 
 	return MSTeamsPayload{

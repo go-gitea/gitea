@@ -9,6 +9,7 @@ import (
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
@@ -465,4 +466,47 @@ func TestSearchRepositoryByTopicName(t *testing.T) {
 			assert.Equal(t, int64(testCase.count), count)
 		})
 	}
+}
+
+func TestFindUserActionsAccessibleOwnerRepoIDs(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	// user2 is on org3's owner team, so it can access org3's private repo3 (which has the actions unit)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// org3 is a public org owning repo3 (private) and repo32 (public), both with the actions unit
+	const orgID = 3
+
+	all, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, false))
+	require.NoError(t, err)
+	assert.Contains(t, all, int64(3), "without public-only the private repo's actions are listed")
+
+	publicOnly, err := repo_model.SearchRepositoryIDsByCondition(t.Context(), repo_model.UserActionsAccessibleOwnerRepoCond(orgID, user, true))
+	require.NoError(t, err)
+	assert.NotContains(t, publicOnly, int64(3), "a public-only token must not list a private repo's actions")
+	assert.Contains(t, publicOnly, int64(32), "a public repo under a public owner stays listed")
+}
+
+// TestUserOrgUnitRepoCondTeamAuthorize pins team.authorize vs team_unit.access_mode
+func TestUserOrgUnitRepoCondTeamAuthorize(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	accessibleRepoIDs := func(userID, orgID int64, unitType unit.Type) []int64 {
+		ids, err := repo_model.SearchRepositoryIDsByCondition(t.Context(),
+			repo_model.UserOrgUnitRepoCond("`repository`.id", userID, orgID, unitType))
+		require.NoError(t, err)
+		return ids
+	}
+
+	// Owner team5 has no Actions team_unit row but still grants via authorize=owner.
+	assert.Contains(t, accessibleRepoIDs(18, 17, unit.TypeActions), int64(24))
+
+	// team2 is "authorize=write" with Projects team_unit but no Actions row.
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
+
+	// now team2 is "authorize=none", no Actions row.
+	_, err := db.GetEngine(t.Context()).Exec("UPDATE team SET authorize=0 WHERE id=2")
+	assert.NoError(t, err)
+	assert.Contains(t, accessibleRepoIDs(4, 3, unit.TypeProjects), int64(3))
+	assert.NotContains(t, accessibleRepoIDs(4, 3, unit.TypeActions), int64(3))
 }

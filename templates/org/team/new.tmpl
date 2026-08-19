@@ -95,9 +95,16 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="permission" value="read" {{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 0) (eq .Team.AccessMode 1) (eq .Team.AccessMode 2)}}checked{{end}}>
+										<input type="radio" name="permission" value="none" {{if or .PageIsOrgTeamsNew (eq .Team.AccessMode 0) (eq .Team.AccessMode 1)}}checked{{end}}>
 										<label>{{ctx.Locale.Tr "org.teams.general_access"}}</label>
 										<span class="help">{{ctx.Locale.Tr "org.teams.general_access_helper"}}</span>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui radio checkbox">
+										<input type="radio" name="permission" value="write" {{if eq .Team.AccessMode 2}}checked{{end}}>
+										<label>{{ctx.Locale.Tr "org.teams.write_access"}}</label>
+										<span class="help">{{ctx.Locale.Tr "org.teams.write_access_all_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
@@ -110,7 +117,7 @@
 							</div>
 							<div class="divider"></div>
 
-							<div class="team-units required grouped field {{if eq .Team.AccessMode 3}}tw-hidden{{end}}">
+							<div class="team-units required grouped field {{if ge .Team.AccessMode 2}}tw-hidden{{end}}">
 								<label>{{ctx.Locale.Tr "org.team_unit_desc"}}</label>
 								<table class="ui celled table">
 									<thead>
@@ -176,7 +183,7 @@
 							{{else}}
 								<button class="ui primary button">{{ctx.Locale.Tr "org.teams.update_settings"}}</button>
 								{{if not .Team.IsOwnerTeam}}
-									<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
+									<button class="ui red button link-action" data-modal-confirm="#delete-team" data-url="{{.OrgLink}}/teams/{{.Team.Name | PathEscape}}/delete">{{ctx.Locale.Tr "org.teams.delete_team"}}</button>
 								{{end}}
 							{{end}}
 						</div>
@@ -187,7 +194,7 @@
 	</div>
 </div>
 
-<div class="ui g-modal-confirm delete modal">
+<div class="ui small modal" id="delete-team">
 	<div class="header">
 		{{svg "octicon-trash"}}
 		{{ctx.Locale.Tr "org.teams.delete_team_title"}}

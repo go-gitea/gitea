@@ -37,7 +37,7 @@ export function firstStartDateAfterDate(inputDate: Date): number {
   }
   const dayOfWeek = inputDate.getUTCDay();
   const daysUntilSunday = 7 - dayOfWeek;
-  const resultDate = new Date(inputDate.getTime());
+  const resultDate = new Date(inputDate);
   resultDate.setUTCDate(resultDate.getUTCDate() + daysUntilSunday);
   return resultDate.valueOf();
 }

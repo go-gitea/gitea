@@ -7,7 +7,6 @@ package user
 import (
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 
 	activities_model "gitea.dev/models/activities"
@@ -22,7 +21,6 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
-	"gitea.dev/modules/util"
 	"gitea.dev/routers/web/feed"
 	"gitea.dev/routers/web/org"
 	shared_user "gitea.dev/routers/web/shared/user"
@@ -170,6 +168,10 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+		// a public-only API token must not surface private activity, even for its own owner
+		if showPrivate && context.TokenIsPublicOnly(ctx) {
+			showPrivate = false
+		}
 		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
@@ -247,11 +249,11 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 		total = count
 	case "overview":
-		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+		if bytes, err := profileReadme.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
 			rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{
-				CurrentRefSubURL: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+				CurrentRefSubURL: git.RefNameFromBranch(profileDbRepo.DefaultBranch).RefWebLinkPath(),
 			})
 			if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)

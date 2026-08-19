@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 
 	"gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
@@ -26,7 +25,6 @@ import (
 	"gitea.dev/services/forms"
 	"gitea.dev/services/oauth2_provider"
 
-	"gitea.com/go-chi/binding"
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
@@ -98,6 +96,19 @@ func InfoOAuth(ctx *context.Context) {
 		return
 	}
 
+	// enforce the same user scope the REST API requires before returning identity
+	// claims; OIDC access tokens map to the "all" scope, so standard OIDC clients
+	// are unaffected and only explicitly-restricted tokens are rejected
+	tokenScope, _ := ctx.Data["ApiTokenScope"].(auth.AccessTokenScope)
+	if allowed, err := tokenScope.HasScope(auth.AccessTokenScopeReadUser); err != nil {
+		ctx.ServerError("HasScope", err)
+		return
+	} else if !allowed {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea OAuth2"`)
+		ctx.PlainText(http.StatusForbidden, "token does not have required scope: read:user")
+		return
+	}
+
 	response := &userInfoResponse{
 		Sub:               strconv.FormatInt(ctx.Doer.ID, 10),
 		Name:              ctx.Doer.DisplayName(),
@@ -128,7 +139,7 @@ func InfoOAuth(ctx *context.Context) {
 
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
-	clientIDValid := false
+	var introspectingApp *auth.OAuth2Application
 	authHeader := ctx.Req.Header.Get("Authorization")
 	if parsed, ok := httpauth.ParseAuthorizationHeader(authHeader); ok && parsed.BasicAuth != nil {
 		clientID, clientSecret := parsed.BasicAuth.Username, parsed.BasicAuth.Password
@@ -139,9 +150,14 @@ func IntrospectOAuth(ctx *context.Context) {
 			ctx.HTTPError(http.StatusInternalServerError)
 			return
 		}
-		clientIDValid = err == nil && app.ValidateClientSecret([]byte(clientSecret))
+		clientIDValid := err == nil && app.ValidateClientSecret([]byte(clientSecret))
+		if clientIDValid {
+			introspectingApp = app
+		}
 	}
-	if !clientIDValid {
+	if introspectingApp == nil {
+		// RFC 7662 requires the caller to authenticate to the introspection endpoint.
+		// https://www.rfc-editor.org/rfc/rfc7662.html#section-2.1
 		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea OAuth2"`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
@@ -154,37 +170,57 @@ func IntrospectOAuth(ctx *context.Context) {
 		jwt.RegisteredClaims
 	}
 
-	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
+	form := web.GetForm[*forms.IntrospectTokenForm](ctx)
 	token, err := oauth2_provider.ParseToken(form.Token, oauth2_provider.DefaultSigningKey)
-	if err == nil {
-		grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
-		if err == nil && grant != nil {
-			app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
-			if err == nil && app != nil {
-				response.Active = true
-				response.Scope = grant.Scope
-				response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(app.ClientID, grant.UserID, nil /*exp*/)
-			}
-			if user, err := user_model.GetUserByID(ctx, grant.UserID); err == nil {
-				response.Username = user.Name
-			}
-		}
+	if err != nil {
+		// RFC 7662 returns inactive token metadata for invalid/unknown tokens.
+		// https://www.rfc-editor.org/rfc/rfc7662.html#section-2.2
+		log.Trace("Ignoring invalid token during introspection: %v", err)
+		ctx.JSON(http.StatusOK, response)
+		return
 	}
+
+	grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
+	if err != nil {
+		ctx.ServerError("GetOAuth2GrantByID", err)
+		return
+	}
+	if grant == nil || grant.ApplicationID != introspectingApp.ID {
+		// RFC 7662 allows the server to reply inactive when the caller must not learn more.
+		// https://www.rfc-editor.org/rfc/rfc7662.html#section-2.2
+		ctx.JSON(http.StatusOK, response)
+		return
+	}
+
+	response.Active = true
+	response.Scope = grant.Scope
+	response.RegisteredClaims = oauth2_provider.NewJwtRegisteredClaimsFromUser(introspectingApp.ClientID, grant.UserID, nil /*exp*/)
+	user, err := user_model.GetUserByID(ctx, grant.UserID)
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
+		return
+	}
+	response.Username = user.Name
 
 	ctx.JSON(http.StatusOK, response)
 }
 
+func oauthDoerAuthorizePreCheck(ctx *context.Context, formState string) bool {
+	if ctx.DoerNeedTwoFactorAuth() {
+		handleAuthorizeError(ctx, AuthorizeError{
+			ErrorCode:        ErrorCodeAccessDenied,
+			ErrorDescription: "two-factor authentication is required",
+			State:            formState,
+		}, "")
+		return false
+	}
+	return true
+}
+
 // AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.AuthorizationForm)
-	errs := binding.Errors{}
-	errs = form.Validate(ctx.Req, errs)
-	if len(errs) > 0 {
-		var errstring strings.Builder
-		for _, e := range errs {
-			errstring.WriteString(e.Error() + "\n")
-		}
-		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring.String()))
+	form := web.GetForm[*forms.AuthorizationForm](ctx)
+	if !oauthDoerAuthorizePreCheck(ctx, form.State) {
 		return
 	}
 
@@ -351,7 +387,11 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 // GrantApplicationOAuth manages the post request submitted when a user grants access to an application
 func GrantApplicationOAuth(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.GrantApplicationForm)
+	form := web.GetForm[*forms.GrantApplicationForm](ctx)
+	if !oauthDoerAuthorizePreCheck(ctx, form.State) {
+		return
+	}
+
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
 		ctx.HTTPError(http.StatusBadRequest)
@@ -420,19 +460,6 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
 
-// OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
-func OIDCWellKnown(ctx *context.Context) {
-	if !setting.OAuth2.Enabled {
-		http.NotFound(ctx.Resp, ctx.Req)
-		return
-	}
-	jwtRegisteredClaims := oauth2_provider.NewJwtRegisteredClaimsFromUser("well-known", 0, nil)
-	ctx.Data["OidcIssuer"] = jwtRegisteredClaims.Issuer // use the consistent issuer from the JWT registered claims
-	ctx.Data["OidcBaseUrl"] = strings.TrimSuffix(setting.AppURL, "/")
-	ctx.Data["SigningKeyMethodAlg"] = oauth2_provider.DefaultSigningKey.SigningMethod().Alg()
-	ctx.JSONTemplate("user/auth/oidc_wellknown")
-}
-
 // OIDCKeys generates the JSON Web Key Set
 func OIDCKeys(ctx *context.Context) {
 	jwk, err := oauth2_provider.DefaultSigningKey.ToJWK()
@@ -459,7 +486,7 @@ func OIDCKeys(ctx *context.Context) {
 
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
+	form := *web.GetForm[*forms.AccessTokenForm](ctx)
 	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
 	if form.ClientID == "" || form.ClientSecret == "" {
 		if authHeader := ctx.Req.Header.Get("Authorization"); authHeader != "" {

@@ -6,6 +6,7 @@ package organization
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -92,6 +93,15 @@ func (t *Team) IsPublic() bool  { return t.Visibility.IsPublic() }
 func (t *Team) IsLimited() bool { return t.Visibility.IsLimited() }
 func (t *Team) IsPrivate() bool { return t.Visibility.IsPrivate() }
 
+const (
+	ghostTeamID   = -1
+	ghostTeamName = "(deleted team)"
+)
+
+func newGhostTeam() *Team {
+	return &Team{ID: ghostTeamID, Name: ghostTeamName, LowerName: ghostTeamName}
+}
+
 // CanNonMemberReadMeta reports whether a non-member, non-owner doer may read
 // the team's metadata, based on the team's visibility tier and the parent org's
 // visibility. Privileged callers (site admins, org owners, team members) are
@@ -107,8 +117,8 @@ func (t *Team) CanNonMemberReadMeta(ctx context.Context, org, doer *user_model.U
 	}
 }
 
-func NormalizeTeamVisibility(s string) structs.VisibleType {
-	if vt, ok := structs.VisibilityModes[s]; ok {
+func NormalizeTeamVisibility[T ~string](v T) structs.VisibleType {
+	if vt, ok := structs.VisibilityModes[structs.VisibilityString(v)]; ok {
 		return vt
 	}
 	return structs.VisibleTypePrivate
@@ -139,29 +149,14 @@ func (t *Team) LoadUnits(ctx context.Context) (err error) {
 	return err
 }
 
-// GetUnitNames returns the team units names
-func (t *Team) GetUnitNames() (res []string) {
-	if t.HasAdminAccess() {
-		return unit.AllUnitKeyNames()
-	}
-
-	for _, u := range t.Units {
-		res = append(res, unit.Units[u.Type].NameKey)
-	}
-	return res
-}
-
 // GetUnitsMap returns the team units permissions
 func (t *Team) GetUnitsMap() map[string]string {
+	if len(t.Units) == 0 {
+		return nil
+	}
 	m := make(map[string]string)
-	if t.HasAdminAccess() {
-		for _, u := range unit.Units {
-			m[u.NameKey] = t.AccessMode.ToString()
-		}
-	} else {
-		for _, u := range t.Units {
-			m[u.Unit().NameKey] = u.AccessMode.ToString()
-		}
+	for _, u := range t.Units {
+		m[u.Unit().NameKey] = u.AccessMode.ToString()
 	}
 	return m
 }
@@ -204,16 +199,21 @@ func (t *Team) UnitAccessMode(ctx context.Context, tp unit.Type) perm.AccessMode
 	return accessMode
 }
 
-func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (accessMode perm.AccessMode, exist bool) {
+func (t *Team) UnitAccessModeEx(ctx context.Context, tp unit.Type) (mode perm.AccessMode, exist bool) {
 	if err := t.LoadUnits(ctx); err != nil {
-		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
+		log.Error("Error loading team (ID: %d) units: %v", t.ID, err)
 	}
 	for _, u := range t.Units {
 		if u.Type == tp {
-			return u.AccessMode, true
+			mode, exist = u.AccessMode, true
+			break
 		}
 	}
-	return perm.AccessModeNone, false
+	mode = max(mode, t.AccessMode)
+	if unitDef, ok := unit.Units[tp]; ok {
+		mode = min(mode, unitDef.MaxPerm())
+	}
+	return mode, exist || t.AccessMode > perm.AccessModeNone
 }
 
 // IsUsableTeamName tests if a name could be as team name
@@ -268,6 +268,17 @@ func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
+}
+
+func GetPossibleTeamByID(ctx context.Context, teamID int64) (int64, *Team, error) {
+	t, err := GetTeamByID(ctx, teamID)
+	if errors.Is(err, util.ErrNotExist) {
+		t = newGhostTeam()
+		return t.ID, t, nil
+	} else if err != nil {
+		return 0, nil, err
+	}
+	return t.ID, t, nil
 }
 
 // IncrTeamRepoNum increases the number of repos for the given team by 1

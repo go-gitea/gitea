@@ -535,12 +535,8 @@ func GetPullRequestByIndex(ctx context.Context, repoID, index int64) (*PullReque
 	if index < 1 {
 		return nil, ErrPullRequestNotExist{}
 	}
-	pr := &PullRequest{
-		BaseRepoID: repoID,
-		Index:      index,
-	}
 
-	has, err := db.GetEngine(ctx).Get(pr)
+	pr, has, err := db.Get[PullRequest](ctx, builder.Eq{"base_repo_id": repoID, "`index`": index})
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1015,4 +1011,17 @@ func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string)
 	}
 
 	return pr, nil
+}
+
+// GetPullRequestRequestedReviewerIDs returns IDs of reviewers currently requested for the given pull request.
+func GetPullRequestRequestedReviewerIDs(ctx context.Context, issueID int64) ([]int64, error) {
+	userIDs := make([]int64, 0, 5)
+	return userIDs, db.GetEngine(ctx).
+		Table("review").
+		Cols("reviewer_id").
+		Where("issue_id=?", issueID).
+		And("type=?", ReviewTypeRequest).
+		And("reviewer_id > 0").
+		Distinct("reviewer_id").
+		Find(&userIDs)
 }

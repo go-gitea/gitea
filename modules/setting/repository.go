@@ -22,6 +22,7 @@ const (
 const (
 	RepoPRTitleSourceFirstCommit = "first-commit"
 	RepoPRTitleSourceAuto        = "auto"
+	RepoPRTitleSourceBranchName  = "branch-name"
 )
 
 // ItemsPerPage maximum items per page in forks, watchers and stars of a repo
@@ -56,6 +57,7 @@ var (
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
+		DefaultObjectFormat                     string
 		DefaultRejectForcePush                  bool
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
@@ -186,6 +188,7 @@ var (
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
+		DefaultObjectFormat:                     "sha1",
 		DefaultRejectForcePush:                  false,
 		AllowForkWithoutMaximumLimit:            true,
 		StreamArchives:                          true,

@@ -377,10 +377,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(1), data[v.ID].AssigneeID)
+				assert.True(t, slices.Contains(data[v.ID].AssigneeIDs, int64(1)))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID == 1
+				return slices.Contains(v.AssigneeIDs, int64(1))
 			}), result.Total)
 		},
 	},
@@ -395,10 +395,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 5)
 			for _, v := range result.Hits {
-				assert.Equal(t, int64(0), data[v.ID].AssigneeID)
+				assert.True(t, data[v.ID].NoAssignee)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID == 0
+				return v.NoAssignee
 			}), result.Total)
 		},
 	},
@@ -630,10 +630,10 @@ var cases = []*testIndexerCase{
 		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
 			assert.Len(t, result.Hits, 180)
 			for _, v := range result.Hits {
-				assert.GreaterOrEqual(t, data[v.ID].AssigneeID, int64(1))
+				assert.False(t, data[v.ID].NoAssignee)
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				return v.AssigneeID >= 1
+				return !v.NoAssignee
 			}), result.Total)
 		},
 	},
@@ -686,6 +686,18 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 			for i := range projectIDs {
 				projectIDs[i] = int64(i) + 1 // projectID should not be 0
 			}
+			var assigneeIDs []int64
+			if issueIndex%10 != 0 {
+				assigneeID := issueIndex % 10
+				assigneeIDs = []int64{assigneeID}
+				if issueIndex%3 == 0 {
+					nextAssigneeID := assigneeID + 1
+					if nextAssigneeID == 10 {
+						nextAssigneeID = 1
+					}
+					assigneeIDs = append(assigneeIDs, nextAssigneeID)
+				}
+			}
 
 			data = append(data, &internal.IndexerData{
 				ID:                 id,
@@ -702,7 +714,8 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				ProjectIDs:         projectIDs,
 				NoProject:          len(projectIDs) == 0,
 				PosterID:           id%10 + 1, // PosterID should not be 0
-				AssigneeID:         issueIndex % 10,
+				AssigneeIDs:        assigneeIDs,
+				NoAssignee:         len(assigneeIDs) == 0,
 				MentionIDs:         mentionIDs,
 				ReviewedIDs:        reviewedIDs,
 				ReviewRequestedIDs: reviewRequestedIDs,

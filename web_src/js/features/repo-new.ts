@@ -49,7 +49,6 @@ function initRepoNewTemplateSearch(form: HTMLFormElement) {
           }
           return {results};
         },
-        cache: false,
       },
     });
   };

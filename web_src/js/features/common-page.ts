@@ -6,6 +6,8 @@ import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
+import {initRepoSwitcher} from './repo-switcher.ts';
+import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
 
 const {appUrl, appSubUrl} = window.config;
 
@@ -37,7 +39,7 @@ function initFooterThemeSelector() {
   const $dropdown = fomanticQuery(elDropdown);
   $dropdown.dropdown({
     direction: 'upward',
-    apiSettings: {url: `${appSubUrl}/-/web-theme/list`, cache: false},
+    apiSettings: {url: `${appSubUrl}/-/web-theme/list`},
   });
   addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
     const themeName = el.getAttribute('data-value')!;
@@ -104,6 +106,8 @@ export function initGlobalComponent() {
   registerGlobalInitFunc('initTabSwitcher', initTabSwitcher);
   registerGlobalInitFunc('initAvatarUploader', initAvatarUploaderWithCropper);
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
+  registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
+  registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
 }
 
 // for performance considerations, it only uses performant syntax

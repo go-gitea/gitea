@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import WorkflowGraph from './WorkflowGraph.vue';
-import type {ActionRunViewStore} from "./ActionRunView.ts";
-import {computed, onBeforeUnmount, onMounted, toRefs} from "vue";
+import type {ActionRunViewStore} from './ActionRunView.ts';
+import {computed, onBeforeUnmount, onMounted, toRefs} from 'vue';
+import {trString} from '../modules/i18n.ts';
 
 defineOptions({
   name: 'ActionRunSummaryView',
@@ -41,7 +42,7 @@ const triggerUser = computed(() => {
 
 const triggerLabel = computed(() => {
   if (isRerun.value) return locale.rerunTriggered;
-  return locale.triggeredVia.replace('%s', run.value.triggerEvent);
+  return trString(locale.triggeredVia, run.value.triggerEvent);
 });
 
 const artifactsDisplay = computed(() => props.artifactCount > 0 ? String(props.artifactCount) : '–');
@@ -119,7 +120,7 @@ onBeforeUnmount(() => {
       :jobs="topLevelJobs"
       :run-link="run.link"
       :workflow-id="run.workflowID"
-      :workflow-link="`${run.link}/workflow`"
+      :workflow-link="run.canViewWorkflowFile ? `${run.link}/workflow` : ''"
       :trigger-event="run.triggerEvent"
       :locale="locale"
     />

@@ -8,18 +8,18 @@
 				</div>
 			</h4>
 			<div class="ui attached segment">
-				<p>{{ctx.Locale.Tr "repo.settings.githook_edit_desc"}}</p>
+				{{ctx.Locale.Tr "repo.settings.githook_edit_desc"}}
+			</div>
+			<div class="ui attached fitted segment">
 				{{with .Hook}}
-					<div class="field">
-						<textarea id="content" name="content" class="tw-hidden"
-							data-code-editor-config="{{JsonUtils.EncodeToString $.CodeEditorConfig}}"
-							placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
-						<div class="editor-loading is-loading"></div>
-					</div>
-					<div class="inline field">
-						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_githook"}}</button>
-					</div>
+					<textarea id="content" name="content" class="tw-hidden"
+						data-code-editor-config="{{JsonUtils.EncodeToString $.CodeEditorConfig}}"
+						placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
+					<div class="editor-loading is-loading"></div>
 				{{end}}
+			</div>
+			<div class="ui attached segment">
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_githook"}}</button>
 			</div>
 		</form>
 	</div>

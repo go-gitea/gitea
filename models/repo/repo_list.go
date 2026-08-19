@@ -169,8 +169,8 @@ type SearchRepoOptions struct {
 	// False -> include just public
 	IsPrivate optional.Option[bool]
 	// None -> include collaborative AND non-collaborative
-	// True -> include just collaborative
-	// False -> include just non-collaborative
+	// True -> include just collaborative (the "OwnerID" is not really an owner, it just means a collaborator who doesn't own the repo)
+	// False -> include just non-collaborative (the repo must be in the owner's name space)
 	Collaborate optional.Option[bool]
 	// What type of unit the user can be collaborative in,
 	// it is ignored if Collaborate is False.
@@ -312,9 +312,12 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 // userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
 func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
-		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
-		Where(builder.Eq{"`team_unit`.`type`": unitType}).
-		And(builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)})
+		Join("INNER", "team", "`team`.id = `team_repo`.team_id").
+		Join("LEFT", "team_unit", builder.Expr("`team_unit`.team_id = `team_repo`.team_id AND `team_unit`.`type` = ?", unitType)).
+		Where(builder.Or(
+			builder.Gt{"`team`.authorize": int(perm.AccessModeNone)},
+			builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)},
+		))
 }
 
 // userOrgTeamUnitRepoCond returns a condition to select repo ids where user's teams can access the special unit.
@@ -326,7 +329,7 @@ func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType unit.Type) bui
 func UserOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
-			And(builder.Eq{"`team_unit`.org_id": orgID}),
+			And(builder.Eq{"`team`.org_id": orgID}),
 	)
 }
 
@@ -753,6 +756,40 @@ func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user
 		builder.Eq{"owner_id": ownerID},
 		AccessibleRepositoryCondition(user, unit.TypeCode),
 	))
+}
+
+// PublicRepoUnderPublicOwnerCond restricts to public repos whose owner is publicly visible: the
+// "genuinely public" set a public-only token or an anonymous caller may see (a public repo under a
+// limited/private owner is not publicly reachable and must be excluded).
+func PublicRepoUnderPublicOwnerCond() builder.Cond {
+	return builder.And(
+		builder.Eq{"`repository`.is_private": false},
+		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePublic})),
+	)
+}
+
+// UserActionsAccessibleOwnerRepoCond selects the repos owned by ownerID whose Actions `user` may read.
+// It is used to list an org/user's Actions runs and jobs (see the callers in routers/api/v1/shared).
+//   - owner_id = ownerID: only that owner's repos.
+//   - AccessibleRepositoryCondition(user, TypeActions): only repos whose Actions the user can read
+//     (admin/owner teams are handled inside it; a site admin is not, callers must skip the filter for one).
+//   - publicOnly (a public-only token): additionally limit to public repos under a public owner.
+func UserActionsAccessibleOwnerRepoCond(ownerID int64, user *user_model.User, publicOnly bool) builder.Cond {
+	cond := builder.NewCond().And(
+		builder.Eq{"`repository`.owner_id": ownerID},
+		AccessibleRepositoryCondition(user, unit.TypeActions),
+	)
+	if publicOnly {
+		cond = cond.And(PublicRepoUnderPublicOwnerCond())
+	}
+	return cond
+}
+
+// FindUserActionsAccessibleOwnerRepoIDsSubQuery returns a subquery selecting the repository IDs the user
+// can see for the given owner. Callers embed it in an `IN (...)` condition so that a large owner does not
+// materialize every repo ID into the SQL statement, which could exceed database parameter limits.
+func FindUserActionsAccessibleOwnerRepoIDsSubQuery(ownerID int64, user *user_model.User, publicOnly bool) *builder.Builder {
+	return builder.Select("id").From("repository").Where(UserActionsAccessibleOwnerRepoCond(ownerID, user, publicOnly))
 }
 
 // GetUserRepositories returns a list of repositories of given user.

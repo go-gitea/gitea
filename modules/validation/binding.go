@@ -4,32 +4,30 @@
 package validation
 
 import (
-	"fmt"
+	"context"
 	"io"
+	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 
 	"gitea.dev/modules/auth"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/glob"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/util"
 
-	"gitea.com/go-chi/binding"
+	"gitea.com/go-chi/binding" //nolint:depguard // this package wraps it
 )
 
 const (
-	// ErrGitRefName is git reference name error
-	ErrGitRefName = "GitRefNameError"
-	// ErrGlobPattern is returned when glob pattern is invalid
-	ErrGlobPattern = "GlobPattern"
-	// ErrRegexPattern is returned when a regex pattern is invalid
-	ErrRegexPattern = "RegexPattern"
-	// ErrUsername is username error
-	ErrUsername = "UsernameError"
-	// ErrInvalidGroupTeamMap is returned when a group team mapping is invalid
+	ErrCustomMessage       = "CustomMessage"
+	ErrGitRefName          = "GitRefNameError"
+	ErrGlobPattern         = "GlobPattern"
+	ErrRegexPattern        = "RegexPattern"
+	ErrUsername            = "UsernameError"
 	ErrInvalidGroupTeamMap = "InvalidGroupTeamMap"
-	// ErrInvalidBadgeSlug is returned when a badge slug is invalid
-	ErrInvalidBadgeSlug = "InvalidBadgeSlug"
+	ErrInvalidBadgeSlug    = "InvalidBadgeSlug"
 )
 
 type jsonProvider struct{}
@@ -46,178 +44,74 @@ func (j jsonProvider) NewEncoder(writer io.Writer) binding.JSONEncoder {
 	return json.NewEncoder(writer)
 }
 
+func newFieldError(field reflect.StructField, cls, msg string) *BindingError {
+	return &BindingError{[]string{field.Name}, cls, msg} //nolint:govet // make sure no missing fields
+}
+
 // AddBindingRules adds additional binding rules
-func AddBindingRules() {
-	binding.JSONProvider = jsonProvider{}
-	addGitRefNameBindingRule()
-	addValidURLBindingRule()
-	addValidSiteURLBindingRule()
-	addGlobPatternRule()
-	addRegexPatternRule()
-	addGlobOrRegexPatternRule()
-	addUsernamePatternRule()
-	addValidGroupTeamMapRule()
-	addSlugPatternRule()
-}
-
-func addGitRefNameBindingRule() {
-	// Git refname validation rule
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "GitRefName"
-		},
-		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
-
-			if !git.IsValidRefPattern(str) {
-				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
-				return false, errs
-			}
-			return true, errs
-		},
-	})
-}
-
-func addValidURLBindingRule() {
-	// URL validation rule
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "ValidUrl"
-		},
-		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
-			if len(str) != 0 && !IsValidURL(str) {
-				errs.Add([]string{name}, binding.ERR_URL, "Url")
-				return false, errs
-			}
-
-			return true, errs
-		},
-	})
-}
-
-func addValidSiteURLBindingRule() {
-	// URL validation rule
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "ValidSiteUrl"
-		},
-		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
-			if len(str) != 0 && !IsValidSiteURL(str) {
-				errs.Add([]string{name}, binding.ERR_URL, "Url")
-				return false, errs
-			}
-
-			return true, errs
-		},
-	})
-}
-
-func addSlugPatternRule() {
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "BadgeSlug"
-		},
-		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
-			if !IsValidBadgeSlug(str) {
-				errs.Add([]string{name}, ErrInvalidBadgeSlug, "invalid badge slug")
-				return false, errs
-			}
-			return true, errs
-		},
-	})
-}
-
-func addGlobPatternRule() {
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "GlobPattern"
-		},
-		IsValid: globPatternValidator,
-	})
-}
-
-func globPatternValidator(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-	str := fmt.Sprintf("%v", val)
-
-	if len(str) != 0 {
-		if _, err := glob.Compile(str); err != nil {
-			errs.Add([]string{name}, ErrGlobPattern, err.Error())
-			return false, errs
+func AddBindingRules(b *binding.Binder) {
+	b.AddRuleNonZero("GitRefName", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
+		if !git.IsValidRefPattern(f.ValueMustString()) {
+			return newFieldError(f.StructField, ErrGitRefName, "GitRefName")
 		}
+		return nil
+	})
+	b.AddRuleNonZero("ValidUrl", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
+		if !IsValidURL(f.ValueMustString()) {
+			return newFieldError(f.StructField, binding.ERR_URL, "Url")
+		}
+		return nil
+	})
+	b.AddRuleNonZero("ValidSiteUrl", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
+		if !IsValidSiteURL(f.ValueMustString()) {
+			return newFieldError(f.StructField, binding.ERR_URL, "Url")
+		}
+		return nil
+	})
+	b.AddRuleNonZero("BadgeSlug", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
+		if !IsValidBadgeSlug(f.ValueMustString()) {
+			return newFieldError(f.StructField, ErrInvalidBadgeSlug, "invalid badge slug")
+		}
+		return nil
+	})
+
+	ruleGlobPattern := func(_ context.Context, f *binding.ValidationField) *binding.Error {
+		if _, err := glob.Compile(f.ValueMustString()); err != nil {
+			return newFieldError(f.StructField, ErrGlobPattern, err.Error())
+		}
+		return nil
 	}
-
-	return true, errs
-}
-
-func addRegexPatternRule() {
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "RegexPattern"
-		},
-		IsValid: regexPatternValidator,
-	})
-}
-
-func regexPatternValidator(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-	str := fmt.Sprintf("%v", val)
-
-	if _, err := regexp.Compile(str); err != nil {
-		errs.Add([]string{name}, ErrRegexPattern, err.Error())
-		return false, errs
+	b.AddRuleNonZero("GlobPattern", ruleGlobPattern)
+	ruleRegexPattern := func(_ context.Context, f *binding.ValidationField, val string) *binding.Error {
+		if _, err := regexp.Compile(val); err != nil {
+			return newFieldError(f.StructField, ErrRegexPattern, err.Error())
+		}
+		return nil
 	}
-
-	return true, errs
-}
-
-func addGlobOrRegexPatternRule() {
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "GlobOrRegexPattern"
-		},
-		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-			str := strings.TrimSpace(fmt.Sprintf("%v", val))
-
-			if len(str) >= 2 && strings.HasPrefix(str, "/") && strings.HasSuffix(str, "/") {
-				return regexPatternValidator(errs, name, str[1:len(str)-1])
-			}
-			return globPatternValidator(errs, name, val)
-		},
+	b.AddRuleNonZero("RegexPattern", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
+		return ruleRegexPattern(ctx, f, f.ValueMustString())
 	})
-}
-
-func addUsernamePatternRule() {
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "Username"
-		},
-		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
-			if !IsValidUsername(str) {
-				errs.Add([]string{name}, ErrUsername, "invalid username")
-				return false, errs
-			}
-			return true, errs
-		},
+	b.AddRuleNonZero("GlobOrRegexPattern", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
+		str := f.ValueMustString()
+		if len(str) >= 2 && strings.HasPrefix(str, "/") && strings.HasSuffix(str, "/") {
+			return ruleRegexPattern(ctx, f, str[1:len(str)-1])
+		}
+		return ruleGlobPattern(ctx, f)
 	})
-}
 
-func addValidGroupTeamMapRule() {
-	binding.AddRule(&binding.Rule{
-		IsMatch: func(rule string) bool {
-			return rule == "ValidGroupTeamMap"
-		},
-		IsValid: func(errs binding.Errors, name string, val any) (bool, binding.Errors) {
-			_, err := auth.UnmarshalGroupTeamMapping(fmt.Sprintf("%v", val))
-			if err != nil {
-				errs.Add([]string{name}, ErrInvalidGroupTeamMap, err.Error())
-				return false, errs
-			}
+	b.AddRuleNonZero("Username", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
+		if !IsValidUsername(f.ValueMustString()) {
+			return newFieldError(f.StructField, ErrUsername, "invalid username")
+		}
+		return nil
+	})
 
-			return true, errs
-		},
+	b.AddRuleNonZero("ValidGroupTeamMap", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
+		_, err := auth.UnmarshalGroupTeamMapping(f.ValueMustString())
+		if err != nil {
+			return newFieldError(f.StructField, ErrInvalidGroupTeamMap, err.Error())
+		}
+		return nil
 	})
 }
 
@@ -243,3 +137,14 @@ func validPort(p string) bool {
 	}
 	return true
 }
+
+var Binder = sync.OnceValue(func() *binding.Binder {
+	b := binding.NewBinder().WithJSONProvider(jsonProvider{}).WithDefaultRules().WithNameMapper(util.ToSnakeCase)
+	AddBindingRules(b)
+	return b
+})
+
+type (
+	BindingErrors = binding.Errors
+	BindingError  = binding.Error
+)

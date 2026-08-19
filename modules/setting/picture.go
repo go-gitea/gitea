@@ -53,8 +53,6 @@ func loadAvatarsFrom(rootCfg ConfigProvider) error {
 	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(2)
 
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
-	case "duoshuo":
-		GravatarSource = "http://gravatar.duoshuo.com/avatar/"
 	case "gravatar":
 		GravatarSource = "https://secure.gravatar.com/avatar/"
 	case "libravatar":
