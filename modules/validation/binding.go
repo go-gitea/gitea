@@ -50,7 +50,6 @@ func newFieldError(field reflect.StructField, cls, msg string) *BindingError {
 
 // AddBindingRules adds additional binding rules
 func AddBindingRules(b *binding.Binder) {
-	binding.JSONProvider = jsonProvider{}
 	b.AddRuleNonZero("GitRefName", func(ctx context.Context, f *binding.ValidationField) *binding.Error {
 		if !git.IsValidRefPattern(f.ValueMustString()) {
 			return newFieldError(f.StructField, ErrGitRefName, "GitRefName")
@@ -140,7 +139,7 @@ func validPort(p string) bool {
 }
 
 var Binder = sync.OnceValue(func() *binding.Binder {
-	b := binding.NewBinder().WithDefaultRules().WithNameMapper(util.ToSnakeCase)
+	b := binding.NewBinder().WithJSONProvider(jsonProvider{}).WithDefaultRules().WithNameMapper(util.ToSnakeCase)
 	AddBindingRules(b)
 	return b
 })

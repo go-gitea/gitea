@@ -58,7 +58,7 @@ type CreateProjectOption struct {
 // EditProjectOption represents options for editing a project
 // swagger:model
 type EditProjectOption struct {
-	Title       *string `json:"title,omitempty" binding:"TrimSpace"`
+	Title       *string `json:"title,omitempty" binding:"TrimSpace;Required"`
 	Description *string `json:"description,omitempty"`
 	// Card type: "text_only" or "images_and_text"
 	CardType *string    `json:"card_type,omitempty"`
@@ -94,7 +94,7 @@ type CreateProjectColumnOption struct {
 // EditProjectColumnOption represents options for editing a project column
 // swagger:model
 type EditProjectColumnOption struct {
-	Title *string `json:"title,omitempty" binding:"TrimSpace"`
+	Title *string `json:"title,omitempty" binding:"TrimSpace;Required"`
 	// Column color in 6-digit hex format, e.g. #FF0000
 	Color *string `json:"color,omitempty"`
 	// Position of the column within the project, between -128 and 127
