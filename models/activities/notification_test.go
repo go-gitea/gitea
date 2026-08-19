@@ -93,7 +93,9 @@ func TestCreateOrUpdateIssueNotificationsSkipsBots(t *testing.T) {
 	user.Type = user_model.UserTypeBot
 	assert.NoError(t, user_model.UpdateUserCols(t.Context(), user, "type"))
 
-	assert.NoError(t, activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0))
+	notifiedIDs, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), issue.ID, 0, 2, 0)
+	assert.NoError(t, err)
+	assert.NotContains(t, notifiedIDs, user.ID)
 
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{UserID: 1, IssueID: issue.ID})
 	unittest.AssertNotExistsBean(t, &activities_model.Notification{UserID: user.ID, IssueID: issue.ID})

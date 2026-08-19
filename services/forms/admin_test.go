@@ -6,7 +6,8 @@ package forms
 import (
 	"testing"
 
-	"gitea.com/go-chi/binding"
+	"gitea.dev/modules/validation"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ func TestAdminCreateUserFormUserType(t *testing.T) {
 			UserType:  userType,
 			Email:     "user@example.com",
 		}
-		assert.Empty(t, binding.RawValidate(form))
+		assert.Empty(t, validation.Binder().Validate(t.Context(), form))
 	}
 
 	form := &AdminCreateUserForm{
@@ -27,5 +28,5 @@ func TestAdminCreateUserFormUserType(t *testing.T) {
 		UserType:  "invalid",
 		Email:     "user@example.com",
 	}
-	assert.NotEmpty(t, binding.RawValidate(form))
+	assert.NotEmpty(t, validation.Binder().Validate(t.Context(), form))
 }
