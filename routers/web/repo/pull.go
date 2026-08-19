@@ -1353,11 +1353,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
-	if util.IsEmptyString(form.Title) {
-		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
-		return
-	}
-
 	// Check if a pull request already exists with the same head and base branch.
 	pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, repo.ID, ci.HeadRef.ShortName(), ci.BaseRef.ShortName(), issues_model.PullRequestFlowGithub)
 	if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
