@@ -93,37 +93,27 @@ test('getDiffTreeExtensionStats', () => {
   ]);
 });
 
-test('the search query also matches the pre-rename path, the extension filter does not', () => {
+test('countMatchingFiles', () => {
   const store = makeStore([
-    file('new-name.md', 'old-name.txt'),
+    dir('dir1', [file('dir1/new-name.md', 'dir1/old-name.txt')]),
     file('other.ts'),
   ]);
 
+  expect(countMatchingFiles(store)).toBe(2);
+
+  // search query also matches the pre-rename path
   store.filenameFilterQuery = 'old-name';
-  expect(visibleNames(filterDiffTree(store))).toEqual(['new-name.md']);
+  expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/new-name.md']);
   expect(countMatchingFiles(store)).toBe(1);
 
+  // extension filter only applies to new name
   store.filenameFilterQuery = '';
   store.activeExtensions = ['.txt'];
   expect(visibleNames(filterDiffTree(store))).toEqual([]);
   expect(countMatchingFiles(store)).toBe(0);
-
   store.activeExtensions = ['.md'];
-  expect(visibleNames(filterDiffTree(store))).toEqual(['new-name.md']);
-});
+  expect(visibleNames(filterDiffTree(store))).toEqual(['dir1/new-name.md']);
 
-test('countMatchingFiles counts matching file leaves across the whole PR', () => {
-  const store = makeStore([
-    dir('dir1', [file('dir1/a.ts'), file('dir1/b.css')]),
-    file('c.ts'),
-  ]);
-
-  expect(countMatchingFiles(store)).toBe(3);
-
-  store.activeExtensions = ['.ts'];
+  store.activeExtensions = ['.md', '.ts'];
   expect(countMatchingFiles(store)).toBe(2);
-
-  store.activeExtensions = 'all';
-  store.filenameFilterQuery = 'b.';
-  expect(countMatchingFiles(store)).toBe(1);
 });
