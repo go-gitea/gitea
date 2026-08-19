@@ -87,6 +87,16 @@ function graphIdForJob(job: ActionsJob): string {
   return `job:${job.id}`;
 }
 
+// matrix legs are named `<job name> (<combination>)`; a workflow-provided `name:` may not be
+function matrixLabel(matrixJobs: ActionsJob[], jobId: string): string {
+  const prefixes = new Set(matrixJobs.map((job) => {
+    const idx = job.name.indexOf(' (');
+    return idx === -1 ? '' : job.name.slice(0, idx).trim();
+  }));
+  const [prefix] = prefixes;
+  return prefixes.size === 1 && prefix ? prefix : jobId;
+}
+
 export function boxBottom(node: GraphNode): number {
   return node.y + node.displayHeight;
 }
@@ -256,7 +266,7 @@ function buildVisualGraph(
   }
 
   // legs of one matrix job share its `jobId`; their display names are free-form so cannot key them
-  const isMatrixLeg = (job: ActionsJob): boolean => jobsByJobId.get(job.jobId)!.length > 1;
+  const isMatrixLeg = (job: ActionsJob): boolean => Boolean(job.jobId) && jobsByJobId.get(job.jobId)!.length > 1;
 
   const directNeedsByJobId = buildDirectNeedsMap(jobs);
   const rawLevels = computeJobLevels(jobs);
@@ -315,7 +325,7 @@ function buildVisualGraph(
       nodes.push({
         id: visualId,
         type: 'matrix',
-        name: job.jobId,
+        name: matrixLabel(matrixJobs, job.jobId),
         status: aggregateStatus(matrixJobs),
         duration: '',
         x: 0, y: 0, level: 0,

@@ -73,6 +73,11 @@ test('distinct jobs whose names look like matrix legs stay separate nodes', () =
   expect(graph.nodes.map((n) => n.id)).toEqual(['job:1', 'job:2']);
 });
 
+test('jobs without a job id stay separate nodes', () => {
+  const graph = createWorkflowGraphModel([mockJob(1, '', 'first'), mockJob(2, '', 'second')]);
+  expect(graph.nodes.map((n) => n.id)).toEqual(['job:1', 'job:2']);
+});
+
 test('computeJobLevels keeps stable topological levels', () => {
   const levels = computeJobLevels(mockJobs);
   expect(levels.get('job-100')).toBe(0);
@@ -132,7 +137,7 @@ test('different-row edge uses cubic bezier curve', () => {
 test('multi-level pipeline with two matrices and a converging leaf renders without errors', () => {
   const graph = createWorkflowGraphModel(wfTest1Jobs);
   const matrices = graph.nodes.filter((n) => n.type === 'matrix');
-  expect(matrices.map((n) => n.name).sort()).toEqual(['e2e-tests', 'unit-tests']);
+  expect(matrices.map((n) => n.name).sort()).toEqual(['E2E Tests', 'Unit Tests']);
 
   const deployProd = graph.nodes.find((n) => n.id === 'job:18');
   const verifyDev = graph.nodes.find((n) => n.id === 'job:16');
