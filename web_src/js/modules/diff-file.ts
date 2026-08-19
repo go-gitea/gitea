@@ -2,6 +2,7 @@ import {reactive} from 'vue';
 import type {Reactive} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {trString} from './i18n.ts';
+import {extname} from '../utils.ts';
 
 const {pageData} = window.config;
 
@@ -99,9 +100,7 @@ export function reactiveDiffTreeStore(data: DiffFileTreeData, folderIcon: string
 }
 
 function getFileExtension(filename: string): string {
-  const basename = filename.slice(filename.lastIndexOf('/') + 1);
-  const dotIndex = basename.lastIndexOf('.');
-  return dotIndex <= 0 ? '' : basename.slice(dotIndex).toLowerCase();
+  return extname(filename).toLowerCase();
 }
 
 export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffExtensionStats[] {
