@@ -12,8 +12,6 @@ export function randomString(length: number): string {
   return result;
 }
 
-export const timeoutFactor = Number(env.GITEA_TEST_E2E_TIMEOUT_FACTOR) || 1;
-
 export function baseUrl() {
   return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
 }
@@ -89,20 +87,6 @@ export async function apiCloseIssue(requestContext: APIRequestContext, owner: st
     headers: headers || apiHeaders(),
     data: {state: 'closed'},
   }), 'apiCloseIssue');
-}
-
-export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, newBranch, message}: {branch?: string; newBranch?: string; message?: string} = {}) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
-    headers: apiHeaders(),
-    data: {content: Buffer.from(content, 'utf8').toString('base64'), branch, new_branch: newBranch, message},
-  }), 'apiCreateFile');
-}
-
-export async function apiCreateBranch(requestContext: APIRequestContext, owner: string, repo: string, newBranch: string) {
-  await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/branches`, {
-    headers: apiHeaders(),
-    data: {new_branch_name: newBranch},
-  }), 'apiCreateBranch');
 }
 
 /** Create a PR via API. Returns the PR index for subsequent operations. */
