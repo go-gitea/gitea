@@ -116,8 +116,6 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 	webAuth.AllowBasic = middlewareSetContextValue(keyAllowBasic{}, true)
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
-	// without this gate a deploy token would authenticate as the repo owner on every
-	// basic auth endpoint, which would make it as powerful as a token of that owner
 	webAuth.AllowDeployToken = middlewareSetContextValue(keyAllowDeployToken{}, true)
 
 	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
