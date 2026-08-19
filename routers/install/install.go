@@ -313,21 +313,21 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
-	cfg := fillInstallConfig(ctx, form)
+	cfg := fillInstallConfig(ctx, os.Environ(), form)
 	if cfg == nil {
 		return
 	}
 	saveConfigAndRestart(ctx, cfg, form)
 }
 
-func fillInstallConfig(ctx *context.Context, form *forms.InstallForm) setting.ConfigProvider {
+func fillInstallConfig(ctx *context.Context, envs []string, form *forms.InstallForm) setting.ConfigProvider {
 	// Save settings.
 	cfg, err := setting.NewConfigProviderFromFile(setting.CustomConf)
 	if err != nil {
 		log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
 
-	setting.EnvironmentToConfig(cfg, os.Environ())
+	setting.EnvironmentToConfig(cfg, envs)
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("").Key("RUN_USER").SetValue(form.RunUser)
@@ -450,19 +450,19 @@ func fillInstallConfig(ctx *context.Context, form *forms.InstallForm) setting.Co
 		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
 	}
 
-	log.Info("Save settings to custom config file %s", setting.CustomConf)
-
-	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
-	if err != nil {
-		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, form)
-		return nil
-	}
-
-	setting.EnvironmentToConfig(cfg, os.Environ())
+	setting.EnvironmentToConfig(cfg, envs)
 	return cfg
 }
 
 func saveConfigAndRestart(ctx *context.Context, cfg setting.ConfigProvider, form *forms.InstallForm) {
+	log.Info("Save settings to custom config file %s", setting.CustomConf)
+
+	err := os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
+	if err != nil {
+		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, form)
+		return
+	}
+
 	if err := cfg.SaveTo(setting.CustomConf); err != nil {
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, form)
 		return

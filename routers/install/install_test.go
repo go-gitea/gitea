@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"gitea.dev/models/unittest"
+	"gitea.dev/services/contexttest"
+	"gitea.dev/services/forms"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,4 +38,20 @@ func TestRoutes(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m)
+}
+
+func TestFillInstallConfig(t *testing.T) {
+	ctx, _ := contexttest.MockContext(t, "/")
+	t.Run("EnvWithURI", func(t *testing.T) {
+		f := &forms.InstallForm{}
+		cfg := fillInstallConfig(ctx, []string{"GITEA__OAUTH2__JWT_SECRET_URI=any"}, f)
+		assert.Empty(t, cfg.Section("oauth2").Key("JWT_SECRET").String())
+		assert.Equal(t, "any", cfg.Section("oauth2").Key("JWT_SECRET_URI").String())
+	})
+	t.Run("NoEnv", func(t *testing.T) {
+		f := &forms.InstallForm{}
+		cfg := fillInstallConfig(ctx, []string{}, f)
+		assert.NotEmpty(t, cfg.Section("oauth2").Key("JWT_SECRET").String())
+		assert.Empty(t, cfg.Section("oauth2").Key("JWT_SECRET_URI").String())
+	})
 }
