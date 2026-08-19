@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/container"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
@@ -107,24 +108,43 @@ func TestCleanupRetentionZeroKeepsForever(t *testing.T) {
 	defer test.MockVariableValue(&setting.Actions.LogRetentionDays, 0)()
 	defer test.MockVariableValue(&setting.Actions.ArtifactRetentionDays, 0)()
 
-	liveLogs, err := db.GetEngine(t.Context()).Where("stopped > 0 AND log_expired = ?", false).Count(&actions_model.ActionTask{})
-	require.NoError(t, err)
-	require.Positive(t, liveLogs)
-	require.NoError(t, CleanupExpiredLogs(t.Context()))
-	stillLive, err := db.GetEngine(t.Context()).Where("stopped > 0 AND log_expired = ?", false).Count(&actions_model.ActionTask{})
-	require.NoError(t, err)
-	assert.Equal(t, liveLogs, stillLive)
+	liveLogs := unittest.Cond("stopped > 0 AND log_expired = ?", false)
 
-	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
-	art, err := actions_model.CreateArtifact(t.Context(), task, "never-expires", "a.txt", optional.None[int64]())
-	require.NoError(t, err)
-	assert.Zero(t, art.ExpiredUnix)
+	t.Run("logs", func(t *testing.T) {
+		before := unittest.GetCount(t, &actions_model.ActionTask{}, liveLogs)
+		require.Positive(t, before)
+		require.NoError(t, CleanupExpiredLogs(t.Context()))
+		assert.Equal(t, before, unittest.GetCount(t, &actions_model.ActionTask{}, liveLogs))
+	})
 
-	_, err = db.GetEngine(t.Context()).ID(art.ID).Cols("status").Update(&actions_model.ActionArtifact{Status: actions_model.ArtifactStatusUploadConfirmed})
-	require.NoError(t, err)
-	expiring, err := actions_model.ListNeedExpiredArtifacts(t.Context())
-	require.NoError(t, err)
-	for _, a := range expiring {
-		assert.NotEqual(t, art.ID, a.ID)
-	}
+	t.Run("artifacts", func(t *testing.T) {
+		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
+		art, err := actions_model.CreateArtifact(t.Context(), task, "never-expires", "a.txt", optional.None[int64]())
+		require.NoError(t, err)
+		assert.Zero(t, art.ExpiredUnix)
+
+		// a client-requested retention is honored as-is, "never expires" is only the instance default
+		asked, err := actions_model.CreateArtifact(t.Context(), task, "client-asked", "b.txt", optional.Some(int64(0)))
+		require.NoError(t, err)
+		assert.Positive(t, asked.ExpiredUnix)
+
+		// re-uploading returns the existing row, which must carry the expiry that was just stored
+		reuploaded, err := actions_model.CreateArtifact(t.Context(), task, "client-asked", "b.txt", optional.None[int64]())
+		require.NoError(t, err)
+		assert.Zero(t, reuploaded.ExpiredUnix)
+
+		// a past expiry must stay reapable rather than clamping onto the 0 sentinel and becoming immortal
+		past, err := actions_model.CreateArtifact(t.Context(), task, "long-gone", "c.txt", optional.Some(int64(-30000)))
+		require.NoError(t, err)
+		assert.Positive(t, past.ExpiredUnix)
+
+		_, err = db.GetEngine(t.Context()).In("id", art.ID, past.ID).Cols("status").
+			Update(&actions_model.ActionArtifact{Status: actions_model.ArtifactStatusUploadConfirmed})
+		require.NoError(t, err)
+		expiring, err := actions_model.ListNeedExpiredArtifacts(t.Context())
+		require.NoError(t, err)
+		ids := container.FilterSlice(expiring, func(a *actions_model.ActionArtifact) (int64, bool) { return a.ID, true })
+		assert.NotContains(t, ids, art.ID)
+		assert.Contains(t, ids, past.ID)
+	})
 }

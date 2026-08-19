@@ -96,9 +96,10 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
-	var expiredUnix timeutil.TimeStamp // 0 means the artifact never expires
-	if expiredDays := expiredDaysOpt.ValueOrDefault(setting.Actions.ArtifactRetentionDays); expiredDays > 0 {
-		expiredUnix = timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays)
+	expiredDays := expiredDaysOpt.ValueOrDefault(setting.Actions.ArtifactRetentionDays)
+	var expiredUnix timeutil.TimeStamp // 0 means the artifact never expires, which only the instance default may ask for
+	if expiredDaysOpt.Has() || expiredDays > 0 {
+		expiredUnix = max(1, timeutil.TimeStampNow().Add(timeutil.Day*expiredDays)) // a past expiry must not land on the sentinel
 	}
 
 	artifact, err := getArtifactByNameAndPath(ctx, t.Job.RunID, t.Job.RunAttemptID, artifactName, artifactPath)
@@ -123,9 +124,8 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 		return nil, err
 	}
 
-	if _, err := db.GetEngine(ctx).ID(artifact.ID).Cols("expired_unix").Update(&ActionArtifact{
-		ExpiredUnix: expiredUnix,
-	}); err != nil {
+	artifact.ExpiredUnix = expiredUnix
+	if _, err := db.GetEngine(ctx).ID(artifact.ID).Cols("expired_unix").Update(artifact); err != nil {
 		return nil, err
 	}
 
