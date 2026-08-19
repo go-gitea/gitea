@@ -107,8 +107,7 @@ func copyExpanded(node *yaml.Node, budget *int) (*yaml.Node, error) {
 	return &copied, nil
 }
 
-// rejectMergeKeys refuses `<<: *anchor`, which no other workflow parser merges, so accepting it
-// would make workflows that run nowhere else.
+// rejectMergeKeys refuses `<<: *anchor`, same as GitHub does
 func rejectMergeKeys(node *yaml.Node) error {
 	if node.Kind != yaml.MappingNode {
 		return nil
