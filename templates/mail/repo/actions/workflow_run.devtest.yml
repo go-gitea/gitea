@@ -26,14 +26,14 @@ Jobs:
   - Name: Job-Name-3
     StatusIcon: status-cancelled.png
     StatusIconAlt: "⊘"
-    StatusClass: ""
+    StatusClass: status-neutral
     StatusText: Canceled
     Attempt: 1
     HTMLURL: http://localhost/job/3
   - Name: Job-Name-4
     StatusIcon: status-skipped.png
     StatusIconAlt: "–"
-    StatusClass: ""
+    StatusClass: status-neutral
     StatusText: Skipped
     Attempt: 1
     HTMLURL: http://localhost/job/4

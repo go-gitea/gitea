@@ -5,12 +5,11 @@ package mailer
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"embed"
 	"fmt"
-	"maps"
 	"slices"
-	"sort"
 
 	actions_model "gitea.dev/models/actions"
 	repo_model "gitea.dev/models/repo"
@@ -21,6 +20,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/convert"
 	sender_service "gitea.dev/services/mailer/sender"
 )
@@ -54,9 +54,9 @@ func workflowRunJobStatusPresentation(status actions_model.Status) (icon, alt, c
 	case status.IsSuccess():
 		return "status-success.png", "✔", "status-success"
 	case status.IsCancelled():
-		return "status-cancelled.png", "⊘", ""
+		return "status-cancelled.png", "⊘", "status-neutral"
 	case status.IsSkipped():
-		return "status-skipped.png", "–", ""
+		return "status-skipped.png", "–", "status-neutral"
 	default:
 		return "status-failure.png", "×", "status-failure"
 	}
@@ -82,17 +82,12 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	messageID := generateMessageIDForActionsWorkflowRunStatusEmail(repo, run)
 	metadataHeaders := generateMetadataHeaders(repo)
 
-	sort.SliceStable(jobs, func(i, j int) bool {
-		si, sj := jobs[i].Status, jobs[j].Status
-		/*
-			If both i and j are/are not success, leave it to si < sj.
-			If i is success and j is not, since the desired is j goes "smaller" and i goes "bigger", this func should return false.
-			If j is success and i is not, since the desired is i goes "smaller" and j goes "bigger", this func should return true.
-		*/
-		if si.IsSuccess() != sj.IsSuccess() {
-			return !si.IsSuccess()
+	// unsuccessful jobs first, they are what the reader cares about
+	slices.SortStableFunc(jobs, func(a, b *actions_model.ActionRunJob) int {
+		if a.Status.IsSuccess() != b.Status.IsSuccess() {
+			return util.Iif(a.Status.IsSuccess(), 1, -1)
 		}
-		return si < sj
+		return cmp.Compare(a.Status, b.Status)
 	})
 
 	// StatusText is filled per recipient language below, the rest is locale-independent
@@ -115,18 +110,18 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		})
 	}
 
-	iconNames := make(container.Set[string])
+	var embeds []*sender_service.EmbeddedFile
+	embedded := make(container.Set[string])
 	for _, job := range mailJobs {
-		iconNames.Add(job.StatusIcon)
-	}
-	embeds := make([]*sender_service.EmbeddedFile, 0, len(iconNames))
-	for _, name := range slices.Sorted(maps.Keys(iconNames)) {
-		content, err := LoadMailIcon(name)
+		if !embedded.Add(job.StatusIcon) {
+			continue
+		}
+		content, err := LoadMailIcon(job.StatusIcon)
 		if err != nil {
 			log.Error("LoadMailIcon: %v", err)
 			continue
 		}
-		embeds = append(embeds, &sender_service.EmbeddedFile{Name: name, Content: content})
+		embeds = append(embeds, &sender_service.EmbeddedFile{Name: job.StatusIcon, Content: content})
 	}
 
 	langMap := make(map[string][]*user_model.User)

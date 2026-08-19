@@ -4,9 +4,8 @@ import {optimize} from 'svgo';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {argv, exit} from 'node:process';
 
-// mail icons are embedded as inline attachments because mail clients don't render svg.
-// colors are fixed mid-tones that work on both light and dark backgrounds.
-// keep the octicon choices in sync with web_src/js/modules/action-status-icon.ts.
+// mail clients don't render svg, so status icons ship as png in fixed mid-tone colors that
+// work on light and dark backgrounds. Keep in sync with modules/action-status-icon.ts.
 async function generateMailIcon(octicon: string, name: string, color: string) {
   const url = new URL(`../node_modules/@primer/octicons/build/svg/${octicon}-16.svg`, import.meta.url);
   const svg = (await readFile(url, 'utf8')).replace('<svg ', `<svg fill="${color}" `);

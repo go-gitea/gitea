@@ -8,6 +8,7 @@
 		.job-row:first-child td {border-top: none}
 		.status-success {color: #0e7a31}
 		.status-failure {color: #db2828}
+		.status-neutral {color: #808080}
 		@media (prefers-color-scheme: dark) {
 			.job-table {border-color: #3f4248}
 			.job-row td {border-top-color: #3f4248}
@@ -29,7 +30,7 @@
 			<td class="{{$job.StatusClass}}" style="padding: 6px 8px 6px 0; white-space: nowrap;">{{$job.StatusText}}</td>
 			<td width="100%" style="width: 100%; padding: 6px 12px 6px 0;">
 				<a href="{{$job.HTMLURL}}" style="text-decoration: none; font-weight: bold;">{{$job.Name}}</a>
-				{{if gt $job.Attempt 1}}(Attempt #{{$job.Attempt}}){{end}}
+				{{if gt $job.Attempt 1}}({{$.locale.Tr "actions.runs.attempt"}} #{{$job.Attempt}}){{end}}
 			</td>
 		</tr>
 	{{end}}

@@ -21,8 +21,8 @@ func TestWorkflowRunJobStatusPresentation(t *testing.T) {
 	}{
 		{actions_model.StatusSuccess, "status-success.png", "✔", "status-success"},
 		{actions_model.StatusFailure, "status-failure.png", "×", "status-failure"},
-		{actions_model.StatusCancelled, "status-cancelled.png", "⊘", ""},
-		{actions_model.StatusSkipped, "status-skipped.png", "–", ""},
+		{actions_model.StatusCancelled, "status-cancelled.png", "⊘", "status-neutral"},
+		{actions_model.StatusSkipped, "status-skipped.png", "–", "status-neutral"},
 		{actions_model.StatusUnknown, "status-failure.png", "×", "status-failure"},
 	}
 	for _, c := range cases {
