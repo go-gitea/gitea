@@ -259,7 +259,6 @@ relative-time::part(root)::selection {
 .lines-commit .blame-info,
 .ellipsis-button {
   -webkit-touch-callout: none;
-  -webkit-user-select: none; /* stylelint-disable-line property-no-vendor-prefix -- Safari only supports it unprefixed since v17 */
   user-select: none;
 }
 
