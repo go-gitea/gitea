@@ -140,10 +140,6 @@ func (org *Organization) GetMembers(ctx context.Context, doer *user_model.User) 
 
 // HasMemberWithUserID returns true if user with userID is part of the u organisation.
 func (org *Organization) HasMemberWithUserID(ctx context.Context, userID int64) bool {
-	return org.hasMemberWithUserID(ctx, userID)
-}
-
-func (org *Organization) hasMemberWithUserID(ctx context.Context, userID int64) bool {
 	isMember, err := IsOrganizationMember(ctx, org.ID, userID)
 	if err != nil {
 		log.Error("IsOrganizationMember: %v", err)
@@ -284,8 +280,8 @@ func (org *Organization) CustomAvatarRelativePath() string {
 	return org.Avatar
 }
 
-// UnitPermission returns unit permission
-func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+func (org *Organization) AnyRepoUnitPermission(ctx context.Context, doer *user_model.User, unitType unit.Type) perm.AccessMode {
+	// FIXME: ORG-TEAM-UNIT-MAX-PERMISSION: this function is not right, team can access repo1's code doesn't mean it can access repo2's code
 	if doer != nil {
 		teams, err := GetUserOrgTeams(ctx, org.ID, doer.ID)
 		if err != nil {
@@ -299,11 +295,11 @@ func (org *Organization) UnitPermission(ctx context.Context, doer *user_model.Us
 		}
 
 		if len(teams) > 0 {
-			return teams.UnitMaxAccess(unitType)
+			return teams.AnyRepoUnitMaxAccess(ctx, unitType)
 		}
 	}
 
-	if org.Visibility.IsPublic() {
+	if ownerVisibilitySatisfiesDoer(org.AsUser(), doer) {
 		return perm.AccessModeRead
 	}
 
@@ -445,8 +441,7 @@ func GetUsersWhoCanCreateOrgRepo(ctx context.Context, orgID int64) (map[int64]*u
 		And("team_user.org_id = ?", orgID).Find(&users)
 }
 
-// HasOrgOrUserVisible tells if the given user can see the given org or user
-func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) bool {
+func ownerVisibilitySatisfiesDoer(orgOrUser, user *user_model.User) bool {
 	// If user is nil, it's an anonymous user/request.
 	// The Ghost user is handled like an anonymous user.
 	if user == nil || user.IsGhost() {
@@ -461,18 +456,17 @@ func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) 
 		return true
 	}
 
-	if (orgOrUser.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !OrgFromUser(orgOrUser).hasMemberWithUserID(ctx, user.ID) {
-		return false
-	}
-	return true
+	return orgOrUser.Visibility != structs.VisibleTypePrivate && !user.IsRestricted
+}
+
+// HasOrgOrUserVisible tells if the given user can see the given org or user
+func HasOrgOrUserVisible(ctx context.Context, owner, doer *user_model.User) bool {
+	return ownerVisibilitySatisfiesDoer(owner, doer) ||
+		(doer != nil && OrgFromUser(owner).HasMemberWithUserID(ctx, doer.ID))
 }
 
 // HasOrgsVisible tells if the given user can see at least one of the orgs provided
 func HasOrgsVisible(ctx context.Context, orgs []*Organization, user *user_model.User) bool {
-	if len(orgs) == 0 {
-		return false
-	}
-
 	for _, org := range orgs {
 		if HasOrgOrUserVisible(ctx, org.AsUser(), user) {
 			return true
