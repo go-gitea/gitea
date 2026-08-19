@@ -76,14 +76,12 @@ export function initGlobalDropdown() {
         },
         onHide() {
           this._tippy?.enable();
-          // eslint-disable-next-line unicorn/no-this-assignment
-          const elDropdown = this;
 
           // hide all tippy elements of items after a while. eg: use Enter to click "Copy Link" in the Issue Context Menu
           setTimeout(() => {
-            const $dropdown = fomanticQuery(elDropdown);
+            const $dropdown = fomanticQuery(this);
             if ($dropdown.dropdown('is hidden')) {
-              queryElems(elDropdown, '.menu > .item', (el) => el._tippy?.hide());
+              queryElems(this, '.menu > .item', (el) => el._tippy?.hide());
             }
           }, 2000);
         },
