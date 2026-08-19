@@ -7,9 +7,6 @@ export GOEXPERIMENT ?= jsonv2
 
 GO ?= go
 SHASUM ?= shasum -a 256
-COMMA := ,
-
-XGO_VERSION := go-1.26.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1.67.4 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.11.1 # renovate: datasource=go
@@ -17,7 +14,6 @@ GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.16 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.2 # renovate: datasource=go
-XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.6.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
 SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
@@ -45,10 +41,19 @@ endif
 
 TAGS ?=
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
+CGO_TAGS := sqlite_mattn pam
+RELEASE_TARGETS := release release-binaries release-windows release-linux release-darwin release-freebsd
 
 CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite_mattn,$(TAGS))$(findstring pam,$(TAGS)))
+ifneq ($(strip $(filter $(CGO_TAGS),$(TAGS))),)
 	CGO_ENABLED = 1
+ifneq ($(strip $(filter $(RELEASE_TARGETS),$(MAKECMDGOALS))),)
+$(error release targets do not support cgo tags ($(strip $(filter $(CGO_TAGS),$(TAGS)))); use a container if you need to cross compile with these tags)
+endif
+endif
+
+ifneq ($(strip $(filter $(RELEASE_TARGETS),$(MAKECMDGOALS))),)
+override TAGS := $(strip bindata $(filter-out bindata,$(TAGS)))
 endif
 
 STATIC ?=
@@ -113,8 +118,18 @@ ifeq ($(VERSION),main)
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
+RELEASE_GO_LDFLAGS = -s -w $(LDFLAGS)
 
-LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
+RELEASE_ALL_ARCHS ?= linux/amd64 linux/386 linux/arm-5 linux/arm-6 linux/arm64 linux/riscv64 windows/386 windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 freebsd/amd64
+RELEASE_GOGIT_ALL_ARCHS ?= windows/386 windows/amd64 windows/arm64
+RELEASE_GOGIT_ARCHS = $(if $(findstring gogit,$(TAGS)),,$(RELEASE_GOGIT_ALL_ARCHS))
+RELEASE_ENV = \
+	GO="$(GO)" \
+	RELEASE_TAGS='$(TAGS)' \
+	RELEASE_LDFLAGS='$(RELEASE_GO_LDFLAGS)' \
+	RELEASE_PREFIX='$(DIST)/binaries/gitea-$(VERSION)' \
+	RELEASE_ARCHS='$(RELEASE_ALL_ARCHS)' \
+	RELEASE_GOGIT_ARCHS='$(RELEASE_GOGIT_ARCHS)'
 
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/modelmigration/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/modelmigration/...)
@@ -525,29 +540,32 @@ endif
 	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
-release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
+release: frontend generate release-binaries release-copy release-compress vendor release-sources release-check
 
+# Release builds always use Go's native cross compilation.
+# For cross compiling cgo-only tags like $(CGO_TAGS), use a container instead of this Makefile.
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
 
+.PHONY: release-binaries
+release-binaries: | $(DIST_DIRS)
+	@$(RELEASE_ENV) ./tools/build-release.sh
+
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
-ifeq (,$(findstring gogit,$(TAGS)))
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
-endif
+	@$(RELEASE_ENV) ./tools/build-release.sh windows
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
+	@$(RELEASE_ENV) ./tools/build-release.sh linux
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
+	@$(RELEASE_ENV) ./tools/build-release.sh darwin
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
+	@$(RELEASE_ENV) ./tools/build-release.sh freebsd
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
@@ -592,7 +610,6 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(GXZ_PACKAGE) & \
 	$(GO) install $(MISSPELL_PACKAGE) & \
 	$(GO) install $(SWAGGER_PACKAGE) & \
-	$(GO) install $(XGO_PACKAGE) & \
 	$(GO) install $(GOVULNCHECK_PACKAGE) & \
 	$(GO) install $(ACTIONLINT_PACKAGE) & \
 	wait
