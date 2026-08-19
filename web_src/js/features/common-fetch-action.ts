@@ -233,9 +233,8 @@ export async function submitFormFetchAction(elForm: HTMLFormElement, opts: Submi
 async function confirmFetchAction(el: HTMLElement) {
   let elModal: HTMLElement | null = null;
   const dataModalConfirm = el.getAttribute('data-modal-confirm') || '';
-  if (dataModalConfirm.startsWith('#')) {
-    // eslint-disable-next-line unicorn/prefer-query-selector -- the id comes from an attribute, querySelector would throw on invalid selector syntax
-    elModal = document.getElementById(dataModalConfirm.substring(1));
+  if (dataModalConfirm.startsWith('#') && dataModalConfirm.length > 1) {
+    elModal = document.querySelector<HTMLElement>(`#${CSS.escape(dataModalConfirm.substring(1))}`);
     if (elModal) {
       elModal = createElementFromHTML(elModal.outerHTML);
       elModal.removeAttribute('id');
@@ -350,8 +349,7 @@ async function fetchActionReloadOutdatedElements() {
   const newPageHtml = await resp.text();
   const newPageDom = parseDom(newPageHtml, 'text/html');
   for (const oldEl of outdatedElems) {
-    // eslint-disable-next-line unicorn/prefer-query-selector -- the id would need CSS.escape to be used as a selector
-    const newEl = newPageDom.getElementById(oldEl.id);
+    const newEl = newPageDom.querySelector<HTMLElement>(`#${CSS.escape(oldEl.id)}`);
     if (newEl) {
       oldEl.replaceWith(newEl);
     } else {

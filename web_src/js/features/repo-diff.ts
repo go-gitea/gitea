@@ -206,8 +206,7 @@ async function onLocationHashChange() {
 
   const targetElementId = currentHash.substring(1);
   while (currentHash === window.location.hash) {
-    // eslint-disable-next-line unicorn/prefer-query-selector -- querySelector would throw when the hash is not a valid selector
-    const targetElement = document.getElementById(targetElementId);
+    const targetElement = document.querySelector<HTMLElement>(`#${CSS.escape(targetElementId)}`);
     if (targetElement) {
       // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
       targetElement.scrollIntoView();
