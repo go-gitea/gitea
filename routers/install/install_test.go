@@ -42,15 +42,20 @@ func TestMain(m *testing.M) {
 
 func TestFillInstallConfig(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "/")
-	t.Run("EnvWithURI", func(t *testing.T) {
-		f := &forms.InstallForm{}
-		cfg := fillInstallConfig(ctx, []string{"GITEA__OAUTH2__JWT_SECRET_URI=any"}, f)
+	t.Run("WithEnv", func(t *testing.T) {
+		f := &forms.InstallForm{AppName: "TestAppName"}
+		cfg := fillInstallConfig(ctx, []string{
+			"GITEA__OAUTH2__JWT_SECRET_URI=any",
+			"GITEA____APP_NAME=EnvAppName",
+		}, f)
+		assert.Equal(t, "EnvAppName", cfg.Section("").Key("APP_NAME").String())
 		assert.Empty(t, cfg.Section("oauth2").Key("JWT_SECRET").String())
 		assert.Equal(t, "any", cfg.Section("oauth2").Key("JWT_SECRET_URI").String())
 	})
 	t.Run("NoEnv", func(t *testing.T) {
-		f := &forms.InstallForm{}
+		f := &forms.InstallForm{AppName: "TestAppName"}
 		cfg := fillInstallConfig(ctx, []string{}, f)
+		assert.Equal(t, "TestAppName", cfg.Section("").Key("APP_NAME").String())
 		assert.NotEmpty(t, cfg.Section("oauth2").Key("JWT_SECRET").String())
 		assert.Empty(t, cfg.Section("oauth2").Key("JWT_SECRET_URI").String())
 	})

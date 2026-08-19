@@ -321,7 +321,8 @@ func SubmitInstall(ctx *context.Context) {
 }
 
 func fillInstallConfig(ctx *context.Context, envs []string, form *forms.InstallForm) setting.ConfigProvider {
-	// Save settings.
+	// Some logic also depends on the config values, so EnvironmentToConfig should also be applied first.
+	// EnvironmentToConfig is applied on each start up, so it also must override the "install form", so it must be applied after (twice).
 	cfg, err := setting.NewConfigProviderFromFile(setting.CustomConf)
 	if err != nil {
 		log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
