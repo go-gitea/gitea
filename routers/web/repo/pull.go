@@ -432,9 +432,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	}
 	data.hasRequiredStatusContexts = len(requiredContexts) > 0
 
-	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
-	}
+	git_model.CommitStatusesHideActionsURL(ctx, ctx.Doer, commitStatuses)
 	combinedCommitStatus := git_model.CalcCommitStatus(commitStatuses)
 	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
 	statusCheckData.PullCommitStatuses = commitStatuses

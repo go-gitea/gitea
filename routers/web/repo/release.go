@@ -97,11 +97,12 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 	}
 	var ok bool
 
-	canReadActions := ctx.Repo.Permission.CanRead(unit.TypeActions)
+	// statuses describe the tagged code, and unlike the other pages showing them this one is not behind the code unit
+	canReadCode := ctx.Repo.Permission.CanRead(unit.TypeCode)
 
 	// Bulk-load commit statuses for all releases in one query.
 	var commitStatusMap map[string][]*git_model.CommitStatus
-	if canReadActions && len(releases) > 0 {
+	if canReadCode && len(releases) > 0 {
 		shas := make([]string, 0, len(releases))
 		for _, r := range releases {
 			shas = append(shas, r.Sha1)
@@ -140,8 +141,9 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			Release: r,
 		}
 
-		if canReadActions {
+		if canReadCode {
 			statuses := commitStatusMap[r.Sha1]
+			git_model.CommitStatusesHideActionsURL(ctx, ctx.Doer, statuses)
 			info.CommitStatus = git_model.CalcCommitStatus(statuses)
 			info.CommitStatuses = statuses
 		}
