@@ -12,10 +12,9 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/services/webhook"
-
-	"gitea.com/go-chi/binding"
 )
 
 // CreateRepoForm form for creating repository
@@ -266,7 +265,7 @@ type NewSlackHookForm struct {
 	WebhookForm
 }
 
-func (f *NewSlackHookForm) Validate(ctx *middleware.ValidateContext, errs binding.Errors) binding.Errors {
+func (f *NewSlackHookForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
 	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
 		errs = middleware.AddValidationError(errs, "Channel", ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"))
 	}
@@ -567,7 +566,7 @@ type WikiEditForm struct {
 	Message string
 }
 
-func (f *WikiEditForm) Validate(ctx *middleware.ValidateContext, errs binding.Errors) binding.Errors {
+func (f *WikiEditForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
 	f.Title = strings.TrimSpace(f.Title)
 	if f.Title == "" {
 		errs = middleware.AddValidationError(errs, "title", ctx.Locale.TrString("repo.issues.new.title_empty"))
