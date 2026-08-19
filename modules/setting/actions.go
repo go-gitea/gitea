@@ -12,14 +12,13 @@ import (
 	"gitea.dev/modules/log"
 )
 
-const defaultMaxRerunAttempts = 50
-
-const defaultMaxConcurrentTaskPicks = 16
-
 const (
-	defaultArtifactRetentionDays = 90
-	defaultLogRetentionDays      = 365
-	defaultRunRetentionDays      = 400
+	// some of the values are from GitHub defaults
+	defaultMaxRerunAttempts       = 50
+	defaultMaxConcurrentTaskPicks = 16
+	defaultArtifactRetentionDays  = 90
+	defaultLogRetentionDays       = 365
+	defaultRunRetentionDays       = 400
 )
 
 // Actions settings
