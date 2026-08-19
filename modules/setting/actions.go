@@ -17,8 +17,8 @@ const defaultMaxRerunAttempts = 50
 const defaultMaxConcurrentTaskPicks = 16
 
 const (
-	defaultArtifactRetentionDays = 90
-	defaultLogRetentionDays      = 365
+	defaultArtifactRetentionDays = 90  // default to 90 days in GitHub Actions
+	defaultLogRetentionDays      = 365 // default to 1 year
 	defaultRunRetentionDays      = 400 // must be greater than defaultLogRetentionDays and defaultArtifactRetentionDays
 )
 
