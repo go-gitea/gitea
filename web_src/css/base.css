@@ -225,7 +225,7 @@ progress::-moz-progress-bar {
 }
 
 @media (forced-colors: active) {
-  progress { /* chromium drops the whole widget, firefox renders it natively */
+  progress {
     outline: 1px solid CanvasText;
     outline-offset: -1px;
   }
