@@ -172,9 +172,6 @@ input[type="checkbox"]:indeterminate::before {
   background: var(--color-primary) !important;
 }
 
-/* forced colors drops author colors, so state has to come from system colors. The checkmark
-   needs no rule, the user agent forces it to Canvas, and the toggle state stays readable
-   because the knob position is not a color. */
 @media (forced-colors: active) {
   input[type="checkbox"]:checked,
   input[type="checkbox"]:indeterminate {
