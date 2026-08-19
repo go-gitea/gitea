@@ -78,7 +78,7 @@ func registerActionsCleanup() {
 
 func registerCleanupActionRuns() {
 	RegisterTaskFatal("cleanup_action_runs", &BaseConfig{
-		Enabled:    setting.Actions.RunRetentionDays > 0,
+		Enabled:    true,
 		RunAtStart: false,
 		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *user_model.User, _ *BaseConfig) error {

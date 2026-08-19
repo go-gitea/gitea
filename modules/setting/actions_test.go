@@ -309,3 +309,61 @@ func Test_ScopedWorkflowDirs(t *testing.T) {
 		})
 	}
 }
+
+func Test_ActionsRetentionDays(t *testing.T) {
+	pristine := Actions
+	defer test.MockVariableValue(&Actions)()
+
+	tests := []struct {
+		name         string
+		iniStr       string
+		wantArtifact int64
+		wantLog      int64
+		wantRun      int64
+		wantProblem  bool
+	}{
+		{
+			name:         "default",
+			iniStr:       `[actions]`,
+			wantArtifact: 90,
+			wantLog:      365,
+			wantRun:      400,
+		},
+		{
+			name:         "non-positive falls back to the default, except runs which are kept forever",
+			iniStr:       "[actions]\nARTIFACT_RETENTION_DAYS = 0\nLOG_RETENTION_DAYS = -1\nRUN_RETENTION_DAYS = 0",
+			wantArtifact: 90,
+			wantLog:      365,
+			wantRun:      0,
+		},
+		{
+			name:         "explicit values",
+			iniStr:       "[actions]\nARTIFACT_RETENTION_DAYS = 7\nLOG_RETENTION_DAYS = 30\nRUN_RETENTION_DAYS = 60",
+			wantArtifact: 7,
+			wantLog:      30,
+			wantRun:      60,
+		},
+		{
+			name:         "runs deleted before their logs expire",
+			iniStr:       "[actions]\nRUN_RETENTION_DAYS = 100",
+			wantArtifact: 90,
+			wantLog:      365,
+			wantRun:      100,
+			wantProblem:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			Actions = pristine
+			defer test.MockVariableValue(&StartupProblems, nil)()
+			cfg, err := NewConfigProviderFromData(tt.iniStr)
+			require.NoError(t, err)
+			require.NoError(t, loadActionsFrom(cfg))
+			assert.Equal(t, tt.wantArtifact, Actions.ArtifactRetentionDays)
+			assert.Equal(t, tt.wantLog, Actions.LogRetentionDays)
+			assert.Equal(t, tt.wantRun, Actions.RunRetentionDays)
+			assert.Equal(t, tt.wantProblem, len(StartupProblems) > 0)
+		})
+	}
+}

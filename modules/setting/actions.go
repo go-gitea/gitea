@@ -16,6 +16,12 @@ const defaultMaxRerunAttempts = 50
 
 const defaultMaxConcurrentTaskPicks = 16
 
+const (
+	defaultArtifactRetentionDays = 90
+	defaultLogRetentionDays      = 365
+	defaultRunRetentionDays      = 400 // must be greater than defaultLogRetentionDays and defaultArtifactRetentionDays
+)
+
 // Actions settings
 var (
 	Actions = struct {
@@ -46,8 +52,7 @@ var (
 		ScopedWorkflowDirs:     []string{".gitea/scoped_workflows"},
 		MaxRerunAttempts:       defaultMaxRerunAttempts,
 		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
-		ArtifactRetentionDays:  90,  // default to 90 days in GitHub Actions
-		RunRetentionDays:       180, // ps: GitHub Actions also has a limit on web UI: only the first 100 pages are allowed to browse
+		RunRetentionDays:       defaultRunRetentionDays,
 	}
 )
 
@@ -113,9 +118,8 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	if err != nil {
 		return err
 	}
-	// default to 1 year
 	if Actions.LogRetentionDays <= 0 {
-		Actions.LogRetentionDays = 365
+		Actions.LogRetentionDays = defaultLogRetentionDays
 	}
 
 	actionsSec, _ := rootCfg.GetSection("actions.artifacts")
@@ -123,6 +127,15 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	Actions.ArtifactStorage, err = getStorage(rootCfg, "actions_artifacts", "", actionsSec)
 	if err != nil {
 		return err
+	}
+
+	if Actions.ArtifactRetentionDays <= 0 {
+		Actions.ArtifactRetentionDays = defaultArtifactRetentionDays
+	}
+
+	if Actions.RunRetentionDays > 0 && Actions.RunRetentionDays < max(Actions.LogRetentionDays, Actions.ArtifactRetentionDays) {
+		LogStartupProblem(1, log.WARN, "[actions] RUN_RETENTION_DAYS (%d) is shorter than LOG_RETENTION_DAYS (%d) or ARTIFACT_RETENTION_DAYS (%d), runs will be deleted before their logs and artifacts expire",
+			Actions.RunRetentionDays, Actions.LogRetentionDays, Actions.ArtifactRetentionDays)
 	}
 
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)

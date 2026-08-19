@@ -37,14 +37,19 @@ func insertCleanupRun(t *testing.T, index int64, status actions_model.Status, cr
 	return run
 }
 
+func deleteAllRuns(t *testing.T) {
+	t.Helper()
+	_, err := db.GetEngine(t.Context()).Exec("DELETE FROM action_run")
+	require.NoError(t, err)
+}
+
 func TestCleanupOldRuns(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	defer test.MockVariableValue(&setting.Actions.RunRetentionDays, 30)()
 
 	now := timeutil.TimeStampNow()
 	old := now.AddDuration(-40 * 24 * time.Hour)
-	_, err := db.GetEngine(t.Context()).Exec("DELETE FROM action_run")
-	require.NoError(t, err)
+	deleteAllRuns(t)
 
 	t.Run("disabled retention is a no-op", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Actions.RunRetentionDays, 0)()
@@ -74,12 +79,10 @@ func TestCleanupOldRuns(t *testing.T) {
 	t.Run("error during deleting", func(t *testing.T) {
 		defer test.MockVariableValue(&cleanupOldRunsBatchSize, 3)()
 		defer test.MockVariableValue(&setting.IsInTesting, false)() // skip the panic
-		_, err := db.GetEngine(t.Context()).Exec("DELETE FROM action_run")
-		require.NoError(t, err)
+		deleteAllRuns(t)
 
-		var oldRuns []*actions_model.ActionRun
 		for i := range int64(6) {
-			oldRuns = append(oldRuns, insertCleanupRun(t, 3000+i, actions_model.StatusSuccess, old))
+			insertCleanupRun(t, 3000+i, actions_model.StatusSuccess, old)
 		}
 		var deletedIndices []int64
 		deleteRun := func(ctx context.Context, run *actions_model.ActionRun) error {
@@ -91,9 +94,9 @@ func TestCleanupOldRuns(t *testing.T) {
 			return err
 		}
 		total, err := cleanupOldRuns(t.Context(), now, []actions_model.Status{actions_model.StatusSuccess}, deleteRun)
-		// because 3000/3002/3004 fail and fill up the batch buffer, so only 3001 are 3003 are deleted
+		require.NoError(t, err)
+		// 3000/3002/3004 keep failing and fill up the batch, so the loop stops after 3001 and 3003
 		assert.Equal(t, 2, total)
 		assert.Equal(t, []int64{3001, 3003}, deletedIndices)
-		assert.NoError(t, err)
 	})
 }
