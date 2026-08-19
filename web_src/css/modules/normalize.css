@@ -3,11 +3,11 @@
 
   - Remove html font-family, we set our own
   - Remove html tab-size, we set our own
-  - Keep the browser's default line-height on html, see the comment there
   - Remove b,strong font-weight, we set our own
   - Remove b,code,samp,pre font-size, we set our own
-  - Keep the hr color that v3 dropped, see the comment there
-  - Keep the :-moz-focusring outline that v3 dropped, see the comment there
+  - Keep the browser's default line-height on html, it is font-dependent and roughly 1.2
+  - Keep the hr color that v3 dropped, it keeps the separator colored like the surrounding text
+  - Keep the :-moz-focusring outline that v3 dropped, checkboxes and radios have no other focus style
 */
 
 /*! modern-normalize v3.0.1 | MIT License | https://github.com/sindresorhus/modern-normalize */
@@ -28,7 +28,7 @@ Use a better box model (opinionated).
 }
 
 html {
-  line-height: normal; /* 1. (not following the "modern-normalize") Do not change the browser's default line-height, the default value is font-dependent and roughly 1.2 */
+  line-height: normal;
   /* stylelint-disable-next-line property-no-vendor-prefix -- no unprefixed support in Safari or Firefox */
   -webkit-text-size-adjust: 100%; /* 2. Prevent adjustments of font size after orientation changes in iOS. */
 }
@@ -48,7 +48,7 @@ Grouping content
 */
 
 hr {
-  color: inherit; /* (not following the "modern-normalize") Keep the separator colored like the surrounding text, browsers default to gray */
+  color: inherit;
 }
 
 /*
@@ -129,10 +129,6 @@ button,
   /* stylelint-disable-next-line property-no-vendor-prefix -- upstream v3.0.1 still ships the prefix */
   -webkit-appearance: button;
 }
-
-/**
-(not following the "modern-normalize") Keep the dotted focus ring on the elements Gitea does not style itself, like checkboxes and radios.
-*/
 
 :-moz-focusring {
   outline: 1px dotted ButtonText;
