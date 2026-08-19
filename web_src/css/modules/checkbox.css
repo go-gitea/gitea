@@ -172,6 +172,32 @@ input[type="checkbox"]:indeterminate::before {
   background: var(--color-primary) !important;
 }
 
+/* forced colors drops author colors, so state has to come from system colors. The checkmark
+   needs no rule, the user agent forces it to Canvas, and the toggle state stays readable
+   because the knob position is not a color. */
+@media (forced-colors: active) {
+  input[type="checkbox"]:checked,
+  input[type="checkbox"]:indeterminate {
+    background: CanvasText;
+    border-color: CanvasText;
+  }
+  input[type="checkbox"]:disabled:checked,
+  input[type="checkbox"]:disabled:indeterminate {
+    background: GrayText;
+    border-color: GrayText;
+  }
+  input[type="radio"]:disabled:checked {
+    border-color: GrayText;
+  }
+  .ui.toggle.checkbox label::before {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  .ui.toggle.checkbox label::after {
+    background: CanvasText;
+  }
+}
+
 label.gt-checkbox {
   display: inline-flex;
   align-items: center;

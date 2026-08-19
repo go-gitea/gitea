@@ -224,6 +224,16 @@ progress::-moz-progress-bar {
   background-color: var(--color-accent);
 }
 
+@media (forced-colors: active) {
+  progress { /* chromium drops the whole widget, firefox renders it natively */
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  progress::-webkit-progress-value {
+    background: CanvasText;
+  }
+}
+
 * {
   caret-color: var(--color-caret);
 }
