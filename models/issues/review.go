@@ -223,6 +223,9 @@ func (r *Review) HTMLTypeColorClass() string {
 	case ReviewTypeReject:
 		return "tw-text-red"
 	case ReviewTypeRequest:
+		if r.Official {
+			return "tw-text-yellow"
+		}
 		return "tw-text-text-light"
 	}
 	return "tw-text-text-light"
