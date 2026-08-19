@@ -119,22 +119,22 @@ func TestCleanupRetentionZeroKeepsForever(t *testing.T) {
 
 	t.Run("artifacts", func(t *testing.T) {
 		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
-		art, err := actions_model.CreateArtifact(t.Context(), task, "never-expires", "a.txt", optional.None[int64]())
+		art, err := actions_model.CreateArtifact(t.Context(), task, "never-expires", "a.txt", optional.None[timeutil.TimeStamp]())
 		require.NoError(t, err)
 		assert.Zero(t, art.ExpiredUnix)
 
-		// a client-requested retention is honored as-is, "never expires" is only the instance default
-		asked, err := actions_model.CreateArtifact(t.Context(), task, "client-asked", "b.txt", optional.Some(int64(0)))
+		// a workflow-requested expiry is honored, only the instance default may mean never
+		asked, err := actions_model.CreateArtifact(t.Context(), task, "client-asked", "b.txt", optional.Some(timeutil.TimeStampNow()))
 		require.NoError(t, err)
 		assert.Positive(t, asked.ExpiredUnix)
 
-		// re-uploading returns the existing row, which must carry the expiry that was just stored
-		reuploaded, err := actions_model.CreateArtifact(t.Context(), task, "client-asked", "b.txt", optional.None[int64]())
+		// re-uploading refreshes the expiry and returns it
+		reuploaded, err := actions_model.CreateArtifact(t.Context(), task, "client-asked", "b.txt", optional.None[timeutil.TimeStamp]())
 		require.NoError(t, err)
 		assert.Zero(t, reuploaded.ExpiredUnix)
 
-		// a past expiry must stay reapable rather than clamping onto the 0 sentinel and becoming immortal
-		past, err := actions_model.CreateArtifact(t.Context(), task, "long-gone", "c.txt", optional.Some(int64(-30000)))
+		// a past expiry must stay reapable, not land on the sentinel
+		past, err := actions_model.CreateArtifact(t.Context(), task, "long-gone", "c.txt", optional.Some(timeutil.TimeStamp(-1000)))
 		require.NoError(t, err)
 		assert.Positive(t, past.ExpiredUnix)
 

@@ -8,15 +8,12 @@ package actions
 
 import (
 	"context"
-	"errors"
 	"slices"
-	"time"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
-	"gitea.dev/modules/util"
 
 	"xorm.io/builder"
 )
@@ -25,12 +22,12 @@ import (
 type ArtifactStatus int64
 
 const (
-	ArtifactStatusUploadPending   ArtifactStatus = iota + 1 // 1， ArtifactStatusUploadPending is the status of an artifact upload that is pending
-	ArtifactStatusUploadConfirmed                           // 2， ArtifactStatusUploadConfirmed is the status of an artifact upload that is confirmed
-	ArtifactStatusUploadError                               // 3， ArtifactStatusUploadError is the status of an artifact upload that is errored
-	ArtifactStatusExpired                                   // 4, ArtifactStatusExpired is the status of an artifact that is expired
-	ArtifactStatusPendingDeletion                           // 5, ArtifactStatusPendingDeletion is the status of an artifact that is pending deletion
-	ArtifactStatusDeleted                                   // 6, ArtifactStatusDeleted is the status of an artifact that is deleted
+	ArtifactStatusUploadPending ArtifactStatus = iota + 1
+	ArtifactStatusUploadConfirmed
+	ArtifactStatusUploadError // unused, kept so the numbering below stays stable
+	ArtifactStatusExpired
+	ArtifactStatusPendingDeletion
+	ArtifactStatusDeleted
 )
 
 func (status ArtifactStatus) ToString() string {
@@ -89,21 +86,36 @@ type ActionArtifact struct {
 	Status       ArtifactStatus     `xorm:"index"`                                 // The status of the artifact, uploading, expired or need-delete
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"updated index"`
-	ExpiredUnix  timeutil.TimeStamp `xorm:"index"` // The time when the artifact will be expired
+	ExpiredUnix  timeutil.TimeStamp `xorm:"index"` // 0 means the artifact is kept forever
 }
 
-func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string, expiredDaysOpt optional.Option[int64]) (*ActionArtifact, error) {
+const artifactKeepForever timeutil.TimeStamp = 0
+
+func artifactExpiry(requested optional.Option[timeutil.TimeStamp]) timeutil.TimeStamp {
+	if requested.Has() {
+		return max(requested.Value(), artifactKeepForever+1)
+	}
+	if setting.Actions.ArtifactRetentionDays <= 0 {
+		return artifactKeepForever
+	}
+	return timeutil.TimeStampNow().Add(timeutil.Day * setting.Actions.ArtifactRetentionDays)
+}
+
+// CreateArtifact returns the artifact for the name and path, creating it on first upload and refreshing its expiry either way.
+func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPath string, expiry optional.Option[timeutil.TimeStamp]) (*ActionArtifact, error) {
 	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
-	expiredDays := expiredDaysOpt.ValueOrDefault(setting.Actions.ArtifactRetentionDays)
-	var expiredUnix timeutil.TimeStamp // 0 means the artifact never expires, which only the instance default may ask for
-	if expiredDaysOpt.Has() || expiredDays > 0 {
-		expiredUnix = max(1, timeutil.TimeStampNow().Add(timeutil.Day*expiredDays)) // a past expiry must not land on the sentinel
-	}
+	expiredUnix := artifactExpiry(expiry)
 
-	artifact, err := getArtifactByNameAndPath(ctx, t.Job.RunID, t.Job.RunAttemptID, artifactName, artifactPath)
-	if errors.Is(err, util.ErrNotExist) {
+	artifact, exist, err := db.Get[ActionArtifact](ctx, builder.Eq{
+		"run_id": t.Job.RunID, "run_attempt_id": t.Job.RunAttemptID,
+		"artifact_name": artifactName, "artifact_path": artifactPath,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
 		artifact := &ActionArtifact{
 			ArtifactName: artifactName,
 			ArtifactPath: artifactPath,
@@ -120,33 +132,18 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 			return nil, err
 		}
 		return artifact, nil
-	} else if err != nil {
-		return nil, err
 	}
 
 	artifact.ExpiredUnix = expiredUnix
-	if _, err := db.GetEngine(ctx).ID(artifact.ID).Cols("expired_unix").Update(artifact); err != nil {
+	if err := UpdateArtifact(ctx, artifact, "expired_unix"); err != nil {
 		return nil, err
 	}
 
 	return artifact, nil
 }
 
-func getArtifactByNameAndPath(ctx context.Context, runID, runAttemptID int64, name, fpath string) (*ActionArtifact, error) {
-	var art ActionArtifact
-	has, err := db.GetEngine(ctx).Where("run_id = ? AND run_attempt_id = ? AND artifact_name = ? AND artifact_path = ?", runID, runAttemptID, name, fpath).Get(&art)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, util.ErrNotExist
-	}
-	return &art, nil
-}
-
-// UpdateArtifactByID updates an artifact by id
-func UpdateArtifactByID(ctx context.Context, id int64, art *ActionArtifact) error {
-	art.ID = id
-	_, err := db.GetEngine(ctx).ID(id).AllCols().Update(art)
+func UpdateArtifact(ctx context.Context, art *ActionArtifact, cols ...string) error {
+	_, err := db.GetEngine(ctx).ID(art.ID).Cols(cols...).Update(art)
 	return err
 }
 
@@ -156,7 +153,7 @@ type FindArtifactsOptions struct {
 	RunID                int64
 	RunAttemptIDs        []int64 // empty means every attempt; pass 0 to target legacy artifacts, which have run_attempt_id=0
 	ArtifactName         string
-	Status               int
+	Status               ArtifactStatus
 	FinalizedArtifactsV4 bool
 }
 
@@ -236,7 +233,7 @@ func ListUploadedArtifactsMetaByRunAttempt(ctx context.Context, repoID, runID, r
 func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
 	return arts, db.GetEngine(ctx).
-		Where("expired_unix > 0 AND expired_unix < ? AND status = ?", timeutil.TimeStamp(time.Now().Unix()), ArtifactStatusUploadConfirmed).Find(&arts)
+		Where("expired_unix > ? AND expired_unix < ? AND status = ?", artifactKeepForever, timeutil.TimeStampNow(), ArtifactStatusUploadConfirmed).Find(&arts)
 }
 
 // ListPendingDeleteArtifacts returns all artifacts in pending-delete status.
@@ -247,23 +244,24 @@ func ListPendingDeleteArtifacts(ctx context.Context, limit int) ([]*ActionArtifa
 		Where("status = ?", ArtifactStatusPendingDeletion).Limit(limit).Find(&arts)
 }
 
-// SetArtifactExpired sets an artifact to expired
+func setConfirmedArtifactsStatus(ctx context.Context, status ArtifactStatus, cond builder.Cond) error {
+	_, err := db.GetEngine(ctx).Where(cond).And(builder.Eq{"status": ArtifactStatusUploadConfirmed}).
+		Cols("status").Update(&ActionArtifact{Status: status})
+	return err
+}
+
 func SetArtifactExpired(ctx context.Context, artifactID int64) error {
-	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusExpired})
-	return err
+	return setConfirmedArtifactsStatus(ctx, ArtifactStatusExpired, builder.Eq{"id": artifactID})
 }
 
-// SetArtifactNeedDeleteByID sets an artifact to need-delete by ID, cron job will delete it.
 func SetArtifactNeedDeleteByID(ctx context.Context, artifactID int64) error {
-	_, err := db.GetEngine(ctx).Where("id=? AND status = ?", artifactID, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusPendingDeletion})
-	return err
+	return setConfirmedArtifactsStatus(ctx, ArtifactStatusPendingDeletion, builder.Eq{"id": artifactID})
 }
 
-// SetArtifactNeedDeleteByRunAttempt sets an artifact to need-delete in a run attempt, cron job will delete it.
 // runAttemptID may be 0 for legacy artifacts created before ActionRunAttempt existed.
 func SetArtifactNeedDeleteByRunAttempt(ctx context.Context, runID, runAttemptID int64, name string) error {
-	_, err := db.GetEngine(ctx).Where("run_id=? AND run_attempt_id=? AND artifact_name=? AND status = ?", runID, runAttemptID, name, ArtifactStatusUploadConfirmed).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusPendingDeletion})
-	return err
+	return setConfirmedArtifactsStatus(ctx, ArtifactStatusPendingDeletion,
+		builder.Eq{"run_id": runID, "run_attempt_id": runAttemptID, "artifact_name": name})
 }
 
 // GetArtifactsByRunAttemptAndName returns all artifacts with the given name in the specified run attempt.
@@ -276,8 +274,6 @@ func GetArtifactsByRunAttemptAndName(ctx context.Context, runID, runAttemptID in
 		Find(&arts)
 }
 
-// SetArtifactDeleted sets an artifact to deleted
 func SetArtifactDeleted(ctx context.Context, artifactID int64) error {
-	_, err := db.GetEngine(ctx).ID(artifactID).Cols("status").Update(&ActionArtifact{Status: ArtifactStatusDeleted})
-	return err
+	return UpdateArtifact(ctx, &ActionArtifact{ID: artifactID, Status: ArtifactStatusDeleted}, "status")
 }

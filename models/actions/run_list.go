@@ -205,9 +205,7 @@ func GetActors(ctx context.Context, repoID int64) ([]*user_model.User, error) {
 		Find(&actors)
 }
 
-// FindOldestRuns returns up to limit runs in the given statuses created before
-// olderThan, ordered oldest first. It is used by the cleanup cron task so that
-// the oldest runs are deleted first.
+// FindOldestRuns returns up to limit runs in the given statuses created before olderThan, lowest id first.
 func FindOldestRuns(ctx context.Context, statuses []Status, olderThan timeutil.TimeStamp, limit int) ([]*ActionRun, error) {
 	runs := make([]*ActionRun, 0, limit)
 	return runs, db.GetEngine(ctx).

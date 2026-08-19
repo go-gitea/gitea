@@ -75,9 +75,11 @@ import (
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
+	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	web_types "gitea.dev/modules/web/types"
@@ -246,9 +248,11 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 	}
 
 	fileRealTotalSize := getUploadFileSize(ctx)
-	retentionDays := ctx.FormOptionalInt64("retentionDays")
-	// create or get artifact with name and path
-	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, retentionDays)
+	var expiry optional.Option[timeutil.TimeStamp]
+	if days := ctx.FormOptionalInt64("retentionDays"); days.Has() {
+		expiry = optional.Some(timeutil.TimeStampNow().Add(timeutil.Day * days.Value()))
+	}
+	artifact, err := actions.CreateArtifact(ctx, task, artifactName, artifactPath, expiry)
 	if err != nil {
 		log.Error("Error create or get artifact: %v", err)
 		ctx.HTTPError(http.StatusInternalServerError, "Error create or get artifact")
@@ -273,7 +277,7 @@ func (ar artifactRoutes) uploadArtifact(ctx *ArtifactContext) {
 		artifact.FileSize = fileRealTotalSize
 		artifact.FileCompressedSize = chunksTotalSize
 		artifact.ContentEncodingOrType = ctx.Req.Header.Get("Content-Encoding")
-		if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
+		if err := actions.UpdateArtifact(ctx, artifact, "file_size", "file_compressed_size", "content_encoding"); err != nil {
 			log.Error("Error update artifact: %v", err)
 			ctx.HTTPError(http.StatusInternalServerError, "Error update artifact")
 			return
@@ -334,7 +338,7 @@ func (ar artifactRoutes) listArtifacts(ctx *ArtifactContext) {
 	artifacts, err := actions.FindReadableArtifacts(ctx, actions.FindArtifactsOptions{
 		RunID:         runID,
 		RunAttemptIDs: attemptIDs,
-		Status:        int(actions.ArtifactStatusUploadConfirmed),
+		Status:        actions.ArtifactStatusUploadConfirmed,
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)
@@ -406,7 +410,7 @@ func (ar artifactRoutes) getDownloadArtifactURL(ctx *ArtifactContext) {
 		RunID:         runID,
 		RunAttemptIDs: attemptIDs,
 		ArtifactName:  itemPath,
-		Status:        int(actions.ArtifactStatusUploadConfirmed),
+		Status:        actions.ArtifactStatusUploadConfirmed,
 	})
 	if err != nil {
 		log.Error("Error getting artifacts: %v", err)

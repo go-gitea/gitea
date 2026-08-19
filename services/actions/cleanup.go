@@ -167,9 +167,8 @@ func CleanupEphemeralRunnersByPickedTaskOfRepo(ctx context.Context, repoID int64
 // DeleteRun deletes workflow run, including all logs and artifacts.
 func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	if !run.Status.IsDone() {
-		// this should not happen, the callers guarantee that the run status is right
+		// callers guarantee a terminal status, but in production delete it anyway
 		setting.PanicInDevOrTesting("DeleteRun called on non-terminal run %d with status %s", run.ID, run.Status)
-		// no need to stop the deletion if the status is not "done" in production
 	}
 
 	repoID := run.RepoID
@@ -267,9 +266,7 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 
 var cleanupOldRunsBatchSize = 50
 
-// CleanupOldRuns deletes completed action runs (and all associated jobs, tasks, logs,
-// artifacts, etc.) whose `created` timestamp is older than setting.Actions.RunRetentionDays.
-// If RunRetentionDays is 0 the function is a no-op (runs are kept forever).
+// CleanupOldRuns deletes completed runs older than RUN_RETENTION_DAYS, along with everything under them.
 func CleanupOldRuns(ctx context.Context) error {
 	if setting.Actions.RunRetentionDays <= 0 {
 		return nil
@@ -277,7 +274,6 @@ func CleanupOldRuns(ctx context.Context) error {
 
 	olderThan := timeutil.TimeStampNow().AddDuration(-time.Duration(setting.Actions.RunRetentionDays) * 24 * time.Hour)
 
-	// Only delete runs that are in a terminal state to avoid interrupting in-progress work.
 	doneStatuses := []actions_model.Status{
 		actions_model.StatusSuccess,
 		actions_model.StatusFailure,
@@ -294,10 +290,9 @@ func CleanupOldRuns(ctx context.Context) error {
 	return nil
 }
 
-// cleanupOldRuns deletes completed runs created before olderThan in batches of cleanupOldRunsBatchSize
 func cleanupOldRuns(ctx context.Context, olderThan timeutil.TimeStamp, doneStatuses []actions_model.Status, deleteRun func(context.Context, *actions_model.ActionRun) error) (int, error) {
 	total := 0
-	failed := container.Set[int64]{} // remember the runs that are failed to delete, to avoid dead loop
+	failed := container.Set[int64]{} // skipping these stops the outer loop refetching them forever
 	for {
 		runs, err := actions_model.FindOldestRuns(ctx, doneStatuses, olderThan, cleanupOldRunsBatchSize)
 		if err != nil {
@@ -310,7 +305,6 @@ func cleanupOldRuns(ctx context.Context, olderThan timeutil.TimeStamp, doneStatu
 				continue
 			}
 			if err := deleteRun(ctx, run); err != nil {
-				// DeleteRun is expected to never fail, if it fails, there must be a bug that should be fixed.
 				setting.PanicInDevOrTesting("failed to delete old action run %d: %v", run.ID, err)
 				failed.Add(run.ID)
 				continue
