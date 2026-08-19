@@ -58,3 +58,10 @@ func TestAPIAdminListPackagesForbidden(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 }
+
+func TestAPIAdminListPackagesNotLoggedIn(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	req := NewRequest(t, "GET", "/api/v1/admin/packages")
+	MakeRequest(t, req, http.StatusUnauthorized)
+}
