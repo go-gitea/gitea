@@ -43,17 +43,6 @@ const (
 )
 
 // getSupportedDbTypeNames returns a slice for supported database types and names. The slice is used to keep the order
-func ensureInstallJWTSecret(cfg setting.ConfigProvider, sectionName, secretKey, secretURIKey string) {
-	section := cfg.Section(sectionName)
-	if setting.ConfigSectionKey(section, secretKey) != nil ||
-		setting.ConfigSectionKey(section, secretURIKey) != nil {
-		return
-	}
-
-	_, jwtSecret := generate.NewJwtSecretWithBase64()
-	section.Key(secretKey).SetValue(jwtSecret)
-}
-
 func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 	for _, t := range setting.SupportedDatabaseTypes {
 		dbTypeNames = append(dbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
@@ -330,12 +319,6 @@ func SubmitInstall(ctx *context.Context) {
 		log.Error("Failed to load custom conf '%s': %v", setting.CustomConf, err)
 	}
 
-	// Environment-backed values must be visible before deciding which secrets are missing.
-	// Apply the same snapshot again before saving so environment variables retain their
-	// documented precedence over values collected from the installation form.
-	installEnvironment := os.Environ()
-	setting.EnvironmentToConfig(cfg, installEnvironment)
-
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("").Key("RUN_USER").SetValue(form.RunUser)
 	cfg.Section("").Key("WORK_PATH").SetValue(setting.AppWorkPath)
@@ -369,12 +352,10 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
 
-		ensureInstallJWTSecret(
-			cfg,
-			"server",
-			"LFS_JWT_SECRET",
-			"LFS_JWT_SECRET_URI",
-		)
+		if !cfg.Section("server").HasKey("LFS_JWT_SECRET_URI") {
+			_, lfsJwtSecret := generate.NewJwtSecretWithBase64()
+			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
+		}
 	} else {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
@@ -434,7 +415,10 @@ func SubmitInstall(ctx *context.Context) {
 
 	// FIXME: at the moment, no matter oauth2 is enabled or not, it must generate a "oauth2 JWT_SECRET"
 	// see the "loadOAuth2From" in "setting/oauth2.go"
-	ensureInstallJWTSecret(cfg, "oauth2", "JWT_SECRET", "JWT_SECRET_URI")
+	if !cfg.Section("oauth2").HasKey("JWT_SECRET") && !cfg.Section("oauth2").HasKey("JWT_SECRET_URI") {
+		_, jwtSecretBase64 := generate.NewJwtSecretWithBase64()
+		cfg.Section("oauth2").Key("JWT_SECRET").SetValue(jwtSecretBase64)
+	}
 
 	// if there is already a SECRET_KEY, we should not overwrite it, otherwise the encrypted data will not be able to be decrypted
 	if setting.SecretKey == "" {
@@ -464,7 +448,7 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
-	setting.EnvironmentToConfig(cfg, installEnvironment)
+	setting.EnvironmentToConfig(cfg, os.Environ())
 
 	if err = cfg.SaveTo(setting.CustomConf); err != nil {
 		ctx.RenderWithErrDeprecated(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
