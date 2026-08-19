@@ -29,6 +29,7 @@ Use a better box model (opinionated).
 
 html {
   line-height: normal; /* 1. (not following the "modern-normalize") Do not change the browser's default line-height, the default value is font-dependent and roughly 1.2 */
+  /* stylelint-disable-next-line property-no-vendor-prefix -- no unprefixed support in Safari or Firefox */
   -webkit-text-size-adjust: 100%; /* 2. Prevent adjustments of font size after orientation changes in iOS. */
 }
 

@@ -131,7 +131,7 @@ export default {
     'no-unknown-custom-media': null, // disabled until stylelint supports multi-file linting
     'no-unknown-custom-properties': null,  // disabled until stylelint supports multi-file linting
     'plugin/declaration-block-no-ignored-properties': true,
-    'property-no-vendor-prefix': [true, {ignoreProperties: ['/-text-size-adjust$/']}], // no unprefixed support in Safari or Firefox
+    'property-no-vendor-prefix': true,
     'scale-unlimited/declaration-strict-value': [['/color$/', 'fill', 'stroke', 'font-weight'], {ignoreValues: '/^(inherit|transparent|unset|initial|currentcolor|none)$/', ignoreFunctions: true, disableFix: true, expandShorthand: true}],
     'selector-attribute-quotes': 'always',
     'selector-no-vendor-prefix': true,
