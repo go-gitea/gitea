@@ -13,6 +13,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/modules/timeutil"
@@ -99,4 +100,31 @@ func TestCleanupOldRuns(t *testing.T) {
 		assert.Equal(t, 2, total)
 		assert.Equal(t, []int64{3001, 3003}, deletedIndices)
 	})
+}
+
+func TestCleanupRetentionZeroKeepsForever(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Actions.LogRetentionDays, 0)()
+	defer test.MockVariableValue(&setting.Actions.ArtifactRetentionDays, 0)()
+
+	liveLogs, err := db.GetEngine(t.Context()).Where("stopped > 0 AND log_expired = ?", false).Count(&actions_model.ActionTask{})
+	require.NoError(t, err)
+	require.Positive(t, liveLogs)
+	require.NoError(t, CleanupExpiredLogs(t.Context()))
+	stillLive, err := db.GetEngine(t.Context()).Where("stopped > 0 AND log_expired = ?", false).Count(&actions_model.ActionTask{})
+	require.NoError(t, err)
+	assert.Equal(t, liveLogs, stillLive)
+
+	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
+	art, err := actions_model.CreateArtifact(t.Context(), task, "never-expires", "a.txt", optional.None[int64]())
+	require.NoError(t, err)
+	assert.Zero(t, art.ExpiredUnix)
+
+	_, err = db.GetEngine(t.Context()).ID(art.ID).Cols("status").Update(&actions_model.ActionArtifact{Status: actions_model.ArtifactStatusUploadConfirmed})
+	require.NoError(t, err)
+	expiring, err := actions_model.ListNeedExpiredArtifacts(t.Context())
+	require.NoError(t, err)
+	for _, a := range expiring {
+		assert.NotEqual(t, art.ID, a.ID)
+	}
 }

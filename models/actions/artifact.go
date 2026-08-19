@@ -96,7 +96,10 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 	if err := t.LoadJob(ctx); err != nil {
 		return nil, err
 	}
-	expiredDays := expiredDaysOpt.ValueOrDefault(setting.Actions.ArtifactRetentionDays)
+	var expiredUnix timeutil.TimeStamp // 0 means the artifact never expires
+	if expiredDays := expiredDaysOpt.ValueOrDefault(setting.Actions.ArtifactRetentionDays); expiredDays > 0 {
+		expiredUnix = timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays)
+	}
 
 	artifact, err := getArtifactByNameAndPath(ctx, t.Job.RunID, t.Job.RunAttemptID, artifactName, artifactPath)
 	if errors.Is(err, util.ErrNotExist) {
@@ -110,7 +113,7 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 			OwnerID:      t.OwnerID,
 			CommitSHA:    t.CommitSHA,
 			Status:       ArtifactStatusUploadPending,
-			ExpiredUnix:  timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays),
+			ExpiredUnix:  expiredUnix,
 		}
 		if _, err := db.GetEngine(ctx).Insert(artifact); err != nil {
 			return nil, err
@@ -121,7 +124,7 @@ func CreateArtifact(ctx context.Context, t *ActionTask, artifactName, artifactPa
 	}
 
 	if _, err := db.GetEngine(ctx).ID(artifact.ID).Cols("expired_unix").Update(&ActionArtifact{
-		ExpiredUnix: timeutil.TimeStamp(time.Now().Unix() + timeutil.Day*expiredDays),
+		ExpiredUnix: expiredUnix,
 	}); err != nil {
 		return nil, err
 	}
@@ -233,7 +236,7 @@ func ListUploadedArtifactsMetaByRunAttempt(ctx context.Context, repoID, runID, r
 func ListNeedExpiredArtifacts(ctx context.Context) ([]*ActionArtifact, error) {
 	arts := make([]*ActionArtifact, 0, 10)
 	return arts, db.GetEngine(ctx).
-		Where("expired_unix < ? AND status = ?", timeutil.TimeStamp(time.Now().Unix()), ArtifactStatusUploadConfirmed).Find(&arts)
+		Where("expired_unix > 0 AND expired_unix < ? AND status = ?", timeutil.TimeStamp(time.Now().Unix()), ArtifactStatusUploadConfirmed).Find(&arts)
 }
 
 // ListPendingDeleteArtifacts returns all artifacts in pending-delete status.

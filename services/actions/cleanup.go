@@ -108,6 +108,10 @@ func removeTaskLog(ctx context.Context, task *actions_model.ActionTask) {
 
 // CleanupExpiredLogs removes logs which are older than the configured retention time
 func CleanupExpiredLogs(ctx context.Context) error {
+	if setting.Actions.LogRetentionDays <= 0 {
+		return nil
+	}
+
 	olderThan := timeutil.TimeStampNow().AddDuration(-time.Duration(setting.Actions.LogRetentionDays) * 24 * time.Hour)
 
 	count := 0
