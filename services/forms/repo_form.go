@@ -587,12 +587,7 @@ type SaveTopicForm struct {
 
 // AddDeployTokenForm form for adding a deploy token to a repository
 type AddDeployTokenForm struct {
+	middleware.FormDefaultValidator
 	Title      string `binding:"Required;MaxSize(50)"`
 	IsWritable bool
-}
-
-// Validate validates the fields
-func (f *AddDeployTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
-	ctx := context.GetValidateContext(req)
-	return middleware.Validate(ctx, errs, f)
 }
