@@ -27,6 +27,9 @@ type Form interface {
 	Validate(ctx *ValidateContext, errs validation.BindingErrors) validation.BindingErrors
 }
 
+// BindFormAny binds the request to the form of type T and returns the pointer to the form and any binding errors.
+// Only the rules defined in the struct field's "binding" tag are applied.
+// It can bind to any struct, doesn't call the struct's "Form.Validate" interface.
 func BindFormAny[T any](req *http.Request, binder *binding.Binder, _ T) (ret *T, _ validation.BindingErrors) {
 	typ := reflect.TypeFor[T]()
 	if typ.Kind() != reflect.Struct {
@@ -37,6 +40,8 @@ func BindFormAny[T any](req *http.Request, binder *binding.Binder, _ T) (ret *T,
 	return form, errs
 }
 
+// BindFormValidate binds the request to the form of type T which must be a pointer implementing Form interface
+// After binding, the Form.Validate is also called so we can do more validation checks
 func BindFormValidate[T Form](req *http.Request, binder *binding.Binder) (ret T, _ validation.BindingErrors) {
 	locale := req.Context().Value(translation.ContextKey).(translation.Locale) //nolint:forcetypeassert // must exist
 	ptrType := reflect.TypeFor[T]()
@@ -48,7 +53,7 @@ func BindFormValidate[T Form](req *http.Request, binder *binding.Binder) (ret T,
 	return form.(T), errs //nolint:forcetypeassert // must be type T
 }
 
-// AssignForm assign form values back to the template data.
+// AssignForm assign form values back to the template data, the template variable names are in "snake_case"
 func AssignForm(form any, data map[string]any) {
 	typ := reflect.TypeOf(form)
 	val := reflect.ValueOf(form)
