@@ -336,7 +336,7 @@ type NewPackagistHookForm struct {
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
 	middleware.FormDefaultValidator
-	Title               string `binding:"Required;MaxSize(255)"`
+	Title               string `binding:"TrimSpace;Required;MaxSize(255)"`
 	AssigneeIDs         string `form:"assignee_ids"`
 	ReviewerIDs         string `form:"reviewer_ids"`
 	Ref                 string `form:"ref"`
@@ -550,7 +550,7 @@ type GenerateReleaseNotesForm struct {
 // EditReleaseForm form for changing release
 type EditReleaseForm struct {
 	middleware.FormDefaultValidator
-	Title      string `form:"title" binding:"Required;MaxSize(255)"`
+	Title      string `form:"title" binding:"TrimSpace;Required;MaxSize(255)"`
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`
@@ -558,18 +558,10 @@ type EditReleaseForm struct {
 }
 
 type WikiEditForm struct {
-	Title   string
+	middleware.FormDefaultValidator
+	Title   string `binding:"TrimSpace;Required"`
 	Content string
 	Message string
-}
-
-func (f *WikiEditForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
-	f.Title = strings.TrimSpace(f.Title)
-	if f.Title == "" {
-		errs = middleware.AddValidationError(errs, "title", ctx.Locale.TrString("repo.issues.new.title_empty"))
-	}
-	f.Message = strings.TrimSpace(f.Message)
-	return errs
 }
 
 // AddTimeManuallyForm form that adds spent time manually.
