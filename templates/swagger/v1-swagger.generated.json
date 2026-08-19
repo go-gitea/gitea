@@ -27790,6 +27790,7 @@
           "x-go-name": "Name"
         },
         "permission": {
+          "description": "All units have this permission (read/write/admin)",
           "type": "string",
           "enum": [
             "read",
@@ -29060,6 +29061,7 @@
           "x-go-name": "Name"
         },
         "permission": {
+          "description": "All units have this permission (read/write/admin)",
           "type": "string",
           "enum": [
             "read",

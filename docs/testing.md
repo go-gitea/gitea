@@ -23,7 +23,7 @@ go test -run '^TestName$' ./modulepath/
 make test-backend#TestName
 ```
 
-Frontend unit tests run with [Vitest](https://vitest.dev/):
+Frontend unit tests run with [Vitest](https://vitest.dev/) browser mode:
 
 ```bash
 make test-frontend

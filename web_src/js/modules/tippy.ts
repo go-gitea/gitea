@@ -149,6 +149,7 @@ function attachLazyTooltip(el: HTMLElement): void {
       let ariaLabelValue = content;
       if (isHtml) ariaLabelValue = stripTags(content).replace(/\s+/g, ' ').trim();
       el.setAttribute('aria-label', ariaLabelValue);
+      el.removeAttribute('aria-hidden');
     }
   }
 }
