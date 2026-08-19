@@ -68,7 +68,6 @@ Write class attributes as a single readable unit in templates:
 ## TypeScript
 
 - Use `import type` for type-only imports.
-- Prefer `@ts-expect-error` over `@ts-ignore`.
 - Use the `!` non-null assertion (rather than `?.`/`??`) when a value is known to always exist.
 - Only mark a function `async` when it actually uses `await` or returns a `Promise`.
   Avoid async event listeners; if unavoidable, call `e.preventDefault()` before the
