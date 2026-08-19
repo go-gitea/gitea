@@ -12,6 +12,7 @@ export default {
   reportUnscopedDisables: true,
   reportNeedlessDisables: true,
   reportInvalidScopeDisables: true,
+  reportDescriptionlessDisables: true,
   plugins: [
     'stylelint-declaration-strict-value',
     'stylelint-declaration-block-no-ignored-properties',
