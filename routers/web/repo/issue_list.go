@@ -108,6 +108,11 @@ func SearchIssues(ctx *context.Context) {
 		if opts.AllPublic {
 			allPublic = true
 			opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
+			// The indexer already matches every public repository through the AllPublic
+			// flag, so enumerating them here would only produce a huge and redundant
+			// repository ID list. Restrict the query to private repositories, which the
+			// indexer cannot match on its own.
+			opts.IsPrivate = optional.Some(true)
 		}
 		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 		if err != nil {
