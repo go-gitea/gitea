@@ -52,6 +52,8 @@ var (
 		ScopedWorkflowDirs:     []string{".gitea/scoped_workflows"},
 		MaxRerunAttempts:       defaultMaxRerunAttempts,
 		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
+		LogRetentionDays:       defaultLogRetentionDays,
+		ArtifactRetentionDays:  defaultArtifactRetentionDays,
 		RunRetentionDays:       defaultRunRetentionDays,
 	}
 )
@@ -129,14 +131,6 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)
 	Actions.EndlessTaskTimeout = sec.Key("ENDLESS_TASK_TIMEOUT").MustDuration(3 * time.Hour)
 	Actions.AbandonedJobTimeout = sec.Key("ABANDONED_JOB_TIMEOUT").MustDuration(24 * time.Hour)
-
-	if Actions.MaxRerunAttempts <= 0 {
-		Actions.MaxRerunAttempts = defaultMaxRerunAttempts
-	}
-
-	if Actions.MaxConcurrentTaskPicks <= 0 {
-		Actions.MaxConcurrentTaskPicks = defaultMaxConcurrentTaskPicks
-	}
 
 	if !Actions.LogCompression.IsValid() {
 		return fmt.Errorf("invalid [actions] LOG_COMPRESSION: %q", Actions.LogCompression)
