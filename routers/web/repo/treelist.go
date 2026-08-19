@@ -83,12 +83,10 @@ func transformDiffTreeForWeb(renderedIconPool *fileicon.RenderedIconPool, diffTr
 	dirNodes := map[string]*WebDiffFileItem{"": &dft.TreeRoot}
 	addItem := func(item *WebDiffFileItem) {
 		var parentPath string
-		pos := strings.LastIndexByte(item.FullName, '/')
-		if pos == -1 {
-			item.DisplayName = item.FullName
+		if dir, name, found := strings.CutLast(item.FullName, "/"); found {
+			parentPath, item.DisplayName = dir, name
 		} else {
-			parentPath = item.FullName[:pos]
-			item.DisplayName = item.FullName[pos+1:]
+			item.DisplayName = item.FullName
 		}
 		parentNode, parentExists := dirNodes[parentPath]
 		if !parentExists {

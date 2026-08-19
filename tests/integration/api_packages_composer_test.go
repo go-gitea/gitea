@@ -209,7 +209,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.Len(t, pkgs[0].Authors, 1)
 		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
+		assert.Equal(t, "f2d7c9059b66874092336aac6b0e96c98b3916c6", pkgs[0].Dist.Checksum)
 		assert.Len(t, pkgs[0].Bin, 1)
 		assert.Equal(t, packageBin, pkgs[0].Bin[0])
 
@@ -239,7 +239,7 @@ func TestPackageComposer(t *testing.T) {
 		assert.Len(t, pkgs[0].Authors, 1)
 		assert.Equal(t, packageAuthor, pkgs[0].Authors[0].Name)
 		assert.Equal(t, "zip", pkgs[0].Dist.Type)
-		assert.Equal(t, "4f5fa464c3cb808a1df191dbf6cb75363f8b7072", pkgs[0].Dist.Checksum)
+		assert.Equal(t, "f2d7c9059b66874092336aac6b0e96c98b3916c6", pkgs[0].Dist.Checksum)
 		assert.Len(t, pkgs[0].Bin, 1)
 		assert.Equal(t, packageBin, pkgs[0].Bin[0])
 		assert.Equal(t, repo1.HTMLURL(), pkgs[0].Source.URL)

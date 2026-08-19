@@ -1,10 +1,6 @@
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 
-# By default use go's 1.25 experimental json v2 library when building
-# TODO: remove when no longer experimental
-export GOEXPERIMENT ?= jsonv2
-
 GO ?= go
 SHASUM ?= shasum -a 256
 COMMA := ,
@@ -516,7 +512,7 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./... || true
+	go run $(GOVULNCHECK_PACKAGE) -show color ./... || true
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)

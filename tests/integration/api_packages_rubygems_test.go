@@ -245,8 +245,8 @@ func TestPackageRubyGems(t *testing.T) {
 
 		b, _ := base64.StdEncoding.DecodeString(`eJxi4Si1EndPzbWyCi5ITc5My0xOLMnMz2M8zMIRLeGpxGWsZ6RnzGbF5hqSyempxJWeWZKayGbN
 EBJqJQjWFZZaVJyZnxfN5qnEZahnoGcKkjTwVBJyB6lUKEhMzk5MTwULGngqcRaVJlWCONEMBp5K
-DGAWSKc7zFhPJamg0qRK99TcYphehZLU4hKInFhGSUlBsZW+PtgZepn5+iDxECRzDUDGcfh6hoA4
-gAAAAP//MS06Gw==`)
+DGAWSKc7zFhPJamg0qRK99TcYphehZLU4hKQSk8lsYySkoJiK319sDP0MvP1QeIhSOYagBzC4esZ
+wmbNEAIYADEtOhs=`)
 		assert.Equal(t, b, resp.Body.Bytes())
 
 		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRubyGems)
@@ -266,11 +266,11 @@ gAAAAP//MS06Gw==`)
 			assert.Equal(t, expectedContent, resp.Body.Bytes())
 		}
 
-		b, _ := base64.StdEncoding.DecodeString(`H4sICAAAAAAA/3NwZWNzLjQuOABi4Yhmi+bwVOJKzyxJTWSzYnMNCbUSdE/NtbIKSy0qzszPi2bzVOIy1DPQM2WzZgjxVOIsKk2qBDEBAQAA///xOEYKOwAAAA==`)
+		b, _ := base64.StdEncoding.DecodeString(`H4sICAAAAAAA/3NwZWNzLjQuOAAAOwDE/wQIWwZbCEkiCmdpdGVhBjoGRVRVOhFHZW06OlZlcnNpb25bBkkiCjEuMC41BjsAVEkiCXJ1YnkGOwBUAwDxOEYKOwAAAA==`)
 		enumeratePackages(t, "specs.4.8.gz", b)
-		b, _ = base64.StdEncoding.DecodeString(`H4sICAAAAAAA/2xhdGVzdF9zcGVjcy40LjgAYuGIZovm8FTiSs8sSU1ks2JzDQm1EnRPzbWyCkstKs7Mz4tm81TiMtQz0DNls2YI8VTiLCpNqgQxAQEAAP//8ThGCjsAAAA=`)
+		b, _ = base64.StdEncoding.DecodeString(`H4sICAAAAAAA/2xhdGVzdF9zcGVjcy40LjgAADsAxP8ECFsGWwhJIgpnaXRlYQY6BkVUVToRR2VtOjpWZXJzaW9uWwZJIgoxLjAuNQY7AFRJIglydWJ5BjsAVAMA8ThGCjsAAAA=`)
 		enumeratePackages(t, "latest_specs.4.8.gz", b)
-		b, _ = base64.StdEncoding.DecodeString(`H4sICAAAAAAA/3ByZXJlbGVhc2Vfc3BlY3MuNC44AGLhiGYABAAA//9snXr5BAAAAA==`)
+		b, _ = base64.StdEncoding.DecodeString(`H4sICAAAAAAA/3ByZXJlbGVhc2Vfc3BlY3MuNC44AAAEAPv/BAhbAAMAbJ16+QQAAAA=`)
 		enumeratePackages(t, "prerelease_specs.4.8.gz", b)
 	})
 
@@ -295,8 +295,8 @@ gAAAAP//MS06Gw==`)
 		req := NewRequest(t, "GET", root+"/versions").AddBasicAuth(user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Equal(t, `---
-gitea 1.0.5 08843c2dd0ea19910e6b056b98e38f1c
-gitea-another 0.99 8b639e4048d282941485368ec42609be
+gitea 1.0.5 6dc029f6875c637b6e2236c5056f431d
+gitea-another 0.99 3f0251d551c97733836b9c983366c36d
 `, resp.Body.String())
 	})
 

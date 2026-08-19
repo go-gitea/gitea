@@ -4,9 +4,6 @@
 package avatar_test
 
 import (
-	"bytes"
-	"image"
-	"image/png"
 	"testing"
 
 	"gitea.dev/modules/avatar"
@@ -15,12 +12,10 @@ import (
 )
 
 func Test_HashAvatar(t *testing.T) {
-	myImage := image.NewRGBA(image.Rect(0, 0, 32, 32))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
+	data := []byte("data")
 
-	assert.Equal(t, "9ddb5bac41d57e72aa876321d0c09d71090c05f94bc625303801be2f3240d2cb", avatar.HashAvatar(1, buff.Bytes()))
-	assert.Equal(t, "9a5d44e5d637b9582a976676e8f3de1dccd877c2fe3e66ca3fab1629f2f47609", avatar.HashAvatar(8, buff.Bytes()))
-	assert.Equal(t, "ed7399158672088770de6f5211ce15528ebd675e92fc4fc060c025f4b2794ccb", avatar.HashAvatar(1024, buff.Bytes()))
+	assert.Equal(t, "912b5d144e1f82719c79d4014fd9dc075aea506be410fb782d50c4f299f845f4", avatar.HashAvatar(1, data))
+	assert.Equal(t, "55e41725707388f35483f881b2f38405fd9a6883365a862b8a5350ed6737c6fe", avatar.HashAvatar(8, data))
+	assert.Equal(t, "473f06c83edcf69a9122db1d32f7649ebaa2680678e20ed0f868d25bd272abe8", avatar.HashAvatar(1024, data))
 	assert.Equal(t, "161178642c7d59eb25a61dddced5e6b66eae1c70880d5f148b1b497b767e72d9", avatar.HashAvatar(1024, []byte{}))
 }

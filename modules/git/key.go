@@ -55,12 +55,12 @@ func GetSigningKey(ctx context.Context) (*SigningKey, *Signature) {
 		}
 
 		return &SigningKey{
-				KeyID:  strings.TrimSpace(signingKey),
-				Format: strings.TrimSpace(format),
-			}, &Signature{
-				Name:  strings.TrimSpace(signingName),
-				Email: strings.TrimSpace(signingEmail),
-			}
+			KeyID:  strings.TrimSpace(signingKey),
+			Format: strings.TrimSpace(format),
+		}, &Signature{
+			Name:  strings.TrimSpace(signingName),
+			Email: strings.TrimSpace(signingEmail),
+		}
 	}
 
 	if setting.Repository.Signing.SigningKey == "" {
@@ -68,10 +68,10 @@ func GetSigningKey(ctx context.Context) (*SigningKey, *Signature) {
 	}
 
 	return &SigningKey{
-			KeyID:  setting.Repository.Signing.SigningKey,
-			Format: setting.Repository.Signing.SigningFormat,
-		}, &Signature{
-			Name:  setting.Repository.Signing.SigningName,
-			Email: setting.Repository.Signing.SigningEmail,
-		}
+		KeyID:  setting.Repository.Signing.SigningKey,
+		Format: setting.Repository.Signing.SigningFormat,
+	}, &Signature{
+		Name:  setting.Repository.Signing.SigningName,
+		Email: setting.Repository.Signing.SigningEmail,
+	}
 }
