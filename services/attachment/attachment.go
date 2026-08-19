@@ -18,7 +18,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context/upload"
 
-	"github.com/google/uuid"
+	"uuid"
 )
 
 // NewAttachment creates a new attachment object, but do not verify.

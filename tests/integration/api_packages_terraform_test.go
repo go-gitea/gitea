@@ -14,9 +14,9 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/tests"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"uuid"
 )
 
 func TestPackageTerraform(t *testing.T) {

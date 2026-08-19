@@ -15,9 +15,9 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth/gothic"
+	"uuid"
 )
 
 var gothRWMutex = sync.RWMutex{}

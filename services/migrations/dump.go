@@ -25,8 +25,8 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 
-	"github.com/google/uuid"
 	"go.yaml.in/yaml/v4"
+	"uuid"
 )
 
 var _ base.Uploader = &RepositoryDumper{}

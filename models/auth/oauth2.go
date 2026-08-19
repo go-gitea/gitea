@@ -21,9 +21,9 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	uuid "github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
+	"uuid"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )

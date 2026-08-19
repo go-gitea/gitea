@@ -15,7 +15,7 @@ import (
 	"gitea.dev/modules/timeutil"
 	webhook_module "gitea.dev/modules/webhook"
 
-	gouuid "github.com/google/uuid"
+	"uuid"
 	"xorm.io/builder"
 )
 
@@ -119,7 +119,7 @@ func HookTasks(ctx context.Context, hookID int64, page int) ([]*HookTask, error)
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(ctx context.Context, t *HookTask) (*HookTask, error) {
-	t.UUID = gouuid.New().String()
+	t.UUID = uuid.New().String()
 	if t.Delivered == 0 {
 		t.Delivered = timeutil.TimeStampNanoNow()
 	}

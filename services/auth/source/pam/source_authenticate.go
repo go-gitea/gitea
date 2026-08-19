@@ -14,7 +14,7 @@ import (
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 
-	"github.com/google/uuid"
+	"uuid"
 )
 
 // Authenticate queries if login/password is valid against the PAM,

@@ -33,7 +33,7 @@ import (
 	"gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
 
-	"github.com/google/uuid"
+	"uuid"
 )
 
 var _ base.Uploader = &GiteaLocalUploader{}

@@ -36,7 +36,7 @@ import (
 	packages_service "gitea.dev/services/packages"
 	container_service "gitea.dev/services/packages/container"
 
-	"github.com/google/uuid"
+	"uuid"
 )
 
 const (
