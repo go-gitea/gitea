@@ -20,16 +20,20 @@ import (
 func TestRepository_AddCollaborator(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	testSuccess := func(repoID, userID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	testSuccess := func(repo *repo_model.Repository, user *user_model.User) {
 		assert.NoError(t, repo.LoadOwner(t.Context()))
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
 		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, user, perm.AccessModeWrite))
-		unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID}, &user_model.User{ID: userID})
+		unittest.CheckConsistencyFor(t, repo, user)
 	}
-	testSuccess(1, 4)
-	testSuccess(1, 4)
-	testSuccess(3, 4)
+	testSuccess(repo1, user4)
+	testSuccess(repo1, user4)
+	testSuccess(repo3, user4)
+
+	assert.Error(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeOwner))
+	assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeAdmin))
 }
 
 func TestRepository_DeleteCollaboration(t *testing.T) {
@@ -55,7 +59,7 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
 	assert.NoError(t, repo.LoadOwner(ctx))
-	assert.NoError(t, repo_model.WatchRepo(ctx, user, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(ctx, user, repo, true))
 
 	hasAccess, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
 	assert.NoError(t, err)
@@ -84,7 +88,7 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 
 	watch, err := repo_model.GetWatch(ctx, user.ID, repo.ID)
 	assert.NoError(t, err)
-	assert.False(t, repo_model.IsWatchMode(watch.Mode))
+	assert.False(t, repo_model.IsWatchModeWatching(watch.Mode))
 
 	_, exists, err := issues_model.GetIssueWatch(ctx, user.ID, tempIssue.ID)
 	assert.NoError(t, err)

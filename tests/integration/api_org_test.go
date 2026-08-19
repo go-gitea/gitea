@@ -128,7 +128,7 @@ func testAPIOrgGeneral(t *testing.T) {
 		apiOrgList := DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 13)
 		assert.Equal(t, "Limited Org 36", apiOrgList[1].FullName)
-		assert.Equal(t, api.UserVisibilityLimited, apiOrgList[1].Visibility)
+		assert.Equal(t, api.VisibilityStringLimited, apiOrgList[1].Visibility)
 
 		// accessing without a token will return only public orgs
 		req = NewRequest(t, "GET", "/api/v1/orgs")
@@ -137,7 +137,7 @@ func testAPIOrgGeneral(t *testing.T) {
 		apiOrgList = DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 9)
 		assert.Equal(t, "org 17", apiOrgList[0].FullName)
-		assert.Equal(t, api.UserVisibilityPublic, apiOrgList[0].Visibility)
+		assert.Equal(t, api.VisibilityStringPublic, apiOrgList[0].Visibility)
 	})
 
 	t.Run("OrgEdit", func(t *testing.T) {
@@ -149,7 +149,7 @@ func testAPIOrgGeneral(t *testing.T) {
 			Description: new("new description"),
 			Website:     new("https://org3-new-website.example.com"),
 			Location:    new("new location"),
-			Visibility:  new(api.UserVisibilityLimited),
+			Visibility:  new(api.VisibilityStringLimited),
 			Email:       new("org3-new-email@example.com"),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org3Edit).AddTokenAuth(user1Token)
@@ -179,7 +179,7 @@ func testAPIOrgGeneral(t *testing.T) {
 
 	t.Run("OrgEditInvalidVisibility", func(t *testing.T) {
 		org := api.EditOrgOption{
-			Visibility: new(api.UserVisibility("invalid-visibility")),
+			Visibility: new(api.VisibilityString("invalid-visibility")),
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/org3", &org).AddTokenAuth(user1Token)
 		MakeRequest(t, req, http.StatusUnprocessableEntity)
@@ -262,6 +262,38 @@ func testAPIOrgGeneral(t *testing.T) {
 		req = NewRequest(t, "DELETE", "/api/v1/orgs/org3/public_members/user1").AddTokenAuth(user4Token)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
+}
+
+func TestAPIOrgPrivateMembersNotLeaked(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// privated_org (org 23) has private visibility and a single member, user5
+	const orgName = "privated_org"
+	const memberName = "user5"
+
+	// member publicizes their own membership inside the private org
+	memberSession := loginUser(t, memberName)
+	memberToken := getTokenForLoggedInUser(t, memberSession, auth_model.AccessTokenScopeWriteOrganization)
+	req := NewRequest(t, "PUT", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(memberToken)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	// an outsider must not be able to learn about the membership of a private org
+	outsiderSession := loginUser(t, "user2")
+	outsiderToken := getTokenForLoggedInUser(t, outsiderSession, auth_model.AccessTokenScopeReadOrganization)
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(outsiderToken)
+	MakeRequest(t, req, http.StatusNotFound)
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members").AddTokenAuth(outsiderToken)
+	MakeRequest(t, req, http.StatusNotFound)
+	// the full member list of a private org must not be enumerable by an outsider either
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/members").AddTokenAuth(outsiderToken)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// the member can still see the public membership of their own org
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/public_members/"+memberName).AddTokenAuth(memberToken)
+	MakeRequest(t, req, http.StatusNoContent)
+	// and the member can still list the org's members
+	req = NewRequest(t, "GET", "/api/v1/orgs/"+orgName+"/members").AddTokenAuth(memberToken)
+	MakeRequest(t, req, http.StatusOK)
 }
 
 func testAPIDeleteOrgRepos(t *testing.T) {

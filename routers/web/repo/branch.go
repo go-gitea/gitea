@@ -15,7 +15,6 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	repo_module "gitea.dev/modules/repository"
@@ -71,14 +70,10 @@ func Branches(ctx *context.Context) {
 		ctx.ServerError("LoadBranches", err)
 		return
 	}
-	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-		for key := range commitStatuses {
-			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
-		}
-	}
 
 	commitStatus := make(map[string]*git_model.CommitStatus)
 	for commitID, cs := range commitStatuses {
+		git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, cs)
 		commitStatus[commitID] = git_model.CalcCommitStatus(cs)
 	}
 
@@ -138,7 +133,7 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := gitrepo.Push(ctx, ctx.Repo.Repository, ctx.Repo.Repository, git.PushOptions{
+	if err := git.PushManaged(ctx, ctx.Repo.Repository, ctx.Repo.Repository, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.CommitID, git.BranchPrefix, deletedBranch.Name),
 		Env:    repo_module.PushingEnvironment(ctx.Doer, ctx.Repo.Repository),
 	}); err != nil {
@@ -177,7 +172,7 @@ func jsonRedirectBranches(ctx *context.Context) {
 
 // CreateBranch creates new branch in repository
 func CreateBranch(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewBranchForm)
+	form := web.GetForm[*forms.NewBranchForm](ctx)
 	if !ctx.Repo.CanCreateBranch() {
 		ctx.NotFound(nil)
 		return
@@ -198,9 +193,9 @@ func CreateBranch(ctx *context.Context) {
 		}
 		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.RefFullName.IsBranch() {
-		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
 		if release_service.IsErrProtectedTagName(err) {
@@ -209,8 +204,7 @@ func CreateBranch(ctx *context.Context) {
 			return
 		}
 
-		if release_service.IsErrTagAlreadyExists(err) {
-			e := err.(release_service.ErrTagAlreadyExists)
+		if e, ok := err.(release_service.ErrTagAlreadyExists); ok {
 			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
@@ -220,14 +214,12 @@ func CreateBranch(ctx *context.Context) {
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
 		}
-		if git_model.IsErrBranchNameConflict(err) {
-			e := err.(git_model.ErrBranchNameConflict)
+		if e, ok := err.(git_model.ErrBranchNameConflict); ok {
 			ctx.Flash.Error(ctx.Tr("repo.branch.branch_name_conflict", form.NewBranchName, e.BranchName))
 			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL())
 			return
 		}
-		if git.IsErrPushRejected(err) {
-			e := err.(*git.ErrPushRejected)
+		if e, ok := err.(*git.ErrPushRejected); ok {
 			if len(e.Message) == 0 {
 				ctx.Flash.Error(ctx.Tr("repo.editor.push_rejected_no_message"))
 			} else {

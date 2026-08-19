@@ -52,7 +52,6 @@ func TestPreReceiveCanWriteCodePerBranch(t *testing.T) {
 	mockCtx, _ := contexttest.MockPrivateContext(t, "/")
 	ctx := &preReceiveContext{
 		PrivateContext: mockCtx,
-		loadedPusher:   true,
 		user:           maintainer,
 		userPerm:       headPerm,
 	}

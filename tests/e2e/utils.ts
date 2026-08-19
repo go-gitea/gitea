@@ -67,6 +67,19 @@ export async function apiStartStopwatch(requestContext: APIRequestContext, owner
   }), 'apiStartStopwatch');
 }
 
+export async function apiCancelStopwatch(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.delete(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}/stopwatch/delete`, {
+    headers: headers || apiHeaders(),
+  }), 'apiCancelStopwatch');
+}
+
+export async function apiCloseIssue(requestContext: APIRequestContext, owner: string, repo: string, issueIndex: number, {headers}: {headers?: Record<string, string>} = {}) {
+  await apiRetry(() => requestContext.patch(`${baseUrl()}/api/v1/repos/${owner}/${repo}/issues/${issueIndex}`, {
+    headers: headers || apiHeaders(),
+    data: {state: 'closed'},
+  }), 'apiCloseIssue');
+}
+
 export async function apiCreateFile(requestContext: APIRequestContext, owner: string, repo: string, filepath: string, content: string, {branch, newBranch, message}: {branch?: string; newBranch?: string; message?: string} = {}) {
   await apiRetry(() => requestContext.post(`${baseUrl()}/api/v1/repos/${owner}/${repo}/contents/${filepath}`, {
     headers: apiHeaders(),
@@ -123,7 +136,7 @@ export async function apiDeleteOrg(requestContext: APIRequestContext, name: stri
 }
 
 /** Password shared by all test users — used for both API user creation and browser login. */
-const testUserPassword = 'e2e-password!aA1';
+export const testUserPassword = 'e2e-password!aA1';
 
 export function apiUserHeaders(username: string) {
   return apiAuthHeader(username, testUserPassword);

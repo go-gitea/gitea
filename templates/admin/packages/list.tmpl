@@ -73,7 +73,7 @@
 							<td>{{DateUtils.AbsoluteShort .Version.CreatedUnix}}</td>
 							<td>
 								<a class="tw-text-red show-modal" href data-modal="#admin-package-delete-modal"
-									data-modal-form.action="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.Version.ID}}"
+									data-modal-form.url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}&id={{.Version.ID}}"
 									data-modal-package-name="{{.Package.Name}}" data-modal-package-version="{{.Version.Version}}"
 								>{{svg "octicon-trash"}}</a>
 							</td>

@@ -13,8 +13,11 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
+	"gitea.dev/routers/common"
 	repo_service "gitea.dev/services/repository"
 	"gitea.dev/tests"
 
@@ -135,14 +138,80 @@ func TestCompareBranches(t *testing.T) {
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 }
 
+func TestCompareWithRefSuffix(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	// remove-files-b^ resolves to the tip's parent, so the test.txt added by the tip is excluded
+	req := NewRequest(t, "GET", "/user2/repo20/compare/add-csv...remove-files-b^")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
+
+	// a suffix resolves to a commit rather than a branch, so the page offers no pull request to create
+	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+
+	// the same suffix on the direct ".." comparison resolves to the same commit
+	req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv..remove-files-b^")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	inspectCompare(t, htmlDoc, 2, []string{"link_hi", "test.csv"})
+
+	// a ~N suffix on the base side resolves and renders the compare page, but also
+	// resolves to a commit rather than a branch, so no pull request form is offered
+	req = NewRequest(t, "GET", "/user2/repo20/compare/add-csv~1...remove-files-b")
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+	htmlDoc = NewHTMLParser(t, resp.Body)
+	assert.Equal(t, 0, htmlDoc.doc.Find(".pullrequest-form").Length())
+
+	// the web handler folds an unsupported (^{...}) and an unresolvable (~50) suffix alike into 404
+	for _, basehead := range []string{
+		"add-csv...remove-files-b~50",
+		"add-csv...remove-files-b^{/Add}",
+		"add-csv^{/Add}...remove-files-b",
+	} {
+		req = NewRequest(t, "GET", "/user2/repo20/compare/"+basehead).SetHeader("Accept", "text/html")
+		resp = session.MakeRequest(t, req, http.StatusNotFound)
+		assert.True(t, test.IsNormalPageCompleted(resp.Body.String()))
+	}
+}
+
+func TestResolveRefWithSuffixContract(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	// a nil error guarantees a usable RefName
+	ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, "add-csv", "^")
+	require.NoError(t, err)
+	assert.NotEmpty(t, ref)
+	// a ref resolved with a suffix must be a commit SHA, not a branch ref
+	// (branch refs would break "New Pull Request" logic)
+	assert.False(t, ref.IsBranch(), "ref with suffix must not resolve to a branch")
+
+	// a missing ref and an unresolvable suffix both report not-found instead of an empty RefName
+	for _, tc := range []struct{ oriRef, suffix string }{
+		{"does-not-exist", ""},
+		{"add-csv", "~50"},
+	} {
+		ref, err := common.ResolveRefWithSuffix(t.Context(), gitRepo, tc.oriRef, tc.suffix)
+		assert.ErrorIs(t, err, util.ErrNotExist, "ref %q suffix %q", tc.oriRef, tc.suffix)
+		assert.Empty(t, ref, "ref %q suffix %q", tc.oriRef, tc.suffix)
+	}
+}
+
 func TestCompareBranchesNoCommonMergeBase(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user2.ID, Name: "repo1"})
 
-	repoPath := repo_model.RepoPath(user2.Name, repo1.Name)
-	_, _, runErr := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(strings.TrimSpace(`
+	_, _, runErr := gitcmd.NewCommand("fast-import").WithRepo(repo1).WithStdinBytes([]byte(strings.TrimSpace(`
 commit refs/heads/unrelated-history
 committer User <user@example.com> 1714310400 +0000
 data 13

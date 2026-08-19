@@ -24,7 +24,7 @@ func AuthShared(ctx *context.Base, sessionStore auth_service.SessionStore, authM
 		if ctx.Locale.Language() != ar.Doer.Language {
 			ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 		}
-		ar.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth_service.BasicMethodName
+		ar.IsBasicAuth = ctx.Data["AuthedMethod"] == auth_service.BasicMethodName
 
 		ctx.Data["IsSigned"] = true
 		ctx.Data[middleware.ContextDataKeySignedUser] = ar.Doer

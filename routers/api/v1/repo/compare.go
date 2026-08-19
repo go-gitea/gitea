@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	user_model "gitea.dev/models/user"
-	"gitea.dev/modules/gitrepo"
+	"gitea.dev/modules/git"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
@@ -38,7 +38,7 @@ func CompareDiff(ctx *context.APIContext) {
 	//   required: true
 	// - name: basehead
 	//   in: path
-	//   description: compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs, including branch names that contain slashes.
+	//   description: compare two refs as `base...head` (or `base..head`); refs may be branches, tags, full or short SHAs (including branch names that contain slashes), optionally with a `^` or `~N` revision suffix.
 	//   type: string
 	//   required: true
 	// - name: output
@@ -51,12 +51,14 @@ func CompareDiff(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Compare"
+	//   "400":
+	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
 	if ctx.Repo.GitRepo == nil {
 		var err error
-		ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+		ctx.Repo.GitRepo, err = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -118,9 +120,9 @@ func downloadCompareDiffOrPatch(ctx *context.APIContext, compareInfo *git_servic
 
 	var err error
 	if patch {
-		err = compareInfo.HeadGitRepo.GetPatch(compareArg, ctx.Resp)
+		err = compareInfo.HeadGitRepo.GetPatch(ctx, compareArg, ctx.Resp)
 	} else {
-		err = compareInfo.HeadGitRepo.GetDiff(compareArg, ctx.Resp)
+		err = compareInfo.HeadGitRepo.GetDiff(ctx, compareArg, ctx.Resp)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)

@@ -19,7 +19,7 @@
 				</select>
 			{{else if eq .Type "boolean"}}
 				<label class="tw-flex flex-text-inline">
-					<input type="checkbox" name="{{.Name}}" {{if eq .Default "true"}}checked{{end}}>
+					<input type="checkbox" name="{{.Name}}" {{if .IsDefaultTrue}}checked{{end}}>
 					{{or .Description .Name}}
 				</label>
 			{{else if eq .Type "number"}}
@@ -37,7 +37,7 @@
 	</div>
 {{end}}
 {{range .workflows}}
-	{{if and .ErrMsg (eq .Entry.Name $.CurWorkflow)}}
+	{{if and .ErrMsg (eq .EntryName $.CurWorkflow)}}
 		<div class="ui field">
 			<div>{{svg "octicon-alert" 16 "tw-text-red"}} {{.ErrMsg}}</div>
 		</div>

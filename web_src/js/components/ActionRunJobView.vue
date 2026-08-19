@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {computed, nextTick, onBeforeUnmount, onMounted, ref, toRefs, watch} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
-import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
+import {addDelegatedEventListener, createElementFromAttrs} from '../utils/dom.ts';
 import {formatDatetime, formatDatetimeISO} from '../utils/time.ts';
 import {POST} from '../modules/fetch.ts';
 import {copyToClipboardWithFeedback} from '../modules/clipboard.ts';
@@ -10,6 +10,7 @@ import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
+import {AnsiLineRenderer} from '../render/ansi.ts';
 import {
   type ActionRunViewStore,
   createLogLineMessage,
@@ -35,6 +36,9 @@ type JobStepState = {
   expanded: boolean,
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
 }
+
+// one ANSI renderer per step, so an unterminated color carries between that step's lines only
+const stepAnsiRenderers: AnsiLineRenderer[] = [];
 
 type StepContainerElement = HTMLElement & {
   // To remember the last active logs container, for example: a batch of logs only starts a group but doesn't end it,
@@ -213,12 +217,12 @@ async function copyStepOutput(event: MouseEvent, stepIndex: number) {
     const data = await fetchJobData([{step: stepIndex, cursor: null, expanded: true}]);
     const stepLog = data.logs.stepsLog?.find((s) => s.step === stepIndex);
     const lines: string[] = [];
+    const ansi = new AnsiLineRenderer();
     for (const line of stepLog?.lines ?? []) {
       const cmd = parseLogLineCommand(line);
       if (cmd?.name === 'hidden' || cmd?.name === 'endgroup') continue;
-      const ts = formatDatetimeISO(line.timestamp);
-      const msg = createLogLineMessage(line, cmd).textContent ?? '';
-      lines.push(`${ts} ${msg}`);
+      const msg = createLogLineMessage(ansi, line, cmd).textContent ?? '';
+      lines.push(timeVisible.value['log-time-stamp'] ? `${formatDatetimeISO(line.timestamp)} ${msg}` : msg);
     }
     return lines.join('\n');
   });
@@ -241,14 +245,11 @@ function createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd:
   const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
     formatDatetime(line.timestamp * 1000), // for "Show timestamps"
   );
-  const logMsg = createLogLineMessage(line, cmd);
+  const logMsg = createLogLineMessage(stepAnsiRenderers[stepIndex] ??= new AnsiLineRenderer(), line, cmd);
   const seconds = Math.floor(line.timestamp - startTime);
   const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
     `${seconds}s`, // for "Show seconds"
   );
-
-  toggleElem(logTimeStamp, timeVisible.value['log-time-stamp']);
-  toggleElem(logTimeSeconds, timeVisible.value['log-time-seconds']);
 
   const lineClass = cmd?.name ? `job-log-line log-line-${cmd.name}` : 'job-log-line';
   return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: lineClass},
@@ -391,9 +392,6 @@ function elStepsContainer(): HTMLElement {
 
 function toggleTimeDisplay(type: 'seconds' | 'stamp') {
   timeVisible.value[`log-time-${type}`] = !timeVisible.value[`log-time-${type}`];
-  for (const el of elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
-    toggleElem(el, timeVisible.value[`log-time-${type}`]);
-  }
   saveLocaleStorageOptions();
 }
 
@@ -473,7 +471,15 @@ async function hashChangeListener() {
     </div>
   </div>
   <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
-  <div class="job-step-container" ref="stepsContainer" v-show="!isCallerJob && currentJob.steps.length">
+  <div
+    class="job-step-container"
+    ref="stepsContainer"
+    v-show="!isCallerJob && currentJob.steps.length"
+    :class="{
+      'log-line-show-timestamps': timeVisible['log-time-stamp'],
+      'log-line-show-seconds': timeVisible['log-time-seconds']
+    }"
+  >
     <div class="job-step-section" v-for="(jobStep, stepIdx) in currentJob.steps" :key="stepIdx">
       <div
         class="job-step-summary"
@@ -491,7 +497,7 @@ async function hashChangeListener() {
         <SvgIcon
           v-else
           name="octicon-chevron-right"
-          class="tw-mr-2 step-summary-chevron"
+          class="step-summary-chevron"
           :class="{'tw-invisible': !isExpandable(jobStep.status)}"
         />
         <ActionStatusIcon :status="jobStep.status" icon-variant="circle-fill"/>
@@ -561,6 +567,7 @@ async function hashChangeListener() {
 
 .job-info-header:has(+ .job-step-container) {
   border-radius: var(--border-radius) var(--border-radius) 0 0;
+  border-bottom: 1px solid var(--color-console-border);
 }
 
 .job-info-header .job-info-header-title {
@@ -596,8 +603,6 @@ async function hashChangeListener() {
 .job-step-container {
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-  border-top: 1px solid var(--color-console-border);
-  z-index: 0;
 }
 
 .job-step-container .job-step-summary {
@@ -650,9 +655,6 @@ async function hashChangeListener() {
   background-color: var(--color-console-active-bg);
   position: sticky;
   top: 60px;
-  /* workaround ansi_up issue related to faintStyle generating a CSS stacking context via `opacity`
-     inline style which caused such elements to render above the .job-step-summary header. */
-  z-index: 1;
 }
 </style>
 
@@ -681,8 +683,22 @@ async function hashChangeListener() {
   scroll-margin-top: 95px;
 }
 
+.job-log-line .log-time-stamp,
+.job-log-line .log-time-seconds {
+  display: none;
+}
+
+.log-line-show-timestamps .job-log-line .log-time-stamp {
+  display: inline;
+}
+
+.log-line-show-seconds .job-log-line .log-time-seconds {
+  display: inline;
+}
+
 /* class names 'log-time-seconds' and 'log-time-stamp' are used in the method toggleTimeDisplay */
-.job-log-line .line-num, .log-time-seconds {
+.job-log-line .line-num,
+.job-log-line .log-time-seconds {
   width: 48px;
   color: var(--color-text-light-3);
   text-align: right;
@@ -699,16 +715,16 @@ async function hashChangeListener() {
 }
 
 .job-log-line .log-time,
-.log-time-stamp {
+.job-log-line .log-time-stamp {
   color: var(--color-text-light-3);
-  margin-left: 10px;
+  margin-left: 12px;
   white-space: nowrap;
 }
 
 .job-step-logs .job-log-line .log-msg {
   flex: 1;
-  white-space: break-spaces;
-  margin-left: 10px;
+  white-space: break-spaces; /* decoded commands like "::error::foo%0Abar" contain "\n" */
+  margin-left: 12px;
   overflow-wrap: anywhere;
 }
 
@@ -775,30 +791,28 @@ async function hashChangeListener() {
   border-radius: 0;
 }
 
-.job-log-group .job-log-list .job-log-line .log-msg {
-  margin-left: 2em;
-}
-
 .job-log-group-summary {
   cursor: pointer;
-  position: relative;
-  display: list-item;
-  list-style: disclosure-closed inside;
-  padding-left: 58px; /* line-num gutter (48px) + log-msg margin (10px), so the marker sits in the content column */
+  list-style: none; /* hide the standard disclosure marker (Chrome, Edge, Firefox) */
 }
 
-.job-log-group[open] > .job-log-group-summary {
-  list-style-type: disclosure-open;
+.job-log-group-summary::-webkit-details-marker { /* hide the disclosure marker on Safari */
+  display: none;
 }
 
-.job-log-group-summary > .job-log-line {
-  position: absolute;
-  inset: 0;
-  z-index: -1; /* sit behind the disclosure marker */
-  overflow: hidden;
+.log-line-group .log-msg::before {
+  content: "";
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: -2.5px;
+  margin-right: 8px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--color-text-light-3);
+  transition: transform 0.1s ease;
 }
 
-.job-log-group-summary > .job-log-line .log-msg {
-  margin-left: 21px;
+.job-log-group[open] .log-line-group .log-msg::before {
+  transform: rotate(90deg);
 }
 </style>

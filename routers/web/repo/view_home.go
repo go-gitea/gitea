@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/gitrepo"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/httplib"
 	"gitea.dev/modules/log"
@@ -34,23 +34,16 @@ func checkOutdatedBranch(ctx *context.Context) {
 	if !(ctx.Repo.Permission.IsAdmin() || ctx.Repo.Permission.IsOwner()) {
 		return
 	}
-
-	// get the head commit of the branch since ctx.Repo.CommitID is not always the head commit of `ctx.Repo.BranchName`
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
-	if err != nil {
-		log.Error("GetBranchCommitID: %v", err)
-		// Don't return an error page, as it can be rechecked the next time the user opens the page.
+	if !ctx.Repo.RefFullName.IsBranch() {
 		return
 	}
 
-	dbBranch, err := git_model.GetBranch(ctx, ctx.Repo.Repository.ID, ctx.Repo.BranchName)
+	dbBranch, err := git_model.GetBranchExisting(ctx, ctx.Repo.Repository.ID, ctx.Repo.RefFullName.ShortName())
 	if err != nil {
-		log.Error("GetBranch: %v", err)
-		// Don't return an error page, as it can be rechecked the next time the user opens the page.
-		return
+		return // ignore the error which can only be "not exists"
 	}
 
-	if dbBranch.CommitID != commit.ID.String() {
+	if dbBranch.CommitID != ctx.Repo.CommitID {
 		ctx.Flash.Warning(ctx.Tr("repo.error.broken_git_hook", "https://docs.gitea.com/help/faq#push-hook--webhook--actions-arent-running"), true)
 	}
 }
@@ -66,7 +59,7 @@ func prepareHomeSidebarRepoTopics(ctx *context.Context) {
 	ctx.Data["Topics"] = topics
 }
 
-func prepareOpenWithEditorApps(ctx *context.Context) {
+func prepareClonePanel(ctx *context.Context) {
 	var tmplApps []map[string]any
 	apps := setting.Config().Repository.OpenWithEditorApps.Value(ctx)
 	for _, app := range apps {
@@ -92,6 +85,12 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 		})
 	}
 	ctx.Data["OpenWithEditorApps"] = tmplApps
+
+	if !setting.Repository.DisableDownloadSourceArchives {
+		// FIXME: here it only uses the shortname in the ref to build the link, it can't distinguish the branch/tag/commit with the same name
+		// in the future, it's better to use something like "/archive/branch/the-name.zip", "/archive/tag/the-name.zip" */}}
+		ctx.Data["DownloadArchiveLinkPrefix"] = ctx.Repo.RepoLink + "/archive/" + util.PathEscapeSegments(ctx.Repo.RefFullName.ShortName())
+	}
 }
 
 func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Context) {
@@ -99,12 +98,12 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 		if entry.Name() != "" {
 			return
 		}
-		tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+		tree, err := ctx.Repo.Commit.SubTree(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 		if err != nil {
 			HandleGitError(ctx, "Repo.Commit.SubTree", err)
 			return
 		}
-		allEntries, err := tree.ListEntries()
+		allEntries, err := tree.ListEntries(ctx, ctx.Repo.GitRepo)
 		if err != nil {
 			ctx.ServerError("ListEntries", err)
 			return
@@ -112,7 +111,7 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 		for _, entry := range allEntries {
 			if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
 				// Read Citation file contents
-				if content, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				if content, err := entry.Blob(ctx.Repo.GitRepo).GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
 					log.Error("checkCitationFile: GetBlobContent: %v", err)
 				} else {
 					ctx.Data["CitiationExist"] = true
@@ -124,18 +123,40 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 	}
 }
 
+type licenseGroup struct {
+	LicensePath  string
+	LicenseNames []string
+}
+
 func prepareHomeSidebarLicenses(ctx *context.Context) {
-	repoLicenses, err := repo_model.GetRepoLicenses(ctx, ctx.Repo.Repository)
+	repoLicenses, err := repo_model.GetUniqueRepoLicenses(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoLicenses", err)
 		return
 	}
-	ctx.Data["DetectedRepoLicenses"] = repoLicenses.StringList()
-	ctx.Data["LicenseFileName"] = repo_service.LicenseFileName
+	if len(repoLicenses) == 0 {
+		return
+	}
+
+	order := make([]string, 0)
+	groups := make(map[string]*licenseGroup)
+	for _, rl := range repoLicenses {
+		if _, ok := groups[rl.LicensePath]; !ok {
+			groups[rl.LicensePath] = &licenseGroup{LicensePath: rl.LicensePath}
+			order = append(order, rl.LicensePath)
+		}
+		groups[rl.LicensePath].LicenseNames = append(groups[rl.LicensePath].LicenseNames, rl.License)
+	}
+
+	result := make([]licenseGroup, 0, len(order))
+	for _, path := range order {
+		result = append(result, *groups[path])
+	}
+	ctx.Data["LicenseGroups"] = result
 }
 
 func prepareToRenderDirectory(ctx *context.Context) {
-	entries := renderDirectoryFiles(ctx, 1*time.Second)
+	treeEntry, subEntries := renderDirectoryFiles(ctx, 1*time.Second)
 	if ctx.Written() {
 		return
 	}
@@ -145,12 +166,11 @@ func prepareToRenderDirectory(ctx *context.Context) {
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+ctx.Repo.TreePath, ctx.Repo.RefFullName.ShortName())
 	}
 
-	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, ctx.Repo.TreePath, entries, true)
+	subfolder, readmeFile, err := findReadmeFileInRepoTree(ctx, ctx.Repo.TreePath, treeEntry, subEntries)
 	if err != nil {
-		ctx.ServerError("findReadmeFileInEntries", err)
+		ctx.ServerError("findReadmeFileInRepo", err)
 		return
 	}
-
 	prepareToRenderReadmeFile(ctx, subfolder, readmeFile)
 }
 
@@ -216,10 +236,10 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 	showEmpty := true
 	if ctx.Repo.GitRepo == nil {
 		// in case the repo really exists and works, but the status was incorrectly marked as "broken", we need to open and check it again
-		ctx.Repo.GitRepo, _ = gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+		ctx.Repo.GitRepo, _ = git.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
 	}
 	if ctx.Repo.GitRepo != nil {
-		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
+		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty(ctx)
 		if err != nil {
 			showEmpty = true // the repo is broken
 			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryBroken)
@@ -228,7 +248,7 @@ func handleRepoEmptyOrBroken(ctx *context.Context) {
 		} else if reallyEmpty {
 			showEmpty = true // the repo is really empty
 			updateContextRepoEmptyAndStatus(ctx, true, repo_model.RepositoryReady)
-		} else if branches, _, _ := ctx.Repo.GitRepo.GetBranchNames(0, 1); len(branches) == 0 {
+		} else if branches, _, _ := ctx.Repo.GitRepo.GetBranchNames(ctx, 0, 1); len(branches) == 0 {
 			showEmpty = true // it is not really empty, but there is no branch
 			// at the moment, other repo units like "actions" are not able to handle such case,
 			// so we just mark the repo as empty to prevent from displaying these units.
@@ -289,7 +309,7 @@ func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.Comm
 func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
 		if entry.IsSubModule() {
-			commitSubmoduleFile, err := git.GetCommitInfoSubmoduleFile(ctx.Repo.RepoLink, ctx.Repo.TreePath, ctx.Repo.Commit, entry.ID)
+			commitSubmoduleFile, err := git.GetCommitInfoSubmoduleFile(ctx, ctx.Repo.RepoLink, ctx.Repo.TreePath, ctx.Repo.GitRepo, ctx.Repo.Commit, entry.ID)
 			if err != nil {
 				HandleGitError(ctx, "prepareToRenderDirOrFile: GetCommitInfoSubmoduleFile", err)
 				return
@@ -350,7 +370,8 @@ func redirectFollowSymlink(ctx *context.Context, treePathEntry *git.TreeEntry) b
 		return false
 	}
 	if treePathEntry.IsLink() {
-		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, ctx.Repo.TreePath, treePathEntry); err == nil {
+		res, err := git.EntryFollowLinks(ctx, ctx.Repo.GitRepo, ctx.Repo.Commit, ctx.Repo.TreePath, treePathEntry)
+		if err == nil {
 			redirect := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(res.TargetFullPath) + "?" + ctx.Req.URL.RawQuery
 			ctx.Redirect(redirect)
 			return true
@@ -394,6 +415,13 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	// a scoped or public-only API token authenticating this web request must still satisfy
+	// the repository read scope before private repo content is served
+	context.CheckRepoScopedToken(ctx, ctx.Repo.Repository, auth_model.Read)
+	if ctx.Written() {
+		return
+	}
+
 	// Check whether the repo is viewable: not in migration, and the code unit should be enabled
 	// Ideally the "feed" logic should be after this, but old code did so, so keep it as-is.
 	checkHomeCodeViewable(ctx)
@@ -417,7 +445,7 @@ func Home(ctx *context.Context) {
 	prepareHomeTreeSideBarSwitch(ctx)
 
 	// get the current git entry which doer user is currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return
@@ -431,15 +459,15 @@ func Home(ctx *context.Context) {
 	isTreePathRoot := ctx.Repo.TreePath == ""
 
 	prepareFuncs := []func(*context.Context){
-		prepareOpenWithEditorApps,
+		prepareClonePanel,
 		prepareHomeSidebarRepoTopics,
-		checkOutdatedBranch,
 		prepareToRenderDirOrFile(entry),
 		prepareRecentlyPushedNewBranches,
 	}
 
 	if isTreePathRoot {
 		prepareFuncs = append(prepareFuncs,
+			checkOutdatedBranch,
 			prepareUpstreamDivergingInfo,
 			prepareHomeSidebarLicenses,
 			prepareHomeSidebarCitationFile(entry),

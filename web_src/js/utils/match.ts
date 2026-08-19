@@ -8,7 +8,7 @@ import type {Issue, Mention} from '../types.ts';
 const maxMatches = 6;
 
 function sortAndReduce<T>(map: Map<T, number>): T[] {
-  const sortedMap = new Map(Array.from(map.entries()).sort((a, b) => a[1] - b[1]));
+  const sortedMap = new Map(Array.from(map).sort((a, b) => a[1] - b[1]));
   return Array.from(sortedMap.keys()).slice(0, maxMatches);
 }
 
@@ -71,8 +71,8 @@ export async function matchMention(mentionsUrl: string, queryText: string): Prom
   return sortAndReduce(results);
 }
 
-export async function matchIssue(owner: string, repo: string, issueIndexStr: string, query: string): Promise<Issue[]> {
-  const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/issues/suggestions?q=${encodeURIComponent(query)}`);
+export async function matchIssue(owner: string, repo: string, issueIndexStr: string, query: string, signal: AbortSignal): Promise<Issue[]> {
+  const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/issues/suggestions?q=${encodeURIComponent(query)}`, {signal});
 
   const issues: Issue[] = await res.json();
   const issueNumber = parseInt(issueIndexStr);

@@ -7,6 +7,7 @@ package graceful
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -100,10 +101,6 @@ func (srv *Server) ListenAndServe(serve ServeFunction, useProxyProtocol bool) er
 // Serve to handle requests on incoming TLS connections.
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction, useProxyProtocol, proxyProtocolTLSBridging bool) error {
 	go srv.awaitShutdown()
-
-	if tlsConfig.MinVersion == 0 {
-		tlsConfig.MinVersion = tls.VersionTLS12
-	}
 
 	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {
@@ -264,7 +261,11 @@ func (wl *wrappedListener) Accept() (c net.Conn, err error) {
 
 func (wl *wrappedListener) File() (*os.File, error) {
 	// returns a dup(2) - FD_CLOEXEC flag *not* set so the listening socket can be passed to child processes
-	return wl.Listener.(filer).File()
+	lf, ok := wl.Listener.(filer)
+	if !ok {
+		return nil, fmt.Errorf("listener %T does not provide a File", wl.Listener)
+	}
+	return lf.File()
 }
 
 type wrappedConn struct {

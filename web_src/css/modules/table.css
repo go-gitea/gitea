@@ -161,11 +161,6 @@
 .ui.fixed.table {
   table-layout: fixed;
 }
-.ui.fixed.table th,
-.ui.fixed.table td {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 .ui.selectable.table > tbody > tr:hover,
 .ui.table tbody tr td.selectable:hover {

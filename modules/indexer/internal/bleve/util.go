@@ -10,7 +10,6 @@ import (
 
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
-	"gitea.dev/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
 	unicode_tokenizer "github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
@@ -40,14 +39,14 @@ func openIndexer(path string, latestVersion int) (bleve.Index, int, error) {
 	if metadata.Version < latestVersion {
 		// the indexer is using a previous version, so we should delete it and
 		// re-populate
-		return nil, metadata.Version, util.RemoveAll(path)
+		return nil, metadata.Version, os.RemoveAll(path)
 	}
 
 	index, err := bleve.Open(path)
 	if err != nil {
 		if errors.Is(err, upsidedown.IncompatibleVersion) {
 			log.Warn("Indexer was built with a previous version of bleve, deleting and rebuilding")
-			return nil, 0, util.RemoveAll(path)
+			return nil, 0, os.RemoveAll(path)
 		}
 		return nil, 0, err
 	}

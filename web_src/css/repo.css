@@ -649,6 +649,13 @@ td .commit-summary {
   text-decoration: line-through;
 }
 
+.repository.view.issue .ui.depending .item .item-left {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .repository .comment.form .content .field:first-child {
   clear: none;
 }
@@ -1198,38 +1205,6 @@ td .commit-summary {
     flex-direction: column;
     align-items: stretch;
   }
-}
-
-.settings.webhooks .list > .item:not(:first-child),
-.settings.githooks .list > .item:not(:first-child),
-.settings.actions .list > .item:not(:first-child) {
-  padding: 0.25rem 1rem;
-  margin: 12px -1rem -1rem;
-}
-
-.settings .list > .item:not(:first-child) {
-  border-top: 1px solid var(--color-secondary);
-  padding: 1rem;
-  margin: 16px -1rem -1rem;
-}
-
-.settings .list > .item > .svg {
-  display: table-cell;
-}
-
-.settings .list > .item > .svg + .content {
-  display: table-cell;
-  padding: 0 0 0 0.5em;
-  vertical-align: top;
-}
-
-.settings .list > .item .info {
-  margin-top: 10px;
-}
-
-.settings .list > .item .info .tab.segment {
-  border: 0;
-  padding: 10px 0 0;
 }
 
 .comment:target .comment-container {
@@ -1851,7 +1826,7 @@ tbody.commit-list {
   width: 100%;
 }
 
-.commit-status-item { /* the item can be used at 2 places: PR's merge box (commit-status-list), commit's status popup (no commit-status-list) */
+.commit-status-item { /* the item is used in the PR merge box and the commit status popup, both are commit-status-list */
   height: 40px;
   padding-top: 0 !important; /* use "height" + "align items center", don't use padding-y (from the list container) to layout */
   padding-bottom: 0 !important;
@@ -1868,10 +1843,14 @@ tbody.commit-list {
   align-items: center;
   max-width: 100%; /* min/max widths are for "gt-ellipsis", see the comment of other "flex-xxx" family classes */
   min-width: 0;
+  overflow: hidden;
 }
 
 .username-display > .username-fullname {
   color: var(--color-text-light-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 #issue-pins {
