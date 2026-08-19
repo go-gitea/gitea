@@ -34,7 +34,6 @@ const (
 	tplSettingsAccount templates.TplName = "user/settings/account"
 )
 
-// Account renders change user's password, user's email and user suicide page
 // Emails returns the authenticated user's activated email addresses for web forms.
 func Emails(ctx *context.Context) {
 	emails, err := user_model.GetEmailAddresses(ctx, ctx.Doer.ID)
@@ -51,6 +50,7 @@ func Emails(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, options)
 }
 
+// Account renders change user's password, user's email and user suicide page
 func Account(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials, setting.UserFeatureDeletion) {
 		ctx.NotFound(errors.New("account setting are not allowed to be changed"))
