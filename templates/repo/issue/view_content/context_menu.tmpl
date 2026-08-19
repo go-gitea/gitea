@@ -3,13 +3,14 @@
 		{{svg "octicon-kebab-horizontal"}}
 	</a>
 	<div class="menu">
-		{{$referenceLink := ""}}
-		{{if .issue}}
-			{{$referenceLink = printf "%s#%s" ctx.RootData.Issue.Link .item.HashTag}}
+		{{$issueHTMLURL := ctx.RootData.Issue.HTMLURL ctx}}
+		{{$referenceHTMLURL := ""}}
+		{{if .issue}}{{/* boolean value: is issue */}}
+			{{$referenceHTMLURL = printf "%s#%s" $issueHTMLURL .item.HashTag}}
 		{{else}}
-			{{$referenceLink = printf "%s/files#%s" ctx.RootData.Issue.Link .item.HashTag}}
+			{{$referenceHTMLURL = printf "%s/files#%s" $issueHTMLURL .item.HashTag}}
 		{{end}}
-		<div class="item context js-aria-clickable" data-clipboard-text="{{ctx.AppFullLink}}{{$referenceLink}}">{{ctx.Locale.Tr "repo.issues.context.copy_link"}}</div>
+		<div class="item context js-aria-clickable" data-clipboard-text="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "repo.issues.context.copy_link"}}</div>
 		<div class="item context js-aria-clickable" data-clipboard-target="#{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
 		{{if ctx.RootData.IsSigned}}
 			{{$needDivider := false}}
@@ -17,7 +18,7 @@
 				{{$needDivider = true}}
 				<div class="item context js-aria-clickable quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
 				{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
-					<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceLink}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
+					<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceHTMLURL}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
 				{{end}}
 				{{if or ctx.RootData.Permission.IsAdmin .IsCommentPoster ctx.RootData.HasIssuesOrPullsWritePermission}}
 					<div class="divider"></div>

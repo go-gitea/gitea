@@ -156,6 +156,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadGitFrom(cfg)
 	loadMirrorFrom(cfg)
 	loadMarkupFrom(cfg)
+	loadRedisFrom(cfg)
 	loadGlobalLockFrom(cfg)
 	loadOtherFrom(cfg)
 	return nil
@@ -220,6 +221,7 @@ func LoadSettings() {
 	loadServiceFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
 	loadCacheFrom(CfgProvider)
+	loadWebsocketFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
 	loadCorsFrom(CfgProvider)
 	loadMailsFrom(CfgProvider)

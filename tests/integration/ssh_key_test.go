@@ -4,19 +4,25 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	gossh "golang.org/x/crypto/ssh"
 )
 
 func doCheckRepositoryEmptyStatus(ctx APITestContext, isEmpty bool) func(*testing.T) {
@@ -40,6 +46,38 @@ func doAddChangesToCheckout(dstPath, filename string) func(*testing.T) {
 			Message:   "Initial Commit",
 		}))
 	}
+}
+
+// TestSSHShellWelcome covers the "shell" request, which carries no command payload unlike "exec"
+func TestSSHShellWelcome(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteUser)
+		withKeyFile(t, "welcome-key", func(keyFile string) {
+			t.Run("CreateUserKey", doAPICreateUserKey(ctx, "welcome-key", keyFile))
+
+			privateKey, err := os.ReadFile(keyFile)
+			require.NoError(t, err)
+			signer, err := gossh.ParsePrivateKey(privateKey)
+			require.NoError(t, err)
+
+			client, err := gossh.Dial("tcp", net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort)), &gossh.ClientConfig{
+				User:            setting.SSH.BuiltinServerUser,
+				Auth:            []gossh.AuthMethod{gossh.PublicKeys(signer)},
+				HostKeyCallback: gossh.InsecureIgnoreHostKey(),
+			})
+			require.NoError(t, err)
+			defer client.Close()
+
+			session, err := client.NewSession()
+			require.NoError(t, err)
+
+			var stderr bytes.Buffer
+			session.Stderr = &stderr // "gitea serv" writes the welcome with println, which goes to stderr
+			require.NoError(t, session.Shell())
+			require.NoError(t, session.Wait()) // fails unless the server reports exit status 0
+			assert.Contains(t, stderr.String(), "You've successfully authenticated with the key named welcome-key")
+		})
+	})
 }
 
 func TestPushDeployKeyOnEmptyRepo(t *testing.T) {

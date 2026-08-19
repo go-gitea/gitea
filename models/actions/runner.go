@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/shared/types"
@@ -58,7 +58,7 @@ type ActionRunner struct {
 	LastOnline timeutil.TimeStamp `xorm:"index"`
 	LastActive timeutil.TimeStamp `xorm:"index"`
 
-	// Store labels defined in state file (default: .runner file) of `act_runner`
+	// Store labels defined in state file (default: .runner file) of the `runner`
 	AgentLabels []string `xorm:"TEXT"`
 	// Store if this is a runner that only ever get one single job assigned
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
@@ -270,15 +270,31 @@ func (opts FindRunnerOptions) ToConds() builder.Cond {
 	return cond
 }
 
+// runnerStatusOrderExpr builds an ORDER BY fragment that ranks runners by their
+// computed status (see ActionRunner.Status): active (0), idle (1), offline (2).
+// The thresholds are evaluated against the current time, mirroring ToConds, so
+// sorting by status groups active and idle runners instead of interleaving them
+// by raw last_online.
+func runnerStatusOrderExpr() string {
+	now := time.Now()
+	offlineThreshold := now.Add(-RunnerOfflineTime).Unix()
+	idleThreshold := now.Add(-RunnerIdleTime).Unix()
+	return fmt.Sprintf("CASE WHEN last_online <= %d THEN 2 WHEN last_active <= %d THEN 1 ELSE 0 END", offlineThreshold, idleThreshold)
+}
+
 func (opts FindRunnerOptions) ToOrders() string {
 	// A unique tiebreaker (id) is appended so that runners sharing the same
-	// last_online or name keep a deterministic order across paginated queries,
-	// otherwise the same runner may appear on more than one page.
+	// status, last_online or name keep a deterministic order across paginated
+	// queries, otherwise the same runner may appear on more than one page.
+	statusRank := runnerStatusOrderExpr()
 	switch opts.Sort {
 	case "online":
-		return "last_online DESC, id ASC"
+		// Rank by computed status first so idle runners are not interleaved with
+		// active ones; disabled runners sink to the bottom of their status group
+		// (is_disabled ASC), then last_online breaks ties within a group.
+		return statusRank + " ASC, is_disabled ASC, last_online DESC, id ASC"
 	case "offline":
-		return "last_online ASC, id ASC"
+		return statusRank + " DESC, is_disabled ASC, last_online ASC, id ASC"
 	case "alphabetically":
 		return "name ASC, id ASC"
 	case "reversealphabetically":
@@ -288,7 +304,7 @@ func (opts FindRunnerOptions) ToOrders() string {
 	case "oldest":
 		return "id ASC"
 	}
-	return "last_online DESC, id ASC"
+	return statusRank + " ASC, is_disabled ASC, last_online DESC, id ASC"
 }
 
 // GetRunnerByUUID returns a runner via uuid

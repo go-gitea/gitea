@@ -32,21 +32,21 @@ var _ Object = &azureBlobObject{}
 
 type azureBlobObject struct {
 	blobClient *blob.Client
-	Context    context.Context
-	Name       string
-	Size       int64
-	ModTime    *time.Time
+	ctx        context.Context
+	name       string
+	size       int64
+	modTime    *time.Time
 	offset     int64
 }
 
 func (a *azureBlobObject) Read(p []byte) (int, error) {
 	// TODO: improve the performance, we can implement another interface, maybe implement io.WriteTo
-	if a.offset >= a.Size {
+	if a.offset >= a.size {
 		return 0, io.EOF
 	}
-	count := min(int64(len(p)), a.Size-a.offset)
+	count := min(int64(len(p)), a.size-a.offset)
 
-	res, err := a.blobClient.DownloadBuffer(a.Context, p, &blob.DownloadBufferOptions{
+	res, err := a.blobClient.DownloadBuffer(a.ctx, p, &blob.DownloadBufferOptions{
 		Range: blob.HTTPRange{
 			Offset: a.offset,
 			Count:  count,
@@ -71,12 +71,12 @@ func (a *azureBlobObject) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		offset += a.offset
 	case io.SeekEnd:
-		offset = a.Size + offset
+		offset = a.size + offset
 	default:
 		return 0, errors.New("Seek: invalid whence")
 	}
 
-	if offset > a.Size {
+	if offset > a.size {
 		return 0, errors.New("Seek: invalid offset")
 	} else if offset < 0 {
 		return 0, errors.New("Seek: invalid offset")
@@ -87,15 +87,14 @@ func (a *azureBlobObject) Seek(offset int64, whence int) (int64, error) {
 
 func (a *azureBlobObject) Stat() (os.FileInfo, error) {
 	return &azureBlobFileInfo{
-		a.Name,
-		a.Size,
-		*a.ModTime,
+		a.name,
+		a.size,
+		*a.modTime,
 	}, nil
 }
 
 var _ ObjectStorage = &AzureBlobStorage{}
 
-// AzureStorage returns a azure blob storage
 type AzureBlobStorage struct {
 	cfg        *setting.AzureBlobStorageConfig
 	ctx        context.Context
@@ -150,11 +149,7 @@ func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStora
 }
 
 func (a *AzureBlobStorage) buildAzureBlobPath(p string) string {
-	p = util.PathJoinRelX(a.cfg.BasePath, p)
-	if p == "." || p == "/" {
-		p = "" // azure uses prefix, so path should be empty as relative path
-	}
-	return p
+	return buildObjectStorePath(a.cfg.BasePath, p)
 }
 
 func (a *AzureBlobStorage) getObjectNameFromPath(path string) string {
@@ -170,11 +165,11 @@ func (a *AzureBlobStorage) Open(path string) (Object, error) {
 		return nil, convertAzureBlobErr(err)
 	}
 	return &azureBlobObject{
-		Context:    a.ctx,
+		ctx:        a.ctx,
 		blobClient: blobClient,
-		Name:       a.getObjectNameFromPath(path),
-		Size:       *res.ContentLength,
-		ModTime:    res.LastModified,
+		name:       a.getObjectNameFromPath(path),
+		size:       *res.ContentLength,
+		modTime:    res.LastModified,
 	}, nil
 }
 
@@ -302,33 +297,32 @@ func (a *AzureBlobStorage) ServeDirectURL(storePath, name, method string, reqPar
 	return url.Parse(u)
 }
 
-// IterateObjects iterates across the objects in the azureblobstorage
 func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, obj Object) error) error {
-	dirName = a.buildAzureBlobPath(dirName)
-	if dirName != "" {
-		dirName += "/"
-	}
+	basePrefix := buildObjectStorePathPrefix(a.cfg.BasePath, "")
+	dirPrefix := buildObjectStorePathPrefix(a.cfg.BasePath, dirName)
 	pager := a.client.NewListBlobsFlatPager(a.cfg.Container, &container.ListBlobsFlatOptions{
-		Prefix: &dirName,
+		Prefix: &dirPrefix,
 	})
+
+	callback := func(object *azureBlobObject, objPath string) error {
+		defer object.Close()
+		return fn(objPath, object)
+	}
 	for pager.More() {
 		resp, err := pager.NextPage(a.ctx)
 		if err != nil {
 			return convertAzureBlobErr(err)
 		}
-		for _, object := range resp.Segment.BlobItems {
-			blobClient := a.getBlobClient(*object.Name)
-			object := &azureBlobObject{
-				Context:    a.ctx,
-				blobClient: blobClient,
-				Name:       *object.Name,
-				Size:       *object.Properties.ContentLength,
-				ModTime:    object.Properties.LastModified,
+		for _, azureObj := range resp.Segment.BlobItems {
+			objPath := strings.TrimPrefix(*azureObj.Name, basePrefix)
+			objWrap := &azureBlobObject{
+				ctx:        a.ctx,
+				blobClient: a.getBlobClient(objPath),
+				name:       *azureObj.Name,
+				size:       *azureObj.Properties.ContentLength,
+				modTime:    azureObj.Properties.LastModified,
 			}
-			if err := func(object *azureBlobObject, fn func(path string, obj Object) error) error {
-				defer object.Close()
-				return fn(strings.TrimPrefix(object.Name, a.cfg.BasePath), object)
-			}(object, fn); err != nil {
+			if err := callback(objWrap, objPath); err != nil {
 				return convertAzureBlobErr(err)
 			}
 		}
@@ -336,7 +330,6 @@ func (a *AzureBlobStorage) IterateObjects(dirName string, fn func(path string, o
 	return nil
 }
 
-// Delete delete a file
 func (a *AzureBlobStorage) getBlobClient(path string) *blob.Client {
 	return a.client.ServiceClient().NewContainerClient(a.cfg.Container).NewBlobClient(a.buildAzureBlobPath(path))
 }
