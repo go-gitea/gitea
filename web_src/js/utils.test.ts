@@ -17,6 +17,7 @@ test('basename', () => {
 });
 
 test('extname', () => {
+  expect(extname('.gitignore')).toEqual('');
   expect(extname('/path/to/file.js')).toEqual('.js');
   expect(extname('/path/')).toEqual('');
   expect(extname('/path')).toEqual('');

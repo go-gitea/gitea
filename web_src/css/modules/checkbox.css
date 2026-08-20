@@ -19,8 +19,8 @@ input[type="checkbox"] {
   appearance: none;
   display: inline-grid;
   place-content: center;
-  width: var(--checkbox-size);
-  height: var(--checkbox-size);
+  min-width: var(--checkbox-size); /* avoid shrink in flex layout */
+  min-height: var(--checkbox-size);
   border: 1px solid var(--color-input-border);
   border-radius: 3px;
   background: var(--color-input-background);

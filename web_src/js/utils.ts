@@ -18,7 +18,7 @@ export function extname(path: string): string {
   const lastSlashIndex = path.lastIndexOf('/');
   const lastPointIndex = path.lastIndexOf('.');
   if (lastSlashIndex > lastPointIndex) return '';
-  return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
+  return lastPointIndex <= 0 ? '' : path.substring(lastPointIndex);
 }
 
 /** test whether a variable is an object */
