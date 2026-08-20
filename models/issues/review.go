@@ -836,10 +836,6 @@ func AddTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organizat
 		official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
 		if err != nil {
 			return nil, fmt.Errorf("isOfficialReviewerTeam(): %w", err)
-		} else if !official {
-			if official, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
-				return nil, fmt.Errorf("isOfficialReviewer(): %w", err)
-			}
 		}
 
 		if review, err = CreateReview(ctx, CreateReviewOptions{

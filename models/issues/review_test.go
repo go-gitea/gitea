@@ -396,17 +396,25 @@ func TestAddTeamReviewRequest(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
 	assert.NoError(t, issue.LoadRepo(t.Context()))
 	assert.NoError(t, issue.LoadPullRequest(t.Context()))
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	doer := &user_model.User{ID: 2}
+	team, otherTeam := &organization.Team{ID: 2}, &organization.Team{ID: 14}
 	assert.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
-		RepoID:   issue.PullRequest.BaseRepoID,
-		RuleName: issue.PullRequest.BaseBranch,
+		RepoID:                    issue.PullRequest.BaseRepoID,
+		RuleName:                  issue.PullRequest.BaseBranch,
+		EnableApprovalsWhitelist:  true,
+		ApprovalsWhitelistTeamIDs: []int64{team.ID},
+		ApprovalsWhitelistUserIDs: []int64{doer.ID},
 	}))
 
-	_, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, &user_model.User{ID: 2}, false)
+	_, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, doer, false)
 	assert.NoError(t, err)
-
 	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: issue.ID, ReviewerTeamID: team.ID})
 	assert.True(t, review.Official)
+
+	_, err = issues_model.AddTeamReviewRequest(t.Context(), issue, otherTeam, doer, false)
+	assert.NoError(t, err)
+	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: issue.ID, ReviewerTeamID: otherTeam.ID})
+	assert.False(t, review.Official)
 }
 
 func TestRecalculateReviewsOfficial(t *testing.T) {
