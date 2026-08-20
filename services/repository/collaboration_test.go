@@ -59,7 +59,7 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
 	assert.NoError(t, repo.LoadOwner(ctx))
-	assert.NoError(t, repo_model.WatchRepo(ctx, user, repo, true))
+	assert.NoError(t, repo_model.WatchRepoAuto(ctx, user, repo, true))
 
 	hasAccess, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo)
 	assert.NoError(t, err)
@@ -88,7 +88,7 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 
 	watch, err := repo_model.GetWatch(ctx, user.ID, repo.ID)
 	assert.NoError(t, err)
-	assert.False(t, repo_model.IsWatchMode(watch.Mode))
+	assert.False(t, repo_model.IsWatchModeWatching(watch.Mode))
 
 	_, exists, err := issues_model.GetIssueWatch(ctx, user.ID, tempIssue.ID)
 	assert.NoError(t, err)

@@ -25,8 +25,6 @@ import (
 	"gitea.dev/services/audit"
 	gitea_context "gitea.dev/services/context"
 	"gitea.dev/services/convert"
-
-	"go.yaml.in/yaml/v4"
 )
 
 func EnableOrDisableWorkflow(ctx *gitea_context.APIContext, workflowID string, isEnable bool) error {
@@ -142,12 +140,12 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		return 0, err
 	}
 
-	singleWorkflow := &jobparser.SingleWorkflow{}
-	if err := yaml.Unmarshal(content, singleWorkflow); err != nil {
+	workflow, err := jobparser.ReadWorkflow(content)
+	if err != nil {
 		return 0, fmt.Errorf("failed to unmarshal workflow content: %w", err)
 	}
 	// get inputs from post
-	workflowDispatch := singleWorkflow.WorkflowDispatchConfig()
+	workflowDispatch := workflow.WorkflowDispatchConfig()
 	if workflowDispatch == nil {
 		return 0, util.ErrorWrapTranslatable(
 			util.NewInvalidArgumentErrorf("workflow %q has no workflow_dispatch event trigger", workflowID),

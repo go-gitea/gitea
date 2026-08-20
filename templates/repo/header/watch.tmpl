@@ -39,9 +39,9 @@
 			<a class="item {{if $isCustom}}active{{end}} show-modal" role="menuitem" aria-label="{{$textCustom}}"
 				data-modal="#repo-watch-options-modal"
 				data-modal-form.url="{{$.RepoLink}}/action/watch/options"
-				data-modal-issues="{{$.RepoWatch.Issues}}"
-				data-modal-pull_requests="{{$.RepoWatch.PullRequests}}"
-				data-modal-releases="{{$.RepoWatch.Releases}}"
+				data-modal-issues="{{$.RepoWatch.IncludeIssues}}"
+				data-modal-pull_requests="{{$.RepoWatch.IncludePullRequests}}"
+				data-modal-releases="{{$.RepoWatch.IncludeReleases}}"
 			>
 				{{svg "octicon-check" 16 (Iif $isCustom "" "tw-invisible")}}
 				<div>{{$textCustom}}<div class="tw-text-12 tw-text-text-light-2">{{ctx.Locale.Tr "repo.watch.mode.custom.desc"}}</div></div>

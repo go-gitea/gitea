@@ -58,7 +58,7 @@ func addRepositoryToTeam(ctx context.Context, t *organization.Team, repo *repo_m
 			return fmt.Errorf("getMembers: %w", err)
 		}
 		for _, u := range t.Members {
-			if err = repo_model.WatchRepo(ctx, u, repo, true); err != nil {
+			if err = repo_model.WatchRepoAuto(ctx, u, repo, true); err != nil {
 				return fmt.Errorf("watchRepo: %w", err)
 			}
 		}
@@ -149,7 +149,7 @@ func removeAllRepositoriesFromTeam(ctx context.Context, t *organization.Team) (e
 				continue
 			}
 
-			if err = repo_model.WatchRepo(ctx, user, repo, false); err != nil {
+			if err = repo_model.WatchRepoAuto(ctx, user, repo, false); err != nil {
 				return err
 			}
 
@@ -236,7 +236,7 @@ func removeRepositoryFromTeam(ctx context.Context, t *organization.Team, repo *r
 			continue
 		}
 
-		if err = repo_model.WatchRepo(ctx, member, repo, false); err != nil {
+		if err = repo_model.WatchRepoAuto(ctx, member, repo, false); err != nil {
 			return err
 		}
 

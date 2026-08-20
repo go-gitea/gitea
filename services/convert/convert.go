@@ -5,16 +5,16 @@
 package convert
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"time"
 
-	"gitea.dev/actionslib/pkg/model"
 	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	asymkey_model "gitea.dev/models/asymkey"
@@ -29,6 +29,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
@@ -564,7 +565,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 	content, err := actions.GetContentFromEntry(ctx, gitRepo, entry)
 	name := entry.Name()
 	if err == nil {
-		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+		workflow, err := jobparser.ReadWorkflow(content)
 		if err == nil {
 			// Only use the name when specified in the workflow file
 			if workflow.Name != "" {
@@ -894,6 +895,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			return nil, err
 		}
 
+		unitsMap := t.GetUnitsMap()
 		apiTeam := &api.Team{
 			ID:                      t.ID,
 			Name:                    t.Name,
@@ -901,7 +903,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
-			Units:                   t.GetUnitNames(),
+			Units:                   slices.Collect(maps.Keys(unitsMap)),
 			UnitsMap:                t.GetUnitsMap(),
 			Visibility:              api.TeamVisibility(t.Visibility.String()),
 		}

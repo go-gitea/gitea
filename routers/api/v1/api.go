@@ -80,6 +80,7 @@ import (
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/api/v1/activitypub"
@@ -102,7 +103,6 @@ import (
 
 	_ "gitea.dev/routers/api/v1/swagger" // for swagger generation
 
-	"gitea.com/go-chi/binding"
 	chi_middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
@@ -825,7 +825,7 @@ func reqProjectsUnitAccess(accessMode perm.AccessMode) func(ctx *context.APICont
 		}
 		// individual visibility is handled by individualPermsChecker
 		if ctx.ContextUser.IsOrganization() &&
-			organization.OrgFromUser(ctx.ContextUser).UnitPermission(ctx, ctx.Doer, unit.TypeProjects) < accessMode {
+			organization.OrgFromUser(ctx.ContextUser).AnyRepoUnitPermission(ctx, ctx.Doer, unit.TypeProjects) < accessMode {
 			ctx.APIErrorNotFound()
 		}
 	}
@@ -893,15 +893,14 @@ func mustEnableAttachments(ctx *context.APIContext) {
 }
 
 // bind binding an obj to a func(ctx *context.APIContext)
-func bind[T any](_ T) any {
+func bind[T any](tmpl T) any {
 	return func(ctx *context.APIContext) {
-		theObj := new(T) // create a new form obj for every request but not use obj directly
-		errs := binding.Bind(ctx.Req, theObj)
+		form, errs := middleware.BindFormAny(ctx.Req, validation.Binder(), tmpl)
 		if len(errs) > 0 {
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
 			return
 		}
-		web.SetForm(ctx, theObj)
+		web.SetForm(ctx, form)
 	}
 }
 

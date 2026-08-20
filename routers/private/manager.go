@@ -13,7 +13,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/queue"
-	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/web"
 	"gitea.dev/services/context"
@@ -83,113 +82,5 @@ func ReleaseReopenLogging(ctx *context.PrivateContext) {
 // SetLogSQL re-sets database SQL logging
 func SetLogSQL(ctx *context.PrivateContext) {
 	db.SetLogSQL(ctx, ctx.FormBool("on"))
-	ctx.PlainText(http.StatusOK, "success")
-}
-
-// RemoveLogger removes a logger
-func RemoveLogger(ctx *context.PrivateContext) {
-	logger := ctx.PathParam("logger")
-	writer := ctx.PathParam("writer")
-	err := log.GetManager().GetLogger(logger).RemoveWriter(writer)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to remove log writer: %s %s %v", logger, writer, err),
-		})
-		return
-	}
-	ctx.PlainText(http.StatusOK, fmt.Sprintf("Removed %s %s", logger, writer))
-}
-
-// AddLogger adds a logger
-func AddLogger(ctx *context.PrivateContext) {
-	opts := web.GetForm[*private.LoggerOptions](ctx)
-
-	if len(opts.Logger) == 0 {
-		opts.Logger = log.DEFAULT
-	}
-
-	writerMode := log.WriterMode{}
-	writerType := opts.Mode
-
-	var flags string
-	var ok bool
-	if flags, ok = opts.Config["flags"].(string); !ok {
-		switch opts.Logger {
-		case "access":
-			flags = ""
-		case "router":
-			flags = "date,time"
-		default:
-			flags = "stdflags"
-		}
-	}
-	writerMode.Flags = log.FlagsFromString(flags)
-
-	if writerMode.Colorize, ok = opts.Config["colorize"].(bool); !ok && opts.Mode == "console" {
-		if _, ok := opts.Config["stderr"]; ok {
-			writerMode.Colorize = log.CanColorStderr
-		} else {
-			writerMode.Colorize = log.CanColorStdout
-		}
-	}
-
-	writerMode.Level = setting.Log.Level
-	if level, ok := opts.Config["level"].(string); ok {
-		writerMode.Level = log.LevelFromString(level)
-	}
-
-	writerMode.StacktraceLevel = setting.Log.StacktraceLogLevel
-	if stacktraceLevel, ok := opts.Config["level"].(string); ok {
-		writerMode.StacktraceLevel = log.LevelFromString(stacktraceLevel)
-	}
-
-	writerMode.Prefix, _ = opts.Config["prefix"].(string)
-	writerMode.Expression, _ = opts.Config["expression"].(string)
-
-	switch writerType {
-	case "console":
-		writerOption := log.WriterConsoleOption{}
-		writerOption.Stderr, _ = opts.Config["stderr"].(bool)
-		writerMode.WriterOption = writerOption
-	case "file":
-		writerOption := log.WriterFileOption{}
-		fileName, _ := opts.Config["filename"].(string)
-		writerOption.FileName = setting.LogPrepareFilenameForWriter(fileName, opts.Writer+".log")
-		writerOption.LogRotate, _ = opts.Config["rotate"].(bool)
-		maxSizeShift, _ := opts.Config["maxsize"].(int)
-		if maxSizeShift == 0 {
-			maxSizeShift = 28
-		}
-		writerOption.MaxSize = 1 << maxSizeShift
-		writerOption.DailyRotate, _ = opts.Config["daily"].(bool)
-		writerOption.MaxDays, _ = opts.Config["maxdays"].(int)
-		if writerOption.MaxDays == 0 {
-			writerOption.MaxDays = 7
-		}
-		writerOption.Compress, _ = opts.Config["compress"].(bool)
-		writerOption.CompressionLevel, _ = opts.Config["compressionLevel"].(int)
-		if writerOption.CompressionLevel == 0 {
-			writerOption.CompressionLevel = -1
-		}
-		writerMode.WriterOption = writerOption
-	case "conn":
-		writerOption := log.WriterConnOption{}
-		writerOption.ReconnectOnMsg, _ = opts.Config["reconnectOnMsg"].(bool)
-		writerOption.Reconnect, _ = opts.Config["reconnect"].(bool)
-		writerOption.Protocol, _ = opts.Config["net"].(string)
-		writerOption.Addr, _ = opts.Config["address"].(string)
-		writerMode.WriterOption = writerOption
-	default:
-		panic("invalid log writer mode: " + writerType)
-	}
-	writer, err := log.NewEventWriter(opts.Writer, writerType, writerMode)
-	if err != nil {
-		log.Error("Failed to create new log writer: %v", err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to create new log writer: %v", err),
-		})
-		return
-	}
-	log.GetManager().GetLogger(opts.Logger).AddWriters(writer)
 	ctx.PlainText(http.StatusOK, "success")
 }
