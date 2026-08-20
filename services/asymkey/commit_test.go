@@ -4,20 +4,76 @@
 package asymkey
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestParseCommitWithGPGSignatureInstanceSSHKey(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	sshPubKeyPath := filepath.Join(t.TempDir(), "gitea.pub")
+	require.NoError(t, os.WriteFile(sshPubKeyPath, []byte("ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILpPrMXSg9qTx04jPNPWRcHsutyxWjThIpzcaO68yWVn\n"), 0o600))
+
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningFormat, git.SigningKeyFormatSSH)()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningKey, sshPubKeyPath)()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningName, "gitea")()
+	defer test.MockVariableValue(&setting.Repository.Signing.SigningEmail, "gitea@fake.local")()
+
+	commit, err := git.CommitFromReader(git.Sha1ObjectFormat.EmptyObjectID(), strings.NewReader(`tree f1a6cb52b2d16773290cefe49ad0684b50a4f930
+author silverwind <me@silverwind.io> 1563741793 +0200
+committer silverwind <me@silverwind.io> 1563741793 +0200
+gpgsig -----BEGIN PGP SIGNATURE-----
+`+" "+`
+ iQIzBAABCAAdFiEEWPb2jX6FS2mqyJRQLmK0HJOGlEMFAl00zmEACgkQLmK0HJOG
+ lEMDFBAAhQKKqLD1VICygJMEB8t1gBmNLgvziOLfpX4KPWdPtBk3v/QJ7OrfMrVK
+ xlC4ZZyx6yMm1Q7GzmuWykmZQJ9HMaHJ49KAbh5MMjjV/+OoQw9coIdo8nagRUld
+ vX8QHzNZ6Agx77xHuDJZgdHKpQK3TrMDsxzoYYMvlqoLJIDXE1Sp7KYNy12nhdRg
+ R6NXNmW8oMZuxglkmUwayMiPS+N4zNYqv0CXYzlEqCOgq9MJUcAMHt+KpiST+sm6
+ FWkJ9D+biNPyQ9QKf1AE4BdZia4lHfPYU/C/DEL/a5xQuuop/zMQZoGaIA4p2zGQ
+ /maqYxEIM/yRBQpT1jlODKPJrMEgx7SgY2hRU47YZ4fj6350fb6fNBtiiMAfJbjL
+ S3Gh85E9fm3hJaNSPKAaJFYL1Ya2svuWfgHj677C56UcmYis7fhiiy1aJuYdHnSm
+ sD53z/f0J+We4VZjY+pidvA9BGZPFVdR3wd3xGs8/oH6UWaLJAMGkLG6dDb3qDLm
+ 1LFZwsX8sdD32i1SiWanYQYSYMyFWr0awi4xdoMtYCL7uKBYtwtPyvq3cj4IrJlb
+ mfeFhT57UbE4qukTDIQ0Y0WM40UYRTakRaDY7ubhXgLgx09Cnp9XTVMsHgT6j9/i
+ 1pxsB104XLWjQHTjr1JtiaBQEwFh9r2OKTcpvaLcbNtYpo7CzOs=
+ =FRsO
+ -----END PGP SIGNATURE-----
+
+empty commit
+`))
+	require.NoError(t, err)
+
+	lc, cleanup := test.NewLogChecker(log.DEFAULT)
+	defer cleanup()
+	lc.Filter("Error getting default signing key").StopMark("instance ssh key check done")
+
+	ret := parseCommitWithGPGSignature(t.Context(), commit, &user_model.User{ID: 2, Name: "user2", Email: "user2@example.com"})
+	require.NotNil(t, ret)
+	assert.False(t, ret.Verified)
+	assert.Equal(t, asymkey_model.NoKeyFound, ret.Reason)
+
+	// depending on whether gpg exports an empty key or fails outright, using the SSH key here would either
+	// report a bogus hash error above or log an export failure, so neither may happen
+	log.Info("instance ssh key check done")
+	triedGPGExport, stopped := lc.Check(5 * time.Second)
+	assert.True(t, stopped)
+	assert.False(t, triedGPGExport[0])
+}
 
 func TestParseCommitWithSSHSignature(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
