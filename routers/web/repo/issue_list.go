@@ -19,6 +19,7 @@ import (
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	db_indexer "gitea.dev/modules/indexer/issues/db"
+	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -62,7 +63,8 @@ func SearchIssues(ctx *context.Context) {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 		} else {
-			ctx.HTTPError(http.StatusInternalServerError, "SearchIssuesRepoIDs", err.Error())
+			log.Error("SearchIssuesRepoIDs: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError)
 		}
 		return
 	}
