@@ -100,6 +100,7 @@ func ProfilePost(ctx *context.Context) {
 		Location:            optional.Some(form.Location),
 		Visibility:          optional.Some(form.Visibility),
 		KeepActivityPrivate: optional.Some(form.KeepActivityPrivate),
+		ShowPrivateActivity: optional.Some(form.ShowPrivateActivity),
 	}
 
 	if form.FullName != "" {
