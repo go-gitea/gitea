@@ -152,7 +152,6 @@ func AddActionRunAttemptModel(ctx context.Context, x base.EngineMigration) error
 	if err := base.DropTableColumns(sess, "action_run", concurrencyColumns...); err != nil {
 		return err
 	}
-	// DropTableColumns rebuilds the table on SQLite, which drops all existing indexes.
-	// Re-sync to restore the indexes defined on actionRun.
+	// DropTableColumns removes the indexes covering the dropped columns, so re-sync to restore the ones defined on actionRun.
 	return x.Sync(new(actionRun))
 }
