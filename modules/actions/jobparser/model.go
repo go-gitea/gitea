@@ -259,9 +259,11 @@ func (evt *Event) Inputs() []WorkflowDispatchInput {
 }
 
 func ReadWorkflowRawConcurrency(content []byte) (*model.RawConcurrency, error) {
-	w := new(model.Workflow)
-	err := yaml.NewDecoder(bytes.NewReader(content)).Decode(w)
-	return w.RawConcurrency, err
+	w, err := ReadWorkflow(content)
+	if err != nil {
+		return nil, err
+	}
+	return w.RawConcurrency, nil
 }
 
 func EvaluateConcurrency(rc *model.RawConcurrency, jobID string, job *Job, gitCtx map[string]any, results map[string]*JobResult, vars map[string]string, inputs map[string]any) (string, bool, error) {

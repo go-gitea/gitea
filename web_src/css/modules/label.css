@@ -305,3 +305,10 @@ it can also be rendered as flex by adding flex-related classes (the general ".it
   filter: grayscale(0.5);
   opacity: 0.5;
 }
+
+@media (forced-colors: active) {
+  .ui.label {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+}
