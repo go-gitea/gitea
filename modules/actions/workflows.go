@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"bytes"
 	"fmt"
 	"path"
 	"slices"
@@ -120,7 +119,7 @@ func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
 }
 
 func GetEventsFromContent(content []byte) ([]*jobparser.Event, error) {
-	workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+	workflow, err := jobparser.ReadWorkflow(content)
 	if err != nil {
 		return nil, err
 	}
