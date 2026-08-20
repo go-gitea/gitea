@@ -82,7 +82,7 @@ const MatchBuiltinPrivate = "private"
 // MatchBuiltinLoopback 127.0.0.0/8 for IPv4, ::1/128 for IPv6, localhost, and the unspecified addresses that reach them.
 const MatchBuiltinLoopback = "loopback"
 
-// ipBuiltinClass classifies ip into exactly one builtin, anything unclassifiable falls to private so nothing escapes a block-list.
+// ipBuiltinClass classifies ip into exactly one builtin
 func ipBuiltinClass(ip net.IP) string {
 	switch {
 	case len(ip) == 0:
