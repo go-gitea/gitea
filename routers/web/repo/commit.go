@@ -17,7 +17,6 @@ import (
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/renderhelper"
 	repo_model "gitea.dev/models/repo"
-	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/fileicon"
@@ -388,9 +387,7 @@ func Diff(ctx *context.Context) {
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
-	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
-		git_model.CommitStatusesHideActionsURL(ctx, statuses)
-	}
+	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 
 	ctx.Data["CommitStatus"] = git_model.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
@@ -466,14 +463,6 @@ func processGitCommits(ctx *context.Context, gitCommits []*git.Commit) ([]*git_m
 	if err != nil {
 		return nil, err
 	}
-	if !ctx.Repo.Permission.CanRead(unit_model.TypeActions) {
-		for _, commit := range commits {
-			if commit.Status == nil {
-				continue
-			}
-			commit.Status.HideActionsURL(ctx)
-			git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
-		}
-	}
+	git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, commits)
 	return commits, nil
 }
