@@ -19,7 +19,7 @@ func TestHostOrIPMatchesList(t *testing.T) {
 
 	// for IPv6: "::1" is loopback, "fd00::/8" is private
 
-	hl := ParseHostMatchList("", "private, External, *.myDomain.com, 169.254.1.0/24")
+	hl := ParseHostMatchList("", "private, External, *.myDomain.com, 127.0.1.0/24") // loopback space, the one class the builtins miss
 
 	test := func(cases []tc) {
 		for _, c := range cases {
@@ -50,16 +50,16 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		{"sub.mydomain.com", net.IPv4zero, true},
 		{"sub.mydomain.com:8080", net.IPv4zero, true},
 
-		{"", net.ParseIP("169.254.1.1"), true},
-		{"169.254.1.1", nil, true},
-		{"", net.ParseIP("169.254.2.2"), false},
-		{"169.254.2.2", nil, false},
+		{"", net.ParseIP("127.0.1.1"), true},
+		{"127.0.1.1", nil, true},
+		{"", net.ParseIP("127.0.2.2"), false},
+		{"127.0.2.2", nil, false},
 	}
 	test(cases)
 
 	hl = ParseHostMatchList("", "loopback")
 	cases = []tc{
-		{"", net.IPv4zero, false},
+		{"", net.IPv4zero, true}, // 0.0.0.0 reaches localhost
 		{"", net.ParseIP("127.0.0.1"), true},
 		{"", net.ParseIP("10.0.1.1"), false},
 		{"", net.ParseIP("192.168.1.1"), false},
@@ -69,7 +69,7 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		{"", net.ParseIP("fd00::1"), false},
 		{"", net.ParseIP("1000::1"), false},
 
-		{"mydomain.com", net.IPv4zero, false},
+		{"mydomain.com", nil, false},
 	}
 	test(cases)
 
@@ -174,8 +174,8 @@ func TestReservedRanges(t *testing.T) {
 		assert.Falsef(t, private.MatchIPAddr(addr), "public ip %s should not be private", ip)
 	}
 
-	// RFC 1918 / RFC 4193 private ranges (now folded into privateIPNets instead of net.IP.IsPrivate):
-	// not external, blockable as private. Includes range edges to guard the CIDR boundaries.
+	// RFC 1918 / RFC 4193 private ranges: not external, blockable as private.
+	// Includes range edges to guard the CIDR boundaries.
 	for _, ip := range []string{
 		"10.0.0.0", "10.255.255.255", // 10.0.0.0/8
 		"172.16.0.0", "172.31.255.255", // 172.16.0.0/12
@@ -213,6 +213,6 @@ func TestReservedRanges(t *testing.T) {
 	} {
 		addr := net.ParseIP(ip)
 		assert.Falsef(t, external.MatchIPAddr(addr), "reserved ip %s must not be external", ip)
-		assert.Falsef(t, private.MatchIPAddr(addr), "reserved ip %s should match private block-list", ip)
+		assert.Truef(t, private.MatchIPAddr(addr), "reserved ip %s should match private block-list", ip)
 	}
 }

@@ -248,9 +248,9 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
 			strings.Contains(err.Error(), "could not read Username") {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Authentication failed: %v.", err))
+			ctx.APIError(http.StatusUnprocessableEntity, "Authentication failed.")
 		} else if strings.Contains(err.Error(), "fatal:") {
-			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Migration failed: %v.", err))
+			ctx.APIError(http.StatusUnprocessableEntity, "Migration failed.")
 		} else {
 			ctx.APIErrorInternal(err)
 		}

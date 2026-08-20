@@ -141,3 +141,7 @@ func IsErrMoreThanOne(err error) bool {
 func (err *ErrMoreThanOne) Error() string {
 	return fmt.Sprintf("ErrMoreThanOne Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
 }
+
+func (err *ErrMoreThanOne) Unwrap() error {
+	return fmt.Errorf("%w - %s", err.Err, err.StdErr)
+}

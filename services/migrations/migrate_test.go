@@ -100,6 +100,7 @@ func TestAllowBlockList(t *testing.T) {
 	assert.Error(t, checkByAllowBlockList("sub.domain.com", []net.IP{net.ParseIP("1.2.3.4"), net.ParseIP("127.0.0.1")}))
 	assert.Error(t, checkByAllowBlockList("blocked.domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
 	assert.Error(t, checkByAllowBlockList("sub.other.com", []net.IP{net.ParseIP("1.2.3.4")}))
+	assert.Error(t, checkByAllowBlockList("sub.domain.com", []net.IP{net.ParseIP("169.254.169.254")}))
 
 	// allow wildcard still follows the local network policy for resolved addresses.
 	init("*", "", false)

@@ -8,12 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"time"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -25,8 +25,6 @@ import (
 	"gitea.dev/services/migrations"
 	repo_service "gitea.dev/services/repository"
 )
-
-var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
@@ -103,7 +101,8 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	err = runPushSync(ctx, m)
 	if err != nil {
 		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
-		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
+		_, fromGit := gitcmd.ErrorAsStderr(err) // git stderr may echo remote-controlled text
+		m.LastError = util.Iif(fromGit, "push failed", err.Error())
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
@@ -133,6 +132,14 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			log.Error("GetRemoteURL %s failed, error %v", mirrorLogName, err)
 			return errors.New("GitRemoteGetURL failed")
 		}
+		// re-validate every sync, DNS or the allow/block lists may have changed
+		switch remoteURL.URL.Scheme {
+		case "http", "https", "git":
+			if err := migrations.IsMigrateURLAllowed(remoteURL.String(), m.Repo.MustOwner(ctx)); err != nil {
+				log.Error("Push mirror %s remote is not allowed: %v", mirrorLogName, err)
+				return errors.New("remote address is not allowed")
+			}
+		}
 
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
@@ -149,7 +156,8 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 				return err
 			}
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
-				return util.SanitizeErrorCredentialURLs(err)
+				log.Error("Error pushing LFS objects %s: %v", mirrorLogName, err)
+				return errors.New("failed to push LFS objects")
 			}
 		}
 

@@ -14,6 +14,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -145,11 +146,13 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 
 	// remoteAddr may contain credentials, so we sanitize it
 	err = util.SanitizeErrorCredentialURLs(err)
-	if strings.Contains(err.Error(), "Authentication failed") ||
-		strings.Contains(err.Error(), "could not read Username") {
-		return fmt.Errorf("authentication failed: %w", err)
-	} else if strings.Contains(err.Error(), "fatal:") {
-		return fmt.Errorf("migration failed: %w", err)
+	if errors.Is(err, context.DeadlineExceeded) {
+		return errors.New("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini")
+	}
+	if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
+		log.Error("runMigrateTask[%d] git failure: %v", t.ID, err) // git stderr may echo remote-controlled text
+		authFailed := strings.Contains(err.Error(), "Authentication failed") || strings.Contains(err.Error(), "could not read Username")
+		return errors.New(util.Iif(authFailed, "authentication failed", "migration failed"))
 	}
 
 	// do not be tempted to coalesce this line with the return
