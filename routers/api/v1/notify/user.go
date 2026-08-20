@@ -43,7 +43,7 @@ func ListNotifications(ctx *context.APIContext) {
 	//   collectionFormat: multi
 	//   items:
 	//     type: string
-	//     enum: [issue,pull,commit,repository]
+	//     enum: [issue,pull,commit,repository,release]
 	// - name: since
 	//   in: query
 	//   description: Only show notifications updated after the given time. This is a timestamp in RFC 3339 format
@@ -81,11 +81,12 @@ func ListNotifications(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	err = activities_model.NotificationList(nl).LoadAttributes(ctx)
+	failures, err := activities_model.NotificationList(nl).LoadAttributes(ctx)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	nl = activities_model.NotificationList(nl).Without(failures)
 
 	ctx.SetLinkHeader(totalCount, opts.PageSize)
 	ctx.SetTotalCountHeader(totalCount)
@@ -166,9 +167,9 @@ func ReadNotifications(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	_, _ = activities_model.NotificationList(updated).LoadAttributes(ctx)
 	changed := make([]*structs.NotificationThread, 0, len(updated))
 	for _, notif := range updated {
-		_ = notif.LoadAttributes(ctx)
 		changed = append(changed, convert.ToNotificationThread(ctx, notif))
 	}
 

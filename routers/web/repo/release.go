@@ -29,6 +29,7 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
 	"gitea.dev/services/forms"
+	"gitea.dev/services/notifications"
 	release_service "gitea.dev/services/release"
 )
 
@@ -302,6 +303,13 @@ func SingleRelease(ctx *context.Context) {
 	release := releases[0].Release
 	if release.IsTag && release.Title == "" {
 		release.Title = release.TagName
+	}
+
+	if ctx.IsSigned && !release.IsTag {
+		if err := notifications.SetReleaseReadBy(ctx, release.ID, ctx.Doer.ID); err != nil {
+			ctx.ServerError("SetReleaseReadBy", err)
+			return
+		}
 	}
 
 	ctx.Data["PageIsSingleTag"] = release.IsTag
