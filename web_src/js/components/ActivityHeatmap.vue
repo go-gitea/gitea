@@ -115,7 +115,7 @@ const grid = computed(() => {
   const dayLabels: DayLabel[] = [];
   for (let i = 0; i < daysInWeek; i++) {
     const labelDay = firstDayIdx + i;
-    if (labelDay % 2 === 0) continue; // only show "Mon/Wed/Fri/Sun"
+    if (labelDay % 2 === 0) continue; // only show "Mon/Wed/Fri/Sun" because of limited vertical space
     const dayIdx = labelDay % daysInWeek;
     dayLabels.push({dayIdx, rowIdx: i});
   }
