@@ -84,7 +84,7 @@ func Secrets(ctx *context.Context) {
 		ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	}
 
-	shared.SetSecretsContext(ctx, sCtx.OwnerID, sCtx.RepoID)
+	shared.SetSecretsContext(ctx, sCtx.OwnerID, sCtx.RepoID, 0)
 	if ctx.Written() {
 		return
 	}
@@ -107,6 +107,7 @@ func SecretsPost(ctx *context.Context) {
 		ctx,
 		sCtx.OwnerID,
 		sCtx.RepoID,
+		0,
 		sCtx.RedirectLink,
 	)
 }
@@ -121,6 +122,7 @@ func SecretsDelete(ctx *context.Context) {
 		ctx,
 		sCtx.OwnerID,
 		sCtx.RepoID,
+		0,
 		sCtx.RedirectLink,
 	)
 }

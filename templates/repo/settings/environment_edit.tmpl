@@ -1,0 +1,65 @@
+{{template "repo/settings/layout_head" (dict "pageClass" "repository settings environments")}}
+	<div class="repo-setting-content">
+		<div class="tw-mb-4">
+			<a href="{{.RepoLink}}/settings/actions/environments">{{ctx.Locale.Tr "environments.environments"}}</a>
+			{{svg "octicon-chevron-right" 14}}
+			<strong>{{.Environment.Name}}</strong>
+		</div>
+
+		<h4 class="ui top attached header">{{ctx.Locale.Tr "environments.allowed_branch_patterns"}}</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="field">
+					<label for="allowed-branch-patterns">{{ctx.Locale.Tr "environments.allowed_branch_patterns"}}</label>
+					<textarea
+						id="allowed-branch-patterns"
+						name="allowed_branch_patterns"
+						rows="4"
+						placeholder="{{ctx.Locale.Tr "environments.allowed_branch_patterns_placeholder"}}"
+					>{{StringUtils.Join .Environment.BranchPatterns "\n"}}</textarea>
+					<p class="help">{{ctx.Locale.Tr "environments.allowed_branch_patterns_help"}}</p>
+				</div>
+				<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+			</form>
+		</div>
+
+		<div class="tw-mt-4">
+			{{template "shared/secrets/add_list" (dict
+				"Link" (print .Link "/secrets")
+				"Secrets" .Secrets
+				"DataMaxLength" .SecretDataMaxLength
+				"DescriptionMaxLength" .SecretDescriptionMaxLength
+			)}}
+		</div>
+
+		<div class="tw-mt-4">
+			{{template "shared/variables/variable_list" (dict
+				"Link" (print .Link "/variables")
+				"Variables" .Variables
+				"DataMaxLength" .VariableDataMaxLength
+				"DescriptionMaxLength" .VariableDescriptionMaxLength
+			)}}
+		</div>
+
+		<h4 class="ui top attached error header tw-mt-4">{{ctx.Locale.Tr "repo.settings.danger_zone"}}</h4>
+		<div class="ui attached error danger segment">
+			<div class="flex-divided-list items-with-main">
+				<div class="item tw-items-center">
+					<div class="item-main">
+						<div class="item-title">{{ctx.Locale.Tr "environments.deletion"}}</div>
+						<div class="item-body">{{ctx.Locale.Tr "environments.deletion.desc"}}</div>
+					</div>
+					<div class="item-trailing">
+						<button class="ui basic red button link-action"
+							data-url="{{.Link}}/delete"
+							data-modal-confirm="{{ctx.Locale.Tr "environments.deletion.description"}}"
+						>
+							{{ctx.Locale.Tr "environments.deletion"}}
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{{template "repo/settings/layout_footer" .}}

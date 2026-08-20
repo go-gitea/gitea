@@ -9,6 +9,7 @@
 - Never rewrite git history unless asked, update PRs with new commits and normal push
 - Comments: write almost none, short and preferably same-line, explaining why for a future reader. Never narrate code, the change or the prompt. Preserve existing ones that still apply. If you need to write a paragraph-long comment, rethink your implementation, it is likely too complicated
 - Add the current year to copyright headers of new `.go` files
+- In migrations, add a column with `SyncWithOptions(xorm.SyncOptions{IgnoreConstrains: true, IgnoreDropIndices: true}, ...)`. Plain `Sync` drops every index the partial struct omits, which is all of them
 - In `options/locale`, only edit `locale_en-US.json`, other locales are synced automatically
 - In TS, use `!` instead of `?.`/`??` when a value always exists
 - In Go, prefer to use modern language features wherever possible

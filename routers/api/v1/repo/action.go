@@ -137,7 +137,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, 0, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
@@ -191,7 +191,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
+	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, 0, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
@@ -295,7 +295,7 @@ func (Action) DeleteVariable(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, ctx.PathParam("variablename")); err != nil {
+	if err := actions_service.DeleteVariableByName(ctx, 0, ctx.Repo.Repository.ID, 0, ctx.PathParam("variablename")); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else if errors.Is(err, util.ErrNotExist) {
@@ -364,7 +364,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := actions_service.CreateVariable(ctx, 0, repoID, variableName, opt.Value, opt.Description); err != nil {
+	if _, err := actions_service.CreateVariable(ctx, 0, repoID, 0, variableName, opt.Value, opt.Description); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
 		} else {

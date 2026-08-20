@@ -238,6 +238,9 @@ type swaggerParameterBodies struct {
 	LockIssueOption api.LockIssueOption
 
 	// in:body
+	CreateOrUpdateEnvironmentOption api.CreateOrUpdateEnvironmentOption
+
+	// in:body
 	CreateProjectOption api.CreateProjectOption
 	// in:body
 	EditProjectOption api.EditProjectOption

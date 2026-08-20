@@ -1328,6 +1328,29 @@ func Routes() *web.Router {
 				// Adds the routes for secrets/variables and runner management
 				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
 
+				m.Group("/environments", func() {
+					m.Get("", repo.ListEnvironments)
+					m.Group("/{environment_name}", func() {
+						m.Combo("").
+							Get(repo.GetEnvironment).
+							Put(bind(api.CreateOrUpdateEnvironmentOption{}), repo.CreateOrUpdateEnvironment).
+							Delete(repo.DeleteEnvironment)
+						m.Group("/secrets", func() {
+							m.Get("", repo.ListEnvSecrets)
+							m.Combo("/{secretname}").
+								Put(bind(api.CreateOrUpdateSecretOption{}), repo.CreateOrUpdateEnvSecret).
+								Delete(repo.DeleteEnvSecret)
+						})
+						m.Group("/variables", func() {
+							m.Get("", repo.ListEnvVariables)
+							m.Combo("/{variablename}").
+								Post(bind(api.CreateVariableOption{}), repo.CreateEnvVariable).
+								Put(bind(api.UpdateVariableOption{}), repo.UpdateEnvVariable).
+								Delete(repo.DeleteEnvVariable)
+						})
+					})
+				}, reqToken(), reqRepoReader(unit.TypeActions), reqOwner())
+
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
 					m.Get("/{workflow_id}", repo.ActionsGetWorkflow)
