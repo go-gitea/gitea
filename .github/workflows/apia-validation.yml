@@ -12,7 +12,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 60
     env:
-      APIA_HOME: C:/Users/aliga/apia
+      APIA_HOME: ${{ secrets.APIA_HOME }}
 
     steps:
       - name: Put Git Bash first in PATH
@@ -49,16 +49,9 @@ jobs:
             docker push localhost:5000/gitea:baseline
           fi
 
-          # Staging image: built from PR branch if source changed
-          CHANGED_SRC=$(git diff FETCH_HEAD HEAD --name-only | grep -Ev '^(k8s|\.github)/' | wc -l) || CHANGED_SRC=0
-          if [ "$CHANGED_SRC" -gt "0" ] || ! docker image inspect localhost:5000/gitea:staging &>/dev/null; then
-            echo "Building staging image from PR branch..."
-            docker build -t localhost:5000/gitea:${SHA} -t localhost:5000/gitea:staging .
-          else
-            echo "k8s-only change — retagging existing staging image..."
-            docker tag localhost:5000/gitea:staging localhost:5000/gitea:${SHA}
-          fi
-          docker push localhost:5000/gitea:${SHA}
+          # Staging image: always built fresh from the PR branch
+          echo "Building staging image from PR branch (${SHA})..."
+          docker build -t localhost:5000/gitea:staging .
           docker push localhost:5000/gitea:staging
 
       - name: Compute git diff
@@ -126,6 +119,28 @@ jobs:
           seed_user baseline
           seed_user staging
 
+      - name: Warm up both environments
+        shell: bash
+        run: |
+          warmup() {
+            local BASE=$1
+            local END=$(( $(date +%s) + 90 ))
+            local CREDS="apia-admin:Apia2024!"
+            while [ "$(date +%s)" -lt "$END" ]; do
+              curl -sf --max-time 5 "$BASE/"                                                    -o /dev/null || true
+              curl -sf --max-time 5 "$BASE/explore/repos"                                      -o /dev/null || true
+              curl -sf --max-time 5 "$BASE/user/login"                                         -o /dev/null || true
+              curl -sf --max-time 5 -u "$CREDS" "$BASE/api/v1/repos/search?limit=10&q="       -o /dev/null || true
+              curl -sf --max-time 5 -u "$CREDS" "$BASE/api/v1/user/repos?limit=10"            -o /dev/null || true
+              curl -sf --max-time 5 -u "$CREDS" "$BASE/api/v1/repos/apia-admin/test-repo/issues?limit=10" -o /dev/null || true
+            done
+          }
+          echo "Warming up both environments for 90s..."
+          warmup http://localhost:30301 &
+          warmup http://localhost:30302 &
+          wait
+          echo "Warmup complete"
+
       - name: Run K6 load test
         shell: bash
         env:
@@ -153,12 +168,6 @@ jobs:
           echo "K6_SKIP_START_S=$(( K6_STAGE_WARMUP + K6_STAGE_RAMPUP ))" >> $GITHUB_ENV
           echo "K6_SKIP_END_S=$K6_STAGE_RAMPDOWN"                          >> $GITHUB_ENV
           echo "K6_TOTAL_S=$(( K6_STAGE_WARMUP + K6_STAGE_RAMPUP + K6_STAGE_MEASURE + K6_STAGE_RAMPDOWN ))" >> $GITHUB_ENV
-
-      - name: Wait for Promtail to ship staging logs
-        shell: bash
-        run: |
-          echo "Sleeping 90s to let Promtail catch up before Loki queries..."
-          sleep 90
 
       - name: Run APIA pipeline
         shell: bash
