@@ -113,7 +113,6 @@ linters:
         - -QF1001
         - -QF1006
         - -QF1008
-        - -SA4023 # hangs on go 1.27, https://github.com/golangci/golangci-lint/issues/6732
     testifylint:
       disable:
         - empty
