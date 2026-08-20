@@ -56,26 +56,25 @@ const wfTest1Jobs: ActionsJob[] = [
   {id: 19, link: '', jobId: 'post-deploy-checks', name: 'Post-Deploy Checks', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['deploy-prod']},
 ];
 
-const mockJob = (id: number, jobId: string, name: string): ActionsJob =>
-  ({id, link: '', jobId, name, status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '1s'});
+const mockJob = (id: number, jobId: string, name: string, needs?: string[]): ActionsJob =>
+  ({id, link: '', jobId, name, status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '1s', needs});
 
-// a `name:` may drop the derived " (<combination>)" suffix entirely
-test('matrix legs group by job id whatever their names are', () => {
-  const graph = createWorkflowGraphModel([mockJob(1, 'explicit', 'leg one'), mockJob(2, 'explicit', 'leg two')]);
-  expect(graph.nodes).toHaveLength(1);
-  expect(graph.nodes[0].type).toBe('matrix');
-  expect(graph.nodes[0].name).toBe('explicit');
-  expect(graph.nodes[0].jobs.map((j) => j.id)).toEqual([1, 2]);
-});
+test('matrix nodes key on job id, not on the display name', () => {
+  const legs = createWorkflowGraphModel([mockJob(1, 'explicit', 'leg one'), mockJob(2, 'explicit', 'leg two')]);
+  expect(legs.nodes).toHaveLength(1);
+  expect(legs.nodes[0].type).toBe('matrix');
+  expect(legs.nodes[0].name).toBe('explicit');
+  expect(legs.nodes[0].jobs.map((j) => j.id)).toEqual([1, 2]);
 
-test('distinct jobs whose names look like matrix legs stay separate nodes', () => {
-  const graph = createWorkflowGraphModel([mockJob(1, 'build-fast', 'build (fast)'), mockJob(2, 'build-slow', 'build (slow)')]);
-  expect(graph.nodes.map((n) => n.id)).toEqual(['job:1', 'job:2']);
-});
+  const lookalikes = createWorkflowGraphModel([
+    mockJob(1, 'setup', 'setup'),
+    mockJob(2, 'build-fast', 'build (fast)', ['setup']),
+    mockJob(3, 'build-slow', 'build (slow)', ['setup']),
+  ]);
+  expect(lookalikes.nodes.map((n) => n.type)).toEqual(['job', 'group']);
 
-test('jobs without a job id stay separate nodes', () => {
-  const graph = createWorkflowGraphModel([mockJob(1, '', 'first'), mockJob(2, '', 'second')]);
-  expect(graph.nodes.map((n) => n.id)).toEqual(['job:1', 'job:2']);
+  const noJobId = createWorkflowGraphModel([mockJob(1, '', 'first'), mockJob(2, '', 'second')]);
+  expect(noJobId.nodes.map((n) => n.id)).toEqual(['job:1', 'job:2']);
 });
 
 test('computeJobLevels keeps stable topological levels', () => {
