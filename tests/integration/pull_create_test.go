@@ -309,11 +309,9 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 		forkIntoOrg(midForkOrg, leafForkOrg)
 
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", leafForkOrg, repoName, "patch-from-org3.txt"), &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				BranchName:    "main",
-				NewBranchName: patchBranch,
-				Message:       "create patch from org3",
-			},
+			BranchName:    "main",
+			NewBranchName: patchBranch,
+			Message:       "create patch from org3",
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("patch content")),
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusCreated)

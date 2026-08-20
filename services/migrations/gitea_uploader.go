@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -32,8 +33,6 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/pull"
 	repo_service "gitea.dev/services/repository"
-
-	"uuid"
 )
 
 var _ base.Uploader = &GiteaLocalUploader{}

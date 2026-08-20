@@ -37,10 +37,8 @@ func Badges(ctx *context.Context) {
 	ctx.Data["PageIsAdminBadges"] = true
 
 	RenderBadgeSearch(ctx, &user_model.SearchBadgeOptions{
-		ListOptions: db.ListOptions{
-			Page:     max(ctx.FormInt("page"), 1),
-			PageSize: setting.UI.Admin.UserPagingNum,
-		},
+		Page:     max(ctx.FormInt("page"), 1),
+		PageSize: setting.UI.Admin.UserPagingNum,
 	}, tplBadges)
 }
 
@@ -106,10 +104,8 @@ func ViewBadge(ctx *context.Context) {
 	}
 
 	opts := &user_model.GetBadgeUsersOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: setting.UI.Admin.UserPagingNum,
-		},
+		Page:      1,
+		PageSize:  setting.UI.Admin.UserPagingNum,
 		BadgeSlug: badge.Slug,
 	}
 	users, count, err := user_model.GetBadgeUsers(ctx, opts)
@@ -189,10 +185,8 @@ func BadgeUsers(ctx *context.Context) {
 
 	badge := &user_model.Badge{Slug: ctx.PathParam("badge_slug")}
 	opts := &user_model.GetBadgeUsersOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: setting.UI.Admin.UserPagingNum,
-		},
+		Page:      page,
+		PageSize:  setting.UI.Admin.UserPagingNum,
 		BadgeSlug: badge.Slug,
 	}
 	users, count, err := user_model.GetBadgeUsers(ctx, opts)

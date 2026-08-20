@@ -200,10 +200,8 @@ func TestSearchRepository(t *testing.T) {
 func testSearchRepositoryPublic(t *testing.T) {
 	// test search public repository on explore page
 	repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
+		Page:        1,
+		PageSize:    10,
 		Keyword:     "repo_12",
 		Collaborate: optional.Some(false),
 	})
@@ -215,10 +213,8 @@ func testSearchRepositoryPublic(t *testing.T) {
 	assert.Equal(t, int64(1), count)
 
 	repos, count, err = repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
+		Page:        1,
+		PageSize:    10,
 		Keyword:     "test_repo",
 		Collaborate: optional.Some(false),
 	})
@@ -234,8 +230,8 @@ func testSearchRepositoryRestricted(t *testing.T) {
 
 	performSearch := func(t *testing.T, user *user_model.User) (publicRepoIDs []int64) {
 		repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{Page: 1, PageSize: 10000},
-			Actor:       user,
+			Page: 1, PageSize: 10000,
+			Actor: user,
 		})
 		require.NoError(t, err)
 		assert.Len(t, repos, int(count))
@@ -274,10 +270,8 @@ func testSearchRepositoryRestricted(t *testing.T) {
 func testSearchRepositoryPrivate(t *testing.T) {
 	// test search private repository on explore page
 	repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
+		Page:        1,
+		PageSize:    10,
 		Keyword:     "repo_13",
 		Private:     true,
 		Collaborate: optional.Some(false),
@@ -290,10 +284,8 @@ func testSearchRepositoryPrivate(t *testing.T) {
 	assert.Equal(t, int64(1), count)
 
 	repos, count, err = repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
+		Page:        1,
+		PageSize:    10,
 		Keyword:     "test_repo",
 		Private:     true,
 		Collaborate: optional.Some(false),
@@ -314,10 +306,8 @@ func testSearchRepositoryNonExistingOwner(t *testing.T) {
 
 func testSearchRepositoryWithInDescription(t *testing.T) {
 	repos, count, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
+		Page:               1,
+		PageSize:           10,
 		Keyword:            "description_14",
 		Collaborate:        optional.Some(false),
 		IncludeDescription: true,
@@ -332,10 +322,8 @@ func testSearchRepositoryWithInDescription(t *testing.T) {
 
 func testSearchRepositoryNotInDescription(t *testing.T) {
 	repos, count, err := repo_model.SearchRepository(t.Context(), repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 10,
-		},
+		Page:               1,
+		PageSize:           10,
 		Keyword:            "description_14",
 		Collaborate:        optional.Some(false),
 		IncludeDescription: false,

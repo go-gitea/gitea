@@ -79,7 +79,7 @@ func TestGrepSearch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 
-	nonExistingRepo := &Repository{RepositoryBase: RepositoryBase{repoFacade: gitrepo.RepositoryUnmanaged("no-such-git-repo")}}
+	nonExistingRepo := &Repository{repoFacade: gitrepo.RepositoryUnmanaged("no-such-git-repo")}
 	res, err = GrepSearch(t.Context(), nonExistingRepo, "no-such-content", GrepOptions{})
 	assert.Error(t, err)
 	assert.Empty(t, res)

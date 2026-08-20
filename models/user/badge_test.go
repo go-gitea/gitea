@@ -69,10 +69,8 @@ func testGetBadgeUsers(t *testing.T) {
 	// Test getting users with pagination
 	opts := &user_model.GetBadgeUsersOptions{
 		BadgeSlug: badge.Slug,
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 1,
-		},
+		Page:      1,
+		PageSize:  1,
 	}
 
 	users, count, err := user_model.GetBadgeUsers(t.Context(), opts)
@@ -140,9 +138,9 @@ func testSearchBadgesOrderingAndKeyword(t *testing.T) {
 	}
 
 	opts := &user_model.SearchBadgeOptions{
-		ListOptions: db.ListOptions{ListAll: true},
-		Keyword:     "badge-sort-",
-		OrderBy:     db.SearchOrderBy("`badge`.id ASC"),
+		ListAll: true,
+		Keyword: "badge-sort-",
+		OrderBy: db.SearchOrderBy("`badge`.id ASC"),
 	}
 
 	oldestFirst, count, err := user_model.SearchBadges(t.Context(), opts)

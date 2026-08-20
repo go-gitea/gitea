@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
@@ -69,10 +68,10 @@ func HomeSitemap(ctx *context.Context) {
 	m := sitemap.NewSitemapIndex()
 	if !setting.Service.Explore.DisableUsersPage {
 		_, cnt, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
-			Types:       []user_model.UserType{user_model.UserTypeIndividual},
-			ListOptions: db.ListOptions{PageSize: 1},
-			IsActive:    optional.Some(true),
-			Visible:     []structs.VisibleType{structs.VisibleTypePublic},
+			Types:    []user_model.UserType{user_model.UserTypeIndividual},
+			PageSize: 1,
+			IsActive: optional.Some(true),
+			Visible:  []structs.VisibleType{structs.VisibleTypePublic},
 		})
 		if err != nil {
 			ctx.ServerError("SearchUsers", err)
@@ -87,9 +86,7 @@ func HomeSitemap(ctx *context.Context) {
 	}
 
 	_, cnt, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			PageSize: 1,
-		},
+		PageSize:  1,
 		Actor:     ctx.Doer,
 		AllPublic: true,
 	})

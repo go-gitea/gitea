@@ -112,12 +112,10 @@ func Runners(ctx *context.Context) {
 	page := max(ctx.FormInt("page"), 1)
 
 	opts := actions_model.FindRunnerOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: 100,
-		},
-		Sort:   ctx.Req.URL.Query().Get("sort"),
-		Filter: ctx.Req.URL.Query().Get("q"),
+		Page:     page,
+		PageSize: 100,
+		Sort:     ctx.Req.URL.Query().Get("sort"),
+		Filter:   ctx.Req.URL.Query().Get("q"),
 	}
 	if rCtx.IsRepo {
 		opts.RepoID = rCtx.RepoID
@@ -202,10 +200,8 @@ func RunnersEdit(ctx *context.Context) {
 	ctx.Data["Runner"] = runner
 
 	opts := actions_model.FindTaskOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: 30,
-		},
+		Page:     page,
+		PageSize: 30,
 		Status:   actions_model.StatusUnknown, // Unknown means all
 		RunnerID: runner.ID,
 	}

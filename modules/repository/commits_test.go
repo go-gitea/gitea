@@ -108,10 +108,10 @@ func TestCommitToPushCommit(t *testing.T) {
 	sha1, err := git.NewIDFromString(hexString)
 	assert.NoError(t, err)
 	pushCommit := CommitToPushCommit(&git.Commit{
-		ID:            sha1,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: git.CommitMessage{MessageRaw: "Commit Message"},
+		ID:         sha1,
+		Author:     sig,
+		Committer:  sig,
+		MessageRaw: "Commit Message",
 	})
 	assert.Equal(t, hexString, pushCommit.Sha1)
 	assert.Equal(t, "Commit Message", pushCommit.Message)
@@ -139,16 +139,16 @@ func TestListToPushCommits(t *testing.T) {
 
 	l := []*git.Commit{
 		{
-			ID:            hash1,
-			Author:        sig,
-			Committer:     sig,
-			CommitMessage: git.CommitMessage{MessageRaw: "Message1"},
+			ID:         hash1,
+			Author:     sig,
+			Committer:  sig,
+			MessageRaw: "Message1",
 		},
 		{
-			ID:            hash2,
-			Author:        sig,
-			Committer:     sig,
-			CommitMessage: git.CommitMessage{MessageRaw: "Message2"},
+			ID:         hash2,
+			Author:     sig,
+			Committer:  sig,
+			MessageRaw: "Message2",
 		},
 	}
 

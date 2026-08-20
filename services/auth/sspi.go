@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"uuid"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -19,8 +20,6 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/services/auth/source/sspi"
 	gitea_context "gitea.dev/services/context"
-
-	"uuid"
 )
 
 const (

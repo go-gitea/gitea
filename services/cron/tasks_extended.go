@@ -22,12 +22,10 @@ import (
 
 func registerDeleteInactiveUsers() {
 	RegisterTaskFatal("delete_inactive_accounts", &OlderThanConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    false,
-			RunAtStart: false,
-			Schedule:   "@annually",
-		},
-		OlderThan: time.Minute * time.Duration(setting.Service.ActiveCodeLives),
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@annually",
+		OlderThan:  time.Minute * time.Duration(setting.Service.ActiveCodeLives),
 	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
 		return user_service.DeleteInactiveUsers(ctx, config.OlderThan)
 	})
@@ -50,13 +48,11 @@ func registerGarbageCollectRepositories() {
 		Args    []string `delim:" "`
 	}
 	RegisterTaskFatal("git_gc_repos", &RepoHealthCheckConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    false,
-			RunAtStart: false,
-			Schedule:   "@every 72h",
-		},
-		Timeout: time.Duration(setting.Git.Timeout.GC) * time.Second,
-		Args:    setting.Git.GCArgs,
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@every 72h",
+		Timeout:    time.Duration(setting.Git.Timeout.GC) * time.Second,
+		Args:       setting.Git.GCArgs,
 	}, func(ctx context.Context, _ *user_model.User, config *RepoHealthCheckConfig) error {
 		// the git args are set by config, they can be safe to be trusted
 		return repo_service.GitGcRepos(ctx, config.Timeout, gitcmd.ToTrustedCmdArgs(config.Args))
@@ -125,12 +121,10 @@ func registerRemoveRandomAvatars() {
 
 func registerDeleteOldActions() {
 	RegisterTaskFatal("delete_old_actions", &OlderThanConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    false,
-			RunAtStart: false,
-			Schedule:   "@every 168h",
-		},
-		OlderThan: 365 * 24 * time.Hour,
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@every 168h",
+		OlderThan:  365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
 		return activities_model.DeleteOldActions(ctx, config.OlderThan)
 	})
@@ -142,11 +136,9 @@ func registerUpdateGiteaChecker() {
 		HTTPEndpoint string
 	}
 	RegisterTaskFatal("update_checker", &UpdateCheckerConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    true,
-			RunAtStart: false,
-			Schedule:   "@every 168h",
-		},
+		Enabled:      true,
+		RunAtStart:   false,
+		Schedule:     "@every 168h",
 		HTTPEndpoint: "https://dl.gitea.com/gitea/version.json",
 	}, func(ctx context.Context, _ *user_model.User, config *UpdateCheckerConfig) error {
 		return updatechecker.GiteaUpdateChecker(config.HTTPEndpoint)
@@ -155,12 +147,10 @@ func registerUpdateGiteaChecker() {
 
 func registerDeleteOldSystemNotices() {
 	RegisterTaskFatal("delete_old_system_notices", &OlderThanConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    false,
-			RunAtStart: false,
-			Schedule:   "@every 168h",
-		},
-		OlderThan: 365 * 24 * time.Hour,
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@every 168h",
+		OlderThan:  365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config *OlderThanConfig) error {
 		return system.DeleteOldSystemNotices(ctx, config.OlderThan)
 	})
@@ -180,11 +170,9 @@ func registerGCLFS() {
 	}
 
 	RegisterTaskFatal("gc_lfs", &GCLFSConfig{
-		BaseConfig: BaseConfig{
-			Enabled:    false,
-			RunAtStart: false,
-			Schedule:   "@every 24h",
-		},
+		Enabled:    false,
+		RunAtStart: false,
+		Schedule:   "@every 24h",
 		// Only attempt to garbage collect lfs meta objects older than a week as the order of git lfs upload
 		// and git object upload is not necessarily guaranteed. It's possible to imagine a situation whereby
 		// an LFS object is uploaded but the git branch is not uploaded immediately, or there are some rapid

@@ -36,15 +36,15 @@ func TestRepository_GetCollaborators(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 22})
 
 	collaborators1, _, err := repo_model.GetCollaborators(t.Context(), &repo_model.FindCollaborationOptions{
-		ListOptions: db.ListOptions{PageSize: 1, Page: 1},
-		RepoID:      repo.ID,
+		PageSize: 1, Page: 1,
+		RepoID: repo.ID,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, collaborators1, 1)
 
 	collaborators2, _, err := repo_model.GetCollaborators(t.Context(), &repo_model.FindCollaborationOptions{
-		ListOptions: db.ListOptions{PageSize: 1, Page: 2},
-		RepoID:      repo.ID,
+		PageSize: 1, Page: 2,
+		RepoID: repo.ID,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, collaborators2, 1)

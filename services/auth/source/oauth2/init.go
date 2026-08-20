@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 	"net/http"
 	"sync"
+	"uuid"
 
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth/gothic"
-	"uuid"
 )
 
 var gothRWMutex = sync.RWMutex{}

@@ -170,12 +170,10 @@ func UploadPackageFile(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypePyPI,
-				Name:        packageName,
-				Version:     packageVersion,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypePyPI,
+			Name:             packageName,
+			Version:          packageVersion,
 			SemverCompatible: false,
 			Creator:          ctx.Doer,
 			Metadata: &pypi_module.Metadata{
@@ -189,12 +187,10 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: fileHeader.Filename,
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: fileHeader.Filename,
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {

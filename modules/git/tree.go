@@ -17,7 +17,7 @@ type TreeCommon struct {
 }
 
 func newTree(id ObjectID) *Tree {
-	return &Tree{TreeCommon: TreeCommon{ID: id}}
+	return &Tree{ID: id}
 }
 
 // SubTree get a subtree by the sub dir path

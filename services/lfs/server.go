@@ -64,13 +64,11 @@ type AuthTokenOptions struct {
 func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
 	now := time.Now()
 	claims := Claims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
-			NotBefore: jwt.NewNumericDate(now),
-		},
-		RepoID: opts.RepoID,
-		Op:     opts.Op,
-		UserID: opts.UserID,
+		ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+		NotBefore: jwt.NewNumericDate(now),
+		RepoID:    opts.RepoID,
+		Op:        opts.Op,
+		UserID:    opts.UserID,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 

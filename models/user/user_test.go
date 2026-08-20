@@ -157,22 +157,22 @@ func TestSearchUsers(t *testing.T) {
 		testSuccess(opts, expectedOrgIDs)
 	}
 
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", Page: 1, PageSize: 2},
 		[]int64{3, 6})
 
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 2, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", Page: 2, PageSize: 2},
 		[]int64{7, 17})
 
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 3, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", Page: 3, PageSize: 2},
 		[]int64{19, 25})
 
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 4, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", Page: 4, PageSize: 2},
 		[]int64{26, 41})
 
-	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", Page: 5, PageSize: 2},
 		[]int64{42})
 
-	testOrgSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 6, PageSize: 2}},
+	testOrgSuccess(user_model.SearchUserOptions{Page: 6, PageSize: 2},
 		[]int64{})
 
 	// test users
@@ -181,32 +181,32 @@ func TestSearchUsers(t *testing.T) {
 		testSuccess(opts, expectedUserIDs)
 	}
 
-	testUserSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}},
+	testUserSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", Page: 1},
 		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40})
 
-	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(false)},
+	testUserSuccess(user_model.SearchUserOptions{Page: 1, IsActive: optional.Some(false)},
 		[]int64{9})
 
-	testUserSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", Page: 1, IsActive: optional.Some(true)},
 		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40})
 
-	testUserSuccess(user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", Page: 1, IsActive: optional.Some(true)},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 
 	// order by name asc default
-	testUserSuccess(user_model.SearchUserOptions{Keyword: "user1", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{Keyword: "user1", Page: 1, IsActive: optional.Some(true)},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 
-	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsAdmin: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{Page: 1, IsAdmin: optional.Some(true)},
 		[]int64{1})
 
-	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsRestricted: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{Page: 1, IsRestricted: optional.Some(true)},
 		[]int64{29})
 
-	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsProhibitLogin: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{Page: 1, IsProhibitLogin: optional.Some(true)},
 		[]int64{37})
 
-	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: optional.Some(true)},
+	testUserSuccess(user_model.SearchUserOptions{Page: 1, IsTwoFactorEnabled: optional.Some(true)},
 		[]int64{24})
 }
 

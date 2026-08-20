@@ -179,23 +179,19 @@ func UploadPackageFile(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeVagrant,
-				Name:        boxName,
-				Version:     boxVersion,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeVagrant,
+			Name:             boxName,
+			Version:          boxVersion,
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(boxProvider),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: strings.ToLower(boxProvider),
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 			Properties: map[string]string{
 				vagrant_module.PropertyProvider: strings.TrimSuffix(boxProvider, ".box"),
 			},

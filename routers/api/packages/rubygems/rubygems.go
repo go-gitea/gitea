@@ -234,23 +234,19 @@ func UploadPackageFile(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeRubyGems,
-				Name:        rp.Name,
-				Version:     rp.Version,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeRubyGems,
+			Name:             rp.Name,
+			Version:          rp.Version,
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         rp.Metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: filename,
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: filename,
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {

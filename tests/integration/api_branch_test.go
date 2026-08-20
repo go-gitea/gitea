@@ -300,11 +300,9 @@ func TestAPIUpdateBranchReference(t *testing.T) {
 		content := base64.StdEncoding.EncodeToString([]byte("branch update test"))
 		var newCommit string
 		doAPICreateFile(ctx, "docs/update.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				BranchName:    defaultBranch,
-				NewBranchName: defaultBranch,
-				Message:       "add docs/update.txt",
-			},
+			BranchName:    defaultBranch,
+			NewBranchName: defaultBranch,
+			Message:       "add docs/update.txt",
 			ContentBase64: content,
 		}, func(t *testing.T, resp api.FileResponse) {
 			newCommit = resp.Commit.SHA

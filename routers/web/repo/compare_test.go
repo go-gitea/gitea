@@ -54,7 +54,7 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 			SignCommit: &asymkey_model.SignCommit{
 				UserCommit: &gituser.UserCommit{
 					GitCommit: &git.Commit{
-						CommitMessage: git.CommitMessage{MessageRaw: msg},
+						MessageRaw: msg,
 					},
 				},
 			},

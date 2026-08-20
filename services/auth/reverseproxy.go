@@ -7,14 +7,13 @@ package auth
 import (
 	"net/http"
 	"strings"
+	"uuid"
 
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
-
-	"uuid"
 )
 
 // Ensure the struct implements the interface.

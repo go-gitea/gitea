@@ -229,10 +229,8 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 				Line:     line,
 				TreePath: treePath,
 				Type:     issues_model.CommentTypeCode,
-				ListOptions: db.ListOptions{
-					PageSize: 1,
-					Page:     1,
-				},
+				PageSize: 1,
+				Page:     1,
 			})
 			if err == nil && len(first) > 0 {
 				commitID = first[0].CommitSHA

@@ -134,10 +134,8 @@ func BlockUser(ctx context.Context, doer, blocker, blockee *user_model.User, not
 
 func unstarRepos(ctx context.Context, starrer, repoOwner *user_model.User) error {
 	opts := &repo_model.StarredReposOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 25,
-		},
+		Page:        1,
+		PageSize:    25,
 		StarrerID:   starrer.ID,
 		RepoOwnerID: repoOwner.ID,
 	}
@@ -164,10 +162,8 @@ func unstarRepos(ctx context.Context, starrer, repoOwner *user_model.User) error
 
 func unwatchRepos(ctx context.Context, watcher, repoOwner *user_model.User) error {
 	opts := &repo_model.WatchedReposOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 25,
-		},
+		Page:        1,
+		PageSize:    25,
 		WatcherID:   watcher.ID,
 		RepoOwnerID: repoOwner.ID,
 	}
@@ -212,10 +208,8 @@ func cancelRepositoryTransfers(ctx context.Context, doer, sender, recipient *use
 
 func unassignIssues(ctx context.Context, assignee, repoOwner *user_model.User) error {
 	opts := &issues_model.AssignedIssuesOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 25,
-		},
+		Page:        1,
+		PageSize:    25,
 		AssigneeID:  assignee.ID,
 		RepoOwnerID: repoOwner.ID,
 	}
@@ -246,10 +240,8 @@ func unassignIssues(ctx context.Context, assignee, repoOwner *user_model.User) e
 
 func removeCollaborations(ctx context.Context, repoOwner, collaborator *user_model.User) error {
 	opts := &repo_model.FindCollaborationOptions{
-		ListOptions: db.ListOptions{
-			Page:     1,
-			PageSize: 25,
-		},
+		Page:           1,
+		PageSize:       25,
 		CollaboratorID: collaborator.ID,
 		RepoOwnerID:    repoOwner.ID,
 	}

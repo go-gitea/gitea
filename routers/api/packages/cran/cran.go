@@ -184,25 +184,21 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeCran,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeCran,
+			Name:             pck.Name,
+			Version:          pck.Version,
 			SemverCompatible: false,
 			Creator:          ctx.Doer,
 			Metadata:         pck.Metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s_%s%s", pck.Name, pck.Version, pck.FileExtension),
-				CompositeKey: compositeKey,
-			},
-			Creator:    ctx.Doer,
-			Data:       buf,
-			IsLead:     true,
-			Properties: properties,
+			Filename:     fmt.Sprintf("%s_%s%s", pck.Name, pck.Version, pck.FileExtension),
+			CompositeKey: compositeKey,
+			Creator:      ctx.Doer,
+			Data:         buf,
+			IsLead:       true,
+			Properties:   properties,
 		},
 	)
 	if err != nil {

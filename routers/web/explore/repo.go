@@ -95,10 +95,8 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.Data["IsPrivate"] = private
 
 	repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: opts.PageSize,
-		},
+		Page:               page,
+		PageSize:           opts.PageSize,
 		Actor:              ctx.Doer,
 		OrderBy:            orderBy,
 		Private:            opts.Private,

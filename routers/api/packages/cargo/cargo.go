@@ -214,12 +214,10 @@ func UploadPackage(ctx *context.Context) {
 	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeCargo,
-				Name:        cp.Name,
-				Version:     cp.Version,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeCargo,
+			Name:             cp.Name,
+			Version:          cp.Version,
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         cp.Metadata,
@@ -228,12 +226,10 @@ func UploadPackage(ctx *context.Context) {
 			},
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(fmt.Sprintf("%s-%s.crate", cp.Name, cp.Version)),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: strings.ToLower(fmt.Sprintf("%s-%s.crate", cp.Name, cp.Version)),
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {

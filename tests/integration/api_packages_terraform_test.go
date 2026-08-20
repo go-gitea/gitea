@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"uuid"
 
 	"gitea.dev/models/packages"
 	"gitea.dev/models/unittest"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"uuid"
 )
 
 func TestPackageTerraform(t *testing.T) {

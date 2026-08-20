@@ -28,22 +28,20 @@ func getCreateFileOptions() api.CreateFileOptions {
 	content := "This is new text"
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return api.CreateFileOptions{
-		FileOptions: api.FileOptions{
-			BranchName:    "master",
-			NewBranchName: "master",
-			Message:       "Making this new file new/file.txt",
-			Author: api.Identity{
-				Name:  "Anne Doe",
-				Email: "annedoe@example.com",
-			},
-			Committer: api.Identity{
-				Name:  "John Doe",
-				Email: "johndoe@example.com",
-			},
-			Dates: api.CommitDateOptions{
-				Author:    time.Unix(946684810, 0),
-				Committer: time.Unix(978307190, 0),
-			},
+		BranchName:    "master",
+		NewBranchName: "master",
+		Message:       "Making this new file new/file.txt",
+		Author: api.Identity{
+			Name:  "Anne Doe",
+			Email: "annedoe@example.com",
+		},
+		Committer: api.Identity{
+			Name:  "John Doe",
+			Email: "johndoe@example.com",
+		},
+		Dates: api.CommitDateOptions{
+			Author:    time.Unix(946684810, 0),
+			Committer: time.Unix(978307190, 0),
 		},
 		ContentBase64: contentEncoded,
 	}
@@ -93,24 +91,18 @@ func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileRespons
 			},
 		},
 		Commit: &api.FileCommitResponse{
-			CommitMeta: api.CommitMeta{
-				URL: setting.AppURL + "api/v1/repos/" + info.repoFullName + "/git/commits/" + info.commitID,
-				SHA: info.commitID,
-			},
+			URL:     setting.AppURL + "api/v1/repos/" + info.repoFullName + "/git/commits/" + info.commitID,
+			SHA:     info.commitID,
 			HTMLURL: setting.AppURL + info.repoFullName + "/commit/" + info.commitID,
 			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "Anne Doe",
-					Email: "annedoe@example.com",
-				},
-				Date: "2000-01-01T00:00:10Z",
+				Name:  "Anne Doe",
+				Email: "annedoe@example.com",
+				Date:  "2000-01-01T00:00:10Z",
 			},
 			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "John Doe",
-					Email: "johndoe@example.com",
-				},
-				Date: "2000-12-31T23:59:50Z",
+				Name:  "John Doe",
+				Email: "johndoe@example.com",
+				Date:  "2000-12-31T23:59:50Z",
 			},
 			Message: "Updates README.md\n",
 		},

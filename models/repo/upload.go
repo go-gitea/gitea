@@ -11,13 +11,12 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"uuid"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
-
-	"uuid"
 )
 
 // ErrUploadNotExist represents a "UploadNotExist" kind of error.

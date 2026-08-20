@@ -1718,21 +1718,19 @@ jobs:
 
 		// user4 creates a pull request to add file "app/main.go"
 		doAPICreateFile(user4APICtx, "app/main.go", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "user4/add-main",
-				Message:       "create main.go",
-				Author: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Committer: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			NewBranchName: "user4/add-main",
+			Message:       "create main.go",
+			Author: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Committer: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("// main.go")),
 		})(t)

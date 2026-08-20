@@ -262,12 +262,10 @@ jobs:
 				user2Session.MakeRequest(t, NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/edit", consumer.OwnerName, consumer.Name), pbValues), http.StatusSeeOther)
 
 				prFile := &api.CreateFileOptions{
-					FileOptions: api.FileOptions{
-						BranchName: consumer.DefaultBranch, NewBranchName: branch, Message: "pr change",
-						Author:    api.Identity{Name: user2.Name, Email: user2.Email},
-						Committer: api.Identity{Name: user2.Name, Email: user2.Email},
-						Dates:     api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
-					},
+					BranchName: consumer.DefaultBranch, NewBranchName: branch, Message: "pr change",
+					Author:        api.Identity{Name: user2.Name, Email: user2.Email},
+					Committer:     api.Identity{Name: user2.Name, Email: user2.Email},
+					Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
 					ContentBase64: base64.StdEncoding.EncodeToString([]byte("pr change")),
 				}
 				createWorkflowFile(t, user2Token, consumer.OwnerName, consumer.Name, "pr-change.txt", prFile)
@@ -373,12 +371,10 @@ jobs:
 
 			// Open a PR that changes a file NOT matching the workflow's `paths: [src/**]`, so it is filtered out.
 			prFile := &api.CreateFileOptions{
-				FileOptions: api.FileOptions{
-					BranchName: consumer.DefaultBranch, NewBranchName: "filtered-pr", Message: "pr change",
-					Author:    api.Identity{Name: user2.Name, Email: user2.Email},
-					Committer: api.Identity{Name: user2.Name, Email: user2.Email},
-					Dates:     api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
-				},
+				BranchName: consumer.DefaultBranch, NewBranchName: "filtered-pr", Message: "pr change",
+				Author:        api.Identity{Name: user2.Name, Email: user2.Email},
+				Committer:     api.Identity{Name: user2.Name, Email: user2.Email},
+				Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
 				ContentBase64: base64.StdEncoding.EncodeToString([]byte("pr change")),
 			}
 			createWorkflowFile(t, user2Token, consumer.OwnerName, consumer.Name, "docs.txt", prFile)
@@ -514,8 +510,8 @@ jobs:
 			updateReq := NewRequestWithJSON(t, "PUT",
 				fmt.Sprintf("/api/v1/repos/%s/%s/contents/.gitea/scoped_workflows/ci.yaml", source.OwnerName, source.Name),
 				&api.UpdateFileOptions{
-					SHA:         created.Content.SHA,
-					FileOptions: api.FileOptions{BranchName: source.DefaultBranch, Message: "switch to push"},
+					SHA:        created.Content.SHA,
+					BranchName: source.DefaultBranch, Message: "switch to push",
 					ContentBase64: base64.StdEncoding.EncodeToString([]byte(`name: CI
 on: push
 jobs:

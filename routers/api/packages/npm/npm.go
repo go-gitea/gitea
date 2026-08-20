@@ -201,23 +201,19 @@ func UploadPackage(ctx *context.Context) {
 	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeNpm,
-				Name:        npmPackage.Name,
-				Version:     npmPackage.Version,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeNpm,
+			Name:             npmPackage.Name,
+			Version:          npmPackage.Version,
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         npmPackage.Metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: npmPackage.Filename,
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: npmPackage.Filename,
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {

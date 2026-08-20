@@ -22,14 +22,12 @@ import (
 func getCreateProfileReadmeFileOptions(content string) api.CreateFileOptions {
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return api.CreateFileOptions{
-		FileOptions: api.FileOptions{
-			BranchName:    "main",
-			NewBranchName: "main",
-			Message:       "create the profile README.md",
-			Dates: api.CommitDateOptions{
-				Author:    time.Unix(946684810, 0),
-				Committer: time.Unix(978307190, 0),
-			},
+		BranchName:    "main",
+		NewBranchName: "main",
+		Message:       "create the profile README.md",
+		Dates: api.CommitDateOptions{
+			Author:    time.Unix(946684810, 0),
+			Committer: time.Unix(978307190, 0),
 		},
 		ContentBase64: contentEncoded,
 	}

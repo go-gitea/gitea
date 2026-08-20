@@ -248,10 +248,8 @@ func buildPackagesIndices(ctx context.Context, ownerID int64, repoVersion *packa
 			ctx,
 			repoVersion,
 			&packages_service.PackageFileCreationInfo{
-				PackageFileInfo: packages_service.PackageFileInfo{
-					Filename:     file.Name,
-					CompositeKey: fmt.Sprintf("%s|%s|%s", distribution, component, architecture),
-				},
+				Filename:          file.Name,
+				CompositeKey:      fmt.Sprintf("%s|%s|%s", distribution, component, architecture),
 				Creator:           user_model.NewGhostUser(),
 				Data:              file.Data,
 				IsLead:            false,
@@ -400,10 +398,8 @@ func buildReleaseFiles(ctx context.Context, ownerID int64, repoVersion *packages
 			ctx,
 			repoVersion,
 			&packages_service.PackageFileCreationInfo{
-				PackageFileInfo: packages_service.PackageFileInfo{
-					Filename:     file.Name,
-					CompositeKey: distribution,
-				},
+				Filename:          file.Name,
+				CompositeKey:      distribution,
 				Creator:           user_model.NewGhostUser(),
 				Data:              file.Data,
 				IsLead:            false,

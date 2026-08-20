@@ -65,12 +65,10 @@ func LoadBranches(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 
 	branchOpts := git_model.FindBranchOptions{
-		RepoID:          repo.ID,
-		IsDeletedBranch: isDeletedBranch,
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: pageSize,
-		},
+		RepoID:             repo.ID,
+		IsDeletedBranch:    isDeletedBranch,
+		Page:               page,
+		PageSize:           pageSize,
 		Keyword:            keyword,
 		ExcludeBranchNames: []string{repo.DefaultBranch},
 	}

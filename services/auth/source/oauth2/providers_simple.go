@@ -39,12 +39,10 @@ func (c *SimpleProvider) CreateGothProvider(providerName, callbackURL string, so
 // NewSimpleProvider is a constructor function for simple providers
 func NewSimpleProvider(name, displayName string, scopes []string, newFn SimpleProviderNewFn) *SimpleProvider {
 	return &SimpleProvider{
-		BaseProvider: BaseProvider{
-			name:        name,
-			displayName: displayName,
-		},
-		scopes: scopes,
-		newFn:  newFn,
+		name:        name,
+		displayName: displayName,
+		scopes:      scopes,
+		newFn:       newFn,
 	}
 }
 

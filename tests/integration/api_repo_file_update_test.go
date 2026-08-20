@@ -27,19 +27,17 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	content := "This is updated text"
 	contentEncoded := base64.StdEncoding.EncodeToString([]byte(content))
 	return &api.UpdateFileOptions{
-		SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
-		FileOptions: api.FileOptions{
-			BranchName:    "master",
-			NewBranchName: "master",
-			Message:       "My update of new/file.txt",
-			Author: api.Identity{
-				Name:  "John Doe",
-				Email: "johndoe@example.com",
-			},
-			Committer: api.Identity{
-				Name:  "Anne Doe",
-				Email: "annedoe@example.com",
-			},
+		SHA:           "103ff9234cefeee5ec5361d22b49fbb04d385885",
+		BranchName:    "master",
+		NewBranchName: "master",
+		Message:       "My update of new/file.txt",
+		Author: api.Identity{
+			Name:  "John Doe",
+			Email: "johndoe@example.com",
+		},
+		Committer: api.Identity{
+			Name:  "Anne Doe",
+			Email: "annedoe@example.com",
 		},
 		ContentBase64: contentEncoded,
 	}
@@ -77,22 +75,16 @@ func getExpectedFileResponseForUpdate(info apiFileResponseInfo) *api.FileRespons
 			},
 		},
 		Commit: &api.FileCommitResponse{
-			CommitMeta: api.CommitMeta{
-				URL: setting.AppURL + "api/v1/repos/user2/repo1/git/commits/" + info.commitID,
-				SHA: info.commitID,
-			},
+			URL:     setting.AppURL + "api/v1/repos/user2/repo1/git/commits/" + info.commitID,
+			SHA:     info.commitID,
 			HTMLURL: setting.AppURL + "user2/repo1/commit/" + info.commitID,
 			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "John Doe",
-					Email: "johndoe@example.com",
-				},
+				Name:  "John Doe",
+				Email: "johndoe@example.com",
 			},
 			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "Anne Doe",
-					Email: "annedoe@example.com",
-				},
+				Name:  "Anne Doe",
+				Email: "annedoe@example.com",
 			},
 			Message: "My update of README.md\n",
 		},

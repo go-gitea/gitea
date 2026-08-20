@@ -108,21 +108,17 @@ func UploadPackage(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeGeneric,
-				Name:        packageName,
-				Version:     packageVersion,
-			},
-			Creator: ctx.Doer,
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeGeneric,
+			Name:        packageName,
+			Version:     packageVersion,
+			Creator:     ctx.Doer,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: filename,
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: filename,
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {

@@ -38,11 +38,9 @@ func escapeStream(locale translation.Locale, in io.Reader, out io.Writer, opts .
 		escaped:         &EscapeStatus{},
 		locale:          locale,
 		ambiguousTables: AmbiguousTablesForLocale(locale),
-		htmlChunkReader: htmlChunkReader{
-			in:      in,
-			readBuf: make([]byte, 0, 32*1024),
-		},
-		out: out,
+		in:              in,
+		readBuf:         make([]byte, 0, 32*1024),
+		out:             out,
 	}
 
 	if len(opts) > 0 {

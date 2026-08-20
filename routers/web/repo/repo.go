@@ -429,10 +429,8 @@ func SearchRepo(ctx *context.Context) {
 		page = 1
 	}
 	opts := repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-		},
+		Page:               page,
+		PageSize:           convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		Actor:              ctx.Doer,
 		Keyword:            ctx.FormTrim("q"),
 		OwnerID:            ctx.FormInt64("uid"),

@@ -70,7 +70,7 @@ func OpenRepository(catFileBatchCtx context.Context, repo RepositoryFacade) (*Re
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 	gitRepo := &Repository{
-		RepositoryBase: RepositoryBase{tagCache: newObjectCache[*Tag](), repoFacade: repo, catFileBatchCtx: catFileBatchCtx},
+		tagCache: newObjectCache[*Tag](), repoFacade: repo, catFileBatchCtx: catFileBatchCtx,
 	}
 	gitRepo.RepositoryBase.LastCommitCache = &LastCommitCache{
 		repo:  gitRepo,

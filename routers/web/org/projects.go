@@ -53,10 +53,8 @@ func Projects(ctx *context.Context) {
 		projectType = project_model.TypeIndividual
 	}
 	projects, total, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: setting.UI.IssuePagingNum,
-		},
+		Page:     page,
+		PageSize: setting.UI.IssuePagingNum,
 		OwnerID:  ctx.ContextUser.ID,
 		IsClosed: optional.Some(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),

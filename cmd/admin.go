@@ -113,11 +113,9 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := repo_model.SearchRepositoryByName(ctx, repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: repo_model.RepositoryListDefaultPageSize,
-				Page:     page,
-			},
-			Private: true,
+			PageSize: repo_model.RepositoryListDefaultPageSize,
+			Page:     page,
+			Private:  true,
 		})
 		if err != nil {
 			return fmt.Errorf("SearchRepositoryByName: %w", err)

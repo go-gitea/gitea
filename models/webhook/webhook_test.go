@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 	"time"
+	"uuid"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"uuid"
 	"xorm.io/builder"
 )
 

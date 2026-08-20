@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"time"
+	"uuid"
 
 	"gitea.dev/models/db"
 	"gitea.dev/modules/json"
@@ -15,7 +16,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	webhook_module "gitea.dev/modules/webhook"
 
-	"uuid"
 	"xorm.io/builder"
 )
 

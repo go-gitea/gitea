@@ -171,10 +171,8 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		// but such a function would likely get out of date
 		for {
 			orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
-				ListOptions: db.ListOptions{
-					PageSize: repo_model.RepositoryListDefaultPageSize,
-					Page:     1,
-				},
+				PageSize:          repo_model.RepositoryListDefaultPageSize,
+				Page:              1,
 				UserID:            u.ID,
 				IncludeVisibility: structs.VisibleTypePrivate,
 			})

@@ -155,21 +155,17 @@ func UploadState(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeTerraformState,
-				Name:        packageName,
-				Version:     strconv.FormatUint(state.Serial, 10),
-			},
-			Creator: ctx.Doer,
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeTerraformState,
+			Name:        packageName,
+			Version:     strconv.FormatUint(state.Serial, 10),
+			Creator:     ctx.Doer,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: stateFilename,
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: stateFilename,
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {
