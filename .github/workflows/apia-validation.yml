@@ -172,7 +172,6 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
           COMMIT_SHA: ${{ github.sha }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PROMETHEUS_URL: http://localhost:30090
           LOKI_URL: http://localhost:30100
           N8N_URL: http://localhost:30678
