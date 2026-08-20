@@ -11,7 +11,7 @@ import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
-import {performFetchActionTrigger} from './common-fetch-action.ts';
+import {performFetchActionTrigger} from '../modules/fetch-action.ts';
 import {initImageDiff} from './imagediff.ts';
 
 function initDiffFileViewToggle(el: HTMLElement) {

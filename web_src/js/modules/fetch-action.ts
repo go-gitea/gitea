@@ -1,10 +1,10 @@
-import {GET, request} from '../modules/fetch.ts';
-import {hideToastsAll, showErrorToast} from '../modules/toast.ts';
+import {GET, request} from './fetch.ts';
+import {hideToastsAll, showErrorToast} from './toast.ts';
 import {activePageTimerRefresh, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
-import {errorMessage, errorName} from '../modules/errors.ts';
-import {confirmModal, createConfirmModal} from './comp/ConfirmModal.ts';
+import {errorMessage, errorName} from './errors.ts';
+import {confirmModal, createConfirmModal} from '../features/comp/ConfirmModal.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
-import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {registerGlobalSelectorFunc} from './observer.ts';
 import {Idiomorph} from 'idiomorph';
 import {parseDom} from '../utils.ts';
 import {html} from '../utils/html.ts';
