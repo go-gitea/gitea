@@ -720,6 +720,12 @@ td .commit-summary {
   left: 0;
 }
 
+@media (forced-colors: active) {
+  .repository.branches .commit-divergence .bar {
+    background: CanvasText;
+  }
+}
+
 .repository.commits .header .search input {
   font-weight: var(--font-weight-normal);
   padding: 5px 10px;

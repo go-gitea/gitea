@@ -4,13 +4,11 @@
 package actions
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"slices"
 	"strings"
 
-	"gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
@@ -20,6 +18,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	actions_module "gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/json"
@@ -553,7 +552,7 @@ func handleSchedules(
 	crons := make([]*actions_model.ActionSchedule, 0, len(detectedWorkflows))
 	for _, dwf := range detectedWorkflows {
 		// Check cron job condition. Only working in default branch
-		workflow, err := model.ReadWorkflow(bytes.NewReader(dwf.Content))
+		workflow, err := jobparser.ReadWorkflow(dwf.Content)
 		if err != nil {
 			log.Error("ReadWorkflow: %v", err)
 			continue
