@@ -51,8 +51,8 @@ func TestParseRejectsAliases(t *testing.T) {
 		content       []byte
 	}{
 		{
-			// Nested aliases multiply, so five short lines expand into 9^4 sequences.
-			name: "billion laughs",
+			// Nested aliases multiply, so four levels of them pass maxExpandedNodes.
+			name: "nested aliases exceed the node limit",
 			content: []byte(`on: push
 x0: &x0 [1, 2, 3, 4, 5, 6, 7, 8, 9]
 x1: &x1 [*x0, *x0, *x0, *x0, *x0, *x0, *x0, *x0, *x0]
