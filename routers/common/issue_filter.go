@@ -6,7 +6,6 @@ package common
 import (
 	"context"
 
-	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
@@ -33,57 +32,49 @@ func ParseIssueFilterTypeIsPull(typ string) optional.Option[bool] {
 
 type SearchIssuesRepoIDsOptions struct {
 	Doer       *user_model.User
-	IsSigned   bool
 	PublicOnly bool
 	OwnerName  string
 	TeamName   string
 }
 
-// SearchIssuesRepoIDs resolves the repository filter of an issue search.
-// allPublic means "plus every public repository", which the indexer matches itself.
-func SearchIssuesRepoIDs(ctx context.Context, o SearchIssuesRepoIDsOptions) (repoIDs []int64, allPublic bool, err error) {
-	opts := repo_model.SearchRepoOptions{
-		Private:     false,
-		AllPublic:   true,
-		TopicOnly:   false,
+// SearchIssuesRepoIDs resolves the repository filter of an issue search. allPublic makes the indexer
+// match everything its own is_public covers (modules/indexer/issues/util.go), so repoIDs omits those.
+func SearchIssuesRepoIDs(ctx context.Context, opts SearchIssuesRepoIDsOptions) (repoIDs []int64, allPublic bool, err error) {
+	searchOpts := repo_model.SearchRepoOptions{
+		Private:     opts.Doer != nil,
 		Collaborate: optional.None[bool](),
-		// This needs to be a column that is not nil in fixtures or
-		// MySQL will return different results when sorting by null in some cases
-		OrderBy: db.SearchOrderByAlphabetically,
-		Actor:   o.Doer,
+		Actor:       opts.Doer,
 	}
-	if o.IsSigned {
-		opts.Private = true
-		opts.AllLimited = true
-	}
-	opts.ApplyPublicOnly(o.PublicOnly)
-	if o.OwnerName != "" {
-		owner, err := user_model.GetUserByName(ctx, o.OwnerName)
+	searchOpts.ApplyPublicOnly(opts.PublicOnly)
+	if opts.OwnerName != "" {
+		owner, err := user_model.GetUserByName(ctx, opts.OwnerName)
 		if err != nil {
 			return nil, false, err
 		}
-		opts.OwnerID = owner.ID
-		opts.AllLimited = false
-		opts.AllPublic = false
-		opts.Collaborate = optional.Some(false)
+		searchOpts.OwnerID = owner.ID
+		searchOpts.Collaborate = optional.Some(false)
 	}
-	if o.TeamName != "" {
-		if o.OwnerName == "" {
+	if opts.TeamName != "" {
+		if opts.OwnerName == "" {
 			return nil, false, util.NewInvalidArgumentErrorf("owner organisation is required for filtering on team")
 		}
-		team, err := organization.GetTeam(ctx, opts.OwnerID, o.TeamName)
+		team, err := organization.GetTeam(ctx, searchOpts.OwnerID, opts.TeamName)
 		if err != nil {
 			return nil, false, err
 		}
-		opts.TeamID = team.ID
+		searchOpts.TeamID = team.ID
 	}
 
-	if opts.AllPublic {
-		allPublic = true
-		opts.AllPublic = false               // set it false to avoid returning too many repos, we could filter by indexer
-		opts.IsPrivate = optional.Some(true) // enumerating public repos too would scale the ID list with the instance
+	// SearchRepoOptions.AllPublic and AllLimited only apply under an owner filter, so the indexer covers them
+	allPublic = opts.OwnerName == ""
+	cond := repo_model.SearchRepositoryCondition(searchOpts)
+	if allPublic {
+		if !searchOpts.Private {
+			return []int64{0}, allPublic, nil // sees nothing beyond is_public, so skip the query
+		}
+		cond = cond.And(repo_model.NotPublicRepoUnderPublicOwnerCond()) // enumerating them scales with the instance
 	}
-	repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
+	repoIDs, err = repo_model.SearchRepositoryIDsByCondition(ctx, cond)
 	if err != nil {
 		return nil, false, err
 	}

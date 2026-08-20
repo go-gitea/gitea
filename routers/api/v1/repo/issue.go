@@ -139,7 +139,6 @@ func SearchIssues(ctx *context.APIContext) {
 
 	repoIDs, allPublic, err := common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
 		Doer:       ctx.Doer,
-		IsSigned:   ctx.IsSigned,
 		PublicOnly: ctx.PublicOnly,
 		OwnerName:  ctx.FormString("owner"),
 		TeamName:   ctx.FormString("team"),
@@ -385,13 +384,7 @@ func ListIssues(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	isPull := optional.None[bool]()
-	switch ctx.FormString("type") {
-	case "pulls":
-		isPull = optional.Some(true)
-	case "issues":
-		isPull = optional.Some(false)
-	}
+	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	if isPull.Has() && !ctx.Repo.Permission.CanReadIssuesOrPulls(isPull.Value()) {
 		ctx.APIErrorNotFound()
