@@ -12,26 +12,49 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"gitea.dev/modules/json"
 )
+
+// goModIgnoredDirs returns the go.mod "ignore" directories, which the go tool skips but a filesystem walk does not.
+func goModIgnoredDirs() (map[string]bool, error) {
+	out, err := exec.Command("go", "mod", "edit", "-json").Output()
+	if err != nil {
+		return nil, err
+	}
+	var mod struct{ Ignore []struct{ Path string } }
+	if err = json.Unmarshal(out, &mod); err != nil {
+		return nil, err
+	}
+	dirs := make(map[string]bool, len(mod.Ignore))
+	for _, ignore := range mod.Ignore {
+		dirs[filepath.ToSlash(filepath.Clean(ignore.Path))] = true
+	}
+	return dirs, nil
+}
 
 func lintGoHeader() bool {
 	headerRE := regexp.MustCompile(`^(// (Copyright [^\n]+|All rights reserved\.)\n)*// Copyright \d{4} (The Gogs Authors|The Gitea Authors|Gitea Authors|Gitea)\.( All rights reserved\.)?\n(// (Copyright [^\n]+|All rights reserved\.)\n)*// SPDX-License-Identifier: [\w.-]+`)
 	generatedRE := regexp.MustCompile(`(?m)^// (Code|This file is) [Gg]enerated.*DO NOT EDIT`)
-	skipDirs := map[string]bool{
-		".git":         true,
-		".venv":        true,
-		"node_modules": true,
-		"public":       true,
-		"vendor":       true,
-		"web_src":      true,
+	skipDirs, err := goModIgnoredDirs()
+	if err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		return false
+	}
+	for _, dir := range []string{"public", "vendor", "web_src"} {
+		skipDirs[dir] = true
 	}
 	root, bad := ".", 0
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
-			if rel, _ := filepath.Rel(root, path); skipDirs[filepath.ToSlash(rel)] {
+			rel, _ := filepath.Rel(root, path)
+			if rel == "." {
+				return nil
+			}
+			if skipDirs[filepath.ToSlash(rel)] || strings.HasPrefix(d.Name(), ".") {
 				return fs.SkipDir
 			}
 			return nil
