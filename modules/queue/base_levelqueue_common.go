@@ -28,10 +28,11 @@ type baseLevelQueueCommonImpl struct {
 	length       int
 	internalFunc func() baseLevelQueuePushPoper
 	mu           *sync.Mutex
+	pushed       chan struct{}
 }
 
 func (q *baseLevelQueueCommonImpl) PushItem(ctx context.Context, data []byte) error {
-	return backoffErr(ctx, backoffBegin, backoffUpper, time.After(pushBlockTime), func() (retry bool, err error) {
+	err := backoffErr(ctx, func() (retry bool, err error) {
 		if q.mu != nil {
 			q.mu.Lock()
 			defer q.mu.Unlock()
@@ -47,23 +48,34 @@ func (q *baseLevelQueueCommonImpl) PushItem(ctx context.Context, data []byte) er
 		}
 		return retry, err
 	})
+	if err == nil {
+		signalPush(q.pushed)
+	}
+	return err
 }
 
 func (q *baseLevelQueueCommonImpl) PopItem(ctx context.Context) ([]byte, error) {
+	for {
+		data, err := q.tryPopItem()
+		if err != levelqueue.ErrNotFound {
+			return data, err
+		}
+		if err := waitForPush(ctx, q.pushed); err != nil {
+			return nil, err
+		}
+	}
+}
+
+func (q *baseLevelQueueCommonImpl) tryPopItem() ([]byte, error) {
 	if q.mu != nil {
 		q.mu.Lock()
 		defer q.mu.Unlock()
 	}
-
-	data, err := q.internalFunc().LPop()
-	if err == levelqueue.ErrNotFound {
-		return nil, errQueueEmpty
-	}
-	return data, err
+	return q.internalFunc().LPop()
 }
 
 func baseLevelQueueCommon(cfg *BaseConfig, mu *sync.Mutex, internalFunc func() baseLevelQueuePushPoper) *baseLevelQueueCommonImpl {
-	return &baseLevelQueueCommonImpl{length: cfg.Length, mu: mu, internalFunc: internalFunc}
+	return &baseLevelQueueCommonImpl{length: cfg.Length, mu: mu, internalFunc: internalFunc, pushed: make(chan struct{}, 1)}
 }
 
 func prepareLevelDB(cfg *BaseConfig) (conn string, db *leveldb.DB, err error) {

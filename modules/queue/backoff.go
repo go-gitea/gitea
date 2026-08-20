@@ -13,10 +13,18 @@ var (
 	backoffUpper = 2 * time.Second
 )
 
-func backoffErr(ctx context.Context, begin, upper time.Duration, end <-chan time.Time, fn func() (retry bool, err error)) error {
-	d := begin
+func mockBackoffDuration(d time.Duration) func() {
+	oldBegin, oldUpper := backoffBegin, backoffUpper
+	backoffBegin, backoffUpper = d, d
+	return func() {
+		backoffBegin, backoffUpper = oldBegin, oldUpper
+	}
+}
+
+// backoffErr retries fn until it succeeds or pushBlockTime elapses.
+func backoffErr(ctx context.Context, fn func() (retry bool, err error)) error {
+	d, end := backoffBegin, time.After(pushBlockTime)
 	for {
-		// check whether the context has been cancelled or has reached the deadline, return early
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -25,7 +33,6 @@ func backoffErr(ctx context.Context, begin, upper time.Duration, end <-chan time
 		default:
 		}
 
-		// call the target function
 		retry, err := fn()
 		if err != nil {
 			return err
@@ -34,15 +41,11 @@ func backoffErr(ctx context.Context, begin, upper time.Duration, end <-chan time
 			return nil
 		}
 
-		// wait for a while before retrying, and also respect the context & deadline
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(d):
-			d *= 2
-			if d > upper {
-				d = upper
-			}
+			d = min(d*2, backoffUpper)
 		case <-end:
 			return context.DeadlineExceeded
 		}

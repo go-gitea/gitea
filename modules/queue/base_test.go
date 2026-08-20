@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"gitea.dev/modules/test"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -72,17 +74,41 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 		assert.NoError(t, err)
 		assert.Equal(t, "bar", string(it))
 
-		// pop an empty queue
-		it, err = q.PopItem(ctx)
-		assert.ErrorIs(t, err, errQueueEmpty)
+		// pop an empty queue (timeout, cancel)
+		ctxTimed, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
+		it, err = q.PopItem(ctxTimed)
+		assert.ErrorIs(t, err, context.DeadlineExceeded)
 		assert.Nil(t, it)
+		cancel()
+
+		ctxTimed, cancel = context.WithTimeout(ctx, 10*time.Millisecond)
+		cancel()
+		it, err = q.PopItem(ctxTimed)
+		assert.ErrorIs(t, err, context.Canceled)
+		assert.Nil(t, it)
+
+		// the fallback poll is disabled, so only a wake from the push can deliver
+		defer test.MockVariableValue(&pollFallbackInterval, time.Hour)()
+		ctxWake, cancelWake := context.WithTimeout(ctx, 5*time.Second)
+		defer cancelWake()
+		popped := make(chan []byte)
+		go func() {
+			for range 3 {
+				it, _ := q.PopItem(ctxWake)
+				popped <- it
+			}
+		}()
+		for i := range 3 {
+			assert.NoError(t, q.PushItem(ctx, fmt.Appendf(nil, "wake-%d", i)))
+			assert.Equal(t, fmt.Sprintf("wake-%d", i), string(<-popped), "PopItem was not woken by the push")
+		}
 
 		// test blocking push if queue is full
 		for i := 0; i < cfg.Length; i++ {
 			err = q.PushItem(ctx, fmt.Appendf(nil, "item-%d", i))
 			assert.NoError(t, err)
 		}
-		ctxTimed, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
+		ctxTimed, cancel = context.WithTimeout(ctx, 10*time.Millisecond)
 		err = q.PushItem(ctxTimed, []byte("item-full"))
 		assert.ErrorIs(t, err, context.DeadlineExceeded)
 		cancel()

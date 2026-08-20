@@ -17,6 +17,7 @@ import (
 
 type baseLevelQueueUnique struct {
 	internal atomic.Pointer[levelqueue.UniqueQueue]
+	common   *baseLevelQueueCommonImpl
 
 	conn string
 	cfg  *BaseConfig
@@ -38,17 +39,16 @@ func newBaseLevelQueueUnique(cfg *BaseConfig) (baseQueue, error) {
 		return nil, err
 	}
 	q.internal.Store(lq)
+	q.common = baseLevelQueueCommon(cfg, &q.mu, func() baseLevelQueuePushPoper { return q.internal.Load() })
 	return q, nil
 }
 
 func (q *baseLevelQueueUnique) PushItem(ctx context.Context, data []byte) error {
-	c := baseLevelQueueCommon(q.cfg, &q.mu, func() baseLevelQueuePushPoper { return q.internal.Load() })
-	return c.PushItem(ctx, data)
+	return q.common.PushItem(ctx, data)
 }
 
 func (q *baseLevelQueueUnique) PopItem(ctx context.Context) ([]byte, error) {
-	c := baseLevelQueueCommon(q.cfg, &q.mu, func() baseLevelQueuePushPoper { return q.internal.Load() })
-	return c.PopItem(ctx)
+	return q.common.PopItem(ctx)
 }
 
 func (q *baseLevelQueueUnique) HasItem(ctx context.Context, data []byte) (bool, error) {

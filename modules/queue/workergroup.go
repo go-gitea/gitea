@@ -292,7 +292,7 @@ func (q *WorkerPoolQueue[T]) doRun() {
 
 	wg := &workerGroup[T]{q: q}
 	wg.doPrepareWorkerContext()
-	wg.popItemChan, wg.popItemErr = popItemByChan(q.ctxRun, q.baseQueue.PopItem, q.pushedChan)
+	wg.popItemChan, wg.popItemErr = popItemByChan(q.ctxRun, q.baseQueue.PopItem)
 
 	defer func() {
 		q.ctxRunCancel()

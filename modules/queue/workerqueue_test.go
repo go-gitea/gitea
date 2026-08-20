@@ -24,27 +24,6 @@ func runWorkerPoolQueue[T any](q *WorkerPoolQueue[T]) func() {
 	}
 }
 
-func TestWorkerPoolQueuePushDeliversImmediately(t *testing.T) {
-	defer test.MockVariableValue(&idlePollInterval, time.Hour)()
-
-	handled := make(chan struct{})
-	q, _ := newWorkerPoolQueueForTest("test-wake", setting.QueueSettings{Type: "channel", Length: 10}, func(items ...int) []int {
-		handled <- struct{}{}
-		return nil
-	}, false)
-	defer runWorkerPoolQueue(q)()
-
-	// the first push can land before the worker ever waits, so repeat until one must have
-	for i := range 5 {
-		assert.NoError(t, q.Push(i))
-		select {
-		case <-handled:
-		case <-time.After(5 * time.Second):
-			t.Fatal("push was not delivered, it waited for the idle poll")
-		}
-	}
-}
-
 func TestWorkerPoolQueueUnhandled(t *testing.T) {
 	oldUnhandledItemRequeueDuration := unhandledItemRequeueDuration.Load()
 	unhandledItemRequeueDuration.Store(0)
@@ -272,6 +251,7 @@ func TestWorkerPoolQueueShutdown(t *testing.T) {
 
 func TestWorkerPoolQueueWorkerIdleReset(t *testing.T) {
 	defer test.MockVariableValue(&workerIdleDuration, 10*time.Millisecond)()
+	defer mockBackoffDuration(5 * time.Millisecond)()
 
 	var q *WorkerPoolQueue[int]
 	var handledCount atomic.Int32

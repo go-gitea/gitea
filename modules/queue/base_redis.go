@@ -19,6 +19,7 @@ type baseRedis struct {
 	client   redis.UniversalClient
 	isUnique bool
 	cfg      *BaseConfig
+	pushed   chan struct{}
 
 	mu sync.Mutex // the old implementation is not thread-safe, the queue operation and set operation should be protected together
 }
@@ -41,7 +42,7 @@ func newBaseRedisGeneric(cfg *BaseConfig, unique bool) (baseQueue, error) {
 		return nil, err
 	}
 
-	return &baseRedis{cfg: cfg, client: client, isUnique: unique}, nil
+	return &baseRedis{cfg: cfg, client: client, isUnique: unique, pushed: make(chan struct{}, 1)}, nil
 }
 
 func newBaseRedisSimple(cfg *BaseConfig) (baseQueue, error) {
@@ -53,7 +54,7 @@ func newBaseRedisUnique(cfg *BaseConfig) (baseQueue, error) {
 }
 
 func (q *baseRedis) PushItem(ctx context.Context, data []byte) error {
-	return backoffErr(ctx, backoffBegin, backoffUpper, time.After(pushBlockTime), func() (retry bool, err error) {
+	err := backoffErr(ctx, func() (retry bool, err error) {
 		q.mu.Lock()
 		defer q.mu.Unlock()
 
@@ -76,24 +77,37 @@ func (q *baseRedis) PushItem(ctx context.Context, data []byte) error {
 		}
 		return false, q.client.RPush(ctx, q.cfg.QueueFullName, data).Err()
 	})
+	if err == nil {
+		signalPush(q.pushed)
+	}
+	return err
 }
 
+// BLPOP is not used, it would hold q.mu and a pooled connection for the whole wait.
 func (q *baseRedis) PopItem(ctx context.Context) ([]byte, error) {
+	for {
+		if data := q.tryPopItem(ctx); data != nil {
+			return data, nil
+		}
+		if err := waitForPush(ctx, q.pushed); err != nil {
+			return nil, err
+		}
+	}
+}
+
+func (q *baseRedis) tryPopItem(ctx context.Context) []byte {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
 	data, err := q.client.LPop(ctx, q.cfg.QueueFullName).Bytes()
 	if err != nil {
-		if err != redis.Nil {
-			log.Error("Queue %q failed to pop item: %v", q.cfg.QueueFullName, err)
-		}
-		return nil, errQueueEmpty // a transient error must not stop the queue for good
+		return nil // an empty queue and a broken redis both mean "try again later"
 	}
 	if q.isUnique {
 		// the data has been popped, even if there is any error we can't do anything
 		_ = q.client.SRem(ctx, q.cfg.SetFullName, data).Err()
 	}
-	return data, nil
+	return data
 }
 
 func (q *baseRedis) HasItem(ctx context.Context, data []byte) (bool, error) {
