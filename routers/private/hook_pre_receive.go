@@ -208,7 +208,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 				ctx.PrivateInternalErrorf("Unable to check commits from %s to %s: %v", oldCommitID, newCommitID, err)
 				return
 			}
-			ctx.PrivateUserErrorf(http.StatusForbidden, "branch %s is protected from unverified commit %s", branchName, errUnverified.sha)
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from unverified commit %s", branchName, errUnverified.sha)
 			return
 		}
 	}
@@ -259,7 +259,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			//
 			// We are changing a protected file, and we're not allowed to do that
 			if changedProtectedfiles {
-				ctx.PrivateUserErrorf(http.StatusForbidden, "branch %s is protected from changing file %s", branchName, protectedFilePath)
+				ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
 				return
 			}
 
@@ -314,7 +314,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 		// Now if we're not an admin - we can't overwrite protected files so fail now
 		if changedProtectedfiles {
-			ctx.PrivateUserErrorf(http.StatusForbidden, "branch %s is protected from changing file %s", branchName, protectedFilePath)
+			ctx.PrivateUserErrorf(http.StatusForbidden, "Branch %s is protected from changing file %s", branchName, protectedFilePath)
 			return
 		}
 
