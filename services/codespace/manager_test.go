@@ -25,7 +25,6 @@ func TestNormalizeDeclareManagerOptions(t *testing.T) {
 	opts := validDeclareManagerOptions()
 	opts.GatewayURL = "https://WorkSpace.EXAMPLE.com:443/"
 	opts.GatewaySSHAddr = "WorkSpace.EXAMPLE.com:0022"
-	opts.Name = " manager "
 	opts.Version = " 1.0.0 "
 	opts.GatewaySSHHostKeyAlgorithm = " ssh-ed25519 "
 	opts.GatewaySSHHostKeyFingerprintSHA256 = " SHA256:abc "
@@ -34,7 +33,6 @@ func TestNormalizeDeclareManagerOptions(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "https://workspace.example.com", normalized.GatewayURL)
 	assert.Equal(t, "workspace.example.com:22", normalized.GatewaySSHAddr)
-	assert.Equal(t, "manager", normalized.Name)
 	assert.Equal(t, "1.0.0", normalized.Version)
 	assert.Equal(t, "ssh-ed25519", normalized.GatewaySSHHostKeyAlgorithm)
 	assert.Equal(t, "SHA256:abc", normalized.GatewaySSHHostKeyFingerprintSHA256)
@@ -408,7 +406,6 @@ func validDeclareManagerOptions() DeclareManagerOptions {
 		GatewaySSHAddr:                     "workspace.example.com:22",
 		Environments:                       []*codespacev1.EnvironmentTag{{Tag: "default"}},
 		Version:                            "1.0.0",
-		Name:                               "manager",
 		RuntimeState:                       codespacev1.ManagerRuntimeState_MANAGER_RUNTIME_STATE_ONLINE,
 		GatewaySSHHostKeyAlgorithm:         "ssh-ed25519",
 		GatewaySSHHostKeyFingerprintSHA256: "SHA256:abc",

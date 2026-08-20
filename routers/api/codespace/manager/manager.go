@@ -44,7 +44,6 @@ func (s *Service) DeclareManager(
 		GatewaySSHAddr:                     req.Msg.GetGatewaySshAddr(),
 		Environments:                       req.Msg.GetEnvironments(),
 		Version:                            req.Msg.GetVersion(),
-		Name:                               req.Msg.GetName(),
 		RuntimeState:                       req.Msg.GetManagerRuntimeState(),
 		GatewaySSHHostKeyAlgorithm:         req.Msg.GetGatewaySshHostKeyAlgorithm(),
 		GatewaySSHHostKeyFingerprintSHA256: req.Msg.GetGatewaySshHostKeyFingerprintSha256(),

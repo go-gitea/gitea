@@ -17,15 +17,32 @@ import (
 func TestCreateManagerReturnsOneTimeSecret(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	opts := ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 1}
+	opts := CreateManagerOptions{
+		ManagerSettingsOptions: ManagerSettingsOptions{Scope: ManagerSettingsScopeUser, UserID: 1},
+		Name:                   " Personal Manager ",
+	}
 	result, err := CreateManager(t.Context(), opts)
 	require.NoError(t, err)
 	require.NotZero(t, result.ManagerID)
+	assert.Equal(t, "Personal Manager", result.Name)
 	require.NotEmpty(t, result.Secret)
 	manager, err := AuthenticateManager(t.Context(), result.ManagerID, result.Secret)
 	require.NoError(t, err)
+	assert.Equal(t, "Personal Manager", manager.Name)
 	assert.EqualValues(t, 1, manager.UserID)
 	assert.Equal(t, codespace_model.ManagerRuntimeStateRecovering, manager.RuntimeState)
+}
+
+func TestCreateManagerRejectsInvalidName(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	for _, name := range []string{"", " \t ", "bad\nname"} {
+		_, err := CreateManager(t.Context(), CreateManagerOptions{
+			ManagerSettingsOptions: ManagerSettingsOptions{Scope: ManagerSettingsScopeSite},
+			Name:                   name,
+		})
+		require.ErrorIs(t, err, ErrManagerSettingsNameInvalid)
+	}
 }
 
 func TestListManagerSettingsScopesAndDeleteManager(t *testing.T) {
@@ -158,9 +175,12 @@ func TestPersonalManagerDeleteRejectsForeignBindingBeforeCleanup(t *testing.T) {
 func TestManagerSettingsRequireIndividualUser(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
-	_, err := CreateManager(t.Context(), ManagerSettingsOptions{
-		Scope:  ManagerSettingsScopeUser,
-		UserID: 3,
+	_, err := CreateManager(t.Context(), CreateManagerOptions{
+		ManagerSettingsOptions: ManagerSettingsOptions{
+			Scope:  ManagerSettingsScopeUser,
+			UserID: 3,
+		},
+		Name: "Manager",
 	})
 	require.ErrorContains(t, err, "not an individual")
 }

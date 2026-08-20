@@ -31,7 +31,10 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	client, cleanup := newManagerTestClient(t)
 	defer cleanup()
 
-	created, err := codespace_service.CreateManager(t.Context(), codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite})
+	created, err := codespace_service.CreateManager(t.Context(), codespace_service.CreateManagerOptions{
+		ManagerSettingsOptions: codespace_service.ManagerSettingsOptions{Scope: codespace_service.ManagerSettingsScopeSite},
+		Name:                   "Gitea Manager",
+	})
 	require.NoError(t, err)
 	require.Positive(t, created.ManagerID)
 	require.NotEmpty(t, created.Secret)
@@ -42,7 +45,6 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 		GatewaySshAddr:                     "WorkSpace.EXAMPLE.com:0022",
 		Environments:                       []*codespacev1.EnvironmentTag{{Tag: "Default", Description: "Default environment"}, {Tag: "incus"}},
 		Version:                            " 0.1.0 ",
-		Name:                               " manager-one ",
 		ManagerRuntimeState:                codespacev1.ManagerRuntimeState_MANAGER_RUNTIME_STATE_ONLINE,
 		GatewaySshHostKeyAlgorithm:         " ssh-ed25519 ",
 		GatewaySshHostKeyFingerprintSha256: " SHA256:test ",
@@ -76,7 +78,7 @@ func TestManagerServiceProtocolAuthenticationAndDeclaration(t *testing.T) {
 	has, err := db.GetEngine(t.Context()).ID(created.ManagerID).Get(manager)
 	require.NoError(t, err)
 	require.True(t, has)
-	assert.Equal(t, "manager-one", manager.Name)
+	assert.Equal(t, "Gitea Manager", manager.Name)
 	assert.JSONEq(t, `[{"tag":"default","description":"Default environment"},{"tag":"incus"}]`, manager.TagsJSON)
 	assert.Equal(t, "0.1.0", manager.Version)
 	assert.Equal(t, "ssh-ed25519", manager.GatewaySSHHostKeyAlgorithm)
@@ -417,7 +419,6 @@ func managerTestDeclaration(gatewayURL, gatewaySSHAddr string) *codespacev1.Decl
 		GatewaySshAddr:                     gatewaySSHAddr,
 		Environments:                       []*codespacev1.EnvironmentTag{{Tag: "default"}},
 		Version:                            "0.1.0",
-		Name:                               "manager",
 		ManagerRuntimeState:                codespacev1.ManagerRuntimeState_MANAGER_RUNTIME_STATE_ONLINE,
 		GatewaySshHostKeyAlgorithm:         "ssh-ed25519",
 		GatewaySshHostKeyFingerprintSha256: "SHA256:test",

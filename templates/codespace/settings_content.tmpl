@@ -2,23 +2,9 @@
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "codespace.managers"}} ({{ctx.Locale.Tr "admin.total" .ManagerTotal}})
 		<div class="ui right">
-			<form class="ignore-dirty tw-m-0" method="post" action="{{$.ActionBase}}/create">
-				{{$.CsrfTokenHtml}}
-				<button class="ui primary tiny button" type="submit">{{ctx.Locale.Tr "codespace.new_manager"}}</button>
-			</form>
+			<button class="ui primary tiny button show-modal" type="button" data-modal="#codespace-manager-create-modal">{{ctx.Locale.Tr "codespace.new_manager"}}</button>
 		</div>
 	</h4>
-	{{if .NewManagerSecret}}
-		<div class="ui attached info segment">
-			<div class="tw-font-semibold tw-mb-2">{{ctx.Locale.Tr "codespace.manager_secret_created" .NewManagerID}}</div>
-			<div class="ui action input">
-				<input type="text" value="{{.NewManagerSecret}}" readonly>
-				<button class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.NewManagerSecret}}">
-					{{svg "octicon-copy" 14}}
-				</button>
-			</div>
-		</div>
-	{{end}}
 	{{if .ManagerSettings.Managers}}
 		<div class="ui attached table segment">
 			<table class="ui very basic table unstackable">
@@ -66,5 +52,39 @@
 	{{if .IsSiteManagerSettings}}
 		<h4 class="ui top attached header tw-mt-4">{{ctx.Locale.Tr "codespace.unassigned_codespaces"}} ({{.CodespaceTotal}})</h4>
 		{{template "codespace/manager_codespaces" .}}
+	{{end}}
+
+	<form id="codespace-manager-create-modal" class="ui small modal form ignore-dirty" method="post" action="{{$.ActionBase}}/create">
+		{{$.CsrfTokenHtml}}
+		<div class="header">{{ctx.Locale.Tr "codespace.new_manager"}}</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "codespace.manager_create_description"}}</p>
+			<div class="required field">
+				<label for="codespace-manager-name">{{ctx.Locale.Tr "codespace.manager_name"}}</label>
+				<input id="codespace-manager-name" name="name" maxlength="255" required>
+			</div>
+		</div>
+		<div class="actions">
+			<button class="ui cancel button" type="button">{{ctx.Locale.Tr "cancel"}}</button>
+			<button class="ui primary button" type="submit">{{ctx.Locale.Tr "codespace.manager_create"}}</button>
+		</div>
+	</form>
+
+	{{if .NewManagerSecret}}
+		<div class="ui small modal" data-global-init="initCodespaceManagerSecretModal">
+			<div class="header">{{ctx.Locale.Tr "codespace.new_manager"}}</div>
+			<div class="content">
+				<p>{{ctx.Locale.Tr "codespace.manager_secret_created" .NewManagerName .NewManagerID}}</p>
+				<div class="ui fluid action input">
+					<input type="text" value="{{.NewManagerSecret}}" readonly>
+					<button class="ui basic label button" aria-label="{{ctx.Locale.Tr "copy"}}" data-clipboard-text="{{.NewManagerSecret}}">
+						{{svg "octicon-copy" 14}}
+					</button>
+				</div>
+			</div>
+			<div class="actions">
+				<button class="ui primary ok button">{{svg "octicon-check"}} {{ctx.Locale.Tr "modal.confirm"}}</button>
+			</div>
+		</div>
 	{{end}}
 </div>

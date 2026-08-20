@@ -1,4 +1,5 @@
 import {attachSearchBox} from '../../modules/search.ts';
+import {showFomanticModal} from '../../modules/fomantic/modal.ts';
 import {hideElem, showElem} from '../../utils/dom.ts';
 import {svg} from '../../svg.ts';
 
@@ -86,4 +87,8 @@ export function initCodespaceSecretRepositoryPicker(root: HTMLElement) {
     }
   }
   reset([], false);
+}
+
+export function initCodespaceManagerSecretModal(modal: HTMLElement) {
+  showFomanticModal(modal);
 }

@@ -313,9 +313,12 @@ func handleManagerDelete(ctx *context.Context, opts managerSettingsRenderOptions
 }
 
 func handleManagerSettingsCreateManager(ctx *context.Context, opts managerSettingsRenderOptions) {
-	result, err := codespace_service.CreateManager(ctx, codespace_service.ManagerSettingsOptions{
-		Scope:  opts.Scope,
-		UserID: opts.UserID,
+	result, err := codespace_service.CreateManager(ctx, codespace_service.CreateManagerOptions{
+		ManagerSettingsOptions: codespace_service.ManagerSettingsOptions{
+			Scope:  opts.Scope,
+			UserID: opts.UserID,
+		},
+		Name: ctx.FormString("name"),
 	})
 	if err != nil {
 		handleManagerSettingsActionError(ctx, opts.ActionBase, err)
@@ -325,6 +328,7 @@ func handleManagerSettingsCreateManager(ctx *context.Context, opts managerSettin
 		return
 	}
 	ctx.Data["NewManagerID"] = result.ManagerID
+	ctx.Data["NewManagerName"] = result.Name
 	ctx.Data["NewManagerSecret"] = result.Secret
 	ctx.HTML(http.StatusOK, opts.Template)
 }
@@ -338,6 +342,9 @@ func handleManagerSettingsActionError(ctx *context.Context, redirectTo string, e
 		ctx.Redirect(redirectTo, http.StatusSeeOther)
 	case errors.Is(err, codespace_service.ErrManagerSettingsOwnershipConflict):
 		ctx.Flash.Error(ctx.Tr("codespace.manager_ownership_conflict"))
+		ctx.Redirect(redirectTo, http.StatusSeeOther)
+	case errors.Is(err, codespace_service.ErrManagerSettingsNameInvalid):
+		ctx.Flash.Error(ctx.Tr("codespace.manager_name_invalid"))
 		ctx.Redirect(redirectTo, http.StatusSeeOther)
 	default:
 		ctx.ServerError("CodespaceManagerSettingsAction", err)

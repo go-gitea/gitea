@@ -44,7 +44,6 @@ type DeclareManagerOptions struct {
 	GatewaySSHAddr                     string
 	Environments                       []*codespacev1.EnvironmentTag
 	Version                            string
-	Name                               string
 	RuntimeState                       codespacev1.ManagerRuntimeState
 	GatewaySSHHostKeyAlgorithm         string
 	GatewaySSHHostKeyFingerprintSHA256 string
@@ -160,7 +159,6 @@ func DeclareManager(ctx context.Context, manager *codespace_model.Manager, opts 
 			}
 			now := time.Now().Unix()
 			updates := &codespace_model.Manager{
-				Name:                               opts.Name,
 				TagsJSON:                           string(tagsJSON),
 				RuntimeState:                       managerRuntimeStateName(opts.RuntimeState),
 				LastOnlineUnix:                     now,
@@ -170,7 +168,7 @@ func DeclareManager(ctx context.Context, manager *codespace_model.Manager, opts 
 				GatewaySSHHostKeyUpdatedUnix:       opts.GatewaySSHHostKeyUpdatedUnix,
 			}
 			affected, err := db.GetEngine(ctx).ID(currentManager.ID).Cols(
-				"name", "tags_json", "runtime_state", "last_online_unix", "version",
+				"tags_json", "runtime_state", "last_online_unix", "version",
 				"gateway_ssh_host_key_algorithm", "gateway_ssh_host_key_fingerprint_sha256", "gateway_ssh_host_key_updated_unix",
 			).Update(updates)
 			if err != nil {
@@ -195,13 +193,6 @@ func DeclareManager(ctx context.Context, manager *codespace_model.Manager, opts 
 }
 
 func normalizeDeclareManagerOptions(opts DeclareManagerOptions) (DeclareManagerOptions, error) {
-	opts.Name = strings.TrimSpace(opts.Name)
-	if opts.Name == "" {
-		return opts, errors.New("manager name is required")
-	}
-	if len(opts.Name) > 255 {
-		return opts, errors.New("manager name is too long")
-	}
 	opts.Version = strings.TrimSpace(opts.Version)
 	if opts.Version == "" {
 		return opts, errors.New("manager version is required")

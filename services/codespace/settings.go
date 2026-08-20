@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+	"unicode"
 
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
@@ -29,6 +31,8 @@ var (
 	ErrManagerSettingsConfirmRequired = errors.New("codespace manager settings confirmation required")
 	// ErrManagerSettingsOwnershipConflict is returned before personal deletion when a binding crosses the owner scope.
 	ErrManagerSettingsOwnershipConflict = errors.New("codespace manager contains a Codespace outside the owner scope")
+	// ErrManagerSettingsNameInvalid is returned when a Manager display name cannot be stored.
+	ErrManagerSettingsNameInvalid = errors.New("codespace manager name is invalid")
 )
 
 // ManagerSettingsOptions selects site-wide or personal Codespace settings.
@@ -45,9 +49,16 @@ type DeleteManagerOptions struct {
 	Confirm   bool
 }
 
+// CreateManagerOptions contains the settings scope and Gitea-managed display name.
+type CreateManagerOptions struct {
+	ManagerSettingsOptions
+	Name string
+}
+
 // CreateManagerResult returns the Manager identity and one-time plaintext secret.
 type CreateManagerResult struct {
 	ManagerID int64
+	Name      string
 	Secret    string
 }
 
@@ -147,8 +158,12 @@ func GetManagerDetail(ctx context.Context, opts ManagerDetailOptions) (*ManagerD
 }
 
 // CreateManager creates a Manager identity and returns its secret once.
-func CreateManager(ctx context.Context, opts ManagerSettingsOptions) (*CreateManagerResult, error) {
-	if err := validateManagerSettingsScope(ctx, opts); err != nil {
+func CreateManager(ctx context.Context, opts CreateManagerOptions) (*CreateManagerResult, error) {
+	name, err := normalizeManagerDisplayName(opts.Name)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateManagerSettingsScope(ctx, opts.ManagerSettingsOptions); err != nil {
 		return nil, err
 	}
 	userID := opts.UserID
@@ -156,12 +171,13 @@ func CreateManager(ctx context.Context, opts ManagerSettingsOptions) (*CreateMan
 		userID = 0
 	}
 	result := new(CreateManagerResult)
-	err := globallock.LockAndDo(ctx, codespaceUserRelationLockKey(userID), func(ctx context.Context) error {
+	err = globallock.LockAndDo(ctx, codespaceUserRelationLockKey(userID), func(ctx context.Context) error {
 		return db.WithTx(ctx, func(ctx context.Context) error {
-			if err := validateManagerSettingsScope(ctx, opts); err != nil {
+			if err := validateManagerSettingsScope(ctx, opts.ManagerSettingsOptions); err != nil {
 				return err
 			}
 			manager := &codespace_model.Manager{
+				Name:         name,
 				UserID:       userID,
 				RuntimeState: codespace_model.ManagerRuntimeStateRecovering,
 				TagsJSON:     "[]",
@@ -172,6 +188,7 @@ func CreateManager(ctx context.Context, opts ManagerSettingsOptions) (*CreateMan
 				return err
 			}
 			result.ManagerID = manager.ID
+			result.Name = manager.Name
 			return nil
 		})
 	})
@@ -179,6 +196,19 @@ func CreateManager(ctx context.Context, opts ManagerSettingsOptions) (*CreateMan
 		return nil, err
 	}
 	return result, nil
+}
+
+func normalizeManagerDisplayName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" || len(name) > 255 {
+		return "", ErrManagerSettingsNameInvalid
+	}
+	for _, r := range name {
+		if unicode.IsControl(r) {
+			return "", ErrManagerSettingsNameInvalid
+		}
+	}
+	return name, nil
 }
 
 // DeleteManager removes one Manager identity and all Gitea records bound to it.
