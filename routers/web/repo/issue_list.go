@@ -19,7 +19,6 @@ import (
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	db_indexer "gitea.dev/modules/indexer/issues/db"
-	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -63,8 +62,7 @@ func SearchIssues(ctx *context.Context) {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 		} else {
-			log.Error("SearchIssuesRepoIDs: %v", err)
-			ctx.HTTPError(http.StatusInternalServerError)
+			ctx.ServerError("SearchIssuesRepoIDs", err)
 		}
 		return
 	}
@@ -85,7 +83,7 @@ func SearchIssues(ctx *context.Context) {
 		}
 		includedAnyLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "GetLabelIDsByNames", err.Error())
+			ctx.ServerError("GetLabelIDsByNames", err)
 			return
 		}
 	}
@@ -99,7 +97,7 @@ func SearchIssues(ctx *context.Context) {
 		}
 		includedMilestones, err = issues_model.GetMilestoneIDsByNames(ctx, includedMilestoneNames)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "GetMilestoneIDsByNames", err.Error())
+			ctx.ServerError("GetMilestoneIDsByNames", err)
 			return
 		}
 	}
@@ -163,12 +161,12 @@ func SearchIssues(ctx *context.Context) {
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "SearchIssues", err.Error())
+		ctx.ServerError("SearchIssues", err)
 		return
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
+		ctx.ServerError("FindIssuesByIDs", err)
 		return
 	}
 
