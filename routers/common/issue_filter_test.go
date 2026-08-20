@@ -15,20 +15,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// When allPublic is set, the repository IDs handed to the issue indexer must not
-// contain public repositories: the indexer matches those on its own, so
-// enumerating them produces an IN list that grows with the size of the instance.
 func TestSearchIssuesRepoIDsSkipsPublicRepos(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	cases := []struct {
-		name string
-		// user1 is a site administrator: SearchRepositoryCondition skips the
-		// accessible repository condition for admins, so a regression enumerates
-		// every row of the repository table.
+		name   string
 		userID int64
 	}{
-		{name: "site admin", userID: 1},
+		{name: "site admin", userID: 1}, // admins skip the accessible repository condition entirely
 		{name: "regular user", userID: 2},
 	}
 
@@ -42,10 +36,7 @@ func TestSearchIssuesRepoIDsSkipsPublicRepos(t *testing.T) {
 			})
 			require.NoError(t, err)
 			assert.True(t, allPublic, "public repositories must be left to the indexer")
-			// repo2 is private and owned by user2, and user1 is an administrator, so
-			// both users reach it. Asserting it is still listed makes a filter that
-			// narrows too far fail here rather than silently drop results.
-			assert.Contains(t, repoIDs, int64(2))
+			assert.Contains(t, repoIDs, int64(2)) // a private repo both users reach, so narrowing too far also fails
 
 			for _, repoID := range repoIDs {
 				repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
@@ -56,20 +47,16 @@ func TestSearchIssuesRepoIDsSkipsPublicRepos(t *testing.T) {
 	}
 }
 
-// An anonymous request reaches no private repository at all, so the whole filter
-// collapses to the indexer's allPublic flag.
 func TestSearchIssuesRepoIDsAnonymous(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	repoIDs, allPublic, err := SearchIssuesRepoIDs(t.Context(), SearchIssuesRepoIDsOptions{})
 	require.NoError(t, err)
 	assert.True(t, allPublic)
-	// The placeholder keeps the indexer from falling back to "every repository".
-	assert.Equal(t, []int64{0}, repoIDs)
+	assert.Equal(t, []int64{0}, repoIDs) // the placeholder keeps the indexer off "every repository"
 }
 
-// Filtering by owner turns the allPublic flag off, so the enumeration has to keep
-// returning that owner's public repositories.
+// Filtering by owner turns allPublic off, so public repos must still be enumerated.
 func TestSearchIssuesRepoIDsWithOwner(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 

@@ -31,8 +31,6 @@ func ParseIssueFilterTypeIsPull(typ string) optional.Option[bool] {
 	return optional.FromMapLookup(map[string]bool{"pulls": true, "issues": false}, typ)
 }
 
-// SearchIssuesRepoIDsOptions describes the request-scoped inputs needed to resolve
-// the repository filter of an issue search.
 type SearchIssuesRepoIDsOptions struct {
 	Doer       *user_model.User
 	IsSigned   bool
@@ -41,13 +39,8 @@ type SearchIssuesRepoIDsOptions struct {
 	TeamName   string
 }
 
-// SearchIssuesRepoIDs resolves the repository filter for an issue search.
-//
-// The returned allPublic flag means "and every public repository on top of
-// repoIDs". It is left to the issue indexer, which matches public repositories on
-// its own, so repoIDs only ever needs to carry private repositories in that case.
-// Enumerating public repositories here would produce a repository ID list that
-// grows with the size of the instance.
+// SearchIssuesRepoIDs resolves the repository filter of an issue search.
+// allPublic means "plus every public repository", which the indexer matches itself.
 func SearchIssuesRepoIDs(ctx context.Context, o SearchIssuesRepoIDsOptions) (repoIDs []int64, allPublic bool, err error) {
 	opts := repo_model.SearchRepoOptions{
 		Private:     false,
@@ -87,12 +80,8 @@ func SearchIssuesRepoIDs(ctx context.Context, o SearchIssuesRepoIDsOptions) (rep
 
 	if opts.AllPublic {
 		allPublic = true
-		opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
-		// The indexer already matches every public repository through the AllPublic
-		// flag, so enumerating them here would only produce a huge and redundant
-		// repository ID list. Restrict the query to private repositories, which the
-		// indexer cannot match on its own.
-		opts.IsPrivate = optional.Some(true)
+		opts.AllPublic = false               // set it false to avoid returning too many repos, we could filter by indexer
+		opts.IsPrivate = optional.Some(true) // enumerating public repos too would scale the ID list with the instance
 	}
 	repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 	if err != nil {
