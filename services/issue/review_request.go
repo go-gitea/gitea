@@ -99,7 +99,9 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			return nil
 		}
 
-		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastReview != nil && lastReview.Type != issues_model.ReviewTypeRequest {
+		// the poster may ask for another review, the reviewer may retract their own one
+		if lastReview != nil && lastReview.Type != issues_model.ReviewTypeRequest &&
+			(doer.ID == reviewer.ID || (doer.ID == issue.PosterID && issue.OriginalAuthorID == 0)) {
 			return nil
 		}
 

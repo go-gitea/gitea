@@ -351,14 +351,8 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 			tmp.ItemID = -review.ReviewerTeamID
 		}
 
-		if data.CanChooseReviewer {
-			// Users who can choose reviewers can also remove review requests
-			tmp.CanChange = true
-		} else if ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID &&
-			(review.Type == issues_model.ReviewTypeRequest || review.Type == issues_model.ReviewTypeApprove) {
-			// A user can refuse review requests or retract their own approval
-			tmp.CanChange = true
-		}
+		// reviewers may always change their own review, others need to be able to choose reviewers
+		tmp.CanChange = data.CanChooseReviewer || (ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID)
 
 		pullReviews = append(pullReviews, tmp)
 

@@ -223,10 +223,7 @@ func (r *Review) HTMLTypeColorClass() string {
 	case ReviewTypeReject:
 		return "tw-text-red"
 	case ReviewTypeRequest:
-		if r.Official {
-			return "tw-text-yellow"
-		}
-		return "tw-text-text-light"
+		return util.Iif(r.Official, "tw-text-yellow", "tw-text-text-light")
 	}
 	return "tw-text-text-light"
 }
@@ -853,12 +850,6 @@ func AddTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organizat
 			Stale:        false,
 		}); err != nil {
 			return nil, err
-		}
-
-		if official {
-			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_team_id=?", false, issue.ID, reviewer.ID); err != nil {
-				return nil, err
-			}
 		}
 
 		comment, err := CreateComment(ctx, &CreateCommentOptions{
