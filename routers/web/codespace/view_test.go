@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"testing"
 
+	codespacev1 "gitea.dev/codespace-proto-go/codespace/v1"
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
@@ -88,7 +89,9 @@ func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, codespaceUUID, view.UUID)
 	assert.Equal(t, codespace_service.DetailModeLogs, ctx.Data["CodespaceTab"])
-	assert.False(t, ctx.Data["CodespaceTabExplicit"].(bool))
+	explicit, ok := ctx.Data["CodespaceTabExplicit"].(bool)
+	require.True(t, ok)
+	assert.False(t, explicit)
 }
 
 func TestDetailPreservesExplicitOverviewTab(t *testing.T) {
@@ -110,7 +113,9 @@ func TestDetailPreservesExplicitOverviewTab(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, codespace_service.DetailModeOverview, ctx.Data["CodespaceTab"])
-	assert.True(t, ctx.Data["CodespaceTabExplicit"].(bool))
+	explicit, ok := ctx.Data["CodespaceTabExplicit"].(bool)
+	require.True(t, ok)
+	assert.True(t, explicit)
 	assert.NotContains(t, resp.Body.String(), "data-log-next-offset=\"0\"")
 }
 
@@ -122,8 +127,11 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 94)
 	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 	require.NoError(t, codespace_service.ReportRuntimeMetadata(t.Context(), manager, codespace_service.ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
-		Metadata:           webOpenRuntimeMetadata(t, 94, []map[string]any{{"endpoint_id": "app-3000", "label": "App", "public": false}}),
+		CodespaceUUID: codespaceUUID,
+		Metadata: webOpenRuntimeMetadata(t, 94, []*codespacev1.RuntimeEndpoint{{
+			EndpointId: "app-3000",
+			Label:      "App",
+		}}),
 		MetadataGeneration: 1,
 	}))
 

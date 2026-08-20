@@ -103,6 +103,13 @@ func Create(ctx *context.Context) {
 
 func renderCreateConfirm(ctx *context.Context, status int, plan *codespace_service.CreateCodespacePlan, opts codespace_service.CreateCodespaceOptions, errorMessage template.HTML) {
 	ctx.RespHeader().Set("Cache-Control", "no-store")
+	selectedEnvironment := ""
+	for _, environment := range plan.Environments {
+		if environment.Selected {
+			selectedEnvironment = environment.Tag
+			break
+		}
+	}
 	permissionRepositories := make([]createPermissionRepository, 0)
 	permissionGrants := make(map[string]string, len(plan.Permissions))
 	for _, permission := range plan.Permissions {
@@ -117,15 +124,19 @@ func renderCreateConfirm(ctx *context.Context, status int, plan *codespace_servi
 		}
 	}
 	secretEnabled := make(map[string]bool, len(plan.RecommendedSecrets))
+	hasPendingRecommendedSecret := false
 	for _, secret := range plan.RecommendedSecrets {
 		secretEnabled[secret.Name] = opts.RecommendedSecretEnabled[secret.Name]
+		hasPendingRecommendedSecret = hasPendingRecommendedSecret || !secret.Available
 	}
 
 	ctx.Data["Title"] = ctx.Tr("codespace.confirm_create")
 	ctx.Data["CreatePlan"] = plan
+	ctx.Data["CreateSelectedEnvironment"] = selectedEnvironment
 	ctx.Data["CreatePermissionRepositories"] = permissionRepositories
 	ctx.Data["CreatePermissionGrants"] = permissionGrants
 	ctx.Data["CreateRecommendedSecretEnabled"] = secretEnabled
+	ctx.Data["CreateHasPendingRecommendedSecret"] = hasPendingRecommendedSecret
 	ctx.Data["CreateError"] = errorMessage
 	ctx.HTML(status, tplCodespaceCreateConfirm)
 }

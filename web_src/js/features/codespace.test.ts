@@ -1,5 +1,6 @@
 import {initCodespaceCreateForm, initCodespaceLiveState} from './codespace.ts';
 import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
+import {captureNavigations} from '../utils/testhelper.ts';
 
 vi.mock('../modules/fomantic/modal.ts', () => ({hideFomanticModal: vi.fn(), showFomanticModal: vi.fn()}));
 vi.mock('../modules/fomantic/base.ts', () => ({
@@ -46,35 +47,31 @@ test('codespace create environment selection updates its explanation', () => {
 });
 
 test('codespace create configuration preview preserves its source and environment', () => {
-  const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
-  try {
-    document.body.innerHTML = `
-      <form data-codespace-create-form>
-        <input name="environment_tag" value="standard">
-        <select data-codespace-dev-container data-preview-url="/owner/repo/codespaces/new"
-          data-ref-type="branch" data-ref-name="main">
-          <option value=".devcontainer/devcontainer.json">Default</option>
-          <option value=".devcontainer/node/devcontainer.json">Node</option>
-        </select>
-      </form>`;
+  const navigations = captureNavigations();
+  document.body.innerHTML = `
+    <form data-codespace-create-form>
+      <input name="environment_tag" value="standard">
+      <select data-codespace-dev-container data-preview-url="/owner/repo/codespaces/new"
+        data-ref-type="branch" data-ref-name="main">
+        <option value=".devcontainer/devcontainer.json">Default</option>
+        <option value=".devcontainer/node/devcontainer.json">Node</option>
+      </select>
+    </form>`;
 
-    initCodespaceCreateForm();
-    const select = document.querySelector<HTMLSelectElement>('[data-codespace-dev-container]')!;
-    select.value = '.devcontainer/node/devcontainer.json';
-    select.dispatchEvent(new Event('change'));
+  initCodespaceCreateForm();
+  const select = document.querySelector<HTMLSelectElement>('[data-codespace-dev-container]')!;
+  select.value = '.devcontainer/node/devcontainer.json';
+  select.dispatchEvent(new Event('change'));
 
-    const previewURL = new URL(String(assignSpy.mock.calls[0][0]));
-    expect(previewURL.pathname).toBe('/owner/repo/codespaces/new');
-    expect(Object.fromEntries(previewURL.searchParams)).toEqual({
-      ref_type: 'branch',
-      ref_name: 'main',
-      dev_container: '.devcontainer/node/devcontainer.json',
-      environment_tag: 'standard',
-    });
-  } finally {
-    assignSpy.mockRestore();
-    document.body.replaceChildren();
-  }
+  const previewURL = new URL(navigations.at(-1)!.url);
+  expect(previewURL.pathname).toBe('/owner/repo/codespaces/new');
+  expect(Object.fromEntries(previewURL.searchParams)).toEqual({
+    ref_type: 'branch',
+    ref_name: 'main',
+    dev_container: '.devcontainer/node/devcontainer.json',
+    environment_tag: 'standard',
+  });
+  document.body.replaceChildren();
 });
 
 test('initCodespaceLiveState opens the gateway recovery modal', () => {
@@ -116,9 +113,9 @@ test('initCodespaceLiveState refreshes the state fragment', {concurrent: false},
 
     initCodespaceLiveState();
     await vi.advanceTimersByTimeAsync(10);
+    await vi.waitFor(() => expect(document.querySelector('#codespace-live-state')!.textContent).toContain('new'));
 
     expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/uuid/state', expect.objectContaining({method: 'GET'}));
-    expect(document.querySelector('#codespace-live-state')!.textContent).toContain('new');
   } finally {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -200,11 +197,12 @@ test('initCodespaceLiveState immediately appends structured log lines', {concurr
     Object.defineProperties(logView, {
       clientHeight: {value: 100},
       scrollHeight: {value: 200},
+      scrollTop: {value: 100, writable: true},
     });
-    logView.scrollTop = 100;
 
     initCodespaceLiveState();
     await vi.advanceTimersByTimeAsync(0);
+    await vi.waitFor(() => expect(logView.querySelectorAll('.codespace-log-line-message')).toHaveLength(2));
 
     expect(fetchMock).toHaveBeenCalledWith('/-/codespaces/uuid/logs?offset=0', expect.objectContaining({method: 'GET'}));
     expect(Array.from(logView.querySelectorAll('.codespace-log-line-number'), (el) => el.textContent)).toEqual(['1', '2']);
@@ -238,11 +236,12 @@ test('codespace log refresh preserves a reader position away from the bottom', {
     Object.defineProperties(logView, {
       clientHeight: {value: 100},
       scrollHeight: {value: 300},
+      scrollTop: {value: 80, writable: true},
     });
-    logView.scrollTop = 80;
 
     initCodespaceLiveState();
     await vi.advanceTimersByTimeAsync(0);
+    await vi.waitFor(() => expect(logView.querySelector('.codespace-log-line-message')).not.toBeNull());
 
     expect(logView.querySelector('.codespace-log-line-message')!.textContent).toBe('third');
     expect(logView.scrollTop).toBe(80);

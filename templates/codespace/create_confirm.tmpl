@@ -34,65 +34,73 @@
 				{{end}}
 
 				<div class="ui attached segment codespace-create-section">
-					<h4 class="ui header">{{ctx.Locale.Tr "codespace.development_environment"}}</h4>
-					<div class="codespace-create-environment-fields">
-						<div class="required field">
-							<label for="codespace-environment-tag">{{ctx.Locale.Tr "codespace.runtime_environment"}}</label>
-							{{$selectedEnvironment := ""}}
-							{{range .CreatePlan.Environments}}{{if .Selected}}{{$selectedEnvironment = .Tag}}{{end}}{{end}}
-							<div id="codespace-environment-tag" class="ui fluid selection dropdown" tabindex="0">
-								<input type="hidden" name="environment_tag" value="{{$selectedEnvironment}}">
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="{{if not $selectedEnvironment}}default {{end}}text" data-codespace-environment-text>{{if $selectedEnvironment}}{{$selectedEnvironment}}{{else}}{{ctx.Locale.Tr "codespace.environment_select"}}{{end}}</div>
-								<div class="menu">
-									{{range .CreatePlan.Environments}}
-										<div class="item codespace-create-environment-option" data-value="{{.Tag}}" data-text="{{.Tag}}">
-											<div class="codespace-create-environment-title">
-												<strong>{{.Tag}}</strong>
-												<span class="ui tiny {{if .Online}}green{{else}}basic{{end}} label">{{if .Online}}{{ctx.Locale.Tr "codespace.manager_status.online"}}{{else}}{{ctx.Locale.Tr "codespace.manager_status.offline"}}{{end}}</span>
+						<h4 class="ui header">{{ctx.Locale.Tr "codespace.development_environment"}}</h4>
+						<div class="codespace-create-environment-fields">
+							<div class="required field">
+								<label for="codespace-environment-tag">{{ctx.Locale.Tr "codespace.runtime_environment"}}</label>
+								<div id="codespace-environment-tag" class="ui fluid selection dropdown" tabindex="0">
+									<input type="hidden" name="environment_tag" value="{{.CreateSelectedEnvironment}}">
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+									<div class="{{if not .CreateSelectedEnvironment}}default {{end}}text" data-codespace-environment-text>
+										{{if .CreateSelectedEnvironment}}{{.CreateSelectedEnvironment}}{{else}}{{ctx.Locale.Tr "codespace.environment_select"}}{{end}}
+									</div>
+									<div class="menu">
+										{{range $environment := .CreatePlan.Environments}}
+											<div class="item codespace-create-environment-option" data-value="{{$environment.Tag}}" data-text="{{$environment.Tag}}">
+												<div class="codespace-create-environment-title">
+													<strong>{{$environment.Tag}}</strong>
+													<span class="ui tiny {{if $environment.Online}}green{{else}}basic{{end}} label">
+														{{if $environment.Online}}{{ctx.Locale.Tr "codespace.manager_status.online"}}{{else}}{{ctx.Locale.Tr "codespace.manager_status.offline"}}{{end}}
+													</span>
+												</div>
+												{{if $environment.Description}}<div class="codespace-create-environment-description">{{$environment.Description}}</div>{{end}}
+												<div class="codespace-create-environment-source">
+													{{if and $environment.Site $environment.Personal}}{{ctx.Locale.Tr "codespace.environment_source_both"}}{{else if $environment.Personal}}{{ctx.Locale.Tr "codespace.environment_source_personal"}}{{else}}{{ctx.Locale.Tr "codespace.environment_source_site"}}{{end}}
+												</div>
 											</div>
-											{{if .Description}}<div class="codespace-create-environment-description">{{.Description}}</div>{{end}}
-											<div class="codespace-create-environment-source">{{if and .Site .Personal}}{{ctx.Locale.Tr "codespace.environment_source_both"}}{{else if .Personal}}{{ctx.Locale.Tr "codespace.environment_source_personal"}}{{else}}{{ctx.Locale.Tr "codespace.environment_source_site"}}{{end}}</div>
-										</div>
-									{{end}}
+										{{end}}
+									</div>
 								</div>
+								{{range $environment := .CreatePlan.Environments}}
+									{{if not $environment.Online}}
+										<div class="help" data-codespace-environment-detail="{{$environment.Tag}}"{{if not $environment.Selected}} hidden{{end}}>{{ctx.Locale.Tr "codespace.environment_offline_queue"}}</div>
+									{{end}}
+								{{end}}
 							</div>
-							{{range .CreatePlan.Environments}}
-								{{if not .Online}}<div class="help" data-codespace-environment-detail="{{.Tag}}"{{if not .Selected}} hidden{{end}}>{{ctx.Locale.Tr "codespace.environment_offline_queue"}}</div>{{end}}
-							{{end}}
-						</div>
-						<div class="field">
+							<div class="field">
 							<label for="codespace-dev-container">{{ctx.Locale.Tr "codespace.dev_container_configuration"}}</label>
-							<select id="codespace-dev-container" class="ui fluid selection dropdown" name="dev_container"
-								data-codespace-dev-container data-preview-url="{{.RepoLink}}/codespaces/new" data-ref-type="{{.CreatePlan.RefType}}" data-ref-name="{{.CreatePlan.RefName}}">
-								{{range .CreatePlan.DevContainerOptions}}<option value="{{.Selection}}"{{if .Selected}} selected{{end}}>{{.Name}}</option>{{end}}
-							</select>
-							{{range .CreatePlan.DevContainerOptions}}
-								{{if and .Selected .Path}}<div class="codespace-create-config-path"><code>{{.Path}}</code></div>{{end}}
-							{{end}}
+								<select id="codespace-dev-container" class="ui fluid selection dropdown" name="dev_container"
+									data-codespace-dev-container data-preview-url="{{.RepoLink}}/codespaces/new" data-ref-type="{{.CreatePlan.RefType}}" data-ref-name="{{.CreatePlan.RefName}}">
+									{{range $option := .CreatePlan.DevContainerOptions}}<option value="{{$option.Selection}}"{{if $option.Selected}} selected{{end}}>{{$option.Name}}</option>{{end}}
+								</select>
+								{{range $option := .CreatePlan.DevContainerOptions}}
+									{{if and $option.Selected $option.Path}}<div class="codespace-create-config-path"><code>{{$option.Path}}</code></div>{{end}}
+								{{end}}
+							</div>
 						</div>
 					</div>
-				</div>
 
 				<div class="ui attached segment codespace-create-section">
 					<h4 class="ui header">{{ctx.Locale.Tr "codespace.repository_access"}}</h4>
 					{{if .CreatePermissionRepositories}}
 						<p class="help">{{ctx.Locale.Tr "codespace.additional_permissions_explanation"}}</p>
-						{{range .CreatePermissionRepositories}}
+						{{range $repository := .CreatePermissionRepositories}}
 							<div class="codespace-create-permission-repository">
-								<div class="codespace-create-permission-repository-name">{{svg "octicon-repo"}} <strong>{{.FullName}}</strong></div>
+								<div class="codespace-create-permission-repository-name">{{svg "octicon-repo"}} <strong>{{$repository.FullName}}</strong></div>
 								<div class="codespace-create-permission-list">
-									{{range .Permissions}}
-										{{$selected := index $.CreatePermissionGrants .FormName}}
+									{{range $permission := $repository.Permissions}}
+										{{$selected := index $.CreatePermissionGrants $permission.FormName}}
 										<div class="codespace-create-permission-row">
-											<span>{{.UnitName}}</span>
-											{{if .Required}}
+											<span>{{$permission.UnitName}}</span>
+											{{if $permission.Required}}
 												<span class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.pull_request_source_permission"}}</span>
 											{{else}}
 												<div class="codespace-create-permission-options">
-													<label class="gt-checkbox"><input type="radio" name="{{.FormName}}" value="none"{{if eq $selected "none"}} checked{{end}}> {{ctx.Locale.Tr "settings.permission_no_access"}}</label>
-													<label class="gt-checkbox"><input type="radio" name="{{.FormName}}" value="read"{{if eq $selected "read"}} checked{{end}}> {{ctx.Locale.Tr "settings.permission_read"}}</label>
-													{{if eq .ModeName "write"}}<label class="gt-checkbox"><input type="radio" name="{{.FormName}}" value="write"{{if eq $selected "write"}} checked{{end}}> {{ctx.Locale.Tr "settings.permission_write"}}</label>{{end}}
+													<label class="gt-checkbox"><input type="radio" name="{{$permission.FormName}}" value="none"{{if eq $selected "none"}} checked{{end}}> {{ctx.Locale.Tr "settings.permission_no_access"}}</label>
+													<label class="gt-checkbox"><input type="radio" name="{{$permission.FormName}}" value="read"{{if eq $selected "read"}} checked{{end}}> {{ctx.Locale.Tr "settings.permission_read"}}</label>
+											{{if eq $permission.ModeName "write"}}
+												<label class="gt-checkbox"><input type="radio" name="{{$permission.FormName}}" value="write"{{if eq $selected "write"}} checked{{end}}> {{ctx.Locale.Tr "settings.permission_write"}}</label>
+											{{end}}
 												</div>
 											{{end}}
 										</div>
@@ -113,14 +121,14 @@
 						</div>
 					{{else}}
 						{{if .CreatePlan.AvailableSecrets}}
-							<p class="help">{{ctx.Locale.Tr "codespace.secrets_available_description"}}</p>
-							<div class="flex-divided-list items-with-main codespace-create-secret-list">
-								{{range .CreatePlan.AvailableSecrets}}
-									<div class="item codespace-create-secret-item">
-										<div class="item-leading">{{svg "octicon-key" 24}}</div>
-										<div class="item-main">
-											<div class="item-title"><strong>{{.Name}}</strong></div>
-											{{if .Description}}<div class="item-body">{{.Description}}</div>{{end}}
+								<p class="help">{{ctx.Locale.Tr "codespace.secrets_available_description"}}</p>
+								<div class="flex-divided-list items-with-main codespace-create-secret-list">
+									{{range $secret := .CreatePlan.AvailableSecrets}}
+										<div class="item codespace-create-secret-item">
+											<div class="item-leading">{{svg "octicon-key" 24}}</div>
+											<div class="item-main">
+												<div class="item-title"><strong>{{$secret.Name}}</strong></div>
+												{{if $secret.Description}}<div class="item-body">{{$secret.Description}}</div>{{end}}
 										</div>
 									</div>
 								{{end}}
@@ -128,25 +136,26 @@
 						{{else}}
 							<div class="codespace-create-secret-empty">{{ctx.Locale.Tr "codespace.secrets_none_for_create"}}</div>
 						{{end}}
-						{{$hasPendingRecommendedSecret := false}}
-						{{range .CreatePlan.RecommendedSecrets}}{{if not .Available}}{{$hasPendingRecommendedSecret = true}}{{end}}{{end}}
-						{{if $hasPendingRecommendedSecret}}
+						{{if .CreateHasPendingRecommendedSecret}}
 							<h5 class="ui header codespace-create-recommended-secret-heading">{{ctx.Locale.Tr "codespace.recommended_secrets"}}</h5>
 							<p class="help">{{ctx.Locale.Tr "codespace.recommended_secrets_description"}}</p>
 							<div class="flex-divided-list items-with-main codespace-create-secret-list">
-								{{range .CreatePlan.RecommendedSecrets}}
-									{{if not .Available}}
+								{{range $secret := .CreatePlan.RecommendedSecrets}}
+									{{if not $secret.Available}}
 										<div class="item codespace-create-secret-item">
 											<div class="item-leading">{{svg "octicon-key" 24}}</div>
 											<div class="item-main">
-												<div class="item-title"><strong>{{.Name}}</strong></div>
-												{{if .Description}}<div class="item-body">{{.Description}}</div>{{end}}
+												<div class="item-title"><strong>{{$secret.Name}}</strong></div>
+												{{if $secret.Description}}<div class="item-body">{{$secret.Description}}</div>{{end}}
 											</div>
 											<div class="item-trailing codespace-create-secret-control">
-												{{if .Configured}}
-													<label class="gt-checkbox"><input type="checkbox" name="recommended_secret_enable_{{.Name}}" value="true"{{if index $.CreateRecommendedSecretEnabled .Name}} checked{{end}}> {{ctx.Locale.Tr "codespace.secret_allow_repository"}}</label>
+												{{if $secret.Configured}}
+											<label class="gt-checkbox">
+												<input type="checkbox" name="recommended_secret_enable_{{$secret.Name}}" value="true"{{if index $.CreateRecommendedSecretEnabled $secret.Name}} checked{{end}}>
+												{{ctx.Locale.Tr "codespace.secret_allow_repository"}}
+											</label>
 												{{else}}
-													<input type="password" name="recommended_secret_value_{{.Name}}" autocomplete="new-password" placeholder="{{ctx.Locale.Tr "codespace.secret_optional_value"}}" aria-label="{{.Name}}">
+													<input type="password" name="recommended_secret_value_{{$secret.Name}}" autocomplete="new-password" placeholder="{{ctx.Locale.Tr "codespace.secret_optional_value"}}" aria-label="{{$secret.Name}}">
 												{{end}}
 											</div>
 										</div>

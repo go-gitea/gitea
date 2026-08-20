@@ -6,6 +6,7 @@ package codespace
 import (
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -28,8 +29,11 @@ func TestOpenEndpointRedirectsWithOneTimeCode(t *testing.T) {
 	codespaceUUID := "96969696-9696-4969-8969-969696969696"
 	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 91)
 	require.NoError(t, codespace_service.ReportRuntimeMetadata(t.Context(), manager, codespace_service.ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
-		Metadata:           webOpenRuntimeMetadata(t, 91, []map[string]any{{"endpoint_id": "app-3000", "label": "App", "public": false}}),
+		CodespaceUUID: codespaceUUID,
+		Metadata: webOpenRuntimeMetadata(t, 91, []*codespacev1.RuntimeEndpoint{{
+			EndpointId: "app-3000",
+			Label:      "App",
+		}}),
 		MetadataGeneration: 1,
 	}))
 
@@ -59,8 +63,12 @@ func TestOpenEndpointPublicRedirectsWithoutCode(t *testing.T) {
 	codespaceUUID := "98989898-9898-4989-8989-989898989898"
 	insertWebOpenCodespace(t, manager.ID, codespaceUUID, 92)
 	require.NoError(t, codespace_service.ReportRuntimeMetadata(t.Context(), manager, codespace_service.ReportRuntimeMetadataOptions{
-		CodespaceUUID:      codespaceUUID,
-		Metadata:           webOpenRuntimeMetadata(t, 92, []map[string]any{{"endpoint_id": "app-3000", "label": "App", "public": true}}),
+		CodespaceUUID: codespaceUUID,
+		Metadata: webOpenRuntimeMetadata(t, 92, []*codespacev1.RuntimeEndpoint{{
+			EndpointId: "app-3000",
+			Label:      "App",
+			Public:     true,
+		}}),
 		MetadataGeneration: 1,
 	}))
 
@@ -136,16 +144,9 @@ func insertWebOpenCodespace(t *testing.T, managerID int64, codespaceUUID string,
 	}))
 }
 
-func webOpenRuntimeMetadata(t *testing.T, operationRVersion int64, endpoints []map[string]any) *codespacev1.RuntimeMetadata {
+func webOpenRuntimeMetadata(t *testing.T, operationRVersion int64, endpoints []*codespacev1.RuntimeEndpoint) *codespacev1.RuntimeMetadata {
 	t.Helper()
-	metadataEndpoints := make([]*codespacev1.RuntimeEndpoint, 0, len(endpoints)+1)
-	for _, endpoint := range endpoints {
-		metadataEndpoints = append(metadataEndpoints, &codespacev1.RuntimeEndpoint{
-			EndpointId: endpoint["endpoint_id"].(string),
-			Label:      endpoint["label"].(string),
-			Public:     endpoint["public"].(bool),
-		})
-	}
+	metadataEndpoints := slices.Clone(endpoints)
 	metadataEndpoints = append(metadataEndpoints, &codespacev1.RuntimeEndpoint{EndpointId: "workspace", Label: "Workspace"})
 	return &codespacev1.RuntimeMetadata{
 		Endpoints: metadataEndpoints,

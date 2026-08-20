@@ -12,31 +12,62 @@
 				</tr>
 			</thead>
 			<tbody>
-				{{range .Codespaces}}
+				{{range $codespace := .Codespaces}}
 					<tr>
 						<td>
 							{{if $.IsSiteManagerSettings}}
-								<span class="tw-font-mono">{{.ShortUUID}}</span>
+								<span class="tw-font-mono">{{$codespace.ShortUUID}}</span>
 							{{else}}
-								<a class="tw-font-mono" href="{{AppSubUrl}}/-/codespaces/{{.ID}}">{{.ShortUUID}}</a>
+								<a class="tw-font-mono" href="{{AppSubUrl}}/-/codespaces/{{$codespace.ID}}">{{$codespace.ShortUUID}}</a>
 							{{end}}
 						</td>
 						<td>
-							{{if .RepoFullName}}{{.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}
-							{{if .RefName}}<div class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.ref"}}: {{.RefName}}</div>{{end}}
+							{{if $codespace.RepoFullName}}{{$codespace.RepoFullName}}{{else}}{{ctx.Locale.Tr "codespace.repository_unavailable"}}{{end}}
+							{{if $codespace.RefName}}<div class="tw-text-text-light-2">{{ctx.Locale.Tr "codespace.ref"}}: {{$codespace.RefName}}</div>{{end}}
 						</td>
-						{{if $.IsSiteManagerSettings}}<td>{{if .UserDisplayName}}{{.UserDisplayName}}{{else}}{{ctx.Locale.Tr "codespace.user_id" .UserID}}{{end}}</td>{{end}}
-						<td><span class="ui tiny label codespace-state-label codespace-state-{{.DisplayStatus}}">{{ctx.Locale.Tr (print "codespace.status." .DisplayStatus)}}</span></td>
-						<td>{{DateUtils.AbsoluteShort .UpdatedUnix}}</td>
+						{{if $.IsSiteManagerSettings}}<td>{{if $codespace.UserDisplayName}}{{$codespace.UserDisplayName}}{{else}}{{ctx.Locale.Tr "codespace.user_id" $codespace.UserID}}{{end}}</td>{{end}}
+						<td><span class="ui tiny label codespace-state-label codespace-state-{{$codespace.DisplayStatus}}">{{ctx.Locale.Tr (print "codespace.status." $codespace.DisplayStatus)}}</span></td>
+						<td>{{DateUtils.AbsoluteShort $codespace.UpdatedUnix}}</td>
 						<td class="right aligned">
 							{{if $.IsSiteManagerSettings}}
 								<div class="flex-text-inline tw-gap-1 tw-whitespace-nowrap">
-									{{if .CanStop}}<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.CodespaceActionBase}}/{{.UUID}}/stop">{{$.CsrfTokenHtml}}<button class="btn interact-bg tw-p-2" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.stop_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.stop_confirm"}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.stop"}}" aria-label="{{ctx.Locale.Tr "codespace.stop"}}">{{svg "octicon-stop"}}</button></form>{{end}}
-									{{if .CanDelete}}<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.CodespaceActionBase}}/{{.UUID}}/delete">{{$.CsrfTokenHtml}}<button class="btn interact-bg tw-p-2 tw-text-red" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_confirm" .ShortUUID}}" data-tooltip-content="{{ctx.Locale.Tr "delete"}}" aria-label="{{ctx.Locale.Tr "delete"}}">{{svg "octicon-trash"}}</button></form>{{end}}
-									{{if .CanForceDelete}}<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.CodespaceActionBase}}/{{.UUID}}/force-delete">{{$.CsrfTokenHtml}}<input type="hidden" name="confirm" value="force-delete"><button class="btn interact-bg tw-p-2 tw-text-red" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.force_delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.force_delete_confirm" .ShortUUID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.force_delete"}}" aria-label="{{ctx.Locale.Tr "codespace.force_delete"}}">{{svg "octicon-x-circle"}}</button></form>{{end}}
+									{{if $codespace.CanStop}}
+										<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.CodespaceActionBase}}/{{$codespace.UUID}}/stop">
+											{{$.CsrfTokenHtml}}
+											<button class="btn interact-bg tw-p-2" type="submit"
+												data-modal-confirm-header="{{ctx.Locale.Tr "codespace.stop_title"}}"
+												data-modal-confirm-content="{{ctx.Locale.Tr "codespace.stop_confirm"}}"
+												data-tooltip-content="{{ctx.Locale.Tr "codespace.stop"}}"
+												aria-label="{{ctx.Locale.Tr "codespace.stop"}}"
+											>{{svg "octicon-stop"}}</button>
+										</form>
+									{{end}}
+									{{if $codespace.CanDelete}}
+										<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.CodespaceActionBase}}/{{$codespace.UUID}}/delete">
+											{{$.CsrfTokenHtml}}
+											<button class="btn interact-bg tw-p-2 tw-text-red" type="submit"
+												data-modal-confirm-header="{{ctx.Locale.Tr "codespace.delete_title"}}"
+												data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_confirm" $codespace.ShortUUID}}"
+												data-tooltip-content="{{ctx.Locale.Tr "delete"}}"
+												aria-label="{{ctx.Locale.Tr "delete"}}"
+											>{{svg "octicon-trash"}}</button>
+										</form>
+									{{end}}
+									{{if $codespace.CanForceDelete}}
+										<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.CodespaceActionBase}}/{{$codespace.UUID}}/force-delete">
+											{{$.CsrfTokenHtml}}
+											<input type="hidden" name="confirm" value="force-delete">
+											<button class="btn interact-bg tw-p-2 tw-text-red" type="submit"
+												data-modal-confirm-header="{{ctx.Locale.Tr "codespace.force_delete_title"}}"
+												data-modal-confirm-content="{{ctx.Locale.Tr "codespace.force_delete_confirm" $codespace.ShortUUID}}"
+												data-tooltip-content="{{ctx.Locale.Tr "codespace.force_delete"}}"
+												aria-label="{{ctx.Locale.Tr "codespace.force_delete"}}"
+											>{{svg "octicon-x-circle"}}</button>
+										</form>
+									{{end}}
 								</div>
 							{{else}}
-								<a class="btn interact-bg tw-p-2" href="{{AppSubUrl}}/-/codespaces/{{.ID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.details"}}" aria-label="{{ctx.Locale.Tr "codespace.details"}}">{{svg "octicon-arrow-right"}}</a>
+								<a class="btn interact-bg tw-p-2" href="{{AppSubUrl}}/-/codespaces/{{$codespace.ID}}" data-tooltip-content="{{ctx.Locale.Tr "codespace.details"}}" aria-label="{{ctx.Locale.Tr "codespace.details"}}">{{svg "octicon-arrow-right"}}</a>
 							{{end}}
 						</td>
 					</tr>

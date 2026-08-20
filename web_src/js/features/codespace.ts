@@ -4,7 +4,7 @@ import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts
 import {toggleFullScreen} from '../utils.ts';
 import {formatDatetime} from '../utils/time.ts';
 import {AnsiLineRenderer} from '../render/ansi.ts';
-import {createLogLineMessage, decodeLogLineMessage, parseLogLineCommand, type LogLine} from '../render/log.ts';
+import {createLogLineMessage, decodeLineMessage, parseLogLineCommand, type LogLine} from '../render/log.ts';
 
 const liveStateSelector = '#codespace-live-state';
 const logViewSelector = '#codespace-log-view';
@@ -339,7 +339,7 @@ async function appendCodespaceLogLines(logEl: HTMLElement, lines: CodespaceLogLi
       details.open = true;
       const summary = document.createElement('summary');
       summary.className = 'codespace-log-group-summary';
-      summary.textContent = decodeLogLineMessage(parsedLine, command).trim();
+      summary.textContent = decodeLineMessage(parsedLine, command).trim();
       const body = document.createElement('div');
       body.className = 'codespace-log-group-body';
       details.append(summary, body);

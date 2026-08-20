@@ -1,5 +1,5 @@
-import {AnsiLineRenderer} from './ansi.ts';
 import {createLogLineMessage, parseLogLineCommand} from './log.ts';
+import {AnsiLineRenderer} from './ansi.ts';
 
 test('LogLineMessage', () => {
   const cases = {
