@@ -40,13 +40,17 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 		return nil
 	}
 
-	// Unwrap DocumentNode
+	// Unwrap DocumentNode and resolve AliasNode
 	node := rawPerms
-	for node.Kind == yaml.DocumentNode {
-		if len(node.Content) == 0 {
-			return nil
+	for node.Kind == yaml.DocumentNode || node.Kind == yaml.AliasNode {
+		if node.Kind == yaml.DocumentNode {
+			if len(node.Content) == 0 {
+				return nil
+			}
+			node = node.Content[0]
+		} else {
+			node = node.Alias
 		}
-		node = node.Content[0]
 	}
 
 	if node.Kind == yaml.ScalarNode && node.Value == "" {
