@@ -34,7 +34,7 @@ func TestAPIPrivateNoServ(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Empty(t, user)
 		assert.Equal(t, deployKey.KeyID, key.ID)
-		assert.Equal(t, "test-deploy", key.Name)
+		assert.Equal(t, "(DeployKey)", key.Name)
 	})
 }
 
