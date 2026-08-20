@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -25,6 +26,7 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMirrorPush(t *testing.T) {
@@ -185,4 +187,48 @@ func TestRepoSettingPushMirrorUpdate(t *testing.T) {
 	// delete repo2 push mirror
 	assert.True(t, doRemovePushMirror(t, session, "user2", "repo2", repo2PushMirrorID))
 	unittest.AssertNotExistsBean(t, &repo_model.PushMirror{ID: repo2PushMirrorID})
+}
+
+func TestAPIDeletePushMirrorRemovesRemote(t *testing.T) {
+	onGiteaRun(t, testAPIDeletePushMirrorRemovesRemote)
+}
+
+func testAPIDeletePushMirrorRemovesRemote(t *testing.T, u *url.URL) {
+	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, true)()
+	require.NoError(t, migrations.Init())
+
+	_ = db.TruncateBeans(t.Context(), &repo_model.PushMirror{})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	srcRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	mirrorRepo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
+		Name: "test-api-delete-push-mirror",
+	}, true)
+	require.NoError(t, err)
+
+	session := loginUser(t, user.Name)
+	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
+	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
+
+	mirrors, _, err := repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
+	require.NoError(t, err)
+	require.Len(t, mirrors, 1)
+	remoteName := mirrors[0].RemoteName
+
+	addr, err := git.GetRemoteAddress(t.Context(), srcRepo, remoteName)
+	require.NoError(t, err)
+	require.NotEmpty(t, addr)
+
+	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository)
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/push_mirrors/%s",
+		url.PathEscape(user.Name), url.PathEscape(srcRepo.Name), url.PathEscape(remoteName))).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+
+	mirrors, _, err = repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
+	require.NoError(t, err)
+	assert.Empty(t, mirrors)
+
+	// the remote carries the credentials, deleting the mirror must take it along
+	_, err = git.GetRemoteAddress(t.Context(), srcRepo, remoteName)
+	assert.True(t, git.IsRemoteNotExistError(err), "the git remote should be gone, got: %v", err)
 }
