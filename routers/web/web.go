@@ -27,6 +27,7 @@ import (
 	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/admin"
 	"gitea.dev/routers/web/auth"
+	web_codespace "gitea.dev/routers/web/codespace"
 	"gitea.dev/routers/web/devtest"
 	"gitea.dev/routers/web/explore"
 	"gitea.dev/routers/web/feed"
@@ -92,14 +93,16 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 }
 
 type AuthMiddleware struct {
-	AllowOAuth2       types.PreMiddlewareProvider
-	AllowBasic        types.PreMiddlewareProvider
-	MiddlewareHandler func(*context.Context)
+	AllowOAuth2         types.PreMiddlewareProvider
+	AllowBasic          types.PreMiddlewareProvider
+	AllowCodespaceToken types.PreMiddlewareProvider
+	MiddlewareHandler   func(*context.Context)
 }
 
 func newWebAuthMiddleware() *AuthMiddleware {
 	type keyAllowOAuth2 struct{}
 	type keyAllowBasic struct{}
+	type keyAllowCodespaceToken struct{}
 	webAuth := &AuthMiddleware{}
 
 	middlewareSetContextValue := func(key, val any) types.PreMiddlewareProvider {
@@ -114,11 +117,14 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 	webAuth.AllowBasic = middlewareSetContextValue(keyAllowBasic{}, true)
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
+	webAuth.AllowCodespaceToken = middlewareSetContextValue(keyAllowCodespaceToken{}, true)
 
 	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
 	webAuth.MiddlewareHandler = func(ctx *context.Context) {
 		allowBasic := ctx.GetContextValue(keyAllowBasic{}) == true
 		allowOAuth2 := ctx.GetContextValue(keyAllowOAuth2{}) == true
+		allowCodespaceToken := ctx.GetContextValue(keyAllowCodespaceToken{}) == true
+		auth_service.SetCodespaceTokenAuthAllowed(ctx.Req.Context(), allowCodespaceToken)
 
 		group := auth_service.NewGroup()
 
@@ -129,6 +135,11 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		}
 		if allowBasic {
 			group.Add(&auth_service.Basic{})
+		}
+		if allowCodespaceToken {
+			group.Add(&auth_service.CodespaceToken{})
+		} else {
+			group.Add(&auth_service.CodespaceToken{RejectValid: true})
 		}
 
 		// Sessionless means the route's auth can be done without web ui, then it doesn't need to create a session
@@ -150,6 +161,10 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 		ar, err := common.AuthShared(ctx.Base, ctx.Session, group)
 		if err != nil {
+			if auth_service.IsCodespaceTokenForbidden(err) {
+				ctx.HTTPError(http.StatusForbidden, "Codespace token is not allowed for this request")
+				return
+			}
 			log.Error("Failed to verify user: %v", err)
 			ctx.HTTPError(http.StatusUnauthorized, "Failed to authenticate user")
 			return
@@ -542,6 +557,20 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 	m.Post("/-/web-banner/dismiss", misc.WebBannerDismiss)
 	m.Get("/-/web-theme/list", misc.WebThemeList)
 	m.Post("/-/web-theme/apply", crossOriginProtect, misc.WebThemeApply)
+	m.Get("/-/codespaces", reqSignIn, web_codespace.List)
+	m.Group("/-/codespaces/{codespace_id}", func() {
+		m.Get("", web_codespace.Detail)
+		m.Get("/state", web_codespace.State)
+		m.Get("/logs", web_codespace.Logs)
+		m.Get("/logs/download", web_codespace.DownloadLogs)
+		m.Post("/stop", web_codespace.Stop)
+		m.Post("/resume", web_codespace.Resume)
+		m.Post("/delete", web_codespace.Delete)
+		m.Post("/continue", web_codespace.Continue)
+		m.Post("/auto-stop", web_codespace.AutoStop)
+		m.Post("/open", web_codespace.Open)
+		m.Post("/open/{endpoint_id}", web_codespace.OpenEndpoint)
+	}, reqSignIn)
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -726,6 +755,19 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addSettingsScopedWorkflowsRoutes()
 		}, actions.MustEnableActions)
 
+		m.Get("/codespaces/managers", web_codespace.UserSettings)
+		m.Post("/codespaces/managers/create", web_codespace.UserSettingsCreateManager)
+		m.Get("/codespaces/managers/{manager_id}", web_codespace.UserManager)
+		m.Post("/codespaces/managers/{manager_id}/delete", web_codespace.UserManagerDelete)
+		m.Combo("/codespaces/dev-container-templates").Get(web_codespace.UserDevContainerTemplates).Post(web_codespace.UserDevContainerTemplatePost)
+		m.Post("/codespaces/dev-container-templates/{template_id}", web_codespace.UserDevContainerTemplateUpdate)
+		m.Post("/codespaces/dev-container-templates/{template_id}/delete", web_codespace.UserDevContainerTemplateDelete)
+		m.Combo("/codespaces/permissions").Get(web_codespace.UserPermissionSettings).Post(web_codespace.UserPermissionSettingsPost)
+		m.Combo("/codespaces/secrets").Get(web_codespace.UserSecretSettings).Post(web_codespace.UserSecretSettingsPost)
+		m.Get("/codespaces/secrets/repositories", web_codespace.UserSecretRepositorySearch)
+		m.Post("/codespaces/secrets/{secret_id}/value", web_codespace.UserSecretSettingsValue)
+		m.Post("/codespaces/secrets/{secret_id}/access", web_codespace.UserSecretSettingsAccess)
+		m.Post("/codespaces/secrets/{secret_id}/delete", web_codespace.UserSecretSettingsDelete)
 		m.Get("/organization", user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
@@ -837,6 +879,22 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Get("", admin.Repos)
 			m.Combo("/unadopted").Get(admin.UnadoptedRepos).Post(admin.AdoptOrDeleteRepository)
 			m.Post("/delete", admin.DeleteRepo)
+		})
+
+		m.Group("/codespaces", func() {
+			m.Get("/managers", web_codespace.AdminManagers)
+			m.Post("/managers/create", web_codespace.AdminManagersCreateManager)
+			m.Get("/managers/{manager_id}", web_codespace.AdminManager)
+			m.Post("/managers/{manager_id}/delete", web_codespace.AdminManagerDelete)
+			m.Combo("/dev-container-templates").Get(web_codespace.AdminDevContainerTemplates).Post(web_codespace.AdminDevContainerTemplatePost)
+			m.Post("/dev-container-templates/{template_id}", web_codespace.AdminDevContainerTemplateUpdate)
+			m.Post("/dev-container-templates/{template_id}/delete", web_codespace.AdminDevContainerTemplateDelete)
+			m.Post("/managers/{manager_id}/codespaces/{uuid}/stop", web_codespace.AdminStop)
+			m.Post("/managers/{manager_id}/codespaces/{uuid}/delete", web_codespace.AdminDelete)
+			m.Post("/managers/{manager_id}/codespaces/{uuid}/force-delete", web_codespace.AdminForceDelete)
+			m.Post("/managers/unassigned/{uuid}/stop", web_codespace.AdminStop)
+			m.Post("/managers/unassigned/{uuid}/delete", web_codespace.AdminDelete)
+			m.Post("/managers/unassigned/{uuid}/force-delete", web_codespace.AdminForceDelete)
 		})
 
 		m.Group("/packages", func() {
@@ -1271,6 +1329,9 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
 	m.Get("/{username}/{reponame}", optSignIn, webAuth.AllowBasic, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)
+	m.Get("/{username}/{reponame}/codespaces", reqSignIn, context.RepoAssignment, reqUnitCodeReader, web_codespace.RepositoryRedirect)
+	m.Get("/{username}/{reponame}/codespaces/new", reqSignIn, context.RepoAssignment, reqUnitCodeReader, web_codespace.New)
+	m.Post("/{username}/{reponame}/codespaces", reqSignIn, context.RepoAssignment, reqUnitCodeReader, web_codespace.Create)
 
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind[*structs.MarkupOption](), misc.Markup)
 
@@ -1745,12 +1806,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// git lfs uses its own jwt key, and it handles the token & auth by itself, it conflicts with the general "OAuth2" auth method
 	// pattern: "/{username}/{reponame}/{lfs-paths}": git-lfs support, see also addOwnerRepoGitHTTPRouters
-	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, webAuth.AllowBasic, repo.CorsHandler(), optSignInFromAnyOrigin)
+	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, webAuth.AllowBasic, webAuth.AllowCodespaceToken, repo.CorsHandler(), optSignInFromAnyOrigin)
 
 	// Some users want to use "web-based git client" to access Gitea's repositories,
 	// so the CORS handler and OPTIONS method are used.
 	// pattern: "/{username}/{reponame}/{git-paths}": git http support
-	addOwnerRepoGitHTTPRouters(m, repo.HTTPGitEnabledHandler, webAuth.AllowBasic, webAuth.AllowOAuth2, repo.CorsHandler(), optSignInFromAnyOrigin, context.UserAssignmentWeb())
+	addOwnerRepoGitHTTPRouters(m, repo.HTTPGitEnabledHandler, webAuth.AllowBasic, webAuth.AllowOAuth2, webAuth.AllowCodespaceToken, repo.CorsHandler(), optSignInFromAnyOrigin, context.UserAssignmentWeb())
 
 	m.Group("/notifications", func() {
 		m.Get("", user.Notifications)

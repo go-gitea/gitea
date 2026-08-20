@@ -1,0 +1,34 @@
+<div class="codespace-manager-container">
+	<div class="tw-mb-4"><a href="{{.ActionBase}}">{{svg "octicon-arrow-left" 14}} {{ctx.Locale.Tr "codespace.back_to_managers"}}</a></div>
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "codespace.manager_id"}} {{.Manager.ID}} {{.Manager.Name}}</h4>
+	<div class="ui attached segment">
+		<div class="codespace-manager-overview">
+			<div class="field"><label>{{ctx.Locale.Tr "status"}}</label><div><span class="ui label codespace-state-label codespace-state-{{.Manager.RuntimeDisplayState}}">{{ctx.Locale.Tr (print "codespace.manager_status." .Manager.RuntimeDisplayState)}}</span></div></div>
+			{{if .IsSiteManagerSettings}}<div class="field"><label>{{ctx.Locale.Tr "codespace.user"}}</label><div>{{.Manager.UserDisplayName}}</div></div>{{end}}
+			<div class="field"><label>{{ctx.Locale.Tr "version"}}</label><div>{{if .Manager.Version}}{{.Manager.Version}}{{else}}{{ctx.Locale.Tr "unknown"}}{{end}}</div></div>
+			<div class="field"><label>{{ctx.Locale.Tr "codespace.last_online"}}</label><div>{{if .Manager.LastOnlineUnix}}{{DateUtils.TimeSince .Manager.LastOnlineUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</div></div>
+			<div class="field"><label>{{ctx.Locale.Tr "codespace.created"}}</label><div>{{DateUtils.AbsoluteShort .Manager.CreatedUnix}}</div></div>
+			<div class="field"><label>{{ctx.Locale.Tr "codespace.tags"}}</label><div>{{if .Manager.Environments}}<span class="flex-text-inline tw-flex-wrap">{{range .Manager.Environments}}<span class="ui label"{{if .Description}} data-tooltip-content="{{.Description}}"{{end}}>{{.Tag}}</span>{{end}}</span>{{else}}{{ctx.Locale.Tr "codespace.not_declared"}}{{end}}</div></div>
+		</div>
+		{{if .Manager.EnvironmentDescriptionConflicts}}<div class="ui warning message">{{ctx.Locale.Tr "codespace.environment_description_conflict" (StringUtils.Join .Manager.EnvironmentDescriptionConflicts ", ")}}</div>{{end}}
+		<div class="divider"></div>
+		<div class="codespace-manager-access">
+			<div class="field"><label>{{ctx.Locale.Tr "codespace.gateway"}}</label><div class="tw-font-mono tw-break-anywhere">{{if .Manager.GatewayURL}}{{.Manager.GatewayURL}}{{else}}{{ctx.Locale.Tr "codespace.not_declared"}}{{end}}</div></div>
+			<div class="field"><label>{{ctx.Locale.Tr "codespace.ssh"}}</label><div class="tw-font-mono tw-break-anywhere">{{if .Manager.GatewaySSHAddr}}{{.Manager.GatewaySSHAddr}}{{else}}{{ctx.Locale.Tr "codespace.not_declared"}}{{end}}</div></div>
+			<div class="field"><label>{{ctx.Locale.Tr "codespace.ssh_host_key"}}</label><div class="tw-font-mono tw-break-anywhere">{{if .Manager.GatewaySSHHostKeyFingerprintSHA256}}{{if .Manager.GatewaySSHHostKeyAlgorithm}}{{.Manager.GatewaySSHHostKeyAlgorithm}} {{end}}{{.Manager.GatewaySSHHostKeyFingerprintSHA256}}{{else}}{{ctx.Locale.Tr "codespace.not_declared"}}{{end}}</div>{{if .Manager.GatewaySSHHostKeyUpdatedUnix}}<div class="help">{{ctx.Locale.Tr "codespace.ssh_host_key_updated"}}: {{DateUtils.AbsoluteShort .Manager.GatewaySSHHostKeyUpdatedUnix}}</div>{{end}}</div>
+		</div>
+	</div>
+
+	<h4 class="ui top attached header tw-mt-4">{{ctx.Locale.Tr "codespace.bound_codespaces"}} ({{.CodespaceTotal}})</h4>
+	{{template "codespace/manager_codespaces" .}}
+
+	<h4 class="ui top attached header tw-mt-4">{{ctx.Locale.Tr "codespace.delete_manager"}}</h4>
+	<div class="ui attached segment">
+		<p>{{ctx.Locale.Tr "codespace.manager_delete_notice" .Manager.BoundCodespaces}}</p>
+		<form class="form-fetch-action ignore-dirty" method="post" action="{{.ActionBase}}/{{.Manager.ID}}/delete">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="confirm" value="delete-manager">
+			<button class="ui red button" type="submit" data-modal-confirm-header="{{ctx.Locale.Tr "codespace.manager_delete_title"}}" data-modal-confirm-content="{{ctx.Locale.Tr "codespace.manager_delete_confirm" .Manager.Name}}">{{svg "octicon-trash"}} {{ctx.Locale.Tr "codespace.delete_manager"}}</button>
+		</form>
+	</div>
+</div>

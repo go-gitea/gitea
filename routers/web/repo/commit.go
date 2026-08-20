@@ -421,6 +421,9 @@ func Diff(ctx *context.Context) {
 	if pr != nil {
 		ctx.Data["MergedPRIssueNumber"] = pr.Index
 	}
+	if !fileOnly && ctx.Data["PageIsWiki"] == nil {
+		prepareCodespaceSourcePanel(ctx, "commit", commitID, "", base.ShortSha(commitID))
+	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
 }

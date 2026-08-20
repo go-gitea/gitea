@@ -1,0 +1,246 @@
+{{$cs := .Codespace}}
+<div id="codespace-live-state"
+	data-state-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/state?tab={{.CodespaceTab}}"
+	data-refresh-after-ms="{{$cs.RefreshAfterMillis}}"
+	data-auto-stop-configurable="{{$cs.CanConfigureAutoStop}}"
+	data-detail-mode="{{$cs.DetailMode}}"
+>
+	<header class="tw-flex tw-flex-col tw-shrink-0 tw-gap-3 tw-mt-2">
+		<div class="codespace-detail-heading">
+			<div class="tw-flex-1 tw-min-w-0">
+				<div class="tw-flex tw-items-center tw-gap-2 tw-flex-wrap">
+					<h2 class="ui header tw-m-0 tw-break-anywhere">
+						{{if $cs.RepoLink}}<a href="{{$cs.RepoLink}}">{{$cs.RepoFullName}}</a>{{else}}{{ctx.Locale.Tr "codespace.codespace"}}{{end}}
+					</h2>
+					<span class="ui label codespace-state-label codespace-state-{{$cs.DisplayStatus}} tw-shrink-0">{{ctx.Locale.Tr $cs.DisplayStatusKey}}</span>
+				</div>
+				<div class="codespace-detail-source">
+					<span>{{svg "octicon-git-branch" 14}} {{$cs.RefType}}: <span class="tw-break-anywhere">{{$cs.RefName}}</span></span>
+					{{if $cs.CommitSHA}}
+						{{if $cs.CommitLink}}<a class="tw-font-mono" href="{{$cs.CommitLink}}">{{ShortSha $cs.CommitSHA}}</a>{{else}}<span class="tw-font-mono">{{ShortSha $cs.CommitSHA}}</span>{{end}}
+					{{end}}
+					<span>{{ctx.Locale.Tr "codespace.created"}} {{DateUtils.TimeSince $cs.CreatedUnix}}</span>
+				</div>
+				{{if or (ne $cs.DisplayStatus "running") $cs.BootStageKey}}
+					<div class="codespace-operation-summary">
+						<span>{{ctx.Locale.Tr $cs.StatusSummaryKey}}</span>
+					{{if $cs.BootStageKey}}
+						<span class="codespace-boot-stage">{{ctx.Locale.Tr "codespace.current_stage"}}: {{ctx.Locale.Tr $cs.BootStageKey}}</span>
+					{{end}}
+					</div>
+				{{end}}
+			</div>
+			<div class="codespace-action-bar">
+				{{$hasOpen := and $cs.Workspace $cs.CanOpen}}
+				{{$continueIsPrimary := and (not $hasOpen) (not $cs.CanResume) $cs.CanContinue}}
+				{{if $hasOpen}}
+					<button class="ui small compact primary button show-modal tw-m-0" type="button"
+						data-modal="#codespace-open-modal"
+						data-modal-form.url="{{AppSubUrl}}{{$cs.Workspace.OpenPath}}"
+						data-modal-form.target="_blank"
+						data-modal-endpoint-label="{{ctx.Locale.Tr "codespace.workspace"}}"
+						data-modal-access-kind="{{ctx.Locale.Tr "codespace.authenticated_endpoint"}}"
+					>{{svg "octicon-terminal"}} {{ctx.Locale.Tr "codespace.open_workspace"}}</button>
+				{{else if $cs.CanResume}}
+					<form class="form-fetch-action tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/resume">
+						{{$.CsrfTokenHtml}}
+						<button class="ui small compact primary button tw-m-0" type="submit"
+							data-modal-confirm-header="{{ctx.Locale.Tr "codespace.resume_title"}}"
+							data-modal-confirm-content="{{ctx.Locale.Tr "codespace.resume_confirm"}}"
+						>{{svg "octicon-play" 16}}{{ctx.Locale.Tr "codespace.resume"}}</button>
+					</form>
+				{{else if $continueIsPrimary}}
+					<form class="tw-m-0 ignore-dirty" method="post" action="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/continue">
+						{{$.CsrfTokenHtml}}
+						<button class="ui small compact primary button tw-m-0" type="submit">{{svg "octicon-play" 16}}{{ctx.Locale.Tr "codespace.continue"}}</button>
+					</form>
+				{{end}}
+				{{if and $cs.CanContinue (not $continueIsPrimary)}}
+					<button class="ui small compact button link-action codespace-continue-action tw-m-0" type="button" data-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/continue">{{svg "octicon-play" 16}}{{ctx.Locale.Tr "codespace.continue"}}</button>
+				{{end}}
+				{{if $cs.CanStop}}
+					<button class="ui small compact button tw-text-red link-action codespace-stop-action tw-m-0" type="button"
+						data-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/stop"
+						data-modal-confirm-header="{{ctx.Locale.Tr "codespace.stop_title"}}"
+						data-modal-confirm-content="{{ctx.Locale.Tr "codespace.stop_confirm"}}"
+					>{{svg "octicon-stop" 16}}{{ctx.Locale.Tr "codespace.stop"}}</button>
+				{{end}}
+				{{if or $cs.CanConfigureAutoStop $cs.CanDelete}}
+					<div class="ui small compact top right pointing dropdown icon button jump codespace-detail-more tw-m-0" data-tooltip-content="{{ctx.Locale.Tr "more_items"}}" aria-label="{{ctx.Locale.Tr "more_items"}}">
+						{{svg "octicon-kebab-horizontal"}}
+						<div class="menu flex-items-menu">
+						{{if $cs.CanConfigureAutoStop}}
+							<a class="item codespace-settings-button"
+								data-settings-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/auto-stop"
+								data-return-to="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}"
+								data-auto-stop-mode="{{$cs.AutoStop.Mode}}"
+								data-auto-stop-timeout-value="{{$cs.AutoStop.Timeout.Value}}"
+								data-auto-stop-timeout-unit="{{$cs.AutoStop.Timeout.Unit}}"
+								data-auto-stop-configurable="true"
+								data-auto-stop-out-of-range="{{$cs.AutoStop.CustomTimeoutOutOfRange}}"
+								data-auto-stop-effective="{{if $cs.AutoStop.EffectiveEnabled}}{{ctx.Locale.Tr "codespace.auto_stop_effective" (ctx.Locale.Tr $cs.AutoStop.EffectiveTimeout.TranslationKey $cs.AutoStop.EffectiveTimeout.Value)}}{{else}}{{ctx.Locale.Tr "codespace.auto_stop_effective_never"}}{{end}}"
+								data-auto-stop-default-description="{{ctx.Locale.Tr "codespace.auto_stop_default_desc" (ctx.Locale.Tr $cs.AutoStop.Default.TranslationKey $cs.AutoStop.Default.Value)}}"
+								data-auto-stop-range="{{ctx.Locale.Tr "codespace.auto_stop_range" (ctx.Locale.Tr $cs.AutoStop.Minimum.TranslationKey $cs.AutoStop.Minimum.Value) (ctx.Locale.Tr $cs.AutoStop.Maximum.TranslationKey $cs.AutoStop.Maximum.Value)}}"
+							>{{svg "octicon-gear" 16}}{{ctx.Locale.Tr "settings_title"}}</a>
+						{{end}}
+						{{if and $cs.CanConfigureAutoStop $cs.CanDelete}}<div class="divider"></div>{{end}}
+						{{if $cs.CanDelete}}
+							<a class="item link-action tw-text-danger codespace-delete-action"
+								data-url="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}/delete{{QueryBuild "?" "return_to" (printf "%s/-/codespaces" AppSubUrl)}}"
+								data-modal-confirm-header="{{ctx.Locale.Tr "codespace.delete_title"}}"
+								data-modal-confirm-content="{{ctx.Locale.Tr "codespace.delete_detail_confirm"}}"
+							>{{svg "octicon-trash" 16}}{{ctx.Locale.Tr "delete"}}</a>
+						{{end}}
+						</div>
+					</div>
+				{{end}}
+			</div>
+		</div>
+	</header>
+
+	<nav class="ui secondary pointing menu codespace-detail-tabs" aria-label="{{ctx.Locale.Tr "codespace.codespace"}}">
+		<a class="item {{if eq .CodespaceTab "overview"}}active{{end}}" href="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}?tab=overview">{{ctx.Locale.Tr "codespace.overview"}}</a>
+		<a class="item {{if eq .CodespaceTab "logs"}}active{{end}}" href="{{AppSubUrl}}/-/codespaces/{{$cs.ID}}?tab=logs">{{ctx.Locale.Tr "codespace.logs"}}</a>
+	</nav>
+
+	{{if eq .CodespaceTab "overview"}}
+		{{$hasConnections := or $cs.SSH $cs.Endpoints}}
+		<div class="codespace-overview">
+				{{if $hasConnections}}
+					<section class="tw-min-w-0">
+						{{if $cs.SSH}}
+							<section class="codespace-connection-section codespace-ssh-section">
+								<h3 class="ui header flex-text-block">{{svg "octicon-key" 18}}{{ctx.Locale.Tr "codespace.ssh"}}</h3>
+								<div class="ui fluid action input codespace-ssh-command">
+									<input value="{{$cs.SSH.Command}}" readonly>
+									<button class="ui icon button" type="button" data-clipboard-text="{{$cs.SSH.Command}}" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+								</div>
+								<details class="codespace-ssh-verification">
+									<summary>{{ctx.Locale.Tr "codespace.ssh_verify_host_key"}}</summary>
+									<dl>
+										<dt>{{ctx.Locale.Tr "codespace.ssh_host_key_algorithm"}}</dt>
+										<dd>{{$cs.SSH.HostKeyAlgorithm}}</dd>
+										<dt>{{ctx.Locale.Tr "codespace.ssh_host_key_fingerprint"}}</dt>
+										<dd class="codespace-host-key-value">
+											<span class="tw-break-anywhere tw-font-mono">{{$cs.SSH.HostKeyFingerprint}}</span>
+											<button class="ui compact basic icon button" type="button" data-clipboard-text="{{$cs.SSH.HostKeyFingerprint}}" data-tooltip-content="{{ctx.Locale.Tr "copy"}}">{{svg "octicon-copy" 14}}</button>
+										</dd>
+										{{if $cs.SSH.HostKeyUpdatedUnix}}
+											<dt>{{ctx.Locale.Tr "codespace.ssh_host_key_updated"}}</dt>
+											<dd>{{DateUtils.AbsoluteShort $cs.SSH.HostKeyUpdatedUnix}}</dd>
+										{{end}}
+									</dl>
+								</details>
+							</section>
+						{{end}}
+					{{if $cs.Endpoints}}
+							<section class="codespace-connection-section codespace-ports-section">
+								<h3 class="ui header">{{ctx.Locale.Tr "codespace.ports"}}</h3>
+								<table class="ui very basic table codespace-ports-table">
+									<thead>
+										<tr>
+											<th>{{ctx.Locale.Tr "codespace.service"}}</th>
+											<th>{{ctx.Locale.Tr "codespace.port"}}</th>
+											<th>{{ctx.Locale.Tr "codespace.visibility"}}</th>
+											<th class="codespace-port-action-header" aria-label="{{ctx.Locale.Tr "actions.actions"}}"></th>
+										</tr>
+									</thead>
+									<tbody>
+										{{range $endpoint := $cs.Endpoints}}
+											<tr>
+												<td class="codespace-port-service">
+													<strong class="tw-break-anywhere">{{$endpoint.Label}}</strong>
+													<div class="codespace-port-mobile-meta">
+														<code>{{if $endpoint.Port}}:{{$endpoint.Port}}{{else}}-{{end}}</code>
+														<span class="ui tiny label">{{if $endpoint.Public}}{{ctx.Locale.Tr "codespace.public_endpoint"}}{{else}}{{ctx.Locale.Tr "codespace.authenticated_endpoint"}}{{end}}</span>
+													</div>
+												</td>
+												<td class="codespace-port-number"><code>{{if $endpoint.Port}}:{{$endpoint.Port}}{{else}}-{{end}}</code></td>
+												<td class="codespace-port-visibility"><span class="ui tiny label">{{if $endpoint.Public}}{{ctx.Locale.Tr "codespace.public_endpoint"}}{{else}}{{ctx.Locale.Tr "codespace.authenticated_endpoint"}}{{end}}</span></td>
+												<td class="codespace-port-action">
+													{{if $endpoint.CanOpen}}
+														<button class="ui compact icon button show-modal" type="button"
+															data-tooltip-content="{{ctx.Locale.Tr "codespace.open"}}"
+															data-modal="#codespace-open-modal"
+															data-modal-form.url="{{AppSubUrl}}{{$endpoint.OpenPath}}"
+															data-modal-form.target="_blank"
+															data-modal-endpoint-label="{{$endpoint.Label}}"
+															data-modal-access-kind="{{if $endpoint.Public}}{{ctx.Locale.Tr "codespace.public_endpoint"}}{{else}}{{ctx.Locale.Tr "codespace.authenticated_endpoint"}}{{end}}"
+														>{{svg "octicon-link-external"}}</button>
+													{{else}}
+														<button class="ui compact icon button disabled" type="button" data-tooltip-content="{{ctx.Locale.Tr "codespace.open.unavailable"}}">{{svg "octicon-link-external"}}</button>
+													{{end}}
+												</td>
+											</tr>
+										{{end}}
+									</tbody>
+								</table>
+						</section>
+					{{end}}
+				</section>
+			{{else}}
+				<section class="codespace-access-empty">
+					{{svg "octicon-terminal" 24}}
+					<div>
+						<h3 class="ui header">{{ctx.Locale.Tr "codespace.access"}}</h3>
+						<p>{{ctx.Locale.Tr "codespace.access_unavailable"}}</p>
+					</div>
+				</section>
+				{{end}}
+				<aside class="codespace-overview-context">
+					<section class="codespace-detail-section">
+						<h3 class="ui header">{{ctx.Locale.Tr "codespace.details"}}</h3>
+						<dl class="codespace-detail-list">
+							<dt>{{ctx.Locale.Tr "codespace.environment"}}</dt>
+							<dd>{{$cs.EnvironmentTag}}</dd>
+							<dt>{{ctx.Locale.Tr "codespace.ref"}}</dt>
+							<dd class="tw-break-anywhere">{{$cs.RefType}}: {{$cs.RefName}}</dd>
+							<dt>{{ctx.Locale.Tr "codespace.commit"}}</dt>
+							<dd>
+								{{if $cs.CommitSHA}}
+									{{if $cs.CommitLink}}<a class="tw-font-mono" href="{{$cs.CommitLink}}">{{ShortSha $cs.CommitSHA}}</a>{{else}}<span class="tw-font-mono">{{ShortSha $cs.CommitSHA}}</span>{{end}}
+								{{else}}-{{end}}
+							</dd>
+							<dt>{{ctx.Locale.Tr "codespace.created"}}</dt>
+							<dd>{{DateUtils.AbsoluteShort $cs.CreatedUnix}}</dd>
+							<dt>{{ctx.Locale.Tr "codespace.last_active"}}</dt>
+							<dd>{{if $cs.LastActiveUnix}}{{DateUtils.AbsoluteShort $cs.LastActiveUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}}</dd>
+							<dt>{{ctx.Locale.Tr "codespace.auto_stop"}}</dt>
+							<dd>{{if $cs.AutoStop.EffectiveEnabled}}{{ctx.Locale.Tr $cs.AutoStop.EffectiveTimeout.TranslationKey $cs.AutoStop.EffectiveTimeout.Value}}{{else}}{{ctx.Locale.Tr "codespace.auto_stop_never"}}{{end}}</dd>
+						</dl>
+					</section>
+					{{if $cs.ResourceUsage}}
+						<section class="codespace-detail-section">
+							<h3 class="ui header">{{ctx.Locale.Tr "codespace.runtime_usage"}}</h3>
+							<div class="flex-relaxed-list">
+								<div class="codespace-resource-metric">
+									<div>
+										<span>{{ctx.Locale.Tr "codespace.cpu"}}</span>
+										<span>{{if $cs.ResourceUsage.CPU.Limit}}{{$cs.ResourceUsage.CPU.UsedDisplay}} / {{$cs.ResourceUsage.CPU.LimitDisplay}}{{else}}{{$cs.ResourceUsage.CPU.UsedDisplay}} · {{ctx.Locale.Tr "codespace.limit_unknown"}}{{end}}</span>
+									</div>
+									{{if $cs.ResourceUsage.CPU.Limit}}<progress value="{{$cs.ResourceUsage.CPU.Used}}" max="{{$cs.ResourceUsage.CPU.Limit}}"></progress>{{end}}
+								</div>
+								<div class="codespace-resource-metric">
+									<div>
+										<span>{{ctx.Locale.Tr "codespace.memory"}}</span>
+										<span>{{if $cs.ResourceUsage.Memory.Limit}}{{$cs.ResourceUsage.Memory.UsedDisplay}} / {{$cs.ResourceUsage.Memory.LimitDisplay}}{{else}}{{$cs.ResourceUsage.Memory.UsedDisplay}} · {{ctx.Locale.Tr "codespace.limit_unknown"}}{{end}}</span>
+									</div>
+									{{if $cs.ResourceUsage.Memory.Limit}}<progress value="{{$cs.ResourceUsage.Memory.Used}}" max="{{$cs.ResourceUsage.Memory.Limit}}"></progress>{{end}}
+								</div>
+								<div class="codespace-resource-metric">
+									<div>
+										<span>{{ctx.Locale.Tr "codespace.disk"}}</span>
+										<span>{{if $cs.ResourceUsage.Disk.Limit}}{{$cs.ResourceUsage.Disk.UsedDisplay}} / {{$cs.ResourceUsage.Disk.LimitDisplay}}{{else}}{{$cs.ResourceUsage.Disk.UsedDisplay}} · {{ctx.Locale.Tr "codespace.limit_unknown"}}{{end}}</span>
+									</div>
+									{{if $cs.ResourceUsage.Disk.Limit}}<progress value="{{$cs.ResourceUsage.Disk.Used}}" max="{{$cs.ResourceUsage.Disk.Limit}}"></progress>{{end}}
+								</div>
+							</div>
+							{{if $cs.ResourceUsage.ObservedUnix}}
+								<div class="tw-mt-2 tw-text-text-light-2">{{ctx.Locale.Tr "codespace.observed"}} {{DateUtils.TimeSince $cs.ResourceUsage.ObservedUnix}}</div>
+							{{end}}
+						</section>
+					{{end}}
+			</aside>
+		</div>
+	{{end}}
+</div>

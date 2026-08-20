@@ -1,0 +1,66 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "codespace.dev_container_templates"}}
+	<div class="ui right">
+		<button class="ui primary tiny button show-modal"
+			data-modal="#codespace-devcontainer-template-modal"
+			data-modal-form.url="{{.ActionBase}}"
+			data-modal-template-modal-title="{{ctx.Locale.Tr "add"}}"
+			data-modal-codespace-devcontainer-template-name=""
+			data-modal-codespace-devcontainer-template-content='{"image":"mcr.microsoft.com/devcontainers/base:ubuntu"}'>
+			{{ctx.Locale.Tr "add"}}
+		</button>
+	</div>
+</h4>
+<div class="ui attached segment">
+	{{if .DevContainerTemplates}}
+		<div class="flex-divided-list items-with-main">
+			{{range .DevContainerTemplates}}
+				<div class="item tw-items-center">
+					<div class="item-leading">{{svg "octicon-file-code" 32}}</div>
+					<div class="item-main">
+						<div class="item-title">{{.Name}}</div>
+						<div class="item-body color-text-light-2">{{DateUtils.AbsoluteShort .UpdatedUnix}}</div>
+					</div>
+					<div class="item-trailing">
+						<button class="btn interact-bg tw-p-2 show-modal"
+							data-modal="#codespace-devcontainer-template-modal"
+							data-modal-form.url="{{$.ActionBase}}/{{.ID}}"
+							data-modal-template-modal-title="{{ctx.Locale.Tr "edit"}}"
+							data-modal-codespace-devcontainer-template-name="{{.Name}}"
+							data-modal-codespace-devcontainer-template-content="{{.Content}}"
+							data-tooltip-content="{{ctx.Locale.Tr "edit"}}" aria-label="{{ctx.Locale.Tr "edit"}}">
+							{{svg "octicon-pencil"}}
+						</button>
+						<form class="form-fetch-action ignore-dirty tw-m-0" method="post" action="{{$.ActionBase}}/{{.ID}}/delete">
+							{{$.CsrfTokenHtml}}
+							<button class="btn interact-bg tw-p-2" type="submit"
+								data-modal-confirm="{{ctx.Locale.Tr "codespace.dev_container_template_delete_confirm" .Name}}"
+								data-tooltip-content="{{ctx.Locale.Tr "delete"}}" aria-label="{{ctx.Locale.Tr "delete"}}">{{svg "octicon-trash"}}</button>
+						</form>
+					</div>
+				</div>
+			{{end}}
+		</div>
+	{{else}}
+		{{ctx.Locale.Tr "codespace.no_dev_container_templates"}}
+	{{end}}
+</div>
+
+<div class="ui small modal" id="codespace-devcontainer-template-modal">
+	<div class="header template-modal-title">{{ctx.Locale.Tr "codespace.dev_container_templates"}}</div>
+	<form class="ui form form-fetch-action" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="content">
+			<div class="field">
+				<label for="codespace-devcontainer-template-name">{{ctx.Locale.Tr "name"}}</label>
+				<input id="codespace-devcontainer-template-name" name="name" required maxlength="255" autocomplete="off">
+			</div>
+			<div class="field">
+				<label for="codespace-devcontainer-template-content">{{ctx.Locale.Tr "codespace.dev_container_template_content"}}</label>
+				<textarea id="codespace-devcontainer-template-content" name="content" required rows="10" spellcheck="false" autocomplete="off"></textarea>
+				<div class="help">{{ctx.Locale.Tr "codespace.dev_container_template_content_help"}}</div>
+			</div>
+		</div>
+		{{template "base/modal_actions_confirm" (dict "ModalButtonTypes" "confirm")}}
+	</form>
+</div>

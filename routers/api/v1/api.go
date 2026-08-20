@@ -66,6 +66,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	auth_model "gitea.dev/models/auth"
@@ -76,12 +77,14 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
+	web_types "gitea.dev/modules/web/types"
 	"gitea.dev/routers/api/v1/activitypub"
 	"gitea.dev/routers/api/v1/admin"
 	"gitea.dev/routers/api/v1/misc"
@@ -105,6 +108,14 @@ import (
 	"github.com/go-chi/cors"
 )
 
+const (
+	codespaceTokenRoutePolicyDataKey        = "CodespaceTokenRoutePolicy"
+	codespaceTokenRepositoryRouteDataKey    = "CodespaceTokenRepositoryRoute"
+	codespaceTokenRoutePolicySelf           = "self"
+	codespaceTokenRoutePolicyPublicInfo     = "public_info"
+	codespaceTokenRoutePolicySignedArtifact = "signed_artifact"
+)
+
 func sudo() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		sudo := ctx.FormString("sudo")
@@ -113,6 +124,10 @@ func sudo() func(ctx *context.APIContext) {
 		}
 
 		if len(sudo) > 0 {
+			if _, ok := ctx.CodespaceTokenRepoID(); ok {
+				ctx.APIError(http.StatusForbidden, "codespace token cannot use sudo")
+				return
+			}
 			if ctx.IsSigned && ctx.Doer.IsAdmin {
 				user, err := user_model.GetUserByName(ctx, sudo)
 				if err != nil {
@@ -188,6 +203,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
+		ctx.UseAnonymousForPublicCodespaceRead(repo)
 
 		if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
 			ctx.Repo.Permission, err = access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
@@ -218,6 +234,10 @@ func repoAssignment() func(ctx *context.APIContext) {
 		}
 
 		if !ctx.TokenCanAccessRepo(repo) {
+			if _, ok := ctx.CodespaceTokenRepoID(); ok {
+				ctx.APIError(http.StatusForbidden, "codespace token does not grant access to this repository")
+				return
+			}
 			ctx.APIErrorNotFound()
 			return
 		}
@@ -318,6 +338,49 @@ func contextAuthenticatedUser() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		ctx.ContextUser = ctx.Doer
 	}
+}
+
+func codespaceTokenRoute(policy string) web_types.PreMiddlewareProvider {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if store := reqctx.GetRequestDataStore(req.Context()); store != nil {
+				store.GetData()[codespaceTokenRoutePolicyDataKey] = policy
+			}
+			next.ServeHTTP(w, req)
+		})
+	}
+}
+
+var codespaceTokenRepositoryRoute web_types.PreMiddlewareProvider = func(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if store := reqctx.GetRequestDataStore(req.Context()); store != nil {
+			store.GetData()[codespaceTokenRepositoryRouteDataKey] = true
+		}
+		next.ServeHTTP(w, req)
+	})
+}
+
+func codespaceTokenRouteGuard(ctx *context.APIContext) {
+	if _, ok := ctx.CodespaceTokenRepoID(); !ok {
+		return
+	}
+	if ctx.GetData()[codespaceTokenRepositoryRouteDataKey] == true {
+		return
+	}
+	policy, _ := ctx.GetData()[codespaceTokenRoutePolicyDataKey].(string)
+	switch policy {
+	case codespaceTokenRoutePolicySelf,
+		codespaceTokenRoutePolicyPublicInfo,
+		codespaceTokenRoutePolicySignedArtifact:
+		return
+	default:
+		ctx.APIError(http.StatusForbidden, "codespace token is not allowed for this API route")
+	}
+}
+
+func codespaceTokenRoutePolicy(ctx *context.APIContext) string {
+	policy, _ := ctx.GetData()[codespaceTokenRoutePolicyDataKey].(string)
+	return policy
 }
 
 // if a token is being used for auth, we check that it contains the required scope
@@ -450,6 +513,10 @@ func reqAdmin() func(ctx *context.APIContext) {
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
 func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if !codespaceTokenAllowsRepositoryUnit(ctx, perm.AccessModeWrite, unitTypes...) {
+			ctx.APIError(http.StatusForbidden, "codespace token does not have the required repository permission")
+			return
+		}
 		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.APIError(http.StatusForbidden, "user should have a permission to write to a repo")
 			return
@@ -460,10 +527,57 @@ func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
 func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if !codespaceTokenAllowsRepositoryUnit(ctx, perm.AccessModeRead, unitType) {
+			ctx.APIError(http.StatusForbidden, "codespace token does not have the required repository permission")
+			return
+		}
 		if !ctx.Repo.Permission.CanRead(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.APIError(http.StatusForbidden, "user should have specific read permission or be a repo admin or a site admin")
 			return
 		}
+	}
+}
+
+func codespaceTokenAllowsRepositoryUnit(ctx *context.APIContext, mode perm.AccessMode, unitTypes ...unit.Type) bool {
+	if _, ok := ctx.CodespaceTokenRepoID(); !ok {
+		return true
+	}
+	return slices.ContainsFunc(unitTypes, func(unitType unit.Type) bool {
+		return ctx.CodespaceTokenAllowsRepository(unitType, mode)
+	})
+}
+
+func requireCodespaceTokenRepositoryPermission(ctx *context.APIContext, mode perm.AccessMode, unitTypes ...unit.Type) {
+	if _, ok := ctx.CodespaceTokenRepoID(); !ok {
+		return
+	}
+	if !slices.ContainsFunc(unitTypes, func(unitType unit.Type) bool {
+		if !ctx.CodespaceTokenAllowsRepository(unitType, mode) {
+			return false
+		}
+		if mode == perm.AccessModeWrite {
+			return ctx.Repo.Permission.CanWrite(unitType)
+		}
+		return ctx.Repo.Permission.CanRead(unitType)
+	}) {
+		ctx.APIError(http.StatusForbidden, "codespace token does not have the required repository permission")
+	}
+}
+
+func reqCodespaceTokenRepositoryPermission(unitTypes ...unit.Type) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		mode := perm.AccessModeRead
+		switch ctx.Req.Method {
+		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+			mode = perm.AccessModeWrite
+		}
+		requireCodespaceTokenRepositoryPermission(ctx, mode, unitTypes...)
+	}
+}
+
+func reqCodespaceTokenRepositoryRead(unitTypes ...unit.Type) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		requireCodespaceTokenRepositoryPermission(ctx, perm.AccessModeRead, unitTypes...)
 	}
 }
 
@@ -911,8 +1025,15 @@ func buildAuthGroup() *auth.Group {
 
 func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if codespaceTokenRoutePolicy(ctx) == codespaceTokenRoutePolicySignedArtifact {
+			return
+		}
 		ar, err := common.AuthShared(ctx.Base, nil, authMethod)
 		if err != nil {
+			if auth.IsCodespaceTokenForbidden(err) {
+				ctx.APIError(http.StatusForbidden, "codespace token is not allowed for this request")
+				return
+			}
 			msg, ok := auth.ErrAsUserAuthMessage(err)
 			msg = util.Iif(ok, msg, "invalid username, password or token")
 			ctx.APIError(http.StatusUnauthorized, msg)
@@ -927,6 +1048,9 @@ func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 // verifyAuthWithOptions checks authentication according to options
 func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if codespaceTokenRoutePolicy(ctx) == codespaceTokenRoutePolicySignedArtifact {
+			return
+		}
 		// Check prohibit login users.
 		if ctx.IsSigned {
 			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
@@ -1033,14 +1157,14 @@ func Routes() *web.Router {
 
 	// Get user from session if logged in.
 	m.AfterRouting(apiAuth(buildAuthGroup()))
+	m.AfterRouting(codespaceTokenRouteGuard)
 
 	m.AfterRouting(verifyAuthWithOptions(&common.VerifyOptions{
 		SignInRequired: setting.Service.RequireSignInViewStrict,
 	}))
 
-	addActionsRoutes := func(
+	addActionsManagementRoutes := func(
 		m *web.Router,
-		reqReaderCheck func(ctx *context.APIContext),
 		reqOwnerCheck func(ctx *context.APIContext),
 		act actions.API,
 	) {
@@ -1068,6 +1192,14 @@ func Routes() *web.Router {
 				m.Delete("/{runner_id}", reqToken(), reqOwnerCheck, act.DeleteRunner)
 				m.Patch("/{runner_id}", reqToken(), reqOwnerCheck, bind(api.EditActionRunnerOption{}), act.UpdateRunner)
 			})
+		})
+	}
+	addActionsReaderRoutes := func(
+		m *web.Router,
+		reqReaderCheck func(ctx *context.APIContext),
+		act actions.API,
+	) {
+		m.Group("/actions", func() {
 			m.Get("/runs", reqToken(), reqReaderCheck, act.ListWorkflowRuns)
 			m.Get("/jobs", reqToken(), reqReaderCheck, act.ListWorkflowJobs)
 		})
@@ -1088,9 +1220,9 @@ func Routes() *web.Router {
 
 		// Misc (public accessible)
 		m.Group("", func() {
-			m.Get("/version", misc.Version)
-			m.Get("/signing-key.gpg", misc.SigningKeyGPG)
-			m.Get("/signing-key.pub", misc.SigningKeySSH)
+			m.Get("/version", codespaceTokenRoute(codespaceTokenRoutePolicyPublicInfo), misc.Version)
+			m.Get("/signing-key.gpg", codespaceTokenRoute(codespaceTokenRoutePolicyPublicInfo), misc.SigningKeyGPG)
+			m.Get("/signing-key.pub", codespaceTokenRoute(codespaceTokenRoutePolicyPublicInfo), misc.SigningKeySSH)
 			m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
 			m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
 			m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
@@ -1171,7 +1303,7 @@ func Routes() *web.Router {
 
 		// Users (requires user scope)
 		m.Group("/user", func() {
-			m.Get("", user.GetAuthenticatedUser)
+			m.Get("", codespaceTokenRoute(codespaceTokenRoutePolicySelf), user.GetAuthenticatedUser)
 			m.Group("/settings", func() {
 				m.Get("", user.GetUserSettings)
 				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
@@ -1313,9 +1445,10 @@ func Routes() *web.Router {
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{username}/{reponame}", func() {
-				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
+				m.Get("/compare/*", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
-				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
+				m.Get("", codespaceTokenRepositoryRoute, reqAnyRepoReader(), reqCodespaceTokenRepositoryPermission(unit.TypeCode), repo.Get)
+				m.Combo("").
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
@@ -1326,7 +1459,11 @@ func Routes() *web.Router {
 				}, reqToken())
 
 				// Adds the routes for secrets/variables and runner management
-				addActionsRoutes(m, reqRepoReader(unit.TypeActions), reqOwner(), repo.NewAction())
+				repoActionsAPI := repo.NewAction()
+				addActionsManagementRoutes(m, reqOwner(), repoActionsAPI)
+				m.Group("", func() {
+					addActionsReaderRoutes(m, reqRepoReader(unit.TypeActions), repoActionsAPI)
+				}, codespaceTokenRepositoryRoute)
 
 				m.Group("/actions/workflows", func() {
 					m.Get("", repo.ActionsListRepositoryWorkflows)
@@ -1335,12 +1472,12 @@ func Routes() *web.Router {
 					m.Put("/{workflow_id}/disable", reqRepoWriter(unit.TypeActions), repo.ActionsDisableWorkflow)
 					m.Put("/{workflow_id}/enable", reqRepoWriter(unit.TypeActions), repo.ActionsEnableWorkflow)
 					m.Post("/{workflow_id}/dispatches", reqRepoWriter(unit.TypeActions), bind(api.CreateActionWorkflowDispatch{}), repo.ActionsDispatchWorkflow)
-				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions))
+				}, context.ReferencesGitRepo(), reqToken(), reqRepoReader(unit.TypeActions), codespaceTokenRepositoryRoute)
 
 				m.Group("/actions/jobs", func() {
 					m.Get("/{job_id}", repo.GetWorkflowJob)
 					m.Get("/{job_id}/logs", repo.DownloadActionsRunJobLogs)
-				}, reqToken(), reqRepoReader(unit.TypeActions))
+				}, reqToken(), reqRepoReader(unit.TypeActions), codespaceTokenRepositoryRoute)
 
 				m.Group("/hooks/git", func() {
 					m.Combo("").Get(repo.ListGitHooks)
@@ -1369,21 +1506,21 @@ func Routes() *web.Router {
 						m.Get("/permission", repo.GetRepoPermissions)
 					})
 				}, reqToken())
-				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
-				m.Get("/assignees/{assignee}", reqToken(), reqAnyRepoReader(), repo.CheckRepoIssueAssignee)
-				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
+				m.Get("/assignees", codespaceTokenRepositoryRoute, reqToken(), reqCodespaceTokenRepositoryPermission(unit.TypeIssues, unit.TypePullRequests), reqAnyRepoReader(), repo.GetAssignees)
+				m.Get("/assignees/{assignee}", codespaceTokenRepositoryRoute, reqToken(), reqCodespaceTokenRepositoryPermission(unit.TypeIssues, unit.TypePullRequests), reqAnyRepoReader(), repo.CheckRepoIssueAssignee)
+				m.Get("/reviewers", codespaceTokenRepositoryRoute, reqToken(), reqCodespaceTokenRepositoryPermission(unit.TypePullRequests), reqAnyRepoReader(), repo.GetReviewers)
 				m.Group("/teams", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListTeams)
 					m.Combo("/{team}").Get(reqAnyRepoReader(), repo.IsTeam).
 						Put(reqAdmin(), repo.AddTeam).
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
-				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
-				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
-				m.Methods("HEAD,GET", "/archive/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.GetArchive)
-				m.Combo("/forks").Get(repo.ListForks).
-					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
-				m.Post("/merge-upstream", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), bind(api.MergeUpstreamRequest{}), repo.MergeUpstream)
+				m.Get("/raw/*", codespaceTokenRepositoryRoute, context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
+				m.Get("/media/*", codespaceTokenRepositoryRoute, context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
+				m.Methods("HEAD,GET", "/archive/*", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.GetArchive)
+				m.Get("/forks", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), repo.ListForks)
+				m.Post("/forks", reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
+				m.Post("/merge-upstream", codespaceTokenRepositoryRoute, reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeCode), bind(api.MergeUpstreamRequest{}), repo.MergeUpstream)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", repo.GetBranch)
@@ -1391,7 +1528,7 @@ func Routes() *web.Router {
 					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 					m.Put("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.UpdateBranchRepoOption{}), repo.UpdateBranch)
 					m.Patch("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.RenameBranchRepoOption{}), repo.RenameBranch)
-				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode))
+				}, context.ReferencesGitRepo(), reqRepoReader(unit.TypeCode), codespaceTokenRepositoryRoute)
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), mustNotBeArchived, repo.CreateBranchProtection)
@@ -1407,7 +1544,7 @@ func Routes() *web.Router {
 					m.Get("/*", repo.GetTag)
 					m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, bind(api.CreateTagOption{}), repo.CreateTag)
 					m.Delete("/*", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.DeleteTag)
-				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
+				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), codespaceTokenRepositoryRoute)
 				m.Group("/tag_protections", func() {
 					m.Combo("").Get(repo.ListTagProtection).
 						Post(bind(api.CreateTagProtectionOption{}), mustNotBeArchived, repo.CreateTagProtection)
@@ -1446,7 +1583,7 @@ func Routes() *web.Router {
 						m.Delete("", reqRepoWriter(unit.TypeActions), repo.DeleteArtifact)
 					})
 					m.Get("/artifacts/{artifact_id}/zip", repo.DownloadArtifact)
-				}, reqRepoReader(unit.TypeActions))
+				}, reqRepoReader(unit.TypeActions), codespaceTokenRepositoryRoute)
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -1456,7 +1593,7 @@ func Routes() *web.Router {
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/{timetrackingusername}").Get(repo.ListTrackedTimesByUser)
-				}, mustEnableIssues, reqToken())
+				}, mustEnableIssues, reqToken(), reqCodespaceTokenRepositoryPermission(unit.TypeIssues, unit.TypePullRequests), codespaceTokenRepositoryRoute)
 				m.Group("/wiki", func() {
 					m.Combo("/page/{pageName}").
 						Get(repo.GetWikiPage).
@@ -1465,10 +1602,10 @@ func Routes() *web.Router {
 					m.Get("/revisions/{pageName}", repo.ListPageRevisions)
 					m.Post("/new", reqToken(), mustNotBeArchived, reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
 					m.Get("/pages", repo.ListWikiPages)
-				}, mustEnableWiki)
-				m.Post("/markup", reqToken(), bind(api.MarkupOption{}), misc.Markup)
-				m.Post("/markdown", reqToken(), bind(api.MarkdownOption{}), misc.Markdown)
-				m.Post("/markdown/raw", reqToken(), misc.MarkdownRaw)
+				}, mustEnableWiki, reqCodespaceTokenRepositoryPermission(unit.TypeWiki), codespaceTokenRepositoryRoute)
+				m.Post("/markup", codespaceTokenRepositoryRoute, reqToken(), reqCodespaceTokenRepositoryRead(unit.TypeCode), bind(api.MarkupOption{}), misc.Markup)
+				m.Post("/markdown", codespaceTokenRepositoryRoute, reqToken(), reqCodespaceTokenRepositoryRead(unit.TypeCode), bind(api.MarkdownOption{}), misc.Markdown)
+				m.Post("/markdown/raw", codespaceTokenRepositoryRoute, reqToken(), reqCodespaceTokenRepositoryRead(unit.TypeCode), misc.MarkdownRaw)
 				m.Get("/stargazers", reqStarsEnabled(), repo.ListStargazers)
 				m.Get("/subscribers", repo.ListSubscribers)
 				m.Group("/subscription", func() {
@@ -1497,8 +1634,8 @@ func Routes() *web.Router {
 							Get(repo.GetReleaseByTag).
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
-				}, reqRepoReader(unit.TypeReleases))
-				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
+				}, reqRepoReader(unit.TypeReleases), codespaceTokenRepositoryRoute)
+				m.Post("/mirror-sync", codespaceTokenRepositoryRoute, reqToken(), reqRepoWriter(unit.TypeCode), mustNotBeArchived, repo.MirrorSync)
 				m.Post("/push_mirrors-sync", reqAdmin(), reqToken(), mustNotBeArchived, repo.PushMirrorSync)
 				m.Group("/push_mirrors", func() {
 					m.Combo("").Get(repo.ListPushMirrors).
@@ -1508,7 +1645,7 @@ func Routes() *web.Router {
 						Get(repo.GetPushMirrorByName)
 				}, reqAdmin(), reqToken())
 
-				m.Get("/editorconfig/{filename}", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)
+				m.Get("/editorconfig/{filename}", codespaceTokenRepositoryRoute, context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(repo.ListPullRequests).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
@@ -1546,11 +1683,11 @@ func Routes() *web.Router {
 						m.Post("/comments/{id}/replies", reqToken(), mustNotBeArchived, bind(api.CreatePullReviewCommentReplyOptions{}), repo.CreatePullReviewCommentReply)
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
-				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+				}, mustAllowPulls, reqRepoReader(unit.TypeCode), reqCodespaceTokenRepositoryPermission(unit.TypePullRequests), context.ReferencesGitRepo(), codespaceTokenRepositoryRoute)
 				m.Group("/statuses", func() { // "/statuses/{sha}" only accepts commit ID
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
 						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
-				}, reqRepoReader(unit.TypeCode))
+				}, reqRepoReader(unit.TypeCode), codespaceTokenRepositoryRoute)
 				m.Group("/commits", func() {
 					m.Group("", func() {
 						m.Get("", repo.GetAllCommits)
@@ -1564,7 +1701,7 @@ func Routes() *web.Router {
 						g.MatchPath("GET", "/<ref:*>/statuses", repo.GetCommitStatusesByRef)
 						g.MatchPath("GET", "/<sha>/pull", repo.GetCommitPullRequest)
 					})
-				}, reqRepoReader(unit.TypeCode))
+				}, reqRepoReader(unit.TypeCode), codespaceTokenRepositoryRoute)
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
 						m.Get("/{sha}", repo.GetSingleCommit)
@@ -1576,8 +1713,8 @@ func Routes() *web.Router {
 					m.Get("/blobs/{sha}", repo.GetBlob)
 					m.Get("/tags/{sha}", repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
-				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode))
-				m.Post("/diffpatch", mustEnableEditor, reqToken(), bind(api.ApplyDiffPatchFileOptions{}), repo.ReqChangeRepoFileOptionsAndCheck, repo.ApplyDiffPatch)
+				}, context.ReferencesGitRepo(true), reqRepoReader(unit.TypeCode), codespaceTokenRepositoryRoute)
+				m.Post("/diffpatch", codespaceTokenRepositoryRoute, mustEnableEditor, reqToken(), reqRepoWriter(unit.TypeCode), bind(api.ApplyDiffPatchFileOptions{}), repo.ReqChangeRepoFileOptionsAndCheck, repo.ApplyDiffPatch)
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
 					m.Get("/*", repo.GetContents)
@@ -1589,17 +1726,17 @@ func Routes() *web.Router {
 							m.Put("", bind(api.UpdateFileOptions{}), repo.ReqChangeRepoFileOptionsAndCheck, repo.UpdateFile)
 							m.Delete("", bind(api.DeleteFileOptions{}), repo.ReqChangeRepoFileOptionsAndCheck, repo.DeleteFile)
 						})
-					}, mustEnableEditor, reqToken())
-				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
+					}, mustEnableEditor, reqToken(), reqRepoWriter(unit.TypeCode))
+				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), codespaceTokenRepositoryRoute)
 				m.Group("/contents-ext", func() {
 					m.Get("", repo.GetContentsExt)
 					m.Get("/*", repo.GetContentsExt)
-				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
-				m.Combo("/file-contents", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo()).
+				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), codespaceTokenRepositoryRoute)
+				m.Combo("/file-contents", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo()).
 					Get(repo.GetFileContentsGet).
-					Post(bind(api.GetFilesOptions{}), repo.GetFileContentsPost) // the POST method requires "write" permission, so we also support "GET" method above
-				m.Get("/signing-key.gpg", misc.SigningKeyGPG)
-				m.Get("/signing-key.pub", misc.SigningKeySSH)
+					Post(reqCodespaceTokenRepositoryPermission(unit.TypeCode), bind(api.GetFilesOptions{}), repo.GetFileContentsPost) // the POST method requires "write" permission, so we also support "GET" method above
+				m.Get("/signing-key.gpg", codespaceTokenRepositoryRoute, reqCodespaceTokenRepositoryPermission(unit.TypeCode), misc.SigningKeyGPG)
+				m.Get("/signing-key.pub", codespaceTokenRepositoryRoute, reqCodespaceTokenRepositoryPermission(unit.TypeCode), misc.SigningKeySSH)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
 						Put(reqToken(), reqAdmin(), bind(api.RepoTopicOptions{}), repo.UpdateTopics)
@@ -1608,25 +1745,25 @@ func Routes() *web.Router {
 							Delete(reqToken(), repo.DeleteTopic)
 					}, reqAdmin())
 				}, reqAnyRepoReader())
-				m.Get("/issue_templates", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueTemplates)
-				m.Get("/issue_config", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueConfig)
-				m.Get("/issue_config/validate", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.ValidateIssueConfig)
-				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
-				m.Get("/licenses", reqRepoReader(unit.TypeCode), repo.GetLicenses)
+				m.Get("/issue_templates", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueTemplates)
+				m.Get("/issue_config", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.GetIssueConfig)
+				m.Get("/issue_config/validate", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(), repo.ValidateIssueConfig)
+				m.Get("/languages", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), repo.GetLanguages)
+				m.Get("/licenses", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), repo.GetLicenses)
 				m.Get("/activities/feeds", repo.ListRepoActivityFeeds)
-				m.Get("/new_pin_allowed", repo.AreNewIssuePinsAllowed)
+				m.Get("/new_pin_allowed", codespaceTokenRepositoryRoute, reqCodespaceTokenRepositoryPermission(unit.TypeIssues, unit.TypePullRequests), repo.AreNewIssuePinsAllowed)
 				m.Group("/avatar", func() {
 					m.Post("", bind(api.UpdateRepoAvatarOption{}), repo.UpdateAvatar)
 					m.Delete("", repo.DeleteAvatar)
 				}, reqAdmin(), reqToken())
 
-				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.DownloadArchive)
+				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", codespaceTokenRepositoryRoute, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.DownloadArchive)
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
-		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", repo.DownloadArtifactRaw)
+		m.Get("/repos/{username}/{reponame}/actions/artifacts/{artifact_id}/zip/raw", codespaceTokenRoute(codespaceTokenRoutePolicySignedArtifact), repo.DownloadArtifactRaw)
 
 		// Notifications (requires notifications scope)
 		m.Group("/repos", func() {
@@ -1760,7 +1897,7 @@ func Routes() *web.Router {
 				m.Group("/projects", func() {
 					addProjectRoutes(m, reqToken(), reqRepoWriter(unit.TypeProjects), mustNotBeArchived)
 				}, reqRepoReader(unit.TypeProjects), mustEnableRepoProjects)
-			}, repoAssignment(), checkTokenPublicOnly())
+			}, repoAssignment(), checkTokenPublicOnly(), codespaceTokenRepositoryRoute, reqCodespaceTokenRepositoryPermission(unit.TypeIssues, unit.TypePullRequests))
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryIssue))
 
 		// NOTE: these are Gitea package management API - see packages.CommonRoutes and packages.DockerContainerRoutes for endpoints that implement package manager APIs
@@ -1806,12 +1943,9 @@ func Routes() *web.Router {
 				m.Combo("/{username}").Get(reqToken(), org.IsMember).
 					Delete(reqToken(), reqOrgOwnership(), org.DeleteMember)
 			}, reqOrgVisible())
-			addActionsRoutes(
-				m,
-				reqOrgMembership(),
-				reqOrgOwnership(),
-				org.NewAction(),
-			)
+			orgActionsAPI := org.NewAction()
+			addActionsManagementRoutes(m, reqOrgOwnership(), orgActionsAPI)
+			addActionsReaderRoutes(m, reqOrgMembership(), orgActionsAPI)
 			m.Group("/public_members", func() {
 				m.Get("", org.ListPublicMembers)
 				m.Combo("/{username}").Get(org.IsPublicMember).

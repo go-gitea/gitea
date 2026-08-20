@@ -1,0 +1,862 @@
+.codespace-back-link {
+  color: var(--color-text-light-1);
+  font-size: 13px;
+}
+
+.codespace-back-link:hover {
+  color: var(--color-text);
+}
+
+.codespace-detail-layout {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.codespace-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.codespace-action-bar,
+.codespace-log-header {
+  display: flex;
+  gap: var(--gap-block);
+}
+
+.codespace-log-header {
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-console-border);
+}
+
+.codespace-detail-source,
+.codespace-operation-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  color: var(--color-text-light-2);
+}
+
+.codespace-detail-source > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.codespace-operation-summary {
+  color: var(--color-text-light-1);
+}
+
+.codespace-action-bar {
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.codespace-detail-more {
+  flex-shrink: 0;
+}
+
+.codespace-detail-section {
+  min-width: 0;
+}
+
+.codespace-detail-section + .codespace-detail-section {
+  padding-top: var(--page-spacing);
+  border-top: 1px solid var(--color-secondary);
+}
+
+.codespace-detail-section .ui.header,
+.codespace-connection-section > .ui.header {
+  margin-top: 0;
+  margin-bottom: var(--gap-block);
+  font-size: 16px;
+}
+
+.codespace-detail-tabs.ui.menu {
+  flex-shrink: 0;
+  min-height: 45px;
+  margin: 18px 0 20px;
+}
+
+.codespace-detail-tabs.ui.secondary.pointing.menu .item {
+  font-weight: var(--font-weight-medium);
+}
+
+.codespace-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: 32px;
+  min-width: 0;
+}
+
+.codespace-access-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px 0;
+  color: var(--color-text-light-2);
+  border-top: 1px solid var(--color-secondary);
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.codespace-access-empty > svg {
+  flex-shrink: 0;
+}
+
+.codespace-access-empty .ui.header {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.codespace-access-empty p {
+  margin: 0;
+}
+
+.codespace-connection-section + .codespace-connection-section {
+  padding-top: 24px;
+  margin-top: 24px;
+  border-top: 1px solid var(--color-secondary);
+}
+
+.codespace-ssh-command input {
+  min-width: 0;
+  font-family: var(--fonts-monospace);
+}
+
+.codespace-host-key-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.codespace-host-key-value > span {
+  min-width: 0;
+  flex: 1;
+}
+
+.codespace-ports-table.ui.table {
+  margin: 0;
+  table-layout: fixed;
+}
+
+.codespace-ports-table.ui.table th,
+.codespace-ports-table.ui.table td {
+  padding: 10px 8px;
+  vertical-align: middle;
+}
+
+.codespace-ports-table th:nth-child(2),
+.codespace-ports-table td:nth-child(2) {
+  width: 90px;
+}
+
+.codespace-ports-table th:nth-child(3),
+.codespace-ports-table td:nth-child(3) {
+  width: 130px;
+}
+
+.codespace-ports-table th:last-child,
+.codespace-ports-table td:last-child {
+  width: 48px;
+  padding-left: 8px;
+  padding-right: 0;
+  text-align: right;
+}
+
+.codespace-port-mobile-meta {
+  display: none;
+}
+
+.codespace-port-action .ui.button {
+  width: 34px;
+  min-width: 34px;
+  margin: 0;
+}
+
+.codespace-ssh-verification {
+  margin-top: 10px;
+}
+
+.codespace-ssh-verification summary {
+  color: var(--color-text-light-1);
+  cursor: pointer;
+}
+
+.codespace-ssh-verification dl,
+.codespace-detail-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 12px 0 0;
+}
+
+.codespace-ssh-verification dt,
+.codespace-detail-list dt {
+  color: var(--color-text-light-2);
+  font-weight: var(--font-weight-semibold);
+}
+
+.codespace-ssh-verification dd,
+.codespace-detail-list dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.codespace-overview-context {
+  min-width: 0;
+  padding-left: 24px;
+  border-left: 1px solid var(--color-secondary);
+}
+
+.codespace-boot-stage {
+  padding-left: 16px;
+  border-left: 1px solid var(--color-secondary);
+}
+
+.codespace-resource-metric > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gap-block);
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.codespace-resource-metric progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+}
+
+.codespace-auto-stop-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.codespace-timeout-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 10rem;
+  align-items: stretch;
+  gap: var(--gap-block);
+}
+
+.ui.form .codespace-timeout-fields > input {
+  min-width: 0;
+}
+
+.ui.form .codespace-timeout-fields > .ui.dropdown {
+  width: 10rem;
+  min-width: 10rem;
+}
+
+.codespace-state-label {
+  text-transform: none;
+}
+
+.codespace-state-online,
+.codespace-state-running {
+  color: var(--color-success-text) !important;
+  background: var(--color-success-bg) !important;
+}
+
+.codespace-state-failed,
+.codespace-state-offline,
+.codespace-state-deleting {
+  color: var(--color-error-text) !important;
+  background: var(--color-error-bg) !important;
+}
+
+.codespace-state-queued,
+.codespace-state-booting,
+.codespace-state-stopping,
+.codespace-state-resuming,
+.codespace-state-metadata_rebuilding,
+.codespace-state-recovering {
+  color: var(--color-warning-text) !important;
+  background: var(--color-warning-bg) !important;
+}
+
+.codespace-manager-container {
+  padding-bottom: 30px;
+}
+
+.codespace-manager-container .ui.table.segment {
+  overflow-x: auto;
+}
+
+.codespace-manager-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 24px;
+}
+
+.codespace-manager-overview .field > label,
+.codespace-manager-access .field > label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--color-text-light-2);
+  font-weight: var(--font-weight-semibold);
+}
+
+.codespace-manager-access {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+}
+
+.codespace-log-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--color-console-fg-subtle);
+  background: var(--color-console-bg);
+  border: 1px solid var(--color-console-border);
+  border-radius: var(--border-radius);
+}
+
+.codespace-log-panel.fullscreen {
+  flex: 1;
+  min-height: 0;
+  border-radius: 0;
+}
+
+.codespace-log-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--color-console-fg);
+  font-size: 16px;
+}
+
+.codespace-log-loading {
+  color: var(--color-console-fg-subtle);
+  font-size: 12px;
+  font-weight: var(--font-weight-normal);
+}
+
+.codespace-log-panel .ui.button,
+.codespace-log-panel .ui.button:focus {
+  margin: 0;
+  color: var(--color-console-fg-subtle);
+  background: transparent;
+}
+
+.codespace-log-panel .ui.button:hover {
+  color: var(--color-console-fg);
+  background: var(--color-console-hover-bg);
+}
+
+.codespace-log-panel .ui.dropdown .menu {
+  background: var(--color-console-menu-bg);
+  border-color: var(--color-console-menu-border);
+}
+
+.codespace-log-panel .ui.dropdown .menu > .item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  color: var(--color-console-fg);
+  background: transparent;
+}
+
+.codespace-log-panel .ui.dropdown .menu > .item:hover {
+  color: var(--color-console-fg);
+  background: var(--color-console-hover-bg);
+}
+
+.codespace-log-panel .ui.dropdown .menu > .item:active {
+  color: var(--color-console-fg);
+  background: var(--color-console-active-bg);
+}
+
+.codespace-log-panel .ui.dropdown .menu > .divider {
+  border-top-color: var(--color-console-menu-border);
+}
+
+.codespace-log-panel .ui.pointing.dropdown > .menu:not(.hidden)::after {
+  background: var(--color-console-menu-bg);
+  box-shadow: -1px -1px 0 0 var(--color-console-menu-border);
+}
+
+.codespace-log-menu-check {
+  display: inline-flex;
+  flex: 0 0 16px;
+  margin-right: 0.78rem;
+}
+
+.codespace-log-view {
+  height: clamp(360px, 55dvh, 720px);
+  padding: 10px 0;
+  overflow: auto;
+  border-radius: 0;
+  font-family: var(--fonts-monospace);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.codespace-log-line {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.codespace-log-view.show-timestamps .codespace-log-line {
+  grid-template-columns: 52px max-content minmax(0, 1fr);
+}
+
+.codespace-log-line:hover {
+  background: var(--color-console-hover-bg);
+}
+
+.codespace-log-line-error {
+  background: var(--color-error-bg);
+}
+
+.codespace-log-line-warning {
+  background: var(--color-warning-bg);
+}
+
+.codespace-log-line-notice {
+  background: var(--color-info-bg);
+}
+
+.codespace-log-line-debug {
+  background: var(--color-secondary-alpha-30);
+}
+
+.codespace-log-line-number {
+  padding-right: 12px;
+  color: var(--color-text-light-3);
+  text-align: right;
+  user-select: none;
+}
+
+.codespace-log-line-timestamp {
+  display: none;
+  padding-right: 16px;
+  color: var(--color-console-fg-subtle);
+  white-space: nowrap;
+}
+
+.codespace-log-view.show-timestamps .codespace-log-line-timestamp {
+  display: inline;
+}
+
+.codespace-log-line-message {
+  min-width: 0;
+  padding-right: 12px;
+  overflow-wrap: anywhere;
+  white-space: break-spaces;
+}
+
+.codespace-log-line-message a {
+  color: var(--color-console-link) !important;
+  text-decoration: underline;
+}
+
+.codespace-log-line-message.log-cmd-command {
+  color: var(--color-ansi-blue);
+}
+
+.codespace-log-line-message .log-msg-label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.codespace-log-line-message.log-cmd-error > .log-msg-label {
+  color: var(--color-error-text);
+}
+
+.codespace-log-line-message.log-cmd-warning > .log-msg-label {
+  color: var(--color-warning-text);
+}
+
+.codespace-log-line-message.log-cmd-notice > .log-msg-label {
+  color: var(--color-info-text);
+}
+
+.codespace-log-line-message.log-cmd-debug > .log-msg-label {
+  color: var(--color-violet);
+}
+
+.codespace-log-group {
+  margin: 2px 0;
+}
+
+.codespace-log-group-summary {
+  padding: 4px 12px;
+  color: var(--color-console-fg);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  background: var(--color-console-hover-bg);
+}
+
+.codespace-log-group[data-log-error="true"] > .codespace-log-group-summary {
+  color: var(--color-red);
+}
+
+.codespace-log-group-body .codespace-log-group-summary {
+  padding-left: 28px;
+}
+
+.codespace-log-empty {
+  padding: 2px 52px;
+  color: var(--color-console-fg-subtle);
+}
+
+.full.height > .codespace-log-panel.fullscreen {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border-radius: 0;
+}
+
+.full.height > .codespace-log-panel.fullscreen > .codespace-log-view {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+.codespace-create-page .ui.attached.segment + .ui.attached.segment {
+  border-top-color: var(--color-secondary);
+}
+
+.codespace-create-source {
+  display: flex;
+  align-items: center;
+  gap: 8px 20px;
+  flex-wrap: wrap;
+  color: var(--color-text-light-1);
+}
+
+.codespace-create-source > div,
+.codespace-create-permission-repository-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.codespace-create-source strong,
+.codespace-create-source span,
+.codespace-create-permission-repository-name strong {
+  overflow-wrap: anywhere;
+}
+
+.codespace-create-section > .ui.header {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.codespace-create-section > .help {
+  margin: 0 0 16px;
+}
+
+.codespace-create-environment-fields {
+  max-width: 620px;
+  margin-top: 16px;
+}
+
+.codespace-create-environment-fields > .field {
+  min-width: 0;
+}
+
+.codespace-create-environment-fields > .field:last-child {
+  margin-bottom: 0;
+}
+
+.codespace-create-environment-fields .field > .help {
+  margin-top: 6px;
+}
+
+#codespace-environment-tag > .text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#codespace-environment-tag > .menu {
+  max-height: min(360px, 50vh);
+  overflow-y: auto;
+}
+
+.codespace-create-environment-option {
+  white-space: normal;
+}
+
+.codespace-create-environment-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.codespace-create-environment-description {
+  margin-top: 4px;
+  color: var(--color-text-light-1);
+}
+
+.codespace-create-environment-source {
+  margin-top: 5px;
+  color: var(--color-text-light-2);
+  font-size: 12px;
+}
+
+.codespace-create-config-path {
+  margin-top: 4px;
+  color: var(--color-text-light-1);
+  overflow-wrap: anywhere;
+}
+
+.codespace-create-permission-repository {
+  margin-top: 16px;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+}
+
+.codespace-create-permission-repository-name {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-secondary);
+  background: var(--color-light);
+}
+
+.codespace-create-permission-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(300px, auto);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+
+.codespace-create-permission-row + .codespace-create-permission-row {
+  border-top: 1px solid var(--color-secondary);
+}
+
+.codespace-create-permission-options {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.codespace-create-secret-item {
+  align-items: center;
+}
+
+.codespace-create-secret-control {
+  width: min(260px, 40%);
+}
+
+.codespace-create-secret-control input[type="password"] {
+  width: 100%;
+}
+
+.codespace-create-secret-empty {
+  padding: 12px;
+  border: 1px dashed var(--color-secondary);
+  border-radius: var(--border-radius);
+  color: var(--color-text-light-1);
+}
+
+.codespace-create-recommended-secret-heading {
+  margin-top: 20px !important;
+}
+
+.codespace-create-secret-footer {
+  margin-top: 16px;
+}
+
+.codespace-secret-modal-name {
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background: var(--color-light);
+  overflow-wrap: anywhere;
+}
+
+.codespace-secret-modal-name code {
+  color: var(--color-text);
+}
+
+.codespace-secret-modal .ui.divider {
+  margin: 20px 0;
+}
+
+.ui.form .codespace-secret-repository-picker {
+  margin-bottom: 0;
+}
+
+.codespace-secret-repository-search,
+.codespace-secret-repository-search > .ui.input,
+.codespace-secret-repository-search > .results {
+  width: 100%;
+  max-width: 100%;
+}
+
+.codespace-secret-selected-repositories.ui.list {
+  max-height: 220px;
+  margin: 8px 0 0;
+  overflow-y: auto;
+}
+
+.codespace-secret-selected-repositories.ui.list > .item {
+  min-width: 0;
+  padding: 8px 4px;
+}
+
+.codespace-secret-selected-repositories .item > span {
+  min-width: 0;
+}
+
+.codespace-secret-selected-repositories .item > .btn {
+  flex-shrink: 0;
+}
+
+.codespace-list-action-divider {
+  align-self: stretch;
+  width: 1px;
+  min-height: 24px;
+  background: var(--color-secondary);
+}
+
+@media (max-width: 991px) {
+  .codespace-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .codespace-overview-context {
+    padding-top: var(--page-spacing);
+    padding-left: 0;
+    border-top: 1px solid var(--color-secondary);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .codespace-secret-modal form > .content {
+    padding: 1rem;
+  }
+
+  .codespace-detail-heading,
+  .codespace-list.items-with-main > .item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .codespace-action-bar,
+  .codespace-list .item-trailing {
+    justify-content: flex-start;
+  }
+
+  .codespace-list .item-trailing {
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .codespace-action-bar {
+    width: 100%;
+  }
+
+  .codespace-action-bar .codespace-detail-more {
+    margin-left: auto !important;
+  }
+
+  .codespace-manager-overview,
+  .codespace-manager-access {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .codespace-ports-table.ui.table thead {
+    display: none;
+  }
+
+  .codespace-ports-table.ui.table tr {
+    position: relative;
+    padding: 10px 44px 10px 0;
+    border-top: 1px solid var(--color-secondary);
+  }
+
+  .codespace-ports-table.ui.table td {
+    padding: 0;
+    border-top: 0;
+  }
+
+  .codespace-ports-table.ui.table .codespace-port-number,
+  .codespace-ports-table.ui.table .codespace-port-visibility {
+    display: none;
+  }
+
+  .codespace-port-mobile-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .codespace-ports-table.ui.table .codespace-port-action {
+    position: absolute;
+    top: 8px;
+    right: 0;
+    width: 36px;
+  }
+
+  .codespace-ssh-verification dl,
+  .codespace-detail-list {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .codespace-ssh-verification dd,
+  .codespace-detail-list dd {
+    margin-bottom: 8px;
+  }
+
+  .codespace-create-permission-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .codespace-create-permission-options {
+    justify-content: flex-start;
+  }
+
+  .codespace-create-secret-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .codespace-create-secret-control {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .codespace-timeout-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ui.form .codespace-timeout-fields > .ui.dropdown {
+    width: 100%;
+    min-width: 0;
+  }
+}

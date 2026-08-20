@@ -11,13 +11,13 @@ import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import type {ActionsArtifact, ActionsJob, ActionsRun, ActionsStatus} from '../modules/gitea-actions.ts';
 import {AnsiLineRenderer} from '../render/ansi.ts';
+import type {ActionRunViewStore} from './ActionRunView.ts';
 import {
-  type ActionRunViewStore,
   createLogLineMessage,
   type LogLine,
   type LogLineCommand,
   parseLogLineCommand,
-} from './ActionRunView.ts';
+} from '../render/log.ts';
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
   const rect = el.getBoundingClientRect();

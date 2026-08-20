@@ -470,9 +470,9 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 	}
 
 	if requireWrite {
-		context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
+		context.CheckRepoScopedToken(ctx, repository, unit.TypeCode, auth_model.Write)
 	} else {
-		context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
+		context.CheckRepoScopedToken(ctx, repository, unit.TypeCode, auth_model.Read)
 	}
 
 	if ctx.Written() {
