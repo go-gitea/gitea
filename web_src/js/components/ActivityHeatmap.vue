@@ -65,9 +65,9 @@ function getWeekFirstDay() {
 
 const grid = computed(() => {
   const start = shiftDate(now, -trailingDays);
-  const firstDay = getWeekFirstDay() % daysInWeek;
-  const padStart = (start.getDay() - firstDay + daysInWeek) % daysInWeek;
-  const padEnd = (firstDay - now.getDay() - 1 + daysInWeek) % daysInWeek;
+  const firstDayIdx = getWeekFirstDay() % daysInWeek; // 0 or 1
+  const padStart = (start.getDay() - firstDayIdx + daysInWeek) % daysInWeek;
+  const padEnd = (firstDayIdx - now.getDay() - 1 + daysInWeek) % daysInWeek;
   const weekCount = (trailingDays + 1 + padStart + padEnd) / daysInWeek;
 
   const maxCount = props.values.length ? Math.max(...props.values.map((v) => v.count)) : 0;
@@ -112,11 +112,11 @@ const grid = computed(() => {
     }
   }
 
-  const dayLabels: DayLabel[] = [1, 3, 5].map((dayIdx) => ({
-    dayIdx,
-    rowIdx: (dayIdx - firstDay + daysInWeek) % daysInWeek,
+  const dayLabelIndices = firstDayIdx === 0 ? [1, 3, 5] : [1, 3, 5, 7];
+  const dayLabels: DayLabel[] = dayLabelIndices.map((day) => ({
+    dayIdx: day % daysInWeek,
+    rowIdx: (day - firstDayIdx + daysInWeek) % daysInWeek,
   }));
-
   const width = gridLeft + (cellSize * weekCount) + squareBorder;
   const height = gridTop + (cellSize * daysInWeek);
   return {calendar, monthLabels, dayLabels, width, height};
