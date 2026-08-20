@@ -65,7 +65,7 @@ function getWeekFirstDay() {
 
 const grid = computed(() => {
   const start = shiftDate(now, -trailingDays);
-  const firstDayIdx = getWeekFirstDay() % daysInWeek; // 0 or 1
+  const firstDayIdx = getWeekFirstDay() % daysInWeek; // 0 to 6
   const padStart = (start.getDay() - firstDayIdx + daysInWeek) % daysInWeek;
   const padEnd = (firstDayIdx - now.getDay() - 1 + daysInWeek) % daysInWeek;
   const weekCount = (trailingDays + 1 + padStart + padEnd) / daysInWeek;
@@ -112,11 +112,14 @@ const grid = computed(() => {
     }
   }
 
-  const dayLabelIndices = firstDayIdx === 0 ? [1, 3, 5] : [1, 3, 5, 7];
-  const dayLabels: DayLabel[] = dayLabelIndices.map((day) => ({
-    dayIdx: day % daysInWeek,
-    rowIdx: (day - firstDayIdx + daysInWeek) % daysInWeek,
-  }));
+  const dayLabels: DayLabel[] = [];
+  for (let i = 0; i < daysInWeek; i++) {
+    const labelDay = firstDayIdx + i;
+    if (labelDay % 2 === 0) continue; // only show "Mon/Wed/Fri/Sun"
+    const dayIdx = labelDay % daysInWeek;
+    dayLabels.push({dayIdx, rowIdx: i});
+  }
+
   const width = gridLeft + (cellSize * weekCount) + squareBorder;
   const height = gridTop + (cellSize * daysInWeek);
   return {calendar, monthLabels, dayLabels, width, height};
