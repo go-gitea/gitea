@@ -68,10 +68,6 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
-
 	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
@@ -205,11 +201,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 	}
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
-
 	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
 
 	var mileIDs []int64
 	if part := strings.Split(ctx.FormString("milestones"), ","); len(part) > 0 {

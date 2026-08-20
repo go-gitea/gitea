@@ -153,10 +153,6 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
-
 	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
@@ -339,9 +335,6 @@ func ListIssues(ctx *context.APIContext) {
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
 
 	var labelIDs []int64
 	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
