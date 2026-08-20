@@ -2,11 +2,11 @@ module gitea.dev
 
 go 1.26.0
 
-toolchain go1.26.6
+toolchain go1.26.7
 
 require (
 	connectrpc.com/connect v1.20.0
-	gitea.com/go-chi/binding v0.0.0-20260818211407-ac8602c87be9
+	gitea.com/go-chi/binding v0.0.0-20260819122636-082915a69981
 	gitea.com/go-chi/cache v0.2.1
 	gitea.com/go-chi/captcha v0.0.0-20240315150714-fb487f629098
 	gitea.com/go-chi/session v0.0.0-20260708011333-ebced8a7a2d6

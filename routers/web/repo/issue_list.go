@@ -13,11 +13,9 @@ import (
 	"strings"
 
 	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	db_indexer "gitea.dev/modules/indexer/issues/db"
@@ -640,15 +638,10 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID int64, projectI
 		}
 	}
 
-	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, ctx.Doer, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
-	}
-	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-		for key := range commitStatuses {
-			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
-		}
 	}
 
 	if err := issues.LoadAttributes(ctx); err != nil {

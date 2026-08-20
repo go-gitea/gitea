@@ -261,6 +261,7 @@
   "form.CommitMessage": "Pesan Commit",
   "form.CommitChoice": "Pilihan Commit",
   "form.TreeName": "Jalur berkas",
+  "form.Title": "Judul",
   "form.Content": "Konten",
   "form.SSPISeparatorReplacement": "Pemisah",
   "form.SSPIDefaultLanguage": "Bahasa Utama",
