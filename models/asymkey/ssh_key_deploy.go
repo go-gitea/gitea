@@ -87,7 +87,9 @@ func AddDeployKey(ctx context.Context, repoID int64, name, content string, acces
 		return nil, err
 	}
 
-	accessMode = util.Iif(accessMode == perm.AccessModeRead, perm.AccessModeRead, perm.AccessModeWrite)
+	if accessMode != perm.AccessModeRead && accessMode != perm.AccessModeWrite {
+		return nil, util.NewInvalidArgumentErrorf("invalid access mode")
+	}
 	return db.WithTx2(ctx, func(ctx context.Context) (*DeployKey, error) {
 		pkey, exist, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
 		if err != nil {
