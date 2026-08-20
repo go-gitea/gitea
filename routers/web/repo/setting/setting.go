@@ -642,7 +642,9 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 	}
 
 	if form.EnableReleases && !unit_model.TypeReleases.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypeReleases, nil))
+		units = append(units, newRepoUnit(repo, unit_model.TypeReleases, &repo_model.ReleasesConfig{
+			ImmutableReleases: form.EnableImmutableReleases,
+		}))
 	} else if !unit_model.TypeReleases.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
 	}

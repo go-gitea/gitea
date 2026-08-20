@@ -13,6 +13,7 @@ import (
 	issues_model "gitea.dev/models/issues"
 	perm_model "gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
@@ -123,7 +124,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case refFullName.IsBranch():
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case refFullName.IsTag():
-			preReceiveTag(ourCtx, refFullName)
+			preReceiveTag(ourCtx, newCommitID, refFullName)
 		case git.DefaultFeatures().SupportProcReceive && refFullName.IsFor():
 			preReceiveFor(ourCtx, refFullName)
 		default:
@@ -330,15 +331,38 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	}
 }
 
-func preReceiveTag(ctx *preReceiveContext, refFullName git.RefName) {
+func preReceiveTag(ctx *preReceiveContext, newCommitID string, refFullName git.RefName) {
 	if !ctx.assertCanWriteRef(refFullName) {
 		return
 	}
 
 	tagName := refFullName.TagName()
 
+	// an immutable tag name can never be created or moved again, deleting it is
+	// only allowed once its release is gone
+	var immutable bool
+	var err error
+	if git.IsEmptyCommitID(newCommitID) {
+		immutable, err = repo_model.HasImmutableRelease(ctx, ctx.Repo.Repository.ID, tagName)
+	} else {
+		immutable, err = repo_model.IsTagImmutable(ctx, ctx.Repo.Repository, tagName)
+	}
+	if err != nil {
+		log.Error("Unable to check immutable tag %s in %-v Error: %v", tagName, ctx.Repo.Repository, err)
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
+		})
+		return
+	}
+	if immutable {
+		log.Warn("Forbidden: Tag %s in %-v is immutable", tagName, ctx.Repo.Repository)
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: fmt.Sprintf("Tag %s is immutable", tagName),
+		})
+		return
+	}
+
 	if !ctx.gotProtectedTags {
-		var err error
 		ctx.protectedTags, err = git_model.GetProtectedTags(ctx, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.PrivateInternalErrorf("Unable to get protected tags: %v", err)

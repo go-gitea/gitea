@@ -422,6 +422,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(346, "Add license_path column to repo_license and backfill", v28.AddLicensePathToRepoLicense),
 		newMigration(347, "Add watch options", v28.AddWatchOptions),
 		newMigration(348, "Recreate email_hash table for SHA256 avatar hashes", v28.RecreateEmailHashTable),
+		newMigration(349, "Add release.is_immutable column and immutable_tag table", v28.AddImmutableReleases),
 	}
 	return preparedMigrations
 }

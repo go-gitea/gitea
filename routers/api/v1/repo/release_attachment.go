@@ -18,27 +18,43 @@ import (
 	"gitea.dev/services/context"
 	"gitea.dev/services/context/upload"
 	"gitea.dev/services/convert"
+	release_service "gitea.dev/services/release"
 )
 
-func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
+// checkReleaseAssetsMutable reports whether the release exists and its assets may still be changed,
+// it writes the response when it returns false.
+func checkReleaseAssetsMutable(ctx *context.APIContext, releaseID int64) bool {
+	release := checkReleaseMatchRepo(ctx, releaseID)
+	if release == nil {
+		return false
+	}
+	if release.IsImmutable {
+		ctx.APIErrorAuto(release_service.ErrImmutableRelease)
+		return false
+	}
+	return true
+}
+
+// checkReleaseMatchRepo returns the release, or nil when a response has already been written.
+func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) *repo_model.Release {
 	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.APIErrorNotFound()
-			return false
+			return nil
 		}
 		ctx.APIErrorInternal(err)
-		return false
+		return nil
 	}
 	if release.RepoID != ctx.Repo.Repository.ID {
 		ctx.APIErrorNotFound()
-		return false
+		return nil
 	}
 	if release.IsDraft && !canAccessReleaseDraft(ctx) {
 		ctx.APIErrorNotFound()
-		return false
+		return nil
 	}
-	return true
+	return release
 }
 
 // GetReleaseAttachment gets a single attachment of the release
@@ -78,7 +94,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseMatchRepo(ctx, releaseID) {
+	if checkReleaseMatchRepo(ctx, releaseID) == nil {
 		return
 	}
 
@@ -211,7 +227,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseMatchRepo(ctx, releaseID) {
+	if !checkReleaseAssetsMutable(ctx, releaseID) {
 		return
 	}
 
@@ -314,7 +330,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseMatchRepo(ctx, releaseID) {
+	if !checkReleaseAssetsMutable(ctx, releaseID) {
 		return
 	}
 
@@ -387,7 +403,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.PathParamInt64("id")
-	if !checkReleaseMatchRepo(ctx, releaseID) {
+	if !checkReleaseAssetsMutable(ctx, releaseID) {
 		return
 	}
 

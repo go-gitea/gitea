@@ -113,11 +113,21 @@ func DeleteAttachment(ctx *context.Context) {
 				ctx.HTTPError(http.StatusForbidden)
 				return
 			}
-		} else {
-			if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
-				ctx.HTTPError(http.StatusForbidden)
-				return
-			}
+		} else if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
+			ctx.HTTPError(http.StatusForbidden)
+			return
+		}
+	}
+
+	if attach.ReleaseID > 0 {
+		rel, err := repo_model.GetReleaseForRepoByID(ctx, ctx.Repo.Repository.ID, attach.ReleaseID)
+		if err != nil {
+			ctx.ServerError("GetReleaseForRepoByID", err)
+			return
+		}
+		if rel.IsImmutable {
+			ctx.HTTPError(http.StatusForbidden, ctx.Locale.TrString("repo.release.immutable_locked"))
+			return
 		}
 	}
 

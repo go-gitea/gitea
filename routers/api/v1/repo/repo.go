@@ -936,14 +936,19 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasReleases != nil && !unit_model.TypeReleases.UnitGlobalDisabled() {
-		if *opts.HasReleases {
+	if (opts.HasReleases != nil || opts.ImmutableReleases != nil) && !unit_model.TypeReleases.UnitGlobalDisabled() {
+		if opts.HasReleases != nil && !*opts.HasReleases {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
+		} else {
+			config := repo.MustGetUnit(ctx, unit_model.TypeReleases).ReleasesConfig()
+			if opts.ImmutableReleases != nil {
+				config.ImmutableReleases = *opts.ImmutableReleases
+			}
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeReleases,
+				Config: config,
 			})
-		} else {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeReleases)
 		}
 	}
 
