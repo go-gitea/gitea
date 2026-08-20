@@ -771,6 +771,15 @@ func PublicRepoUnderPublicOwnerCond() builder.Cond {
 	)
 }
 
+// NotPublicRepoUnderPublicOwnerCond complements PublicRepoUnderPublicOwnerCond. Spelled positively so
+// the owner subquery hashes the limited/private minority, not every public user.
+func NotPublicRepoUnderPublicOwnerCond() builder.Cond {
+	return builder.Or(
+		builder.Eq{"`repository`.is_private": true},
+		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Neq{"visibility": structs.VisibleTypePublic})),
+	)
+}
+
 // UserActionsAccessibleOwnerRepoCond selects the repos owned by ownerID whose Actions `user` may read.
 // It is used to list an org/user's Actions runs and jobs (see the callers in routers/api/v1/shared).
 //   - owner_id = ownerID: only that owner's repos.
