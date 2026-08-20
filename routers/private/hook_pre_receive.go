@@ -187,7 +187,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 			AddDynamicArguments(oldCommitID, "^"+newCommitID).
 			WithEnv(ctx.env).WithRepo(repo).RunStdString(ctx)
 		if err != nil {
-			ctx.PrivateInternalErrorf("Fail to detect force push: %v", err)
+			ctx.PrivateInternalErrorf("Unable to detect force push between %s and %s in %s: %v", oldCommitID, newCommitID, repo.FullName(), err)
 			return
 		} else if len(output) > 0 {
 			if protectBranch.CanForcePush {
