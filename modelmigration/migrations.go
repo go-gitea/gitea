@@ -422,6 +422,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(346, "Add license_path column to repo_license and backfill", v28.AddLicensePathToRepoLicense),
 		newMigration(347, "Add watch options", v28.AddWatchOptions),
 		newMigration(348, "Recreate email_hash table for SHA256 avatar hashes", v28.RecreateEmailHashTable),
+		newMigration(349, "Add lfs_mirror_pending table and lfs_last_refs to mirror", v28.AddLFSMirrorPendingAndLFSLastRefsToMirror),
 	}
 	return preparedMigrations
 }
