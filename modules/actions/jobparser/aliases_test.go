@@ -34,7 +34,6 @@ jobs:
 		assert.Equal(t, map[string]string{"SHARED": "1"}, env)
 		require.Len(t, job.Steps, 1)
 
-		// Each job is dispatched as its own document, so it must not name an anchor from another one.
 		payload, err := workflow.Marshal()
 		require.NoError(t, err)
 		assert.NotContains(t, string(payload), "common_")
@@ -51,7 +50,6 @@ func TestParseRejectsAliases(t *testing.T) {
 		content       []byte
 	}{
 		{
-			// Nested aliases multiply, so four levels of them pass maxExpandedNodes.
 			name: "nested aliases exceed the node limit",
 			content: []byte(`on: push
 x0: &x0 [1, 2, 3, 4, 5, 6, 7, 8, 9]
