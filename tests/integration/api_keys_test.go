@@ -67,10 +67,9 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 
 	newDeployKey := DecodeJSON(t, resp, &api.DeployKey{})
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
-		ID:      newDeployKey.ID,
-		Name:    rawKeyBody.Title,
-		Content: rawKeyBody.Key,
-		Mode:    perm.AccessModeRead,
+		ID:   newDeployKey.ID,
+		Name: rawKeyBody.Title,
+		Mode: perm.AccessModeRead,
 	})
 
 	// Using the ID of a key that does not belong to the repository must fail
@@ -105,10 +104,9 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 
 	newDeployKey := DecodeJSON(t, resp, &api.DeployKey{})
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
-		ID:      newDeployKey.ID,
-		Name:    rawKeyBody.Title,
-		Content: rawKeyBody.Key,
-		Mode:    perm.AccessModeWrite,
+		ID:   newDeployKey.ID,
+		Name: rawKeyBody.Title,
+		Mode: perm.AccessModeWrite,
 	})
 }
 

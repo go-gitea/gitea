@@ -9,6 +9,7 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
 	"gitea.dev/modules/htmlutil"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
@@ -31,7 +32,7 @@ func DeployKeys(ctx *context.Context) {
 		ctx.ServerError("ListDeployKeys", err)
 		return
 	}
-	ctx.Data["Deploykeys"] = keys
+	ctx.Data["RepoDeployKeys"] = keys
 
 	tokens, err := db.Find[asymkey_model.DeployKey](ctx, asymkey_model.ListDeployKeysOptions{
 		RepoID: ctx.Repo.Repository.ID,
@@ -66,7 +67,8 @@ func DeployKeysPost(ctx *context.Context) {
 		return
 	}
 
-	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, !form.IsWritable)
+	accessMode := util.Iif(form.IsWritable, perm.AccessModeWrite, perm.AccessModeRead)
+	key, err := asymkey_model.AddDeployKey(ctx, ctx.Repo.Repository.ID, form.Title, content, accessMode)
 	if err != nil {
 		switch {
 		case asymkey_model.IsErrDeployKeyAlreadyExist(err):
@@ -91,12 +93,11 @@ func DeployKeysPost(ctx *context.Context) {
 func DeleteDeployKey(ctx *context.Context) {
 	key, err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.FormInt64("id"))
 	if err != nil {
-		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
-	} else {
-		msg := util.Iif(key.Type == asymkey_model.DeployKeyTypeToken, "repo.settings.deploy_token_deletion_success", "repo.settings.deploy_key_deletion_success")
-		ctx.Flash.Success(ctx.Tr(msg, key.Name))
+		ctx.ServerError("DeleteDeployKey", err)
+		return
 	}
-
+	msg := util.Iif(key.Type == asymkey_model.DeployKeyTypeToken, "repo.settings.deploy_token_deletion_success", "repo.settings.deploy_key_deletion_success")
+	ctx.Flash.Success(ctx.Tr(msg, key.Name))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 

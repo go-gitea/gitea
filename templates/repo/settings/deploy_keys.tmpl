@@ -41,7 +41,7 @@
 					</button>
 				</form>
 			</div>
-			{{template "repo/settings/deploy_key_list" dict "Keys" .Deploykeys "Link" .Link "Icon" "octicon-key" "ModalID" "#repo-deploy-key-delete-modal" "DeleteText" "settings.delete_key" "EmptyText" "repo.settings.no_deploy_keys"}}
+			{{template "repo/settings/deploy_key_list" dict "Keys" .RepoDeployKeys "Link" .Link "Icon" "octicon-key" "ModalID" "#repo-deploy-key-delete-modal" "DeleteText" "settings.delete_key" "EmptyText" "repo.settings.no_deploy_keys"}}
 		</div>
 	</div>
 

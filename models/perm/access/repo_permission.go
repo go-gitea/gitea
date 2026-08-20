@@ -658,6 +658,16 @@ func PermissionNoAccess() Permission {
 	return Permission{AccessMode: perm_model.AccessModeNone}
 }
 
+// RepoUserPermissionCacheKey is the cachegroup.RepoUserPermission key of a doer's
+// permission on a repository. Producers and consumers must agree on it, so it lives here.
+func RepoUserPermissionCacheKey(repoID int64, doer *user_model.User) string {
+	var doerID int64
+	if doer != nil {
+		doerID = doer.ID
+	}
+	return fmt.Sprintf("%d-%d", repoID, doerID)
+}
+
 // CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.
 func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Repository, run *actions_model.ActionRun) (bool, error) {
 	if err := run.LoadRepo(ctx); err != nil {

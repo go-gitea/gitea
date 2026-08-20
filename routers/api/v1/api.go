@@ -1452,7 +1452,7 @@ func Routes() *web.Router {
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
 					m.Post("/tokens", bind(api.CreateDeployTokenOption{}), repo.CreateDeployToken)
 					m.Combo("/{id}").Get(repo.GetDeployKey).
-						Delete(repo.DeleteDeploykey)
+						Delete(repo.DeleteDeployKey)
 				}, reqToken(), reqAdmin())
 				m.Group("/times", func() {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)

@@ -381,6 +381,7 @@
   "form.CommitMessage": "Správa ku commitu",
   "form.CommitChoice": "Výber commitu",
   "form.TreeName": "Cesta k súboru",
+  "form.Title": "Názov",
   "form.Content": "Obsah",
   "form.SSPISeparatorReplacement": "Oddeľovač",
   "form.SSPIDefaultLanguage": "Predvolený jazyk",

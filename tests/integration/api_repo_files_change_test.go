@@ -239,7 +239,7 @@ func TestAPIChangeFiles(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusForbidden)
-		assert.Contains(t, resp.Body.String(), `"message":"branch develop is protected from force push"`)
+		assert.Contains(t, resp.Body.String(), `"message":"Branch develop is protected from force push"`)
 
 		// Test updating a file and renaming it
 		changeFilesOptions = getChangeFilesOptions()
