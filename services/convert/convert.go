@@ -9,12 +9,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	"gitea.dev/actionslib/pkg/model"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/auth"
@@ -38,8 +41,6 @@ import (
 	webhook_module "gitea.dev/modules/webhook"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/gitdiff"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -895,6 +896,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			return nil, err
 		}
 
+		unitsMap := t.GetUnitsMap()
 		apiTeam := &api.Team{
 			ID:                      t.ID,
 			Name:                    t.Name,
@@ -902,7 +904,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
-			Units:                   t.GetUnitNames(),
+			Units:                   slices.Collect(maps.Keys(unitsMap)),
 			UnitsMap:                t.GetUnitsMap(),
 			Visibility:              api.TeamVisibility(t.Visibility.String()),
 		}

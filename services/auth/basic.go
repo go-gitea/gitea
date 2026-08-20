@@ -95,7 +95,6 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 		}
 
 		store.GetData()["LoginMethod"] = OAuth2TokenMethodName
-		store.GetData()["IsApiToken"] = true
 		store.GetData()["ApiTokenScope"] = accessTokenScope
 		return u, nil
 	}
@@ -116,7 +115,6 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 		}
 
 		store.GetData()["LoginMethod"] = AccessTokenMethodName
-		store.GetData()["IsApiToken"] = true
 		store.GetData()["ApiTokenScope"] = token.Scope
 		return u, nil
 	} else if !errors.Is(err, util.ErrNotExist) {
@@ -201,8 +199,8 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 }
 
 func GetAccessScope(store DataStore) auth_model.AccessTokenScope {
-	if v, ok := store.GetData()["ApiTokenScope"]; ok {
-		return v.(auth_model.AccessTokenScope)
+	if scope, hasApiTokenScope := store.GetData()["ApiTokenScope"].(auth_model.AccessTokenScope); hasApiTokenScope {
+		return scope
 	}
 	switch store.GetData()["LoginMethod"] {
 	case OAuth2TokenMethodName:

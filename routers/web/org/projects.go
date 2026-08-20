@@ -4,7 +4,6 @@
 package org
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	project_model "gitea.dev/models/project"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
-	"gitea.dev/modules/json"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
@@ -119,7 +117,7 @@ func Projects(ctx *context.Context) {
 
 func canWriteProjects(ctx *context.Context) bool {
 	if ctx.ContextUser.IsOrganization() {
-		return ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+		return ctx.Org.CanWriteAnyRepoUnit(ctx, unit.TypeProjects)
 	}
 	return ctx.Doer != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }
@@ -143,7 +141,7 @@ func RenderNewProject(ctx *context.Context) {
 
 // NewProjectPost creates a new project
 func NewProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateProjectForm)
+	form := web.GetForm[*forms.CreateProjectForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
@@ -255,7 +253,7 @@ func RenderEditProject(ctx *context.Context) {
 
 // EditProjectPost response for editing a project
 func EditProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateProjectForm)
+	form := web.GetForm[*forms.CreateProjectForm](ctx)
 	projectID := ctx.PathParamInt64("id")
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsEditProjects"] = true
@@ -309,9 +307,9 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	columns, err := project.GetColumns(ctx)
+	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 	if err != nil {
-		ctx.ServerError("GetProjectColumns", err)
+		ctx.ServerError("GetColumns", err)
 		return
 	}
 
@@ -473,190 +471,4 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
-}
-
-// DeleteProjectColumn allows for the deletion of a project column
-func DeleteProjectColumn(ctx *context.Context) {
-	if ctx.Doer == nil {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only signed in users are allowed to perform this action.",
-		})
-		return
-	}
-
-	project, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
-		return
-	}
-
-	_, err = project_model.GetColumnByIDAndProjectID(ctx, ctx.PathParamInt64("columnID"), project.ID)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetColumnByIDAndProjectID", project_model.IsErrProjectColumnNotExist, err)
-		return
-	}
-
-	if err := project_model.DeleteColumnByID(ctx, ctx.PathParamInt64("columnID")); err != nil {
-		ctx.ServerError("DeleteProjectColumnByID", err)
-		return
-	}
-
-	ctx.JSONOK()
-}
-
-// AddColumnToProjectPost allows a new column to be added to a project.
-func AddColumnToProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
-
-	project, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
-		return
-	}
-
-	if err := project_model.NewColumn(ctx, &project_model.Column{
-		ProjectID: project.ID,
-		Title:     form.Title,
-		Color:     form.Color,
-		CreatorID: ctx.Doer.ID,
-	}); err != nil {
-		ctx.ServerError("NewProjectColumn", err)
-		return
-	}
-
-	ctx.JSONOK()
-}
-
-// CheckProjectColumnChangePermissions check permission
-func CheckProjectColumnChangePermissions(ctx *context.Context) (*project_model.Project, *project_model.Column) {
-	if ctx.Doer == nil {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only signed in users are allowed to perform this action.",
-		})
-		return nil, nil
-	}
-
-	project, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
-		return nil, nil
-	}
-
-	column, err := project_model.GetColumnByIDAndProjectID(ctx, ctx.PathParamInt64("columnID"), project.ID)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetColumnByIDAndProjectID", project_model.IsErrProjectColumnNotExist, err)
-		return nil, nil
-	}
-
-	return project, column
-}
-
-// EditProjectColumn allows a project column's to be updated
-func EditProjectColumn(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.EditProjectColumnForm)
-	_, column := CheckProjectColumnChangePermissions(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if form.Title != "" {
-		column.Title = form.Title
-	}
-	column.Color = form.Color
-	if form.Sorting != 0 {
-		column.Sorting = form.Sorting
-	}
-
-	if err := project_model.UpdateColumn(ctx, column); err != nil {
-		ctx.ServerError("UpdateProjectColumn", err)
-		return
-	}
-
-	ctx.JSONOK()
-}
-
-// SetDefaultProjectColumn set default column for uncategorized issues/pulls
-func SetDefaultProjectColumn(ctx *context.Context) {
-	project, column := CheckProjectColumnChangePermissions(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if err := project_model.SetDefaultColumn(ctx, project.ID, column.ID); err != nil {
-		ctx.ServerError("SetDefaultColumn", err)
-		return
-	}
-
-	ctx.JSONOK()
-}
-
-// MoveIssues moves or keeps issues in a column and sorts them inside that column
-func MoveIssues(ctx *context.Context) {
-	if ctx.Doer == nil {
-		ctx.JSON(http.StatusForbidden, map[string]string{
-			"message": "Only signed in users are allowed to perform this action.",
-		})
-		return
-	}
-
-	project, err := project_model.GetProjectByIDAndOwner(ctx, ctx.PathParamInt64("id"), ctx.ContextUser.ID)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
-		return
-	}
-
-	column, err := project_model.GetColumnByIDAndProjectID(ctx, ctx.PathParamInt64("columnID"), project.ID)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetColumnByIDAndProjectID", project_model.IsErrProjectColumnNotExist, err)
-		return
-	}
-
-	type movedIssuesForm struct {
-		Issues []struct {
-			IssueID int64 `json:"issueID"`
-			Sorting int64 `json:"sorting"`
-		} `json:"issues"`
-	}
-
-	form := &movedIssuesForm{}
-	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
-		ctx.ServerError("DecodeMovedIssuesForm", err)
-		return
-	}
-
-	issueIDs := make([]int64, 0, len(form.Issues))
-	sortedIssueIDs := make(map[int64]int64)
-	for _, issue := range form.Issues {
-		issueIDs = append(issueIDs, issue.IssueID)
-		sortedIssueIDs[issue.Sorting] = issue.IssueID
-	}
-	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
-	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByID", issues_model.IsErrIssueNotExist, err)
-		return
-	}
-
-	if len(movedIssues) != len(form.Issues) {
-		ctx.ServerError("some issues do not exist", errors.New("some issues do not exist"))
-		return
-	}
-
-	if _, err = movedIssues.LoadRepositories(ctx); err != nil {
-		ctx.ServerError("LoadRepositories", err)
-		return
-	}
-
-	for _, issue := range movedIssues {
-		if issue.RepoID != project.RepoID && issue.Repo.OwnerID != project.OwnerID {
-			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
-			return
-		}
-	}
-
-	if err = project_service.MoveIssuesOnProjectColumn(ctx, ctx.Doer, column, sortedIssueIDs); err != nil {
-		ctx.ServerError("MoveIssuesOnProjectColumn", err)
-		return
-	}
-
-	ctx.JSONOK()
 }

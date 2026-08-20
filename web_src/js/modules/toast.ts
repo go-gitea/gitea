@@ -12,25 +12,25 @@ export type Toast = ReturnType<typeof StartToastifyInstance>;
 type ToastLevels = {
   [intent in Intent]: {
     icon: SvgName,
-    background: string,
     duration: number,
   }
 };
 
 const levels: ToastLevels = {
-  info: {
+  success: {
     icon: 'octicon-check',
-    background: 'var(--color-green)',
     duration: 2500,
+  },
+  info: {
+    icon: 'octicon-info',
+    duration: 5000,
   },
   warning: {
     icon: 'gitea-exclamation',
-    background: 'var(--color-orange)',
     duration: -1, // requires dismissal to hide
   },
   error: {
     icon: 'gitea-exclamation',
-    background: 'var(--color-red)',
     duration: -1, // requires dismissal to hide
   },
 };
@@ -43,7 +43,7 @@ type ToastOpts = {
 type ToastifyElement = HTMLElement & {_giteaToastifyInstance?: Toast};
 
 /** See https://github.com/apvarun/toastify-js#api for options */
-function showToast(message: string, level: Intent, {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast | null {
+function showToast(message: string, level: Intent = 'info', {gravity, position, duration, useHtmlBody, preventDuplicates = true, ...other}: ToastOpts = {}): Toast | null {
   const parent = document.querySelector('.ui.dimmer.active') ?? document.body;
   const duplicateKey = preventDuplicates ? (typeof preventDuplicates === 'string' ? preventDuplicates : `${level}-${message}`) : '';
 
@@ -59,7 +59,7 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
     }
   }
 
-  const {icon, background, duration: levelDuration} = levels[level ?? 'info'];
+  const {icon, duration: levelDuration} = levels[level];
   const bodyHtml = useHtmlBody ? message : htmlEscape(message);
   const toast = Toastify({
     selector: parent,
@@ -69,10 +69,10 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
       <button class='btn toast-close'>${svgRaw('octicon-x')}</button>
     `,
     escapeMarkup: false,
+    className: `toast-${level}`,
     gravity: gravity ?? 'top',
     position: position ?? 'center',
     duration: duration ?? levelDuration,
-    style: {background},
     ...other,
   });
 
@@ -82,6 +82,10 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
   el.setAttribute('data-toast-unique-key', duplicateKey);
   el._giteaToastifyInstance = toast;
   return toast;
+}
+
+export function showSuccessToast(message: string, opts?: ToastOpts): Toast | null {
+  return showToast(message, 'success', opts);
 }
 
 export function showInfoToast(message: string, opts?: ToastOpts): Toast | null {

@@ -31,12 +31,12 @@ type Organization struct {
 	Teams []*organization.Team
 }
 
-func (org *Organization) CanWriteUnit(ctx *Context, unitType unit.Type) bool {
-	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
+func (org *Organization) CanWriteAnyRepoUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeWrite
 }
 
-func (org *Organization) CanReadUnit(ctx *Context, unitType unit.Type) bool {
-	return org.Organization.UnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
+func (org *Organization) CanReadAnyRepoUnit(ctx *Context, unitType unit.Type) bool {
+	return org.Organization.AnyRepoUnitPermission(ctx, ctx.Doer, unitType) >= perm.AccessModeRead
 }
 
 func GetOrganizationByParams(ctx *Context) {
@@ -247,9 +247,9 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 		}
 		ctx.Data["ContextUser"] = ctx.ContextUser
 
-		ctx.Data["CanReadProjects"] = ctx.Org.CanReadUnit(ctx, unit.TypeProjects)
-		ctx.Data["CanReadPackages"] = ctx.Org.CanReadUnit(ctx, unit.TypePackages)
-		ctx.Data["CanReadCode"] = ctx.Org.CanReadUnit(ctx, unit.TypeCode)
+		ctx.Data["CanReadProjects"] = ctx.Org.CanReadAnyRepoUnit(ctx, unit.TypeProjects)
+		ctx.Data["CanReadPackages"] = ctx.Org.CanReadAnyRepoUnit(ctx, unit.TypePackages)
+		ctx.Data["CanReadCode"] = ctx.Org.CanReadAnyRepoUnit(ctx, unit.TypeCode)
 
 		ctx.Data["IsFollowing"] = ctx.Doer != nil && user_model.IsFollowing(ctx, ctx.Doer.ID, ctx.ContextUser.ID)
 		if len(ctx.ContextUser.Description) != 0 {

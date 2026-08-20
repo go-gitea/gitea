@@ -5,13 +5,12 @@ package actions
 
 import (
 	"context"
-	"crypto/subtle"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unit"
@@ -22,7 +21,6 @@ import (
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
 )
@@ -66,21 +64,8 @@ type ActionTask struct {
 // it only decides whether the runner is reachable, not whether the task should be killed.
 const taskReportTimeout = time.Minute
 
-var successfulTokenTaskCache *lru.Cache[string, any]
-
 func init() {
-	db.RegisterModel(new(ActionTask), func() error {
-		if setting.SuccessfulTokensCacheSize > 0 {
-			var err error
-			successfulTokenTaskCache, err = lru.New[string, any](setting.SuccessfulTokensCacheSize)
-			if err != nil {
-				return fmt.Errorf("unable to allocate Task cache: %v", err)
-			}
-		} else {
-			successfulTokenTaskCache = nil
-		}
-		return nil
-	})
+	db.RegisterModel(new(ActionTask))
 }
 
 func (task *ActionTask) Duration() time.Duration {
@@ -195,21 +180,21 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 		}
 	}
 
+	cacheKey := "actions:" + token
 	lastEight := token[len(token)-8:]
-
-	if id := getTaskIDFromCache(token); id > 0 {
+	if cached, _ := auth_model.TokenCache().Get(cacheKey); cached != nil {
 		task := &ActionTask{
 			TokenLastEight: lastEight,
 		}
 		// Re-get the task from the db in case it has been deleted in the intervening period
-		has, err := db.GetEngine(ctx).ID(id).Get(task)
+		has, err := db.GetEngine(ctx).ID(cached.TokenID).Get(task)
 		if err != nil {
 			return nil, err
 		}
-		if has {
+		if has && util.CryptoConstTimeEqual(task.TokenHash, cached.TokenHash) {
 			return task, nil
 		}
-		successfulTokenTaskCache.Remove(token)
+		auth_model.TokenCache().Remove(cacheKey)
 	}
 
 	var tasks []*ActionTask
@@ -223,10 +208,8 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 	for _, t := range tasks {
 		tempHash := auth_model.HashToken(token, t.TokenSalt)
-		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
-			if successfulTokenTaskCache != nil {
-				successfulTokenTaskCache.Add(token, t.ID)
-			}
+		if util.CryptoConstTimeEqual(t.TokenHash, tempHash) {
+			auth_model.TokenCache().Add(cacheKey, &auth_model.TokenCacheItem{TokenID: t.ID, TokenHash: t.TokenHash})
 			return t, nil
 		}
 	}
@@ -487,7 +470,7 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 		return nil, err
 	}
 	task := &ActionTask{}
-	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+	applyState := func(ctx context.Context) error {
 		if has, err := db.GetEngine(ctx).ID(taskID).Get(task); err != nil {
 			return err
 		} else if !has {
@@ -552,6 +535,10 @@ func UpdateTaskByState(ctx context.Context, runnerID int64, state *runnerv1.Task
 			}
 		}
 		return nil
+	}
+	err = globallock.LockAndDo(ctx, fmt.Sprintf("UpdateTaskByState-run-%d", runID), func(ctx context.Context) error {
+		// A half-written report leaves the task done with a running job, which no retry repairs.
+		return db.WithTx(ctx, applyState)
 	})
 	return task, err
 }
@@ -666,19 +653,4 @@ func logFileName(repoFullName string, taskID int64) string {
 	}
 
 	return ret
-}
-
-func getTaskIDFromCache(token string) int64 {
-	if successfulTokenTaskCache == nil {
-		return 0
-	}
-	tInterface, ok := successfulTokenTaskCache.Get(token)
-	if !ok {
-		return 0
-	}
-	t, ok := tInterface.(int64)
-	if !ok {
-		return 0
-	}
-	return t
 }

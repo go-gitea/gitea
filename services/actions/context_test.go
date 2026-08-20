@@ -7,8 +7,10 @@ import (
 	"strconv"
 	"testing"
 
+	act_model "gitea.dev/actionslib/pkg/model"
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -17,7 +19,6 @@ import (
 	api "gitea.dev/modules/structs"
 	webhook_module "gitea.dev/modules/webhook"
 
-	act_model "gitea.com/gitea/runner/act/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,12 +37,13 @@ func TestEvaluateRunConcurrency_RunIDFallback(t *testing.T) {
 
 	expr := &act_model.RawConcurrency{
 		Group:            "${{ github.workflow }}-${{ github.head_ref || github.run_id }}",
-		CancelInProgress: "true",
+		CancelInProgress: "True",
 	}
 
 	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runA, attemptA, expr, nil, nil))
 	assert.NoError(t, EvaluateRunConcurrencyFillModel(ctx, runB, attemptB, expr, nil, nil))
 
+	assert.True(t, attemptA.ConcurrencyCancel)
 	assert.Contains(t, attemptA.ConcurrencyGroup, "791")
 	assert.Contains(t, attemptB.ConcurrencyGroup, "792")
 	assert.NotEqual(t, attemptA.ConcurrencyGroup, attemptB.ConcurrencyGroup)
@@ -353,6 +355,47 @@ func TestGenerateGiteaContextPullRequestTarget(t *testing.T) {
 
 	assert.Equal(t, "refs/heads/main", giteaCtx["ref"])
 	assert.Equal(t, "main", giteaCtx["ref_name"])
+}
+
+func TestGenerateGiteaContextRefProtected(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	require.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo, &git_model.ProtectedBranch{
+		RepoID:   repo.ID,
+		RuleName: "master",
+	}, git_model.WhitelistOptions{}))
+	require.NoError(t, git_model.InsertProtectedTag(t.Context(), &git_model.ProtectedTag{
+		RepoID:      repo.ID,
+		NamePattern: "v*",
+	}))
+
+	gitCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+		RepoID:      repo.ID,
+		Repo:        repo,
+		TriggerUser: &user_model.User{Name: "test-user"},
+		Ref:         "refs/heads/master",
+	}, nil, nil)
+
+	assert.Equal(t, true, gitCtx["ref_protected"])
+
+	tagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+		RepoID:      repo.ID,
+		Repo:        repo,
+		TriggerUser: &user_model.User{Name: "test-user"},
+		Ref:         "refs/tags/v1.0.0",
+	}, nil, nil)
+
+	assert.Equal(t, true, tagCtx["ref_protected"])
+
+	unprotectedTagCtx := GenerateGiteaContext(t.Context(), &actions_model.ActionRun{
+		RepoID:      repo.ID,
+		Repo:        repo,
+		TriggerUser: &user_model.User{Name: "test-user"},
+		Ref:         "refs/tags/other",
+	}, nil, nil)
+
+	assert.Equal(t, false, unprotectedTagCtx["ref_protected"])
 }
 
 // TestGenerateGiteaContext_NilAttempt verifies that, with no explicit attempt,

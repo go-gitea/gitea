@@ -55,6 +55,17 @@
 							<span class="tw-contents" aria-label="{{ctx.Locale.Tr "repo.forks"}}">{{svg "octicon-repo-forked" 16}}</span>
 							<span {{if ge .NumForks 1000}}data-tooltip-content="{{.NumForks}}"{{end}}>{{CountFmt .NumForks}}</span>
 						</a>
+						{{$watch := and $.Watches (index $.Watches .ID)}}
+						{{if $watch}}
+							<button class="btn flex-text-inline show-modal"
+								data-modal="#repo-watch-options-modal"
+								data-modal-form.url="{{.Link}}/action/watch/options"
+								data-modal-issues="{{$watch.IncludeIssues}}"
+								data-modal-pull_requests="{{$watch.IncludePullRequests}}"
+								data-modal-releases="{{$watch.IncludeReleases}}"
+								data-tooltip-content="{{ctx.Locale.Tr "notifications"}}"
+							>{{svg "octicon-gear" 16}}</button>
+						{{end}}
 					</div>
 				</div>
 				{{$description := .DescriptionHTML ctx}}
@@ -76,4 +87,5 @@
 		{{ctx.Locale.Tr "search.no_results"}}
 	</div>
 	{{end}}
+	{{if $.Watches}}{{template "repo/watch_options_modal"}}{{end}}
 </div>

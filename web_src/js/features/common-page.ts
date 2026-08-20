@@ -7,6 +7,7 @@ import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/obs
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
 import {initCodespaceManagerSecretModal, initCodespaceSecretRepositoryPicker} from './comp/CodespaceSettings.ts';
+import {initRepoSwitcher} from './repo-switcher.ts';
 import {initScopedWorkflowRequired} from './comp/ScopedWorkflows.ts';
 
 const {appUrl, appSubUrl} = window.config;
@@ -39,7 +40,7 @@ function initFooterThemeSelector() {
   const $dropdown = fomanticQuery(elDropdown);
   $dropdown.dropdown({
     direction: 'upward',
-    apiSettings: {url: `${appSubUrl}/-/web-theme/list`, cache: false},
+    apiSettings: {url: `${appSubUrl}/-/web-theme/list`},
   });
   addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
     const themeName = el.getAttribute('data-value')!;
@@ -108,6 +109,7 @@ export function initGlobalComponent() {
   registerGlobalInitFunc('initSearchRepoBox', initCompSearchRepoBox);
   registerGlobalInitFunc('initCodespaceManagerSecretModal', initCodespaceManagerSecretModal);
   registerGlobalInitFunc('initCodespaceSecretRepositoryPicker', initCodespaceSecretRepositoryPicker);
+  registerGlobalInitFunc('initRepoSwitcher', initRepoSwitcher);
   registerGlobalInitFunc('initScopedWorkflowRequired', initScopedWorkflowRequired);
 }
 

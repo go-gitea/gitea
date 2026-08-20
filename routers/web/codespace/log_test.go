@@ -15,6 +15,7 @@ import (
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	"gitea.dev/modules/json"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/templates"
 	codespace_service "gitea.dev/services/codespace"
 	"gitea.dev/services/contexttest"
@@ -138,7 +139,7 @@ func TestLogPageAndDownloadUseStoredContent(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	detailCtx, detailResp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10), contexttest.MockContextOption{Render: templates.PageRenderer()})
+	detailCtx, detailResp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10), contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-log")})
 	contexttest.LoadUser(t, detailCtx, 1)
 	detailCtx.SetPathParam("codespace_id", strconv.FormatInt(webCodespaceIDByUUID(t, codespaceUUID), 10))
 	Detail(detailCtx)

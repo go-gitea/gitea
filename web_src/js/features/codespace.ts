@@ -3,6 +3,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {hideFomanticModal, showFomanticModal} from '../modules/fomantic/modal.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {formatDatetime} from '../utils/time.ts';
+import {AnsiLineRenderer} from '../render/ansi.ts';
 import {createLogLineMessage, decodeLogLineMessage, parseLogLineCommand, type LogLine} from '../render/log.ts';
 
 const liveStateSelector = '#codespace-live-state';
@@ -16,6 +17,7 @@ type CodespaceLogLine = {
 };
 
 const openCodespaceLogGroupBodies = new WeakMap<HTMLElement, HTMLElement[]>();
+const codespaceLogAnsiRenderers = new WeakMap<HTMLElement, AnsiLineRenderer>();
 
 export function initCodespaceCreateForm() {
   const form = document.querySelector<HTMLFormElement>('[data-codespace-create-form]');
@@ -264,6 +266,7 @@ async function refreshCodespaceLog(logEl: HTMLElement, failureCount: number) {
       logEl.setAttribute('data-log-line-count', '0');
       logEl.setAttribute('data-log-reset', 'true');
       openCodespaceLogGroupBodies.delete(logEl);
+      codespaceLogAnsiRenderers.delete(logEl);
       scheduleCodespaceLogRefresh(logEl, 0);
       return;
     }
@@ -325,6 +328,8 @@ async function appendCodespaceLogLines(logEl: HTMLElement, lines: CodespaceLogLi
   let lineNumber = Number(logEl.getAttribute('data-log-line-count')) || 0;
   let fragment = document.createDocumentFragment();
   const groupBodies = openCodespaceLogGroupBodies.get(logEl) ?? [];
+  const ansi = codespaceLogAnsiRenderers.get(logEl) ?? new AnsiLineRenderer();
+  codespaceLogAnsiRenderers.set(logEl, ansi);
   for (const [index, logLine] of lines.entries()) {
     const parsedLine: LogLine = {index: lineNumber + 1, timestamp: logLine.timestamp, message: logLine.message};
     const command = parseLogLineCommand(parsedLine);
@@ -366,7 +371,7 @@ async function appendCodespaceLogLines(logEl: HTMLElement, lines: CodespaceLogLi
       timestamp.dateTime = new Date(logLine.timestamp * 1000).toISOString();
       timestamp.textContent = formatDatetime(logLine.timestamp * 1000);
 
-      const message = createLogLineMessage({...parsedLine, index: lineNumber}, command);
+      const message = createLogLineMessage(ansi, {...parsedLine, index: lineNumber}, command);
       message.classList.add('codespace-log-line-message');
       if (command?.name === 'error') {
         for (const body of groupBodies) body.parentElement!.setAttribute('data-log-error', 'true');
@@ -394,6 +399,7 @@ function showCodespaceLogError(logEl: HTMLElement) {
   logEl.append(error);
   logEl.setAttribute('data-log-empty', 'false');
   openCodespaceLogGroupBodies.delete(logEl);
+  codespaceLogAnsiRenderers.delete(logEl);
 }
 
 function isLogScrolledToBottom(logEl: HTMLElement) {

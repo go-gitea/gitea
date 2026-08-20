@@ -3,7 +3,7 @@
 -->
 <script lang="ts" setup>
 import {computed} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {getActionStatusIcon, type ActionStatusIconVariant} from '../modules/action-status-icon.ts';
 
 const props = withDefaults(defineProps<{
@@ -28,7 +28,5 @@ const iconClass = computed(() => {
 </script>
 
 <template>
-  <span class="flex-text-inline" :data-tooltip-content="localeStatus ?? status" v-if="status">
-    <SvgIcon :name="icon.name" :class="iconClass" :size="size"/>
-  </span>
+  <SvgIcon v-if="status" :name="icon.name" :class="iconClass" :size="size" :data-tooltip-content="localeStatus ?? status"/>
 </template>

@@ -79,7 +79,6 @@ export function initRepoTopicBar() {
     forceSelection: false,
     fullTextSearch: 'exact',
     fields: {name: 'description', value: 'data-value'},
-    saveRemoteData: false,
     label: {
       transition: 'horizontal flip',
       duration: 200,
@@ -88,7 +87,6 @@ export function initRepoTopicBar() {
     apiSettings: {
       url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
-      cache: false,
       onResponse(this: any, res: any) {
         const formattedResponse = {
           success: false,

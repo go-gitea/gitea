@@ -432,9 +432,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 	}
 	data.hasRequiredStatusContexts = len(requiredContexts) > 0
 
-	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
-	}
+	git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, commitStatuses)
 	combinedCommitStatus := git_model.CalcCommitStatus(commitStatuses)
 	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", ctx.Repo.Repository.Link(), headCommitID)
 	statusCheckData.PullCommitStatuses = commitStatuses
@@ -1013,8 +1011,7 @@ func UpdatePullRequest(ctx *context.Context) {
 	// The update process should not be canceled by the user
 	// so we set the context to be a background context
 	if err = pull_service.Update(graceful.GetManager().ShutdownContext(), issue.PullRequest, ctx.Doer, message, rebase); err != nil {
-		if pull_service.IsErrMergeConflicts(err) {
-			conflictError := err.(pull_service.ErrMergeConflicts)
+		if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.merge_conflict"),
 				"Summary": ctx.Tr("repo.pulls.merge_conflict_summary"),
@@ -1026,8 +1023,7 @@ func UpdatePullRequest(ctx *context.Context) {
 			}
 			ctx.JSONError(flashError)
 			return
-		} else if pull_service.IsErrRebaseConflicts(err) {
-			conflictError := err.(pull_service.ErrRebaseConflicts)
+		} else if conflictError, ok := err.(pull_service.ErrRebaseConflicts); ok {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.EscapeFlashErrorString(conflictError.CommitSHA)),
 				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
@@ -1053,7 +1049,7 @@ func UpdatePullRequest(ctx *context.Context) {
 
 // MergePullRequest response for merging pull request
 func MergePullRequest(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
+	form := web.GetForm[*forms.MergePullRequestForm](ctx)
 	issue, ok := getPullInfo(ctx)
 	if !ok {
 		return
@@ -1162,8 +1158,7 @@ func MergePullRequest(ctx *context.Context) {
 	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
-		} else if pull_service.IsErrMergeConflicts(err) {
-			conflictError := err.(pull_service.ErrMergeConflicts)
+		} else if conflictError, ok := err.(pull_service.ErrMergeConflicts); ok {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.editor.merge_conflict"),
 				"Summary": ctx.Tr("repo.editor.merge_conflict_summary"),
@@ -1175,8 +1170,7 @@ func MergePullRequest(ctx *context.Context) {
 			}
 			ctx.Flash.Error(flashError)
 			ctx.JSONRedirect(issue.Link())
-		} else if pull_service.IsErrRebaseConflicts(err) {
-			conflictError := err.(pull_service.ErrRebaseConflicts)
+		} else if conflictError, ok := err.(pull_service.ErrRebaseConflicts); ok {
 			flashError, err := ctx.RenderToHTML(tplAlertDetails, map[string]any{
 				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.EscapeFlashErrorString(conflictError.CommitSHA)),
 				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
@@ -1200,9 +1194,8 @@ func MergePullRequest(ctx *context.Context) {
 			log.Debug("MergeHeadOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.head_out_of_date"))
 			ctx.JSONRedirect(issue.Link())
-		} else if git.IsErrPushRejected(err) {
+		} else if pushrejErr, ok := err.(*git.ErrPushRejected); ok {
 			log.Debug("MergePushRejected error: %v", err)
-			pushrejErr := err.(*git.ErrPushRejected)
 			message := pushrejErr.Message
 			if len(message) == 0 {
 				ctx.Flash.Error(ctx.Tr("repo.pulls.push_rejected_no_message"))
@@ -1328,7 +1321,7 @@ func PullsNewRedirect(ctx *context.Context) {
 
 // CompareAndPullRequestPost response for creating pull request
 func CompareAndPullRequestPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateIssueForm)
+	form := web.GetForm[*forms.CreateIssueForm](ctx)
 	repo := ctx.Repo.Repository
 	comparePageInfo := newComparePageInfo()
 	err := comparePageInfo.parseCompareInfo(ctx, ctx.PathParam("*"))
@@ -1361,11 +1354,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
-		return
-	}
-
-	if util.IsEmptyString(form.Title) {
-		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
 		return
 	}
 
@@ -1422,11 +1410,11 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		ProjectIDs:      projectIDs,
 	}
 	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
+		var pushrejErr *git.ErrPushRejected
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
 			ctx.HTTPError(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
-		case git.IsErrPushRejected(err):
-			pushrejErr := err.(*git.ErrPushRejected)
+		case errors.As(err, &pushrejErr):
 			message := pushrejErr.Message
 			if len(message) == 0 {
 				ctx.JSONError(ctx.Tr("repo.pulls.push_rejected_no_message"))
@@ -1543,6 +1531,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 	}
 
 	if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, targetBranch); err != nil {
+		var prExistsErr issues_model.ErrPullRequestAlreadyExists
 		switch {
 		case git_model.IsErrBranchNotExist(err):
 			errorMessage := ctx.Tr("form.target_branch_not_exist")
@@ -1552,11 +1541,9 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 				"error":      err.Error(),
 				"user_error": errorMessage,
 			})
-		case issues_model.IsErrPullRequestAlreadyExists(err):
-			err := err.(issues_model.ErrPullRequestAlreadyExists)
-
+		case errors.As(err, &prExistsErr):
 			RepoRelPath := ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
-			errorMessage := ctx.Tr("repo.pulls.has_pull_request", html.EscapeString(ctx.Repo.RepoLink+"/pulls/"+strconv.FormatInt(err.IssueID, 10)), html.EscapeString(RepoRelPath), err.IssueID) // FIXME: Creates url inside locale string
+			errorMessage := ctx.Tr("repo.pulls.has_pull_request", html.EscapeString(ctx.Repo.RepoLink+"/pulls/"+strconv.FormatInt(prExistsErr.IssueID, 10)), html.EscapeString(RepoRelPath), prExistsErr.IssueID) // FIXME: Creates url inside locale string
 
 			ctx.Flash.Error(errorMessage)
 			ctx.JSON(http.StatusConflict, map[string]any{
@@ -1601,7 +1588,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 
 // SetAllowEdits allow edits from maintainers to PRs
 func SetAllowEdits(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateAllowEditsForm)
+	form := web.GetForm[*forms.UpdateAllowEditsForm](ctx)
 
 	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {

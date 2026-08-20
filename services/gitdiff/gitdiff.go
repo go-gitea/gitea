@@ -83,37 +83,41 @@ type DiffLine struct {
 	cachedDiffInline *DiffInline
 }
 
-// DiffLineSectionInfo represents diff line section meta data
+// DiffLineSectionInfo represents diff line section metadata
 type DiffLineSectionInfo struct {
 	language *diffVarMutable[string]
 
 	Path string
 
-	// These line "idx" are 1-based line numbers
+	// These line "idx" are 1-based line numbers (inclusive)
 	// Left/Right refer to the left/right side of the diff:
 	//
-	// LastLeftIdx | LastRightIdx
-	// [up/down expander] @@ hunk info @@
-	// LeftIdx     | RightIdx
-
-	LastLeftIdx  int
-	LastRightIdx int
-	LeftIdx      int
-	RightIdx     int
-
-	// Hunk sizes of the hidden lines
-	LeftHunkSize  int
-	RightHunkSize int
-
+	//   LastLeftIdx | LastRightIdx   (the last rendered line number before this hunk)
+	//   [up/down/single expander] @@ hunk info @@
+	//   LeftIdx     | RightIdx       (the next rendered line number after this hunk)
+	//   The hunk has LeftHunkSize lines on left side, RightHunkSize lines on right side.
+	//
 	// For example:
-	// 17 | 31
-	// [up/down] @@ -40,23 +54,9 @@ ....
-	// 40 | 54
+	//   17 | 31    diff line ...
+	//   [up/down] @@ -40,23 +54,7 @@ ....
+	//   40 | 54    diff line ...
+	//     ...      diff line ...
+	//   62 | 60    diff line ...
+	//   (then file end or another hunk)
 	//
 	// In this case:
-	// LastLeftIdx = 17, LastRightIdx = 31
-	// LeftHunkSize = 23, RightHunkSize = 9
-	// LeftIdx = 40, RightIdx = 54
+	//   LastLeftIdx = 17, LastRightIdx = 31
+	//   (left lines 18-39, right lines 31-53 are hidden)
+	//   LeftIdx = 40, RightIdx = 54
+	//   LeftHunkSize = 23, RightHunkSize = 7
+	//   Left hunk ends at line 40+23-1=62 (23 lines), right: 54+7-1=60 (7 lines)
+
+	LastLeftIdx   int
+	LastRightIdx  int
+	LeftIdx       int
+	RightIdx      int
+	LeftHunkSize  int
+	RightHunkSize int
 
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
@@ -1006,14 +1010,16 @@ func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
 func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {
 	sb := strings.Builder{}
 
-	var (
-		curSection        *DiffSection
-		curFileLinesCount int
-		curFileLFSPrefix  bool
-	)
+	var curSection *DiffSection
+	curFileLFSPrefix := false
 
 	lastLeftIdx := -1
 	leftLine, rightLine := 1, 1
+
+	curFileLinesCount := 0
+	curFileLineReachesLimit := func() bool {
+		return maxLines > -1 && curFileLinesCount >= maxLines
+	}
 
 	for {
 		for isFragment {
@@ -1041,7 +1047,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 
 		switch lineBytes[0] {
 		case '@':
-			if maxLines > -1 && curFileLinesCount >= maxLines {
+			if curFileLineReachesLimit() {
 				curFile.IsIncomplete = true
 				continue
 			}
@@ -1064,8 +1070,8 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
-			// FIXME: the "-1" can't be right, these "line idx" are all 1-based, maybe there are other bugs that covers this bug.
-			lineSectionInfo := newDiffLineSectionInfo(curFile, line, leftLine-1, rightLine-1)
+			// use "idx-1" as "last idx" (the last line before this hunk)
+			lineSectionInfo := newDiffLineSectionInfo(curFile, line, leftLine-1 /*lastLeftIdx*/, rightLine-1 /*lastRightIdx*/)
 			diffLine := &DiffLine{
 				Type:        DiffLineSection,
 				Content:     line,
@@ -1078,10 +1084,6 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			rightLine = lineSectionInfo.RightIdx
 			continue
 		case '\\':
-			if maxLines > -1 && curFileLinesCount >= maxLines {
-				curFile.IsIncomplete = true
-				continue
-			}
 			// This is used only to indicate that the current file does not have a terminal newline
 			if !bytes.Equal(lineBytes, []byte("\\ No newline at end of file")) {
 				return nil, false, fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
@@ -1090,12 +1092,13 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			// FIXME: we should be putting a marker at the end of the file if there is no terminal new line
 			continue
 		case '+':
-			curFileLinesCount++
 			curFile.Addition++
-			if maxLines > -1 && curFileLinesCount >= maxLines {
+			if curFileLineReachesLimit() {
 				curFile.IsIncomplete = true
 				continue
 			}
+			curFileLinesCount++
+
 			diffLine := &DiffLine{Type: DiffLineAdd, RightIdx: rightLine, Match: -1}
 			rightLine++
 			if curSection == nil {
@@ -1121,12 +1124,13 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 				}
 			}
 		case '-':
-			curFileLinesCount++
 			curFile.Deletion++
-			if maxLines > -1 && curFileLinesCount >= maxLines {
+			if curFileLineReachesLimit() {
 				curFile.IsIncomplete = true
 				continue
 			}
+			curFileLinesCount++
+
 			diffLine := &DiffLine{Type: DiffLineDel, LeftIdx: leftLine, Match: -1}
 			if leftLine > 0 {
 				leftLine++
@@ -1149,11 +1153,11 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 				}
 			}
 		case ' ':
-			curFileLinesCount++
-			if maxLines > -1 && curFileLinesCount >= maxLines {
+			if curFileLineReachesLimit() {
 				curFile.IsIncomplete = true
 				continue
 			}
+			curFileLinesCount++
 			diffLine := &DiffLine{Type: DiffLinePlain, LeftIdx: leftLine, RightIdx: rightLine}
 			leftLine++
 			rightLine++

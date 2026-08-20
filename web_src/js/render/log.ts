@@ -1,4 +1,4 @@
-import {renderAnsiInto} from './ansi.ts';
+import type {AnsiLineRenderer} from './ansi.ts';
 import {createElementFromAttrs} from '../utils/dom.ts';
 
 // How GitHub Actions logs work:
@@ -66,11 +66,11 @@ export function decodeLogLineMessage(line: LogLine, command: LogLineCommand | nu
   if (command.name === 'command') return message; // "command" is only an output tag, do not parse or escape it
   // "##[cmd]" also escapes ";" and "]" which delimit its header, "::cmd::" does not
   if (!command.prefix.startsWith('::')) message = message.replace(/%3B/g, ';').replace(/%5D/g, ']');
-  // renderAnsiInto breaks a line per "\r", so "%0D%0A" is one break. "%25" last keeps "%250A" literal
+  // AnsiLineRenderer breaks a line per "\r", so "%0D%0A" is one break. "%25" last keeps "%250A" literal
   return message.replace(/(?:%0D)?%0A/g, '\n').replace(/%0D/g, '\r').replace(/%25/g, '%');
 }
 
-export function createLogLineMessage(line: LogLine, command: LogLineCommand | null) {
+export function createLogLineMessage(ansi: AnsiLineRenderer, line: LogLine, command: LogLineCommand | null) {
   const attrs = {class: 'log-msg'};
   if (command?.name) attrs.class += ` log-cmd-${command.name}`; // make it easier to add styles to some commands like "error"
   const content = decodeLogLineMessage(line, command);
@@ -79,10 +79,10 @@ export function createLogLineMessage(line: LogLine, command: LogLineCommand | nu
   if (label) {
     element.append(createElementFromAttrs('span', {class: 'log-msg-label'}, `${label}:`));
     const message = document.createElement('span');
-    renderAnsiInto(message, ` ${content.trimStart()}`);
+    ansi.renderLine(message, ` ${content.trimStart()}`);
     element.append(message);
   } else {
-    renderAnsiInto(element, content);
+    ansi.renderLine(element, content);
   }
   return element;
 }

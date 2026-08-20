@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httpcache"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -102,7 +103,7 @@ func (ctx *APIContext) UseAnonymousForPublicCodespaceRead(repo *repo_model.Repos
 
 func init() {
 	web.RegisterResponseStatusProvider[*APIContext](func(req *http.Request) web_types.ResponseStatusProvider {
-		return req.Context().Value(apiContextKey).(*APIContext)
+		return GetAPIContext(req)
 	})
 }
 
@@ -139,6 +140,12 @@ type APIEmpty struct{}
 // APIForbiddenError is a forbidden error response
 // swagger:response forbidden
 type APIForbiddenError struct {
+	APIError
+}
+
+// APIUnauthorizedError is an unauthorized error response
+// swagger:response unauthorized
+type APIUnauthorizedError struct {
 	APIError
 }
 
@@ -231,7 +238,7 @@ var apiContextKey = apiContextKeyType{}
 
 // GetAPIContext returns a context for API routes
 func GetAPIContext(req *http.Request) *APIContext {
-	return req.Context().Value(apiContextKey).(*APIContext)
+	return reqctx.MustContextValue[*APIContext](req.Context(), apiContextKey)
 }
 
 func genAPILinks(curURL *url.URL, total int64, pageSize, curPage int) []string {

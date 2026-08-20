@@ -210,7 +210,7 @@ func testAPIPullReviewGeneral(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusUnprocessableEntity)
 	errMap := make(map[string]any)
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
-	assert.Equal(t, "review event COMMENT requires a body or a comment", errMap["message"].(string))
+	assert.Equal(t, "review event COMMENT requires a body or a comment", errMap["message"])
 
 	// test get review requests
 	// to make it simple, use same api with get review

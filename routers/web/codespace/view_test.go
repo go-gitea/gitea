@@ -11,6 +11,7 @@ import (
 	codespace_model "gitea.dev/models/codespace"
 	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/session"
 	"gitea.dev/modules/templates"
 	codespace_service "gitea.dev/services/codespace"
 	"gitea.dev/services/contexttest"
@@ -30,7 +31,7 @@ func TestListRendersCreatorCodespaces(t *testing.T) {
 		OperationStatus: codespace_model.OperationStatusQueued,
 	})
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces", contexttest.MockContextOption{Render: templates.PageRenderer()})
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-list")})
 	contexttest.LoadUser(t, ctx, 1)
 	List(ctx)
 
@@ -52,7 +53,7 @@ func TestListFiltersCurrentCreatorByOrganizationRepositories(t *testing.T) {
 	_, err := db.GetEngine(t.Context()).Where("uuid = ?", codespaceUUID).Cols("user_id", "repo_id").Update(&codespace_model.Codespace{UserID: 2, RepoID: 3})
 	require.NoError(t, err)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces?owner=org3", contexttest.MockContextOption{Render: templates.PageRenderer()})
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces?owner=org3", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-org-list")})
 	contexttest.LoadUser(t, ctx, 2)
 	List(ctx)
 
@@ -76,7 +77,7 @@ func TestDetailRendersCreatorCodespaceNoStore(t *testing.T) {
 	})
 	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10), contexttest.MockContextOption{Render: templates.PageRenderer()})
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10), contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-detail")})
 	contexttest.LoadUser(t, ctx, 1)
 	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Detail(ctx)
@@ -102,7 +103,7 @@ func TestDetailPreservesExplicitOverviewTab(t *testing.T) {
 	})
 	codespaceID := webCodespaceIDByUUID(t, codespaceUUID)
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"?tab=overview", contexttest.MockContextOption{Render: templates.PageRenderer()})
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"?tab=overview", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-overview")})
 	contexttest.LoadUser(t, ctx, 1)
 	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Detail(ctx)
@@ -126,7 +127,7 @@ func TestDetailOpensGatewayRecoveryModal(t *testing.T) {
 		MetadataGeneration: 1,
 	}))
 
-	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"?open_endpoint=app-3000", contexttest.MockContextOption{Render: templates.PageRenderer()})
+	ctx, resp := contexttest.MockContext(t, "GET /-/codespaces/"+strconv.FormatInt(codespaceID, 10)+"?open_endpoint=app-3000", contexttest.MockContextOption{Render: templates.PageRenderer(), SessionStore: session.NewMockMemStore("codespace-open")})
 	contexttest.LoadUser(t, ctx, 1)
 	ctx.SetPathParam("codespace_id", strconv.FormatInt(codespaceID, 10))
 	Detail(ctx)
