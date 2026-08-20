@@ -73,8 +73,9 @@ jobs:
             frontend:
               - "*.ts"
               - "web_src/**"
-              - "tools/generate-svg.ts"
-              - "tools/generate-svg-vscode-extensions.json"
+              - "tools/**/*.ts"
+              - "tools/**/*.json"
+              - "tools/playwright.sh"
               - "tsconfig.json"
               - "assets/emoji.json"
               - "package.json"
@@ -134,6 +135,7 @@ jobs:
             e2e:
               - "tests/e2e/**"
               - "tools/test-e2e.sh"
+              - "tools/playwright.sh"
               - "playwright.config.ts"
 
             shell:

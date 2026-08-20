@@ -23,11 +23,10 @@ import (
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	web_types "gitea.dev/modules/web/types"
-
-	"gitea.com/go-chi/binding"
 )
 
 // Render represents a template render
@@ -81,28 +80,6 @@ var WebContextKey = webContextKeyType{}
 func GetWebContext(ctx context.Context) *Context {
 	webCtx, _ := ctx.Value(WebContextKey).(*Context)
 	return webCtx
-}
-
-// GetValidateContext gets a context for middleware form validation
-func GetValidateContext(req *http.Request) (ctx *middleware.ValidateContext) {
-	if ctxAPI, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
-		ctx = &middleware.ValidateContext{
-			Data:   ctxAPI.Data,
-			Locale: ctxAPI.Locale,
-			Req:    ctxAPI.Req,
-			Resp:   ctxAPI.Resp,
-		}
-	} else if ctxWeb, ok := req.Context().Value(WebContextKey).(*Context); ok {
-		ctx = &middleware.ValidateContext{
-			Data:   ctxWeb.Data,
-			Locale: ctxWeb.Locale,
-			Req:    ctxWeb.Req,
-			Resp:   ctxWeb.Resp,
-		}
-	} else {
-		panic("invalid context, expect either APIContext or Context")
-	}
-	return ctx
 }
 
 func NewTemplateContextForWeb(ctx reqctx.RequestContext, req *http.Request, locale translation.Locale) TemplateContext {
@@ -294,21 +271,16 @@ func (ctx *Context) JSONErrorNotFound(optMsg ...string) {
 	ctx.JSON(http.StatusNotFound, buildJsonErrorMap(msg))
 }
 
-func GetFetchActionForm[T interface {
-	*E
-	middleware.Form
-}, E any](ctx *Context) *E {
+func GetFetchActionForm[T middleware.Form](ctx *Context) (ret T) {
 	if web.IsFormSet(ctx) {
 		panic("don't mix fetch-action form validation with template-based form validation")
 	}
-	form := T(new(E))
-	errs := binding.Bind(ctx.Req, form)
-	errs = form.Validate(GetValidateContext(ctx.Req), errs)
+	form, errs := middleware.BindFormValidate[T](ctx.Req, validation.Binder())
 	errorMessage, fieldName, _ := middleware.BuildValidationErrorForUser(form, ctx.Locale, errs)
 	if errorMessage != "" {
 		ctx.Resp.Header().Set("Content-Type", "application/json")
 		ctx.JSONErrorWithField(errorMessage, fieldName)
-		return nil
+		return ret
 	}
 	return form
 }

@@ -401,7 +401,6 @@ input:-webkit-autofill,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:active {
-  -webkit-background-clip: text;
   -webkit-text-fill-color: var(--color-text);
   box-shadow: 0 0 0 100px var(--color-primary-light-6) inset !important;
   border-color: var(--color-primary-light-4) !important;
