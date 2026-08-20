@@ -30,9 +30,9 @@ func FullSteps(task *actions_model.ActionTask) []*actions_model.ActionTaskStep {
 	// For example,
 	// 1. preStep(Success) -> step1(Success) -> step2(Running) -> step3(Waiting) -> postStep(Waiting): lastHasRunStep is step1.
 	// 2. preStep(Success) -> step1(Success) -> step2(Success) -> step3(Success) -> postStep(Success): lastHasRunStep is step3.
-	// 3. preStep(Success) -> step1(Success) -> step2(Failure) -> step3 -> postStep(Waiting): lastHasRunStep is step2.
-	// So its Stopped is the Started of postStep when there are no more steps to run.
-	// So its Stopped is the Started of postStep when there are no more steps to run.
+	// 3. preStep(Success) -> step1(Success) -> step2(Failure) -> step3(Waiting) -> postStep(Waiting): lastHasRunStep is step2.
+	// 4. preStep(Success) -> step1(Success) -> step2(Skipped) -> postStep(Success): lastHasRunStep is step1, because a skipped step never ran.
+	// So its Stopped is the Started of postStep once no step is left to run.
 	var lastHasRunStep *actions_model.ActionTaskStep
 
 	var logIndex int64
