@@ -14,7 +14,6 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/organization"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
@@ -32,66 +31,6 @@ import (
 	"gitea.dev/services/convert"
 	issue_service "gitea.dev/services/issue"
 )
-
-// buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
-// It returns repoIDs, allPublic flag, and any error that occurred.
-func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPublic bool, err error) {
-	opts := repo_model.SearchRepoOptions{
-		Private:     false,
-		AllPublic:   true,
-		TopicOnly:   false,
-		Collaborate: optional.None[bool](),
-		// This needs to be a column that is not nil in fixtures or
-		// MySQL will return different results when sorting by null in some cases
-		OrderBy: db.SearchOrderByAlphabetically,
-		Actor:   ctx.Doer,
-	}
-	if ctx.IsSigned {
-		opts.Private = true
-		opts.AllLimited = true
-	}
-	opts.ApplyPublicOnly(ctx.PublicOnly)
-	if ctx.FormString("owner") != "" {
-		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
-		if err != nil {
-			return nil, false, err
-		}
-		opts.OwnerID = owner.ID
-		opts.AllLimited = false
-		opts.AllPublic = false
-		opts.Collaborate = optional.Some(false)
-	}
-	if ctx.FormString("team") != "" {
-		if ctx.FormString("owner") == "" {
-			return nil, false, util.NewInvalidArgumentErrorf("owner organisation is required for filtering on team")
-		}
-		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
-		if err != nil {
-			return nil, false, err
-		}
-		opts.TeamID = team.ID
-	}
-
-	if opts.AllPublic {
-		allPublic = true
-		opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
-		// The indexer already matches every public repository through the AllPublic
-		// flag, so enumerating them here would only produce a huge and redundant
-		// repository ID list. Restrict the query to private repositories, which the
-		// indexer cannot match on its own.
-		opts.IsPrivate = optional.Some(true)
-	}
-	repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
-	if err != nil {
-		return nil, false, err
-	}
-	if len(repoIDs) == 0 {
-		// no repos found, don't let the indexer return all repos
-		repoIDs = []int64{0}
-	}
-
-	return repoIDs, allPublic, nil
-}
 
 // SearchIssues searches for issues across the repositories that the user has access to
 func SearchIssues(ctx *context.APIContext) {
@@ -198,7 +137,13 @@ func SearchIssues(ctx *context.APIContext) {
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
-	repoIDs, allPublic, err := buildSearchIssuesRepoIDs(ctx)
+	repoIDs, allPublic, err := common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
+		Doer:       ctx.Doer,
+		IsSigned:   ctx.IsSigned,
+		PublicOnly: ctx.PublicOnly,
+		OwnerName:  ctx.FormString("owner"),
+		TeamName:   ctx.FormString("team"),
+	})
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
