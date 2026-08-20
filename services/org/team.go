@@ -114,8 +114,8 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 			return fmt.Errorf("update: %w", err)
 		}
 
-		// update units for team
-		if len(t.Units) > 0 {
+		if authChanged {
+			// update units for team
 			for _, unit := range t.Units {
 				unit.TeamID = t.ID
 			}
@@ -125,13 +125,13 @@ func UpdateTeam(ctx context.Context, t *organization.Team, authChanged, includeA
 				Delete(new(organization.TeamUnit)); err != nil {
 				return err
 			}
-			if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
-				return err
+			if len(t.Units) > 0 {
+				if _, err = sess.Cols("org_id", "team_id", "type", "access_mode").Insert(&t.Units); err != nil {
+					return err
+				}
 			}
-		}
 
-		// Update access for team members if needed.
-		if authChanged {
+			// Update access for team members if needed.
 			repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
 				TeamID: t.ID,
 			})
@@ -263,7 +263,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
-				if err = repo_model.WatchRepo(graceful.GetManager().ShutdownContext(), user, repo, true); err != nil {
+				if err = repo_model.WatchRepoAuto(graceful.GetManager().ShutdownContext(), user, repo, true); err != nil {
 					log.Error("watch repo failed: %v", err)
 				}
 			}

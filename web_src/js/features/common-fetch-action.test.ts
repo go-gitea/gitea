@@ -1,4 +1,6 @@
-import {execPseudoSelectorCommands, handleFetchActionSuccessJson} from './common-fetch-action.ts';
+import {execPseudoSelectorCommands, handleFetchActionErrorFields, handleFetchActionSuccessJson} from './common-fetch-action.ts';
+import {createElementFromHTML} from '../utils/dom.ts';
+import {captureNavigations, normalizeTestHtml} from '../utils/testhelper.ts';
 
 test('execPseudoSelectorCommands', () => {
   window.document.body.innerHTML = `
@@ -39,21 +41,21 @@ test('execPseudoSelectorCommands', () => {
 });
 
 test('handleFetchActionSuccessJson', async () => {
-  const spyAssign = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
-  const spyReload = vi.spyOn(window.location, 'reload').mockImplementation(() => {});
-
+  const navigations = captureNavigations();
   await handleFetchActionSuccessJson(document.body, {redirect: '/'});
-  expect(spyAssign).toHaveBeenCalledTimes(1);
-  expect(spyReload).toHaveBeenCalledTimes(0);
-  vi.resetAllMocks();
-
   await handleFetchActionSuccessJson(document.body, {redirect: ''});
-  expect(spyAssign).toHaveBeenCalledTimes(0);
-  expect(spyReload).toHaveBeenCalledTimes(1);
-  vi.resetAllMocks();
-
   await handleFetchActionSuccessJson(document.body, {});
-  expect(spyAssign).toHaveBeenCalledTimes(0);
-  expect(spyReload).toHaveBeenCalledTimes(1);
-  vi.resetAllMocks();
+  expect(navigations.map((n) => n.type)).toEqual(['push', 'reload', 'reload']);
+});
+
+test('handleFetchActionErrorFields', () => {
+  const elForm = createElementFromHTML<HTMLElement>(`<form>
+<div class="error field"></div>
+<div class="field"><input name="Foo_Bar[]"></div>
+</form>`);
+  handleFetchActionErrorFields(elForm, ['foo-BAR', 'other']);
+  expect(normalizeTestHtml(elForm.outerHTML)).toEqual(normalizeTestHtml(`<form>
+<div class="field"></div>
+<div class="field error"><input name="Foo_Bar[]"></div>
+</form>`));
 });

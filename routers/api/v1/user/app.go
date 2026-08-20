@@ -127,12 +127,8 @@ func CreateAccessToken(ctx *context.APIContext) {
 	t.Scope = scope
 
 	// a token-authenticated request must not mint a token with a broader scope than its own
-	if ctx.Data["IsApiToken"] == true {
-		apiTokenScope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-		if !ok {
-			ctx.APIError(http.StatusForbidden, "the authenticating token has no scope")
-			return
-		}
+	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if hasApiTokenScope {
 		hasScope, err := apiTokenScope.CanCreateChildScope(scope)
 		if err != nil {
 			ctx.APIErrorInternal(err)

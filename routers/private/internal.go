@@ -13,12 +13,12 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
+	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/common"
 	"gitea.dev/routers/web/misc"
 	"gitea.dev/services/context"
-
-	"gitea.com/go-chi/binding"
 )
 
 func authInternal(next http.Handler) http.Handler {
@@ -42,11 +42,14 @@ func authInternal(next http.Handler) http.Handler {
 }
 
 // bind binding an obj to a handler
-func bind[T any](_ T) any {
+func bind[T any](tmpl T) any {
 	return func(ctx *context.PrivateContext) {
-		theObj := new(T) // create a new form obj for every request but not use obj directly
-		binding.Bind(ctx.Req, theObj)
-		web.SetForm(ctx, theObj)
+		form, errs := middleware.BindFormAny(ctx.Req, validation.Binder(), tmpl)
+		if len(errs) > 0 {
+			errMsg, _, _ := middleware.BuildValidationErrorForUser(form, ctx.Locale, errs)
+			ctx.PrivateInternalErrorf("invalid request: %v", errMsg)
+		}
+		web.SetForm(ctx, form)
 	}
 }
 
@@ -79,7 +82,6 @@ func Routes() *web.Router {
 	r.Post("/hook/pre-receive/{owner}/{repo}", RepoAssignment, bind(private.HookOptions{}), HookPreReceive)
 	r.Post("/hook/post-receive/{owner}/{repo}", context.OverrideContext(), bind(private.HookOptions{}), HookPostReceive)
 	r.Post("/hook/proc-receive/{owner}/{repo}", context.OverrideContext(), RepoAssignment, bind(private.HookOptions{}), HookProcReceive)
-	r.Post("/hook/set-default-branch/{owner}/{repo}/{branch}", RepoAssignment, SetDefaultBranch)
 	r.Get("/serv/none/{keyid}", ServNoCommand)
 	r.Get("/serv/command/{keyid}/{owner}/{repo}", ServCommand)
 	r.Post("/manager/shutdown", Shutdown)
@@ -90,8 +92,6 @@ func Routes() *web.Router {
 	r.Post("/manager/resume-logging", ResumeLogging)
 	r.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
 	r.Post("/manager/set-log-sql", SetLogSQL)
-	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
-	r.Post("/manager/remove-logger/{logger}/{writer}", RemoveLogger)
 	r.Get("/manager/processes", Processes)
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
