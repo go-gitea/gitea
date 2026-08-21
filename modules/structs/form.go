@@ -4,20 +4,14 @@
 package structs
 
 import (
-	"net/http"
-
-	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/translation/i18n"
 
-	"gitea.com/go-chi/binding"
+	"gitea.com/go-chi/binding" //nolint:depguard // avoid cycle import
 )
 
 // ValidateContext is a special context for form validation middleware
 type ValidateContext struct {
 	Locale i18n.LocaleTranslation
-	Data   reqctx.ContextData
-	Req    *http.Request
-	Resp   http.ResponseWriter
 }
 
 type FormDefaultValidator struct{}

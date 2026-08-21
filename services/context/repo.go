@@ -24,6 +24,7 @@ import (
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/cache"
+	"gitea.dev/modules/cachegroup"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
 	code_indexer "gitea.dev/modules/indexer/code"
@@ -426,6 +427,10 @@ func repoAssignmentLegacy(ctx *Context, data *repoAssignmentPrepareDataStruct) {
 			ctx.ServerError("GetDoerRepoPermission", err)
 			return
 		}
+	}
+	// publish it so code resolving the same permission later in this request reuses it
+	if c := cache.GetContextCache(ctx); c != nil {
+		c.Put(cachegroup.RepoUserPermission, access_model.RepoUserPermissionCacheKey(repo.ID, ctx.Doer), ctx.Repo.Permission)
 	}
 
 	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {

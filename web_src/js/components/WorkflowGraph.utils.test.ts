@@ -1,4 +1,4 @@
-import {computeGraphHighlightState, computeJobLevels, createWorkflowGraphModel, matrixKeyFromJobName} from './WorkflowGraph.utils.ts';
+import {computeGraphHighlightState, computeJobLevels, createWorkflowGraphModel} from './WorkflowGraph.utils.ts';
 import type {ActionsJob} from '../modules/gitea-actions.ts';
 
 const mockJobs: ActionsJob[] = [
@@ -8,12 +8,12 @@ const mockJobs: ActionsJob[] = [
   {id: 4, link: '', jobId: 'job-103', name: 'job-103', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100']},
   {id: 5, link: '', jobId: 'prep-jdk', name: 'prep-jdk', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s'},
   {id: 6, link: '', jobId: 'code-analysis', name: 'code-analysis', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s'},
-  {id: 7, link: '', jobId: 'matrix-e2e-1-chromium', name: 'matrix-e2e (1, chromium)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
-  {id: 8, link: '', jobId: 'matrix-e2e-1-firefox', name: 'matrix-e2e (1, firefox)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
-  {id: 9, link: '', jobId: 'matrix-e2e-2-chromium', name: 'matrix-e2e (2, chromium)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
-  {id: 10, link: '', jobId: 'matrix-e2e-3-chromium', name: 'matrix-e2e (3, chromium)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
-  {id: 11, link: '', jobId: 'matrix-e2e-3-firefox', name: 'matrix-e2e (3, firefox)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
-  {id: 12, link: '', jobId: 'matrix-e2e-99-webkit', name: 'matrix-e2e (99, webkit)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
+  {id: 7, link: '', jobId: 'matrix-e2e', name: 'matrix-e2e (1, chromium)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
+  {id: 8, link: '', jobId: 'matrix-e2e', name: 'matrix-e2e (1, firefox)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
+  {id: 9, link: '', jobId: 'matrix-e2e', name: 'matrix-e2e (2, chromium)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
+  {id: 10, link: '', jobId: 'matrix-e2e', name: 'matrix-e2e (3, chromium)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
+  {id: 11, link: '', jobId: 'matrix-e2e', name: 'matrix-e2e (3, firefox)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
+  {id: 12, link: '', jobId: 'matrix-e2e', name: 'matrix-e2e (99, webkit)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['job-100', 'prep-jdk', 'code-analysis']},
   {id: 13, link: '', jobId: 'unit-test', name: 'unit-test', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['prep-jdk', 'code-analysis']},
   {id: 14, link: '', jobId: 'arch-test', name: 'arch-test', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['prep-jdk', 'code-analysis']},
   {id: 15, link: '', jobId: 'integration-test', name: 'integration-test', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['prep-jdk', 'code-analysis']},
@@ -21,12 +21,7 @@ const mockJobs: ActionsJob[] = [
     'unit-test',
     'arch-test',
     'integration-test',
-    'matrix-e2e-1-chromium',
-    'matrix-e2e-1-firefox',
-    'matrix-e2e-2-chromium',
-    'matrix-e2e-3-chromium',
-    'matrix-e2e-3-firefox',
-    'matrix-e2e-99-webkit',
+    'matrix-e2e',
   ]},
 ];
 
@@ -45,14 +40,14 @@ const wfTest1Jobs: ActionsJob[] = [
   {id: 3, link: '', jobId: 'lint-backend', name: 'Lint Backend', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['init']},
   {id: 4, link: '', jobId: 'build-frontend', name: 'Build Frontend', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['lint-frontend']},
   {id: 5, link: '', jobId: 'build-backend', name: 'Build Backend', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '5s', needs: ['lint-backend']},
-  {id: 6, link: '', jobId: 'tu-api-t', name: 'Unit Tests (api, true)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['build-frontend', 'build-backend']},
-  {id: 7, link: '', jobId: 'tu-api-f', name: 'Unit Tests (api, false)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['build-frontend', 'build-backend']},
-  {id: 8, link: '', jobId: 'tu-svc-t', name: 'Unit Tests (service, true)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['build-frontend', 'build-backend']},
+  {id: 6, link: '', jobId: 'unit-tests', name: 'Unit Tests (api, true)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['build-frontend', 'build-backend']},
+  {id: 7, link: '', jobId: 'unit-tests', name: 'Unit Tests (api, false)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['build-frontend', 'build-backend']},
+  {id: 8, link: '', jobId: 'unit-tests', name: 'Unit Tests (service, true)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['build-frontend', 'build-backend']},
   {id: 9, link: '', jobId: 'test-integration', name: 'Integration Tests', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '6s', needs: ['build-backend']},
-  {id: 10, link: '', jobId: 'te-c-d', name: 'E2E Tests (chrome, desktop)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['build-frontend', 'tu-api-t', 'tu-api-f', 'tu-svc-t']},
-  {id: 11, link: '', jobId: 'te-c-m', name: 'E2E Tests (chrome, mobile)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['build-frontend', 'tu-api-t', 'tu-api-f', 'tu-svc-t']},
-  {id: 12, link: '', jobId: 'te-f-d', name: 'E2E Tests (firefox, desktop)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['build-frontend', 'tu-api-t', 'tu-api-f', 'tu-svc-t']},
-  {id: 13, link: '', jobId: 'bundle-app', name: 'Bundle Application', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['tu-api-t', 'tu-api-f', 'tu-svc-t', 'test-integration', 'te-c-d', 'te-c-m', 'te-f-d']},
+  {id: 10, link: '', jobId: 'e2e-tests', name: 'E2E Tests (chrome, desktop)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['build-frontend', 'unit-tests']},
+  {id: 11, link: '', jobId: 'e2e-tests', name: 'E2E Tests (chrome, mobile)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['build-frontend', 'unit-tests']},
+  {id: 12, link: '', jobId: 'e2e-tests', name: 'E2E Tests (firefox, desktop)', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '4s', needs: ['build-frontend', 'unit-tests']},
+  {id: 13, link: '', jobId: 'bundle-app', name: 'Bundle Application', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['unit-tests', 'test-integration', 'e2e-tests']},
   {id: 14, link: '', jobId: 'deploy-dev', name: 'Deploy to Dev', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['bundle-app']},
   {id: 15, link: '', jobId: 'deploy-qa', name: 'Deploy to QA', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '3s', needs: ['bundle-app']},
   {id: 16, link: '', jobId: 'verify-dev', name: 'Verify Dev', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['deploy-dev']},
@@ -61,9 +56,25 @@ const wfTest1Jobs: ActionsJob[] = [
   {id: 19, link: '', jobId: 'post-deploy-checks', name: 'Post-Deploy Checks', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '2s', needs: ['deploy-prod']},
 ];
 
-test('matrix key heuristic strips trailing parameter list', () => {
-  expect(matrixKeyFromJobName('matrix-e2e (1, chromium)')).toBe('matrix-e2e');
-  expect(matrixKeyFromJobName('plain-job')).toBeNull();
+const mockJob = (id: number, jobId: string, name: string, needs?: string[]): ActionsJob =>
+  ({id, link: '', jobId, name, status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '1s', needs});
+
+test('matrix nodes key on job id, not on the display name', () => {
+  const legs = createWorkflowGraphModel([mockJob(1, 'explicit', 'leg one'), mockJob(2, 'explicit', 'leg two')]);
+  expect(legs.nodes).toHaveLength(1);
+  expect(legs.nodes[0].type).toBe('matrix');
+  expect(legs.nodes[0].name).toBe('explicit');
+  expect(legs.nodes[0].jobs.map((j) => j.id)).toEqual([1, 2]);
+
+  const lookalikes = createWorkflowGraphModel([
+    mockJob(1, 'setup', 'setup'),
+    mockJob(2, 'build-fast', 'build (fast)', ['setup']),
+    mockJob(3, 'build-slow', 'build (slow)', ['setup']),
+  ]);
+  expect(lookalikes.nodes.map((n) => n.type)).toEqual(['job', 'group']);
+
+  const noJobId = createWorkflowGraphModel([mockJob(1, '', 'first'), mockJob(2, '', 'second')]);
+  expect(noJobId.nodes.map((n) => n.id)).toEqual(['job:1', 'job:2']);
 });
 
 test('computeJobLevels keeps stable topological levels', () => {
@@ -87,7 +98,7 @@ test('graph model collapses matrix and groups jobs that share parents and childr
 
 test('expanded matrix height includes summary and toggle rows', () => {
   const collapsed = createWorkflowGraphModel(mockJobs);
-  const expanded = createWorkflowGraphModel(mockJobs, new Set(['matrix-e2e']));
+  const expanded = createWorkflowGraphModel(mockJobs, new Set(['matrix:matrix-e2e']));
   const collapsedMatrix = collapsed.nodes.find((n) => n.id === 'matrix:matrix-e2e');
   const expandedMatrix = expanded.nodes.find((n) => n.id === 'matrix:matrix-e2e');
 
@@ -125,7 +136,7 @@ test('different-row edge uses cubic bezier curve', () => {
 test('multi-level pipeline with two matrices and a converging leaf renders without errors', () => {
   const graph = createWorkflowGraphModel(wfTest1Jobs);
   const matrices = graph.nodes.filter((n) => n.type === 'matrix');
-  expect(matrices.map((n) => n.matrixKey).sort()).toEqual(['E2E Tests', 'Unit Tests']);
+  expect(matrices.map((n) => n.name).sort()).toEqual(['E2E Tests', 'Unit Tests']);
 
   const deployProd = graph.nodes.find((n) => n.id === 'job:18');
   const verifyDev = graph.nodes.find((n) => n.id === 'job:16');
@@ -160,14 +171,14 @@ test('reusable callers with identical dependency signature are kept as separate 
 test('matrix legs that call a reusable workflow are folded into a single matrix node', () => {
   const jobs: ActionsJob[] = [
     {id: 1, link: '', jobId: 'prepare', name: 'prepare', status: 'success', canRerun: false, isReusableCaller: false, parentJobID: 0, duration: '30s'},
-    {id: 2, link: '', jobId: 'build_call_linux', name: 'build-call (linux)', status: 'success', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '1m', needs: ['prepare'], callUses: './.gitea/workflows/build.yml'},
-    {id: 3, link: '', jobId: 'build_call_windows', name: 'build-call (windows)', status: 'success', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '2m', needs: ['prepare'], callUses: './.gitea/workflows/build.yml'},
-    {id: 4, link: '', jobId: 'build_call_macos', name: 'build-call (macos)', status: 'success', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '90s', needs: ['prepare'], callUses: './.gitea/workflows/build.yml'},
+    {id: 2, link: '', jobId: 'build-call', name: 'build-call (linux)', status: 'success', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '1m', needs: ['prepare'], callUses: './.gitea/workflows/build.yml'},
+    {id: 3, link: '', jobId: 'build-call', name: 'build-call (windows)', status: 'success', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '2m', needs: ['prepare'], callUses: './.gitea/workflows/build.yml'},
+    {id: 4, link: '', jobId: 'build-call', name: 'build-call (macos)', status: 'success', canRerun: false, isReusableCaller: true, parentJobID: 0, duration: '90s', needs: ['prepare'], callUses: './.gitea/workflows/build.yml'},
   ];
   const graph = createWorkflowGraphModel(jobs);
   const matrixNodes = graph.nodes.filter((n) => n.type === 'matrix');
   expect(matrixNodes).toHaveLength(1);
-  expect(matrixNodes[0].matrixKey).toBe('build-call');
+  expect(matrixNodes[0].name).toBe('build-call');
   expect(matrixNodes[0].jobs.map((j) => j.id).sort()).toEqual([2, 3, 4]);
 });
 

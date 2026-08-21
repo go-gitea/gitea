@@ -224,6 +224,16 @@ progress::-moz-progress-bar {
   background-color: var(--color-accent);
 }
 
+@media (forced-colors: active) {
+  progress {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  progress::-webkit-progress-value {
+    background: CanvasText;
+  }
+}
+
 * {
   caret-color: var(--color-caret);
 }
@@ -259,7 +269,6 @@ relative-time::part(root)::selection {
 .lines-commit .blame-info,
 .ellipsis-button {
   -webkit-touch-callout: none;
-  -webkit-user-select: none;
   user-select: none;
 }
 
