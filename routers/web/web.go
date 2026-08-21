@@ -20,7 +20,6 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
-	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/modules/web/routing"
@@ -345,8 +344,6 @@ func addProjectBoardRoutes(m *web.Router) {
 
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
-	validation.AddBindingRules()
-
 	// middleware: required to be signed in or signed out
 	reqSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: true})
 	reqSignOut := verifyAuthWithOptions(&common.VerifyOptions{SignOutRequired: true})

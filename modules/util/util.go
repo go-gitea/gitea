@@ -13,7 +13,6 @@ import (
 	rand2 "math/rand/v2"
 	"slices"
 	"strconv"
-	"strings"
 	"sync"
 
 	"gitea.dev/modules/container"
@@ -21,11 +20,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-// IsEmptyString checks if the provided string is empty
-func IsEmptyString(s string) bool {
-	return len(strings.TrimSpace(s)) == 0
-}
 
 // ParseYamlBool parses YAML 1.2 boolean values into bool
 func ParseYamlBool(s string) bool {
