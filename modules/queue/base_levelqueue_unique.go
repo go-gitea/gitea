@@ -46,14 +46,6 @@ func newBaseLevelQueueUnique(cfg *BaseConfig) (baseQueue, error) {
 	return q, nil
 }
 
-func (q *baseLevelQueueUnique) PushItem(ctx context.Context, data []byte) error {
-	return q.baseLevelQueueCommonImpl.PushItem(ctx, data)
-}
-
-func (q *baseLevelQueueUnique) PopItem(ctx context.Context) ([]byte, error) {
-	return q.baseLevelQueueCommonImpl.PopItem(ctx)
-}
-
 func (q *baseLevelQueueUnique) HasItem(ctx context.Context, data []byte) (bool, error) {
 	q.muBase.Lock()
 	defer q.muBase.Unlock()

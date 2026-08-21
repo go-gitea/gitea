@@ -50,14 +50,6 @@ func newBaseLevelQueueSimple(cfg *BaseConfig) (baseQueue, error) {
 	return q, nil
 }
 
-func (q *baseLevelQueue) PushItem(ctx context.Context, data []byte) error {
-	return q.baseLevelQueueCommonImpl.PushItem(ctx, data)
-}
-
-func (q *baseLevelQueue) PopItem(ctx context.Context) ([]byte, error) {
-	return q.baseLevelQueueCommonImpl.PopItem(ctx)
-}
-
 func (q *baseLevelQueue) HasItem(ctx context.Context, data []byte) (bool, error) {
 	return false, nil
 }
