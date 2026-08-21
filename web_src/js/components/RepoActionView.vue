@@ -102,9 +102,11 @@ const backLink = computed(() => {
   return null;
 });
 
-function artifactAttemptQuery() {
-  const searchString = run.value.runAttempt > 0 ? `?attempt=${run.value.runAttempt}` : '';
-  return searchString;
+function artifactAttemptQuery(): string {
+  const params = new URLSearchParams();
+  if (run.value.runAttempt > 0) params.set('attempt', String(run.value.runAttempt));
+  const query = params.toString();
+  return query ? `?${query}` : '';
 }
 
 function artifactPath(name: string): string {
