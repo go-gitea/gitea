@@ -125,7 +125,6 @@ FRONTEND_DEST := public/assets/.vite/manifest.json
 FRONTEND_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/.vite
 FRONTEND_DEV_LOG_LEVEL ?= warn
 
-BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 BINDATA_DEST := modules/migration/bindata.dat modules/public/bindata.dat modules/options/bindata.dat modules/templates/bindata.dat
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
@@ -201,7 +200,7 @@ clean-all: clean ## delete backend, frontend and integration files
 .PHONY: clean
 clean: ## delete backend and integration files
 	rm -f $(EXECUTABLE) test-*.test tests/*.ini
-	rm -rf  $(DIST) $(BINDATA_DEST_WILDCARD) man tests/integration/gitea-integration-*
+	rm -rf  $(DIST) $(BINDATA_DEST) man tests/integration/gitea-integration-*
 
 .PHONY: fmt
 fmt: ## format the Go and template code
