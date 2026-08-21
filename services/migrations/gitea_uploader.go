@@ -278,9 +278,9 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			release.TargetCommitish = ""
 		}
 
-		publishedUnix := timeutil.TimeStamp(release.Created.Unix())
-		if !release.Published.IsZero() {
-			publishedUnix = timeutil.TimeStamp(release.Published.Unix())
+		var publishedUnix timeutil.TimeStamp
+		if !release.Draft {
+			publishedUnix = timeutil.TimeStamp(util.Iif(release.Published.IsZero(), release.Created, release.Published).Unix())
 		}
 
 		rel := repo_model.Release{

@@ -142,7 +142,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
-		if !rel.IsTag && rel.PublishedUnix.IsZero() {
+		if rel.PublishedUnix.IsZero() {
 			rel.PublishedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(ctx, rel.TagName)
@@ -276,8 +276,8 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
-	isPublished := isConvertedFromTag || (oldRelease.IsDraft && !rel.IsDraft)
-	if isPublished {
+	// a tag or draft becoming a release is published now, whatever date the underlying tag carries
+	if !rel.IsDraft && (isConvertedFromTag || oldRelease.IsDraft) {
 		rel.PublishedUnix = timeutil.TimeStampNow()
 	}
 

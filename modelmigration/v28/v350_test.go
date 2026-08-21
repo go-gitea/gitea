@@ -36,6 +36,6 @@ func TestAddPublishedUnixToRelease(t *testing.T) {
 
 	var got []struct{ PublishedUnix int64 }
 	require.NoError(t, x.Table("release").OrderBy("id").Find(&got))
-	require.Equal(t, []int64{1000000, 0, 0}, []int64{got[0].PublishedUnix, got[1].PublishedUnix, got[2].PublishedUnix},
-		"only published releases are backfilled, drafts and tags stay zero")
+	require.Equal(t, []int64{1000000, 0, 3000000}, []int64{got[0].PublishedUnix, got[1].PublishedUnix, got[2].PublishedUnix},
+		"everything but drafts is backfilled")
 }

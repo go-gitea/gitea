@@ -59,13 +59,11 @@
 								Ghost
 							{{end}}
 							</span>
-							<span class="released">
-								{{ctx.Locale.Tr "repo.released_this"}}
-							</span>
 							{{if not $release.PublishedUnix.IsZero}}
+								<span class="released">
+									{{ctx.Locale.Tr "repo.released_this"}}
+								</span>
 								<span class="time">{{DateUtils.TimeSince $release.PublishedUnix}}</span>
-							{{else if $release.CreatedUnix}}
-								<span class="time">{{DateUtils.TimeSince $release.CreatedUnix}}</span>
 							{{end}}
 							{{if and (gt $release.NumCommits 0) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
 								| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{$release.TagName | PathEscapeSegments}}...{{$release.TargetBehind | PathEscapeSegments}}">{{ctx.Locale.Tr "repo.release.ahead.commits" $release.NumCommitsBehind}}</a> {{ctx.Locale.Tr "repo.release.ahead.target" $release.TargetBehind}}</span>
