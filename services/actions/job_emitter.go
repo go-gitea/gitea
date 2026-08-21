@@ -243,6 +243,11 @@ func checkRunConcurrency(ctx context.Context, run *actions_model.ActionRun) (*jo
 
 // checkJobsOfCurrentRunAttempt resolves blocked jobs of the run's latest attempt.
 func checkJobsOfCurrentRunAttempt(ctx context.Context, run *actions_model.ActionRun) (*jobsCheckResult, error) {
+	// Approval is the only transition allowed to release an approval-pending run.
+	if run.NeedApproval {
+		return &jobsCheckResult{}, nil
+	}
+
 	jobs, err := actions_model.GetRunJobsByRunAndAttemptID(ctx, run.ID, run.LatestAttemptID)
 	if err != nil {
 		return nil, err
