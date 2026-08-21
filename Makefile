@@ -116,7 +116,8 @@ endif
 ifeq ($(VERSION),main)
 	VERSION := main-nightly
 endif
-VERSION_FILE := $(subst /,-,$(VERSION))
+# artifact names cannot contain the "/" that a branch name may have
+RELEASE_VERSION := $(subst /,-,$(VERSION))
 
 LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 RELEASE_GO_LDFLAGS = -s -w $(LDFLAGS)
@@ -128,7 +129,7 @@ RELEASE_ENV = \
 	GO="$(GO)" \
 	RELEASE_TAGS='$(TAGS)' \
 	RELEASE_LDFLAGS='$(RELEASE_GO_LDFLAGS)' \
-	RELEASE_PREFIX='$(DIST)/binaries/gitea-$(VERSION_FILE)' \
+	RELEASE_PREFIX='$(DIST)/binaries/gitea-$(RELEASE_VERSION)' \
 	RELEASE_ARCHS='$(RELEASE_ALL_ARCHS)' \
 	RELEASE_GOGIT_ARCHS='$(RELEASE_GOGIT_ARCHS)'
 
@@ -586,8 +587,8 @@ release-sources: | $(DIST_DIRS)
 # bsdtar needs a ^ to prevent matching subdirectories
 	$(eval EXCL := --exclude=$(shell tar --help | grep -q bsdtar && echo "^")./)
 # use transform to a add a release-folder prefix; in bsdtar the transform parameter equivalent is -s
-	$(eval TRANSFORM := $(shell tar --help | grep -q bsdtar && echo "-s '|^./|gitea-src-$(VERSION_FILE)/|'" || echo "--transform 's|^./|gitea-src-$(VERSION_FILE)/|'"))
-	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/gitea-src-$(VERSION_FILE).tar.gz .
+	$(eval TRANSFORM := $(shell tar --help | grep -q bsdtar && echo "-s '|^./|gitea-src-$(RELEASE_VERSION)/|'" || echo "--transform 's|^./|gitea-src-$(RELEASE_VERSION)/|'"))
+	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/gitea-src-$(RELEASE_VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: deps
