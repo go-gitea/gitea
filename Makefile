@@ -126,6 +126,7 @@ FRONTEND_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts 
 FRONTEND_DEV_LOG_LEVEL ?= warn
 
 BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
+BINDATA_DEST := modules/migration/bindata.dat modules/public/bindata.dat modules/options/bindata.dat modules/templates/bindata.dat
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
@@ -336,11 +337,11 @@ lint-spell-fix: ## lint spelling and fix issues
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
-lint-go: ## lint go files
+lint-go: $(BINDATA_DEST) ## lint go files
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go
 
 .PHONY: lint-go-fix
-lint-go-fix: ## lint go files and fix issues
+lint-go-fix: $(BINDATA_DEST) ## lint go files and fix issues
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go --fix
 
 .PHONY: lint-editorconfig
@@ -454,7 +455,7 @@ $(GO_LICENSE_FILE): go.mod go.sum
 	GO=$(GO) $(GO) run build/generate-go-licenses.go $(GO_LICENSE_FILE)
 
 .PHONY: test-integration
-test-integration:
+test-integration: $(EXECUTABLE)
 	@# Use a compiled binary: testlogger forwards gitea logs to t.Log, so `go test -v`
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
@@ -466,7 +467,7 @@ test-integration-compile:
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
 
 .PHONY: test-integration\#%
-test-integration\#%:
+test-integration\#%: $(EXECUTABLE)
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) gitea.dev/tests/integration
 
 .PHONY: test-migration
@@ -508,6 +509,9 @@ generate: generate-backend ## run "go generate"
 
 .PHONY: generate-backend
 generate-backend: $(TAGS_PREREQ) generate-go
+
+$(BINDATA_DEST):
+	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags bindata ./$(@D)
 
 .PHONY: generate-go
 generate-go: $(TAGS_PREREQ)
