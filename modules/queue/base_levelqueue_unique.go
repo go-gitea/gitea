@@ -23,7 +23,7 @@ type baseLevelQueueUnique struct {
 	cfg  *BaseConfig
 	db   *leveldb.DB
 
-	mu sync.Mutex // the levelqueue.UniqueQueue is not thread-safe, there is no mutex protecting the underlying queue&set together
+	muBase sync.Mutex // the levelqueue.UniqueQueue is not thread-safe, there is no mutex protecting the underlying queue&set together
 }
 
 var (
@@ -42,7 +42,7 @@ func newBaseLevelQueueUnique(cfg *BaseConfig) (baseQueue, error) {
 		return nil, err
 	}
 	q.internal.Store(lq)
-	q.baseLevelQueueCommonImpl = baseLevelQueueCommon(q.cfg, &q.mu, func() baseLevelQueuePushPoper { return q.internal.Load() })
+	q.baseLevelQueueCommonImpl = baseLevelQueueCommon(q.cfg, &q.muBase, func() baseLevelQueuePushPoper { return q.internal.Load() })
 	return q, nil
 }
 
@@ -55,20 +55,20 @@ func (q *baseLevelQueueUnique) PopItem(ctx context.Context) ([]byte, error) {
 }
 
 func (q *baseLevelQueueUnique) HasItem(ctx context.Context, data []byte) (bool, error) {
-	q.mu.Lock()
-	defer q.mu.Unlock()
+	q.muBase.Lock()
+	defer q.muBase.Unlock()
 	return q.internal.Load().Has(data)
 }
 
 func (q *baseLevelQueueUnique) Len(ctx context.Context) (int, error) {
-	q.mu.Lock()
-	defer q.mu.Unlock()
+	q.muBase.Lock()
+	defer q.muBase.Unlock()
 	return int(q.internal.Load().Len()), nil
 }
 
 func (q *baseLevelQueueUnique) Close() error {
-	q.mu.Lock()
-	defer q.mu.Unlock()
+	q.muBase.Lock()
+	defer q.muBase.Unlock()
 	err := q.internal.Load().Close()
 	q.db = nil // the db is not managed by us, it's managed by the nosql manager
 	_ = nosql.GetManager().CloseLevelDB(q.conn)
@@ -76,8 +76,8 @@ func (q *baseLevelQueueUnique) Close() error {
 }
 
 func (q *baseLevelQueueUnique) RemoveAll(ctx context.Context) error {
-	q.mu.Lock()
-	defer q.mu.Unlock()
+	q.muBase.Lock()
+	defer q.muBase.Unlock()
 	lqinternal.RemoveLevelQueueKeys(q.db, []byte(q.cfg.QueueFullName))
 	lqinternal.RemoveLevelQueueKeys(q.db, []byte(q.cfg.SetFullName))
 	lq, err := levelqueue.NewUniqueQueue(q.db, []byte(q.cfg.QueueFullName), []byte(q.cfg.SetFullName), false)

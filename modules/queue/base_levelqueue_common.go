@@ -28,14 +28,14 @@ type baseLevelQueueCommonImpl struct {
 	*baseQueueNotifiable
 	length       int
 	internalFunc func() baseLevelQueuePushPoper
-	mu           *sync.Mutex
+	muCommon     *sync.Mutex
 }
 
 func (q *baseLevelQueueCommonImpl) PushItem(ctx context.Context, data []byte) error {
 	_, err := backoffCall(ctx, backoffOptionsDefault(noNotifyChan, time.After(pushBlockTime)), func() (retry bool, ret any, err error) {
-		if q.mu != nil {
-			q.mu.Lock()
-			defer q.mu.Unlock()
+		if q.muCommon != nil {
+			q.muCommon.Lock()
+			defer q.muCommon.Unlock()
 		}
 
 		cnt := int(q.internalFunc().Len())
@@ -56,9 +56,9 @@ func (q *baseLevelQueueCommonImpl) PushItem(ctx context.Context, data []byte) er
 
 func (q *baseLevelQueueCommonImpl) PopItem(ctx context.Context) ([]byte, error) {
 	return backoffCall(ctx, backoffOptionsDefault(q.notifySignal, infiniteTimerC), func() (retry bool, data []byte, err error) {
-		if q.mu != nil {
-			q.mu.Lock()
-			defer q.mu.Unlock()
+		if q.muCommon != nil {
+			q.muCommon.Lock()
+			defer q.muCommon.Unlock()
 		}
 
 		data, err = q.internalFunc().LPop()
@@ -73,7 +73,7 @@ func (q *baseLevelQueueCommonImpl) PopItem(ctx context.Context) ([]byte, error) 
 }
 
 func baseLevelQueueCommon(cfg *BaseConfig, mu *sync.Mutex, internalFunc func() baseLevelQueuePushPoper) *baseLevelQueueCommonImpl {
-	return &baseLevelQueueCommonImpl{length: cfg.Length, mu: mu, internalFunc: internalFunc, baseQueueNotifiable: newBaseQueueNotifiable()}
+	return &baseLevelQueueCommonImpl{length: cfg.Length, muCommon: mu, internalFunc: internalFunc, baseQueueNotifiable: newBaseQueueNotifiable()}
 }
 
 func prepareLevelDB(cfg *BaseConfig) (conn string, db *leveldb.DB, err error) {
