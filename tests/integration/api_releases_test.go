@@ -234,11 +234,6 @@ func TestAPIReleasePublishedAt(t *testing.T) {
 		}).AddTokenAuth(token)
 		return DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Release{})
 	}
-	editRelease := func(t *testing.T, id int64, opt *api.EditReleaseOption) *api.Release {
-		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", urlStr, id), opt).AddTokenAuth(token)
-		return DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Release{})
-	}
-
 	t.Run("PublishedNowNotTagDate", func(t *testing.T) {
 		gitRepo, err := git.OpenRepository(t.Context(), repo)
 		require.NoError(t, err)
@@ -255,7 +250,8 @@ func TestAPIReleasePublishedAt(t *testing.T) {
 	t.Run("PublishingDraftStampsNow", func(t *testing.T) {
 		draft := createRelease(t, "v0.0.3-draft", true)
 		isDraft := false
-		published := editRelease(t, draft.ID, &api.EditReleaseOption{IsDraft: &isDraft})
+		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", urlStr, draft.ID), &api.EditReleaseOption{IsDraft: &isDraft}).AddTokenAuth(token)
+		published := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Release{})
 		require.NotNil(t, published.PublishedAt)
 		assert.GreaterOrEqual(t, published.PublishedAt.Unix(), draft.CreatedAt.Unix())
 	})
