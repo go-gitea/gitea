@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -360,9 +361,16 @@ type keyValue struct {
 	Value string
 }
 
+// pacman parses the index line by line, so a value with a newline could forge extra fields
+func joinFields(values []string) string {
+	return strings.Join(slices.DeleteFunc(slices.Clone(values), func(value string) bool {
+		return strings.ContainsAny(value, "\n\r")
+	}), "\n")
+}
+
 func writeFiles(tw *tar.Writer, opts *entryOptions) error {
 	return writeFields(tw, fmt.Sprintf("%s-%s/files", opts.Package.Name, opts.Version.Version), []keyValue{
-		{"FILES", strings.Join(opts.FileMetadata.Files, "\n")},
+		{"FILES", joinFields(opts.FileMetadata.Files)},
 	})
 }
 
@@ -381,17 +389,17 @@ func writeDescription(tw *tar.Writer, opts *entryOptions) error {
 		{"VERSION", opts.Version.Version},
 		{"DESC", opts.VersionMetadata.Description},
 		{"URL", opts.VersionMetadata.ProjectURL},
-		{"LICENSE", strings.Join(opts.VersionMetadata.Licenses, "\n")},
-		{"GROUPS", strings.Join(opts.FileMetadata.Groups, "\n")},
+		{"LICENSE", joinFields(opts.VersionMetadata.Licenses)},
+		{"GROUPS", joinFields(opts.FileMetadata.Groups)},
 		{"BUILDDATE", strconv.FormatInt(opts.FileMetadata.BuildDate, 10)},
 		{"PACKAGER", opts.FileMetadata.Packager},
-		{"PROVIDES", strings.Join(opts.FileMetadata.Provides, "\n")},
-		{"REPLACES", strings.Join(opts.FileMetadata.Replaces, "\n")},
-		{"CONFLICTS", strings.Join(opts.FileMetadata.Conflicts, "\n")},
-		{"DEPENDS", strings.Join(opts.FileMetadata.Depends, "\n")},
-		{"OPTDEPENDS", strings.Join(opts.FileMetadata.OptDepends, "\n")},
-		{"MAKEDEPENDS", strings.Join(opts.FileMetadata.MakeDepends, "\n")},
-		{"CHECKDEPENDS", strings.Join(opts.FileMetadata.CheckDepends, "\n")},
+		{"PROVIDES", joinFields(opts.FileMetadata.Provides)},
+		{"REPLACES", joinFields(opts.FileMetadata.Replaces)},
+		{"CONFLICTS", joinFields(opts.FileMetadata.Conflicts)},
+		{"DEPENDS", joinFields(opts.FileMetadata.Depends)},
+		{"OPTDEPENDS", joinFields(opts.FileMetadata.OptDepends)},
+		{"MAKEDEPENDS", joinFields(opts.FileMetadata.MakeDepends)},
+		{"CHECKDEPENDS", joinFields(opts.FileMetadata.CheckDepends)},
 	})
 }
 

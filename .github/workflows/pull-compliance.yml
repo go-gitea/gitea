@@ -42,9 +42,7 @@ jobs:
       - run: make lint-spell
 
       - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true' || needs.files-changed.outputs.actions == 'true'
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          python-version: 3.14
+        uses: ./.github/actions/python-setup
       - if: needs.files-changed.outputs.templates == 'true' || needs.files-changed.outputs.yaml == 'true'
         run: make deps-py lint-templates lint-yaml
 
@@ -77,6 +75,7 @@ jobs:
       - run: make deps-frontend
       - run: make lint-frontend
       - run: make checks-frontend
+      - run: make playwright
       - run: make test-frontend
       - run: make frontend
 
@@ -91,19 +90,21 @@ jobs:
       # no frontend build here as backend should be able to build, even without any frontend files
       # CGO is not used when cross-compile, so these steps also test if the code is compatible with CGO disabled
       - name: build-backend-arm64
-        run: go build -o gitea_linux_arm64
+        run: go build -ldflags '-s -w' -o gitea-linux-arm64
         env:
           GOOS: linux
           GOARCH: arm64
           TAGS: bindata gogit
       - name: build-backend-windows
-        run: go build -o gitea_windows
+        run: go build -ldflags '-s -w' -o gitea-windows
         env:
           GOOS: windows
           GOARCH: amd64
           TAGS: bindata gogit
       - name: build-backend-386
-        run: go build -o gitea_linux_386
+        run: go build -ldflags '-s -w' -o gitea-linux-386
         env:
           GOOS: linux
           GOARCH: 386
+      - name: binary-sizes
+        run: ls -l gitea-*

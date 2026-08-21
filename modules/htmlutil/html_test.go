@@ -26,7 +26,7 @@ func TestHTMLFormat(t *testing.T) {
 
 func TestHTMLBuilder(t *testing.T) {
 	b := &HTMLBuilder{}
-	b.WriteString("<").WriteHTML("<hr>").WriteFormat("<span>%s%s</span>", ">", EscapeString(">"))
+	b.WriteString("<").WriteHTML("<hr>").WriteFormatf("<span>%s%s</span>", ">", EscapeString(">"))
 	assert.Equal(t, "&lt;<hr><span>&gt;&gt;</span>", b.String())
 	assert.Equal(t, template.HTML("&lt;<hr><span>&gt;&gt;</span>"), b.HTMLString())
 }

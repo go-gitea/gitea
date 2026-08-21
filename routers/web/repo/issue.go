@@ -480,7 +480,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 
 // ChangeIssueReaction create a reaction for issue
 func ChangeIssueReaction(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.ReactionForm)
+	form := web.GetForm[*forms.ReactionForm](ctx)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return

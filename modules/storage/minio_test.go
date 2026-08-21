@@ -10,89 +10,45 @@ import (
 
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestMinioStorage(t *testing.T) {
-	endpoint := test.ExternalServiceHTTP(t, "TEST_MINIO_ENDPOINT", "minio:9000")
-	storageType := setting.MinioStorageType
-	config := &setting.Storage{
+func prepareMinioStorageConfig(t *testing.T, basePath ...string) *setting.Storage {
+	return &setting.Storage{
 		MinioConfig: setting.MinioStorageConfig{
-			Endpoint:        endpoint,
+			Endpoint:        test.ExternalServiceHTTP(t, "TEST_MINIO_ENDPOINT", "minio:9000"),
 			AccessKeyID:     "123456",
 			SecretAccessKey: "12345678",
 			Bucket:          "gitea",
 			Location:        "us-east-1",
+			BasePath:        util.OptionalArg(basePath),
 		},
-	}
-	table := []struct {
-		name string
-		test func(t *testing.T, typStr Type, cfg *setting.Storage)
-	}{
-		{
-			name: "iterator",
-			test: testStorageIterator,
-		},
-		{
-			name: "testBlobStorageURLContentTypeAndDisposition",
-			test: testBlobStorageURLContentTypeAndDisposition,
-		},
-	}
-	for _, entry := range table {
-		t.Run(entry.name, func(t *testing.T) {
-			entry.test(t, storageType, config)
-		})
 	}
 }
 
-func TestMinioStoragePath(t *testing.T) {
-	m := &MinioStorage{basePath: ""}
-	assert.Empty(t, m.buildMinioPath("/"))
-	assert.Empty(t, m.buildMinioPath("."))
-	assert.Equal(t, "a", m.buildMinioPath("/a"))
-	assert.Equal(t, "a/b", m.buildMinioPath("/a/b/"))
-	assert.Empty(t, m.buildMinioDirPrefix(""))
-	assert.Equal(t, "a/", m.buildMinioDirPrefix("/a/"))
-
-	m = &MinioStorage{basePath: "/"}
-	assert.Empty(t, m.buildMinioPath("/"))
-	assert.Empty(t, m.buildMinioPath("."))
-	assert.Equal(t, "a", m.buildMinioPath("/a"))
-	assert.Equal(t, "a/b", m.buildMinioPath("/a/b/"))
-	assert.Empty(t, m.buildMinioDirPrefix(""))
-	assert.Equal(t, "a/", m.buildMinioDirPrefix("/a/"))
-
-	m = &MinioStorage{basePath: "/base"}
-	assert.Equal(t, "base", m.buildMinioPath("/"))
-	assert.Equal(t, "base", m.buildMinioPath("."))
-	assert.Equal(t, "base/a", m.buildMinioPath("/a"))
-	assert.Equal(t, "base/a/b", m.buildMinioPath("/a/b/"))
-	assert.Equal(t, "base/", m.buildMinioDirPrefix(""))
-	assert.Equal(t, "base/a/", m.buildMinioDirPrefix("/a/"))
-
-	m = &MinioStorage{basePath: "/base/"}
-	assert.Equal(t, "base", m.buildMinioPath("/"))
-	assert.Equal(t, "base", m.buildMinioPath("."))
-	assert.Equal(t, "base/a", m.buildMinioPath("/a"))
-	assert.Equal(t, "base/a/b", m.buildMinioPath("/a/b/"))
-	assert.Equal(t, "base/", m.buildMinioDirPrefix(""))
-	assert.Equal(t, "base/a/", m.buildMinioDirPrefix("/a/"))
+func TestMinioStorage(t *testing.T) {
+	t.Run("NoBasePath", func(t *testing.T) {
+		config := prepareMinioStorageConfig(t)
+		objStore, err := NewStorage(setting.MinioStorageType, config)
+		require.NoError(t, err)
+		testStorageGeneral(t, objStore)
+	})
+	t.Run("WithBasePath", func(t *testing.T) {
+		config := prepareMinioStorageConfig(t, "test-base-path")
+		objStore, err := NewStorage(setting.MinioStorageType, config)
+		require.NoError(t, err)
+		testStorageGeneral(t, objStore)
+	})
 }
 
 func TestS3StorageBadRequest(t *testing.T) {
-	endpoint := test.ExternalServiceHTTP(t, "TEST_MINIO_ENDPOINT", "minio:9000")
-	cfg := &setting.Storage{
-		MinioConfig: setting.MinioStorageConfig{
-			Endpoint:        endpoint,
-			AccessKeyID:     "123456",
-			SecretAccessKey: "invalid-secret",
-			Bucket:          "bucket",
-			Location:        "us-east-1",
-		},
-	}
+	cfg := prepareMinioStorageConfig(t)
+	cfg.MinioConfig.SecretAccessKey = "invalid-secret"
 	_, err := NewStorage(setting.MinioStorageType, cfg)
-	assert.ErrorContains(t, err, "ObjectStorage.BucketExists: endpoint="+endpoint)
+	assert.ErrorContains(t, err, "ObjectStorage.BucketExists: endpoint="+cfg.MinioConfig.Endpoint)
 }
 
 func TestMinioCredentials(t *testing.T) {

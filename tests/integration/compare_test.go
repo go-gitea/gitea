@@ -182,7 +182,7 @@ func TestResolveRefWithSuffixContract(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 31})
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

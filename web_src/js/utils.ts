@@ -142,19 +142,6 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
   });
 }
 
-export function toAbsoluteUrl(url: string): string {
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  if (url.startsWith('//')) {
-    return `${window.location.protocol}${url}`; // it's also a somewhat absolute URL (with the current scheme)
-  }
-  if (url && !url.startsWith('/')) {
-    throw new Error('unsupported url, it should either start with / or http(s)://');
-  }
-  return `${window.location.origin}${url}`;
-}
-
 /** Encode an Uint8Array into a URLEncoded base64 string. */
 export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
   return btoa(Array.from(uint8Array, (byte) => String.fromCharCode(byte)).join(''))

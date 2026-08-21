@@ -5,16 +5,17 @@
 package convert
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"time"
 
-	runnerv1 "gitea.dev/actions-proto-go/runner/v1"
+	runnerv1 "gitea.dev/actionslib/runner/v1"
 	actions_model "gitea.dev/models/actions"
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/auth"
@@ -28,6 +29,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/httplib"
@@ -38,8 +40,6 @@ import (
 	webhook_module "gitea.dev/modules/webhook"
 	asymkey_service "gitea.dev/services/asymkey"
 	"gitea.dev/services/gitdiff"
-
-	"gitea.com/gitea/runner/act/model"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -196,6 +196,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 		ApprovalsWhitelistTeams:       approvalsWhitelistTeams,
 		BlockOnRejectedReviews:        bp.BlockOnRejectedReviews,
 		BlockOnOfficialReviewRequests: bp.BlockOnOfficialReviewRequests,
+		BlockOnCodeownerReviews:       bp.BlockOnCodeownerReviews,
 		BlockOnOutdatedBranch:         bp.BlockOnOutdatedBranch,
 		DismissStaleApprovals:         bp.DismissStaleApprovals,
 		IgnoreStaleApprovals:          bp.IgnoreStaleApprovals,
@@ -292,7 +293,7 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		completedAt = attempt.Stopped.AsLocalTime()
 		triggerUser = attempt.TriggerUser
 		if attempt.Attempt > 1 {
-			url := fmt.Sprintf("%s/actions/runs/%d/attempts/%d", run.Repo.APIURL(ctx), run.ID, attempt.Attempt-1)
+			url := fmt.Sprintf("%s/attempts/%d", run.APIURL(ctx), attempt.Attempt-1)
 			previousAttemptURL = &url
 		}
 	}
@@ -304,13 +305,21 @@ func ToActionWorkflowRun(ctx context.Context, run *actions_model.ActionRun, atte
 		}
 	}
 
+	runURL := run.APIURL(ctx)
 	return &api.ActionWorkflowRun{
 		ID:                 run.ID,
-		URL:                fmt.Sprintf("%s/actions/runs/%d", run.Repo.APIURL(ctx), run.ID),
+		URL:                runURL,
 		PreviousAttemptURL: previousAttemptURL,
 		HTMLURL:            run.HTMLURL(ctx),
+		JobsURL:            runURL + "/jobs",
+		LogsURL:            runURL + "/logs",
+		ArtifactsURL:       runURL + "/artifacts",
+		CancelURL:          runURL + "/cancel",
+		RerunURL:           runURL + "/rerun",
 		RunNumber:          run.Index,
 		RunAttempt:         runAttempt,
+		CreatedAt:          run.Created.AsLocalTime(),
+		UpdatedAt:          run.Updated.AsLocalTime(),
 		StartedAt:          startedAt,
 		CompletedAt:        completedAt,
 		Event:              run.TriggerEvent,
@@ -556,7 +565,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 	content, err := actions.GetContentFromEntry(ctx, gitRepo, entry)
 	name := entry.Name()
 	if err == nil {
-		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+		workflow, err := jobparser.ReadWorkflow(content)
 		if err == nil {
 			// Only use the name when specified in the workflow file
 			if workflow.Name != "" {
@@ -679,7 +688,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		if err != nil {
 			return nil, err
 		}
-		sourceGitRepo, err := git.OpenRepository(sourceRepo)
+		sourceGitRepo, err := git.OpenRepository(ctx, sourceRepo)
 		if err != nil {
 			return nil, err
 		}
@@ -687,7 +696,7 @@ func ResolveActionWorkflowForRun(ctx context.Context, repo *repo_model.Repositor
 		return GetScopedActionWorkflow(ctx, sourceGitRepo, sourceRepo, run.WorkflowID, run.WorkflowCommitSHA)
 	}
 
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -838,17 +847,20 @@ func ToGitHook(h *git.Hook) *api.GitHook {
 }
 
 // ToDeployKey convert asymkey_model.DeployKey to api.DeployKey
-func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
-	return &api.DeployKey{
-		ID:          key.ID,
-		KeyID:       key.KeyID,
-		Key:         key.Content,
-		Fingerprint: key.Fingerprint,
-		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
-		Title:       key.Name,
-		Created:     key.CreatedUnix.AsTime(),
-		ReadOnly:    key.Mode == perm.AccessModeRead, // All deploy keys are read-only.
+func ToDeployKey(ctx context.Context, repo *repo_model.Repository, deployKey *asymkey_model.DeployKey) *api.DeployKey {
+	k := &api.DeployKey{
+		ID:       deployKey.ID,
+		KeyID:    deployKey.KeyID,
+		URL:      repo.APIURL(ctx) + fmt.Sprintf("/keys/%d", deployKey.ID),
+		Title:    deployKey.Name,
+		Created:  deployKey.CreatedUnix.AsTime(),
+		ReadOnly: deployKey.Mode == perm.AccessModeRead, // All deploy keys are read-only.
 	}
+	if err := deployKey.LoadPublicKey(ctx); err == nil {
+		k.Key = deployKey.PublicKey.Content
+		k.Fingerprint = deployKey.PublicKey.Fingerprint
+	}
+	return k
 }
 
 // ToOrganization convert user_model.User to api.Organization
@@ -886,6 +898,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			return nil, err
 		}
 
+		unitsMap := t.GetUnitsMap()
 		apiTeam := &api.Team{
 			ID:                      t.ID,
 			Name:                    t.Name,
@@ -893,7 +906,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 			IncludesAllRepositories: t.IncludesAllRepositories,
 			CanCreateOrgRepo:        t.CanCreateOrgRepo,
 			Permission:              api.AccessLevelName(t.AccessMode.ToString()),
-			Units:                   t.GetUnitNames(),
+			Units:                   slices.Collect(maps.Keys(unitsMap)),
 			UnitsMap:                t.GetUnitsMap(),
 			Visibility:              api.TeamVisibility(t.Visibility.String()),
 		}

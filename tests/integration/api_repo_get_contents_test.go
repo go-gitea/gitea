@@ -37,6 +37,7 @@ func getExpectedContentsResponseForContents(inputRef string, expectedRef git.Ref
 		LastCommitterDate: new(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
 		LastAuthorDate:    new(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
 		Type:              "file",
+		Mode:              "100644",
 		Size:              30,
 		Encoding:          new("base64"),
 		Content:           new("IyByZXBvMQoKRGVzY3JpcHRpb24gZm9yIHJlcG8x"),
@@ -78,7 +79,7 @@ func testAPIGetContents(t *testing.T, _ *url.URL) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Get the commit ID of the default branch
-	gitRepo, err := git.OpenRepository(repo1)
+	gitRepo, err := git.OpenRepository(t.Context(), repo1)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

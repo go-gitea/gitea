@@ -19,7 +19,9 @@ import (
 )
 
 func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
-	// only allow valid access modes, read, write and admin
+	// Only allow valid access modes, read, write and admin
+	// Keep in mind: do not allow "owner" here: because "admin" user can update collaborators but not make dangerous operations.
+	// If the "admin" user updates a user to "owner", then it means that the admin user can use owner permission, which is not expected.
 	if mode < perm.AccessModeRead || mode > perm.AccessModeAdmin {
 		return perm.ErrInvalidAccessMode
 	}
@@ -86,7 +88,7 @@ func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, colla
 			return err
 		}
 
-		if err = repo_model.WatchRepo(ctx, collaborator, repo, false); err != nil {
+		if err = repo_model.WatchRepoAuto(ctx, collaborator, repo, false); err != nil {
 			return err
 		}
 
@@ -116,7 +118,7 @@ func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, user *u
 	if has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo); err != nil || has {
 		return err
 	}
-	if err := repo_model.WatchRepo(ctx, user, repo, false); err != nil {
+	if err := repo_model.WatchRepoAuto(ctx, user, repo, false); err != nil {
 		return err
 	}
 

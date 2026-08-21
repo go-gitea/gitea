@@ -366,7 +366,7 @@ func GetProjectWorkflowOptions(ctx *api_context.APIContext) {
 	if !ok {
 		return
 	}
-	columns, err := project.GetColumns(ctx)
+	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -463,7 +463,7 @@ func CreateProjectWorkflow(ctx *api_context.APIContext) {
 	if !ok {
 		return
 	}
-	form := web.GetForm(ctx).(*api.CreateProjectWorkflowOption)
+	form := web.GetForm[*api.CreateProjectWorkflowOption](ctx)
 	if !project_model.IsValidWorkflowEvent(form.EventID) {
 		ctx.APIError(http.StatusUnprocessableEntity, "invalid event_id: "+form.EventID)
 		return
@@ -585,7 +585,7 @@ func UpdateProjectWorkflow(ctx *api_context.APIContext) {
 	}
 	// Filters and Actions are pointers: a PATCH may send only one group, and the
 	// omitted group's existing configuration is left untouched.
-	form := web.GetForm(ctx).(*api.EditProjectWorkflowOption)
+	form := web.GetForm[*api.EditProjectWorkflowOption](ctx)
 	if form.Filters != nil {
 		workflowFilters, ok := convertAPIProjectWorkflowFilters(ctx, project, workflow.WorkflowEvent, *form.Filters)
 		if !ok {

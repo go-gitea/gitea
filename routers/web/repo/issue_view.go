@@ -284,7 +284,7 @@ func handleViewIssueRedirectExternal(ctx *context.Context) {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 				metas := ctx.Repo.Repository.ComposeCommentMetas(ctx)
 				metas["index"] = ctx.PathParam("index")
-				res, err := vars.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
+				res, err := vars.ExpandCurlyBrace(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas)
 				if err != nil {
 					log.Error("unable to expand template vars for issue url. issue: %s, err: %v", metas["index"], err)
 					ctx.ServerError("Expand", err)
@@ -499,8 +499,8 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxCommitSigning(ctx *context.Con
 		data.willSign = sign
 		data.signingKeyMergeDisplay = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
-			if asymkey_service.IsErrWontSign(err) {
-				wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
+			if errWontSign, ok := err.(*asymkey_service.ErrWontSign); ok {
+				wontSignReason = string(errWontSign.Reason)
 			} else {
 				wontSignReason = "error"
 				if !errors.Is(err, util.ErrNotExist) {
@@ -560,8 +560,9 @@ func prepareIssueViewSidebarTimeTracker(ctx *context.Context, issue *issues_mode
 
 	if ctx.IsSigned {
 		// Deal with the stopwatch
-		ctx.Data["IsStopwatchRunning"] = issues_model.StopwatchExists(ctx, ctx.Doer.ID, issue.ID)
-		if !ctx.Data["IsStopwatchRunning"].(bool) {
+		isStopwatchRunning := issues_model.StopwatchExists(ctx, ctx.Doer.ID, issue.ID)
+		ctx.Data["IsStopwatchRunning"] = isStopwatchRunning
+		if !isStopwatchRunning {
 			exists, _, swIssue, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("HasUserStopwatch", err)
@@ -793,15 +794,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
-			if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-				for _, commit := range comment.Commits {
-					if commit.Status == nil {
-						continue
-					}
-					commit.Status.HideActionsURL(ctx)
-					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
-				}
-			}
+			git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, comment.Commits)
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {
@@ -956,11 +949,9 @@ func (prInfo *pullRequestViewInfo) prepareMergeBox(ctx *context.Context, issue *
 	// so block on any required status context, not only when enableStatusCheck is on.
 	data.hasStatusCheckBlocker = (data.enableStatusCheck || data.hasRequiredStatusContexts) && !data.StatusCheckData.RequiredChecksState.IsSuccess()
 
-	// this logic is from:
-	// {{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
-	// HINT: if a PR's status is not mergeable, then it is a non-overridable blocker, such logic is handled separately (see IsStatusMergeable)
 	data.hasOverridableBlockers = data.isBlockedByApprovals || data.isBlockedByRejection ||
-		data.isBlockedByOfficialReviewRequests || data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
+		data.isBlockedByOfficialReviewRequests || data.isBlockedByCodeowners ||
+		data.isBlockedByOutdatedBranch || data.isBlockedByChangedProtectedFiles ||
 		data.hasStatusCheckBlocker
 
 	data.canBypassProtection = isRepoAdmin
@@ -1069,6 +1060,11 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxProtectedRules(ctx *context.Co
 	data.isBlockedByOfficialReviewRequests = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
 	if data.isBlockedByOfficialReviewRequests {
 		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_official_review_requests"))
+	}
+
+	data.isBlockedByCodeowners = !issue_service.HasAllRequiredCodeownerReviews(ctx, pb, pull)
+	if data.isBlockedByCodeowners {
+		data.infoProtectionBlockers.AddErrorItem(ctx.Locale.Tr("repo.pulls.blocked_by_codeowners"))
 	}
 
 	data.isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)

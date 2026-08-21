@@ -267,7 +267,7 @@ func renderWorkflowsEvents(ctx *context.Context, project *project_model.Project)
 }
 
 func renderWorkflowsOptions(ctx *context.Context, project *project_model.Project) {
-	columns, err := project.GetColumns(ctx)
+	columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 	if err != nil {
 		ctx.ServerError("GetProjectColumns", err)
 		return
@@ -409,7 +409,7 @@ func canWriteProjectWorkflows(ctx *context.Context, project *project_model.Proje
 		return ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	}
 	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
-		return ctx.Org.CanWriteUnit(ctx, unit.TypeProjects)
+		return ctx.Org.CanWriteAnyRepoUnit(ctx, unit.TypeProjects)
 	}
 	return ctx.Doer != nil && ctx.ContextUser != nil && ctx.ContextUser.ID == ctx.Doer.ID
 }

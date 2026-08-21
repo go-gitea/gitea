@@ -46,7 +46,7 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 		return err
 	}
 
-	gitRepo, err := git.OpenRepository(repo)
+	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return err
 	}

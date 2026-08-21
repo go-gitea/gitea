@@ -428,7 +428,7 @@ func (f *projectWorkflowExecFixture) submitReview(t *testing.T, pr *issues_model
 	req := NewRequest(t, "GET", prURL+"/files")
 	f.session.MakeRequest(t, req, http.StatusOK)
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(t.Context(), pr.BaseRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

@@ -11,7 +11,7 @@ import (
 )
 
 func (repo *Repository) getTree(ctx context.Context, id ObjectID) (*Tree, error) {
-	batch, cancel, err := repo.CatFileBatch(ctx)
+	batch, cancel, err := repo.CatFileBatch()
 	if err != nil {
 		return nil, err
 	}

@@ -4,11 +4,13 @@
 package v1_19
 
 import (
+	"context"
+
 	"gitea.dev/modelmigration/base"
 	"gitea.dev/modules/timeutil"
 )
 
-func AddActionsTables(x base.EngineMigration) error {
+func AddActionsTables(_ context.Context, x base.EngineMigration) error {
 	type ActionRunner struct {
 		ID          int64
 		UUID        string `xorm:"CHAR(36) UNIQUE"`

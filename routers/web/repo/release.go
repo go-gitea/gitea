@@ -48,8 +48,8 @@ func calReleaseNumCommitsBehind(ctx stdCtx.Context, repoCtx *context.Repository,
 	if _, ok := countCache[target]; !ok {
 		commit, err := repoCtx.GitRepo.GetBranchCommit(ctx, target)
 		if err != nil {
-			var errNotExist git.ErrNotExist
-			if target == repoCtx.Repository.DefaultBranch || !errors.As(err, &errNotExist) {
+			_, isNotExist := errors.AsType[git.ErrNotExist](err)
+			if target == repoCtx.Repository.DefaultBranch || !isNotExist {
 				return fmt.Errorf("GetBranchCommit: %w", err)
 			}
 			// fallback to default branch
@@ -97,11 +97,12 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 	}
 	var ok bool
 
-	canReadActions := ctx.Repo.Permission.CanRead(unit.TypeActions)
+	// statuses describe the tagged code, and unlike the other pages showing them this one is not behind the code unit
+	canReadCode := ctx.Repo.Permission.CanRead(unit.TypeCode)
 
 	// Bulk-load commit statuses for all releases in one query.
 	var commitStatusMap map[string][]*git_model.CommitStatus
-	if canReadActions && len(releases) > 0 {
+	if canReadCode && len(releases) > 0 {
 		shas := make([]string, 0, len(releases))
 		for _, r := range releases {
 			shas = append(shas, r.Sha1)
@@ -140,8 +141,9 @@ func getReleaseInfos(ctx *context.Context, opts *repo_model.FindReleasesOptions)
 			Release: r,
 		}
 
-		if canReadActions {
+		if canReadCode {
 			statuses := commitStatusMap[r.Sha1]
+			git_model.CommitStatusesApplyDoerPermission(ctx, ctx.Doer, statuses)
 			info.CommitStatus = git_model.CalcCommitStatus(statuses)
 			info.CommitStatuses = statuses
 		}
@@ -189,7 +191,7 @@ func Releases(ctx *context.Context) {
 
 	ctx.Data["Releases"] = releases
 
-	numReleases := ctx.Data["NumReleases"].(int64)
+	numReleases := ctx.Data["NumReleases"].(int64) //nolint:forcetypeassert // must exist
 	pager := context.NewPagination(numReleases, listOptions.PageSize, listOptions.Page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
@@ -387,7 +389,7 @@ func NewRelease(ctx *context.Context) {
 
 // GenerateReleaseNotes builds release notes content for the given tag and base.
 func GenerateReleaseNotes(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.GenerateReleaseNotesForm)
+	form := web.GetForm[*forms.GenerateReleaseNotesForm](ctx)
 
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
@@ -418,7 +420,7 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.NewReleaseForm)
+	form := web.GetForm[*forms.NewReleaseForm](ctx)
 
 	// first, check whether the release exists, and prepare "ShowCreateTagOnlyButton"
 	// the logic should be done before the form error check to make the tmpl has correct variables
@@ -579,7 +581,7 @@ func EditReleasePost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditReleaseForm)
+	form := web.GetForm[*forms.EditReleaseForm](ctx)
 
 	tagName := ctx.PathParam("*")
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)

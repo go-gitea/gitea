@@ -5,26 +5,55 @@
 package middleware
 
 import (
+	"net/http"
 	"reflect"
 	"strings"
 
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
 	"gitea.dev/modules/translation"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/validation"
 
-	"gitea.com/go-chi/binding"
+	"gitea.com/go-chi/binding" //nolint:depguard // this package wraps it
 )
 
-// Form form binding interface
+type (
+	ValidateContext      = structs.ValidateContext
+	FormDefaultValidator = structs.FormDefaultValidator
+)
+
 type Form interface {
-	binding.Validator
+	Validate(ctx *ValidateContext, errs validation.BindingErrors) validation.BindingErrors
 }
 
-func init() {
-	binding.SetNameMapper(util.ToSnakeCase)
+// BindFormAny binds the request to the form of type T and returns the pointer to the form and any binding errors.
+// Only the rules defined in the struct field's "binding" tag are applied.
+// It can bind to any struct, doesn't call the struct's "Form.Validate" interface.
+func BindFormAny[T any](req *http.Request, binder *binding.Binder, _ T) (ret *T, _ validation.BindingErrors) {
+	typ := reflect.TypeFor[T]()
+	if typ.Kind() != reflect.Struct {
+		panic("BindFormAny: template type must be a struct and the function returns its pointer")
+	}
+	form := new(T)
+	errs := binder.Bind(req, form)
+	return form, errs
 }
 
-// AssignForm assign form values back to the template data.
+// BindFormValidate binds the request to the form of type T which must be a pointer implementing Form interface
+// After binding, the Form.Validate is also called so we can do more validation checks
+func BindFormValidate[T Form](req *http.Request, binder *binding.Binder) (ret T, _ validation.BindingErrors) {
+	locale := req.Context().Value(translation.ContextKey).(translation.Locale) //nolint:forcetypeassert // must exist
+	ptrType := reflect.TypeFor[T]()
+	structType := ptrType.Elem()
+	ptrVal := reflect.New(structType)
+	form := ptrVal.Interface().(Form) //nolint:forcetypeassert // must implement Form
+	errs := binder.Bind(req, form)
+	errs = form.Validate(&ValidateContext{Locale: locale}, errs)
+	return form.(T), errs //nolint:forcetypeassert // must be type T
+}
+
+// AssignForm assign form values back to the template data, the template variable names are in "snake_case"
 func AssignForm(form any, data map[string]any) {
 	typ := reflect.TypeOf(form)
 	val := reflect.ValueOf(form)
@@ -49,7 +78,8 @@ func AssignForm(form any, data map[string]any) {
 	}
 }
 
-func getRuleBody(field reflect.StructField, prefix string) string {
+func getRuleBody(field reflect.StructField, ruleName string) string {
+	prefix := ruleName + "("
 	for rule := range strings.SplitSeq(field.Tag.Get("binding"), ";") {
 		if strings.HasPrefix(rule, prefix) {
 			return rule[len(prefix) : len(rule)-1]
@@ -58,117 +88,113 @@ func getRuleBody(field reflect.StructField, prefix string) string {
 	return ""
 }
 
-// GetSize get size int form tag
-func GetSize(field reflect.StructField) string {
-	return getRuleBody(field, "Size(")
-}
-
-// GetMinSize get minimal size in form tag
-func GetMinSize(field reflect.StructField) string {
-	return getRuleBody(field, "MinSize(")
-}
-
-// GetMaxSize get max size in form tag
-func GetMaxSize(field reflect.StructField) string {
-	return getRuleBody(field, "MaxSize(")
-}
-
-// GetInclude get include in form tag
-func GetInclude(field reflect.StructField) string {
-	return getRuleBody(field, "Include(")
-}
-
-func ReportValidationError(errs binding.Errors, data map[string]any, fieldName, classification, errorMsg string) binding.Errors {
-	errs.Add([]string{fieldName}, classification, errorMsg)
-
-	data["HasError"] = true
-	data["ErrorMsg"] = fieldName + ": " + errorMsg
-	data["Err_"+fieldName] = true
-	// there is already a reported validation error, so no need to generate default error messages in Validate()
-	data["HasErrorFormValidation"] = true
+func AddValidationError(errs validation.BindingErrors, fieldName, errorMsg string) validation.BindingErrors {
+	errs.Add([]string{fieldName}, validation.ErrCustomMessage, errorMsg)
 	return errs
 }
 
-func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Locale) binding.Errors {
-	// try to restore the form's values as much as possible,
-	// especially for RenderWithErrDeprecated to re-render the form with errors
-	AssignForm(f, data)
-
-	if errs.Len() == 0 || data["HasErrorFormValidation"] == true {
-		return errs
+func getFieldDisplayNameForMessage(f any, l translation.Locale, fieldNames []string) (field reflect.StructField, ok bool, displayName string) {
+	if len(fieldNames) == 0 {
+		return field, false, ""
 	}
-
-	// if HasError=true, then must set default error message
-	// because still a lot of places use `ctx.Data["ErrorMsg"].(string)` even if the error fields can't be found
-	data["HasError"] = true
-	data["ErrorMsg"] = l.TrString("form.unknown_error")
-
 	typ := reflect.TypeOf(f)
 	if typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
 
-	field, fieldExists := typ.FieldByName(errs[0].FieldNames[0])
+	fieldName := fieldNames[0]
+	field, fieldExists := typ.FieldByName(fieldName)
 	if !fieldExists {
-		return errs
+		for tryField := range typ.Fields() {
+			if util.ToSnakeCase(tryField.Name) == fieldName || tryField.Tag.Get("form") == fieldName {
+				field, fieldExists = tryField, true
+			}
+		}
+		if !fieldExists {
+			return field, false, ""
+		}
 	}
 
 	if field.Tag.Get("form") == "-" {
-		return errs
+		return field, false, ""
 	}
 
-	data["Err_"+field.Name] = true
-
-	trName := field.Tag.Get("locale")
-	if len(trName) == 0 {
-		trName = l.TrString("form." + field.Name)
+	trKeyFallback := "form." + field.Name
+	trKey := util.IfZero(field.Tag.Get("locale"), trKeyFallback)
+	if l.HasKey(trKey) {
+		displayName = l.TrString(trKey)
 	} else {
-		trName = l.TrString(trName)
+		displayName = field.Name
+	}
+	return field, true, displayName
+}
+
+func BuildValidationErrorForUser(f any, l translation.Locale, bindingErrs validation.BindingErrors) (errorMessage, errorFieldName string, fieldNames []string) {
+	if bindingErrs.Len() == 0 {
+		return "", "", nil
+	}
+	bindingErr := bindingErrs[0]
+	fieldNames, classification, bindingErrMsg := bindingErr.FieldNames, bindingErr.Classification, bindingErr.Message
+	field, ok, fieldDisplayName := getFieldDisplayNameForMessage(f, l, fieldNames)
+	if !ok {
+		return l.TrString("error.occurred"), "", fieldNames
 	}
 
-	switch errs[0].Classification {
+	errorFieldName = field.Name
+	switch classification {
 	case binding.ERR_REQUIRED:
-		data["ErrorMsg"] = trName + l.TrString("form.require_error")
+		errorMessage = l.TrString("form.require_error", fieldDisplayName)
 	case binding.ERR_ALPHA_DASH:
-		data["ErrorMsg"] = trName + l.TrString("form.alpha_dash_error")
+		errorMessage = l.TrString("form.alpha_dash_error", fieldDisplayName)
 	case binding.ERR_ALPHA_DASH_DOT:
-		data["ErrorMsg"] = trName + l.TrString("form.alpha_dash_dot_error")
-	case validation.ErrGitRefName:
-		data["ErrorMsg"] = trName + l.TrString("form.git_ref_name_error")
-	case binding.ERR_SIZE:
-		data["ErrorMsg"] = trName + l.TrString("form.size_error", GetSize(field))
+		errorMessage = l.TrString("form.alpha_dash_dot_error", fieldDisplayName)
 	case binding.ERR_MIN_SIZE:
-		data["ErrorMsg"] = trName + l.TrString("form.min_size_error", GetMinSize(field))
+		errorMessage = l.TrString("form.min_size_error", fieldDisplayName, getRuleBody(field, "MinSize"))
 	case binding.ERR_MAX_SIZE:
-		data["ErrorMsg"] = trName + l.TrString("form.max_size_error", GetMaxSize(field))
+		errorMessage = l.TrString("form.max_size_error", fieldDisplayName, getRuleBody(field, "MaxSize"))
+	case binding.ERR_RANGE:
+		rangeMin, rangeMax, _ := strings.Cut(getRuleBody(field, "Range"), ",")
+		errorMessage = l.TrString("form.range_error", fieldDisplayName, rangeMin, rangeMax)
 	case binding.ERR_EMAIL:
-		data["ErrorMsg"] = trName + l.TrString("form.email_error")
+		errorMessage = l.TrString("form.email_error", fieldDisplayName)
 	case binding.ERR_URL:
-		data["ErrorMsg"] = trName + l.TrString("form.url_error", errs[0].Message)
+		errorMessage = l.TrString("form.url_error", fieldDisplayName)
+	case binding.ERR_IN:
+		ruleBody := getRuleBody(field, "In")
+		if strings.HasPrefix(ruleBody, ",") {
+			ruleBody = "(empty)" + ruleBody
+		}
+		errorMessage = l.TrString("form.in_error", fieldDisplayName, ruleBody)
 	case binding.ERR_INCLUDE:
-		data["ErrorMsg"] = trName + l.TrString("form.include_error", GetInclude(field))
+		errorMessage = l.TrString("form.include_error", fieldDisplayName, getRuleBody(field, "Include"))
+
+	case validation.ErrCustomMessage:
+		errorMessage = bindingErrMsg
+	case validation.ErrGitRefName:
+		errorMessage = l.TrString("form.git_ref_name_error", fieldDisplayName)
 	case validation.ErrGlobPattern:
-		data["ErrorMsg"] = trName + l.TrString("form.glob_pattern_error", errs[0].Message)
+		errorMessage = l.TrString("form.glob_pattern_error", fieldDisplayName, bindingErrMsg)
 	case validation.ErrRegexPattern:
-		data["ErrorMsg"] = trName + l.TrString("form.regex_pattern_error", errs[0].Message)
+		errorMessage = l.TrString("form.regex_pattern_error", fieldDisplayName, bindingErrMsg)
 	case validation.ErrUsername:
-		data["ErrorMsg"] = trName + l.TrString("form.username_error")
+		errorMessage = l.TrString("form.username_error", fieldDisplayName)
 	case validation.ErrInvalidGroupTeamMap:
-		data["ErrorMsg"] = trName + l.TrString("form.invalid_group_team_map_error", errs[0].Message)
+		errorMessage = l.TrString("form.invalid_group_team_map_error", fieldDisplayName, bindingErrMsg)
 	case validation.ErrInvalidBadgeSlug:
-		data["ErrorMsg"] = trName + l.TrString("form.invalid_slug_error")
+		errorMessage = l.TrString("form.invalid_slug_error", fieldDisplayName)
 	default:
-		msg := errs[0].Classification
-		if msg != "" && errs[0].Message != "" {
-			msg += ": "
+		setting.PanicInDevOrTesting("unknown binding error classification for field %T.%s: %v, err: %s", f, errorFieldName, classification, bindingErrMsg)
+		var msg string
+		if classification != "" && bindingErrMsg != "" {
+			msg = classification + ": " + bindingErrMsg
+		} else {
+			msg = util.IfZero(bindingErrMsg, classification)
+			if msg == "" {
+				setting.PanicInDevOrTesting("no error message for binding error: %v", bindingErr)
+			}
+			msg = util.IfZero(msg, "unknown error")
 		}
-
-		msg += errs[0].Message
-		if msg == "" {
-			msg = l.TrString("form.unknown_error")
-		}
-		data["ErrorMsg"] = trName + ": " + msg
+		errorMessage = l.TrString("form.field_invalid_message", fieldDisplayName, msg)
 	}
-
-	return errs
+	return errorMessage, errorFieldName, fieldNames
 }

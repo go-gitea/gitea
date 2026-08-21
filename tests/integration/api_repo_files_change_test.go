@@ -93,7 +93,7 @@ func TestAPIChangeFiles(t *testing.T) {
 				req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents", user2.Name, repo1.Name), &changeFilesOptions).
 					AddTokenAuth(token2)
 				resp := MakeRequest(t, req, http.StatusCreated)
-				gitRepo, _ := git.OpenRepository(repo1)
+				gitRepo, _ := git.OpenRepository(t.Context(), repo1)
 				defer gitRepo.Close()
 				commitID, _ := gitRepo.GetBranchCommitID(t.Context(), changeFilesOptions.NewBranchName)
 				createLasCommit, _ := gitRepo.GetCommitByPath(t.Context(), createTreePath)
@@ -239,7 +239,7 @@ func TestAPIChangeFiles(t *testing.T) {
 		req = NewRequestWithJSON(t, "POST", url, &changeFilesOptions).
 			AddTokenAuth(token2)
 		resp = MakeRequest(t, req, http.StatusForbidden)
-		assert.Contains(t, resp.Body.String(), `"message":"branch develop is protected from force push"`)
+		assert.Contains(t, resp.Body.String(), `"message":"Branch develop is protected from force push"`)
 
 		// Test updating a file and renaming it
 		changeFilesOptions = getChangeFilesOptions()
