@@ -12,8 +12,11 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/tests"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIRepoVariables(t *testing.T) {
@@ -44,6 +47,10 @@ func TestAPIRepoVariables(t *testing.T) {
 			{
 				Name:           "test_var",
 				ExpectedStatus: http.StatusConflict,
+			},
+			{
+				Name:           "abc_var",
+				ExpectedStatus: http.StatusCreated,
 			},
 			{
 				Name:           "ci",
@@ -145,5 +152,17 @@ func TestAPIRepoVariables(t *testing.T) {
 
 		req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
+	})
+
+	t.Run("ListRepoVariables", func(t *testing.T) {
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/actions/variables", repo.FullName()).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		variables := DecodeJSON(t, resp, []*api.ActionVariable{})
+		names := container.FilterSlice(variables, func(variable *api.ActionVariable) (string, bool) {
+			return variable.Name, variable.Name != "_" // "_" sorts before or after letters depending on the database collation
+		})
+		assert.Equal(t, []string{"ABC_VAR", "TEST_VAR", "UPDATED_VAR_NAME"}, names)
 	})
 }

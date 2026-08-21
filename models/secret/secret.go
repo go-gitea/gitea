@@ -129,6 +129,10 @@ func (opts FindSecretsOptions) ToConds() builder.Cond {
 	return cond
 }
 
+func (opts FindSecretsOptions) ToOrders() string {
+	return db.SearchOrderByAlphabetically.String()
+}
+
 // UpdateSecret changes org or user reop secret.
 func UpdateSecret(ctx context.Context, secretID int64, data, description string) error {
 	if len(data) > SecretDataMaxLength {
