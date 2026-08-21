@@ -7,10 +7,18 @@ import (
 	"net/http"
 	"strconv"
 
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/services/context"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/setting"
+	"gitea.dev/services/context"
 )
+
+func SettingsCtxData(ctx *context.Context) {
+	ctx.Data["PageIsUserSettings"] = true
+	ctx.Data["EnablePackages"] = setting.Packages.Enabled
+	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
+	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)
+}
 
 func UpdatePreferences(ctx *context.Context) {
 	type preferencesForm struct {

@@ -7,13 +7,13 @@ import (
 	"slices"
 	"strings"
 
+	"gitea.dev/modules/util"
+
 	"github.com/blevesearch/bleve/v2/analysis"
 	"github.com/blevesearch/bleve/v2/registry"
 )
 
-const (
-	Name = "gitea/path"
-)
+const Name = "gitea/path"
 
 type TokenFilter struct{}
 
@@ -27,7 +27,7 @@ func TokenFilterConstructor(config map[string]any, cache *registry.Cache) (analy
 
 func (s *TokenFilter) Filter(input analysis.TokenStream) analysis.TokenStream {
 	if len(input) == 1 {
-		// if there is only one token, we dont need to generate the reversed chain
+		// if there is only one token, we don't need to generate the reversed chain
 		return generatePathTokens(input, false)
 	}
 
@@ -98,8 +98,5 @@ func generatePathTokens(input analysis.TokenStream, reversed bool) analysis.Toke
 
 func init() {
 	// FIXME: move it to the bleve's init function, but do not call it in global init
-	err := registry.RegisterTokenFilter(Name, TokenFilterConstructor)
-	if err != nil {
-		panic(err)
-	}
+	util.MustNoError(registry.RegisterTokenFilter(Name, TokenFilterConstructor))
 }

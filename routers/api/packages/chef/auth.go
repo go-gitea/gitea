@@ -24,10 +24,10 @@ import (
 	"strings"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
-	chef_module "code.gitea.io/gitea/modules/packages/chef"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/auth"
+	user_model "gitea.dev/models/user"
+	chef_module "gitea.dev/modules/packages/chef"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/auth"
 )
 
 const (
@@ -78,7 +78,12 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, err
 	}
 
-	if err := verifySignedHeaders(req, version, pub.(*rsa.PublicKey)); err != nil {
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		return nil, errors.New("public key is not a RSA key")
+	}
+
+	if err := verifySignedHeaders(req, version, rsaPub); err != nil {
 		return nil, err
 	}
 

@@ -11,8 +11,9 @@ import (
 )
 
 func TestSystemUser(t *testing.T) {
-	u, err := GetPossibleUserByID(t.Context(), -1)
+	uid, u, err := GetPossibleUserByID(t.Context(), -1)
 	require.NoError(t, err)
+	assert.Equal(t, int64(-1), uid)
 	assert.Equal(t, "Ghost", u.Name)
 	assert.Equal(t, "ghost", u.LowerName)
 	assert.True(t, u.IsGhost())
@@ -21,8 +22,9 @@ func TestSystemUser(t *testing.T) {
 	require.NotNil(t, u)
 	assert.Equal(t, "Ghost", u.Name)
 
-	u, err = GetPossibleUserByID(t.Context(), -2)
+	uid, u, err = GetPossibleUserByID(t.Context(), -2)
 	require.NoError(t, err)
+	assert.Equal(t, int64(-2), uid)
 	assert.Equal(t, "gitea-actions", u.Name)
 	assert.Equal(t, "gitea-actions", u.LowerName)
 	assert.True(t, u.IsGiteaActions())
@@ -31,6 +33,8 @@ func TestSystemUser(t *testing.T) {
 	require.NotNil(t, u)
 	assert.Equal(t, "Gitea Actions", u.FullName)
 
-	_, err = GetPossibleUserByID(t.Context(), -3)
-	require.Error(t, err)
+	uid, u, err = GetPossibleUserByID(t.Context(), 999999)
+	require.NoError(t, err)
+	assert.Equal(t, int64(-1), uid)
+	assert.Equal(t, "Ghost", u.Name)
 }

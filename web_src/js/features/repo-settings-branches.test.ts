@@ -1,74 +1,53 @@
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {POST} from '../modules/fetch.ts';
 import {createSortable} from '../modules/sortable.ts';
-import type {SortableEvent, SortableOptions} from 'sortablejs';
-import type Sortable from 'sortablejs';
+import type {SortableEvent} from 'sortablejs';
 
-vi.mock('../modules/fetch.ts', () => ({
-  POST: vi.fn(),
-}));
+vi.mock('../modules/fetch.ts', () => ({POST: vi.fn()}));
+vi.mock('../modules/sortable.ts', () => ({createSortable: vi.fn()}));
 
-vi.mock('../modules/sortable.ts', () => ({
-  createSortable: vi.fn(),
-}));
+const branchesHTML = `
+  <div id="protected-branches-list" data-update-priority-url="some/repo/branches/priority">
+    <div class="item" data-id="1">
+      <div class="drag-handle"></div>
+    </div>
+    <div class="item" data-id="2">
+      <div class="drag-handle"></div>
+    </div>
+    <div class="item" data-id="3">
+      <div class="drag-handle"></div>
+    </div>
+  </div>
+`;
 
 describe('Repository Branch Settings', () => {
   beforeEach(() => {
-    document.body.innerHTML = `
-      <div id="protected-branches-list" data-update-priority-url="some/repo/branches/priority">
-        <div class="flex-item tw-items-center item" data-id="1" >
-          <div class="drag-handle"></div>
-        </div>
-        <div class="flex-item tw-items-center item" data-id="2" >
-          <div class="drag-handle"></div>
-        </div>
-        <div class="flex-item tw-items-center item" data-id="3" >
-          <div class="drag-handle"></div>
-        </div>
-      </div>
-    `;
-
-    vi.clearAllMocks();
+    vi.mocked(createSortable).mockClear();
+    vi.mocked(POST).mockClear();
   });
 
   test('should initialize sortable for protected branches list', () => {
+    document.body.innerHTML = branchesHTML;
     initRepoSettingsBranchesDrag();
-
-    expect(createSortable).toHaveBeenCalledWith(
-      document.querySelector('#protected-branches-list'),
-      expect.objectContaining({
-        handle: '.drag-handle',
-        animation: 150,
-      }),
-    );
+    expect(createSortable).toHaveBeenCalledTimes(1);
+    expect(createSortable).toHaveBeenCalledWith(document.querySelector('#protected-branches-list'), expect.objectContaining({handle: '.drag-handle', animation: 150}));
   });
 
   test('should not initialize if protected branches list is not present', () => {
-    document.body.innerHTML = '';
-
+    document.body.replaceChildren();
     initRepoSettingsBranchesDrag();
-
-    expect(createSortable).not.toHaveBeenCalled();
+    expect(createSortable).toHaveBeenCalledTimes(0);
   });
 
-  test('should post new order after sorting', async () => {
+  test('should post new order after sorting', () => {
+    document.body.innerHTML = branchesHTML;
     vi.mocked(POST).mockResolvedValue({ok: true} as Response);
-
-    // Mock createSortable to capture and execute the onEnd callback
-    vi.mocked(createSortable).mockImplementation(async (_el: HTMLElement, options: SortableOptions | undefined) => {
-      if (options?.onEnd) {
-        options.onEnd(new Event('SortableEvent') as SortableEvent);
-      }
-      return {destroy: vi.fn()} as unknown as Sortable;
-    });
-
     initRepoSettingsBranchesDrag();
-
+    const onEnd = vi.mocked(createSortable).mock.calls[0][1]!.onEnd!;
+    onEnd(new Event('SortableEvent') as SortableEvent);
     expect(POST).toHaveBeenCalledWith(
       'some/repo/branches/priority',
-      expect.objectContaining({
-        data: {ids: [1, 2, 3]},
-      }),
+      expect.objectContaining({data: {ids: [1, 2, 3]}}),
     );
   });
 });

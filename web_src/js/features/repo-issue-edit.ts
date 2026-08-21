@@ -3,6 +3,7 @@ import {getComboMarkdownEditor, initComboMarkdownEditor, ComboMarkdownEditor} fr
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {hideElem, querySingleVisibleElem, showElem} from '../utils/dom.ts';
+import {errorMessage} from '../modules/errors.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
@@ -73,7 +74,7 @@ async function tryOnEditContent(e: Event) {
       }
       comboMarkdownEditor.dropzoneSubmitReload();
     } catch (error) {
-      showErrorToast(`Failed to save the content: ${error}`);
+      showErrorToast(`Failed to save the content: ${errorMessage(error)}`);
       console.error(error);
     } finally {
       renderContent.classList.remove('is-loading');

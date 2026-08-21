@@ -47,7 +47,7 @@
 				<span class="text">
 					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
-					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
+					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
 					<div class="header">
@@ -55,7 +55,7 @@
 					</div>
 
 					<div class="divider"></div>
-					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
+					<a class="item" href="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
@@ -64,9 +64,9 @@
 		{{else if .IsSigned}}
 			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
-				<span class="text">
+				<span class="flex-text-block">
 					{{svg "octicon-plus"}}
-					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
+					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 					<span class="only-mobile">{{ctx.Locale.Tr "create_new"}}</span>
 				</span>
 				<div class="menu">
@@ -86,11 +86,14 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
-				<span class="text">
-					{{ctx.AvatarUtils.Avatar .SignedUser 24 "tw-mr-1"}}
+			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}" data-signed-in-username="{{.SignedUser.Name}}">
+				<span class="flex-text-block">
+					<span class="navbar-avatar">
+						{{ctx.AvatarUtils.Avatar .SignedUser 24}}
+						{{if .IsAdmin}}{{svg "octicon-shield-check" 16 "navbar-admin-badge"}}{{end}}
+					</span>
 					<span class="only-mobile">{{.SignedUser.Name}}</span>
-					<span class="not-mobile">{{svg "octicon-triangle-down"}}</span>
+					<span class="not-mobile flex-text-block">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu">
 					<div class="header">
@@ -128,7 +131,7 @@
 					</a>
 					{{end}}
 					<div class="divider"></div>
-					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
+					<a class="item" href="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
@@ -149,30 +152,31 @@
 	</div><!-- end full right menu -->
 
 	{{$activeStopwatch := and .PageGlobalData (call .PageGlobalData.GetActiveStopwatch)}}
-	{{if $activeStopwatch}}
-		<div class="active-stopwatch-popup tippy-target">
-			<div class="tw-flex tw-items-center tw-gap-2 tw-p-3">
-				<a class="stopwatch-link tw-flex tw-items-center tw-gap-2 muted" href="{{$activeStopwatch.IssueLink}}">
-					{{svg "octicon-issue-opened" 16}}
-					<span class="stopwatch-issue">{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}</span>
-				</a>
-				<div class="tw-flex tw-gap-1">
-					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
-						<button
-							type="submit"
-							class="ui button mini compact basic icon tw-mr-0"
-							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
-						>{{svg "octicon-square-fill"}}</button>
-					</form>
-					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
-						<button
-							type="submit"
-							class="ui button mini compact basic icon tw-mr-0"
-							data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
-						>{{svg "octicon-trash"}}</button>
-					</form>
-				</div>
+	{{/* always rendered so the Tippy popup has content to clone if the icon appears via a real-time push */}}
+	<div class="active-stopwatch-popup tippy-target">
+		<div class="flex-text-block tw-p-3">
+			<a class="stopwatch-link flex-text-block muted" {{if $activeStopwatch}}href="{{$activeStopwatch.IssueLink}}"{{end}}>
+				{{svg "octicon-issue-opened" 16}}
+				<span class="stopwatch-issue">{{if $activeStopwatch}}{{$activeStopwatch.RepoSlug}}#{{$activeStopwatch.IssueIndex}}{{end}}</span>
+			</a>
+			<div class="tw-flex tw-gap-1">
+				<form class="stopwatch-commit form-fetch-action" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop"{{end}}>
+					<button
+						type="submit"
+						class="ui button mini compact basic icon tw-mr-0"
+						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.stop_tracking"}}"
+					>{{svg "octicon-square-fill"}}</button>
+				</form>
+				<form class="stopwatch-cancel form-fetch-action" method="post" {{if $activeStopwatch}}action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel"{{end}}>
+					<button
+						type="submit"
+						class="ui button mini compact basic icon tw-mr-0"
+						data-tooltip-content="{{ctx.Locale.Tr "repo.issues.cancel_tracking"}}"
+					>{{svg "octicon-trash"}}</button>
+				</form>
 			</div>
 		</div>
-	{{end}}
+	</div>
 </nav>
+{{template "base/head_impersonate_banner"}}
+{{template "base/head_banner"}}

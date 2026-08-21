@@ -1,4 +1,4 @@
-{{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
+{{if and ctx.RootData.SignedUserID (not ctx.RootData.Repository.IsArchived)}}
 	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
 		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}">
@@ -11,8 +11,7 @@
 		<div class="field">
 		{{template "shared/combomarkdowneditor" (dict
 			"CustomInit" true
-			"MarkdownPreviewInRepo" $.root.Repository
-			"MarkdownPreviewMode" "comment"
+			"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment ctx.RootData.Repository)
 			"TextareaName" "content"
 			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"

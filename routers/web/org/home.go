@@ -5,21 +5,20 @@ package org
 
 import (
 	"net/http"
-	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
 )
 
 const tplOrgHome templates.TplName = "org/home"
@@ -98,8 +97,29 @@ func home(ctx *context.Context, viewRepositories bool) {
 		ctx.ServerError("FindOrgMembers", err)
 		return
 	}
-	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = ctx.Org.Teams
+
+	const orgOverviewTeamsLimit = 5
+	ctx.Data["OrgOverviewMembers"] = members
+	// The overview widget shows only teams the viewer belongs to. ctx.Org.Teams
+	// may include visible-but-not-joined teams (via IncludeVisibilities for
+	// signed-in non-members), so re-query the viewer's own membership; owners
+	// keep the full list they are entitled to manage.
+	overviewTeams := ctx.Org.Teams
+	if !ctx.Org.IsOwner {
+		overviewTeams = nil
+		if ctx.Org.IsMember {
+			overviewTeams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
+				OrgID:       org.ID,
+				UserID:      ctx.Doer.ID,
+				ListOptions: db.ListOptions{Page: 1, PageSize: orgOverviewTeamsLimit},
+			})
+			if err != nil {
+				ctx.ServerError("SearchTeam", err)
+				return
+			}
+		}
+	}
+	ctx.Data["OrgOverviewTeams"] = overviewTeams[:min(len(overviewTeams), orgOverviewTeamsLimit)]
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
 
@@ -141,7 +161,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 
-	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
+	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
@@ -173,14 +193,14 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 		return false
 	}
 
-	readmeBytes, err := readmeBlob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+	readmeBytes, err := readmeBlob.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize)
 	if err != nil {
 		log.Error("failed to GetBlobContent for profile %q (view as %q) readme: %v", profileRepo.FullName(), viewAs, err)
 		return false
 	}
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, profileRepo, renderhelper.RepoFileOptions{
-		CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileRepo.DefaultBranch)),
+		CurrentRefSubURL: git.RefNameFromBranch(profileRepo.DefaultBranch).RefWebLinkPath(),
 	})
 	ctx.Data["ProfileReadmeContent"], err = markdown.RenderString(rctx, readmeBytes)
 	if err != nil {

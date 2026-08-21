@@ -8,12 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
-	testModule "code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/emoji"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/markup/common"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/setting"
+	testModule "gitea.dev/modules/test"
+	"gitea.dev/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,25 +25,31 @@ var (
 	localMetas        = map[string]string{"user": testRepoOwnerName, "repo": testRepoName}
 )
 
+func testRenderString(ctx *markup.RenderContext, content string) (string, error) {
+	var buf strings.Builder
+	err := markup.Render(ctx, strings.NewReader(content), &buf)
+	return buf.String(), err
+}
+
 func TestRender_Commits(t *testing.T) {
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
-		buffer, err := markup.RenderString(rctx, input)
+		buffer, err := testRenderString(rctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	repo := markup.TestAppURL + testRepoOwnerName + "/" + testRepoName + "/"
-	commit := util.URLJoin(repo, "commit", sha)
+	commit := repo + "commit/" + sha
 	commitPath := "/user13/repo11/commit/" + sha
-	tree := util.URLJoin(repo, "tree", sha, "src")
+	tree := repo + "tree/" + sha + "/src"
 
-	file := util.URLJoin(repo, "commit", sha, "example.txt")
+	file := repo + "commit/" + sha + "/example.txt"
 	fileWithExtra := file + ":"
 	fileWithHash := file + "#L2"
 	fileWithHasExtra := file + "#L2:"
-	commitCompare := util.URLJoin(repo, "compare", sha+"..."+sha)
+	commitCompare := repo + "compare/" + sha + "..." + sha
 	commitCompareWithHash := commitCompare + "#L2"
 
 	test(sha, `<p><a href="`+commitPath+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
@@ -75,7 +82,7 @@ func TestRender_CrossReferences(t *testing.T) {
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
-		buffer, err := markup.RenderString(rctx, input)
+		buffer, err := testRenderString(rctx, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -90,14 +97,14 @@ func TestRender_CrossReferences(t *testing.T) {
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
 	test(
-		util.URLJoin(markup.TestAppURL, "gogitea", "gitea", "issues", "12345"),
-		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
+		markup.TestAppURL+"gogitea/gitea/issues/12345",
+		`<p><a href="`+markup.TestAppURL+`gogitea/gitea/issues/12345" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
 	test(
-		util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345"),
-		`<p><a href="`+util.URLJoin(markup.TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		markup.TestAppURL+"go-gitea/gitea/issues/12345",
+		`<p><a href="`+markup.TestAppURL+`go-gitea/gitea/issues/12345" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
-		util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
-		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
+		markup.TestAppURL+"gogitea/some-repo-name/issues/12345",
+		`<p><a href="`+markup.TestAppURL+`gogitea/some-repo-name/issues/12345" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 
 	inputURL := setting.AppURL + "a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
 	test(
@@ -119,7 +126,7 @@ func TestRender_links(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
-		buffer, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
+		buffer, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -129,10 +136,10 @@ func TestRender_links(t *testing.T) {
 	defer func() {
 		setting.Markdown.CustomURLSchemes = oldCustomURLSchemes
 		markup.ResetDefaultSanitizerForTesting()
-		markup.CustomLinkURLSchemes(oldCustomURLSchemes)
+		common.InitLinkURLSchemes(oldCustomURLSchemes)
 	}()
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
-	markup.CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
+	common.InitLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
 	// Text that should be turned into URL
 	test(
@@ -234,7 +241,7 @@ func TestRender_email(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
-		res, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
+		res, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res), "input: %s", input)
 	}
@@ -317,11 +324,11 @@ func TestRender_email(t *testing.T) {
 
 func TestRender_emoji(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-	setting.StaticURLPrefix = markup.TestAppURL
+	setting.StaticURLPrefix = strings.TrimSuffix(markup.TestAppURL, "/")
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
-		buffer, err := markup.RenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
+		buffer, err := testRenderString(markup.NewTestRenderContext().WithRelativePath("a.md"), input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -371,11 +378,14 @@ func TestRender_emoji(t *testing.T) {
 	test(":100:200", `<p>:100:200</p>`)
 	test("std::thread::something", `<p>std::thread::something</p>`)
 	test(":not exist:", `<p>:not exist:</p>`)
+	test("foo `:smile:", "<p>foo `:smile:</p>")
+	test("foo `:smile:`", `<p>foo <code>:smile:</code></p>`)
+	test("foo ` :smile:", "<p>foo ` <span class=\"emoji\" aria-label=\"grinning face with smiling eyes\">😄</span></p>")
 }
 
 func TestRender_ShortLinks(t *testing.T) {
 	setting.AppURL = markup.TestAppURL
-	tree := util.URLJoin(markup.TestRepoURL, "src", "master")
+	tree := markup.TestRepoURL + "src/master"
 
 	test := func(input, expected string) {
 		buffer, err := markdown.RenderString(markup.NewTestRenderContext(tree), input)
@@ -383,17 +393,16 @@ func TestRender_ShortLinks(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(buffer)))
 	}
 
-	url := util.URLJoin(tree, "Link")
-	otherURL := util.URLJoin(tree, "Other-Link")
-	encodedURL := util.URLJoin(tree, "Link%3F")
-	imgurl := util.URLJoin(tree, "Link.jpg")
-	otherImgurl := util.URLJoin(tree, "Link+Other.jpg")
-	encodedImgurl := util.URLJoin(tree, "Link+%23.jpg")
-	notencodedImgurl := util.URLJoin(tree, "some", "path", "Link+#.jpg")
-	renderableFileURL := util.URLJoin(tree, "markdown_file.md")
-	unrenderableFileURL := util.URLJoin(tree, "file.zip")
+	url := tree + "/Link"
+	otherURL := tree + "/Other-Link"
+	encodedURL := tree + "/Link%3F"
+	imgurl := tree + "/Link.jpg"
+	otherImgurl := tree + "/Link+Other.jpg"
+	encodedImgurl := tree + "/Link+%23.jpg"
+	notencodedImgurl := tree + "/some/path/Link%20#.jpg"
+	renderableFileURL := tree + "/markdown_file.md"
+	unrenderableFileURL := tree + "/file.zip"
 	favicon := "http://google.com/favicon.ico"
-
 	test(
 		"[[Link]]",
 		`<p><a href="`+url+`" rel="nofollow">Link</a></p>`,
@@ -466,6 +475,8 @@ func TestRender_ShortLinks(t *testing.T) {
 		"[[Name|Link #.jpg|alt=\"AltName\"|title='Title']]",
 		`<p><a href="`+encodedImgurl+`" rel="nofollow"><img src="`+encodedImgurl+`" title="Title" alt="AltName"/></a></p>`,
 	)
+	// FIXME: it's unable to resolve: [[link?k=v]]
+	// FIXME: it is a wrong test case, it is not an image, but a link with anchor "#.jpg"
 	test(
 		"[[some/path/Link #.jpg]]",
 		`<p><a href="`+notencodedImgurl+`" rel="nofollow"><img src="`+notencodedImgurl+`" title="Link #.jpg" alt="some/path/Link #.jpg"/></a></p>`,
@@ -498,7 +509,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 }
 
 func TestPostProcess(t *testing.T) {
-	setting.StaticURLPrefix = markup.TestAppURL // can't run standalone
+	setting.StaticURLPrefix = strings.TrimSuffix(markup.TestAppURL, "/") // can't run standalone
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 
 	test := func(input, expected string) {
@@ -585,11 +596,4 @@ func TestIssue18471(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
-}
-
-func TestIsFullURL(t *testing.T) {
-	assert.True(t, markup.IsFullURLString("https://example.com"))
-	assert.True(t, markup.IsFullURLString("mailto:test@example.com"))
-	assert.True(t, markup.IsFullURLString("data:image/11111"))
-	assert.False(t, markup.IsFullURLString("/foo:bar"))
 }

@@ -6,11 +6,12 @@
 package json
 
 import (
+	"encoding/json" //nolint:depguard // this package wraps it
 	"io"
 )
 
 func getDefaultJSONHandler() Interface {
-	return jsonGoccy{}
+	return jsonV1{}
 }
 
 func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
@@ -20,3 +21,5 @@ func MarshalKeepOptionalEmpty(v any) ([]byte, error) {
 func NewDecoderCaseInsensitive(reader io.Reader) Decoder {
 	return DefaultJSONHandler.NewDecoder(reader)
 }
+
+type Value = json.RawMessage

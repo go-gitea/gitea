@@ -1,7 +1,7 @@
 import {createApp} from 'vue';
-import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 import {translateMonth, translateDay} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
+import {trString} from '../modules/i18n.ts';
 
 type HeatmapResponse = {
   heatmapData: Array<[number, number]>; // [[1617235200, 2]] = [unix timestamp, count]
@@ -25,12 +25,12 @@ export async function initHeatmap() {
       heatmap[dateStr] = (heatmap[dateStr] || 0) + contributions;
     }
 
-    const values = Object.keys(heatmap).map((v) => {
-      return {date: new Date(v), count: heatmap[v]};
+    const values = Object.entries(heatmap).map(([dateStr, count]) => {
+      return {date: new Date(dateStr), count};
     });
 
     const totalFormatted = totalContributions.toLocaleString();
-    const textTotalContributions = el.getAttribute('data-locale-total-contributions')!.replace('%s', totalFormatted);
+    const textTotalContributions = trString(el.getAttribute('data-locale-total-contributions')!, totalFormatted);
 
     // last heatmap tooltip localization attempt https://github.com/go-gitea/gitea/pull/24131/commits/a83761cbbae3c2e3b4bced71e680f44432073ac8
     const locale = {
@@ -46,6 +46,7 @@ export async function initHeatmap() {
       noDataText: el.getAttribute('data-locale-no-contributions'),
     };
 
+    const {default: ActivityHeatmap} = await import('../components/ActivityHeatmap.vue');
     const View = createApp(ActivityHeatmap, {values, locale});
     View.mount(el);
     el.classList.remove('is-loading');

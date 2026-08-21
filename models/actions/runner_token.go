@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 // ActionRunnerToken represents runner tokens
@@ -97,10 +97,7 @@ func NewRunnerTokenWithValue(ctx context.Context, ownerID, repoID int64, token s
 }
 
 func NewRunnerToken(ctx context.Context, ownerID, repoID int64) (*ActionRunnerToken, error) {
-	token, err := util.CryptoRandomString(40)
-	if err != nil {
-		return nil, err
-	}
+	token := util.CryptoRandomString(40)
 	return NewRunnerTokenWithValue(ctx, ownerID, repoID, token)
 }
 

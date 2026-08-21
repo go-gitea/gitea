@@ -7,27 +7,25 @@ package user
 import (
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/renderhelper"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/web/feed"
-	"code.gitea.io/gitea/routers/web/org"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	feed_service "code.gitea.io/gitea/services/feed"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/renderhelper"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/markup/markdown"
+	"gitea.dev/modules/optional"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/routers/web/feed"
+	"gitea.dev/routers/web/org"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	feed_service "gitea.dev/services/feed"
 )
 
 const (
@@ -102,7 +100,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	var (
 		repos   []*repo_model.Repository
 		count   int64
-		total   int
+		total   int64
 		curRows int
 		orderBy db.SearchOrderBy
 	)
@@ -157,10 +155,10 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	switch tab {
 	case "followers":
 		ctx.Data["Cards"] = followers
-		total = int(numFollowers)
+		total = numFollowers
 	case "following":
 		ctx.Data["Cards"] = following
-		total = int(numFollowing)
+		total = numFollowing
 	case "activity":
 		if setting.Service.EnableUserHeatmap && activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
 			ctx.Data["EnableHeatmap"] = true
@@ -170,6 +168,10 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+		// a public-only API token must not surface private activity, even for its own owner
+		if showPrivate && context.TokenIsPublicOnly(ctx) {
+			showPrivate = false
+		}
 		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
@@ -218,7 +220,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 
-		total = int(count)
+		total = count
 	case "watching":
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -245,13 +247,13 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 
-		total = int(count)
+		total = count
 	case "overview":
-		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+		if bytes, err := profileReadme.GetBlobContent(ctx, setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
 			rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{
-				CurrentRefPath: path.Join("branch", util.PathEscapeSegments(profileDbRepo.DefaultBranch)),
+				CurrentRefSubURL: git.RefNameFromBranch(profileDbRepo.DefaultBranch).RefWebLinkPath(),
 			})
 			if profileContent, err := markdown.RenderString(rctx, bytes); err != nil {
 				log.Error("failed to RenderString: %v", err)
@@ -273,7 +275,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 		ctx.Data["Cards"] = orgs
-		total = int(count)
+		total = count
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
@@ -300,7 +302,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			return
 		}
 
-		total = int(count)
+		total = count
 	}
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = total
@@ -312,7 +314,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	if tab == "activity" {
-		pager.WithCurRows(curRows)
+		// FIXME: UNLIMITE-PAGING-ONE-MORE-ROW: see another comment
+		pager.WithUnlimitedPaging(curRows, curRows == pagingNum)
 	}
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager

@@ -8,20 +8,21 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	project_model "code.gitea.io/gitea/models/project"
-	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/globallock"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	notify_service "code.gitea.io/gitea/services/notify"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/organization"
+	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
+	project_model "gitea.dev/models/project"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
+	"gitea.dev/modules/globallock"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
+	notify_service "gitea.dev/services/notify"
 )
 
 type LimitReachedError struct{ Limit int }
@@ -61,8 +62,7 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 		}
 
 		if !doer.CanCreateRepoIn(repoTransfer.Recipient) {
-			limit := util.Iif(repoTransfer.Recipient.MaxRepoCreation >= 0, repoTransfer.Recipient.MaxRepoCreation, setting.Repository.MaxCreationLimit)
-			return LimitReachedError{Limit: limit}
+			return LimitReachedError{Limit: repoTransfer.Recipient.MaxCreationLimit()}
 		}
 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
@@ -95,8 +95,8 @@ func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoNa
 	if err != nil {
 		return false, err
 	}
-	repo := repo_model.StorageRepo(repo_model.RelativePath(u.Name, repoName))
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	repo := gitrepo.CodeRepoByName(u.Name, repoName)
+	isExist, err := git.IsRepositoryExist(ctx, repo)
 	return has || isExist, err
 }
 
@@ -117,18 +117,19 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 
 		if repoRenamed {
-			oldRelativePath, newRelativePath := repo_model.RelativePath(newOwnerName, repo.Name), repo_model.RelativePath(oldOwnerName, repo.Name)
-			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
-				log.Critical("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
-					oldRelativePath, newRelativePath, err)
+			// revert the rename
+			from := gitrepo.CodeRepoByName(newOwnerName, repo.Name)
+			to := gitrepo.CodeRepoByName(oldOwnerName, repo.Name)
+			if err := git.RenameRepository(ctx, from, to); err != nil {
+				log.Error("Unable to revert repository %s/%s to %s/%s: %v", newOwnerName, repo.Name, oldOwnerName, repo.Name, err)
 			}
 		}
 
 		if wikiRenamed {
-			oldRelativePath, newRelativePath := repo_model.RelativeWikiPath(newOwnerName, repo.Name), repo_model.RelativeWikiPath(oldOwnerName, repo.Name)
-			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
-				log.Critical("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
-					oldRelativePath, newRelativePath, err)
+			from := gitrepo.WikiRepoByName(newOwnerName, repo.Name)
+			to := gitrepo.WikiRepoByName(oldOwnerName, repo.Name)
+			if err := git.RenameRepository(ctx, from, to); err != nil {
+				log.Error("Unable to revert wiki repository %s/%s to %s/%s: %v", newOwnerName, repo.Name, oldOwnerName, repo.Name, err)
 			}
 		}
 
@@ -246,6 +247,19 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("recalculateAccesses: %w", err)
 	}
 
+	// Remove repository from old owner's Actions AllowedCrossRepoIDs if present
+	if oldActionsCfg, err := actions_model.GetOwnerActionsConfig(ctx, oldOwner.ID); err == nil {
+		newAllowedCrossRepoIDs := util.SliceRemoveAll(oldActionsCfg.AllowedCrossRepoIDs, repo.ID)
+		if len(newAllowedCrossRepoIDs) != len(oldActionsCfg.AllowedCrossRepoIDs) {
+			oldActionsCfg.AllowedCrossRepoIDs = newAllowedCrossRepoIDs
+			if err := actions_model.SetOwnerActionsConfig(ctx, oldOwner.ID, oldActionsCfg); err != nil {
+				return fmt.Errorf("SetOwnerActionsConfig: %w", err)
+			}
+		}
+	} else {
+		return fmt.Errorf("GetOwnerActionsConfig: %w", err)
+	}
+
 	// Update repository count.
 	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
 		return fmt.Errorf("increase new owner repository count: %w", err)
@@ -253,13 +267,13 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("decrease old owner repository count: %w", err)
 	}
 
-	if err := repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
+	if err := repo_model.WatchRepoAuto(ctx, doer, repo, true); err != nil {
 		return fmt.Errorf("watchRepo: %w", err)
 	}
 
 	if oldOwner.IsOrganization() {
 		// Remove watch for organization.
-		if err := repo_model.WatchRepo(ctx, oldOwner, repo, false); err != nil {
+		if err := repo_model.WatchRepoAuto(ctx, oldOwner, repo, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %w", err)
 		}
 
@@ -290,19 +304,21 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	oldRelativePath, newRelativePath := repo_model.RelativePath(oldOwner.Name, repo.Name), repo_model.RelativePath(newOwner.Name, repo.Name)
-	if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
+	oldCodeRepo := gitrepo.CodeRepoByName(oldOwner.Name, repo.Name)
+	newCodeRepo := gitrepo.CodeRepoByName(newOwner.Name, repo.Name)
+	if err := git.RenameRepository(ctx, oldCodeRepo, newCodeRepo); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	repoRenamed = true
 
 	// Rename remote wiki repository to new path and delete local copy.
-	wikiStorageRepo := repo_model.StorageRepo(repo_model.RelativeWikiPath(oldOwner.Name, repo.Name))
-	if isExist, err := gitrepo.IsRepositoryExist(ctx, wikiStorageRepo); err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiStorageRepo.RelativePath(), err)
+	oldWikiRepo := gitrepo.WikiRepoByName(oldOwner.Name, repo.Name)
+	if isExist, err := git.IsRepositoryExist(ctx, oldWikiRepo); err != nil {
+		log.Error("Unable to check if wiki of repo %s/%s exists. Error: %v", oldOwner.Name, repo.Name, err)
 		return err
 	} else if isExist {
-		if err := gitrepo.RenameRepository(ctx, wikiStorageRepo, repo_model.StorageRepo(repo_model.RelativeWikiPath(newOwner.Name, repo.Name))); err != nil {
+		newWikiRepo := gitrepo.WikiRepoByName(newOwner.Name, repo.Name)
+		if err := git.RenameRepository(ctx, oldWikiRepo, newWikiRepo); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 		wikiRenamed = true
@@ -361,14 +377,14 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		}
 	}
 
-	if err = gitrepo.RenameRepository(ctx, repo,
-		repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, newRepoName))); err != nil {
+	newCodeRepo := gitrepo.CodeRepoByName(repo.OwnerName, newRepoName)
+	if err = git.RenameRepository(ctx, repo, newCodeRepo); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
 	if HasWiki(ctx, repo) {
-		if err = gitrepo.RenameRepository(ctx, repo.WikiStorageRepo(), repo_model.StorageRepo(
-			repo_model.RelativeWikiPath(repo.OwnerName, newRepoName))); err != nil {
+		newWikiRepo := gitrepo.WikiRepoByName(repo.OwnerName, newRepoName)
+		if err = git.RenameRepository(ctx, repo.WikiStorageRepo(), newWikiRepo); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}
@@ -420,8 +436,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 	}
 
 	if !doer.CanForkRepoIn(newOwner) {
-		limit := util.Iif(newOwner.MaxRepoCreation >= 0, newOwner.MaxRepoCreation, setting.Repository.MaxCreationLimit)
-		return LimitReachedError{Limit: limit}
+		return LimitReachedError{Limit: newOwner.MaxCreationLimit()}
 	}
 
 	var isDirectTransfer bool
@@ -525,9 +540,9 @@ func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *u
 		return r.Repo.OwnerID == u.ID
 	}
 
-	perm, err := access_model.GetUserRepoPermission(ctx, r.Repo, u)
+	perm, err := access_model.GetIndividualUserRepoPermission(ctx, r.Repo, u)
 	if err != nil {
-		log.Error("GetUserRepoPermission: %v", err)
+		log.Error("GetIndividualUserRepoPermission: %v", err)
 		return false
 	}
 	return perm.IsOwner()

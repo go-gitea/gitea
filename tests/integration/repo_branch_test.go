@@ -11,17 +11,17 @@ import (
 	"strings"
 	"testing"
 
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	"gitea.dev/modules/test"
+	"gitea.dev/modules/translation"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
 
 func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
-	req := NewRequestWithValues(t, "POST", path.Join(user, repo, "branches/_new", oldRefSubURL), map[string]string{
+	req := NewRequestWithValues(t, "POST", "/"+path.Join(user, repo, "branches/_new", oldRefSubURL), map[string]string{
 		"new_branch_name": newBranchName,
 	})
 	resp := session.MakeRequest(t, req, expectedStatus)
@@ -53,7 +53,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 			OldRefSubURL:   "branch/master",
 			NewBranch:      "",
 			ExpectedStatus: http.StatusSeeOther,
-			FlashMessage:   translation.NewLocale("en-US").TrString("form.NewBranchName") + translation.NewLocale("en-US").TrString("form.require_error"),
+			FlashMessage:   translation.NewLocale("en-US").TrString("form.require_error", translation.NewLocale("en-US").TrString("form.NewBranchName")),
 		},
 		{
 			OldRefSubURL:   "branch/master",
@@ -65,7 +65,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 			OldRefSubURL:   "branch/master",
 			NewBranch:      strings.Repeat("b", 101),
 			ExpectedStatus: http.StatusSeeOther,
-			FlashMessage:   translation.NewLocale("en-US").TrString("form.NewBranchName") + translation.NewLocale("en-US").TrString("form.max_size_error", "100"),
+			FlashMessage:   translation.NewLocale("en-US").TrString("form.max_size_error", translation.NewLocale("en-US").TrString("form.NewBranchName"), "100"),
 		},
 		{
 			OldRefSubURL:   "branch/master",
@@ -221,7 +221,7 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 
 func checkRecentlyPushedNewBranches(t *testing.T, session *TestSession, repoPath string, expected []string) {
 	branches := make([]string, 0, 2)
-	req := NewRequest(t, "GET", repoPath)
+	req := NewRequest(t, "GET", "/"+repoPath)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	doc := NewHTMLParser(t, resp.Body)
 	doc.doc.Find(".ui.positive.message div a").Each(func(index int, branch *goquery.Selection) {

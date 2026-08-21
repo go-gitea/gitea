@@ -6,11 +6,11 @@ package feed
 import (
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -199,4 +199,22 @@ func TestNotifyWatchers(t *testing.T) {
 		RepoID:    action.RepoID,
 		OpType:    action.OpType,
 	})
+}
+
+func TestNotifyWatchersRespectsWatchOptions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// user 1 watches repo 1 for issues only, user 4 keeps every event
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user1, repo1, repo_model.WatchOptions{Mode: repo_model.WatchModeNormal, WatchIssues: true}))
+
+	assert.NoError(t, NotifyWatchers(t.Context(),
+		&activities_model.Action{ActUserID: 8, RepoID: 1, OpType: activities_model.ActionCreateIssue},
+		&activities_model.Action{ActUserID: 8, RepoID: 1, OpType: activities_model.ActionApprovePullRequest},
+	))
+
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{UserID: 1, RepoID: 1, OpType: activities_model.ActionCreateIssue})
+	unittest.AssertNotExistsBean(t, &activities_model.Action{UserID: 1, RepoID: 1, OpType: activities_model.ActionApprovePullRequest})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{UserID: 4, RepoID: 1, OpType: activities_model.ActionApprovePullRequest})
 }

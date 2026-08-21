@@ -9,13 +9,14 @@ import (
 	"image/png"
 	"io"
 
-	"code.gitea.io/gitea/models/avatars"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/avatar"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
+	"gitea.dev/models/avatars"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/avatar"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 )
 
 // CustomAvatarRelativePath returns user custom avatar relative path.
@@ -25,27 +26,13 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func GenerateRandomAvatar(ctx context.Context, u *User) error {
-	seed := u.Email
-	if len(seed) == 0 {
-		seed = u.Name
-	}
+	seed := []byte(util.IfZero(u.Email, u.Name))
+	u.Avatar = avatar.HashAvatar(u.ID, seed)
 
-	img, err := avatar.RandomImage([]byte(seed))
-	if err != nil {
-		return fmt.Errorf("RandomImage: %w", err)
-	}
-
-	u.Avatar = avatars.HashEmail(seed)
-
-	_, err = storage.Avatars.Stat(u.CustomAvatarRelativePath())
-	if err != nil {
-		// If unable to Stat the avatar file (usually it means non-existing), then try to save a new one
-		// Don't share the images so that we can delete them easily
+	// a failed Stat usually means the file is not there yet
+	if _, err := storage.Avatars.Stat(u.CustomAvatarRelativePath()); err != nil {
 		if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-			if err := png.Encode(w, img); err != nil {
-				log.Error("Encode: %v", err)
-			}
-			return nil
+			return png.Encode(w, avatar.RandomImageDefaultSize(seed))
 		}); err != nil {
 			return fmt.Errorf("failed to save avatar %s: %w", u.CustomAvatarRelativePath(), err)
 		}
@@ -74,7 +61,7 @@ func (u *User) AvatarLinkWithSize(ctx context.Context, size int) string {
 	switch {
 	case u.UseCustomAvatar:
 		useLocalAvatar = true
-	case disableGravatar, setting.OfflineMode:
+	case disableGravatar:
 		useLocalAvatar = true
 		autoGenerateAvatar = true
 	}

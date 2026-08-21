@@ -12,13 +12,15 @@ import (
 	"strings"
 	"time"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/svg"
+	activities_model "gitea.dev/models/activities"
+	repo_model "gitea.dev/models/repo"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/json"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/repository"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -48,11 +50,6 @@ func sortArrow(normSort, revSort, urlSort string, isDefault bool) template.HTML 
 	}
 	// the table is NOT sorted with this header
 	return ""
-}
-
-// isMultilineCommitMessage checks to see if a commit message contains multiple lines.
-func isMultilineCommitMessage(msg string) bool {
-	return strings.Count(strings.TrimSpace(msg), "\n") >= 1
 }
 
 // Actioner describes an action
@@ -144,7 +141,7 @@ type remoteAddress struct {
 
 func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	ret := remoteAddress{}
-	u, err := gitrepo.GitRemoteGetURL(ctx, m, remoteName)
+	u, err := git.ParseRemoteAddressURL(ctx, m, remoteName)
 	if err != nil {
 		log.Error("GetRemoteURL %v", err)
 		return ret
@@ -184,4 +181,50 @@ func tabSizeClass(ec *editorconfig.Editorconfig, filename string) string {
 		}
 	}
 	return "tab-size-4"
+}
+
+type MiscUtils struct {
+	ctx context.Context
+}
+
+func NewMiscUtils(ctx context.Context) *MiscUtils {
+	return &MiscUtils{ctx: ctx}
+}
+
+type MarkdownEditorContext struct {
+	PreviewMode    string // "comment", "wiki", or empty for general
+	PreviewContext string // the path for resolving the links in the preview (repo preview already has default correct value)
+	PreviewLink    string
+	MentionsLink   string
+}
+
+func (m *MiscUtils) MarkdownEditorComment(repo *repo_model.Repository) *MarkdownEditorContext {
+	if repo == nil {
+		return nil
+	}
+	return &MarkdownEditorContext{
+		PreviewMode:  "comment",
+		PreviewLink:  repo.Link() + "/markup",
+		MentionsLink: repo.Link() + "/-/mentions-in-repo",
+	}
+}
+
+func (m *MiscUtils) MarkdownEditorWiki(repo *repo_model.Repository) *MarkdownEditorContext {
+	if repo == nil {
+		return nil
+	}
+	return &MarkdownEditorContext{
+		PreviewMode:  "wiki",
+		PreviewLink:  repo.Link() + "/markup",
+		MentionsLink: repo.Link() + "/-/mentions-in-repo",
+	}
+}
+
+func (m *MiscUtils) MarkdownEditorGeneral(owner *user_model.User) *MarkdownEditorContext {
+	ret := &MarkdownEditorContext{PreviewLink: setting.AppSubURL + "/-/markup"}
+	if owner != nil {
+		ret.PreviewContext = owner.HomeLink()
+		ret.MentionsLink = owner.HomeLink() + "/-/mentions-in-owner"
+	}
+	return ret
 }

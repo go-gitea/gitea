@@ -5,8 +5,10 @@ package hostmatcher
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"syscall"
 	"time"
@@ -61,5 +63,19 @@ func NewDialContext(usage string, allowList, blockList *HostMatchList, proxy *ur
 			},
 		}
 		return dialer.DialContext(ctx, network, addrOrHost)
+	}
+}
+
+// NewHTTPTransport builds an http.Transport that validates the request target against the allow/block
+// lists on the direct-dial path (DialContext). When an HTTP proxy is configured the proxy resolves and
+// dials the target itself, so restricting the proxied target is the proxy server's responsibility, not
+// Gitea's. proxyFunc selects the proxy URL per request (the http.Transport.Proxy selector, e.g.
+// proxy.Proxy()); proxyURLFixed is the fixed proxy address the dialer must always permit; tlsConfig may
+// be nil. blockList may be nil for callers that only maintain an allow-list.
+func NewHTTPTransport(usage string, allowList, blockList *HostMatchList, proxyFunc func(*http.Request) (*url.URL, error), proxyURLFixed *url.URL, tlsConfig *tls.Config) *http.Transport {
+	return &http.Transport{
+		TLSClientConfig: tlsConfig,
+		Proxy:           proxyFunc,
+		DialContext:     NewDialContext(usage, allowList, blockList, proxyURLFixed),
 	}
 }

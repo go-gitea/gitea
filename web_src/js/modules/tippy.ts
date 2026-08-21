@@ -1,8 +1,8 @@
 import tippy, {followCursor} from 'tippy.js';
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
-import {formatDatetime} from '../utils/time.ts';
 import type {Content, Instance, Placement, Props} from 'tippy.js';
 import {html} from '../utils/html.ts';
+import {stripTags} from '../utils.ts';
 
 type TippyOpts = {
   role?: string,
@@ -12,10 +12,21 @@ type TippyOpts = {
 const visibleInstances = new Set<Instance>();
 const arrowSvg = html`<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`;
 
+// shrink tippy's default 3px arrow padding so the arrow can point at the center of
+// narrow references like 16px icons with "start"/"end" placements
+function arrowPadding({placement, reference}: {placement: Placement, reference: {width: number, height: number}}): number {
+  const isVertical = placement.startsWith('left') || placement.startsWith('right');
+  const referenceLength = isVertical ? reference.height : reference.width;
+  return Math.max(0, Math.min(3, referenceLength / 2 - 8)); // 8 = half of arrow width
+}
+
 export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
   // the callback functions should be destructured from opts,
   // because we should use our own wrapper functions to handle them, do not let the user override them
   const {onHide, onShow, onDestroy, role, theme, arrow, ...other} = opts;
+  // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
+  const resolvedTheme = theme || role || 'default';
+  const resolvedArrow = arrow ?? (resolvedTheme === 'bare' ? false : arrowSvg);
 
   const instance: Instance = tippy(target, {
     appendTo: document.body,
@@ -44,12 +55,12 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
       target.setAttribute('aria-controls', instance.popper.id);
       return onShow?.(instance);
     },
-    arrow: arrow ?? (theme === 'bare' ? false : arrowSvg),
+    arrow: resolvedArrow,
+    popperOptions: {modifiers: [{name: 'arrow', options: {padding: arrowPadding}}]},
     // HTML role attribute, ideally the default role would be "popover" but it does not exist
     role: role || 'menu',
-    // CSS theme, either "default", "tooltip", "menu", "box-with-header" or "bare"
-    theme: theme || role || 'default',
-    offset: [0, arrow ? 10 : 6],
+    theme: resolvedTheme,
+    offset: [0, resolvedArrow ? 10 : 6],
     plugins: [followCursor],
     ...other,
   } satisfies Partial<Props>);
@@ -86,9 +97,10 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
     role: 'tooltip',
     theme: 'tooltip',
     hideOnClick,
-    placement: target.getAttribute('data-tooltip-placement') as Placement || 'top-start',
+    allowHTML: target.getAttribute('data-tooltip-render') === 'html',
+    placement: target.getAttribute('data-tooltip-placement') as Placement || 'top',
     followCursor: target.getAttribute('data-tooltip-follow-cursor') as Props['followCursor'] || false,
-    ...(target.getAttribute('data-tooltip-interactive') === 'true' ? {interactive: true, aria: {content: 'describedby', expanded: false}} : {}),
+    ...((target.getAttribute('data-tooltip-interactive') === 'true') && {interactive: true, aria: {content: 'describedby', expanded: false}}),
   };
 
   if (!target._tippy) {
@@ -100,20 +112,10 @@ function attachTooltip(target: Element, content: Content | null = null): Instanc
 }
 
 function switchTitleToTooltip(target: Element): void {
-  let title = target.getAttribute('title');
+  const title = target.getAttribute('title');
   if (title) {
-    // apply custom formatting to relative-time's tooltips
-    if (target.tagName.toLowerCase() === 'relative-time') {
-      const datetime = target.getAttribute('datetime');
-      if (datetime) {
-        title = formatDatetime(new Date(datetime));
-      }
-    }
     target.setAttribute('data-tooltip-content', title);
     target.setAttribute('aria-label', title);
-    // keep the attribute, in case there are some other "[title]" selectors
-    // and to prevent infinite loop with <relative-time> which will re-add
-    // title if it is absent
     target.setAttribute('title', '');
   }
 }
@@ -124,9 +126,14 @@ function switchTitleToTooltip(target: Element): void {
  * Some browsers like PaleMoon don't support "addEventListener('mouseenter', capture)"
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  */
-function lazyTooltipOnMouseHover(this: HTMLElement, e: Event): void {
-  (e.target as HTMLElement).removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
-  attachTooltip(this);
+function lazyTooltipOnMouseHover(e: Event): void {
+  const el = e.currentTarget as HTMLElement;
+  el.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
+  // Firefox skips enter/leave dispatch when the window had no such listeners at the time of the
+  // pointer crossing, so the new tippy misses its first "mouseenter". Show via a synthetic event,
+  // carrying over the cursor position for "followCursor" tooltips.
+  const {clientX, clientY} = e as MouseEvent;
+  attachTooltip(el)?.reference.dispatchEvent(new MouseEvent('mouseenter', {clientX, clientY}));
 }
 
 // Activate the tooltip for current element.
@@ -138,7 +145,11 @@ function attachLazyTooltip(el: HTMLElement): void {
   if (!el.hasAttribute('aria-label')) {
     const content = el.getAttribute('data-tooltip-content');
     if (content) {
-      el.setAttribute('aria-label', content);
+      const isHtml = el.getAttribute('data-tooltip-render') === 'html';
+      let ariaLabelValue = content;
+      if (isHtml) ariaLabelValue = stripTags(content).replace(/\s+/g, ' ').trim();
+      el.setAttribute('aria-label', ariaLabelValue);
+      el.removeAttribute('aria-hidden');
     }
   }
 }
@@ -155,7 +166,7 @@ export function initGlobalTooltips(): void {
   const observerConnect = (observer: MutationObserver) => observer.observe(document, {
     subtree: true,
     childList: true,
-    attributeFilter: ['data-tooltip-content', 'title'],
+    attributeFilter: ['data-tooltip-content'],
   });
   const observer = new MutationObserver((mutationList, observer) => {
     const pending = observer.takeRecords();
@@ -200,6 +211,7 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
   tooltipTippy.setContent(content);
   tooltipTippy.setProps({getReferenceClientRect: () => refClientRect});
   if (!tooltipTippy.state.isShown) tooltipTippy.show();
+
   tooltipTippy.setProps({
     onHidden: (tippy) => {
       // reset the default tooltip content, if no default, then this temporary tooltip could be destroyed
@@ -208,6 +220,14 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
       }
     },
   });
+
+  // on elements where the tooltip is re-located like "Copy Link" inside fomantic dropdowns, tippy.js gets
+  // no `mouseout` event and the tooltip stays visible, hide it with timeout.
+  if (!popupTippyId) {
+    setTimeout(() => {
+      if (tooltipTippy.state.isVisible) tooltipTippy.hide();
+    }, 1500);
+  }
 }
 
 export function getAttachedTippyInstance(el: Element): Instance | null {

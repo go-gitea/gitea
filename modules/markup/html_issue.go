@@ -4,16 +4,17 @@
 package markup
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/regexplru"
-	"code.gitea.io/gitea/modules/templates/vars"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/references"
+	"gitea.dev/modules/regexplru"
+	"gitea.dev/modules/templates/vars"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/util"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -148,7 +149,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if hasExtTrackFormat && !ref.IsPull {
 			ctx.RenderOptions.Metas["index"] = ref.Issue
 
-			res, err := vars.Expand(ctx.RenderOptions.Metas["format"], ctx.RenderOptions.Metas)
+			res, err := vars.ExpandCurlyBrace(ctx.RenderOptions.Metas["format"], ctx.RenderOptions.Metas)
 			if err != nil {
 				// here we could just log the error and continue the rendering
 				log.Error("unable to expand template vars for ref %s, err: %v", ref.Issue, err)
@@ -162,7 +163,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 			issueOwner := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["user"], ref.Owner)
 			issueRepo := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["repo"], ref.Name)
 			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
-			linkHref := "/:root/" + util.URLJoin(issueOwner, issueRepo, issuePath, ref.Issue)
+			linkHref := fmt.Sprintf("/:root/%s/%s/%s/%s", issueOwner, issueRepo, issuePath, ref.Issue)
 
 			// at the moment, only render the issue index in a full line (or simple line) as icon+title
 			// otherwise it would be too noisy for "take #1 as an example" in a sentence

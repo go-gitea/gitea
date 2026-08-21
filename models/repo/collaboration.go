@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	"code.gitea.io/gitea/models/unit"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.dev/models/db"
+	"gitea.dev/models/perm"
+	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/timeutil"
 
 	"xorm.io/builder"
 )
@@ -102,71 +102,30 @@ func GetCollaborators(ctx context.Context, opts *FindCollaborationOptions) ([]*C
 
 // GetCollaboration get collaboration for a repository id with a user id
 func GetCollaboration(ctx context.Context, repoID, uid int64) (*Collaboration, error) {
-	collaboration := &Collaboration{
-		RepoID: repoID,
-		UserID: uid,
-	}
-	has, err := db.GetEngine(ctx).Get(collaboration)
-	if !has {
-		collaboration = nil
-	}
+	collaboration, _, err := db.Get[Collaboration](ctx, builder.Eq{"repo_id": repoID, "user_id": uid})
 	return collaboration, err
 }
 
 // IsCollaborator check if a user is a collaborator of a repository
 func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
-	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repoID, UserID: userID})
+	return db.Exist[Collaboration](ctx, builder.Eq{"repo_id": repoID, "user_id": userID})
 }
 
-// ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid int64, mode perm.AccessMode) error {
-	// Discard invalid input
-	if mode <= perm.AccessModeNone || mode > perm.AccessModeOwner {
-		return nil
-	}
-
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		e := db.GetEngine(ctx)
-
-		collaboration := &Collaboration{
-			RepoID: repo.ID,
-			UserID: uid,
-		}
-		has, err := e.Get(collaboration)
-		if err != nil {
-			return fmt.Errorf("get collaboration: %w", err)
-		} else if !has {
-			return nil
-		}
-
-		if collaboration.Mode == mode {
-			return nil
-		}
-		collaboration.Mode = mode
-
-		if _, err = e.
-			ID(collaboration.ID).
-			Cols("mode").
-			Update(collaboration); err != nil {
-			return fmt.Errorf("update collaboration: %w", err)
-		} else if _, err = e.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
-			return fmt.Errorf("update access table: %w", err)
-		}
-
-		return nil
-	})
-}
-
-// IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
-func IsOwnerMemberCollaborator(ctx context.Context, repo *Repository, userID int64) (bool, error) {
+func HasAccessToRepoCodeUnit(ctx context.Context, repo *Repository, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	teamMember, err := db.GetEngine(ctx).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
-		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
+	teamMember, err := db.GetEngine(ctx).Table("team_user").
+		Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
+		Join("INNER", "team", "team.id = team_user.team_id").
+		Join("LEFT", "team_unit", "team_unit.team_id = team_user.team_id AND team_unit.`type` = ?", unit.TypeCode).
 		Where("team_repo.repo_id = ?", repo.ID).
-		And("team_unit.`type` = ?", unit.TypeCode).
-		And("team_user.uid = ?", userID).Table("team_user").Exist()
+		And("team_user.uid = ?", userID).
+		And(builder.Or(
+			builder.Gt{"team.authorize": perm.AccessModeNone},
+			builder.Gt{"team_unit.access_mode": perm.AccessModeNone},
+		)).
+		Exist()
 	if err != nil {
 		return false, err
 	}
@@ -174,5 +133,5 @@ func IsOwnerMemberCollaborator(ctx context.Context, repo *Repository, userID int
 		return true, nil
 	}
 
-	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
+	return db.Exist[Collaboration](ctx, builder.Eq{"repo_id": repo.ID, "user_id": userID})
 }

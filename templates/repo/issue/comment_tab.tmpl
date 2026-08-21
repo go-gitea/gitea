@@ -6,8 +6,7 @@
 <div class="field">
 	{{template "shared/combomarkdowneditor" (dict
 		"CustomInit" true
-		"MarkdownPreviewInRepo" $.Repository
-		"MarkdownPreviewMode" "comment"
+		"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment $.Repository)
 		"TextareaName" "content"
 		"TextareaContent" $textareaContent
 		"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")

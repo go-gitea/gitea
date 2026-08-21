@@ -1,12 +1,13 @@
-import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
-import {html, htmlRaw} from './utils/html.ts';
+import {htmlRaw} from './utils/html.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
+import giteaFavicon from '../../public/assets/img/favicon.svg';
 import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
+import octiconArrowLeft from '../../public/assets/img/svg/octicon-arrow-left.svg';
 import octiconArrowSwitch from '../../public/assets/img/svg/octicon-arrow-switch.svg';
 import octiconBlocked from '../../public/assets/img/svg/octicon-blocked.svg';
 import octiconBold from '../../public/assets/img/svg/octicon-bold.svg';
@@ -29,8 +30,10 @@ import octiconDotFill from '../../public/assets/img/svg/octicon-dot-fill.svg';
 import octiconDownload from '../../public/assets/img/svg/octicon-download.svg';
 import octiconEye from '../../public/assets/img/svg/octicon-eye.svg';
 import octiconFile from '../../public/assets/img/svg/octicon-file.svg';
+import octiconFileCode from '../../public/assets/img/svg/octicon-file-code.svg';
 import octiconFileDirectoryFill from '../../public/assets/img/svg/octicon-file-directory-fill.svg';
 import octiconFileDirectoryOpenFill from '../../public/assets/img/svg/octicon-file-directory-open-fill.svg';
+import octiconFileRemoved from '../../public/assets/img/svg/octicon-file-removed.svg';
 import octiconFileSubmodule from '../../public/assets/img/svg/octicon-file-submodule.svg';
 import octiconFileSymlinkFile from '../../public/assets/img/svg/octicon-file-symlink-file.svg';
 import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
@@ -43,8 +46,11 @@ import octiconGitPullRequestClosed from '../../public/assets/img/svg/octicon-git
 import octiconGitPullRequestDraft from '../../public/assets/img/svg/octicon-git-pull-request-draft.svg';
 import octiconGrabber from '../../public/assets/img/svg/octicon-grabber.svg';
 import octiconHeading from '../../public/assets/img/svg/octicon-heading.svg';
+import octiconHistory from '../../public/assets/img/svg/octicon-history.svg';
 import octiconHorizontalRule from '../../public/assets/img/svg/octicon-horizontal-rule.svg';
+import octiconHome from '../../public/assets/img/svg/octicon-home.svg';
 import octiconImage from '../../public/assets/img/svg/octicon-image.svg';
+import octiconInfo from '../../public/assets/img/svg/octicon-info.svg';
 import octiconIssueClosed from '../../public/assets/img/svg/octicon-issue-closed.svg';
 import octiconIssueOpened from '../../public/assets/img/svg/octicon-issue-opened.svg';
 import octiconItalic from '../../public/assets/img/svg/octicon-italic.svg';
@@ -88,8 +94,10 @@ const svgs = {
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
+  'gitea-favicon': giteaFavicon,
   'gitea-running': giteaRunning,
   'octicon-archive': octiconArchive,
+  'octicon-arrow-left': octiconArrowLeft,
   'octicon-arrow-switch': octiconArrowSwitch,
   'octicon-blocked': octiconBlocked,
   'octicon-bold': octiconBold,
@@ -112,8 +120,10 @@ const svgs = {
   'octicon-download': octiconDownload,
   'octicon-eye': octiconEye,
   'octicon-file': octiconFile,
+  'octicon-file-code': octiconFileCode,
   'octicon-file-directory-fill': octiconFileDirectoryFill,
   'octicon-file-directory-open-fill': octiconFileDirectoryOpenFill,
+  'octicon-file-removed': octiconFileRemoved,
   'octicon-file-submodule': octiconFileSubmodule,
   'octicon-file-symlink-file': octiconFileSymlinkFile,
   'octicon-filter': octiconFilter,
@@ -126,8 +136,11 @@ const svgs = {
   'octicon-git-pull-request-draft': octiconGitPullRequestDraft,
   'octicon-grabber': octiconGrabber,
   'octicon-heading': octiconHeading,
+  'octicon-history': octiconHistory,
   'octicon-horizontal-rule': octiconHorizontalRule,
+  'octicon-home': octiconHome,
   'octicon-image': octiconImage,
+  'octicon-info': octiconInfo,
   'octicon-issue-closed': octiconIssueClosed,
   'octicon-issue-opened': octiconIssueOpened,
   'octicon-italic': octiconItalic,
@@ -189,6 +202,10 @@ export function svg(name: SvgName, size = 16, classNames?: string | string[]): s
   return serializeXml(svgNode);
 }
 
+export function svgRaw(name: SvgName, size = 16, classNames?: string | string[]) {
+  return htmlRaw(svg(name, size, classNames));
+}
+
 export function svgParseOuterInner(name: SvgName) {
   const svgStr = svgs[name];
   if (!svgStr) throw new Error(`Unknown SVG icon: ${name}`);
@@ -206,36 +223,3 @@ export function svgParseOuterInner(name: SvgName) {
   const svgOuter = svgDoc.firstChild as SVGElement;
   return {svgOuter, svgInnerHtml};
 }
-
-export const SvgIcon = defineComponent({
-  name: 'SvgIcon',
-  props: {
-    name: {type: String as PropType<SvgName>, required: true},
-    size: {type: Number, default: 16},
-    symbolId: {type: String},
-  },
-  render() {
-    let {svgOuter, svgInnerHtml} = svgParseOuterInner(this.name);
-    // https://vuejs.org/guide/extras/render-function.html#creating-vnodes
-    // the `^` is used for attr, set SVG attributes like 'width', `aria-hidden`, `viewBox`, etc
-    const attrs: Record<string, any> = {};
-    for (const attr of svgOuter.attributes) {
-      if (attr.name === 'class') continue;
-      attrs[`^${attr.name}`] = attr.value;
-    }
-    attrs[`^width`] = this.size;
-    attrs[`^height`] = this.size;
-
-    const classes = Array.from(svgOuter.classList);
-    if (this.symbolId) {
-      classes.push('tw-hidden', 'svg-symbol-container');
-      svgInnerHtml = html`<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${htmlRaw(svgInnerHtml)}</symbol>`;
-    }
-    // create VNode
-    return h('svg', {
-      ...attrs,
-      class: classes,
-      innerHTML: svgInnerHtml,
-    });
-  },
-});

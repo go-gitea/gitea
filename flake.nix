@@ -33,10 +33,10 @@
               inherit (pkgs) lib;
 
               # only bump toolchain versions here
-              go = pkgs.go_1_25;
-              nodejs = pkgs.nodejs_24;
-              python3 = pkgs.python312;
-              pnpm = pkgs.pnpm_10;
+              go = pkgs.go_1_26;
+              nodejs = pkgs.nodejs_26;
+              python3 = pkgs.python314;
+              pnpm = pkgs.pnpm_11;
 
               # Platform-specific dependencies
               linuxOnlyInputs = lib.optionals pkgs.stdenv.isLinux [
@@ -83,7 +83,7 @@
                 GO = "${go}/bin/go";
                 GOROOT = "${go}/share/go";
 
-                TAGS = "sqlite sqlite_unlock_notify";
+                TAGS = "";
                 STATIC = "true";
               }
               // linuxOnlyEnv;

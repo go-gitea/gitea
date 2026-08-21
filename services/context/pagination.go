@@ -6,13 +6,14 @@ package context
 import (
 	"fmt"
 	"html/template"
+	"math"
 	"net/http"
 	"net/url"
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/paginator"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/paginator"
 )
 
 // Pagination provides a pagination via paginator.Paginator and additional configurations for the link params used in rendering
@@ -22,16 +23,18 @@ type Pagination struct {
 }
 
 // NewPagination creates a new instance of the Pagination struct.
+// "total" is usually from database result "count int64", so it also uses int64
 // "pagingNum" is "page size" or "limit", "current" is "page"
 // total=-1 means only showing prev/next
-func NewPagination(total, pagingNum, current, numPages int) *Pagination {
+func NewPagination(total int64, pagingNum, current, numPages int) *Pagination {
+	totalInt := int(min(total, int64(math.MaxInt)))
 	p := &Pagination{}
-	p.Paginater = paginator.New(total, pagingNum, current, numPages)
+	p.Paginater = paginator.New(totalInt, pagingNum, current, numPages)
 	return p
 }
 
-func (p *Pagination) WithCurRows(n int) *Pagination {
-	p.Paginater.SetCurRows(n)
+func (p *Pagination) WithUnlimitedPaging(curRows int, hasNext bool) *Pagination {
+	p.Paginater.SetUnlimitedPaging(curRows, hasNext)
 	return p
 }
 

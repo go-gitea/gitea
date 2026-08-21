@@ -9,9 +9,9 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/storage"
+	"gitea.dev/modules/util"
 )
 
 // BlobHash256Key is the key to address a blob content
@@ -36,8 +36,8 @@ func (s *ContentStore) ShouldServeDirect() bool {
 	return setting.Packages.Storage.ServeDirect()
 }
 
-func (s *ContentStore) GetServeDirectURL(key BlobHash256Key, filename, method string, reqParams url.Values) (*url.URL, error) {
-	return s.store.URL(KeyToRelativePath(key), filename, method, reqParams)
+func (s *ContentStore) GetServeDirectURL(key BlobHash256Key, filename, method string, reqParams *storage.ServeDirectOptions) (*url.URL, error) {
+	return s.store.ServeDirectURL(KeyToRelativePath(key), filename, method, reqParams)
 }
 
 // FIXME: Workaround to be removed in v1.20

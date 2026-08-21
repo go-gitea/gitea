@@ -4,13 +4,13 @@
 package explore
 
 import (
-	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/context"
+	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/container"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/context"
 )
 
 // Organizations render explore organizations page
@@ -38,17 +38,14 @@ func Organizations(ctx *context.Context) {
 		"alphabetically",
 		"reversealphabetically",
 	)
-	sortOrder := ctx.FormString("sort")
-	if sortOrder == "" {
-		sortOrder = util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
-		ctx.SetFormString("sort", sortOrder)
-	}
-
+	sortOrderDefault := util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
+	sortOrder := ctx.FormString("sort", sortOrderDefault)
 	RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		Types:       []user_model.UserType{user_model.UserTypeOrganization},
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
+		OrderBy:     db.SearchOrderBy(sortOrder),
 
 		SupportedSortOrders: supportedSortOrders,
 	}, tplExploreUsers)

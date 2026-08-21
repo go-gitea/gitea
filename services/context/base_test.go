@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -38,9 +38,10 @@ func TestRedirect(t *testing.T) {
 
 	req, _ = http.NewRequest(http.MethodGet, "/", nil)
 	resp := httptest.NewRecorder()
-	req.Header.Add("HX-Request", "true")
+	req.Header.Add("X-Gitea-Fetch-Action", "1")
 	b := NewBaseContextForTest(resp, req)
 	b.Redirect("/other")
-	assert.Equal(t, "/other", resp.Header().Get("HX-Redirect"))
-	assert.Equal(t, http.StatusNoContent, resp.Code)
+	assert.Contains(t, resp.Header().Get("Content-Type"), "application/json")
+	assert.JSONEq(t, `{"redirect":"/other"}`, resp.Body.String())
+	assert.Equal(t, http.StatusOK, resp.Code)
 }

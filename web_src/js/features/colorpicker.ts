@@ -6,8 +6,8 @@ export async function initColorPickers() {
   registerGlobalInitFunc('initColorPicker', async (el) => {
     if (!imported) {
       await Promise.all([
-        import(/* webpackChunkName: "colorpicker" */'vanilla-colorful/hex-color-picker.js'),
-        import(/* webpackChunkName: "colorpicker" */'../../css/features/colorpicker.css'),
+        import('vanilla-colorful/hex-color-picker.js'),
+        import('../../css/features/colorpicker.css'),
       ]);
       imported = true;
     }

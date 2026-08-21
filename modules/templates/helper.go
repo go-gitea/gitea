@@ -12,33 +12,30 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/templates/eval"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/gitdiff"
+	"gitea.dev/modules/base"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/markup"
+	"gitea.dev/modules/public"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/templates/eval"
+	"gitea.dev/modules/util"
+	"gitea.dev/services/gitdiff"
 )
 
-// NewFuncMap returns functions for injecting to templates
-func NewFuncMap() template.FuncMap {
+func newFuncMapWebPage() template.FuncMap {
 	return map[string]any{
 		"DumpVar": dumpVar,
 		"NIL":     func() any { return nil },
 
 		// -----------------------------------------------------------------
 		// html/template related functions
-		"dict":         dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
-		"Iif":          iif,
-		"Eval":         evalTokens,
-		"HTMLFormat":   htmlFormat,
-		"QueryEscape":  queryEscape,
-		"QueryBuild":   QueryBuild,
-		"SanitizeHTML": SanitizeHTML,
-		"URLJoin":      util.URLJoin,
-		"DotEscape":    dotEscape,
+		"dict":        dict, // it's lowercase because this name has been widely used. Our other functions should have uppercase names.
+		"Iif":         iif,
+		"Eval":        evalTokens,
+		"HTMLFormat":  htmlFormat,
+		"QueryEscape": queryEscape,
+		"QueryBuild":  QueryBuild,
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
@@ -59,6 +56,7 @@ func NewFuncMap() template.FuncMap {
 
 		// -----------------------------------------------------------------
 		// time / number / format
+		"ShortSha": base.ShortSha,
 		"FileSize": base.FileSize,
 		"CountFmt": countFmt,
 		"Sec2Hour": util.SecToHours,
@@ -68,6 +66,9 @@ func NewFuncMap() template.FuncMap {
 		"LoadTimes": func(startTime time.Time) string {
 			return strconv.FormatInt(time.Since(startTime).Nanoseconds()/1e6, 10) + "ms"
 		},
+
+		"AssetURI":      public.AssetURI,
+		"AssetCSSLinks": public.AssetCSSLinks,
 
 		// -----------------------------------------------------------------
 		// setting
@@ -80,24 +81,11 @@ func NewFuncMap() template.FuncMap {
 		"AssetUrlPrefix": func() string {
 			return setting.StaticURLPrefix + "/assets"
 		},
-		"AppUrl": func() string {
-			// The usage of AppUrl should be avoided as much as possible,
-			// because the AppURL(ROOT_URL) may not match user's visiting site and the ROOT_URL in app.ini may be incorrect.
-			// And it's difficult for Gitea to guess absolute URL correctly with zero configuration,
-			// because Gitea doesn't know whether the scheme is HTTP or HTTPS unless the reverse proxy could tell Gitea.
-			return setting.AppURL
-		},
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		"AppDomain": func() string { // documented in mail-templates.md
+		"AppDomain": func() string { // TODO: helm registry still uses it, need to use current request host in the future
 			return setting.Domain
-		},
-		"AssetVersion": func() string {
-			return setting.AssetVersion
-		},
-		"DefaultShowFullName": func() bool {
-			return setting.UI.DefaultShowFullName
 		},
 		"ShowFooterTemplateLoadTime": func() bool {
 			return setting.Other.ShowFooterTemplateLoadTime
@@ -128,10 +116,9 @@ func NewFuncMap() template.FuncMap {
 		},
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
-				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
-				"TimeoutStep":           int(setting.UI.Notification.TimeoutStep / time.Millisecond),
-				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
-				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
+				"MinTimeout":  int(setting.UI.Notification.MinTimeout / time.Millisecond),
+				"TimeoutStep": int(setting.UI.Notification.TimeoutStep / time.Millisecond),
+				"MaxTimeout":  int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 			}
 		},
 		"MermaidMaxSourceCharacters": func() int {
@@ -144,21 +131,18 @@ func NewFuncMap() template.FuncMap {
 		"ReactionToEmoji": reactionToEmoji,
 
 		// -----------------------------------------------------------------
-		// misc
-		"ShortSha":                 base.ShortSha,
-		"ActionContent2Commits":    ActionContent2Commits,
-		"IsMultilineCommitMessage": isMultilineCommitMessage,
-		"CommentMustAsDiff":        gitdiff.CommentMustAsDiff,
-		"MirrorRemoteAddress":      mirrorRemoteAddress,
+		// misc (TODO: move them to MiscUtils to avoid bloating the main func map)
+		"ActionContent2Commits": ActionContent2Commits,
+		"CommentMustAsDiff":     gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress":   mirrorRemoteAddress,
 
 		"FilenameIsImage": filenameIsImage,
 		"TabSizeClass":    tabSizeClass,
 	}
 }
 
-// SanitizeHTML sanitizes the input by default sanitization rules.
-func SanitizeHTML(s string) template.HTML {
-	return markup.Sanitize(s)
+func sanitizeHTML(msg string) template.HTML {
+	return markup.Sanitize(msg)
 }
 
 func htmlFormat(s any, args ...any) template.HTML {
@@ -177,11 +161,6 @@ func htmlFormat(s any, args ...any) template.HTML {
 
 func queryEscape(s string) template.URL {
 	return template.URL(url.QueryEscape(s))
-}
-
-// dotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent auto-linkers from detecting these as urls
-func dotEscape(raw string) string {
-	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
 // iif is an "inline-if", similar util.Iif[T] but templates need the non-generic version,

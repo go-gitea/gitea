@@ -7,19 +7,20 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
 
 	"github.com/urfave/cli/v3"
 )
 
-// cmdDoctorConvert represents the available convert sub-command.
-var cmdDoctorConvert = &cli.Command{
-	Name:        "convert",
-	Usage:       "Convert the database",
-	Description: "A command to convert an existing MySQL database from utf8 to utf8mb4 or MSSQL database from varchar to nvarchar",
-	Action:      runDoctorConvert,
+func newDoctorConvertCommand() *cli.Command {
+	return &cli.Command{
+		Name:        "convert",
+		Usage:       "Convert the database",
+		Description: "A command to convert an existing MySQL database from utf8 to utf8mb4 or MSSQL database from varchar to nvarchar",
+		Action:      runDoctorConvert,
+	}
 }
 
 func runDoctorConvert(ctx context.Context, cmd *cli.Command) error {

@@ -37,3 +37,22 @@ func TestRefWebLinkPath(t *testing.T) {
 	assert.Equal(t, "tag/foo", RefName("refs/tags/foo").RefWebLinkPath())
 	assert.Equal(t, "commit/c0ffee", RefName("c0ffee").RefWebLinkPath())
 }
+
+func TestParseRefSuffix(t *testing.T) {
+	cases := []struct {
+		ref, name, suffix string
+	}{
+		{"main", "main", ""},
+		{"main^", "main", "^"},
+		{"main^2", "main", "^2"},
+		{"main~3", "main", "~3"},
+		{"main@{yesterday}", "main", "@{yesterday}"},
+		{"main~2^", "main", "~2^"},
+		{"main^~2", "main", "^~2"},
+	}
+	for _, c := range cases {
+		name, suffix := ParseRefSuffix(c.ref)
+		assert.Equal(t, c.name, name, "ref: %s", c.ref)
+		assert.Equal(t, c.suffix, suffix, "ref: %s", c.ref)
+	}
+}

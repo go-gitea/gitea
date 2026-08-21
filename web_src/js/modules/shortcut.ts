@@ -10,12 +10,17 @@ function initShortcutKbd(kbd: HTMLElement) {
   kbd.setAttribute('aria-keyshortcuts', kbd.getAttribute('data-shortcut-keys')!);
 }
 
+function shortcutWrapper(el: HTMLElement): HTMLElement | null {
+  const parent = el.parentElement;
+  return parent?.matches('.global-shortcut-wrapper') ? parent : null;
+}
+
 function elemFromKbd(kbd: HTMLElement): HTMLInputElement | HTMLTextAreaElement | null {
-  return kbd.parentElement!.querySelector<HTMLInputElement>('input, textarea') || null;
+  return shortcutWrapper(kbd)?.querySelector<HTMLInputElement>('input, textarea') || null;
 }
 
 function kbdFromElem(input: HTMLElement): HTMLElement | null {
-  return input.parentElement!.querySelector<HTMLElement>('kbd') || null;
+  return shortcutWrapper(input)?.querySelector<HTMLElement>('kbd') || null;
 }
 
 export function initGlobalShortcut() {

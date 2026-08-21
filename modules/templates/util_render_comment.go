@@ -7,12 +7,11 @@ import (
 	"html/template"
 	"strings"
 
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/htmlutil"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/modules/htmlutil"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/svg"
+	"gitea.dev/modules/util"
 )
 
 func commentTimelineEventIsWipToggle(c *issues_model.Comment) (isToggle, isWip bool) {
@@ -35,7 +34,7 @@ func (ut *RenderUtils) RenderTimelineEventBadge(c *issues_model.Comment) templat
 
 func (ut *RenderUtils) RenderTimelineEventComment(c *issues_model.Comment, createdStr template.HTML) template.HTML {
 	if c.Type == issues_model.CommentTypeChangeTitle {
-		locale := ut.ctx.Value(translation.ContextKey).(translation.Locale)
+		locale := ut.locale()
 		isToggle, isWip := commentTimelineEventIsWipToggle(c)
 		if !isToggle {
 			return locale.Tr("repo.issues.change_title_at", ut.RenderEmoji(c.OldTitle), ut.RenderEmoji(c.NewTitle), createdStr)

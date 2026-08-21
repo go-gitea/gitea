@@ -15,12 +15,13 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/ssh"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests"
+	"gitea.dev/modules/generate"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/ssh"
+	"gitea.dev/modules/util"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,7 +34,7 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	assert.NoError(t, err)
 
 	keyFile := filepath.Join(tmpDir, keyname)
-	err = ssh.GenKeyPair(keyFile)
+	err = ssh.GenKeyPair(keyFile, generate.SSHKeyECDSA, 0)
 	assert.NoError(t, err)
 
 	err = os.WriteFile(filepath.Join(tmpDir, "ssh"), []byte("#!/bin/bash\n"+
@@ -56,6 +57,52 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 	u2.Host = net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort))
 	u2.Path = gitPath
 	return &u2
+}
+
+// gitAddChangesDeprecated marks local changes to be ready for commit.
+// Deprecated: use "git fast-import" instead for better performance and more control over the commit creation.
+func gitAddChangesDeprecated(ctx context.Context, repoPath string, all bool, files ...string) error {
+	cmd := gitcmd.NewCommand().AddArguments("add")
+	if all {
+		cmd.AddArguments("--all")
+	}
+	cmd.AddDashesAndList(files...)
+	_, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
+	return err
+}
+
+// CommitChangesOptions the options when a commit created
+type gitCommitChangesOptions struct {
+	Committer *git.Signature
+	Author    *git.Signature
+	Message   string
+}
+
+// gitCommitChangesDeprecated commits local changes with given committer, author and message.
+// If author is nil, it will be the same as committer.
+// Deprecated: use "git fast-import" instead for better performance and more control over the commit creation.
+func gitCommitChangesDeprecated(ctx context.Context, repoPath string, opts gitCommitChangesOptions) error {
+	cmd := gitcmd.NewCommand()
+	if opts.Committer != nil {
+		cmd.AddOptionValues("-c", "user.name="+opts.Committer.Name)
+		cmd.AddOptionValues("-c", "user.email="+opts.Committer.Email)
+	}
+	cmd.AddArguments("commit")
+
+	if opts.Author == nil {
+		opts.Author = opts.Committer
+	}
+	if opts.Author != nil {
+		cmd.AddOptionFormat("--author='%s <%s>'", opts.Author.Name, opts.Author.Email)
+	}
+	cmd.AddOptionFormat("--message=%s", opts.Message)
+
+	_, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
+	// No stderr but exit status 1 means nothing to commit.
+	if gitcmd.IsErrorExitCode(err, 1) {
+		return nil
+	}
+	return err
 }
 
 func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
@@ -90,6 +137,7 @@ func onGiteaRun[T testing.TB](t T, callback func(T, *url.URL)) {
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
+		t.Helper()
 		assert.NoError(t, git.Clone(t.Context(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(dstLocalPath, "README.md"))
 		assert.NoError(t, err)
@@ -121,20 +169,20 @@ func doGitCloneFail(u *url.URL) func(*testing.T) {
 func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
-		assert.NoError(t, git.InitRepository(t.Context(), dstPath, false, git.Sha1ObjectFormat.Name()))
+		assert.NoError(t, git.InitRepositoryLocal(t.Context(), dstPath, false, git.Sha1ObjectFormat.Name()))
 		// forcibly set default branch to master
 		_, _, err := gitcmd.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").
 			WithDir(dstPath).
 			RunStdString(t.Context())
 		assert.NoError(t, err)
 		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte("# Testing Repository\n\nOriginally created in: "+dstPath), 0o644))
-		assert.NoError(t, git.AddChanges(t.Context(), dstPath, true))
+		assert.NoError(t, gitAddChangesDeprecated(t.Context(), dstPath, true))
 		signature := git.Signature{
 			Email: "test@example.com",
 			Name:  "test",
 			When:  time.Now(),
 		}
-		assert.NoError(t, git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+		assert.NoError(t, gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
 			Committer: &signature,
 			Author:    &signature,
 			Message:   "Initial Commit",
@@ -181,12 +229,12 @@ func doGitCheckoutWriteFileCommit(opts localGitAddCommitOptions) func(*testing.T
 		doGitCheckoutBranch(opts.LocalRepoPath, opts.CheckoutBranch)(t)
 		localFilePath := filepath.Join(opts.LocalRepoPath, opts.TreeFilePath)
 		require.NoError(t, os.WriteFile(localFilePath, []byte(opts.TreeFileContent), 0o644))
-		require.NoError(t, git.AddChanges(t.Context(), opts.LocalRepoPath, true))
+		require.NoError(t, gitAddChangesDeprecated(t.Context(), opts.LocalRepoPath, true))
 		signature := git.Signature{
 			Email: "test@test.test",
 			Name:  "test",
 		}
-		require.NoError(t, git.CommitChanges(t.Context(), opts.LocalRepoPath, git.CommitChangesOptions{
+		require.NoError(t, gitCommitChangesDeprecated(t.Context(), opts.LocalRepoPath, gitCommitChangesOptions{
 			Committer: &signature,
 			Author:    &signature,
 			Message:   fmt.Sprintf("update %s @ %s", opts.TreeFilePath, opts.CheckoutBranch),

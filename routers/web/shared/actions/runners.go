@@ -4,20 +4,22 @@
 package actions
 
 import (
+	stdctx "context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 
-	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	shared_user "code.gitea.io/gitea/routers/web/shared/user"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/forms"
+	actions_model "gitea.dev/models/actions"
+	"gitea.dev/models/db"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/context"
+	"gitea.dev/services/forms"
 )
 
 const (
@@ -58,8 +60,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 
 	if ctx.Data["PageIsOrgSettings"] == true {
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
-			ctx.ServerError("RenderUserOrgHeader", err)
-			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
+			return nil, fmt.Errorf("RenderUserOrgHeader: %w", err)
 		}
 		return &runnersCtx{
 			RepoID:             0,
@@ -158,8 +159,9 @@ func Runners(ctx *context.Context) {
 	ctx.Data["RunnerOwnerID"] = opts.OwnerID
 	ctx.Data["RunnerRepoID"] = opts.RepoID
 	ctx.Data["SortType"] = opts.Sort
+	ctx.Data["AllowBulkActions"] = rCtx.IsAdmin
 
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 
 	ctx.Data["Page"] = pager
 
@@ -220,7 +222,7 @@ func RunnersEdit(ctx *context.Context) {
 	}
 
 	ctx.Data["Tasks"] = tasks
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, rCtx.RunnerEditTemplate)
@@ -249,7 +251,7 @@ func RunnersEditPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*forms.EditRunnerForm)
+	form := web.GetForm[*forms.EditRunnerForm](ctx)
 	runner.Description = form.Description
 
 	err = actions_model.UpdateRunner(ctx, runner, "description")
@@ -321,8 +323,117 @@ func RunnerDeletePost(ctx *context.Context) {
 	ctx.JSONRedirect(successRedirectTo)
 }
 
-func RedirectToDefaultSetting(ctx *context.Context) {
-	ctx.Redirect(ctx.Repo.RepoLink + "/settings/actions/runners")
+func RunnerUpdatePost(ctx *context.Context) {
+	rCtx, err := getRunnersCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRunnersCtx", err)
+		return
+	}
+
+	runner := findActionsRunner(ctx, rCtx)
+	if ctx.Written() {
+		return
+	}
+
+	if !runner.EditableInContext(rCtx.OwnerID, rCtx.RepoID) {
+		ctx.NotFound(util.NewPermissionDeniedErrorf("no permission to edit this runner"))
+		return
+	}
+
+	isDisabled := ctx.FormOptionalBool("disabled")
+	if !isDisabled.Has() {
+		ctx.HTTPError(http.StatusBadRequest, "missing 'disabled' parameter")
+		return
+	}
+
+	successKey := "actions.runners.enable_runner_success"
+	failedKey := "actions.runners.enable_runner_failed"
+	if isDisabled.Value() {
+		successKey = "actions.runners.disable_runner_success"
+		failedKey = "actions.runners.disable_runner_failed"
+	}
+
+	if err := actions_model.SetRunnerDisabled(ctx, runner, isDisabled.Value()); err != nil {
+		log.Warn("RunnerUpdatePost.SetRunnerDisabled failed: %v, url: %s", err, ctx.Req.URL)
+		ctx.Flash.Error(ctx.Tr(failedKey))
+		ctx.JSONRedirect("")
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr(successKey))
+	ctx.JSONRedirect("")
+}
+
+// RunnerBulkActionPost performs a bulk action (delete/disable/enable) on multiple runners.
+// Admin-only: route must be mounted inside the admin runners group; defense-in-depth check below.
+func RunnerBulkActionPost(ctx *context.Context) {
+	rCtx, err := getRunnersCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRunnersCtx", err)
+		return
+	}
+
+	if !rCtx.IsAdmin {
+		ctx.HTTPError(http.StatusForbidden, "bulk actions are admin-only")
+		return
+	}
+	// ATTENTION: it completely depends on the assumption that the doer is "site admin"
+	// So it doesn't do extra permission check to the runner IDs
+	// In the future, if you need to support such operation on non-admin pages, be careful!
+	runnerIDs := ctx.FormStringInt64s("ids")
+	if len(runnerIDs) == 0 {
+		ctx.HTTPError(http.StatusBadRequest, "missing runner IDs")
+		return
+	}
+
+	action := ctx.FormString("action")
+	var successKey, failedKey string
+	switch action {
+	case "delete":
+		successKey, failedKey = "actions.runners.delete_runner_success", "actions.runners.delete_runner_failed"
+	case "disable":
+		successKey, failedKey = "actions.runners.disable_runner_success", "actions.runners.disable_runner_failed"
+	case "enable":
+		successKey, failedKey = "actions.runners.enable_runner_success", "actions.runners.enable_runner_failed"
+	default:
+		ctx.HTTPError(http.StatusBadRequest, "invalid action")
+		return
+	}
+
+	runners, err := db.Find[actions_model.ActionRunner](ctx, &actions_model.FindRunnerOptions{IDs: runnerIDs})
+	if err != nil {
+		ctx.ServerError("FindRunners", err)
+		return
+	}
+
+	err = db.WithTx(ctx, func(txCtx stdctx.Context) error {
+		for _, r := range runners {
+			switch action {
+			case "delete":
+				if err := actions_model.DeleteRunner(txCtx, r.ID); err != nil {
+					return err
+				}
+			case "disable":
+				if err := actions_model.SetRunnerDisabled(txCtx, r, true); err != nil {
+					return err
+				}
+			case "enable":
+				if err := actions_model.SetRunnerDisabled(txCtx, r, false); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Warn("RunnerBulkActionPost.%s failed: %v, url: %s", action, err, ctx.Req.URL)
+		ctx.Flash.Error(ctx.Tr(failedKey))
+		ctx.JSONRedirect(rCtx.RedirectLink)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr(successKey))
+	ctx.JSONRedirect(rCtx.RedirectLink)
 }
 
 func findActionsRunner(ctx *context.Context, rCtx *runnersCtx) *actions_model.ActionRunner {

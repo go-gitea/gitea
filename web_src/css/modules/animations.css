@@ -13,6 +13,7 @@
 }
 
 .btn.is-loading > *,
+.btn-octicon.is-loading > *,
 .button.is-loading > * {
   opacity: 0;
 }
@@ -23,7 +24,7 @@
   display: block;
   left: 50%;
   top: 50%;
-  height: min(4em, 66.6%);
+  height: var(--loading-size, min(4em, 66.6%));
   width: fit-content; /* compat: safari - https://bugs.webkit.org/show_bug.cgi?id=267625 */
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
@@ -98,13 +99,6 @@ code.language-math.is-loading::after {
 /* pulse animation for scale(1.5) in 200ms */
 .pulse-1p5-200 {
   animation: pulse-1p5 200ms linear;
-}
-
-.ui.modal,
-.ui.dimmer.transition {
-  animation-name: fadein;
-  animation-duration: 100ms;
-  animation-timing-function: ease-in-out;
 }
 
 .rotate-clockwise {

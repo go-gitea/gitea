@@ -1,0 +1,41 @@
+Content-Type: application/xml; charset=utf-8
+
+<?xml version="1.0" encoding="UTF-8"?>
+<tickets type="array">
+  <ticket>
+    <ticket-id type="integer">2</ticket-id>
+    <summary>Open Ticket</summary>
+    <ticket-type>Feature</ticket-type>
+    <reporter-id type="integer">43</reporter-id>
+    <reporter>gitea-test-43</reporter>
+    <type>
+      <name>Feature</name>
+    </type>
+    <status>
+      <treat-as-closed type="boolean">false</treat-as-closed>
+    </status>
+    <milestone>
+      <name></name>
+    </milestone>
+    <updated-at type="datetime">2021-09-26T19:19:34+00:00</updated-at>
+    <created-at type="datetime">2021-09-26T19:19:14+00:00</created-at>
+  </ticket>
+  <ticket>
+    <ticket-id type="integer">1</ticket-id>
+    <summary>Closed Ticket</summary>
+    <ticket-type>Bug</ticket-type>
+    <reporter-id type="integer">43</reporter-id>
+    <reporter>gitea-test-43</reporter>
+    <type>
+      <name>Bug</name>
+    </type>
+    <status>
+      <treat-as-closed type="boolean">true</treat-as-closed>
+    </status>
+    <milestone>
+      <name>Milestone1</name>
+    </milestone>
+    <updated-at type="datetime">2021-09-26T19:18:55+00:00</updated-at>
+    <created-at type="datetime">2021-09-26T19:18:33+00:00</created-at>
+  </ticket>
+</tickets>

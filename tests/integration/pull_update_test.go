@@ -10,18 +10,17 @@ import (
 	"testing"
 	"time"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	git_model "code.gitea.io/gitea/models/git"
-	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/perm"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/gitrepo"
-	pull_service "code.gitea.io/gitea/services/pull"
-	repo_service "code.gitea.io/gitea/services/repository"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	auth_model "gitea.dev/models/auth"
+	issues_model "gitea.dev/models/issues"
+	"gitea.dev/models/perm"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	pull_service "gitea.dev/services/pull"
+	repo_service "gitea.dev/services/repository"
+	files_service "gitea.dev/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,7 +36,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		require.NoError(t, pr.LoadIssue(t.Context()))
 
 		// Test GetDiverging
-		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
@@ -51,7 +50,7 @@ func TestAPIPullUpdate(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err = git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		require.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 2, diffCount.Ahead)
@@ -62,12 +61,67 @@ func TestAPIPullUpdate(t *testing.T) {
 	})
 }
 
-func enableRepoAllowUpdateWithRebase(t *testing.T, repoID int64, allow bool) {
+// TestAPIPullUpdatePublicOnlyToken verifies that a public-only API token cannot
+// update (push into) a PR whose head repo is private, even when the base repo
+// named in the route is public.
+func TestAPIPullUpdatePublicOnlyToken(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+		pr := createOutdatedPR(t, user, org26)
+		require.NoError(t, pr.LoadBaseRepo(t.Context()))
+		require.NoError(t, pr.LoadHeadRepo(t.Context()))
+		require.NoError(t, pr.LoadIssue(t.Context()))
+
+		// make the head repo private while the base repo stays public
+		require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(),
+			&repo_model.Repository{ID: pr.HeadRepo.ID, IsPrivate: true}, "is_private"))
+
+		// a public-only write token must be refused (404), not perform the push
+		publicOnlyToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopePublicOnly)
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(publicOnlyToken)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// the head branch must still be outdated (no push happened)
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		assert.Equal(t, 1, diffCount.Behind)
+
+		// a normal write token still works, proving the guard is scope-specific
+		token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository)
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+	})
+}
+
+func updateRepoPullRequestConfig(t *testing.T, repoID int64, update func(*repo_model.PullRequestsConfig)) {
 	t.Helper()
 
 	repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repoID, Type: unit.TypePullRequests})
-	repoUnit.PullRequestsConfig().AllowRebaseUpdate = allow
-	assert.NoError(t, repo_model.UpdateRepoUnit(t.Context(), repoUnit))
+	update(repoUnit.PullRequestsConfig())
+	assert.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoUnit))
+}
+
+func enableRepoAllowUpdateWithRebase(t *testing.T, repoID int64, allow bool) {
+	updateRepoPullRequestConfig(t, repoID, func(c *repo_model.PullRequestsConfig) { c.AllowRebaseUpdate = allow })
+}
+
+// setupOutdatedPRWithConfig creates an outdated PR (user2 base, org26 fork), loads its
+// base repo, head repo, and issue, then applies the supplied PullRequestsConfig mutation.
+func setupOutdatedPRWithConfig(t *testing.T, mutate func(*repo_model.PullRequestsConfig)) *issues_model.PullRequest {
+	t.Helper()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+	pr := createOutdatedPR(t, user, org26)
+	require.NoError(t, pr.LoadBaseRepo(t.Context()))
+	require.NoError(t, pr.LoadHeadRepo(t.Context()))
+	require.NoError(t, pr.LoadIssue(t.Context()))
+	if mutate != nil {
+		updateRepoPullRequestConfig(t, pr.BaseRepo.ID, mutate)
+	}
+	return pr
 }
 
 func TestAPIPullUpdateByRebase(t *testing.T) {
@@ -79,7 +133,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 
 		// Test GetDiverging
-		diffCount, err := gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 1, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
@@ -114,53 +168,50 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 
 		// Test GetDiverging after update
-		diffCount, err = gitrepo.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		diffCount, err = git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
 	})
 }
 
-func TestAPIPullUpdateByRebase2(t *testing.T) {
+// TestAPIPullUpdateStyleSettings first checks that a disabled explicit style is
+// forbidden, then guards back-compat: even when the repo's DefaultUpdateStyle is
+// rebase, an API call with no `style` parameter must still perform a merge
+// update so existing API clients don't silently flip behavior.
+func TestAPIPullUpdateStyleSettings(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		// Create PR to test
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
-		pr := createOutdatedPR(t, user, org26)
-		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
-		assert.NoError(t, pr.LoadIssue(t.Context()))
+		pr := setupOutdatedPRWithConfig(t, func(c *repo_model.PullRequestsConfig) {
+			c.AllowMergeUpdate = false
+			c.AllowRebaseUpdate = true
+			c.DefaultUpdateStyle = repo_model.UpdateStyleRebase
+		})
 
-		enableRepoAllowUpdateWithRebase(t, pr.BaseRepo.ID, false)
+		user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), pr.BaseRepo, user40, perm.AccessModeWrite))
+		require.NoError(t, repo_service.AddOrUpdateCollaborator(t.Context(), pr.HeadRepo, user40, perm.AccessModeWrite))
 
-		session := loginUser(t, "user2")
+		session := loginUser(t, "user40")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+
+		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=merge", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
 			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusForbidden)
 
-		enableRepoAllowUpdateWithRebase(t, pr.BaseRepo.ID, true)
-		assert.NoError(t, pr.LoadHeadRepo(t.Context()))
+		updateRepoPullRequestConfig(t, pr.BaseRepo.ID, func(c *repo_model.PullRequestsConfig) {
+			c.AllowMergeUpdate = true
+		})
 
-		// add a protected branch rule to the head branch to block rebase
-		pb := git_model.ProtectedBranch{
-			RepoID:       pr.HeadRepo.ID,
-			RuleName:     pr.HeadBranch,
-			CanPush:      false,
-			CanForcePush: false,
-		}
-		err := git_model.UpdateProtectBranch(t.Context(), pr.HeadRepo, &pb, git_model.WhitelistOptions{})
-		assert.NoError(t, err)
-		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
-			AddTokenAuth(token)
-		session.MakeRequest(t, req, http.StatusForbidden)
-
-		// remove the protected branch rule to allow rebase
-		err = git_model.DeleteProtectedBranch(t.Context(), pr.HeadRepo, pb.ID)
-		assert.NoError(t, err)
-
-		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
+		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
 			AddTokenAuth(token)
 		session.MakeRequest(t, req, http.StatusOK)
+
+		// merge update produces a merge commit on top of the head commit (Ahead=2),
+		// rebase update would replay the head commit alone (Ahead=1).
+		diffCount, err := git.GetDivergingCommits(t.Context(), pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+		require.NoError(t, err)
+		assert.Equal(t, 0, diffCount.Behind)
+		assert.Equal(t, 2, diffCount.Ahead)
 	})
 }
 

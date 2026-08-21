@@ -10,9 +10,9 @@ import (
 	stdurl "net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/util"
 )
 
 // ErrWrongURLFormat represents an error with wrong url format

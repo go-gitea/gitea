@@ -9,17 +9,17 @@ import (
 	"io"
 	"os"
 
-	packages_model "code.gitea.io/gitea/models/packages"
-	packages_module "code.gitea.io/gitea/modules/packages"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/tempdir"
+	packages_model "gitea.dev/models/packages"
+	packages_module "gitea.dev/modules/packages"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/tempdir"
 )
 
 var (
 	// errWriteAfterRead occurs if Write is called after a read operation
 	errWriteAfterRead = errors.New("write is unsupported after a read operation")
-	// errOffsetMissmatch occurs if the file offset is different than the model
-	errOffsetMissmatch = errors.New("offset mismatch between file and model")
+	// errOffsetMismatch occurs if the file offset is different than the model
+	errOffsetMismatch = errors.New("offset mismatch between file and model")
 )
 
 // BlobUploader handles chunked blob uploads
@@ -86,7 +86,7 @@ func (u *BlobUploader) Append(ctx context.Context, r io.Reader) error {
 		return err
 	}
 	if offset != u.BytesReceived {
-		return errOffsetMissmatch
+		return errOffsetMismatch
 	}
 
 	n, err := io.Copy(io.MultiWriter(u.file, u.MultiHasher), r)

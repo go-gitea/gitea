@@ -11,21 +11,21 @@ import (
 	"path"
 	"strings"
 
-	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/context/upload"
-	"code.gitea.io/gitea/services/forms"
-	files_service "code.gitea.io/gitea/services/repository/files"
+	git_model "gitea.dev/models/git"
+	"gitea.dev/models/issues"
+	"gitea.dev/models/unit"
+	"gitea.dev/modules/charset"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/httplib"
+	"gitea.dev/modules/log"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
+	"gitea.dev/modules/web"
+	"gitea.dev/services/context"
+	"gitea.dev/services/context/upload"
+	"gitea.dev/services/forms"
+	files_service "gitea.dev/services/repository/files"
 )
 
 const (
@@ -112,7 +112,7 @@ func (f *preparedEditorCommitForm[T]) GetCommitMessage(defaultCommitMessage stri
 }
 
 func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *context.Context) *preparedEditorCommitForm[T] {
-	form := web.GetForm(ctx).(T)
+	form := web.GetForm[T](ctx)
 	if ctx.HasError() {
 		ctx.JSONError(ctx.GetErrMsg())
 		return nil
@@ -218,12 +218,13 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 	}
 
 	// redirect to the newly updated file
-	redirectTo := util.URLJoin(ctx.Repo.RepoLink, "src/branch", util.PathEscapeSegments(parsed.NewBranchName), util.PathEscapeSegments(treePath))
+	redirectTo := ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(parsed.NewBranchName) + "/" + util.PathEscapeSegments(treePath)
+	redirectTo = strings.TrimSuffix(redirectTo, "/")
 	ctx.JSONRedirect(redirectTo)
 }
 
 func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.ReadCloser, fInfo *fileInfo) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "GetTreeEntryByPath", err)
 		return nil, nil, nil
@@ -235,7 +236,7 @@ func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.Read
 		return nil, nil, nil
 	}
 
-	blob := entry.Blob()
+	blob := entry.Blob(ctx.Repo.GitRepo)
 	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -318,7 +319,12 @@ func EditFile(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["CodeEditorConfig"] = getCodeEditorConfig(ctx, ctx.Repo.TreePath)
+	editorConfig := getCodeEditorConfigByEditorconfig(ctx, ctx.Repo.TreePath)
+	editorConfig.Autofocus = !isNewFile
+	if isNewFile {
+		editorConfig.Filename = ""
+	}
+	ctx.Data["CodeEditorConfig"] = editorConfig
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 
@@ -397,7 +403,7 @@ func DeleteFilePost(ctx *context.Context) {
 	}
 
 	// Check if the path is a directory
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx, ctx.Repo.GitRepo, treePath)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
 		return
@@ -436,7 +442,7 @@ func DeleteFilePost(ctx *context.Context) {
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", treePath))
 	}
-	redirectTreePath := getClosestParentWithFiles(ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
+	redirectTreePath := getClosestParentWithFiles(ctx, ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
 	redirectForCommitChoice(ctx, parsed, redirectTreePath)
 }
 

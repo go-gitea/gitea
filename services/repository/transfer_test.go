@@ -7,17 +7,17 @@ import (
 	"sync"
 	"testing"
 
-	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/organization"
-	access_model "code.gitea.io/gitea/models/perm/access"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/feed"
-	notify_service "code.gitea.io/gitea/services/notify"
+	activities_model "gitea.dev/models/activities"
+	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
+	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
+	"gitea.dev/services/feed"
+	notify_service "gitea.dev/services/notify"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,20 +37,21 @@ func TestTransferOwnership(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	assert.NoError(t, repo.LoadOwner(t.Context()))
+	sourceRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	sourceRepoBak := new(*sourceRepo)
+	assert.NoError(t, sourceRepo.LoadOwner(t.Context()))
 	repoTransfer := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoTransfer{ID: 1})
 	assert.NoError(t, repoTransfer.LoadAttributes(t.Context()))
-	assert.NoError(t, AcceptTransferOwnership(t.Context(), repo, doer))
+	assert.NoError(t, AcceptTransferOwnership(t.Context(), sourceRepo, doer))
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
 
-	exist, err := util.IsExist(repo_model.RepoPath("org3", "repo3"))
+	exist, err := git.IsRepositoryExist(t.Context(), sourceRepoBak)
 	assert.NoError(t, err)
 	assert.False(t, exist)
-	exist, err = util.IsExist(repo_model.RepoPath("user1", "repo3"))
+	exist, err = git.IsRepositoryExist(t.Context(), transferredRepo)
 	assert.NoError(t, err)
 	assert.True(t, exist)
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
@@ -133,6 +134,8 @@ func TestRepositoryTransferRejection(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 	// Set limit to 0 repositories so no repositories can be transferred
 	defer test.MockVariableValue(&setting.Repository.MaxCreationLimit, 0)()
+	defer test.MockVariableValue(&setting.Repository.UserMaxCreationLimit, 0)()
+	defer test.MockVariableValue(&setting.Repository.OrgMaxCreationLimit, 0)()
 
 	// Admin case
 	doerAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

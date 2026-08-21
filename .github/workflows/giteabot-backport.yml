@@ -1,0 +1,26 @@
+name: giteabot backport
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  giteabot:
+    if: github.repository == 'go-gitea/gitea'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: go-gitea/giteabot@1d822239e9110b50c36192edb3c85883cf12efb3 # v1.0.5
+        with:
+          github_token: ${{ secrets.GITEABOT_TOKEN }}
+          gitea_fork: giteabot/gitea
+          checks: backport

@@ -12,13 +12,13 @@ import (
 	"strings"
 	"testing"
 
-	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/json"
-	vagrant_module "code.gitea.io/gitea/modules/packages/vagrant"
-	"code.gitea.io/gitea/tests"
+	auth_model "gitea.dev/models/auth"
+	"gitea.dev/models/packages"
+	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	vagrant_module "gitea.dev/modules/packages/vagrant"
+	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -152,8 +152,7 @@ func TestPackageVagrant(t *testing.T) {
 			Versions         []*versionMetadata `json:"versions"`
 		}
 
-		var result packageMetadata
-		DecodeJSON(t, resp, &result)
+		result := DecodeJSON(t, resp, &packageMetadata{})
 
 		assert.Equal(t, packageName, result.Name)
 		assert.Equal(t, packageDescription, result.Description)
