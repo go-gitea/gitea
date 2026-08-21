@@ -62,9 +62,8 @@ export function initRepoIssueSidebarDependency(elSidebar: HTMLElement) {
   fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
     apiSettings: {
-      cache: false,
-      rawResponse: true,
       url: issueSearchUrl,
+      rawResponse: true, // backend responds an array, prevent fomantic api from converting it to an object
       onResponse(response: any) {
         const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
         const currIssueId = elDropdown.getAttribute('data-issue-id');

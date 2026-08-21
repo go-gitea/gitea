@@ -794,15 +794,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
-			if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-				for _, commit := range comment.Commits {
-					if commit.Status == nil {
-						continue
-					}
-					commit.Status.HideActionsURL(ctx)
-					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
-				}
-			}
+			git_model.SignCommitsApplyDoerPermission(ctx, ctx.Doer, comment.Commits)
 		} else if comment.Type == issues_model.CommentTypeAddTimeManual ||
 			comment.Type == issues_model.CommentTypeStopTracking ||
 			comment.Type == issues_model.CommentTypeDeleteTimeManual {

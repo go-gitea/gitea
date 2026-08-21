@@ -26,14 +26,15 @@ func TestAPIPrivateNoServ(t *testing.T) {
 		assert.Equal(t, int64(1), key.ID)
 		assert.Equal(t, "user2@localhost", key.Name)
 
-		deployKey, err := asymkey_model.AddDeployKey(ctx, 1, "test-deploy", "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment", false)
+		keyContent := "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment"
+		deployKey, err := asymkey_model.AddDeployKey(ctx, 1, "test-deploy", keyContent, perm.AccessModeRead)
 		assert.NoError(t, err)
 
 		key, user, err = private.ServNoCommand(ctx, deployKey.KeyID)
 		assert.NoError(t, err)
 		assert.Empty(t, user)
 		assert.Equal(t, deployKey.KeyID, key.ID)
-		assert.Equal(t, "test-deploy", key.Name)
+		assert.Equal(t, "(DeployKey)", key.Name)
 	})
 }
 
@@ -84,10 +85,11 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.Empty(t, results)
 
 		// Add reading deploy key
-		deployKey, err := asymkey_model.AddDeployKey(ctx, 19 /* repo id */, "test-deploy", "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment", true)
+		testContent := "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment"
+		deployKey, err := asymkey_model.AddDeployKey(ctx, 19 /* repo id */, "test-deploy", testContent, perm.AccessModeRead)
 		assert.NoError(t, err)
 
-		// Can pull from repo we're a deploy key for
+		// Can pull from repo we're a deploy-key for
 		results, extra = private.ServCommand(ctx, deployKey.KeyID, "user15", "big_test_private_1", perm.AccessModeRead, "git-upload-pack", "")
 		assert.NoError(t, extra.Error)
 		assert.False(t, results.IsWiki)
@@ -116,7 +118,8 @@ func TestAPIPrivateServ(t *testing.T) {
 		assert.Empty(t, results)
 
 		// Add writing deploy key
-		deployKey, err = asymkey_model.AddDeployKey(ctx, 20 /* repo id */, "test-deploy", "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment", false)
+		testContent = "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNhLXNoYTItbmlzdHAyNTZAb3BlbnNzaC5jb20AAAAIbmlzdHAyNTYAAABBBGXEEzWmm1dxb+57RoK5KVCL0w2eNv9cqJX2AGGVlkFsVDhOXHzsadS3LTK4VlEbbrDMJdoti9yM8vclA8IeRacAAAAEc3NoOg== nocomment"
+		deployKey, err = asymkey_model.AddDeployKey(ctx, 20 /* repo id */, "test-deploy", testContent, perm.AccessModeWrite)
 		assert.NoError(t, err)
 
 		// Cannot push to a private repo with reading key

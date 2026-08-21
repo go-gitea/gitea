@@ -169,8 +169,8 @@ type SearchRepoOptions struct {
 	// False -> include just public
 	IsPrivate optional.Option[bool]
 	// None -> include collaborative AND non-collaborative
-	// True -> include just collaborative
-	// False -> include just non-collaborative
+	// True -> include just collaborative (the "OwnerID" is not really an owner, it just means a collaborator who doesn't own the repo)
+	// False -> include just non-collaborative (the repo must be in the owner's name space)
 	Collaborate optional.Option[bool]
 	// What type of unit the user can be collaborative in,
 	// it is ignored if Collaborate is False.
@@ -310,15 +310,12 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 }
 
 // userOrgTeamUnitRepoBuilder returns repo ids where user's teams can access the special unit.
-// A team grants the unit either through an explicit team_unit row (access_mode > none) or by being an
-// admin/owner team (team.authorize >= admin), which grants every unit regardless of team_unit rows —
-// mirroring the HasAdminAccess() short-circuit in access.GetIndividualUserRepoPermission.
 func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
 		Join("INNER", "team", "`team`.id = `team_repo`.team_id").
 		Join("LEFT", "team_unit", builder.Expr("`team_unit`.team_id = `team_repo`.team_id AND `team_unit`.`type` = ?", unitType)).
 		Where(builder.Or(
-			builder.Gte{"`team`.authorize": int(perm.AccessModeAdmin)},
+			builder.Gt{"`team`.authorize": int(perm.AccessModeNone)},
 			builder.Gt{"`team_unit`.`access_mode`": int(perm.AccessModeNone)},
 		))
 }
@@ -658,11 +655,15 @@ func SearchRepositoryIDsByCondition(ctx context.Context, cond builder.Cond) ([]i
 func userAllPublicRepoCond(cond builder.Cond, orgVisibilityLimit []structs.VisibleType) builder.Cond {
 	return cond.Or(builder.And(
 		builder.Eq{"`repository`.is_private": false},
-		// Aren't in a private organisation or limited organisation if we're not logged in
 		builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(
-			builder.And(
-				builder.Eq{"type": user_model.UserTypeOrganization},
-				builder.In("visibility", orgVisibilityLimit)),
+			builder.Or(
+				builder.And(
+					builder.Eq{"type": user_model.UserTypeOrganization},
+					builder.In("visibility", orgVisibilityLimit)),
+				builder.And(
+					builder.Neq{"type": user_model.UserTypeOrganization},
+					builder.Neq{"visibility": structs.VisibleTypePublic}),
+			),
 		))))
 }
 
@@ -768,6 +769,15 @@ func PublicRepoUnderPublicOwnerCond() builder.Cond {
 	return builder.And(
 		builder.Eq{"`repository`.is_private": false},
 		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePublic})),
+	)
+}
+
+// NotPublicRepoUnderPublicOwnerCond complements PublicRepoUnderPublicOwnerCond. Spelled positively so
+// the owner subquery hashes the limited/private minority, not every public user.
+func NotPublicRepoUnderPublicOwnerCond() builder.Cond {
+	return builder.Or(
+		builder.Eq{"`repository`.is_private": true},
+		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Neq{"visibility": structs.VisibleTypePublic})),
 	)
 }
 
