@@ -1099,6 +1099,10 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git
 		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
+	if !ctx.TokenCanAccessRepo(headRepo) {
+		ctx.APIErrorNotFound()
+		return nil, nil
+	}
 
 	isSameRepo := baseRepo.ID == headRepo.ID
 
