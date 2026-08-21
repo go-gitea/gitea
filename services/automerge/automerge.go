@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
 	"gitea.dev/modules/queue"
+	"gitea.dev/modules/util"
 	"gitea.dev/services/automergequeue"
 	notify_service "gitea.dev/services/notify"
 	pull_service "gitea.dev/services/pull"
@@ -40,13 +41,9 @@ func Init() error {
 	return nil
 }
 
-func handler(items ...automergequeue.Item) []automergequeue.Item {
+func handler(items ...automergequeue.AutoMergeItem) []automergequeue.AutoMergeItem {
 	for _, item := range items {
-		if item.PullID != 0 {
-			handlePullRequestAutoMerge(item.PullID)
-		} else {
-			handleRepoCommitAutoMerge(item.RepoID, item.CommitID)
-		}
+		handleAutoMergeItem(item)
 	}
 	return nil
 }
@@ -83,90 +80,107 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 	})
 }
 
-// handleRepoCommitAutoMerge queues an automerge check for every pull request whose head is the given commit
-func handleRepoCommitAutoMerge(repoID int64, commitID string) {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
-		fmt.Sprintf("Handle AutoMerge of commit[%s] in repo[%d]", commitID, repoID))
+func handleAutoMergeItem(item automergequeue.AutoMergeItem) {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("AutoMerge: %s", string(item)))
 	defer finished()
 
+	parsed := item.Parse()
+	if parsed.PullID != 0 {
+		handlePullRequestAutoMergeByPullID(ctx, parsed.PullID)
+	} else if parsed.RepoID != 0 {
+		handleAutoMergeByRepoCommit(ctx, parsed.RepoID, parsed.CommitID)
+	} else {
+		log.Error("unsupported automerge item: %q", item)
+	}
+}
+
+// handleRepoCommitAutoMerge queues an automerge check for every pull request whose head is the given commit
+func handleAutoMergeByRepoCommit(ctx context.Context, repoID int64, commitID string) {
 	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 	if err != nil {
 		log.Error("GetRepositoryByID[%d]: %v", repoID, err)
 		return
 	}
 
-	pulls, err := getPullRequestsByHeadSHA(ctx, commitID, repo, func(pr *issues_model.PullRequest) bool {
+	pulls, err := enumPullRequestsByHeadCommitID(ctx, commitID, repo, func(pr *issues_model.PullRequest) bool {
 		return !pr.HasMerged && pr.IsStatusMergeable()
 	})
 	if err != nil {
-		log.Error("getPullRequestsByHeadSHA[%-v, %s]: %v", repo, commitID, err)
+		log.Error("enumPullRequestsByHeadCommitID[%-v, %s]: %v", repo, commitID, err)
 		return
 	}
-
 	for _, pr := range pulls {
-		automergequeue.AddToQueue(pr)
+		handlePullRequestAutoMerge(ctx, pr)
 	}
 }
 
-func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
+func enumPullRequestsByHeadCommitID(ctx context.Context, commitID string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
 	gitRepo, err := git.OpenRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
 	defer gitRepo.Close()
 
-	refs, err := gitRepo.GetRefsBySha(ctx, sha, "")
+	// Pull ref is something like "refs/pull/1/head"
+	refs, err := gitRepo.GetRefsBySha(ctx, commitID, git.PullPrefix)
 	if err != nil {
 		return nil, err
 	}
 
 	pulls := make(map[int64]*issues_model.PullRequest)
-
 	for _, ref := range refs {
-		// Each pull branch starts with refs/pull/ we then go from there to find the index of the pr and then
-		// use that to get the pr.
-		if strings.HasPrefix(ref, git.PullPrefix) {
-			parts := strings.Split(ref[len(git.PullPrefix):], "/")
+		refPart, ok := strings.CutPrefix(ref, "refs/heads/")
+		if !ok {
+			continue
+		}
+		parts := strings.Split(refPart, "/") // the parts are from "123/head"
+		if len(parts) != 2 {
+			continue // impossible to happen
+		}
 
-			// e.g. 'refs/pull/1/head' would be []string{"1", "head"}
-			if len(parts) != 2 {
-				log.Error("getPullRequestsByHeadSHA found broken pull ref [%s] on repo [%-v]", ref, repo)
-				continue
-			}
+		prIndex, err := strconv.ParseInt(parts[0], 10, 64)
+		if err != nil {
+			log.Error("Found broken pull ref [%s] on repo %s", ref, repo.FullName())
+			continue
+		}
 
-			prIndex, err := strconv.ParseInt(parts[0], 10, 64)
-			if err != nil {
-				log.Error("getPullRequestsByHeadSHA found broken pull ref [%s] on repo [%-v]", ref, repo)
-				continue
+		p, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, prIndex)
+		if err != nil {
+			if errors.Is(err, util.ErrNotExist) {
+				continue // If there is no pull request for this branch, we don't try to merge it.
 			}
+			return nil, err
+		}
 
-			p, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, prIndex)
-			if err != nil {
-				// If there is no pull request for this branch, we don't try to merge it.
-				if issues_model.IsErrPullRequestNotExist(err) {
-					continue
-				}
-				return nil, err
-			}
-
-			if filter(p) {
-				pulls[p.ID] = p
-			}
+		if filter(p) {
+			pulls[p.ID] = p
 		}
 	}
-
 	return pulls, nil
 }
 
-// handlePullRequestAutoMerge merge the pull request if all checks are successful
-func handlePullRequestAutoMerge(pullID int64) {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
-		fmt.Sprintf("Handle AutoMerge of PR[%d]", pullID))
-	defer finished()
-
+func handlePullRequestAutoMergeByPullID(ctx context.Context, pullID int64) {
 	pr, err := issues_model.GetPullRequestByID(ctx, pullID)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", pullID, err)
+		return
+	}
+	handlePullRequestAutoMerge(ctx, pr)
+}
+
+// handlePullRequestAutoMerge merge the pull request if all checks are successful
+func handlePullRequestAutoMerge(ctx context.Context, pr *issues_model.PullRequest) {
+	_ = pr.LoadIssue(ctx)
+	if (pr.Issue != nil && pr.Issue.IsClosed) || pr.HasMerged {
+		// if the PR has been closed or merged, delete the automerge record and skip
+		err := pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
+		if err != nil {
+			log.Error("Error deleting scheduled auto merge %v: %v", pr.ID, err)
+		}
+		return
+	}
+	if !pr.IsStatusMergeable() || pr.IsWorkInProgress(ctx) {
+		// quick check: if the PR can't be merged, just skip
 		return
 	}
 

@@ -808,11 +808,9 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
-		oldAutoMergeAddToQueue := automergequeue.AddToQueue
-		addToQueuePullChan := make(chan int64, 1)
-		automergequeue.AddToQueue = func(pr *issues_model.PullRequest) {
-			addToQueuePullChan <- pr.ID
-		}
+		addToQueuePullChan := make(chan automergequeue.AutoMergeItem, 1)
+		defer test.MockVariableValue(&automergequeue.AddToQueue, func(item automergequeue.AutoMergeItem) { addToQueuePullChan <- item })()
+
 		// first time insert automerge record, return true
 		scheduled, err := automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
 		assert.NoError(t, err)
@@ -823,7 +821,6 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		case <-time.After(time.Second):
 			assert.FailNow(t, "Timeout: nothing was added to automergequeue")
 		}
-		automergequeue.AddToQueue = oldAutoMergeAddToQueue
 
 		// second time insert automerge record, return false because it does exist
 		scheduled, err = automerge.ScheduleAutoMerge(t.Context(), user1, pr, repo_model.MergeStyleMerge, "auto merge test", false)
