@@ -18,6 +18,7 @@ import (
 	base "gitea.dev/modules/migration"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/structs"
+	"gitea.dev/modules/timeutil"
 	repo_service "gitea.dev/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -119,6 +120,186 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, pulls[0].LoadIssue(t.Context()))
 	assert.NoError(t, pulls[0].Issue.LoadDiscussComments(t.Context()))
 	assert.Len(t, pulls[0].Issue.Comments, 2)
+}
+
+func TestGiteaUploadIssueMetadata(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assignee := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	uploader.repo = repo
+	uploader.sameApp = true
+
+	closedAt := time.Date(2026, 2, 3, 4, 5, 6, 0, time.UTC)
+	reactionAt := time.Date(2026, 2, 2, 3, 4, 5, 0, time.UTC)
+	beforeFallback := timeutil.TimeStampNow()
+	require.NoError(t, uploader.CreateIssues(ctx,
+		&base.Issue{
+			Number: 9001, PosterID: doer.ID, PosterName: doer.Name, Title: "metadata", State: "closed",
+			Created: closedAt.Add(-time.Hour), Updated: closedAt, Closed: &closedAt,
+			ClosedBy: &base.ExternalUser{ID: assignee.ID, Name: assignee.Name}, CloseReason: "not_planned",
+			AssigneeUsers: []*base.ExternalUser{{ID: assignee.ID, Name: assignee.Name}, {ID: 999999, Name: "missing"}},
+			Reactions: []*base.Reaction{
+				{UserID: assignee.ID, UserName: assignee.Name, Content: "+1", Created: reactionAt},
+				{UserID: assignee.ID, UserName: assignee.Name, Content: "heart"},
+			},
+		},
+		&base.Issue{
+			Number: 9002, PosterID: doer.ID, PosterName: doer.Name, Title: "no actor", State: "closed",
+			Created: closedAt.Add(-time.Hour), Updated: closedAt, Closed: &closedAt,
+		},
+		&base.Issue{
+			Number: 9005, PosterID: doer.ID, PosterName: doer.Name, Title: "external actor", State: "closed",
+			Created: closedAt.Add(-time.Hour), Updated: closedAt, Closed: &closedAt,
+			ClosedBy: &base.ExternalUser{ID: 999998, Name: "external-closer"}, CloseReason: "completed",
+		},
+		&base.Issue{
+			Number: 9006, PosterID: doer.ID, PosterName: doer.Name, Title: "no close time", State: "closed",
+			Created: closedAt.Add(-time.Hour), Updated: closedAt,
+			ClosedBy: &base.ExternalUser{ID: assignee.ID, Name: assignee.Name}, CloseReason: "completed",
+		},
+	))
+	afterFallback := timeutil.TimeStampNow()
+
+	var issue issues_model.Issue
+	has, err := db.GetEngine(ctx).Where("repo_id = ? AND `index` = ?", repo.ID, 9001).Get(&issue)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.True(t, issue.IsClosed)
+	assert.Equal(t, timeutil.TimeStamp(closedAt.Unix()), issue.ClosedUnix)
+	assigneeIDs, err := issues_model.GetAssigneeIDsByIssue(ctx, issue.ID)
+	require.NoError(t, err)
+	assert.Equal(t, []int64{assignee.ID}, assigneeIDs)
+
+	var reactions []*issues_model.Reaction
+	require.NoError(t, db.GetEngine(ctx).Where("issue_id = ?", issue.ID).OrderBy("type").Find(&reactions))
+	require.Len(t, reactions, 2)
+	assert.Equal(t, timeutil.TimeStamp(reactionAt.Unix()), reactions[0].CreatedUnix)
+	assert.GreaterOrEqual(t, reactions[1].CreatedUnix, beforeFallback)
+	assert.LessOrEqual(t, reactions[1].CreatedUnix, afterFallback)
+
+	closeComments, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{IssueID: issue.ID, Type: issues_model.CommentTypeClose})
+	require.NoError(t, err)
+	require.Len(t, closeComments, 1)
+	closeComment := closeComments[0]
+	assert.Equal(t, assignee.ID, closeComment.PosterID)
+	assert.Equal(t, timeutil.TimeStamp(closedAt.Unix()), closeComment.CreatedUnix)
+	require.NotNil(t, closeComment.CommentMetaData)
+	assert.Equal(t, "not_planned", closeComment.CommentMetaData.CloseReason)
+
+	missingActorIssue := uploader.issues[9002]
+	has, err = db.GetEngine(ctx).Where("issue_id = ? AND type = ?", missingActorIssue.ID, issues_model.CommentTypeClose).Exist(new(issues_model.Comment))
+	require.NoError(t, err)
+	assert.False(t, has)
+	externalActorIssue := uploader.issues[9005]
+	var externalCloseComment issues_model.Comment
+	has, err = db.GetEngine(ctx).Where("issue_id = ? AND type = ?", externalActorIssue.ID, issues_model.CommentTypeClose).Get(&externalCloseComment)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.Equal(t, doer.ID, externalCloseComment.PosterID)
+	assert.Equal(t, "external-closer", externalCloseComment.OriginalAuthor)
+	assert.Equal(t, int64(999998), externalCloseComment.OriginalAuthorID)
+	assert.Equal(t, timeutil.TimeStamp(closedAt.Unix()), externalCloseComment.CreatedUnix)
+	missingTimeIssue := uploader.issues[9006]
+	has, err = db.GetEngine(ctx).Where("issue_id = ? AND type = ?", missingTimeIssue.ID, issues_model.CommentTypeClose).Exist(new(issues_model.Comment))
+	require.NoError(t, err)
+	assert.False(t, has)
+
+	commentReactionAt := reactionAt.Add(time.Minute)
+	require.NoError(t, uploader.CreateComments(ctx, &base.Comment{
+		IssueIndex: 9001, PosterID: doer.ID, PosterName: doer.Name, Content: "comment", Created: closedAt,
+		Reactions: []*base.Reaction{{UserID: assignee.ID, UserName: assignee.Name, Content: "rocket", Created: commentReactionAt}},
+	}))
+	var commentReaction issues_model.Reaction
+	has, err = db.GetEngine(ctx).Where("issue_id = ? AND type = ?", issue.ID, "rocket").Get(&commentReaction)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.Equal(t, timeutil.TimeStamp(commentReactionAt.Unix()), commentReaction.CreatedUnix)
+}
+
+func TestGiteaUploadPullRequestMetadata(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	merger := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	uploader := NewGiteaLocalUploader(ctx, doer, repo.OwnerName, repo.Name)
+	uploader.repo = repo
+	uploader.sameApp = true
+
+	mergedAt := time.Date(2026, 3, 4, 5, 6, 7, 0, time.UTC)
+	reactionAt := mergedAt.Add(-time.Minute)
+	source := &base.PullRequest{
+		Number: 9003, PosterID: doer.ID, PosterName: doer.Name, Title: "merged", State: "closed",
+		Created: mergedAt.Add(-time.Hour), Updated: mergedAt, Closed: &mergedAt, Merged: true, MergedTime: &mergedAt,
+		MergedBy: &base.ExternalUser{ID: merger.ID, Name: merger.Name}, MergeCommitSHA: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		AssigneeUsers: []*base.ExternalUser{{ID: merger.ID, Name: merger.Name}, {ID: 999999, Name: "missing"}},
+		Reactions:     []*base.Reaction{{UserID: merger.ID, UserName: merger.Name, Content: "heart", Created: reactionAt}},
+		Head:          base.PullRequestBranch{Ref: "topic", OwnerName: repo.OwnerName, RepoName: repo.Name},
+		Base:          base.PullRequestBranch{Ref: "main", SHA: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", OwnerName: repo.OwnerName, RepoName: repo.Name},
+		EnsuredSafe:   true,
+	}
+	pullRequest, err := uploader.newPullRequest(ctx, source)
+	require.NoError(t, err)
+	assert.Equal(t, merger.ID, pullRequest.MergerID)
+	require.Len(t, pullRequest.Issue.Assignees, 1)
+	assert.Equal(t, merger.ID, pullRequest.Issue.Assignees[0].ID)
+	require.Len(t, pullRequest.Issue.Reactions, 1)
+	assert.Equal(t, timeutil.TimeStamp(reactionAt.Unix()), pullRequest.Issue.Reactions[0].CreatedUnix)
+
+	source.MergedBy = &base.ExternalUser{ID: 999999, Name: "missing"}
+	pullRequest, err = uploader.newPullRequest(ctx, source)
+	require.NoError(t, err)
+	assert.Equal(t, user_model.GhostUserID, pullRequest.MergerID)
+	source.MergedBy = nil
+	pullRequest, err = uploader.newPullRequest(ctx, source)
+	require.NoError(t, err)
+	assert.Equal(t, user_model.GhostUserID, pullRequest.MergerID)
+}
+
+func TestGiteaUploadReviewRequestTargets(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	uploader := NewGiteaLocalUploader(ctx, doer, "owner", "repo")
+	uploader.sameApp = true
+	uploader.issues[9004] = issue
+
+	requestedAt := time.Date(2036, 1, 1, 0, 0, 0, 0, time.UTC)
+	reactedAt := requestedAt.Add(time.Minute)
+	require.NoError(t, uploader.CreateReviews(ctx,
+		&base.Review{IssueIndex: 9004, ReviewerID: reviewer.ID, ReviewerName: reviewer.Name, State: base.ReviewStateRequestReview, CreatedAt: requestedAt},
+		&base.Review{IssueIndex: 9004, ReviewerID: 999999, ReviewerName: "missing", State: base.ReviewStateRequestReview, CreatedAt: requestedAt.Add(time.Second)},
+		&base.Review{
+			IssueIndex: 9004, ReviewerID: doer.ID, ReviewerName: doer.Name, State: base.ReviewStateCommented,
+			CreatedAt: requestedAt.Add(time.Minute), Content: "reaction timestamp",
+			Reactions: []*base.Reaction{{UserID: reviewer.ID, UserName: reviewer.Name, Content: "+1", Created: reactedAt}},
+		},
+	))
+
+	var requests []*issues_model.Review
+	require.NoError(t, db.GetEngine(ctx).Where("issue_id = ? AND type = ? AND created_unix >= ?", issue.ID, issues_model.ReviewTypeRequest, timeutil.TimeStamp(requestedAt.Unix())).Find(&requests))
+	require.Len(t, requests, 1)
+	assert.Equal(t, reviewer.ID, requests[0].ReviewerID)
+	assert.NotEqual(t, doer.ID, requests[0].ReviewerID)
+
+	var review issues_model.Review
+	has, err := db.GetEngine(ctx).Where("issue_id = ? AND content = ?", issue.ID, "reaction timestamp").Get(&review)
+	require.NoError(t, err)
+	require.True(t, has)
+	var header issues_model.Comment
+	has, err = db.GetEngine(ctx).Where("review_id = ? AND type = ?", review.ID, issues_model.CommentTypeReview).Get(&header)
+	require.NoError(t, err)
+	require.True(t, has)
+	var reaction issues_model.Reaction
+	has, err = db.GetEngine(ctx).Where("comment_id = ? AND type = ?", header.ID, "+1").Get(&reaction)
+	require.NoError(t, err)
+	require.True(t, has)
+	assert.Equal(t, timeutil.TimeStamp(reactedAt.Unix()), reaction.CreatedUnix)
 }
 
 func TestGiteaUploadRemapLocalUser(t *testing.T) {

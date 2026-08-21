@@ -8,3 +8,9 @@
   created: 2021-05-27T15:24:13+02:00
   updated: 2021-11-11T10:52:45+01:00
   closed: 2021-11-11T10:52:45+01:00
+  assignees:
+    - legacy-assignee
+  reactions:
+    - user_id: 2
+      user_name: reactor
+      content: heart

@@ -8,6 +8,7 @@ import "time"
 // Reviewable can be reviewed
 type Reviewable interface {
 	GetLocalIndex() int64
+	GetContext() DownloaderContext
 
 	// GetForeignIndex presents the foreign index, which could be misused:
 	// For example, if there are 2 Gitea sites: site-A exports a dataset, then site-B imports it:
@@ -42,6 +43,7 @@ type Review struct {
 	CreatedAt    time.Time `yaml:"created_at"`
 	State        string    // PENDING, APPROVED, REQUEST_CHANGES, or COMMENT
 	Comments     []*ReviewComment
+	Reactions    []*Reaction
 }
 
 // GetExternalName ExternalUserMigrated interface
@@ -52,16 +54,23 @@ func (r *Review) GetExternalID() int64 { return r.ReviewerID }
 
 // ReviewComment represents a review comment
 type ReviewComment struct {
-	ID        int64
-	InReplyTo int64 `yaml:"in_reply_to"`
-	Content   string
-	TreePath  string `yaml:"tree_path"`
-	DiffHunk  string `yaml:"diff_hunk"`
-	Position  int
-	Line      int
-	CommitID  string `yaml:"commit_id"`
-	PosterID  int64  `yaml:"poster_id"`
-	Reactions []*Reaction
-	CreatedAt time.Time `yaml:"created_at"`
-	UpdatedAt time.Time `yaml:"updated_at"`
+	ID         int64
+	InReplyTo  int64 `yaml:"in_reply_to"`
+	Content    string
+	TreePath   string `yaml:"tree_path"`
+	DiffHunk   string `yaml:"diff_hunk"`
+	Position   int
+	Line       int64
+	CommitID   string `yaml:"commit_id"`
+	PosterID   int64  `yaml:"poster_id"`
+	PosterName string `yaml:"poster_name"`
+	Reactions  []*Reaction
+	CreatedAt  time.Time `yaml:"created_at"`
+	UpdatedAt  time.Time `yaml:"updated_at"`
 }
+
+// GetExternalName ExternalUserMigrated interface
+func (r *ReviewComment) GetExternalName() string { return r.PosterName }
+
+// GetExternalID ExternalUserMigrated interface
+func (r *ReviewComment) GetExternalID() int64 { return r.PosterID }

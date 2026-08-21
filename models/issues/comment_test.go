@@ -4,6 +4,7 @@
 package issues_test
 
 import (
+	"html/template"
 	"testing"
 	"time"
 
@@ -12,9 +13,31 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCommentTimelineCloseTr(t *testing.T) {
+	tests := []struct {
+		name     string
+		isPull   bool
+		metadata *issues_model.CommentMetaData
+		expected template.HTML
+	}{
+		{name: "issue not planned", metadata: &issues_model.CommentMetaData{CloseReason: "not_planned"}, expected: "repo.issues.closed_as_not_planned_at:event-42,<time>created</time>"},
+		{name: "pull completed", isPull: true, metadata: &issues_model.CommentMetaData{CloseReason: "completed"}, expected: "repo.pulls.closed_as_completed_at:event-42,<time>created</time>"},
+		{name: "nil metadata", expected: "repo.issues.closed_at:event-42,<time>created</time>"},
+		{name: "empty reason", isPull: true, metadata: &issues_model.CommentMetaData{}, expected: "repo.pulls.closed_at:event-42,<time>created</time>"},
+		{name: "unknown reason", metadata: &issues_model.CommentMetaData{CloseReason: "future_reason"}, expected: "repo.issues.closed_at:event-42,<time>created</time>"},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			comment := &issues_model.Comment{ID: 42, Issue: &issues_model.Issue{IsPull: testCase.isPull}, CommentMetaData: testCase.metadata}
+			assert.Equal(t, testCase.expected, comment.TimelineCloseTr(translation.MockLocale{}, template.HTML("<time>created</time>")))
+		})
+	}
+}
 
 func TestCreateComment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())

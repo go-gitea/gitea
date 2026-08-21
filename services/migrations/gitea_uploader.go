@@ -426,6 +426,9 @@ func (g *GiteaLocalUploader) CreateIssues(ctx context.Context, issues ...*base.I
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
 		}
+		if err := g.applyAssignees(ctx, &is, issue.AssigneeUsers); err != nil {
+			return err
+		}
 
 		if err := g.remapUser(ctx, issue, &is); err != nil {
 			return err
@@ -434,17 +437,11 @@ func (g *GiteaLocalUploader) CreateIssues(ctx context.Context, issues ...*base.I
 		if issue.Closed != nil {
 			is.ClosedUnix = timeutil.TimeStamp(issue.Closed.Unix())
 		}
-		// add reactions
-		for _, reaction := range issue.Reactions {
-			res := issues_model.Reaction{
-				Type:        reaction.Content,
-				CreatedUnix: timeutil.TimeStampNow(),
-			}
-			if err := g.remapUser(ctx, reaction, &res); err != nil {
-				return err
-			}
-			is.Reactions = append(is.Reactions, &res)
+		reactions, err := g.remapReactions(ctx, issue.Reactions)
+		if err != nil {
+			return err
 		}
+		is.Reactions = reactions
 		iss = append(iss, &is)
 	}
 
@@ -455,6 +452,15 @@ func (g *GiteaLocalUploader) CreateIssues(ctx context.Context, issues ...*base.I
 
 		for _, is := range iss {
 			g.issues[is.Index] = is
+		}
+		lifecycleComments := make([]*issues_model.Comment, 0, len(iss))
+		for i, is := range iss {
+			if err := g.appendLifecycleComment(ctx, &lifecycleComments, is, issues[i].ClosedBy, issues[i].Closed, issues_model.CommentTypeClose, issues[i].CloseReason); err != nil {
+				return err
+			}
+		}
+		if err := issues_model.InsertIssueComments(ctx, lifecycleComments); err != nil {
+			return err
 		}
 	}
 
@@ -525,17 +531,11 @@ func (g *GiteaLocalUploader) CreateComments(ctx context.Context, comments ...*ba
 			return err
 		}
 
-		// add reactions
-		for _, reaction := range comment.Reactions {
-			res := issues_model.Reaction{
-				Type:        reaction.Content,
-				CreatedUnix: timeutil.TimeStampNow(),
-			}
-			if err := g.remapUser(ctx, reaction, &res); err != nil {
-				return err
-			}
-			cm.Reactions = append(cm.Reactions, &res)
+		reactions, err := g.remapReactions(ctx, comment.Reactions)
+		if err != nil {
+			return err
 		}
+		cm.Reactions = reactions
 
 		cms = append(cms, &cm)
 	}
@@ -568,7 +568,23 @@ func (g *GiteaLocalUploader) CreatePullRequests(ctx context.Context, prs ...*bas
 		g.issues[pr.Issue.Index] = pr.Issue
 		pull.StartPullRequestCheckImmediately(ctx, pr)
 	}
-	return nil
+	lifecycleComments := make([]*issues_model.Comment, 0, len(gprs))
+	for i, pr := range gprs {
+		commentType := issues_model.CommentTypeClose
+		actor := prs[i].ClosedBy
+		created := prs[i].Closed
+		reason := prs[i].CloseReason
+		if pr.HasMerged {
+			commentType = issues_model.CommentTypeMergePull
+			actor = prs[i].MergedBy
+			created = prs[i].MergedTime
+			reason = ""
+		}
+		if err := g.appendLifecycleComment(ctx, &lifecycleComments, pr.Issue, actor, created, commentType, reason); err != nil {
+			return err
+		}
+	}
+	return issues_model.InsertIssueComments(ctx, lifecycleComments)
 }
 
 func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *base.PullRequest) (head string, err error) {
@@ -782,21 +798,17 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		CreatedUnix: timeutil.TimeStamp(pr.Created.Unix()),
 		UpdatedUnix: timeutil.TimeStamp(pr.Updated.Unix()),
 	}
+	if err = g.applyAssignees(ctx, &issue, pr.AssigneeUsers); err != nil {
+		return nil, err
+	}
 
 	if err := g.remapUser(ctx, pr, &issue); err != nil {
 		return nil, err
 	}
 
-	// add reactions
-	for _, reaction := range pr.Reactions {
-		res := issues_model.Reaction{
-			Type:        reaction.Content,
-			CreatedUnix: timeutil.TimeStampNow(),
-		}
-		if err := g.remapUser(ctx, reaction, &res); err != nil {
-			return nil, err
-		}
-		issue.Reactions = append(issue.Reactions, &res)
+	issue.Reactions, err = g.remapReactions(ctx, pr.Reactions)
+	if err != nil {
+		return nil, err
 	}
 
 	pullRequest := issues_model.PullRequest{
@@ -814,13 +826,22 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 	if pullRequest.Issue.IsClosed && pr.Closed != nil {
 		pullRequest.Issue.ClosedUnix = timeutil.TimeStamp(pr.Closed.Unix())
 	}
-	if pullRequest.HasMerged && pr.MergedTime != nil {
-		pullRequest.MergedUnix = timeutil.TimeStamp(pr.MergedTime.Unix())
-		pullRequest.MergedCommitID = pr.MergeCommitSHA
-		pullRequest.MergerID = g.doer.ID
+	if pullRequest.HasMerged {
+		pullRequest.MergerID = user_model.GhostUserID
+		if pr.MergedBy != nil {
+			mergerID, err := g.remapUserID(ctx, pr.MergedBy)
+			if err != nil {
+				return nil, err
+			}
+			if mergerID > 0 {
+				pullRequest.MergerID = mergerID
+			}
+		}
+		if pr.MergedTime != nil {
+			pullRequest.MergedUnix = timeutil.TimeStamp(pr.MergedTime.Unix())
+			pullRequest.MergedCommitID = pr.MergeCommitSHA
+		}
 	}
-
-	// TODO: assignees
 
 	return &pullRequest, nil
 }
@@ -844,9 +865,8 @@ func convertReviewState(state string) issues_model.ReviewType {
 
 // CreateReviews create pull request reviews of currently migrated issues
 func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base.Review) error {
-	cms := make([]*issues_model.Review, 0, len(reviews))
+	cms := make([]*issues_model.InsertReviewOptions, 0, len(reviews))
 	for _, review := range reviews {
-		var issue *issues_model.Issue
 		issue, ok := g.issues[review.IssueIndex]
 		if !ok {
 			return fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex)
@@ -855,7 +875,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
 		}
 
-		cm := issues_model.Review{
+		cm := &issues_model.Review{
 			Type:        convertReviewState(review.State),
 			IssueID:     issue.ID,
 			Content:     review.Content,
@@ -863,17 +883,31 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
 		}
-
-		if err := g.remapUser(ctx, review, &cm); err != nil {
+		if review.State == base.ReviewStateRequestReview {
+			reviewerID, err := g.remapUserID(ctx, review)
+			if err != nil {
+				return err
+			}
+			if reviewerID == 0 {
+				continue
+			}
+			cm.ReviewerID = reviewerID
+		} else if err := g.remapUser(ctx, review, cm); err != nil {
 			return err
 		}
 
-		cms = append(cms, &cm)
+		headerReactions, err := g.remapReactions(ctx, review.Reactions)
+		if err != nil {
+			return err
+		}
+		insertOptions := &issues_model.InsertReviewOptions{Review: cm, HeaderReactions: headerReactions}
+		cms = append(cms, insertOptions)
+		if len(review.Comments) == 0 {
+			continue
+		}
 
-		// get pr
 		pr, ok := g.prCache[issue.ID]
 		if !ok {
-			var err error
 			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(ctx, issue.ID)
 			if err != nil {
 				return err
@@ -881,7 +915,6 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			g.prCache[issue.ID] = pr
 		}
 		if pr.MergeBase == "" {
-			// No mergebase -> no basis for any patches
 			log.Warn("PR #%d in %s/%s: does not have a merge base, all review comments will be ignored", pr.Index, g.repoOwner, g.repoName)
 			continue
 		}
@@ -894,50 +927,61 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 
 		for _, comment := range review.Comments {
 			line := comment.Line
+			position := comment.Position
 			if line != 0 {
-				comment.Position = 1
+				position = 1
 			} else if comment.DiffHunk != "" {
-				_, _, line, _ = git.ParseDiffHunkString(comment.DiffHunk)
+				_, _, parsedLine, _ := git.ParseDiffHunkString(comment.DiffHunk)
+				line = int64(parsedLine)
 			}
+			storedLine := line + int64(position) - 1
 
-			// SECURITY: The TreePath must be cleaned! use relative path
-			comment.TreePath = util.PathJoinRel(comment.TreePath)
-
+			treePath := util.PathJoinRel(comment.TreePath)
 			patch, _ := git.GetFileDiffCutAroundLine(ctx,
-				g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath,
-				int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+				g.gitRepo, pr.MergeBase, headCommitID, treePath,
+				int64((&issues_model.Comment{Line: storedLine}).UnsignedLine()), storedLine < 0, setting.UI.CodeCommentLines,
 			)
 
-			if comment.CreatedAt.IsZero() {
-				comment.CreatedAt = review.CreatedAt
+			createdAt := comment.CreatedAt
+			if createdAt.IsZero() {
+				createdAt = review.CreatedAt
 			}
-			if comment.UpdatedAt.IsZero() {
-				comment.UpdatedAt = comment.CreatedAt
+			updatedAt := comment.UpdatedAt
+			if updatedAt.IsZero() {
+				updatedAt = createdAt
 			}
 
+			commitID := comment.CommitID
 			objectFormat := git.ObjectFormatFromName(g.repo.ObjectFormatName)
-			if !objectFormat.IsValid(comment.CommitID) {
-				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", comment.CommitID, pr.Index, g.repoOwner, g.repoName, headCommitID)
-				comment.CommitID = headCommitID
+			if !objectFormat.IsValid(commitID) {
+				log.Warn("Invalid comment CommitID[%s] on comment[%d] in PR #%d of %s/%s replaced with %s", commitID, comment.ID, pr.Index, g.repoOwner, g.repoName, headCommitID)
+				commitID = headCommitID
 			}
 
-			c := issues_model.Comment{
+			c := &issues_model.Comment{
 				Type:        issues_model.CommentTypeCode,
 				IssueID:     issue.ID,
 				Content:     comment.Content,
-				Line:        int64(line + comment.Position - 1),
-				TreePath:    comment.TreePath,
-				CommitSHA:   comment.CommitID,
+				Line:        storedLine,
+				TreePath:    treePath,
+				CommitSHA:   commitID,
 				Patch:       patch,
-				CreatedUnix: timeutil.TimeStamp(comment.CreatedAt.Unix()),
-				UpdatedUnix: timeutil.TimeStamp(comment.UpdatedAt.Unix()),
+				CreatedUnix: timeutil.TimeStamp(createdAt.Unix()),
+				UpdatedUnix: timeutil.TimeStamp(updatedAt.Unix()),
 			}
-
-			if err := g.remapUser(ctx, review, &c); err != nil {
+			if comment.PosterName != "" {
+				err = g.remapUser(ctx, comment, c)
+			} else {
+				err = g.remapUser(ctx, review, c)
+			}
+			if err != nil {
 				return err
 			}
-
-			cm.Comments = append(cm.Comments, &c)
+			c.Reactions, err = g.remapReactions(ctx, comment.Reactions)
+			if err != nil {
+				return err
+			}
+			insertOptions.Comments = append(insertOptions.Comments, c)
 		}
 	}
 
@@ -974,13 +1018,7 @@ func (g *GiteaLocalUploader) Finish(ctx context.Context) error {
 }
 
 func (g *GiteaLocalUploader) remapUser(ctx context.Context, source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) error {
-	var userID int64
-	var err error
-	if g.sameApp {
-		userID, err = g.remapLocalUser(ctx, source)
-	} else {
-		userID, err = g.remapExternalUser(ctx, source)
-	}
+	userID, err := g.remapUserID(ctx, source)
 	if err != nil {
 		return err
 	}
@@ -989,6 +1027,88 @@ func (g *GiteaLocalUploader) remapUser(ctx context.Context, source user_model.Ex
 		return target.RemapExternalUser("", 0, userID)
 	}
 	return target.RemapExternalUser(source.GetExternalName(), source.GetExternalID(), g.doer.ID)
+}
+
+func (g *GiteaLocalUploader) remapReactions(ctx context.Context, source []*base.Reaction) (issues_model.ReactionList, error) {
+	if len(source) == 0 {
+		return nil, nil
+	}
+	reactions := make(issues_model.ReactionList, 0, len(source))
+	for _, reaction := range source {
+		created := timeutil.TimeStampNow()
+		if !reaction.Created.IsZero() {
+			created = timeutil.TimeStamp(reaction.Created.Unix())
+		}
+		converted := &issues_model.Reaction{Type: reaction.Content, CreatedUnix: created}
+		if err := g.remapUser(ctx, reaction, converted); err != nil {
+			return nil, err
+		}
+		reactions = append(reactions, converted)
+	}
+	return reactions, nil
+}
+
+func (g *GiteaLocalUploader) remapAssignees(ctx context.Context, assignees []*base.ExternalUser) ([]*user_model.User, error) {
+	result := make([]*user_model.User, 0, len(assignees))
+	seen := make(map[int64]struct{}, len(assignees))
+	for _, assignee := range assignees {
+		if assignee == nil || assignee.ID == 0 {
+			continue
+		}
+		userID, err := g.remapUserID(ctx, assignee)
+		if err != nil {
+			return nil, err
+		}
+		if userID == 0 {
+			continue
+		}
+		if _, ok := seen[userID]; ok {
+			continue
+		}
+		seen[userID] = struct{}{}
+		result = append(result, &user_model.User{ID: userID})
+	}
+	return result, nil
+}
+
+func (g *GiteaLocalUploader) applyAssignees(ctx context.Context, issue *issues_model.Issue, assignees []*base.ExternalUser) error {
+	remapped, err := g.remapAssignees(ctx, assignees)
+	if err != nil {
+		return err
+	}
+	issue.Assignees = remapped
+	if len(remapped) > 0 {
+		issue.Assignee = remapped[0]
+	}
+	return nil
+}
+
+func (g *GiteaLocalUploader) appendLifecycleComment(ctx context.Context, comments *[]*issues_model.Comment, issue *issues_model.Issue, actor *base.ExternalUser, created *time.Time, commentType issues_model.CommentType, closeReason string) error {
+	if actor == nil || (actor.ID == 0 && actor.Name == "") || created == nil || (commentType == issues_model.CommentTypeClose && !issue.IsClosed) {
+		return nil
+	}
+	createdUnix := timeutil.TimeStamp(created.Unix())
+	comment := &issues_model.Comment{
+		IssueID:     issue.ID,
+		Type:        commentType,
+		CreatedUnix: createdUnix,
+		UpdatedUnix: createdUnix,
+	}
+	if commentType == issues_model.CommentTypeClose && closeReason != "" {
+		comment.CommentMetaData = &issues_model.CommentMetaData{CloseReason: closeReason}
+	}
+	if err := g.remapUser(ctx, actor, comment); err != nil {
+		return err
+	}
+	*comments = append(*comments, comment)
+	return nil
+}
+
+func (g *GiteaLocalUploader) remapUserID(ctx context.Context, source user_model.ExternalUserMigrated) (int64, error) {
+	if g.sameApp {
+		return g.remapLocalUser(ctx, source)
+	}
+	return g.remapExternalUser(ctx, source)
 }
 
 func (g *GiteaLocalUploader) remapLocalUser(ctx context.Context, source user_model.ExternalUserMigrated) (int64, error) {

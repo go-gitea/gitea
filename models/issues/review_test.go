@@ -28,6 +28,47 @@ func TestGetReviewByID(t *testing.T) {
 	assert.True(t, issues_model.IsErrReviewNotExist(err), "IsErrReviewNotExist")
 }
 
+func TestInsertReviewsWithReactions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	reviewReaction := &issues_model.Reaction{Type: "heart", UserID: 1}
+	commentReaction := &issues_model.Reaction{Type: "+1", UserID: 1}
+	firstCodeComment := &issues_model.Comment{Type: issues_model.CommentTypeCode, IssueID: 1, PosterID: 1, Content: "first", Line: 1}
+	codeComment := &issues_model.Comment{
+		Type:      issues_model.CommentTypeCode,
+		IssueID:   1,
+		PosterID:  1,
+		Content:   "reacted",
+		Line:      1,
+		Reactions: []*issues_model.Reaction{commentReaction},
+	}
+	lastCodeComment := &issues_model.Comment{Type: issues_model.CommentTypeCode, IssueID: 1, PosterID: 1, Content: "last", Line: 1}
+	review := &issues_model.Review{
+		Type:       issues_model.ReviewTypeComment,
+		ReviewerID: 1,
+		IssueID:    1,
+	}
+	options := &issues_model.InsertReviewOptions{
+		Review:          review,
+		Comments:        []*issues_model.Comment{firstCodeComment, codeComment, lastCodeComment},
+		HeaderReactions: []*issues_model.Reaction{reviewReaction},
+	}
+
+	assert.NoError(t, issues_model.InsertReviews(t.Context(), []*issues_model.InsertReviewOptions{options}))
+	header := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeReview, ReviewID: review.ID})
+	assert.Equal(t, header.ID, reviewReaction.CommentID)
+	assert.Equal(t, codeComment.ID, commentReaction.CommentID)
+	assert.Equal(t, review.ID, firstCodeComment.ReviewID)
+	assert.Equal(t, review.ID, lastCodeComment.ReviewID)
+	var comments []*issues_model.Comment
+	assert.NoError(t, db.GetEngine(t.Context()).Where("type = ? AND review_id = ?", issues_model.CommentTypeCode, review.ID).Asc("id").Find(&comments))
+	if assert.Len(t, comments, 3) {
+		assert.Equal(t, []string{"first", "reacted", "last"}, []string{comments[0].Content, comments[1].Content, comments[2].Content})
+	}
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{ID: reviewReaction.ID, IssueID: 1, CommentID: header.ID})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{ID: commentReaction.ID, IssueID: 1, CommentID: codeComment.ID})
+}
+
 func TestReview_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{ID: 1})

@@ -16,6 +16,11 @@
 	"content": {
 	    "description": "Representation of the reaction",
 	    "type": "string"
+	},
+	"created": {
+	    "description": "Creation time in the source forge.",
+	    "type": "string",
+	    "format": "date-time"
 	}
     },
     "required": [

@@ -3,11 +3,14 @@
 
 package migration
 
+import "time"
+
 // Reaction represents a reaction to an issue/pr/comment.
 type Reaction struct {
-	UserID   int64  `yaml:"user_id" json:"user_id"`
-	UserName string `yaml:"user_name" json:"user_name"`
-	Content  string `json:"content"`
+	UserID   int64     `yaml:"user_id" json:"user_id"`
+	UserName string    `yaml:"user_name" json:"user_name"`
+	Content  string    `json:"content"`
+	Created  time.Time `yaml:"created,omitempty" json:"created,omitzero"`
 }
 
 // GetExternalName ExternalUserMigrated interface

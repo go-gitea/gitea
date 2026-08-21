@@ -1,0 +1,25 @@
+{
+    "title": "External user",
+    "description": "A user identified in the source forge.",
+
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+	"id": {
+	    "description": "Unique identifier of the user in the source forge.",
+	    "type": "number"
+	},
+	"name": {
+	    "description": "Name of the user in the source forge.",
+	    "type": "string"
+	}
+    },
+    "required": [
+	"id",
+	"name"
+    ],
+
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$id": "http://example.com/external_user.json",
+    "$$target": "external_user.json"
+}

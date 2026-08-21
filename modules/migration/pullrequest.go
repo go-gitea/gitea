@@ -24,15 +24,19 @@ type PullRequest struct {
 	Created        time.Time
 	Updated        time.Time
 	Closed         *time.Time
+	ClosedBy       *ExternalUser `yaml:"closed_by,omitempty" json:"closed_by,omitempty"`
+	CloseReason    string        `yaml:"close_reason,omitempty" json:"close_reason,omitempty"`
 	Labels         []*Label
 	PatchURL       string `yaml:"patch_url"` // SECURITY: This must be safe to download directly from
 	Merged         bool
-	MergedTime     *time.Time `yaml:"merged_time"`
-	MergeCommitSHA string     `yaml:"merge_commit_sha"`
+	MergedTime     *time.Time    `yaml:"merged_time"`
+	MergedBy       *ExternalUser `yaml:"merged_by,omitempty" json:"merged_by,omitempty"`
+	MergeCommitSHA string        `yaml:"merge_commit_sha"`
 	Head           PullRequestBranch
 	Base           PullRequestBranch
 	Assignees      []string
-	IsLocked       bool `yaml:"is_locked"`
+	AssigneeUsers  []*ExternalUser `yaml:"assignee_users,omitempty" json:"assignee_users,omitempty"`
+	IsLocked       bool            `yaml:"is_locked"`
 	Reactions      []*Reaction
 	ForeignIndex   int64
 	Context        DownloaderContext `yaml:"-"`

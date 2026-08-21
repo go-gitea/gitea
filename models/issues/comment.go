@@ -247,6 +247,7 @@ type CommentMetaData struct {
 	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
 	ProjectColumnTitle string `json:"project_column_title,omitempty"`
 	ProjectTitle       string `json:"project_title,omitempty"`
+	CloseReason        string `json:"close_reason,omitempty"`
 
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
@@ -787,6 +788,24 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 	return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
 }
 
+// TimelineCloseTr translates a timeline close event.
+func (c *Comment) TimelineCloseTr(locale translation.Locale, createdStr template.HTML) template.HTML {
+	namespace := "repo.issues"
+	if c.Issue.IsPull {
+		namespace = "repo.pulls"
+	}
+	event := "closed_at"
+	if c.CommentMetaData != nil {
+		switch c.CommentMetaData.CloseReason {
+		case "not_planned":
+			event = "closed_as_not_planned_at"
+		case "completed":
+			event = "closed_as_completed_at"
+		}
+	}
+	return locale.Tr(namespace+"."+event, c.EventTag(), createdStr)
+}
+
 func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
 	if c.Assignee != nil {
 		if c.RemovedAssignee {
@@ -1313,6 +1332,47 @@ func UpdateIssueNumComments(ctx context.Context, issueID int64) error {
 	return err
 }
 
+func insertReactions(ctx context.Context, reactions ReactionList, issueID, commentID int64) error {
+	for _, reaction := range reactions {
+		reaction.IssueID = issueID
+		reaction.CommentID = commentID
+		if reaction.CreatedUnix == 0 {
+			reaction.CreatedUnix = timeutil.TimeStampNow()
+		}
+	}
+	if len(reactions) == 0 {
+		return nil
+	}
+	_, err := db.GetEngine(ctx).NoAutoTime().Insert(reactions)
+	return err
+}
+
+func insertComments(ctx context.Context, comments []*Comment) error {
+	sess := db.GetEngine(ctx)
+	for i := 0; i < len(comments); {
+		if len(comments[i].Reactions) > 0 {
+			comment := comments[i]
+			if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+				return err
+			}
+			if err := insertReactions(ctx, comment.Reactions, comment.IssueID, comment.ID); err != nil {
+				return err
+			}
+			i++
+			continue
+		}
+		end := i + 1
+		for end < len(comments) && len(comments[end].Reactions) == 0 {
+			end++
+		}
+		if _, err := sess.NoAutoTime().Insert(comments[i:end]); err != nil {
+			return err
+		}
+		i = end
+	}
+	return nil
+}
+
 // InsertIssueComments inserts many comments of issues.
 func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	if len(comments) == 0 {
@@ -1324,20 +1384,8 @@ func InsertIssueComments(ctx context.Context, comments []*Comment) error {
 	})
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		for _, comment := range comments {
-			if _, err := db.GetEngine(ctx).NoAutoTime().Insert(comment); err != nil {
-				return err
-			}
-
-			for _, reaction := range comment.Reactions {
-				reaction.IssueID = comment.IssueID
-				reaction.CommentID = comment.ID
-			}
-			if len(comment.Reactions) > 0 {
-				if err := db.Insert(ctx, comment.Reactions); err != nil {
-					return err
-				}
-			}
+		if err := insertComments(ctx, comments); err != nil {
+			return err
 		}
 
 		for _, issueID := range issueIDs {
