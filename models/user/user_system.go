@@ -57,12 +57,14 @@ func NewActionsUser() *User {
 func NewActionsUserWithTaskID(id int64) *User {
 	u := NewActionsUser()
 	// LoginName is for only internal usage in this case, so it can be moved to other fields in the future
+	// TODO: refactor to u.ExtDoerData
 	u.LoginSource = -1
 	u.LoginName = "@" + ActionsUserName + "/" + strconv.FormatInt(id, 10)
 	return u
 }
 
 func GetActionsUserTaskID(u *User) (int64, bool) {
+	// TODO: refactor to u.ExtDoerData
 	if u == nil || u.ID != ActionsUserID {
 		return 0, false
 	}

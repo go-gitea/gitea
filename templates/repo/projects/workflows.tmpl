@@ -1,0 +1,12 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository">
+	{{template "repo/header" .}}
+	<div class="ui container padded">
+		<div class="tw-flex tw-justify-between tw-items-center tw-mb-4">
+			<a href="{{.ProjectLink}}">{{svg "octicon-arrow-left"}} {{ctx.Locale.Tr "projects.workflows"}} {{.Project.Title}}</a>
+		</div>
+	</div>
+	{{template "projects/workflows" .}}
+</div>
+
+{{template "base/footer" .}}
