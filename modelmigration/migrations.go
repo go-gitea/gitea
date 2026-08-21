@@ -421,7 +421,9 @@ func prepareMigrationTasks() []*migration {
 		newMigration(345, "Add block on CODEOWNERS reviews branch protection", v28.AddBlockOnCodeownerReviews),
 		newMigration(346, "Add license_path column to repo_license and backfill", v28.AddLicensePathToRepoLicense),
 		newMigration(347, "Add watch options", v28.AddWatchOptions),
-		newMigration(348, "Add commit comment table", v28.AddCommitCommentTable),
+		newMigration(348, "Recreate email_hash table for SHA256 avatar hashes", v28.RecreateEmailHashTable),
+		newMigration(349, "Expand action_schedule content column", v28.ExpandActionScheduleContent),
+		newMigration(350, "Add commit comment table", v28.AddCommitCommentTable),
 	}
 	return preparedMigrations
 }

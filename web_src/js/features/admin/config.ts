@@ -3,7 +3,7 @@ import {POST} from '../../modules/fetch.ts';
 import {registerGlobalInitFunc} from '../../modules/observer.ts';
 import {queryElems} from '../../utils/dom.ts';
 import {errorMessage} from '../../modules/errors.ts';
-import {submitFormFetchAction} from '../common-fetch-action.ts';
+import {submitFormFetchAction} from '../../modules/fetch-action.ts';
 import {cutString} from '../../utils/string.ts';
 
 const {appSubUrl} = window.config;

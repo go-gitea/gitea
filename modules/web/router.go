@@ -14,21 +14,35 @@ import (
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
 	"gitea.dev/modules/setting"
+	"gitea.dev/modules/translation"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/modules/web/types"
 
-	"gitea.com/go-chi/binding"
 	"github.com/go-chi/chi/v5"
 )
 
-// Bind binding an obj to a handler's context data
-func Bind[T any](_ T) http.HandlerFunc {
+// Bind binding the request form to a form object and assign context data
+func Bind[T middleware.Form]() http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
-		theObj := new(T) // create a new form obj for every request but not use obj directly
-		data := middleware.GetContextData(req.Context())
-		_ = binding.Bind(req, theObj) // no need to handle "errs" here, the errors are handled in our middleware.Validate (binding.go)
-		SetForm(data, theObj)
-		middleware.AssignForm(theObj, data)
+		form, errs := middleware.BindFormValidate[T](req, validation.Binder())
+
+		ctx := reqctx.FromContext(req.Context())
+		data := ctx.GetData()
+		locale := ctx.Value(translation.ContextKey).(translation.Locale) //nolint:forcetypeassert // must exist
+		SetForm(data, form)
+
+		// Legacy template error handling: try to restore the form's values as much as possible,
+		// especially for RenderWithErrDeprecated to re-render the form with errors.
+		middleware.AssignForm(form, data)
+		errorMessage, errorFieldName, _ := middleware.BuildValidationErrorForUser(form, locale, errs)
+		if errorMessage != "" {
+			data["HasError"] = true
+			data["ErrorMsg"] = errorMessage
+			if errorFieldName != "" {
+				data["Err_"+errorFieldName] = true
+			}
+		}
 	}
 }
 

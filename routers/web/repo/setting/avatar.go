@@ -58,7 +58,6 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 // SettingsAvatar save new POSTed repository avatar
 func SettingsAvatar(ctx *context.Context) {
 	form := web.GetForm[*forms.AvatarForm](ctx)
-	form.Source = forms.AvatarLocal
 	if err := UpdateAvatarSetting(ctx, *form); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {

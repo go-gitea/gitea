@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.dev/models/avatars"
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
@@ -127,11 +126,7 @@ func ProfilePost(ctx *context.Context) {
 func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *user_model.User) error {
 	ctxUser.UseCustomAvatar = form.Source == forms.AvatarLocal
 	if len(form.Gravatar) > 0 {
-		if form.Avatar != nil {
-			ctxUser.Avatar = avatars.HashEmail(form.Gravatar)
-		} else {
-			ctxUser.Avatar = ""
-		}
+		ctxUser.Avatar = "" // UploadAvatar sets the real storage path when a file is uploaded
 		ctxUser.AvatarEmail = form.Gravatar
 	}
 
