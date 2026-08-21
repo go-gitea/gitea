@@ -694,6 +694,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	if !ok {
 		return
 	}
+	ctx.Data["DiffNewCommentURL"] = issue.Link() + "/files/reviews/new_comment"
 	pull := issue.PullRequest
 
 	gitRepo := ctx.Repo.GitRepo

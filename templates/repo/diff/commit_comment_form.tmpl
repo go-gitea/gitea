@@ -1,0 +1,24 @@
+{{if ctx.RootData.CanCommentOnCommit}}
+	{{/* on the reply path a parent comment is passed, so the reply submits with the parent's coordinates */}}
+	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.DiffNewCommentURL}}" method="post">
+		<input type="hidden" name="side" value="{{with $.comment}}{{.DiffSide}}{{end}}">
+		<input type="hidden" name="line" value="{{with $.comment}}{{.UnsignedLine}}{{end}}">
+		<input type="hidden" name="path" value="{{with $.comment}}{{.TreePath}}{{end}}">
+		<div class="field">
+		{{template "shared/combomarkdowneditor" (dict
+			"CustomInit" true
+			"MarkdownEditorContext" (ctx.MiscUtils.MarkdownEditorComment ctx.RootData.Repository)
+			"TextareaName" "content"
+			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
+			"DropzoneParentContainer" "form"
+			"DisableAutosize" "true"
+		)}}
+		</div>
+		<div class="field footer">
+			<div class="flex-text-block tw-justify-end">
+				<button type="submit" class="ui submit primary tiny button btn-add-single">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
+				<button type="button" class="ui submit tiny basic button btn-cancel cancel-code-comment">{{ctx.Locale.Tr "cancel"}}</button>
+			</div>
+		</div>
+	</form>
+{{end}}

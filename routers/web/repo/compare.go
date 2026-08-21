@@ -778,6 +778,19 @@ func ExcerptBlob(ctx *context.Context) {
 				}
 			}
 		}
+	} else if ctx.FormBool("commit_diff") && ctx.Data["PageIsWiki"] != true {
+		// Commit diff excerpt: expose the same commit-comment data the commit
+		// page renders, so expanded rows keep their buttons and conversations.
+		fullSHA := commit.ID.String()
+		ctx.Data["CanCommentOnCommit"] = canCommentOnCommit(ctx)
+		ctx.Data["DiffNewCommentURL"] = commitCommentURL(ctx, fullSHA)
+
+		fileComments, err := repo_model.FindCommitCommentsForFile(ctx, ctx.Repo.Repository.ID, fullSHA, filePath)
+		if err != nil {
+			log.Error("FindCommitCommentsForFile error: %v", err)
+		} else {
+			renderCommitComments(ctx, gitdiff.AttachCommitCommentsToLines(section.Lines, fileComments))
+		}
 	}
 
 	ctx.Data["section"] = section
