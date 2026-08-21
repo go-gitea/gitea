@@ -143,5 +143,5 @@ func (err *ErrMoreThanOne) Error() string {
 }
 
 func (err *ErrMoreThanOne) Unwrap() error {
-	return fmt.Errorf("%w - %s", err.Err, err.StdErr)
+	return err.Err
 }

@@ -149,9 +149,9 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return errors.New("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini")
 	}
-	if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
+	if stderr, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
 		log.Error("runMigrateTask[%d] git failure: %v", t.ID, err) // git stderr may echo remote-controlled text
-		authFailed := strings.Contains(err.Error(), "Authentication failed") || strings.Contains(err.Error(), "could not read Username")
+		authFailed := strings.Contains(stderr, "Authentication failed") || strings.Contains(stderr, "could not read Username")
 		return errors.New(util.Iif(authFailed, "authentication failed", "migration failed"))
 	}
 
