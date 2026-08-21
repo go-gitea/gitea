@@ -186,9 +186,6 @@ export MAKEFILE_VARS
 .PHONY: all
 all: build
 
-$(BINDATA_DEST):
-	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags bindata ./$(@D)
-
 .PHONY: help
 help: Makefile ## print Makefile help information.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[TARGETS] default target: build\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 }' Makefile #$(MAKEFILE_LIST)
@@ -224,6 +221,9 @@ fmt-check: fmt
 	  printf "%s" "$${diff}"; \
 	  exit 1; \
 	fi
+
+$(BINDATA_DEST):
+	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags bindata ./$(@D)
 
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
