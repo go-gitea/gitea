@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -96,6 +97,15 @@ func TestParsePackage(t *testing.T) {
 		assert.NotNil(t, p)
 
 		assert.Equal(t, "Q1SRYURM5+uQDqfHSwTnNIOIuuDVQ=", p.FileMetadata.Checksum)
+	})
+
+	t.Run("TooManyDependencyEntries", func(t *testing.T) {
+		data := append(createPKGINFOContent(packageName, packageVersion), []byte("\ndepend = item")...)
+		data = append(data, []byte(strings.Repeat("\ndepend = item", maxPackageInfoEntries))...)
+
+		p, err := ParsePackageInfo(bytes.NewReader(data))
+		assert.Nil(t, p)
+		assert.ErrorIs(t, err, ErrPackageInfoTooLarge)
 	})
 }
 
