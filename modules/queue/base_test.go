@@ -93,10 +93,10 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 		assert.Nil(t, it)
 
 		t.Run("PushNotify", func(t *testing.T) {
+			defer mockBackoffDuration(5000 * time.Millisecond)()
 			// pop an empty queue, but it can be notified and pop the item immediately
 			wg := sync.WaitGroup{}
 			wg.Go(func() {
-				defer mockBackoffDuration(5000 * time.Millisecond)()
 				it, err := q.PopItem(ctx) // it should return immediately after PushItem, no "backoff" waiting
 				assert.NoError(t, err)
 				assert.Equal(t, "item-notify", string(it))
