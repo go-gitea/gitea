@@ -6,7 +6,6 @@ package automerge
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -33,18 +32,18 @@ import (
 func Init() error {
 	notify_service.RegisterNotifier(NewNotifier())
 
-	automergequeue.AutoMergeQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_auto_merge", handler)
+	automergequeue.AutoMergeQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "pr_auto_merge",
+		func(items ...automergequeue.AutoMergeItem) (unhandled []automergequeue.AutoMergeItem) {
+			for _, item := range items {
+				handleAutoMergeItem(item)
+			}
+			return nil
+		},
+	)
 	if automergequeue.AutoMergeQueue == nil {
 		return errors.New("unable to create pr_auto_merge queue")
 	}
 	go graceful.GetManager().RunWithCancel(automergequeue.AutoMergeQueue)
-	return nil
-}
-
-func handler(items ...automergequeue.AutoMergeItem) []automergequeue.AutoMergeItem {
-	for _, item := range items {
-		handleAutoMergeItem(item)
-	}
 	return nil
 }
 
@@ -81,7 +80,7 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *
 }
 
 func handleAutoMergeItem(item automergequeue.AutoMergeItem) {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("AutoMerge: %s", string(item)))
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), "AutoMerge: "+string(item))
 	defer finished()
 
 	parsed := item.Parse()
