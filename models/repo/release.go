@@ -474,7 +474,7 @@ func PushUpdateDeleteTags(ctx context.Context, repo *Repository, tags []string) 
 	if _, err := db.GetEngine(ctx).
 		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
 		In("lower_tag_name", lowerTags).
-		Cols("is_draft", "num_commits", "sha1").
+		Cols("is_draft", "num_commits", "sha1", "published_unix").
 		Update(&Release{
 			IsDraft: true,
 		}); err != nil {

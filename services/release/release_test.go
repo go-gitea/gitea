@@ -388,6 +388,16 @@ func TestCreateNewTag(t *testing.T) {
 
 	assert.NoError(t, CreateNewTag(t.Context(), user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
+
+	gitRepo, err := git.OpenRepository(t.Context(), repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+	commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
+	assert.NoError(t, err)
+
+	tag, err := repo_model.GetRelease(t.Context(), repo.ID, "v2.0")
+	assert.NoError(t, err)
+	assert.Equal(t, commit.Committer.When.Unix(), int64(tag.CreatedUnix), "a tag is dated by its commit, however it was created")
 }
 
 func TestRelease_DatedByTargetCommit(t *testing.T) {

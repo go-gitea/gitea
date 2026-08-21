@@ -27,8 +27,8 @@
 						</h3>
 						<div class="flex-text-block muted-links tw-gap-4 tw-flex-wrap">
 							{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
-								{{if not .PublishedUnix.IsZero}}
-									<span class="flex-text-inline">{{svg "octicon-clock"}}{{DateUtils.TimeSince .PublishedUnix}}</span>
+								{{if .CreatedUnix}}
+									<span class="flex-text-inline">{{svg "octicon-clock"}}{{DateUtils.TimeSince .CreatedUnix}}</span>
 								{{end}}
 
 								<a class="flex-text-inline tw-font-mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit"}}{{ShortSha .Sha1}}</a>
