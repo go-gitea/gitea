@@ -15,7 +15,7 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-type AutoMergeItem string // is it a unique queue, so the item type can't be JSON which doesn't have deterministic key order.
+type AutoMergeItem string // it is a unique queue, so the item type can't be JSON which doesn't have deterministic key order.
 
 var AutoMergeQueue *queue.WorkerPoolQueue[AutoMergeItem]
 

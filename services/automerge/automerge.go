@@ -128,7 +128,7 @@ func enumPullRequestsByHeadCommitID(ctx context.Context, commitID string, repo *
 
 	pulls := make(map[int64]*issues_model.PullRequest)
 	for _, ref := range refs {
-		refPart, ok := strings.CutPrefix(ref, "refs/heads/")
+		refPart, ok := strings.CutPrefix(ref, git.PullPrefix)
 		if !ok {
 			continue
 		}
