@@ -14,6 +14,7 @@ import (
 )
 
 var (
+	noNotifyChan           = make(chan struct{})
 	infiniteTimerC         = make(chan time.Time)
 	batchDebounceDuration  = 100 * time.Millisecond
 	workerIdleDuration     = 1 * time.Second

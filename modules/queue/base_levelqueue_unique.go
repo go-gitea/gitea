@@ -16,6 +16,7 @@ import (
 )
 
 type baseLevelQueueUnique struct {
+	*baseLevelQueueCommonImpl
 	internal atomic.Pointer[levelqueue.UniqueQueue]
 
 	conn string
@@ -25,7 +26,10 @@ type baseLevelQueueUnique struct {
 	mu sync.Mutex // the levelqueue.UniqueQueue is not thread-safe, there is no mutex protecting the underlying queue&set together
 }
 
-var _ baseQueue = (*baseLevelQueueUnique)(nil)
+var (
+	_ baseQueue                    = (*baseLevelQueueUnique)(nil)
+	_ baseQueueNotifiableInterface = (*baseLevelQueueUnique)(nil)
+)
 
 func newBaseLevelQueueUnique(cfg *BaseConfig) (baseQueue, error) {
 	conn, db, err := prepareLevelDB(cfg)
@@ -38,17 +42,16 @@ func newBaseLevelQueueUnique(cfg *BaseConfig) (baseQueue, error) {
 		return nil, err
 	}
 	q.internal.Store(lq)
+	q.baseLevelQueueCommonImpl = baseLevelQueueCommon(q.cfg, &q.mu, func() baseLevelQueuePushPoper { return q.internal.Load() })
 	return q, nil
 }
 
 func (q *baseLevelQueueUnique) PushItem(ctx context.Context, data []byte) error {
-	c := baseLevelQueueCommon(q.cfg, &q.mu, func() baseLevelQueuePushPoper { return q.internal.Load() })
-	return c.PushItem(ctx, data)
+	return q.baseLevelQueueCommonImpl.PushItem(ctx, data)
 }
 
 func (q *baseLevelQueueUnique) PopItem(ctx context.Context) ([]byte, error) {
-	c := baseLevelQueueCommon(q.cfg, &q.mu, func() baseLevelQueuePushPoper { return q.internal.Load() })
-	return c.PopItem(ctx)
+	return q.baseLevelQueueCommonImpl.PopItem(ctx)
 }
 
 func (q *baseLevelQueueUnique) HasItem(ctx context.Context, data []byte) (bool, error) {
