@@ -3,7 +3,8 @@
 		{{range .Keys}}
 			<div class="item">
 				<div class="item-leading">
-					<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg (Iif $.IsToken "octicon-key-asterisk" "octicon-key") 32}}</span>
+					{{$usedRecently := and .HasUsed .HasRecentActivity}}
+					<span class="{{if $usedRecently}}tw-text-green{{end}}" {{if $usedRecently}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg (Iif $.IsToken "octicon-key-asterisk" "octicon-key") 32}}</span>
 				</div>
 				<div class="item-main">
 					<div class="item-title">{{.Name}}</div>
