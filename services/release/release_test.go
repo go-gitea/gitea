@@ -165,12 +165,14 @@ func TestRelease_Update(t *testing.T) {
 	release, err := repo_model.GetRelease(t.Context(), repo.ID, "v1.1.1")
 	assert.NoError(t, err)
 	releaseCreatedUnix := release.CreatedUnix
+	releasePublishedUnix := release.PublishedUnix
 	advance()
 	release.Note = "Changed note"
 	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
+	assert.Equal(t, releasePublishedUnix, release.PublishedUnix, "editing does not republish")
 
 	// Test a changed draft
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{

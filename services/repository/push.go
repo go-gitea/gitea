@@ -376,10 +376,11 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			sig = commit.Committer
 		}
 
-		createdAt := time.Unix(1, 0)
+		publishedUnix := timeutil.TimeStamp(1)
 		if sig != nil {
-			createdAt = sig.When
+			publishedUnix = timeutil.TimeStamp(sig.When.Unix())
 		}
+		createdUnix := timeutil.TimeStamp(commit.Committer.When.Unix()) // tagged whenever, but dated by its commit
 
 		rel, has := relMap[lowerTag]
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
@@ -397,18 +398,18 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 				IsPrerelease:  false,
 				IsTag:         true,
 				PublisherID:   pusher.ID,
-				CreatedUnix:   timeutil.TimeStamp(createdAt.Unix()),
-				PublishedUnix: timeutil.TimeStamp(createdAt.Unix()),
+				CreatedUnix:   createdUnix,
+				PublishedUnix: publishedUnix,
 			}
 
 			newReleases = append(newReleases, rel)
 		} else {
 			rel.Sha1 = commit.ID.String()
-			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
+			rel.CreatedUnix = createdUnix
 			if rel.IsTag {
 				rel.Title = title
 				rel.Note = note
-				rel.PublishedUnix = timeutil.TimeStamp(createdAt.Unix())
+				rel.PublishedUnix = publishedUnix
 			} else {
 				rel.IsDraft = false
 				if rel.PublishedUnix.IsZero() {

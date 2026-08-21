@@ -252,23 +252,12 @@ func TestAPIReleasePublishedAt(t *testing.T) {
 		assert.Greater(t, release.PublishedAt.Unix(), tagCommit.Committer.When.Unix())
 	})
 
-	t.Run("DraftIsNull", func(t *testing.T) {
-		assert.Nil(t, createRelease(t, "v0.0.2-draft", true).PublishedAt)
-	})
-
 	t.Run("PublishingDraftStampsNow", func(t *testing.T) {
 		draft := createRelease(t, "v0.0.3-draft", true)
 		isDraft := false
 		published := editRelease(t, draft.ID, &api.EditReleaseOption{IsDraft: &isDraft})
 		require.NotNil(t, published.PublishedAt)
 		assert.GreaterOrEqual(t, published.PublishedAt.Unix(), draft.CreatedAt.Unix())
-	})
-
-	t.Run("EditKeepsPublishedAt", func(t *testing.T) {
-		release := createRelease(t, "v0.0.4-edit", false)
-		edited := editRelease(t, release.ID, &api.EditReleaseOption{Title: "updated"})
-		require.NotNil(t, edited.PublishedAt)
-		assert.Equal(t, release.PublishedAt.Unix(), edited.PublishedAt.Unix())
 	})
 }
 

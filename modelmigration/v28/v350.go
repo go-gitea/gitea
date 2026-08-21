@@ -22,7 +22,7 @@ func AddPublishedUnixToRelease(_ context.Context, x base.EngineMigration) error 
 		return err
 	}
 
-	// Existing rows have no recorded publication time, so fall back to their creation time. Drafts stay unpublished.
+	// existing rows have no recorded publication time, so fall back to their creation time
 	_, err := x.Exec("UPDATE `release` SET published_unix = created_unix WHERE published_unix = 0 AND is_draft = ?", false)
 	return err
 }

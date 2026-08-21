@@ -150,8 +150,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		}
 
 		rel.Sha1 = commit.ID.String()
-		// like GitHub, a release is dated by the commit it points at, so releasing an old commit does not become the latest release
-		rel.CreatedUnix = timeutil.TimeStamp(commit.Committer.When.Unix())
+		rel.CreatedUnix = timeutil.TimeStamp(commit.Committer.When.Unix()) // dated by its commit, so an old commit does not become the latest release
 		rel.NumCommits, err = git.CommitsCountOfCommit(ctx, rel.Repo, commit.ID.String())
 		if err != nil {
 			return false, fmt.Errorf("CommitsCount: %w", err)
@@ -277,8 +276,10 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
-	// a tag or draft becoming a release is published now, whatever date the underlying tag carries
-	if !rel.IsDraft && (isConvertedFromTag || oldRelease.IsDraft) {
+	// a zero PublishedUnix means "draft", so withdrawing a release has to clear it again
+	if rel.IsDraft {
+		rel.PublishedUnix = 0
+	} else if isConvertedFromTag || oldRelease.IsDraft {
 		rel.PublishedUnix = timeutil.TimeStampNow()
 	}
 

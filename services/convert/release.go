@@ -8,11 +8,12 @@ import (
 
 	repo_model "gitea.dev/models/repo"
 	api "gitea.dev/modules/structs"
+	"gitea.dev/modules/util"
 )
 
 // ToAPIRelease convert a repo_model.Release to api.Release
 func ToAPIRelease(ctx context.Context, repo *repo_model.Repository, r *repo_model.Release) *api.Release {
-	release := &api.Release{
+	return &api.Release{
 		ID:           r.ID,
 		TagName:      r.TagName,
 		Target:       r.Target,
@@ -26,11 +27,8 @@ func ToAPIRelease(ctx context.Context, repo *repo_model.Repository, r *repo_mode
 		IsDraft:      r.IsDraft,
 		IsPrerelease: r.IsPrerelease,
 		CreatedAt:    r.CreatedUnix.AsTime(),
+		PublishedAt:  util.Iif(r.IsDraft, nil, r.PublishedUnix.AsTimePtr()),
 		Publisher:    ToUser(ctx, r.Publisher, nil),
 		Attachments:  ToAPIAttachments(repo, r.Attachments),
 	}
-	if !r.IsDraft {
-		release.PublishedAt = r.PublishedUnix.AsTimePtr()
-	}
-	return release
 }

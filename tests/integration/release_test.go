@@ -46,27 +46,22 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	assert.NotEmpty(t, test.ParseJSONRedirect(resp.Body.Bytes()))
 }
 
-// checkReleaseAndCount asserts the given release is listed with the given label, releases being ordered
-// by the date of the commit they point at rather than by the order they were created in.
-func checkReleaseAndCount(t *testing.T, session *TestSession, repoURL, version, label string, count int) {
+// checkReleaseAndCount asserts the given release is listed with the given label and returns the title of the
+// first listed release, which is not necessarily the one just created because releases are ordered by commit date.
+func checkReleaseAndCount(t *testing.T, session *TestSession, repoURL, version, label string, count int) string {
 	req := NewRequest(t, "GET", repoURL+"/releases")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	releaseList := NewHTMLParser(t, resp.Body).doc.Find("#release-list > li")
 	assert.Equal(t, count, releaseList.Length())
 
-	item := releaseList.FilterFunction(func(_ int, s *goquery.Selection) bool {
-		return s.Find(".detail h4 a").Text() == version
+	item := releaseList.FilterFunction(func(_ int, selection *goquery.Selection) bool {
+		return selection.Find(".detail h4 a").Text() == version
 	})
 	if assert.Equal(t, 1, item.Length(), "release %q is listed exactly once", version) {
 		assert.Equal(t, label, item.Find(".detail .label").First().Text())
 	}
-}
-
-func firstListedRelease(t *testing.T, session *TestSession, repoURL string) string {
-	req := NewRequest(t, "GET", repoURL+"/releases")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	return NewHTMLParser(t, resp.Body).doc.Find("#release-list > li .detail h4 a").First().Text()
+	return releaseList.Find(".detail h4 a").First().Text()
 }
 
 func TestViewReleases(t *testing.T) {
@@ -122,13 +117,11 @@ func TestCreateReleasePaging(t *testing.T) {
 	}
 	createNewRelease(t, session, "/user2/repo1", "v0.0.12", "v0.0.12", false, true)
 
-	checkReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", translation.NewLocale("en-US").TrString("repo.release.draft"), 10)
-	assert.Equal(t, "v0.0.12", firstListedRelease(t, session, "/user2/repo1"))
+	assert.Equal(t, "v0.0.12", checkReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", translation.NewLocale("en-US").TrString("repo.release.draft"), 10))
 
 	// Check that user4 does not see draft and still see 10 latest releases
 	session2 := loginUser(t, "user4")
-	checkReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", translation.NewLocale("en-US").TrString("repo.release.stable"), 10)
-	assert.Equal(t, "v0.0.11", firstListedRelease(t, session2, "/user2/repo1"))
+	assert.Equal(t, "v0.0.11", checkReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", translation.NewLocale("en-US").TrString("repo.release.stable"), 10))
 }
 
 func TestViewReleaseListNoLogin(t *testing.T) {
