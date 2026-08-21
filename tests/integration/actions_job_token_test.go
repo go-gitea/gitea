@@ -182,13 +182,18 @@ func TestActionsJobTokenPermissiveAccess(t *testing.T) {
 					assertRespCodeForSuccess(t, resp, false)
 				})
 
-				// Restricted-mode tokens deny pull request access by design (contents/packages/releases
-				// read only), so this only applies when the declared mode isn't Restricted.
-				if tt.isFork && tt.repoPermMode != repo_model.ActionsTokenPermissionModeRestricted {
+				if tt.isFork {
 					t.Run("ReadPullRequests", func(t *testing.T) {
+						// Restricted-mode tokens deny pull request access by design (contents/packages/releases
+						// read only); every other mode grants fork PR tokens read-only PR access.
+						effectiveMode := tt.repoPermMode
+						if effectiveMode == "" {
+							effectiveMode = tt.ownerPermMode
+						}
+
 						req := NewRequest(t, "GET", "/api/v1/repos/"+repo.FullName()+"/pulls").AddTokenAuth(task.Token)
 						resp := MakeRequest(t, req, NoExpectedStatus)
-						assertRespCodeForSuccess(t, resp, true)
+						assertRespCodeForSuccess(t, resp, effectiveMode != repo_model.ActionsTokenPermissionModeRestricted)
 					})
 				}
 			})

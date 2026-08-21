@@ -136,6 +136,10 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 
 		task53.IsForkPullRequest = true
 		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
+		t.Cleanup(func() {
+			task53.IsForkPullRequest = false
+			require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
+		})
 
 		perm, err := GetActionsUserRepoPermission(ctx, repo2, actionsUser, task53.ID)
 		require.NoError(t, err)
@@ -144,10 +148,6 @@ func TestGetActionsUserRepoPermission(t *testing.T) {
 		assert.True(t, perm.CanRead(unit.TypeIssues))
 		assert.False(t, perm.CanWrite(unit.TypePullRequests))
 		assert.False(t, perm.CanWrite(unit.TypeIssues))
-
-		// Restore state for subsequent subtests.
-		task53.IsForkPullRequest = false
-		require.NoError(t, actions_model.UpdateTask(ctx, task53, "is_fork_pull_request"))
 	})
 
 	t.Run("Inheritance_And_Clamping", func(t *testing.T) {
