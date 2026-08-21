@@ -140,7 +140,6 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 					NewCommitID: commit.ID.String(),
 				}, commits)
 			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
-			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		if rel.PublishedUnix.IsZero() {
 			rel.PublishedUnix = timeutil.TimeStampNow()
@@ -151,6 +150,8 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		}
 
 		rel.Sha1 = commit.ID.String()
+		// like GitHub, a release is dated by the commit it points at, so releasing an old commit does not become the latest release
+		rel.CreatedUnix = timeutil.TimeStamp(commit.Committer.When.Unix())
 		rel.NumCommits, err = git.CommitsCountOfCommit(ctx, rel.Repo, commit.ID.String())
 		if err != nil {
 			return false, fmt.Errorf("CommitsCount: %w", err)

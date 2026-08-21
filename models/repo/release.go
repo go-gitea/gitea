@@ -344,7 +344,7 @@ func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, erro
 
 	rel := new(Release)
 	has, err := db.GetEngine(ctx).
-		Desc("published_unix", "created_unix", "id").
+		Desc("created_unix", "id").
 		Where(cond).
 		Get(rel)
 	if err != nil {
