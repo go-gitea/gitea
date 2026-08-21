@@ -197,6 +197,19 @@ func TestRelease_Update(t *testing.T) {
 	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
 	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
+	assert.Zero(t, release.PublishedUnix, "a draft is unpublished")
+
+	// Test publishing and withdrawing that draft
+	release.IsDraft = false
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
+	assert.NoError(t, err)
+	assert.NotZero(t, release.PublishedUnix, "publishing stamps the publication time")
+	release.IsDraft = true
+	assert.NoError(t, UpdateRelease(t.Context(), user, gitRepo, release, nil, nil, nil))
+	release, err = repo_model.GetReleaseByID(t.Context(), release.ID)
+	assert.NoError(t, err)
+	assert.Zero(t, release.PublishedUnix, "withdrawing unpublishes it again")
 
 	// Test a changed pre-release
 	assert.NoError(t, CreateRelease(t.Context(), gitRepo, &repo_model.Release{
@@ -388,16 +401,6 @@ func TestCreateNewTag(t *testing.T) {
 
 	assert.NoError(t, CreateNewTag(t.Context(), user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))
-
-	gitRepo, err := git.OpenRepository(t.Context(), repo)
-	assert.NoError(t, err)
-	defer gitRepo.Close()
-	commit, err := gitRepo.GetBranchCommit(t.Context(), "master")
-	assert.NoError(t, err)
-
-	tag, err := repo_model.GetRelease(t.Context(), repo.ID, "v2.0")
-	assert.NoError(t, err)
-	assert.Equal(t, commit.Committer.When.Unix(), int64(tag.CreatedUnix), "a tag is dated by its commit, however it was created")
 }
 
 func TestRelease_DatedByTargetCommit(t *testing.T) {

@@ -368,19 +368,11 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			return fmt.Errorf("Commit: %w", err)
 		}
 
-		sig := tag.Tagger
-		if sig == nil {
-			sig = commit.Author
-		}
-		if sig == nil {
-			sig = commit.Committer
-		}
-
-		publishedUnix := timeutil.TimeStamp(1)
-		if sig != nil {
-			publishedUnix = timeutil.TimeStamp(sig.When.Unix())
-		}
 		createdUnix := timeutil.TimeStamp(commit.Committer.When.Unix()) // tagged whenever, but dated by its commit
+		publishedUnix := createdUnix
+		if tag.Tagger != nil {
+			publishedUnix = timeutil.TimeStamp(tag.Tagger.When.Unix())
+		}
 
 		rel, has := relMap[lowerTag]
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)

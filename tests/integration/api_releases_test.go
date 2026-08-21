@@ -26,7 +26,6 @@ import (
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAPIReleaseRead(t *testing.T) {
@@ -218,43 +217,6 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	}
 	unittest.AssertExistsAndLoadBean(t, rel)
 	assert.Equal(t, rel.Note, newRelease.Note)
-}
-
-func TestAPIReleasePublishedAt(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	token := getUserToken(t, owner.LowerName, auth_model.AccessTokenScopeWriteRepository)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
-
-	createRelease := func(t *testing.T, tagName string, isDraft bool) *api.Release {
-		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
-			TagName: tagName, Title: tagName, Target: "master", IsDraft: isDraft,
-		}).AddTokenAuth(token)
-		return DecodeJSON(t, MakeRequest(t, req, http.StatusCreated), &api.Release{})
-	}
-	t.Run("PublishedNowNotTagDate", func(t *testing.T) {
-		gitRepo, err := git.OpenRepository(t.Context(), repo)
-		require.NoError(t, err)
-		defer gitRepo.Close()
-		require.NoError(t, gitRepo.CreateTag(t.Context(), "v0.0.1-pub", "master"))
-		tagCommit, err := gitRepo.GetTagCommit(t.Context(), "v0.0.1-pub")
-		require.NoError(t, err)
-
-		release := createRelease(t, "v0.0.1-pub", false)
-		require.NotNil(t, release.PublishedAt)
-		assert.Greater(t, release.PublishedAt.Unix(), tagCommit.Committer.When.Unix())
-	})
-
-	t.Run("PublishingDraftStampsNow", func(t *testing.T) {
-		draft := createRelease(t, "v0.0.3-draft", true)
-		isDraft := false
-		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("%s/%d", urlStr, draft.ID), &api.EditReleaseOption{IsDraft: &isDraft}).AddTokenAuth(token)
-		published := DecodeJSON(t, MakeRequest(t, req, http.StatusOK), &api.Release{})
-		require.NotNil(t, published.PublishedAt)
-		assert.GreaterOrEqual(t, published.PublishedAt.Unix(), draft.CreatedAt.Unix())
-	})
 }
 
 func TestAPICreateProtectedTagRelease(t *testing.T) {

@@ -278,10 +278,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			release.TargetCommitish = ""
 		}
 
-		var publishedUnix timeutil.TimeStamp
-		if !release.Draft {
-			publishedUnix = timeutil.TimeStamp(util.Iif(release.Published.IsZero(), release.Created, release.Published).Unix())
-		}
+		publishedAt := util.Iif(release.Published.IsZero(), release.Created, release.Published)
 
 		rel := repo_model.Release{
 			RepoID:        g.repo.ID,
@@ -294,7 +291,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			IsPrerelease:  release.Prerelease,
 			IsTag:         false,
 			CreatedUnix:   timeutil.TimeStamp(release.Created.Unix()),
-			PublishedUnix: publishedUnix,
+			PublishedUnix: util.Iif(release.Draft, 0, timeutil.TimeStamp(publishedAt.Unix())),
 		}
 
 		if err := g.remapUser(ctx, release, &rel); err != nil {
