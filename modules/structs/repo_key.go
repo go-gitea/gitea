@@ -11,6 +11,9 @@ import (
 type DeployKey struct {
 	// ID is the unique identifier for the deploy key
 	ID int64 `json:"id"`
+	// Type tells whether the key authenticates over SSH or with a token over HTTPS
+	// enum: ssh,token
+	Type string `json:"type"`
 	// KeyID is the associated public key ID
 	KeyID int64 `json:"key_id"`
 	// Key contains the actual SSH key content

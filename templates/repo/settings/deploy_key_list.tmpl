@@ -3,7 +3,7 @@
 		{{range .Keys}}
 			<div class="item">
 				<div class="item-leading">
-					<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg $.Icon 32}}</span>
+					<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg (Iif $.IsToken "octicon-key-asterisk" "octicon-key") 32}}</span>
 				</div>
 				<div class="item-main">
 					<div class="item-title">{{.Name}}</div>
@@ -15,13 +15,19 @@
 					</div>
 				</div>
 				<div class="item-trailing">
-					<button class="ui red tiny button link-action" data-modal-confirm="{{$.ModalID}}" data-url="{{$.Link}}/delete?id={{.ID}}">
-						{{ctx.Locale.Tr $.DeleteText}}
+					{{if $.IsToken}}
+						<button class="ui tiny button link-action" data-modal-confirm="#repo-deploy-token-regenerate-modal" data-url="{{$.Link}}/tokens/regenerate?id={{.ID}}">
+							{{svg "octicon-sync"}}
+							{{ctx.Locale.Tr "repo.settings.regenerate_deploy_token"}}
+						</button>
+					{{end}}
+					<button class="ui red tiny button link-action" data-modal-confirm="{{Iif $.IsToken "#repo-deploy-token-delete-modal" "#repo-deploy-key-delete-modal"}}" data-url="{{$.Link}}/delete?id={{.ID}}">
+						{{ctx.Locale.Tr (Iif $.IsToken "repo.settings.delete_token" "settings.delete_key")}}
 					</button>
 				</div>
 			</div>
 		{{end}}
 	</div>
 {{else}}
-	{{ctx.Locale.Tr .EmptyText}}
+	{{ctx.Locale.Tr (Iif $.IsToken "repo.settings.no_deploy_tokens" "repo.settings.no_deploy_keys")}}
 {{end}}

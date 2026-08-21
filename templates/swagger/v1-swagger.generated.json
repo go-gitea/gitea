@@ -28229,6 +28229,15 @@
           "type": "string",
           "x-go-name": "Token"
         },
+        "type": {
+          "description": "Type tells whether the key authenticates over SSH or with a token over HTTPS",
+          "type": "string",
+          "enum": [
+            "ssh",
+            "token"
+          ],
+          "x-go-name": "Type"
+        },
         "url": {
           "description": "URL is the API URL for this deploy key",
           "type": "string",

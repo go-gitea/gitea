@@ -17,12 +17,12 @@ import (
 	"sync"
 	"time"
 
-	asymkey_model "gitea.dev/models/asymkey"
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/git/gitrepo"
@@ -144,7 +144,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 		}
 	}
 
-	deployKey, _ := ctx.Data["DeployKey"].(*asymkey_model.DeployKey)
+	deployKeyID, isDeployKey := user_model.GetDeployKeyUserKeyID(ctx.Doer)
 
 	// check access
 	if !canAnonymousPull { // not public pull, then either the pull needs auth, or the push needs "write" permission, so ask auth
@@ -161,18 +161,10 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		// A deploy token authenticates as the repo owner, so it needs the two limits
-		// that owner permissions do not express. Everything below then applies to it
-		// as it applies to a password or a token of that owner.
-		if deployKey != nil {
-			if !repoExist || deployKey.RepoID != repo.ID {
-				ctx.PlainText(http.StatusNotFound, "Repository not found")
-				return nil
-			}
-			if accessMode > deployKey.Mode {
-				ctx.PlainText(http.StatusForbidden, "Deploy key does not grant write access")
-				return nil
-			}
+		// a deploy key grants nothing outside its own repository, so it cannot push-create one either
+		if isDeployKey && !repoExist {
+			ctx.PlainText(http.StatusNotFound, "Repository not found")
+			return nil
 		}
 
 		context.CheckRepoScopedToken(ctx, repo, auth_model.GetScopeLevelFromAccessMode(accessMode))
@@ -199,7 +191,9 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 
 		if repoExist {
 			// Only the main code repo accepts refs/for pushes, so wiki pushes must keep write checks.
-			if git.DefaultFeatures().SupportProcReceive && !isWiki {
+			// A deploy key skips the relaxation so a read-only key is refused here rather than mid-push,
+			// the same front door serv.go gives SSH. canWriteCodeUnit is the backstop.
+			if git.DefaultFeatures().SupportProcReceive && !isWiki && !isDeployKey {
 				accessMode = perm.AccessModeRead
 			}
 
@@ -270,10 +264,11 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 	var environ []string
 	if !isPull {
 		// if not "pull", then must be "push", and doer must exist
-		environ = repo_module.DoerPushingEnvironment(ctx.Doer, repo, isWiki)
-		if deployKey != nil {
+		// a deploy key is not a person, so the push is recorded as the repo owner, same as over SSH
+		environ = repo_module.DoerPushingEnvironment(util.Iif(isDeployKey, owner, ctx.Doer), repo, isWiki)
+		if isDeployKey {
 			// let the hooks apply the deploy key rules of branch protection
-			environ = append(environ, repo_module.EnvDeployKeyID+"="+strconv.FormatInt(deployKey.ID, 10))
+			environ = append(environ, repo_module.EnvDeployKeyID+"="+strconv.FormatInt(deployKeyID, 10))
 		}
 	}
 

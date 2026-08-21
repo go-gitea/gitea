@@ -20,6 +20,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	deploykey_model "gitea.dev/models/deploykey"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/organization"
@@ -846,18 +847,19 @@ func ToGitHook(h *git.Hook) *api.GitHook {
 	}
 }
 
-// ToDeployKey convert asymkey_model.DeployKey to api.DeployKey
-func ToDeployKey(ctx context.Context, repo *repo_model.Repository, deployKey *asymkey_model.DeployKey) *api.DeployKey {
+// ToDeployKey convert deploykey_model.DeployKey to api.DeployKey
+func ToDeployKey(ctx context.Context, repo *repo_model.Repository, deployKey *deploykey_model.DeployKey) *api.DeployKey {
 	k := &api.DeployKey{
 		ID:       deployKey.ID,
+		Type:     deployKey.Type.String(),
 		KeyID:    deployKey.KeyID,
 		Token:    deployKey.Token,
 		URL:      repo.APIURL(ctx) + fmt.Sprintf("/keys/%d", deployKey.ID),
 		Title:    deployKey.Name,
 		Created:  deployKey.CreatedUnix.AsTime(),
-		ReadOnly: deployKey.Mode == perm.AccessModeRead, // All deploy keys are read-only.
+		ReadOnly: deployKey.IsReadOnly(),
 	}
-	if deployKey.Type == asymkey_model.DeployKeyTypeSSH && deployKey.LoadPublicKey(ctx) == nil {
+	if deployKey.Type != deploykey_model.AuthTypeToken && deployKey.LoadPublicKey(ctx) == nil {
 		k.Key = deployKey.PublicKey.Content
 		k.Fingerprint = deployKey.PublicKey.Fingerprint
 	}

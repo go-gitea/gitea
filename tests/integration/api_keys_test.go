@@ -11,6 +11,7 @@ import (
 
 	asymkey_model "gitea.dev/models/asymkey"
 	auth_model "gitea.dev/models/auth"
+	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/perm"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
@@ -66,7 +67,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	newDeployKey := DecodeJSON(t, resp, &api.DeployKey{})
-	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &deploykey_model.DeployKey{
 		ID:   newDeployKey.ID,
 		Name: rawKeyBody.Title,
 		Mode: perm.AccessModeRead,
@@ -103,7 +104,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 	resp := MakeRequest(t, req, http.StatusCreated)
 
 	newDeployKey := DecodeJSON(t, resp, &api.DeployKey{})
-	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &deploykey_model.DeployKey{
 		ID:   newDeployKey.ID,
 		Name: rawKeyBody.Title,
 		Mode: perm.AccessModeWrite,

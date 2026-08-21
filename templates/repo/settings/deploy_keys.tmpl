@@ -41,7 +41,7 @@
 					</button>
 				</form>
 			</div>
-			{{template "repo/settings/deploy_key_list" dict "Keys" .RepoDeployKeys "Link" .Link "Icon" "octicon-key" "ModalID" "#repo-deploy-key-delete-modal" "DeleteText" "settings.delete_key" "EmptyText" "repo.settings.no_deploy_keys"}}
+			{{template "repo/settings/deploy_key_list" dict "Keys" .RepoDeployKeys "Link" .Link "IsToken" false}}
 		</div>
 	</div>
 
@@ -85,13 +85,19 @@
 					</button>
 				</form>
 			</div>
-			{{template "repo/settings/deploy_key_list" dict "Keys" .DeployTokens "Link" .Link "Icon" "octicon-key-asterisk" "ModalID" "#repo-deploy-token-delete-modal" "DeleteText" "repo.settings.delete_token" "EmptyText" "repo.settings.no_deploy_tokens"}}
+			{{template "repo/settings/deploy_key_list" dict "Keys" .DeployTokens "Link" .Link "IsToken" true}}
 		</div>
 	</div>
 
 <div class="ui small modal" id="repo-deploy-token-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.deploy_token_deletion"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.deploy_token_deletion_desc"}}</p></div>
+	{{template "base/modal_actions_confirm" .}}
+</div>
+
+<div class="ui small modal" id="repo-deploy-token-regenerate-modal">
+	<div class="header">{{svg "octicon-sync"}} {{ctx.Locale.Tr "repo.settings.regenerate_deploy_token"}}</div>
+	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.regenerate_deploy_token_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
 

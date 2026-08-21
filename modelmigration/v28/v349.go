@@ -13,16 +13,14 @@ import (
 
 func AddTokenToDeployKey(ctx context.Context, x base.EngineMigration) error {
 	// Drop the old UNIQUE(s) index on (key_id, repo_id). Every token row carries key
-	// id 0, so the pair can no longer be unique. addDeployKey still checks it in code.
+	// id 0, so the pair can no longer be unique. AddDeployKey still checks it in code.
 	indexes, err := x.Dialect().GetIndexes(x.DB(), ctx, "deploy_key")
 	if err != nil {
 		return err
 	}
-	for _, idx := range indexes {
-		if idx.Name == "s" {
-			if _, err := x.Exec(x.Dialect().DropIndexSQL("deploy_key", idx)); err != nil {
-				return err
-			}
+	if idx, ok := indexes["s"]; ok {
+		if _, err := x.Exec(x.Dialect().DropIndexSQL("deploy_key", idx)); err != nil {
+			return err
 		}
 	}
 

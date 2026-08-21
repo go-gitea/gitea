@@ -132,8 +132,7 @@ func newWebAuthMiddleware() *AuthMiddleware {
 			group.Add(&auth_service.OAuth2{})
 		}
 		if allowDeployToken {
-			// must come before Basic, which would try the token as a password and fail
-			group.Add(&auth_service.DeployToken{})
+			group.Add(&auth_service.DeployToken{}) // before Basic, which would try the token as a password
 		}
 		if allowBasic {
 			group.Add(&auth_service.Basic{})
@@ -141,7 +140,7 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 		// Sessionless means the route's auth can be done without web ui, then it doesn't need to create a session
 		// For example: accessing git via http, access rss feeds, downloading attachments, etc
-		isSessionless := allowOAuth2 || allowBasic
+		isSessionless := allowOAuth2 || allowBasic || allowDeployToken
 
 		if setting.Service.EnableReverseProxyAuth {
 			// reverse-proxy should before Session, otherwise the header will be ignored if user has login
@@ -1234,6 +1233,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Combo("").Get(repo_setting.DeployKeys).
 				Post(repo_setting.DeployKeysPost)
 			m.Post("/tokens", repo_setting.DeployTokensPost)
+			m.Post("/tokens/regenerate", repo_setting.RegenerateDeployToken)
 			m.Post("/delete", repo_setting.DeleteDeployKey)
 		})
 
@@ -1754,7 +1754,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// git lfs uses its own jwt key, and it handles the token & auth by itself, it conflicts with the general "OAuth2" auth method
 	// pattern: "/{username}/{reponame}/{lfs-paths}": git-lfs support, see also addOwnerRepoGitHTTPRouters
-	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, webAuth.AllowBasic, repo.CorsHandler(), optSignInFromAnyOrigin)
+	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, webAuth.AllowBasic, webAuth.AllowDeployToken, repo.CorsHandler(), optSignInFromAnyOrigin)
 
 	// Some users want to use "web-based git client" to access Gitea's repositories,
 	// so the CORS handler and OPTIONS method are used.
