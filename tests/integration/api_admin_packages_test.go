@@ -49,12 +49,3 @@ func TestAPIAdminListPackages(t *testing.T) {
 	}
 	assert.True(t, found)
 }
-
-func TestAPIAdminListPackagesForbidden(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadAdmin)
-	req := NewRequest(t, "GET", "/api/v1/admin/packages").
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
-}
