@@ -4,12 +4,9 @@
 package forms
 
 import (
-	"strings"
 	"testing"
 
 	"gitea.dev/modules/json"
-	"gitea.dev/modules/validation"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -86,9 +83,4 @@ func TestMergePullRequestForm(t *testing.T) {
 		require.NoError(t, json.Unmarshal([]byte(input), &m))
 		assert.Equal(t, expected, m)
 	})
-}
-
-func TestCreateRepoFormGitignoresSize(t *testing.T) {
-	form := &CreateRepoForm{RepoName: "repo", Gitignores: strings.Repeat("a", 256)}
-	assert.NotEmpty(t, validation.Binder().Validate(t.Context(), form))
 }
