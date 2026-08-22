@@ -524,7 +524,7 @@ $(DIST_DIRS):
 # Release builds always use Go's native cross compilation. To cross-compile with CGO,
 # use "build" target with proper TAGS/LDFLAGS/CGO_CFLAGS to make "$(EXECUTABLE)" target run the "go build" command.
 .PHONY: release
-release: frontend generate release-binaries release-copy release-compress vendor release-sources release-check
+release: frontend release-binaries release-copy release-compress vendor release-sources release-check
 
 .PHONY: release-binaries
 release-binaries: | $(DIST_DIRS)

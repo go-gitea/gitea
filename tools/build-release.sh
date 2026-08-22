@@ -4,7 +4,7 @@ set -euo pipefail
 #GO=echo # uncomment this line to dry run for testing without really build all binaries
 
 RELEASE_LDFLAGS="-s -w $LDFLAGS"
-RELEASE_TAGS="$TAGS"
+RELEASE_TAGS="bindata $TAGS"
 RELEASE_PATH_PREFIX="${DIST}/binaries/gitea-${VERSION##*/}"
 
 RELEASE_PLATFORMS_DEFAULT=(
@@ -49,6 +49,9 @@ build() {
 }
 
 main() {
+  # When building release binaries, some TAGS (bindata) are needed by the release script,
+  # so here it needs to use the TAGS to generate the assets (embed bindata).
+  TAGS="$RELEASE_TAGS" make generate
   local platform="${1:-}"
   for target in "${RELEASE_PLATFORMS_DEFAULT[@]}"; do
     if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
