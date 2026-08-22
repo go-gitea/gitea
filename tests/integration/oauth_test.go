@@ -869,7 +869,7 @@ func issueOAuthAccessTokenForScope(t *testing.T, user *user_model.User, scope st
 	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate", app.ClientID)
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
-	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
+	authcode, _, _ := strings.Cut(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")
 
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
@@ -923,7 +923,7 @@ func testOAuthGrantScopesReadRepositoryFailOrganization(t *testing.T) {
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 
-	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
+	authcode, _, _ := strings.Cut(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     app.ClientID,
@@ -1060,7 +1060,7 @@ func testOAuthGrantScopesClaimPublicOnlyGroups(t *testing.T) {
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 
-	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
+	authcode, _, _ := strings.Cut(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")
 
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
@@ -1158,7 +1158,7 @@ func testOAuthGrantScopesClaimAllGroups(t *testing.T) {
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 
-	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
+	authcode, _, _ := strings.Cut(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")
 
 	accessTokenReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",

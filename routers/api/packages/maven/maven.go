@@ -279,12 +279,10 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	pvci := &packages_service.PackageCreationInfo{
-		PackageInfo: packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeMaven,
-			Name:        packageName,
-			Version:     params.Version,
-		},
+		Owner:            ctx.Package.Owner,
+		PackageType:      packages_model.TypeMaven,
+		Name:             packageName,
+		Version:          params.Version,
 		SemverCompatible: false,
 		Creator:          ctx.Doer,
 	}
@@ -347,9 +345,7 @@ func UploadPackageFile(ctx *context.Context) {
 	}
 
 	pfci := &packages_service.PackageFileCreationInfo{
-		PackageFileInfo: packages_service.PackageFileInfo{
-			Filename: params.Filename,
-		},
+		Filename:          params.Filename,
 		Creator:           ctx.Doer,
 		Data:              buf,
 		IsLead:            false,

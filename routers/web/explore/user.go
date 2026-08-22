@@ -144,12 +144,12 @@ func Users(ctx *context.Context) {
 	sortOrderDefault := util.Iif(supportedSortOrders.Contains(setting.UI.ExploreDefaultSort), setting.UI.ExploreDefaultSort, "newest")
 	sortOrder := ctx.FormString("sort", sortOrderDefault)
 	RenderUserSearch(ctx, user_model.SearchUserOptions{
-		Actor:       ctx.Doer,
-		Types:       []user_model.UserType{user_model.UserTypeIndividual},
-		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		IsActive:    optional.Some(true),
-		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
-		OrderBy:     db.SearchOrderBy(sortOrder),
+		Actor:    ctx.Doer,
+		Types:    []user_model.UserType{user_model.UserTypeIndividual},
+		PageSize: setting.UI.ExplorePagingNum,
+		IsActive: optional.Some(true),
+		Visible:  []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		OrderBy:  db.SearchOrderBy(sortOrder),
 
 		SupportedSortOrders: supportedSortOrders,
 	}, tplExploreUsers)

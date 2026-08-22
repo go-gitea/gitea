@@ -111,8 +111,8 @@ func TestFindRunnersPaginationNoDuplicates(t *testing.T) {
 	const pageSize = 2
 	for page := 1; ; page++ {
 		runners, err := db.Find[actions_model.ActionRunner](ctx, actions_model.FindRunnerOptions{
-			ListOptions: db.ListOptions{Page: page, PageSize: pageSize},
-			OwnerID:     ownerID,
+			Page: page, PageSize: pageSize,
+			OwnerID: ownerID,
 		})
 		require.NoError(t, err)
 		if len(runners) == 0 {

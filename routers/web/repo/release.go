@@ -283,9 +283,9 @@ func SingleRelease(ctx *context.Context) {
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	releases, err := getReleaseInfos(ctx, &repo_model.FindReleasesOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 1},
-		RepoID:      ctx.Repo.Repository.ID,
-		TagNames:    []string{ctx.PathParam("*")},
+		Page: 1, PageSize: 1,
+		RepoID:   ctx.Repo.Repository.ID,
+		TagNames: []string{ctx.PathParam("*")},
 		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
 		IncludeDrafts: writeAccess,
 		IncludeTags:   true,

@@ -20,9 +20,7 @@ import (
 
 func getApplyDiffPatchFileOptions() *api.ApplyDiffPatchFileOptions {
 	return &api.ApplyDiffPatchFileOptions{
-		FileOptions: api.FileOptions{
-			BranchName: "master",
-		},
+		BranchName: "master",
 		Content: `diff --git a/patch-file-1.txt b/patch-file-1.txt
 new file mode 100644
 index 0000000000..aaaaaaaaaa

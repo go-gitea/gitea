@@ -11,7 +11,7 @@ import (
 
 func TestCommitMessageSanitizesInvalidUTF8(t *testing.T) {
 	commit := &Commit{
-		CommitMessage: CommitMessage{MessageRaw: "title \xff\n\n\n\nbody \xff\n\n\n"},
+		MessageRaw: "title \xff\n\n\n\nbody \xff\n\n\n",
 	}
 	assert.Equal(t, "title ÿ", commit.MessageTitle())
 	assert.Equal(t, "body ÿ", commit.MessageBody())
@@ -65,7 +65,7 @@ func TestCommitMessageParticipants(t *testing.T) {
 				"CommitterExcluded",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: Full Name <x@m.com>"},
+					MessageRaw: "CO-Authored-BY: Full Name <x@m.com>",
 				},
 				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor), idt("Full Name", "x@m.com", roleCoAuthor)},
 			},
@@ -73,7 +73,7 @@ func TestCommitMessageParticipants(t *testing.T) {
 				"AuthorIsCoAuthor",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "CO-Authored-BY: other-name <a@m.com>"},
+					MessageRaw: "CO-Authored-BY: other-name <a@m.com>",
 				},
 				[]*CommitIdentity{idt("a", "a@m.com", roleAuthor)},
 			},
@@ -81,7 +81,7 @@ func TestCommitMessageParticipants(t *testing.T) {
 				"EmptyAuthor", // synthesized commits (push feed) may have no author signature at all
 				&Commit{
 					Author: sig("", ""), Committer: sig("", ""),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
+					MessageRaw: "Co-authored-by: c <c@m.com>",
 				},
 				// but if the commit message contains co-authors, the co-authors are still parsed for "all authors"
 				// if it is a problem, the caller should fix the problem (provide correct "author")
@@ -98,7 +98,7 @@ func TestCommitMessageParticipants(t *testing.T) {
 				"GenuineCoAuthor",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: x <x@m.com>"},
+					MessageRaw: "Co-authored-by: x <x@m.com>",
 				},
 				[]*CommitIdentity{idt("x", "x@m.com", roleCoAuthor)},
 			},
@@ -106,7 +106,7 @@ func TestCommitMessageParticipants(t *testing.T) {
 				"CoAuthorIsCommitter",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: c <c@m.com>"},
+					MessageRaw: "Co-authored-by: c <c@m.com>",
 				},
 				[]*CommitIdentity{idt("c", "c@m.com", roleCoAuthor)},
 			},
@@ -114,7 +114,7 @@ func TestCommitMessageParticipants(t *testing.T) {
 				"CoAuthorIsAuthor",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: a <a@m.com>"},
+					MessageRaw: "Co-authored-by: a <a@m.com>",
 				},
 				[]*CommitIdentity{},
 			},
@@ -122,7 +122,7 @@ func TestCommitMessageParticipants(t *testing.T) {
 				"CoAuthorNameOnlyAndDuplicate",
 				&Commit{
 					Author: sig("a", "a@m.com"), Committer: sig("c", "c@m.com"),
-					CommitMessage: CommitMessage{MessageRaw: "Co-authored-by: b\nCo-authored-by: b\nCo-authored-by: c"},
+					MessageRaw: "Co-authored-by: b\nCo-authored-by: b\nCo-authored-by: c",
 				},
 				[]*CommitIdentity{idt("b", "", roleCoAuthor), idt("c", "", roleCoAuthor)},
 			},

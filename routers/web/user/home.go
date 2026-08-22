@@ -119,7 +119,7 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
-		ListOptions:     db.ListOptions{Page: page, PageSize: pageSize},
+		Page:            page, PageSize: pageSize,
 	})
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)
@@ -220,10 +220,8 @@ func Milestones(ctx *context.Context) {
 	}
 
 	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: setting.UI.IssuePagingNum,
-		},
+		Page:     page,
+		PageSize: setting.UI.IssuePagingNum,
 		RepoCond: repoCond,
 		IsClosed: optional.Some(isShowClosed),
 		SortType: sortType,

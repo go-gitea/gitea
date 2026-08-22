@@ -77,21 +77,19 @@ jobs:
 
 		// user4 creates a pull request from branch "bugfix/user4"
 		doAPICreateFile(user4APICtx, "user4-fix.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "bugfix/user4",
-				Message:       "create user4-fix.txt",
-				Author: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Committer: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			NewBranchName: "bugfix/user4",
+			Message:       "create user4-fix.txt",
+			Author: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Committer: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user4-fix")),
 		})(t)
@@ -181,13 +179,11 @@ jobs:
 
 		// PR #1: a benign change from user4's fork — first-time contributor, gate engages.
 		doAPICreateFile(user4APICtx, "first.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "first",
-				Message:       "first",
-				Author:        api.Identity{Name: user4.Name, Email: user4.Email},
-				Committer:     api.Identity{Name: user4.Name, Email: user4.Email},
-				Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
-			},
+			NewBranchName: "first",
+			Message:       "first",
+			Author:        api.Identity{Name: user4.Name, Email: user4.Email},
+			Committer:     api.Identity{Name: user4.Name, Email: user4.Email},
+			Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("first")),
 		})(t)
 		pr1, err := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":first")(t)
@@ -207,13 +203,11 @@ jobs:
 		// PR #2: same user, fresh branch. Pre-fix, this run was created with
 		// NeedApproval=false and dispatched immediately — the bypass path.
 		doAPICreateFile(user4APICtx, "second.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "second",
-				Message:       "second",
-				Author:        api.Identity{Name: user4.Name, Email: user4.Email},
-				Committer:     api.Identity{Name: user4.Name, Email: user4.Email},
-				Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
-			},
+			NewBranchName: "second",
+			Message:       "second",
+			Author:        api.Identity{Name: user4.Name, Email: user4.Email},
+			Committer:     api.Identity{Name: user4.Name, Email: user4.Email},
+			Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("second")),
 		})(t)
 		pr2, err := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":second")(t)
@@ -227,13 +221,11 @@ jobs:
 		// After merging PR #1, user4 becomes a known contributor and the gate lifts for a new PR.
 		doAPIMergePullRequest(user2APICtx, baseRepo.OwnerName, baseRepo.Name, pr1.Index)(t)
 		doAPICreateFile(user4APICtx, "third.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "third",
-				Message:       "third",
-				Author:        api.Identity{Name: user4.Name, Email: user4.Email},
-				Committer:     api.Identity{Name: user4.Name, Email: user4.Email},
-				Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
-			},
+			NewBranchName: "third",
+			Message:       "third",
+			Author:        api.Identity{Name: user4.Name, Email: user4.Email},
+			Committer:     api.Identity{Name: user4.Name, Email: user4.Email},
+			Dates:         api.CommitDateOptions{Author: time.Now(), Committer: time.Now()},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("third")),
 		})(t)
 		pr3, err := doAPICreatePullRequest(user4APICtx, baseRepo.OwnerName, baseRepo.Name, baseRepo.DefaultBranch, user4.Name+":third")(t)

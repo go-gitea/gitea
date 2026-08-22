@@ -41,10 +41,8 @@ func Milestones(ctx *context.Context) {
 	page := max(ctx.FormInt("page"), 1)
 
 	miles, total, err := db.FindAndCount[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-		ListOptions: db.ListOptions{
-			Page:     page,
-			PageSize: setting.UI.IssuePagingNum,
-		},
+		Page:     page,
+		PageSize: setting.UI.IssuePagingNum,
 		RepoID:   ctx.Repo.Repository.ID,
 		IsClosed: optional.Some(isShowClosed),
 		SortType: sortType,

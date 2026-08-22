@@ -441,23 +441,19 @@ func UploadPackage(ctx *context.Context) {
 	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeNuGet,
-				Name:        np.ID,
-				Version:     np.Version,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeNuGet,
+			Name:             np.ID,
+			Version:          np.Version,
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         np.Metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(fmt.Sprintf("%s.%s.nupkg", np.ID, np.Version)),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: strings.ToLower(fmt.Sprintf("%s.%s.nupkg", np.ID, np.Version)),
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {
@@ -483,10 +479,8 @@ func UploadPackage(ctx *context.Context) {
 		ctx,
 		pv,
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(np.ID + ".nuspec"),
-			},
-			Data: nuspecBuf,
+			Filename: strings.ToLower(np.ID + ".nuspec"),
+			Data:     nuspecBuf,
 		},
 	)
 	if err != nil {
@@ -542,12 +536,10 @@ func UploadSymbolPackage(ctx *context.Context) {
 		ctx,
 		pi,
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(fmt.Sprintf("%s.%s.snupkg", np.ID, np.Version)),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  false,
+			Filename: strings.ToLower(fmt.Sprintf("%s.%s.snupkg", np.ID, np.Version)),
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   false,
 		},
 	)
 	if err != nil {
@@ -569,13 +561,11 @@ func UploadSymbolPackage(ctx *context.Context) {
 			ctx,
 			pi,
 			&packages_service.PackageFileCreationInfo{
-				PackageFileInfo: packages_service.PackageFileInfo{
-					Filename:     strings.ToLower(pdb.Name),
-					CompositeKey: strings.ToLower(pdb.ID),
-				},
-				Creator: ctx.Doer,
-				Data:    pdb.Content,
-				IsLead:  false,
+				Filename:     strings.ToLower(pdb.Name),
+				CompositeKey: strings.ToLower(pdb.ID),
+				Creator:      ctx.Doer,
+				Data:         pdb.Content,
+				IsLead:       false,
 				Properties: map[string]string{
 					nuget_module.PropertySymbolID: strings.ToLower(pdb.ID),
 				},

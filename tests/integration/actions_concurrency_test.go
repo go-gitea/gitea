@@ -394,21 +394,19 @@ jobs:
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts1)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-fix.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "bugfix/aaa",
-				Message:       "create user2-fix.txt",
-				Author: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Committer: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			NewBranchName: "bugfix/aaa",
+			Message:       "create user2-fix.txt",
+			Author: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Committer: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user2-fix")),
 		})(t)
@@ -432,21 +430,19 @@ jobs:
 
 		// user4 creates a pull request from branch "bugfix/bbb"
 		doAPICreateFile(user4APICtx, "user4-fix.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "bugfix/bbb",
-				Message:       "create user4-fix.txt",
-				Author: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Committer: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			NewBranchName: "bugfix/bbb",
+			Message:       "create user4-fix.txt",
+			Author: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Committer: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user4-fix")),
 		})(t)
@@ -468,21 +464,19 @@ jobs:
 
 		// user4 creates another pull request from branch "do-not-cancel/ccc"
 		doAPICreateFile(user4APICtx, "user4-fix2.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "do-not-cancel/ccc",
-				Message:       "create user4-fix2.txt",
-				Author: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Committer: api.Identity{
-					Name:  user4.Name,
-					Email: user4.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			NewBranchName: "do-not-cancel/ccc",
+			Message:       "create user4-fix2.txt",
+			Author: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Committer: api.Identity{
+				Name:  user4.Name,
+				Email: user4.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user4-fix2")),
 		})(t)
@@ -1194,21 +1188,19 @@ jobs:
 
 		// trigger the task by push
 		doAPICreateFile(httpContext, "doc.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "main",
-				Message:       "create doc.txt",
-				Author: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Committer: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			NewBranchName: "main",
+			Message:       "create doc.txt",
+			Author: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("doc")),
 		})(t)
@@ -1452,20 +1444,18 @@ jobs:
 
 		// push another file to trigger the workflow again
 		doAPICreateFile(user2APICtx, "file1.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				Message: "create file1.txt",
-				Author: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Committer: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			Message: "create file1.txt",
+			Author: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("file1")),
 		})(t)

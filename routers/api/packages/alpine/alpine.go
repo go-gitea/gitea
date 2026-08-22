@@ -155,23 +155,19 @@ func UploadPackageFile(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeAlpine,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
-			Creator:  ctx.Doer,
-			Metadata: pck.VersionMetadata,
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeAlpine,
+			Name:        pck.Name,
+			Version:     pck.Version,
+			Creator:     ctx.Doer,
+			Metadata:    pck.VersionMetadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s-%s.apk", pck.Name, pck.Version),
-				CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, pck.FileMetadata.Architecture),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename:     fmt.Sprintf("%s-%s.apk", pck.Name, pck.Version),
+			CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, pck.FileMetadata.Architecture),
+			Creator:      ctx.Doer,
+			Data:         buf,
+			IsLead:       true,
 			Properties: map[string]string{
 				alpine_module.PropertyBranch:       branch,
 				alpine_module.PropertyRepository:   repository,

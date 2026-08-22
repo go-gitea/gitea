@@ -54,24 +54,28 @@ func GetSigningKey(ctx context.Context) (*SigningKey, *Signature) {
 			return nil, nil
 		}
 
-		return &SigningKey{
-				KeyID:  strings.TrimSpace(signingKey),
-				Format: strings.TrimSpace(format),
-			}, &Signature{
-				Name:  strings.TrimSpace(signingName),
-				Email: strings.TrimSpace(signingEmail),
-			}
+		key := &SigningKey{
+			KeyID:  strings.TrimSpace(signingKey),
+			Format: strings.TrimSpace(format),
+		}
+		sig := &Signature{
+			Name:  strings.TrimSpace(signingName),
+			Email: strings.TrimSpace(signingEmail),
+		}
+		return key, sig
 	}
 
 	if setting.Repository.Signing.SigningKey == "" {
 		return nil, nil
 	}
 
-	return &SigningKey{
-			KeyID:  setting.Repository.Signing.SigningKey,
-			Format: setting.Repository.Signing.SigningFormat,
-		}, &Signature{
-			Name:  setting.Repository.Signing.SigningName,
-			Email: setting.Repository.Signing.SigningEmail,
-		}
+	key := &SigningKey{
+		KeyID:  setting.Repository.Signing.SigningKey,
+		Format: setting.Repository.Signing.SigningFormat,
+	}
+	sig := &Signature{
+		Name:  setting.Repository.Signing.SigningName,
+		Email: setting.Repository.Signing.SigningEmail,
+	}
+	return key, sig
 }

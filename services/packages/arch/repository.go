@@ -328,10 +328,8 @@ func buildPackagesIndex(ctx context.Context, ownerID int64, repoVersion *package
 		ctx,
 		repoVersion,
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     IndexArchiveFilename,
-				CompositeKey: fmt.Sprintf("%s|%s", repository, architecture),
-			},
+			Filename:          IndexArchiveFilename,
+			CompositeKey:      fmt.Sprintf("%s|%s", repository, architecture),
 			Creator:           user_model.NewGhostUser(),
 			Data:              indexContent,
 			IsLead:            false,

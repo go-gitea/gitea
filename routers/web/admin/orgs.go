@@ -28,10 +28,8 @@ func Organizations(ctx *context.Context) {
 		Actor:           ctx.Doer,
 		Types:           []user_model.UserType{user_model.UserTypeOrganization},
 		IncludeReserved: true, // administrator needs to list all accounts include reserved
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.Admin.OrgPagingNum,
-		},
-		Visible: []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
-		OrderBy: db.SearchOrderBy(sortOrder),
+		PageSize:        setting.UI.Admin.OrgPagingNum,
+		Visible:         []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		OrderBy:         db.SearchOrderBy(sortOrder),
 	}, tplOrgs)
 }

@@ -33,15 +33,11 @@ func CreateAuthorizationToken(u *user_model.User, packageScope auth_model.Access
 
 	actionsUserTaskID, _ := user_model.GetActionsUserTaskID(u)
 	claims := packageClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
-			NotBefore: jwt.NewNumericDate(now),
-		},
-		PackageMeta: PackageMeta{
-			UserID:            u.ID,
-			Scope:             packageScope,
-			ActionsUserTaskID: actionsUserTaskID,
-		},
+		ExpiresAt:         jwt.NewNumericDate(now.Add(24 * time.Hour)),
+		NotBefore:         jwt.NewNumericDate(now),
+		UserID:            u.ID,
+		Scope:             packageScope,
+		ActionsUserTaskID: actionsUserTaskID,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 

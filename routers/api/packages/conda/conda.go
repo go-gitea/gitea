@@ -250,12 +250,10 @@ func UploadPackageFile(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeConda,
-				Name:        fullName,
-				Version:     pck.Version,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeConda,
+			Name:             fullName,
+			Version:          pck.Version,
 			SemverCompatible: false,
 			Creator:          ctx.Doer,
 			Metadata:         pck.VersionMetadata,
@@ -265,13 +263,11 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s-%s-%s%s", pck.Name, pck.Version, pck.FileMetadata.Build, extension),
-				CompositeKey: pck.Subdir,
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename:     fmt.Sprintf("%s-%s-%s%s", pck.Name, pck.Version, pck.FileMetadata.Build, extension),
+			CompositeKey: pck.Subdir,
+			Creator:      ctx.Doer,
+			Data:         buf,
+			IsLead:       true,
 			Properties: map[string]string{
 				conda_module.PropertySubdir:   pck.Subdir,
 				conda_module.PropertyMetadata: string(fileMetadataRaw),

@@ -179,10 +179,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            date,
-			ListOptions: db.ListOptions{
-				PageSize: pagingNum,
-				Page:     page,
-			},
+			PageSize:        pagingNum,
+			Page:            page,
 		})
 		if err != nil {
 			ctx.ServerError("GetFeeds", err)
@@ -196,10 +194,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		ctx.Data["PageIsProfileStarList"] = true
 		ctx.Data["ShowRepoOwnerOnList"] = true
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: pagingNum,
-				Page:     page,
-			},
+			PageSize:           pagingNum,
+			Page:               page,
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
@@ -223,10 +219,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		total = count
 	case "watching":
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: pagingNum,
-				Page:     page,
-			},
+			PageSize:           pagingNum,
+			Page:               page,
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OrderBy:            orderBy,
@@ -265,10 +259,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		orgs, count, err := db.FindAndCount[organization.Organization](ctx, organization.FindOrgOptions{
 			UserID:            ctx.ContextUser.ID,
 			IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, ctx.ContextUser),
-			ListOptions: db.ListOptions{
-				Page:     page,
-				PageSize: pagingNum,
-			},
+			Page:              page,
+			PageSize:          pagingNum,
 		})
 		if err != nil {
 			ctx.ServerError("GetUserOrganizations", err)
@@ -278,10 +270,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		total = count
 	default: // default to "repositories"
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: pagingNum,
-				Page:     page,
-			},
+			PageSize:           pagingNum,
+			Page:               page,
 			Actor:              ctx.Doer,
 			Keyword:            keyword,
 			OwnerID:            ctx.ContextUser.ID,

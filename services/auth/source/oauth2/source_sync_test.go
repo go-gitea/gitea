@@ -18,14 +18,12 @@ func TestSource(t *testing.T) {
 
 	source := &Source{
 		Provider: "fake",
-		ConfigBase: auth.ConfigBase{
-			AuthSource: &auth.Source{
-				ID:            12,
-				Type:          auth.OAuth2,
-				Name:          "fake",
-				IsActive:      true,
-				IsSyncEnabled: true,
-			},
+		AuthSource: &auth.Source{
+			ID:            12,
+			Type:          auth.OAuth2,
+			Name:          "fake",
+			IsActive:      true,
+			IsSyncEnabled: true,
 		},
 	}
 

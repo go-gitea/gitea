@@ -187,24 +187,20 @@ func UploadPackage(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeGo,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
-			Creator: ctx.Doer,
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeGo,
+			Name:        pck.Name,
+			Version:     pck.Version,
+			Creator:     ctx.Doer,
 			VersionProperties: map[string]string{
 				goproxy_module.PropertyGoMod: pck.GoMod,
 			},
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: fmt.Sprintf("%v.zip", pck.Version),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: fmt.Sprintf("%v.zip", pck.Version),
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {

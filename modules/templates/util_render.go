@@ -369,8 +369,8 @@ func (ut *RenderUtils) writeAvatarStackItem(b *htmlutil.HTMLBuilder, data *user_
 
 func (ut *RenderUtils) AvatarStackPushCommit(pushCommit *repository.PushCommit) template.HTML {
 	fakeGitCommit := git.Commit{
-		CommitMessage: git.CommitMessage{MessageRaw: pushCommit.Message},
-		Author:        &git.Signature{Name: pushCommit.AuthorName, Email: pushCommit.AuthorEmail},
+		MessageRaw: pushCommit.Message,
+		Author:     &git.Signature{Name: pushCommit.AuthorName, Email: pushCommit.AuthorEmail},
 		// there is no way to know the real committer, but the field can't be nil
 		Committer: &git.Signature{Name: pushCommit.AuthorName, Email: pushCommit.AuthorEmail},
 	}

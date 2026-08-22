@@ -40,10 +40,8 @@ func (c *CustomProvider) CreateGothProvider(providerName, callbackURL string, so
 // NewCustomProvider is a constructor function for custom providers
 func NewCustomProvider(name, displayName string, customURLSetting *CustomURLSettings, newFn CustomProviderNewFn) *CustomProvider {
 	return &CustomProvider{
-		BaseProvider: BaseProvider{
-			name:        name,
-			displayName: displayName,
-		},
+		name:              name,
+		displayName:       displayName,
 		customURLSettings: customURLSetting,
 		newFn:             newFn,
 	}

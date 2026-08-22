@@ -65,11 +65,11 @@ func convertPGPSignature(c *object.Commit) *CommitSignature {
 
 func convertCommit(c *object.Commit) *Commit {
 	return &Commit{
-		ID:            ParseGogitHash(c.Hash),
-		CommitMessage: CommitMessage{MessageRaw: c.Message},
-		Committer:     &c.Committer,
-		Author:        &c.Author,
-		Signature:     convertPGPSignature(c),
-		Parents:       ParseGogitHashArray(c.ParentHashes),
+		ID:         ParseGogitHash(c.Hash),
+		MessageRaw: c.Message,
+		Committer:  &c.Committer,
+		Author:     &c.Author,
+		Signature:  convertPGPSignature(c),
+		Parents:    ParseGogitHashArray(c.ParentHashes),
 	}
 }

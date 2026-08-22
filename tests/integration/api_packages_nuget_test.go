@@ -426,13 +426,13 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(633), pb.Size)
+					assert.Equal(t, int64(635), pb.Size)
 				case fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion):
 					assert.False(t, pf.IsLead)
 
 					pb, err := packages.GetBlobByID(t.Context(), pf.BlobID)
 					assert.NoError(t, err)
-					assert.Equal(t, int64(616), pb.Size)
+					assert.Equal(t, int64(617), pb.Size)
 				case packageName + ".nuspec":
 					assert.False(t, pf.IsLead)
 

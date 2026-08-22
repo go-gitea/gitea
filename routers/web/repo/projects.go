@@ -66,10 +66,8 @@ func Projects(ctx *context.Context) {
 	ctx.Data["ClosedCount"] = repo.NumClosedProjects
 
 	projects, count, err := db.FindAndCount[project_model.Project](ctx, project_model.SearchOptions{
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.IssuePagingNum,
-			Page:     page,
-		},
+		PageSize: setting.UI.IssuePagingNum,
+		Page:     page,
 		RepoID:   repo.ID,
 		IsClosed: optional.Some(isShowClosed),
 		OrderBy:  project_model.GetSearchOrderByBySortType(sortType),

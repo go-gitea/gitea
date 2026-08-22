@@ -138,11 +138,9 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 	// generate access token to access the API
 	expirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.AccessTokenExpirationTime)
 	accessToken := &Token{
-		GrantID: grant.ID,
-		Kind:    KindAccessToken,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
-		},
+		GrantID:   grant.ID,
+		Kind:      KindAccessToken,
+		ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
 	}
 	signedAccessToken, err := accessToken.SignToken(serverKey)
 	if err != nil {
@@ -155,12 +153,10 @@ func NewAccessTokenResponse(ctx context.Context, grant *auth.OAuth2Grant, server
 	// generate refresh token to request an access token after it expired later
 	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime()
 	refreshToken := &Token{
-		GrantID: grant.ID,
-		Counter: grant.Counter,
-		Kind:    KindRefreshToken,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
-		},
+		GrantID:   grant.ID,
+		Counter:   grant.Counter,
+		Kind:      KindRefreshToken,
+		ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
 	}
 	signedRefreshToken, err := refreshToken.SignToken(serverKey)
 	if err != nil {

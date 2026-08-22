@@ -21,14 +21,14 @@ import (
 // TODO TestPullRequest_PushToBaseRepo
 
 func TestPullRequest_FormatSquashMergeCommitMessages(t *testing.T) {
-	oldest := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "commit msg 1"}}
-	newest := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "commit msg 2\n\nCommit description."}}
+	oldest := &git.Commit{MessageRaw: "commit msg 1"}
+	newest := &git.Commit{MessageRaw: "commit msg 2\n\nCommit description."}
 
 	defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 0)()
 
 	assert.Equal(t, "* commit msg 1\n\n* commit msg 2\n\nCommit description.\n\n", formatSquashMergeCommitMessages([]*git.Commit{newest, oldest}))
 
-	utf8Msg := &git.Commit{CommitMessage: git.CommitMessage{MessageRaw: "🌞"}}
+	utf8Msg := &git.Commit{MessageRaw: "🌞"}
 	setting.Repository.PullRequest.DefaultMergeMessageSize = 3
 	assert.Equal(t, "* ...\n\n", formatSquashMergeCommitMessages([]*git.Commit{utf8Msg}))
 	setting.Repository.PullRequest.DefaultMergeMessageSize = 4

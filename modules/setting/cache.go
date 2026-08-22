@@ -25,11 +25,9 @@ var CacheService = struct {
 		TTL time.Duration `ini:"ITEM_TTL"`
 	} `ini:"cache.last_commit"`
 }{
-	Cache: Cache{
-		Adapter:  "memory",
-		Interval: 60,
-		TTL:      16 * time.Hour,
-	},
+	Adapter:  "memory",
+	Interval: 60,
+	TTL:      16 * time.Hour,
 	LastCommit: struct {
 		TTL time.Duration `ini:"ITEM_TTL"`
 	}{

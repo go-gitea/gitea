@@ -35,18 +35,14 @@ func TestAPIGetWikiPage(t *testing.T) {
 			LastCommit: &api.WikiCommit{
 				ID: "2c54faec6c45d31c1abfaecdab471eac6633738a",
 				Author: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Ethan Koenig",
-						Email: "ethantkoenig@gmail.com",
-					},
-					Date: "2017-11-27T04:31:18Z",
+					Name:  "Ethan Koenig",
+					Email: "ethantkoenig@gmail.com",
+					Date:  "2017-11-27T04:31:18Z",
 				},
 				Committer: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Ethan Koenig",
-						Email: "ethantkoenig@gmail.com",
-					},
-					Date: "2017-11-27T04:31:18Z",
+					Name:  "Ethan Koenig",
+					Email: "ethantkoenig@gmail.com",
+					Date:  "2017-11-27T04:31:18Z",
 				},
 				Message: "Add Home.md\n",
 			},
@@ -80,18 +76,14 @@ func TestAPIListWikiPages(t *testing.T) {
 			LastCommit: &api.WikiCommit{
 				ID: "2c54faec6c45d31c1abfaecdab471eac6633738a",
 				Author: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Ethan Koenig",
-						Email: "ethantkoenig@gmail.com",
-					},
-					Date: "2017-11-27T04:31:18Z",
+					Name:  "Ethan Koenig",
+					Email: "ethantkoenig@gmail.com",
+					Date:  "2017-11-27T04:31:18Z",
 				},
 				Committer: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Ethan Koenig",
-						Email: "ethantkoenig@gmail.com",
-					},
-					Date: "2017-11-27T04:31:18Z",
+					Name:  "Ethan Koenig",
+					Email: "ethantkoenig@gmail.com",
+					Date:  "2017-11-27T04:31:18Z",
 				},
 				Message: "Add Home.md\n",
 			},
@@ -103,18 +95,14 @@ func TestAPIListWikiPages(t *testing.T) {
 			LastCommit: &api.WikiCommit{
 				ID: "0cf15c3f66ec8384480ed9c3cf87c9e97fbb0ec3",
 				Author: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Gabriel Silva Simões",
-						Email: "simoes.sgabriel@gmail.com",
-					},
-					Date: "2019-01-25T01:41:55Z",
+					Name:  "Gabriel Silva Simões",
+					Email: "simoes.sgabriel@gmail.com",
+					Date:  "2019-01-25T01:41:55Z",
 				},
 				Committer: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Gabriel Silva Simões",
-						Email: "simoes.sgabriel@gmail.com",
-					},
-					Date: "2019-01-25T01:41:55Z",
+					Name:  "Gabriel Silva Simões",
+					Email: "simoes.sgabriel@gmail.com",
+					Date:  "2019-01-25T01:41:55Z",
 				},
 				Message: "Add jpeg.jpg and page with image\n",
 			},
@@ -126,18 +114,14 @@ func TestAPIListWikiPages(t *testing.T) {
 			LastCommit: &api.WikiCommit{
 				ID: "c10d10b7e655b3dab1f53176db57c8219a5488d6",
 				Author: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Gabriel Silva Simões",
-						Email: "simoes.sgabriel@gmail.com",
-					},
-					Date: "2019-01-25T01:39:51Z",
+					Name:  "Gabriel Silva Simões",
+					Email: "simoes.sgabriel@gmail.com",
+					Date:  "2019-01-25T01:39:51Z",
 				},
 				Committer: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Gabriel Silva Simões",
-						Email: "simoes.sgabriel@gmail.com",
-					},
-					Date: "2019-01-25T01:39:51Z",
+					Name:  "Gabriel Silva Simões",
+					Email: "simoes.sgabriel@gmail.com",
+					Date:  "2019-01-25T01:39:51Z",
 				},
 				Message: "Add page with spaced name\n",
 			},
@@ -149,18 +133,14 @@ func TestAPIListWikiPages(t *testing.T) {
 			LastCommit: &api.WikiCommit{
 				ID: "0dca5bd9b5d7ef937710e056f575e86c0184ba85",
 				Author: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "6543",
-						Email: "6543@obermui.de",
-					},
-					Date: "2021-07-19T16:42:46Z",
+					Name:  "6543",
+					Email: "6543@obermui.de",
+					Date:  "2021-07-19T16:42:46Z",
 				},
 				Committer: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "6543",
-						Email: "6543@obermui.de",
-					},
-					Date: "2021-07-19T16:42:46Z",
+					Name:  "6543",
+					Email: "6543@obermui.de",
+					Date:  "2021-07-19T16:42:46Z",
 				},
 				Message: "add unescaped file\n",
 			},
@@ -227,18 +207,14 @@ func TestAPIListPageRevisions(t *testing.T) {
 			{
 				ID: "2c54faec6c45d31c1abfaecdab471eac6633738a",
 				Author: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Ethan Koenig",
-						Email: "ethantkoenig@gmail.com",
-					},
-					Date: "2017-11-27T04:31:18Z",
+					Name:  "Ethan Koenig",
+					Email: "ethantkoenig@gmail.com",
+					Date:  "2017-11-27T04:31:18Z",
 				},
 				Committer: &api.CommitUser{
-					Identity: api.Identity{
-						Name:  "Ethan Koenig",
-						Email: "ethantkoenig@gmail.com",
-					},
-					Date: "2017-11-27T04:31:18Z",
+					Name:  "Ethan Koenig",
+					Email: "ethantkoenig@gmail.com",
+					Date:  "2017-11-27T04:31:18Z",
 				},
 				Message: "Add Home.md\n",
 			},

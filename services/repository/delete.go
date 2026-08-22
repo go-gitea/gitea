@@ -26,7 +26,6 @@ import (
 	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
-	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/storage"
 	actions_service "gitea.dev/services/actions"
@@ -244,7 +243,7 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 
 	lfsPaths := make([]string, 0, len(lfsObjects))
 	for _, v := range lfsObjects {
-		count, err := db.CountByBean(ctx, &git_model.LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
+		count, err := db.CountByBean(ctx, &git_model.LFSMetaObject{Oid: v.Oid})
 		if err != nil {
 			return err
 		}
@@ -392,13 +391,11 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 func DeleteOwnerRepositoriesDirectly(ctx context.Context, owner *user_model.User) error {
 	for {
 		repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
-			ListOptions: db.ListOptions{
-				PageSize: repo_model.RepositoryListDefaultPageSize,
-				Page:     1,
-			},
-			Private: true,
-			OwnerID: owner.ID,
-			Actor:   owner,
+			PageSize: repo_model.RepositoryListDefaultPageSize,
+			Page:     1,
+			Private:  true,
+			OwnerID:  owner.ID,
+			Actor:    owner,
 		})
 		if err != nil {
 			return fmt.Errorf("GetUserRepositories: %w", err)

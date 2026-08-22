@@ -20,19 +20,17 @@ import (
 
 func getDeleteFileOptions() *api.DeleteFileOptions {
 	return &api.DeleteFileOptions{
-		SHA: "103ff9234cefeee5ec5361d22b49fbb04d385885",
-		FileOptions: api.FileOptions{
-			BranchName:    "master",
-			NewBranchName: "master",
-			Message:       "Removing the file new/file.txt",
-			Author: api.Identity{
-				Name:  "John Doe",
-				Email: "johndoe@example.com",
-			},
-			Committer: api.Identity{
-				Name:  "Jane Doe",
-				Email: "janedoe@example.com",
-			},
+		SHA:           "103ff9234cefeee5ec5361d22b49fbb04d385885",
+		BranchName:    "master",
+		NewBranchName: "master",
+		Message:       "Removing the file new/file.txt",
+		Author: api.Identity{
+			Name:  "John Doe",
+			Email: "johndoe@example.com",
+		},
+		Committer: api.Identity{
+			Name:  "Jane Doe",
+			Email: "janedoe@example.com",
 		},
 	}
 }

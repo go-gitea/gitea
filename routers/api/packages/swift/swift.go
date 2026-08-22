@@ -373,12 +373,10 @@ func UploadPackageFile(ctx *context.Context) {
 	pv, _, err := packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeSwift,
-				Name:        buildPackageID(packageScope, packageName),
-				Version:     packageVersion,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeSwift,
+			Name:             buildPackageID(packageScope, packageName),
+			Version:          packageVersion,
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         pck.Metadata,
@@ -388,12 +386,10 @@ func UploadPackageFile(ctx *context.Context) {
 			},
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: fmt.Sprintf("%s-%s.zip", packageName, packageVersion),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: fmt.Sprintf("%s-%s.zip", packageName, packageVersion),
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {

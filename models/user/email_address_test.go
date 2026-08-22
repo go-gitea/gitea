@@ -7,7 +7,6 @@ import (
 	"slices"
 	"testing"
 
-	"gitea.dev/models/db"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
@@ -92,9 +91,7 @@ func TestListEmails(t *testing.T) {
 
 	// Must find all users and their emails
 	opts := &user_model.SearchEmailOptions{
-		ListOptions: db.ListOptions{
-			PageSize: 10000,
-		},
+		PageSize: 10000,
 	}
 	emails, count, err := user_model.SearchEmails(t.Context(), opts)
 	assert.NoError(t, err)
@@ -138,10 +135,8 @@ func TestListEmails(t *testing.T) {
 
 	// Must find more than one page, but retrieve only one
 	opts = &user_model.SearchEmailOptions{
-		ListOptions: db.ListOptions{
-			PageSize: 5,
-			Page:     1,
-		},
+		PageSize: 5,
+		Page:     1,
 	}
 	emails, count, err = user_model.SearchEmails(t.Context(), opts)
 	assert.NoError(t, err)

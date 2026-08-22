@@ -89,7 +89,7 @@ func home(ctx *context.Context, viewRepositories bool) {
 		Doer:         ctx.Doer,
 		OrgID:        org.ID,
 		IsDoerMember: ctx.Org.IsMember,
-		ListOptions:  db.ListOptions{Page: 1, PageSize: 25},
+		Page:         1, PageSize: 25,
 	}
 
 	members, _, err := organization.FindOrgMembers(ctx, opts)
@@ -109,9 +109,9 @@ func home(ctx *context.Context, viewRepositories bool) {
 		overviewTeams = nil
 		if ctx.Org.IsMember {
 			overviewTeams, _, err = organization.SearchTeam(ctx, &organization.SearchTeamOptions{
-				OrgID:       org.ID,
-				UserID:      ctx.Doer.ID,
-				ListOptions: db.ListOptions{Page: 1, PageSize: orgOverviewTeamsLimit},
+				OrgID:  org.ID,
+				UserID: ctx.Doer.ID,
+				Page:   1, PageSize: orgOverviewTeamsLimit,
 			})
 			if err != nil {
 				ctx.ServerError("SearchTeam", err)
@@ -136,10 +136,8 @@ func home(ctx *context.Context, viewRepositories bool) {
 	ctx.Data["ShowOrgProfileReadmeSelector"] = isViewOverview && prepareResult.ProfilePublicReadmeBlob != nil && prepareResult.ProfilePrivateReadmeBlob != nil
 
 	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
-			Page:     page,
-		},
+		PageSize:           setting.UI.User.RepoPagingNum,
+		Page:               page,
 		Keyword:            keyword,
 		OwnerID:            org.ID,
 		OrderBy:            orderBy,

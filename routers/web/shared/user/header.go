@@ -50,11 +50,9 @@ func prepareContextForProfileBigAvatar(ctx *context.Context) {
 	orgs, err := db.Find[organization.Organization](ctx, organization.FindOrgOptions{
 		UserID:            ctx.ContextUser.ID,
 		IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, ctx.ContextUser),
-		ListOptions: db.ListOptions{
-			Page: 1,
-			// query one more result (without a separate counting) to see whether we need to add the "show more orgs" link
-			PageSize: setting.UI.User.OrgPagingNum + 1,
-		},
+		Page:              1,
+		// query one more result (without a separate counting) to see whether we need to add the "show more orgs" link
+		PageSize: setting.UI.User.OrgPagingNum + 1,
 	})
 	if err != nil {
 		ctx.ServerError("FindOrgs", err)

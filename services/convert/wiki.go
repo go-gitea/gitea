@@ -15,18 +15,14 @@ func ToWikiCommit(commit *git.Commit) *api.WikiCommit {
 	return &api.WikiCommit{
 		ID: commit.ID.String(),
 		Author: &api.CommitUser{
-			Identity: api.Identity{
-				Name:  commit.Author.Name,
-				Email: commit.Author.Email,
-			},
-			Date: commit.Author.When.UTC().Format(time.RFC3339),
+			Name:  commit.Author.Name,
+			Email: commit.Author.Email,
+			Date:  commit.Author.When.UTC().Format(time.RFC3339),
 		},
 		Committer: &api.CommitUser{
-			Identity: api.Identity{
-				Name:  commit.Committer.Name,
-				Email: commit.Committer.Email,
-			},
-			Date: commit.Committer.When.UTC().Format(time.RFC3339),
+			Name:  commit.Committer.Name,
+			Email: commit.Committer.Email,
+			Date:  commit.Committer.When.UTC().Format(time.RFC3339),
 		},
 		Message: commit.MessageUTF8(),
 	}

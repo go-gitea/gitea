@@ -174,23 +174,19 @@ func UploadPackageFile(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeRpm,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
-			Creator:  ctx.Doer,
-			Metadata: pck.VersionMetadata,
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeRpm,
+			Name:        pck.Name,
+			Version:     pck.Version,
+			Creator:     ctx.Doer,
+			Metadata:    pck.VersionMetadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s-%s.%s.rpm", pck.Name, pck.Version, pck.FileMetadata.Architecture),
-				CompositeKey: group,
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename:     fmt.Sprintf("%s-%s.%s.rpm", pck.Name, pck.Version, pck.FileMetadata.Architecture),
+			CompositeKey: group,
+			Creator:      ctx.Doer,
+			Data:         buf,
+			IsLead:       true,
 			Properties: map[string]string{
 				rpm_module.PropertyGroup:        group,
 				rpm_module.PropertyArchitecture: pck.FileMetadata.Architecture,

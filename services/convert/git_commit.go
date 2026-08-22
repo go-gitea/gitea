@@ -20,11 +20,9 @@ import (
 // ToCommitUser convert a git.Signature to an api.CommitUser
 func ToCommitUser(sig *git.Signature) *api.CommitUser {
 	return &api.CommitUser{
-		Identity: api.Identity{
-			Name:  sig.Name,
-			Email: sig.Email,
-		},
-		Date: sig.When.UTC().Format(time.RFC3339),
+		Name:  sig.Name,
+		Email: sig.Email,
+		Date:  sig.When.UTC().Format(time.RFC3339),
 	}
 }
 
@@ -157,18 +155,14 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 		RepoCommit: &api.RepoCommit{
 			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()),
 			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  commit.Author.Name,
-					Email: commit.Author.Email,
-				},
-				Date: commit.Author.When.Format(time.RFC3339),
+				Name:  commit.Author.Name,
+				Email: commit.Author.Email,
+				Date:  commit.Author.When.Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  commit.Committer.Name,
-					Email: commit.Committer.Email,
-				},
-				Date: commit.Committer.When.Format(time.RFC3339),
+				Name:  commit.Committer.Name,
+				Email: commit.Committer.Email,
+				Date:  commit.Committer.When.Format(time.RFC3339),
 			},
 			Message: commit.MessageUTF8(),
 			Tree: &api.CommitMeta{

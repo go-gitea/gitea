@@ -169,7 +169,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	}
 
 	return &api.BranchProtection{
-		BranchName:                    branchName,
+		BranchName:                    branchName, //nolint:staticcheck // deprecated field
 		RuleName:                      bp.RuleName,
 		Priority:                      bp.Priority,
 		EnablePush:                    bp.CanPush,

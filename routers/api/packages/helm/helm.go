@@ -174,20 +174,16 @@ func UploadPackage(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeHelm,
-				Name:        metadata.Name,
-				Version:     metadata.Version,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeHelm,
+			Name:             metadata.Name,
+			Version:          metadata.Version,
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: createFilename(metadata),
-			},
+			Filename:          createFilename(metadata),
 			Creator:           ctx.Doer,
 			Data:              buf,
 			IsLead:            true,
@@ -251,9 +247,7 @@ func UploadProvenanceFile(ctx *context.Context) {
 			Version:     metadata.Version,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: createProvenanceFilename(metadata),
-			},
+			Filename:          createProvenanceFilename(metadata),
 			Creator:           ctx.Doer,
 			Data:              buf,
 			IsLead:            false,

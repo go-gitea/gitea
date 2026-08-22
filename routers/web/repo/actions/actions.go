@@ -451,9 +451,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 	branchOpts := git_model.FindBranchOptions{
 		RepoID:          ctx.Repo.Repository.ID,
 		IsDeletedBranch: optional.Some(false),
-		ListOptions: db.ListOptions{
-			ListAll: true,
-		},
+		ListAll:         true,
 	}
 	branches, err := git_model.FindBranchNames(ctx, branchOpts)
 	if err != nil {
@@ -475,10 +473,8 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 
 func (data *actionRunListData) prepareFullPageRuns(ctx *context.Context, otherWorkflows []string) bool {
 	opts := actions_model.FindRunOptions{
-		ListOptions: db.ListOptions{
-			Page:     max(ctx.FormInt("page"), 1),
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-		},
+		Page:           max(ctx.FormInt("page"), 1),
+		PageSize:       convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		RepoID:         ctx.Repo.Repository.ID,
 		WorkflowID:     data.workflowID,
 		WorkflowRepoID: data.scopedWorkflowSourceRepoID,

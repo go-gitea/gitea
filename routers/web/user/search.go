@@ -6,7 +6,6 @@ package user
 import (
 	"net/http"
 
-	"gitea.dev/models/db"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/optional"
 	"gitea.dev/modules/setting"
@@ -21,11 +20,11 @@ func SearchCandidates(ctx *context.Context) {
 		searchUserTypes = append(searchUserTypes, user_model.UserTypeOrganization)
 	}
 	users, _, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
-		Actor:       ctx.Doer,
-		Keyword:     ctx.FormTrim("q"),
-		Types:       searchUserTypes,
-		IsActive:    optional.Some(true),
-		ListOptions: db.ListOptions{PageSize: setting.UI.MembersPagingNum},
+		Actor:    ctx.Doer,
+		Keyword:  ctx.FormTrim("q"),
+		Types:    searchUserTypes,
+		IsActive: optional.Some(true),
+		PageSize: setting.UI.MembersPagingNum,
 	})
 	if err != nil {
 		ctx.ServerError("Unable to search users", err)

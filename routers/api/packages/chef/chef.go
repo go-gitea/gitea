@@ -288,23 +288,19 @@ func UploadPackage(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageAndAddFile(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeChef,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
+			Owner:            ctx.Package.Owner,
+			PackageType:      packages_model.TypeChef,
+			Name:             pck.Name,
+			Version:          pck.Version,
 			Creator:          ctx.Doer,
 			SemverCompatible: true,
 			Metadata:         pck.Metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: strings.ToLower(pck.Version + ".tar.gz"),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename: strings.ToLower(pck.Version + ".tar.gz"),
+			Creator:  ctx.Doer,
+			Data:     buf,
+			IsLead:   true,
 		},
 	)
 	if err != nil {

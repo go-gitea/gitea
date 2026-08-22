@@ -576,8 +576,8 @@ func TestMailPullRequestPush(t *testing.T) {
 			SignCommit: &asymkey.SignCommit{
 				UserCommit: &gituser.UserCommit{
 					GitCommit: &git.Commit{
-						CommitMessage: git.CommitMessage{MessageRaw: "test commit msg"},
-						ID:            git.Sha1ObjectFormat.EmptyObjectID(),
+						MessageRaw: "test commit msg",
+						ID:         git.Sha1ObjectFormat.EmptyObjectID(),
 					},
 				},
 			},

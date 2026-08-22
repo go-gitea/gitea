@@ -161,23 +161,19 @@ func UploadPackageFile(ctx *context.Context) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeDebian,
-				Name:        pck.Name,
-				Version:     pck.Version,
-			},
-			Creator:  ctx.Doer,
-			Metadata: pck.Metadata,
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeDebian,
+			Name:        pck.Name,
+			Version:     pck.Version,
+			Creator:     ctx.Doer,
+			Metadata:    pck.Metadata,
 		},
 		&packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename:     fmt.Sprintf("%s_%s_%s.deb", pck.Name, pck.Version, pck.Architecture),
-				CompositeKey: fmt.Sprintf("%s|%s", distribution, component),
-			},
-			Creator: ctx.Doer,
-			Data:    buf,
-			IsLead:  true,
+			Filename:     fmt.Sprintf("%s_%s_%s.deb", pck.Name, pck.Version, pck.Architecture),
+			CompositeKey: fmt.Sprintf("%s|%s", distribution, component),
+			Creator:      ctx.Doer,
+			Data:         buf,
+			IsLead:       true,
 			Properties: map[string]string{
 				debian_module.PropertyDistribution: distribution,
 				debian_module.PropertyComponent:    component,

@@ -89,9 +89,7 @@ func testPullRequestLoadHeadRepo(t *testing.T) {
 
 func testPullRequestsNewest(t *testing.T) {
 	prs, count, err := issues_model.PullRequests(t.Context(), 1, &issues_model.PullRequestsOptions{
-		ListOptions: db.ListOptions{
-			Page: 1,
-		},
+		Page:     1,
 		State:    "open",
 		SortType: "newest",
 	})
@@ -127,9 +125,7 @@ func testPullRequestsClosedRecentSortType(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.sortType, func(t *testing.T) {
 			prs, _, err := issues_model.PullRequests(t.Context(), 1, &issues_model.PullRequestsOptions{
-				ListOptions: db.ListOptions{
-					Page: 1,
-				},
+				Page:     1,
 				State:    "closed",
 				SortType: test.sortType,
 			})
@@ -172,9 +168,7 @@ func testLoadRequestedReviewers(t *testing.T) {
 
 func testPullRequestsOldest(t *testing.T) {
 	prs, count, err := issues_model.PullRequests(t.Context(), 1, &issues_model.PullRequestsOptions{
-		ListOptions: db.ListOptions{
-			Page: 1,
-		},
+		Page:     1,
 		State:    "open",
 		SortType: "oldest",
 	})

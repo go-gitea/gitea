@@ -27,20 +27,18 @@ func TestRemovePackage(t *testing.T) {
 	createPackage := func(name string) (*packages_model.Package, *packages_model.PackageVersion, *packages_model.PackageFile) {
 		data, _ := packages_module.CreateHashedBufferFromReader(bytes.NewReader([]byte{1}))
 		pv, pf, err := packages_service.CreatePackageOrAddFileToExisting(t.Context(), &packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       user,
-				PackageType: packages_model.TypeGeneric,
-				Name:        name,
-				Version:     "1.0.0",
-			},
+			Owner:             user,
+			PackageType:       packages_model.TypeGeneric,
+			Name:              name,
+			Version:           "1.0.0",
 			Creator:           user,
 			PackageProperties: map[string]string{"pkg_prop": "val"},
 			VersionProperties: map[string]string{"ver_prop": "val"},
 		}, &packages_service.PackageFileCreationInfo{
-			PackageFileInfo: packages_service.PackageFileInfo{Filename: "file.bin"},
-			Creator:         user,
-			Data:            data,
-			Properties:      map[string]string{"file_prop": "val"},
+			Filename:   "file.bin",
+			Creator:    user,
+			Data:       data,
+			Properties: map[string]string{"file_prop": "val"},
 		})
 		require.NoError(t, err)
 

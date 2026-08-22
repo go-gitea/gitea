@@ -110,20 +110,16 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		if !perm.CanReadIssuesOrPulls(blocker.Issue.IsPull) {
 			if !canWrite {
 				hiddenBlocker := &issues_model.DependencyInfo{
-					Issue: issues_model.Issue{
-						Title: "HIDDEN",
-					},
+					Title: "HIDDEN",
 				}
 				blocker = hiddenBlocker
 			} else {
 				confidentialBlocker := &issues_model.DependencyInfo{
-					Issue: issues_model.Issue{
-						RepoID:   blocker.Issue.RepoID,
-						Index:    blocker.Index,
-						Title:    blocker.Title,
-						IsClosed: blocker.IsClosed,
-						IsPull:   blocker.IsPull,
-					},
+					RepoID:   blocker.Issue.RepoID,
+					Index:    blocker.Index,
+					Title:    blocker.Title,
+					IsClosed: blocker.IsClosed,
+					IsPull:   blocker.IsPull,
 					Repository: repo_model.Repository{
 						ID:        blocker.Issue.Repo.ID,
 						Name:      blocker.Issue.Repo.Name,

@@ -72,12 +72,10 @@ func prepareUserNotificationsData(ctx *context.Context) {
 
 	statuses := []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
 	nls, err := db.Find[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
-		ListOptions: db.ListOptions{
-			PageSize: perPage,
-			Page:     page,
-		},
-		UserID: ctx.Doer.ID,
-		Status: statuses,
+		PageSize: perPage,
+		Page:     page,
+		UserID:   ctx.Doer.ID,
+		Status:   statuses,
 	})
 	if err != nil {
 		ctx.ServerError("db.Find[activities_model.Notification]", err)
@@ -367,10 +365,8 @@ func NotificationWatching(ctx *context.Context) {
 	ctx.Data["IsPrivate"] = private
 
 	repos, count, err := repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
-			Page:     page,
-		},
+		PageSize:           setting.UI.User.RepoPagingNum,
+		Page:               page,
 		Actor:              ctx.Doer,
 		Keyword:            keyword,
 		OrderBy:            orderBy,

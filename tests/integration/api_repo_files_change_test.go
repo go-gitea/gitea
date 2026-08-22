@@ -28,18 +28,16 @@ func getChangeFilesOptions() *api.ChangeFilesOptions {
 	newContentEncoded := base64.StdEncoding.EncodeToString([]byte(newContent))
 	updateContentEncoded := base64.StdEncoding.EncodeToString([]byte(updateContent))
 	return &api.ChangeFilesOptions{
-		FileOptions: api.FileOptions{
-			BranchName:    "master",
-			NewBranchName: "master",
-			Message:       "My update of new/file.txt",
-			Author: api.Identity{
-				Name:  "Anne Doe",
-				Email: "annedoe@example.com",
-			},
-			Committer: api.Identity{
-				Name:  "John Doe",
-				Email: "johndoe@example.com",
-			},
+		BranchName:    "master",
+		NewBranchName: "master",
+		Message:       "My update of new/file.txt",
+		Author: api.Identity{
+			Name:  "Anne Doe",
+			Email: "annedoe@example.com",
+		},
+		Committer: api.Identity{
+			Name:  "John Doe",
+			Email: "johndoe@example.com",
 		},
 		Files: []*api.ChangeFileOperation{
 			{

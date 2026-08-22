@@ -668,10 +668,10 @@ func TestWebhook(ctx *context.Context) {
 	ghostUser := user_model.NewGhostUser()
 	objectFormat := git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName)
 	commit := &git.Commit{
-		ID:            objectFormat.EmptyObjectID(),
-		Author:        ghostUser.NewGitSig(),
-		Committer:     ghostUser.NewGitSig(),
-		CommitMessage: git.CommitMessage{MessageRaw: "This is a fake commit for webhook push test"},
+		ID:         objectFormat.EmptyObjectID(),
+		Author:     ghostUser.NewGitSig(),
+		Committer:  ghostUser.NewGitSig(),
+		MessageRaw: "This is a fake commit for webhook push test",
 	}
 
 	apiUser := convert.ToUserWithAccessMode(ctx, ctx.Doer, perm.AccessModeNone)

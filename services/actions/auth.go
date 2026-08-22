@@ -52,15 +52,13 @@ func CreateAuthorizationToken(taskID, runID, jobID int64) (string, error) {
 	}
 
 	claims := actionsClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(1*time.Hour + setting.Actions.EndlessTaskTimeout)),
-			NotBefore: jwt.NewNumericDate(now),
-		},
-		Scp:    fmt.Sprintf("Actions.Results:%d:%d", runID, jobID),
-		Ac:     string(ac),
-		TaskID: taskID,
-		RunID:  runID,
-		JobID:  jobID,
+		ExpiresAt: jwt.NewNumericDate(now.Add(1*time.Hour + setting.Actions.EndlessTaskTimeout)),
+		NotBefore: jwt.NewNumericDate(now),
+		Scp:       fmt.Sprintf("Actions.Results:%d:%d", runID, jobID),
+		Ac:        string(ac),
+		TaskID:    taskID,
+		RunID:     runID,
+		JobID:     jobID,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 

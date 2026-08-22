@@ -1,8 +1,6 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//go:build goexperiment.jsonv2
-
 package json
 
 import (
@@ -14,7 +12,6 @@ import (
 )
 
 // JSONv2 implements Interface via encoding/json/v2
-// Requires GOEXPERIMENT=jsonv2 to be set at build time
 type JSONv2 struct {
 	marshalOptions                  jsonv2.Options
 	marshalKeepOptionalEmptyOptions jsonv2.Options

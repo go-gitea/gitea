@@ -365,22 +365,18 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	isConaninfoFile := filename == conaninfoFile
 
 	pci := &packages_service.PackageCreationInfo{
-		PackageInfo: packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeConan,
-			Name:        rref.Name,
-			Version:     rref.Version,
-		},
-		Creator: ctx.Doer,
+		Owner:       ctx.Package.Owner,
+		PackageType: packages_model.TypeConan,
+		Name:        rref.Name,
+		Version:     rref.Version,
+		Creator:     ctx.Doer,
 	}
 	pfci := &packages_service.PackageFileCreationInfo{
-		PackageFileInfo: packages_service.PackageFileInfo{
-			Filename:     strings.ToLower(filename),
-			CompositeKey: fileKey,
-		},
-		Creator: ctx.Doer,
-		Data:    buf,
-		IsLead:  isConanfileFile,
+		Filename:     strings.ToLower(filename),
+		CompositeKey: fileKey,
+		Creator:      ctx.Doer,
+		Data:         buf,
+		IsLead:       isConanfileFile,
 		Properties: map[string]string{
 			conan_module.PropertyRecipeUser:     rref.User,
 			conan_module.PropertyRecipeChannel:  rref.Channel,

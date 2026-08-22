@@ -493,21 +493,19 @@ jobs:
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "user2/patch-1",
-				Message:       "create user2-patch.txt",
-				Author: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Committer: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			NewBranchName: "user2/patch-1",
+			Message:       "create user2-patch.txt",
+			Author: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user2-fix")),
 		})(t)
@@ -530,9 +528,9 @@ jobs:
 		assert.Equal(t, apiPull.Head.Ref, gtCtx["head_ref"].GetStringValue())
 		assert.Equal(t, actionRunJob.JobID, gtCtx["job"].GetStringValue())
 		assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
-		assert.Equal(t, (git.RefName(actionRun.Ref)).ShortName(), gtCtx["ref_name"].GetStringValue())
+		assert.Equal(t, git.RefName(actionRun.Ref).ShortName(), gtCtx["ref_name"].GetStringValue())
 		assert.False(t, gtCtx["ref_protected"].GetBoolValue())
-		assert.Equal(t, string((git.RefName(actionRun.Ref)).RefType()), gtCtx["ref_type"].GetStringValue())
+		assert.Equal(t, string(git.RefName(actionRun.Ref).RefType()), gtCtx["ref_type"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
@@ -585,21 +583,19 @@ jobs:
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
-			FileOptions: api.FileOptions{
-				NewBranchName: "user2/patch-1",
-				Message:       "create user2-patch.txt",
-				Author: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Committer: api.Identity{
-					Name:  user2.Name,
-					Email: user2.Email,
-				},
-				Dates: api.CommitDateOptions{
-					Author:    time.Now(),
-					Committer: time.Now(),
-				},
+			NewBranchName: "user2/patch-1",
+			Message:       "create user2-patch.txt",
+			Author: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Committer: api.Identity{
+				Name:  user2.Name,
+				Email: user2.Email,
+			},
+			Dates: api.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("user2-fix")),
 		})(t)
@@ -622,9 +618,9 @@ jobs:
 		assert.Equal(t, apiPull.Head.Ref, gtCtx["head_ref"].GetStringValue())
 		assert.Equal(t, actionRunJob.JobID, gtCtx["job"].GetStringValue())
 		assert.Equal(t, actionRun.Ref, gtCtx["ref"].GetStringValue())
-		assert.Equal(t, (git.RefName(actionRun.Ref)).ShortName(), gtCtx["ref_name"].GetStringValue())
+		assert.Equal(t, git.RefName(actionRun.Ref).ShortName(), gtCtx["ref_name"].GetStringValue())
 		assert.False(t, gtCtx["ref_protected"].GetBoolValue())
-		assert.Equal(t, string((git.RefName(actionRun.Ref)).RefType()), gtCtx["ref_type"].GetStringValue())
+		assert.Equal(t, string(git.RefName(actionRun.Ref).RefType()), gtCtx["ref_type"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName+"/"+actionRun.Repo.Name, gtCtx["repository"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.OwnerName, gtCtx["repository_owner"].GetStringValue())
 		assert.Equal(t, actionRun.Repo.HTMLURL(), gtCtx["repositoryUrl"].GetStringValue())
@@ -713,21 +709,19 @@ func createActionsTestRepo(t *testing.T, authToken, repoName string, isPrivate b
 
 func getWorkflowCreateFileOptions(u *user_model.User, branch, msg, content string) *api.CreateFileOptions {
 	return &api.CreateFileOptions{
-		FileOptions: api.FileOptions{
-			BranchName: branch,
-			Message:    msg,
-			Author: api.Identity{
-				Name:  u.Name,
-				Email: u.Email,
-			},
-			Committer: api.Identity{
-				Name:  u.Name,
-				Email: u.Email,
-			},
-			Dates: api.CommitDateOptions{
-				Author:    time.Now(),
-				Committer: time.Now(),
-			},
+		BranchName: branch,
+		Message:    msg,
+		Author: api.Identity{
+			Name:  u.Name,
+			Email: u.Email,
+		},
+		Committer: api.Identity{
+			Name:  u.Name,
+			Email: u.Email,
+		},
+		Dates: api.CommitDateOptions{
+			Author:    time.Now(),
+			Committer: time.Now(),
 		},
 		ContentBase64: base64.StdEncoding.EncodeToString([]byte(content)),
 	}

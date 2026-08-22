@@ -308,12 +308,12 @@ qbHDASXl
 			},
 
 			want: &Tag{
-				Name:          "v0.0.1",
-				ID:            MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
-				Object:        MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
-				Type:          "tag",
-				Tagger:        parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
-				CommitMessage: CommitMessage{MessageRaw: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n"},
+				Name:       "v0.0.1",
+				ID:         MustIDFromString("8c68a1f06fc59c655b7e3905b159d761e91c53c9"),
+				Object:     MustIDFromString("3325fd8a973321fd59455492976c042dde3fd1ca"),
+				Type:       "tag",
+				Tagger:     parseSignatureFromCommitLine("Foo Bar <foo@bar.com> 1565789218 +0300"),
+				MessageRaw: "Add changelog of v1.9.1 (#7859)\n\n* add changelog of v1.9.1\n* Update CHANGELOG.md\n",
 				Signature: &CommitSignature{
 					Signature: `-----BEGIN PGP SIGNATURE-----
 

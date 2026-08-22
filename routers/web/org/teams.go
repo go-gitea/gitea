@@ -83,7 +83,7 @@ func Teams(ctx *context.Context) {
 			IncludeDesc: true,
 			IncludeVisibilities: util.Iif(shouldSeeAllOrgTeams, nil,
 				org_model.VisibleTeamVisibilitiesFor(ctx.Org.IsMember, ctx.IsSigned)),
-			ListOptions: db.ListOptions{Page: page, PageSize: pagingNum},
+			Page: page, PageSize: pagingNum,
 		}
 		return org_model.SearchTeam(ctx, opts)
 	}

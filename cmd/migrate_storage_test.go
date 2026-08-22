@@ -30,22 +30,18 @@ func TestMigratePackages(t *testing.T) {
 	defer buf.Close()
 
 	v, f, err := packages_service.CreatePackageAndAddFile(t.Context(), &packages_service.PackageCreationInfo{
-		PackageInfo: packages_service.PackageInfo{
-			Owner:       creator,
-			PackageType: packages.TypeGeneric,
-			Name:        "test",
-			Version:     "1.0.0",
-		},
+		Owner:             creator,
+		PackageType:       packages.TypeGeneric,
+		Name:              "test",
+		Version:           "1.0.0",
 		Creator:           creator,
 		SemverCompatible:  true,
 		VersionProperties: map[string]string{},
 	}, &packages_service.PackageFileCreationInfo{
-		PackageFileInfo: packages_service.PackageFileInfo{
-			Filename: "a.go",
-		},
-		Creator: creator,
-		Data:    buf,
-		IsLead:  true,
+		Filename: "a.go",
+		Creator:  creator,
+		Data:     buf,
+		IsLead:   true,
 	})
 	assert.NoError(t, err)
 	assert.NotNil(t, v)

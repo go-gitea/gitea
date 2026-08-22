@@ -318,10 +318,8 @@ func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) e
 
 	for {
 		archivers, err := db.Find[repo_model.RepoArchiver](ctx, repo_model.FindRepoArchiversOption{
-			ListOptions: db.ListOptions{
-				PageSize: 100,
-				Page:     1,
-			},
+			PageSize:  100,
+			Page:      1,
 			OlderThan: olderThan,
 		})
 		if err != nil {

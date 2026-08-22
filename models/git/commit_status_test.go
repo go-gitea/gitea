@@ -26,9 +26,9 @@ func TestGetCommitStatuses(t *testing.T) {
 	sha1 := "1234123412341234123412341234123412341234" // the mocked commit ID in test fixtures
 
 	statuses, maxResults, err := db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 50},
-		RepoID:      repo1.ID,
-		SHA:         sha1,
+		Page: 1, PageSize: 50,
+		RepoID: repo1.ID,
+		SHA:    sha1,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 5, int(maxResults))
@@ -55,9 +55,9 @@ func TestGetCommitStatuses(t *testing.T) {
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/statuses/1234123412341234123412341234123412341234", statuses[4].APIURL(t.Context()))
 
 	statuses, maxResults, err = db.FindAndCount[git_model.CommitStatus](t.Context(), &git_model.CommitStatusOptions{
-		ListOptions: db.ListOptions{Page: 2, PageSize: 50},
-		RepoID:      repo1.ID,
-		SHA:         sha1,
+		Page: 2, PageSize: 50,
+		RepoID: repo1.ID,
+		SHA:    sha1,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 5, int(maxResults))

@@ -63,11 +63,9 @@ func Users(ctx *context.Context) {
 	}
 
 	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
-		Actor: ctx.Doer,
-		Types: []user_model.UserType{user_model.UserTypeIndividual},
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.Admin.UserPagingNum,
-		},
+		Actor:              ctx.Doer,
+		Types:              []user_model.UserType{user_model.UserTypeIndividual},
+		PageSize:           setting.UI.Admin.UserPagingNum,
 		SearchByEmail:      true,
 		IsActive:           optional.ParseBool(statusFilterMap["is_active"]),
 		IsAdmin:            optional.ParseBool(statusFilterMap["is_admin"]),
