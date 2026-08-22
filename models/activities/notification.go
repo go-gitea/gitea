@@ -130,7 +130,7 @@ func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_mo
 					continue
 				}
 				notify = append(notify, &Notification{
-					UserID:    i,
+					UserID:    users[i].ID,
 					RepoID:    repo.ID,
 					Status:    NotificationStatusUnread,
 					UpdatedBy: doer.ID,

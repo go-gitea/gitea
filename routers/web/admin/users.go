@@ -694,6 +694,8 @@ func ConvertUserType(ctx *context.Context) {
 		switch {
 		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
 			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
+		case errors.Is(err, user_model.ErrUserTypeCanNotConvert):
+			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.not_convertible"))
 		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.Flash.Error(ctx.Tr("admin.users.user_type.invalid"))
 		default:

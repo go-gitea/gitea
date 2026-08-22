@@ -42,6 +42,6 @@ export function initAdminUserListSearchForm(): void {
     }
   };
 
-  resetFilter('.j-reset-status-filter', 'status_filter[');
-  resetFilter('.j-reset-type-filter', 'user_type');
+  resetFilter('.js-reset-status-filter', 'status_filter[');
+  resetFilter('.js-reset-type-filter', 'user_type');
 }
