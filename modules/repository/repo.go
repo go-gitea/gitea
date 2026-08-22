@@ -18,6 +18,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/util"
 )
 
 /*
@@ -246,7 +247,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 				Sha1:         tag.Object.String(),
 				// NOTE: ignored, The NumCommits value is calculated and cached on demand when the UI requires it.
 				NumCommits:    -1,
-				CreatedUnix:   timeutil.TimeStamp(tag.Tagger.When.Unix()),
+				CreatedUnix:   timeutil.TimeStamp(util.IfZero(tag.CommitDate, tag.Tagger.When).Unix()),
 				PublishedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
 				IsTag:         true,
 			}
@@ -269,7 +270,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 				Cols("sha1", "created_unix", "published_unix").
 				Update(&repo_model.Release{
 					Sha1:          tag.Object.String(),
-					CreatedUnix:   timeutil.TimeStamp(tag.Tagger.When.Unix()),
+					CreatedUnix:   timeutil.TimeStamp(util.IfZero(tag.CommitDate, tag.Tagger.When).Unix()),
 					PublishedUnix: timeutil.TimeStamp(tag.Tagger.When.Unix()),
 				}); err != nil {
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
