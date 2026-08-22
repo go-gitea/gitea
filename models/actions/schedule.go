@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
 	webhook_module "gitea.dev/modules/webhook"
@@ -38,6 +39,11 @@ type ActionSchedule struct {
 
 func init() {
 	db.RegisterModel(new(ActionSchedule))
+}
+
+// PrettyRef returns the short name of the schedule's ref
+func (s *ActionSchedule) PrettyRef() string {
+	return git.RefName(s.Ref).ShortName()
 }
 
 // GetSchedulesMapByIDs returns the schedules by given id slice.
