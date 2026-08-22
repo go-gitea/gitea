@@ -664,7 +664,7 @@ func TestActionsArtifactV4DownloadSinglePublicApi(t *testing.T) {
 
 	req = NewRequestWithBody(t, "GET", blobLocation, nil).AddTokenAuth(token)
 	req.URL.RawQuery = ""
-	unauthorizedResp := MakeRequest(t, req, http.StatusUnauthorized)
+	notFoundResp := MakeRequest(t, req, http.StatusNotFound)
 
 	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	require.NotEqual(t, repo.ID, otherRepo.ID)
@@ -677,8 +677,8 @@ func TestActionsArtifactV4DownloadSinglePublicApi(t *testing.T) {
 		{"missing repository", fmt.Sprintf("/api/v1/repos/%s/does-not-exist/actions/artifacts/%d/zip/raw", repo.OwnerName, listResp.Entries[0].ID)},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			invalidResp := MakeRequest(t, NewRequestWithBody(t, "GET", testCase.path, nil), http.StatusUnauthorized)
-			assert.Equal(t, unauthorizedResp.Body.String(), invalidResp.Body.String())
+			invalidResp := MakeRequest(t, NewRequestWithBody(t, "GET", testCase.path, nil), http.StatusNotFound)
+			assert.Equal(t, notFoundResp.Body.String(), invalidResp.Body.String())
 		})
 	}
 }
@@ -718,7 +718,7 @@ func TestActionsArtifactV4DownloadSinglePublicApiPrivateRepo(t *testing.T) {
 	// confirm artifact can not be downloaded without query
 	req = NewRequestWithBody(t, "GET", blobLocation, nil)
 	req.URL.RawQuery = ""
-	_ = MakeRequest(t, req, http.StatusUnauthorized)
+	_ = MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestActionsArtifactV4ListAndGetPublicApi(t *testing.T) {

@@ -2157,7 +2157,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	artifactID := ctx.PathParamInt64("artifact_id")
 
 	if !hmac.Equal(sigBytes, buildSignature(buildDownloadRawEndpoint(ownerName, repoName, artifactID), expires, artifactID)) {
-		ctx.APIError(http.StatusUnauthorized, "Error unauthorized")
+		ctx.APIErrorNotFound()
 		return
 	}
 	if time.Unix(expires, 0).Before(time.Now()) {
