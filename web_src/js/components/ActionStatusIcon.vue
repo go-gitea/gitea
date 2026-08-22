@@ -3,7 +3,7 @@
 -->
 <script lang="ts" setup>
 import {computed} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import {getActionStatusIcon, type ActionStatusIconVariant} from '../modules/action-status-icon.ts';
 
 const props = withDefaults(defineProps<{
@@ -28,18 +28,5 @@ const iconClass = computed(() => {
 </script>
 
 <template>
-  <span class="action-status-icon" :data-tooltip-content="localeStatus ?? status" v-if="status">
-    <SvgIcon :name="icon.name" :class="iconClass" :size="size"/>
-  </span>
+  <SvgIcon v-if="status" :name="icon.name" :class="iconClass" :size="size" :data-tooltip-content="localeStatus ?? status"/>
 </template>
-
-<style scoped>
-/* Safari renders inline <span> baseline differently from Chrome/Firefox, causing
-   SVG icons to appear misaligned. inline-flex + align-items centers the icon
-   vertically within the span regardless of browser baseline handling. */
-.action-status-icon {
-  display: inline-flex;
-  align-items: center;
-  vertical-align: middle;
-}
-</style>
