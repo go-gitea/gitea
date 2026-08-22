@@ -72,7 +72,6 @@ func IsErrorCanceledOrKilled(err error) bool {
 
 type (
 	StderrPrefix   string
-	StderrContains string
 	StderrWildcard string
 )
 
@@ -85,35 +84,39 @@ const (
 	StderrNoSuchRemote1 StderrPrefix = "fatal: no such remote" // git < 2.30, exit status 128
 	StderrNoSuchRemote2 StderrPrefix = "error: no such remote" // git >= 2.30. exit status 2
 
-	// these are not at the start of stderr, git prints the remote and progress lines first
-	StderrAuthenticationFailed StderrContains = "Authentication failed"
-	StderrCouldNotReadUsername StderrContains = "could not read Username"
+	StderrAuthenticationFailed StderrPrefix = "fatal: Authentication failed for"
+	StderrCouldNotReadUsername StderrPrefix = "fatal: could not read Username"
 
 	StderrUnknownRevisionOrPath StderrWildcard = "fatal: *: unknown revision or path not in the working tree"
 	StderrNoMergeBase           StderrWildcard = "fatal: *: no merge base"
 )
 
-func IsStderr[T StderrPrefix | StderrContains | StderrWildcard](err error, check T) bool {
-	stderr, ok := ErrorAsStderr(err)
+func IsStderr[T StderrPrefix | StderrWildcard](err error, check T) bool {
+	stderrFull, ok := ErrorAsStderr(err) // git can emit multiple-line message in stderr
 	if !ok {
 		return false
 	}
 	checkLen := len(check)
-	if len(stderr) < checkLen {
-		return false
+	for line := range strings.SplitSeq(stderrFull, "\n") {
+		if len(line) < checkLen {
+			continue
+		}
+		switch any(check).(type) {
+		case StderrPrefix:
+			// Git is lowercasing the "fatal: Not a valid object name" error message
+			// ref: https://lore.kernel.org/git/pull.2052.git.1771836302101.gitgitgadget@gmail.com
+			if util.AsciiEqualFold(line[:checkLen], string(check)) {
+				return true
+			}
+		case StderrWildcard:
+			prefix, remaining, _ := strings.Cut(string(check), "*")
+			if strings.HasPrefix(line, prefix) && strings.Contains(line, remaining) {
+				return true
+			}
+		default:
+			setting.PanicInDevOrTesting("invalid stderr type %T", check)
+		}
 	}
-	switch any(check).(type) {
-	case StderrPrefix:
-		// Git is lowercasing the "fatal: Not a valid object name" error message
-		// ref: https://lore.kernel.org/git/pull.2052.git.1771836302101.gitgitgadget@gmail.com
-		return util.AsciiEqualFold(stderr[:checkLen], string(check))
-	case StderrContains:
-		return strings.Contains(stderr, string(check))
-	case StderrWildcard:
-		prefix, remaining, _ := strings.Cut(string(check), "*")
-		return strings.HasPrefix(stderr, prefix) && strings.Contains(stderr, remaining)
-	}
-	setting.PanicInDevOrTesting("invalid stderr type %T", check)
 	return false
 }
 

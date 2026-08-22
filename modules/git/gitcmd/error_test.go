@@ -10,18 +10,24 @@ import (
 )
 
 func TestIsStderr(t *testing.T) {
-	cases := []struct {
-		check  StderrWildcard
-		stderr string
-	}{
-		{StderrUnknownRevisionOrPath, "fatal: ambiguous argument 'origin': unknown revision or path not in the working tree...."},
-		{StderrNoMergeBase, "fatal: origin/main..HEAD: no merge base...."},
-	}
-	for _, tc := range cases {
-		assert.True(t, IsStderr(&runStdError{stderr: tc.stderr}, tc.check), "stderr: %s", tc.stderr)
-	}
-
-	authStderr := "Cloning into 'repo'...\nremote: Invalid username or token.\nfatal: Authentication failed for 'https://host/repo.git/'\n"
-	assert.True(t, IsStderr(&runStdError{stderr: authStderr}, StderrAuthenticationFailed))
-	assert.False(t, IsStderr(&runStdError{stderr: authStderr}, StderrCouldNotReadUsername))
+	t.Run("StderrWildcard", func(t *testing.T) {
+		cases := []struct {
+			check  StderrWildcard
+			stderr string
+		}{
+			{StderrUnknownRevisionOrPath, "fatal: ambiguous argument 'origin': unknown revision or path not in the working tree...."},
+			{StderrNoMergeBase, "fatal: origin/main..HEAD: no merge base...."},
+		}
+		for _, tc := range cases {
+			assert.True(t, IsStderr(&runStdError{stderr: tc.stderr}, tc.check), "stderr: %s", tc.stderr)
+		}
+	})
+	t.Run("StderrPrefix", func(t *testing.T) {
+		authStderr := `Cloning into 'repo'...
+remote: Invalid username or token.
+fatal: Authentication failed for 'https://host/repo.git/'
+`
+		assert.True(t, IsStderr(&runStdError{stderr: authStderr}, StderrAuthenticationFailed))
+		assert.False(t, IsStderr(&runStdError{stderr: authStderr}, StderrCouldNotReadUsername))
+	})
 }
