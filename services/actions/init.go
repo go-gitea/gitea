@@ -61,13 +61,13 @@ func Init(ctx context.Context) error {
 		return nil
 	}
 
-	if setting.OAuth2.Enabled {
-		if oauth2_provider.DefaultSigningKey == nil {
-			return errors.New("OIDC signing key is not initialized")
+	if oauth2_provider.DefaultSigningKey == nil {
+		if err := oauth2_provider.InitSigningKey(); err != nil {
+			log.Warn("Actions OIDC is disabled because its signing key could not be initialized: %v", err)
 		}
-		if oauth2_provider.DefaultSigningKey.IsSymmetric() {
-			return errors.New("OIDC signing key must be asymmetric")
-		}
+	}
+	if oauth2_provider.DefaultSigningKey != nil && oauth2_provider.DefaultSigningKey.IsSymmetric() {
+		log.Warn("Actions OIDC is disabled because its signing key is symmetric")
 	}
 
 	jobEmitterQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "actions_ready_job", jobEmitterQueueHandler)
