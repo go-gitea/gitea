@@ -8,66 +8,9 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 
-		<div class="ui secondary pointing menu">
-			<a class="active item" href="{{$.RepoLink}}/actions">{{ctx.Locale.Tr "actions.runs.title"}}</a>
-			<a class="item" href="{{$.RepoLink}}/actions/queue">{{ctx.Locale.Tr "actions.queue.all_jobs"}}</a>
-		</div>
-
 		{{if .HasWorkflowsOrRuns}}
 		<div class="flex-container">
-			<div class="flex-container-nav">
-				<div class="ui fluid vertical menu">
-					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
-					{{range .workflows}}
-						<a class="item flex-text-block {{if and (eq .EntryName $.CurWorkflow) (not $.CurWorkflowScopedRepoID)}}active{{end}}" href="?workflow={{.EntryName}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
-							<span class="gt-ellipsis" data-tooltip-content="{{.DisplayName}}">{{.DisplayName}}</span>
-
-							{{if .ErrMsg}}
-								<span class="flex-text-inline tw-shrink-0" data-tooltip-content="{{.ErrMsg}}">{{svg "octicon-alert" 16 "tw-text-red"}}</span>
-							{{end}}
-
-							{{if $.ActionsConfig.IsWorkflowDisabled .EntryName}}
-								<div class="ui red label tw-shrink-0">{{ctx.Locale.Tr "disabled"}}</div>
-							{{end}}
-						</a>
-					{{end}}
-					{{range .ScopedWorkflowGroups}}
-						<details class="item scoped-workflow-group"{{if .IsActive}} open{{end}}>
-							<summary>
-								<span class="gt-ellipsis tw-min-w-0" data-tooltip-content="{{.SourceRepoName}}">{{if .FromInstance}}{{.SourceRepoName}}{{else}}{{.SourceRepoShortName}}{{end}}</span>
-								<span class="ui label">{{if .FromInstance}}{{ctx.Locale.Tr "actions.workflow.scope_global"}}{{else}}{{ctx.Locale.Tr "actions.workflow.scope_owner"}}{{end}}</span>
-							</summary>
-							{{range .Workflows}}
-								<a class="item flex-text-block {{if and (eq .EntryName $.CurWorkflow) (eq .SourceRepoID $.CurWorkflowScopedRepoID)}}active{{end}}" href="?workflow={{.EntryName}}&scoped_workflow_source_repo_id={{.SourceRepoID}}&actor={{$.CurActor}}&status={{$.CurStatus}}&branch={{$.CurBranch}}">
-									<span class="gt-ellipsis tw-min-w-0" data-tooltip-content="{{.EntryName}}">{{.DisplayName}}</span>
-									{{if .Required}}
-										<span class="ui label">{{ctx.Locale.Tr "actions.workflow.required"}}</span>
-									{{else if .Disabled}}
-										<span class="ui red label">{{ctx.Locale.Tr "disabled"}}</span>
-									{{end}}
-								</a>
-							{{end}}
-						</details>
-					{{end}}
-					{{if .OtherWorkflows}}
-						<details class="item"{{if not $.CurWorkflowIsListed}} open{{end}}>
-							<summary data-tooltip-content="{{ctx.Locale.Tr "actions.runs.other_workflows_tooltip"}}">
-								<span class="flex-text-block">
-									{{ctx.Locale.Tr "actions.runs.other_workflows"}}
-									<span class="ui label">{{len .OtherWorkflows}}</span>
-								</span>
-							</summary>
-							<div class="menu items-full-width">
-								{{range .OtherWorkflows}}
-									<a class="item {{if eq . $.CurWorkflow}}active{{end}}" href="?workflow={{.}}&actor={{$.CurActor}}&status={{$.CurStatus}}">
-										<span class="gt-ellipsis" data-tooltip-content="{{.}}">{{.}}</span>
-									</a>
-								{{end}}
-							</div>
-						</details>
-					{{end}}
-				</div>
-			</div>
+			{{template "repo/actions/sidebar" .}}
 			<div class="flex-container-main">
 				<div class="ui top attached header flex-left-right">
 					<strong>{{ctx.Locale.TrN .Page.Paginater.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginater.Total}}</strong>

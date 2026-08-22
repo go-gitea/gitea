@@ -74,6 +74,14 @@ func TestActionsQueue(t *testing.T) {
 	assert.Contains(t, body, queuedJobName)
 	assert.Contains(t, body, "actions-queue-tbody")
 	assert.Contains(t, body, "drag-handle", "repo admins get reorder handles")
+	assert.Contains(t, body, "actions-management", "queue sits under Management in the Actions sidebar")
+	assert.Contains(t, body, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`)
+
+	// The Actions runs list exposes Queue under Management, not as a top tab.
+	listBody := sessionUser2.MakeRequest(t, NewRequest(t, "GET", "/user2/repo1/actions"), http.StatusOK).Body.String()
+	assert.Contains(t, listBody, "actions-management")
+	assert.Contains(t, listBody, `href="/user2/repo1/actions/queue"`)
+	assert.NotContains(t, listBody, `class="item flex-text-block silenced selected" href="/user2/repo1/actions/queue"`, "Queue is not selected on the runs list")
 
 	// A non-admin reader of the public repo may view the queue but gets no reorder handles.
 	body4 := sessionUser4.MakeRequest(t, NewRequest(t, "GET", repoQueue), http.StatusOK).Body.String()

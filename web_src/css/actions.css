@@ -94,3 +94,29 @@
   order: 2;
   margin-left: auto;
 }
+
+/* Management section under the workflows menu */
+.actions-management {
+  margin-top: var(--page-spacing);
+}
+
+.actions-management-header {
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-light-2);
+  margin-bottom: var(--gap-block);
+}
+
+.actions-management-list > .item {
+  padding: 6px 10px;
+  border-radius: var(--border-radius);
+}
+
+.actions-management-list > .item:hover {
+  background-color: var(--color-hover);
+}
+
+.actions-management-list > .item.selected {
+  font-weight: var(--font-weight-bold);
+  background-color: var(--color-active);
+}

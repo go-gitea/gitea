@@ -3890,6 +3890,8 @@
   "actions.workflow.has_no_workflow_dispatch": "Workflow '%s' has no workflow_dispatch event trigger.",
   "actions.need_approval_desc": "Need approval to run workflows for fork pull request.",
   "actions.approve_all_success": "All workflow runs are approved successfully.",
+  "actions.management": "Management",
+  "actions.queue.title": "Queue",
   "actions.queue.all_jobs": "All jobs",
   "actions.queue.position": "#",
   "actions.queue.runs_on": "Runs on",
