@@ -128,6 +128,7 @@ func CreateScheduleTask(ctx context.Context, spec *actions_model.ActionScheduleS
 		RepoID:        cron.RepoID,
 		OwnerID:       cron.OwnerID,
 		WorkflowID:    cron.WorkflowID,
+		WorkflowPath:  cron.WorkflowPath,
 		TriggerUserID: cron.TriggerUserID,
 		Ref:           cron.Ref,
 		CommitSHA:     cron.CommitSHA,

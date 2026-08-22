@@ -266,12 +266,14 @@ jobs:
 		apiFileResp := createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts1)
 
 		actionSchedule := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionSchedule{RepoID: repo.ID, CommitSHA: apiFileResp.Commit.SHA})
+		assert.Equal(t, wfTreePath, actionSchedule.WorkflowPath)
 		scheduleSpec := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: repo.ID, ScheduleID: actionSchedule.ID})
 		assert.Equal(t, "@every 1m", scheduleSpec.Spec)
 
 		commitID, expectedSpec := updateTrigger(t, u, httpContext, user2, repo)
 
 		actionSchedule = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionSchedule{RepoID: repo.ID, CommitSHA: commitID})
+		assert.Equal(t, wfTreePath, actionSchedule.WorkflowPath)
 		scheduleSpec = unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: repo.ID, ScheduleID: actionSchedule.ID})
 		assert.Equal(t, expectedSpec, scheduleSpec.Spec)
 	})
