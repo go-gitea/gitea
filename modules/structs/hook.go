@@ -46,6 +46,50 @@ type Hook struct {
 // HookList represents a list of API hook.
 type HookList []*Hook
 
+// HookDeliveryRequest represents the request information of a webhook delivery
+type HookDeliveryRequest struct {
+	// The URL the delivery was sent to
+	URL string `json:"url"`
+	// The HTTP method used for the delivery
+	HTTPMethod string `json:"http_method"`
+	// The headers sent with the delivery
+	Headers map[string]string `json:"headers"`
+	// The body sent with the delivery
+	Body string `json:"body"`
+}
+
+// HookDeliveryResponse represents the response information of a webhook delivery
+type HookDeliveryResponse struct {
+	// The HTTP status code of the response
+	Status int `json:"status"`
+	// The headers received in the response
+	Headers map[string]string `json:"headers"`
+	// The body received in the response
+	Body string `json:"body"`
+}
+
+// HookDelivery represents a single delivery attempt for a webhook
+type HookDelivery struct {
+	// The unique identifier of the delivery
+	UUID string `json:"uuid"`
+	// The event type that triggered this delivery
+	EventType string `json:"event_type"`
+	// Whether the delivery has been sent
+	IsDelivered bool `json:"is_delivered"`
+	// Whether the delivery was successful (2xx response)
+	IsSucceeded bool `json:"is_succeeded"`
+	// swagger:strfmt date-time
+	// The date and time when the delivery was sent
+	Delivered *time.Time `json:"delivered_at"`
+	// The request that was sent
+	Request *HookDeliveryRequest `json:"request"`
+	// The response that was received
+	Response *HookDeliveryResponse `json:"response"`
+}
+
+// HookDeliveryList represents a list of API hook deliveries.
+type HookDeliveryList []*HookDelivery
+
 // CreateHookOptionConfig has all config options in it
 // required are "content_type" and "url" Required
 type CreateHookOptionConfig map[string]string

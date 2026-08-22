@@ -10732,6 +10732,113 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/hooks/{id}/deliveries": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List the deliveries of a hook in a repository",
+        "operationId": "repoListHookDeliveries",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HookDeliveryList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/hooks/{id}/deliveries/{uuid}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a delivery of a hook in a repository",
+        "operationId": "repoGetHookDelivery",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the hook",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "uuid of the delivery",
+            "name": "uuid",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/HookDelivery"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/hooks/{id}/tests": {
       "post": {
         "produces": [
@@ -30065,6 +30172,101 @@
       },
       "x-go-package": "gitea.dev/modules/structs"
     },
+    "HookDelivery": {
+      "description": "HookDelivery represents a single delivery attempt for a webhook",
+      "type": "object",
+      "properties": {
+        "delivered_at": {
+          "description": "The date and time when the delivery was sent",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Delivered"
+        },
+        "event_type": {
+          "description": "The event type that triggered this delivery",
+          "type": "string",
+          "x-go-name": "EventType"
+        },
+        "is_delivered": {
+          "description": "Whether the delivery has been sent",
+          "type": "boolean",
+          "x-go-name": "IsDelivered"
+        },
+        "is_succeeded": {
+          "description": "Whether the delivery was successful (2xx response)",
+          "type": "boolean",
+          "x-go-name": "IsSucceeded"
+        },
+        "request": {
+          "$ref": "#/definitions/HookDeliveryRequest"
+        },
+        "response": {
+          "$ref": "#/definitions/HookDeliveryResponse"
+        },
+        "uuid": {
+          "description": "The unique identifier of the delivery",
+          "type": "string",
+          "x-go-name": "UUID"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "HookDeliveryRequest": {
+      "description": "HookDeliveryRequest represents the request information of a webhook delivery",
+      "type": "object",
+      "properties": {
+        "body": {
+          "description": "The body sent with the delivery",
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "headers": {
+          "description": "The headers sent with the delivery",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Headers"
+        },
+        "http_method": {
+          "description": "The HTTP method used for the delivery",
+          "type": "string",
+          "x-go-name": "HTTPMethod"
+        },
+        "url": {
+          "description": "The URL the delivery was sent to",
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
+    "HookDeliveryResponse": {
+      "description": "HookDeliveryResponse represents the response information of a webhook delivery",
+      "type": "object",
+      "properties": {
+        "body": {
+          "description": "The body received in the response",
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "headers": {
+          "description": "The headers received in the response",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Headers"
+        },
+        "status": {
+          "description": "The HTTP status code of the response",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "gitea.dev/modules/structs"
+    },
     "Identity": {
       "description": "Identity for a person's identity like an author or committer",
       "type": "object",
@@ -34356,6 +34558,21 @@
       "description": "Hook",
       "schema": {
         "$ref": "#/definitions/Hook"
+      }
+    },
+    "HookDelivery": {
+      "description": "HookDelivery",
+      "schema": {
+        "$ref": "#/definitions/HookDelivery"
+      }
+    },
+    "HookDeliveryList": {
+      "description": "HookDeliveryList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/HookDelivery"
+        }
       }
     },
     "HookList": {
