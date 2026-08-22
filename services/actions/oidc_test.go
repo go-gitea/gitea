@@ -225,6 +225,7 @@ func TestActionsOIDCRefs(t *testing.T) {
 
 func TestActionsOIDCReusableWorkflowIdentity(t *testing.T) {
 	task := newOIDCTestTask(t)
+	useOIDCTestSigningKey(t)
 	sourceRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	permissions := repo_model.MakeActionsTokenPermissions(perm.AccessModeNone)
 	permissions.IDTokenAccessMode = perm.AccessModeWrite
@@ -246,14 +247,33 @@ func TestActionsOIDCReusableWorkflowIdentity(t *testing.T) {
 	_, err := db.GetEngine(t.Context()).ID(task.Job.ID).Cols("parent_job_id", "workflow_source_repo_id", "workflow_source_commit_sha").Update(task.Job)
 	require.NoError(t, err)
 
-	claims, err := createOIDCClaims(t.Context(), task, "audience", time.Now().UTC())
+	token, err := CreateOIDCToken(t.Context(), task.ID, "audience")
 	require.NoError(t, err)
+	claims := parseOIDCTestToken(t, token)
 	assert.Equal(t, task.Job.Run.Repo.FullName()+"/.gitea/workflows/oidc.yml@refs/heads/main", claims.WorkflowRef)
 	assert.Equal(t, task.Job.Run.WorkflowCommitSHA, claims.WorkflowSHA)
 	assert.Equal(t, sourceRepo.FullName()+"/.gitea/workflows/reusable.yml@v1", claims.JobWorkflowRef)
 	assert.Equal(t, "reusable-sha", claims.JobWorkflowSHA)
 	assert.Equal(t, sourceRepo.FullName(), claims.JobWorkflowRepository)
 	assert.Equal(t, strconv.FormatInt(sourceRepo.ID, 10), claims.JobWorkflowRepositoryID)
+
+	originalCallUses := caller.CallUses
+	caller.CallUses = "not a valid reusable workflow reference"
+	_, err = db.GetEngine(t.Context()).ID(caller.ID).Cols("call_uses").Update(caller)
+	require.NoError(t, err)
+	token, err = CreateOIDCToken(t.Context(), task.ID, "audience")
+	assert.ErrorContains(t, err, "resolve reusable workflow uses")
+	assert.Empty(t, token)
+
+	caller.CallUses = originalCallUses
+	_, err = db.GetEngine(t.Context()).ID(caller.ID).Cols("call_uses").Update(caller)
+	require.NoError(t, err)
+	task.Job.WorkflowSourceCommitSHA = ""
+	_, err = db.GetEngine(t.Context()).ID(task.Job.ID).Cols("workflow_source_commit_sha").Update(task.Job)
+	require.NoError(t, err)
+	token, err = CreateOIDCToken(t.Context(), task.ID, "audience")
+	assert.ErrorContains(t, err, "workflow source commit is missing")
+	assert.Empty(t, token)
 }
 
 func TestActionsOIDCAudience(t *testing.T) {

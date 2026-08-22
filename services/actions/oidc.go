@@ -295,15 +295,22 @@ func buildOIDCJobWorkflowRef(ctx context.Context, job *actions_model.ActionRunJo
 	if err != nil {
 		return "", err
 	}
+	if job.WorkflowSourceCommitSHA == "" {
+		return "", fmt.Errorf("build reusable workflow reference for job %d: workflow source commit is missing", job.ID)
+	}
 	uses, err := ResolveUses(ctx, parent.CallUses)
 	if err != nil {
-		return "", nil
+		return "", fmt.Errorf("resolve reusable workflow uses %q: %w", parent.CallUses, err)
 	}
 	ref := job.WorkflowSourceCommitSHA
 	if uses.Ref != "" {
 		ref = uses.Ref
 	}
-	return buildOIDCWorkflowRef(sourceRepo, uses.Path, ref), nil
+	workflowRef := buildOIDCWorkflowRef(sourceRepo, uses.Path, ref)
+	if workflowRef == "" {
+		return "", fmt.Errorf("build reusable workflow reference for job %d: incomplete provenance", job.ID)
+	}
+	return workflowRef, nil
 }
 
 func buildOIDCWorkflowRef(repo *repo_model.Repository, workflowPath, ref string) string {
