@@ -32,6 +32,16 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	assert.True(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionCloses, ref.RefAction)
 
+	// dropping the action, the mention and mentioning again must all reuse the same reference
+	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	mention := fmt.Sprintf("content2, mentions #%d", itarget.Index)
+	for version, body := range []string{mention, "content2, no mentions", mention} {
+		assert.NoError(t, issues_model.ChangeIssueContent(t.Context(), pr, d, body, version))
+		unittest.AssertCount(t, &issues_model.Comment{IssueID: itarget.ID, RefIssueID: pr.ID}, 1)
+	}
+	ref = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: ref.ID})
+	assert.Equal(t, references.XRefActionNone, ref.RefAction)
+
 	// Comment on PR to reopen issue #1
 	content = fmt.Sprintf("content2, reopens #%d", itarget.Index)
 	c := testCreateComment(t, 2, pr.ID, content)
@@ -153,7 +163,6 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	assert.NoError(t, err)
 	i, err = issues_model.GetIssueByID(ctx, i.ID)
 	assert.NoError(t, err)
-	assert.NoError(t, i.AddCrossReferences(ctx, d, false))
 	assert.NoError(t, committer.Commit())
 	return i
 }
