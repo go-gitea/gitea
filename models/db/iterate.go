@@ -10,20 +10,25 @@ import (
 	"gitea.dev/modules/setting"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
-// Iterate iterates all the Bean object
-func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
-	batchSize := setting.Database.IterateBufferSize
+func iterateTableByColumn[Bean any](ctx context.Context, colName string, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
 	table, err := xormEngine.TableInfo(new(Bean))
 	if err != nil {
 		return err
 	}
-	if len(table.PrimaryKeys) != 1 {
-		return fmt.Errorf("table %s has %d primary keys, only the table with exactly one primary key can be iterated", table.Name, len(table.PrimaryKeys))
+
+	var col *schemas.Column
+	if colName == "" {
+		if len(table.PrimaryKeys) != 1 {
+			return fmt.Errorf("table %s has %d primary keys, only the table with exactly one primary key can be iterated", table.Name, len(table.PrimaryKeys))
+		}
+		colName = table.PrimaryKeys[0]
 	}
 
-	primaryKeyColumn := table.GetColumn(table.PrimaryKeys[0])
+	col = table.GetColumn(colName)
+	batchSize := setting.Database.IterateBufferSize
 	var lastPrimaryValue any
 	for {
 		select {
@@ -35,7 +40,7 @@ func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx contex
 		query := GetEngine(ctx).Table(table.Name).OrderBy(table.PrimaryKeys[0])
 		batchCond := cond
 		if lastPrimaryValue != nil {
-			batchCond = builder.And(cond, builder.Gt{primaryKeyColumn.Name: lastPrimaryValue})
+			batchCond = builder.And(cond, builder.Gt{col.Name: lastPrimaryValue})
 		}
 		if batchCond != nil {
 			query = query.Where(batchCond)
@@ -47,7 +52,7 @@ func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx contex
 			return nil
 		}
 
-		reflectVal, err := primaryKeyColumn.ValueOf(beans[len(beans)-1])
+		reflectVal, err := col.ValueOf(beans[len(beans)-1])
 		if err != nil {
 			return err
 		}
@@ -58,4 +63,12 @@ func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx contex
 			}
 		}
 	}
+}
+
+func IterateByColumn[Bean any](ctx context.Context, colName string, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
+	return iterateTableByColumn(ctx, colName, cond, f)
+}
+
+func Iterate[Bean any](ctx context.Context, cond builder.Cond, f func(ctx context.Context, bean *Bean) error) error {
+	return iterateTableByColumn(ctx, "", cond, f)
 }

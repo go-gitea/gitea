@@ -210,7 +210,3 @@ func (opts FindExternalUserOptions) ToConds() builder.Cond {
 func (opts FindExternalUserOptions) ToOrders() string {
 	return util.IfZero(opts.OrderBy, "external_id")
 }
-
-func IterateExternalLogin(ctx context.Context, opts FindExternalUserOptions, f func(ctx context.Context, u *ExternalLoginUser) error) error {
-	return db.Iterate(ctx, opts.ToConds(), f)
-}
