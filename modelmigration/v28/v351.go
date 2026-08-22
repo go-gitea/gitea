@@ -15,9 +15,18 @@ func AddRecipientAccessGrantedToRepoTransfer(_ context.Context, x base.EngineMig
 	type RepoTransfer struct {
 		RecipientAccessGranted bool `xorm:"NOT NULL DEFAULT false"`
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains:  true,
 		IgnoreDropIndices: true,
-	}, new(RepoTransfer))
+	}, new(RepoTransfer)); err != nil {
+		return err
+	}
+
+	const accessModeRead = 1
+	_, err := x.Exec(`UPDATE repo_transfer SET recipient_access_granted = ?
+		WHERE EXISTS (SELECT 1 FROM collaboration
+			WHERE collaboration.repo_id = repo_transfer.repo_id
+				AND collaboration.user_id = repo_transfer.recipient_id
+				AND collaboration.mode = ?)`, true, accessModeRead)
 	return err
 }
