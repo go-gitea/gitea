@@ -145,13 +145,11 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 
 	// remoteAddr may contain credentials, so we sanitize it
 	err = util.SanitizeErrorCredentialURLs(err)
-	if errors.Is(err, context.DeadlineExceeded) {
-		return errors.New("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini")
+	if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) || gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) {
+		return fmt.Errorf("authentication failed: %w", err)
 	}
 	if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
-		log.Error("runMigrateTask[%d] git failure: %v", t.ID, err) // git stderr may echo remote-controlled text
-		authFailed := gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) || gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername)
-		return errors.New(util.Iif(authFailed, "authentication failed", "migration failed"))
+		return fmt.Errorf("migration failed: %w", err)
 	}
 
 	// do not be tempted to coalesce this line with the return

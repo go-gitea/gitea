@@ -118,11 +118,10 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 			gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) ||
 			strings.Contains(err.Error(), "Bad credentials") { // from the GitHub API response, not from git
 			ctx.Data["Err_Auth"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.auth_failed"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.auth_failed", err.Error()), tpl, form)
 		} else if fromGit {
-			log.Error("Migrate %s failed: %v", name, err) // git stderr may echo remote-controlled text
 			ctx.Data["Err_CloneAddr"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.failed"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
 		} else {
 			ctx.ServerError(name, err)
 		}
@@ -315,7 +314,7 @@ func MigrateStatus(ctx *context.Context) {
 
 	message := task.Message
 
-	if task.Message != "" && task.Message[0] == '{' {
+	if message != "" && message[0] == '{' {
 		// assume message is actually a translatable string
 		var translatableMessage admin_model.TranslatableMessage
 		if err := json.Unmarshal([]byte(message), &translatableMessage); err != nil {

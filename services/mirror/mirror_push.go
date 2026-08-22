@@ -8,12 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"time"
 
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/process"
@@ -25,6 +25,8 @@ import (
 	"gitea.dev/services/migrations"
 	repo_service "gitea.dev/services/repository"
 )
+
+var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr string) error {
@@ -101,11 +103,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	err = runPushSync(ctx, m)
 	if err != nil {
 		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
-		if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
-			m.LastError = "push failed" // git stderr may echo remote-controlled text
-		} else {
-			m.LastError = err.Error()
-		}
+		m.LastError = stripExitStatus.ReplaceAllLiteralString(util.SanitizeErrorCredentialURLs(err).Error(), "")
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
@@ -159,8 +157,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 				return err
 			}
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
-				log.Error("Error pushing LFS objects %s: %v", mirrorLogName, err)
-				return errors.New("failed to push LFS objects")
+				return util.SanitizeErrorCredentialURLs(err)
 			}
 		}
 
