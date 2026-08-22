@@ -139,7 +139,7 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository, private b
 		return err
 	}
 
-	audit.Record(ctx, audit_model.RepositoryVisibility, repo)
+	audit.Record(ctx, audit_model.RepositoryVisibility, repo, "visibility", private)
 
 	return nil
 }

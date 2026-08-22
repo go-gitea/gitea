@@ -6,6 +6,11 @@
 				{{svg "octicon-download"}} {{ctx.Locale.Tr "audit.export"}}
 			</a>
 		</h4>
+		{{if not .AuditRecordEnabled}}
+			<div class="ui warning message">
+				{{ctx.Locale.Tr "audit.disabled"}}
+			</div>
+		{{end}}
 		{{template "shared/audit/list" .}}
 	</div>
 {{template "admin/layout_footer" .}}

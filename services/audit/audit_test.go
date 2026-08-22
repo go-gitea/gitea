@@ -21,6 +21,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func BenchmarkRecordDisabled(b *testing.B) {
+	defer test.MockVariableValue(&setting.Audit.RecordOutput, setting.AuditRecordOutputDisabled)()
+	ctx := context.Background()
+	u := &user_model.User{ID: 1, Name: "user"}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		RecordAs(ctx, u, audit_model.UserPassword, u)
+	}
+}
+
+func BenchmarkBuildEvent(b *testing.B) {
+	params := RecordParams{
+		Action: audit_model.RepositoryMirrorPushAdd,
+		Actor:  audit_model.EntityRef{Type: audit_model.ScopeUser, ID: 1, Name: "actor"},
+		Scope:  audit_model.EntityRef{Type: audit_model.ScopeRepository, ID: 2, Name: "owner/repo"},
+		Metadata: map[string]any{
+			"remote_address": "https://example.com/repo.git",
+		},
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = buildEvent(context.Background(), params)
+	}
+}
+
 // newRequestContext mimics what routers/common.AuthShared publishes for a
 // signed-in request.
 func newRequestContext(t *testing.T, signedIn *user_model.User) context.Context {
@@ -64,6 +91,17 @@ func TestBuildEvent(t *testing.T) {
 		assert.Equal(t, "TestUser/TestRepo", e.ScopeName)
 		assert.Equal(t, "Added push mirror to git@example.com:repo.git for repository TestUser/TestRepo.", e.Message)
 		assert.InDelta(t, float64(m.ID), audit_model.DecodeMetadata(e.Metadata)["mirror_id"], 0)
+	})
+
+	t.Run("StatusChangesIncludeTheirNewValue", func(t *testing.T) {
+		e := buildEvent(context.Background(), RecordParams{
+			Action:   audit_model.UserRestricted,
+			Actor:    actorRef(doer),
+			Scope:    ScopeFromUser(u),
+			Metadata: metaPairs("restricted", true),
+		})
+
+		assert.Equal(t, "Changed restricted status of user TestUser to true.", e.Message)
 	})
 
 	t.Run("IPAddressFromRequest", func(t *testing.T) {
@@ -194,7 +232,7 @@ func TestRenderMessage(t *testing.T) {
 
 	t.Run("ReservedPlaceholders", func(t *testing.T) {
 		assert.Equal(t,
-			"User Actor impersonating user owner/repo.",
+			"User Actor started impersonating user owner/repo.",
 			renderMessage(audit_model.UserImpersonation, actor, scope, nil),
 		)
 	})
@@ -216,4 +254,10 @@ func TestRenderMessage(t *testing.T) {
 	t.Run("UnknownActionFallsBackToItsName", func(t *testing.T) {
 		assert.Equal(t, "not:an:action", renderMessage(audit_model.Action("not:an:action"), actor, scope, nil))
 	})
+}
+
+func TestActionFilters(t *testing.T) {
+	assert.True(t, audit_model.IsActionFilter("user:impersonation"))
+	assert.True(t, audit_model.IsActionFilter(audit_model.UserImpersonation))
+	assert.False(t, audit_model.IsActionFilter("user:unknown"))
 }

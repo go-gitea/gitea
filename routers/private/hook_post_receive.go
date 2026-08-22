@@ -176,7 +176,7 @@ func hookPostReceiveUpdateRepoByOptions(ctx *gitea_context.PrivateContext, opts 
 			if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_private"); err != nil {
 				log.Error("failed to update repo is_private: %v", err)
 			} else {
-				audit.RecordAs(ctx, pusher, audit_model.RepositoryVisibility, repo)
+				audit.RecordAs(ctx, pusher, audit_model.RepositoryVisibility, repo, "visibility", repo.IsPrivate)
 			}
 		}
 		if isTemplate.Has() && repo.IsTemplate != isTemplate.Value() {

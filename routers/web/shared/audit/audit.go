@@ -47,6 +47,8 @@ func SearchOptionsFromRequest(ctx *context.Context, scopeType audit_model.ScopeT
 	if action := audit_model.Action(ctx.FormString("action")); action != "" {
 		if _, ok := audit_model.MessageTemplate(action); ok {
 			opts.Action = action
+		} else if audit_model.IsActionFilter(action) {
+			opts.ActionPrefix = action
 		}
 	}
 	if origin := audit_model.Origin(ctx.FormString("origin")); slices.Contains(filterableOrigins, origin) {
@@ -63,9 +65,12 @@ func SearchOptionsFromRequest(ctx *context.Context, scopeType audit_model.ScopeT
 
 	ctx.Data["AuditSort"] = string(opts.Sort)
 	ctx.Data["AuditFilterAction"] = string(opts.Action)
+	if opts.ActionPrefix != "" {
+		ctx.Data["AuditFilterAction"] = string(opts.ActionPrefix)
+	}
 	ctx.Data["AuditFilterOrigin"] = string(opts.Origin)
 	ctx.Data["AuditFilterActor"] = ctx.FormTrim("actor")
-	ctx.Data["AuditActions"] = audit_model.AllActions()
+	ctx.Data["AuditActions"] = audit_model.ActionFilters()
 	ctx.Data["AuditOrigins"] = filterableOrigins
 
 	return opts
@@ -75,6 +80,7 @@ func SearchOptionsFromRequest(ctx *context.Context, scopeType audit_model.ScopeT
 // repo settings pages. Only the scope filter, template and page flags differ.
 func View(ctx *context.Context, opts ViewOptions) {
 	ctx.Data["Title"] = ctx.Tr("audit.title")
+	ctx.Data["AuditRecordEnabled"] = setting.AuditRecordEnabled()
 	maps.Copy(ctx.Data, opts.PageData)
 
 	page := max(ctx.FormInt("page"), 1)

@@ -221,13 +221,9 @@ func microcmdAuthUpdateLdapSimpleAuth() *cli.Command {
 // newAuthService creates a service with default functions.
 func newAuthService() *authService {
 	return &authService{
-		initDB: initDB,
-		createAuthSource: func(ctx context.Context, source *auth.Source) error {
-			return auth_service.CreateSource(cliAuditContext(ctx), source)
-		},
-		updateAuthSource: func(ctx context.Context, source *auth.Source) error {
-			return auth_service.UpdateSource(cliAuditContext(ctx), source)
-		},
+		initDB:            initDB,
+		createAuthSource:  auth_service.CreateSource,
+		updateAuthSource:  auth_service.UpdateSource,
 		getAuthSourceByID: auth.GetSourceByID,
 	}
 }

@@ -1,21 +1,25 @@
 <div class="ui attached segment">
-	<form class="ui form ignore-dirty">
+	<form class="ui form ignore-dirty tw-flex tw-flex-wrap tw-gap-2">
 		{{if .AuditSort}}<input type="hidden" name="sort" value="{{.AuditSort}}">{{end}}
-		<div class="ui small fluid action input">
+		<div class="ui small action input tw-flex-1">
 			<input type="text" name="actor" value="{{.AuditFilterActor}}" placeholder="{{ctx.Locale.Tr "audit.filter.actor"}}">
-			<select class="ui small dropdown" name="action">
+			{{template "shared/search/button"}}
+		</div>
+		<div class="ui small input">
+			<select class="ui dropdown" name="action">
 				<option value="">{{ctx.Locale.Tr "audit.filter.action"}}</option>
 				{{range $action := .AuditActions}}
 					<option{{if eq $.AuditFilterAction (print $action)}} selected{{end}} value="{{$action}}">{{$action}}</option>
 				{{end}}
 			</select>
-			<select class="ui small dropdown" name="origin">
+		</div>
+		<div class="ui small input">
+			<select class="ui dropdown" name="origin">
 				<option value="">{{ctx.Locale.Tr "audit.filter.origin"}}</option>
 				{{range $origin := .AuditOrigins}}
 					<option{{if eq $.AuditFilterOrigin (print $origin)}} selected{{end}} value="{{$origin}}">{{$origin}}</option>
 				{{end}}
 			</select>
-			{{template "shared/search/button"}}
 		</div>
 	</form>
 </div>

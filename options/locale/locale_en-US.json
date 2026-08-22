@@ -3740,7 +3740,7 @@
   "secrets.deletion.failed": "Failed to remove secret.",
   "secrets.management": "Secrets Management",
 
-  "audit.title": "Audit Logs",
+  "audit.title": "Audit Log",
   "audit.export": "Export JSONL",
   "audit.actor": "Actor",
   "audit.scope": "Scope",
@@ -3750,6 +3750,7 @@
   "audit.ip_address": "IP Address",
   "audit.timestamp": "Timestamp",
   "audit.no_events": "There are no audit events matching the filter.",
+  "audit.disabled": "Audit event recording is disabled. Set [audit] RECORD_OUTPUT = database in app.ini to record new events.",
   "audit.impersonating_as": "as",
   "audit.filter.actor": "Filter by actor…",
   "audit.filter.action": "All actions",

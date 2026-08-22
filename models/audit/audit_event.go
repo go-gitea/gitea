@@ -156,12 +156,14 @@ const (
 
 type EventSearchOptions struct {
 	db.ListOptions
-	Action    Action
-	ActorID   int64
-	ScopeType ScopeType
-	ScopeID   int64
-	Origin    Origin
-	Sort      EventSort
+	Action Action
+	// ActionPrefix filters an action family. It is mutually exclusive with Action.
+	ActionPrefix Action
+	ActorID      int64
+	ScopeType    ScopeType
+	ScopeID      int64
+	Origin       Origin
+	Sort         EventSort
 }
 
 func (opts *EventSearchOptions) ToConds() builder.Cond {
@@ -169,6 +171,8 @@ func (opts *EventSearchOptions) ToConds() builder.Cond {
 
 	if opts.Action != "" {
 		cond = cond.And(builder.Eq{"action": opts.Action})
+	} else if opts.ActionPrefix != "" {
+		cond = cond.And(builder.Like{"action", string(opts.ActionPrefix) + ":%"})
 	}
 	if opts.ActorID != 0 {
 		// an impersonated event belongs to both the actor and the admin behind it

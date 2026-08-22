@@ -48,6 +48,23 @@ func TestFindEventsScopeFilters(t *testing.T) {
 	assert.Len(t, bySystemOrigin, 1)
 }
 
+func TestFindEventsActionPrefixFilter(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	for _, action := range []Action{UserImpersonation, UserImpersonationExit, UserCreate} {
+		require.NoError(t, InsertEvent(t.Context(), &Event{Action: action, ScopeType: ScopeUser, ScopeID: 1, TimestampUnix: timeutil.TimeStamp(1)}))
+	}
+
+	events, _, err := FindEvents(t.Context(), &EventSearchOptions{ActionPrefix: "user:impersonation"})
+	require.NoError(t, err)
+	assert.Len(t, events, 2)
+
+	exact, _, err := FindEvents(t.Context(), &EventSearchOptions{Action: UserImpersonationExit})
+	require.NoError(t, err)
+	assert.Len(t, exact, 1)
+	assert.Equal(t, UserImpersonationExit, exact[0].Action)
+}
+
 // Filtering for an admin must surface what they did while impersonating someone.
 func TestFindEventsActorFilterIncludesImpersonations(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())

@@ -3,6 +3,11 @@
 
 package audit
 
+import (
+	"slices"
+	"strings"
+)
+
 type Action string
 
 var (
@@ -31,20 +36,45 @@ func AllActions() []Action {
 	return allActions
 }
 
+// ActionFilters returns every exact action and its selectable hierarchy prefixes.
+// A prefix is useful when an operator wants every event in a family, such as
+// user:impersonation, without having to download and post-process the log.
+func ActionFilters() []Action {
+	filters := make(map[Action]struct{}, len(allActions)*2)
+	for _, action := range allActions {
+		filters[action] = struct{}{}
+		parts := strings.Split(string(action), ":")
+		for i := 2; i < len(parts); i++ {
+			filters[Action(strings.Join(parts[:i], ":"))] = struct{}{}
+		}
+	}
+	result := make([]Action, 0, len(filters))
+	for action := range filters {
+		result = append(result, action)
+	}
+	slices.Sort(result)
+	return result
+}
+
+// IsActionFilter reports whether action is an exact action or a family prefix.
+func IsActionFilter(action Action) bool {
+	return slices.Contains(ActionFilters(), action)
+}
+
 var (
-	UserImpersonation               = define("user:impersonation", "User {actor} impersonating user {scope}.")
+	UserImpersonation               = define("user:impersonation:start", "User {actor} started impersonating user {scope}.")
 	UserImpersonationExit           = define("user:impersonation:exit", "User {actor} stopped impersonating user {scope}.")
 	UserCreate                      = define("user:create", "Created user {scope}.")
 	UserDelete                      = define("user:delete", "Deleted user {scope}.")
 	UserAuthenticationFailTwoFactor = define("user:authentication:fail:twofactor", "Failed two-factor authentication for user {scope}.")
-	UserAuthenticationSource        = define("user:authentication:source", "Changed authentication source of user {scope}.")
-	UserActive                      = define("user:active", "Changed activation status of user {scope}.")
-	UserRestricted                  = define("user:restricted", "Changed restricted status of user {scope}.")
-	UserAdmin                       = define("user:admin", "Changed admin status of user {scope}.")
-	UserName                        = define("user:name", "Changed user name to {scope}.")
+	UserAuthenticationSource        = define("user:authentication:source:update", "Changed authentication source of user {scope} to {auth_source}.")
+	UserActive                      = define("user:status:active", "Changed activation status of user {scope} to {active}.")
+	UserRestricted                  = define("user:status:restricted", "Changed restricted status of user {scope} to {restricted}.")
+	UserAdmin                       = define("user:status:admin", "Changed admin status of user {scope} to {admin}.")
+	UserName                        = define("user:name:update", "Changed user name from {previous_name} to {scope}.")
 	UserPassword                    = define("user:password", "Changed password of user {scope}.")
 	UserPasswordResetRequest        = define("user:password:resetrequest", "Requested password reset for user {scope}.")
-	UserVisibility                  = define("user:visibility", "Changed visibility of user {scope}.")
+	UserVisibility                  = define("user:visibility:update", "Changed visibility of user {scope} from {old_visibility} to {new_visibility}.")
 	UserEmailPrimaryChange          = define("user:email:primary", "Changed primary email of user {scope} to {email}.")
 	UserEmailAdd                    = define("user:email:add", "Added email {email} to user {scope}.")
 	UserEmailActivate               = define("user:email:activate", "Changed activation status of email {email} of user {scope}.")
@@ -81,7 +111,7 @@ var (
 
 	OrganizationCreate                  = define("organization:create", "Created organization {scope}.")
 	OrganizationDelete                  = define("organization:delete", "Deleted organization {scope}.")
-	OrganizationName                    = define("organization:name", "Changed organization name to {scope}.")
+	OrganizationName                    = define("organization:name:update", "Changed organization name from {previous_name} to {scope}.")
 	OrganizationVisibility              = define("organization:visibility", "Changed visibility of organization {scope} to {new_visibility}.")
 	OrganizationTeamAdd                 = define("organization:team:add", "Added team {team} to organization {scope}.")
 	OrganizationTeamUpdate              = define("organization:team:update", "Updated settings of team {scope}/{team}.")
@@ -101,14 +131,14 @@ var (
 	OrganizationWebhookRemove           = define("organization:webhook:remove", "Removed webhook {webhook} of organization {scope}.")
 
 	RepositoryCreate                 = define("repository:create", "Created repository {scope}.")
-	RepositoryCreateFork             = define("repository:create:fork", "Created fork {scope} of repository {base_repo}.")
+	RepositoryCreateFork             = define("repository:fork:create", "Created fork {scope} of repository {base_repo}.")
 	RepositoryArchive                = define("repository:archive", "Archived repository {scope}.")
 	RepositoryUnarchive              = define("repository:unarchive", "Unarchived repository {scope}.")
 	RepositoryDelete                 = define("repository:delete", "Deleted repository {scope}.")
-	RepositoryName                   = define("repository:name", "Changed repository name from {previous_name} to {scope}.")
-	RepositoryVisibility             = define("repository:visibility", "Changed visibility of repository {scope}.")
-	RepositoryConvertFork            = define("repository:convert:fork", "Converted repository {scope} from fork to regular repository.")
-	RepositoryConvertMirror          = define("repository:convert:mirror", "Converted repository {scope} from pull mirror to regular repository.")
+	RepositoryName                   = define("repository:name:update", "Changed repository name from {previous_name} to {scope}.")
+	RepositoryVisibility             = define("repository:visibility:update", "Changed visibility of repository {scope} to {visibility}.")
+	RepositoryConvertFork            = define("repository:fork:convert", "Converted repository {scope} from fork to regular repository.")
+	RepositoryConvertMirror          = define("repository:mirror:convert", "Converted repository {scope} from pull mirror to regular repository.")
 	RepositoryMirrorPushAdd          = define("repository:mirror:push:add", "Added push mirror to {remote_address} for repository {scope}.")
 	RepositoryMirrorPushRemove       = define("repository:mirror:push:remove", "Removed push mirror to {remote_address} for repository {scope}.")
 	RepositorySigningVerification    = define("repository:signingverification", "Changed signing verification of repository {scope} to {trust_model}.")

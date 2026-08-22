@@ -732,7 +732,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	}
 
 	if visibilityChanged {
-		audit.Record(ctx, audit_model.RepositoryVisibility, repo)
+		audit.Record(ctx, audit_model.RepositoryVisibility, repo, "visibility", repo.IsPrivate)
 	}
 
 	if updateRepoLicense {

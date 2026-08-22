@@ -192,16 +192,16 @@ func UpdateUser(ctx context.Context, u *user_model.User, opts *UpdateOptions) er
 	}
 
 	if u.IsActive != oldIsActive {
-		audit.Record(ctx, audit_model.UserActive, u)
+		audit.Record(ctx, audit_model.UserActive, u, "active", u.IsActive)
 	}
 	if u.IsAdmin != oldIsAdmin {
-		audit.Record(ctx, audit_model.UserAdmin, u)
+		audit.Record(ctx, audit_model.UserAdmin, u, "admin", u.IsAdmin)
 	}
 	if u.IsRestricted != oldIsRestricted {
-		audit.Record(ctx, audit_model.UserRestricted, u)
+		audit.Record(ctx, audit_model.UserRestricted, u, "restricted", u.IsRestricted)
 	}
 	if u.Visibility != oldVisibility {
-		audit.Record(ctx, audit_model.UserVisibility, u)
+		audit.Record(ctx, audit_model.UserVisibility, u, "old_visibility", oldVisibility.String(), "new_visibility", u.Visibility.String())
 	}
 
 	return nil
@@ -217,6 +217,7 @@ type UpdateAuthOptions struct {
 
 func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions) error {
 	loginSourceChanged := false
+	authSourceName := ""
 	if opts.LoginSource.Has() {
 		source, err := auth_model.GetSourceByID(ctx, opts.LoginSource.Value())
 		if err != nil {
@@ -224,6 +225,7 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 		}
 
 		loginSourceChanged = u.LoginSource != source.ID
+		authSourceName = source.Name
 
 		u.LoginType = source.Type
 		u.LoginSource = source.ID
@@ -272,7 +274,7 @@ func UpdateAuth(ctx context.Context, u *user_model.User, opts *UpdateAuthOptions
 		audit.Record(ctx, audit_model.UserPassword, u)
 	}
 	if loginSourceChanged {
-		audit.Record(ctx, audit_model.UserAuthenticationSource, u)
+		audit.Record(ctx, audit_model.UserAuthenticationSource, u, "auth_source", authSourceName)
 	}
 
 	return nil
