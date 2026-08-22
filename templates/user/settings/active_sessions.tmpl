@@ -1,0 +1,79 @@
+{{template "user/settings/layout_head" (dict "pageClass" "user settings active_sessions")}}
+	<div class="user-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "settings.active_sessions"}} ({{.SessionCount}})
+		</h4>
+		<div class="ui attached segment">
+			{{if not .Sessions}}
+				<p>{{ctx.Locale.Tr "settings.active_sessions.none"}}</p>
+			{{else}}
+				<div class="flex-divided-list items-with-main">
+					{{range .Sessions}}
+						<div class="item tw-items-center">
+							<div class="item-leading tw-mr-3">
+								{{if .IsMobile}}
+									{{svg "octicon-device-mobile" 32}}
+								{{else}}
+									{{svg "octicon-device-desktop" 32}}
+								{{end}}
+							</div>
+
+						<div class="item-main">
+							<div class="item-title">
+								{{.IP}}
+								{{if .IsCurrent}}
+									<span class="ui green label">
+										{{ctx.Locale.Tr "settings.active_sessions.current"}}
+									</span>
+								{{end}}
+							</div>
+							<div class="item-body tw-flex-col tw-items-start">
+								<div>
+									{{ctx.Locale.Tr "settings.active_sessions.signin_time"}}:
+									<relative-time format="duration" datetime="{{.SignInTime.Format "2006-01-02T15:04:05Z07:00"}}"></relative-time>
+								</div>
+								{{if .SignInMethod}}
+									<div>
+										{{ctx.Locale.Tr "settings.active_sessions.signin_method"}}: {{.SignInMethod}}
+									</div>
+								{{end}}
+								{{if .UserAgent}}
+									<div>
+										{{ctx.Locale.Tr "settings.active_sessions.user_agent"}}: {{.UserAgent}}
+									</div>
+								{{end}}
+							</div>
+						</div>
+						{{if not .IsCurrent}}
+							<div class="item-trailing">
+								<button class="ui red tiny button show-modal button" data-modal="#revoke-session-{{.ID}}">
+									{{svg "octicon-trash"}}
+									{{ctx.Locale.Tr "settings.active_sessions.revoke"}}
+								</button>
+							</div>
+						{{end}}
+						</div>
+					{{end}}
+				</div>
+			{{end}}
+		</div>
+	</div>
+
+	{{range .Sessions}}
+	{{if not .IsCurrent}}
+	<div class="ui small modal" id="revoke-session-{{.ID}}">
+		<div class="header">
+			{{svg "octicon-trash"}}
+			{{ctx.Locale.Tr "settings.active_sessions.revoke"}}
+		</div>
+		<div class="content">
+			<p>{{ctx.Locale.Tr "settings.active_sessions.revoke_confirm"}}</p>
+		</div>
+		<div class="actions">
+			<button class="ui cancel button">{{svg "octicon-x"}} {{ctx.Locale.Tr "modal.cancel"}}</button>
+			<a class="ui red ok button link-action" data-url="{{AppSubUrl}}/user/settings/active_sessions/revoke?session_id={{.ID}}" data-fetch-method="POST">{{svg "octicon-check"}} {{ctx.Locale.Tr "modal.confirm"}}</a>
+		</div>
+	</div>
+	{{end}}
+	{{end}}
+{{template "user/settings/layout_footer" .}}

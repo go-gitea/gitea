@@ -14,11 +14,13 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/public"
 	"gitea.dev/modules/reqctx"
+	gitea_session "gitea.dev/modules/session"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/web/routing"
 	"gitea.dev/services/context"
 
 	"gitea.com/go-chi/session"
+	"gitea.com/go-chi/session/index"
 	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/v5"
 )
@@ -150,6 +152,11 @@ func MustInitSessioner() func(next http.Handler) http.Handler {
 
 		// in the future, if websocket is used, the websocket handler should manage its own session sync (release)
 		IgnoreReleaseForWebSocket: true,
+
+		IndexerOptions: index.SessionIndexerOptions{
+			EnableIndex: setting.SessionConfig.EnableSessionManager,
+			Indexer:     gitea_session.KeyUID,
+		},
 	})
 	if err != nil {
 		log.Fatal("common.Sessioner failed: %v", err)

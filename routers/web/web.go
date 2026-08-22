@@ -673,6 +673,13 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/account_link", security.DeleteAccountLink)
 		})
 
+		if setting.SessionConfig.EnableSessionManager {
+			m.Group("/active_sessions", func() {
+				m.Get("", user_setting.ActiveSessions)
+				m.Post("/revoke", user_setting.RevokeSession)
+			})
+		}
+
 		m.Group("/applications", func() {
 			// oauth2 applications
 			m.Group("/oauth2", func() {
