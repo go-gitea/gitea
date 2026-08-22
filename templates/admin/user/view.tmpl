@@ -6,7 +6,9 @@
 			<h4 class="ui top attached header">
 				{{.Title}}
 				<div class="ui right">
-					<button class="ui primary compact tiny basic button link-action" data-url="{{.Link}}/impersonate">{{ctx.Locale.Tr "admin.users.impersonate"}}</button>
+					{{if not .User.IsTypeBot}}
+						<button class="ui primary compact tiny basic button link-action" data-url="{{.Link}}/impersonate">{{ctx.Locale.Tr "admin.users.impersonate"}}</button>
+					{{end}}
 					<a class="ui primary compact tiny button" href="{{.Link}}/edit">{{ctx.Locale.Tr "admin.users.edit"}}</a>
 				</div>
 			</h4>
@@ -23,6 +25,9 @@
 			</div>
 		</div>
 	</div>
+	{{if .User.IsTypeBot}}
+		{{template "shared/user/access_tokens" .BotAccessTokens}}
+	{{end}}
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "admin.repositories"}} ({{ctx.Locale.Tr "admin.total" .ReposTotal}})
 	</h4>

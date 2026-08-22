@@ -6,6 +6,7 @@ package admin
 
 import (
 	"errors"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -23,6 +24,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/explore"
 	user_setting "gitea.dev/routers/web/user/setting"
@@ -57,14 +59,24 @@ func Users(ctx *context.Context) {
 	}
 
 	sortType := ctx.FormString("sort", UserSearchDefaultAdminSort)
+
+	userTypeFilter := ctx.FormString("user_type")
+	types := []user_model.UserType{user_model.UserTypeIndividual}
+	if t, err := user_model.ParseUserType(userTypeFilter); err == nil {
+		types = []user_model.UserType{t}
+	} else {
+		userTypeFilter = "" // normalize unknown values so the UI doesn't show a filter that isn't applied
+	}
+
 	ctx.PageData["adminUserListSearchForm"] = map[string]any{
 		"StatusFilterMap": statusFilterMap,
+		"UserTypeFilter":  userTypeFilter,
 		"SortType":        sortType,
 	}
 
 	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor: ctx.Doer,
-		Types: []user_model.UserType{user_model.UserTypeIndividual},
+		Types: types,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
@@ -74,8 +86,9 @@ func Users(ctx *context.Context) {
 		IsRestricted:       optional.ParseBool(statusFilterMap["is_restricted"]),
 		IsTwoFactorEnabled: optional.ParseBool(statusFilterMap["is_2fa_enabled"]),
 		IsProhibitLogin:    optional.ParseBool(statusFilterMap["is_prohibit_login"]),
-		IncludeReserved:    true, // administrator needs to list all accounts include reserved, bot, remote ones
-		OrderBy:            db.SearchOrderBy(sortType),
+		// unfiltered, an administrator needs to list all accounts including reserved, bot and remote ones
+		IncludeReserved: userTypeFilter == "",
+		OrderBy:         db.SearchOrderBy(sortType),
 	}, tplUsers)
 }
 
@@ -87,6 +100,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.Data["login_type"] = "0-0"
+	ctx.Data["UserType"] = "individual"
 
 	sources, err := db.Find[auth.Source](ctx, auth.FindSourcesOptions{
 		IsActive: optional.Some(true),
@@ -119,6 +133,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["Sources"] = sources
 
 	ctx.Data["CanSendEmail"] = setting.MailService != nil
+	ctx.Data["UserType"] = form.UserType
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplUserNew)
@@ -137,65 +152,48 @@ func NewUserPost(ctx *context.Context) {
 		Visibility: &form.Visibility,
 	}
 
-	if len(form.LoginType) > 0 {
-		fields := strings.Split(form.LoginType, "-")
-		if len(fields) == 2 {
-			lType, _ := strconv.ParseInt(fields[0], 10, 0)
-			u.LoginType = auth.Type(lType)
-			u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
-			u.LoginName = form.LoginName
-		}
-	}
-	if u.LoginType == auth.NoType || u.LoginType == auth.Plain {
-		if len(form.Password) < setting.MinPasswordLength {
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
-			return
-		}
-		if !password.IsComplexEnough(form.Password) {
-			ctx.Data["Err_Password"] = true
-			ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplUserNew, &form)
-			return
-		}
-		if err := password.IsPwned(ctx, form.Password); err != nil {
-			ctx.Data["Err_Password"] = true
-			errMsg := ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords")
-			if password.IsErrIsPwnedRequest(err) {
-				log.Error(err.Error())
-				errMsg = ctx.Tr("auth.password_pwned_err")
+	// Bot users are created as local accounts without a password or auth source,
+	// matching the behavior of the "gitea admin user create --user-type bot" command.
+	if form.UserType == "bot" {
+		u.Type = user_model.UserTypeBot
+		u.Passwd = ""
+	} else {
+		if len(form.LoginType) > 0 {
+			fields := strings.Split(form.LoginType, "-")
+			if len(fields) == 2 {
+				lType, _ := strconv.ParseInt(fields[0], 10, 0)
+				u.LoginType = auth.Type(lType)
+				u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
+				u.LoginName = form.LoginName
 			}
-			ctx.RenderWithErrDeprecated(errMsg, tplUserNew, &form)
-			return
 		}
-		u.MustChangePassword = form.MustChangePassword
+		if u.LoginType == auth.NoType || u.LoginType == auth.Plain {
+			if len(form.Password) < setting.MinPasswordLength {
+				ctx.Data["Err_Password"] = true
+				ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
+				return
+			}
+			if !password.IsComplexEnough(form.Password) {
+				ctx.Data["Err_Password"] = true
+				ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplUserNew, &form)
+				return
+			}
+			if err := password.IsPwned(ctx, form.Password); err != nil {
+				ctx.Data["Err_Password"] = true
+				errMsg := ctx.Tr("auth.password_pwned", "https://haveibeenpwned.com/Passwords")
+				if password.IsErrIsPwnedRequest(err) {
+					log.Error(err.Error())
+					errMsg = ctx.Tr("auth.password_pwned_err")
+				}
+				ctx.RenderWithErrDeprecated(errMsg, tplUserNew, &form)
+				return
+			}
+			u.MustChangePassword = form.MustChangePassword
+		}
 	}
 
 	if err := user_model.AdminCreateUser(ctx, u, &user_model.Meta{}, overwriteDefault); err != nil {
-		var errNameReserved db.ErrNameReserved
-		var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
-		var errNameCharsNotAllowed db.ErrNameCharsNotAllowed
-		switch {
-		case user_model.IsErrUserAlreadyExist(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.username_been_taken"), tplUserNew, &form)
-		case user_model.IsErrEmailAlreadyUsed(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserNew, &form)
-		case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, &form)
-		case errors.As(err, &errNameReserved):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", errNameReserved.Name), tplUserNew, &form)
-		case errors.As(err, &errNamePatternNotAllowed):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplUserNew, &form)
-		case errors.As(err, &errNameCharsNotAllowed):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", errNameCharsNotAllowed.Name), tplUserNew, &form)
-		default:
-			ctx.ServerError("CreateUser", err)
-		}
+		handleAdminCreateUserError(ctx, err, form)
 		return
 	}
 
@@ -212,6 +210,32 @@ func NewUserPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10))
+}
+
+// handleAdminCreateUserError renders the new-user page with a field-specific error message
+func handleAdminCreateUserError(ctx *context.Context, err error, form *forms.AdminCreateUserForm) {
+	switch {
+	case user_model.IsErrUserAlreadyExist(err):
+		ctx.Data["Err_UserName"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.username_been_taken"), tplUserNew, form)
+	case user_model.IsErrEmailAlreadyUsed(err):
+		ctx.Data["Err_Email"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplUserNew, form)
+	case user_model.IsErrEmailInvalid(err), user_model.IsErrEmailCharIsNotSupported(err):
+		ctx.Data["Err_Email"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tplUserNew, form)
+	case db.IsErrNameReserved(err):
+		ctx.Data["Err_UserName"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tplUserNew, form)
+	case db.IsErrNamePatternNotAllowed(err):
+		ctx.Data["Err_UserName"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplUserNew, form)
+	case db.IsErrNameCharsNotAllowed(err):
+		ctx.Data["Err_UserName"] = true
+		ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tplUserNew, form)
+	default:
+		ctx.ServerError("CreateUser", err)
+	}
 }
 
 func prepareUserInfo(ctx *context.Context) *user_model.User {
@@ -254,8 +278,23 @@ func prepareUserInfo(ctx *context.Context) *user_model.User {
 		return nil
 	}
 	ctx.Data["TwoFactorEnabled"] = hasTOTP || hasWebAuthn
+	// an admin must not convert their own account: it would drop their credentials and sign them out
+	ctx.Data["CanConvertUserType"] = u.ID != ctx.Doer.ID && user_service.CheckConvertUserType(u) == nil
 
 	return u
+}
+
+// botAccessTokensData feeds shared/user/access_tokens for the bot token management section
+type botAccessTokensData struct {
+	Description     template.HTML
+	Tokens          []*auth.AccessToken
+	ScopeCategories []string
+	ScopePublicOnly auth.AccessTokenScope
+	CreateURL       string
+	DeleteURL       string
+	RegenerateURL   string // empty: an admin rotates a bot token by deleting and recreating it
+	NameValue       string
+	ErrName         bool
 }
 
 func ViewUser(ctx *context.Context) {
@@ -306,7 +345,100 @@ func ViewUser(ctx *context.Context) {
 	ctx.Data["Users"] = orgs // needed to be able to use explore/user_list template
 	ctx.Data["OrgsTotal"] = len(orgs)
 
+	// Bot users cannot sign in to generate their own tokens, so admins manage them here.
+	if u.IsTypeBot() {
+		botTokens, err := db.Find[auth.AccessToken](ctx, auth.ListAccessTokensOptions{UserID: u.ID})
+		if err != nil {
+			ctx.ServerError("ListAccessTokens", err)
+			return
+		}
+		ctx.Data["BotAccessTokens"] = &botAccessTokensData{
+			Description: ctx.Tr("admin.users.bot_token_desc"),
+			Tokens:      botTokens,
+			// a bot can never be a site admin, so an admin-scoped token would be useless
+			ScopeCategories: util.SliceRemoveAll(auth.GetAccessTokenCategories(), "admin"),
+			ScopePublicOnly: auth.AccessTokenScopePublicOnly,
+			CreateURL:       ctx.Link + "/access_tokens",
+			DeleteURL:       ctx.Link + "/access_tokens/delete",
+		}
+	}
+
 	ctx.HTML(http.StatusOK, tplUserView)
+}
+
+// getTargetUser loads the user an admin action operates on, without the page data prepareUserInfo collects
+func getTargetUser(ctx *context.Context) *user_model.User {
+	u, err := user_model.GetUserByID(ctx, ctx.PathParamInt64("userid"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetUserByID", user_model.IsErrUserNotExist, err)
+		return nil
+	}
+	return u
+}
+
+// NewBotTokenPost creates an access token for a bot user on behalf of an admin
+func NewBotTokenPost(ctx *context.Context) {
+	form := web.GetForm[*forms.NewAccessTokenForm](ctx)
+	u := getTargetUser(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	redirect := setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10)
+	if !u.IsTypeBot() {
+		ctx.Flash.Error(ctx.Tr("admin.users.bot_token_only"))
+		ctx.Redirect(redirect)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.GetErrMsg())
+		ctx.Redirect(redirect)
+		return
+	}
+
+	t, err := user_setting.NewAccessTokenFromForm(ctx, u, form.Name, false)
+	switch {
+	case errors.Is(err, user_setting.ErrAccessTokenNoPermission):
+		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"))
+	case errors.Is(err, user_setting.ErrAccessTokenAdminScope):
+		ctx.Flash.Error(ctx.Tr("settings.token_admin_scope_not_allowed"))
+	case errors.Is(err, user_setting.ErrAccessTokenNameDuplicate):
+		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", form.Name))
+	case errors.Is(err, user_setting.ErrAccessTokenScopeEscalation):
+		ctx.HTTPError(http.StatusForbidden, err.Error())
+		return
+	case err != nil:
+		ctx.ServerError("NewAccessTokenFromForm", err)
+		return
+	default:
+		ctx.Flash.Success(ctx.Tr("settings.generate_token_success"))
+		ctx.Flash.Info(t.Token)
+	}
+	ctx.Redirect(redirect)
+}
+
+// DeleteBotToken deletes an access token of a bot user on behalf of an admin
+func DeleteBotToken(ctx *context.Context) {
+	u := getTargetUser(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	redirect := setting.AppSubURL + "/-/admin/users/" + strconv.FormatInt(u.ID, 10)
+	// only bot tokens are managed here; regular users manage their own tokens
+	if !u.IsTypeBot() {
+		ctx.Flash.Error(ctx.Tr("admin.users.bot_token_only"))
+		ctx.JSONRedirect(redirect)
+		return
+	}
+
+	if err := auth.DeleteAccessTokenByID(ctx, ctx.FormInt64("id"), u.ID); err != nil {
+		ctx.Flash.Error("DeleteAccessTokenByID: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
+	}
+	ctx.JSONRedirect(redirect)
 }
 
 func editUserCommon(ctx *context.Context) {
@@ -371,8 +503,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	authOpts := &user_service.UpdateAuthOptions{
-		Password:  optional.FromNonDefault(form.Password),
-		LoginName: optional.Some(form.LoginName),
+		Password: optional.FromNonDefault(form.Password),
 	}
 
 	// skip self Prohibit Login
@@ -382,11 +513,13 @@ func EditUserPost(ctx *context.Context) {
 		authOpts.ProhibitLogin = optional.Some(form.ProhibitLogin)
 	}
 
+	// the form omits both fields for bots, and an absent auth source must not clear the login name
 	fields := strings.Split(form.LoginType, "-")
 	if len(fields) == 2 {
 		authSource, _ := strconv.ParseInt(fields[1], 10, 64)
 
 		authOpts.LoginSource = optional.Some(authSource)
+		authOpts.LoginName = optional.Some(form.LoginName)
 	}
 
 	if err := user_service.UpdateAuth(ctx, u, authOpts); err != nil {
@@ -403,6 +536,8 @@ func EditUserPost(ctx *context.Context) {
 		case password.IsErrIsPwnedRequest(err):
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_pwned_err"), tplUserEdit, &form)
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.RenderWithErrDeprecated(err.Error(), tplUserEdit, &form)
 		default:
 			ctx.ServerError("UpdateUser", err)
 		}
@@ -444,9 +579,13 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if err := user_service.UpdateUser(ctx, u, opts); err != nil {
-		if user_model.IsErrDeleteLastAdminUser(err) {
+		switch {
+		case user_model.IsErrDeleteLastAdminUser(err):
 			ctx.RenderWithErrDeprecated(ctx.Tr("auth.last_admin"), tplUserEdit, &form)
-		} else {
+		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
+			ctx.Flash.Error(ctx.Tr("admin.users.bot_no_admin"))
+			ctx.Redirect(setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")))
+		default:
 			ctx.ServerError("UpdateUser", err)
 		}
 		return
@@ -470,6 +609,14 @@ func ImpersonateUser(ctx *context.Context) {
 		ctx.JSONError("unable to get user")
 		return
 	}
+
+	// Bot accounts are non-interactive; impersonating one would grant a session
+	// that signing in could never produce.
+	if u.IsTypeBot() {
+		ctx.JSONError(ctx.Tr("admin.users.impersonate_bot_not_allowed"))
+		return
+	}
+
 	err = auth_service.ImpersonateUser(ctx.Session, u)
 	if err != nil {
 		ctx.ServerError("unable to impersonate user", err)
@@ -516,6 +663,49 @@ func DeleteUser(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/users")
+}
+
+// ConvertUserType converts a user between the individual and bot types.
+func ConvertUserType(ctx *context.Context) {
+	u := getTargetUser(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	redirect := setting.AppSubURL + "/-/admin/users/" + url.PathEscape(ctx.PathParam("userid")) + "/edit"
+
+	targetType, err := user_model.ParseUserType(ctx.FormString("user_type"))
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.users.user_type.invalid"))
+		ctx.Redirect(redirect)
+		return
+	}
+
+	if u.ID == ctx.Doer.ID {
+		ctx.Flash.Error(ctx.Tr("admin.users.convert_type.self_not_allowed"))
+		ctx.Redirect(redirect)
+		return
+	}
+
+	if err := user_service.ConvertUserType(ctx, u, targetType); err != nil {
+		switch {
+		case errors.Is(err, user_model.ErrBotCanNotBeAdmin):
+			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.admin_not_allowed"))
+		case errors.Is(err, user_model.ErrUserTypeCanNotConvert):
+			ctx.Flash.Error(ctx.Tr("admin.users.convert_type.not_convertible"))
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.Flash.Error(ctx.Tr("admin.users.user_type.invalid"))
+		default:
+			ctx.ServerError("ConvertUserType", err)
+			return
+		}
+		ctx.Redirect(redirect)
+		return
+	}
+
+	log.Trace("Account type converted by admin (%s): %s", ctx.Doer.Name, u.Name)
+	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
+	ctx.Redirect(redirect)
 }
 
 // AvatarPost response for change user's avatar request

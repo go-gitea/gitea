@@ -5,11 +5,12 @@
 package setting
 
 import (
+	"errors"
 	"net/http"
-	"strings"
 
 	auth_model "gitea.dev/models/auth"
 	"gitea.dev/models/db"
+	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
@@ -32,29 +33,79 @@ func Applications(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsApplications)
 }
 
+var (
+	// ErrAccessTokenNoPermission is returned when the submitted scope grants no permission at all
+	ErrAccessTokenNoPermission = errors.New("access token has no permission scope")
+	// ErrAccessTokenNameDuplicate is returned when the owner already has a token of that name
+	ErrAccessTokenNameDuplicate = errors.New("access token name already exists")
+	// ErrAccessTokenAdminScope is returned when an admin scope is requested for an owner that can never be a site administrator
+	ErrAccessTokenAdminScope = errors.New("access token cannot carry an admin scope")
+	// ErrAccessTokenScopeEscalation is returned when the authenticating token is narrower than the token it asks for
+	ErrAccessTokenScopeEscalation = errors.New("cannot create an access token with a broader scope than the authenticating token")
+)
+
+// NewAccessTokenFromForm creates an access token for owner from the submitted scope form.
+// Pass allowAdminScope=false for owners that can never be a site administrator.
+func NewAccessTokenFromForm(ctx *context.Context, owner *user_model.User, name string, allowAdminScope bool) (*auth_model.AccessToken, error) {
+	_ = ctx.Req.ParseForm()
+	scope, err := forms.AccessTokenScopeFromForm(ctx.Req.Form).Normalize()
+	if err != nil {
+		return nil, err
+	}
+	if !scope.HasPermissionScope() {
+		return nil, ErrAccessTokenNoPermission
+	}
+	if !allowAdminScope {
+		hasAdminScope, err := scope.HasAnyScope(auth_model.AccessTokenScopeReadAdmin, auth_model.AccessTokenScopeWriteAdmin)
+		if err != nil {
+			return nil, err
+		}
+		if hasAdminScope {
+			return nil, ErrAccessTokenAdminScope
+		}
+	}
+
+	t := &auth_model.AccessToken{
+		UID:   owner.ID,
+		Name:  name,
+		Scope: scope,
+	}
+
+	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
+	if err != nil {
+		return nil, err
+	}
+	if exist {
+		return nil, ErrAccessTokenNameDuplicate
+	}
+
+	// a token-authenticated request must not mint a token with a broader scope than its own, nor
+	// drop the public-only restriction; mirrors the REST API guard in routers/api/v1/user/app.go
+	// for the day a token-auth path reaches here
+	if apiTokenScope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope); ok {
+		hasScope, err := apiTokenScope.CanCreateChildScope(t.Scope)
+		if err != nil {
+			return nil, err
+		}
+		if !hasScope {
+			return nil, ErrAccessTokenScopeEscalation
+		}
+		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := auth_model.NewAccessToken(ctx, t); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
 // ApplicationsPost response for add user's access token
 func ApplicationsPost(ctx *context.Context) {
 	form := web.GetForm[*forms.NewAccessTokenForm](ctx)
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsApplications"] = true
-
-	_ = ctx.Req.ParseForm()
-	var scopeNames []string
-	const accessTokenScopePrefix = "scope-"
-	for k, v := range ctx.Req.Form {
-		if strings.HasPrefix(k, accessTokenScopePrefix) {
-			scopeNames = append(scopeNames, v...)
-		}
-	}
-
-	scope, err := auth_model.AccessTokenScope(strings.Join(scopeNames, ",")).Normalize()
-	if err != nil {
-		ctx.ServerError("GetScope", err)
-		return
-	}
-	if !scope.HasPermissionScope() {
-		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
-	}
 
 	if ctx.HasError() {
 		loadApplicationsData(ctx)
@@ -62,45 +113,23 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	t := &auth_model.AccessToken{
-		UID:   ctx.Doer.ID,
-		Name:  form.Name,
-		Scope: scope,
-	}
-
-	exist, err := auth_model.AccessTokenByNameExists(ctx, t)
-	if err != nil {
-		ctx.ServerError("AccessTokenByNameExists", err)
+	// a non-admin may still hold an admin-scoped token: it stays inert until they become one
+	t, err := NewAccessTokenFromForm(ctx, ctx.Doer, form.Name, true)
+	switch {
+	case errors.Is(err, ErrAccessTokenNoPermission):
+		ctx.Flash.Error(ctx.Tr("settings.at_least_one_permission"), true)
+		loadApplicationsData(ctx)
+		ctx.HTML(http.StatusOK, tplSettingsApplications)
 		return
-	}
-	if exist {
-		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", t.Name))
+	case errors.Is(err, ErrAccessTokenNameDuplicate):
+		ctx.Flash.Error(ctx.Tr("settings.generate_token_name_duplicate", form.Name))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/applications")
 		return
-	}
-
-	// a token-authenticated request must not mint a token with a broader scope than its own, nor
-	// drop the public-only restriction. Web routes accept basic-auth PATs/OAuth tokens too, so this
-	// must mirror the REST API guard in routers/api/v1/user/app.go.
-	apiTokenScope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-	if hasApiTokenScope {
-		hasScope, err := apiTokenScope.CanCreateChildScope(t.Scope)
-		if err != nil {
-			ctx.ServerError("CanCreateChildScope", err)
-			return
-		}
-		if !hasScope {
-			ctx.HTTPError(http.StatusForbidden, "cannot create an access token with a broader scope than the authenticating token")
-			return
-		}
-		if t.Scope, err = t.Scope.EnforcePublicOnlyFrom(apiTokenScope); err != nil {
-			ctx.ServerError("EnforcePublicOnlyFrom", err)
-			return
-		}
-	}
-
-	if err := auth_model.NewAccessToken(ctx, t); err != nil {
-		ctx.ServerError("NewAccessToken", err)
+	case errors.Is(err, ErrAccessTokenScopeEscalation):
+		ctx.HTTPError(http.StatusForbidden, err.Error())
+		return
+	case err != nil:
+		ctx.ServerError("NewAccessTokenFromForm", err)
 		return
 	}
 
