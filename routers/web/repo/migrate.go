@@ -15,6 +15,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -112,14 +113,16 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
-		if strings.Contains(err.Error(), "Authentication failed") ||
-			strings.Contains(err.Error(), "Bad credentials") ||
-			strings.Contains(err.Error(), "could not read Username") {
+		_, fromGit := gitcmd.ErrorAsStderr(err)
+		if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) ||
+			gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) ||
+			strings.Contains(err.Error(), "Bad credentials") { // reported by the go-github client, not by git
 			ctx.Data["Err_Auth"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.auth_failed", err.Error()), tpl, form)
-		} else if strings.Contains(err.Error(), "fatal:") {
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.auth_failed"), tpl, form)
+		} else if fromGit {
+			log.Error("Migrate %s failed: %v", name, err) // git stderr may echo remote-controlled text
 			ctx.Data["Err_CloneAddr"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.failed"), tpl, form)
 		} else {
 			ctx.ServerError(name, err)
 		}

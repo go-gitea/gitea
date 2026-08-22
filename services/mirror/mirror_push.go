@@ -101,8 +101,11 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	err = runPushSync(ctx, m)
 	if err != nil {
 		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
-		_, fromGit := gitcmd.ErrorAsStderr(err) // git stderr may echo remote-controlled text
-		m.LastError = util.Iif(fromGit, "push failed", err.Error())
+		if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
+			m.LastError = "push failed" // git stderr may echo remote-controlled text
+		} else {
+			m.LastError = err.Error()
+		}
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()

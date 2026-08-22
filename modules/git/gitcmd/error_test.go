@@ -20,4 +20,8 @@ func TestIsStderr(t *testing.T) {
 	for _, tc := range cases {
 		assert.True(t, IsStderr(&runStdError{stderr: tc.stderr}, tc.check), "stderr: %s", tc.stderr)
 	}
+
+	authStderr := "Cloning into 'repo'...\nremote: Invalid username or token.\nfatal: Authentication failed for 'https://host/repo.git/'\n"
+	assert.True(t, IsStderr(&runStdError{stderr: authStderr}, StderrAuthenticationFailed))
+	assert.False(t, IsStderr(&runStdError{stderr: authStderr}, StderrCouldNotReadUsername))
 }

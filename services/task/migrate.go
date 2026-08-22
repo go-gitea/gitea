@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	admin_model "gitea.dev/models/admin"
@@ -149,9 +148,9 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return errors.New("clone timed out, consider increasing [git.timeout] MIGRATE in app.ini")
 	}
-	if stderr, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
+	if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
 		log.Error("runMigrateTask[%d] git failure: %v", t.ID, err) // git stderr may echo remote-controlled text
-		authFailed := strings.Contains(stderr, "Authentication failed") || strings.Contains(stderr, "could not read Username")
+		authFailed := gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) || gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername)
 		return errors.New(util.Iif(authFailed, "authentication failed", "migration failed"))
 	}
 
