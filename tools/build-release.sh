@@ -2,7 +2,7 @@
 set -euo pipefail
 
 #GO=echo # uncomment this line to dry run for testing without really build all binaries
-
+GO="${GO:-go}"
 RELEASE_LDFLAGS="-s -w $LDFLAGS"
 RELEASE_TAGS="bindata $TAGS"
 RELEASE_PATH_PREFIX="${DIST}/binaries/gitea-${VERSION##*/}"
@@ -28,7 +28,7 @@ build() {
 		goarch="arm"
 	fi
 
-	local tags="${RELEASE_TAGS:-}"
+	local tags="${RELEASE_TAGS}"
 	local suffix
 	if [[ "$variant" == "gogit" ]]; then
 		tags="gogit${tags:+ ${tags}}"
@@ -44,14 +44,14 @@ build() {
 	fi
   args+=(-tags "$tags")
   args+=(-ldflags "$RELEASE_LDFLAGS")
-  # must disable CGO (host complier & linker) to get host-independent static builds
-	CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" "${GO:-go}" build "${args[@]}" -o "$output" .
+  # must disable CGO (host compiler & linker) to get host-independent static builds
+	CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" "$GO" build "${args[@]}" -o "$output" .
 }
 
 main() {
   # When building release binaries, some TAGS (bindata) are needed by the release script,
   # so here it needs to use the TAGS to generate the assets (embed bindata).
-  TAGS="$RELEASE_TAGS" make generate
+  "$GO" generate -tags "RELEASE_TAGS" ./...
   local platform="${1:-}"
   for target in "${RELEASE_PLATFORMS_DEFAULT[@]}"; do
     if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
