@@ -63,6 +63,19 @@ func TestAPIRepoTeams(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
+	adminTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
+	targetTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	existingTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 7})
+	assert.NoError(t, repo_service.TeamAddRepository(t.Context(), adminTeam, publicOrgRepo))
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+	token = getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository)
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), targetTeam.Name)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+	assert.False(t, repo_service.HasRepository(t.Context(), targetTeam, publicOrgRepo.ID))
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/teams/%s", publicOrgRepo.FullName(), existingTeam.Name)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+	assert.True(t, repo_service.HasRepository(t.Context(), existingTeam, publicOrgRepo.ID))
+
 	// AddTeam with user2
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session = loginUser(t, user.Name)
@@ -77,19 +90,4 @@ func TestAPIRepoTeams(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 	MakeRequest(t, req, http.StatusUnprocessableEntity) // test duplicate request
-}
-
-func TestAPIRepoTeamsRequireOrganizationOwner(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
-	adminTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
-	targetTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	assert.NoError(t, repo_service.TeamAddRepository(t.Context(), adminTeam, repo))
-
-	token := getUserToken(t, user.Name, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/teams/%s", repo.FullName(), targetTeam.Name)).AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusForbidden)
-	assert.False(t, repo_service.HasRepository(t.Context(), targetTeam, repo.ID))
 }
