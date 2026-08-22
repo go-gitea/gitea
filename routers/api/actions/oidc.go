@@ -11,11 +11,14 @@ import (
 	"gitea.dev/modules/auth/httpauth"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
+	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
 	"gitea.dev/services/oauth2_provider"
 )
+
+var errInvalidOIDCAuthorization = errors.New("invalid authorization token")
 
 func registerOIDCRoutes(m *web.Router) {
 	m.Group("/oidc", func() {
@@ -80,8 +83,13 @@ func oidcToken(resp http.ResponseWriter, req *http.Request) {
 
 	task, err := getTaskFromOIDCTokenRequest(ctx)
 	if err != nil {
-		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea Actions OIDC"`)
-		ctx.HTTPError(http.StatusUnauthorized)
+		if errors.Is(err, errInvalidOIDCAuthorization) {
+			ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm="Gitea Actions OIDC"`)
+			ctx.HTTPError(http.StatusUnauthorized)
+		} else {
+			log.Error("Error getting Actions OIDC task: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -108,15 +116,21 @@ func oidcToken(resp http.ResponseWriter, req *http.Request) {
 func getTaskFromOIDCTokenRequest(ctx *context.Base) (*actions_model.ActionTask, error) {
 	parsed, ok := httpauth.ParseAuthorizationHeader(ctx.Req.Header.Get("Authorization"))
 	if !ok || parsed.BearerToken == nil {
-		return nil, errors.New("invalid authorization header")
+		return nil, errInvalidOIDCAuthorization
 	}
 	taskID, err := actions_service.TokenToTaskID(parsed.BearerToken.Token)
 	if err != nil || taskID == 0 {
-		return nil, errors.New("invalid authorization token")
+		return nil, errInvalidOIDCAuthorization
 	}
 	task, err := actions_model.GetTaskByID(ctx, taskID)
-	if err != nil || task.Status != actions_model.StatusRunning {
-		return nil, errors.New("invalid authorization token")
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil, errInvalidOIDCAuthorization
+		}
+		return nil, err
+	}
+	if task.Status != actions_model.StatusRunning {
+		return nil, errInvalidOIDCAuthorization
 	}
 	return task, nil
 }
