@@ -1888,6 +1888,7 @@ func Routes() *web.Router {
 				m.Post("/{task}", admin.PostCronTask)
 			})
 			m.Get("/orgs", admin.GetAllOrgs)
+			m.Get("/packages", admin.ListPackages)
 			m.Group("/users", func() {
 				m.Get("", admin.SearchUsers)
 				m.Post("", bind(api.CreateUserOption{}), admin.CreateUser)
