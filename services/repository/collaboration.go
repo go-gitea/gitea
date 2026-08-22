@@ -19,7 +19,9 @@ import (
 )
 
 func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
-	// only allow valid access modes, read, write and admin
+	// Only allow valid access modes, read, write and admin
+	// Keep in mind: do not allow "owner" here: because "admin" user can update collaborators but not make dangerous operations.
+	// If the "admin" user updates a user to "owner", then it means that the admin user can use owner permission, which is not expected.
 	if mode < perm.AccessModeRead || mode > perm.AccessModeAdmin {
 		return perm.ErrInvalidAccessMode
 	}
@@ -65,28 +67,28 @@ func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u
 }
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
-func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User) (err error) {
-	collaboration := &repo_model.Collaboration{
-		RepoID: repo.ID,
-		UserID: collaborator.ID,
-	}
+func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User) error {
+	return deleteCollaboration(ctx, repo, collaborator, &repo_model.Collaboration{RepoID: repo.ID, UserID: collaborator.ID})
+}
 
+func deleteCollaborationByMode(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User, mode perm.AccessMode) error {
+	return deleteCollaboration(ctx, repo, collaborator, &repo_model.Collaboration{
+		RepoID: repo.ID, UserID: collaborator.ID, Mode: mode,
+	})
+}
+
+func deleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User, collaboration *repo_model.Collaboration) (err error) {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if has, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
+		if deleted, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
 			return err
-		} else if has == 0 {
+		} else if deleted == 0 {
 			return nil
 		}
 
 		if err := repo.LoadOwner(ctx); err != nil {
 			return err
 		}
-
 		if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
-			return err
-		}
-
-		if err = repo_model.WatchRepo(ctx, collaborator, repo, false); err != nil {
 			return err
 		}
 
@@ -113,10 +115,11 @@ func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Reposito
 }
 
 func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {
-	if has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo); err != nil || has {
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
+	if err != nil || permission.HasAnyUnitAccessOrPublicAccess() {
 		return err
 	}
-	if err := repo_model.WatchRepo(ctx, user, repo, false); err != nil {
+	if err := repo_model.WatchRepoAuto(ctx, user, repo, false); err != nil {
 		return err
 	}
 

@@ -7,18 +7,23 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
+	"gitea.dev/modules/setting"
 
-	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func AddWorkflowCallOriginalEventSupportToActionRunner(_ context.Context, x base.EngineMigration) error {
-	type ActionRunner struct {
-		HasWorkflowCallOriginalEventSupport bool `xorm:"has_workflow_call_original_event_support NOT NULL DEFAULT false"`
+func ExpandActionScheduleContent(ctx context.Context, x base.EngineMigration) error {
+	if !setting.Database.Type.IsMySQL() {
+		return nil
 	}
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains:  true,
-		IgnoreDropIndices: true,
-	}, new(ActionRunner))
-	return err
+	return base.ModifyColumn(ctx, x, "action_schedule", &schemas.Column{
+		Name: "content",
+		SQLType: schemas.SQLType{
+			Name: "LONGBLOB",
+		},
+		Length:         0,
+		Nullable:       true,
+		DefaultIsEmpty: true,
+	})
 }

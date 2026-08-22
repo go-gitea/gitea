@@ -23,7 +23,6 @@ import (
 	alpine_module "gitea.dev/modules/packages/alpine"
 	arch_module "gitea.dev/modules/packages/arch"
 	container_module "gitea.dev/modules/packages/container"
-	debian_module "gitea.dev/modules/packages/debian"
 	rpm_module "gitea.dev/modules/packages/rpm"
 	terraform_module "gitea.dev/modules/packages/terraform"
 	"gitea.dev/modules/setting"
@@ -245,27 +244,6 @@ func ViewPackageVersion(ctx *context.Context) {
 
 		ctx.Data["Repositories"] = util.Sorted(repositories.Values())
 		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
-	case packages_model.TypeDebian:
-		distributions := make(container.Set[string])
-		components := make(container.Set[string])
-		architectures := make(container.Set[string])
-
-		for _, f := range pd.Files {
-			for _, pp := range f.Properties {
-				switch pp.Name {
-				case debian_module.PropertyDistribution:
-					distributions.Add(pp.Value)
-				case debian_module.PropertyComponent:
-					components.Add(pp.Value)
-				case debian_module.PropertyArchitecture:
-					architectures.Add(pp.Value)
-				}
-			}
-		}
-
-		ctx.Data["Distributions"] = util.Sorted(distributions.Values())
-		ctx.Data["Components"] = util.Sorted(components.Values())
-		ctx.Data["Architectures"] = util.Sorted(architectures.Values())
 	case packages_model.TypeRpm:
 		groups := make(container.Set[string])
 		architectures := make(container.Set[string])
@@ -318,12 +296,15 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["LatestVersions"] = pvs
 	ctx.Data["TotalVersionCount"] = pvsTotal
-	ctx.Data["PackageVersionViewData"], err = packages_service.GetSpecManager().Get(pd.Package.Type).GetViewPackageVersionData(ctx, pd)
+	pkgSpec := packages_service.GetSpecManager().Get(pd.Package.Type)
+	viewData, err := pkgSpec.GetViewPackageVersionData(ctx, pd)
 	if err != nil {
 		ctx.ServerError("GetViewPackageVersionData", err)
 		return
 	}
 
+	ctx.Data["PackageVersionViewData"] = viewData
+	ctx.Data["PackageVersionSetupManual"] = pkgSpec.RenderSetupManual(ctx, pd, viewData)
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
 	hasRepositoryAccess := false

@@ -422,7 +422,10 @@ func prepareMigrationTasks() []*migration {
 		newMigration(346, "Add license_path column to repo_license and backfill", v28.AddLicensePathToRepoLicense),
 		newMigration(347, "Add watch options", v28.AddWatchOptions),
 		newMigration(348, "Recreate email_hash table for SHA256 avatar hashes", v28.RecreateEmailHashTable),
-		newMigration(349, "Add workflow_call original event support to action runners", v28.AddWorkflowCallOriginalEventSupportToActionRunner),
+		newMigration(349, "Expand action_schedule content column", v28.ExpandActionScheduleContent),
+		newMigration(350, "Add published_unix column to release", v28.AddPublishedUnixToRelease),
+		newMigration(351, "Track transfer recipient access grants", v28.AddRecipientAccessGrantedToRepoTransfer),
+		newMigration(352, "Add workflow_call original event support to action runners", v28.AddWorkflowCallOriginalEventSupportToActionRunner),
 	}
 	return preparedMigrations
 }

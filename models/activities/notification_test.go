@@ -54,7 +54,7 @@ func TestCreateOrUpdateIssueNotificationsIgnored(t *testing.T) {
 	// user 4 watches repo 1 and would be notified about issue 1
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	assert.NoError(t, repo_model.WatchIgnoreRepo(t.Context(), user, repo))
+	assert.NoError(t, repo_model.WatchRepoWithOptions(t.Context(), user, repo, repo_model.WatchOptions{Mode: repo_model.WatchModeDont}))
 
 	notified, err := activities_model.CreateOrUpdateIssueNotifications(t.Context(), 1, 0, 2, 0)
 	assert.NoError(t, err)

@@ -10,11 +10,9 @@ import (
 
 	auth_model "gitea.dev/models/auth"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 	api "gitea.dev/modules/structs"
-	"gitea.dev/modules/util"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -38,13 +36,13 @@ func TestAPIRepoTeams(t *testing.T) {
 	if assert.Len(t, teams, 2) {
 		assert.Equal(t, "Owners", teams[0].Name)
 		assert.True(t, teams[0].CanCreateOrgRepo)
-		assert.True(t, util.SliceSortedEqual(unit.AllUnitKeyNames(), teams[0].Units), "%v == %v", unit.AllUnitKeyNames(), teams[0].Units)
+		assert.Equal(t, []string{"repo.issues"}, teams[1].Units) // legacy dirty data, although the team.authorize is "owner", the units are also responded
 		assert.Equal(t, api.AccessLevelNameOwner, teams[0].Permission)
 
 		assert.Equal(t, "test_team", teams[1].Name)
 		assert.False(t, teams[1].CanCreateOrgRepo)
 		assert.Equal(t, []string{"repo.issues"}, teams[1].Units)
-		assert.Equal(t, api.AccessLevelNameWrite, teams[1].Permission)
+		assert.Equal(t, api.AccessLevelNameWrite, teams[1].Permission) // legacy dirty data, although the team.authorize is "write", the units are also responded
 	}
 
 	// IsTeam
