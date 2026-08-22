@@ -198,7 +198,7 @@ func TestSearchRepository(t *testing.T) {
 	t.Run("SearchRepositoryCases", testSearchRepositoryCases)
 }
 
-func TestSearchRepositoryPrioritizesExactNameMatch(t *testing.T) {
+func TestSearchRepositoryPrioritizesExactMatch(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
 
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -223,15 +223,24 @@ func TestSearchRepositoryPrioritizesExactNameMatch(t *testing.T) {
 	insertRepo("afoo")
 	exactID := insertRepo("foo")
 
-	repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{Page: 1, PageSize: 10},
-		OwnerID:     owner.ID,
-		Keyword:     "foo",
-		Collaborate: optional.Some(false),
+	assertExactFirst := func(t *testing.T, keyword string) {
+		repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{Page: 1, PageSize: 10},
+			OwnerID:     owner.ID,
+			Keyword:     keyword,
+			Collaborate: optional.Some(false),
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, repos)
+		assert.Equal(t, exactID, repos[0].ID)
+	}
+
+	t.Run("name", func(t *testing.T) {
+		assertExactFirst(t, "foo")
 	})
-	require.NoError(t, err)
-	require.NotEmpty(t, repos)
-	assert.Equal(t, exactID, repos[0].ID)
+	t.Run("owner/name", func(t *testing.T) {
+		assertExactFirst(t, owner.Name+"/foo")
+	})
 }
 
 func testSearchRepositoryPublic(t *testing.T) {
