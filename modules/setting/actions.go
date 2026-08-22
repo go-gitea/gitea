@@ -12,27 +12,31 @@ import (
 	"gitea.dev/modules/log"
 )
 
-const defaultMaxRerunAttempts = 50
+const (
+	defaultMaxRerunAttempts       = 50
+	defaultArtifactPreviewMaxSize = 100 * 1024 * 1024
+)
 
 const defaultMaxConcurrentTaskPicks = 16
 
 // Actions settings
 var (
 	Actions = struct {
-		Enabled               bool
-		LogStorage            *Storage          // how the created logs should be stored
-		LogRetentionDays      int64             `ini:"LOG_RETENTION_DAYS"`
-		LogCompression        logCompression    `ini:"LOG_COMPRESSION"`
-		ArtifactStorage       *Storage          // how the created artifacts should be stored
-		ArtifactRetentionDays int64             `ini:"ARTIFACT_RETENTION_DAYS"`
-		DefaultActionsURL     defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
-		ZombieTaskTimeout     time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
-		EndlessTaskTimeout    time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
-		AbandonedJobTimeout   time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
-		SkipWorkflowStrings   []string          `ini:"SKIP_WORKFLOW_STRINGS"`
-		WorkflowDirs          []string          `ini:"WORKFLOW_DIRS"`
-		ScopedWorkflowDirs    []string          `ini:"SCOPED_WORKFLOW_DIRS"`
-		MaxRerunAttempts      int64             `ini:"MAX_RERUN_ATTEMPTS"`
+		Enabled                bool
+		LogStorage             *Storage          // how the created logs should be stored
+		LogRetentionDays       int64             `ini:"LOG_RETENTION_DAYS"`
+		LogCompression         logCompression    `ini:"LOG_COMPRESSION"`
+		ArtifactStorage        *Storage          // how the created artifacts should be stored
+		ArtifactRetentionDays  int64             `ini:"ARTIFACT_RETENTION_DAYS"`
+		ArtifactPreviewMaxSize int64             `ini:"ARTIFACT_PREVIEW_MAX_SIZE"`
+		DefaultActionsURL      defaultActionsURL `ini:"DEFAULT_ACTIONS_URL"`
+		ZombieTaskTimeout      time.Duration     `ini:"ZOMBIE_TASK_TIMEOUT"`
+		EndlessTaskTimeout     time.Duration     `ini:"ENDLESS_TASK_TIMEOUT"`
+		AbandonedJobTimeout    time.Duration     `ini:"ABANDONED_JOB_TIMEOUT"`
+		SkipWorkflowStrings    []string          `ini:"SKIP_WORKFLOW_STRINGS"`
+		WorkflowDirs           []string          `ini:"WORKFLOW_DIRS"`
+		ScopedWorkflowDirs     []string          `ini:"SCOPED_WORKFLOW_DIRS"`
+		MaxRerunAttempts       int64             `ini:"MAX_RERUN_ATTEMPTS"`
 		// MaxConcurrentTaskPicks bounds how many runners may run the task-assignment
 		// transaction at once per Gitea instance, to avoid a thundering herd when many
 		// runners poll together. It is a per-process limit, not a cluster-wide one.
@@ -44,6 +48,7 @@ var (
 		WorkflowDirs:           []string{".gitea/workflows", ".github/workflows"},
 		ScopedWorkflowDirs:     []string{".gitea/scoped_workflows"},
 		MaxRerunAttempts:       defaultMaxRerunAttempts,
+		ArtifactPreviewMaxSize: defaultArtifactPreviewMaxSize,
 		MaxConcurrentTaskPicks: defaultMaxConcurrentTaskPicks,
 	}
 )
@@ -126,6 +131,7 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	if Actions.ArtifactRetentionDays <= 0 {
 		Actions.ArtifactRetentionDays = 90
 	}
+	Actions.ArtifactPreviewMaxSize = sec.Key("ARTIFACT_PREVIEW_MAX_SIZE").MustInt64(defaultArtifactPreviewMaxSize)
 
 	Actions.ZombieTaskTimeout = sec.Key("ZOMBIE_TASK_TIMEOUT").MustDuration(10 * time.Minute)
 	Actions.EndlessTaskTimeout = sec.Key("ENDLESS_TASK_TIMEOUT").MustDuration(3 * time.Hour)
