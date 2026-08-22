@@ -102,11 +102,16 @@ jobs:
 		DecodeJSON(t, resp, &discovery)
 		assert.Equal(t, actions_service.OIDCIssuer(), discovery["issuer"])
 		assert.NotContains(t, discovery, "token_endpoint")
+		jwksURI, ok := discovery["jwks_uri"].(string)
+		require.True(t, ok)
+		assert.Equal(t, actions_service.OIDCIssuer()+"/jwks", jwksURI)
+		parsedJWKSURL, err := url.Parse(jwksURI)
+		require.NoError(t, err)
 		claimsSupported, ok := discovery["claims_supported"].([]any)
 		require.True(t, ok)
 		assert.NotContains(t, claimsSupported, "environment")
 
-		resp = MakeRequest(t, NewRequest(t, http.MethodGet, "/api/actions/oidc/jwks"), http.StatusOK)
+		resp = MakeRequest(t, NewRequest(t, http.MethodGet, parsedJWKSURL.RequestURI()), http.StatusOK)
 		var jwks struct {
 			Keys []map[string]string `json:"keys"`
 		}
@@ -118,7 +123,8 @@ jobs:
 
 		badRequest := NewRequest(t, http.MethodGet, parsedURL.RequestURI())
 		badRequest.Header.Set("Authorization", "Bearer invalid")
-		MakeRequest(t, badRequest, http.StatusUnauthorized)
+		resp = MakeRequest(t, badRequest, http.StatusUnauthorized)
+		assert.Equal(t, `Bearer realm="Gitea Actions OIDC"`, resp.Header().Get("WWW-Authenticate"))
 
 		audienceURL, err := url.Parse(requestURL + "&audience=integration-test")
 		require.NoError(t, err)
@@ -171,11 +177,13 @@ jobs:
 		require.NoError(t, err)
 		revokedRequest := NewRequest(t, http.MethodGet, audienceURL.RequestURI())
 		revokedRequest.Header.Set("Authorization", "Bearer "+requestToken)
-		MakeRequest(t, revokedRequest, http.StatusUnauthorized)
+		resp = MakeRequest(t, revokedRequest, http.StatusUnauthorized)
+		assert.Equal(t, `Bearer realm="Gitea Actions OIDC"`, resp.Header().Get("WWW-Authenticate"))
 
 		runner.execTask(t, task, &mockTaskOutcome{result: runnerv1.Result_RESULT_SUCCESS})
 		stoppedRequest := NewRequest(t, http.MethodGet, audienceURL.RequestURI())
 		stoppedRequest.Header.Set("Authorization", "Bearer "+requestToken)
-		MakeRequest(t, stoppedRequest, http.StatusUnauthorized)
+		resp = MakeRequest(t, stoppedRequest, http.StatusUnauthorized)
+		assert.Equal(t, `Bearer realm="Gitea Actions OIDC"`, resp.Header().Get("WWW-Authenticate"))
 	})
 }
