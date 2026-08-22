@@ -47,7 +47,9 @@ type CreateFileOptions struct {
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type DeleteFileOptions struct {
 	FileOptions
-	// the blob ID (SHA) for the file to delete
+	// the blob ID (SHA) for the file to delete, as returned in `sha` by the "Get contents" API.
+	// For a file tracked by Git LFS this is the ID of the pointer blob committed to the repository,
+	// not the `lfs_oid` of the LFS object and not a checksum of the file content.
 	// required: true
 	SHA string `json:"sha" binding:"Required"`
 }
@@ -56,7 +58,10 @@ type DeleteFileOptions struct {
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type UpdateFileOptions struct {
 	FileOptions
-	// the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file
+	// the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file.
+	// It is the `sha` returned by the "Get contents" API; for a file tracked by Git LFS this is the ID of
+	// the pointer blob committed to the repository, not the `lfs_oid` of the LFS object and not a checksum
+	// of the file content.
 	SHA string `json:"sha"`
 	// content must be base64 encoded
 	// required: true
@@ -79,7 +84,10 @@ type ChangeFileOperation struct {
 	Path string `json:"path" binding:"Required;MaxSize(500)"`
 	// new or updated file content, it must be base64 encoded
 	ContentBase64 string `json:"content"`
-	// the blob ID (SHA) for the file that already exists, required for changing existing files
+	// the blob ID (SHA) for the file that already exists, required for changing existing files.
+	// It is the `sha` returned by the "Get contents" API; for a file tracked by Git LFS this is the ID of
+	// the pointer blob committed to the repository, not the `lfs_oid` of the LFS object and not a checksum
+	// of the file content.
 	SHA string `json:"sha"`
 	// old path of the file to move
 	FromPath string `json:"from_path"`
@@ -125,7 +133,8 @@ type ContentsResponse struct {
 	Name string `json:"name"`
 	// Path is the full path to the file or directory
 	Path string `json:"path"`
-	// SHA is the Git blob or tree SHA
+	// SHA is the Git blob or tree SHA. It is the value the file APIs expect in `sha`, also for a file
+	// tracked by Git LFS, where it is the ID of the pointer blob rather than of the LFS object.
 	SHA string `json:"sha"`
 
 	// LastCommitSHA is the SHA of the last commit that affected this file
