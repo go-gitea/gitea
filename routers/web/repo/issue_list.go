@@ -5,6 +5,7 @@ package repo
 
 import (
 	"bytes"
+	"errors"
 	"maps"
 	"net/http"
 	"slices"
@@ -14,7 +15,6 @@ import (
 
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	issue_indexer "gitea.dev/modules/indexer/issues"
@@ -53,85 +53,22 @@ func SearchIssues(ctx *context.Context) {
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
-	var (
-		repoIDs   []int64
-		allPublic bool
-	)
-	{
-		// find repos user can access (for issue search)
-		opts := repo_model.SearchRepoOptions{
-			Private:     false,
-			AllPublic:   true,
-			TopicOnly:   false,
-			Collaborate: optional.None[bool](),
-			// This needs to be a column that is not nil in fixtures or
-			// MySQL will return different results when sorting by null in some cases
-			OrderBy: db.SearchOrderByAlphabetically,
-			Actor:   ctx.Doer,
+	repoIDs, allPublic, err := common.SearchIssuesRepoIDs(ctx, common.SearchIssuesRepoIDsOptions{
+		Doer:      ctx.Doer,
+		OwnerName: ctx.FormString("owner"),
+		TeamName:  ctx.FormString("team"),
+	})
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
+			ctx.HTTPError(http.StatusBadRequest, err.Error())
+		} else {
+			ctx.ServerError("SearchIssuesRepoIDs", err)
 		}
-		if ctx.IsSigned {
-			opts.Private = true
-			opts.AllLimited = true
-		}
-		if ctx.FormString("owner") != "" {
-			owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.HTTPError(http.StatusBadRequest, "Owner not found", err.Error())
-				} else {
-					ctx.HTTPError(http.StatusInternalServerError, "GetUserByName", err.Error())
-				}
-				return
-			}
-			opts.OwnerID = owner.ID
-			opts.AllLimited = false
-			opts.AllPublic = false
-			opts.Collaborate = optional.Some(false)
-		}
-		if ctx.FormString("team") != "" {
-			if ctx.FormString("owner") == "" {
-				ctx.HTTPError(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
-				return
-			}
-			team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
-			if err != nil {
-				if organization.IsErrTeamNotExist(err) {
-					ctx.HTTPError(http.StatusBadRequest, "Team not found", err.Error())
-				} else {
-					ctx.HTTPError(http.StatusInternalServerError, "GetUserByName", err.Error())
-				}
-				return
-			}
-			opts.TeamID = team.ID
-		}
-
-		if opts.AllPublic {
-			allPublic = true
-			opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
-		}
-		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
-		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "SearchRepositoryIDs", err.Error())
-			return
-		}
-		if len(repoIDs) == 0 {
-			// no repos found, don't let the indexer return all repos
-			repoIDs = []int64{0}
-		}
+		return
 	}
 
 	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
-
-	isPull := optional.None[bool]()
-	switch ctx.FormString("type") {
-	case "pulls":
-		isPull = optional.Some(true)
-	case "issues":
-		isPull = optional.Some(false)
-	}
+	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
 	{
@@ -142,7 +79,7 @@ func SearchIssues(ctx *context.Context) {
 		}
 		includedAnyLabels, err = issues_model.GetLabelIDsByNames(ctx, includedLabelNames)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "GetLabelIDsByNames", err.Error())
+			ctx.ServerError("GetLabelIDsByNames", err)
 			return
 		}
 	}
@@ -156,7 +93,7 @@ func SearchIssues(ctx *context.Context) {
 		}
 		includedMilestones, err = issues_model.GetMilestoneIDsByNames(ctx, includedMilestoneNames)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "GetMilestoneIDsByNames", err.Error())
+			ctx.ServerError("GetMilestoneIDsByNames", err)
 			return
 		}
 	}
@@ -220,12 +157,12 @@ func SearchIssues(ctx *context.Context) {
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "SearchIssues", err.Error())
+		ctx.ServerError("SearchIssues", err)
 		return
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
+		ctx.ServerError("FindIssuesByIDs", err)
 		return
 	}
 
@@ -264,11 +201,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 	}
 
 	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
-
 	keyword := ctx.FormTrim("q")
-	if strings.IndexByte(keyword, 0) >= 0 {
-		keyword = ""
-	}
 
 	var mileIDs []int64
 	if part := strings.Split(ctx.FormString("milestones"), ","); len(part) > 0 {
@@ -300,13 +233,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		}
 	}
 
-	isPull := optional.None[bool]()
-	switch ctx.FormString("type") {
-	case "pulls":
-		isPull = optional.Some(true)
-	case "issues":
-		isPull = optional.Some(false)
-	}
+	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	// FIXME: we should be more efficient here
 	createdByID := getUserIDForFilter(ctx, "created_by")

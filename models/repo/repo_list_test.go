@@ -267,6 +267,23 @@ func testSearchRepositoryRestricted(t *testing.T) {
 	})
 }
 
+func TestSearchRepositoryExcludesHiddenIndividualOwners(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	hiddenOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	require.NoError(t, user_model.UpdateUserCols(t.Context(), &user_model.User{
+		ID:         hiddenOwner.ID,
+		Visibility: structs.VisibleTypePrivate,
+	}, "visibility"))
+
+	repos, _, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{
+		ListOptions: db.ListOptions{Page: 1, PageSize: 100},
+		Keyword:     "repo1",
+	})
+	require.NoError(t, err)
+	assert.NotContains(t, repoIDs(repos), int64(1))
+}
+
 func testSearchRepositoryPrivate(t *testing.T) {
 	// test search private repository on explore page
 	repos, count, err := repo_model.SearchRepositoryByName(t.Context(), repo_model.SearchRepoOptions{

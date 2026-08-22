@@ -847,17 +847,20 @@ func ToGitHook(h *git.Hook) *api.GitHook {
 }
 
 // ToDeployKey convert asymkey_model.DeployKey to api.DeployKey
-func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
-	return &api.DeployKey{
-		ID:          key.ID,
-		KeyID:       key.KeyID,
-		Key:         key.Content,
-		Fingerprint: key.Fingerprint,
-		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
-		Title:       key.Name,
-		Created:     key.CreatedUnix.AsTime(),
-		ReadOnly:    key.Mode == perm.AccessModeRead, // All deploy keys are read-only.
+func ToDeployKey(ctx context.Context, repo *repo_model.Repository, deployKey *asymkey_model.DeployKey) *api.DeployKey {
+	k := &api.DeployKey{
+		ID:       deployKey.ID,
+		KeyID:    deployKey.KeyID,
+		URL:      repo.APIURL(ctx) + fmt.Sprintf("/keys/%d", deployKey.ID),
+		Title:    deployKey.Name,
+		Created:  deployKey.CreatedUnix.AsTime(),
+		ReadOnly: deployKey.Mode == perm.AccessModeRead, // All deploy keys are read-only.
 	}
+	if err := deployKey.LoadPublicKey(ctx); err == nil {
+		k.Key = deployKey.PublicKey.Content
+		k.Fingerprint = deployKey.PublicKey.Fingerprint
+	}
+	return k
 }
 
 // ToOrganization convert user_model.User to api.Organization

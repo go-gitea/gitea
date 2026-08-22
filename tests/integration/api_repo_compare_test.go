@@ -98,6 +98,26 @@ func TestAPICompareBranches(t *testing.T) {
 	})
 }
 
+func TestAPIComparePublicOnlyToken(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
+		pr := createOutdatedPR(t, user, org26)
+		require.NoError(t, pr.LoadBaseRepo(t.Context()))
+		require.NoError(t, pr.LoadHeadRepo(t.Context()))
+
+		require.NoError(t, repo_model.UpdateRepositoryColsNoAutoTime(t.Context(),
+			&repo_model.Repository{ID: pr.HeadRepo.ID, IsPrivate: true}, "is_private"))
+
+		compareURL := "/api/v1/repos/" + pr.BaseRepo.FullName() + "/compare/" + pr.BaseBranch + "..." + pr.HeadRepo.OwnerName + ":" + pr.HeadBranch
+		fullToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository)
+		MakeRequest(t, NewRequest(t, "GET", compareURL).AddTokenAuth(fullToken), http.StatusOK)
+
+		publicOnlyToken := getUserToken(t, user.Name, auth_model.AccessTokenScopeReadRepository, auth_model.AccessTokenScopePublicOnly)
+		MakeRequest(t, NewRequest(t, "GET", compareURL).AddTokenAuth(publicOnlyToken), http.StatusNotFound)
+	})
+}
+
 func TestAPIDownloadCompareDiffOrPatch(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
