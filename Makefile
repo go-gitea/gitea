@@ -42,18 +42,10 @@ endif
 TAGS ?=
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 CGO_TAGS := sqlite_mattn pam
-RELEASE_TARGETS := release release-binaries release-windows release-linux release-darwin release-freebsd
 
 CGO_ENABLED ?= 0
 ifneq ($(strip $(filter $(CGO_TAGS),$(TAGS))),)
 	CGO_ENABLED = 1
-ifneq ($(strip $(filter $(RELEASE_TARGETS),$(MAKECMDGOALS))),)
-$(error release targets do not support cgo tags ($(strip $(filter $(CGO_TAGS),$(TAGS)))); use a container if you need to cross compile with these tags)
-endif
-endif
-
-ifneq ($(strip $(filter $(RELEASE_TARGETS),$(MAKECMDGOALS))),)
-override TAGS := $(strip bindata $(filter-out bindata,$(TAGS)))
 endif
 
 STATIC ?=
@@ -94,13 +86,18 @@ STORED_VERSION_FILE := VERSION
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-ifneq ($(GITHUB_REF_TYPE),branch)
+# VERSION: the semantic version or "main-nightly" for the build and filenames, e.g.: "1.27.2"
+# GITEA_VERSION: the Gitea's internal version for display, e.g. "1.28.0+dev-356-ge47d0b66ea"
+ifeq ($(GITHUB_REF_TYPE),tag)
+	# convert tag "v1.2.3" to "1.2.3"
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
 	GITEA_VERSION ?= $(VERSION)
-else
+else ifeq ($(GITHUB_REF_TYPE),branch)
 	ifneq ($(GITHUB_REF_NAME),)
+		# convert branch "release/v1.2" to "1.2-nightly"
 		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))-nightly
 	else
+		# assume that it uses "main" branch
 		VERSION ?= main
 	endif
 
@@ -110,28 +107,17 @@ else
 	else
 		GITEA_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
 	endif
+else
+	$(error unsupported ref type $(GITHUB_REF_TYPE))
 endif
 
 # if version = "main" then update version to "nightly"
 ifeq ($(VERSION),main)
 	VERSION := main-nightly
 endif
-# artifact names cannot contain the "/" that a branch name may have
-RELEASE_VERSION := $(subst /,-,$(VERSION))
 
 LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
-RELEASE_GO_LDFLAGS = -s -w $(LDFLAGS)
-
-RELEASE_ALL_ARCHS ?= linux/amd64 linux/386 linux/arm-5 linux/arm-6 linux/arm64 linux/riscv64 windows/386 windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 freebsd/amd64
-RELEASE_GOGIT_ALL_ARCHS ?= windows/386 windows/amd64 windows/arm64
-RELEASE_GOGIT_ARCHS = $(if $(findstring gogit,$(TAGS)),,$(RELEASE_GOGIT_ALL_ARCHS))
-RELEASE_ENV = \
-	GO="$(GO)" \
-	RELEASE_TAGS='$(TAGS)' \
-	RELEASE_LDFLAGS='$(RELEASE_GO_LDFLAGS)' \
-	RELEASE_PREFIX='$(DIST)/binaries/gitea-$(RELEASE_VERSION)' \
-	RELEASE_ARCHS='$(RELEASE_ALL_ARCHS)' \
-	RELEASE_GOGIT_ARCHS='$(RELEASE_GOGIT_ARCHS)'
+RELEASE_ENV = GO="$(GO)" TAGS='$(TAGS)' LDFLAGS='$(LDFLAGS)' DIST='$(DIST)'
 
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/modelmigration/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/modelmigration/...)
@@ -587,8 +573,8 @@ release-sources: | $(DIST_DIRS)
 # bsdtar needs a ^ to prevent matching subdirectories
 	$(eval EXCL := --exclude=$(shell tar --help | grep -q bsdtar && echo "^")./)
 # use transform to a add a release-folder prefix; in bsdtar the transform parameter equivalent is -s
-	$(eval TRANSFORM := $(shell tar --help | grep -q bsdtar && echo "-s '|^./|gitea-src-$(RELEASE_VERSION)/|'" || echo "--transform 's|^./|gitea-src-$(RELEASE_VERSION)/|'"))
-	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/gitea-src-$(RELEASE_VERSION).tar.gz .
+	$(eval TRANSFORM := $(shell tar --help | grep -q bsdtar && echo "-s '|^./|gitea-src-$(VERSION)/|'" || echo "--transform 's|^./|gitea-src-$(VERSION)/|'"))
+	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: deps

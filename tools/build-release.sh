@@ -1,6 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
+# RELEASE_ALL_ARCHS ?= linux/amd64 linux/386 linux/arm-5 linux/arm-6 linux/arm64 linux/riscv64 windows/386 windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 freebsd/amd64
+# RELEASE_GOGIT_ALL_ARCHS ?= windows/386 windows/amd64 windows/arm64
+# RELEASE_GOGIT_ARCHS = $(if $(findstring gogit,$(TAGS)),,$(RELEASE_GOGIT_ALL_ARCHS))
+# RELEASE_PREFIX='$(DIST)/binaries/gitea-$(VERSION)' \
+# RELEASE_ARCHS
+
 platform="${1:-}"
 prefix="${RELEASE_PREFIX:?}"
 
