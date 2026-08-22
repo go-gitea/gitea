@@ -278,6 +278,7 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 	type hookCase struct {
 		gotBody    chan []byte
 		httpMethod string // default to POST
+		meta       string // webhook Meta JSON, defaults to "{}"
 	}
 
 	cases := map[string]*hookCase{
@@ -286,7 +287,7 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 		webhook_module.DINGTALK:   {},
 		webhook_module.TELEGRAM:   {},
 		webhook_module.MSTEAMS:    {},
-		webhook_module.FEISHU:     {},
+		webhook_module.FEISHU:     {meta: `{"app_id":"test","app_secret":"test"}`},
 		webhook_module.MATRIX:     {httpMethod: "PUT"},
 		webhook_module.WECHATWORK: {},
 		webhook_module.PACKAGIST:  {},
@@ -310,12 +311,16 @@ func TestWebhookDeliverSpecificTypes(t *testing.T) {
 		cases[typ].gotBody = make(chan []byte, 1)
 		t.Run(typ, func(t *testing.T) {
 			t.Parallel()
+			meta := cases[typ].meta
+			if meta == "" {
+				meta = "{}"
+			}
 			hook := &webhook_model.Webhook{
 				RepoID:   3,
 				IsActive: true,
 				Type:     typ,
 				URL:      s.URL + "/" + typ,
-				Meta:     "{}",
+				Meta:     meta,
 			}
 			assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
 
