@@ -50,6 +50,8 @@ func renderRepoIssueIconTitle(ctx context.Context, opts markup.RenderIssueIconTi
 		if !perms.CanReadIssuesOrPulls(issue.IsPull) {
 			return "", util.ErrPermissionDenied
 		}
+	} else if !webCtx.Repo.Permission.CanReadIssuesOrPulls(issue.IsPull) {
+		return "", util.ErrPermissionDenied
 	}
 
 	if issue.IsPull {
