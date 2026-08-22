@@ -143,9 +143,8 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	// prevent visiting attachment from other repository directly
-	// The check will be ignored before this code merged.
-	if attach.CreatedUnix > repo_model.LegacyAttachmentMissingRepoIDCutoff && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID != attach.RepoID {
+	// Prevent visiting an attachment through another repository directly.
+	if attach.RepoID != 0 && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID != attach.RepoID {
 		ctx.HTTPError(http.StatusNotFound)
 		return
 	}

@@ -93,6 +93,19 @@ func TestAttachments(t *testing.T) {
 	t.Run("DeleteAttachmentPermissions", testDeleteAttachmentPermissions)
 }
 
+func TestAttachmentRejectsOtherRepositoryPath(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	const privateAttachmentUUID = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12"
+	_, err := storage.Attachments.Save(repo_model.AttachmentRelativePath(privateAttachmentUUID), strings.NewReader("private attachment"), -1)
+	require.NoError(t, err)
+
+	// The attachment belongs to private user2/repo2. Routing it through public
+	// user2/repo1 must not substitute that repository's visibility.
+	req := NewRequest(t, "GET", "/user2/repo1/attachments/"+privateAttachmentUUID)
+	MakeRequest(t, req, http.StatusNotFound)
+}
+
 func testUploadAttachmentDeleteTemp(t *testing.T) {
 	session := loginUser(t, "user2")
 	countTmpFile := func() int {
