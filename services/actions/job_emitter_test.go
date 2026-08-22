@@ -685,3 +685,17 @@ func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
 			"report must wait for the re-emit, which sees the sibling combinations too")
 	})
 }
+
+// Test_checkJobsByRunID_DeletedRunIsHandled verifies that a queued job update for a
+// run that no longer exists (e.g. its repository was deleted) is treated as
+// handled (nil error) instead of being requeued forever. Regression for #39034.
+func Test_checkJobsByRunID_DeletedRunIsHandled(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// A run ID that is guaranteed not to exist in the fixture.  checkJobsByRunID
+	// must return nil for a deleted run so the queue consumer drops the item
+	// instead of requeueing it.
+	err := checkJobsByRunID(ctx, 1<<62)
+	assert.NoError(t, err, "deleted run must be treated as handled, not requeued")
+}
