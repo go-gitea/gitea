@@ -512,13 +512,9 @@ generate-backend: $(TAGS_PREREQ) generate-go
 .PHONY: generate-go
 generate-go: $(TAGS_PREREQ) $(if $(findstring bindata,$(TAGS)),$(BINDATA_DEST))
 
-modules/migration/bindata.dat: $(shell find modules/migration/schemas -type f)
-modules/options/bindata.dat: $(shell find options -type f)
-modules/public/bindata.dat: $(shell find public -type f)
-modules/templates/bindata.dat: $(shell find templates -type f)
-
 $(BINDATA_DEST):
-	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags bindata ./$(@D)
+	@echo "Running go generate..."
+	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags bindata ./modules/...
 
 .PHONY: security-check
 security-check:

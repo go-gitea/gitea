@@ -173,44 +173,18 @@ func ExternalServiceHTTP(t TestingT, envVarName, def string) string {
 	}
 	// minio's endpoint is "host:port" pattern
 	testURL := util.Iif(strings.Contains(val, "://"), val, "http://"+val)
-	if err := probeExternalServiceHTTP(testURL); err != nil {
+	client := &http.Client{Timeout: util.Iif(AllowSkipExternalService(), time.Second, time.Minute)}
+	resp, err := client.Get(testURL)
+	if err != nil {
 		if AllowSkipExternalService() {
 			t.Skipf("skipping test because %s is not ready", val)
 		} else {
 			t.Fatalf("%s is not ready, but skipping is not allowed in CI", val)
 		}
+	} else {
+		_ = resp.Body.Close()
 	}
 	return val
-}
-
-var externalServiceHTTPProbes = struct {
-	sync.Mutex
-	byURL map[string]func() error
-}{byURL: map[string]func() error{}}
-
-func probeExternalServiceHTTP(testURL string) error {
-	externalServiceHTTPProbes.Lock()
-	probe := externalServiceHTTPProbes.byURL[testURL]
-	if probe == nil {
-		probe = sync.OnceValue(func() error {
-			client := &http.Client{Timeout: util.Iif(AllowSkipExternalService(), time.Second, 5*time.Second)}
-			deadline := time.Now().Add(time.Minute) // unreachable is fatal in CI, so wait for a cold service to start
-			for {
-				resp, err := client.Get(testURL)
-				if err == nil {
-					_ = resp.Body.Close()
-					return nil
-				}
-				if AllowSkipExternalService() || !time.Now().Before(deadline) {
-					return err
-				}
-				time.Sleep(time.Second)
-			}
-		})
-		externalServiceHTTPProbes.byURL[testURL] = probe
-	}
-	externalServiceHTTPProbes.Unlock()
-	return probe()
 }
 
 var normalizeHTMLSpacesRegexp = sync.OnceValue(func() (ret struct {
