@@ -368,47 +368,45 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			return fmt.Errorf("Commit: %w", err)
 		}
 
-		sig := tag.Tagger
-		if sig == nil {
-			sig = commit.Author
-		}
-		if sig == nil {
-			sig = commit.Committer
-		}
-
-		createdAt := time.Unix(1, 0)
-		if sig != nil {
-			createdAt = sig.When
+		createdUnix := timeutil.TimeStamp(commit.Committer.When.Unix()) // tagged whenever, but dated by its commit
+		publishedUnix := createdUnix
+		if tag.Tagger != nil {
+			publishedUnix = timeutil.TimeStamp(tag.Tagger.When.Unix())
 		}
 
 		rel, has := relMap[lowerTag]
 		title, note := git.SplitCommitTitleBody(tag.MessageUTF8(), 255)
 		if !has {
 			rel = &repo_model.Release{
-				RepoID:       repo.ID,
-				Title:        title,
-				TagName:      tags[i],
-				LowerTagName: lowerTag,
-				Target:       "",
-				Sha1:         commit.ID.String(),
-				NumCommits:   -1, // the commits count will be updated when the UI needs it
-				Note:         note,
-				IsDraft:      false,
-				IsPrerelease: false,
-				IsTag:        true,
-				PublisherID:  pusher.ID,
-				CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
+				RepoID:        repo.ID,
+				Title:         title,
+				TagName:       tags[i],
+				LowerTagName:  lowerTag,
+				Target:        "",
+				Sha1:          commit.ID.String(),
+				NumCommits:    -1, // the commits count will be updated when the UI needs it
+				Note:          note,
+				IsDraft:       false,
+				IsPrerelease:  false,
+				IsTag:         true,
+				PublisherID:   pusher.ID,
+				CreatedUnix:   createdUnix,
+				PublishedUnix: publishedUnix,
 			}
 
 			newReleases = append(newReleases, rel)
 		} else {
 			rel.Sha1 = commit.ID.String()
-			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
+			rel.CreatedUnix = createdUnix
 			if rel.IsTag {
 				rel.Title = title
 				rel.Note = note
+				rel.PublishedUnix = publishedUnix
 			} else {
 				rel.IsDraft = false
+				if rel.PublishedUnix.IsZero() {
+					rel.PublishedUnix = timeutil.TimeStampNow()
+				}
 			}
 			rel.PublisherID = pusher.ID
 			if err = repo_model.UpdateRelease(ctx, rel); err != nil {

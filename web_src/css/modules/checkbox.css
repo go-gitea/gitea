@@ -172,6 +172,29 @@ input[type="checkbox"]:indeterminate::before {
   background: var(--color-primary) !important;
 }
 
+@media (forced-colors: active) {
+  input[type="checkbox"]:checked,
+  input[type="checkbox"]:indeterminate {
+    background: CanvasText;
+    border-color: CanvasText;
+  }
+  input[type="checkbox"]:disabled:checked,
+  input[type="checkbox"]:disabled:indeterminate {
+    background: GrayText;
+    border-color: GrayText;
+  }
+  input[type="radio"]:disabled:checked {
+    border-color: GrayText;
+  }
+  .ui.toggle.checkbox label::before {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+  .ui.toggle.checkbox label::after {
+    background: CanvasText;
+  }
+}
+
 label.gt-checkbox {
   display: inline-flex;
   align-items: center;

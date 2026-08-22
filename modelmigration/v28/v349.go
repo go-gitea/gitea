@@ -7,28 +7,23 @@ import (
 	"context"
 
 	"gitea.dev/modelmigration/base"
-	"gitea.dev/modules/timeutil"
+	"gitea.dev/modules/setting"
 
-	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-// AddQueueRankToActionRunJob adds the QueueRank column to ActionRunJob, used to manually
-// reorder waiting jobs in the build queue. All existing jobs default to 0 (natural FIFO order).
-//
-// It also adds the "pickup" composite index (task_id, status, queue_rank, updated) matching the
-// runner-poll query's WHERE task_id=0 AND status=waiting ORDER BY queue_rank, updated, id: queue_rank
-// alone is a poor sort key (0 for nearly every row), so task_id/status must lead it to stay index-ordered.
-func AddQueueRankToActionRunJob(_ context.Context, x base.EngineMigration) error {
-	type ActionRunJob struct {
-		TaskID    int64              `xorm:"index(pickup)"`
-		Status    int                `xorm:"index(pickup)"`
-		QueueRank int64              `xorm:"index index(pickup) NOT NULL DEFAULT 0"`
-		Updated   timeutil.TimeStamp `xorm:"index(pickup)"`
+func ExpandActionScheduleContent(ctx context.Context, x base.EngineMigration) error {
+	if !setting.Database.Type.IsMySQL() {
+		return nil
 	}
 
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreDropIndices: true,
-		IgnoreConstrains:  true,
-	}, new(ActionRunJob))
-	return err
+	return base.ModifyColumn(ctx, x, "action_schedule", &schemas.Column{
+		Name: "content",
+		SQLType: schemas.SQLType{
+			Name: "LONGBLOB",
+		},
+		Length:         0,
+		Nullable:       true,
+		DefaultIsEmpty: true,
+	})
 }

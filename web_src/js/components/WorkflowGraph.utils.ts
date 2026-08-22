@@ -13,7 +13,6 @@ export type GraphNode = {
   level: number;
   displayHeight: number;
   jobs: ActionsJob[];
-  matrixKey?: string;
 };
 
 export type Edge = {
@@ -88,10 +87,14 @@ function graphIdForJob(job: ActionsJob): string {
   return `job:${job.id}`;
 }
 
-export function matrixKeyFromJobName(name: string): string | null {
-  const idx = name.indexOf(' (');
-  if (idx === -1) return null;
-  return name.slice(0, idx).trim() || null;
+// matrix legs are named `<job name> (<combination>)`; a workflow-provided `name:` may not be
+function matrixLabel(matrixJobs: ActionsJob[], jobId: string): string {
+  const prefixes = new Set(matrixJobs.map((job) => {
+    const idx = job.name.indexOf(' (');
+    return idx === -1 ? '' : job.name.slice(0, idx).trim();
+  }));
+  const [prefix] = prefixes;
+  return prefixes.size === 1 && prefix ? prefix : jobId;
 }
 
 export function boxBottom(node: GraphNode): number {
@@ -251,7 +254,7 @@ type VisualGraphBuild = {
 
 function buildVisualGraph(
   jobs: ActionsJob[],
-  expandedMatrixKeys: ReadonlySet<string>,
+  expandedMatrixNodeIds: ReadonlySet<string>,
   options: WorkflowGraphLayoutOptions,
 ): VisualGraphBuild {
   const jobsByJobId = new Map<string, ActionsJob[]>();
@@ -262,18 +265,8 @@ function buildVisualGraph(
     jobsByJobId.get(job.jobId)!.push(job);
   }
 
-  const matrixJobsByKey = new Map<string, ActionsJob[]>();
-  for (const job of jobs) {
-    // Matrix legs that call a reusable workflow are still one logical job (a single `uses:`
-    // expanded over the matrix), so fold them into a matrix node like any other matrix job.
-    const matrixKey = matrixKeyFromJobName(job.name);
-    if (!matrixKey) continue;
-    if (!matrixJobsByKey.has(matrixKey)) matrixJobsByKey.set(matrixKey, []);
-    matrixJobsByKey.get(matrixKey)!.push(job);
-  }
-  for (const list of matrixJobsByKey.values()) {
-    list.sort((a, b) => (jobIndexById.get(a.id) ?? 0) - (jobIndexById.get(b.id) ?? 0));
-  }
+  // legs of one matrix job share its `jobId`; their display names are free-form so cannot key them
+  const isMatrixLeg = (job: ActionsJob): boolean => Boolean(job.jobId) && jobsByJobId.get(job.jobId)!.length > 1;
 
   const directNeedsByJobId = buildDirectNeedsMap(jobs);
   const rawLevels = computeJobLevels(jobs);
@@ -298,7 +291,7 @@ function buildVisualGraph(
   const groupsById = new Map<string, ActionsJob[]>();
   const groupCandidateBuckets = new Map<string, ActionsJob[]>();
   for (const job of jobs) {
-    if (matrixKeyFromJobName(job.name)) continue;
+    if (isMatrixLeg(job)) continue;
     // Reusable callers represent distinct workflow files — keep each as its own node so the
     // graph mirrors GitHub Actions, where every caller shows up as its own box even when
     // siblings share an identical (parents, children) dependency signature.
@@ -319,36 +312,25 @@ function buildVisualGraph(
   }
 
   const visualIdByJobId = new Map<number, string>();
-  for (const job of jobs) {
-    const matrixKey = matrixKeyFromJobName(job.name);
-    // Symmetric with the matrix-bucket loop above (callers included).
-    if (matrixKey && (matrixJobsByKey.get(matrixKey)?.length ?? 0) > 1) {
-      visualIdByJobId.set(job.id, `matrix:${matrixKey}`);
-      continue;
-    }
-    visualIdByJobId.set(job.id, groupedJobIds.get(job.id) || graphIdForJob(job));
-  }
-
   const emittedNodeIds = new Set<string>();
   const nodes: GraphNode[] = [];
   for (const job of jobs) {
-    const visualId = visualIdByJobId.get(job.id);
-    if (!visualId || emittedNodeIds.has(visualId)) continue;
+    const matrixJobs = isMatrixLeg(job) ? jobsByJobId.get(job.jobId)! : null;
+    const visualId = matrixJobs ? `matrix:${job.jobId}` : (groupedJobIds.get(job.id) || graphIdForJob(job));
+    visualIdByJobId.set(job.id, visualId);
+    if (emittedNodeIds.has(visualId)) continue;
     emittedNodeIds.add(visualId);
 
-    const matrixKey = matrixKeyFromJobName(job.name);
-    if (matrixKey && visualId.startsWith('matrix:')) {
-      const matrixJobs = matrixJobsByKey.get(matrixKey) || [];
+    if (matrixJobs) {
       nodes.push({
         id: visualId,
         type: 'matrix',
-        name: matrixKey,
+        name: matrixLabel(matrixJobs, job.jobId),
         status: aggregateStatus(matrixJobs),
         duration: '',
         x: 0, y: 0, level: 0,
-        displayHeight: matrixPanelHeight(matrixJobs.length, expandedMatrixKeys.has(matrixKey), options),
+        displayHeight: matrixPanelHeight(matrixJobs.length, expandedMatrixNodeIds.has(visualId), options),
         jobs: matrixJobs,
-        matrixKey,
       });
       continue;
     }
@@ -539,11 +521,11 @@ function buildRoutedEdges(
 
 export function createWorkflowGraphModel(
   jobs: ActionsJob[],
-  expandedMatrixKeys: ReadonlySet<string> = new Set(),
+  expandedMatrixNodeIds: ReadonlySet<string> = new Set(),
   partialOptions: Partial<WorkflowGraphLayoutOptions> = {},
 ): WorkflowGraphModel {
   const options = {...defaultLayoutOptions, ...partialOptions};
-  const {nodes, edges} = buildVisualGraph(jobs, expandedMatrixKeys, options);
+  const {nodes, edges} = buildVisualGraph(jobs, expandedMatrixNodeIds, options);
   const nodesById = new Map(nodes.map((n) => [n.id, n]));
   const adjacency = buildNodeAdjacency(edges);
   assignNodeLevels(nodes, adjacency);

@@ -3,7 +3,7 @@ declare module '*.svg' {
   export default value;
 }
 
-declare module '*.css' {
+declare module '*.txt' {
   const value: string;
   export default value;
 }

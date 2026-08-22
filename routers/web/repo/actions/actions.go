@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"bytes"
 	stdCtx "context"
 	"errors"
 	"fmt"
@@ -21,6 +20,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/actions"
+	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
 	"gitea.dev/modules/git"
@@ -221,7 +221,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 			ctx.ServerError("GetContentFromEntry", err)
 			return nil, ""
 		}
-		wf, err := act_model.ReadWorkflow(bytes.NewReader(content))
+		wf, err := jobparser.ReadWorkflow(content)
 		if err != nil {
 			workflow.ErrMsg = ctx.Locale.TrString("actions.runs.invalid_workflow_helper", err.Error())
 			workflows = append(workflows, workflow)
@@ -391,7 +391,7 @@ func loadScopedWorkflowModel(ctx *context.Context, repo *repo_model.Repository, 
 	if content == nil {
 		return nil // the workflow does not exist on the source's default branch
 	}
-	wf, err := act_model.ReadWorkflow(bytes.NewReader(content))
+	wf, err := jobparser.ReadWorkflow(content)
 	if err != nil {
 		return nil
 	}

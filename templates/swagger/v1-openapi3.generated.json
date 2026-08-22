@@ -4879,7 +4879,12 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,
@@ -4956,7 +4961,6 @@
             "x-go-name": "FullName"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -6130,7 +6134,12 @@
             "x-go-name": "Name"
           },
           "permission": {
-            "$ref": "#/components/schemas/RepoWritePermission"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepoWritePermission"
+              }
+            ],
+            "description": "All units have this permission (read/write/admin)"
           },
           "units": {
             "deprecated": true,
@@ -6234,7 +6243,6 @@
             "x-go-name": "Location"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -6286,8 +6294,7 @@
           }
         },
         "required": [
-          "source_id",
-          "login_name"
+          "source_id"
         ],
         "type": "object",
         "x-go-package": "gitea.dev/modules/structs"
@@ -10658,7 +10665,6 @@
             "x-go-name": "UserName"
           },
           "login_name": {
-            "default": "empty",
             "description": "identifier of the user, provided by the external authenticator (if configured)",
             "type": "string",
             "x-go-name": "LoginName"
@@ -11674,6 +11680,81 @@
           }
         },
         "summary": "List all organizations",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/admin/packages": {
+      "get": {
+        "operationId": "adminListPackages",
+        "parameters": [
+          {
+            "description": "page number of results to return (1-based)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "page size of results",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "package type filter",
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "enum": [
+                "alpine",
+                "cargo",
+                "chef",
+                "composer",
+                "conan",
+                "conda",
+                "container",
+                "cran",
+                "debian",
+                "generic",
+                "go",
+                "helm",
+                "maven",
+                "npm",
+                "nuget",
+                "pub",
+                "pypi",
+                "rpm",
+                "rubygems",
+                "swift",
+                "terraform",
+                "vagrant"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "name filter",
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/PackageList"
+          },
+          "403": {
+            "$ref": "#/components/responses/forbidden"
+          }
+        },
+        "summary": "List all packages",
         "tags": [
           "admin"
         ]
