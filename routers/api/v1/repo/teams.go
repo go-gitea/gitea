@@ -186,9 +186,9 @@ func DeleteTeam(ctx *context.APIContext) {
 func changeRepoTeam(ctx *context.APIContext, add bool) {
 	if !ctx.Repo.Owner.IsOrganization() {
 		ctx.APIError(http.StatusMethodNotAllowed, "repo is not owned by an organization")
+		return
 	}
-	if !ctx.Repo.Owner.RepoAdminChangeTeamAccess && !ctx.Repo.Permission.IsOwner() {
-		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
+	if !canChangeRepoTeam(ctx) {
 		return
 	}
 
@@ -218,6 +218,22 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func canChangeRepoTeam(ctx *context.APIContext) bool {
+	if ctx.Repo.Owner.RepoAdminChangeTeamAccess {
+		return true
+	}
+	isOwner, err := organization.OrgFromUser(ctx.Repo.Owner).IsOwnedBy(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return false
+	}
+	if !isOwner {
+		ctx.APIError(http.StatusForbidden, "user is nor repo admin nor owner")
+		return false
+	}
+	return true
 }
 
 func getTeamByParam(ctx *context.APIContext) *organization.Team {
