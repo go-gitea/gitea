@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	auth_model "gitea.dev/models/auth"
+	"gitea.dev/modules/structs"
 	"gitea.dev/tests"
 )
 
@@ -37,4 +38,27 @@ func TestRepoHomeContentTokenScopes(t *testing.T) {
 	reqAllowed := NewRequest(t, "GET", url)
 	reqAllowed.SetBasicAuth("user2", ownerReadToken)
 	MakeRequest(t, reqAllowed, http.StatusOK)
+}
+
+func TestWorkflowBadgeTokenScopes(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	ownerToken := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	repo := createActionsTestRepo(t, ownerToken, "workflow-badge-token-scopes", true)
+
+	req := NewRequestWithJSON(t, "PATCH", "/api/v1/repos/user2/"+repo.Name, &structs.EditRepoOption{
+		HasActions: new(true),
+	}).AddTokenAuth(ownerToken)
+	MakeRequest(t, req, http.StatusOK)
+
+	url := "/user2/" + repo.Name + "/actions/workflows/test.yml/badge.svg"
+	miscToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadMisc)
+	req = NewRequest(t, "GET", url)
+	req.SetBasicAuth("user2", miscToken)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	readToken := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+	req = NewRequest(t, "GET", url)
+	req.SetBasicAuth("user2", readToken)
+	MakeRequest(t, req, http.StatusOK)
 }
