@@ -116,7 +116,9 @@ func parseRawPermissionsExplicit(rawPerms *yaml.Node) *repo_model.ActionsTokenPe
 			case "projects":
 				result.UnitAccessModes[unit.TypeProjects] = mode
 			case "id-token":
-				result.IDTokenAccessMode = mode
+				if mode == perm.AccessModeWrite {
+					result.IDTokenAccessMode = mode
+				}
 			// Scopes github supports but gitea does not, see url for details
 			// https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
 			case "artifact-metadata", "attestations", "checks", "deployments",
