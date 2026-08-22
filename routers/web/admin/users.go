@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/auth"
 	"gitea.dev/models/db"
 	org_model "gitea.dev/models/organization"
@@ -26,6 +27,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/explore"
 	user_setting "gitea.dev/routers/web/user/setting"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -202,6 +204,8 @@ func NewUserPost(ctx *context.Context) {
 	if !user_model.IsEmailDomainAllowed(u.Email) {
 		ctx.Flash.Warning(ctx.Tr("form.email_domain_is_not_allowed", u.Email))
 	}
+
+	audit.Record(ctx, audit_model.UserCreate, u)
 
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
@@ -475,6 +479,7 @@ func ImpersonateUser(ctx *context.Context) {
 		ctx.ServerError("unable to impersonate user", err)
 		return
 	}
+	audit.Record(ctx, audit_model.UserImpersonation, u)
 	ctx.JSONRedirect(setting.AppSubURL + "/user/settings")
 }
 

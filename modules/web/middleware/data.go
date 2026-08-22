@@ -12,7 +12,11 @@ import (
 	"gitea.dev/modules/setting"
 )
 
-const ContextDataKeySignedUser = "SignedUser"
+const (
+	ContextDataKeySignedUser = "SignedUser"
+	// ContextDataKeyImpersonator holds the admin acting as the signed-in user, if any.
+	ContextDataKeyImpersonator = "Impersonator"
+)
 
 func GetContextData(c context.Context) reqctx.ContextData {
 	if rc := reqctx.GetRequestDataStore(c); rc != nil {

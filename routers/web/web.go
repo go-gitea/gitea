@@ -33,6 +33,7 @@ import (
 	"gitea.dev/routers/web/healthcheck"
 	"gitea.dev/routers/web/misc"
 	"gitea.dev/routers/web/org"
+	org_setting "gitea.dev/routers/web/org/setting"
 	"gitea.dev/routers/web/repo"
 	"gitea.dev/routers/web/repo/actions"
 	repo_setting "gitea.dev/routers/web/repo/setting"
@@ -741,6 +742,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			addWebhookEditRoutes()
 		}, webhooksEnabled)
 
+		m.Get("/audit_logs", user_setting.ViewAuditLogs)
+
 		m.Group("/blocked_users", func() {
 			m.Get("", user_setting.BlockedUsers)
 			m.Post("", web.Bind[*forms.BlockUserForm](), user_setting.BlockedUsersPost)
@@ -788,6 +791,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		})
 
 		m.Group("/monitor", func() {
+			m.Get("/audit_logs", admin.ViewAuditLogs)
+			m.Get("/audit_logs/export", admin.ExportAuditLogs)
 			m.Get("/stats", admin.MonitorStats)
 			m.Get("/cron", admin.CronTasks)
 			m.Get("/perftrace", admin.PerfTrace)
@@ -1049,6 +1054,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 					addSettingsScopedWorkflowsRoutes()
 				}, actions.MustEnableActions)
 
+				m.Get("/audit_logs", org_setting.ViewAuditLogs)
+
 				m.Post("/rename", web.Bind[*forms.RenameOrgForm](), org.SettingsRenamePost)
 				m.Post("/delete", org.SettingsDeleteOrgPost)
 				m.Post("/visibility", org.SettingsChangeVisibilityPost)
@@ -1258,6 +1265,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
 		}, actions.MustEnableActions)
+		m.Get("/audit_logs", repo_setting.ViewAuditLogs)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {
 			m.Post("/retry", repo.MigrateRetryPost)

@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	issues_model "gitea.dev/models/issues"
 	project_model "gitea.dev/models/project"
@@ -24,6 +25,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/routers/web/shared/issue"
 	shared_user "gitea.dev/routers/web/shared/user"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 	project_service "gitea.dev/services/projects"
@@ -135,7 +137,7 @@ func NewProjectPost(ctx *context.Context) {
 		return
 	}
 
-	if err := project_model.NewProject(ctx, &project_model.Project{
+	project := &project_model.Project{
 		RepoID:       ctx.Repo.Repository.ID,
 		Title:        form.Title,
 		Description:  form.Content,
@@ -143,10 +145,12 @@ func NewProjectPost(ctx *context.Context) {
 		TemplateType: form.TemplateType,
 		CardType:     form.CardType,
 		Type:         project_model.TypeRepository,
-	}); err != nil {
+	}
+	if err := project_model.NewProject(ctx, project); err != nil {
 		ctx.ServerError("NewProject", err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectCreate, ctx.Repo.Repository, "project", project.Title, "project_id", project.ID)
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.create_success", form.Title))
 	ctx.Redirect(ctx.Repo.RepoLink + "/projects")
@@ -192,6 +196,7 @@ func DeleteProject(ctx *context.Context) {
 	if err := project_model.DeleteProjectByID(ctx, p.ID); err != nil {
 		ctx.Flash.Error("DeleteProjectByID: " + err.Error())
 	} else {
+		audit.Record(ctx, audit_model.ProjectDelete, ctx.Repo.Repository, "project", p.Title, "project_id", p.ID)
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
@@ -266,6 +271,7 @@ func EditProjectPost(ctx *context.Context) {
 		ctx.ServerError("UpdateProjects", err)
 		return
 	}
+	audit.Record(ctx, audit_model.ProjectUpdate, ctx.Repo.Repository, "project", p.Title, "project_id", p.ID)
 
 	ctx.Flash.Success(ctx.Tr("repo.projects.edit_success", p.Title))
 	if ctx.FormString("redirect") == "project" {

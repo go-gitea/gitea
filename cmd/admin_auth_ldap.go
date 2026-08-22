@@ -10,6 +10,7 @@ import (
 
 	"gitea.dev/models/auth"
 	"gitea.dev/modules/util"
+	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/auth/source/ldap"
 
 	"github.com/urfave/cli/v3"
@@ -220,9 +221,13 @@ func microcmdAuthUpdateLdapSimpleAuth() *cli.Command {
 // newAuthService creates a service with default functions.
 func newAuthService() *authService {
 	return &authService{
-		initDB:            initDB,
-		createAuthSource:  auth.CreateSource,
-		updateAuthSource:  auth.UpdateSource,
+		initDB: initDB,
+		createAuthSource: func(ctx context.Context, source *auth.Source) error {
+			return auth_service.CreateSource(cliAuditContext(ctx), source)
+		},
+		updateAuthSource: func(ctx context.Context, source *auth.Source) error {
+			return auth_service.UpdateSource(cliAuditContext(ctx), source)
+		},
 		getAuthSourceByID: auth.GetSourceByID,
 	}
 }

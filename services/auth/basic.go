@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	actions_model "gitea.dev/models/actions"
+	audit_model "gitea.dev/models/audit"
 	auth_model "gitea.dev/models/auth"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/auth/httpauth"
@@ -16,6 +17,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/timeutil"
 	"gitea.dev/modules/util"
+	"gitea.dev/services/audit"
 )
 
 // Ensure the struct implements the interface.
@@ -179,6 +181,8 @@ func validateTOTP(req *http.Request, u *user_model.User) error {
 	if ok, err := twofa.ValidateAndConsumeTOTP(req.Context(), req.Header.Get("X-Gitea-OTP")); err != nil {
 		return err
 	} else if !ok {
+		audit.RecordAs(req.Context(), u, audit_model.UserAuthenticationFailTwoFactor, u)
+
 		return util.NewInvalidArgumentErrorf("invalid provided OTP")
 	}
 	return nil

@@ -8,11 +8,13 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/util"
 	asymkey_service "gitea.dev/services/asymkey"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
 )
@@ -71,6 +73,7 @@ func DeployKeysPost(ctx *context.Context) {
 		return
 	}
 
+	audit.Record(ctx, audit_model.RepositoryDeployKeyAdd, ctx.Repo.Repository, "deploy_key", key.Name)
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", key.Name))
 	ctx.JSONRedirect(ctx.Repo.RepoLink + "/settings/keys")
 }

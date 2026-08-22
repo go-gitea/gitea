@@ -33,24 +33,21 @@ func (u *User) IsGhost() bool {
 }
 
 const (
-	ActionsUserID    int64 = -2
-	ActionsUserName        = "gitea-actions"
-	ActionsUserEmail       = "teabot@gitea.io"
+	ActionsUserID   int64 = -2
+	ActionsUserName       = "gitea-actions"
 )
 
 // NewActionsUser creates and returns a fake user for running the actions.
 func NewActionsUser() *User {
 	return &User{
-		ID:               ActionsUserID,
-		Name:             ActionsUserName,
-		LowerName:        ActionsUserName,
-		IsActive:         true,
-		FullName:         "Gitea Actions",
-		Email:            ActionsUserEmail,
-		KeepEmailPrivate: true,
-		LoginName:        ActionsUserName,
-		Type:             UserTypeBot,
-		Visibility:       structs.VisibleTypePublic,
+		ID:         ActionsUserID,
+		Name:       ActionsUserName,
+		LowerName:  ActionsUserName,
+		IsActive:   true,
+		FullName:   "Gitea Actions",
+		LoginName:  ActionsUserName,
+		Type:       UserTypeBot,
+		Visibility: structs.VisibleTypePublic,
 	}
 }
 
@@ -77,6 +74,32 @@ func GetActionsUserTaskID(u *User) (int64, bool) {
 
 func (u *User) IsGiteaActions() bool {
 	return u != nil && u.ID == ActionsUserID
+}
+
+const (
+	CLIUserID   int64 = -3
+	CLIUserName       = "CLI"
+)
+
+func NewCLIUser() *User {
+	return &User{
+		ID:        CLIUserID,
+		Name:      CLIUserName,
+		LowerName: strings.ToLower(CLIUserName),
+	}
+}
+
+const (
+	AuthenticationSourceUserID   int64 = -4
+	AuthenticationSourceUserName       = "AuthenticationSource"
+)
+
+func NewAuthenticationSourceUser() *User {
+	return &User{
+		ID:        AuthenticationSourceUserID,
+		Name:      AuthenticationSourceUserName,
+		LowerName: strings.ToLower(AuthenticationSourceUserName),
+	}
 }
 
 func GetSystemUserByName(name string) *User {

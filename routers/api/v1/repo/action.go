@@ -30,6 +30,7 @@ import (
 	"gitea.dev/routers/api/v1/shared"
 	"gitea.dev/routers/api/v1/utils"
 	actions_service "gitea.dev/services/actions"
+	"gitea.dev/services/audit"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	secret_service "gitea.dev/services/secrets"
@@ -137,7 +138,7 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 
 	opt := web.GetForm[*api.CreateOrUpdateSecretOption](ctx)
 
-	_, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
+	s, created, err := secret_service.CreateOrUpdateSecret(ctx, 0, repo.ID, ctx.PathParam("secretname"), opt.Data, opt.Description)
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
@@ -148,6 +149,12 @@ func (Action) CreateOrUpdateSecret(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	actions := audit.SecretUpdate
+	if created {
+		actions = audit.SecretAdd
+	}
+	audit.RecordScoped(ctx, nil, repo, actions, "secret", s.Name)
 
 	if created {
 		ctx.Status(http.StatusCreated)
@@ -191,7 +198,7 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
+	s, err := secret_service.DeleteSecretByName(ctx, 0, repo.ID, ctx.PathParam("secretname"))
 	if err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err.Error())
@@ -202,6 +209,8 @@ func (Action) DeleteSecret(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	audit.RecordScoped(ctx, nil, repo, audit.SecretRemove, "secret", s.Name)
 
 	ctx.Status(http.StatusNoContent)
 }

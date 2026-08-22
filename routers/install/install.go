@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	audit_model "gitea.dev/models/audit"
 	"gitea.dev/models/db"
 	db_install "gitea.dev/models/db/install"
 	user_model "gitea.dev/models/user"
@@ -30,6 +31,7 @@ import (
 	"gitea.dev/modules/web"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/routers/common"
+	"gitea.dev/services/audit"
 	auth_service "gitea.dev/services/auth"
 	"gitea.dev/services/context"
 	"gitea.dev/services/forms"
@@ -507,6 +509,8 @@ func saveConfigAndRestart(ctx *context.Context, cfg setting.ConfigProvider, form
 			log.Info("Admin account already exist")
 			u, _ = user_model.GetUserByName(ctx, u.Name)
 		}
+
+		audit.RecordAs(ctx, u, audit_model.UserCreate, u)
 
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
