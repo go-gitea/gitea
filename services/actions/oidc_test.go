@@ -386,4 +386,17 @@ func TestActionsOIDCTaskContext(t *testing.T) {
 	contextMap = contextStruct.AsMap()
 	assert.NotContains(t, contextMap, "actions_id_token_request_url")
 	assert.NotContains(t, contextMap, "actions_id_token_request_token")
+
+	task.Job.Repo = nil
+	task.Job.RepoID = -1
+	_, err = TaskAllowsOIDCToken(t.Context(), task)
+	require.Error(t, err)
+	oauth2_provider.DefaultSigningKey = nil
+	contextStruct, err = generateTaskContext(t.Context(), task)
+	require.NoError(t, err)
+	contextMap = contextStruct.AsMap()
+	assert.Equal(t, task.Token, contextMap["token"])
+	assert.NotEmpty(t, contextMap["gitea_runtime_token"])
+	assert.NotContains(t, contextMap, "actions_id_token_request_url")
+	assert.NotContains(t, contextMap, "actions_id_token_request_token")
 }
