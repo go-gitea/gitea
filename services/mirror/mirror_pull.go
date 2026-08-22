@@ -106,6 +106,11 @@ func checkRecoverableSyncError(stderrMessage string) bool {
 
 // runSync returns true if sync finished without error.
 func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResult, bool) {
+	totalStart := time.Now()
+	defer func() {
+		recordMirrorSyncStep(m.Repo.OwnerName, m.Repo.Name, syncSteps.Total, totalStart)
+	}()
+
 	log.Trace("SyncMirrors [repo: %-v]: running git remote update...", m.Repo)
 
 	remoteURL, remoteErr := git.ParseRemoteAddressURL(ctx, m.Repo, m.GetRemoteName())
@@ -136,6 +141,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 	}
 
 	var err error
+	fetchStart := time.Now()
 	fetchStdout, fetchStderr, err := cmdFetch().WithRepo(m.Repo).RunStdString(ctx)
 	if err != nil {
 		// sanitize the output, since it may contain the remote address, which may contain a password
@@ -169,9 +175,13 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			return nil, false
 		}
 	}
+	recordMirrorSyncStep(m.Repo.OwnerName, m.Repo.Name, syncSteps.Fetch, fetchStart)
+
+	commitGraphStart := time.Now()
 	if err := git.WriteCommitGraph(ctx, m.Repo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: %v", m.Repo, err)
 	}
+	recordMirrorSyncStep(m.Repo.OwnerName, m.Repo.Name, syncSteps.CommitGraph, commitGraphStart)
 
 	gitRepo, err := git.OpenRepository(ctx, m.Repo)
 	if err != nil {
@@ -179,6 +189,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		return nil, false
 	}
 
+	lfsStart := time.Now()
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 		lfsClient, err := lfs.NewClientFromEndpoint(remoteURL.String(), m.LFSEndpoint, migrations.NewMigrationHTTPTransport())
@@ -188,25 +199,32 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo.FullName(), err)
 		}
 	}
+	recordMirrorSyncStep(m.Repo.OwnerName, m.Repo.Name, syncSteps.LFS, lfsStart)
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing branches...", m.Repo)
+	branchesStart := time.Now()
 	_, results, err := repo_module.SyncRepoBranchesWithRepo(ctx, m.Repo, gitRepo, 0)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize branches: %v", m.Repo, err)
 	}
+	recordMirrorSyncStep(m.Repo.OwnerName, m.Repo.Name, syncSteps.Branches, branchesStart)
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
+	releasesStart := time.Now()
 	tagResults, err := repo_module.SyncReleasesWithTags(ctx, m.Repo, gitRepo)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize tags to releases: %v", m.Repo, err)
 	}
 	results = append(results, tagResults...)
 	gitRepo.Close()
+	recordMirrorSyncStep(m.Repo.OwnerName, m.Repo.Name, syncSteps.Releases, releasesStart)
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
+	repoSizeStart := time.Now()
 	if err := repo_module.UpdateRepoSize(ctx, m.Repo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to update size for mirror repository: %v", m.Repo.FullName(), err)
 	}
+	recordMirrorSyncStep(m.Repo.OwnerName, m.Repo.Name, syncSteps.RepoSize, repoSizeStart)
 
 	cmdRemoteUpdatePrune := func() *gitcmd.Command {
 		cmd := gitcmd.NewCommand("remote", "update", "--prune").AddDynamicArguments(m.GetRemoteName()).WithTimeout(timeout).WithEnv(envs)
@@ -214,6 +232,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		return cmd
 	}
 
+	wikiStart := time.Now()
 	if repo_service.HasWiki(ctx, m.Repo) {
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		// the result of "git remote update" is in stderr
@@ -256,6 +275,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*repo_module.SyncResu
 		}
 		log.Trace("SyncMirrors [repo: %-v Wiki]: git remote update complete", m.Repo)
 	}
+	recordMirrorSyncStep(m.Repo.OwnerName, m.Repo.Name, syncSteps.Wiki, wikiStart)
 
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
 	branches, _, err := git.GetBranchesByPath(ctx, m.Repo, 0, 0)
@@ -304,6 +324,11 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
 	defer finished()
+
+	syncSuccess := false
+	defer func() {
+		recordMirrorSyncStatus(m.Repo.OwnerName, m.Repo.Name, syncSuccess)
+	}()
 
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(ctx, m)
@@ -420,6 +445,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
 
+	syncSuccess = true
 	return true
 }
 
