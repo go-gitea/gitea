@@ -1,7 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-#GO=echo # uncomment this line to dry run for testing without really build all binaries
 GO="${GO:-go}"
 RELEASE_LDFLAGS="-s -w $LDFLAGS"
 RELEASE_TAGS="bindata $TAGS"
