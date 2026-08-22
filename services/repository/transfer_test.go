@@ -98,12 +98,13 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, hasAccess)
 		transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
+		assert.NoError(t, err)
 		assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
 		hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
 		assert.NoError(t, err)
 		assert.False(t, hasAccess)
 	})
-	t.Run("KeepOriginAccessPermissionOnStop", func(t *testing.T) {
+	t.Run("KeepOriginAccessOnStop", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 		assert.NoError(t, repo.LoadOwner(t.Context()))
 		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, recipient, perm.AccessModeWrite))
@@ -114,7 +115,7 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 		assert.Equal(t, perm.AccessModeWrite, collaboration.Mode)
 		assert.NoError(t, DeleteCollaboration(t.Context(), repo, recipient))
 	})
-	t.Run("KeepNonReadAccessPermissionOnStop", func(t *testing.T) {
+	t.Run("KeepNonReadAccessOnStop", func(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 		assert.NoError(t, repo.LoadOwner(t.Context()))
 		assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
