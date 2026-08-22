@@ -136,6 +136,7 @@ func testAPIOrgGeneral(t *testing.T) {
 		publicOnlyToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
 		resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs").AddTokenAuth(publicOnlyToken), http.StatusOK)
 		apiOrgList = DecodeJSON(t, resp, []*api.Organization{})
+		assert.Len(t, apiOrgList, 9)
 		for _, org := range apiOrgList {
 			assert.Equal(t, api.VisibilityStringPublic, org.Visibility)
 		}
