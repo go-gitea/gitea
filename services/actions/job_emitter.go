@@ -64,11 +64,15 @@ func jobEmitterQueueHandler(items ...*jobUpdate) []*jobUpdate {
 
 func checkJobsByRunID(ctx context.Context, runID int64) error {
 	run, exist, err := db.GetByID[actions_model.ActionRun](ctx, runID)
-	if !exist {
-		return fmt.Errorf("run %d does not exist", runID)
-	}
 	if err != nil {
 		return fmt.Errorf("get action run: %w", err)
+	}
+	if !exist {
+		// The run no longer exists (e.g. its repository was deleted), so there is
+		// nothing left to emit. Treat the update as handled instead of requeueing
+		// it forever — the repository is gone and the run will never come back.
+		log.Debug("check run %d: run does not exist, dropping queued update", runID)
+		return nil
 	}
 	var result jobsCheckResult
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
