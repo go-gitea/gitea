@@ -121,7 +121,7 @@ func testAPIOrgGeneral(t *testing.T) {
 	user1Token := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeWriteOrganization)
 
 	t.Run("OrgGetAll", func(t *testing.T) {
-		miscToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadMisc)
+		miscToken := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeReadMisc)
 		MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs").AddTokenAuth(miscToken), http.StatusForbidden)
 
 		// accessing with a token will return all orgs
@@ -133,7 +133,7 @@ func testAPIOrgGeneral(t *testing.T) {
 		assert.Equal(t, "Limited Org 36", apiOrgList[1].FullName)
 		assert.Equal(t, api.VisibilityStringLimited, apiOrgList[1].Visibility)
 
-		publicOnlyToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
+		publicOnlyToken := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeReadOrganization, auth_model.AccessTokenScopePublicOnly)
 		resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs").AddTokenAuth(publicOnlyToken), http.StatusOK)
 		apiOrgList = DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 9)
