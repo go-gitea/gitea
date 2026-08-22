@@ -116,7 +116,7 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 		_, fromGit := gitcmd.ErrorAsStderr(err)
 		if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) ||
 			gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) ||
-			strings.Contains(err.Error(), "Bad credentials") { // reported by the go-github client, not by git
+			strings.Contains(err.Error(), "Bad credentials") { // from the GitHub API response, not from git
 			ctx.Data["Err_Auth"] = true
 			ctx.RenderWithErrDeprecated(ctx.Tr("form.auth_failed"), tpl, form)
 		} else if fromGit {

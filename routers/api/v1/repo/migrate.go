@@ -249,7 +249,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 		_, fromGit := gitcmd.ErrorAsStderr(err)
 		if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) ||
 			gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) ||
-			strings.Contains(err.Error(), "Bad credentials") { // reported by the go-github client, not by git
+			strings.Contains(err.Error(), "Bad credentials") { // from the GitHub API response, not from git
 			ctx.APIError(http.StatusUnprocessableEntity, "Authentication failed.")
 		} else if fromGit {
 			ctx.APIError(http.StatusUnprocessableEntity, "Migration failed.")
