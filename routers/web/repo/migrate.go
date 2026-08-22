@@ -314,7 +314,11 @@ func MigrateStatus(ctx *context.Context) {
 
 	message := task.Message
 
-	if message != "" && message[0] == '{' {
+	// a failure message can echo bytes the remote chose, so only whoever started the migration may read it
+	canSeeFailure := ctx.IsSigned && (ctx.Doer.ID == task.DoerID || ctx.Repo.Permission.IsAdmin() || ctx.Doer.IsAdmin)
+	if task.Status == structs.TaskStatusFailed && !canSeeFailure {
+		message = ctx.Locale.TrString("repo.migrate.migrating_failed_no_addr")
+	} else if message != "" && message[0] == '{' {
 		// assume message is actually a translatable string
 		var translatableMessage admin_model.TranslatableMessage
 		if err := json.Unmarshal([]byte(message), &translatableMessage); err != nil {
