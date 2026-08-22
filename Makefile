@@ -48,12 +48,6 @@ ifneq ($(strip $(filter $(CGO_TAGS),$(TAGS))),)
 	CGO_ENABLED = 1
 endif
 
-STATIC ?=
-EXTLDFLAGS ?=
-ifneq ($(STATIC),)
-	EXTLDFLAGS = -extldflags "-static"
-endif
-
 ifeq ($(GOOS),windows)
 	IS_WINDOWS := yes
 else ifeq ($(patsubst Windows%,Windows,$(OS)),Windows)
@@ -86,7 +80,8 @@ STORED_VERSION_FILE := VERSION
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-# VERSION: the semantic version or "main-nightly" for the build and filenames, e.g.: "1.27.2"
+# VERSION: the branch name for the build and filenames, e.g.: "feature/foo-bar", "main"
+#          branch name "release/v1.27.2" is stripped to "1.27.2".
 # GITEA_VERSION: the Gitea's internal version for display, e.g. "1.28.0+dev-356-ge47d0b66ea"
 ifeq ($(GITHUB_REF_TYPE),tag)
 	# convert tag "v1.2.3" to "1.2.3"
@@ -97,8 +92,8 @@ else ifeq ($(GITHUB_REF_TYPE),branch)
 		# convert branch "release/v1.2" to "1.2-nightly"
 		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))-nightly
 	else
-		# assume that it uses "main" branch
-		VERSION ?= main
+		# no branch name info, use git ref name "HEAD" instead
+		VERSION ?= HEAD
 	endif
 
 	STORED_VERSION=$(shell cat $(STORED_VERSION_FILE) 2>/dev/null)
@@ -111,7 +106,7 @@ else
 	$(error unsupported ref type $(GITHUB_REF_TYPE))
 endif
 
-# if version = "main" then update version to "nightly"
+# if version == "main" then add "-nightly" to the version for nightly builds: "main-nightly"
 ifeq ($(VERSION),main)
 	VERSION := main-nightly
 endif
@@ -522,10 +517,7 @@ security-check:
 	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./... || true
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
-ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
-  $(error pam support set via TAGS does not support static builds)
-endif
-	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
+	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: frontend generate release-binaries release-copy release-compress vendor release-sources release-check
