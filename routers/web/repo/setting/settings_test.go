@@ -243,6 +243,7 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 	}
 
 	ctx.Repo = repo
+	ctx.Doer = &user_model.User{ID: 2}
 
 	AddTeamPost(ctx)
 

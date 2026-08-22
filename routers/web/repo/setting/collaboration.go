@@ -156,6 +156,9 @@ func DeleteCollaboration(ctx *context.Context) {
 // AddTeamPost response for adding a team to a repository
 func AddTeamPost(ctx *context.Context) {
 	if !canChangeRepoTeamAccess(ctx) {
+		if ctx.Written() {
+			return
+		}
 		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
@@ -202,6 +205,9 @@ func AddTeamPost(ctx *context.Context) {
 // DeleteTeam response for deleting a team from a repository
 func DeleteTeam(ctx *context.Context) {
 	if !canChangeRepoTeamAccess(ctx) {
+		if ctx.Written() {
+			return
+		}
 		ctx.Flash.Error(ctx.Tr("repo.settings.change_team_access_not_allowed"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
@@ -223,8 +229,8 @@ func DeleteTeam(ctx *context.Context) {
 }
 
 func canChangeRepoTeamAccess(ctx *context.Context) bool {
-	if ctx.Repo.Owner.RepoAdminChangeTeamAccess || ctx.Doer == nil {
-		return ctx.Repo.Owner.RepoAdminChangeTeamAccess
+	if ctx.Repo.Owner.RepoAdminChangeTeamAccess {
+		return true
 	}
 	isOwner, err := organization.OrgFromUser(ctx.Repo.Owner).IsOwnedBy(ctx, ctx.Doer.ID)
 	if err != nil {
