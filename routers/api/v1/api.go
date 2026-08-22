@@ -926,19 +926,8 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.APIC
 
 func individualPermsChecker(ctx *context.APIContext) {
 	// org permissions have been checked in context.OrgAssignment(), but individual permissions haven't been checked.
-	if ctx.ContextUser.IsIndividual() {
-		switch ctx.ContextUser.Visibility {
-		case api.VisibleTypePrivate:
-			if ctx.Doer == nil || (ctx.ContextUser.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin) {
-				ctx.APIErrorNotFound()
-				return
-			}
-		case api.VisibleTypeLimited:
-			if ctx.Doer == nil {
-				ctx.APIErrorNotFound()
-				return
-			}
-		}
+	if ctx.ContextUser.IsIndividual() && !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
+		ctx.APIErrorNotFound()
 	}
 }
 
@@ -1102,7 +1091,7 @@ func Routes() *web.Router {
 				m.Get("/starred", reqStarsEnabled(), user.GetStarredRepos)
 
 				m.Get("/subscriptions", user.GetWatchedRepos)
-			}, context.UserAssignmentAPI(), checkTokenPublicOnly())
+			}, context.UserAssignmentAPI(), checkTokenPublicOnly(), individualPermsChecker)
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
 
 		// Users (requires user scope)
@@ -1710,7 +1699,7 @@ func Routes() *web.Router {
 		m.Group("/users/{username}/orgs", func() {
 			m.Get("", reqToken(), org.ListUserOrgs)
 			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
-		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI(), checkTokenPublicOnly())
+		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser, auth_model.AccessTokenScopeCategoryOrganization), context.UserAssignmentAPI(), checkTokenPublicOnly(), individualPermsChecker)
 		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
 		m.Group("/orgs/{org}", func() {
