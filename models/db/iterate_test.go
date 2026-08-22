@@ -10,7 +10,6 @@ import (
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
-	"gitea.dev/modules/container"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,14 +22,23 @@ func TestIterate(t *testing.T) {
 	cnt, err := db.GetEngine(t.Context()).Count(&repo_model.RepoUnit{})
 	assert.NoError(t, err)
 
-	visited := make(container.Set[int64], cnt)
-	err = db.Iterate(t.Context(), nil, func(ctx context.Context, repoUnit *repo_model.RepoUnit) error {
-		assert.True(t, visited.Add(repoUnit.ID))
-		has, err := db.ExistByID[repo_model.RepoUnit](ctx, repoUnit.ID) // the callback must be able to query on the same context
-		assert.NoError(t, err)
-		assert.True(t, has)
+	var repoUnitCnt int
+	err = db.Iterate(t.Context(), nil, func(ctx context.Context, repo *repo_model.RepoUnit) error {
+		repoUnitCnt++
 		return nil
 	})
 	assert.NoError(t, err)
-	assert.Len(t, visited, int(cnt))
+	assert.EqualValues(t, cnt, repoUnitCnt)
+
+	err = db.Iterate(t.Context(), nil, func(ctx context.Context, repoUnit *repo_model.RepoUnit) error {
+		has, err := db.ExistByID[repo_model.RepoUnit](ctx, repoUnit.ID)
+		if err != nil {
+			return err
+		}
+		if !has {
+			return db.ErrNotExist{Resource: "repo_unit", ID: repoUnit.ID}
+		}
+		return nil
+	})
+	assert.NoError(t, err)
 }

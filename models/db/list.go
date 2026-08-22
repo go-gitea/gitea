@@ -5,7 +5,6 @@ package db
 
 import (
 	"context"
-	"strings"
 
 	"gitea.dev/modules/setting"
 
@@ -39,10 +38,7 @@ type ListOptions struct {
 
 var ListOptionsAll = ListOptions{ListAll: true}
 
-var (
-	_ Paginator   = &ListOptions{}
-	_ FindOptions = ListOptions{}
-)
+var _ Paginator = &ListOptions{}
 
 // GetSkipTake returns the skip and take values
 func (opts *ListOptions) GetSkipTake() (skip, take int) {
@@ -118,80 +114,13 @@ type FindOptions interface {
 	GetPageSize() int
 	IsListAll() bool
 	ToConds() builder.Cond
+	ToOrders() string
 }
 
 type JoinFunc func(sess Engine) error
 
 type FindOptionsJoin interface {
 	ToJoins() []JoinFunc
-}
-
-type FindOptionsOrder interface {
-	ToOrders() string
-}
-
-var sqlIdentifierUnquoter = strings.NewReplacer("`", "", `"`, "", "[", "", "]", "")
-
-func appendPrimaryKeyOrder(order, qualifiedPrimaryKey string) string {
-	order = strings.TrimSpace(order)
-	if qualifiedPrimaryKey == "" {
-		return order
-	}
-
-	lastTermStart, depth := 0, 0
-	for i, char := range order {
-		switch char {
-		case '(':
-			depth++
-		case ')':
-			if depth > 0 {
-				depth--
-			}
-		case ',':
-			if depth == 0 {
-				lastTermStart = i + 1
-			}
-		}
-	}
-	fields := strings.Fields(sqlIdentifierUnquoter.Replace(order[lastTermStart:]))
-	primaryKey := sqlIdentifierUnquoter.Replace(qualifiedPrimaryKey)
-	if len(fields) > 0 && (strings.EqualFold(fields[0], primaryKey) ||
-		strings.EqualFold(fields[0], primaryKey[strings.LastIndex(primaryKey, ".")+1:])) {
-		return order
-	}
-
-	direction := "ASC"
-	if len(fields) > 0 && strings.EqualFold(fields[len(fields)-1], "DESC") {
-		direction = "DESC"
-	}
-	if order == "" {
-		return qualifiedPrimaryKey + " " + direction
-	}
-	return order + ", " + qualifiedPrimaryKey + " " + direction
-}
-
-func orderWithPrimaryKey[T any](order string) string {
-	var bean T
-	table, err := xormEngine.TableInfo(&bean)
-	if err != nil || len(table.PrimaryKeys) != 1 {
-		return order
-	}
-	return appendPrimaryKeyOrder(order, xormEngine.Dialect().Quoter().Quote(
-		table.Name+"."+table.PrimaryKeys[0],
-	))
-}
-
-func applyOrder[T any](sess Engine, opts FindOptions, paginated bool) {
-	var order string
-	if orderOpt, ok := opts.(FindOptionsOrder); ok {
-		order = orderOpt.ToOrders()
-	}
-	if order == "" && !paginated {
-		return
-	}
-	if order = orderWithPrimaryKey[T](order); order != "" {
-		sess.OrderBy(order)
-	}
 }
 
 // Find represents a common find function which accept an options interface
@@ -205,10 +134,9 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 			}
 		}
 	}
+	sess.OrderBy(opts.ToOrders())
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
-	paginated := !opts.IsListAll() && pageSize > 0
-	applyOrder[T](sess, opts, paginated)
-	if paginated {
+	if !opts.IsListAll() && pageSize > 0 {
 		if page == 0 {
 			page = 1
 		}
@@ -245,8 +173,7 @@ func Count[T any](ctx context.Context, opts FindOptions) (int64, error) {
 func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, error) {
 	sess := GetEngine(ctx).Where(opts.ToConds())
 	page, pageSize := opts.GetPage(), opts.GetPageSize()
-	paginated := !opts.IsListAll() && pageSize > 0 && page >= 1
-	if paginated {
+	if !opts.IsListAll() && pageSize > 0 && page >= 1 {
 		sess.Limit(pageSize, (page-1)*pageSize)
 	}
 	if joinOpt, ok := opts.(FindOptionsJoin); ok {
@@ -256,7 +183,7 @@ func FindAndCount[T any](ctx context.Context, opts FindOptions) ([]*T, int64, er
 			}
 		}
 	}
-	applyOrder[T](sess, opts, paginated)
+	sess.OrderBy(opts.ToOrders())
 
 	findPageSize := defaultFindSliceSize
 	if pageSize > 0 {

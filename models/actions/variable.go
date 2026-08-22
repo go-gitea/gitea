@@ -79,11 +79,19 @@ type FindVariablesOpts struct {
 	Name    string
 }
 
+func (opts FindVariablesOpts) ToOrders() string {
+	return "name"
+}
+
 func (opts FindVariablesOpts) ToConds() builder.Cond {
 	cond := builder.NewCond()
 
 	if len(opts.IDs) > 0 {
-		cond = cond.And(builder.In("id", opts.IDs))
+		if len(opts.IDs) == 1 {
+			cond = cond.And(builder.Eq{"id": opts.IDs[0]})
+		} else {
+			cond = cond.And(builder.In("id", opts.IDs))
+		}
 	}
 
 	// Since we now support instance-level variables,
@@ -100,10 +108,6 @@ func (opts FindVariablesOpts) ToConds() builder.Cond {
 		cond = cond.And(builder.Eq{"name": strings.ToUpper(opts.Name)})
 	}
 	return cond
-}
-
-func (opts FindVariablesOpts) ToOrders() string {
-	return db.SearchOrderByAlphabetically.String()
 }
 
 func FindVariables(ctx context.Context, opts FindVariablesOpts) ([]*ActionVariable, error) {

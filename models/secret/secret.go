@@ -108,6 +108,10 @@ type FindSecretsOptions struct {
 	Name     string
 }
 
+func (opts FindSecretsOptions) ToOrders() string {
+	return "name"
+}
+
 func (opts FindSecretsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 
@@ -127,10 +131,6 @@ func (opts FindSecretsOptions) ToConds() builder.Cond {
 	}
 
 	return cond
-}
-
-func (opts FindSecretsOptions) ToOrders() string {
-	return db.SearchOrderByAlphabetically.String()
 }
 
 // UpdateSecret changes org or user reop secret.
