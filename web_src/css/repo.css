@@ -1834,8 +1834,8 @@ tbody.commit-list {
 }
 
 .commit-status-header {
-  min-height: 76px;
-  padding: 16px !important;
+  min-height: 64px;
+  padding: 12px 16px !important;
 }
 
 .commit-status-widget-chevron {
@@ -1870,7 +1870,6 @@ tbody.commit-list {
 }
 
 .commit-status-widget-body {
-  background: var(--color-hover-opaque);
   border-top: 1px solid var(--color-secondary);
   max-height: 300px;
   overflow-y: auto;
@@ -1929,10 +1928,6 @@ tbody.commit-list {
   transform: rotate(90deg);
 }
 
-.commit-status-group-items {
-  background: var(--color-hover-opaque);
-}
-
 .commit-status-group-items > .commit-status-item {
   padding-left: 24px !important;
   padding-right: 24px !important;
@@ -1941,7 +1936,7 @@ tbody.commit-list {
 .commit-status-group-items .ui.label {
   background: transparent;
   border: 1px solid var(--color-secondary);
-  border-radius: 999px;
+  border-radius: var(--border-radius);
   padding: 2px 8px;
 }
 
