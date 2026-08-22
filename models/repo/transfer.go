@@ -71,7 +71,7 @@ type RepoTransfer struct { //nolint:revive // export stutter
 	Repo        *Repository `xorm:"-"`
 	TeamIDs     []int64
 	Teams       []*organization.Team `xorm:"-"`
-	// RecipientAccessGranted records whether the pending transfer added the recipient as a collaborator.
+
 	RecipientAccessGranted bool `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`

@@ -23,6 +23,10 @@ func TestAddRecipientAccessGrantedToRepoTransfer(t *testing.T) {
 		UserID int64
 		Mode   int
 	}
+	type MigratedRepoTransfer struct {
+		ID                     int64
+		RecipientAccessGranted bool
+	}
 
 	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(RepoTransfer), new(Collaboration))
 	defer deferable()
@@ -43,18 +47,12 @@ func TestAddRecipientAccessGrantedToRepoTransfer(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, AddRecipientAccessGrantedToRepoTransfer(t.Context(), x))
 
-	var got []struct {
-		ID                     int64
-		RecipientAccessGranted bool
-	}
-	err = x.Table("repo_transfer").OrderBy("id").Find(&got)
+	var transfers []MigratedRepoTransfer
+	err = x.Table("repo_transfer").OrderBy("id").Find(&transfers)
 	require.NoError(t, err)
-	require.Equal(t, []struct {
-		ID                     int64
-		RecipientAccessGranted bool
-	}{
+	require.Equal(t, []MigratedRepoTransfer{
 		{ID: 1, RecipientAccessGranted: true},
-		{ID: 2, RecipientAccessGranted: false},
-		{ID: 3, RecipientAccessGranted: false},
-	}, got)
+		{ID: 2},
+		{ID: 3},
+	}, transfers)
 }

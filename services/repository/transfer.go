@@ -23,8 +23,6 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
-
-	"xorm.io/builder"
 )
 
 type LimitReachedError struct{ Limit int }
@@ -473,12 +471,11 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		if err != nil {
 			return err
 		}
-		recipientAccessGranted := false
-		if !hasAccess {
+		recipientAccessGranted := !hasAccess
+		if recipientAccessGranted {
 			if err := AddOrUpdateCollaborator(ctx, repo, newOwner, perm.AccessModeRead); err != nil {
 				return err
 			}
-			recipientAccessGranted = true
 		}
 
 		// Make repo as pending for transfer
@@ -533,13 +530,11 @@ func removeTransferRecipientCollaboration(ctx context.Context, repoTransfer *rep
 		return nil
 	}
 
-	collaboration := &repo_model.Collaboration{}
-	has, err := db.GetEngine(ctx).Where(builder.Eq{
-		"repo_id": repoTransfer.RepoID,
-		"user_id": repoTransfer.RecipientID,
-	}).Get(collaboration)
-	if err != nil || !has || collaboration.Mode != perm.AccessModeRead {
+	collaboration, err := repo_model.GetCollaboration(ctx, repoTransfer.RepoID, repoTransfer.RecipientID)
+	if err != nil {
 		return err
+	} else if collaboration == nil || collaboration.Mode != perm.AccessModeRead {
+		return nil
 	}
 	return DeleteCollaboration(ctx, repoTransfer.Repo, repoTransfer.Recipient)
 }
