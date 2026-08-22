@@ -336,13 +336,11 @@ lint-spell-fix: ## lint spelling and fix issues
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
-lint-go: TAGS := bindata
-lint-go: generate-go ## lint go files
+lint-go: $(BINDATA_DEST) ## lint go files
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go
 
 .PHONY: lint-go-fix
-lint-go-fix: TAGS := bindata
-lint-go-fix: generate-go ## lint go files and fix issues
+lint-go-fix: $(BINDATA_DEST) ## lint go files and fix issues
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go --fix
 
 .PHONY: lint-editorconfig
@@ -512,9 +510,15 @@ generate: generate-backend ## run "go generate"
 generate-backend: $(TAGS_PREREQ) generate-go
 
 .PHONY: generate-go
-generate-go: $(TAGS_PREREQ)
-	@echo "Running go generate..."
-	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags '$(TAGS)' ./...
+generate-go: $(TAGS_PREREQ) $(if $(findstring bindata,$(TAGS)),$(BINDATA_DEST))
+
+modules/migration/bindata.dat: $(shell find modules/migration/schemas -type f)
+modules/options/bindata.dat: $(shell find options -type f)
+modules/public/bindata.dat: $(shell find public -type f)
+modules/templates/bindata.dat: $(shell find templates -type f)
+
+$(BINDATA_DEST):
+	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags bindata ./$(@D)
 
 .PHONY: security-check
 security-check:
