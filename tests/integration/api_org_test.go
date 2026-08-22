@@ -121,6 +121,9 @@ func testAPIOrgGeneral(t *testing.T) {
 	user1Token := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeWriteOrganization)
 
 	t.Run("OrgGetAll", func(t *testing.T) {
+		miscToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadMisc)
+		MakeRequest(t, NewRequest(t, "GET", "/api/v1/orgs").AddTokenAuth(miscToken), http.StatusForbidden)
+
 		// accessing with a token will return all orgs
 		req := NewRequest(t, "GET", "/api/v1/orgs").AddTokenAuth(user1Token)
 		resp := MakeRequest(t, req, http.StatusOK)
