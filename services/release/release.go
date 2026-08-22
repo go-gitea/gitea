@@ -108,7 +108,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 
 			if len(msg) > 0 {
 				if err = gitRepo.CreateAnnotatedTag(ctx, rel.TagName, msg, commit.ID.String()); err != nil {
-					if strings.Contains(err.Error(), "is not a valid tag name") {
+					if gitcmd.IsStderr(err, gitcmd.StderrNotAValidTagName) {
 						return false, ErrInvalidTagName{
 							TagName: rel.TagName,
 						}
@@ -116,7 +116,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 					return false, err
 				}
 			} else if err = gitRepo.CreateTag(ctx, rel.TagName, commit.ID.String()); err != nil {
-				if strings.Contains(err.Error(), "is not a valid tag name") {
+				if gitcmd.IsStderr(err, gitcmd.StderrNotAValidTagName) {
 					return false, ErrInvalidTagName{
 						TagName: rel.TagName,
 					}
@@ -376,7 +376,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		}
 
 		stdout, _, err := gitcmd.NewCommand("tag", "-d").AddDashesAndList(rel.TagName).WithRepo(repo).RunStdString(ctx)
-		if err != nil && !strings.Contains(err.Error(), "not found") {
+		if err != nil && !gitcmd.IsStderr(err, gitcmd.StderrTagNotFound) {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)
 			return fmt.Errorf("git tag -d: %w", err)
 		}

@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	git_model "gitea.dev/models/git"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/optional"
 	repo_module "gitea.dev/modules/repository"
@@ -137,7 +137,7 @@ func RestoreBranchPost(ctx *context.Context) {
 		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.CommitID, git.BranchPrefix, deletedBranch.Name),
 		Env:    repo_module.PushingEnvironment(ctx.Doer, ctx.Repo.Repository),
 	}); err != nil {
-		if strings.Contains(err.Error(), "already exists") {
+		if gitcmd.IsStderr(err, gitcmd.StderrRefAlreadyExists) {
 			log.Debug("RestoreBranch: Can't restore branch '%s', since one with same name already exist", deletedBranch.Name)
 			ctx.Flash.Error(ctx.Tr("repo.branch.already_exists", deletedBranch.Name))
 			return

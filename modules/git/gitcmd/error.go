@@ -18,21 +18,23 @@ type RunStdError interface {
 	error
 	Unwrap() error
 	Stderr() string
+	LogString() string
 }
 
 type runStdError struct {
 	err    error  // usually the low-level error like `*exec.ExitError`
 	stderr string // git command's stderr output
-	errMsg string // the cached error message for Error() method
 }
 
+// Error deliberately omits the stderr, which can echo remote-controlled text into
+// responses and stored messages. Use Stderr or IsStderr to inspect it.
 func (r *runStdError) Error() string {
-	// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
-	// But a lot of code only checks `strings.Contains(err.Error(), "git error")`
-	if r.errMsg == "" {
-		r.errMsg = fmt.Sprintf("%s - %s", r.err.Error(), strings.TrimSpace(r.stderr))
-	}
-	return r.errMsg
+	return r.err.Error()
+}
+
+// LogString keeps the stderr in logs, where the detail is wanted
+func (r *runStdError) LogString() string {
+	return fmt.Sprintf("%s - %s", r.err.Error(), strings.TrimSpace(r.stderr))
 }
 
 func (r *runStdError) Unwrap() error {
@@ -88,9 +90,14 @@ const (
 	// these are not at the start of stderr, git prints the remote and progress lines first
 	StderrAuthenticationFailed StderrContains = "Authentication failed"
 	StderrCouldNotReadUsername StderrContains = "could not read Username"
+	StderrNeededSingleRevision StderrContains = "Needed a single revision"
+	StderrNotAValidRef         StderrContains = "not a valid ref"
+	StderrNotAValidTagName     StderrContains = "is not a valid tag name"
+	StderrRefAlreadyExists     StderrContains = "already exists"
 
 	StderrUnknownRevisionOrPath StderrWildcard = "fatal: *: unknown revision or path not in the working tree"
 	StderrNoMergeBase           StderrWildcard = "fatal: *: no merge base"
+	StderrTagNotFound           StderrWildcard = "error: tag *not found"
 )
 
 func IsStderr[T StderrPrefix | StderrContains | StderrWildcard](err error, check T) bool {
