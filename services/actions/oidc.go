@@ -85,10 +85,16 @@ func OIDCTokenRequestURL() string {
 	return strings.TrimSuffix(setting.AppURL, "/") + actionsOIDCTokenPath + "?"
 }
 
-// TaskAllowsOIDCToken reports whether the task's canonical effective permissions allow token issuance.
+// TaskAllowsOIDCToken reports whether the task is eligible for OIDC token issuance.
 func TaskAllowsOIDCToken(ctx context.Context, task *actions_model.ActionTask) (bool, error) {
 	if err := task.LoadJob(ctx); err != nil {
 		return false, err
+	}
+	if err := task.Job.LoadRun(ctx); err != nil {
+		return false, err
+	}
+	if task.Job.Run.WorkflowPath == "" {
+		return false, nil
 	}
 	if err := task.Job.LoadRepo(ctx); err != nil {
 		return false, err

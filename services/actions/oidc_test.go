@@ -287,6 +287,17 @@ func TestActionsOIDCAuthorization(t *testing.T) {
 	allowed, err := TaskAllowsOIDCToken(t.Context(), task)
 	require.NoError(t, err)
 	assert.True(t, allowed)
+	task.Job.Run.WorkflowPath = ""
+	_, err = db.GetEngine(t.Context()).ID(task.Job.Run.ID).Cols("workflow_path").Update(task.Job.Run)
+	require.NoError(t, err)
+	allowed, err = TaskAllowsOIDCToken(t.Context(), task)
+	require.NoError(t, err)
+	assert.False(t, allowed)
+	_, err = CreateOIDCToken(t.Context(), task.ID, "audience")
+	assert.ErrorIs(t, err, ErrOIDCPermissionDenied)
+	task.Job.Run.WorkflowPath = ".gitea/workflows/oidc.yml"
+	_, err = db.GetEngine(t.Context()).ID(task.Job.Run.ID).Cols("workflow_path").Update(task.Job.Run)
+	require.NoError(t, err)
 
 	task.Job.TokenPermissions.IDTokenAccessMode = perm.AccessModeNone
 	_, err = db.GetEngine(t.Context()).ID(task.Job.ID).Cols("token_permissions").Update(task.Job)
@@ -323,6 +334,16 @@ func TestActionsOIDCTaskContext(t *testing.T) {
 	contextMap := contextStruct.AsMap()
 	assert.Equal(t, OIDCTokenRequestURL(), contextMap["actions_id_token_request_url"])
 	assert.NotEmpty(t, contextMap["actions_id_token_request_token"])
+
+	task.Job.Run.WorkflowPath = ""
+	contextStruct, err = generateTaskContext(t.Context(), task)
+	require.NoError(t, err)
+	contextMap = contextStruct.AsMap()
+	assert.Equal(t, task.Token, contextMap["token"])
+	assert.NotEmpty(t, contextMap["gitea_runtime_token"])
+	assert.NotContains(t, contextMap, "actions_id_token_request_url")
+	assert.NotContains(t, contextMap, "actions_id_token_request_token")
+	task.Job.Run.WorkflowPath = ".gitea/workflows/oidc.yml"
 
 	task.IsForkPullRequest = true
 	contextStruct, err = generateTaskContext(t.Context(), task)
