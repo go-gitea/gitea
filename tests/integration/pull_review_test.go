@@ -366,7 +366,7 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "a-test-branch", "This is a pull title")
 			elem := strings.Split(test.RedirectURL(resp), "/")
 			assert.Equal(t, "pulls", elem[3])
-			testIssueClose(t, user1Session, elem[1], elem[2], elem[4])
+			testIssueChangeStatus(t, user1Session, elem[1], elem[2], elem[4], "close")
 
 			// Submit an approve review on the PR.
 			testSubmitReview(t, user2Session, "user2", "repo1", elem[4], "", "approve", http.StatusUnprocessableEntity)
@@ -389,13 +389,13 @@ func testSubmitReview(t *testing.T, session *TestSession, owner, repo, pullNumbe
 	return session.MakeRequest(t, req, expectedSubmitStatus)
 }
 
-func testIssueClose(t *testing.T, session *TestSession, owner, repo, issueNumber string) *httptest.ResponseRecorder {
-	closeURL := "/" + path.Join(owner, repo, "issues", issueNumber, "comments")
+func testIssueChangeStatus(t *testing.T, session *TestSession, owner, repo, issueNumber, status string) *httptest.ResponseRecorder {
+	commentsURL := "/" + path.Join(owner, repo, "issues", issueNumber, "comments")
 
 	options := map[string]string{
-		"status": "close",
+		"status": status,
 	}
 
-	req := NewRequestWithValues(t, "POST", closeURL, options)
+	req := NewRequestWithValues(t, "POST", commentsURL, options)
 	return session.MakeRequest(t, req, http.StatusOK)
 }
