@@ -222,9 +222,6 @@ fmt-check: fmt
 	  exit 1; \
 	fi
 
-$(BINDATA_DEST):
-	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags bindata ./$(@D)
-
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
 	@mkdir -p $(MAKE_EVIDENCE_DIR)
@@ -339,11 +336,13 @@ lint-spell-fix: ## lint spelling and fix issues
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
-lint-go: $(BINDATA_DEST) ## lint go files
+lint-go: TAGS := bindata
+lint-go: generate-go ## lint go files
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go
 
 .PHONY: lint-go-fix
-lint-go-fix: $(BINDATA_DEST) ## lint go files and fix issues
+lint-go-fix: TAGS := bindata
+lint-go-fix: generate-go ## lint go files and fix issues
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go --fix
 
 .PHONY: lint-editorconfig
