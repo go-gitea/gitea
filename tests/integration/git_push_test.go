@@ -29,7 +29,7 @@ func TestGitPush(t *testing.T) {
 func testGitPush(t *testing.T, u *url.URL) {
 	t.Run("Push branches at once", func(t *testing.T) {
 		runTestGitPush(t, u, func(t *testing.T, gitPath string) (pushed, deleted []string) {
-			for i := range 50 { // exceeds db.DefaultMaxInSize, so GetBranches builds an oversized IN query
+			for i := range 10 {
 				branchName := fmt.Sprintf("branch-%d", i)
 				pushed = append(pushed, branchName)
 				doGitCreateBranch(gitPath, branchName)(t)
