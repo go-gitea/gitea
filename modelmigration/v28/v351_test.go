@@ -11,48 +11,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddRecipientAccessGrantedToRepoTransfer(t *testing.T) {
+func TestAddRecipientCollaborationIDToRepoTransfer(t *testing.T) {
 	type RepoTransfer struct {
-		ID          int64 `xorm:"pk autoincr"`
-		RecipientID int64
-		RepoID      int64
-	}
-	type Collaboration struct {
-		ID     int64 `xorm:"pk autoincr"`
-		RepoID int64
-		UserID int64
-		Mode   int
-	}
-	type MigratedRepoTransfer struct {
-		ID                     int64
-		RecipientAccessGranted bool
+		ID int64 `xorm:"pk autoincr"`
 	}
 
-	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(RepoTransfer), new(Collaboration))
+	x, deferable := migrationtest.PrepareTestEnv(t, 0, new(RepoTransfer))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
 	}
 
-	_, err := x.Insert(
-		&RepoTransfer{ID: 1, RecipientID: 2, RepoID: 1},
-		&RepoTransfer{ID: 2, RecipientID: 3, RepoID: 2},
-		&RepoTransfer{ID: 3, RecipientID: 4, RepoID: 3},
-	)
+	_, err := x.Insert(&RepoTransfer{})
 	require.NoError(t, err)
-	_, err = x.Insert(
-		&Collaboration{RepoID: 1, UserID: 2, Mode: 1},
-		&Collaboration{RepoID: 2, UserID: 3, Mode: 2},
-	)
-	require.NoError(t, err)
-	require.NoError(t, AddRecipientAccessGrantedToRepoTransfer(t.Context(), x))
+	require.NoError(t, AddRecipientCollaborationIDToRepoTransfer(t.Context(), x))
 
-	var transfers []MigratedRepoTransfer
-	err = x.Table("repo_transfer").OrderBy("id").Find(&transfers)
+	var got struct {
+		RecipientCollaborationID int64
+	}
+	has, err := x.Table("repo_transfer").Get(&got)
 	require.NoError(t, err)
-	require.Equal(t, []MigratedRepoTransfer{
-		{ID: 1, RecipientAccessGranted: true},
-		{ID: 2},
-		{ID: 3},
-	}, transfers)
+	require.True(t, has)
+	require.Zero(t, got.RecipientCollaborationID)
 }

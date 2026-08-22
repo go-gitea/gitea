@@ -72,47 +72,65 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	recipient := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, repo.LoadOwner(t.Context()))
+	startTransfer := func() *repo_model.RepoTransfer {
+		require.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
+		transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
+		require.NoError(t, err)
+		return transfer
+	}
+	assertHasAccess := func(expected bool) {
+		hasAccess, err := access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+		require.NoError(t, err)
+		assert.Equal(t, expected, hasAccess)
+	}
 
-	hasAccess, err := access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-	assert.NoError(t, err)
-	assert.False(t, hasAccess)
-
-	assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
-
-	hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-	assert.NoError(t, err)
-	assert.True(t, hasAccess)
-
+	assertHasAccess(false)
+	startTransfer()
+	assertHasAccess(true)
 	assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
-	hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-	assert.NoError(t, err)
-	assert.False(t, hasAccess)
+	assertHasAccess(false)
 
-	assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
-	transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
-	assert.NoError(t, err)
+	transfer := startTransfer()
 	assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
-	hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
-	assert.NoError(t, err)
-	assert.False(t, hasAccess)
+	assertHasAccess(false)
 
+	var err error
 	repo, err = repo_model.GetRepositoryByID(t.Context(), repo.ID)
 	assert.NoError(t, err)
 	assert.NoError(t, repo.LoadOwner(t.Context()))
 	assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, recipient, perm.AccessModeWrite))
-	assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
+	transfer = startTransfer()
+	assert.Zero(t, transfer.RecipientCollaborationID)
 	assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
 	collaboration, err := repo_model.GetCollaboration(t.Context(), repo.ID, recipient.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, perm.AccessModeWrite, collaboration.Mode)
+	assert.NoError(t, DeleteCollaboration(t.Context(), repo, recipient))
 
-	assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
-	transfer, err = repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
+	transfer = startTransfer()
+	collaboration, err = repo_model.GetCollaboration(t.Context(), repo.ID, recipient.ID)
 	assert.NoError(t, err)
-	assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
+	assert.Equal(t, collaboration.ID, transfer.RecipientCollaborationID)
+	assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, recipient, perm.AccessModeWrite))
+	assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
 	collaboration, err = repo_model.GetCollaboration(t.Context(), repo.ID, recipient.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, perm.AccessModeWrite, collaboration.Mode)
+	assert.NoError(t, DeleteCollaboration(t.Context(), repo, recipient))
+
+	transfer = startTransfer()
+	collaboration, err = repo_model.GetCollaboration(t.Context(), repo.ID, recipient.ID)
+	assert.NoError(t, err)
+	assert.NoError(t, DeleteCollaboration(t.Context(), repo, recipient))
+	assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, recipient, perm.AccessModeRead))
+	replacement, err := repo_model.GetCollaboration(t.Context(), repo.ID, recipient.ID)
+	assert.NoError(t, err)
+	assert.NotEqual(t, collaboration.ID, replacement.ID)
+	assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
+	collaboration, err = repo_model.GetCollaboration(t.Context(), repo.ID, recipient.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, replacement.ID, collaboration.ID)
+	assert.NoError(t, DeleteCollaboration(t.Context(), repo, recipient))
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &organization.Team{})
 }
@@ -137,7 +155,7 @@ func TestRepositoryTransfer(t *testing.T) {
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	assert.NoError(t, repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, user2, repo.ID, nil, false))
+	assert.NoError(t, repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, user2, repo.ID, nil, 0))
 
 	transfer, err = repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
 	assert.NoError(t, err)
@@ -147,13 +165,13 @@ func TestRepositoryTransfer(t *testing.T) {
 	org6 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// Only transfer can be started at any given time
-	err = repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, org6, repo.ID, nil, false)
+	err = repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, org6, repo.ID, nil, 0)
 	assert.Error(t, err)
 	assert.True(t, repo_model.IsErrRepoTransferInProgress(err))
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	// Unknown user, transfer non-existent transfer repo id = 2
-	err = repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, &user_model.User{ID: 1000, LowerName: "user1000"}, repo2.ID, nil, false)
+	err = repo_model.CreatePendingRepositoryTransfer(t.Context(), doer, &user_model.User{ID: 1000, LowerName: "user1000"}, repo2.ID, nil, 0)
 	assert.Error(t, err)
 
 	// Reject transfer

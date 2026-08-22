@@ -471,16 +471,17 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		if err != nil {
 			return err
 		}
-		recipientAccessGranted := !hasAccess
-		if recipientAccessGranted {
-			if err := AddOrUpdateCollaborator(ctx, repo, newOwner, perm.AccessModeRead); err != nil {
+		var recipientCollaborationID int64
+		if !hasAccess {
+			recipientCollaborationID, err = insertCollaborator(ctx, repo, newOwner, perm.AccessModeRead)
+			if err != nil {
 				return err
 			}
 		}
 
 		// Make repo as pending for transfer
 		repo.Status = repo_model.RepositoryPendingTransfer
-		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams, recipientAccessGranted)
+		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams, recipientCollaborationID)
 	}); err != nil {
 		return err
 	}
@@ -526,17 +527,10 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 }
 
 func removeTransferRecipientCollaboration(ctx context.Context, repoTransfer *repo_model.RepoTransfer) error {
-	if !repoTransfer.RecipientAccessGranted {
+	if repoTransfer.RecipientCollaborationID == 0 {
 		return nil
 	}
-
-	collaboration, err := repo_model.GetCollaboration(ctx, repoTransfer.RepoID, repoTransfer.RecipientID)
-	if err != nil {
-		return err
-	} else if collaboration == nil || collaboration.Mode != perm.AccessModeRead {
-		return nil
-	}
-	return DeleteCollaboration(ctx, repoTransfer.Repo, repoTransfer.Recipient)
+	return deleteCollaborationByIDAndMode(ctx, repoTransfer.Repo, repoTransfer.Recipient, repoTransfer.RecipientCollaborationID, perm.AccessModeRead)
 }
 
 func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *user_model.User) bool {

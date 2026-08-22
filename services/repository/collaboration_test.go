@@ -11,6 +11,7 @@ import (
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
 
@@ -34,6 +35,11 @@ func TestRepository_AddCollaborator(t *testing.T) {
 
 	assert.Error(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeOwner))
 	assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo1, user4, perm.AccessModeAdmin))
+	_, err := insertCollaborator(t.Context(), repo1, user4, perm.AccessModeRead)
+	assert.Error(t, err)
+	collaboration, err := repo_model.GetCollaboration(t.Context(), repo1.ID, user4.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, perm.AccessModeAdmin, collaboration.Mode)
 }
 
 func TestRepository_DeleteCollaboration(t *testing.T) {
@@ -97,4 +103,45 @@ func TestRepository_DeleteCollaborationRemovesSubscriptionsAndStopwatches(t *tes
 	hasStopwatch, _, _, err := issues_model.HasUserStopwatch(ctx, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, hasStopwatch)
+}
+
+func TestRepository_DeleteCollaborationPreservesSubscriptionsWithPublicAccess(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	assert.NoError(t, repo_model.UpdateRepoUnitPublicAccess(ctx, &repo_model.RepoUnit{
+		RepoID: 2, Type: unit.TypeIssues, EveryoneAccessMode: perm.AccessModeRead,
+	}))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	assert.NoError(t, repo.LoadOwner(ctx))
+	assert.NoError(t, AddOrUpdateCollaborator(ctx, repo, user, perm.AccessModeRead))
+	assert.NoError(t, repo_model.WatchRepoAuto(ctx, user, repo, true))
+
+	issueCount, err := db.GetEngine(ctx).Where("repo_id=?", repo.ID).Count(new(issues_model.Issue))
+	assert.NoError(t, err)
+	issue := &issues_model.Issue{
+		RepoID: repo.ID, Index: issueCount + 1, PosterID: repo.OwnerID, Title: "temp issue", Content: "temp",
+	}
+	assert.NoError(t, db.Insert(ctx, issue))
+	assert.NoError(t, issues_model.CreateOrUpdateIssueWatch(ctx, user.ID, issue.ID, true))
+	created, err := issues_model.CreateIssueStopwatch(ctx, user, issue)
+	assert.NoError(t, err)
+	assert.True(t, created)
+
+	assert.NoError(t, DeleteCollaboration(ctx, repo, user))
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
+	assert.NoError(t, err)
+	assert.True(t, permission.HasAnyUnitAccessOrPublicAccess())
+
+	watch, err := repo_model.GetWatch(ctx, user.ID, repo.ID)
+	assert.NoError(t, err)
+	assert.True(t, repo_model.IsWatchModeWatching(watch.Mode))
+	issueWatch, exists, err := issues_model.GetIssueWatch(ctx, user.ID, issue.ID)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+	assert.True(t, issueWatch.IsWatching)
+	hasStopwatch, _, _, err := issues_model.HasUserStopwatch(ctx, user.ID)
+	assert.NoError(t, err)
+	assert.True(t, hasStopwatch)
 }
