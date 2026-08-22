@@ -119,9 +119,13 @@ func autoSignIn(ctx *context.Context) (bool, error) {
 
 	ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
 
+	// clear even if unset: a stale OAuth2 sign-in method/id_token from an earlier session
+	// on this browser must not survive an auto sign-in from the remember-me cookie
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+		session.KeySignInMethod:         "",
+		session.KeyOIDCIDToken:          "",
 	}); err != nil {
 		return false, fmt.Errorf("unable to updateSession: %w", err)
 	}
@@ -339,7 +343,12 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	handleTwoFactorRequired(ctx, u, form.Remember, nil)
+	// clear even if unset: a stale OAuth2 sign-in method/id_token from an earlier session
+	// on this browser must not survive into a password-initiated 2FA flow
+	handleTwoFactorRequired(ctx, u, form.Remember, map[string]any{
+		session.KeySignInMethod: "",
+		session.KeyOIDCIDToken:  "",
+	})
 }
 
 func handleTwoFactorRequired(ctx *context.Context, u *user_model.User, remember bool, extra map[string]any) {
@@ -387,10 +396,22 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 		return
 	}
 
+	// a pending 2FA (twofaUid set) means handleTwoFactorRequired already resolved
+	// KeySignInMethod/KeyOIDCIDToken for this flow (real OIDC values, or explicitly
+	// cleared) — carry that forward. Otherwise this is a direct, non-2FA sign-in, so
+	// any leftover value from an unrelated earlier session must not survive.
+	var signInMethod, idToken string
+	if ctx.Session.Get("twofaUid") != nil {
+		signInMethod, _ = ctx.Session.Get(session.KeySignInMethod).(string)
+		idToken, _ = ctx.Session.Get(session.KeyOIDCIDToken).(string)
+	}
+
 	auth_service.ClearSessionKeysForSignIn(ctx.Session)
 	if err := regenerateSession(ctx, map[string]any{
 		session.KeyUID:                  u.ID,
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+		session.KeySignInMethod:         signInMethod,
+		session.KeyOIDCIDToken:          idToken,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
 		return
