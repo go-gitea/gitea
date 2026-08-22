@@ -3969,5 +3969,6 @@
   "actions.general.cross_repo_selected": "Selected repositories",
   "actions.general.cross_repo_target_repos": "Target Repositories",
   "actions.general.cross_repo_add": "Add Target Repository",
-  "packages.owner.settings.cleanuprules.type.already_exists": "A cleanup rule for this package type already exists."
+  "packages.owner.settings.cleanuprules.type.already_exists": "A cleanup rule for this package type already exists.",
+  "admin.users.convert_type.not_convertible": "This user type cannot be converted. Only individual and bot accounts support type conversion."
 }

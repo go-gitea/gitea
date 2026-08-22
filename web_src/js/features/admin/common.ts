@@ -74,6 +74,7 @@ function initAdminUserNew() {
   // all field states are derived from the current selections, so every change recomputes the same way
   const syncFields = (focusField: boolean) => {
     const isBot = elUserType.value === 'bot'; // a bot is a local account without an auth source or password
+    // login_type "0" is LoginNoType — a local account with no auth source; anything else is an OAuth/SSO source
     const isLocal = !isBot && elLoginType.value.startsWith('0');
 
     toggleElem('.non-bot', !isBot);
