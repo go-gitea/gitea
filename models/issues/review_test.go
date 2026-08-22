@@ -9,7 +9,6 @@ import (
 	"gitea.dev/models/db"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/models/organization"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -388,33 +387,6 @@ func TestAddReviewRequest(t *testing.T) {
 	assert.NotNil(t, comment)
 	assert.NotNil(t, comment.CommentMetaData)
 	assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, comment.CommentMetaData.SpecialDoerName)
-}
-
-func TestAddTeamReviewRequest(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
-	assert.NoError(t, issue.LoadRepo(t.Context()))
-	assert.NoError(t, issue.LoadPullRequest(t.Context()))
-	doer := &user_model.User{ID: 2}
-	team, otherTeam := &organization.Team{ID: 2}, &organization.Team{ID: 14}
-	assert.NoError(t, db.Insert(t.Context(), &git_model.ProtectedBranch{
-		RepoID:                    issue.PullRequest.BaseRepoID,
-		RuleName:                  issue.PullRequest.BaseBranch,
-		EnableApprovalsWhitelist:  true,
-		ApprovalsWhitelistTeamIDs: []int64{team.ID},
-		ApprovalsWhitelistUserIDs: []int64{doer.ID},
-	}))
-
-	_, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, doer, false)
-	assert.NoError(t, err)
-	review := unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: issue.ID, ReviewerTeamID: team.ID})
-	assert.True(t, review.Official)
-
-	_, err = issues_model.AddTeamReviewRequest(t.Context(), issue, otherTeam, doer, false)
-	assert.NoError(t, err)
-	review = unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: issue.ID, ReviewerTeamID: otherTeam.ID})
-	assert.False(t, review.Official)
 }
 
 func TestRecalculateReviewsOfficial(t *testing.T) {

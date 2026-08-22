@@ -351,8 +351,9 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 			tmp.ItemID = -review.ReviewerTeamID
 		}
 
-		// reviewers may always change their own review, others need to be able to choose reviewers
-		tmp.CanChange = data.CanChooseReviewer || (ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID)
+		tmp.CanChange = data.CanChooseReviewer || (ctx.Doer != nil && ctx.Doer.ID == review.ReviewerID &&
+			(review.Type == issues_model.ReviewTypeRequest ||
+				(review.Type == issues_model.ReviewTypeApprove && !isClosed && !repo.IsArchived)))
 
 		pullReviews = append(pullReviews, tmp)
 

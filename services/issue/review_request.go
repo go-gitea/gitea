@@ -99,9 +99,11 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			return nil
 		}
 
-		// the poster may ask for another review, the reviewer may retract their own one
-		if lastReview != nil && lastReview.Type != issues_model.ReviewTypeRequest &&
-			(doer.ID == reviewer.ID || (doer.ID == issue.PosterID && issue.OriginalAuthorID == 0)) {
+		if doer.ID == issue.PosterID && issue.OriginalAuthorID == 0 && lastReview != nil && lastReview.Type != issues_model.ReviewTypeRequest {
+			return nil
+		}
+
+		if !issue.Repo.IsArchived && doer.ID == reviewer.ID && lastReview != nil && lastReview.Type == issues_model.ReviewTypeApprove {
 			return nil
 		}
 

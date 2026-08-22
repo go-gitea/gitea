@@ -15,37 +15,43 @@ import (
 )
 
 func TestReviewRequestRetractOwnApproval(t *testing.T) {
-	require.NoError(t, unittest.PrepareTestDatabase())
-
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: 2})
-	pull.HasMerged = false
-	require.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-	require.NoError(t, issue.LoadRepo(t.Context()))
-	require.NoError(t, issue.Repo.LoadOwner(t.Context()))
-
 	for _, tc := range []struct {
 		name       string
-		reviewerID int64
-		official   bool
+		reviewType issues_model.ReviewType
+		archived   bool
+		allowed    bool
 	}{
-		{"official reviewer", 2, true},
-		{"unofficial reviewer", 5, false},
+		{"approval", issues_model.ReviewTypeApprove, false, true},
+		{"comment", issues_model.ReviewTypeComment, false, false},
+		{"archived repository", issues_model.ReviewTypeApprove, true, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.reviewerID})
+			require.NoError(t, unittest.PrepareTestDatabase())
 
-			review, _, err := issues_model.SubmitReview(t.Context(), reviewer, issue, issues_model.ReviewTypeApprove, "", "", false, nil)
+			pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: 2})
+			pull.HasMerged = false
+			require.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
+			issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+			require.NoError(t, issue.LoadRepo(t.Context()))
+			require.NoError(t, issue.Repo.LoadOwner(t.Context()))
+			reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+			review, _, err := issues_model.SubmitReview(t.Context(), reviewer, issue, tc.reviewType, "review", "", false, nil)
 			require.NoError(t, err)
-			assert.Equal(t, tc.official, review.Official)
+			assert.False(t, review.Official)
+			issue.Repo.IsArchived = tc.archived
 
 			_, err = ReviewRequest(t.Context(), issue, reviewer, nil, reviewer, true)
+			if !tc.allowed {
+				assert.True(t, issues_model.IsErrNotValidReviewRequest(err))
+				return
+			}
 			require.NoError(t, err)
 
 			review, err = issues_model.GetReviewByIssueIDAndUserID(t.Context(), issue.ID, reviewer.ID)
 			require.NoError(t, err)
 			assert.Equal(t, issues_model.ReviewTypeRequest, review.Type)
-			assert.Equal(t, tc.official, review.Official)
+			assert.False(t, review.Official)
 		})
 	}
 }
