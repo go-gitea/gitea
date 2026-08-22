@@ -54,17 +54,14 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		log.Error(fmt.Sprintf("Error setting session: %v", err))
 	}
 
+	opts := &user_service.UpdateOptions{SetLastLogin: true}
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
 	if len(user.Language) == 0 {
-		lc := middleware.Locale(resp, req)
-		opts := &user_service.UpdateOptions{
-			Language: optional.Some(lc.Language()),
-		}
-		if err := user_service.UpdateUser(req.Context(), user, opts); err != nil {
-			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
-			return
-		}
+		opts.Language = optional.Some(middleware.Locale(resp, req).Language())
+	}
+	if err := user_service.UpdateUser(req.Context(), user, opts); err != nil {
+		log.Error("Error updating user on sign-in [user: %d]: %v", user.ID, err)
 	}
 
 	middleware.SetLocaleCookie(resp, user.Language, 0)
