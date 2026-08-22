@@ -7,9 +7,6 @@ export GOEXPERIMENT ?= jsonv2
 
 GO ?= go
 SHASUM ?= shasum -a 256
-COMMA := ,
-
-XGO_VERSION := go-1.26.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1.67.4 # renovate: datasource=go
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.11.1 # renovate: datasource=go
@@ -17,7 +14,6 @@ GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.16 # renovate: datasource=go
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.8.0 # renovate: datasource=go
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.36.2 # renovate: datasource=go
-XGO_PACKAGE ?= src.techknowlogick.com/xgo@v1.9.0 # renovate: datasource=go
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1.6.0 # renovate: datasource=go
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 # renovate: datasource=go
 SHELLCHECK_IMAGE ?= docker.io/koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d # renovate: datasource=docker
@@ -45,16 +41,11 @@ endif
 
 TAGS ?=
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
+CGO_TAGS := sqlite_mattn pam
 
 CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite_mattn,$(TAGS))$(findstring pam,$(TAGS)))
+ifneq ($(strip $(filter $(CGO_TAGS),$(TAGS))),)
 	CGO_ENABLED = 1
-endif
-
-STATIC ?=
-EXTLDFLAGS ?=
-ifneq ($(STATIC),)
-	EXTLDFLAGS = -extldflags "-static"
 endif
 
 ifeq ($(GOOS),windows)
@@ -65,14 +56,13 @@ else ifeq ($(patsubst Windows%,Windows,$(OS)),Windows)
 	endif
 endif
 
-# GOFLAGS and EXTRA_GOFLAGS are for the 'go build' command only
 ifeq ($(IS_WINDOWS),yes)
-	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
-	GOFLAGS := -v
 	EXECUTABLE ?= gitea
 endif
+
+# EXTRA_GOFLAGS is for the 'go build' command only
 EXTRA_GOFLAGS ?=
 
 ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
@@ -89,14 +79,20 @@ STORED_VERSION_FILE := VERSION
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-ifneq ($(GITHUB_REF_TYPE),branch)
+# VERSION: the branch name for the build and filenames, e.g.: "feature/foo-bar", "main"
+#          branch name "release/v1.27.2" is stripped to "1.27.2".
+# GITEA_VERSION: the Gitea's internal version for display, e.g. "1.28.0+dev-356-ge47d0b66ea"
+ifeq ($(GITHUB_REF_TYPE),tag)
+	# convert tag "v1.2.3" to "1.2.3"
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
 	GITEA_VERSION ?= $(VERSION)
-else
+else ifeq ($(GITHUB_REF_TYPE),branch)
 	ifneq ($(GITHUB_REF_NAME),)
+		# convert branch "release/v1.2" to "1.2-nightly"
 		VERSION ?= $(subst release/v,,$(GITHUB_REF_NAME))-nightly
 	else
-		VERSION ?= main
+		# no branch name info, use git ref name "HEAD" instead
+		VERSION ?= HEAD
 	endif
 
 	STORED_VERSION=$(shell cat $(STORED_VERSION_FILE) 2>/dev/null)
@@ -105,16 +101,17 @@ else
 	else
 		GITEA_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
 	endif
+else
+	$(error unsupported ref type $(GITHUB_REF_TYPE))
 endif
 
-# if version = "main" then update version to "nightly"
+# if version == "main" then add "-nightly" to the version for nightly builds: "main-nightly"
 ifeq ($(VERSION),main)
 	VERSION := main-nightly
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
-
-LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
+RELEASE_ENV = GO="$(GO)" TAGS="$(TAGS)" LDFLAGS="$(LDFLAGS)" DIST="$(DIST)" VERSION="$(VERSION)"
 
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/modelmigration/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/modelmigration/...)
@@ -519,35 +516,35 @@ security-check:
 	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./... || true
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
-ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
-  $(error pam support set via TAGS does not support static builds)
-endif
-	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
-
-.PHONY: release
-release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
+	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -v $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
 
+# Release builds always use Go's native cross compilation. To cross-compile with CGO,
+# use "build" target with proper TAGS/LDFLAGS/CGO_CFLAGS to make "$(EXECUTABLE)" target run the "go build" command.
+.PHONY: release
+release: frontend release-binaries release-copy release-compress vendor release-sources release-check
+
+.PHONY: release-binaries
+release-binaries: | $(DIST_DIRS)
+	@$(RELEASE_ENV) ./tools/build-release.sh
+
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
-ifeq (,$(findstring gogit,$(TAGS)))
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'osusergo gogit $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
-endif
+	@$(RELEASE_ENV) ./tools/build-release.sh windows
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w -linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
+	@$(RELEASE_ENV) ./tools/build-release.sh linux
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
+	@$(RELEASE_ENV) ./tools/build-release.sh darwin
 
 .PHONY: release-freebsd
 release-freebsd: | $(DIST_DIRS)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-s -w $(LDFLAGS)' -targets 'freebsd/amd64' -out gitea-$(VERSION) .
+	@$(RELEASE_ENV) ./tools/build-release.sh freebsd
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
@@ -567,7 +564,7 @@ release-sources: | $(DIST_DIRS)
 # bsdtar needs a ^ to prevent matching subdirectories
 	$(eval EXCL := --exclude=$(shell tar --help | grep -q bsdtar && echo "^")./)
 # use transform to a add a release-folder prefix; in bsdtar the transform parameter equivalent is -s
-	$(eval TRANSFORM := $(shell tar --help | grep -q bsdtar && echo "-s '/^./gitea-src-$(VERSION)/'" || echo "--transform 's|^./|gitea-src-$(VERSION)/|'"))
+	$(eval TRANSFORM := $(shell tar --help | grep -q bsdtar && echo "-s '|^./|gitea-src-$(VERSION)/|'" || echo "--transform 's|^./|gitea-src-$(VERSION)/|'"))
 	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
@@ -592,7 +589,6 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(GXZ_PACKAGE) & \
 	$(GO) install $(MISSPELL_PACKAGE) & \
 	$(GO) install $(SWAGGER_PACKAGE) & \
-	$(GO) install $(XGO_PACKAGE) & \
 	$(GO) install $(GOVULNCHECK_PACKAGE) & \
 	$(GO) install $(ACTIONLINT_PACKAGE) & \
 	wait
