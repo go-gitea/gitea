@@ -8,7 +8,11 @@ import (
 
 	actions_model "gitea.dev/models/actions"
 	"gitea.dev/models/db"
+	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
+	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/json"
+	api "gitea.dev/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,4 +75,150 @@ func TestReleaseTaskForRunnerCleanup(t *testing.T) {
 	assert.Equal(t, actions_model.StatusWaiting, released.Status)
 	assert.Zero(t, released.TaskID)
 	unittest.AssertNotExistsBean(t, &actions_model.ActionTask{ID: task.ID})
+}
+
+func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	require.NoError(t, repo.LoadOwner(ctx))
+	actor := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	eventPayload, err := json.Marshal(map[string]any{
+		"inputs": map[string]any{
+			"flag": "false",
+			"name": "original-dispatch",
+		},
+	})
+	require.NoError(t, err)
+
+	run := &actions_model.ActionRun{
+		RepoID:        repo.ID,
+		Repo:          repo,
+		OwnerID:       repo.OwnerID,
+		TriggerUserID: actor.ID,
+		TriggerUser:   actor,
+		WorkflowID:    "caller.yml",
+		Index:         99602,
+		Ref:           "refs/heads/main",
+		CommitSHA:     "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:         "workflow_dispatch",
+		TriggerEvent:  "workflow_dispatch",
+		EventPayload:  string(eventPayload),
+		Status:        actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(ctx, run))
+
+	payload, err := json.Marshal(api.WorkflowCallPayload{
+		Inputs: map[string]any{
+			"flag": true,
+			"name": "from-caller",
+		},
+	})
+	require.NoError(t, err)
+
+	caller := &actions_model.ActionRunJob{
+		RunID:            run.ID,
+		RepoID:           repo.ID,
+		OwnerID:          repo.OwnerID,
+		CommitSHA:        run.CommitSHA,
+		Name:             "caller",
+		JobID:            "caller",
+		Attempt:          1,
+		Status:           actions_model.StatusRunning,
+		CallPayload:      string(payload),
+		IsReusableCaller: true,
+		IsExpanded:       true,
+	}
+	require.NoError(t, db.Insert(ctx, caller))
+
+	child := &actions_model.ActionRunJob{
+		RunID:       run.ID,
+		Run:         run,
+		RepoID:      repo.ID,
+		OwnerID:     repo.OwnerID,
+		CommitSHA:   run.CommitSHA,
+		Name:        "child",
+		JobID:       "child",
+		Attempt:     1,
+		Status:      actions_model.StatusRunning,
+		ParentJobID: caller.ID,
+	}
+	require.NoError(t, db.Insert(ctx, child))
+
+	task := &actions_model.ActionTask{
+		ID:    99602,
+		JobID: child.ID,
+		Job:   child,
+		Token: "task-token",
+	}
+
+	topLevelJob := &actions_model.ActionRunJob{
+		RunID:     run.ID,
+		Run:       run,
+		RepoID:    repo.ID,
+		OwnerID:   repo.OwnerID,
+		CommitSHA: run.CommitSHA,
+		Name:      "top-level",
+		JobID:     "top-level",
+		Attempt:   1,
+		Status:    actions_model.StatusRunning,
+	}
+	require.NoError(t, db.Insert(ctx, topLevelJob))
+
+	topLevelTask := &actions_model.ActionTask{
+		ID:    99603,
+		JobID: topLevelJob.ID,
+		Job:   topLevelJob,
+		Token: "task-token",
+	}
+
+	t.Run("legacy runner gets workflow_call compatibility event", func(t *testing.T) {
+		taskContext, err := generateTaskContext(ctx, task, false)
+		require.NoError(t, err)
+
+		assert.Equal(t, "workflow_call", taskContext.Fields["event_name"].GetStringValue())
+
+		event := taskContext.Fields["event"].GetStructValue().AsMap()
+		inputs, ok := event["inputs"].(map[string]any)
+		require.True(t, ok)
+
+		assert.Equal(t, true, inputs["flag"])
+		assert.Equal(t, "from-caller", inputs["name"])
+		assert.NotContains(t, taskContext.Fields, "workflow_call_inputs")
+	})
+
+	t.Run("capable runner gets original event", func(t *testing.T) {
+		taskContext, err := generateTaskContext(ctx, task, true)
+		require.NoError(t, err)
+
+		assert.Equal(t, "workflow_dispatch", taskContext.Fields["event_name"].GetStringValue())
+
+		inputs := taskContext.Fields["workflow_call_inputs"].GetStructValue().AsMap()
+		assert.Equal(t, true, inputs["flag"])
+		assert.Equal(t, "from-caller", inputs["name"])
+
+		event := taskContext.Fields["event"].GetStructValue().AsMap()
+		eventInputs, ok := event["inputs"].(map[string]any)
+		require.True(t, ok)
+
+		assert.Equal(t, "false", eventInputs["flag"])
+		assert.Equal(t, "original-dispatch", eventInputs["name"])
+	})
+
+	t.Run("legacy runner keeps original event for top-level job", func(t *testing.T) {
+		taskContext, err := generateTaskContext(ctx, topLevelTask, false)
+		require.NoError(t, err)
+
+		assert.Equal(t, "workflow_dispatch", taskContext.Fields["event_name"].GetStringValue())
+		assert.NotContains(t, taskContext.Fields, "workflow_call_inputs")
+
+		event := taskContext.Fields["event"].GetStructValue().AsMap()
+		eventInputs, ok := event["inputs"].(map[string]any)
+		require.True(t, ok)
+
+		assert.Equal(t, "false", eventInputs["flag"])
+		assert.Equal(t, "original-dispatch", eventInputs["name"])
+	})
 }

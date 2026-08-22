@@ -425,6 +425,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(349, "Expand action_schedule content column", v28.ExpandActionScheduleContent),
 		newMigration(350, "Add published_unix column to release", v28.AddPublishedUnixToRelease),
 		newMigration(351, "Track transfer recipient access grants", v28.AddRecipientAccessGrantedToRepoTransfer),
+		newMigration(352, "Add workflow_call original event support to action runners", v28.AddWorkflowCallOriginalEventSupportToActionRunner),
 	}
 	return preparedMigrations
 }
