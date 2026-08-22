@@ -29,6 +29,7 @@ import (
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/templates"
 	"gitea.dev/modules/util"
+	shared_actions "gitea.dev/routers/web/shared/actions"
 	shared_user "gitea.dev/routers/web/shared/user"
 	actions_service "gitea.dev/services/actions"
 	"gitea.dev/services/context"
@@ -596,10 +597,7 @@ func (data *actionRunListData) fillRefreshMeta(ctx *context.Context) bool {
 		}
 		actionRunIDs = append(actionRunIDs, run.ID)
 	}
-	data.RefreshIntervalMs = util.Iif[int64](hasActiveRuns, 3*1000, 12*1000)
-	if !setting.IsProd {
-		data.RefreshIntervalMs = util.Iif[int64](hasActiveRuns, 1000, 2*1000) // faster in dev mode to make debug easier
-	}
+	data.RefreshIntervalMs = shared_actions.RefreshIntervalMs(hasActiveRuns)
 	if len(data.ActionRuns) == 0 {
 		data.RefreshIntervalMs = 0
 	}

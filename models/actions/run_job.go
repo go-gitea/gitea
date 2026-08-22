@@ -51,10 +51,21 @@ type ActionRunJob struct {
 	Needs  []string `xorm:"JSON TEXT"`
 	RunsOn []string `xorm:"JSON TEXT"`
 
-	TaskID       int64 // the task created by this job in its own attempt
+	TaskID       int64 `xorm:"index(pickup)"`      // the task created by this job in its own attempt
 	SourceTaskID int64 `xorm:"NOT NULL DEFAULT 0"` // SourceTaskID points to a historical task when this job reuses an earlier attempt's result.
 
-	Status Status `xorm:"index"`
+	Status Status `xorm:"index index(pickup)"`
+
+	// QueueRank positions a waiting job in the build queue for runner pickup.
+	// 0 (default) means the natural FIFO position; manually reordered jobs get a negative,
+	// spaced rank (more negative = picked earlier), so the 0-block always sorts at the tail.
+	// It is only meaningful while the job is waiting and unclaimed; stale ranks on
+	// running/finished jobs are never read.
+	//
+	// The "pickup" composite index (task_id, status, queue_rank, updated) matches CreateTaskForRunner's
+	// WHERE task_id=0 AND status=waiting ORDER BY queue_rank, updated, id: queue_rank alone is a poor sort
+	// key (0 for nearly every row), so pickup needs task_id/status ahead of it to stay index-ordered.
+	QueueRank int64 `xorm:"index index(pickup) NOT NULL DEFAULT 0"`
 
 	RawConcurrency string // raw concurrency from job YAML's "concurrency" section
 
@@ -130,7 +141,7 @@ type ActionRunJob struct {
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`
-	Updated timeutil.TimeStamp `xorm:"updated index"`
+	Updated timeutil.TimeStamp `xorm:"updated index index(pickup)"`
 }
 
 // ActionRunAttemptJobIDIndex backs the run-wide AttemptJobID counter, keyed by ActionRun.ID.
