@@ -216,11 +216,27 @@ func TestActionsOIDCRefs(t *testing.T) {
 	run.Event = "pull_request"
 	run.EventPayload = string(payload)
 	run.TriggerEvent = actions_module.GithubEventPullRequestTarget
+	run.WorkflowCommitSHA = "base-sha"
 	gitCtx := GenerateGiteaContext(t.Context(), run, nil, task.Job)
 	assert.Equal(t, "refs/heads/main", gitCtx["ref"])
 	assert.Equal(t, "base-sha", gitCtx["sha"])
 	assert.Equal(t, "main", gitCtx["base_ref"])
 	assert.Equal(t, "feature", gitCtx["head_ref"])
+
+	claims, err := createOIDCClaims(t.Context(), task, "audience", time.Now().UTC())
+	require.NoError(t, err)
+	assert.Equal(t, "refs/heads/main", claims.Ref)
+	assert.Equal(t, "base-sha", claims.SHA)
+	assert.Equal(t, "main", claims.BaseRef)
+	assert.Equal(t, "feature", claims.HeadRef)
+	assert.Equal(t, "base-sha", claims.WorkflowSHA)
+	assert.Equal(t, run.Repo.FullName()+"/.gitea/workflows/oidc.yml@refs/heads/main", claims.WorkflowRef)
+
+	run.IsScopedRun = true
+	run.WorkflowCommitSHA = "workflow-source-sha"
+	claims, err = createOIDCClaims(t.Context(), task, "audience", time.Now().UTC())
+	require.NoError(t, err)
+	assert.Equal(t, run.Repo.FullName()+"/.gitea/workflows/oidc.yml@workflow-source-sha", claims.WorkflowRef)
 }
 
 func TestActionsOIDCReusableWorkflowIdentity(t *testing.T) {
@@ -233,7 +249,7 @@ func TestActionsOIDCReusableWorkflowIdentity(t *testing.T) {
 		RunID:                   task.Job.RunID,
 		RepoID:                  task.Job.RepoID,
 		OwnerID:                 task.Job.OwnerID,
-		WorkflowPayload:         task.Job.WorkflowPayload,
+		WorkflowPayload:         []byte("name: Root workflow\non: push\njobs:\n  call:\n    uses: owner/repo/.gitea/workflows/reusable.yml@v1\n"),
 		TokenPermissions:        &permissions,
 		WorkflowSourceRepoID:    task.Job.Run.WorkflowRepoID,
 		WorkflowSourceCommitSHA: task.Job.Run.WorkflowCommitSHA,
@@ -250,6 +266,7 @@ func TestActionsOIDCReusableWorkflowIdentity(t *testing.T) {
 	token, err := CreateOIDCToken(t.Context(), task.ID, "audience")
 	require.NoError(t, err)
 	claims := parseOIDCTestToken(t, token)
+	assert.Equal(t, "Root workflow", claims.Workflow)
 	assert.Equal(t, task.Job.Run.Repo.FullName()+"/.gitea/workflows/oidc.yml@refs/heads/main", claims.WorkflowRef)
 	assert.Equal(t, task.Job.Run.WorkflowCommitSHA, claims.WorkflowSHA)
 	assert.Equal(t, sourceRepo.FullName()+"/.gitea/workflows/reusable.yml@v1", claims.JobWorkflowRef)
@@ -298,6 +315,47 @@ func TestActionsOIDCEnabledWithoutOAuth2Provider(t *testing.T) {
 	setting.OAuth2.Enabled = false
 	t.Cleanup(func() { setting.Actions.Enabled = oldActionsEnabled })
 	assert.True(t, OIDCEnabled())
+}
+
+func TestActionsOIDCDisabledWithSymmetricSigningKey(t *testing.T) {
+	signingKey, err := oauth2_provider.CreateJWTSigningKey("HS256", make([]byte, 32))
+	require.NoError(t, err)
+	oldSigningKey := oauth2_provider.DefaultSigningKey
+	oldActionsEnabled := setting.Actions.Enabled
+	oauth2_provider.DefaultSigningKey = signingKey
+	setting.Actions.Enabled = true
+	t.Cleanup(func() {
+		oauth2_provider.DefaultSigningKey = oldSigningKey
+		setting.Actions.Enabled = oldActionsEnabled
+	})
+
+	assert.False(t, OIDCEnabled())
+}
+
+func TestActionsOIDCMissingRootWorkflowProvenance(t *testing.T) {
+	t.Run("workflow commit", func(t *testing.T) {
+		task := newOIDCTestTask(t)
+		useOIDCTestSigningKey(t)
+		task.Job.Run.WorkflowCommitSHA = ""
+		_, err := db.GetEngine(t.Context()).ID(task.Job.Run.ID).Cols("workflow_commit_sha").Update(task.Job.Run)
+		require.NoError(t, err)
+
+		token, err := CreateOIDCToken(t.Context(), task.ID, "audience")
+		assert.ErrorContains(t, err, "workflow source commit is missing")
+		assert.Empty(t, token)
+	})
+
+	t.Run("workflow reference", func(t *testing.T) {
+		task := newOIDCTestTask(t)
+		useOIDCTestSigningKey(t)
+		task.Job.Run.Ref = ""
+		_, err := db.GetEngine(t.Context()).ID(task.Job.Run.ID).Cols("ref").Update(task.Job.Run)
+		require.NoError(t, err)
+
+		token, err := CreateOIDCToken(t.Context(), task.ID, "audience")
+		assert.ErrorContains(t, err, "incomplete provenance")
+		assert.Empty(t, token)
+	})
 }
 
 func TestActionsOIDCAuthorization(t *testing.T) {

@@ -163,6 +163,12 @@ func createOIDCClaims(ctx context.Context, task *actions_model.ActionTask, audie
 	}
 	workflow := actions_module.WorkflowDisplayName(run.WorkflowID, rootJob.WorkflowPayload)
 	workflowRef := buildOIDCWorkflowRef(workflowRepo, run.WorkflowPath, workflowSourceRef(run, gitCtx))
+	if run.WorkflowCommitSHA == "" {
+		return nil, errors.New("root workflow source commit is missing")
+	}
+	if workflowRef == "" {
+		return nil, errors.New("root workflow reference has incomplete provenance")
+	}
 	jobWorkflowRepository, jobWorkflowRepositoryID, jobWorkflowRef, jobWorkflowSHA := "", "", "", ""
 	if job.ParentJobID != 0 {
 		jobWorkflowRepo, err := loadOIDCWorkflowRepo(ctx, job.WorkflowSourceRepoID)
