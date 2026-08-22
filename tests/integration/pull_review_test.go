@@ -161,6 +161,11 @@ func TestPullView_CodeOwner(t *testing.T) {
 			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
 			assert.True(t, hasCodeownerReviews)
 
+			_, err = issue_service.ReviewRequest(t.Context(), pr.Issue, user5, nil, user5, true)
+			assert.NoError(t, err)
+			hasCodeownerReviews = issue_service.HasAllRequiredCodeownerReviews(t.Context(), &protectBranch, pr)
+			assert.False(t, hasCodeownerReviews)
+
 			// a later requested-changes review from a required code owner must override
 			// that user's earlier approval and no longer satisfy the requirement
 			_, _, err = issues_model.SubmitReview(t.Context(), user5, pr.Issue, issues_model.ReviewTypeReject, "Needs changes", resp.Commit.SHA, false, make([]string, 0))
