@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	perm_model "gitea.dev/models/perm"
-	access_model "gitea.dev/models/perm/access"
 	"gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	"gitea.dev/models/unittest"
@@ -17,17 +16,13 @@ import (
 	"gitea.dev/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRenderHelperIssueIconTitle(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
-	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-	require.NoError(t, ctx.Repo.Repository.LoadUnits(ctx))
-	ctx.Repo.Permission = access_model.Permission{AccessMode: perm_model.AccessModeRead}
-	ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, perm_model.AccessModeRead)
+	contexttest.LoadRepo(t, ctx, 1)
 	htm, err := renderRepoIssueIconTitle(ctx, markup.RenderIssueIconTitleOptions{
 		LinkHref:   "/link",
 		IssueIndex: 1,
@@ -35,15 +30,14 @@ func TestRenderHelperIssueIconTitle(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, `<a href="/link"><span>octicon-issue-opened(16/tw-text-green)</span> issue1 (#1)</a>`, string(htm))
 
-	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
-	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-	ctx.Repo.Permission = access_model.Permission{}
 	ctx.Repo.Permission.SetUnitsWithDefaultAccessMode([]*repo.RepoUnit{{Type: unit.TypeWiki}}, perm_model.AccessModeRead)
-	_, err = renderRepoIssueIconTitle(ctx, markup.RenderIssueIconTitleOptions{
-		LinkHref:   "/link",
-		IssueIndex: 1,
-	})
-	assert.ErrorIs(t, err, util.ErrPermissionDenied)
+	for _, issueIndex := range []int64{1, 2} {
+		_, err = renderRepoIssueIconTitle(ctx, markup.RenderIssueIconTitleOptions{
+			LinkHref:   "/link",
+			IssueIndex: issueIndex,
+		})
+		assert.ErrorIs(t, err, util.ErrPermissionDenied)
+	}
 
 	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	htm, err = renderRepoIssueIconTitle(ctx, markup.RenderIssueIconTitleOptions{
