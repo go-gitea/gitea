@@ -109,7 +109,9 @@ func TestComputeTaskTokenPermissionsIDToken(t *testing.T) {
 
 	t.Run("explicit reusable caller restricts child", func(t *testing.T) {
 		task, repo := loadTask(t)
+		task.Job.TokenPermissions.UnitAccessModes[unit.TypeCode] = perm.AccessModeWrite
 		callerPermissions := repo_model.MakeActionsTokenPermissions(perm.AccessModeWrite)
+		callerPermissions.UnitAccessModes[unit.TypeCode] = perm.AccessModeRead
 		caller := &ActionRunJob{
 			RunID:            task.Job.RunID,
 			RepoID:           task.Job.RepoID,
@@ -122,6 +124,7 @@ func TestComputeTaskTokenPermissionsIDToken(t *testing.T) {
 
 		effective, err := ComputeTaskTokenPermissions(t.Context(), task, repo)
 		require.NoError(t, err)
+		assert.Equal(t, perm.AccessModeRead, effective.UnitAccessModes[unit.TypeCode])
 		assert.Equal(t, perm.AccessModeNone, effective.IDTokenAccessMode)
 	})
 
