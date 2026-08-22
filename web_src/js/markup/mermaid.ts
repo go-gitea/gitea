@@ -156,11 +156,11 @@ let elkLayoutsRegistered = false;
 
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-mermaid
-  const mermaidBlocks: Array<{source: string, parentContainer: HTMLElement}> = [];
+  const mermaidBlocks: Array<{source: string, parentContainer: Element}> = [];
   const attrMermaidRendered = 'data-markup-mermaid-rendered';
   let needElkRender = false;
   for (const elCodeBlock of queryElems(elMarkup, 'code.language-mermaid')) {
-    const parentContainer = elCodeBlock.closest('pre')!; // it must exist, if no, there must be a bug
+    const parentContainer = elCodeBlock.closest('pre.code-block')!; // it must exist, if no, there must be a bug
     if (parentContainer.hasAttribute(attrMermaidRendered)) continue;
     parentContainer.setAttribute(attrMermaidRendered, 'true');
 

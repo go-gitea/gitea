@@ -25,7 +25,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 	require.NoError(t, pr.LoadIssue(ctx))
 	require.NoError(t, pr.LoadBaseRepo(ctx))
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo)
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo)
 	require.NoError(t, err)
 	defer gitRepo.Close()
 

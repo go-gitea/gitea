@@ -267,9 +267,10 @@ func RegistrationLeafV2(ctx *context.Context) {
 		return
 	}
 
-	resp := createEntryResponse(
+	resp := createEntry(
 		&linkBuilder{Base: setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		pd,
+		true,
 	)
 
 	xmlResponse(ctx, http.StatusOK, resp)

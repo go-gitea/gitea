@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"gitea.dev/models"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
+	"gitea.dev/models/repostats"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
@@ -57,7 +57,7 @@ func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 
 func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) error {
 	if autofix {
-		if err := models.DoctorUserStarNum(ctx); err != nil {
+		if err := repostats.DoctorUserStarNum(ctx); err != nil {
 			logger.Critical("Unable update User Stars numbers")
 			return err
 		}
@@ -71,7 +71,7 @@ func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) erro
 func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) error {
 	numRepos := 0
 	numNeedUpdate := 0
-	cache, err := lru.New[int64, any](512)
+	cache, err := lru.New[int64, *user_model.User](512)
 	if err != nil {
 		logger.Critical("Unable to create cache: %v", err)
 		return err
@@ -80,7 +80,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		numRepos++
 
 		if owner, has := cache.Get(repo.OwnerID); has {
-			repo.Owner = owner.(*user_model.User)
+			repo.Owner = owner
 		} else {
 			if err := repo.LoadOwner(ctx); err != nil {
 				return err

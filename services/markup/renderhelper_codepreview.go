@@ -50,7 +50,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", util.ErrPermissionDenied
 	}
 
-	gitRepo, err := git.OpenRepository(dbRepo)
+	gitRepo, err := git.OpenRepository(ctx, dbRepo)
 	if err != nil {
 		return "", err
 	}
@@ -102,7 +102,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 	lineEscapeStatus := make([]*charset.EscapeStatus, len(highlightLines))
 	for i, hl := range highlightLines {
 		lineEscapeStatus[i], hl.FormattedContent = charset.EscapeControlHTML(hl.FormattedContent, webCtx.Base.Locale, charset.EscapeOptionsForView())
-		escapeStatus = escapeStatus.Or(lineEscapeStatus[i])
+		escapeStatus.Combine(lineEscapeStatus[i])
 	}
 
 	return webCtx.RenderToHTML("base/markup_codepreview", map[string]any{

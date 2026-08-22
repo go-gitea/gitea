@@ -187,9 +187,9 @@ func (d *IssuePageMetaData) retrieveProjectCardsForExistingIssue(ctx *context.Co
 	// Build project cards for each project
 	d.ProjectsData.ProjectCards = make([]*issueSidebarProjectCardData, 0, len(d.Issue.Projects))
 	for _, project := range d.Issue.Projects {
-		columns, err := project.GetColumns(ctx)
+		columns, err := project_model.GetColumns(ctx, project.ID, db.ListOptionsAll)
 		if err != nil {
-			ctx.ServerError("GetProjectColumns", err)
+			ctx.ServerError("GetColumns", err)
 			return
 		}
 
@@ -516,6 +516,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
+	issues_model.SortLabelsForDisplay(labels)
 	labelsData.RepoLabels = labels
 
 	if repo.Owner.IsOrganization() {
@@ -523,6 +524,7 @@ func (d *IssuePageMetaData) retrieveLabelsData(ctx *context.Context) {
 		if err != nil {
 			return
 		}
+		issues_model.SortLabelsForDisplay(orgLabels)
 		labelsData.OrgLabels = orgLabels
 	}
 	labelsData.AllLabels = append(labelsData.AllLabels, labelsData.RepoLabels...)

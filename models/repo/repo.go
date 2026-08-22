@@ -11,7 +11,6 @@ import (
 	"maps"
 	"net"
 	"net/url"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -366,17 +365,6 @@ func (repo *Repository) APIURL(ctxOpt ...context.Context) string {
 	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+url.PathEscape(repo.OwnerName)+"/"+url.PathEscape(repo.Name))
 }
 
-// GetCommitsCountCacheKey returns cache key used for commits count caching.
-func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) string {
-	var prefix string
-	if isRef {
-		prefix = "ref"
-	} else {
-		prefix = "commit"
-	}
-	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
-}
-
 // LoadUnits loads repo units into repo.Units
 func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 	if repo.Units != nil {
@@ -562,16 +550,6 @@ func (repo *Repository) GetBaseRepo(ctx context.Context) (err error) {
 // IsGenerated returns whether _this_ repository was generated from a template
 func (repo *Repository) IsGenerated() bool {
 	return repo.TemplateID != 0
-}
-
-// RepoPath returns repository path by given user and repository name.
-func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)), filepath.Clean(strings.ToLower(repoName)+".git"))
-}
-
-// RepoPath returns the repository path
-func (repo *Repository) RepoPath() string {
-	return RepoPath(repo.OwnerName, repo.Name)
 }
 
 // Link returns the repository relative url

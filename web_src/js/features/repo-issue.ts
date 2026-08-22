@@ -11,7 +11,6 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
@@ -198,8 +197,9 @@ export async function handleReply(el: HTMLElement) {
 }
 
 export function initRepoPullRequestReview() {
-  if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
-    const commentDiv = document.querySelector(window.location.hash);
+  const currentHash = window.location.hash;
+  if (currentHash.startsWith('#issuecomment-') || currentHash.startsWith('#pullrequestreview-')) {
+    const commentDiv = document.querySelector(currentHash);
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
@@ -304,8 +304,6 @@ export function initRepoIssueReferenceIssue() {
   fomanticQuery(elDropdown).dropdown({
     fullTextSearch: true,
     apiSettings: {
-      cache: false,
-      rawResponse: true,
       url: `${appSubUrl}/repo/search?q={query}&limit=20`,
       onResponse(response: any) {
         const filteredResponse = {success: true, results: [] as Array<Record<string, any>>};
@@ -329,7 +327,7 @@ export function initRepoIssueReferenceIssue() {
     const target = el.getAttribute('data-target');
     const content = document.querySelector(`#${target}`)?.textContent ?? '';
     const poster = el.getAttribute('data-poster-username');
-    const reference = toAbsoluteUrl(el.getAttribute('data-reference')!);
+    const reference = el.getAttribute('data-reference')!;
     const modalSelector = el.getAttribute('data-modal')!;
     const modal = document.querySelector(modalSelector)!;
     const textarea = modal.querySelector<HTMLTextAreaElement>('textarea[name="content"]')!;

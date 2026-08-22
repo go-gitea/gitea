@@ -4,19 +4,19 @@
 package v1_12
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"time"
 
 	"gitea.dev/modelmigration/base"
-	repo_model "gitea.dev/models/repo"
 	"gitea.dev/modules/git"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 )
 
-func AddCommitDivergenceToPulls(x base.EngineMigration) error {
+func AddCommitDivergenceToPulls(_ context.Context, x base.EngineMigration) error {
 	type Repository struct {
 		ID        int64 `xorm:"pk autoincr"`
 		OwnerID   int64 `xorm:"UNIQUE(s) index"`
@@ -83,7 +83,7 @@ func AddCommitDivergenceToPulls(x base.EngineMigration) error {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
 				continue
 			}
-			repoStore := repo_model.CodeRepoByName(baseRepo.OwnerName, baseRepo.Name)
+			repoStore := base.LocalCodeGitRepo(baseRepo.OwnerName, baseRepo.Name)
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 			divergence, err := git.GetDivergingCommits(graceful.GetManager().HammerContext(), repoStore, pr.BaseBranch, gitRefName)
 			if err != nil {

@@ -14,7 +14,7 @@ import (
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/private"
 	"gitea.dev/modules/setting"
@@ -198,7 +198,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find repository %s", repoLogName)
 			return
 		}
-		deployKey, err = asymkey_model.GetDeployKeyByRepo(ctx, key.ID, repo.ID)
+		deployKey, err = asymkey_model.GetDeployKeyByRepoPublicKey(ctx, repo.ID, key.ID)
 		if err != nil {
 			if asymkey_model.IsErrDeployKeyNotExist(err) {
 				ctx.PrivateUserErrorf(http.StatusNotFound, "Deploy key %d:%s has no %q permission for %s.", key.ID, key.Name, modeString, repoLogName)
@@ -320,7 +320,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	gitRepo := util.Iif(results.IsWiki, repo.WikiStorageRepo(), repo.CodeStorageRepo())
-	results.RepoStoragePath = gitcmd.RepoLocalPath(gitRepo)
+	results.RepoStoragePath = gitrepo.RepoLocalPath(gitRepo)
 	log.Debug("Serv Results: %+v", results)
 	ctx.JSON(http.StatusOK, results)
 	// We will update the keys in a different call.

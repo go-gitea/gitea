@@ -16,6 +16,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	secret_model "gitea.dev/models/secret"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitrepo"
 	issue_indexer "gitea.dev/modules/indexer/issues"
 	"gitea.dev/modules/storage"
 	"gitea.dev/modules/structs"
@@ -53,14 +54,14 @@ func deleteOrganization(ctx context.Context, org *org_model.Organization) error 
 
 // DeleteOrganization completely and permanently deletes everything of organization.
 func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge bool) error {
-	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if purge {
-			err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser())
-			if err != nil {
-				return err
-			}
+	// outside the transaction below, because each repository deletion owns one and deletes storage after committing
+	if purge {
+		if err := repo_service.DeleteOwnerRepositoriesDirectly(ctx, org.AsUser()); err != nil {
+			return err
 		}
+	}
 
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// Check ownership of repository.
 		count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
 		if err != nil {
@@ -87,9 +88,9 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := user_model.UserPath(org.Name)
+	path := gitrepo.UserLocalPath(org.Name)
 
-	if err := util.RemoveAll(path); err != nil {
+	if err := util.RemoveAllWithRetry(path); err != nil {
 		return fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 	}
 

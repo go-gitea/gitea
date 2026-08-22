@@ -62,7 +62,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 
 // CreateCodeComment will create a code comment including an pending review if required
 func CreateCodeComment(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CodeCommentForm)
+	form := web.GetForm[*forms.CodeCommentForm](ctx)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -221,7 +221,7 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.SubmitReviewForm)
+	form := web.GetForm[*forms.SubmitReviewForm](ctx)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -279,7 +279,7 @@ func SubmitReview(ctx *context.Context) {
 
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.DismissReviewForm)
+	form := web.GetForm[*forms.DismissReviewForm](ctx)
 	comm, err := pull_service.DismissReview(ctx, form.ReviewID, ctx.Repo.Repository.ID, form.Message, ctx.Doer, true, true)
 	if err != nil {
 		if pull_service.IsErrDismissRequestOnClosedPR(err) {

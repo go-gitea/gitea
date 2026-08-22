@@ -599,8 +599,8 @@ func HasAnyUnitAccess(ctx context.Context, userID int64, repo *repo_model.Reposi
 	return perm.HasAnyUnitAccess(), nil
 }
 
-func GetUsersWithUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type) (users []*user_model.User, err error) {
-	userIDs, err := GetUserIDsWithUnitAccess(ctx, repo, mode, unitType)
+func GetUsersWithAnyUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type, moreUnitTypes ...unit.Type) (users []*user_model.User, err error) {
+	userIDs, err := GetUserIDsWithAnyUnitAccess(ctx, repo, mode, unitType, moreUnitTypes...)
 	if err != nil {
 		return nil, err
 	}
@@ -613,7 +613,7 @@ func GetUsersWithUnitAccess(ctx context.Context, repo *repo_model.Repository, mo
 	return users, nil
 }
 
-func GetUserIDsWithUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type) (container.Set[int64], error) {
+func GetUserIDsWithAnyUnitAccess(ctx context.Context, repo *repo_model.Repository, mode perm_model.AccessMode, unitType unit.Type, moreUnitTypes ...unit.Type) (container.Set[int64], error) {
 	userIDs := container.Set[int64]{}
 	e := db.GetEngine(ctx)
 	accesses := make([]*Access, 0, 10)
@@ -630,7 +630,7 @@ func GetUserIDsWithUnitAccess(ctx context.Context, repo *repo_model.Repository, 
 	if !repo.Owner.IsOrganization() {
 		userIDs.Add(repo.Owner.ID)
 	} else {
-		teamUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, mode, unitType)
+		teamUserIDs, err := organization.GetTeamUserIDsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, mode, unitType, moreUnitTypes...)
 		if err != nil {
 			return nil, err
 		}
@@ -658,6 +658,16 @@ func PermissionNoAccess() Permission {
 	return Permission{AccessMode: perm_model.AccessModeNone}
 }
 
+// RepoUserPermissionCacheKey is the cachegroup.RepoUserPermission key of a doer's
+// permission on a repository. Producers and consumers must agree on it, so it lives here.
+func RepoUserPermissionCacheKey(repoID int64, doer *user_model.User) string {
+	var doerID int64
+	if doer != nil {
+		doerID = doer.ID
+	}
+	return fmt.Sprintf("%d-%d", repoID, doerID)
+}
+
 // CanReadWorkflowCrossRepo checks whether the run can read workflow files from targetRepo.
 func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Repository, run *actions_model.ActionRun) (bool, error) {
 	if err := run.LoadRepo(ctx); err != nil {
@@ -675,7 +685,7 @@ func CanReadWorkflowCrossRepo(ctx context.Context, targetRepo *repo_model.Reposi
 	// logs in a publicly visible run; requiring a private caller keeps private content flowing private -> private.
 	// This is intentionally stricter than GitHub, which gates on the target repo's access setting (introduced in #32562):
 	// https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#allowing-access-to-components-in-a-private-repository
-	if run.Repo.IsPrivate {
+	if run.Repo.IsPrivate && !run.IsForkPullRequest {
 		if actionsUnit, err := targetRepo.GetUnit(ctx, unit.TypeActions); err == nil {
 			if actionsUnit.ActionsConfig().IsCollaborativeOwner(run.Repo.OwnerID) {
 				return true, nil

@@ -3,7 +3,6 @@
   "extends": [
     "config:recommended",
     "helpers:pinGitHubActionDigests",
-    "customManagers:githubActionsVersions",
     "schedule:weekly", // dependency update PR on monday, vulnerabilityAlerts bypasses this
   ],
   "configMigration": true,
@@ -18,7 +17,31 @@
     "enabled": true,
     "semanticCommitType": "fix", // overrides packageRules
   },
+  "postUpgradeTasks": {
+    "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
+    "installTools": {
+      "golang": {},
+      "node": {},
+      "pnpm": {},
+    },
+    "fileFilters": [
+      "go.mod",
+      "go.sum",
+      "assets/go-licenses.json",
+      "assets/codemirror-languages.json",
+      "public/assets/img/svg/**",
+      "options/fileicon/**",
+    ],
+    "executionMode": "branch",
+  },
   "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)\\.(gitea|github)/(workflows|actions)/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "[A-Za-z0-9_]+_VERSION[ \\t]*:[ \\t]*[\"']?(?<currentValue>[^\\s\"']+)[\"']?[ \\t]*# renovate: datasource=(?<datasource>[a-zA-Z0-9-._]+) depName=(?<depName>\\S+)(?: (?:lookupName|packageName)=(?<packageName>\\S+))?(?: versioning=(?<versioning>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?(?: registryUrl=(?<registryUrl>\\S+))?",
+      ],
+    },
     {
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)Makefile$/"],
@@ -83,41 +106,32 @@
       "allowedVersions": "/^2019($|[.-])/", // pin to oldest in extended support
     },
     {
+      "matchPackageNames": ["docker.elastic.co/elasticsearch/elasticsearch"],
+      "allowedVersions": "/^8($|[.-])/", // pin to oldest supported major
+    },
+    {
       "matchManagers": ["gomod"],
       "postUpdateOptions": ["gomodUpdateImportPaths"],
-      "postUpgradeTasks": {
-        "commands": ["make tidy"],
-        "fileFilters": [
-          "go.mod",
-          "go.sum",
-          "assets/go-licenses.json",
-        ],
-        "executionMode": "branch",
-      },
     },
     {
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
-      "matchDepTypes": ["golang"],
+      "matchDepTypes": ["golang", "toolchain"], // fast-track go and toolchain in their own PR
+      "groupName": "golang",
       "rangeStrategy": "bump",
       "schedule": ["at any time"],
       "minimumReleaseAge": "0",
     },
     {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "matchUpdateTypes": ["patch", "major"], // go minimum bumps on minor only
+      "enabled": false,
+    },
+    {
       "matchManagers": ["npm"],
       "postUpdateOptions": ["pnpmDedupe"],
-      "postUpgradeTasks": {
-        "commands": ["make svg", "make generate-codemirror-languages"],
-        "fileFilters": [
-          "package.json",
-          "pnpm-lock.yaml",
-          "pnpm-workspace.yaml",
-          "public/assets/img/svg/**",
-          "options/fileicon/**",
-          "assets/codemirror-languages.json",
-        ],
-        "executionMode": "branch",
-      },
     },
   ],
 }

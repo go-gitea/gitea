@@ -18,6 +18,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitrepo"
 	"gitea.dev/modules/globallock"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
@@ -94,7 +95,7 @@ func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoNa
 	if err != nil {
 		return false, err
 	}
-	repo := repo_model.CodeRepoByName(u.Name, repoName)
+	repo := gitrepo.CodeRepoByName(u.Name, repoName)
 	isExist, err := git.IsRepositoryExist(ctx, repo)
 	return has || isExist, err
 }
@@ -117,16 +118,16 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 
 		if repoRenamed {
 			// revert the rename
-			from := repo_model.CodeRepoByName(newOwnerName, repo.Name)
-			to := repo_model.CodeRepoByName(oldOwnerName, repo.Name)
+			from := gitrepo.CodeRepoByName(newOwnerName, repo.Name)
+			to := gitrepo.CodeRepoByName(oldOwnerName, repo.Name)
 			if err := git.RenameRepository(ctx, from, to); err != nil {
 				log.Error("Unable to revert repository %s/%s to %s/%s: %v", newOwnerName, repo.Name, oldOwnerName, repo.Name, err)
 			}
 		}
 
 		if wikiRenamed {
-			from := repo_model.WikiRepoByName(newOwnerName, repo.Name)
-			to := repo_model.WikiRepoByName(oldOwnerName, repo.Name)
+			from := gitrepo.WikiRepoByName(newOwnerName, repo.Name)
+			to := gitrepo.WikiRepoByName(oldOwnerName, repo.Name)
 			if err := git.RenameRepository(ctx, from, to); err != nil {
 				log.Error("Unable to revert wiki repository %s/%s to %s/%s: %v", newOwnerName, repo.Name, oldOwnerName, repo.Name, err)
 			}
@@ -266,13 +267,13 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("decrease old owner repository count: %w", err)
 	}
 
-	if err := repo_model.WatchRepo(ctx, doer, repo, true); err != nil {
+	if err := repo_model.WatchRepoAuto(ctx, doer, repo, true); err != nil {
 		return fmt.Errorf("watchRepo: %w", err)
 	}
 
 	if oldOwner.IsOrganization() {
 		// Remove watch for organization.
-		if err := repo_model.WatchRepo(ctx, oldOwner, repo, false); err != nil {
+		if err := repo_model.WatchRepoAuto(ctx, oldOwner, repo, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %w", err)
 		}
 
@@ -303,20 +304,20 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	oldCodeRepo := repo_model.CodeRepoByName(oldOwner.Name, repo.Name)
-	newCodeRepo := repo_model.CodeRepoByName(newOwner.Name, repo.Name)
+	oldCodeRepo := gitrepo.CodeRepoByName(oldOwner.Name, repo.Name)
+	newCodeRepo := gitrepo.CodeRepoByName(newOwner.Name, repo.Name)
 	if err := git.RenameRepository(ctx, oldCodeRepo, newCodeRepo); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	repoRenamed = true
 
 	// Rename remote wiki repository to new path and delete local copy.
-	oldWikiRepo := repo_model.WikiRepoByName(oldOwner.Name, repo.Name)
+	oldWikiRepo := gitrepo.WikiRepoByName(oldOwner.Name, repo.Name)
 	if isExist, err := git.IsRepositoryExist(ctx, oldWikiRepo); err != nil {
 		log.Error("Unable to check if wiki of repo %s/%s exists. Error: %v", oldOwner.Name, repo.Name, err)
 		return err
 	} else if isExist {
-		newWikiRepo := repo_model.WikiRepoByName(newOwner.Name, repo.Name)
+		newWikiRepo := gitrepo.WikiRepoByName(newOwner.Name, repo.Name)
 		if err := git.RenameRepository(ctx, oldWikiRepo, newWikiRepo); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
@@ -376,13 +377,13 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		}
 	}
 
-	newCodeRepo := repo_model.CodeRepoByName(repo.OwnerName, newRepoName)
+	newCodeRepo := gitrepo.CodeRepoByName(repo.OwnerName, newRepoName)
 	if err = git.RenameRepository(ctx, repo, newCodeRepo); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
 	if HasWiki(ctx, repo) {
-		newWikiRepo := repo_model.WikiRepoByName(repo.OwnerName, newRepoName)
+		newWikiRepo := gitrepo.WikiRepoByName(repo.OwnerName, newRepoName)
 		if err = git.RenameRepository(ctx, repo.WikiStorageRepo(), newWikiRepo); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
@@ -449,7 +450,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 			return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
 		}
 
-		if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) {
+		if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) || user_model.IsUserBlockedBy(ctx, newOwner, repo.OwnerID) {
 			return user_model.ErrBlockedUser
 		}
 
@@ -470,15 +471,19 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		if err != nil {
 			return err
 		}
-		if !hasAccess {
-			if err := AddOrUpdateCollaborator(ctx, repo, newOwner, perm.AccessModeRead); err != nil {
+		grantRecipientTempAccess := !hasAccess
+		if grantRecipientTempAccess {
+			if err := db.Insert(ctx, &repo_model.Collaboration{RepoID: repo.ID, UserID: newOwner.ID, Mode: perm.AccessModeRead}); err != nil {
+				return err
+			}
+			if err := access_model.RecalculateUserAccess(ctx, repo, newOwner.ID); err != nil {
 				return err
 			}
 		}
 
 		// Make repo as pending for transfer
 		repo.Status = repo_model.RepositoryPendingTransfer
-		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams)
+		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams, grantRecipientTempAccess)
 	}); err != nil {
 		return err
 	}
@@ -510,6 +515,9 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
 			return util.ErrPermissionDenied
 		}
+		if err := removeTransferRecipientCollaboration(ctx, repoTransfer); err != nil {
+			return err
+		}
 
 		repo.Status = repo_model.RepositoryReady
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "status"); err != nil {
@@ -518,6 +526,13 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 
 		return repo_model.DeleteRepositoryTransfer(ctx, repo.ID)
 	})
+}
+
+func removeTransferRecipientCollaboration(ctx context.Context, repoTransfer *repo_model.RepoTransfer) error {
+	if !repoTransfer.RecipientAccessGranted {
+		return nil
+	}
+	return deleteCollaborationByMode(ctx, repoTransfer.Repo, repoTransfer.Recipient, perm.AccessModeRead)
 }
 
 func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *user_model.User) bool {
@@ -557,6 +572,9 @@ func CancelRepositoryTransfer(ctx context.Context, repoTransfer *repo_model.Repo
 
 		if !canUserCancelTransfer(ctx, repoTransfer, doer) {
 			return util.ErrPermissionDenied
+		}
+		if err := removeTransferRecipientCollaboration(ctx, repoTransfer); err != nil {
+			return err
 		}
 
 		repoTransfer.Repo.Status = repo_model.RepositoryReady

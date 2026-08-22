@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {SvgIcon} from '../svg.ts';
+import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {computed, onBeforeUnmount, ref, toRefs, watch} from 'vue';
 import {resetActionFavicon, syncActionRunFavicon} from '../modules/favicon-status.ts';
@@ -9,6 +9,7 @@ import ActionRunJobView from './ActionRunJobView.vue';
 import type {ActionsJob, ActionsRunAttempt} from '../modules/gitea-actions.ts';
 import {buildJobsByParentJobID, createActionRunViewStore} from './ActionRunView.ts';
 import {buildArtifactTooltipHtml} from './ActionRunArtifacts.ts';
+import {trString} from '../modules/i18n.ts';
 
 defineOptions({
   name: 'RepoActionView',
@@ -115,7 +116,7 @@ function approveRun() {
 }
 
 async function deleteArtifact(name: string) {
-  if (!window.confirm(locale.confirmDeleteArtifact.replace('%s', name))) return;
+  if (!window.confirm(trString(locale.confirmDeleteArtifact, name))) return;
   await DELETE(buildArtifactLink(name));
   await store.forceReloadCurrentRun();
 }
@@ -132,7 +133,7 @@ onBeforeUnmount(() => {
   <!-- make the view container full width to make users easier to read logs -->
   <div class="ui fluid container">
     <div class="action-view-header">
-      <a v-if="backLink" class="action-view-back silenced" :href="backLink.href">
+      <a v-if="backLink" class="action-view-back" :href="backLink.href">
         <SvgIcon name="octicon-arrow-left" :size="14"/>
         <span>{{ backLink.prefix }} <span class="action-view-back-name">{{ backLink.name }}</span></span>
       </a>
@@ -188,7 +189,7 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="flex-text-block tw-pl-[20px]">
                   <span class="flex-text-inline tw-flex-shrink-0">
-                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" class="flex-text-block" icon-variant="circle-fill"/>
+                    <ActionStatusIcon :locale-status="locale.status[attempt.status]" :status="attempt.status" :size="14" icon-variant="circle-fill"/>
                     <span>{{ locale.status[attempt.status] }}</span>
                   </span>
                   <span>•</span>
@@ -355,6 +356,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 4px;
   margin-top: 8px;
+  min-height: 50px; /* reserve the back link and title height so the body does not shift when the run data arrives */
 }
 
 .action-view-back {
@@ -364,14 +366,10 @@ onBeforeUnmount(() => {
   gap: 4px;
   font-size: 13px;
   color: var(--color-text-light-1);
+  text-decoration: none;
 }
 
 .action-view-back:hover {
-  color: var(--color-primary);
-}
-
-.action-view-back-name {
-  font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 

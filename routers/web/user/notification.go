@@ -11,11 +11,9 @@ import (
 
 	activities_model "gitea.dev/models/activities"
 	"gitea.dev/models/db"
-	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
-	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/base"
 	"gitea.dev/modules/container"
@@ -27,6 +25,7 @@ import (
 	"gitea.dev/modules/util"
 	"gitea.dev/services/context"
 	issue_service "gitea.dev/services/issue"
+	"gitea.dev/services/notifications"
 	pull_service "gitea.dev/services/pull"
 )
 
@@ -175,7 +174,7 @@ func NotificationStatusPost(ctx *context.Context) {
 	default:
 		return // ignore user's invalid input
 	}
-	if _, err := activities_model.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
+	if _, err := notifications.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
 		ctx.ServerError("SetNotificationStatus", err)
 		return
 	}
@@ -189,9 +188,8 @@ func NotificationStatusPost(ctx *context.Context) {
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
 func NotificationPurgePost(ctx *context.Context) {
-	err := activities_model.UpdateNotificationStatuses(ctx, ctx.Doer, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead)
-	if err != nil {
-		ctx.ServerError("UpdateNotificationStatuses", err)
+	if err := notifications.MarkAllRead(ctx, ctx.Doer); err != nil {
+		ctx.ServerError("MarkAllRead", err)
 		return
 	}
 
@@ -268,15 +266,10 @@ func NotificationSubscriptions(ctx *context.Context) {
 		return
 	}
 
-	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, ctx.Doer, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesAllCommitStatus", err)
 		return
-	}
-	if !ctx.Repo.Permission.CanRead(unit.TypeActions) {
-		for key := range commitStatuses {
-			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses[key])
-		}
 	}
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
@@ -398,6 +391,13 @@ func NotificationWatching(ctx *context.Context) {
 	}
 	ctx.Data["Total"] = count
 	ctx.Data["Repos"] = repos
+
+	watches, err := repo_model.GetUserWatches(ctx, ctx.Doer.ID, repos.IDs())
+	if err != nil {
+		ctx.ServerError("GetUserWatches", err)
+		return
+	}
+	ctx.Data["Watches"] = watches
 
 	// redirect to last page if request page is more than total pages
 	pager := context.NewPagination(count, setting.UI.User.RepoPagingNum, page, 5)
