@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 
-	asymkey_model "gitea.dev/models/asymkey"
+	deploykey_model "gitea.dev/models/deploykey"
 	git_model "gitea.dev/models/git"
 	issues_model "gitea.dev/models/issues"
 	perm_model "gitea.dev/models/perm"
@@ -48,7 +48,11 @@ type preReceiveContext struct {
 
 func (ctx *preReceiveContext) canWriteCodeUnit() bool {
 	if ctx.canWriteCodeUnitCached == nil {
-		canWrite := ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		// a deploy key push runs as the repo owner, so the key's own mode is the ceiling, not an alternative
+		canWrite := ctx.userPerm.CanWrite(unit.TypeCode)
+		if ctx.deployKeyAccessMode != perm_model.AccessModeNone {
+			canWrite = ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		}
 		ctx.canWriteCodeUnitCached = &canWrite
 	}
 	return *ctx.canWriteCodeUnitCached
@@ -432,7 +436,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	}
 
 	if ctx.opts.DeployKeyID != 0 {
-		deployKey, err := asymkey_model.GetDeployKeyByID(ctx, ctx.Repo.Repository.ID, ctx.opts.DeployKeyID)
+		deployKey, err := deploykey_model.GetDeployKeyByID(ctx, ctx.Repo.Repository.ID, ctx.opts.DeployKeyID)
 		if err != nil {
 			ctx.PrivateInternalErrorf("Unable to get DeployKey id %d Error: %v", ctx.opts.DeployKeyID, err)
 			return false

@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	asymkey_model "gitea.dev/models/asymkey"
-	"gitea.dev/modules/timeutil"
+	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/services/context"
 )
 
@@ -20,17 +20,16 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 		return
 	}
 
-	deployKey, err := asymkey_model.GetDeployKeyByRepoPublicKey(ctx, repoID, keyID)
+	deployKey, err := deploykey_model.GetDeployKeyByRepoPublicKey(ctx, repoID, keyID)
 	if err != nil {
-		if asymkey_model.IsErrDeployKeyNotExist(err) {
+		if deploykey_model.IsErrDeployKeyNotExist(err) {
 			ctx.PlainText(http.StatusOK, "success")
 			return
 		}
 		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
-	deployKey.UpdatedUnix = timeutil.TimeStampNow()
-	if err = asymkey_model.UpdateDeployKeyCols(ctx, deployKey, "updated_unix"); err != nil {
+	if err = deploykey_model.UpdateDeployKeyUpdated(ctx, deployKey.ID); err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}

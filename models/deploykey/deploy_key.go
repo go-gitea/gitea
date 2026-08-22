@@ -1,13 +1,13 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package asymkey
+package deploykey
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"gitea.dev/models/asymkey"
 	"gitea.dev/models/db"
 	"gitea.dev/models/perm"
 	"gitea.dev/modules/timeutil"
@@ -16,20 +16,39 @@ import (
 	"xorm.io/builder"
 )
 
+type AuthType int
+
+const (
+	// AuthTypeSSH authenticates over SSH with the public key of KeyID.
+	AuthTypeSSH AuthType = iota + 1
+	// AuthTypeToken authenticates over HTTPS with the token of TokenHash.
+	AuthTypeToken
+)
+
+func (t AuthType) String() string {
+	return util.Iif(t == AuthTypeToken, "token", "ssh")
+}
+
 // DeployKey represents deploy key information and its relation with repository.
 type DeployKey struct {
-	ID          int64 `xorm:"pk autoincr"`
-	KeyID       int64 `xorm:"UNIQUE(s) INDEX"`
-	RepoID      int64 `xorm:"UNIQUE(s) INDEX"`
+	ID          int64    `xorm:"pk autoincr"`
+	KeyID       int64    `xorm:"INDEX"`
+	RepoID      int64    `xorm:"INDEX"`
+	Type        AuthType `xorm:"NOT NULL DEFAULT 1"`
 	Name        string
 	Fingerprint string
+
+	// Neither of these can be UNIQUE: one row type always leaves the other's columns empty,
+	// so both key_id and token_hash collide across rows. Uniqueness is checked in code instead.
+	TokenHash string `xorm:"INDEX"` // sha256 of the token, which carries enough entropy to need no salt
+	Token     string `xorm:"-"`     // only set when the token is created
 
 	Mode perm.AccessMode `xorm:"NOT NULL DEFAULT 1"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 
-	PublicKey *PublicKey `xorm:"-"`
+	PublicKey *asymkey.PublicKey `xorm:"-"`
 }
 
 func (key *DeployKey) HasUsed() bool {
@@ -44,7 +63,7 @@ func (key *DeployKey) LoadPublicKey(ctx context.Context) (err error) {
 	if key.PublicKey != nil {
 		return nil
 	}
-	key.PublicKey, err = GetPublicKeyByID(ctx, key.KeyID)
+	key.PublicKey, err = asymkey.GetPublicKeyByID(ctx, key.KeyID)
 	return err
 }
 
@@ -57,61 +76,37 @@ func init() {
 	db.RegisterModel(new(DeployKey))
 }
 
-func checkDeployKey(ctx context.Context, repoID, publicKeyID int64, name string) error {
-	// Note: We want error detail, not just true or false here.
-	has, err := db.GetEngine(ctx).
-		Where("repo_id=? AND (key_id=? OR name=?)", repoID, publicKeyID, name).
-		Get(new(DeployKey))
+func checkDeployKeyName(ctx context.Context, repoID int64, name string) error {
+	has, err := db.Exist[DeployKey](ctx, builder.Eq{"repo_id": repoID, "name": name})
 	if err != nil {
 		return err
 	} else if has {
-		return ErrDeployKeyAlreadyExist{publicKeyID, repoID}
+		return ErrDeployKeyNameAlreadyUsed{repoID, name}
 	}
 	return nil
 }
 
-// addDeployKey adds new key-repo relation.
-func addDeployKey(ctx context.Context, repoID, publicKeyID int64, name, fingerprint string, mode perm.AccessMode) (*DeployKey, error) {
-	if err := checkDeployKey(ctx, repoID, publicKeyID, name); err != nil {
-		return nil, err
-	}
-
-	key := &DeployKey{KeyID: publicKeyID, RepoID: repoID, Name: name, Fingerprint: fingerprint, Mode: mode}
-	return key, db.Insert(ctx, key)
-}
-
 // AddDeployKey add new deploy key to database and authorized_keys file.
 func AddDeployKey(ctx context.Context, repoID int64, name, content string, accessMode perm.AccessMode) (*DeployKey, error) {
-	fingerprint, err := CalcFingerprint(content)
-	if err != nil {
-		return nil, err
-	}
-
 	if accessMode != perm.AccessModeRead && accessMode != perm.AccessModeWrite {
 		return nil, util.NewInvalidArgumentErrorf("invalid access mode")
 	}
 	return db.WithTx2(ctx, func(ctx context.Context) (*DeployKey, error) {
-		pkey, exist, err := db.Get[PublicKey](ctx, builder.Eq{"fingerprint": fingerprint})
+		pkey, err := asymkey.FindOrAddDeployPublicKey(ctx, content)
 		if err != nil {
 			return nil, err
-		} else if exist {
-			if pkey.Type != KeyTypeDeploy {
-				return nil, ErrKeyAlreadyExist{0, fingerprint, ""}
-			}
-		} else {
-			// First time use this deploy key, add a shared public key
-			pkey = &PublicKey{
-				Mode:        perm.AccessModeNone,
-				Type:        KeyTypeDeploy,
-				Name:        "(DeployKey)",
-				Content:     content,
-				Fingerprint: fingerprint,
-			}
-			if err = addPublicKey(ctx, pkey); err != nil {
-				return nil, fmt.Errorf("addPublicKey: %w", err)
-			}
 		}
-		return addDeployKey(ctx, repoID, pkey.ID, name, fingerprint, accessMode)
+		if has, err := db.Exist[DeployKey](ctx, builder.Eq{"repo_id": repoID, "key_id": pkey.ID}); err != nil {
+			return nil, err
+		} else if has {
+			return nil, ErrDeployKeyAlreadyExist{pkey.ID, repoID}
+		}
+		if err := checkDeployKeyName(ctx, repoID, name); err != nil {
+			return nil, err
+		}
+
+		key := &DeployKey{KeyID: pkey.ID, RepoID: repoID, Type: AuthTypeSSH, Name: name, Fingerprint: pkey.Fingerprint, Mode: accessMode}
+		return key, db.Insert(ctx, key)
 	})
 }
 
@@ -128,7 +123,8 @@ func GetDeployKeyByID(ctx context.Context, repoID, deployKeyID int64) (*DeployKe
 
 // GetDeployKeyByRepoPublicKey returns deploy key by given public key ID and repository ID.
 func GetDeployKeyByRepoPublicKey(ctx context.Context, repoID, publicKeyID int64) (*DeployKey, error) {
-	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"key_id": publicKeyID, "repo_id": repoID})
+	// the type is part of the condition because every token row carries key id 0
+	key, exist, err := db.Get[DeployKey](ctx, builder.Eq{"key_id": publicKeyID, "repo_id": repoID, "type": AuthTypeSSH})
 	if err != nil {
 		return nil, err
 	} else if !exist {
@@ -139,14 +135,12 @@ func GetDeployKeyByRepoPublicKey(ctx context.Context, repoID, publicKeyID int64)
 
 // IsDeployKeyExistByPublicKeyID return true if there is at least one deploy-key with the key id
 func IsDeployKeyExistByPublicKeyID(ctx context.Context, keyID int64) (bool, error) {
-	return db.GetEngine(ctx).
-		Where("key_id = ?", keyID).
-		Get(new(DeployKey))
+	return db.Exist[DeployKey](ctx, builder.Eq{"key_id": keyID, "type": AuthTypeSSH})
 }
 
-// UpdateDeployKeyCols updates deploy key information in the specified columns.
-func UpdateDeployKeyCols(ctx context.Context, key *DeployKey, cols ...string) error {
-	_, err := db.GetEngine(ctx).ID(key.ID).Cols(cols...).Update(key)
+// UpdateDeployKeyUpdated marks the key as used now.
+func UpdateDeployKeyUpdated(ctx context.Context, id int64) error {
+	_, err := db.GetEngine(ctx).ID(id).Cols("updated_unix").Update(&DeployKey{UpdatedUnix: timeutil.TimeStampNow()})
 	return err
 }
 

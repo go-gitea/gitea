@@ -54,37 +54,72 @@ func NewActionsUser() *User {
 	}
 }
 
-func NewActionsUserWithTaskID(id int64) *User {
-	u := NewActionsUser()
-	// LoginName is for only internal usage in this case, so it can be moved to other fields in the future
+// withSystemUserRefID marks a system user as acting for one credential.
+// LoginName is for only internal usage in this case, so it can be moved to other fields in the future.
+func withSystemUserRefID(u *User, id int64) *User {
 	u.LoginSource = -1
-	u.LoginName = "@" + ActionsUserName + "/" + strconv.FormatInt(id, 10)
+	u.LoginName = "@" + u.Name + "/" + strconv.FormatInt(id, 10)
 	return u
 }
 
-func GetActionsUserTaskID(u *User) (int64, bool) {
-	if u == nil || u.ID != ActionsUserID {
+func systemUserRefID(u *User, systemUserID int64, name string) (int64, bool) {
+	if u == nil || u.ID != systemUserID {
 		return 0, false
 	}
 	prefix, payload, _ := strings.Cut(u.LoginName, "/")
-	if prefix != "@"+ActionsUserName {
+	if prefix != "@"+name {
 		return 0, false
-	} else if taskID, err := strconv.ParseInt(payload, 10, 64); err == nil {
-		return taskID, true
+	} else if id, err := strconv.ParseInt(payload, 10, 64); err == nil {
+		return id, true
 	}
 	return 0, false
+}
+
+func NewActionsUserWithTaskID(id int64) *User {
+	return withSystemUserRefID(NewActionsUser(), id)
+}
+
+func GetActionsUserTaskID(u *User) (int64, bool) {
+	return systemUserRefID(u, ActionsUserID, ActionsUserName)
 }
 
 func (u *User) IsGiteaActions() bool {
 	return u != nil && u.ID == ActionsUserID
 }
 
-func GetSystemUserByName(name string) *User {
-	if strings.EqualFold(name, GhostUserName) {
-		return NewGhostUser()
+const (
+	DeployKeyUserID   int64 = -3
+	DeployKeyUserName       = "gitea-deploy-key"
+)
+
+// NewDeployKeyUser creates and returns a fake user for a request authenticated by a deploy key.
+// It is never the owner of anything, it only carries the key whose permissions the request gets.
+func NewDeployKeyUser() *User {
+	return &User{
+		ID:         DeployKeyUserID,
+		Name:       DeployKeyUserName,
+		LowerName:  DeployKeyUserName,
+		IsActive:   true,
+		FullName:   "Gitea Deploy Key",
+		LoginName:  DeployKeyUserName,
+		Type:       UserTypeBot,
+		Visibility: structs.VisibleTypePublic,
 	}
-	if strings.EqualFold(name, ActionsUserName) {
-		return NewActionsUser()
+}
+
+func NewDeployKeyUserWithKeyID(id int64) *User {
+	return withSystemUserRefID(NewDeployKeyUser(), id)
+}
+
+func GetDeployKeyUserKeyID(u *User) (int64, bool) {
+	return systemUserRefID(u, DeployKeyUserID, DeployKeyUserName)
+}
+
+func GetSystemUserByName(name string) *User {
+	for _, newFunc := range globalVars().systemUserNewFuncs {
+		if u := newFunc(); strings.EqualFold(name, u.Name) {
+			return u
+		}
 	}
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	asymkey_model "gitea.dev/models/asymkey"
+	deploykey_model "gitea.dev/models/deploykey"
 	"gitea.dev/models/perm"
 	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
@@ -191,16 +192,16 @@ func ServCommand(ctx *context.PrivateContext) {
 	// Deploy Keys have ownerID set to 0 therefore we can't use the owner
 	// So now we need to check if the key is a deploy key
 	// We'll keep hold of the deploy key here for permissions checking
-	var deployKey *asymkey_model.DeployKey
+	var deployKey *deploykey_model.DeployKey
 	var user *user_model.User
 	if key.Type == asymkey_model.KeyTypeDeploy {
 		if repo == nil {
 			ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find repository %s", repoLogName)
 			return
 		}
-		deployKey, err = asymkey_model.GetDeployKeyByRepoPublicKey(ctx, repo.ID, key.ID)
+		deployKey, err = deploykey_model.GetDeployKeyByRepoPublicKey(ctx, repo.ID, key.ID)
 		if err != nil {
-			if asymkey_model.IsErrDeployKeyNotExist(err) {
+			if deploykey_model.IsErrDeployKeyNotExist(err) {
 				ctx.PrivateUserErrorf(http.StatusNotFound, "Deploy key %d:%s has no %q permission for %s.", key.ID, key.Name, modeString, repoLogName)
 				return
 			}

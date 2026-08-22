@@ -41,51 +41,63 @@
 					</button>
 				</form>
 			</div>
-			{{if .RepoDeployKeys}}
-				<div class="flex-divided-list items-with-main">
-					{{range $deployKey := .RepoDeployKeys}}
-						<div class="item">
-							<div class="item-leading">
-								<span class="{{if $deployKey.HasRecentActivity}}tw-text-green{{end}}"
-									{{if $deployKey.HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}
-								>{{svg "octicon-key" 32}}</span>
-							</div>
-							<div class="item-main">
-								<div class="item-title">{{$deployKey.Name}}</div>
-								<div class="item-body">
-									{{$deployKey.Fingerprint}}
-								</div>
-								<div class="item-body">
-									{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort $deployKey.CreatedUnix)}}
-									<span class="tw-mx-2">-</span>
-									{{svg "octicon-info"}}
-									{{if $deployKey.HasUsed}}
-										{{ctx.Locale.Tr "settings.last_used"}}
-										<span {{if $deployKey.HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort $deployKey.UpdatedUnix}}</span>
-									{{else}}
-										{{ctx.Locale.Tr "settings.no_activity"}}
-									{{end}}
-									<span class="tw-mx-2">-</span>
-									<span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not $deployKey.IsReadOnly}} / {{ctx.Locale.Tr "settings.can_write_info"}} {{end}}</span>
-								</div>
-							</div>
-							<div class="item-trailing">
-								<button class="ui red tiny button link-action" data-modal-confirm="#repo-deploy-key-delete-modal" data-url="{{$.Link}}/delete?id={{$deployKey.ID}}">
-									{{ctx.Locale.Tr "settings.delete_key"}}
-								</button>
-							</div>
-						</div>
-					{{end}}
-				</div>
-			{{else}}
-				{{ctx.Locale.Tr "repo.settings.no_deploy_keys"}}
-			{{end}}
+			{{template "repo/settings/deploy_key_list" dict "Keys" .RepoDeployKeys "Link" .Link "IsToken" false}}
 		</div>
 	</div>
 
 <div class="ui small modal" id="repo-deploy-key-delete-modal">
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.deploy_key_deletion"}}</div>
 	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p></div>
+	{{template "base/modal_actions_confirm" .}}
+</div>
+
+	<div class="repo-setting-content tw-mt-4">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "repo.settings.deploy_tokens"}}
+			<div class="ui right">
+				<button class="ui primary tiny show-panel toggle button" data-panel="#add-deploy-token-panel">{{ctx.Locale.Tr "repo.settings.generate_deploy_token"}}</button>
+			</div>
+		</h4>
+		<div class="ui attached segment">
+			<div class="tw-hidden tw-mb-4" id="add-deploy-token-panel">
+				<form class="ui form form-fetch-action" action="{{.Link}}/tokens" method="post">
+					<div class="field">
+						{{ctx.Locale.Tr "repo.settings.deploy_token_desc"}}
+					</div>
+					<div class="field">
+						<label for="deploy-token-title">{{ctx.Locale.Tr "repo.settings.title"}}</label>
+						<input id="deploy-token-title" name="title" autofocus required>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input id="deploy-token-is-writable" name="is_writable" type="checkbox" value="1">
+							<label for="deploy-token-is-writable">
+								{{ctx.Locale.Tr "repo.settings.is_writable"}}
+							</label>
+							<small class="tw-pl-[26px]">{{ctx.Locale.Tr "repo.settings.is_writable_info"}}</small>
+						</div>
+					</div>
+					<button class="ui primary button">
+						{{ctx.Locale.Tr "repo.settings.generate_deploy_token"}}
+					</button>
+					<button class="ui hide-panel button" data-panel="#add-deploy-token-panel">
+						{{ctx.Locale.Tr "cancel"}}
+					</button>
+				</form>
+			</div>
+			{{template "repo/settings/deploy_key_list" dict "Keys" .DeployTokens "Link" .Link "IsToken" true}}
+		</div>
+	</div>
+
+<div class="ui small modal" id="repo-deploy-token-delete-modal">
+	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.deploy_token_deletion"}}</div>
+	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.deploy_token_deletion_desc"}}</p></div>
+	{{template "base/modal_actions_confirm" .}}
+</div>
+
+<div class="ui small modal" id="repo-deploy-token-regenerate-modal">
+	<div class="header">{{svg "octicon-sync"}} {{ctx.Locale.Tr "repo.settings.regenerate_deploy_token"}}</div>
+	<div class="content"><p>{{ctx.Locale.Tr "repo.settings.regenerate_deploy_token_desc"}}</p></div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
 

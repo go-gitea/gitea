@@ -94,12 +94,14 @@ func optionsCorsHandler() func(next http.Handler) http.Handler {
 type AuthMiddleware struct {
 	AllowOAuth2       types.PreMiddlewareProvider
 	AllowBasic        types.PreMiddlewareProvider
+	AllowDeployToken  types.PreMiddlewareProvider
 	MiddlewareHandler func(*context.Context)
 }
 
 func newWebAuthMiddleware() *AuthMiddleware {
 	type keyAllowOAuth2 struct{}
 	type keyAllowBasic struct{}
+	type keyAllowDeployToken struct{}
 	webAuth := &AuthMiddleware{}
 
 	middlewareSetContextValue := func(key, val any) types.PreMiddlewareProvider {
@@ -114,11 +116,13 @@ func newWebAuthMiddleware() *AuthMiddleware {
 
 	webAuth.AllowBasic = middlewareSetContextValue(keyAllowBasic{}, true)
 	webAuth.AllowOAuth2 = middlewareSetContextValue(keyAllowOAuth2{}, true)
+	webAuth.AllowDeployToken = middlewareSetContextValue(keyAllowDeployToken{}, true)
 
 	enableSSPI := setting.IsWindows && auth_model.IsSSPIEnabled(graceful.GetManager().ShutdownContext())
 	webAuth.MiddlewareHandler = func(ctx *context.Context) {
 		allowBasic := ctx.GetContextValue(keyAllowBasic{}) == true
 		allowOAuth2 := ctx.GetContextValue(keyAllowOAuth2{}) == true
+		allowDeployToken := ctx.GetContextValue(keyAllowDeployToken{}) == true
 
 		group := auth_service.NewGroup()
 
@@ -127,13 +131,16 @@ func newWebAuthMiddleware() *AuthMiddleware {
 		if allowOAuth2 {
 			group.Add(&auth_service.OAuth2{})
 		}
+		if allowDeployToken {
+			group.Add(&auth_service.DeployToken{}) // before Basic, which would try the token as a password
+		}
 		if allowBasic {
 			group.Add(&auth_service.Basic{})
 		}
 
 		// Sessionless means the route's auth can be done without web ui, then it doesn't need to create a session
 		// For example: accessing git via http, access rss feeds, downloading attachments, etc
-		isSessionless := allowOAuth2 || allowBasic
+		isSessionless := allowOAuth2 || allowBasic || allowDeployToken
 
 		if setting.Service.EnableReverseProxyAuth {
 			// reverse-proxy should before Session, otherwise the header will be ignored if user has login
@@ -1225,6 +1232,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/keys", func() {
 			m.Combo("").Get(repo_setting.DeployKeys).
 				Post(repo_setting.DeployKeysPost)
+			m.Post("/tokens", repo_setting.DeployTokensPost)
+			m.Post("/tokens/regenerate", repo_setting.RegenerateDeployToken)
 			m.Post("/delete", repo_setting.DeleteDeployKey)
 		})
 
@@ -1745,12 +1754,12 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 
 	// git lfs uses its own jwt key, and it handles the token & auth by itself, it conflicts with the general "OAuth2" auth method
 	// pattern: "/{username}/{reponame}/{lfs-paths}": git-lfs support, see also addOwnerRepoGitHTTPRouters
-	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, webAuth.AllowBasic, repo.CorsHandler(), optSignInFromAnyOrigin)
+	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, webAuth.AllowBasic, webAuth.AllowDeployToken, repo.CorsHandler(), optSignInFromAnyOrigin)
 
 	// Some users want to use "web-based git client" to access Gitea's repositories,
 	// so the CORS handler and OPTIONS method are used.
 	// pattern: "/{username}/{reponame}/{git-paths}": git http support
-	addOwnerRepoGitHTTPRouters(m, repo.HTTPGitEnabledHandler, webAuth.AllowBasic, webAuth.AllowOAuth2, repo.CorsHandler(), optSignInFromAnyOrigin, context.UserAssignmentWeb())
+	addOwnerRepoGitHTTPRouters(m, repo.HTTPGitEnabledHandler, webAuth.AllowBasic, webAuth.AllowOAuth2, webAuth.AllowDeployToken, repo.CorsHandler(), optSignInFromAnyOrigin, context.UserAssignmentWeb())
 
 	m.Group("/notifications", func() {
 		m.Get("", user.Notifications)
