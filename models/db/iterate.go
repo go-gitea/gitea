@@ -42,7 +42,9 @@ func iterateTableByColumn[Bean any](ctx context.Context, colName string, cond bu
 		if lastColValue != nil {
 			batchCond = builder.And(cond, builder.Gt{col.Name: lastColValue})
 		}
-		query = query.Where(batchCond)
+		if batchCond != nil {
+			query = query.Where(batchCond)
+		}
 
 		if err := query.Limit(batchSize).Find(&beans); err != nil {
 			return err
