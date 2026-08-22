@@ -62,16 +62,17 @@ func (err ErrRepoTransferInProgress) Unwrap() error {
 
 // RepoTransfer is used to manage repository transfers
 type RepoTransfer struct { //nolint:revive // export stutter
-	ID                       int64 `xorm:"pk autoincr"`
-	DoerID                   int64
-	Doer                     *user_model.User `xorm:"-"`
-	RecipientID              int64
-	Recipient                *user_model.User `xorm:"-"`
-	RepoID                   int64
-	Repo                     *Repository `xorm:"-"`
-	TeamIDs                  []int64
-	Teams                    []*organization.Team `xorm:"-"`
-	RecipientCollaborationID int64                `xorm:"NOT NULL DEFAULT 0"`
+	ID          int64 `xorm:"pk autoincr"`
+	DoerID      int64
+	Doer        *user_model.User `xorm:"-"`
+	RecipientID int64
+	Recipient   *user_model.User `xorm:"-"`
+	RepoID      int64
+	Repo        *Repository `xorm:"-"`
+	TeamIDs     []int64
+	Teams       []*organization.Team `xorm:"-"`
+
+	RecipientAccessGranted bool `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
@@ -222,7 +223,7 @@ func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
-func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repoID int64, teams []*organization.Team, recipientCollaborationID int64) error {
+func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.User, repoID int64, teams []*organization.Team, recipientAccessGranted bool) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		repo, err := GetRepositoryByID(ctx, repoID)
 		if err != nil {
@@ -265,13 +266,14 @@ func CreatePendingRepositoryTransfer(ctx context.Context, doer, newOwner *user_m
 		}
 
 		transfer := &RepoTransfer{
-			RepoID:                   repo.ID,
-			RecipientID:              newOwner.ID,
-			RecipientCollaborationID: recipientCollaborationID,
-			CreatedUnix:              timeutil.TimeStampNow(),
-			UpdatedUnix:              timeutil.TimeStampNow(),
-			DoerID:                   doer.ID,
-			TeamIDs:                  make([]int64, 0, len(teams)),
+			RepoID:      repo.ID,
+			RecipientID: newOwner.ID,
+			CreatedUnix: timeutil.TimeStampNow(),
+			UpdatedUnix: timeutil.TimeStampNow(),
+			DoerID:      doer.ID,
+			TeamIDs:     make([]int64, 0, len(teams)),
+
+			RecipientAccessGranted: recipientAccessGranted,
 		}
 
 		for k := range teams {

@@ -18,8 +18,10 @@ import (
 	"xorm.io/builder"
 )
 
-func validateCollaboration(ctx context.Context, repo *repo_model.Repository, user *user_model.User, mode perm.AccessMode) error {
-	// Collaborators cannot receive owner access.
+func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
+	// Only allow valid access modes, read, write and admin
+	// Keep in mind: do not allow "owner" here: because "admin" user can update collaborators but not make dangerous operations.
+	// If the "admin" user updates a user to "owner", then it means that the admin user can use owner permission, which is not expected.
 	if mode < perm.AccessModeRead || mode > perm.AccessModeAdmin {
 		return perm.ErrInvalidAccessMode
 	}
@@ -28,28 +30,8 @@ func validateCollaboration(ctx context.Context, repo *repo_model.Repository, use
 		return err
 	}
 
-	if user_model.IsUserBlockedBy(ctx, user, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, repo.Owner, user.ID) {
+	if user_model.IsUserBlockedBy(ctx, u, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, repo.Owner, u.ID) {
 		return user_model.ErrBlockedUser
-	}
-	return nil
-}
-
-func insertCollaborator(ctx context.Context, repo *repo_model.Repository, user *user_model.User, mode perm.AccessMode) (int64, error) {
-	if err := validateCollaboration(ctx, repo, user, mode); err != nil {
-		return 0, err
-	}
-	return db.WithTx2(ctx, func(ctx context.Context) (int64, error) {
-		collaboration := &repo_model.Collaboration{RepoID: repo.ID, UserID: user.ID, Mode: mode}
-		if err := db.Insert(ctx, collaboration); err != nil {
-			return 0, err
-		}
-		return collaboration.ID, access_model.RecalculateUserAccess(ctx, repo, user.ID)
-	})
-}
-
-func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
-	if err := validateCollaboration(ctx, repo, u, mode); err != nil {
-		return err
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -86,18 +68,18 @@ func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
 func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User) error {
-	return deleteCollaboration(ctx, repo, collaborator, builder.Eq{"repo_id": repo.ID, "user_id": collaborator.ID})
+	return deleteCollaboration(ctx, repo, collaborator, &repo_model.Collaboration{RepoID: repo.ID, UserID: collaborator.ID})
 }
 
-func deleteCollaborationByIDAndMode(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User, id int64, mode perm.AccessMode) error {
-	return deleteCollaboration(ctx, repo, collaborator, builder.Eq{
-		"id": id, "repo_id": repo.ID, "user_id": collaborator.ID, "mode": mode,
+func deleteCollaborationByMode(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User, mode perm.AccessMode) error {
+	return deleteCollaboration(ctx, repo, collaborator, &repo_model.Collaboration{
+		RepoID: repo.ID, UserID: collaborator.ID, Mode: mode,
 	})
 }
 
-func deleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User, condition builder.Cond) error {
+func deleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User, collaboration *repo_model.Collaboration) (err error) {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		if deleted, err := db.GetEngine(ctx).Where(condition).Delete(new(repo_model.Collaboration)); err != nil {
+		if deleted, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
 			return err
 		} else if deleted == 0 {
 			return nil
@@ -106,11 +88,11 @@ func deleteCollaboration(ctx context.Context, repo *repo_model.Repository, colla
 		if err := repo.LoadOwner(ctx); err != nil {
 			return err
 		}
-		if err := access_model.RecalculateAccesses(ctx, repo); err != nil {
+		if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
 			return err
 		}
 
-		if err := ReconsiderWatches(ctx, repo, collaborator); err != nil {
+		if err = ReconsiderWatches(ctx, repo, collaborator); err != nil {
 			return err
 		}
 

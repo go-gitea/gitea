@@ -450,7 +450,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 			return transferOwnership(ctx, doer, newOwner.Name, repo, teams)
 		}
 
-		if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) {
+		if user_model.IsUserBlockedBy(ctx, doer, newOwner.ID) || user_model.IsUserBlockedBy(ctx, newOwner, repo.OwnerID) {
 			return user_model.ErrBlockedUser
 		}
 
@@ -471,17 +471,19 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		if err != nil {
 			return err
 		}
-		var recipientCollaborationID int64
-		if !hasAccess {
-			recipientCollaborationID, err = insertCollaborator(ctx, repo, newOwner, perm.AccessModeRead)
-			if err != nil {
+		recipientAccessGranted := !hasAccess
+		if recipientAccessGranted {
+			if err := db.Insert(ctx, &repo_model.Collaboration{RepoID: repo.ID, UserID: newOwner.ID, Mode: perm.AccessModeRead}); err != nil {
+				return err
+			}
+			if err := access_model.RecalculateUserAccess(ctx, repo, newOwner.ID); err != nil {
 				return err
 			}
 		}
 
 		// Make repo as pending for transfer
 		repo.Status = repo_model.RepositoryPendingTransfer
-		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams, recipientCollaborationID)
+		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams, recipientAccessGranted)
 	}); err != nil {
 		return err
 	}
@@ -527,10 +529,10 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 }
 
 func removeTransferRecipientCollaboration(ctx context.Context, repoTransfer *repo_model.RepoTransfer) error {
-	if repoTransfer.RecipientCollaborationID == 0 {
+	if !repoTransfer.RecipientAccessGranted {
 		return nil
 	}
-	return deleteCollaborationByIDAndMode(ctx, repoTransfer.Repo, repoTransfer.Recipient, repoTransfer.RecipientCollaborationID, perm.AccessModeRead)
+	return deleteCollaborationByMode(ctx, repoTransfer.Repo, repoTransfer.Recipient, perm.AccessModeRead)
 }
 
 func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *user_model.User) bool {

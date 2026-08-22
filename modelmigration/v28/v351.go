@@ -11,9 +11,9 @@ import (
 	"xorm.io/xorm"
 )
 
-func AddRecipientCollaborationIDToRepoTransfer(_ context.Context, x base.EngineMigration) error {
+func AddRecipientAccessGrantedToRepoTransfer(_ context.Context, x base.EngineMigration) error {
 	type RepoTransfer struct {
-		RecipientCollaborationID int64 `xorm:"NOT NULL DEFAULT 0"`
+		RecipientAccessGranted bool `xorm:"NOT NULL DEFAULT false"`
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
 		IgnoreConstrains:  true,
