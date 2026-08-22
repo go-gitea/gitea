@@ -117,10 +117,9 @@ func TestMarkPullRequestAsMergeable(t *testing.T) {
 		prPatchCheckerQueue = nil
 	}()
 
-	addToQueueShaChan := make(chan string, 1)
-	defer test.MockVariableValue(&automergequeue.AddToQueue, func(pr *issues_model.PullRequest, sha string) {
-		addToQueueShaChan <- sha
-	})()
+	addToQueuePullChan := make(chan automergequeue.AutoMergeItem, 1)
+	defer test.MockVariableValue(&automergequeue.AddToQueue, func(item automergequeue.AutoMergeItem) { addToQueuePullChan <- item })()
+
 	ctx := t.Context()
 	_, _ = db.GetEngine(ctx).ID(2).Update(&issues_model.PullRequest{Status: issues_model.PullRequestStatusChecking})
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -140,8 +139,8 @@ func TestMarkPullRequestAsMergeable(t *testing.T) {
 	require.Equal(t, issues_model.PullRequestStatusMergeable, pr.Status)
 
 	select {
-	case sha := <-addToQueueShaChan:
-		assert.Equal(t, "985f0301dba5e7b34be866819cd15ad3d8f508ee", sha) // ref: refs/pull/3/head
+	case item := <-addToQueuePullChan:
+		assert.Equal(t, pr.ID, item.Parse().PullID)
 	case <-time.After(1 * time.Second):
 		assert.FailNow(t, "Timeout: nothing was added to automergequeue")
 	}

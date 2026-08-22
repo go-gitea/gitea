@@ -4,47 +4,54 @@
 package automergequeue
 
 import (
-	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	issues_model "gitea.dev/models/issues"
-	"gitea.dev/modules/git"
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/queue"
+	"gitea.dev/modules/setting"
 )
 
-var AutoMergeQueue *queue.WorkerPoolQueue[string]
+type AutoMergeItem string // it is a unique queue, so the item type can't be JSON which doesn't have deterministic key order.
 
-var AddToQueue = func(pr *issues_model.PullRequest, sha string) {
-	log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
-	if err := AutoMergeQueue.Push(fmt.Sprintf("%d_%s", pr.ID, sha)); err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
-		log.Error("Error adding pullID: %d to the pull requests patch checking queue %v", pr.ID, err)
+var AutoMergeQueue *queue.WorkerPoolQueue[AutoMergeItem]
+
+func (item AutoMergeItem) Parse() (ret struct {
+	PullID int64
+
+	RepoID   int64
+	CommitID string
+},
+) {
+	typ, remaining, _ := strings.Cut(string(item), ":")
+	args := strings.Split(remaining, ",")
+	switch typ {
+	case "pr":
+		ret.PullID, _ = strconv.ParseInt(args[0], 10, 64)
+	case "repo-commit":
+		ret.RepoID, _ = strconv.ParseInt(args[0], 10, 64)
+		ret.CommitID = args[1]
+	default:
+		if setting.IsProd || setting.IsInTesting {
+			panic("invalid auto merge item type")
+		}
+	}
+	return ret
+}
+
+var AddToQueue = func(item AutoMergeItem) {
+	if err := AutoMergeQueue.Push(item); err != nil && !errors.Is(err, queue.ErrAlreadyInQueue) {
+		log.Error("Error adding %v to the automerge queue: %v", item, err)
 	}
 }
 
-// StartPRCheckAndAutoMerge start an automerge check and auto merge task for a pull request
-func StartPRCheckAndAutoMerge(ctx context.Context, pull *issues_model.PullRequest) {
-	if pull == nil || pull.HasMerged || !pull.IsStatusMergeable() {
-		return
-	}
+func StartPRCheckAndAutoMerge(pull *issues_model.PullRequest) {
+	AddToQueue(AutoMergeItem(fmt.Sprintf("pr:%d", pull.ID)))
+}
 
-	if err := pull.LoadBaseRepo(ctx); err != nil {
-		log.Error("LoadBaseRepo: %v", err)
-		return
-	}
-
-	gitRepo, err := git.OpenRepository(ctx, pull.BaseRepo)
-	if err != nil {
-		log.Error("OpenRepository: %v", err)
-		return
-	}
-	defer gitRepo.Close()
-	commitID, err := gitRepo.GetRefCommitID(ctx, pull.GetGitHeadRefName())
-	if err != nil {
-		log.Error("GetRefCommitID: %v", err)
-		return
-	}
-
-	AddToQueue(pull, commitID)
+func StartPRCheckAndAutoMergeByCommit(repoID int64, commitID string) {
+	AddToQueue(AutoMergeItem(fmt.Sprintf("repo-commit:%d,%s", repoID, commitID)))
 }
