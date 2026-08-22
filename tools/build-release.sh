@@ -4,7 +4,7 @@ set -euo pipefail
 #GO=echo # uncomment this line to dry run for testing without really build all binaries
 
 RELEASE_LDFLAGS="-s -w $LDFLAGS"
-RELEASE_TAGS="bindata $TAGS"
+RELEASE_TAGS="$TAGS"
 RELEASE_PATH_PREFIX="${DIST}/binaries/gitea-${VERSION##*/}"
 
 RELEASE_PLATFORMS_DEFAULT=(

@@ -56,14 +56,13 @@ else ifeq ($(patsubst Windows%,Windows,$(OS)),Windows)
 	endif
 endif
 
-# GOFLAGS and EXTRA_GOFLAGS are for the 'go build' command only
 ifeq ($(IS_WINDOWS),yes)
-	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
-	GOFLAGS := -v
 	EXECUTABLE ?= gitea
 endif
+
+# EXTRA_GOFLAGS is for the 'go build' command only
 EXTRA_GOFLAGS ?=
 
 ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
@@ -517,15 +516,15 @@ security-check:
 	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./... || true
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
-	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build -v $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
 
-.PHONY: release
-release: frontend generate release-binaries release-copy release-compress vendor release-sources release-check
-
-# Release builds always use Go's native cross compilation.
-# For cross compiling cgo-only tags like $(CGO_TAGS), use a container instead of this Makefile.
 $(DIST_DIRS):
 	mkdir -p $(DIST_DIRS)
+
+# Release builds always use Go's native cross compilation. To cross-compile with CGO,
+# use "build" target with proper TAGS/LDFLAGS/CGO_CFLAGS to make "$(EXECUTABLE)" target run the "go build" command.
+.PHONY: release
+release: frontend generate release-binaries release-copy release-compress vendor release-sources release-check
 
 .PHONY: release-binaries
 release-binaries: | $(DIST_DIRS)
