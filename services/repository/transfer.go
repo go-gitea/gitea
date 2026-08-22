@@ -471,8 +471,8 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		if err != nil {
 			return err
 		}
-		recipientAccessGranted := !hasAccess
-		if recipientAccessGranted {
+		grantRecipientTempAccess := !hasAccess
+		if grantRecipientTempAccess {
 			if err := db.Insert(ctx, &repo_model.Collaboration{RepoID: repo.ID, UserID: newOwner.ID, Mode: perm.AccessModeRead}); err != nil {
 				return err
 			}
@@ -483,7 +483,7 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 
 		// Make repo as pending for transfer
 		repo.Status = repo_model.RepositoryPendingTransfer
-		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams, recipientAccessGranted)
+		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams, grantRecipientTempAccess)
 	}); err != nil {
 		return err
 	}
