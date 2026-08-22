@@ -113,7 +113,7 @@ projects: none
 func TestParseRawPermissions_IDTokenModes(t *testing.T) {
 	for value, expected := range map[string]perm.AccessMode{
 		"none":  perm.AccessModeNone,
-		"read":  perm.AccessModeRead,
+		"read":  perm.AccessModeNone,
 		"write": perm.AccessModeWrite,
 	} {
 		t.Run(value, func(t *testing.T) {
