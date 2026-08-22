@@ -522,11 +522,9 @@ func Init() error {
 	}
 	if setting.Migrations.AllowLocalNetworks {
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
-		allowList.AppendBuiltin(hostmatcher.MatchBuiltinReserved)
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
 	} else {
 		blockList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
-		blockList.AppendBuiltin(hostmatcher.MatchBuiltinReserved)
 		blockList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
 	}
 

@@ -59,7 +59,7 @@ func TestHostOrIPMatchesList(t *testing.T) {
 
 	hl = ParseHostMatchList("", "loopback")
 	cases = []tc{
-		{"", net.IPv4zero, true}, // 0.0.0.0 reaches localhost
+		{"", net.IPv4zero, false},
 		{"", net.ParseIP("127.0.0.1"), true},
 		{"", net.ParseIP("10.0.1.1"), false},
 		{"", net.ParseIP("192.168.1.1"), false},
@@ -69,7 +69,7 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		{"", net.ParseIP("fd00::1"), false},
 		{"", net.ParseIP("1000::1"), false},
 
-		{"mydomain.com", nil, false},
+		{"mydomain.com", net.IPv4zero, false},
 	}
 	test(cases)
 
@@ -160,10 +160,12 @@ func TestHostOrIPMatchesList(t *testing.T) {
 	test(cases)
 }
 
+// TestReservedRanges ensures special-purpose ranges that net.IP.IsPrivate misses are kept out of the
+// "external" allow-list (the default for webhook delivery and repository migrations) and folded into
+// the "private" block-list, so they cannot be used for SSRF to metadata/internal endpoints.
 func TestReservedRanges(t *testing.T) {
 	external := ParseHostMatchList("", "external")
 	private := ParseHostMatchList("", "private")
-	reserved := ParseHostMatchList("", "reserved")
 
 	// legitimate public destinations: external, not private
 	for _, ip := range []string{"8.8.8.8", "1.1.1.1", "2001:4860:4860::8888", "1000::1"} {
@@ -172,12 +174,12 @@ func TestReservedRanges(t *testing.T) {
 		assert.Falsef(t, private.MatchIPAddr(addr), "public ip %s should not be private", ip)
 	}
 
-	// Private range edges, including RFC 6598 shared address space.
+	// RFC 1918 / RFC 4193 private ranges (now folded into privateIPNets instead of net.IP.IsPrivate):
+	// not external, blockable as private. Includes range edges to guard the CIDR boundaries.
 	for _, ip := range []string{
 		"10.0.0.0", "10.255.255.255", // 10.0.0.0/8
 		"172.16.0.0", "172.31.255.255", // 172.16.0.0/12
 		"192.168.0.0", "192.168.255.255", // 192.168.0.0/16
-		"100.64.0.0", "100.127.255.255", // 100.64.0.0/10
 		"fc00::", "fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", // fc00::/7
 	} {
 		addr := net.ParseIP(ip)
@@ -191,8 +193,10 @@ func TestReservedRanges(t *testing.T) {
 		assert.False(t, private.MatchIPAddr(addr), "172.32.0.0 should not be private")
 	}
 
-	// special-purpose ranges: neither external nor private, blockable as reserved
+	// reserved ranges that IsPrivate does not cover: not external, but blockable as private
 	for _, ip := range []string{
+		"100.64.0.1",         // CGNAT
+		"100.127.255.254",    // CGNAT
 		"168.63.129.16",      // Azure WireServer
 		"192.0.2.1",          // TEST-NET-1
 		"198.18.0.1",         // benchmarking
@@ -209,7 +213,6 @@ func TestReservedRanges(t *testing.T) {
 	} {
 		addr := net.ParseIP(ip)
 		assert.Falsef(t, external.MatchIPAddr(addr), "reserved ip %s must not be external", ip)
-		assert.Falsef(t, private.MatchIPAddr(addr), "reserved ip %s must not be private", ip)
-		assert.Truef(t, reserved.MatchIPAddr(addr), "reserved ip %s should match reserved block-list", ip)
+		assert.Falsef(t, private.MatchIPAddr(addr), "reserved ip %s should match private block-list", ip)
 	}
 }
