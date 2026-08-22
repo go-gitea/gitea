@@ -40,3 +40,28 @@ func popItemByChan(ctx context.Context, popItemFn func(ctx context.Context) ([]b
 	}()
 	return chanItem, chanErr
 }
+
+type baseQueueNotifiableInterface interface {
+	getNotifySignalChan() chan struct{}
+}
+
+type baseQueueNotifiable struct {
+	notifySignal chan struct{}
+}
+
+var _ baseQueueNotifiableInterface = (*baseQueueNotifiable)(nil)
+
+func (n *baseQueueNotifiable) notifyPushItem() {
+	select {
+	case n.notifySignal <- struct{}{}:
+	default:
+	}
+}
+
+func (n *baseQueueNotifiable) getNotifySignalChan() chan struct{} {
+	return n.notifySignal
+}
+
+func newBaseQueueNotifiable() *baseQueueNotifiable {
+	return &baseQueueNotifiable{notifySignal: make(chan struct{}, 1)}
+}
