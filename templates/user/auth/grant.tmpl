@@ -7,12 +7,51 @@
 		<div class="ui attached segment">
 			{{template "base/alert" .}}
 			<p>
-				{{if not .AdditionalScopes}}
+				{{if not .ScopeChanged}}
 				<b>{{ctx.Locale.Tr "auth.authorize_application_description"}}</b><br>
 				{{end}}
 				{{ctx.Locale.Tr "auth.authorize_application_created_by" .ApplicationCreatorLinkHTML}}<br>
 				{{ctx.Locale.Tr "auth.authorize_application_with_scopes" (HTMLFormat "<b>%s</b>" .Scope)}}
+				{{if .ScopeChanged}}
+				<br>
+				{{ctx.Locale.Tr "auth.authorize_application_additional_scopes"}}
+				{{end}}
 			</p>
+
+			{{if .ScopeChanged}}
+			<br>
+			<b>{{ctx.Locale.Tr "auth.authorize_application_current_scopes"}}</b>
+			<ul>
+				{{range .OldScopes}}
+				<li>{{.}}</li>
+				{{end}}
+			</ul>
+
+			<b>{{ctx.Locale.Tr "auth.authorize_application_requested_scopes"}}</b>
+			<ul>
+				{{range .NewScopes}}
+				<li>{{.}}</li>
+				{{end}}
+			</ul>
+
+			{{if .AddedScopes}}
+			<b>{{ctx.Locale.Tr "auth.authorize_application_added_scopes"}}</b>
+			<ul>
+				{{range .AddedScopes}}
+				<li>+ {{.}}</li>
+				{{end}}
+			</ul>
+			{{end}}
+
+			{{if .RemovedScopes}}
+			<b>{{ctx.Locale.Tr "auth.authorize_application_removed_scopes"}}</b>
+			<ul>
+				{{range .RemovedScopes}}
+				<li>- {{.}}</li>
+				{{end}}
+			</ul>
+			{{end}}
+			{{end}}
 		</div>
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "auth.authorize_redirect_notice" .ApplicationRedirectDomainHTML}}</p>

@@ -225,7 +225,7 @@ func testAuthorizeGrantS256RequiresVerifier(t *testing.T) {
 }
 
 func testAuthorizeRedirectWithExistingGrant(t *testing.T) {
-	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=https://example.com/&response_type=code&state=thestate")
+	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=https://example.com/&response_type=code&state=thestate&scope=openid%20profile")
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
 	u, err := resp.Result().Location()
@@ -866,7 +866,7 @@ func issueOAuthAccessTokenForScope(t *testing.T, user *user_model.User, scope st
 	require.NoError(t, db.Insert(t.Context(), grant))
 
 	ctx := loginUser(t, user.Name)
-	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate", app.ClientID)
+	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate&scope=%s", app.ClientID, url.QueryEscape(scope))
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 	authcode := strings.Split(strings.Split(authorizeResp.Body.String(), "?code=")[1], "&amp")[0]
@@ -919,7 +919,7 @@ func testOAuthGrantScopesReadRepositoryFailOrganization(t *testing.T) {
 
 	ctx := loginUser(t, user.Name)
 
-	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate", app.ClientID)
+	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate&scope=%s", app.ClientID, url.QueryEscape(grant.Scope))
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 
@@ -1056,7 +1056,7 @@ func testOAuthGrantScopesClaimPublicOnlyGroups(t *testing.T) {
 
 	ctx := loginUser(t, user.Name)
 
-	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate", app.ClientID)
+	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate&scope=%s", app.ClientID, url.QueryEscape(grant.Scope))
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 
@@ -1154,7 +1154,7 @@ func testOAuthGrantScopesClaimAllGroups(t *testing.T) {
 
 	ctx := loginUser(t, user.Name)
 
-	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate", app.ClientID)
+	authorizeURL := fmt.Sprintf("/login/oauth/authorize?client_id=%s&redirect_uri=https://example.com&response_type=code&state=thestate&scope=%s", app.ClientID, url.QueryEscape(grant.Scope))
 	authorizeReq := NewRequest(t, "GET", authorizeURL)
 	authorizeResp := ctx.MakeRequest(t, authorizeReq, http.StatusSeeOther)
 
