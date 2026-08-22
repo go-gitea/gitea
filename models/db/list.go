@@ -156,15 +156,17 @@ func Find[T any](ctx context.Context, opts FindOptions) ([]*T, error) {
 
 // Count represents a common count function which accept an options interface
 func Count[T any](ctx context.Context, opts FindOptions) (int64, error) {
-	sess := GetEngine(ctx).Where(opts.ToConds())
-	if joinOpt, ok := opts.(FindOptionsJoin); ok {
-		for _, joinFunc := range joinOpt.ToJoins() {
-			if err := joinFunc(sess); err != nil {
-				return 0, err
+	sess := GetEngine(ctx)
+	if opts != nil {
+		sess.Where(opts.ToConds())
+		if joinOpt, ok := opts.(FindOptionsJoin); ok {
+			for _, joinFunc := range joinOpt.ToJoins() {
+				if err := joinFunc(sess); err != nil {
+					return 0, err
+				}
 			}
 		}
 	}
-
 	var object T
 	return sess.Count(&object)
 }

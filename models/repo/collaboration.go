@@ -44,7 +44,7 @@ type FindCollaborationOptions struct {
 }
 
 func (opts *FindCollaborationOptions) ToOrders() string {
-	return "id"
+	return "collaboration.id"
 }
 
 func (opts *FindCollaborationOptions) ToConds() builder.Cond {
