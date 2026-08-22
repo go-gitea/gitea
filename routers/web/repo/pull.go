@@ -23,6 +23,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
+	actions_module "gitea.dev/modules/actions"
 	"gitea.dev/modules/commitstatus"
 	"gitea.dev/modules/emoji"
 	"gitea.dev/modules/fileicon"
@@ -268,7 +269,7 @@ type pullMergeBoxData struct {
 	ClosedInfoBody  template.HTML
 
 	enableStatusCheck bool
-	StatusCheckData   *pullCommitStatusCheckData
+	StatusCheckData   *PullCommitStatusCheckData
 	ShowStatusCheck   bool
 	// hasRequiredStatusContexts is true when at least one required status-check context must be satisfied:
 	// the branch protection's own contexts and/or required scoped workflow checks.
@@ -415,13 +416,14 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		pbRequiredContexts = prInfo.ProtectedBranchRule.StatusCheckContexts
 	}
 
-	statusCheckData := &pullCommitStatusCheckData{}
+	statusCheckData := &PullCommitStatusCheckData{}
 	data.StatusCheckData = statusCheckData
 
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, prInfo.CompareInfo.HeadCommitID, db.ListOptionsAll)
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
+	actionsStatusMap := actions_module.GetCommitActionsStatusMap(ctx, commitStatuses)
 
 	// Effective required contexts = branch-protection contexts + required scoped workflow checks.
 	requiredContexts := pbRequiredContexts
@@ -473,6 +475,7 @@ func (prInfo *pullRequestViewInfo) prepareMergeBoxStatusCheckData(ctx *context.C
 		}
 	}
 	statusCheckData.MissingRequiredChecks = missingRequiredChecks
+	statusCheckData.Groups, statusCheckData.SummaryCounts = buildStatusCheckGroups(commitStatuses, actionsStatusMap, missingRequiredChecks)
 
 	statusCheckData.IsContextRequired = func(context string) bool {
 		for _, c := range requiredContexts {
@@ -508,19 +511,24 @@ func (prInfo *pullRequestViewInfo) prepareViewMergedPullInfo(ctx *context.Contex
 	prInfo.prepareViewFillInfo(ctx, git.RefName(baseCommit))
 }
 
-type pullCommitStatusCheckData struct {
+// PullCommitStatusCheckData carries everything the PR merge box's status-check
+// widget (templates/repo/issue/view_content/pull_merge_status_checks.tmpl) needs to render.
+// It is exported so the devtest page (routers/web/devtest) can build a mock instance.
+type PullCommitStatusCheckData struct {
 	MissingRequiredChecks   []string          // list of missing required checks
 	IsContextRequired       func(string) bool // function to check whether a context is required
 	RequireApprovalRunCount int               // number of workflow runs that require approval
 	CanApprove              bool              // whether the user can approve workflow runs
 	ApproveLink             string            // link to approve all checks
 	RequiredChecksState     commitstatus.CommitStatusState
+	Groups                  []*StatusCheckGroup          // commit statuses grouped for display, see buildStatusCheckGroups
+	SummaryCounts           map[StatusCheckGroupKind]int // fine-grained per-kind counts, used by Summary()
 
 	pullCommitStatusState commitstatus.CommitStatusState
 	PullCommitStatuses    []*git_model.CommitStatus
 }
 
-func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.Locale) string {
+func (d *PullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.Locale) string {
 	if d.RequiredChecksState.IsPending() || len(d.MissingRequiredChecks) > 0 {
 		return locale.TrString("repo.pulls.status_checking")
 	} else if d.RequiredChecksState.IsSuccess() {
