@@ -227,6 +227,7 @@ jobs:
 				consumer.OwnerName, consumer.Name, source.ID, consumer.DefaultBranch))
 			user2Session.MakeRequest(t, webReq, http.StatusSeeOther)
 			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true, WorkflowID: "dispatch.yaml"})
+			assert.Equal(t, ".gitea/scoped_workflows/dispatch.yaml", run.WorkflowPath)
 			assert.Equal(t, source.ID, run.WorkflowRepoID, "content source is the source repo")
 			assert.NotEmpty(t, run.WorkflowCommitSHA, "scoped dispatch records the source default-branch commit")
 			assert.Contains(t, run.Ref, consumer.DefaultBranch, "dispatch runs on the chosen consumer ref")
