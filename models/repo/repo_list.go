@@ -652,14 +652,12 @@ func SearchRepositoryIDsByCondition(ctx context.Context, cond builder.Cond) ([]i
 		Find(&repoIDs)
 }
 
-func userAllPublicRepoCond(cond builder.Cond, orgVisibilityLimit []structs.VisibleType) builder.Cond {
+func userAllPublicRepoCond(cond builder.Cond, ownerVisibilityLimit []structs.VisibleType) builder.Cond {
 	return cond.Or(builder.And(
 		builder.Eq{"`repository`.is_private": false},
-		// Aren't in a private organisation or limited organisation if we're not logged in
+		// Exclude owners who are not visible to the caller.
 		builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(
-			builder.And(
-				builder.Eq{"type": user_model.UserTypeOrganization},
-				builder.In("visibility", orgVisibilityLimit)),
+			builder.In("visibility", ownerVisibilityLimit),
 		))))
 }
 
@@ -765,6 +763,15 @@ func PublicRepoUnderPublicOwnerCond() builder.Cond {
 	return builder.And(
 		builder.Eq{"`repository`.is_private": false},
 		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Eq{"visibility": structs.VisibleTypePublic})),
+	)
+}
+
+// NotPublicRepoUnderPublicOwnerCond complements PublicRepoUnderPublicOwnerCond. Spelled positively so
+// the owner subquery hashes the limited/private minority, not every public user.
+func NotPublicRepoUnderPublicOwnerCond() builder.Cond {
+	return builder.Or(
+		builder.Eq{"`repository`.is_private": true},
+		builder.In("`repository`.owner_id", builder.Select("id").From("`user`").Where(builder.Neq{"visibility": structs.VisibleTypePublic})),
 	)
 }
 
