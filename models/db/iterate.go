@@ -29,22 +29,21 @@ func iterateTableByColumn[Bean any](ctx context.Context, colName string, cond bu
 
 	col = table.GetColumn(colName)
 	batchSize := setting.Database.IterateBufferSize
-	var lastPrimaryValue any
+	var lastColValue any
 	for {
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
 			return ctx.Err()
-		default:
 		}
+
 		beans := make([]*Bean, 0, batchSize)
 		query := GetEngine(ctx).Table(table.Name).Asc(colName)
+
 		batchCond := cond
-		if lastPrimaryValue != nil {
-			batchCond = builder.And(cond, builder.Gt{col.Name: lastPrimaryValue})
+		if lastColValue != nil {
+			batchCond = builder.And(cond, builder.Gt{col.Name: lastColValue})
 		}
-		if batchCond != nil {
-			query = query.Where(batchCond)
-		}
+		query = query.Where(batchCond)
+
 		if err := query.Limit(batchSize).Find(&beans); err != nil {
 			return err
 		}
@@ -56,7 +55,8 @@ func iterateTableByColumn[Bean any](ctx context.Context, colName string, cond bu
 		if err != nil {
 			return err
 		}
-		lastPrimaryValue = reflectVal.Interface()
+		lastColValue = reflectVal.Interface()
+
 		for _, bean := range beans {
 			if err := f(ctx, bean); err != nil {
 				return err
