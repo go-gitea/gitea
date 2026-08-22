@@ -37,7 +37,7 @@ func iterateTableByColumn[Bean any](ctx context.Context, colName string, cond bu
 		default:
 		}
 		beans := make([]*Bean, 0, batchSize)
-		query := GetEngine(ctx).Table(table.Name).OrderBy(table.PrimaryKeys[0])
+		query := GetEngine(ctx).Table(table.Name).Asc(colName)
 		batchCond := cond
 		if lastPrimaryValue != nil {
 			batchCond = builder.And(cond, builder.Gt{col.Name: lastPrimaryValue})
