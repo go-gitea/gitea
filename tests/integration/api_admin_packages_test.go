@@ -21,31 +21,24 @@ import (
 func TestAPIAdminListPackages(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	packageName := "admin-test-package"
 	packageVersion := "1.0.0"
 
-	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user.Name, packageName, packageVersion)
-	req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{})).
-		AddBasicAuth(user.Name)
+	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/file.bin", user4.Name, packageName, packageVersion)
+	req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{})).AddBasicAuth(user4.Name)
 	MakeRequest(t, req, http.StatusCreated)
 
 	adminToken := getUserToken(t, "user1", auth_model.AccessTokenScopeReadAdmin)
-	req = NewRequest(t, "GET", "/api/v1/admin/packages").
-		AddTokenAuth(adminToken)
+	req = NewRequest(t, "GET", "/api/v1/admin/packages").AddTokenAuth(adminToken)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	apiPackages := DecodeJSON(t, resp, []*api.Package{})
-	found := false
+	actual := map[string]any{}
 	for _, p := range apiPackages {
-		if p.Owner != nil &&
-			p.Owner.UserName == user.Name &&
-			p.Type == "generic" &&
-			p.Name == packageName &&
-			p.Version == packageVersion {
-			found = true
-			break
-		}
+		actual[p.Name] = map[string]any{"ownerName": p.Owner.UserName, "type": p.Type, "version": p.Version}
 	}
-	assert.True(t, found)
+	assert.Equal(t, map[string]any{
+		packageName: map[string]any{"ownerName": user4.Name, "type": "generic", "version": packageVersion},
+	}, actual)
 }
