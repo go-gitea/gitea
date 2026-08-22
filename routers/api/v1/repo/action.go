@@ -2153,7 +2153,7 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.PathParam("username"), ctx.PathParam("reponame"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.APIErrorNotFound()
+			ctx.APIError(http.StatusUnauthorized, "Error unauthorized")
 		} else {
 			ctx.APIErrorInternal(err)
 		}
