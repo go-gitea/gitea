@@ -37,6 +37,23 @@
 						</div>
 					</div>
 
+					<!-- Authentication Source Filter Menu Item -->
+					{{if .Sources}}
+						{{$selectedSourceID := .SourceIDFilter.ValueOrDefault -1}}
+						<div class="ui dropdown type jump item">
+							<span class="text">{{ctx.Locale.Tr "admin.users.auth_source"}}</span>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu flex-items-menu">
+								<label class="item"><input type="radio" name="source_id" value="" {{if eq $selectedSourceID -1}}checked{{end}}> {{ctx.Locale.Tr "all"}}</label>
+								<div class="divider"></div>
+								<label class="item"><input type="radio" name="source_id" value="0" {{if eq $selectedSourceID 0}}checked{{end}}> {{ctx.Locale.Tr "admin.users.local"}}</label>
+								{{range .Sources}}
+									<label class="item"><input type="radio" name="source_id" value="{{.ID}}" {{if eq $selectedSourceID .ID}}checked{{end}}> {{.Name}}</label>
+								{{end}}
+							</div>
+						</div>
+					{{end}}
+
 					<!-- Sort Menu Item -->
 					<div class="ui dropdown type jump item">
 						<span class="text">
@@ -65,6 +82,7 @@
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
 						</th>
 						<th>{{ctx.Locale.Tr "email"}}</th>
+						{{if .Sources}}<th>{{ctx.Locale.Tr "admin.users.auth_source"}}</th>{{end}}
 						<th>{{ctx.Locale.Tr "admin.users.activated"}}</th>
 						<th>{{ctx.Locale.Tr "admin.users.restricted"}}</th>
 						<th>{{ctx.Locale.Tr "admin.users.2fa"}}</th>
@@ -93,6 +111,7 @@
 								{{end}}
 							</td>
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
+							{{if $.Sources}}<td class="gt-ellipsis tw-max-w-32">{{if .LoginSource}}{{index $.SourceNames .LoginSource}}{{else}}{{ctx.Locale.Tr "admin.users.local"}}{{end}}</td>{{end}}
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif .IsRestricted "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}</td>
@@ -110,7 +129,7 @@
 							</td>
 						</tr>
 					{{else}}
-						<tr class="no-results-row"><td class="tw-text-center" colspan="9">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
+						<tr class="no-results-row"><td class="tw-text-center" colspan="{{Iif $.Sources 10 9}}">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>
