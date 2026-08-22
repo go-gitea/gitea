@@ -811,6 +811,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 			m.Post("/{userid}/delete", admin.DeleteUser)
 			m.Post("/{userid}/avatar", web.Bind[*forms.AvatarForm](), admin.AvatarPost)
 			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
+			m.Post("/{userid}/orgs/{orgid}/remove", admin.RemoveUserFromOrg)
+			m.Post("/{userid}/orgs/remove-all", admin.RemoveUserFromAllOrgs)
 		})
 
 		m.Group("/badges", func() {
@@ -886,8 +888,8 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 		m.Group("/actions", func() {
 			m.Get("", misc.LocationRedirect("./actions/runners"))
 			addSettingsRunnersRoutes()
-			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 			addSettingsVariablesRoutes()
+			m.Post("/runners/bulk", shared_actions.RunnerBulkActionPost)
 			addSettingsScopedWorkflowsRoutes()
 		})
 	}, adminReq, ctxDataSet(reqctx.ContextData{"EnableOAuth2": setting.OAuth2.Enabled, "EnablePackages": setting.Packages.Enabled}))
