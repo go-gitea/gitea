@@ -113,11 +113,12 @@ func (s *Service) Register(
 	return res, nil
 }
 
-// runnerCapabilityCancelling is the wire string the runner advertises in its
-// capabilities list to indicate it understands the transitional cancelling
-// state and will run post-step cleanup before finalizing the task.
 const (
-	runnerCapabilityCancelling                = "cancelling"
+	// runnerCapabilityCancelling is advertised when the runner understands the
+	// transitional cancelling state and will run post-step cleanup before finalizing.
+	runnerCapabilityCancelling = "cancelling"
+	// runnerCapabilityWorkflowCallOriginalEvent is advertised when the runner reads
+	// reusable-workflow call inputs from workflow_call_inputs instead of overriding event_name.
 	runnerCapabilityWorkflowCallOriginalEvent = "workflow-call-original-event"
 )
 

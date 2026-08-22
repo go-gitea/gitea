@@ -57,45 +57,46 @@ func TestApplyDeclareRequestToRunnerUnchangedCapabilityOmitsColumn(t *testing.T)
 }
 
 func TestApplyDeclareRequestToRunnerAdvertisedWorkflowCallOriginalEventCapability(t *testing.T) {
-	runner := &actions_model.ActionRunner{
-		HasCancellingSupport: true,
-	}
+	runner := &actions_model.ActionRunner{}
 	req := &runnerv1.DeclareRequest{
-		Version: "1.2.3",
-		Labels:  []string{"linux"},
-		Capabilities: []string{
-			runnerCapabilityCancelling,
-			runnerCapabilityWorkflowCallOriginalEvent,
-		},
+		Version:      "1.2.3",
+		Labels:       []string{"linux"},
+		Capabilities: []string{runnerCapabilityWorkflowCallOriginalEvent},
 	}
 
 	cols := applyDeclareRequestToRunner(runner, req)
 
-	assert.Equal(t, []string{
-		"agent_labels",
-		"version",
-		"has_workflow_call_original_event_support",
-	}, cols)
+	assert.Equal(t, []string{"agent_labels", "version", "has_workflow_call_original_event_support"}, cols)
 	assert.True(t, runner.HasWorkflowCallOriginalEventSupport)
 }
 
 func TestApplyDeclareRequestToRunnerMissingWorkflowCallOriginalEventCapabilityDisablesSupport(t *testing.T) {
 	runner := &actions_model.ActionRunner{
-		HasCancellingSupport:                true,
+		HasWorkflowCallOriginalEventSupport: true,
+	}
+	req := &runnerv1.DeclareRequest{
+		Version: "1.2.3",
+		Labels:  []string{"linux"},
+	}
+
+	cols := applyDeclareRequestToRunner(runner, req)
+
+	assert.Equal(t, []string{"agent_labels", "version", "has_workflow_call_original_event_support"}, cols)
+	assert.False(t, runner.HasWorkflowCallOriginalEventSupport)
+}
+
+func TestApplyDeclareRequestToRunnerUnchangedWorkflowCallOriginalEventCapabilityOmitsColumn(t *testing.T) {
+	runner := &actions_model.ActionRunner{
 		HasWorkflowCallOriginalEventSupport: true,
 	}
 	req := &runnerv1.DeclareRequest{
 		Version:      "1.2.3",
 		Labels:       []string{"linux"},
-		Capabilities: []string{runnerCapabilityCancelling},
+		Capabilities: []string{runnerCapabilityWorkflowCallOriginalEvent},
 	}
 
 	cols := applyDeclareRequestToRunner(runner, req)
 
-	assert.Equal(t, []string{
-		"agent_labels",
-		"version",
-		"has_workflow_call_original_event_support",
-	}, cols)
-	assert.False(t, runner.HasWorkflowCallOriginalEventSupport)
+	assert.Equal(t, []string{"agent_labels", "version"}, cols)
+	assert.True(t, runner.HasWorkflowCallOriginalEventSupport)
 }

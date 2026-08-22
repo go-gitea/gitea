@@ -175,9 +175,7 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 	}
 
 	t.Run("legacy runner gets workflow_call compatibility event", func(t *testing.T) {
-		runner := &actions_model.ActionRunner{}
-
-		taskContext, err := generateTaskContext(ctx, task, runner)
+		taskContext, err := generateTaskContext(ctx, task, false)
 		require.NoError(t, err)
 
 		assert.Equal(t, "workflow_call", taskContext.Fields["event_name"].GetStringValue())
@@ -192,11 +190,7 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 	})
 
 	t.Run("capable runner gets original event", func(t *testing.T) {
-		runner := &actions_model.ActionRunner{
-			HasWorkflowCallOriginalEventSupport: true,
-		}
-
-		taskContext, err := generateTaskContext(ctx, task, runner)
+		taskContext, err := generateTaskContext(ctx, task, true)
 		require.NoError(t, err)
 
 		assert.Equal(t, "workflow_dispatch", taskContext.Fields["event_name"].GetStringValue())
@@ -214,9 +208,7 @@ func TestGenerateTaskContextReusableEventCompatibility(t *testing.T) {
 	})
 
 	t.Run("legacy runner keeps original event for top-level job", func(t *testing.T) {
-		runner := &actions_model.ActionRunner{}
-
-		taskContext, err := generateTaskContext(ctx, topLevelTask, runner)
+		taskContext, err := generateTaskContext(ctx, topLevelTask, false)
 		require.NoError(t, err)
 
 		assert.Equal(t, "workflow_dispatch", taskContext.Fields["event_name"].GetStringValue())

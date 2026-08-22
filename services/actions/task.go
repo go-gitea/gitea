@@ -100,7 +100,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		return nil, false, nil
 	}
 
-	task, job, err = buildRunnerTask(ctx, t, runner)
+	task, job, err = buildRunnerTask(ctx, t, runner.HasWorkflowCallOriginalEventSupport)
 	if err != nil {
 		// The job was already claimed but assembling its payload failed; release the
 		// claim so the job returns to the waiting queue instead of being stranded in
@@ -130,7 +130,7 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 
 // buildRunnerTask assembles the runner-facing task payload for an already-claimed
 // task. All operations are read-only; on error the caller releases the claim.
-func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask, runner *actions_model.ActionRunner) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
+func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask, hasWorkflowCallOriginalEventSupport bool) (*runnerv1.Task, *actions_model.ActionRunJob, error) {
 	if err := t.LoadAttributes(ctx); err != nil {
 		return nil, nil, fmt.Errorf("task LoadAttributes: %w", err)
 	}
@@ -151,7 +151,7 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask, runner *a
 		return nil, nil, fmt.Errorf("findTaskNeeds: %w", err)
 	}
 
-	taskContext, err := generateTaskContext(ctx, t, runner)
+	taskContext, err := generateTaskContext(ctx, t, hasWorkflowCallOriginalEventSupport)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generateTaskContext: %w", err)
 	}
@@ -166,7 +166,7 @@ func buildRunnerTask(ctx context.Context, t *actions_model.ActionTask, runner *a
 	}, job, nil
 }
 
-func generateTaskContext(ctx context.Context, t *actions_model.ActionTask, runner *actions_model.ActionRunner) (*structpb.Struct, error) {
+func generateTaskContext(ctx context.Context, t *actions_model.ActionTask, hasWorkflowCallOriginalEventSupport bool) (*structpb.Struct, error) {
 	giteaRuntimeToken, err := CreateAuthorizationToken(t.ID, t.Job.RunID, t.JobID)
 	if err != nil {
 		return nil, err
@@ -179,10 +179,10 @@ func generateTaskContext(ctx context.Context, t *actions_model.ActionTask, runne
 			return nil, err
 		}
 
-		if runner.HasWorkflowCallOriginalEventSupport {
+		if hasWorkflowCallOriginalEventSupport {
 			gitCtx["workflow_call_inputs"] = inputs
 		} else {
-			// Compatibility with older runners.
+			// Older runners only read call inputs from event.inputs when event_name is workflow_call.
 			gitCtx["event_name"] = "workflow_call"
 			if event, ok := gitCtx["event"].(map[string]any); ok {
 				event["inputs"] = inputs
