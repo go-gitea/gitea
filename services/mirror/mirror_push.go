@@ -132,7 +132,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			log.Error("GetRemoteURL %s failed, error %v", mirrorLogName, err)
 			return errors.New("GitRemoteGetURL failed")
 		}
-		// re-validate every sync, DNS or the allow/block lists may have changed
+		// re-validate every sync, the allow/block lists may have changed since the mirror was added
 		switch remoteURL.URL.Scheme {
 		case "http", "https", "git":
 			if err := migrations.IsMigrateURLAllowed(remoteURL.String(), m.Repo.MustOwner(ctx)); err != nil {

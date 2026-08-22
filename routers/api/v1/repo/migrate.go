@@ -17,6 +17,7 @@ import (
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -245,11 +246,12 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 		ctx.APIError(http.StatusUnprocessableEntity, err.Error())
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
-		if strings.Contains(err.Error(), "Authentication failed") ||
-			strings.Contains(err.Error(), "Bad credentials") ||
-			strings.Contains(err.Error(), "could not read Username") {
+		stderr, fromGit := gitcmd.ErrorAsStderr(err)
+		if strings.Contains(stderr, "Authentication failed") ||
+			strings.Contains(stderr, "could not read Username") ||
+			strings.Contains(err.Error(), "Bad credentials") { // reported by the go-github client, not by git
 			ctx.APIError(http.StatusUnprocessableEntity, "Authentication failed.")
-		} else if strings.Contains(err.Error(), "fatal:") {
+		} else if fromGit {
 			ctx.APIError(http.StatusUnprocessableEntity, "Migration failed.")
 		} else {
 			ctx.APIErrorInternal(err)

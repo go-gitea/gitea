@@ -28,17 +28,10 @@ type HostMatchList struct {
 // nor a reserved special-purpose range (see reservedIPNets); i.e. a routable host on the public internet.
 const MatchBuiltinExternal = "external"
 
-// reservedIPNets are special-purpose ranges that net.IP.IsPrivate omits but that must not be
-// treated as public/external destinations (CGNAT, cloud metadata, IPv6 transition, etc.). We layer
-// these on top of net.IP.IsPrivate (RFC 1918 / RFC 4193) so future additions to Go's IsPrivate are
-// picked up automatically, while still covering the ranges it leaves out; otherwise the default
-// allow-list would let authenticated users reach cloud metadata, internal, and IPv6 transition
-// endpoints (SSRF), and a "private" block-list would fail to catch them.
 var reservedIPNets = sync.OnceValue(func() []*net.IPNet {
 	var nets []*net.IPNet
 	for _, cidr := range []string{
 		// IPv4
-		"100.64.0.0/10",    // RFC 6598 Carrier-Grade NAT
 		"168.63.129.16/32", // Azure WireServer metadata endpoint
 		"192.0.0.0/24",     // RFC 6890 IETF protocol assignments
 		"192.0.2.0/24",     // RFC 5737 TEST-NET-1
@@ -76,28 +69,35 @@ func isReservedIP(ip net.IP) bool {
 	return false
 }
 
-// MatchBuiltinPrivate is anything neither external nor loopback: LAN/intranet, RFC 1918, RFC 4193, link-local, and reservedIPNets.
+// MatchBuiltinPrivate RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16), RFC 4193 (FC00::/7) and
+// RFC 6598 (100.64.0.0/10). Also called LAN/Intranet.
 const MatchBuiltinPrivate = "private"
+
+// MatchBuiltinReserved link-local (169.254.0.0/16, fe80::/10, carrying cloud metadata) and reservedIPNets.
+const MatchBuiltinReserved = "reserved"
 
 // MatchBuiltinLoopback 127.0.0.0/8 for IPv4, ::1/128 for IPv6, localhost, and the unspecified addresses that reach them.
 const MatchBuiltinLoopback = "loopback"
 
-// ipBuiltinClass classifies ip into exactly one builtin
+var sharedAddressSpace = &net.IPNet{IP: net.IPv4(100, 64, 0, 0), Mask: net.CIDRMask(10, 32)}
+
 func ipBuiltinClass(ip net.IP) string {
 	switch {
 	case len(ip) == 0:
 		return ""
 	case ip.IsLoopback() || ip.IsUnspecified(): // 0.0.0.0 and :: reach localhost
 		return MatchBuiltinLoopback
-	case ip.IsGlobalUnicast() && !isReservedIP(ip) && !ip.IsPrivate():
+	case ip.IsPrivate() || sharedAddressSpace.Contains(ip):
+		return MatchBuiltinPrivate
+	case ip.IsGlobalUnicast() && !isReservedIP(ip):
 		return MatchBuiltinExternal
 	default:
-		return MatchBuiltinPrivate
+		return MatchBuiltinReserved
 	}
 }
 
 func isBuiltin(s string) bool {
-	return s == MatchBuiltinExternal || s == MatchBuiltinPrivate || s == MatchBuiltinLoopback
+	return s == MatchBuiltinExternal || s == MatchBuiltinPrivate || s == MatchBuiltinReserved || s == MatchBuiltinLoopback
 }
 
 // ParseHostMatchList parses the host list HostMatchList

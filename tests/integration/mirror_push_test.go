@@ -78,6 +78,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	defer test.MockVariableValue(&setting.Migrations.AllowLocalNetworks, false)() // the remote is re-checked every sync, not just when added
 	assert.NoError(t, migrations.Init())
+	t.Cleanup(func() { _ = migrations.Init() })
 	assert.False(t, mirror_service.SyncPushMirror(t.Context(), mirrors[0].ID))
 
 	// Cleanup

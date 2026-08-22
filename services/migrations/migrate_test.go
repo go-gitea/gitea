@@ -92,6 +92,7 @@ func TestAllowBlockList(t *testing.T) {
 	init("", "", true)
 	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
 	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
+	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("169.254.169.254")}))
 
 	// allow wildcard, block some subdomains. every resolved address must still be allowed.
 	init("*.domain.com", "blocked.domain.com", false)
