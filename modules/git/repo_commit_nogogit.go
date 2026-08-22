@@ -22,7 +22,7 @@ func (repo *Repository) ResolveReference(ctx context.Context, name string) (stri
 		WithRepo(repo).
 		RunStdString(ctx)
 	if err != nil {
-		if gitcmd.IsStderr(err, gitcmd.StderrNotAValidRef) {
+		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
 		}
 		return "", err

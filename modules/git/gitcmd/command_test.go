@@ -52,8 +52,9 @@ func TestRunWithContextStd(t *testing.T) {
 			assert.Equal(t, stderr, err.Stderr())
 			stderrLower := strings.ToLower(stderr) // see: IsStdErrorNotValidObjectName
 			assert.Equal(t, "fatal: not a valid object name no-such\n", stderrLower)
-			assert.Equal(t, "exit status 128", err.Error())
-			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", strings.ToLower(err.LogString()))
+			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
+			errLower := strings.ToLower(err.Error())
+			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", errLower)
 			assert.Empty(t, stdout)
 		}
 	}
@@ -65,8 +66,9 @@ func TestRunWithContextStd(t *testing.T) {
 			assert.Equal(t, string(stderr), err.Stderr())
 			stderrLower := strings.ToLower(err.Stderr()) // see: IsStdErrorNotValidObjectName
 			assert.Equal(t, "fatal: not a valid object name no-such\n", stderrLower)
-			assert.Equal(t, "exit status 128", err.Error())
-			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", strings.ToLower(err.LogString()))
+			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
+			errLower := strings.ToLower(err.Error())
+			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", errLower)
 			assert.Empty(t, stdout)
 		}
 	}

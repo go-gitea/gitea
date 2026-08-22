@@ -61,7 +61,7 @@ func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, ba
 		Branch: branch,
 		Shared: true,
 	}); err != nil {
-		stderr, _ := gitcmd.ErrorAsStderr(err)
+		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
 			return git.ErrBranchNotExist{
 				Name: branch,
@@ -74,7 +74,7 @@ func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, ba
 				Name:      t.repo.Name,
 			}
 		}
-		return fmt.Errorf("temp repo clone error: %w", err)
+		return fmt.Errorf("temp repo clone error: %w, %s", err, stderr)
 	}
 	gitRepo, err := git.OpenRepositoryLocal(ctx, t.basePath)
 	if err != nil {

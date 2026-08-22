@@ -61,8 +61,8 @@ func (repo *Repository) ConvertToGitID(ctx context.Context, commitID string) (Ob
 		RunStdString(ctx)
 	actualCommitID = strings.TrimSpace(actualCommitID)
 	if err != nil {
-		if gitcmd.IsStderr(err, gitcmd.StderrUnknownRevisionOrPath) ||
-			gitcmd.IsStderr(err, gitcmd.StderrNeededSingleRevision) {
+		if strings.Contains(err.Error(), "unknown revision or path") ||
+			strings.Contains(err.Error(), "fatal: Needed a single revision") {
 			return objectFormat.EmptyObjectID(), ErrNotExist{commitID, ""}
 		}
 		return objectFormat.EmptyObjectID(), err
