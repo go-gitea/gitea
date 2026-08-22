@@ -7,13 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	admin_model "gitea.dev/models/admin"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
+	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/graceful"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/log"
@@ -145,10 +145,10 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 
 	// remoteAddr may contain credentials, so we sanitize it
 	err = util.SanitizeErrorCredentialURLs(err)
-	if strings.Contains(err.Error(), "Authentication failed") ||
-		strings.Contains(err.Error(), "could not read Username") {
+	if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) || gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) {
 		return fmt.Errorf("authentication failed: %w", err)
-	} else if strings.Contains(err.Error(), "fatal:") {
+	}
+	if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
 		return fmt.Errorf("migration failed: %w", err)
 	}
 
