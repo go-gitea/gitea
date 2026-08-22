@@ -81,5 +81,6 @@ func testDoerViewOtherVisibility(t *testing.T) {
 	assert.Equal(t, structs.VisibleTypePublic, organization.DoerViewOtherVisibility(&user_model.User{ID: 1, IsRestricted: true}, &user_model.User{ID: 2}))
 	assert.Equal(t, structs.VisibleTypeLimited, organization.DoerViewOtherVisibility(&user_model.User{ID: 1}, &user_model.User{ID: 2}))
 	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(&user_model.User{ID: 1}, &user_model.User{ID: 1}))
+	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(&user_model.User{ID: 1, IsRestricted: true}, &user_model.User{ID: 1, IsRestricted: true}))
 	assert.Equal(t, structs.VisibleTypePrivate, organization.DoerViewOtherVisibility(&user_model.User{ID: 1, IsAdmin: true}, &user_model.User{ID: 2}))
 }
