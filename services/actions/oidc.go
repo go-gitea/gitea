@@ -90,6 +90,9 @@ func TaskAllowsOIDCToken(ctx context.Context, task *actions_model.ActionTask) (b
 	if err := task.LoadJob(ctx); err != nil {
 		return false, err
 	}
+	if task.Job.TokenPermissions == nil || task.Job.TokenPermissions.IDTokenAccessMode != perm.AccessModeWrite {
+		return false, nil
+	}
 	if err := task.Job.LoadRun(ctx); err != nil {
 		return false, err
 	}

@@ -389,6 +389,12 @@ func TestActionsOIDCTaskContext(t *testing.T) {
 
 	task.Job.Repo = nil
 	task.Job.RepoID = -1
+	allowed, err := TaskAllowsOIDCToken(t.Context(), task)
+	require.NoError(t, err)
+	assert.False(t, allowed)
+	permissions := repo_model.MakeActionsTokenPermissions(perm.AccessModeNone)
+	permissions.IDTokenAccessMode = perm.AccessModeWrite
+	task.Job.TokenPermissions = &permissions
 	_, err = TaskAllowsOIDCToken(t.Context(), task)
 	require.Error(t, err)
 	oauth2_provider.DefaultSigningKey = nil
