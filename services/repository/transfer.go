@@ -511,6 +511,9 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
 			return util.ErrPermissionDenied
 		}
+		if err := DeleteCollaboration(ctx, repo, repoTransfer.Recipient); err != nil {
+			return err
+		}
 
 		repo.Status = repo_model.RepositoryReady
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "status"); err != nil {
@@ -558,6 +561,9 @@ func CancelRepositoryTransfer(ctx context.Context, repoTransfer *repo_model.Repo
 
 		if !canUserCancelTransfer(ctx, repoTransfer, doer) {
 			return util.ErrPermissionDenied
+		}
+		if err := DeleteCollaboration(ctx, repoTransfer.Repo, repoTransfer.Recipient); err != nil {
+			return err
 		}
 
 		repoTransfer.Repo.Status = repo_model.RepositoryReady

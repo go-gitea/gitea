@@ -82,6 +82,19 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, hasAccess)
 
+	assert.NoError(t, RejectRepositoryTransfer(t.Context(), repo, recipient))
+	hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+	assert.NoError(t, err)
+	assert.False(t, hasAccess)
+
+	assert.NoError(t, StartRepositoryTransfer(t.Context(), doer, recipient, repo, nil))
+	transfer, err := repo_model.GetPendingRepositoryTransfer(t.Context(), repo)
+	assert.NoError(t, err)
+	assert.NoError(t, CancelRepositoryTransfer(t.Context(), transfer, doer))
+	hasAccess, err = access_model.HasAnyUnitAccess(t.Context(), recipient.ID, repo)
+	assert.NoError(t, err)
+	assert.False(t, hasAccess)
+
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{}, &user_model.User{}, &organization.Team{})
 }
 
