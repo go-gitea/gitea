@@ -125,7 +125,7 @@ FRONTEND_DEST := public/assets/.vite/manifest.json
 FRONTEND_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts public/assets/.vite
 FRONTEND_DEV_LOG_LEVEL ?= warn
 
-BINDATA_DEST := modules/migration/bindata.dat modules/public/bindata.dat modules/options/bindata.dat modules/templates/bindata.dat
+BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* modules/options/bindata.* modules/templates/bindata.*
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
@@ -200,7 +200,7 @@ clean-all: clean ## delete backend, frontend and integration files
 .PHONY: clean
 clean: ## delete backend and integration files
 	rm -f $(EXECUTABLE) test-*.test tests/*.ini
-	rm -rf  $(DIST) $(BINDATA_DEST) man tests/integration/gitea-integration-*
+	rm -rf  $(DIST) $(BINDATA_DEST_WILDCARD) man tests/integration/gitea-integration-*
 
 .PHONY: fmt
 fmt: ## format the Go and template code
@@ -336,11 +336,11 @@ lint-spell-fix: ## lint spelling and fix issues
 	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
-lint-go: $(BINDATA_DEST) ## lint go files
+lint-go: ## lint go files
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go
 
 .PHONY: lint-go-fix
-lint-go-fix: $(BINDATA_DEST) ## lint go files and fix issues
+lint-go-fix: ## lint go files and fix issues
 	GO=$(GO) GOLANGCI_LINT_PACKAGE=$(GOLANGCI_LINT_PACKAGE) $(GO) run ./tools/lint-go-all.go --fix
 
 .PHONY: lint-editorconfig
@@ -512,10 +512,7 @@ generate-backend: $(TAGS_PREREQ) generate-go
 .PHONY: generate-go
 generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
-	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags '$(TAGS)' ./modules/...
-
-$(BINDATA_DEST):
-	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags bindata ./modules/...
+	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags '$(TAGS)' ./...
 
 .PHONY: security-check
 security-check:
