@@ -797,6 +797,15 @@ func TestActionsArtifactV4DownloadRawArtifactCorrectRepoMissingSignatureUnauthor
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
+func TestActionsArtifactV4DownloadRawArtifactMismatchedRepoMissingSignatureUnauthorized(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	// Signature validation must not reveal whether artifact 22 belongs to this repository.
+	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil)
+	MakeRequest(t, req, http.StatusUnauthorized)
+}
+
 func TestActionsArtifactV4Delete(t *testing.T) {
 	defer prepareTestEnvActionsArtifacts(t)()
 

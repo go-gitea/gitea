@@ -2159,17 +2159,13 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 		}
 		return
 	}
-	art := getArtifactByPathParam(ctx, repo)
-	if ctx.Written() {
-		return
-	}
-
 	sigStr := ctx.Req.URL.Query().Get("sig")
 	expiresStr := ctx.Req.URL.Query().Get("expires")
 	sigBytes, _ := base64.RawURLEncoding.DecodeString(sigStr)
 	expires, _ := strconv.ParseInt(expiresStr, 10, 64)
+	artifactID := ctx.PathParamInt64("artifact_id")
 
-	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, art.ID), expires, art.ID)
+	expectedSig := buildSignature(buildDownloadRawEndpoint(repo, artifactID), expires, artifactID)
 	if !hmac.Equal(sigBytes, expectedSig) {
 		ctx.APIError(http.StatusUnauthorized, "Error unauthorized")
 		return
@@ -2177,6 +2173,11 @@ func DownloadArtifactRaw(ctx *context.APIContext) {
 	t := time.Unix(expires, 0)
 	if t.Before(time.Now()) {
 		ctx.APIError(http.StatusUnauthorized, "Error link expired")
+		return
+	}
+
+	art := getArtifactByPathParam(ctx, repo)
+	if ctx.Written() {
 		return
 	}
 
