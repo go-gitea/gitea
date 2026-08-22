@@ -451,7 +451,7 @@ $(GO_LICENSE_FILE): go.mod go.sum
 	GO=$(GO) $(GO) run build/generate-go-licenses.go $(GO_LICENSE_FILE)
 
 .PHONY: test-integration
-test-integration:
+test-integration: $(EXECUTABLE)
 	@# Use a compiled binary: testlogger forwards gitea logs to t.Log, so `go test -v`
 	@# would flood output per passing test. testcache can't help these tests anyway —
 	@# they mutate the work directory, so cache inputs change between runs.
@@ -463,7 +463,7 @@ test-integration-compile:
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -c -o /dev/null gitea.dev/tests/integration
 
 .PHONY: test-integration\#%
-test-integration\#%:
+test-integration\#%: $(EXECUTABLE)
 	$(GO) test $(GOTEST_FLAGS) -tags '$(TAGS)' -run $(subst .,/,$*) gitea.dev/tests/integration
 
 .PHONY: test-migration
