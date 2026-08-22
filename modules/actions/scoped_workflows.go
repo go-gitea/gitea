@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"path"
 
 	"gitea.dev/modules/actions/jobparser"
 	"gitea.dev/modules/git"
@@ -21,15 +22,16 @@ func ListScopedWorkflows(ctx context.Context, gitRepo *git.Repository, commit *g
 
 // ParsedScopedWorkflow is one scoped workflow's source-side parse result
 type ParsedScopedWorkflow struct {
-	EntryName   string
-	DisplayName string             // the workflow `name:` or base file name
-	Content     []byte             // raw content of the workflow file
-	Events      []*jobparser.Event // decoded `on:` events
+	EntryName    string
+	WorkflowPath string
+	DisplayName  string             // the workflow `name:` or base file name
+	Content      []byte             // raw content of the workflow file
+	Events       []*jobparser.Event // decoded `on:` events
 }
 
 // ParseScopedWorkflows lists and parses the scoped workflow files at sourceCommit (under SCOPED_WORKFLOW_DIRS).
 func ParseScopedWorkflows(ctx context.Context, gitRepo *git.Repository, sourceCommit *git.Commit) ([]*ParsedScopedWorkflow, error) {
-	_, entries, err := ListScopedWorkflows(ctx, gitRepo, sourceCommit)
+	workflowDir, entries, err := ListScopedWorkflows(ctx, gitRepo, sourceCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -48,10 +50,11 @@ func ParseScopedWorkflows(ctx context.Context, gitRepo *git.Repository, sourceCo
 			continue
 		}
 		parsed = append(parsed, &ParsedScopedWorkflow{
-			EntryName:   entry.Name(),
-			DisplayName: WorkflowDisplayName(entry.Name(), content),
-			Content:     content,
-			Events:      events,
+			EntryName:    entry.Name(),
+			WorkflowPath: path.Join(workflowDir, entry.Name()),
+			DisplayName:  WorkflowDisplayName(entry.Name(), content),
+			Content:      content,
+			Events:       events,
 		})
 	}
 	return parsed, nil
@@ -76,6 +79,7 @@ func MatchScopedWorkflows(
 			}
 			dwf := &DetectedWorkflow{
 				EntryName:       p.EntryName,
+				WorkflowPath:    p.WorkflowPath,
 				TriggerEvent:    evt,
 				Content:         p.Content,
 				SourceCommitSHA: sourceCommitSHA,

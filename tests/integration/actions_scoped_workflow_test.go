@@ -104,6 +104,7 @@ func TestActionsScopedWorkflows(t *testing.T) {
 			run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: consumer.ID, IsScopedRun: true})
 			assert.Equal(t, source.ID, run.WorkflowRepoID, "content source is the source repo")
 			assert.Equal(t, "push.yaml", run.WorkflowID)
+			assert.Equal(t, ".gitea/scoped_workflows/push.yaml", run.WorkflowPath)
 			assert.Equal(t, 1, unittest.GetCount(t, &actions_model.ActionRun{RepoID: consumer.ID}), "only the scoped run, no repo-level run")
 			job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{RunID: run.ID})
 

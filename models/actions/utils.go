@@ -98,6 +98,7 @@ func (s *ActionSchedule) ToActionRun() *ActionRun {
 		Repo:          s.Repo,
 		OwnerID:       s.OwnerID,
 		WorkflowID:    s.WorkflowID,
+		WorkflowPath:  s.WorkflowPath,
 		TriggerUserID: s.TriggerUserID,
 		TriggerUser:   s.TriggerUser,
 		Ref:           s.Ref,
