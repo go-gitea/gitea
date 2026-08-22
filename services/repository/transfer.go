@@ -23,6 +23,8 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/util"
 	notify_service "gitea.dev/services/notify"
+
+	"xorm.io/builder"
 )
 
 type LimitReachedError struct{ Limit int }
@@ -471,15 +473,17 @@ func StartRepositoryTransfer(ctx context.Context, doer, newOwner *user_model.Use
 		if err != nil {
 			return err
 		}
+		recipientAccessGranted := false
 		if !hasAccess {
 			if err := AddOrUpdateCollaborator(ctx, repo, newOwner, perm.AccessModeRead); err != nil {
 				return err
 			}
+			recipientAccessGranted = true
 		}
 
 		// Make repo as pending for transfer
 		repo.Status = repo_model.RepositoryPendingTransfer
-		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams)
+		return repo_model.CreatePendingRepositoryTransfer(ctx, doer, newOwner, repo.ID, teams, recipientAccessGranted)
 	}); err != nil {
 		return err
 	}
@@ -511,7 +515,7 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 		if !repoTransfer.CanUserAcceptOrRejectTransfer(ctx, doer) {
 			return util.ErrPermissionDenied
 		}
-		if err := DeleteCollaboration(ctx, repo, repoTransfer.Recipient); err != nil {
+		if err := removeTransferRecipientCollaboration(ctx, repoTransfer); err != nil {
 			return err
 		}
 
@@ -522,6 +526,22 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 
 		return repo_model.DeleteRepositoryTransfer(ctx, repo.ID)
 	})
+}
+
+func removeTransferRecipientCollaboration(ctx context.Context, repoTransfer *repo_model.RepoTransfer) error {
+	if !repoTransfer.RecipientAccessGranted {
+		return nil
+	}
+
+	collaboration := &repo_model.Collaboration{}
+	has, err := db.GetEngine(ctx).Where(builder.Eq{
+		"repo_id": repoTransfer.RepoID,
+		"user_id": repoTransfer.RecipientID,
+	}).Get(collaboration)
+	if err != nil || !has || collaboration.Mode != perm.AccessModeRead {
+		return err
+	}
+	return DeleteCollaboration(ctx, repoTransfer.Repo, repoTransfer.Recipient)
 }
 
 func canUserCancelTransfer(ctx context.Context, r *repo_model.RepoTransfer, u *user_model.User) bool {
@@ -562,7 +582,7 @@ func CancelRepositoryTransfer(ctx context.Context, repoTransfer *repo_model.Repo
 		if !canUserCancelTransfer(ctx, repoTransfer, doer) {
 			return util.ErrPermissionDenied
 		}
-		if err := DeleteCollaboration(ctx, repoTransfer.Repo, repoTransfer.Recipient); err != nil {
+		if err := removeTransferRecipientCollaboration(ctx, repoTransfer); err != nil {
 			return err
 		}
 
