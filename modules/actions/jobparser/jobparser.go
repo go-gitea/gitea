@@ -263,7 +263,7 @@ func validateMatrixFilters(job *model.Job) error {
 }
 
 // buildMatrixCombos builds one Job per matrix combination from src, baking the combination into the
-// strategy and interpolating the name, runs-on and continue-on-error with it.
+// strategy and interpolating the name, runs-on, continue-on-error and container with it.
 func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob *model.Job, gitCtx *model.GithubContext, results map[string]*JobResult, vars map[string]string, inputs map[string]any) ([]*Job, error) {
 	srcRunsOn := src.RunsOn()
 	combos := make([]*Job, 0, len(matrixes))
@@ -287,6 +287,9 @@ func buildMatrixCombos(jobID string, src *Job, matrixes []map[string]any, actJob
 		combo.RawRunsOn = encodeRunsOn(runsOn)
 		if err := evaluator.EvaluateYamlNode(&combo.RawContinueOnError); err != nil {
 			return nil, fmt.Errorf("evaluate continue-on-error for job %q: %w", jobID, err)
+		}
+		if err := evaluator.EvaluateYamlNode(&combo.RawContainer); err != nil {
+			return nil, fmt.Errorf("evaluate container for job %q: %w", jobID, err)
 		}
 		combos = append(combos, combo)
 	}
