@@ -511,18 +511,22 @@ td .commit-summary {
   margin-left: -16px;
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line {
+.comment-text-line {
   color: var(--color-text-light);
   flex: 1;
   min-width: 0;
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
+.comment-text-line .ui.label {
   line-height: 1.5; /* label has background, so it can't use parent's line-height */
 }
 
-.repository.view.issue .comment-list .timeline-item .comment-text-line a {
+.comment-text-line a {
   color: inherit;
+}
+
+.comment-text-line a:hover {
+  color: var(--color-primary);
 }
 
 .repository.view.issue .comment-list .timeline-item.commits-list {
@@ -718,6 +722,12 @@ td .commit-summary {
 
 .repository.branches .commit-divergence .bar.bar-ahead {
   left: 0;
+}
+
+@media (forced-colors: active) {
+  .repository.branches .commit-divergence .bar {
+    background: CanvasText;
+  }
 }
 
 .repository.commits .header .search input {
