@@ -662,10 +662,25 @@ func TestActionsArtifactV4DownloadSinglePublicApi(t *testing.T) {
 	body := strings.Repeat("D", 1024)
 	assert.Equal(t, body, resp.Body.String())
 
-	// confirm artifact can not be downloaded without query
-	req = NewRequestWithBody(t, "GET", blobLocation, nil)
+	req = NewRequestWithBody(t, "GET", blobLocation, nil).AddTokenAuth(token)
 	req.URL.RawQuery = ""
-	_ = MakeRequest(t, req, http.StatusUnauthorized)
+	unauthorizedResp := MakeRequest(t, req, http.StatusUnauthorized)
+
+	otherRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	require.NotEqual(t, repo.ID, otherRepo.ID)
+	for _, testCase := range []struct {
+		name string
+		path string
+	}{
+		{"other repository", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", otherRepo.FullName(), listResp.Entries[0].ID)},
+		{"missing artifact", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/0/zip/raw", repo.FullName())},
+		{"missing repository", fmt.Sprintf("/api/v1/repos/%s/does-not-exist/actions/artifacts/%d/zip/raw", repo.OwnerName, listResp.Entries[0].ID)},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			invalidResp := MakeRequest(t, NewRequestWithBody(t, "GET", testCase.path, nil), http.StatusUnauthorized)
+			assert.Equal(t, unauthorizedResp.Body.String(), invalidResp.Body.String())
+		})
+	}
 }
 
 func TestActionsArtifactV4DownloadSinglePublicApiPrivateRepo(t *testing.T) {
@@ -781,33 +796,6 @@ func TestActionsArtifactV4DownloadArtifactCorrectRepoFound(t *testing.T) {
 	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip", repo.FullName(), 22), nil).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusFound)
-}
-
-func TestActionsArtifactV4DownloadRawArtifactCorrectRepoMissingSignatureUnauthorized(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-
-	// confirm cannot use the raw artifact endpoint even with a correct access token
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusUnauthorized)
-}
-
-func TestActionsArtifactV4DownloadRawArtifactMismatchedRepoMissingSignatureUnauthorized(t *testing.T) {
-	defer prepareTestEnvActionsArtifacts(t)()
-
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	// Signature validation must not reveal whether artifact 22 belongs to this repository.
-	req := NewRequestWithBody(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/artifacts/%d/zip/raw", repo.FullName(), 22), nil)
-	MakeRequest(t, req, http.StatusUnauthorized)
-
-	// Signature validation must not reveal whether the repository exists.
-	req = NewRequestWithBody(t, "GET", "/api/v1/repos/user2/does-not-exist/actions/artifacts/22/zip/raw", nil)
-	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestActionsArtifactV4Delete(t *testing.T) {
