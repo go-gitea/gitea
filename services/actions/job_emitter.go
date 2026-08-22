@@ -68,10 +68,8 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 		return fmt.Errorf("get action run: %w", err)
 	}
 	if !exist {
-		// The run no longer exists (e.g. its repository was deleted), so there is
-		// nothing left to emit. Treat the update as handled instead of requeueing
-		// it forever — the repository is gone and the run will never come back.
-		log.Debug("check run %d: run does not exist, dropping queued update", runID)
+		// a deleted run never comes back, returning an error here would requeue the update forever
+		log.Debug("check run %d: run no longer exists, dropping the queued update", runID)
 		return nil
 	}
 	var result jobsCheckResult
