@@ -510,10 +510,11 @@ generate: generate-backend ## run "go generate"
 generate-backend: $(TAGS_PREREQ) generate-go
 
 .PHONY: generate-go
-generate-go: $(TAGS_PREREQ) $(if $(findstring bindata,$(TAGS)),$(BINDATA_DEST))
+generate-go: $(TAGS_PREREQ)
+	@echo "Running go generate..."
+	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags '$(TAGS)' ./modules/...
 
 $(BINDATA_DEST):
-	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= CGO_ENABLED=0 $(GO) generate -tags bindata ./modules/...
 
 .PHONY: security-check
