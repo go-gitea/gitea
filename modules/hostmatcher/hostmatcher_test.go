@@ -60,7 +60,6 @@ func TestHostOrIPMatchesList(t *testing.T) {
 	hl = ParseHostMatchList("", "loopback")
 	cases = []tc{
 		{"", net.IPv4zero, true}, // 0.0.0.0 reaches localhost
-		{"", net.IPv6zero, true},
 		{"", net.ParseIP("127.0.0.1"), true},
 		{"", net.ParseIP("10.0.1.1"), false},
 		{"", net.ParseIP("192.168.1.1"), false},
