@@ -1,14 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-# RELEASE_ALL_ARCHS ?= linux/amd64 linux/386 linux/arm-5 linux/arm-6 linux/arm64 linux/riscv64 windows/386 windows/amd64 windows/arm64 darwin/amd64 darwin/arm64 freebsd/amd64
-# RELEASE_GOGIT_ALL_ARCHS ?= windows/386 windows/amd64 windows/arm64
-# RELEASE_GOGIT_ARCHS = $(if $(findstring gogit,$(TAGS)),,$(RELEASE_GOGIT_ALL_ARCHS))
-# RELEASE_PREFIX='$(DIST)/binaries/gitea-$(VERSION)' \
-# RELEASE_ARCHS
+#GO=echo # dry run for testing
 
-platform="${1:-}"
-prefix="${RELEASE_PREFIX:?}"
+RELEASE_LDFLAGS="-s -w $LDFLAGS"
+RELEASE_TAGS="$TAGS"
+RELEASE_PATH_PREFIX="$(DIST)/binaries/gitea-$(VERSION)"
+
+RELEASE_PLATFORMS_DEFAULT=linux/amd64 linux/386 linux/arm-5 linux/arm-6 linux/arm64 linux/riscv64 \
+  windows/386 windows/amd64 windows/arm64 \
+  darwin/amd64 darwin/arm64 \
+  freebsd/amd64
+
+RELEASE_PLATFORMS_GOGIT=windows/386 windows/amd64 windows/arm64
 
 build() {
 	local target="${1:?}"
@@ -32,30 +36,29 @@ build() {
 		suffix="-${target//\//-}"
 	fi
 
-	output="${prefix}${suffix}"
+	output="${RELEASE_PATH_PREFIX}${suffix}"
 	args=()
 	if [[ "$goos" == "windows" ]]; then
 		output="${output}.exe"
-		args+=(-buildmode=exe)
 	fi
-	if [[ -n "$tags" ]]; then
-		args+=(-tags "$tags")
-	fi
-	if [[ -n "${RELEASE_LDFLAGS:-}" ]]; then
-		args+=(-ldflags "$RELEASE_LDFLAGS")
-	fi
-
+  args+=(-tags "$tags")
+  args+=(-ldflags "$RELEASE_LDFLAGS")
 	CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" GOARM="$goarm" "${GO:-go}" build "${args[@]}" -o "$output" .
 }
 
-for target in ${RELEASE_ARCHS:-}; do
-	if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
-		build "$target"
-	fi
-done
+main() {
+  platform="${1:-}"
+  for target in ${RELEASE_PLATFORMS_DEFAULT:-}; do
+    if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
+      build "$target"
+    fi
+  done
 
-for target in ${RELEASE_GOGIT_ARCHS:-}; do
-	if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
-		build "$target" gogit
-	fi
-done
+  for target in ${RELEASE_PLATFORMS_GOGIT:-}; do
+    if [[ -z "$platform" || "$target" == "$platform/"* ]]; then
+      build "$target" "gogit"
+    fi
+  done
+}
+
+main "$@"

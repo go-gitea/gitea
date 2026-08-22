@@ -117,7 +117,7 @@ ifeq ($(VERSION),main)
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
-RELEASE_ENV = GO="$(GO)" TAGS='$(TAGS)' LDFLAGS='$(LDFLAGS)' DIST='$(DIST)'
+RELEASE_ENV = GO="$(GO)" TAGS="$(TAGS)" LDFLAGS="$(LDFLAGS)" DIST="$(DIST)" VERSION="$(VERSION)"
 
 GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list gitea.dev/modelmigration/...) gitea.dev/tests/integration/migration-test gitea.dev/tests gitea.dev/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list gitea.dev/modelmigration/...)
