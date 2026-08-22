@@ -174,4 +174,19 @@ func TestComputeTaskTokenPermissionsIDToken(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, perm.AccessModeNone, effective.IDTokenAccessMode)
 	})
+
+	t.Run("reusable caller parent cycle", func(t *testing.T) {
+		task, repo := loadTask(t)
+		parentA := &ActionRunJob{RunID: task.Job.RunID, RepoID: task.Job.RepoID, OwnerID: task.Job.OwnerID, IsReusableCaller: true}
+		require.NoError(t, db.Insert(t.Context(), parentA))
+		parentB := &ActionRunJob{RunID: task.Job.RunID, RepoID: task.Job.RepoID, OwnerID: task.Job.OwnerID, ParentJobID: parentA.ID, IsReusableCaller: true}
+		require.NoError(t, db.Insert(t.Context(), parentB))
+		parentA.ParentJobID = parentB.ID
+		_, err := UpdateRunJob(t.Context(), parentA, nil, "parent_job_id")
+		require.NoError(t, err)
+		task.Job.ParentJobID = parentA.ID
+
+		_, err = ComputeTaskTokenPermissions(t.Context(), task, repo)
+		require.ErrorContains(t, err, "reusable workflow job parent cycle")
+	})
 }
