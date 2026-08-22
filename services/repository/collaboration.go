@@ -85,17 +85,22 @@ func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u
 }
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
-func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User) (err error) {
-	collaboration := &repo_model.Collaboration{
-		RepoID: repo.ID,
-		UserID: collaborator.ID,
-	}
+func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User) error {
+	return deleteCollaboration(ctx, repo, collaborator, &repo_model.Collaboration{RepoID: repo.ID, UserID: collaborator.ID})
+}
 
+func deleteCollaborationByMode(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User, mode perm.AccessMode) error {
+	return deleteCollaboration(ctx, repo, collaborator, &repo_model.Collaboration{
+		RepoID: repo.ID, UserID: collaborator.ID, Mode: mode,
+	})
+}
+
+func deleteCollaboration(ctx context.Context, repo *repo_model.Repository, collaborator *user_model.User, collaboration *repo_model.Collaboration) (err error) {
 	deleted := false
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if has, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
+		if n, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
 			return err
-		} else if has == 0 {
+		} else if n == 0 {
 			return nil
 		}
 		deleted = true
@@ -103,12 +108,7 @@ func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, colla
 		if err := repo.LoadOwner(ctx); err != nil {
 			return err
 		}
-
 		if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
-			return err
-		}
-
-		if err = repo_model.WatchRepoAuto(ctx, collaborator, repo, false); err != nil {
 			return err
 		}
 
@@ -143,7 +143,8 @@ func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Reposito
 }
 
 func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {
-	if has, err := access_model.HasAnyUnitAccess(ctx, user.ID, repo); err != nil || has {
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
+	if err != nil || permission.HasAnyUnitAccessOrPublicAccess() {
 		return err
 	}
 	if err := repo_model.WatchRepoAuto(ctx, user, repo, false); err != nil {

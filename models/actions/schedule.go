@@ -30,8 +30,8 @@ type ActionSchedule struct {
 	Ref           string
 	CommitSHA     string
 	Event         webhook_module.HookEventType
-	EventPayload  string `xorm:"LONGTEXT"`
-	Content       []byte
+	EventPayload  string             `xorm:"LONGTEXT"`
+	Content       []byte             `xorm:"LONGBLOB"`
 	Created       timeutil.TimeStamp `xorm:"created"`
 	Updated       timeutil.TimeStamp `xorm:"updated"`
 }
