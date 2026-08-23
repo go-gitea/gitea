@@ -138,7 +138,7 @@ func testAPIOrgGeneral(t *testing.T) {
 		apiOrgList = DecodeJSON(t, resp, []*api.Organization{})
 		assert.Len(t, apiOrgList, 9)
 		for _, org := range apiOrgList {
-			assert.Equal(t, api.VisibilityStringPublic, org.Visibility)
+			assert.Equal(t, api.UserVisibilityPublic, org.Visibility)
 		}
 
 		// accessing without a token will return only public orgs
