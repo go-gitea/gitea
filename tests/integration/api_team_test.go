@@ -329,6 +329,15 @@ func TestAPIAddRemoveTeamRepositoryRequiresOrgOwnerOrSetting(t *testing.T) {
 	req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 	unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
+
+	siteAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	token = getUserToken(t, siteAdmin.Name, auth_model.AccessTokenScopeWriteOrganization)
+	req = NewRequest(t, "DELETE", url).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+	unittest.AssertNotExistsBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
+	req = NewRequest(t, "PUT", url).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNoContent)
+	unittest.AssertExistsAndLoadBean(t, &organization.TeamRepo{TeamID: team.ID, RepoID: targetRepo.ID})
 }
 
 func TestAPITeamVisibilityAccess(t *testing.T) {

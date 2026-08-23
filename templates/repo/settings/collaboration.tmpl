@@ -51,7 +51,7 @@
 			<h4 class="ui top attached header">
 				{{ctx.Locale.Tr "repo.settings.teams"}}
 			</h4>
-			{{$allowedToChangeTeams := (or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
+			{{$allowedToChangeTeams := .CanChangeRepoTeamAccess}}
 			{{if .Teams}}
 			<div class="ui attached segment">
 				<div class="flex-divided-list items-with-main">

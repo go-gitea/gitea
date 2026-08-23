@@ -240,40 +240,27 @@ func TestAddTeamPost(t *testing.T) {
 
 func TestAddTeamPost_NotAllowed(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, _ := contexttest.MockContext(t, "org26/repo43")
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
+	require.NoError(t, repo.LoadOwner(t.Context()))
+	adminTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 12})
+	targetTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	require.NoError(t, repo_service.TeamAddRepository(t.Context(), adminTeam, repo))
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+	repoContext := &context.Repository{Owner: repo.Owner, Repository: repo}
+	renderCtx, _ := contexttest.MockContext(t, repo.Link()+"/settings/collaboration")
+	renderCtx.Repo = repoContext
+	renderCtx.Doer = doer
+	Collaboration(renderCtx)
+	assert.Equal(t, false, renderCtx.Data["CanChangeRepoTeamAccess"])
 
-	ctx.Req.Form.Set("team", "team11")
-
-	org := &user_model.User{
-		LowerName: "org26",
-		Type:      user_model.UserTypeOrganization,
-	}
-
-	team := &organization.Team{
-		ID:    11,
-		OrgID: 26,
-	}
-
-	re := &repo_model.Repository{
-		ID:      43,
-		Owner:   org,
-		OwnerID: 26,
-	}
-
-	repo := &context.Repository{
-		Owner: &user_model.User{
-			ID:                        26,
-			LowerName:                 "org26",
-			RepoAdminChangeTeamAccess: false,
-		},
-		Repository: re,
-	}
-
-	ctx.Repo = repo
+	ctx, _ := contexttest.MockContext(t, repo.Link()+"/settings/collaboration")
+	ctx.Req.Form.Set("team", targetTeam.Name)
+	ctx.Repo = repoContext
+	ctx.Doer = doer
 
 	AddTeamPost(ctx)
 
-	assert.False(t, repo_service.HasRepository(t.Context(), team, re.ID))
+	assert.False(t, repo_service.HasRepository(t.Context(), targetTeam, repo.ID))
 	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
