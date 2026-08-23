@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -36,11 +35,11 @@ func TestAPIDeleteRepositoryRequiresTargetRepoAdmin(t *testing.T) {
 	require.NoError(t, repo_service.TeamAddRepository(t.Context(), team, targetRepo))
 
 	token := getUserToken(t, doer.Name, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s", unrelatedRepo.FullName())).AddTokenAuth(token)
+	req := NewRequest(t, "DELETE", "/api/v1/repos/"+unrelatedRepo.FullName()).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: unrelatedRepo.ID})
 
-	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s", targetRepo.FullName())).AddTokenAuth(token)
+	req = NewRequest(t, "DELETE", "/api/v1/repos/"+targetRepo.FullName()).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{ID: targetRepo.ID})
 }

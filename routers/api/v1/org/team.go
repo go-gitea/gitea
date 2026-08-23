@@ -17,6 +17,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
 	api "gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
 	"gitea.dev/modules/web"
@@ -659,12 +660,7 @@ func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
 }
 
 func canChangeTeamRepository(ctx *context.APIContext, repo *repo_model.Repository) bool {
-	accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return false
-	}
-	canChange, err := ctx.Org.Organization.CanChangeRepoTeamAccess(ctx, ctx.Doer, accessMode)
+	canChange, err := repo_module.CanUserChangeTeamAccess(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return false

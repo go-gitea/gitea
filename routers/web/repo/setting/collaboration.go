@@ -14,6 +14,7 @@ import (
 	unit_model "gitea.dev/models/unit"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
 	"gitea.dev/services/mailer"
@@ -44,7 +45,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Org"] = ctx.Repo.Repository.Owner
 	ctx.Data["Units"] = unit_model.Units
 	if ctx.Repo.Owner.IsOrganization() {
-		ctx.Data["CanChangeRepoTeamAccess"], err = organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer, ctx.Repo.Permission.AccessMode)
+		ctx.Data["CanChangeRepoTeamAccess"], err = repo_module.CanUserChangeTeamAccess(ctx, ctx.Repo.Repository, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("CanChangeRepoTeamAccess", err)
 			return
@@ -226,7 +227,7 @@ func DeleteTeam(ctx *context.Context) {
 }
 
 func canChangeRepoTeamAccess(ctx *context.Context) bool {
-	canChange, err := organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer, ctx.Repo.Permission.AccessMode)
+	canChange, err := repo_module.CanUserChangeTeamAccess(ctx, ctx.Repo.Repository, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("CanChangeRepoTeamAccess", err)
 		return false

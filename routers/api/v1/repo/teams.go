@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"gitea.dev/models/organization"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/services/context"
 	"gitea.dev/services/convert"
 	repo_service "gitea.dev/services/repository"
@@ -225,7 +226,7 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 }
 
 func canChangeRepoTeam(ctx *context.APIContext) bool {
-	canChange, err := organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer, ctx.Repo.Permission.AccessMode)
+	canChange, err := repo_module.CanUserChangeTeamAccess(ctx, ctx.Repo.Repository, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return false

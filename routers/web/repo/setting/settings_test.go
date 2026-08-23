@@ -205,7 +205,7 @@ func TestAddTeamPost(t *testing.T) {
 	}
 
 	ctx.Repo = repo
-	ctx.Doer = &user_model.User{ID: 1}
+	ctx.Doer = &user_model.User{ID: 1, IsAdmin: true}
 
 	AddTeamPost(ctx)
 
@@ -274,7 +274,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 	}
 
 	ctx.Repo = repo
-	ctx.Doer = &user_model.User{ID: 1}
+	ctx.Doer = &user_model.User{ID: 1, IsAdmin: true}
 
 	AddTeamPost(ctx)
 
@@ -312,7 +312,7 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 	}
 
 	ctx.Repo = repo
-	ctx.Doer = &user_model.User{ID: 1}
+	ctx.Doer = &user_model.User{ID: 1, IsAdmin: true}
 
 	AddTeamPost(ctx)
 	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
@@ -352,7 +352,7 @@ func TestDeleteTeam(t *testing.T) {
 	}
 
 	ctx.Repo = repo
-	ctx.Doer = &user_model.User{ID: 1}
+	ctx.Doer = &user_model.User{ID: 1, IsAdmin: true}
 
 	DeleteTeam(ctx)
 
