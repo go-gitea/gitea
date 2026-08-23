@@ -236,7 +236,7 @@ func (opts SearchOptions) ToConds() builder.Cond {
 }
 
 func (opts SearchOptions) ToOrders() string {
-	return opts.OrderBy.String()
+	return util.IfZero(opts.OrderBy.String(), "id")
 }
 
 func GetSearchOrderByBySortType(sortType string) db.SearchOrderBy {

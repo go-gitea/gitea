@@ -279,17 +279,20 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			release.TargetCommitish = ""
 		}
 
+		publishedAt := util.Iif(release.Published.IsZero(), release.Created, release.Published)
+
 		rel := repo_model.Release{
-			RepoID:       g.repo.ID,
-			TagName:      release.TagName,
-			LowerTagName: strings.ToLower(release.TagName),
-			Target:       release.TargetCommitish,
-			Title:        release.Name,
-			Note:         release.Body,
-			IsDraft:      release.Draft,
-			IsPrerelease: release.Prerelease,
-			IsTag:        false,
-			CreatedUnix:  timeutil.TimeStamp(release.Created.Unix()),
+			RepoID:        g.repo.ID,
+			TagName:       release.TagName,
+			LowerTagName:  strings.ToLower(release.TagName),
+			Target:        release.TargetCommitish,
+			Title:         release.Name,
+			Note:          release.Body,
+			IsDraft:       release.Draft,
+			IsPrerelease:  release.Prerelease,
+			IsTag:         false,
+			CreatedUnix:   timeutil.TimeStamp(release.Created.Unix()),
+			PublishedUnix: util.Iif(release.Draft, 0, timeutil.TimeStamp(publishedAt.Unix())),
 		}
 
 		if err := g.remapUser(ctx, release, &rel); err != nil {
