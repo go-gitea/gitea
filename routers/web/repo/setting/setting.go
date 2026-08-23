@@ -198,7 +198,7 @@ func SettingsPost(ctx *context.Context) {
 }
 
 func handleSettingsPostUpdate(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSettingsOptions)
@@ -215,11 +215,13 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 		}
 		if err := repo_service.ChangeRepositoryName(ctx, ctx.Doer, repo, newRepoName); err != nil {
 			ctx.Data["Err_RepoName"] = true
+			var errNameReserved db.ErrNameReserved
+			var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 			switch {
 			case repo_model.IsErrRepoAlreadyExist(err):
 				ctx.RenderWithErrDeprecated(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
-			case db.IsErrNameReserved(err):
-				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
+			case errors.As(err, &errNameReserved):
+				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_reserved", errNameReserved.Name), tplSettingsOptions, &form)
 			case repo_model.IsErrRepoFilesAlreadyExist(err):
 				ctx.Data["Err_RepoName"] = true
 				switch {
@@ -232,8 +234,8 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 				default:
 					ctx.RenderWithErrDeprecated(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
 				}
-			case db.IsErrNamePatternNotAllowed(err):
-				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+			case errors.As(err, &errNamePatternNotAllowed):
+				ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tplSettingsOptions, &form)
 			default:
 				ctx.ServerError("ChangeRepositoryName", err)
 			}
@@ -260,7 +262,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 }
 
 func handleSettingsPostMirror(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if !setting.Mirror.Enabled || !repo.IsMirror || repo.IsArchived {
 		ctx.NotFound(nil)
@@ -375,7 +377,7 @@ func handleSettingsPostMirrorSync(ctx *context.Context) {
 }
 
 func handleSettingsPostPushMirrorSync(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 
 	if !setting.Mirror.Enabled {
@@ -396,7 +398,7 @@ func handleSettingsPostPushMirrorSync(ctx *context.Context) {
 }
 
 func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 
 	if !setting.Mirror.Enabled || repo.IsArchived {
@@ -438,7 +440,7 @@ func handleSettingsPostPushMirrorUpdate(ctx *context.Context) {
 }
 
 func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 
 	if !setting.Mirror.Enabled || repo.IsArchived {
@@ -471,7 +473,7 @@ func handleSettingsPostPushMirrorRemove(ctx *context.Context) {
 }
 
 func handleSettingsPostPushMirrorAdd(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 
 	if setting.Mirror.DisableNewPush || repo.IsArchived {
@@ -546,7 +548,7 @@ func newRepoUnit(repo *repo_model.Repository, unitType unit_model.Type, config c
 }
 
 func handleSettingsPostAdvanced(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	var repoChanged bool
 	var units []repo_model.RepoUnit
@@ -703,7 +705,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 }
 
 func handleSettingsPostSigning(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	trustModel := repo_model.ToTrustModel(form.TrustModel)
 	if trustModel != repo.TrustModel {
@@ -726,7 +728,7 @@ func handleSettingsPostAdmin(ctx *context.Context) {
 	}
 
 	repo := ctx.Repo.Repository
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	if repo.IsFsckEnabled != form.EnableHealthCheck {
 		repo.IsFsckEnabled = form.EnableHealthCheck
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_fsck_enabled"); err != nil {
@@ -741,7 +743,7 @@ func handleSettingsPostAdmin(ctx *context.Context) {
 }
 
 func handleSettingsPostAdminIndex(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if !ctx.Doer.IsAdmin {
 		ctx.HTTPError(http.StatusForbidden)
@@ -772,7 +774,7 @@ func handleSettingsPostAdminIndex(ctx *context.Context) {
 }
 
 func handleSettingsPostConvert(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
@@ -802,7 +804,7 @@ func handleSettingsPostConvert(ctx *context.Context) {
 }
 
 func handleSettingsPostConvertFork(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
@@ -842,7 +844,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 }
 
 func handleSettingsPostTransfer(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
@@ -883,8 +885,8 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 			ctx.JSONError(ctx.Tr("repo.settings.new_owner_has_same_repo"))
 		} else if repo_model.IsErrRepoTransferInProgress(err) {
 			ctx.JSONError(ctx.Tr("repo.settings.transfer_in_progress"))
-		} else if repo_service.IsRepositoryLimitReached(err) {
-			limit := err.(repo_service.LimitReachedError).Limit
+		} else if errLimitReached, ok := err.(repo_service.LimitReachedError); ok {
+			limit := errLimitReached.Limit
 			ctx.JSONError(ctx.TrN(limit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", limit))
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.JSONError(ctx.Tr("repo.settings.transfer.blocked_user"))
@@ -934,7 +936,7 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 }
 
 func handleSettingsPostDelete(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
@@ -961,7 +963,7 @@ func handleSettingsPostDelete(ctx *context.Context) {
 }
 
 func handleSettingsPostDeleteWiki(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.RepoSettingForm)
+	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
 	if !ctx.Repo.Permission.IsOwner() {
 		ctx.JSONErrorNotFound()
@@ -1075,8 +1077,7 @@ func handleSettingsPostVisibility(ctx *context.Context) {
 }
 
 func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.RepoSettingForm) {
-	if git.IsErrInvalidCloneAddr(err) {
-		addrErr := err.(*git.ErrInvalidCloneAddr)
+	if addrErr, ok := err.(*git.ErrInvalidCloneAddr); ok {
 		switch {
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErrDeprecated(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)

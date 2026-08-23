@@ -69,7 +69,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
 	canAssignProject := canCreate
 	if !canCreate {
-		canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID)
+		canCreate, err := repo_model.HasAccessToRepoCodeUnit(ctx, repo, issue.Poster.ID)
 		if err != nil {
 			return err
 		}
@@ -595,8 +595,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 			// This should not happen as we're using force!
 			log.Error("Unable to push PR head for %s#%d (%-v:%s) due to ErrPushOfDate: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
 			return err
-		} else if git.IsErrPushRejected(err) {
-			rejectErr := err.(*git.ErrPushRejected)
+		} else if rejectErr, ok := err.(*git.ErrPushRejected); ok {
 			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
 			return err
 		} else if git.IsErrMoreThanOne(err) {
@@ -932,8 +931,9 @@ func formatSquashMergeCommitMessages(commits []*git.Commit) string {
 	return util.UnsafeBytesToString(buf)
 }
 
-// GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
-func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
+// GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status.
+// The returned statuses are redacted for doer.
+func GetIssuesAllCommitStatus(ctx context.Context, doer *user_model.User, issues issues_model.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
 	if err := issues.LoadPullRequests(ctx); err != nil {
 		return nil, nil, err
 	}
@@ -967,7 +967,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 			gitRepos[issue.RepoID] = gitRepo
 		}
 
-		statuses, lastStatus, err := getAllCommitStatus(ctx, gitRepo, issue.PullRequest)
+		statuses, lastStatus, err := getAllCommitStatus(ctx, doer, gitRepo, issue.PullRequest)
 		if err != nil {
 			log.Error("getAllCommitStatus: cant get commit statuses of pull [%d]: %v", issue.PullRequest.ID, err)
 			continue
@@ -979,13 +979,18 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 }
 
 // getAllCommitStatus get pr's commit statuses.
-func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
+func getAllCommitStatus(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
 	sha, shaErr := gitRepo.GetRefCommitID(ctx, pr.GetGitHeadRefName())
 	if shaErr != nil {
 		return nil, nil, shaErr
 	}
 
 	statuses, err = git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptionsAll)
+	for _, status := range statuses {
+		status.Repo = pr.BaseRepo // the repo is already loaded, spare the permission lookup a query
+	}
+	// CalcCommitStatus copies a TargetURL out of the statuses, so hide before combining
+	git_model.CommitStatusesApplyDoerPermission(ctx, doer, statuses)
 	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }

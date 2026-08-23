@@ -1299,6 +1299,8 @@ func testSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 	addOAuth2Source(t, "test-oidc-source", oauth2Source)
 	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(ctx, "test-oidc-source")
 	require.NoError(t, err)
+	authSourceCfg, ok := authSource.Cfg.(*oauth2.Source)
+	require.True(t, ok)
 
 	sshKey1 := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf"
 	sshKey2 := "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIE7kM1R02+4ertDKGKEDcKG0s+2vyDDcIvceJ0Gqv5f1AAAABHNzaDo="
@@ -1336,7 +1338,7 @@ func testSignInOauthCallbackSyncSSHKeys(t *testing.T) {
 			defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 			defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
 				return goth.User{
-					Provider: authSource.Cfg.(*oauth2.Source).Provider,
+					Provider: authSourceCfg.Provider,
 					UserID:   "oidc-userid",
 					Email:    "oidc-email@example.com",
 					RawData:  c.mockRawData,
@@ -1393,7 +1395,7 @@ func testOAuthSourceSpecialChars(t *testing.T) {
 	doc.Find(".external-login-link").Each(func(i int, s *goquery.Selection) {
 		oauth2Links = append(oauth2Links, s.AttrOr("href", ""))
 	})
-	assert.Equal(t, []string{
+	assert.ElementsMatch(t, []string{
 		"/user/oauth2/test%20space",
 		"/user/oauth2/test+plus",
 	}, oauth2Links)

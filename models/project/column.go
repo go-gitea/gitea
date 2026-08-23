@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 
 	"gitea.dev/models/db"
@@ -36,6 +37,13 @@ const (
 
 // ColumnColorPattern is a regexp witch can validate ColumnColor
 var ColumnColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+
+func validateColumnColor(color string) error {
+	if len(color) != 0 && !ColumnColorPattern.MatchString(color) {
+		return util.ErrorWrap(util.ErrUnprocessableContent, "invalid column color %q, expected a 6-digit hex string like #FF0000", color)
+	}
+	return nil
+}
 
 // Column is used to represent column on a project
 type Column struct {
@@ -134,9 +142,10 @@ const maxProjectColumns = 20
 
 // NewColumn adds a new project column to a given project
 func NewColumn(ctx context.Context, column *Column) error {
-	if len(column.Color) != 0 && !ColumnColorPattern.MatchString(column.Color) {
-		return fmt.Errorf("bad color code: %s", column.Color)
+	if err := validateColumnColor(column.Color); err != nil {
+		return err
 	}
+	column.Title = util.EllipsisDisplayString(column.Title, 255)
 
 	res := struct {
 		MaxSorting  int64
@@ -147,9 +156,10 @@ func NewColumn(ctx context.Context, column *Column) error {
 		return err
 	}
 	if res.ColumnCount >= maxProjectColumns {
-		return errors.New("NewBoard: maximum number of columns reached")
+		return util.ErrorWrap(util.ErrUnprocessableContent, "maximum number of columns reached")
 	}
-	column.Sorting = int8(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0))
+	// MaxInt8+1 would wrap the appended column to the front
+	column.Sorting = int8(min(util.Iif(res.ColumnCount > 0, res.MaxSorting+1, 0), math.MaxInt8))
 	_, err := db.GetEngine(ctx).Insert(column)
 	return err
 }
@@ -160,6 +170,10 @@ func DeleteColumnByID(ctx context.Context, columnID int64) error {
 		return deleteColumnByID(ctx, columnID)
 	})
 }
+
+// errColumnIsDefault is returned when deleting the column new issues land in, which would
+// leave the project without a landing column.
+var errColumnIsDefault = util.ErrorWrap(util.ErrUnprocessableContent, "cannot delete the default column")
 
 func deleteColumnByID(ctx context.Context, columnID int64) error {
 	column, err := GetColumn(ctx, columnID)
@@ -172,7 +186,7 @@ func deleteColumnByID(ctx context.Context, columnID int64) error {
 	}
 
 	if column.Default {
-		return errors.New("deleteColumnByID: cannot delete default column")
+		return errColumnIsDefault
 	}
 
 	// move all issues to the default column
@@ -225,36 +239,15 @@ func GetColumnByIDAndProjectID(ctx context.Context, columnID, projectID int64) (
 	return column, nil
 }
 
-// UpdateColumn updates a project column
+// UpdateColumn writes the column's title, sorting and color. Callers load the column
+// first, so every field carries a deliberate value, including a sorting of 0.
 func UpdateColumn(ctx context.Context, column *Column) error {
-	var fieldToUpdate []string
-
-	if column.Sorting != 0 {
-		fieldToUpdate = append(fieldToUpdate, "sorting")
+	if err := validateColumnColor(column.Color); err != nil {
+		return err
 	}
-
-	if column.Title != "" {
-		fieldToUpdate = append(fieldToUpdate, "title")
-	}
-
-	if len(column.Color) != 0 && !ColumnColorPattern.MatchString(column.Color) {
-		return fmt.Errorf("bad color code: %s", column.Color)
-	}
-	fieldToUpdate = append(fieldToUpdate, "color")
-
-	_, err := db.GetEngine(ctx).ID(column.ID).Cols(fieldToUpdate...).Update(column)
-
+	column.Title = util.EllipsisDisplayString(column.Title, 255)
+	_, err := db.GetEngine(ctx).ID(column.ID).Cols("title", "sorting", "color").Update(column)
 	return err
-}
-
-// GetColumns fetches all columns related to a project
-func (p *Project) GetColumns(ctx context.Context) (ColumnList, error) {
-	columns := make([]*Column, 0, 5)
-	if err := db.GetEngine(ctx).Where("project_id=?", p.ID).OrderBy("sorting, id").Find(&columns); err != nil {
-		return nil, err
-	}
-
-	return columns, nil
 }
 
 // getDefaultColumnWithFallback return default column if one exists
@@ -337,22 +330,13 @@ func SetDefaultColumn(ctx context.Context, projectID, columnID int64) error {
 	})
 }
 
-func GetColumnsByIDs(ctx context.Context, projectID int64, columnsIDs []int64) (ColumnList, error) {
-	columns := make([]*Column, 0, 5)
-	if len(columnsIDs) == 0 {
-		return columns, nil
-	}
-	if err := db.GetEngine(ctx).
-		Where("project_id =?", projectID).
-		In("id", columnsIDs).
-		OrderBy("sorting").Find(&columns); err != nil {
-		return nil, err
-	}
-	return columns, nil
-}
-
 // MoveColumnsOnProject sorts columns in a project
 func MoveColumnsOnProject(ctx context.Context, project *Project, sortedColumnIDs map[int64]int64) error {
+	for sorting := range sortedColumnIDs {
+		if sorting < math.MinInt8 || sorting > math.MaxInt8 {
+			return util.ErrorWrap(util.ErrUnprocessableContent, "column sorting %d is out of range", sorting)
+		}
+	}
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 		columnIDs := util.ValuesOfMap(sortedColumnIDs)

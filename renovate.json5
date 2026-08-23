@@ -19,6 +19,11 @@
   },
   "postUpgradeTasks": {
     "commands": ["make tidy", "make svg", "make generate-codemirror-languages"],
+    "installTools": {
+      "golang": {},
+      "node": {},
+      "pnpm": {},
+    },
     "fileFilters": [
       "go.mod",
       "go.sum",
@@ -99,6 +104,10 @@
     {
       "matchPackageNames": ["mcr.microsoft.com/mssql/server"],
       "allowedVersions": "/^2019($|[.-])/", // pin to oldest in extended support
+    },
+    {
+      "matchPackageNames": ["docker.elastic.co/elasticsearch/elasticsearch"],
+      "allowedVersions": "/^8($|[.-])/", // pin to oldest supported major
     },
     {
       "matchManagers": ["gomod"],

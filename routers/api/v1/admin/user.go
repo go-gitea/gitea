@@ -75,7 +75,7 @@ func CreateUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateUserOption)
+	form := web.GetForm[*api.CreateUserOption](ctx)
 
 	u := &user_model.User{
 		Name:               form.Username,
@@ -190,11 +190,11 @@ func EditUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.EditUserOption)
+	form := web.GetForm[*api.EditUserOption](ctx)
 
 	authOpts := &user_service.UpdateAuthOptions{
 		LoginSource:        optional.FromNonDefault(form.SourceID),
-		LoginName:          optional.Some(form.LoginName),
+		LoginName:          optional.FromPtr(form.LoginName),
 		Password:           optional.FromNonDefault(form.Password),
 		MustChangePassword: optional.FromPtr(form.MustChangePassword),
 		ProhibitLogin:      optional.FromPtr(form.ProhibitLogin),
@@ -340,7 +340,7 @@ func CreatePublicKey(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	form := web.GetForm[*api.CreateKeyOption](ctx)
 
 	user.CreateUserPublicKey(ctx, *form, ctx.ContextUser.ID)
 }
@@ -551,7 +551,7 @@ func RenameUser(ctx *context.APIContext) {
 		return
 	}
 
-	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
+	newName := web.GetForm[*api.RenameUserOption](ctx).NewName
 
 	// Check if username has been changed
 	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName, ctx.Doer); err != nil {

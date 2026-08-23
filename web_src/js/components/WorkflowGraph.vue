@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
-import {SvgIcon} from '../svg.ts';
+import {computed, onMounted, onUnmounted, ref, shallowRef, watch} from 'vue';
+import SvgIcon from './SvgIcon.vue';
 import ActionStatusIcon from './ActionStatusIcon.vue';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {isPlainClick} from '../utils/dom.ts';
@@ -48,17 +48,17 @@ const graphContainer = ref<HTMLElement | null>(null);
 const hoveredGraphId = ref<string | null>(null);
 
 const stateKey = () => `${props.store.viewData.currentRun.repoId}-${props.workflowId}`;
-const expandedMatrixKeys = ref<Set<string>>(new Set());
+const expandedMatrixNodeIds = shallowRef<Set<string>>(new Set()); // always replaced wholesale, never mutated
 
-function isMatrixExpanded(key: string): boolean {
-  return expandedMatrixKeys.value.has(key);
+function isMatrixExpanded(nodeId: string): boolean {
+  return expandedMatrixNodeIds.value.has(nodeId);
 }
 
-function toggleMatrixExpanded(key: string) {
-  const next = new Set(expandedMatrixKeys.value);
-  if (next.has(key)) next.delete(key);
-  else next.add(key);
-  expandedMatrixKeys.value = next;
+function toggleMatrixExpanded(nodeId: string) {
+  const next = new Set(expandedMatrixNodeIds.value);
+  if (next.has(nodeId)) next.delete(nodeId);
+  else next.add(nodeId);
+  expandedMatrixNodeIds.value = next;
 }
 
 const loadSavedState = () => {
@@ -86,7 +86,7 @@ const saveState = () => {
   localUserSettings.setJsonObject(settingKeyStates, Object.fromEntries(sortedStates));
 };
 
-const graphModel = computed(() => createWorkflowGraphModel(props.jobs, expandedMatrixKeys.value));
+const graphModel = computed(() => createWorkflowGraphModel(props.jobs, expandedMatrixNodeIds.value));
 const jobsWithLayout = computed(() => graphModel.value.nodes);
 const edges = computed(() => graphModel.value.edges);
 const routedEdges = computed<RoutedEdge[]>(() => graphModel.value.routedEdges);
@@ -309,15 +309,15 @@ function onNodeClick(job: GraphNode | ActionsJob, event: MouseEvent) {
             @mouseenter="handleNodeMouseEnter(job.id)"
             @mouseleave="handleNodeMouseLeave"
           >
-            <title>Matrix: {{ job.matrixKey }}</title>
+            <title>Matrix: {{ job.name }}</title>
             <rect :x="job.x" :y="job.y" :width="nodeWidth" :height="job.displayHeight" rx="6" class="job-rect"/>
             <foreignObject :x="job.x" :y="job.y" :width="nodeWidth" :height="job.displayHeight" class="matrix-foreign-object">
               <div class="matrix-panel" xmlns="http://www.w3.org/1999/xhtml">
-                <div class="matrix-panel-label" @click.stop="toggleMatrixExpanded(job.matrixKey!)">Matrix: {{ job.matrixKey }}</div>
+                <div class="matrix-panel-label" @click.stop="toggleMatrixExpanded(job.id)">Matrix: {{ job.name }}</div>
                 <div
-                  v-if="!isMatrixExpanded(job.matrixKey!)"
+                  v-if="!isMatrixExpanded(job.id)"
                   class="matrix-panel-collapsed"
-                  @click.stop="toggleMatrixExpanded(job.matrixKey!)"
+                  @click.stop="toggleMatrixExpanded(job.id)"
                 >
                   <div class="matrix-panel-summary-row">
                     <ActionStatusIcon :status="job.status" icon-variant="circle-fill"/>

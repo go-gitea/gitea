@@ -90,7 +90,7 @@ To make template code maintainable:
 
 - Go code should take over complex logic and prepare template data as much as possible, templates only render the data.
 - Prefer struct types provided by Go code instead of map types for template data.
-- Avoid using single world names for non-local variables.
+- Avoid using single word names for non-local variables.
 - Avoid passing `"root" $` or `"." .` to sub-templates, instead pass the specific data needed by the sub-template.
 - Use explicit variable names instead of `.` to access data: ``{{range $item := $.TargetItems}}{{ $item.Name }}{{end}}``
 - Use Go code to implement render helpers if the render logic is too complex.

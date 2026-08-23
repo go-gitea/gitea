@@ -108,6 +108,10 @@ type FindSecretsOptions struct {
 	Name     string
 }
 
+func (opts FindSecretsOptions) ToOrders() string {
+	return "name"
+}
+
 func (opts FindSecretsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 

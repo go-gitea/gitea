@@ -1,28 +1,44 @@
 import {defineConfig} from 'vitest/config';
-import vuePlugin from '@vitejs/plugin-vue';
-import {stringPlugin} from 'vite-string-plugin';
+import {playwright} from '@vitest/browser-playwright';
+import {sharedPlugins, vueDefines} from './tools/shared.ts';
+import {env} from 'node:process';
 
 export default defineConfig({
   test: {
-    include: [
-      'web_src/**/*.test.ts',
-      'tools/eslint-rules/**/*.test.ts',
-    ],
-    setupFiles: ['web_src/js/vitest.setup.ts'],
-    environment: 'happy-dom',
     testTimeout: 20000,
-    open: false,
     allowOnly: true,
     passWithNoTests: true,
     globals: true,
     watch: false,
-    isolate: false,
-    sequence: {
-      concurrent: true,
-    },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'browser',
+          include: ['web_src/**/*.test.ts'],
+          setupFiles: ['web_src/js/vitest.setup.ts'],
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            screenshotFailures: false,
+            instances: ((env.PLAYWRIGHT_BROWSERS || 'chromium firefox')
+              .split(' ') as Array<'chromium' | 'firefox' | 'webkit'>)
+              .map((browser) => ({browser, name: browser})),
+          },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          include: ['tools/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+    ],
   },
-  plugins: [
-    stringPlugin(),
-    vuePlugin(),
-  ],
+  publicDir: false,
+  define: vueDefines,
+  plugins: sharedPlugins(),
 });

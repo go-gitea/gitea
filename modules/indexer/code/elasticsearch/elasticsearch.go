@@ -261,12 +261,21 @@ func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (in
 			return 0, nil, nil, err
 		}
 
+		content, okContent := res["content"].(string)
+		language, okLanguage := res["language"].(string)
+		commitID, okCommitID := res["commit_id"].(string)
+		updatedAt, okUpdatedAt := res["updated_at"].(float64)
+		if !okContent || !okLanguage || !okCommitID || !okUpdatedAt {
+			setting.PanicInDevOrTesting("unexpected field types in search hit %q: %s", hit.ID, string(hit.Source))
+			return 0, nil, nil, fmt.Errorf("unexpected field types in search hit %q", hit.ID)
+		}
+
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
 		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
 		var startIndex, endIndex int
 		if c, ok := hit.Highlight["filename"]; ok && len(c) > 0 {
-			startIndex, endIndex = internal.FilenameMatchIndexPos(res["content"].(string))
+			startIndex, endIndex = internal.FilenameMatchIndexPos(content)
 		} else if c, ok := hit.Highlight["content"]; ok && len(c) > 0 {
 			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
 			// now we should find the positions. But how to avoid html content which contains the
@@ -279,14 +288,12 @@ func convertResult(searchResult *es.SearchResponse, kw string, pageSize int) (in
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))
 		}
 
-		language := res["language"].(string)
-
 		hits = append(hits, &internal.SearchResult{
 			RepoID:      repoID,
 			Filename:    fileName,
-			CommitID:    res["commit_id"].(string),
-			Content:     res["content"].(string),
-			UpdatedUnix: timeutil.TimeStamp(res["updated_at"].(float64)),
+			CommitID:    commitID,
+			Content:     content,
+			UpdatedUnix: timeutil.TimeStamp(updatedAt),
 			Language:    language,
 			StartIndex:  startIndex,
 			EndIndex:    endIndex,

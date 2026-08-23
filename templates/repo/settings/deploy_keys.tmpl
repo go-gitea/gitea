@@ -11,21 +11,21 @@
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<div class="{{if not .HasError}}tw-hidden{{end}} tw-mb-4" id="add-deploy-key-panel">
-				<form class="ui form" action="{{.Link}}" method="post">
+			<div class="tw-hidden tw-mb-4" id="add-deploy-key-panel">
+				<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
 					<div class="field">
 						{{ctx.Locale.Tr "repo.settings.deploy_key_desc"}}
 					</div>
-					<div class="field {{if .Err_Title}}error{{end}}">
+					<div class="field">
 						<label for="ssh-key-title">{{ctx.Locale.Tr "repo.settings.title"}}</label>
 						<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
 					</div>
-					<div class="field {{if .Err_Content}}error{{end}}">
+					<div class="field">
 						<label for="ssh-key-content">{{ctx.Locale.Tr "repo.settings.deploy_key_content"}}</label>
 						<textarea id="ssh-key-content" name="content" placeholder="{{ctx.Locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 					</div>
 					<div class="field">
-						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
+						<div class="ui checkbox">
 							<input id="ssh-key-is-writable" name="is_writable" type="checkbox" value="1">
 							<label for="ssh-key-is-writable">
 								{{ctx.Locale.Tr "repo.settings.is_writable"}}
@@ -41,24 +41,36 @@
 					</button>
 				</form>
 			</div>
-			{{if .Deploykeys}}
+			{{if .RepoDeployKeys}}
 				<div class="flex-divided-list items-with-main">
-					{{range .Deploykeys}}
+					{{range $deployKey := .RepoDeployKeys}}
 						<div class="item">
 							<div class="item-leading">
-								<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
+								<span class="{{if $deployKey.HasRecentActivity}}tw-text-green{{end}}"
+									{{if $deployKey.HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.key_state_desc"}}"{{end}}
+								>{{svg "octicon-key" 32}}</span>
 							</div>
 							<div class="item-main">
-								<div class="item-title">{{.Name}}</div>
+								<div class="item-title">{{$deployKey.Name}}</div>
 								<div class="item-body">
-									{{.Fingerprint}}
+									{{$deployKey.Fingerprint}}
 								</div>
 								<div class="item-body">
-									<i>{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort .CreatedUnix)}} —  {{svg "octicon-info"}} {{if .HasUsed}}{{ctx.Locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort .UpdatedUnix}}</span>{{else}}{{ctx.Locale.Tr "settings.no_activity"}}{{end}} - <span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not .IsReadOnly}} / {{ctx.Locale.Tr "settings.can_write_info"}} {{end}}</span></i>
+									{{ctx.Locale.Tr "settings.added_on" (DateUtils.AbsoluteShort $deployKey.CreatedUnix)}}
+									<span class="tw-mx-2">-</span>
+									{{svg "octicon-info"}}
+									{{if $deployKey.HasUsed}}
+										{{ctx.Locale.Tr "settings.last_used"}}
+										<span {{if $deployKey.HasRecentActivity}}class="tw-text-green"{{end}}>{{DateUtils.AbsoluteShort $deployKey.UpdatedUnix}}</span>
+									{{else}}
+										{{ctx.Locale.Tr "settings.no_activity"}}
+									{{end}}
+									<span class="tw-mx-2">-</span>
+									<span>{{ctx.Locale.Tr "settings.can_read_info"}}{{if not $deployKey.IsReadOnly}} / {{ctx.Locale.Tr "settings.can_write_info"}} {{end}}</span>
 								</div>
 							</div>
 							<div class="item-trailing">
-								<button class="ui red tiny button link-action" data-modal-confirm="#repo-deploy-key-delete-modal" data-url="{{$.Link}}/delete?id={{.ID}}">
+								<button class="ui red tiny button link-action" data-modal-confirm="#repo-deploy-key-delete-modal" data-url="{{$.Link}}/delete?id={{$deployKey.ID}}">
 									{{ctx.Locale.Tr "settings.delete_key"}}
 								</button>
 							</div>

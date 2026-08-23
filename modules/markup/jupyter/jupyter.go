@@ -29,9 +29,8 @@ func init() {
 type renderer struct{}
 
 var (
-	_ markup.Renderer            = (*renderer)(nil)
-	_ markup.PostProcessRenderer = (*renderer)(nil)
-	_ markup.ExternalRenderer    = (*renderer)(nil) // FIXME: this is not an external render, need to refactor the framework in the future
+	_ markup.Renderer         = (*renderer)(nil)
+	_ markup.ExternalRenderer = (*renderer)(nil) // FIXME: this is not an external render, need to refactor the framework in the future
 )
 
 type mimeHandler struct {
@@ -95,8 +94,6 @@ var dataMimeHandlers = sync.OnceValue(func() []mimeHandler {
 func (renderer) Name() string {
 	return "jupyter-render"
 }
-
-func (renderer) NeedPostProcess() bool { return true }
 
 func (renderer) GetExternalRendererOptions() markup.ExternalRendererOptions {
 	return markup.ExternalRendererOptions{
@@ -214,8 +211,9 @@ func renderCellCode(output htmlutil.HTMLWriter, cell Cell, language string) erro
 		}
 
 		// Highlight code
+		preAttrs, codeAttrs := highlight.CodeBlockAttributes(language)
 		lexer := highlight.DetectChromaLexerByFileName("", language)
-		output.WriteFormat(`<div class="cell-right cell-input"><pre><code class="chroma language-%s">`, strings.ToLower(language))
+		output.WriteFormat(`<div class="cell-right cell-input"><pre %s><code %s>`, preAttrs, codeAttrs)
 		output.WriteHTML(highlight.RenderCodeByLexer(lexer, source))
 		output.WriteHTML("</code></pre></div>")
 	}

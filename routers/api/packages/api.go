@@ -40,9 +40,9 @@ import (
 
 func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
-		if ctx.Data["IsApiToken"] == true {
-			scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
-			if ok { // it's a personal access token but not oauth2 token
+		scope, hasApiTokenScope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+		if hasApiTokenScope {
+			{ // request authenticated by a scoped token; enforce package scope restrictions
 				scopeMatched := false
 				var err error
 				switch accessMode {
@@ -359,6 +359,7 @@ func CommonRoutes() *web.Router {
 			r.Get("/index.yaml", helm.Index)
 			r.Get("/{filename}", helm.DownloadPackageFile)
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
+			r.Post("/api/prov", reqPackageAccess(perm.AccessModeWrite), helm.UploadProvenanceFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
