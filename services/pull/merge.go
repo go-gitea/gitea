@@ -266,6 +266,8 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 		return fmt.Errorf("lock.Lock: %w", err)
 	}
 	defer releaser()
+	// "pr" is reloaded below, so the task must not read it after it may have been replaced
+	baseRepoID, baseBranch := pr.BaseRepo.ID, pr.BaseBranch
 	defer func() {
 		// This is a duplicated call to AddTestPullRequestTask (it will also be called by the post-receive hook, via a push queue).
 		// This call will do some operations (push to base repo, sync commit divergence, add PR conflict check queue task, etc)
@@ -273,9 +275,9 @@ func Merge(pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_
 		// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
 		// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
 		go AddTestPullRequestTask(TestPullRequestOptions{
-			RepoID:      pr.BaseRepo.ID,
+			RepoID:      baseRepoID,
 			Doer:        doer,
-			Branch:      pr.BaseBranch,
+			Branch:      baseBranch,
 			IsSync:      false,
 			IsForcePush: false,
 			OldCommitID: "",
