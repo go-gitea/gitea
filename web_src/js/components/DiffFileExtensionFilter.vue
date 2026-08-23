@@ -2,8 +2,9 @@
 import {computed, onMounted, onUnmounted, useTemplateRef} from 'vue';
 import type {Instance} from 'tippy.js';
 import SvgIcon from './SvgIcon.vue';
+import type {SvgName} from '../svg.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {diffTreeStore, getDiffTreeExtensionStats, type DiffExtensionFilterLocale} from '../modules/diff-file.ts';
+import {diffTreeStore, extDotfile, getDiffTreeExtensionStats, type DiffExtensionFilterLocale} from '../modules/diff-file.ts';
 
 const props = defineProps<{locale: DiffExtensionFilterLocale}>();
 
@@ -13,15 +14,19 @@ const panelEl = useTemplateRef<HTMLDivElement>('panelEl');
 let tippyInstance: Instance;
 
 const allExtensions = computed(() => getDiffTreeExtensionStats(store));
-const isFiltering = computed(() => store.activeExtensions !== 'all');
-
-const allCheckboxProps = computed(() => ({
-  checked: store.activeExtensions === 'all',
-  indeterminate: store.activeExtensions !== 'all' && store.activeExtensions.length > 0,
-}));
+const isFiltering = computed(() => store.activeExtensions !== 'all' || Boolean(store.filenameFilterQuery));
+const allIcon = computed<SvgName | null>(() => {
+  if (store.activeExtensions === 'all') return 'octicon-check';
+  return store.activeExtensions.length ? 'octicon-dash' : null;
+});
 
 function isChecked(ext: string): boolean {
   return store.activeExtensions === 'all' || store.activeExtensions.includes(ext);
+}
+
+function extLabel(ext: string): string {
+  if (ext === extDotfile) return props.locale.dotfileExtension;
+  return ext || props.locale.noFileExtension;
 }
 
 function toggleExt(ext: string) {
@@ -35,6 +40,22 @@ function toggleAll() {
   store.activeExtensions = store.activeExtensions === 'all' ? [] : 'all';
 }
 
+function onKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape') tippyInstance.hide();
+}
+
+const fitMenuToViewport = {
+  name: 'fitMenuToViewport',
+  enabled: true,
+  phase: 'beforeWrite' as const,
+  requires: ['computeStyles'],
+  fn({state}: {state: {placement: string, elements: {reference: {getBoundingClientRect: () => DOMRect}, popper: HTMLElement}}}) {
+    const rect = state.elements.reference.getBoundingClientRect();
+    const space = state.placement.startsWith('top') ? rect.top : window.innerHeight - rect.bottom;
+    state.elements.popper.style.setProperty('--diff-ext-filter-max-height', `${Math.round(space - 16)}px`);
+  },
+};
+
 onMounted(() => {
   tippyInstance = createTippy(triggerEl.value!, {
     content: panelEl.value!,
@@ -44,6 +65,9 @@ onMounted(() => {
     placement: 'bottom-end',
     theme: 'menu',
     arrow: false,
+    popperOptions: {modifiers: [fitMenuToViewport]},
+    onShow: () => document.addEventListener('keydown', onKeyDown),
+    onHide: () => document.removeEventListener('keydown', onKeyDown),
   });
 });
 
@@ -59,59 +83,88 @@ onUnmounted(() => {
     class="diff-ext-filter-trigger"
     :class="{'indicator-dot': isFiltering}"
     :aria-label="props.locale.filterByFileExtension"
-    aria-haspopup="true"
   >
     <SvgIcon name="octicon-filter"/>
   </button>
   <div ref="panelEl" class="tippy-target">
-    <div class="diff-ext-filter-menu" role="group" :aria-label="props.locale.fileExtensions">
+    <div class="diff-ext-filter-menu" role="menu" :aria-label="props.locale.fileExtensions">
       <div class="diff-ext-filter-header">{{ props.locale.fileExtensions }}</div>
       <div class="diff-ext-filter-list">
-        <label v-for="ext in allExtensions" :key="ext.ext" class="item">
-          <input type="checkbox" :checked="isChecked(ext.ext)" @change="toggleExt(ext.ext)">
-          <span class="gt-ellipsis">{{ ext.ext || props.locale.noFileExtension }}</span>
+        <button
+          v-for="ext in allExtensions" :key="ext.ext"
+          type="button" class="item" role="menuitemcheckbox"
+          :aria-checked="isChecked(ext.ext)" @click="toggleExt(ext.ext)"
+        >
+          <span class="diff-ext-filter-check">
+            <SvgIcon v-if="isChecked(ext.ext)" name="octicon-check"/>
+          </span>
+          <span class="gt-ellipsis">{{ extLabel(ext.ext) }}</span>
           <span class="diff-ext-filter-count">{{ ext.count }}</span>
-        </label>
+        </button>
       </div>
       <div class="divider"/>
-      <label class="item">
-        <input type="checkbox" v-bind.prop="allCheckboxProps" @change="toggleAll">
+      <button
+        type="button" class="item" role="menuitemcheckbox"
+        :aria-checked="store.activeExtensions === 'all'" @click="toggleAll"
+      >
+        <span class="diff-ext-filter-check">
+          <SvgIcon v-if="allIcon" :name="allIcon"/>
+        </span>
         <span class="gt-ellipsis">{{ props.locale.allFileExtensions }}</span>
-      </label>
+      </button>
     </div>
   </div>
 </template>
 
 <style scoped>
 .diff-ext-filter-menu {
-  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  min-width: 192px;
+  max-width: 320px;
+  max-height: var(--diff-ext-filter-max-height, 50vh);
 }
 
 .diff-ext-filter-header {
-  padding: 6px 18px;
-  font-weight: var(--font-weight-medium);
+  padding: 6px 16px;
   color: var(--color-text-light-2);
-  font-size: 0.875em;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
 }
 
 .diff-ext-filter-list {
-  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .diff-ext-filter-menu .item {
-  cursor: pointer;
+  width: auto; /* buttons are shrink-to-fit, the flex column parent stretches them */
+  flex: none;
+  margin: 0 4px; /* matches the menu's vertical padding so the inset is even on all sides */
+  padding: 6px 12px;
+  gap: 8px;
+  border: none;
+  border-radius: var(--border-radius-medium);
+  font: inherit;
+  text-align: left;
 }
 
-.diff-ext-filter-menu .item:has(:focus-visible) {
-  background: var(--color-hover);
+.diff-ext-filter-check {
+  display: flex;
+  flex: 0 0 16px;
+  color: var(--color-text-light-2);
 }
 
 .diff-ext-filter-count {
   margin-left: auto;
-  color: var(--color-text-light-2);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-full);
+  background: var(--color-label-bg);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 12px;
 }
 
 .diff-ext-filter-trigger {
@@ -122,10 +175,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
+  border-radius: var(--border-radius-medium);
   background: var(--color-button);
-  color: var(--color-text);
-  cursor: pointer;
+  color: var(--color-text-light-2);
 }
 
 .diff-ext-filter-trigger:hover {

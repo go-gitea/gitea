@@ -11,6 +11,7 @@ test('diff sidebar filtering', async ({page, request}) => {
   await apiCreateFiles(request, user, repo, [
     {path: 'src/a.ts', content: 'a\n'},
     {path: 'src/b.ts', content: 'b\n'},
+    {path: 'src/.eslintrc', content: 'e\n'}, // dotfiles count as "No extension"
     {path: 'styles/x.css', content: 'x\n'},
     {path: 'docs/intro.md', content: 'r\n'},
     {path: 'Makefile', content: 'm\n'},
@@ -26,7 +27,7 @@ test('diff sidebar filtering', async ({page, request}) => {
   const filterTrigger = tree.getByRole('button', {name: 'Filter by file extension'});
 
   // every PR file is listed
-  await expect(items).toHaveCount(5);
+  await expect(items).toHaveCount(6);
 
   // sidebar leaves the diff column the bulk of the viewport
   const boxesWidth = (await page.locator('#diff-file-boxes').boundingBox())!.width;
@@ -39,37 +40,45 @@ test('diff sidebar filtering', async ({page, request}) => {
   await expect(page.locator('.diff-file-box[data-new-filename="src/a.ts"]')).toBeVisible();
 
   await tree.getByRole('button', {name: 'Clear filter'}).click();
-  await expect(items).toHaveCount(5);
+  await expect(items).toHaveCount(6);
 
   // empty-result placeholder
   await search.fill('zzz-no-such-file');
   await expect(page.locator('#diff-no-matches')).toBeVisible();
   await search.fill('');
 
-  // extension filter: open panel, deselect .ts, only the other extensions remain
+  // extensions sort alphabetically, then dotfiles, then files without extension
   await filterTrigger.click();
-  const allExtensions = page.getByRole('checkbox', {name: 'All extensions'});
-  await page.getByRole('checkbox', {name: '.ts'}).uncheck();
-  await expect(items).toHaveCount(3);
-  await expect(filterTrigger).toHaveClass(/\bindicator-dot\b/);
+  const extItems = page.getByRole('menuitemcheckbox');
+  await expect(extItems).toHaveText(['.css1', '.md1', '.ts2', 'Dotfiles1', 'No extension1', 'All extensions']);
 
-  await expect(allExtensions).toBeChecked({indeterminate: true});
+  // deselecting .ts leaves the other extensions
+  const allExtensions = page.getByRole('menuitemcheckbox', {name: 'All extensions'});
+  await page.getByRole('menuitemcheckbox', {name: '.ts'}).click();
+  await expect(items).toHaveCount(4);
+  await expect(filterTrigger).toHaveClass(/\bindicator-dot\b/);
+  await expect(allExtensions).toHaveAttribute('aria-checked', 'false');
 
   // "All extensions" cycles through select all, select none and back
   await allExtensions.click();
-  await expect(allExtensions).toBeChecked();
-  await expect(items).toHaveCount(5);
+  await expect(allExtensions).toHaveAttribute('aria-checked', 'true');
+  await expect(items).toHaveCount(6);
 
   await allExtensions.click();
   await expect(items).toHaveCount(0);
-  await expect(page.locator('#diff-no-matches')).toBeVisible();
 
   await allExtensions.click();
-  await expect(items).toHaveCount(5);
+  await expect(items).toHaveCount(6);
   await expect(filterTrigger).not.toHaveClass(/\bindicator-dot\b/);
 
+  // the extension filter lives in the URL and survives a reload
+  await page.getByRole('menuitemcheckbox', {name: '.ts'}).click();
+  await expect(page).toHaveURL(/file-filters/);
+  await page.reload();
+  await expect(items).toHaveCount(4);
+  await expect(filterTrigger).toHaveClass(/\bindicator-dot\b/);
+
   // hiding the file tree drops the filter
-  await page.getByRole('checkbox', {name: '.ts'}).uncheck();
   await expect(page.locator('.diff-file-box[data-new-filename="src/a.ts"]')).toBeHidden();
   await filterTrigger.click();
   await page.locator('.diff-toggle-file-tree-button').click();

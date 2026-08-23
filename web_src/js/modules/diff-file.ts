@@ -2,11 +2,12 @@ import {reactive} from 'vue';
 import type {Reactive} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {trString} from './i18n.ts';
-import {extname} from '../utils.ts';
+import {basename, extname} from '../utils.ts';
 
 const {pageData} = window.config;
 
-export type DiffStatus = '' | 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'typechange';
+// matches statusFromLetter in services/gitdiff/git_diff_tree.go
+export type DiffStatus = '' | 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'typechanged' | 'unmerged' | 'unknown';
 
 export type DiffTreeEntry = {
   FullName: string,
@@ -26,7 +27,7 @@ export type DiffFileTreeData = {
 };
 
 // activeExtensions: 'all' = no filter (every extension passes); string[] = exact set of extensions allowed (empty = nothing passes).
-export type ExtensionFilter = 'all' | string[];
+type ExtensionFilter = 'all' | string[];
 
 type DiffFileTree = {
   folderIcon: string;
@@ -39,7 +40,7 @@ type DiffFileTree = {
   activeExtensions: ExtensionFilter;
 };
 
-export type DiffExtensionStats = {
+type DiffExtensionStats = {
   ext: string,
   count: number,
 };
@@ -48,19 +49,21 @@ export type DiffExtensionFilterLocale = {
   filterByFileExtension: string,
   fileExtensions: string,
   noFileExtension: string,
+  dotfileExtension: string,
   allFileExtensions: string,
 };
 
 export type DiffFileTreeLocale = DiffExtensionFilterLocale & {
   filterFiles: string,
   filterFilesClear: string,
-  noFilesMatched: string,
 };
 
 let diffTreeStoreReactive: Reactive<DiffFileTree>;
 export function diffTreeStore() {
   if (!diffTreeStoreReactive) {
     diffTreeStoreReactive = reactiveDiffTreeStore(pageData.DiffFileTree!, pageData.FolderIcon!, pageData.FolderOpenIcon!);
+    const knownExtensions = getDiffTreeExtensionStats(diffTreeStoreReactive).map((stat) => stat.ext);
+    diffTreeStoreReactive.activeExtensions = extensionFilterFromUrl(window.location.search, knownExtensions);
   }
   return diffTreeStoreReactive;
 }
@@ -99,8 +102,40 @@ export function reactiveDiffTreeStore(data: DiffFileTreeData, folderIcon: string
   return store;
 }
 
+export const extDotfile = 'dotfile'; // bucket for ".gitignore" and friends, real extensions always start with a dot
+
+const urlParamFileFilters = 'file-filters[]'; // same parameter GitHub uses, lists the selected extensions
+const urlValueNoExtension = 'noextension';
+
+export function extensionFilterFromUrl(search: string, knownExtensions: string[]): ExtensionFilter {
+  const params = new URLSearchParams(search);
+  if (!params.has(urlParamFileFilters)) return 'all';
+  const extensions = params.getAll(urlParamFileFilters)
+    .filter(Boolean)
+    .map((ext) => ext === urlValueNoExtension ? '' : ext)
+    .filter((ext) => knownExtensions.includes(ext));
+  return extensions.length === knownExtensions.length ? 'all' : extensions;
+}
+
+export function extensionFilterToUrl(filter: ExtensionFilter, url: string): string {
+  const parsed = new URL(url);
+  parsed.searchParams.delete(urlParamFileFilters);
+  if (filter !== 'all') {
+    if (!filter.length) parsed.searchParams.append(urlParamFileFilters, '');
+    for (const ext of filter) parsed.searchParams.append(urlParamFileFilters, ext || urlValueNoExtension);
+  }
+  return parsed.href;
+}
+
 function getFileExtension(filename: string): string {
-  return extname(filename).toLowerCase();
+  const ext = extname(filename).toLowerCase();
+  if (ext) return ext;
+  return basename(filename).startsWith('.') ? extDotfile : '';
+}
+
+function extensionRank(ext: string): number {
+  if (!ext) return 2;
+  return ext === extDotfile ? 1 : 0;
 }
 
 export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffExtensionStats[] {
@@ -111,18 +146,14 @@ export function getDiffTreeExtensionStats(store: Reactive<DiffFileTree>): DiffEx
     extensionMap.set(ext, (extensionMap.get(ext) ?? 0) + 1);
   }
   return Array.from(extensionMap, ([ext, count]) => ({ext, count}))
-    .sort((a, b) => a.ext.localeCompare(b.ext));
+    .sort((a, b) => extensionRank(a.ext) - extensionRank(b.ext) || a.ext.localeCompare(b.ext));
 }
 
-type DiffFilter = (newName: string, oldName: string) => boolean;
-
-// Returns null when no filters are active, so callers can skip work entirely.
-function buildFilter(store: Reactive<DiffFileTree>): DiffFilter | null {
+function buildFilter(store: Reactive<DiffFileTree>) {
   const query = store.filenameFilterQuery.trim().toLowerCase();
   const exts = store.activeExtensions === 'all' ? null : new Set(store.activeExtensions);
   if (!query && !exts) return null;
-  return (newName, oldName) => {
-    if (!newName) return false;
+  return (newName: string, oldName: string) => {
     if (query && !newName.toLowerCase().includes(query) && !oldName.toLowerCase().includes(query)) return false;
     return !exts || exts.has(getFileExtension(newName));
   };

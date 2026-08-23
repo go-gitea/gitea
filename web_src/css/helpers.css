@@ -40,8 +40,8 @@ Gitea's private styles use `g-` prefix.
   position: absolute;
   top: 0;
   right: 0;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--color-primary);
   border: 1px solid var(--color-secondary);

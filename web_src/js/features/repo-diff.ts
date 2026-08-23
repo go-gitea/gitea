@@ -159,7 +159,7 @@ async function diffLoadMoreFiles(btn: Element): Promise<boolean> {
     const resp = await GET(url);
     if (!resp.ok) return false;
     const respText = await resp.text();
-    const respDoc = parseDom(respText, 'text/html');
+    const respDoc = parseDom(respText, 'text/html'); // the response is a full HTML page, extract the new file boxes from it
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
     const respFileBoxesChildren = Array.from(respFileBoxes.children); // "children:HTMLCollection" will be empty after replaceWith
     document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);

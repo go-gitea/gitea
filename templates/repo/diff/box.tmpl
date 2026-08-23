@@ -63,16 +63,15 @@
 	<div id="diff-container">
 		{{if $showFileTree}}
 			{{$.FileIconPoolHTML}}
-			<div id="diff-file-tree"
-				class="tw-hidden not-mobile"
-				data-text-filter-files="{{ctx.Locale.Tr "repo.diff.filter_files"}}"
-				data-text-filter-files-clear="{{ctx.Locale.Tr "repo.diff.filter_files_clear"}}"
-				data-text-no-files-matched="{{ctx.Locale.Tr "repo.diff.no_files_matched"}}"
-				data-text-filter-by-file-extension="{{ctx.Locale.Tr "repo.diff.filter_by_file_extension"}}"
-				data-text-file-extensions="{{ctx.Locale.Tr "repo.diff.file_extensions"}}"
-				data-text-no-file-extension="{{ctx.Locale.Tr "repo.diff.no_file_extension"}}"
-				data-text-all-file-extensions="{{ctx.Locale.Tr "repo.diff.all_file_extensions"}}"
-			></div>
+			<div id="diff-file-tree" class="tw-hidden not-mobile" data-locale="{{JsonUtils.EncodeToString (dict
+				"filterFiles" (ctx.Locale.Tr "repo.diff.filter_files")
+				"filterFilesClear" (ctx.Locale.Tr "repo.diff.filter_files_clear")
+				"filterByFileExtension" (ctx.Locale.Tr "repo.diff.filter_by_file_extension")
+				"fileExtensions" (ctx.Locale.Tr "repo.diff.file_extensions")
+				"noFileExtension" (ctx.Locale.Tr "repo.diff.no_file_extension")
+				"dotfileExtension" (ctx.Locale.Tr "repo.diff.dotfile_extension")
+				"allFileExtensions" (ctx.Locale.Tr "repo.diff.all_file_extensions")
+			)}}"></div>
 			<script nonce="{{ctx.CspScriptNonce}}">
 				if (diffTreeVisible) document.getElementById('diff-file-tree').classList.remove('tw-hidden');
 			</script>
@@ -80,7 +79,7 @@
 		{{if .DiffNotAvailable}}
 			<h4>{{ctx.Locale.Tr "repo.diff.data_not_available"}}</h4>
 		{{else}}
-			<div id="diff-boxes-column" class="sixteen wide column">
+			<div id="diff-boxes-column">
 				{{if $showFileTree}}
 					<div id="diff-no-matches" class="empty-placeholder tw-hidden">
 						<h2>{{ctx.Locale.Tr "repo.diff.no_files_matched"}}</h2>

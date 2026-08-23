@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import SvgIcon from './SvgIcon.vue';
 import type {SvgName} from '../svg.ts';
-import {computed, shallowRef} from 'vue';
+import {shallowRef} from 'vue';
 import {type DiffStatus, type DiffTreeEntry, diffTreeStore} from '../modules/diff-file.ts';
 
 const props = defineProps<{
@@ -10,20 +10,18 @@ const props = defineProps<{
 
 const store = diffTreeStore();
 const collapsed = shallowRef(props.item.IsViewed);
-const diffStatusIcon = computed(() => getIconForDiffStatus(props.item.DiffStatus));
 
-function getIconForDiffStatus(pType: DiffStatus) {
-  const diffTypes: Record<DiffStatus, { name: SvgName, classes: Array<string> }> = {
-    '': {name: 'octicon-blocked', classes: ['tw-text-red']}, // unknown case
-    'added': {name: 'octicon-diff-added', classes: ['tw-text-green']},
-    'modified': {name: 'octicon-diff-modified', classes: ['tw-text-yellow']},
-    'deleted': {name: 'octicon-diff-removed', classes: ['tw-text-red']},
-    'renamed': {name: 'octicon-diff-renamed', classes: ['tw-text-teal']},
-    'copied': {name: 'octicon-diff-renamed', classes: ['tw-text-green']},
-    'typechange': {name: 'octicon-diff-modified', classes: ['tw-text-green']}, // there is no octicon for copied, so renamed should be ok
-  };
-  return diffTypes[pType] ?? diffTypes[''];
-}
+const diffStatusIcons: Record<DiffStatus, {name: SvgName, class: string}> = {
+  '': {name: 'octicon-blocked', class: 'tw-text-red'},
+  'added': {name: 'octicon-diff-added', class: 'tw-text-green'},
+  'modified': {name: 'octicon-diff-modified', class: 'tw-text-yellow'},
+  'deleted': {name: 'octicon-diff-removed', class: 'tw-text-red'},
+  'renamed': {name: 'octicon-diff-renamed', class: 'tw-text-teal'},
+  'copied': {name: 'octicon-diff-renamed', class: 'tw-text-green'}, // there is no octicon for copied, so renamed should be ok
+  'typechanged': {name: 'octicon-diff-modified', class: 'tw-text-green'},
+  'unmerged': {name: 'octicon-blocked', class: 'tw-text-red'},
+  'unknown': {name: 'octicon-blocked', class: 'tw-text-red'},
+};
 </script>
 
 <template>
@@ -49,10 +47,7 @@ function getIconForDiffStatus(pType: DiffStatus) {
     <!-- eslint-disable-next-line vue/no-v-html -->
     <span class="tw-contents" v-html="item.FileIcon"/>
     <span class="gt-ellipsis tw-flex-1">{{ item.DisplayName }}</span>
-    <SvgIcon
-      :name="diffStatusIcon.name"
-      :class="diffStatusIcon.classes"
-    />
+    <SvgIcon v-bind="diffStatusIcons[item.DiffStatus] ?? diffStatusIcons['']"/>
   </a>
 </template>
 

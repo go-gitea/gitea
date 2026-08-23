@@ -3,7 +3,7 @@ import SvgIcon from './SvgIcon.vue';
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
 import DiffFileExtensionFilter from './DiffFileExtensionFilter.vue';
 import {onInputDebounce, toggleElem} from '../utils/dom.ts';
-import {diffTreeStore, filterDiffTree, applyFiltersToFileBoxes, type DiffFileTreeLocale} from '../modules/diff-file.ts';
+import {diffTreeStore, filterDiffTree, applyFiltersToFileBoxes, extensionFilterToUrl, type DiffFileTreeLocale} from '../modules/diff-file.ts';
 import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted, computed, watch} from 'vue';
 import {localUserSettings} from '../modules/user-settings.ts';
@@ -17,15 +17,16 @@ const store = diffTreeStore();
 const visibleTreeItems = computed(() => filterDiffTree(store)?.Children ?? []);
 
 watch(() => store.filenameFilterQuery, onInputDebounce(() => applyFiltersToFileBoxes(store)));
-watch(() => store.activeExtensions, () => applyFiltersToFileBoxes(store));
-
-function clearSearch() {
-  store.filenameFilterQuery = '';
-}
+watch(() => store.activeExtensions, () => {
+  applyFiltersToFileBoxes(store);
+  window.history.replaceState(null, '', extensionFilterToUrl(store.activeExtensions, window.location.href));
+});
 
 onMounted(() => {
   // Default to true if unset
   store.fileTreeIsVisible = localUserSettings.getBoolean(LOCAL_STORAGE_KEY, true);
+  // while the tree is hidden there is no control to clear a filter restored from the URL
+  if (store.fileTreeIsVisible) applyFiltersToFileBoxes(store); else store.activeExtensions = 'all';
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
   hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
@@ -94,7 +95,7 @@ function updateState(visible: boolean) {
           v-if="store.filenameFilterQuery"
           type="button"
           class="diff-file-search-clear"
-          @click="clearSearch"
+          @click="store.filenameFilterQuery = ''"
           :aria-label="props.locale.filterFilesClear"
         >
           <SvgIcon name="octicon-x" :size="14"/>
@@ -104,9 +105,6 @@ function updateState(visible: boolean) {
     </div>
     <div class="diff-file-tree-items">
       <DiffFileTreeItem v-for="item in visibleTreeItems" :key="item.FullName" :item="item"/>
-      <div v-if="visibleTreeItems.length === 0" class="tw-py-4 tw-text-center tw-text-text-light-2">
-        {{ props.locale.noFilesMatched }}
-      </div>
     </div>
   </div>
 </template>
@@ -124,7 +122,7 @@ function updateState(visible: boolean) {
 .diff-file-tree-search-row {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 8px;
   padding-top: 1px; /* match .diff-file-box's top border so this row aligns with .diff-file-header */
   padding-bottom: 0.25rem;
 }
@@ -150,10 +148,9 @@ function updateState(visible: boolean) {
   height: 32px;
   padding: 0 28px;
   border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
+  border-radius: var(--border-radius-medium);
   background: var(--color-input-background);
   color: var(--color-text);
-  font-size: 1em;
 }
 
 .diff-file-search-input:focus {
@@ -170,7 +167,6 @@ function updateState(visible: boolean) {
   background: none;
   border: none;
   color: var(--color-text-light);
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
