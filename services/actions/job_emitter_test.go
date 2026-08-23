@@ -685,3 +685,11 @@ func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
 			"report must wait for the re-emit, which sees the sibling combinations too")
 	})
 }
+
+// https://github.com/go-gitea/gitea/issues/39034
+func Test_jobEmitterQueueHandler_DeletedRunIsNotRequeued(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	assert.Empty(t, jobEmitterQueueHandler(&jobUpdate{RunID: unittest.NonexistentID}),
+		"an update for a deleted run must be dropped, not returned as unhandled")
+}
