@@ -5,6 +5,7 @@ package integration
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -367,6 +368,40 @@ func TestCantMergeConflict(t *testing.T) {
 		err = pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleRebase, "", "CONFLICT", false)
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, pull_service.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
+	})
+}
+
+func TestPullMergeIgnoresCancelledContext(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		session := loginUser(t, "user1") // FIXME: don't use admin user for testing
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "cancelled", "README.md", "Hello, World (Edited)\n")
+
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, http.MethodPost, "/api/v1/repos/user1/repo1/pulls", &api.CreatePullRequestOption{
+			Head:  "cancelled",
+			Base:  "master",
+			Title: "merge with a cancelled context",
+		}).AddTokenAuth(token)
+		session.MakeRequest(t, req, http.StatusCreated)
+
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user1.ID, Name: "repo1"})
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
+			HeadRepoID: repo1.ID,
+			BaseRepoID: repo1.ID,
+			HeadBranch: "cancelled",
+			BaseBranch: "master",
+		})
+
+		// a merge must not be abandoned half-way when the caller goes away, otherwise the
+		// commit lands on the base branch while the pull request stays open
+		cancelledCtx, cancel := context.WithCancel(t.Context())
+		cancel()
+		require.NoError(t, pull_service.Merge(cancelledCtx, pr, user1, repo_model.MergeStyleMerge, "", "CANCELLED", false))
+
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
+		assert.True(t, pr.HasMerged, "pull request should be marked as merged")
 	})
 }
 

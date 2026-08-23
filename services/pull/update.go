@@ -27,6 +27,9 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 		return errors.New("update of agit flow pull request's head branch is unsupported")
 	}
 
+	// see the same call in Merge: the push must survive the caller going away
+	ctx = context.WithoutCancel(ctx)
+
 	releaser, err := globallock.Lock(ctx, getPullWorkingLockKey(pr.ID))
 	if err != nil {
 		log.Error("lock.Lock(): %v", err)
