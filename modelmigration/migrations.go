@@ -424,6 +424,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(348, "Recreate email_hash table for SHA256 avatar hashes", v28.RecreateEmailHashTable),
 		newMigration(349, "Expand action_schedule content column", v28.ExpandActionScheduleContent),
 		newMigration(350, "Add published_unix column to release", v28.AddPublishedUnixToRelease),
+		newMigration(351, "Track transfer recipient access grants", v28.AddRecipientAccessGrantedToRepoTransfer),
 	}
 	return preparedMigrations
 }
