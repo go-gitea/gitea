@@ -496,6 +496,35 @@ jobs:
 	assert.Equal(t, actions_model.StatusBlocked, refreshed.Status)
 }
 
+func Test_checkJobsOfCurrentRunAttempt_NeedApprovalKeepsJobsBlocked(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	run := &actions_model.ActionRun{
+		RepoID: 4, OwnerID: 1, TriggerUserID: 1,
+		WorkflowID: "test.yml", Index: 9913, Ref: "refs/heads/main",
+		Status: actions_model.StatusBlocked, NeedApproval: true,
+	}
+	assert.NoError(t, db.Insert(ctx, run))
+	attempt := &actions_model.ActionRunAttempt{
+		RepoID: 4, RunID: run.ID, Attempt: 1, Status: actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, attempt))
+	_, err := db.Exec(ctx, "UPDATE `action_run` SET latest_attempt_id = ? WHERE id = ?", attempt.ID, run.ID)
+	assert.NoError(t, err)
+	run.LatestAttemptID = attempt.ID
+	job := &actions_model.ActionRunJob{
+		RunID: run.ID, RunAttemptID: attempt.ID, AttemptJobID: 1,
+		RepoID: 4, OwnerID: 1, JobID: "job1", Name: "job1", Status: actions_model.StatusBlocked,
+	}
+	assert.NoError(t, db.Insert(ctx, job))
+
+	result, err := checkJobsOfCurrentRunAttempt(ctx, run)
+	assert.NoError(t, err)
+	assert.Empty(t, result.UpdatedJobs)
+	assert.Equal(t, actions_model.StatusBlocked, unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: job.ID}).Status)
+}
+
 // Test_checkRunConcurrency_HeldGroupDoesNotWake verifies that only an unoccupied concurrency group can wake up a blocked run/job.
 func Test_checkRunConcurrency_HeldGroupDoesNotWake(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -655,4 +684,12 @@ func Test_jobStatusResolverStopsAfterMatrixInsert(t *testing.T) {
 		assert.Equal(t, map[int64]actions_model.Status{2: actions_model.StatusSkipped}, got,
 			"report must wait for the re-emit, which sees the sibling combinations too")
 	})
+}
+
+// https://github.com/go-gitea/gitea/issues/39034
+func Test_jobEmitterQueueHandler_DeletedRunIsNotRequeued(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	assert.Empty(t, jobEmitterQueueHandler(&jobUpdate{RunID: unittest.NonexistentID}),
+		"an update for a deleted run must be dropped, not returned as unhandled")
 }

@@ -24,7 +24,7 @@ describe('navigateToIframeLink', () => {
     const navigations = captureNavigations();
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    // eslint-disable-next-line no-script-url
+    // eslint-disable-next-line no-script-url -- the test asserts that javascript: links are rejected
     navigateToIframeLink('javascript:void(0);', '_blank');
     navigateToIframeLink('data:image/svg+xml;utf8,<svg></svg>', '');
     expect(openSpy).toHaveBeenCalledTimes(0);
