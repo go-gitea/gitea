@@ -161,7 +161,7 @@ func (opts FindArtifactsOptions) ToOrders() string {
 	return "id"
 }
 
-var _ db.FindOptionsOrder = (*FindArtifactsOptions)(nil)
+var _ db.FindOptions = (*FindArtifactsOptions)(nil)
 
 func (opts FindArtifactsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()

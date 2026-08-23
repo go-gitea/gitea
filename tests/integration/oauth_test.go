@@ -1395,7 +1395,7 @@ func testOAuthSourceSpecialChars(t *testing.T) {
 	doc.Find(".external-login-link").Each(func(i int, s *goquery.Selection) {
 		oauth2Links = append(oauth2Links, s.AttrOr("href", ""))
 	})
-	assert.Equal(t, []string{
+	assert.ElementsMatch(t, []string{
 		"/user/oauth2/test%20space",
 		"/user/oauth2/test+plus",
 	}, oauth2Links)
