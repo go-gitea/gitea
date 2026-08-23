@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "mail/base/head" (dict "Title" .Subject)}}
+	{{template "mail/base/head" .Subject}}
 </head>
 
 {{$release_url := HTMLFormat "<a href='%s'>%s</a>" .Release.HTMLURL .Release.TagName}}
@@ -11,19 +11,9 @@
 		{{.locale.Tr "mail.release.new.text" .Release.Publisher.Name $release_url $repo_url}}
 	</p>
 	<h4>{{.locale.Tr "mail.release.title" .Release.Title}}</h4>
-	<p>
-		{{.locale.Tr "mail.release.note"}}<br>
-		{{- if eq .Release.RenderedNote ""}}
-		{{else}}
-			{{.Release.RenderedNote}}
-		{{end -}}
-	</p>
-	<br><br>
-	<p>
-		---
-		<br>
-		{{.locale.Tr "mail.release.downloads"}}
-	</p>
+	<p>{{.locale.Tr "mail.release.note"}}</p>
+	{{if ne .Release.RenderedNote ""}}<div>{{.Release.RenderedNote}}</div>{{end}}
+	<p>{{.locale.Tr "mail.release.downloads"}}</p>
 	<ul>
 		{{if not .DisableDownloadSourceArchives}}
 		<li>
@@ -33,16 +23,12 @@
 			<a href="{{.Release.Repo.HTMLURL}}/archive/{{.Release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.targz"}}</strong></a>
 		</li>
 		{{end}}
-		{{if .Release.Attachments}}
-			{{range .Release.Attachments}}
-				<li>
-					<a target="_blank" href="{{.DownloadURL}}">
-						<strong>{{.Name}} ({{.Size | FileSize}})</strong>
-					</a>
-				</li>
-			{{end}}
+		{{range .Release.Attachments}}
+			<li>
+				<a target="_blank" href="{{.DownloadURL}}"><strong>{{.Name}} ({{.Size | FileSize}})</strong></a>
+			</li>
 		{{end}}
 	</ul>
-	{{template "mail/base/footer" .}}
+	{{template "mail/base/footer"}}
 </body>
 </html>

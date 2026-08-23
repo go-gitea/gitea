@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "mail/base/head" (dict "Title" (.locale.Tr "mail.reset_password.title" (.DisplayName|DotEscape)))}}
+	{{template "mail/base/head" (.locale.Tr "mail.reset_password.title" (.DisplayName|DotEscape))}}
 </head>
 
 {{$recover_url := printf "%suser/recover_account?code=%s" AppUrl (QueryEscape .Code)}}
 <body>
-	<p>{{.locale.Tr "mail.hi_user_x" (.DisplayName|DotEscape)}}</p><br>
-	<p>{{.locale.Tr "mail.reset_password.text" .ResetPwdCodeLives}}</p><p><a href="{{$recover_url}}">{{$recover_url}}</a></p><br>
+	<p>{{.locale.Tr "mail.hi_user_x" (.DisplayName|DotEscape)}}</p>
+	<p>{{.locale.Tr "mail.reset_password.text" .ResetPwdCodeLives}}</p><p style="word-break: break-all;"><a href="{{$recover_url}}">{{$recover_url}}</a></p>
 	<p>{{.locale.Tr "mail.link_not_working_do_paste"}}</p>
 
-	{{template "mail/base/footer_copyright"}}
+	{{template "mail/base/footer"}}
 </body>
 </html>

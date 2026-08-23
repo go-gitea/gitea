@@ -38,6 +38,7 @@ func LoadMailIcon(name string) ([]byte, error) {
 type workflowRunMailJob struct {
 	HTMLURL       string
 	Name          string
+	Status        actions_model.Status
 	StatusIconCID string
 	StatusIconAlt string
 	StatusClass   string
@@ -45,21 +46,17 @@ type workflowRunMailJob struct {
 	Duration      time.Duration
 }
 
-func workflowRunJobStatusPresentation(status actions_model.Status) (icon, alt, class string) {
+func workflowRunJobStatusPresentation(status actions_model.Status) (icon, class string) {
 	switch {
 	case status.IsSuccess():
-		return "status-success.png", "✔", "status-success"
+		return "status-success.png", "status-success"
 	case status.IsCancelled():
-		return "status-cancelled.png", "⊘", "status-neutral"
+		return "status-cancelled.png", "status-neutral"
 	case status.IsSkipped():
-		return "status-skipped.png", "–", "status-neutral"
+		return "status-skipped.png", "status-neutral"
 	default:
-		return "status-failure.png", "×", "status-failure"
+		return "status-failure.png", "status-failure"
 	}
-}
-
-func generateMessageIDForActionsWorkflowRunStatusEmail(repo *repo_model.Repository, run *actions_model.ActionRun) string {
-	return fmt.Sprintf("<%s/actions/runs/%d@%s>", repo.FullName(), run.Index, setting.Domain)
 }
 
 func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo_model.Repository, run *actions_model.ActionRun, recipient *user_model.User) error {
@@ -87,13 +84,14 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	var embeds []sender_service.EmbeddedFile
 	embedded := make(container.Set[string])
 	for _, job := range jobs {
-		icon, alt, class := workflowRunJobStatusPresentation(job.Status)
+		icon, class := workflowRunJobStatusPresentation(job.Status)
 		contentID := fmt.Sprintf("%s.actions-run-%d@%s", icon, run.ID, setting.Domain)
 		mailJobs = append(mailJobs, workflowRunMailJob{
 			HTMLURL:       fmt.Sprintf("%s/actions/runs/%d/jobs/%d", repo.HTMLURL(ctx), run.ID, job.ID),
 			Name:          job.Name,
+			Status:        job.Status,
 			StatusIconCID: contentID,
-			StatusIconAlt: alt,
+			StatusIconAlt: job.Status.LocaleString(locale),
 			StatusClass:   class,
 			Attempt:       job.Attempt,
 			Duration:      job.Duration(),
@@ -108,13 +106,30 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		embeds = append(embeds, sender_service.EmbeddedFile{Name: icon, ContentID: contentID, Content: content})
 	}
 
+	var runStatusTrString string
+	switch run.Status {
+	case actions_model.StatusSuccess:
+		runStatusTrString = "mail.repo.actions.jobs.all_succeeded"
+	case actions_model.StatusFailure:
+		runStatusTrString = "mail.repo.actions.jobs.all_failed"
+		for _, job := range jobs {
+			if !job.Status.IsFailure() {
+				runStatusTrString = "mail.repo.actions.jobs.some_not_successful"
+				break
+			}
+		}
+	case actions_model.StatusCancelled:
+		runStatusTrString = "mail.repo.actions.jobs.all_cancelled"
+	}
 	subject := fmt.Sprintf("[%s] %s: %s (%s - %s)", repo.FullName(), run.Status.LocaleString(locale), run.WorkflowID, run.PrettyRef(), base.ShortSha(run.CommitSHA))
 	var mailBody bytes.Buffer
 	if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplWorkflowRun), map[string]any{
-		"Subject": subject,
-		"Run":     run,
-		"Jobs":    mailJobs,
-		"locale":  locale,
+		"Subject":       subject,
+		"Repo":          repo,
+		"Run":           run,
+		"RunStatusText": locale.TrString(runStatusTrString),
+		"Jobs":          mailJobs,
+		"locale":        locale,
 	}); err != nil {
 		return err
 	}
@@ -128,7 +143,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	for key, value := range generateMetadataHeaders(repo) {
 		msg.SetHeader(key, value)
 	}
-	msg.SetHeader("Message-ID", generateMessageIDForActionsWorkflowRunStatusEmail(repo, run))
+	msg.SetHeader("Message-ID", fmt.Sprintf("<%s/actions/runs/%d@%s>", repo.FullName(), run.Index, setting.Domain))
 	SendAsync(msg)
 
 	return nil

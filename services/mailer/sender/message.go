@@ -62,18 +62,15 @@ func (m *Message) ToMessage() *gomail.Msg {
 	msg.SetGenHeader("X-Auto-Response-Suppress", "All")
 
 	plainBody, err := html2text.FromString(m.Body)
+	msg.SetBodyString("text/plain", plainBody)
 	if err != nil || setting.MailService.SendAsPlainText {
 		if strings.Contains(util.TruncateRunes(m.Body, 100), "<html>") {
 			log.Warn("Mail contains HTML but configured to send as plain text.")
 		}
-		msg.SetBodyString("text/plain", plainBody)
 	} else {
-		msg.SetBodyString("text/plain", plainBody)
 		msg.AddAlternativeString("text/html", m.Body)
 		for _, embed := range m.Embeds {
-			if err := msg.EmbedReader(embed.Name, bytes.NewReader(embed.Content), gomail.WithFileContentID("<"+embed.ContentID+">")); err != nil {
-				log.Error("Failed to embed %q into mail: %v", embed.Name, err)
-			}
+			msg.EmbedReadSeeker(embed.Name, bytes.NewReader(embed.Content), gomail.WithFileContentID("<"+embed.ContentID+">"))
 		}
 	}
 

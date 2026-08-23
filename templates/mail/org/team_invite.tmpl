@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "mail/base/head" (dict "Title" .Subject)}}
+	{{template "mail/base/head" .Subject}}
 </head>
 <body>
 	<p>{{.locale.Tr "mail.team_invite.text_1" (DotEscape .Inviter.DisplayName) (DotEscape .Team.Name) (DotEscape .Organization.DisplayName)}}</p>
-	<p>{{.locale.Tr "mail.team_invite.text_2"}}</p><p><a href="{{.InviteURL}}">{{.InviteURL}}</a></p>
+	<p>{{.locale.Tr "mail.team_invite.text_2"}}</p><p style="word-break: break-all;"><a href="{{.InviteURL}}">{{.InviteURL}}</a></p>
 	<p>{{.locale.Tr "mail.link_not_working_do_paste"}}</p>
 	<p>{{.locale.Tr "mail.team_invite.text_3" .Invite.Email}}</p>
 
-	{{template "mail/base/footer_copyright"}}
+	{{template "mail/base/footer"}}
 </body>
 </html>

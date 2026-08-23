@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	{{template "mail/base/head" (dict "Title" .Subject)}}
+	{{template "mail/base/head" .Subject}}
 </head>
 
 <body>
@@ -69,6 +69,7 @@
 		{{end}}
 		</ul>
 	{{end}}
-	{{template "mail/base/footer" .}}
+	<p><a href="{{.Link}}">#{{.Issue.Index}}</a>{{if .CanReply}} {{.locale.Tr "mail.reply"}}{{end}}.</p>
+	{{template "mail/base/footer"}}
 </body>
 </html>

@@ -1,7 +1,10 @@
-<div style="font-size: small;">
-	<p>
-		---
-		<br>
-		<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>{{if .CanReply}}&nbsp;{{.locale.Tr "mail.reply"}}{{end}}.
-	</p>
-</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="mail-footer" style="width: 100%; border-collapse: collapse;">
+	<tr>
+		<td height="16" style="height: 16px; font-size: 0; line-height: 0;">&nbsp;</td>
+	</tr>
+	<tr>
+		<td align="center" style="border-top: 1px solid #d0d7de; color: #59636e; font-size: 12px; padding: 8px 0 0; text-align: center;">
+			© <a href="{{AppUrl}}">{{AppName}}</a>
+		</td>
+	</tr>
+</table>

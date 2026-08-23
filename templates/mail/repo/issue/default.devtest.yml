@@ -1,2 +1,7 @@
 Subject: "Re: [user/repo] Issue Title (#1)"
+Link: http://localhost/issue/1
 CanReply: true
+Body: Issue body
+
+Issue:
+  Index: 1

@@ -4,8 +4,8 @@
 package devtest
 
 import (
-	"bytes"
-	"fmt"
+	"errors"
+	"io/fs"
 	"net/http"
 	"regexp"
 	"strings"
@@ -25,7 +25,10 @@ func mailPreviewMockData(tmplName string) (map[string]any, error) {
 	mockData := map[string]any{}
 	mockDataContent, err := templates.AssetFS().ReadFile(tmplName + ".devtest.yml")
 	if err != nil {
-		return mockData, nil
+		if errors.Is(err, fs.ErrNotExist) {
+			return mockData, nil
+		}
+		return nil, err
 	}
 	return mockData, yaml.Unmarshal(mockDataContent, &mockData)
 }
@@ -38,10 +41,9 @@ func MailPreviewRender(ctx *context.Context) {
 		return
 	}
 	mockData["locale"] = ctx.Locale
-	var mailBody bytes.Buffer
-	err = mailer.LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, tmplName, mockData)
-	if err != nil {
-		_, _ = ctx.Resp.Write([]byte(err.Error()))
+	var mailBody strings.Builder
+	if err := mailer.LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, tmplName, mockData); err != nil {
+		http.Error(ctx.Resp, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	body := mailBody.String()
@@ -51,7 +53,7 @@ func MailPreviewRender(ctx *context.Context) {
 	// a page can force "color-scheme" on an embedded document but never "prefers-color-scheme"
 	if scheme := ctx.FormString("scheme"); scheme == "light" || scheme == "dark" {
 		body = mailDarkSchemeQuery.ReplaceAllString(body, util.Iif(scheme == "dark", "@media all", "@media not all"))
-		previewStyle += fmt.Sprintf("\n:root {color-scheme: %s}", scheme)
+		previewStyle += "\n:root {color-scheme: " + scheme + "}"
 	}
 	body = strings.Replace(body, "</head>", "<style>"+previewStyle+"</style></head>", 1)
 	// fragment templates like "mail/base/head" would be sniffed as text/plain otherwise

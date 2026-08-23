@@ -13,8 +13,8 @@
 		<div>Preview of: {{.RenderMailTemplateName}}</div>
 		<div>Subject: {{.RenderMailSubject}}</div>
 		<div class="tw-flex tw-gap-4 tw-mt-2">
-			<iframe src="{{AppSubUrl}}/devtest/mail-preview/{{.RenderMailTemplateName}}?scheme=light" class="mail-preview-body"></iframe>
-			<iframe src="{{AppSubUrl}}/devtest/mail-preview/{{.RenderMailTemplateName}}?scheme=dark" class="mail-preview-body"></iframe>
+			<iframe title="Light mail preview" src="{{AppSubUrl}}/devtest/mail-preview/{{.RenderMailTemplateName}}?scheme=light" class="mail-preview-body"></iframe>
+			<iframe title="Dark mail preview" src="{{AppSubUrl}}/devtest/mail-preview/{{.RenderMailTemplateName}}?scheme=dark" class="mail-preview-body"></iframe>
 		</div>
 		<style>
 			.mail-preview-body {

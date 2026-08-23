@@ -6,28 +6,28 @@ Run:
 Jobs:
   - Name: Build and test on Ubuntu with PostgreSQL and object storage
     StatusIconCID: status-success.png
-    StatusIconAlt: "✔"
+    StatusIconAlt: Success
     StatusClass: status-success
     Attempt: 1
     Duration: 1m23s
     HTMLURL: http://localhost/job/1
   - Name: Lint backend, frontend, templates, styles, and documentation
     StatusIconCID: status-failure.png
-    StatusIconAlt: "×"
+    StatusIconAlt: Failure
     StatusClass: status-failure
     Attempt: 2
     Duration: 2m34s
     HTMLURL: http://localhost/job/2
   - Name: Publish release artifacts for Linux, macOS, and Windows
     StatusIconCID: status-cancelled.png
-    StatusIconAlt: "⊘"
+    StatusIconAlt: Cancelled
     StatusClass: status-neutral
     Attempt: 1
     Duration: 3m45s
     HTMLURL: http://localhost/job/3
   - Name: Deploy documentation preview to the staging environment
     StatusIconCID: status-skipped.png
-    StatusIconAlt: "–"
+    StatusIconAlt: Skipped
     StatusClass: status-neutral
     Attempt: 1
     Duration: 0s
