@@ -620,8 +620,8 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 		ownerName, repoName, _ := strings.Cut(opts.Keyword, "/")
 		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name = ? AND lower_name = ? THEN 0 ELSE 1 END, CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, %s", orderBy))
 		args = append(args, strings.ToLower(ownerName), strings.ToLower(repoName), strings.ToLower(ownerName))
-	} else if len(opts.OrderBy) == 0 && opts.Keyword != "" && !opts.TopicOnly && !strings.Contains(opts.Keyword, ",") {
-		// Keep explicit sort orders untouched, but make exact repo name matches win the default ordering.
+	} else if strings.Count(opts.Keyword, "/") == 0 {
+		// Prefer the exact repo name matches win the default ordering.
 		orderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN lower_name = ? THEN 0 ELSE 1 END, %s", orderBy))
 		args = append(args, strings.ToLower(opts.Keyword))
 	}
