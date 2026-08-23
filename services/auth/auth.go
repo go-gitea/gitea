@@ -38,8 +38,9 @@ func Init() {
 	webauthn.Init()
 }
 
-// handleSignIn clears existing session variables and stores new ones for the specified user object
-func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
+// handleSignInNonInteractive clears existing session variables and stores new ones for the specified user object
+// it is mainly for middleware sign-in which doesn't need user's interaction.
+func handleSignInNonInteractive(resp http.ResponseWriter, req *http.Request, sess SessionStore, user *user_model.User) {
 	// We need to regenerate the session...
 	newSess, err := session.RegenerateSession(resp, req)
 	if err != nil {
