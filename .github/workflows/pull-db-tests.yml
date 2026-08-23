@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:2f439458ab6a57a925825ae14f9d06910e4fe4a41c8d4a0ae06397e65b707e1b
+        image: postgres:14@sha256:2fdfb9b432d4a73bd3eea3d989752c1e669b68d502347e0bfd2cc6d709f3d6b4
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -57,7 +57,7 @@ jobs:
     timeout-minutes: 50
     services:
       pgsql:
-        image: postgres:14@sha256:2f439458ab6a57a925825ae14f9d06910e4fe4a41c8d4a0ae06397e65b707e1b
+        image: postgres:14@sha256:2fdfb9b432d4a73bd3eea3d989752c1e669b68d502347e0bfd2cc6d709f3d6b4
         env:
           POSTGRES_DB: test
           POSTGRES_PASSWORD: postgres
@@ -125,7 +125,7 @@ jobs:
         ports:
           - "9200:9200"
       meilisearch:
-        image: getmeili/meilisearch:v1@sha256:d36e713e8f89483af1ab0d72011bbd503f5ab100b68ccbfad51c39e3f0a0567d
+        image: getmeili/meilisearch:v1@sha256:8d6643d86d71fad6ad3cba92cde7ccfce9e4d6c384bda67598eb553571c32431
         env:
           MEILI_ENV: development # disable auth
         ports:

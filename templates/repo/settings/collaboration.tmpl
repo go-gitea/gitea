@@ -51,7 +51,7 @@
 			<h4 class="ui top attached header">
 				{{ctx.Locale.Tr "repo.settings.teams"}}
 			</h4>
-			{{$allowedToChangeTeams := (or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner))}}
+			{{$allowedToChangeTeams := .CanChangeRepoTeamAccess}}
 			{{if .Teams}}
 			<div class="ui attached segment">
 				<div class="flex-divided-list items-with-main">
@@ -62,23 +62,20 @@
 									{{.Name}}
 								</a>
 								<div class="item-body flex-text-block">
-									{{/*FIXME: TEAM-UNIT-PERMISSION this display is not right, search the fixme keyword to see more details */}}
 									{{svg "octicon-shield-lock"}}
-									{{if eq .AccessMode 0}}
-										{{ctx.Locale.Tr "repo.settings.collaboration.per_unit"}}
-									{{else if eq .AccessMode 1}}
-										{{ctx.Locale.Tr "repo.settings.collaboration.read"}}
+									{{if ge .AccessMode 4}}
+										{{ctx.Locale.Tr "repo.settings.collaboration.owner"}}
+									{{else if ge .AccessMode 3}}
+										{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}
 									{{else if eq .AccessMode 2}}
 										{{ctx.Locale.Tr "repo.settings.collaboration.write"}}
-									{{else if eq .AccessMode 3}}
-										{{ctx.Locale.Tr "repo.settings.collaboration.admin"}}
-									{{else if eq .AccessMode 4}}
-										{{ctx.Locale.Tr "repo.settings.collaboration.owner"}}
+									{{else if eq .AccessMode 1}}
+										{{ctx.Locale.Tr "repo.settings.collaboration.read"}}
 									{{else}}
-										{{ctx.Locale.Tr "repo.settings.collaboration.undefined"}}
+										{{ctx.Locale.Tr "repo.settings.collaboration.per_unit"}}
 									{{end}}
 								</div>
-								{{if or (eq .AccessMode 0) (eq .AccessMode 1) (eq .AccessMode 2)}}
+								{{if lt .AccessMode 2}}
 									{{$first := true}}
 												<div class="item-body" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.change_team_permission_tip"}}">
 										Units:

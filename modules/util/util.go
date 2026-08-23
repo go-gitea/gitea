@@ -6,13 +6,13 @@ package util
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	rand2 "math/rand/v2"
 	"slices"
 	"strconv"
-	"strings"
 	"sync"
 
 	"gitea.dev/modules/container"
@@ -20,11 +20,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-// IsEmptyString checks if the provided string is empty
-func IsEmptyString(s string) bool {
-	return len(strings.TrimSpace(s)) == 0
-}
 
 // ParseYamlBool parses YAML 1.2 boolean values into bool
 func ParseYamlBool(s string) bool {
@@ -97,6 +92,10 @@ func CryptoRandomBytes(length int64) []byte {
 		panic(err) // this should never happen, "rand.Read" never fails
 	}
 	return buf
+}
+
+func CryptoConstTimeEqual[T string | []byte](a, b T) bool {
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
 var chaCha8RandPool = sync.OnceValue(func() *sync.Pool {
@@ -316,4 +315,10 @@ func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
 		}
 	}
 	return added, removed
+}
+
+func MustNoError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

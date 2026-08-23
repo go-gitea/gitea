@@ -198,7 +198,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			ctx.PrivateUserErrorf(http.StatusNotFound, "Cannot find repository %s", repoLogName)
 			return
 		}
-		deployKey, err = asymkey_model.GetDeployKeyByRepo(ctx, key.ID, repo.ID)
+		deployKey, err = asymkey_model.GetDeployKeyByRepoPublicKey(ctx, repo.ID, key.ID)
 		if err != nil {
 			if asymkey_model.IsErrDeployKeyNotExist(err) {
 				ctx.PrivateUserErrorf(http.StatusNotFound, "Deploy key %d:%s has no %q permission for %s.", key.ID, key.Name, modeString, repoLogName)

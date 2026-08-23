@@ -12,10 +12,9 @@ import (
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/util"
+	"gitea.dev/modules/validation"
 	"gitea.dev/modules/web/middleware"
 	"gitea.dev/services/webhook"
-
-	"gitea.com/go-chi/binding"
 )
 
 // CreateRepoForm form for creating repository
@@ -27,7 +26,7 @@ type CreateRepoForm struct {
 	Description   string `binding:"MaxSize(2048)"`
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
 	AutoInit      bool
-	Gitignores    string
+	Gitignores    string `binding:"MaxSize(1024)"`
 	IssueLabels   string `binding:"MaxSize(255)"`
 	License       string `binding:"MaxSize(100)"`
 	Readme        string `binding:"MaxSize(255)"`
@@ -263,7 +262,7 @@ type NewSlackHookForm struct {
 	WebhookForm
 }
 
-func (f *NewSlackHookForm) Validate(ctx *middleware.ValidateContext, errs binding.Errors) binding.Errors {
+func (f *NewSlackHookForm) Validate(ctx *middleware.ValidateContext, errs validation.BindingErrors) validation.BindingErrors {
 	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
 		errs = middleware.AddValidationError(errs, "Channel", ctx.Locale.TrString("repo.settings.add_webhook.invalid_channel_name"))
 	}
@@ -337,7 +336,7 @@ type NewPackagistHookForm struct {
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
 	middleware.FormDefaultValidator
-	Title               string `binding:"Required;MaxSize(255)"`
+	Title               string `binding:"TrimSpace;Required;MaxSize(255)"`
 	AssigneeIDs         string `form:"assignee_ids"`
 	ReviewerIDs         string `form:"reviewer_ids"`
 	Ref                 string `form:"ref"`
@@ -551,7 +550,7 @@ type GenerateReleaseNotesForm struct {
 // EditReleaseForm form for changing release
 type EditReleaseForm struct {
 	middleware.FormDefaultValidator
-	Title      string `form:"title" binding:"Required;MaxSize(255)"`
+	Title      string `form:"title" binding:"TrimSpace;Required;MaxSize(255)"`
 	Content    string `form:"content"`
 	Draft      string `form:"draft"`
 	Prerelease bool   `form:"prerelease"`
@@ -559,18 +558,10 @@ type EditReleaseForm struct {
 }
 
 type WikiEditForm struct {
-	Title   string
+	middleware.FormDefaultValidator
+	Title   string `binding:"TrimSpace;Required"`
 	Content string
 	Message string
-}
-
-func (f *WikiEditForm) Validate(ctx *middleware.ValidateContext, errs binding.Errors) binding.Errors {
-	f.Title = strings.TrimSpace(f.Title)
-	if f.Title == "" {
-		errs = middleware.AddValidationError(errs, "title", ctx.Locale.TrString("repo.issues.new.title_empty"))
-	}
-	f.Message = strings.TrimSpace(f.Message)
-	return errs
 }
 
 // AddTimeManuallyForm form that adds spent time manually.
