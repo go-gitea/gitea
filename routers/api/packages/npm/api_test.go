@@ -44,3 +44,34 @@ func TestCreatePackageMetadataResponse(t *testing.T) {
 	assert.Equal(t, []string{"gitea"}, result.Versions["1.0.0"].Keywords)
 	assert.Equal(t, []npm_module.User{{Name: "alice"}}, result.Versions["1.0.0"].Maintainers)
 }
+
+func TestCreatePackageMetadataVersion(t *testing.T) {
+	descriptor := func(name, ver, fileName string) *packages_model.PackageDescriptor {
+		return &packages_model.PackageDescriptor{
+			Package:  &packages_model.Package{Name: name},
+			Owner:    &user_model.User{Name: "alice"},
+			Version:  &packages_model.PackageVersion{Version: ver},
+			SemVer:   version.Must(version.NewVersion(ver)),
+			Metadata: &npm_module.Metadata{},
+			Files: []*packages_model.PackageFileDescriptor{{
+				File: &packages_model.PackageFile{LowerName: fileName},
+				Blob: &packages_model.PackageBlob{},
+			}},
+		}
+	}
+
+	const registryURL = "https://gitea.dev/api/packages/alice/npm"
+
+	t.Run("scoped", func(t *testing.T) {
+		// url.QueryEscape would leave '@' unescaped and emit '@scope%2Fname',
+		// which npm clients cannot resolve. url.PathEscape emits the
+		// RFC 3986 path-segment-safe '@scope%2Fname' that npm registry URLs require.
+		got := createPackageMetadataVersion(registryURL, descriptor("@scope/name", "1.0.0", "name-1.0.0.tgz"))
+		assert.Equal(t, registryURL+"/@scope%2Fname/-/1.0.0/name-1.0.0.tgz", got.Dist.Tarball)
+	})
+
+	t.Run("unscoped", func(t *testing.T) {
+		got := createPackageMetadataVersion(registryURL, descriptor("name", "1.0.0", "name-1.0.0.tgz"))
+		assert.Equal(t, registryURL+"/name/-/1.0.0/name-1.0.0.tgz", got.Dist.Tarball)
+	})
+}
