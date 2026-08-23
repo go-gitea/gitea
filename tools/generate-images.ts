@@ -4,18 +4,15 @@ import {optimize} from 'svgo';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {argv, exit} from 'node:process';
 
-const octiconDirectory = new URL('../node_modules/@primer/octicons/build/svg/', import.meta.url);
-const mailIconSources = {
-  'octicon-check-circle-fill-16': new URL('check-circle-fill-16.svg', octiconDirectory),
-  'octicon-x-circle-fill-16': new URL('x-circle-fill-16.svg', octiconDirectory),
-  'octicon-stop-16': new URL('stop-16.svg', octiconDirectory),
-  'octicon-skip-16': new URL('skip-16.svg', octiconDirectory),
-} as const;
-
-// Keep mail icon colors in sync with workflow_run.tmpl.
-async function generateMailIcon(octicon: keyof typeof mailIconSources, name: string, color: string) {
-  const svg = (await readFile(mailIconSources[octicon], 'utf8')).replace('<svg ', `<svg fill="${color}" `);
-  await generate(svg, `../services/mailer/icons/${name}.png`, {size: 48});
+async function generateMailIcon(icon: string, name: string, color: string) {
+  await generate(
+    (await readFile(
+      new URL(import.meta.resolve(`${icon.replace('octicon-', '@primer/octicons/build/svg/')}.svg`)),
+      'utf8',
+    )).replace('<svg ', `<svg fill="${color}" `),
+    `../services/mailer/icons/${name}.png`,
+    {size: 48},
+  );
 }
 
 async function generate(svg: string, path: string, {size, bg}: {size: number, bg?: boolean}) {
