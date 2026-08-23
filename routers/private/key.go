@@ -29,7 +29,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}
-	if err = deploykey_model.UpdateDeployKeyUpdated(ctx, deployKey.ID); err != nil {
+	if err = deploykey_model.UpdateDeployKeyLastUsed(ctx, deployKey.ID); err != nil {
 		ctx.PrivateInternalErrorf("%v", err)
 		return
 	}

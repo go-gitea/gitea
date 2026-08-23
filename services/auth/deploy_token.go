@@ -38,7 +38,7 @@ func (d *DeployToken) Verify(req *http.Request, _ http.ResponseWriter, store Dat
 		return nil, err
 	}
 
-	if err := deploykey_model.UpdateDeployKeyUpdated(req.Context(), key.ID); err != nil {
+	if err := deploykey_model.UpdateDeployKeyLastUsed(req.Context(), key.ID); err != nil {
 		log.Error("UpdateDeployKeyUpdated: %v", err)
 	}
 

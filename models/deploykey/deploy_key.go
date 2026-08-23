@@ -138,8 +138,8 @@ func IsDeployKeyExistByPublicKeyID(ctx context.Context, keyID int64) (bool, erro
 	return db.Exist[DeployKey](ctx, builder.Eq{"key_id": keyID, "type": AuthTypeSSH})
 }
 
-// UpdateDeployKeyUpdated marks the key as used now.
-func UpdateDeployKeyUpdated(ctx context.Context, id int64) error {
+// UpdateDeployKeyLastUsed marks the key as used now.
+func UpdateDeployKeyLastUsed(ctx context.Context, id int64) error {
 	_, err := db.GetEngine(ctx).ID(id).Cols("updated_unix").Update(&DeployKey{UpdatedUnix: timeutil.TimeStampNow()})
 	return err
 }
