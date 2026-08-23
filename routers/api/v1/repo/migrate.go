@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"gitea.dev/models/db"
 	"gitea.dev/models/organization"
@@ -247,13 +246,12 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, err
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)
 		_, fromGit := gitcmd.ErrorAsStderr(err)
-		if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) ||
-			gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) ||
-			strings.Contains(err.Error(), "Bad credentials") { // from the GitHub API response, not from git
+		switch {
+		case migrations.IsAuthenticationError(err):
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Authentication failed: %v.", err))
-		} else if fromGit {
+		case fromGit:
 			ctx.APIError(http.StatusUnprocessableEntity, fmt.Sprintf("Migration failed: %v.", err))
-		} else {
+		default:
 			ctx.APIErrorInternal(err)
 		}
 	}

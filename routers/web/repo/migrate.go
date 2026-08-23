@@ -8,14 +8,12 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strings"
 
 	admin_model "gitea.dev/models/admin"
 	"gitea.dev/models/db"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 	"gitea.dev/modules/git"
-	"gitea.dev/modules/git/gitcmd"
 	"gitea.dev/modules/json"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
@@ -82,10 +80,6 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 	var errNameReserved db.ErrNameReserved
 	var errNamePatternNotAllowed db.ErrNamePatternNotAllowed
 	switch {
-	case migrations.IsRateLimitError(err):
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.visit_rate_limit"), tpl, form)
-	case migrations.IsTwoFactorAuthError(err):
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.2fa_auth_required"), tpl, form)
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
@@ -112,19 +106,7 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErrDeprecated(ctx.Tr("repo.form.name_pattern_not_allowed", errNamePatternNotAllowed.Pattern), tpl, form)
 	default:
-		err = util.SanitizeErrorCredentialURLs(err)
-		_, fromGit := gitcmd.ErrorAsStderr(err)
-		if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) ||
-			gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) ||
-			strings.Contains(err.Error(), "Bad credentials") { // from the GitHub API response, not from git
-			ctx.Data["Err_Auth"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.auth_failed", err.Error()), tpl, form)
-		} else if fromGit {
-			ctx.Data["Err_CloneAddr"] = true
-			ctx.RenderWithErrDeprecated(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
-		} else {
-			ctx.ServerError(name, err)
-		}
+		ctx.ServerError(name, util.SanitizeErrorCredentialURLs(err))
 	}
 }
 

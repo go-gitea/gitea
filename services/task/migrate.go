@@ -145,7 +145,7 @@ func runMigrateTask(ctx context.Context, t *admin_model.Task) (err error) {
 
 	// remoteAddr may contain credentials, so we sanitize it
 	err = util.SanitizeErrorCredentialURLs(err)
-	if gitcmd.IsStderr(err, gitcmd.StderrAuthenticationFailed) || gitcmd.IsStderr(err, gitcmd.StderrCouldNotReadUsername) {
+	if migrations.IsAuthenticationError(err) {
 		return fmt.Errorf("authentication failed: %w", err)
 	}
 	if _, fromGit := gitcmd.ErrorAsStderr(err); fromGit {
