@@ -44,18 +44,6 @@ function onKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape') tippyInstance.hide();
 }
 
-const fitMenuToViewport = {
-  name: 'fitMenuToViewport',
-  enabled: true,
-  phase: 'beforeWrite' as const,
-  requires: ['computeStyles'],
-  fn({state}: {state: {placement: string, elements: {reference: {getBoundingClientRect: () => DOMRect}, popper: HTMLElement}}}) {
-    const rect = state.elements.reference.getBoundingClientRect();
-    const space = state.placement.startsWith('top') ? rect.top : window.innerHeight - rect.bottom;
-    state.elements.popper.style.setProperty('--diff-ext-filter-max-height', `${Math.round(space - 16)}px`);
-  },
-};
-
 onMounted(() => {
   tippyInstance = createTippy(triggerEl.value!, {
     content: panelEl.value!,
@@ -65,7 +53,7 @@ onMounted(() => {
     placement: 'bottom-end',
     theme: 'menu',
     arrow: false,
-    popperOptions: {modifiers: [fitMenuToViewport]},
+    limitSizeToViewport: {vertical: true},
     onShow: () => document.addEventListener('keydown', onKeyDown),
     onHide: () => document.removeEventListener('keydown', onKeyDown),
   });
@@ -118,11 +106,8 @@ onUnmounted(() => {
 
 <style scoped>
 .diff-ext-filter-menu {
-  display: flex;
-  flex-direction: column;
   min-width: 192px;
   max-width: 320px;
-  max-height: var(--diff-ext-filter-max-height, 50vh);
 }
 
 .diff-ext-filter-header {
@@ -135,13 +120,10 @@ onUnmounted(() => {
 .diff-ext-filter-list {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  min-height: 0;
 }
 
 .diff-ext-filter-menu .item {
   width: auto; /* buttons are shrink-to-fit, the flex column parent stretches them */
-  flex: none;
   margin: 0 4px; /* matches the menu's vertical padding so the inset is even on all sides */
   padding: 6px 12px;
   gap: 8px;

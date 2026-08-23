@@ -14,6 +14,18 @@
   max-width: calc(100vw - 32px);
 }
 
+/* opt-in via createTippy's "limitSizeToViewport" */
+[data-tippy-limit-size] .tippy-box {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--tippy-max-width, none);
+  max-height: var(--tippy-max-height, none);
+}
+
+[data-tippy-limit-size] .tippy-content {
+  overflow: auto;
+}
+
 .tippy-box {
   position: relative;
   background-color: var(--color-menu);
