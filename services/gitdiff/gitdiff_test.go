@@ -192,6 +192,7 @@ diff --git "\\a/README.md" "\\b/README.md"
 		})
 	}
 }
+
 func TestParsePatch_LFSRepositoryScope(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
