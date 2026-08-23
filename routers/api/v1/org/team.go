@@ -658,14 +658,19 @@ func getRepositoryByParams(ctx *context.APIContext) *repo_model.Repository {
 	return repo
 }
 
-func canChangeTeamRepository(ctx *context.APIContext) bool {
-	canChange, err := ctx.Org.Organization.CanChangeRepoTeamAccess(ctx, ctx.Doer)
+func canChangeTeamRepository(ctx *context.APIContext, repo *repo_model.Repository) bool {
+	accessMode, err := access_model.AccessLevel(ctx, ctx.Doer, repo)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return false
+	}
+	canChange, err := ctx.Org.Organization.CanChangeRepoTeamAccess(ctx, ctx.Doer, accessMode)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return false
 	}
 	if !canChange {
-		ctx.APIError(http.StatusForbidden, "Must be an organization owner")
+		ctx.APIError(http.StatusForbidden, "Must have permission to manage team repository access")
 		return false
 	}
 	return true
@@ -707,14 +712,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if !canChangeTeamRepository(ctx) {
-		return
-	}
-	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if access < perm.AccessModeAdmin {
-		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
+	if !canChangeTeamRepository(ctx, repo) {
 		return
 	}
 	if err := repo_service.TeamAddRepository(ctx, ctx.Org.Team, repo); err != nil {
@@ -762,14 +760,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if !canChangeTeamRepository(ctx) {
-		return
-	}
-	if access, err := access_model.AccessLevel(ctx, ctx.Doer, repo); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if access < perm.AccessModeAdmin {
-		ctx.APIError(http.StatusForbidden, "Must have admin-level access to the repository")
+	if !canChangeTeamRepository(ctx, repo) {
 		return
 	}
 	if err := repo_service.RemoveRepositoryFromTeam(ctx, ctx.Org.Team, repo.ID); err != nil {

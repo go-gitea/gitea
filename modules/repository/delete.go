@@ -6,28 +6,16 @@ package repository
 import (
 	"context"
 
-	"gitea.dev/models/organization"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	user_model "gitea.dev/models/user"
 )
 
-// CanUserDelete returns true if user could delete the repository
+// CanUserDelete returns true if the user can delete the repository.
 func CanUserDelete(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	if user.IsAdmin || user.ID == repo.OwnerID {
-		return true, nil
-	}
-
-	if err := repo.LoadOwner(ctx); err != nil {
+	permission, err := access_model.GetIndividualUserRepoPermission(ctx, repo, user)
+	if err != nil {
 		return false, err
 	}
-
-	if repo.Owner.IsOrganization() {
-		isAdmin, err := organization.OrgFromUser(repo.Owner).IsOrgAdmin(ctx, user.ID)
-		if err != nil {
-			return false, err
-		}
-		return isAdmin, nil
-	}
-
-	return false, nil
+	return permission.IsOwner(), nil
 }

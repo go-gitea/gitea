@@ -44,7 +44,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Org"] = ctx.Repo.Repository.Owner
 	ctx.Data["Units"] = unit_model.Units
 	if ctx.Repo.Owner.IsOrganization() {
-		ctx.Data["CanChangeRepoTeamAccess"], err = organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer)
+		ctx.Data["CanChangeRepoTeamAccess"], err = organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer, ctx.Repo.Permission.AccessMode)
 		if err != nil {
 			ctx.ServerError("CanChangeRepoTeamAccess", err)
 			return
@@ -226,7 +226,7 @@ func DeleteTeam(ctx *context.Context) {
 }
 
 func canChangeRepoTeamAccess(ctx *context.Context) bool {
-	canChange, err := organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer)
+	canChange, err := organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer, ctx.Repo.Permission.AccessMode)
 	if err != nil {
 		ctx.ServerError("CanChangeRepoTeamAccess", err)
 		return false

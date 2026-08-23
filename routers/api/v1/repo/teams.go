@@ -225,13 +225,13 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 }
 
 func canChangeRepoTeam(ctx *context.APIContext) bool {
-	canChange, err := organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer)
+	canChange, err := organization.OrgFromUser(ctx.Repo.Owner).CanChangeRepoTeamAccess(ctx, ctx.Doer, ctx.Repo.Permission.AccessMode)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return false
 	}
 	if !canChange {
-		ctx.APIError(http.StatusForbidden, "Must be an organization owner")
+		ctx.APIError(http.StatusForbidden, "Must have permission to manage team repository access")
 		return false
 	}
 	return true

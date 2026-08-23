@@ -47,8 +47,10 @@ func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer
 	if err != nil && !repo_model.IsErrRepoNotExist(err) {
 		return fmt.Errorf("error getting repository %d: %w", pkg.RepoID, err)
 	}
-	if err == nil {
-		perms, err := access_model.GetDoerRepoPermission(ctx, repo, doer)
+	repoExists := err == nil
+	var perms access_model.Permission
+	if repoExists {
+		perms, err = access_model.GetDoerRepoPermission(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("error getting permissions for user %d on repository %d: %w", doer.ID, repo.ID, err)
 		}
@@ -66,11 +68,15 @@ func UnlinkFromRepository(ctx context.Context, pkg *packages_model.Package, doer
 			if doer.ID != pkg.OwnerID {
 				return fmt.Errorf("no permission to unlink package '%v' from its repository, or packages are disabled", pkg.Name)
 			}
+		} else if repoExists {
+			if !perms.IsOwner() {
+				return fmt.Errorf("no permission to unlink package '%v' from its repository, or packages are disabled", pkg.Name)
+			}
 		} else {
-			isOrgAdmin, err := org_model.OrgFromUser(user).IsOrgAdmin(ctx, doer.ID)
+			isOwner, err := org_model.OrgFromUser(user).IsOwnedBy(ctx, doer.ID)
 			if err != nil {
 				return err
-			} else if !isOrgAdmin {
+			} else if !isOwner {
 				return fmt.Errorf("no permission to unlink package '%v' from its repository, or packages are disabled", pkg.Name)
 			}
 		}

@@ -44,6 +44,37 @@ func TestUser_IsOwnedBy(t *testing.T) {
 	}
 }
 
+func TestOrganization_CanChangeRepoTeamAccess(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repoAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
+	siteAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	for _, testCase := range []struct {
+		name            string
+		doer            *user_model.User
+		repoAccessMode  perm.AccessMode
+		allowRepoAdmins bool
+		expected        bool
+	}{
+		{"anonymous", nil, perm.AccessModeOwner, true, false},
+		{"site admin", siteAdmin, perm.AccessModeNone, false, true},
+		{"organization owner with repository admin access", owner, perm.AccessModeAdmin, false, true},
+		{"organization owner without repository admin access", owner, perm.AccessModeWrite, false, false},
+		{"repository admin when disabled", repoAdmin, perm.AccessModeAdmin, false, false},
+		{"repository admin when enabled", repoAdmin, perm.AccessModeAdmin, true, true},
+		{"repository writer when enabled", repoAdmin, perm.AccessModeWrite, true, false},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			org.RepoAdminChangeTeamAccess = testCase.allowRepoAdmins
+			canChange, err := org.CanChangeRepoTeamAccess(t.Context(), testCase.doer, testCase.repoAccessMode)
+			assert.NoError(t, err)
+			assert.Equal(t, testCase.expected, canChange)
+		})
+	}
+}
+
 func TestUser_IsOrgMember(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	for _, testCase := range []struct {

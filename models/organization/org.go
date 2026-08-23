@@ -91,17 +91,21 @@ func (org *Organization) IsOwnedBy(ctx context.Context, uid int64) (bool, error)
 	return IsOrganizationOwner(ctx, org.ID, uid)
 }
 
-// CanChangeRepoTeamAccess reports whether a repository administrator can change team access.
-func (org *Organization) CanChangeRepoTeamAccess(ctx context.Context, doer *user_model.User) (bool, error) {
-	if org.RepoAdminChangeTeamAccess || doer.IsAdmin {
+// CanChangeRepoTeamAccess reports whether the doer can change team access for a repository.
+func (org *Organization) CanChangeRepoTeamAccess(ctx context.Context, doer *user_model.User, repoAccessMode perm.AccessMode) (bool, error) {
+	if doer == nil {
+		return false, nil
+	}
+	if doer.IsAdmin {
+		return true, nil
+	}
+	if repoAccessMode < perm.AccessModeAdmin {
+		return false, nil
+	}
+	if org.RepoAdminChangeTeamAccess {
 		return true, nil
 	}
 	return org.IsOwnedBy(ctx, doer.ID)
-}
-
-// IsOrgAdmin returns true if given user is in the owner team or an admin team.
-func (org *Organization) IsOrgAdmin(ctx context.Context, uid int64) (bool, error) {
-	return IsOrganizationAdmin(ctx, org.ID, uid)
 }
 
 // IsOrgMember returns true if given user is member of organization.

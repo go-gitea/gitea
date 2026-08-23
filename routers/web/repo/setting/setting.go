@@ -22,6 +22,7 @@ import (
 	"gitea.dev/modules/indexer/stats"
 	"gitea.dev/modules/lfs"
 	"gitea.dev/modules/log"
+	repo_module "gitea.dev/modules/repository"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/structs"
 	"gitea.dev/modules/templates"
@@ -938,7 +939,12 @@ func handleSettingsPostCancelTransfer(ctx *context.Context) {
 func handleSettingsPostDelete(ctx *context.Context) {
 	form := web.GetForm[*forms.RepoSettingForm](ctx)
 	repo := ctx.Repo.Repository
-	if !ctx.Repo.Permission.IsOwner() {
+	canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("CanUserDelete", err)
+		return
+	}
+	if !canDelete {
 		ctx.JSONErrorNotFound()
 		return
 	}

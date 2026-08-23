@@ -11,6 +11,7 @@ import (
 	asymkey_model "gitea.dev/models/asymkey"
 	"gitea.dev/models/organization"
 	"gitea.dev/models/perm"
+	access_model "gitea.dev/models/perm/access"
 	repo_model "gitea.dev/models/repo"
 	"gitea.dev/models/unittest"
 	user_model "gitea.dev/models/user"
@@ -194,6 +195,7 @@ func TestAddTeamPost(t *testing.T) {
 	}
 
 	repo := &context.Repository{
+		Permission: access_model.Permission{AccessMode: perm.AccessModeAdmin},
 		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
@@ -203,6 +205,7 @@ func TestAddTeamPost(t *testing.T) {
 	}
 
 	ctx.Repo = repo
+	ctx.Doer = &user_model.User{ID: 1}
 
 	AddTeamPost(ctx)
 
@@ -219,7 +222,7 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 	targetTeam := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	require.NoError(t, repo_service.TeamAddRepository(t.Context(), adminTeam, repo))
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 28})
-	repoContext := &context.Repository{Owner: repo.Owner, Repository: repo}
+	repoContext := &context.Repository{Permission: access_model.Permission{AccessMode: perm.AccessModeOwner}, Owner: repo.Owner, Repository: repo}
 	renderCtx, _ := contexttest.MockContext(t, repo.Link()+"/settings/collaboration")
 	renderCtx.Repo = repoContext
 	renderCtx.Doer = doer
@@ -261,6 +264,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 	}
 
 	repo := &context.Repository{
+		Permission: access_model.Permission{AccessMode: perm.AccessModeAdmin},
 		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
@@ -270,6 +274,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 	}
 
 	ctx.Repo = repo
+	ctx.Doer = &user_model.User{ID: 1}
 
 	AddTeamPost(ctx)
 
@@ -297,6 +302,7 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 	}
 
 	repo := &context.Repository{
+		Permission: access_model.Permission{AccessMode: perm.AccessModeAdmin},
 		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
@@ -306,6 +312,7 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 	}
 
 	ctx.Repo = repo
+	ctx.Doer = &user_model.User{ID: 1}
 
 	AddTeamPost(ctx)
 	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
@@ -335,6 +342,7 @@ func TestDeleteTeam(t *testing.T) {
 	}
 
 	repo := &context.Repository{
+		Permission: access_model.Permission{AccessMode: perm.AccessModeAdmin},
 		Owner: &user_model.User{
 			ID:                        3,
 			LowerName:                 "org3",
@@ -344,6 +352,7 @@ func TestDeleteTeam(t *testing.T) {
 	}
 
 	ctx.Repo = repo
+	ctx.Doer = &user_model.User{ID: 1}
 
 	DeleteTeam(ctx)
 
