@@ -1,39 +1,34 @@
 Subject: "[user/repo] Failure: workflow.yml (main - 1234567890)"
-RunStatusText: Jobs status aggregation
-
-Repo:
-  FullName: user/repo
 
 Run:
-  WorkflowID: workflow.yml
   HTMLURL: http://localhost/run/1
 
 Jobs:
-  - Name: Job-Name-1
-    StatusIcon: status-success.png
+  - Name: Build and test on Ubuntu with PostgreSQL and object storage
+    StatusIconCID: status-success.png
     StatusIconAlt: "✔"
     StatusClass: status-success
-    StatusText: Success
     Attempt: 1
+    Duration: 1m23s
     HTMLURL: http://localhost/job/1
-  - Name: Job-Name-2
-    StatusIcon: status-failure.png
+  - Name: Lint backend, frontend, templates, styles, and documentation
+    StatusIconCID: status-failure.png
     StatusIconAlt: "×"
     StatusClass: status-failure
-    StatusText: Failure
     Attempt: 2
+    Duration: 2m34s
     HTMLURL: http://localhost/job/2
-  - Name: Job-Name-3
-    StatusIcon: status-cancelled.png
+  - Name: Publish release artifacts for Linux, macOS, and Windows
+    StatusIconCID: status-cancelled.png
     StatusIconAlt: "⊘"
     StatusClass: status-neutral
-    StatusText: Canceled
     Attempt: 1
+    Duration: 3m45s
     HTMLURL: http://localhost/job/3
-  - Name: Job-Name-4
-    StatusIcon: status-skipped.png
+  - Name: Deploy documentation preview to the staging environment
+    StatusIconCID: status-skipped.png
     StatusIconAlt: "–"
     StatusClass: status-neutral
-    StatusText: Skipped
     Attempt: 1
+    Duration: 0s
     HTMLURL: http://localhost/job/4

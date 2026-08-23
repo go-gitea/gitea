@@ -4,10 +4,9 @@ import {optimize} from 'svgo';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {argv, exit} from 'node:process';
 
-// mail clients don't render svg, so status icons ship as png in fixed mid-tone colors that
-// work on light and dark backgrounds. Keep in sync with modules/action-status-icon.ts.
+// Keep mail icon colors in sync with workflow_run.tmpl.
 async function generateMailIcon(octicon: string, name: string, color: string) {
-  const url = new URL(`../node_modules/@primer/octicons/build/svg/${octicon}-16.svg`, import.meta.url);
+  const url = new URL(`../node_modules/@primer/octicons/build/svg/${octicon.replace('octicon-', '')}.svg`, import.meta.url);
   const svg = (await readFile(url, 'utf8')).replace('<svg ', `<svg fill="${color}" `);
   await generate(svg, `../services/mailer/icons/${name}.png`, {size: 32});
 }
@@ -52,10 +51,10 @@ async function main() {
   await mkdir(new URL('../services/mailer/icons/', import.meta.url), {recursive: true});
 
   await Promise.all([
-    generateMailIcon('check-circle-fill', 'status-success', '#2da44e'),
-    generateMailIcon('x-circle-fill', 'status-failure', '#e5534b'),
-    generateMailIcon('stop', 'status-cancelled', '#808080'),
-    generateMailIcon('skip', 'status-skipped', '#808080'),
+    generateMailIcon('octicon-check-circle-fill-16', 'status-success', '#2da44e'),
+    generateMailIcon('octicon-x-circle-fill-16', 'status-failure', '#e5534b'),
+    generateMailIcon('octicon-stop-16', 'status-cancelled', '#8c959f'),
+    generateMailIcon('octicon-skip-16', 'status-skipped', '#8c959f'),
     generate(logoSvg, '../public/assets/img/logo.svg', {size: 32}),
     generate(logoSvg, '../public/assets/img/logo.png', {size: 512}),
     generate(faviconSvg, '../public/assets/img/favicon.svg', {size: 32}),

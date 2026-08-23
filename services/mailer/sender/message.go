@@ -30,13 +30,14 @@ type Message struct {
 	Date            time.Time
 	Body            string
 	Headers         map[string][]string
-	Embeds          []*EmbeddedFile
+	Embeds          []EmbeddedFile
 }
 
-// EmbeddedFile is an inline attachment that the HTML body references via "cid:<Name>" URIs
+// EmbeddedFile is an inline attachment referenced by its ContentID.
 type EmbeddedFile struct {
-	Name    string
-	Content []byte
+	Name      string
+	ContentID string
+	Content   []byte
 }
 
 // ToMessage converts a Message to gomail.Message
@@ -70,8 +71,7 @@ func (m *Message) ToMessage() *gomail.Msg {
 		msg.SetBodyString("text/plain", plainBody)
 		msg.AddAlternativeString("text/html", m.Body)
 		for _, embed := range m.Embeds {
-			// the writer derives the "Content-ID" header from the file name
-			if err := msg.EmbedReader(embed.Name, bytes.NewReader(embed.Content)); err != nil {
+			if err := msg.EmbedReader(embed.Name, bytes.NewReader(embed.Content), gomail.WithFileContentID("<"+embed.ContentID+">")); err != nil {
 				log.Error("Failed to embed %q into mail: %v", embed.Name, err)
 			}
 		}

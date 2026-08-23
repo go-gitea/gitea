@@ -1,5 +1,5 @@
-Subject: New release in user/repo
-Link: http://localhost/user/repo/releases
+Subject: v1.0.0 in user/repo released
+Link: http://localhost/user/repo/releases/tag/v1.0.0
 
 # no Attachments mock because "FileSize" requires int64 which yaml cannot produce
 Release:
