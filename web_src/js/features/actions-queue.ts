@@ -49,7 +49,7 @@ function bindActionQueueList(el: HTMLElement): void {
       onChoose() {
         reordering = true;
       },
-      async onEnd(e) { // eslint-disable-line @typescript-eslint/no-misused-promises
+      async onEnd(e) { // eslint-disable-line @typescript-eslint/no-misused-promises -- Sortable requires an async callback to persist the reordered job.
         try {
           const movedId = e.item.getAttribute('data-job-id');
           if (!movedId) return;
